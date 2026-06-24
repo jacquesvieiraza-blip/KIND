@@ -1,6 +1,6 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: Wednesday 24 June 2026** *(Day 1 of the 2-week plan)* · post-launch (live since 18 Jun) · currency **USD**
+**As of: Thursday 25 June 2026** *(Day 2 of the 2-week plan)* · post-launch (live since 18 Jun) · currency **USD** · 🔥 **build freeze LIFTED**
 
 > 🧭 **Four-doc contract:** **LAUNCH-PAD** (this) = what to do, when, by whom · **PRODUCT-INVENTORY** = status (the board lives there *only*, script-counted — this doc never copies the numbers, so it can't go stale) · **KIND-MASTER** = strategy + why · **V2-TRACKER** = future.
 >
@@ -10,10 +10,10 @@
 
 ## ⚡ STATE — the one picture
 
-- **✅ DONE (24 Jun):** 198 warmup rig **ordered** · 120/121 **unblocked** · partner portal v2 DEMO **shipped** (#712) + **Alex** · steal 227 **logged** · **211 Phase 1 DONE** (Smartlead key live + verified) · **full doc↔code audit run** (this session + new-session 5-auditor pass, cross-checked).
-- **🧊 BUILD FREEZE ON** until the audit fixes land. Docs/dot fixes only — no new feature code till the founder lifts it.
-- **▶️ NEXT UP (in order):** ① **reconcile PR** (P0 doc fixes: stale RESUME block · archive banners · 182/185/192/180 dots) · ② **P1/P2** doc-dot flips + log untracked work · ③ confirm **220** (kind-staging? + commission types) → build real-data backend · ④ **211 Phase 2** (gated on **staging-branch repair**) · ⑤ code-bug backlog C1–C6 (after freeze lifts).
-- **🎯 GOAL: ENGINE HOT ≈ mid-July** — domain warmed (~90%) **and** 211 Phases 2–6 built/previewed/live.
+- **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241). Board **Σ244** (`--check` OK), dots now match the code. *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
+- **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
+- **▶️ TODAY (Thu 25) — your actions:** ① **confirm 220** (`kind-staging`? + keep `expansion`?) · ② submit **Vapi (96) · WhatsApp-Meta (128) · Google OAuth (126)** keys (long-lead, start now) · ③ **decide Paystack** keep/kill (gates C3 / item 237). · 🤖 I begin **C1/C2** partner fix (rates→20%+5% + kill ZAR) on a preview branch.
+- **🎯 GOAL: ENGINE HOT ≈ mid-July** — domain warmed (~90%) **and** 211 Phases 2–6 built/previewed/live. **Critical path = the `staging`-branch repair (Mon 29)** — every engine preview gates on it.
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
   - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**
@@ -23,14 +23,13 @@
 
 ---
 
-## 🗓️ THE 2-WEEK PLAN — day by day (Wed 24 Jun → Tue 8 Jul) · 🎯 ENGINE HOT ≈ mid-July
+## 🗓️ THE 2-WEEK PLAN — day by day (Wed 24 Jun → Tue 7 Jul) · 🎯 ENGINE HOT ≈ mid-July
 
-> 🧊 **Reconcile-first.** The freeze holds through the doc/dot fixes; engine + code-bug work follows. 🧍 you · 🤖 me · 🤝 both.
+> 🔥 **Freeze lifted 24 Jun · AGGRESSIVE + parallel.** The engine (211) is the spine; ex-gated builds run as **parallel previewed lanes** beside it — fast but **accurate** (each: own branch → preview → founder approve → live; nothing ships unwalked). 🧍 you · 🤖 me · 🤝 both.
 
-### Wed 24 Jun — Day 1 · AUDIT DONE → RECONCILE
-- ✅ 198 ordered · 211 Phase 1 done · portal v2 shipped · steal 227 + item 228 logged · **full doc↔code audit run + cross-checked (2 audits).**
-- 🤖 **P0 doc-fix PR** — stale RESUME block (KIND-MASTER ~L200) · archive banners (`KIND_Roadmap`/`KIND_SOP`) · false-live dots 182/185→🟡, 192→🔴, 180 fix.
-- 🤖 **P1/P2 PR** — doc-dot flips (116/59/184/139/55a up · 24/93/165/109 down) + log untracked work (voice backend · `lena` dead-code · ~34 founder epics).
+### Wed 24 Jun — Day 1 · AUDIT → RECONCILE ✅ DONE
+- ✅ 198 ordered · 211 Phase 1 done · portal v2 #712 + Alex · steal 227 + item 228 logged · **full doc↔code audit (2 passes, cross-checked).**
+- ✅ **RECONCILE MERGED** — #719 (audit) · #721 (audit fixes) · **#723** (P0 truth-fixes · P1 dot flips · P2 untracked items 229–234 · P3 code-fix backlog 235–241). Board **Σ244**, dots match code. **Freeze lifted.**
 
 ### Thu 25 Jun — Day 2 · KEYS + DECISIONS
 - 🧍 submit **Vapi (96)** · **WhatsApp/Meta (128)** · **Google OAuth (126)** — long-lead, start now.
@@ -38,7 +37,7 @@
 - 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR display) on a preview branch.
 
 ### Fri 26 Jun — Day 3 · TRUST WALK + 220
-- 🤝 **Live walk** `app.get-kind.com` — tick the ~25 🩷 builds → flip 🟢 or I revert. *(Biggest single unlock.)*
+- 🤝 **Live walk** `app.get-kind.com` — walk the **🩷 live-not-walked set** (65 items; checklist = `LIVE-FEATURE-WALK.md`) → flip 🟢 or I revert. *(Biggest single unlock.)*
 - 🤖 build **220** real-data backend → preview · 🧍 confirm Denise **$39** checkout (58).
 
 ### Sat 27 / Sun 28 Jun — light
@@ -65,34 +64,33 @@
 - 🧍 legal calendar: **102** pack · SEIS · trademark (resolve the L192/L305 contradiction) · D&O · DPAs · ARIPO.
 - 🤖 **131** funnel instrumentation *(needs 🧍 the 10-analytics decision)* · **134** social-cut groundwork.
 
-### Sat 5 / Sun 6 Jul — light
+### Sat 4 / Sun 5 Jul — light
 - 🧍 warmup placement check (near inbox-ready) · publish the 3 ready blog articles.
 
-### Mon 7 Jul — Day 9 · ENGINE PHASES 5/6 🔥
+### Mon 6 Jul — Day 9 · ENGINE PHASES 5/6 🔥
 - 🤖 **211 Phase 5/6** deliverability monitoring + the live client sending path → preview → 🧍 approve → **GO LIVE.**
 - 🧍 **199** wire UptimeRobot/BetterStack + Railway/Supabase/Resend alerts.
 
-### Tue 8 Jul — Day 10 · CLOSE + GO 🔥
+### Tue 7 Jul — Day 10 · CLOSE + GO 🔥
 - 🤝 fortnight-close walk → flip remaining 🩷→🟢, reconcile the board · prune stale branches.
 - 🧍 domain warmed (~90%) → **ENGINE HOT** · **127** warm outreach + LinkedIn begins · **142** Product Hunt/G2 prep.
 
-### ▶️ AFTER ENGINE HOT (from ~10 Jul)
+### ▶️ AFTER ENGINE HOT (from ~8 Jul)
 - 🧍 GTM on: **129** demo → Drop 01 · **132** dogfood · **133** 2 design partners · **138** influencer.
-- 🤖 deferred builds in priority: **120** Memory v2 · **121** Casey V2 · **144** Denise deep · **145** LENA+TONY · **141** MCP server · **212** 6-step sequence.
+- 🤖 anything that didn't land in the fortnight's parallel lanes (120/121/144/145/141/212) + remaining **partner UI** (221–226) + the **intelligence layer** (139 contextual-bandit · 143 learning engine when client-gated).
 - 🤝 seller engine real build (200/202/203) + **228** recruiter override + the partner-recruiting motion · business-model training day → operating SOP (204).
 
 ---
 
-## 🔓 PULLED FORWARD — ex-"gated", now in the sprint *(decided 23 Jun)*
-These were parked as "later / Month-2 / gated." The gate was only **effort or your input** — *not* real clients — so they're **active now**, sequenced around the ENGINE (211 stays the #1 build). Status of record = PRODUCT-INVENTORY.
-- ✅→🤖 **120 Memory v2 / pgvector** — pgvector enabled on staging (23 Jun) → I build (Day 3–4).
-- ✅→🤖 **121 Casey conversational onboarding V2** ⭐ — voice captured (23 Jun) → I build (Day 4–5).
-- ⏸ **165 Visitor Intelligence** — **DEFERRED to post-2-week** (thin Africa coverage).
-- 🤖 **145 LENA (CS agent) + TONY (ops)** ⭐ churn-defence — build (Day 5–6).
-- 🤖 **141 Context-backed MCP server** — build (Day 6–7).
-- 🤖 **144 Denise deep** (auto-book · notetaker · proposal-from-transcript) — build (Day 7–8).
-- 🤖 **157 / 158** personalised email images · voice morning brief — polish (Day 9–10).
-> **Honest scope:** the ENGINE (211) is still #1 and eats my mornings; these fill the capacity around it. What doesn't land in the fortnight **carries** — but none of it is "gated" anymore. *(Still genuinely gated — need real clients/data/margin: 143 Learning Engine · 147 outcome pricing · 150/155/156/159/161 scale · 151 SOC2 · 160 white-label.)*
+## 🔓 EX-GATED BUILDS — PULLED INTO THE FORTNIGHT, in PARALLEL with the engine *(aggressive, 24 Jun)*
+The engine (211) is the spine but doesn't consume all capacity — these run as **parallel previewed lanes** beside it (each its own branch → preview → founder approve → live; **accurate + fast, not rushed**). Status of record = PRODUCT-INVENTORY.
+**🤖 Parallel build map (each previewed):**
+- **Fri 26 + weekend:** 121 Casey onboarding V2 ⭐ · 120 Memory v2 / pgvector · 106–109 company fast-follows.
+- **Mon 29 → Wed 1 (beside engine Ph 2–4):** 145 LENA + TONY ⭐ churn-defence · 144 Denise deep · 141 Context-MCP — one per day.
+- **Thu 2 → Fri 3:** 212 FIGSY 6-step · 174–176 onboarding fork (ties engine Ph 4) · 157/158 personalised images + voice brief.
+- **Mon 6 (beside engine Ph 5/6):** 221/222/223 partner real-data UI (on 220) · 224/225/226 partner trust/docs/sell-through.
+- ⏸ **165 Visitor Intelligence** — deferred (thin Africa coverage).
+> **Honest scope:** aggressive but **accurate** — every lane previews + verifies before live; whatever doesn't land **carries**, nothing ships unwalked. *(Still genuinely gated — need real clients/data/margin: 143 Learning Engine · 147 outcome pricing · 150/155/156/159/161 scale · 151 SOC2 · 160 white-label.)*
 
 ## 🧍 YOUR STANDING LIST *(status of record = PRODUCT-INVENTORY by ID)*
 - **Keys:** 211 Smartlead · 96 Vapi · 128 WhatsApp/Meta · 126 OAuth · 136 Flutterwave · 58 Denise price. *(104 Hunter/PDL ✅ already confirmed in Railway.)*
@@ -105,7 +103,7 @@ These were parked as "later / Month-2 / gated." The gate was only **effort or yo
 
 ## 🤖 MY QUEUE — buildable now, via preview
 55a · 57 · 106–109 · 115 · 118 · 135 · 137 · 174–176 · 97 · 131 · **211 (the ENGINE)** · **212 (FIGSY 3→6-step)** · **ex-gated: 120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — all previewed before they go live.
-**🤝 PARTNER PORTAL v2 (200 + new items 213–226):** **✅ full DEMO portal SHIPPED to prod `/partner-preview` (#712, founder-approved 24 Jun) — 5 tabs incl. Alex (216) right-rail + co-pilot.** Still demo data → **NEXT: Slice 0 backend (220** type+MRR+USD, tonight, migration flagged**)** → then Slice 1 reads real numbers (**221/222/223**) → **213** forecaster + **226** sell-through → trust/docs (**224/225**) → unicorn layer (**214/215/217/218/219**). *(Spec + GTM → V2-TRACKER.)*
+**🤝 PARTNER PORTAL v2 (200 + new items 213–226):** **✅ full DEMO portal SHIPPED to prod `/partner-preview` (#712, founder-approved 24 Jun) — 5 tabs incl. Alex (216) right-rail + co-pilot.** Still demo data → **NEXT: Slice 0 backend (220** type+MRR+USD, migration flagged, gated on your 2 confirms**)** → then Slice 1 reads real numbers (**221/222/223**) → **213** forecaster + **226** sell-through → trust/docs (**224/225**) → unicorn layer (**214/215/217/218/219**). *(Spec + GTM → V2-TRACKER.)*
 **⛔ Gated, NOT building yet:** **203** (waiting on your repo + auth decision).
 
 ## ⛔ BLOCKED / WAITING

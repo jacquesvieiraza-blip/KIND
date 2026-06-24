@@ -1,6 +1,6 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: Tuesday 23 June 2026** · post-launch (live since 18 Jun) · currency **USD**
+**As of: Wednesday 24 June 2026** *(Day 1 of the 2-week plan)* · post-launch (live since 18 Jun) · currency **USD**
 
 > 🧭 **Four-doc contract:** **LAUNCH-PAD** (this) = what to do, when, by whom · **PRODUCT-INVENTORY** = status (the board lives there *only*, script-counted — this doc never copies the numbers, so it can't go stale) · **KIND-MASTER** = strategy + why · **V2-TRACKER** = future.
 >
@@ -10,6 +10,7 @@
 
 ## ⚡ STATE — the one picture
 
+- **🌙 TONIGHT — the last 2:** ① **211 Smartlead** (7pm, once your key's in Railway) · ② **220** partner-portal real-data backend (migration flagged first). *(198 warmup rig ordered ✅ · 120/121 unblocked ✅ · partner portal v2 DEMO shipped to prod ✅ #712.)*
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
   - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**
@@ -101,7 +102,7 @@ These were parked as "later / Month-2 / gated." The gate was only **effort or yo
 
 ## 🤖 MY QUEUE — buildable now, via preview
 55a · 57 · 106–109 · 115 · 118 · 135 · 137 · 174–176 · 97 · 131 · **211 (the ENGINE)** · **212 (FIGSY 3→6-step)** · **ex-gated: 120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — all previewed before they go live.
-**🤝 PARTNER PORTAL v2 (200 + new items 213–226):** Slice 0 backend (**220** type+MRR+USD) → Slice 1 (**221** split · **222** hero · **223** book) → **213** forecaster + **226** sell-through → trust/docs (**224/225**) → unicorn layer (**214/215/216/217/218/219**). First *visual* preview = a **labelled demo partner**; each moves preview→approve→live. *(Spec + GTM → V2-TRACKER.)*
+**🤝 PARTNER PORTAL v2 (200 + new items 213–226):** **✅ full DEMO portal SHIPPED to prod `/partner-preview` (#712, founder-approved 24 Jun) — 5 tabs incl. Alex (216) right-rail + co-pilot.** Still demo data → **NEXT: Slice 0 backend (220** type+MRR+USD, tonight, migration flagged**)** → then Slice 1 reads real numbers (**221/222/223**) → **213** forecaster + **226** sell-through → trust/docs (**224/225**) → unicorn layer (**214/215/217/218/219**). *(Spec + GTM → V2-TRACKER.)*
 **⛔ Gated, NOT building yet:** **203** (waiting on your repo + auth decision).
 
 ## ⛔ BLOCKED / WAITING

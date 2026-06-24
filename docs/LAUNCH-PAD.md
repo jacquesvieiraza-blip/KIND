@@ -25,15 +25,15 @@
 - ✅ **198 Instantly** — **ORDERED 23 Jun** (6 AirMail mailboxes on `trygetkind.com`/`nexttrygetkind.com`, provisioning ~24h → ~2-wk warm). 🧍 next check ~24h: confirm active + warmup climbing. *Don't campaign till warmed (~90% health).*
 - 🧍 **211 Smartlead key** — put the API key (Pro + white-label) in Railway. · *done-when: key in env → unblocks my build*
 - 🧍 **96 / 128** — start the **Vapi key** + the **WhatsApp/Meta app** (Meta approval takes days). · *done-when: applications submitted*
-- 🧍 **120** — flip the **pgvector switch** (2 min) → unblocks Memory v2. · *done-when: switch on*
-- 🧍 **121** — send me **Casey's voice/tone** (a few example lines) → unblocks the Casey V2 build. · *done-when: examples given*
-- 🧍 **165** — pick the **visitor-intel provider** (IPinfo easiest) + key in Railway → I swap the lookup. · *done-when: provider chosen*
+- ✅ **120** — pgvector **ENABLED on `kind-staging`** (23 Jun) → Memory v2 unblocked (my queue).
+- ✅ **121** — Casey **voice/tone captured** (warm · well-spoken · encouraging · plain) → Casey V2 unblocked (my queue).
+- ⏸ **165** — **DEFERRED to post-2-week** (founder 23 Jun): IP→company providers have thin Africa coverage → low value for today's traffic.
 - 🤖 **211 · Phase 1** — Smartlead **spike on staging**: confirm both modes work. · *done-when: I send you a preview showing it works — before I build on it*
 
 ### Thu 25 Jun — Day 2 · TRUST WALK + ENGINE SEAM
 - 🤝 **Live-feature walkthrough** (`LIVE-FEATURE-WALK.md`) on `app.get-kind.com` — you walk, I fix breaks live. · *done-when: every live feature walked (this gates all demos)*
 - 🤖 **211 · Phase 2** — thin `SendingProvider` seam (FIGSY off the hard-wired Resend path).
-- 🧍 **126 Google/MS OAuth** registration. · *done-when: registered → unblocks SSO (84/181)*
+- 🧍 **126 — enable Google sign-up / sign-in for clients:** register a Google OAuth app → flip it on in **Supabase Auth → Providers → Google** (same for Microsoft). *(founder flag 23 Jun — clients sign up/in with Google.)* · *done-when: Google login works on the live signup/signin → unblocks SSO 84/181*
 
 ### Fri 26 Jun — Day 3 · VERIFY BUILDS + WIRE ENGINE
 - 🤝 **Verify-or-revert** the 4 shipped builds (112 · 113 · 114 · 178) + the 140 PDL-waterfall → flip to 🟢, or I revert what's wrong.
@@ -81,9 +81,9 @@
 
 ## 🔓 PULLED FORWARD — ex-"gated", now in the sprint *(decided 23 Jun)*
 These were parked as "later / Month-2 / gated." The gate was only **effort or your input** — *not* real clients — so they're **active now**, sequenced around the ENGINE (211 stays the #1 build). Status of record = PRODUCT-INVENTORY.
-- 🧍→🤖 **120 Memory v2 / pgvector** — you flip the switch (Day 1) → I build (Day 3–4).
-- 🧍→🤖 **121 Casey conversational onboarding V2** ⭐ — your voice (Day 1) → I build (Day 4–5).
-- 🧍→🤖 **165 Visitor Intelligence** — you pick the provider (Day 1) → I swap the lookup (Day 2).
+- ✅→🤖 **120 Memory v2 / pgvector** — pgvector enabled on staging (23 Jun) → I build (Day 3–4).
+- ✅→🤖 **121 Casey conversational onboarding V2** ⭐ — voice captured (23 Jun) → I build (Day 4–5).
+- ⏸ **165 Visitor Intelligence** — **DEFERRED to post-2-week** (thin Africa coverage).
 - 🤖 **145 LENA (CS agent) + TONY (ops)** ⭐ churn-defence — build (Day 5–6).
 - 🤖 **141 Context-backed MCP server** — build (Day 6–7).
 - 🤖 **144 Denise deep** (auto-book · notetaker · proposal-from-transcript) — build (Day 7–8).

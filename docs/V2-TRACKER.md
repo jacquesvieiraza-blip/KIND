@@ -149,6 +149,7 @@ Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, A
 **Slices:** Slice 0 backend (**220**) → Slice 1 split/hero/book (**221/222/223**) → forecaster (**213**) + sell-through (**226**) → trust/docs (**224/225**).
 **Think-bigger (the unicorn layer):** source-through-product (**214**) · client-health + churn-save (**215**) · AI assistant (**216**) · white-label/teams (**217**) · academy/cert (**218**) · CRM-lite/notifications (**219**).
 **Preview approach:** first *visual* preview uses a **clearly-labelled demo partner** (real numbers need Slice 0); demo data is labelled, never presented as live.
+**✅ DONE 24 Jun (#712):** the **full v2 DEMO portal is built + founder-approved + live at `/partner-preview`** — 5 tabs (Overview · Pipeline · Sell&Grow · Documents · Assistant). Assistant agent = **Alex** (non-family channel agent, item 216) as a right-rail panel + co-pilot workspace. All labelled demo data. **Next = item 220** (commission `type` + per-client MRR + USD) → the Overview tab reads the partner's *real* numbers.
 
 ---
 

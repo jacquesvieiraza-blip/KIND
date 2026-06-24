@@ -21,8 +21,12 @@ function adminKeyValid(provided: unknown): boolean {
   return crypto.timingSafeEqual(a, b)
 }
 
+// Accept the admin key from the header (curl/programmatic) OR a ?key= query param
+// (so it can be opened directly in a browser for a one-off founder check). The query
+// form is a convenience for these read-only diagnostics only — no secrets are returned.
 engineRouter.use((req: Request, res: Response, next: () => void) => {
-  if (!adminKeyValid(req.headers['x-admin-key'])) {
+  const provided = req.headers['x-admin-key'] ?? req.query.key
+  if (!adminKeyValid(provided)) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
     return
   }

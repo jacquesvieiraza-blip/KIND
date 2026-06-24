@@ -46,6 +46,7 @@
 | `drafts/AI_REVENUE_OS_POSITIONING.md` | LOCKED hero ("You close the deals. We'll bring you the meetings… from $20") + anti-copy list | ✅ | positioning change |
 | `drafts/GTM_FUNNEL_INSTRUMENTATION.md` | item 131 detail — fire-points · `gtm_events` schema · 10 open decisions | ✅ | when 131 is built |
 | `drafts/apollo-reseller-call-prep.md` | 17-Jun Apollo reseller call prep (historical — see item 103) | 🗄️ | Apollo decision |
+| **`APOLLO-ENGINE.md`** | **THE outbound-OS playbook** (Apollo-learned) → FIGSY: 6-stage loop (target→enrich→sequence→send→measure→optimise) · endpoint ref · BYOK/PDL-Hunter data architecture · source-labeling decision · the 212/139/140 build spec. **Items 242/243/244.** | ✅ *(new 24 Jun)* | 211/212/139/140/103 change · Apollo deck/Zoom lands · 242/243 ships |
 
 ### 🎬 Product flow · demo · onboarding
 | Doc | Unique content | Status | Update when |

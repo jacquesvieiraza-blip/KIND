@@ -1,7 +1,7 @@
 # 🗺️ K.I.N.D — DOC MAP (every doc · what it's for · is it fresh)
 
 > **What this is:** the index of *every* doc in the repo — what it holds, which of the 4 core docs it hangs off, and whether it's current. **You live off the 4 core docs; this is how the supporting docs stay honest so they never rot underneath you.**
-> **Last full audit:** **23 Jun 2026** — full 47-doc verified sweep (4 parallel agents + code/PR check). **Re-run the sweep at every weekly close (RULEBOOK §10).**
+> **Last full audit:** **24 Jun 2026** — full repo doc sweep (5 parallel agents + code/PR check; every line item verified vs git/code). **Re-run the sweep at every weekly close (RULEBOOK §10).**
 >
 > **🧭 Four-doc contract (canonical):** LAUNCH-PAD = today · PRODUCT-INVENTORY = status · KIND-MASTER = strategy/why · V2-TRACKER = future. No fifth core doc. **The status board is script-generated** — `scripts/count-inventory.sh` (RULEBOOK §4.7). **THE ENGINE** (deliverability/sending engine, item 211) is named in RULEBOOK §12.
 >
@@ -45,6 +45,7 @@
 | `CHURN-PREVENTION-PLAN.md` | retention 6 levers (190–193, Lena 145) | ✅ | churn strategy / item 190s change |
 | `drafts/AI_REVENUE_OS_POSITIONING.md` | LOCKED hero ("You close the deals. We'll bring you the meetings… from $20") + anti-copy list | ✅ | positioning change |
 | `drafts/GTM_FUNNEL_INSTRUMENTATION.md` | item 131 detail — fire-points · `gtm_events` schema · 10 open decisions | ✅ | when 131 is built |
+| `drafts/apollo-reseller-call-prep.md` | 17-Jun Apollo reseller call prep (historical — see item 103) | 🗄️ | Apollo decision |
 
 ### 🎬 Product flow · demo · onboarding
 | Doc | Unique content | Status | Update when |
@@ -54,7 +55,7 @@
 | `drafts/ONBOARDING_V2.md` | 6-step flow + 3 lifecycle emails (Day 0/3/7) — item 30/174–176 | ✅ (draft) | when onboarding ships |
 | `demo-walkthrough-script.html` | verbatim 12-scene demo | ✅ | demo/positioning change |
 | `setup-dashboard-preview.html` · `portal-v2-*` · `CLIENT_FLOW*.html` · `previews/*` | UI mockups/specs (Casey design, inbox-v2, sequence-builder, etc.) | ✅ ref | design lock change |
-| `content/blog-articles.md` · `content/youtube-plan.md` | publish-ready posts + 10-video plan (faceless voice) | ✅ | content cadence |
+| `content/blog-articles.md` · `content/youtube-plan.md` · `content/website-video-plan.md` | publish-ready posts + 10-video plan (faceless voice) + the website video plan | ✅ | content cadence |
 | `art-of-possible.md` | future-vision / inspiration log (product ideas, competitive reads — explicitly "nothing built unless marked") | ✅ ref | when an idea graduates to a 🔴 item |
 
 ### 🛠️ Ops · deploy · infra
@@ -74,7 +75,9 @@
 | `legal/legal-pack.md` | Co.No 17260532 · ICO · DPAs · trademark plan · VAT £90k threshold | ✅ | compliance milestone |
 | `legal/it-security-pack.md` | data classification · incident register · RTO/RPO | ✅ | security incident/policy |
 | `legal/seis-advance-assurance-draft.md` | registered office · SEIS conditions · trademark table | ✅ | funding step |
-| `hiring/` (5 docs) | AE comp plan (OTE $112.5k) · partner comp · Claude-Code build brief (203) · SELLER-ENGINE-MAP · calculators | ✅ | comp/seller-engine change |
+| `legal/partner-agreement.md` | partner agreement — 20% acquisition + 5% retention (item 197), USD, no clawback | ✅ | partner comp/terms change |
+| `legal/key-rotation-runbook.md` · `legal/restore-runbook.md` | key-rotation + DB-restore runbooks | ✅ | infra/security procedure change |
+| `hiring/` (4 docs) | AE comp plan (OTE $112.5k) · partner comp · Claude-Code build brief (203) · SELLER-ENGINE-MAP (+ .html calculators) | ✅ | comp/seller-engine change |
 | `SALARY-BREAKEVEN-PLAN.md` | (see Sales & money) | 🛠️ | — |
 
 ### 📁 Root-level files (were untracked — now indexed)
@@ -93,7 +96,7 @@
 
 ## 🗄️ ARCHIVE — superseded, DO NOT USE (all now physically in `docs/archive/`)
 **Moved to `docs/archive/` in PR 2 (23 Jun):** `EVERYTHING` · `MASTER_TODO` · `GETTING_STARTED` · `MORNING-FIXLOG` · `SESSION-HANDOFF-7JUN` · `SESSION-SUMMARY-13JUN` · `LAUNCH-AUDIT-12JUN` · `KIND-MASTER-ARCHIVE` · `STAGING-REVIEW` · `BOOKMARK-week-plan` · `SMOKE-BILLING-166-173` · `DEPLOY-CHECKLIST` · `COMPANY-ENGINE-TEST` · `ADMIN-BOOKKEEPER-AUDIT` · `AUDIT` · `FULL_CHECK` · `BUILD_STATUS` · `CHANGELOG` · `MASTER`.
-*Already in `docs/archive/`:* `KIND_Roadmap.md` · `KIND_SOP.md` (pre-pivot) · `updates-live/roadmap-audit-14-may-2026.md`.
+*Already in `docs/archive/`:* `KIND_Roadmap.md` · `KIND_SOP.md` (pre-pivot). *(Note: `docs/updates-live/roadmap-audit-14-may-2026.md` physically lives under `docs/updates-live/`, not `docs/archive/` — it's a 14-May pre-launch audit carrying its own "do not build from this" banner; treat as archive/historical, superseded by the canonical four.)*
 
 **Unique nuggets still only in archive (pointer, don't resurrect the doc):** Alta deep-audit numbers (the pitch-deck "6% reply/53% revival" = **Alta's**, not ours — honesty flag) → `EVERYTHING.md`/root `MASTER.md`; #60 outcome-pricing math (28% floor, $15/reply, $40/meeting) → `EVERYTHING.md`; F1–F5 funding table → `EVERYTHING.md`.
 
@@ -106,4 +109,4 @@
 4. ✅ ~~README empty~~ (now the doc signpost) · ✅ ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ (verified — the doc warns *against* it).
 
 ---
-*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. Last full sweep: **23 Jun 2026**. PR 1 ✅ four-doc contract + script-counted board + 136a fix. PR 2 ✅ 19 dead docs filed to `docs/archive/`, FULL_CHECK protocol → RULEBOOK §13, archive README de-staled. PR 3 ✅ 3→6-step resolved honestly: the 6-step is now **tracked item 212** (🔴, not built — product is still 3-step); client/demo docs say "multi-step," internal docs cross-ref 212. Board → 215.*
+*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. (Code-adjacent READMEs such as `supabase/seeds/competitor_icps_readme.md` document seed data, not project status — out of scope here.) Last full sweep: **24 Jun 2026** (5 parallel agents, every line verified vs git/code). PR 1 ✅ four-doc contract + script-counted board + 136a fix. PR 2 ✅ 19 dead docs filed to `docs/archive/`, FULL_CHECK protocol → RULEBOOK §13, archive README de-staled. PR 3 ✅ 3→6-step resolved honestly: the 6-step is now **tracked item 212** (🔴, not built — product is still 3-step); client/demo docs say "multi-step," internal docs cross-ref 212. Board → 231 (script-counted).*

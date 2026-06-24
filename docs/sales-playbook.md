@@ -464,8 +464,8 @@ Track these weekly. Review every Monday morning. Adjust activity if you're falli
 | Discovery calls booked | 5 | Calendar |
 | Demos given | 3 | CRM / calendar |
 | Proposals sent | 2 | Email sent folder |
-| Deals closed | 1 | Stripe / Paystack |
-| Pipeline value | R50,000 | Active proposals × average deal size |
+| Deals closed | 1 | Stripe / Flutterwave |
+| Pipeline value | _$ TBC — founder to set USD target_ | Active proposals × average deal size |
 
 ### Conversion Benchmarks
 
@@ -478,7 +478,7 @@ Track these weekly. Review every Monday morning. Adjust activity if you're falli
 
 ### Lagging Indicators to Watch
 
-- **Average deal size** — target R5,000–R15,000 MRR per client
+- **Average deal size** — target _$ TBC MRR per client_ (founder to set the USD ARPU target — SMB single-agent ≈ $29–$117/mo, multi-seat company deals higher)
 - **Time from first contact to close** — target under 14 days
 - **Churn rate** — target under 5% monthly
 - **NPS** — ask after 30 days

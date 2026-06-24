@@ -37,7 +37,7 @@ All data handled by K.I.N.D is classified into one of four tiers. Classification
 ## 3. INFRASTRUCTURE SECURITY
 
 ### 3.1 Hosting — Railway
-- **Platform:** Railway (railway.app) — all three services (Portal, API, Admin)
+- **Platform:** Railway (railway.app) — all four services (Portal, API, Admin, Website)
 - **Credentials:** Railway account secured with strong password + 2FA enforced
 - **Variables:** All T1 secrets stored as Railway environment variables only — never in code, never in git history
 - **Deployments:** Triggered from GitHub via Railway's GitHub integration. No manual deploys to production without a corresponding git commit.
@@ -231,7 +231,7 @@ Any of the following constitute a reportable security incident:
 
 | Milestone | Target | Estimated cost | Trigger |
 |-----------|--------|---------------|---------|
-| ICO registration | **Now** | £40/yr | Legal requirement — do immediately |
+| ICO registration | **✅ DONE — registered 15 Jun 2026 (ref C1959926)** | £40/yr | Legal requirement — completed |
 | First pen test | Month 3 | £2,000-5,000 | 50+ clients or first enterprise enquiry |
 | SOC 2 Type II | Year 2 | £15,000-30,000 | US enterprise pipeline |
 | ISO 27001 | Year 2 | £20,000 | African enterprise / Nigerian banks |
@@ -255,7 +255,7 @@ Under UK GDPR and the Data Protection Act 2018, the **company** (K.I.N.D Technol
 4. ICO registration demonstrates compliance intent — unregistered controllers face £400-4,000 fines
 
 **What you must do personally:**
-- [ ] Register with ICO — ico.org.uk/register — £40/yr — do this week
+- [x] Register with ICO — ✅ DONE — ICO registered 15 Jun 2026 (ref C1959926)
 - [ ] Get D&O insurance by Month 2
 - [ ] Never personally access, process, or store client personal data outside the platform
 - [ ] Never use personal email, WhatsApp, or personal devices for T2 data

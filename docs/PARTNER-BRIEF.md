@@ -6,7 +6,7 @@
 
 ## What K.I.N.D is (the 20-second pitch)
 **An AI sales team for small businesses — that runs itself.** Four AI agents find leads, write and send personalised outreach, follow up, and book meetings, so the owner just shows up and closes.
-- **FIGSY — The Opener (AI SDR):** finds qualified leads, writes a unique email per lead, sends + follows up (Day 0 / 4 / 9), books the meeting.
+- **FIGSY — The Opener (AI SDR):** finds qualified leads, writes a unique email per lead, sends + follows up (a multi-step sequence), books the meeting.
 - **Milla — The Brain:** reads the numbers, answers business questions, sends a weekly brief.
 - **Vida — The Connector:** website + WhatsApp chatbot, qualifies inbound 24/7.
 - **Denise — The Closer:** warm follow-up on quiet prospects, confirms meetings, drafts proposals.

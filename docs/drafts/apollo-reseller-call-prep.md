@@ -1,5 +1,7 @@
 # 📞 Apollo Reseller Call — Prep Sheet (Wed 17 Jun)
 
+> ⚠️ HISTORICAL — prep sheet for the 17 Jun Apollo call (now past). Reference only; see PRODUCT-INVENTORY item 103 for current Apollo status.
+
 **Who:** Ali, Partnerships @ Apollo · **Goal:** get K.I.N.D approved for Apollo's **Data Reseller Program**.
 **Their one concern:** *competitive overlap* — they think K.I.N.D might compete with Apollo.
 **Your one job on this call:** prove K.I.N.D is a **wholesale consumer of Apollo data that opens a market Apollo doesn't reach** — not a competing platform. Keep returning to that.

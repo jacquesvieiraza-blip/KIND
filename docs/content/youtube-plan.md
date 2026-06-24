@@ -8,7 +8,7 @@
 
 ## VIDEO 1 — Awareness
 **Title:** "Why African Businesses Lose Deals Before They Even Start"
-**Description:** Most African SMBs are doing B2B sales the same way they did it in 2015 — cold calls, WhatsApp spam, and hope. This video exposes the structural gap between how African founders sell and how they should sell in 2025. Sets up the problem KIND was built to solve.
+**Description:** Most African SMBs are doing B2B sales the same way they did it in 2015 — cold calls, WhatsApp spam, and hope. This video exposes the structural gap between how African founders sell and how they should sell in 2026. Sets up the problem KIND was built to solve.
 **Length:** 8–10 minutes
 **CTA:** "If this sounds like your sales team, drop a comment below. Subscribe — next video I'll show you what's possible."
 **Loom complement:** Complements Loom Onboarding Video 1 (platform overview) — YouTube viewers already understand the problem context.

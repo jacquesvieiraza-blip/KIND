@@ -37,7 +37,7 @@ Reactive support = you only hear from a client when they're already gone. Lena o
 ### 4 · ROI / value transparency  → items **191** + **193**
 Retention dies when the value is invisible. Make it un-ignorable.
 - **191 — value dashboard:** per-client totals (leads · meetings · replies · pipeline · $ value) + a monthly "here's your return" recap.
-- **193 — REAL data, not fabricated:** the analytics page currently shows `emails_opened = emails × 0.28` (a hard-coded guess at `analytics/page.tsx:183`). If a client checks, that's a **credibility crater**. Real open-tracking is already built (pixel `/figsy/track/open/:id` writes `opened_at`) but silent unless `TRACKING_URL` is a branded domain. **Fix: set a branded `TRACKING_URL`, read true `opened_at`, delete the 0.28 — show "—" when tracking is off, never a fake number.**
+- **193 — REAL data, not fabricated:** ✅ SHIPPED (item 193, 17 Jun): the `× 0.28` guess was removed; analytics now reads real `opened_at`. The pixel `/figsy/track/open/:id` writes `opened_at`; with a branded `TRACKING_URL` the page shows true opens and "—" when tracking is off, never a fake number.
 
 ### 5 · Save / pause / win-back  → item **190**
 Today cancel is one-way and final — churn is silent and total.
@@ -50,7 +50,7 @@ The cheapest churn to prevent is the bad-fit client you never sign. Keep ICP dis
 ---
 
 ## Sequence (no client churns before they exist — so build with the funnel)
-- **Pre-launch (now):** ship nothing new here; only the **193 credibility fix** is worth doing immediately (a client could see the fake number on day 1). Lever 2 (deliverability) is already a launch gate.
+- **Pre-launch (now):** ✅ the **193 credibility fix** SHIPPED (item 193, 17 Jun) — the `× 0.28` guess was removed; analytics now reads real `opened_at`. Lever 2 (deliverability) is already a launch gate.
 - **First clients land (Wk 1–2 post-launch):** turn on **192** activation tracking + nudges and the **at-risk triggers** feeding Lena. This is when the data starts to exist.
 - **Month 1:** **191** value dashboard (REAL data) + **190** save/pause/win-back path.
 - **As retention data matures:** pull **Lena (145)** forward ahead of the rest of the Month-3 agent family — she is the durable owner of this whole stack.

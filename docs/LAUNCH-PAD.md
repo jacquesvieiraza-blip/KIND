@@ -10,7 +10,7 @@
 
 ## ⚡ STATE — the one picture
 
-- **🌙 TONIGHT — the last 2:** ① **211 Smartlead** (7pm, once your key's in Railway) · ② **220** partner-portal real-data backend (migration flagged first). *(198 warmup rig ordered ✅ · 120/121 unblocked ✅ · partner portal v2 DEMO shipped to prod ✅ #712.)*
+- **🌙 TONIGHT:** ✅ **211 Phase 1 DONE** (Smartlead key live + verified `ok:true`) → **next 211 Phase 2 = SendingProvider seam (previewed).** Remaining last item: ② **220** partner-portal real-data backend (migration flagged first). *(198 warmup rig ordered ✅ · 120/121 unblocked ✅ · partner portal v2 DEMO shipped ✅ #712 · steal 227 logged ✅ #715.)*
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
   - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**
@@ -24,12 +24,12 @@
 
 ### Wed 24 Jun — Day 1 · START THE CLOCKS
 - ✅ **198 Instantly** — **ORDERED 23 Jun** (6 AirMail mailboxes on `trygetkind.com`/`nexttrygetkind.com`, provisioning ~24h → ~2-wk warm). 🧍 next check ~24h: confirm active + warmup climbing. *Don't campaign till warmed (~90% health).*
-- 🧍 **211 Smartlead key** — put the API key (Pro + white-label) in Railway. · *done-when: key in env → unblocks my build*
+- ✅ **211 Smartlead key** — **API key created + live on the API service (24 Jun)** → my build unblocked.
 - 🧍 **96 / 128** — start the **Vapi key** + the **WhatsApp/Meta app** (Meta approval takes days). · *done-when: applications submitted*
 - ✅ **120** — pgvector **ENABLED on `kind-staging`** (23 Jun) → Memory v2 unblocked (my queue).
 - ✅ **121** — Casey **voice/tone captured** (warm · well-spoken · encouraging · plain) → Casey V2 unblocked (my queue).
 - ⏸ **165** — **DEFERRED to post-2-week** (founder 23 Jun): IP→company providers have thin Africa coverage → low value for today's traffic.
-- 🤖 **211 · Phase 1** — Smartlead **spike on staging**: confirm both modes work. · *done-when: I send you a preview showing it works — before I build on it*
+- ✅ **211 · Phase 1 DONE (24 Jun)** — Smartlead connectivity **verified**: `GET /engine/smartlead/verify` → `ok:true` (200 on list-accounts + list-campaigns; 0/0 = clean new account). Key authenticates, API reachable. *(Read-only, admin-gated, no sends — ran on the prod API service since that's where the key lives + the staging branch is stale.)* **Next = Phase 2 (SendingProvider seam) — previewed before live.**
 
 ### Thu 25 Jun — Day 2 · TRUST WALK + ENGINE SEAM
 - 🤝 **Live-feature walkthrough** (`LIVE-FEATURE-WALK.md`) on `app.get-kind.com` — you walk, I fix breaks live. · *done-when: every live feature walked (this gates all demos)*

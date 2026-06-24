@@ -20,9 +20,9 @@
 import { useState, type ReactNode } from 'react'
 import {
   Handshake, TrendingUp, Sparkles, Users, AlertTriangle, Wallet, ArrowUpRight,
-  Calendar, BadgeCheck, LineChart, Briefcase, Copy, FileText, FileCheck, Bot,
+  Calendar, BadgeCheck, LineChart, Briefcase, Copy, FileText, FileCheck,
   Send, Rocket, Target, Megaphone, GraduationCap, Award, Bell, Plus, Clock,
-  ShieldCheck, Download, Play, Layers, ChevronRight, Wand2,
+  ShieldCheck, Download, Play, Layers, ChevronRight, Wand2, ChevronLeft, Circle,
 } from 'lucide-react'
 
 const USD  = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
@@ -245,28 +245,47 @@ export default function PartnerPortalV2FullPreview() {
           </Card>
         )}
 
-        {/* ── ASSISTANT (216) ───────────────────────────────────────────── */}
+        {/* ── ASSISTANT (216) — Alex, the Partner Channel agent (non-family). Right-rail panel. ── */}
         {tab === 'Assistant' && (
-          <Card>
-            <Head icon={<Bot className="w-4 h-4 text-[#7C3AED]" />} label="Your partner assistant" right="216 · ask anything" />
-            <div className="space-y-3 mt-2">
-              <div className="flex gap-2 flex-wrap">
-                {['Which of my clients is at risk?', 'Draft an upsell to Northgate', 'Find me 20 plumber prospects'].map(q => (
-                  <span key={q} className="bg-[#FAF8FF] border border-purple-100 rounded-full px-3 py-1.5 text-xs text-[#7C3AED] font-medium">{q}</span>
-                ))}
-              </div>
-              <div className="bg-[#FAF8FF] rounded-2xl p-4 space-y-3 text-sm">
-                <p className="text-right"><span className="inline-block bg-[#7C3AED] text-white rounded-2xl rounded-br-sm px-3 py-2">Which of my clients is at risk?</span></p>
-                <p><span className="inline-block bg-white border border-purple-100 rounded-2xl rounded-bl-sm px-3 py-2 text-[#1E1152]">
-                  <strong>Riverside Roofing</strong> — health 41%, no login in 14 days, replies dropping. Their renewal is your 5%. Want me to draft a re-engagement note from you?
-                </span></p>
-              </div>
-              <div className="flex items-center gap-2 bg-white border border-purple-100 rounded-xl px-3 py-2">
-                <input disabled placeholder="Ask your assistant…" className="flex-1 text-sm bg-transparent outline-none text-gray-400" />
-                <Send className="w-4 h-4 text-[#7C3AED]" />
+          <div className="flex justify-end">
+            <div className="w-full max-w-sm">
+              <button className="text-sm text-[#7C3AED]/60 mb-2 flex items-center gap-1 ml-auto"><ChevronLeft className="w-4 h-4" /> Collapse</button>
+              <div className="bg-white rounded-3xl border border-purple-100 shadow-lg overflow-hidden">
+                {/* avatar hero */}
+                <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/agents/Alex.png" alt="Alex — the Partner Channel agent" className="w-full h-72 object-cover object-top" />
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0c0a1f] via-[#0c0a1f]/85 to-transparent p-4 pt-12">
+                    <div className="flex items-baseline gap-2">
+                      <h3 className="text-white font-bold text-lg">Alex</h3>
+                      <span className="text-emerald-400 font-semibold text-sm">The Partner Channel</span>
+                    </div>
+                    <p className="text-white/70 text-xs mt-0.5 flex items-center gap-2">
+                      Your channel co-pilot · book growth + retention
+                      <span className="inline-flex items-center gap-1 text-emerald-400"><Circle className="w-2 h-2 fill-current" /> Online</span>
+                    </p>
+                  </div>
+                </div>
+                {/* body */}
+                <div className="p-4 space-y-2">
+                  {['Which of my clients is at risk?', 'Draft an upsell to Northgate', 'Find me 20 plumber prospects'].map(q => (
+                    <button key={q} className="w-full text-left bg-[#FAF8FF] border border-purple-100 rounded-full px-4 py-2 text-sm text-[#7C3AED] font-medium hover:bg-purple-50">{q}</button>
+                  ))}
+                  <div className="bg-[#FAF8FF] rounded-2xl p-3 mt-1 flex gap-2">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/agents/Alex.png" alt="" className="w-7 h-7 rounded-full object-cover object-top shrink-0" />
+                    <p className="text-sm text-[#1E1152] bg-white border border-purple-100 rounded-2xl rounded-tl-sm px-3 py-2">
+                      You&apos;re live. Register your first deal for 60-day protection, then share your link. Heads-up: <strong>Riverside Roofing</strong> is at risk — that&apos;s your 5%. Want me to draft a save note?
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 bg-white border border-purple-100 rounded-xl px-3 py-2 mt-1">
+                    <input disabled placeholder="Ask Alex anything…" className="flex-1 text-sm bg-transparent outline-none text-gray-400" />
+                    <span className="w-8 h-8 rounded-lg bg-[#7C3AED] flex items-center justify-center"><Send className="w-4 h-4 text-white" /></span>
+                  </div>
+                </div>
               </div>
             </div>
-          </Card>
+          </div>
         )}
 
         <p className="text-center text-xs text-gray-400 pt-2 pb-8">

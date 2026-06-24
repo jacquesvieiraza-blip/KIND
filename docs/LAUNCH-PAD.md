@@ -10,11 +10,13 @@
 
 ## ⚡ STATE — the one picture
 
-- **🌙 TONIGHT:** ✅ **211 Phase 1 DONE** (Smartlead key live + verified `ok:true`) → **next 211 Phase 2 = SendingProvider seam (previewed).** Remaining last item: ② **220** partner-portal real-data backend (migration flagged first). *(198 warmup rig ordered ✅ · 120/121 unblocked ✅ · partner portal v2 DEMO shipped ✅ #712 · steal 227 logged ✅ #715.)*
+- **✅ DONE TODAY (24 Jun):** 198 warmup rig **ordered** · 120/121 **unblocked** · 165 deferred · partner portal v2 DEMO **shipped** (#712) + **Alex** agent · steal 227 **logged** (#715) · **211 Phase 1 DONE** — Smartlead key live + connectivity **verified** (`ok:true`) · RULEBOOK 6.6 added · doc audit + item 228 (recruiter override) logged.
+- **▶️ NEXT UP (in order):** ① **merge #719** (audit + item 228) · ② **220** partner-portal real-data backend — *waiting on 2 founder confirms:* run migration on **`kind-staging`**? + keep all 3 commission types or drop `expansion`? · ③ **item 228** — lock the recruiter-override % (start 12%) · ④ **211 Phase 2** (SendingProvider seam) — gated on **staging-branch repair** (the §11 preview path).
+- **🟡 OPEN PR:** **#719** — merge first (carries the doc audit + the new recruiter item 228).
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
   - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**
-  - **211 · Smartlead = THE ENGINE** = the **CLIENT-facing** sending engine inside the product. 🤖 **I build it**, gated on **your Smartlead API key**.
+  - **211 · Smartlead = THE ENGINE** = the **CLIENT-facing** sending engine inside the product. 🤖 **I build it.** ✅ **key live + Phase 1 verified (24 Jun)** → next Phase 2 (SendingProvider seam, previewed).
 - **⛔ Do NOT campaign hard until the domain is warmed** (it burns the domain).
 - **📊 Status board → PRODUCT-INVENTORY** (run `scripts/count-inventory.sh`). Deliberately not repeated here.
 
@@ -109,7 +111,7 @@ These were parked as "later / Month-2 / gated." The gate was only **effort or yo
 - **117** drop-subscribe → blocked on Drop content.
 - **126** OAuth go-live → your Google/Microsoft registration.
 - **103** onboarding default → Apollo's reseller reply.
-- **211** ENGINE build → your Smartlead API key in Railway.
+- **211** ENGINE Phase 2 (client-facing seam) → **staging branch repair** (the §11 preview path; key + Phase 1 ✅ done 24 Jun).
 
 ---
 *Daily rhythm: open this → do today's lines. Status → PRODUCT-INVENTORY. Why → KIND-MASTER. When something ships, its dot flips in the inventory (the only place status is edited).*

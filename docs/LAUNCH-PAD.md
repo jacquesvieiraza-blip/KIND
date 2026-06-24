@@ -10,7 +10,9 @@
 
 ## ⚡ STATE — the one picture
 
-- **🌙 TONIGHT:** ✅ **211 Phase 1 DONE** (Smartlead key live + verified `ok:true`) → **next 211 Phase 2 = SendingProvider seam (previewed).** Remaining last item: ② **220** partner-portal real-data backend (migration flagged first). *(198 warmup rig ordered ✅ · 120/121 unblocked ✅ · partner portal v2 DEMO shipped ✅ #712 · steal 227 logged ✅ #715.)*
+- **✅ DONE TODAY (24 Jun):** 198 warmup rig **ordered** · 120/121 **unblocked** · 165 deferred · partner portal v2 DEMO **shipped** (#712) + **Alex** agent · steal 227 **logged** (#715) · **211 Phase 1 DONE** — Smartlead key live + connectivity **verified** (`ok:true`) · RULEBOOK 6.6 added · doc audit + item 228 (recruiter override) logged.
+- **▶️ NEXT UP (in order):** ① **merge #719** (audit + item 228) · ② **220** partner-portal real-data backend — *waiting on 2 founder confirms:* run migration on **`kind-staging`**? + keep all 3 commission types or drop `expansion`? · ③ **item 228** — lock the recruiter-override % (start 12%) · ④ **211 Phase 2** (SendingProvider seam) — gated on **staging-branch repair** (the §11 preview path).
+- **🟡 OPEN PR:** **#719** — merge first (carries the doc audit + the new recruiter item 228).
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
   - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**

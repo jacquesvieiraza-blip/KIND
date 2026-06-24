@@ -1,7 +1,7 @@
 # 🛡️ K.I.N.D — Churn-Prevention Plan (the retention spine)
 
 > **Plan of record for retention.** Status lives in `PRODUCT-INVENTORY` (items 190–193 + Lena 145). This doc is the *why* and the *sequence*. Strategy conflicts → `KIND-MASTER`.
-> **Last updated:** 2026-06-16.
+> **Last-checked:** 23 Jun 2026 (plan still current).
 
 ---
 

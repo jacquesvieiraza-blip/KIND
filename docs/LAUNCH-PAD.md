@@ -22,7 +22,7 @@
 ## 🗓️ THE 2-WEEK PLAN — day by day (Wed 24 Jun → Tue 7 Jul)
 
 ### Wed 24 Jun — Day 1 · START THE CLOCKS
-- 🧍 **198 Instantly** — sign up → connect cold-domain mailboxes → **Warmup ON.** · *done-when: warmup is running*
+- ✅ **198 Instantly** — **ORDERED 23 Jun** (6 AirMail mailboxes on `trygetkind.com`/`nexttrygetkind.com`, provisioning ~24h → ~2-wk warm). 🧍 next check ~24h: confirm active + warmup climbing. *Don't campaign till warmed (~90% health).*
 - 🧍 **211 Smartlead key** — put the API key (Pro + white-label) in Railway. · *done-when: key in env → unblocks my build*
 - 🧍 **96 / 128** — start the **Vapi key** + the **WhatsApp/Meta app** (Meta approval takes days). · *done-when: applications submitted*
 - 🧍 **120** — flip the **pgvector switch** (2 min) → unblocks Memory v2. · *done-when: switch on*

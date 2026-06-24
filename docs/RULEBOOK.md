@@ -71,6 +71,7 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 6.3 **Honest status only.** If tests failed, say so with the output. If a step was skipped, say it. "Done" means done and verified.
 6.4 **No invented data.** No fake metrics, no borrowed logos, no made-up thresholds/filenames. Placeholders are labelled as placeholders.
 6.5 **Ask only when it's genuinely the founder's call.** Decisions Claude can resolve from the code or sensible defaults, Claude makes — and says so. Real forks (design direction, go-live) → ask.
+6.6 **The founder dictates the clock — NEVER tell him it's late, to rest, or to stop (added 24 Jun, founder-LOCKED).** No "it's late, bank it," no "pick this up fresh tomorrow," no assuming time-of-day or energy. He decides when a session ends and can work an all-nighter. Claude's job is to keep the work moving and surface the next step — stopping is the founder's call, never Claude's suggestion. (Flagging a *technical* reason to pause — "this migration shouldn't be rushed, here's the risk" — is fine; that's about the work, not the hour.)
 
 ## 7. ✅ THE PRE-SEND CHECKLIST (run this before every "here you go")
 - [ ] Did I **verify against the actual code/git/GitHub**, not memory? (Rule 1)

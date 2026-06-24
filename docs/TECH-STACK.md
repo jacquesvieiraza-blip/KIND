@@ -35,7 +35,7 @@ Two **separate** systems, do not conflate:
 | **Accounting platform** | Xero / QuickBooks / FreeAgent / Sage — feeds HMRC; pairs with the sales ledger (item 196) | 🧍 UNDECIDED |
 | **Companies House / HMRC** | UK Ltd filings — corporation tax, annual accounts | active (UK Ltd) |
 | **ICO** | data-protection registration — done (C1959926) | ✅ |
-| **⚙️ THE ENGINE** | **Smartlead** (per-client warmed sending, item 211 — the product foundation) + **Instantly** (own-outreach warmup, item 198) | 🧍 set up Instantly · confirm Smartlead → 🤖 build |
+| **⚙️ THE ENGINE** | **Smartlead** (per-client warmed sending, item 211 — the product foundation) + **Instantly** (own-outreach warmup, item 198) | ✅ Instantly ordered (24h warm) · ✅ Smartlead key live + Phase 1 verified (24 Jun) → 🤖 Phase 2 next |
 | **Uptime monitor** | external monitor wired to `/health` (item 199) | 🧍 to wire |
 | **Business bank account** | UK Ltd banking | 🧍 confirm/record |
 

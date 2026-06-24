@@ -79,14 +79,14 @@ Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, A
 
 # ░ 🤝 THE SELLER ENGINE — Partners + AEs on ONE foundation (V2 SPEC · logged 18 Jun) ░
 > **Founder thesis (18 Jun):** a **partner** and an **Account Executive (AE)** are the *same primitive* — a **seller** who refers, manages, and earns on clients **staying alive**. Build the foundation **once**, branch only on **paid vs free**. This is the channel/sales engine that sits on top of the live Company Engine (#88). **Status lives in PRODUCT-INVENTORY: 196 (ledger) · 197 (partner model) · 200 (the portals/foundation) · 201 (hire founding AE) · 202 (the document/legal pack) · 203 (THE BUILD).** Detail (the "why/how") lives here. **Gated post-launch — do not build before first revenue.**
-> **🟢 22 Jun — PHASE 1 of 203 IS BUILT + DEPLOYED:** the **pure commission-engine module** (`apps/api/src/lib/comp-engine.ts`) — the single home for "20/5/5" (Land 20% · Retain 5% · Expand 5%; AE base + 60/40 + ramp guarantee 100/100/75/75; partner 20%+5% no base) — is merged (#666), **USD**, **33 vitest tests passing**, **not yet wired** to Stripe/DB/portals. Next phases (founder-gated, need the **203 repo + auth/hosting** decision): Stripe webhooks → attribution → engine → admin P&L portal → partner portal → AE portal → founder-approved payouts. **203 epic stays 🔴 until the portals land.**
+> **Phase 1 of 203 — commission-engine module** *(status of record: PRODUCT-INVENTORY item 203):* the **pure commission-engine module** (`apps/api/src/lib/comp-engine.ts`) — the single home for "20/5/5" (Land 20% · Retain 5% · Expand 5%; AE base + 60/40 + ramp guarantee 100/100/75/75; partner 20%+5% no base) — merged (#666), **USD**, **33 vitest tests passing**, **not yet wired** to Stripe/DB/portals. Next phases (founder-gated, need the **203 repo + auth/hosting** decision): Stripe webhooks → attribution → engine → admin P&L portal → partner portal → AE portal → founder-approved payouts.
 
 ## 1. The primitive: one "seller seat", two types
 | | **Partner** | **AE (Account Executive)** |
 |---|---|---|
 | Relationship | External channel (refers + white-labels) | Employed (internal closer) |
 | Pays for the tool? | **YES** — pays for their own seat/use | **NO** — free seat (employed sales kit) |
-| Earns | 25% + **5% on renewal** (item 197) | 20% land / 5% retain / 5% expansion + 5% multi-seat + 5% partner override (AE comp plan, `docs/hiring/`) |
+| Earns | 20% acquisition + **5% on renewal** (item 197) | 20% land / 5% retain / 5% expansion + 5% multi-seat + 5% partner override (AE comp plan, `docs/hiring/`) |
 | Both | refer · manage a book · **earn on retention** · get a portal + demo envs + sell-through-the-product | (same) |
 
 **One seat model, one `seat_type` flag (`partner_paid` | `ae_free`).** Everything else is shared. This is the whole architecture insight — don't build two systems that drift.
@@ -149,7 +149,7 @@ Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, A
 **Slices:** Slice 0 backend (**220**) → Slice 1 split/hero/book (**221/222/223**) → forecaster (**213**) + sell-through (**226**) → trust/docs (**224/225**).
 **Think-bigger (the unicorn layer):** source-through-product (**214**) · client-health + churn-save (**215**) · AI assistant (**216**) · white-label/teams (**217**) · academy/cert (**218**) · CRM-lite/notifications (**219**).
 **Preview approach:** first *visual* preview uses a **clearly-labelled demo partner** (real numbers need Slice 0); demo data is labelled, never presented as live.
-**✅ DONE 24 Jun (#712):** the **full v2 DEMO portal is built + founder-approved + live at `/partner-preview`** — 5 tabs (Overview · Pipeline · Sell&Grow · Documents · Assistant). Assistant agent = **Alex** (non-family channel agent, item 216) as a right-rail panel + co-pilot workspace. All labelled demo data. **Next = item 220** (commission `type` + per-client MRR + USD) → the Overview tab reads the partner's *real* numbers.
+**v2 DEMO portal (#712 · status of record: PRODUCT-INVENTORY item 200):** the full v2 DEMO portal at `/partner-preview` — 5 tabs (Overview · Pipeline · Sell&Grow · Documents · Assistant). Assistant agent = **Alex** (non-family channel agent, item 216) as a right-rail panel + co-pilot workspace. All labelled demo data. **Next = item 220** (commission `type` + per-client MRR + USD) → the Overview tab reads the partner's *real* numbers.
 
 ---
 
@@ -474,7 +474,7 @@ That + outbound + partners = the motion.
 | **Notion** (3.2, Jan-26) | **Branching-logic forms → item 205** · **template-gallery UX → 206** · **multi-currency admin rollups → 207** · agents (FIGSY/family 2/96/144 + 113a) · workers/API-sync+webhooks (203/83) · 2-way calendar (41) · per-page permissions (55a/200) · synced blocks/people-directory (56/88) · mail-to-pages (112). *(Researched 19 Jun.)* |
 | **Hypo / Amplitude** (internal prospecting agent the founder uses; v3.5, Jun-26) | **Recency-weighted "hot user" ranking — activity *spiking* in last 30d, not static score → item 208** · **champion-experimentation signal** (engaged AND trying the AI/advanced surface → 208) · **prospecting play-artifact + progress tracker** (strategy + named targets + cadence + tick-through tracker → item 209) · **account org-threading** (one hot contact → the buying committee → 209). *Critique logged: ranking logic + org-map confidence must be transparent, and the spike must flow into the opener copy.* |
 | **Amplemarket / MailerLite / Salesforce / Notion-Linear** | Intent signals (#37) · spam-score pre-send (#44) · AgentExchange marketplace (V2-5) + outcome pricing (#60) · MCP-native (#59) + slim sidebar (V2-6) |
-| **Feature-comparison gap analysis (Jun-26 · Monday/ClickUp/Glean/Alta)** | **Already tracked / built (code-verified 16 Jun):** LinkedIn outreach (127) · voice/calling (96/144/178) · mobile (148) · A/B (97/113) · team = #88 · templates (70) · **shareable pipeline view (179 — BUILT 🩷, was wrongly added as a gap)**. **TRUE NEW 🔴:** admin audit log (180) · enterprise SSO/SAML+SCIM (181) · Zapier/Make (182) · campaign kill-switch (183) · **public** uptime page (184, internal status already built) · **outbound** webhooks+event API (185, inbound infra already built). |
+| **Feature-comparison gap analysis (Jun-26 · Monday/ClickUp/Glean/Alta)** | **Already tracked / built (code-verified 16 Jun):** LinkedIn outreach (127) · voice/calling (96/144/178) · mobile (148) · A/B (97/113) · team = #88 · templates (70) · **shareable pipeline view (179 — built; status of record in PRODUCT-INVENTORY)**. **TRUE NEW (not built — status in inventory):** admin audit log (180) · enterprise SSO/SAML+SCIM (181) · Zapier/Make (182) · campaign kill-switch (183) · **public** uptime page (184, internal status already built) · **outbound** webhooks+event API (185, inbound infra already built). |
 
 ---
 
@@ -518,7 +518,7 @@ That + outbound + partners = the motion.
 > **⚡ PULLED FORWARD into the 23-Jun→7-Jul sprint (23 Jun):** the **effort/input-gated** subset — **120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — is no longer "later"; it's active in LAUNCH-PAD (their gate was hours or a founder input, not real clients). The genuinely **client/data/margin-gated** ones stay here: 143 (data) · 147 (margin) · 150/155/156/159/161 (scale) · 151 (enterprise) · 160 (demand).
 
 ## 🥷 STEAL-SOURCED (logged 22 Jun · RULEBOOK §9 — buildable-now unless noted)
-**205** branching-logic forms (extends live item 71) · **206** template-gallery UX (70/162/56) · **207** multi-currency admin rollups (feeds 203) · **208** recency-weighted hot-lead ranking + champion signal (feeds 139 — 🧍 needs a behaviour-signal source) · **209** prospecting play-artifact + progress tracker + org-threading (FIGSY output UX) · **210** call-coaching agent (per-rep #88 / agent family). *Status of record = PRODUCT-INVENTORY.*
+**205** branching-logic forms (extends live item 71) · **206** template-gallery UX (70/162/56) · **207** multi-currency admin rollups (feeds 203) · **208** recency-weighted hot-lead ranking + champion signal (feeds 139 — 🧍 needs a behaviour-signal source) · **209** prospecting play-artifact + progress tracker + org-threading (FIGSY output UX) · **210** call-coaching agent (per-rep #88 / agent family) · **227** proactive next-best-action across the agent family (ClickUp Brain² — seeded by Alex's "recommends" cards). *Status of record = PRODUCT-INVENTORY.*
 
 ## 🧍 FOUNDER / CONTENT — not a Claude build
 101 D9 · 102 legal (post-delivery) · 105 Go/No-Go · 122 kill dead Vercel · 127 outreach/LinkedIn · 129 demo video · 132 dogfood · 133 design-partners · 134 social cuts · 138 influencer · 142 Product Hunt/G2.

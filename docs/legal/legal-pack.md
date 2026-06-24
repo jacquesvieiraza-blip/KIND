@@ -64,7 +64,7 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 - URL: ico.org.uk/registration
 - Fee: £40/yr (Tier 1 — small organisation, under £632K turnover or fewer than 10 staff)
 - Penalty for non-registration: £400-£4,000
-- **Status: PENDING — do this week**
+- **Status: ✅ DONE — ICO registered 15 Jun 2026 (ref C1959926)**
 
 **Data Use and Access Act 2025 (new — in force June 2025):**
 - Tightened international transfer rules: a new "materially lower standards" test applies when sending data outside the UK
@@ -239,7 +239,7 @@ K.I.N.D is a customer of these providers. Their standard contracts govern the re
 
 | Registration | Body | Status | Due | Cost |
 |-------------|------|--------|-----|------|
-| **ICO registration (UK GDPR)** | ico.org.uk | ⚠️ **PENDING — do this week** | Immediately | £40/yr |
+| **ICO registration (UK GDPR)** | ico.org.uk | ✅ **DONE — ICO registered 15 Jun 2026 (ref C1959926)** | Immediately | £40/yr |
 | Companies House annual confirmation | companies.house.gov.uk | ✅ Registered | Annual (anniversary of incorporation) | £13 |
 | Corporation Tax registration | HMRC | Required within 3 months of first trading | Month 1 | Free |
 | PAYE registration (when first employee hired) | HMRC | Not yet needed | Before first hire | Free |
@@ -298,7 +298,7 @@ All documents below are live at get-kind.com and referenced in the footer and si
 
 | Item | Priority | Owner | Notes |
 |------|----------|-------|-------|
-| **Register with ICO** | 🔴 Now | Founder | ico.org.uk · £40/yr · do this week |
+| **Register with ICO** | ✅ Done | Founder | Status: ✅ DONE — ICO registered 15 Jun 2026 (ref C1959926) |
 | **Get D&O insurance** | 🟡 Month 2 | Founder | Hiscox / Markel / CFC · ~£500-1,000/yr |
 | **Update trust.html** with security pack details | 🟡 Now | Claude | Link to this pack; update ISO/compliance roadmap |
 | **Fix broken footer links** (Terms/Privacy/POPIA & GDPR) | 🔴 Now | Claude | See site audit |

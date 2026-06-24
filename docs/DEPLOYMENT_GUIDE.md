@@ -239,13 +239,15 @@ Go to `https://get-kind.com` → you should see the marketing homepage.
 
 ### 6a. Create products in Stripe
 
-1. Stripe → **Products** → **Add product** — create two products:
-   - **K.I.N.D Starter** — R 1,500/month recurring
-   - **K.I.N.D Growth** — R 3,500/month recurring
+1. Stripe → **Products** → **Add product** — create the agent subscription products:
+   - **Milla** — $49/month recurring
+   - **Vida** — $29/month recurring
+   - **Denise** — $39/month recurring
 2. After creating each product, copy the **Price ID** (`price_xxx...`)
 3. Add price IDs as Railway env vars (never in code):
-   - `STRIPE_PRICE_STARTER=price_xxxxx`
-   - `STRIPE_PRICE_GROWTH=price_xxxxx`
+   - `STRIPE_PRICE_MILLA_MONTHLY=price_xxxxx`
+   - `STRIPE_PRICE_VIDA_MONTHLY=price_xxxxx`
+   - `STRIPE_PRICE_DENISE_MONTHLY=price_xxxxx`
 
 ### 6b. Set the webhook URL
 
@@ -441,7 +443,7 @@ No environment variables needed. Static HTML.
 3. Railway Portal service                                  ← needs Railway API URL + Supabase keys
 4. Railway Admin service                                   ← needs Railway API URL + ADMIN_SECRET_KEY
 5. Railway Website service                                 ← no dependencies
-6. Google Workspace                                        ← needs domain DNS access
+6. Zoho Mail                                               ← needs domain DNS access
 7. Stripe products + webhook                               ← needs Railway URL for webhook
 8. Upload 5 PDFs via Admin → Terms Library                 ← needs Admin deployed + Storage bucket
 9. Set up 6 Railway cron jobs                              ← needs API deployed

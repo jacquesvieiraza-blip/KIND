@@ -140,8 +140,8 @@ Instead of a stats page — a live ops centre. Three columns, real-time, everyth
 | Agent | Role | When |
 |-------|------|------|
 | FIGSY | AI SDR — outbound prospecting + sequences | ✅ Live |
-| Milla | Virtual Assistant — business knowledge + queries | July 2026 |
-| Vida | Chatbot — website + WhatsApp inbound qualifier | July 2026 |
+| Milla | Virtual Assistant — business knowledge + queries | ✅ Live — Jun 2026 |
+| Vida | Chatbot — website + WhatsApp inbound qualifier | ✅ Live — Jun 2026 |
 | REEVE | AI AE — books + runs discovery calls via voice | Year 2 |
 | LENA | AI CS — onboarding, check-ins, churn prevention | Year 2 |
 | OTTO | AI Ops — pipeline analysis, revenue forecasting, anomaly escalation | Year 2 |
@@ -284,7 +284,7 @@ Aggregation query across all clients. Privacy gate: minimum 5 clients before any
 
 ### Piece 13 — White-Label / Agency Channel
 
-Agencies manage outbound for 5–10 clients in one admin view. `white_label_configs` table, `clients.partner_id` FK. Custom domain via Vercel CNAME. Agency billed at 2× standard rate.
+Agencies manage outbound for 5–10 clients in one admin view. `white_label_configs` table, `clients.partner_id` FK. Custom domain via Railway custom domain (CNAME). Agency billed at 2× standard rate.
 
 **1 week V1. Trigger: first agency partner asks for it. Never build without a waiting customer.**
 

@@ -35,21 +35,21 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 - Monthly pay = monthly base + MAX(earned commission, guarantee-that-month). Months 5+: monthly base + earned commission (guarantee 0).
 
 **AE tiers (pay mix 60/40 all):**
-| Tier | Base $/yr | Variable $/yr | OTE $/yr | Avg deal £ MRR | Churn %/mo |
+| Tier | Base $/yr | Variable $/yr | OTE $/yr | Avg deal $ MRR | Churn %/mo |
 |---|---|---|---|---|---|
 | Enterprise | 67,500 | 45,000 | 112,500 | 1,500 | 3% |
 | Mid-Market | 45,000 | 30,000 | 75,000 | 700 | 4% |
 | SMB | 30,000 | 20,000 | 50,000 | 400 | 5% |
 
-**Partners (no base, no guarantee, no expand):** Acquisition **20%** (one-time, new client first-month MRR) + Retention **5%** (recurring, active book). Partner tiers by avg client MRR: SMB £250, Mid £500, Enterprise £750. Churn 4%/mo. Credited via referral code captured at sign-up.
+**Partners (no base, no guarantee, no expand):** Acquisition **20%** (one-time, new client first-month MRR) + Retention **5%** (recurring, active book). Partner tiers by avg client MRR: SMB $250, Mid $500, Enterprise $750. Churn 4%/mo. Credited via referral code captured at sign-up.
 
-**KIND Agent (self-serve / direct / house):** no partner code & no AE tag → credited to the house. **Revenue only — no base, no commission, no payout.** Modelled avg deal ~£120 MRR, churn ~6%/mo (editable).
+**KIND Agent (self-serve / direct / house):** no partner code & no AE tag → credited to the house. **Revenue only — no base, no commission, no payout.** Modelled avg deal ~$120 MRR, churn ~6%/mo (editable).
 
 **Margin & P&L:** Gross margin 93%. Net@margin = gross book × 0.93. Net after sales pay = Net@margin − sales payout. Net after ALL costs = Net after sales pay − operating-team costs.
 
-**Operating team (cost only, non-sales):** flat monthly = annual/12 from each role's start month. Defaults (editable): Customer Success £40k, Tech Eng £60k, Payroll & Accounts £35k, HR (outsourced) £12k, Partner Manager £40k.
+**Operating team (cost only, non-sales):** flat monthly = annual/12 from each role's start month. Defaults (editable): Customer Success $40k, Tech Eng $60k, Payroll & Accounts $35k, HR (outsourced) $12k, Partner Manager $40k.
 
-**Start-month logic:** every source (rep/partner/agent) + operating role has a start month; before it: £0. start = 0/blank = not hired/active.
+**Start-month logic:** every source (rep/partner/agent) + operating role has a start month; before it: $0. start = 0/blank = not hired/active.
 
 ## 4. The portals
 - **AE portal** (one login per AE, read-only): live book, deals, commission, base, guarantee, total pay. Mirror `KIND-commission-statement.html`.
@@ -69,7 +69,7 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 6. **Metrics + reconciliation:** MRR/churn/NRR; monthly Stripe ↔ books reconciliation.
 
 ## 7. Guardrails
-All currency £. One repo. Clean small commits. One commission engine, one source of truth (the DB). Rep/partner portals read-only; only the founder writes. Human approval gate before money moves. The HTML calculators + spreadsheet are spec/reference, not the production app. Verify the engine reproduces the tracker's figures before a phase is "done." The spreadsheet stays the founder's planning sandbox — keep it usable.
+All currency USD. One repo. Clean small commits. One commission engine, one source of truth (the DB). Rep/partner portals read-only; only the founder writes. Human approval gate before money moves. The HTML calculators + spreadsheet are spec/reference, not the production app. Verify the engine reproduces the tracker's figures before a phase is "done." The spreadsheet stays the founder's planning sandbox — keep it usable.
 
 ## 8. File map (in the `kind handoff` zip)
 **Spec & context:** `KIND-CLAUDE-CODE-BRIEF.md` (this) · `KIND-Live-System-Blueprint.html` (data-flow) · `KIND-Operating-Playbook.html` (how the business runs) · `KIND-Sales-Commission-Tracker.xlsx` (maths spec + oracle: tabs Plan Settings, Master — Owner View, 28 source tabs, Operating Team).
@@ -92,7 +92,7 @@ Build the **portals in this order**, account/auth systems done right from the st
 *(The data model + Stripe wiring + the single commission engine are the shared foundation under all three — built before/with the admin portal. "All account systems" = the per-rep/partner login + roles done properly from day one, not bolted on later.)*
 
 ## ⚠️ Reconcile notes (for when this is picked up — Claude, 19 Jun)
-- **Currency = USD — RESOLVED 22 Jun (founder: "we are USD").** The brief's earlier "all £ GBP" is overridden; the calculators + comp plans already filed in `docs/hiring/` are in **$ (correct)**. *(Original GBP note below kept for history.)* The calculators + comp plans already filed in `docs/hiring/` use **$**; they need re-denominating to £ (the figures match — $112.5k → £112,500 etc.). **Open: is the product/billing actually GBP, or USD?** (The live product's locked pricing constants are in **USD** — Lead Gen $1, FIGSY $3, Denise $39…). This GBP-vs-USD split between *comp/P&L* and *product pricing* must be resolved.
+- **Currency = USD — RESOLVED 22 Jun (founder: "we are USD").** The brief's earlier "all £ GBP" is overridden. The calculators + comp plans already filed in `docs/hiring/` are in **USD (correct, locked 22 Jun)** — consistent with the live product's locked pricing constants (Lead Gen $1, FIGSY $3, Denise $39…).
 - **Partner rate = 20% + 5%** (this brief is authoritative) → item 197's "25% + 5%" is superseded.
 - **This brief operationalizes** items 196 (Stripe = money source-of-truth ledger), 197 (partner comp), 200 (the 3 portals), 201 (AE hire), 202 (HR/legal pack) — it's the concrete build spec for the whole seller engine.
 - **Repo question:** the brief says "fresh git repo." Decide: a new repo (like `kind-ops`) vs a module in the KIND product. The Stripe/attribution wiring overlaps the live product, so likely the KIND product (or a tightly-linked service), not fully standalone.

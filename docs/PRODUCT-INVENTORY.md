@@ -7,7 +7,7 @@
 
 | 🟢 Live + verified | 🩷 Live, not walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built (roadmap) | ⏸ Blocked | Σ |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **57** | **66** | **6** | **9** | **86** | **5** | **229** |
+| **57** | **66** | **6** | **9** | **88** | **5** | **231** |
 
 **Ladder:** 🔴 → 🟡 → 🟣 → 🩷 → 🟢. Nothing is 🟢 until verified live in production (live-but-unwalked = 🩷). **Anti-staleness:** live/pending items carry `✓<date> · stale-after <when>`; when overdue an item reads **"Needs Review,"** never silently "done" (that convention is what catches a false-live like the 136a slip). *(Last script-count: 23 Jun — 🟢57 proven core · 🩷66 shipped-not-walked · 🔴88 roadmap incl. steals 205–210 + 227 + partner/seller items 213–226 + 228.)*
 
@@ -466,4 +466,4 @@
 **Alta** Touch-Points tree · template gallery · Train tabs · funnel dashboard · Unibox reply-tags/"Help me reply" · saved views · **the inbox blueprint (item 112)** · **ClickUp** Cmd+K · views · feed · status bar · Goals · Forms · Integrations Hub · **Lemlist** images · sequence builder · community play · **Monday** share-loop · dense dashboards · Pixar warmth · **Atlas** speed-to-lead · 90-day guarantee · influencers · **Instantly** warmup · auto-pause · adaptive volume · rotation · **Clay** waterfall enrichment · **Apollo** job-change · sequence analytics · transparency · intent · **Apex** acts-not-responds · autonomy onboarding · founder-as-demo · **Glean** context moat · benchmarks · winning-play library · Casey/auto-setup · permission-safety · context-backed MCP · call-coaching agent (210) · **Revio** coaching onboarding · case-study specificity · **Notion** (3.2) branching forms (205) · template-gallery UX (206) · multi-currency rollups (207) · agents/workers/calendar/permissions (mapped to 2/83/41/55a) · **Hypo / Amplitude** (internal prospecting agent) recency-weighted hot-lead ranking + champion signal (208) · play-artifact + progress tracker + org-threading (209).
 
 ---
-*This inventory is the single complete list (≈199 items — see the colour dashboard at the top). 🟢 = live + verified · 🩷 = live, pending verification (shipped, awaiting the walk) · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Ladder: 🔴→🟡→🟣→🩷→🟢. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*
+*This inventory is the single complete list (≈231 items — see the colour dashboard at the top). 🟢 = live + verified · 🩷 = live, pending verification (shipped, awaiting the walk) · 🟣 = approved + locked, waiting to ship · 🟡 = built, needs founder review · 🔴 = future, in order. Ladder: 🔴→🟡→🟣→🩷→🟢. Numbers are stable IDs, not sequence. Nothing ships until the founder merges.*

@@ -10,7 +10,7 @@
 
 ## ⚡ STATE — the one picture
 
-- **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241). Board **Σ244** (`--check` OK), dots now match the code. *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
+- **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241) · **#725** (Apollo Engine doc + items 242–244). Board now **Σ249** (`--check` OK — items 245/246 logged 25 Jun). *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
 - **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
 - **▶️ TODAY (Thu 25) — your actions:** ① **confirm 220** (`kind-staging`? + keep `expansion`?) · ② submit **Vapi (96) · WhatsApp-Meta (128) · Google OAuth (126)** keys (long-lead, start now) · ③ **decide Paystack** keep/kill (gates C3 / item 237). · 🤖 I begin **C1/C2** partner fix (rates→20%+5% + kill ZAR) on a preview branch.
 - **🎯 GOAL: ENGINE HOT ≈ mid-July** — domain warmed (~90%) **and** 211 Phases 2–6 built/previewed/live. **Critical path = the `staging`-branch repair (Mon 29)** — every engine preview gates on it.
@@ -35,6 +35,9 @@
 - 🧍 submit **Vapi (96)** · **WhatsApp/Meta (128)** · **Google OAuth (126)** — long-lead, start now.
 - 🧍 confirm **220** (run on `kind-staging`? + keep 3 commission types?) · 🤝 decide **Paystack** keep/kill (gates C3).
 - 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR display) on a preview branch.
+- 🧍 **APOLLO ENGINE (244):** run `api.get-kind.com/engine/leads/test?key=<ADMIN_SECRET_KEY>` → open in browser, judge lead quality + source labels. Done-when: verdict on PDL/Hunter Africa coverage → tells us whether to build 243 (aggregator) or BYOK-only. *(No Apollo spend, no sends — read-only.)*
+- 🤖 **research aggregators (243):** Clay vs Bettercontact vs FullEnrich — Africa coverage depth, pricing, one-call API — present recommendation. Runs in parallel while you run 244.
+- 📋 *Items 245 (internal exec-brief generator) + 246 (in-portal support AI) logged this session — both 🟡 built, not yet walked.*
 
 ### Fri 26 Jun — Day 3 · TRUST WALK + 220
 - 🤝 **Live walk** `app.get-kind.com` — walk the **🩷 live-not-walked set** (65 items; checklist = `LIVE-FEATURE-WALK.md`) → flip 🟢 or I revert. *(Biggest single unlock.)*

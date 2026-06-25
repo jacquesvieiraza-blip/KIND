@@ -75,7 +75,7 @@ function OnboardChat() {
   const [step,        setStep]        = useState(0)
   const [input,       setInput]       = useState('')
   const [history,     setHistory]     = useState<ChatMessage[]>([])
-  const [collected,   setCollected]   = useState<CollectedData>({ company_name: '', industry: '', country: 'South Africa', website: '' })
+  const [collected,   setCollected]   = useState<CollectedData>({ company_name: '', industry: '', country: '', website: '' })
   const [scanning,    setScanning]    = useState(false)
   const [submitting,  setSubmitting]  = useState(false)
   const [figsyLine,   setFigsyLine]   = useState(STEPS[0].message({} as CollectedData))
@@ -155,7 +155,7 @@ function OnboardChat() {
         await api.post('/auth/onboard', {
           company_name: next.company_name,
           industry:     next.industry,
-          country:      next.country || 'South Africa',
+          country:      next.country || '',
           website:      websiteValue,
           phone:        '',
           ...(referredBy ? { referred_by: referredBy } : {}),

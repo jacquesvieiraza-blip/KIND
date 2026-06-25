@@ -1,151 +1,112 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: Thursday 25 June 2026** *(Day 2 of the 2-week plan)* · post-launch (live since 18 Jun) · currency **USD** · 🔥 **build freeze LIFTED**
+**As of: 25 June 2026** · post-launch (live since 18 Jun) · currency **USD**
+**🎯 The aim right now: a FULLY OPERATIONAL, SAFE system — not speed, not more features.** Stabilize the foundation, close the gaps, *then* scale.
 
-> 🧭 **Four-doc contract:** **LAUNCH-PAD** (this) = what to do, when, by whom · **PRODUCT-INVENTORY** = status (the board lives there *only*, script-counted — this doc never copies the numbers, so it can't go stale) · **KIND-MASTER** = strategy + why · **V2-TRACKER** = future.
->
-> **Legend:** 🧍 **you** · 🤖 **me (Claude)** · 🤝 **together.** Every line carries its inventory **item ID** + a **done-when**.
-
----
-
-## ⚡ STATE — the one picture
-
-- **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241) · **#725** (Apollo Engine doc + items 242–244). Board now **Σ249** (`--check` OK — items 245/246 logged 25 Jun). *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
-- **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
-- **🔖 RESUME BOOKMARK (25 Jun — pick up HERE):** **✅ done + verified today:** email-reveal pipeline LIVE (real emails, #740+#742) · staging FULLY LIVE + isolated (`heartfelt-essence-production-1434.up.railway.app`) · 220/Paystack/96/128/Qualified decided · 243→🎯 FOCUS · 212 vital · all docs reconciled + `SYSTEM-FLOW.md`. **⏭ TONIGHT (🧍 founder back): THE TRUST WALKTHROUGH** — `app.get-kind.com`, flip 65 🩷→🟢 (`LIVE-FEATURE-WALK.md`, batches; I flip dots live). **⏭ TOMORROW:** 126 OAuth · partner-recruiting rework (email/brand-led — stealth) + 🤖 source the African agency DB. **🕵️ STEALTH LOCKED: no founder identity public → no founder LinkedIn.**
-- **▶️ TODAY (Thu 25) — ✅ big wins banked:** email-reveal pipeline **LIVE + verified** · **staging fully live + isolated.** **🚶 TONIGHT (founder back from school run) = THE TRUST WALKTHROUGH** — walk `app.get-kind.com` + flip the **65 🩷 → 🟢** (batches in `LIVE-FEATURE-WALK.md`; I flip dots live as you confirm). **→ Moved to TOMORROW (Fri 26):** 126 Google OAuth + the partner-recruiting **rework** (↓). 🤖 I continue C1/C2 + the Paystack cutover.
-- **🕵️ STEALTH CONSTRAINT (founder, 25 Jun — LOCKED):** the founder **cannot be publicly identified** yet (current employer would issue notice on any leak). → **Partner recruiting is NOT founder-led LinkedIn.** It becomes **email + brand-led (faceless K.I.N.D)** to a **sourced African agency database** (we build the DB with our own data engine — 243 — then email the pitch via the warmed domain — 198). No founder identity anywhere public.
-- **🌍 GTM FRAME — TWO TRACKS (decided 25 Jun · detail → KIND-MASTER + V2-TRACKER "🌍 MARKET STRATEGY"):**
-  - **🌍 US / UK / EMEA → OUR OWN OUTREACH (the fast-cash track).** Data-rich + deliverability-driven → we dogfood FIGSY to win clients. *Build the outreach machine DURING the warmup window so we fire the day the domain's warm.*
-  - **🌍 AFRICA → DIRECT (data-powered) + PARTNERS *(sharpened 25 Jun — NOT partners-only)*.** Stack ALL data sources (243) to run our OWN outbound into Africa *as far as data reaches*; **partners** cover relationships + the residual. **Partner recruiting = EMAIL + brand-led (stealth — no founder identity)** to a sourced African agency DB; not LinkedIn.
-- **🎯 GOAL (reframed): FIRST REVENUE, not "engine hot."** Engine (211) + warmup (198) are the **entry ticket** to the US/EMEA market, not the finish line. **Critical path = warm domain + an engine good enough to deliver the first clients** (NOT all 6 phases before we sell). ✅ **STAGING FULLY LIVE (25 Jun) — the hard gate for every engine phase is cleared:** branch=`staging` (auto-deploy), API responding at `api-staging-production-2185.up.railway.app`, isolated DB (≠ prod). Engine previews unblocked. *(Staging has the 6 core env-vars; add feature keys — SMARTLEAD/PDL/HUNTER — when previewing that feature.)*
-- **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
-- **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
-  - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**
-  - **211 · Smartlead = THE ENGINE** = the **CLIENT-facing** sending engine inside the product. 🤖 **I build it.** ✅ **key live + Phase 1 verified (24 Jun)** → next Phase 2 (SendingProvider seam, previewed).
-- **⛔ Do NOT campaign hard until the domain is warmed** (it burns the domain).
-- **📊 Status board → PRODUCT-INVENTORY** (run `scripts/count-inventory.sh`). Deliberately not repeated here.
+> 🧭 **Four-doc contract:** **LAUNCH-PAD** (this) = what to do, in what order, by whom · **PRODUCT-INVENTORY** = status (the board lives there only, script-counted) · **KIND-MASTER** = strategy + why · **V2-TRACKER** = future. This doc holds **only the essentials to get operational** — everything else is parked.
+> **Legend:** 🧍 you · 🤖 me (Claude) · 🤝 both. Every line carries its inventory **item ID** + a **done-when**. No fixed-day calendar — we move accurately, in order, not against a clock.
 
 ---
 
-## 🗓️ THE 2-WEEK PLAN — day by day (Wed 24 Jun → Tue 7 Jul) · 🎯 FIRST REVENUE via two tracks
+## ⚡ THE ONE PICTURE
 
-> 🔥 **Freeze lifted 24 Jun.** **CRITICAL REVISION (25 Jun, two-track strategy):** the old plan poured almost all capacity into *building* (engine + 8 parallel lanes) and pushed selling to "after engine hot." That's backwards for "sell fast." **New shape = THREE tracks, revenue-first:**
-> - **🅰️ ENTRY TICKET (🤖):** engine (211) right-sized to deliver the *first* clients + warmup (198) — *not* all 6 phases before we sell.
-> - **🅱️ FAST-CASH (🤝):** build OUR US/UK outreach machine *during* the warmup window — ICP + lists (243 + Apollo/Cognism) · US/EMEA FIGSY copy (242/212) · offer/demo (129) → fire the day the domain's warm.
-> - **🅲 MOAT (🤝):** Africa partner recruiting — **email + brand-led (stealth)** to a sourced African agency DB (233); needs the DB (243) + warm domain (198), so it's a build-the-list-now / email-when-warm motion. *(NOT founder LinkedIn.)*
-> - **⏸ PARKED behind first revenue (critical cut):** 120 memory · 144 Denise-deep · 141 MCP · 145 churn · 157/158 — none are on the path to first cash. They carry. *(See the PARKED section below — this is the deliberate de-scope.)*
-> 🧍 you · 🤖 me · 🤝 both.
-
-### Wed 24 Jun — Day 1 · AUDIT → RECONCILE ✅ DONE
-- ✅ 198 ordered · 211 Phase 1 done · portal v2 #712 + Alex · steal 227 + item 228 logged · **full doc↔code audit (2 passes, cross-checked).**
-- ✅ **RECONCILE MERGED** — #719 (audit) · #721 (audit fixes) · **#723** (P0 truth-fixes · P1 dot flips · P2 untracked items 229–234 · P3 code-fix backlog 235–241). Board **Σ244**, dots match code. **Freeze lifted.**
-
-### Thu 25 Jun — Day 2 · DECISIONS + 🔓 STAGING UNBLOCK
-- ✅ 🤝 **STAGING FULLY LIVE today** — branch reset `staging`→`main` (auto-deploys) + founder set the staging env-vars (isolated `kind-staging` DB, verified ≠ prod). API responding at `api-staging-production-2185.up.railway.app`. **THE engine gate — cleared in full, ~4 days early. 211 Phase 2 unblocked.**
-- ✅ 🤖 **243 — email-reveal fix SHIPPED + VERIFIED LIVE (#740, 8/8 tests).** The `email: true` boolean bug is dead in prod (244 re-run: `enrichmentWaterfall` = `{source:pdl}`, no `true`). **Bug fixed — but emails still empty** (free PDL gates the address + Hunter has no real domain) → next ↓.
-- ✅ 🤖 **243 — email-reveal: WORKING LIVE, end-to-end verified.** Pipeline proven on prod: PDL finds person + domain → `resolveDomain` → **Hunter reveals the real email** (`samantha@samsalesconsulting.com`, score 96). Root blocker was a **bad `HUNTER_API_KEY`** in Railway (401) — 🧍 founder fixed it. *"Found 71k US founders → can email them" is LIVE.* *(Africa reveal-rate lower — Hunter is US/EU-weighted; that's the data-coverage/two-track point, not a code issue.)*
-- ✅ **Decided today:** 220 (staging-preview + keep 3 commission types) · **Paystack → KILL** · **96 Vapi + 128 WhatsApp → PARKED** · 244 run (verdict in).
-- ↪️ **moved to tomorrow:** 126 Google OAuth · 233 partner recruiting (now **email/brand-led**, not LinkedIn — stealth).
-- 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR) on a preview branch.
-- ✅ 🧍 **APOLLO/244 test RUN** → verdict: PDL works (**SA 1,360 / US 71,123**), real cos; **email-reveal is the gap** (free PDL gates emails everywhere). African data is real, just thinner → **Africa-direct is viable via stacked sources** (243), partners cover the rest.
-- ✅ 🤖 **aggregators researched (243→§3A)** → BetterContact (enrichment-only). **243 now elevated to 🎯 THE FOCUS** (max-coverage data → Africa-direct + US/EMEA — see NEW ACTION ITEMS).
-- 🚶 **TONIGHT (founder back) = THE TRUST WALKTHROUGH** — walk `app.get-kind.com`, confirm each live feature, flip the **65 🩷 → 🟢** (batches in `LIVE-FEATURE-WALK.md`; I flip dots live). *Biggest green-mover on the board.*
-- 🅲 **MOAT pivot (stealth):** partner recruiting → **email + brand-led**, not founder LinkedIn. New task: **🤖 source an African agency partner database** (via the 243 data engine) → email the `PARTNER-BRIEF` pitch when the domain's warm (198).
-- 📋 *Items 245 (internal exec-brief generator) + 246 (in-portal support AI) logged this session — both 🟡 built, not yet walked.*
-
-### Fri 26 Jun — Day 3 · OAUTH + PARTNER DB + ENGINE
-- ✅ email-reveal LIVE (#740 + #742). Trust walkthrough = **Thu-25 evening** (above).
-- 🧍 **126 Google OAuth** finish (moved from Thu). 🤝 **233 — source the African agency partner database** (via 243 data engine) → ready to email when warm. *(Stealth: email/brand-led, no founder LinkedIn.)*
-- 🤖🔴 **211 Phase 2** SendingProvider seam → **preview on staging** *(now live)* → founder approves → live.
-- 🤝 finish any 🩷→🟢 not covered in the Thu-night walk.
-- 🤖 build **220** real-data backend → preview · 🧍 confirm Denise **$39** checkout (58).
-
-### Sat 27 / Sun 28 Jun — light (FAST-CASH + DATA STACK start here)
-- 🤖🔴 **243 — add first new source** behind the waterfall: **BetterContact** (1 integration = 20+ providers) → preview. 🧍 Cognism key if EMEA depth wanted.
-- 🅱️ 🤝 **OUR outreach machine — kickoff:** pull a first **lead list** from `content/our-outreach-us-uk.md` (PDL + stack). Done-when: a 200–500 lead US/UK list exists.
-- 🤖 (preview) finish C1/C2 partner fix · 55a RLS clarify · 106–109 verify.
-- 🧍 warmup progress · **194/101** real-Gmail placement test.
-
-### Mon 29 Jun — Day 4 · SEQUENCES + ENGINE WIRE
-- ✅ ~~staging repair~~ **DONE 25 Jun** (pulled forward — was the gate).
-- 🤖🔴 **212 — rebuild FIGSY sequences STARTS** → the Apollo blueprint (4–6 multi-channel, ≤50-word in-thread, personalised opener, A/B). Target **done ~Fri 3**.
-- 🤖🔴 **211 Phase 3** — wire ONE client path off shared Resend → preview · **C4** USD ledger + kill dup migration 611.
-
-### Tue 30 Jun — Day 5 · ENGINE WIRE + DATA STACK
-- 🤖🔴 **211 Phase 4** — two modes (managed / connect-your-own) + reply capture → preview.
-- 🤖🔴 **243 — 2nd source + source router** (SMB→PDL/Hunter · BYOK→Apollo · EMEA→Cognism), source kept server-side.
-- 🤖 **C5** unify price tables → `@kind/shared` · 🧍 **196** accounting platform + VAT.
-
-### Wed 1 Jul — Day 6 · SEQUENCES + SMOKE
-- 🤖🔴 **212 — FIGSY sequence rebuild continues** (variants + analytics hooks) → preview.
-- 🤝 **100** smoke tests T3–T10 · 🧍 **211 decisions** (mailbox markup + Resend-client migration) · **108** credit rule · **203** repo+auth.
-
-### Thu 2 Jul — Day 7 · BILLING + NAV
-- 🤖 **57** Stripe→company-pool billing (preview) · **118** nav rewire · **C6** settings copy + migration hygiene (crm_dedup · tier CHECK).
-- 🧍 **204** start the Notion workspace.
-
-### Fri 3 Jul — Day 8 · SEQUENCES DONE + FAST-CASH COPY
-- 🤖🔴 **212 — sequence rebuild DONE** → 🧍 approve. *(Now FIGSY sends the Apollo-blueprint sequence, not the weak 3-step.)*
-- 🅱️ 🤖 **OUR outreach machine — copy:** load the 4-step sequence from **`content/our-outreach-us-uk.md`** into Instantly (dogfood angle + free-sample CTA). Done-when: sequence loaded + list attached, ready to fire on warm.
-- 🧍 legal calendar: **102** pack · SEIS · trademark (resolve the L192/L305 contradiction) · D&O · DPAs · ARIPO.
-- 🤖 **131** funnel instrumentation *(needs 🧍 the 10-analytics decision)* · **134** social-cut groundwork.
-
-### Sat 4 / Sun 5 Jul — light
-- 🧍 warmup placement check (near inbox-ready) · publish the 3 ready blog articles **(+ a US/EMEA-angled variant — the blog is Africa-flavoured today).**
-- 🅲 🧍 partner recruiting continues — aim 1 activated agency conversation → agreement.
-
-### Mon 6 Jul — Day 9 · ENGINE PHASES 5/6 🔥
-- 🤖 **211 Phase 5/6** deliverability monitoring + the live client sending path → preview → 🧍 approve → **GO LIVE.**
-- 🧍 **199** wire UptimeRobot/BetterStack + Railway/Supabase/Resend alerts.
-
-### Tue 7 Jul — Day 10 · 🔥 FIRE THE OUTREACH (the whole point)
-- 🅱️ 🤝 domain warmed (~90%) → **start OUR US/UK outreach** (127): load the list (Sat 27) + the sequence (Fri 3) into Instantly → send at low, ramped volume. **This is the first-revenue motion going live.**
-- 🤝 fortnight-close walk → flip remaining 🩷→🟢, reconcile the board · prune stale branches.
-- 🧍 **142** Product Hunt/G2 prep.
-
-### ▶️ AFTER FIRST OUTREACH (from ~8 Jul)
-- 🅱️ 🤝 **iterate the cash track:** reply-handling → demo → close the first US/UK clients (132 dogfood · 133 design partners) · **138** influencer.
-- 🅲 🤝 **scale partners (stealth, email/brand-led):** sourced African agency DB → email pitch via warm domain → ~1 activated partner/mo (233 · PARTNER GTM in V2). *(No founder LinkedIn.)*
-- 🤖 **only then** the PARKED builds (120/144/141/145/157/158) + remaining **partner UI** (221–226) + intelligence layer (139/143, client-gated) — pulled in as a *signed client* needs them.
-- 🤝 seller engine real build (200/202/203) + **228** recruiter override · business-model training day → operating SOP (204).
+- **Two completed teardowns are the spine of this plan:** the **Inventory rebuild** (clean, honest board — PR #749) and the **Launchpad/operational teardown** (this doc's fix order). Both said the same thing: *the core is real; close the foundation gaps before scaling.*
+- **🅐 vs 🅑 — the distinction that drives everything:**
+  - **🅐 YOUR outreach** (you emailing US/EMEA prospects to win clients) runs through **Instantly on separate warmed domains (198)** — *not* the product. **Safe to ramp the moment Instantly is warm. Not blocked by anything below.**
+  - **🅑 CLIENTS sending through the product** runs through a shared, unwarmed sender with no rate limits and engine **211 unbuilt**. **Gated** until the foundation fixes land.
+- **So the path is:** finish the walkthrough → close the foundation fixes (in order) → 🅐 ramps in parallel as the domain warms → 🅑 (paying clients on the product) opens only when its blockers clear.
+- **📊 Status board → PRODUCT-INVENTORY** (`scripts/count-inventory.sh`). Not copied here, so it can't go stale.
 
 ---
 
-## ⏸ PARKED BEHIND FIRST REVENUE — the deliberate de-scope *(critical revision, 25 Jun)*
-**The 24-Jun plan tried to run 8 parallel build lanes beside the engine. That's over-scoped for a small team chasing "sell fast" — it's how we'd ship a lot and sell nothing.** New rule: **nothing builds unless it's on the path to first revenue (entry-ticket, fast-cash, or moat) OR a signed client needs it.** These carry — they're good, just not now:
-- **120** Memory v2/pgvector · **144** Denise-deep · **141** Context-MCP · **145** LENA+TONY churn · **157/158** personalised images + voice brief — *no first-client depends on these.*
-- **96** Vapi (voice calling) + **128** WhatsApp/Meta — **parked 25 Jun** (not on the cold-email cash path; WhatsApp isn't even a cold channel per our own blog). Revisit post-first-revenue.
-- **121** Casey onboarding V2 — pull in only when the first client actually onboards (then it earns its place fast).
-- **212** FIGSY 6-step / **174–176** onboarding fork — *partially* in scope: the **US/EMEA sequence copy** (242/212) IS the fast-cash track (Fri 3); the rest of the 6-step rebuild waits.
-- **221–226** partner real-data UI — wait until we have activated partners with real numbers to show (220 backend first).
-- ⏸ **165** Visitor Intelligence — deferred (thin Africa coverage).
-- ⏸ **Qualified competitor program (Manus analysis)** — **PARKED 25 Jun** (focus own product first). It's an inbound/enterprise build = maps only to **Vida's future**; revisit when outbound drives inbound traffic. Analysis in Drive (not imported). 3 cheap wins noted in V2 "PARKED" for when we revisit.
-> **Still genuinely client/data/margin-gated (unchanged):** 143 Learning Engine · 147 outcome pricing · 150/155/156/159/161 scale · 151 SOC2 · 160 white-label.
+## ✅ ACTIVE NOW — the only things in flight
 
-## 🆕 NEW ACTION ITEMS (25 Jun · from the 244 data test + Apollo-doc review)
-- **🤖🎯 243 — THE FOCUS: max-coverage data layer → penetrate Africa DIRECT + feed US/EMEA.** Africa is **not** partners-only — stacking ALL sources lets us run our own outbound into Africa too. 3 sources is too few (single ~40–60% → waterfall 80%+). **Use all:** Apollo·PDL·Hunter·**Cognism**·Clearbit·Lusha·RocketReach·Proxycurl + **BetterContact** (20+ in one); **ZoomInfo** = enterprise cost-call; **Clay** = our internal list-builder + blueprint (no embeddable API). **Build order: ① email-reveal fix (the 244 gap — `waterfallEnrich` bug) → ② add sources → ③ source router.** Honest ceiling: stacked Africa still thinner than US → direct as far as data reaches, partners cover the rest. **Detail → `APOLLO-ENGINE.md §3B`.**
-- **🤖 212 — REBUILD FIGSY SEQUENCES (vital, founder flag: "our sequences are not great").** Rework to the Apollo blueprint: 4–6 multi-channel steps · ≤50-word in-thread emails · personalised opener · A/B · analytics+optimise loop (242). Highest-leverage product fix — lifts reply on every lead. **Detail → `APOLLO-ENGINE.md §3C`.**
-
-## 🧍 YOUR STANDING LIST *(status of record = PRODUCT-INVENTORY by ID)*
-- **Keys:** 211 Smartlead · 126 OAuth · 136 Flutterwave · 58 Denise price. *(104 Hunter/PDL ✅ confirmed in Railway · 96 Vapi + 128 WhatsApp → PARKED.)*
-- **Decisions:** 196 accounting + VAT · 203 repo + auth · 108 credit behaviour · 211 markup + migration · 165 visitor-intel · 120 pgvector · 121 Casey voice.
-- **Legal:** 102 pack · 103 Apollo ⏸ · SEIS · DPAs.
-- **🅱️ GTM — US/EMEA (OUR OUTREACH, fast-cash):** 127 outreach (US/UK/IE/FR/NL — avoid DE/PL) · 129 demo/offer · 132 dogfood · 133 design partners · 142 Product Hunt · 138 influencer. *Fires when the domain's warm.*
-- **🅲 GTM — AFRICA (PARTNERS, moat · recruit 10/yr — strat in V2-TRACKER; pitch = `PARTNER-BRIEF.md`) · STEALTH = email/brand-led, NO founder LinkedIn:** ① **source an African agency DB** (243 engine) → email the pitch (faceless brand, when warm) · ② Demmy warm intros (private, no public identity) · ③ inbound via the PARTNER-BRIEF page. *Count activated partners.*
-- **Seller engine:** 201 hire AE · 202 agreements (incl. **partner agreement** — to be drafted) · 200 partner+AE portal.
-- **Business/ops:** Business-model training day → operating-model SOP (Notion, 204) + the partner/AE **earnings-capture** model (Day 6).
-
-## 🤖 MY QUEUE — buildable now, via preview
-55a · 57 · 106–109 · 115 · 118 · 135 · 137 · 174–176 · 97 · 131 · **211 (the ENGINE)** · **212 (FIGSY 3→6-step)** · **ex-gated: 120 · 121 · 141 · 144 · 145 · 157 · 158 · 165** — all previewed before they go live.
-**🤝 PARTNER PORTAL v2 (200 + new items 213–226):** **✅ full DEMO portal SHIPPED to prod `/partner-preview` (#712, founder-approved 24 Jun) — 5 tabs incl. Alex (216) right-rail + co-pilot.** Still demo data → **NEXT: Slice 0 backend (220** type+MRR+USD, migration flagged, gated on your 2 confirms**)** → then Slice 1 reads real numbers (**221/222/223**) → **213** forecaster + **226** sell-through → trust/docs (**224/225**) → unicorn layer (**214/215/217/218/219**). *(Spec + GTM → V2-TRACKER.)*
-**⛔ Gated, NOT building yet:** **203** (waiting on your repo + auth decision).
-
-## ⛔ BLOCKED / WAITING
-- **117** drop-subscribe → blocked on Drop content.
-- **126** OAuth go-live → your Google/Microsoft registration.
-- **103** onboarding default → Apollo's reseller reply.
-- **211** ENGINE Phase 2 — ✅ **UNBLOCKED** (staging repaired 25 Jun; key + Phase 1 done 24 Jun). Only remaining gate: 🧍 the Railway staging redeploy.
+1. **Merge PR #749** (walkthrough + clean inventory rebuild). 🧍 — done-when: merged to main.
+2. **Finish the trust walkthrough** — `app.get-kind.com`, flip the remaining **🩷 → 🟢** in `LIVE-FEATURE-WALK.md` (I flip dots live as you confirm), fixing orphans/shells as we hit them. 🤝 — done-when: every live item is walked (🟢 or honestly dropped).
+3. **Then the inventory walkthrough proper** — re-walk the rest of the board against reality. 🤝 — done-when: board fully reconciled.
 
 ---
-*Daily rhythm: open this → do today's lines. Status → PRODUCT-INVENTORY. Why → KIND-MASTER. When something ships, its dot flips in the inventory (the only place status is edited).*
+
+## 🧱 THE OPERATIONAL FOUNDATION — ordered fix list
+*This is the heart of the new Launchpad. Nothing past a step starts until the steps before it are done. Source of detail = the Launchpad teardown.*
+
+### P0 — Confirm today (founder, ~0 build) — these may be live risks RIGHT NOW
+- **Confirm `FIGSY_COLD_FROM` is set in Railway.** If unset, the product is sending cold mail from the transactional domain → **burning `get-kind.com` reputation now** (hurts even your own brand mail). 🧍 — done-when: confirmed set to a dedicated cold domain (or set it).
+- **Confirm the signup T&C / consent flag is on in prod** (`FEATURE_V2_SCREENS=signup`) so legal consent is captured at signup (item 186). 🧍 — done-when: a fresh signup records `signup_terms_accepted_at`.
+
+### P1 — Before ANY client sends through the product (security/abuse)
+- **Rate-limit the expensive authed endpoints** (`/leads`, `/campaigns/:id/enroll`, `/icps/:id/run`, `/figsy/send-due`) — today a valid account can drain credits / abuse. 🤖 (preview) — done-when: per-user cap returns 429 under load.
+- **Defense-in-depth `client_id` checks** — add explicit `.eq('client_id', clientId)` to the `figsy_enrollments` queries + `autoEnrollLead` (safe today via wrappers, but a latent cross-tenant gap). 🤖 (preview) — done-when: every tenant query is filtered at the query layer.
+
+### P2 — Before onboarding US/EMEA *paying* clients (region/currency truth)
+- **Kill the Africa/ZAR assumptions:** signup defaults to "South Africa" + writes `amount_zar` only; model **USD** at signup. 🤖 (preview) — done-when: a US/EMEA signup is modelled in USD with the right region.
+- **Currency/honesty backlog (folds in here):** C2/236 kill `fmtZAR` in partner dashboard · C4/238 subscriptions store USD not ZAR · C3/237 retire Paystack → Stripe (US/EMEA) + Flutterwave (Africa) · C5/239 unify price tables to `@kind/shared`. 🤖 (preview) — done-when: no ZAR write paths remain; one USD price source.
+
+### P3 — Before scale (volume safety)
+- **Fix the N+1 enrollment loop** — batch-insert instead of a serial per-lead loop (times out ~1,000 leads today). 🤖 (preview) — done-when: a 1,000-lead enroll completes without timeout.
+- **Per-client send cap** — today the cap is global (one client starves others). 🤖 (preview) — done-when: each client/rep has its own daily cap.
+
+### P4 — The real unlock for 🅑 (clients sending through the product)
+- **211 — the sending engine:** per-client **isolated, warmed** sending (no shared sender), via Smartlead integration. The current Smartlead module is a read-only stub. 🤝 (preview, phase by phase) — done-when: a client can send from an isolated warmed sender, verified.
+
+### P5 — Decide, then act (no half-built limbo)
+- **v2 onboarding / Casey (121):** built but dev-only, unreachable, half-wired. **Decide: wire it into the live signup flow OR cut it** (the classic onboarding already works). 🤝 — done-when: decision made + executed (no orphaned flow left sitting).
+
+### P-OPS — Operability essentials (fold in alongside the above)
+- **199 — production monitoring + alerting** (UptimeRobot/BetterStack on api + app + DB + Resend) — today nothing pages you if prod breaks. 🧍+🤖 — done-when: an outage triggers an alert to you.
+- **100 — Smoke Test 2** (pause · booking · billing · Vida · Milla · invites · partner) on the live system. 🤝 — done-when: all paths pass.
+- **241 — migration hygiene** (dup company-engine migration · crm fields · subscriptions CHECK). 🤖 — done-when: migrations clean + verified on prod.
+
+---
+
+## 🅐 YOUR OUTREACH TRACK — runs in parallel, NOT blocked by the above
+*This is the fast-cash track. It uses Instantly + separate warmed domains, independent of the product's sending path.*
+- **198 — warm the Instantly domains** (~1–2 wk clock, in motion). 🧍 — done-when: health ~90%, inbox-placement test passes (101/194).
+- **Build the list while it warms** — a 200–500 lead US/UK list via the data engine (243) + `content/our-outreach-us-uk.md`. 🤝 — done-when: list ready.
+- **Load the sequence** (dogfood angle + free-sample CTA) into Instantly. 🤖 — done-when: sequence + list attached, ready to fire.
+- **Fire on warm** (127) — low, ramped volume → replies → demos → first clients. 🤝 — done-when: first US/UK outreach sent.
+
+---
+
+## ⏸ PARKED — NOT on the path to a fully operational system
+*Rule: nothing builds unless it's (a) a foundation fix above, (b) the walkthrough, or (c) the 🅐 outreach track. Everything else carries until the system is solid and a real client/revenue pulls it in.*
+- **Feature builds:** 120 memory · 144 Denise-deep · 141 context-MCP · 145 LENA/TONY · 157/158 images+voice-brief · 212 FIGSY 6-step (beyond the 🅐 copy) · 162 prompt library polish.
+- **Partner/seller engine:** 197 · 200 · 203 · 213–226 · 228 — the whole partner UI/comp build. (Stealth recruiting 233 = list-build only, no founder identity.)
+- **Channels:** 96 Vapi voice · 128 WhatsApp · 178 voice widget — parked (not on the cash path).
+- **Later/gated:** 139/143 intelligence · 147 outcome pricing · 150/151/155/156/159/160/161 scale · 165 visitor-intel · 55a RLS migration (app-layer holding) · enterprise SSO 181.
+
+---
+
+## 🧍 YOUR STANDING LIST (decisions + keys the founder owns)
+- **Confirm now (P0):** `FIGSY_COLD_FROM` · signup T&C flag.
+- **Keys:** 126 Google OAuth · 136 Flutterwave · 58 Denise price. *(104 Hunter/PDL ✅ confirmed · Smartlead key ✅ live.)*
+- **Decisions:** 211 (mailbox markup + Resend-client migration) · 196 accounting platform + VAT (USD reporting) · 203 repo + auth (parked) · v2/Casey wire-or-cut (P5).
+- **Legal:** 102 pack · SEIS · DPAs · trademark (own track, founder-led).
+
+## ⛔ DO-NOT-PROCEED BLOCKERS
+- ⛔ **Do NOT let clients send through the product** until P1 (rate limits) + P3 (per-client cap) + P4 (211 isolated warmed sending).
+- ⛔ **Do NOT onboard US/EMEA *paying* clients** until P2 (region/currency) is fixed — today they're modelled as ZAR/South Africa.
+- ⚠️ **Confirm `FIGSY_COLD_FROM` immediately** — possible live reputation burn.
+- ✅ **NOT blocked: your own Instantly-based US/EMEA outreach (🅐)** — ramp when warm.
+
+---
+
+## 🗂️ MOVED OUT OF THIS REWRITE — full sight, nothing lost
+*This rewrite stripped LAUNCH-PAD to the operational essentials. Below is everything removed from the old plan and exactly where it now lives. **Nothing is deleted — every item's status of record still lives in PRODUCT-INVENTORY (the complete 250-item board).** "Moved out of LAUNCH-PAD" only means "not part of getting-operational right now."*
+
+| What was in the old LAUNCH-PAD | Now lives in | Why moved out |
+|--------------------------------|--------------|---------------|
+| **The day-by-day 2-week sprint** (Wed 24 → Tue 7 Jul calendar) | Replaced by the **priority-ordered fix list** above (P0→P5 + P-OPS) | The fixed-day cram was the over-compression you're undoing — order matters, dates don't |
+| **"My queue — buildable now"** feature builds: 118 nav · 135 onboarding emails · 137 guarantee · 174–176 onboarding fork · 131 funnel instrumentation · 162 prompt library | **PARKED** (above) + PRODUCT-INVENTORY | Not required for a fully operational, safe system |
+| **212 FIGSY 6-step rebuild** | **PARKED** — *except* the US/EMEA sequence copy, which lives in the **🅐 outreach track** | Only the copy serves first-revenue; the full rebuild waits |
+| **243 / 242 data-layer "FOCUS"** | **🅐 track** (list-build only) + PRODUCT-INVENTORY 243/242 | Email-reveal already works; widening sources isn't a foundation blocker |
+| **Partner / seller engine**: 197 · 200 · 203 · 213–226 · 228 (portal, comp, AE, recruiter) | **PARKED** + V2-TRACKER | Whole channel build; not on the operational/first-revenue path |
+| **Channels**: 96 Vapi voice · 128 WhatsApp · 178 voice widget | **PARKED** + PRODUCT-INVENTORY | Not on the cash path (parked 25 Jun) |
+| **Intelligence + scale**: 120 · 141 · 143 · 144 · 145 · 147 · 150–161 · 165 | **PARKED** + PRODUCT-INVENTORY | Client/margin/scale-gated; pulled in only when a signed client needs them |
+| **GTM detail**: 133 design partners · 138 influencer · 142 Product Hunt/G2 · 134 social cuts · 129 demo | **🧍 standing list** + PRODUCT-INVENTORY | Sit behind first outreach; surfaced when 🅐 is live |
+| **55a RLS migration** | **PARKED** (app-layer isolation is holding) + noted as P-level defense-in-depth | Real but not urgent; app-code enforces isolation today |
+
+> **The safety net:** PRODUCT-INVENTORY is the full board — if it's not in LAUNCH-PAD, it's still there with its true dot. LAUNCH-PAD is only ever "what to do now"; this table is the bridge so nothing falls through.
+
+---
+*Daily rhythm: open this → do the top of the ACTIVE list + the next foundation fix in order. Status flips live in PRODUCT-INVENTORY (the only place status is edited). Why → KIND-MASTER. Future → V2-TRACKER.*

@@ -42,7 +42,8 @@ subscriptionRouter.post('/verify', async (req: AuthRequest, res) => {
       client_id, product, tier: 'monthly',
       status: 'active',
       billing_interval: billing_interval || 'monthly',
-      amount_zar: Math.round(amountUsd * 19),
+      amount_usd: amountUsd,                       // USD = source of truth (C4)
+      amount_zar: Math.round(amountUsd * 19),       // kept for back-compat until partner stats move to USD (item 220)
       current_period_start: new Date().toISOString(),
       current_period_end: new Date(Date.now() + 30 * 86400000).toISOString(),
     }, { onConflict: 'client_id,product' })

@@ -8,6 +8,24 @@
 
 ---
 
+## 📍 PROGRESS AT A GLANCE — the ONE place to see done vs not
+> ✅ done · ⏳ in progress · 🔴 not started · ⏸ waiting on you. **This is the live tracker — look here first.** Detail per step is in the foundation list below.
+
+| Step | What | Status | PR |
+|------|------|--------|-----|
+| **P0** | Confirm cold-domain · T&C flag · migrations | ✅ done | confirmed live 25 Jun |
+| **T1** | Safety — rate-limits · CRM fail-closed · dup migration | ✅ done | #753 |
+| **T2a** | Region default + voice copy | ✅ done | #754 |
+| **T2b** | Currency stored in USD (`amount_usd`) | ⏳ code ready — **needs migration run** | #756 |
+| **T2c** | Kill Paystack | ⏸ waiting on your Paystack-clear check | — |
+| **M2** | Pause stops Stripe billing | 🔴 next | — |
+| **T3** | Scale — N+1 batch enroll · per-client cap | 🔴 | — |
+| **T4** | The 211 sending engine (clients-on-product unlock) | 🔴 | — |
+| **T5** | Decide & harden (v2/Casey · monitoring · hygiene) | 🔴 | — |
+| **🅐** | Your Instantly US/EMEA outreach (parallel, not blocked) | ⏳ warming | — |
+
+---
+
 ## ⚡ THE ONE PICTURE
 
 - **Two completed teardowns are the spine of this plan:** the **Inventory rebuild** (clean, honest board — PR #749) and the **Launchpad/operational teardown** (this doc's fix order). Both said the same thing: *the core is real; close the foundation gaps before scaling.*
@@ -44,7 +62,7 @@
 
 ### T2 — REGION & MONEY *(gate: before US/EMEA *paying* clients)*
 - ✅ **T2a (PR #754, merged):** killed the South-Africa signup default (region modelled true) + fixed the overstated voice copy (C6/240).
-- 🔴 **T2b — currency storage:** add `amount_usd` column (🧍 founder-run migration) → write USD not ZAR (C4/238) · unify price tables to `@kind/shared` (C5/239) · reconcile `subscriptions.tier` CHECK. 🤖 code + 🧍 migration.
+- ⏳ **T2b — currency storage (#756, code ready):** `amount_usd` write wired in subscriptions + signup (C4/238) — **🧍 run the migration, then merge.** Remaining (with the T2c migration pass): unify price tables to `@kind/shared` (C5/239) · reconcile `subscriptions.tier` CHECK.
 - 🔴 **T2c — kill Paystack (C3/237):** 🧍 confirm no client mid-sub on Paystack → 🤖 remove the router + ZAR write paths.
 - 🔴 **M2 — pause stops Stripe billing:** today pause only handles Paystack. 🤖.
 - ↪️ **C1/C2 (partner rates + partner-dashboard ZAR) MOVED to item 220** (partner earnings backend, PARKED) — the dashboard *stores* earnings in ZAR; the fix belongs with 220, not T2.

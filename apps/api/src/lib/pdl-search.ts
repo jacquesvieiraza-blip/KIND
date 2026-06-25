@@ -91,7 +91,7 @@ function buildPdlBody(icp: IcpQuery, size: number) {
  */
 export async function pdlSearchDiagnostic(
   icp: IcpQuery,
-): Promise<{ configured: boolean; ok: boolean; status: number | null; count: number; error: string | null }> {
+): Promise<{ configured: boolean; ok: boolean; status: number | null; count: number; error: string | null; rawFirst?: unknown }> {
   const key = process.env.PDL_API_KEY
   if (!key) return { configured: false, ok: false, status: null, count: 0, error: 'PDL_API_KEY not set' }
   try {
@@ -106,7 +106,21 @@ export async function pdlSearchDiagnostic(
       return { configured: true, ok: false, status: res.status, count: 0, error: text || `HTTP ${res.status}` }
     }
     const json = await res.json() as { data?: PdlPerson[]; total?: number }
-    return { configured: true, ok: true, status: res.status, count: json.total ?? json.data?.length ?? 0, error: null }
+    const f = json.data?.[0]
+    // Surface the RAW shape of the key fields so we can see exactly what PDL returns
+    // (esp. how work_email comes back) without guessing. Admin-only diagnostic.
+    const rawFirst = f
+      ? {
+          name:            `${f.first_name ?? ''} ${f.last_name ?? ''}`.trim(),
+          job_title:       f.job_title ?? null,
+          company:         f.job_company_name ?? null,
+          country:         f.location_country ?? null,
+          work_email:      f.work_email ?? null,
+          work_email_type: typeof f.work_email,
+          emails:          f.emails ?? null,
+        }
+      : null
+    return { configured: true, ok: true, status: res.status, count: json.total ?? json.data?.length ?? 0, error: null, rawFirst }
   } catch (err) {
     return { configured: true, ok: false, status: null, count: 0, error: err instanceof Error ? err.message : 'request failed' }
   }
@@ -146,7 +160,14 @@ export async function pdlSearchPeople(icp: IcpQuery, _page = 1, size = 50): Prom
 // Normalise a PDL person into the shared ApolloContact shape the pipeline expects.
 function mapPdlToContact(p: PdlPerson): ApolloContact | null {
   if (!p.first_name && !p.last_name) return null
-  const email = p.work_email ?? p.emails?.find(e => e.address)?.address ?? null
+  // Defensive: PDL can return work_email as a non-string (e.g. a boolean presence
+  // flag on the free search tier, where the real address is gated). Only accept a
+  // real string address; otherwise leave null and let the waterfall enrich it.
+  const emailCandidates: unknown[] = [
+    p.work_email,
+    ...(Array.isArray(p.emails) ? p.emails.map(e => e?.address) : []),
+  ]
+  const email = (emailCandidates.find(v => typeof v === 'string' && v.includes('@')) as string | undefined) ?? null
   // Prefix the id so PDL-sourced leads are distinguishable from Apollo ids and are
   // never sent to Apollo's bulk_match (which matches by Apollo's internal id).
   const id = `pdl_${p.id ?? p.linkedin_url ?? `${p.first_name}_${p.last_name}_${p.job_company_name}`}`

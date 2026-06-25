@@ -66,10 +66,11 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
 
     const pdlConfigured = !!process.env.PDL_API_KEY
     const hunterConfigured = !!process.env.HUNTER_API_KEY
-    const leads = pdlConfigured ? await pdlSearchPeople(icp, 1) : []
+    // Small sample (size 5) keeps the free-tier credit burn low — PDL bills 1 credit/record.
+    const leads = pdlConfigured ? await pdlSearchPeople(icp, 1, 5) : []
     const withEmail = leads.filter((l) => l.email && l.email.includes('@')).length
     // Surface the REAL PDL outcome (status + error) so a 0 isn't ambiguous (item 244).
-    const pdlDiagnostic = await pdlSearchDiagnostic(icp, 1)
+    const pdlDiagnostic = await pdlSearchDiagnostic(icp)
 
     // Prove the multi-source enrichment + the per-lead source label on one record:
     // blank the email and let the waterfall (PDL/Hunter/Clearbit) recover it.

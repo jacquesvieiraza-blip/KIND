@@ -12,12 +12,12 @@
 
 - **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241) · **#725** (Apollo Engine doc + items 242–244). Board now **Σ249** (`--check` OK — items 245/246 logged 25 Jun). *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
 - **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
-- **🔖 RESUME BOOKMARK (25 Jun, mid-session — pick up HERE):** **✅ done:** 244 (verdict — SA 1,360 / US 71,123) · 220 decided (kind-staging preview-first ~Mon 29 · keep 3 commission types) · 237 Paystack → **KILL** · 96 Vapi + 128 WhatsApp → **PARKED** · 233 LinkedIn openers drafted (`PARTNER-BRIEF.md`) · **Qualified competitor analysis → PARKED** (focus own product; revisit for Vida-inbound — V2 "PARKED" note) · **243 elevated to 🎯 THE FOCUS** (max-coverage data → Africa-DIRECT + US/EMEA) · 212 sequence-rebuild flagged vital. **⏸ mid-flight: 126 Google OAuth** — founder doing setup (needs portal host for `NEXT_PUBLIC_SOCIAL_LOGIN=true`). **⏭ next: finish 126 → fire 233 openers → 🤖 start 243 email-reveal fix** (the #1 data unlock).
+- **🔖 RESUME BOOKMARK (25 Jun — pick up HERE):** **✅ done:** 244 verdict (SA 1,360/US 71,123) · 220 decided · 237 Paystack KILL · 96/128 PARKED · Qualified PARKED · 243→🎯 FOCUS · 212 flagged vital · full doc reconciliation + `SYSTEM-FLOW.md` (#738) · **🔓 STAGING REPAIRED (git side) — the engine's hard gate, cleared ~4 days early.** **⏭ NEXT — 🧍 you:** finish 126 OAuth · fire 233 openers · **finish staging on Railway** (redeploy + kind-staging DB). **⏭ NEXT — 🤖 me:** **243 email-reveal fix (starting now — #1 unlock)** → then 211 Phase 2.
 - **▶️ TODAY (Thu 25) — your actions:** ① **finish 126** Google OAuth setup (Parts A–D) · ② **fire 3–5 LinkedIn partner openers (233)** — the Africa track, live today · 🤖 I begin **C1/C2** partner fix + the **Paystack→Stripe/Flutterwave cutover (237/C3)** on preview branches.
 - **🌍 GTM FRAME — TWO TRACKS (decided 25 Jun · detail → KIND-MASTER + V2-TRACKER "🌍 MARKET STRATEGY"):**
   - **🌍 US / UK / EMEA → OUR OWN OUTREACH (the fast-cash track).** Data-rich + deliverability-driven → we dogfood FIGSY to win clients. *Build the outreach machine DURING the warmup window so we fire the day the domain's warm.*
   - **🌍 AFRICA → DIRECT (data-powered) + PARTNERS *(sharpened 25 Jun — NOT partners-only)*.** Stack ALL data sources (243) to run our OWN outbound into Africa *as far as data reaches*; **partners** cover relationships + the residual. Founder-led LinkedIn partner recruiting needs no engine → **start NOW**; the data layer (243) opens the direct route.
-- **🎯 GOAL (reframed): FIRST REVENUE, not "engine hot."** Engine (211) + warmup (198) are the **entry ticket** to the US/EMEA market, not the finish line. **Critical path = warm domain + an engine good enough to deliver the first clients** (NOT all 6 phases before we sell). The `staging`-branch repair (Mon 29) still gates engine previews.
+- **🎯 GOAL (reframed): FIRST REVENUE, not "engine hot."** Engine (211) + warmup (198) are the **entry ticket** to the US/EMEA market, not the finish line. **Critical path = warm domain + an engine good enough to deliver the first clients** (NOT all 6 phases before we sell). ✅ **The `staging`-branch repair — the hard gate for every engine phase — is DONE (25 Jun, pulled ~4 days early); 🧍 founder finishes the Railway redeploy.** Engine previews now unblocked.
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
   - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**
@@ -40,42 +40,50 @@
 - ✅ 198 ordered · 211 Phase 1 done · portal v2 #712 + Alex · steal 227 + item 228 logged · **full doc↔code audit (2 passes, cross-checked).**
 - ✅ **RECONCILE MERGED** — #719 (audit) · #721 (audit fixes) · **#723** (P0 truth-fixes · P1 dot flips · P2 untracked items 229–234 · P3 code-fix backlog 235–241). Board **Σ244**, dots match code. **Freeze lifted.**
 
-### Thu 25 Jun — Day 2 · KEYS + DECISIONS
-- 🧍 submit **Vapi (96)** · **WhatsApp/Meta (128)** · **Google OAuth (126)** — long-lead, start now.
-- 🧍 confirm **220** (run on `kind-staging`? + keep 3 commission types?) · 🤝 decide **Paystack** keep/kill (gates C3).
-- 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR display) on a preview branch.
+### Thu 25 Jun — Day 2 · DECISIONS + 🔓 STAGING UNBLOCK
+- ✅ 🤝 **STAGING BRANCH REPAIRED today** (force-reset `staging`→`main`; the 1,300-commit stale lineage cleared, nothing live lost). **This was THE critical-path gate for the whole engine — now cleared, ~4 days early.** 🧍 finish on Railway: redeploy the staging service + confirm `kind-staging` DB → preview URL loads. **→ 211 Phase 2 unblocked NOW (pulled earlier than Mon 29).**
+- 🤖 **243 — email-reveal fix STARTS today** (the #1 data unlock — the `waterfallEnrich` bug; PDL boolean → cascade to Hunter). Preview → target **done Fri 27**.
+- ✅ **Decided today:** 220 (staging-preview + keep 3 commission types) · **Paystack → KILL** · **96 Vapi + 128 WhatsApp → PARKED** · 244 run (verdict in).
+- 🧍 finish **126 Google OAuth** setup · fire **233 LinkedIn partner openers** (Africa moat track, live today).
+- 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR) on a preview branch.
 - ✅ 🧍 **APOLLO/244 test RUN** → verdict: PDL works (**SA 1,360 / US 71,123**), real cos; **email-reveal is the gap** (free PDL gates emails everywhere). African data is real, just thinner → **Africa-direct is viable via stacked sources** (243), partners cover the rest.
 - ✅ 🤖 **aggregators researched (243→§3A)** → BetterContact (enrichment-only). **243 now elevated to 🎯 THE FOCUS** (max-coverage data → Africa-direct + US/EMEA — see NEW ACTION ITEMS).
 - 🅲 **MOAT — start NOW (no engine needed):** 🧍 founder-led **LinkedIn partner outreach (233)** — first 2–3 warm agency conversations this week. Done-when: 3 partner convos opened.
 - 📋 *Items 245 (internal exec-brief generator) + 246 (in-portal support AI) logged this session — both 🟡 built, not yet walked.*
 
-### Fri 26 Jun — Day 3 · TRUST WALK + 220
-- 🤝 **Live walk** `app.get-kind.com` — walk the **🩷 live-not-walked set** (65 items; checklist = `LIVE-FEATURE-WALK.md`) → flip 🟢 or I revert. *(Biggest single unlock.)*
+### Fri 26 Jun — Day 3 · TRUST WALK + EMAIL-REVEAL
+- 🤖🔴 **243 — email-reveal fix DONE** → preview → 🧍 verify (re-run the 244 test → real emails come back, not boolean). *Unblocks usable leads everywhere.*
+- 🤖🔴 **211 Phase 2** SendingProvider seam → preview *(staging now repaired → no longer blocked)*.
+- 🤝 **Live walk** `app.get-kind.com` — walk the **🩷 live-not-walked set** (65 items; `LIVE-FEATURE-WALK.md`) → flip 🟢. *(Biggest single 🩷→🟢 unlock.)*
 - 🤖 build **220** real-data backend → preview · 🧍 confirm Denise **$39** checkout (58).
 
-### Sat 27 / Sun 28 Jun — light (but the FAST-CASH track starts here)
-- 🅱️ 🤝 **OUR outreach machine — kickoff:** ICP + sequence drafted → **`content/our-outreach-us-uk.md`** (founder to refine voice/offer). Pull a first **lead list** off it (PDL + Apollo BYOK; Cognism for EMEA). Done-when: a 200–500 lead US/UK list exists.
+### Sat 27 / Sun 28 Jun — light (FAST-CASH + DATA STACK start here)
+- 🤖🔴 **243 — add first new source** behind the waterfall: **BetterContact** (1 integration = 20+ providers) → preview. 🧍 Cognism key if EMEA depth wanted.
+- 🅱️ 🤝 **OUR outreach machine — kickoff:** pull a first **lead list** from `content/our-outreach-us-uk.md` (PDL + stack). Done-when: a 200–500 lead US/UK list exists.
 - 🤖 (preview) finish C1/C2 partner fix · 55a RLS clarify · 106–109 verify.
 - 🧍 warmup progress · **194/101** real-Gmail placement test.
 
-### Mon 29 Jun — Day 4 · ENGINE SEAM
-- 🤖 **repair the `staging` branch** (prereq for every engine preview).
-- 🤖 **211 Phase 2** SendingProvider seam → preview · **C4** USD ledger + kill dup migration 611.
+### Mon 29 Jun — Day 4 · SEQUENCES + ENGINE WIRE
+- ✅ ~~staging repair~~ **DONE 25 Jun** (pulled forward — was the gate).
+- 🤖🔴 **212 — rebuild FIGSY sequences STARTS** → the Apollo blueprint (4–6 multi-channel, ≤50-word in-thread, personalised opener, A/B). Target **done ~Fri 3**.
+- 🤖🔴 **211 Phase 3** — wire ONE client path off shared Resend → preview · **C4** USD ledger + kill dup migration 611.
 
-### Tue 30 Jun — Day 5 · ENGINE WIRE
-- 🤖 **211 Phase 3** — wire ONE client path off shared Resend → preview → 🧍 approve before live.
+### Tue 30 Jun — Day 5 · ENGINE WIRE + DATA STACK
+- 🤖🔴 **211 Phase 4** — two modes (managed / connect-your-own) + reply capture → preview.
+- 🤖🔴 **243 — 2nd source + source router** (SMB→PDL/Hunter · BYOK→Apollo · EMEA→Cognism), source kept server-side.
 - 🤖 **C5** unify price tables → `@kind/shared` · 🧍 **196** accounting platform + VAT.
 
-### Wed 1 Jul — Day 6 · MODES + SMOKE
-- 🤖 **211 Phase 4** two modes (managed / connect-your-own) + reply capture.
+### Wed 1 Jul — Day 6 · SEQUENCES + SMOKE
+- 🤖🔴 **212 — FIGSY sequence rebuild continues** (variants + analytics hooks) → preview.
 - 🤝 **100** smoke tests T3–T10 · 🧍 **211 decisions** (mailbox markup + Resend-client migration) · **108** credit rule · **203** repo+auth.
 
 ### Thu 2 Jul — Day 7 · BILLING + NAV
 - 🤖 **57** Stripe→company-pool billing (preview) · **118** nav rewire · **C6** settings copy + migration hygiene (crm_dedup · tier CHECK).
 - 🧍 **204** start the Notion workspace.
 
-### Fri 3 Jul — Day 8 · FAST-CASH CONTENT + LEGAL
-- 🅱️ 🤖 **OUR outreach machine — copy:** load the 4-step sequence from **`content/our-outreach-us-uk.md`** into Instantly (≤50-word, in-thread, dogfood angle + free-sample CTA). Done-when: sequence loaded + list attached, ready to fire on warm.
+### Fri 3 Jul — Day 8 · SEQUENCES DONE + FAST-CASH COPY
+- 🤖🔴 **212 — sequence rebuild DONE** → 🧍 approve. *(Now FIGSY sends the Apollo-blueprint sequence, not the weak 3-step.)*
+- 🅱️ 🤖 **OUR outreach machine — copy:** load the 4-step sequence from **`content/our-outreach-us-uk.md`** into Instantly (dogfood angle + free-sample CTA). Done-when: sequence loaded + list attached, ready to fire on warm.
 - 🧍 legal calendar: **102** pack · SEIS · trademark (resolve the L192/L305 contradiction) · D&O · DPAs · ARIPO.
 - 🤖 **131** funnel instrumentation *(needs 🧍 the 10-analytics decision)* · **134** social-cut groundwork.
 
@@ -133,7 +141,7 @@
 - **117** drop-subscribe → blocked on Drop content.
 - **126** OAuth go-live → your Google/Microsoft registration.
 - **103** onboarding default → Apollo's reseller reply.
-- **211** ENGINE Phase 2 (client-facing seam) → **staging branch repair** (the §11 preview path; key + Phase 1 ✅ done 24 Jun).
+- **211** ENGINE Phase 2 — ✅ **UNBLOCKED** (staging repaired 25 Jun; key + Phase 1 done 24 Jun). Only remaining gate: 🧍 the Railway staging redeploy.
 
 ---
 *Daily rhythm: open this → do today's lines. Status → PRODUCT-INVENTORY. Why → KIND-MASTER. When something ships, its dot flips in the inventory (the only place status is edited).*

@@ -30,10 +30,10 @@
 ## 🧱 THE OPERATIONAL FOUNDATION — ordered fix list
 *This is the heart of the new Launchpad — the ONE source of truth for the fix plan. Nothing past a tier starts until the tier before it is done. Evidence + file:line detail → `SYSTEM-HEALTH-AUDIT.md` (linked in DOC-MAP). Each tier ships as ONE checked PR when we reach it — no drip.*
 
-### P0 — CONFIRM *(🧍 you · Railway · ~0 build · possible live risk NOW)*
-- **`FIGSY_COLD_FROM` set to a dedicated cold domain.** If unset, the product sends cold mail from the transactional domain → **burning `get-kind.com` reputation now.** — done-when: confirmed set (or set it).
-- **Signup T&C / consent flag on in prod** (`FEATURE_V2_SCREENS=signup`) so consent is captured (item 186). — done-when: a fresh signup writes `signup_terms_accepted_at`.
-- **Prod-migration state** — confirm which scattered migrations actually ran (outcome_events 48 · push 50 · calendar 44 · crm_dedup · webhook_endpoints 182/185 = known unrun). — done-when: a definitive list of what's live vs missing.
+### P0 — CONFIRM ✅ DONE (25 Jun) — evidence in SYSTEM-HEALTH-AUDIT
+- ✅ **`FIGSY_COLD_FROM`** = `hello@gettingkind.com` (dedicated cold domain) — transactional `get-kind.com` is NOT being burned.
+- ✅ **Signup T&C flag** = `NEXT_PUBLIC_FEATURE_V2_SCREENS=ALL` → consent renders + is captured.
+- ✅ **Prod-migration state confirmed + fixed:** ran the 3 missing that matter — `outcome_events` (data floor, item 48 — was a fake-green) · `leads.research_summary` · `figsy_chat_messages`. Double-charge guard confirmed live; bad dup `611` never ran (deleted in T1); `webhook_endpoints` present (not unrun); `linkedin_queue` skipped (parked).
 
 ### T1 — SAFETY *(🤖 preview · gate: before ANY client sends on the product)*
 - **Rate-limit the expensive authed endpoints** (`/leads`, `/campaigns/:id/enroll`, `/icps/:id/run`, `/figsy/send-due`) — H1. — done-when: per-user cap returns 429 under load.

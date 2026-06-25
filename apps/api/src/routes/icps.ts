@@ -3,6 +3,7 @@ import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
@@ -506,7 +507,7 @@ icpRouter.delete('/:id', async (req: AuthRequest, res) => {
 })
 
 // ── RUN ICP — search Apollo and insert matched leads ──────────────────────────
-icpRouter.post('/:id/run', async (req: AuthRequest, res) => {
+icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-run', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }

@@ -18,7 +18,8 @@ The system is **fundamentally sound and substantially honest** — the inventory
 ### 🔴 Must-fix before clients run *on the product*
 - **H1 — No rate-limiting on expensive authed endpoints** (`/leads`, `/campaigns/:id/enroll`, `/icps/:id/run`, `/figsy/send-due`) → credit-drain/abuse. ✅ → **T1**
 - **H2 — 211 sending engine** — shared, unwarmed Resend sender; no per-client isolation (clients poison each other; nothing lands warmed). ✅ → **T4**
-- **H3 — Migration discipline** — manual-run, scattered across `supabase/migrations`, `apps/api/src/migrations`, `packages/db/src/migrations`; dup `company_engine` (20260611 vs 612); `subscriptions.tier` CHECK vs `'monthly'`; `webhook_endpoints` unrun. ⚠️ → **P0 confirm + T1**
+- **H3 — Migration discipline** — manual-run, scattered across `supabase/migrations`, `apps/api/src/migrations`, `packages/db/src/migrations`; dup `company_engine` (20260611 vs 612); `subscriptions.tier` CHECK vs `'monthly'`. ⚠️ → **P0 confirm + T1**
+  - **✅ P0 prod-state confirmed (25 Jun):** ran the 3 missing-that-matter — `outcome_events` (data floor, item 48 — was a fake-green; now capturing) · `leads.research_summary` · `figsy_chat_messages`. **Present already:** `webhook_endpoints` (NOT unrun — corrects earlier), `calendar_bookings`, `push_subscriptions`, `companies`, `client_members`, `subscriptions.paused_at`, `crm_dedup_enabled`, `crm_existing`, and `credit_transactions_reference_unique` (double-charge guard live). **Bad dup `611` never ran → deleted the file in T1.** `linkedin_queue` skipped (parked). Still open (T1/T2): `subscriptions.tier` CHECK reconcile.
 
 ### 🟠 Real gaps (before scaling / US-EMEA paying clients)
 - **M1 — Region/currency** — signup defaults "South Africa", writes `amount_zar` only; USD not modelled. ✅ → **T2**

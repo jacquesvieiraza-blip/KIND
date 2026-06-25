@@ -16,7 +16,7 @@
 
 | Route | Item | Live nav | Code | Gap to polish |
 |-------|------|----------|------|---------------|
-| `/dashboard` | 116 | ✅ Home | REAL | — |
+| `/dashboard` | 116 | ✅ Home | REAL | ✅ **WALKED 25 Jun → 🟢** |
 | `/dashboard/leads` | 13/18 | ✅ People | REAL | bulk ops use raw `fetch` → fail silently |
 | `/dashboard/leads/overview` | — | ⛔ orphan | REAL | built, linked from nowhere |
 | `/dashboard/leads/icp` | 5 | ✅ ICP Builder | REAL | vertical templates hardcoded (gated) |

@@ -61,7 +61,7 @@ type IcpQuery = {
   industries:       string[]
 }
 
-function buildPdlBody(icp: IcpQuery, page: number) {
+function buildPdlBody(icp: IcpQuery, size: number) {
   const must: unknown[] = []
   if (icp.job_titles.length) {
     must.push({ bool: { should: icp.job_titles.map(t => ({ match: { job_title: t } })), minimum_should_match: 1 } })
@@ -78,7 +78,9 @@ function buildPdlBody(icp: IcpQuery, page: number) {
   if (sizes.length) must.push({ terms: { job_company_size: sizes } })
   // Only return people we can actually email.
   must.push({ exists: { field: 'work_email' } })
-  return { query: { bool: { must } }, size: 50, from: (page - 1) * 50 }
+  // NOTE: PDL deprecated `from`-based pagination — sending it 400s the whole request.
+  // Page 1 only for now; deeper pages need `scroll_token` (PDL person-search docs).
+  return { query: { bool: { must } }, size }
 }
 
 /**
@@ -89,7 +91,6 @@ function buildPdlBody(icp: IcpQuery, page: number) {
  */
 export async function pdlSearchDiagnostic(
   icp: IcpQuery,
-  page = 1,
 ): Promise<{ configured: boolean; ok: boolean; status: number | null; count: number; error: string | null }> {
   const key = process.env.PDL_API_KEY
   if (!key) return { configured: false, ok: false, status: null, count: 0, error: 'PDL_API_KEY not set' }
@@ -97,7 +98,7 @@ export async function pdlSearchDiagnostic(
     const res = await fetch(PDL_SEARCH_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
-      body:    JSON.stringify(buildPdlBody(icp, page)),
+      body:    JSON.stringify(buildPdlBody(icp, 1)), // size 1 — cheap; PDL still returns `total` match count
       signal:  AbortSignal.timeout(15000),
     })
     if (!res.ok) {
@@ -115,11 +116,11 @@ export async function pdlSearchDiagnostic(
  * Search PDL for people matching an ICP. Returns [] when no PDL_API_KEY is set
  * (dormant), on error, or on no matches — never throws, so it's a safe fallback.
  */
-export async function pdlSearchPeople(icp: IcpQuery, page = 1): Promise<ApolloContact[]> {
+export async function pdlSearchPeople(icp: IcpQuery, _page = 1, size = 50): Promise<ApolloContact[]> {
   const key = process.env.PDL_API_KEY
   if (!key) return [] // dormant until a key is configured — identical to today
 
-  const body = buildPdlBody(icp, page)
+  const body = buildPdlBody(icp, size)
 
   try {
     const res = await fetch(PDL_SEARCH_URL, {

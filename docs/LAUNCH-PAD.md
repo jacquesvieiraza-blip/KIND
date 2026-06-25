@@ -53,7 +53,7 @@
 - 🤖 build **220** real-data backend → preview · 🧍 confirm Denise **$39** checkout (58).
 
 ### Sat 27 / Sun 28 Jun — light (but the FAST-CASH track starts here)
-- 🅱️ 🤝 **OUR outreach machine — kickoff:** define the **US/UK ICP** (who we sell to) + pull a first **lead list** (PDL + Apollo BYOK; Cognism for EMEA) → the fuel for when the domain's warm. Done-when: a 200–500 lead US/UK list exists.
+- 🅱️ 🤝 **OUR outreach machine — kickoff:** ICP + sequence drafted → **`content/our-outreach-us-uk.md`** (founder to refine voice/offer). Pull a first **lead list** off it (PDL + Apollo BYOK; Cognism for EMEA). Done-when: a 200–500 lead US/UK list exists.
 - 🤖 (preview) finish C1/C2 partner fix · 55a RLS clarify · 106–109 verify.
 - 🧍 warmup progress · **194/101** real-Gmail placement test.
 
@@ -74,7 +74,7 @@
 - 🧍 **204** start the Notion workspace.
 
 ### Fri 3 Jul — Day 8 · FAST-CASH CONTENT + LEGAL
-- 🅱️ 🤖 **OUR outreach machine — copy:** US/UK **FIGSY sequences** on the Apollo playbook (242/212) — ≤50-word emails, in-thread follow-ups, the "we used FIGSY to land you" angle + a clear offer/demo (129). Done-when: a 4-step US/UK sequence is drafted + ready to load.
+- 🅱️ 🤖 **OUR outreach machine — copy:** load the 4-step sequence from **`content/our-outreach-us-uk.md`** into Instantly (≤50-word, in-thread, dogfood angle + free-sample CTA). Done-when: sequence loaded + list attached, ready to fire on warm.
 - 🧍 legal calendar: **102** pack · SEIS · trademark (resolve the L192/L305 contradiction) · D&O · DPAs · ARIPO.
 - 🤖 **131** funnel instrumentation *(needs 🧍 the 10-analytics decision)* · **134** social-cut groundwork.
 

@@ -57,6 +57,7 @@
 | `demo-walkthrough-script.html` | verbatim 12-scene demo | ✅ | demo/positioning change |
 | `setup-dashboard-preview.html` · `portal-v2-*` · `CLIENT_FLOW*.html` · `previews/*` · `MCP-EXPLAINED.html` · `pwa-mockup.html` · `updates-live/client-journey-flowchart.html` | UI mockups/specs + reference HTML (Casey design, inbox-v2, sequence-builder, MCP explainer, PWA mockup, client-journey flowchart) — *3 added 24 Jun (were unindexed)* | ✅ ref | design lock change |
 | `content/blog-articles.md` · `content/youtube-plan.md` · `content/website-video-plan.md` | publish-ready posts + 10-video plan (faceless voice) + the website video plan | ✅ | content cadence |
+| `content/our-outreach-us-uk.md` | **OUR own US/UK outreach pack** (the 🅱️ fast-cash track) — ICP · channels · offer · 4-step dogfood sequence · compliance — items 127/129/132/242 | ✅ *(new 25 Jun)* | offer/ICP/pricing change |
 | `art-of-possible.md` | future-vision / inspiration log (product ideas, competitive reads — explicitly "nothing built unless marked") | ✅ ref | when an idea graduates to a 🔴 item |
 
 ### 🛠️ Ops · deploy · infra

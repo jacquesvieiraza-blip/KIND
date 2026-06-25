@@ -1,10 +1,96 @@
 # 🚶 K.I.N.D — LIVE-FEATURE WALK (the verification checklist)
-`Last-checked: 24 Jun 2026` _(the "Mon 22" walk-plan dates below are historical; the walk is still pending — status of record = PRODUCT-INVENTORY)_
+`Last-checked: 25 Jun 2026` _(the "Mon 22" walk-plan dates below are historical; the walk is still pending — status of record = PRODUCT-INVENTORY)_
 
 > **Purpose:** every feature/element that is LIVE in production, in one tickable list — so we confirm **it all works** and move the board from 🩷 → 🟢. Source of record for status stays `PRODUCT-INVENTORY`; this is the *walk tool* that drives the flips.
 > **How to use:** walk each item on the live site, mark it, and tell me the IDs. **✅ works → I flip 🩷→🟢** · ⚠️ placeholder → note it · **🔴 broken → I fix same-day** (drops to 🔴 on the board until fixed).
 > **Legend:** ⬜ not yet walked · ✅ confirmed working · ⚠️ partial/placeholder · 🔴 broken. *(Source dot: 🟢 = already verified pre-launch · 🩷 = live, needs this walk.)*
 > **Sites:** LIVE = `app.get-kind.com` (portal) · `admin.get-kind.com` (admin) · `www.get-kind.com` (site).
+
+---
+
+## 🔬 PASS 1 — CODE-VERIFIED PORTAL AUDIT (25 Jun 2026)
+> **Founder reset (25 Jun): "polish every element we have before we build more — a half-built product is worth nothing."** So before any live-walk, every client screen was read in the code. This is the truth of *what is real vs a shell* — the prep that makes the live-walk meaningful.
+> **Code verdict:** REAL = fetches live data + renders it · PARTIAL = real + some stub/placeholder · SHELL = static/mock/disabled, no data.
+> **Live nav:** ✅ in left sidebar · 👤 in profile menu · 🔒 gated (only shows if that agent/flag is unlocked) · ⛔ **orphan — reachable from NO menu**.
+> **Scorecard: 36 REAL · 5 PARTIAL · 7 SHELL across ~48 client screens.** Every screen exists; the gaps are polish + reachability, not absence.
+
+| Route | Item | Live nav | Code | Gap to polish |
+|-------|------|----------|------|---------------|
+| `/dashboard` | 116 | ✅ Home | REAL | ✅ **WALKED 25 Jun → 🟢** |
+| `/dashboard/leads` | 13/18 | ✅ People | REAL | ⏳ **WALKED 25 Jun — fix in progress (preview):** removed 3 fabricated columns (Technographics, "Hiring", Growth-signal → real versions = item 247). TODO: dedup rows (same email twice) + panel "120" vs table "115" count mismatch. → 🟢 after preview-approve |
+| `/dashboard/leads/overview` | — | ⛔ orphan | REAL | built, linked from nowhere |
+| `/dashboard/leads/icp` | 5 | ✅ ICP Builder | REAL | vertical templates hardcoded (gated) |
+| `/dashboard/leads/icp/builder` | 121 | 🔒 flag | PARTIAL | Milla chat behind feature flag |
+| `/dashboard/leads/linkedin` | 11 | ✅ LinkedIn Import | REAL | client-side CSV parse only |
+| `/dashboard/prospects` | — | ⛔ orphan | REAL | built, linked from nowhere |
+| `/dashboard/figsy` | 14 | ✅🔒 FIGSY | REAL | — |
+| `/dashboard/figsy/[id]` | 14/113 | (from list) | REAL | — |
+| `/dashboard/figsy/replies` | 18 | ⛔ orphan | REAL | superseded by `/inbox` — decide cut |
+| `/dashboard/figsy/sequences` | 70/187 | ✅ Sequences | REAL | — |
+| `/dashboard/figsy/sequence-builder` | 82 | ✅ Seq Builder | **SHELL** | ⚠️ **DOT-FIX 25 Jun: 🩷→🔴** (mock in live nav, no save/apply) — pull from nav + build |
+| `/dashboard/figsy/kanban` | 114 | ⛔ orphan | REAL | built, not linked |
+| `/dashboard/figsy/linkedin` | 127 | ⛔ orphan | REAL | needs Phantombuster key |
+| `/dashboard/figsy/webhooks` | 47 | ✅ Webhooks | REAL | — |
+| `/dashboard/figsy-chat` | 22 | ✅ Chat w/FIGSY | REAL | — |
+| `/dashboard/inbox` | 112 | ✅ Inbox | **PARTIAL** | ⚠️ ICP-score `—` hardcoded · archive folder dead · "booked" not persisted |
+| `/dashboard/templates` | 70 | ✅ Templates | SHELL | static library (acceptable; no save) |
+| `/dashboard/agents` | 125 | ✅ KIND AI | REAL | — |
+| `/dashboard/assistant` | 2 | ✅🔒 Milla | REAL | integrations row all "coming soon" |
+| `/dashboard/denise` | 4 | ✅🔒 Denise | REAL | — |
+| `/dashboard/chatbot` | 3 | ✅🔒 Vida | REAL | — |
+| `/dashboard/knowledge` | 74 | ✅🔒 FIGSY | **PARTIAL** | ⚠️ **DOT-FIX 25 Jun: 🩷→🔴** (`TRAINING_LIVE=false`, saves are noop) — flip flag + verify |
+| `/dashboard/notetaker` | 81 | ✅🔒 Milla | REAL | export-to-Slack / add-to-tasks stubbed |
+| `/dashboard/kpis` | 195 | ✅ Performance | REAL | — |
+| `/dashboard/analytics` | 193 | ✅ Analytics | REAL | — |
+| `/dashboard/roi` | 191 | ✅ Your ROI | REAL | — |
+| `/dashboard/deliverability` | 90 | ⛔ (redirect) | redirect→kpis | intentional consolidation |
+| `/dashboard/activity` | 88 | ⛔ orphan | REAL | also lives as a Home widget (116) |
+| `/dashboard/billing` | 23 | ✅ Billing | REAL | — |
+| `/dashboard/documents` | 136a/186 | ✅🔒 Milla | REAL | ✓ surfaces T&C+Privacy+DPA + signed-acceptance record + invoices — **gated behind Milla** |
+| `/dashboard/usage` | 28 | ✅ Usage | REAL | — |
+| `/dashboard/proposals` | 39 | ✅ Proposals | REAL | — |
+| `/dashboard/settings` | 41 | ✅ Settings | REAL | — |
+| `/dashboard/messages` | 38 | ✅ Messages | REAL | — |
+| `/dashboard/referral` | — | 👤 profile | PARTIAL | referrals-table endpoint may not exist |
+| `/dashboard/marketplace` | — | 👤 profile/flag | REAL | Lena/Tony "coming soon" cards |
+| `/dashboard/config` | — | ⛔ orphan/flag | REAL | built, not linked |
+| `/dashboard/company` | 55 | ⛔ orphan | REAL | ⚠️ **the whole Command Centre is reachable from NO client menu** |
+| `/dashboard/team` | 80 | ✅ Team | **PARTIAL** | ⚠️ Analytics/Activity/Permissions tabs "coming soon" · Create-team = `alert()` |
+| `/dashboard/partner` | 37/42 | ✅🔒 partner | REAL | — |
+| `/dashboard/partner/deck` | — | (from hub) | SHELL | static slides (collateral) |
+| `/dashboard/partner/onboarding` | — | (from hub) | SHELL | static steps (collateral) |
+| `/dashboard/partner/pricing` | — | (from hub) | SHELL | ⚠️ **shows ZAR (R1,500–3,500) — pricing is USD-locked** |
+| `/dashboard/integrations` | 83 | ✅ Integrations | REAL | Connect button = "coming soon" toast |
+| `/dashboard/developer` | 46 | ✅ Developer API | REAL | — |
+| `/dashboard/mcp` | 45 | ✅ MCP Connect | REAL | — |
+
+### 🎯 What Pass 1 found — the "half-built" reality, in priority order
+**P1 — in the live nav but broken/shell (a client WILL hit these):**
+1. **Sequence Builder (82)** — a "coming live in #89" mock sits in the FIGSY menu. Click → dead. *Either wire it or pull it from nav.*
+2. **Knowledge (74)** — `TRAINING_LIVE=false`; every Save silently does nothing, despite the inventory saying the backend lit it up. *Enable or honestly gate.*
+3. **Inbox (112)** — real, but ICP-score is a hardcoded `—`, the Archive folder does nothing, "mark booked" isn't saved. *Fix the 3 TODOs.*
+4. **Team (80)** — 3 of 4 tabs say "coming soon"; "Create team" is a browser `alert()`.
+5. **Stubbed buttons on otherwise-real pages** — Assistant integrations, Notetaker export, Integrations Connect all "coming soon".
+
+**P2 — orphans (built, polished, but reachable from no menu):** `company` (55 — the Command Centre!), `figsy/kanban` (114), `activity` (88), `figsy/replies`, `figsy/linkedin`, `leads/overview`, `prospects`, `config`. *Each: wire into nav or consciously cut.*
+
+**P3 — stale content:** `partner/pricing` still in ZAR; pricing is USD-locked.
+
+**Note on your Documents ask:** the Documents page **already does** what you wanted — it surfaces Terms + Privacy + DPA *and* the signed-acceptance record from signup, plus Stripe invoices. The only catch: it's hidden unless **Milla** is unlocked. That's a P1-reachability call, not a build.
+
+## 🔬 PASS 1B — BACKEND/BEHAVIOURAL DOT-HONESTY SWEEP (25 Jun 2026)
+> **Founder's concern: "is anything 🟢/🩷 actually fake and should be 🔴?"** So all 122 live items (58 🟢 + 64 🩷) were code-verified — not just the portal screens. Method: 7 parallel code-readers + reconciliation against the frontend (a few backend-only "FAKE" flags were false alarms for frontend features).
+> **RESULT: the live board is substantially honest.** Zero fake greens. The only genuine fakes were the 3 already caught on the portal (82 Sequence Builder, 74 Knowledge → 🔴; fabricated lead-columns → removed, item 247). Every other live item is REAL in code or NEEDS-LIVE confirmation.
+>
+> **REAL in code (no change):** Lead-gen+Data 5–13/94/95 · FIGSY 14–22 · R-wave 60–73/75–79 · Billing 23/26/28/58/124/166–171/190 · Company 55/56/59/106–111 · Components 85/86/87/89/91/192/193 · Admin 29–40 · Infra 41–54.
+> **Demoted for honesty (25 Jun):** 84 SSO 🩷→🟡 (buttons gated off until OAuth registered) · 178 Voice 🩷→🟡 (shell, Vapi parked). 78 What's New kept 🩷 (real page, hardcoded content — flip 🔴 if a dynamic feed is required).
+> **👀 NEEDS-LIVE / walk to settle:** 106 invite-email sending · 109 owner↔rep notifications · 75 internal evals · 67 saved views / 69 goals (localStorage, per-browser) · 47 webhook signatures · 52 key rotation.
+>
+> **The real problem was never a fake board — it's (1) gating, (2) reachability (8 orphan screens), (3) the 2 shells (fixed), (4) the fake lead-columns (fixed).**
+
+---
+
+> **Pass 2 = the live-walk** (below). Pass 1 tells us which screens are worth walking and which need a fix first.
 
 ---
 

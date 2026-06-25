@@ -143,39 +143,9 @@ function CampaignMicroBar({ lead }: { lead: Lead }) {
 }
 
 // ── AI enrichment columns ─────────────────────────────────────────────────────
-// Technographics: derived from available data or shown as "soon" placeholder
-function TechnographicsChip({ lead }: { lead: Lead }) {
-  // Real tech stack data would come from Apollo enrichment
-  // Placeholder: infer from industry/job title signals
-  const industry = (lead.industry ?? '').toLowerCase()
-  const title = (lead.job_title ?? '').toLowerCase()
-  const stacks: string[] = []
-  if (industry.includes('tech') || industry.includes('software') || title.includes('engineer') || title.includes('developer'))
-    stacks.push('SaaS')
-  if (title.includes('marketing') || title.includes('growth'))
-    stacks.push('MarTech')
-  if (title.includes('sales') || title.includes('revenue'))
-    stacks.push('CRM')
-  if (stacks.length === 0) return <span className="text-[10px] text-gray-300 italic">—</span>
-  return (
-    <div className="flex flex-wrap gap-1">
-      {stacks.map(s => (
-        <span key={s} className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600">{s}</span>
-      ))}
-    </div>
-  )
-}
-
-function JobPostingsBadge({ lead }: { lead: Lead }) {
-  // Derived from score — high score companies likely hiring
-  const hiring = (lead.score ?? 0) >= 75 && lead.company
-  if (!hiring) return <span className="text-[10px] text-gray-300 italic">—</span>
-  return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-600">
-      📢 Hiring
-    </span>
-  )
-}
+// NOTE (25 Jun): Technographics + Job-Postings columns REMOVED — they were
+// inferred from score/title (fabricated), not real enrichment. Re-add only when
+// wired to real Apollo org data (PRODUCT-INVENTORY item 247). Hide-until-real.
 
 // ── Apollo badge ──────────────────────────────────────────────────────────────
 function ApolloBadge({ consented }: { consented: boolean }) {
@@ -202,9 +172,8 @@ function BuyingSignals({ lead }: { lead: Lead }) {
   if (title.includes('head of') || title.includes('vp') || title.includes('chief'))
     signals.push({ label: '👤 Decision maker', color: 'bg-purple-50 text-purple-600' })
 
-  // Recent company activity (placeholder — replace with LinkedIn scrape data)
-  if ((lead.score ?? 0) >= 70 && lead.company)
-    signals.push({ label: '📈 Growth signal', color: 'bg-amber-50 text-amber-600' })
+  // NOTE (25 Jun): "📈 Growth signal" badge REMOVED — it was just score≥70,
+  // not a real signal. Re-add when wired to real activity data (item 247).
 
   if (signals.length === 0) return null
 
@@ -1114,7 +1083,7 @@ export default function LeadsPage() {
                         className="rounded border-gray-300"
                       />
                     </th>
-                    {['Lead', 'Company', 'Score', 'Pipeline Stage', 'Technographics', 'Job Postings', 'Source', 'Actions'].map(h => (
+                    {['Lead', 'Company', 'Score', 'Pipeline Stage', 'Source', 'Actions'].map(h => (
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#7B6FA0] uppercase tracking-wider">{h}</th>
                     ))}
                   </tr>
@@ -1173,12 +1142,6 @@ export default function LeadsPage() {
                             ✓ Auto-sent
                           </span>
                         )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <TechnographicsChip lead={lead} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <JobPostingsBadge lead={lead} />
                       </td>
                       <td className="px-4 py-3">
                         <ApolloBadge consented={lead.apollo_consented} />
@@ -1292,7 +1255,7 @@ export default function LeadsPage() {
                     {/* Enrichment expanded row */}
                     {enrichedLeads[lead.id] && expandedEnrichments.has(lead.id) && (
                       <tr className="bg-[#F9F7FF]">
-                        <td colSpan={9} className="px-6 pb-4 pt-0">
+                        <td colSpan={7} className="px-6 pb-4 pt-0">
                           <EnrichmentPanel
                             data={enrichedLeads[lead.id]}
                             onCopy={text => { navigator.clipboard.writeText(text); showToast('Copied to clipboard ✓') }}
@@ -1303,7 +1266,7 @@ export default function LeadsPage() {
                     {/* Research expanded row */}
                     {researchData[lead.id] && expandedResearch.has(lead.id) && (
                       <tr className="bg-indigo-50/40">
-                        <td colSpan={9} className="px-6 pb-4 pt-0">
+                        <td colSpan={7} className="px-6 pb-4 pt-0">
                           <div className="bg-white border border-indigo-100 rounded-xl p-4 mt-2 space-y-2.5">
                             <div className="flex items-center gap-2">
                               <Search className="w-3.5 h-3.5 text-indigo-500" />

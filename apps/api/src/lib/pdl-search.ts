@@ -64,7 +64,7 @@ type IcpQuery = {
 function buildPdlBody(icp: IcpQuery, size: number) {
   const must: unknown[] = []
   if (icp.job_titles.length) {
-    must.push({ bool: { should: icp.job_titles.map(t => ({ match: { job_title: t } })), minimum_should_match: 1 } })
+    must.push({ bool: { should: icp.job_titles.map(t => ({ match: { job_title: t } })) } })
   }
   const levels = icp.seniority_levels.flatMap(s => PDL_LEVEL_MAP[s] ?? [])
   if (levels.length) must.push({ terms: { job_title_levels: levels } })
@@ -72,7 +72,7 @@ function buildPdlBody(icp: IcpQuery, size: number) {
     must.push({ terms: { job_company_industry: icp.industries.map(i => i.toLowerCase()) } })
   }
   if (icp.geographies.length) {
-    must.push({ bool: { should: icp.geographies.map(g => ({ match: { location_country: g.toLowerCase() } })), minimum_should_match: 1 } })
+    must.push({ terms: { location_country: icp.geographies.map(g => g.toLowerCase()) } })
   }
   const sizes = icp.company_sizes.map(s => PDL_SIZE_MAP[s]).filter(Boolean)
   if (sizes.length) must.push({ terms: { job_company_size: sizes } })

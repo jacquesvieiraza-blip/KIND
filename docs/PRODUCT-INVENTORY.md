@@ -272,9 +272,9 @@
 |---|---|------|-------|
 | 198 | 🔴 | Cold-email WARMUP — #1 priority (Instantly rig warming) | 🧍 |
 | 211 | 🔴 | THE sending/deliverability engine — integrate Smartlead (client-facing) | 🤝 |
-| 243 | 🔴 | 🎯 FOCUS — max-coverage multi-source data layer (Africa direct + US/EMEA) | 🤝 |
+| 243 | 🔴 | 🎯 **URGENT FOCUS — max-coverage multi-source data layer** (we run thin: PDL+Hunter only). Top lever = **BetterContact** (1 integration = 20+ providers) → source router. Build during warm-up. Feeds 212. | 🤝 |
 | 242 | 🔴 | EPIC — Apollo Outbound OS → FIGSY (6-stage playbook) | 🤖 |
-| 212 | 🔴 | FIGSY sequence 3-step → 6-step | 🤖 |
+| 212 | 🔴 | **FIGSY sequences — thin + weak per-email context** (founder 25 Jun). Rebuild to the Apollo blueprint (242): 4–6 steps · ≤50-word · **personalised opener using the lead's real data/signals (enough context per email)** · in-thread · A/B. **Fed by 243's richer data.** 🔭 Depth Track. | 🤖 |
 | 140 | 🔴 | Waterfall cluster — rest (adaptive volume · CRM pull · inbox rotation) | 🤝 |
 | 139 | 🔴 | Intelligence cluster — contextual-bandit (4/5 already live) | 🤖 |
 | 141 | 🔴 | Context-backed MCP server | 🤖 |

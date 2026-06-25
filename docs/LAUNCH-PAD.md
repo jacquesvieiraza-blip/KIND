@@ -23,6 +23,7 @@
 | **T4** | The 211 sending engine (clients-on-product unlock) | 🔴 | — |
 | **T5** | Decide & harden (v2/Casey · monitoring · hygiene) | 🔴 | — |
 | **🅐** | Your Instantly US/EMEA outreach (parallel, not blocked) | ⏳ warming | — |
+| **243+212** | **Depth track:** lead-source coverage (243) → context-rich sequences (212) | 🔴 **urgent — build during warm-up** | — |
 
 ---
 
@@ -91,9 +92,16 @@
 
 ---
 
+## 🔭 DEPTH TRACK — data sources + sequences *(URGENT · build during the warm-up window)*
+*We run thin: today the engine = **PDL (discovery) + Hunter (reveal) + Clearbit-free (domains) + Apollo (BYO-key only)** — effectively 1 discovery + 1 reveal. By the time the domain's warm we want deep lists + sharp copy, not thin ones. These two are paired: **richer data (243) = more context per email (212).***
+- 🔴 **243 — lead-source depth (THE fix for "we run thin"):** add **BetterContact** (one integration = 20+ providers in a waterfall — biggest lever, pay-per-found, no big contract) → then a **source router** (SMB→PDL/Hunter · EMEA→Cognism if added · BYO→Apollo). Keep Apollo BYO now; decide the reseller (103) later; skip ZoomInfo ($) ; Clay = internal list-builder, not embedded. 🤝 — done-when: a US/EMEA ICP returns verified emails at 80%+ coverage via the waterfall.
+- 🔴 **212 (+242) — context-rich sequences:** rebuild FIGSY to the Apollo blueprint — 4–6 steps · **≤50-word, personalised opener that uses the lead's real data/signals (the "enough context per email" fix)** · in-thread follow-ups · A/B. 243's richer data feeds this. 🤖 — done-when: a sent email visibly uses lead context, not a generic template.
+
+---
+
 ## ⏸ PARKED — NOT on the path to a fully operational system
 *Rule: nothing builds unless it's (a) a foundation fix above, (b) the walkthrough, or (c) the 🅐 outreach track. Everything else carries until the system is solid and a real client/revenue pulls it in.*
-- **Feature builds:** 120 memory · 144 Denise-deep · 141 context-MCP · 145 LENA/TONY · 157/158 images+voice-brief · 212 FIGSY 6-step (beyond the 🅐 copy) · 162 prompt library polish.
+- **Feature builds:** 120 memory · 144 Denise-deep · 141 context-MCP · 145 LENA/TONY · 157/158 images+voice-brief · 162 prompt library polish. *(212 sequences moved UP to the 🔭 Depth Track — no longer parked.)*
 - **Partner/seller engine:** 197 · 200 · 203 · 213–226 · 228 — the whole partner UI/comp build. (Stealth recruiting 233 = list-build only, no founder identity.)
 - **Channels:** 96 Vapi voice · 128 WhatsApp · 178 voice widget — parked (not on the cash path).
 - **Later/gated:** 139/143 intelligence · 147 outcome pricing · 150/151/155/156/159/160/161 scale · 165 visitor-intel · 55a RLS migration (app-layer holding) · enterprise SSO 181.
@@ -125,7 +133,7 @@
 | **🟢 LIVE core product** — agents + lead engine + outreach + admin + infra + billing (items **1–56, 92, 104, 195, 244**) | **PRODUCT-INVENTORY** (status home) | Already live; the walkthrough re-verifies them. Not forward work |
 | **🩷 live-not-walked** — 59 · 80 · 106–109 · 112–114 · 245 · 246 · R-wave 60–79 | **ACTIVE → "finish the walkthrough"** | These ARE the walkthrough — flipped 🩷→🟢 there |
 | **Feature builds** — 27 · 57 · 97 · 115 · 118 · 131 · 135 · 137 · 162 · 174–176 | **⏸ PARKED** + inventory | Not required for a fully operational, safe system |
-| **212 FIGSY 6-step rebuild** | **PARKED** — *except* the US/EMEA copy in the **🅐 track** | Only the copy serves first revenue; the rebuild waits |
+| **212 FIGSY sequences** | **🔭 Depth Track (active)** — context-rich rebuild, paired with 243 | Elevated 25 Jun — thin sequences + weak per-email context are a confidence gap |
 | **Data layer** — 242 · 243 (FOCUS) · 140 (waterfall rest) | **🅐 track** (list-build) + inventory | Email-reveal already works; widening sources isn't a foundation blocker |
 | **Partner / seller engine** — 197 · 200 · 201 · 202 · 203 · 204 · 213–226 · 228 · 235 | **PARKED** + V2-TRACKER | Whole channel/seller build; not on the operational/first-revenue path |
 | **Channels** — 96 Vapi · 128 WhatsApp · 178 voice widget · 229 voice backend | **PARKED** + inventory | Not on the cash path (parked 25 Jun) |

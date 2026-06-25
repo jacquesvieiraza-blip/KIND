@@ -1,4 +1,5 @@
 # 🎬 K.I.N.D — Master Recording Bible (capture once → cut everything)
+`Last-checked: 25 Jun 2026`
 
 **The method:** record the **whole platform once**, screen by screen, in the order a real client lives it (login → finish), every screen framed **PAIN → SOLUTION** (Drop-style). That single master capture **is Recording 1 (the full demo)** *and* the source footage for every other cut (Drop 01, Looms, social, per-agent, per-vertical, vs-competitor). **Capture once → cut everything.**
 

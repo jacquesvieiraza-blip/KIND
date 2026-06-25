@@ -1,11 +1,12 @@
 # K.I.N.D — End-to-End Smoke Test (prove the money path)
+`Last-checked: 25 Jun 2026`
 
 **Purpose:** verify a real client can sign up → build an ICP → GET leads → run FIGSY → get a reply → book a meeting, with money charged correctly and nothing silently broken. Run this AFTER the pre-flight below. Report failures as `T#-Step# — what I saw` and Claude fixes.
 
 ---
 
 ## PRE-FLIGHT (do these first — fixes depend on them)
-- [ ] **Complete the full `docs/archive/DEPLOY-CHECKLIST.md` first** (migrations 010/012/013, env vars, merge, post-deploy smoke). This smoke test assumes the deploy is live.
+- [ ] **Complete the full `DEPLOYMENT_GUIDE.md` first** (migrations 010/012/013, env vars, merge, post-deploy smoke). This smoke test assumes the deploy is live.
 - [ ] **Run `supabase/migrations/20260603_schema_reconcile.sql`** in Supabase SQL editor (idempotent, safe). This is the keystone — the reply/send/credit pipeline depends on it.
 - [ ] Railway API env: `ADMIN_SECRET_KEY` set · `RESEND_API_KEY` set · `RESEND_WEBHOOK_SECRET` set (inbound replies now fail-closed without it) · `ANTHROPIC_API_KEY` set · `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` set.
 - [ ] Railway Portal env: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, the 6 `NEXT_PUBLIC_STRIPE_PRICE_*` IDs.

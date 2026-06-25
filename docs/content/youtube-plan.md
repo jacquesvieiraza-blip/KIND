@@ -1,4 +1,5 @@
 # KIND AI — YouTube 10-Video Content Plan
+`Last-checked: 25 Jun 2026`
 
 > **Format rule (faceless brand):** the public brand stays faceless — no founder name, no founder face on camera. Videos run as **brand voice** (voiceover + screen + slides), published under the K.I.N.D channel, not a personal one. CTAs point to the K.I.N.D brand LinkedIn, never a personal profile. (Per the faceless-brand decision; founder identity is reserved for the private investor process only.)
 

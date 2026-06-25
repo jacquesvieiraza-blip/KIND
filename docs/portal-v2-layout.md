@@ -1,4 +1,5 @@
 # Portal V2 Layout — Month 2 Upgrade
+`Last-checked: 25 Jun 2026`
 
 Inspired by ClickUp Super Agents UX. All items below are post-launch (week 5+).
 

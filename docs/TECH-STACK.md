@@ -1,4 +1,5 @@
 # 🛠️ K.I.N.D — TECH STACK & TOOLS REGISTER
+`Last-checked: 25 Jun 2026`
 
 > The **single ledger of every external tool/vendor we run on** — so none goes missing (the "Zoho Mail wasn't logged" lesson, 22 Jun). Reference register, not a tracker (no status dots). **Seeds the Notion → Command Centre → "Tools" page (item 204).** Update whenever a tool is added/changed.
 

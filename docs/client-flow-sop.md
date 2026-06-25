@@ -1,5 +1,5 @@
 # K.I.N.D — Client Flow SOP
-*Last updated: 23 Jun 2026 (flow re-verified, unchanged)*
+*Last-checked: 23 Jun 2026 (flow re-verified, unchanged)*
 
 Complete start-to-finish — all paths.
 

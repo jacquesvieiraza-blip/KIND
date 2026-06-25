@@ -1,4 +1,5 @@
 # K.I.N.D — Website Video Content Plan
+`Last-checked: 25 Jun 2026`
 
 _Last updated: 11 Jun 2026. Owner: 🤝 both._
 

@@ -1,4 +1,5 @@
 # 🤝 K.I.N.D — Partner Brief & Sales One-Pager
+`Last-checked: 25 Jun 2026`
 
 *For approved K.I.N.D partners. Everything you need to sell K.I.N.D to small businesses — the pitch, the trade playbooks, pricing, and how you earn.*
 

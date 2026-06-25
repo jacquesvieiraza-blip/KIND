@@ -35,6 +35,11 @@
 ## 🔵 SUPPORTING DOCS — reference (live, hold unique content) 
 *Each: what's unique in it · STATUS · UPDATE-WHEN trigger.*
 
+### 🗺️ Orientation
+| Doc | Unique content | Status | Update when |
+|-----|----------------|:--:|-------------|
+| `SYSTEM-FLOW.md` | **the one-page visual of the whole machine** — data → FIGSY → sending (Instantly vs Smartlead) · the data layer (243) · two GTM tracks · build order. The "where do I start / how does it fit" map. | ✅ *(new 25 Jun)* | engine (211) / data (243) / GTM change |
+
 ### 💷 Sales & money
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|

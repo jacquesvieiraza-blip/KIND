@@ -1,4 +1,5 @@
 # API Redundancy — Render Warm Standby + Cloudflare Load Balancer
+`Last-checked: 25 Jun 2026`
 
 **Goal:** If Railway API goes dark, Cloudflare detects it within ~30 s and routes all
 traffic to a warm Render instance. Portal and admin keep working transparently.

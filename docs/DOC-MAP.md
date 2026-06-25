@@ -41,6 +41,7 @@
 | `DOC-MAP.md` *(this doc)* | the index of every doc + freshness — start here to find anything | ✅ | a doc is added / archived |
 | `SYSTEM-FLOW.md` | **the one-page visual of the whole machine** — data → FIGSY → sending (Instantly vs Smartlead) · the data layer (243) · two GTM tracks · build order. The "where do I start / how does it fit" map. | ✅ *(new 25 Jun)* | engine (211) / data (243) / GTM change |
 | `AFRICA-PLAYBOOK.md` | **the one-click Africa GTM** — thesis (direct-data + partners) · how we source African leads · the stealth email/brand partner motion · markets SA→NG→KE→GH. Consolidates V2/APOLLO-ENGINE/PARTNER-BRIEF (points to them for status). | ✅ *(new 25 Jun)* | two-track / 233 / 243 / stealth change |
+| `SYSTEM-HEALTH-AUDIT.md` | **the evidence behind the P0+T1–T5 fix plan** (LAUNCH-PAD) — full code+doc+operational health audit (25 Jun): verified findings, file:line detail, what's safe vs not. Plan lives in LAUNCH-PAD; this is the *why/where*. | ✅ *(new 25 Jun)* | a fix lands / a new health audit runs |
 
 ### 💷 Sales & money
 | Doc | Unique content | Status | Update when |

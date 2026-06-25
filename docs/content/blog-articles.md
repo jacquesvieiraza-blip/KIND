@@ -1,4 +1,5 @@
 # KIND Blog Articles — Ready to Publish
+`Last-checked: 25 Jun 2026`
 
 ---
 

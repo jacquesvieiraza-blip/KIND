@@ -1,4 +1,5 @@
 # K.I.N.D — Art of the Possible
+`Last-checked: 25 Jun 2026`
 **Future vision. Inspiration log. Nothing here is built yet unless marked ✅.**
 *Every product, idea, and piece below is parked deliberately until the core loop is proven for 20+ paying clients.*
 

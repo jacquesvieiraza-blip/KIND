@@ -40,7 +40,7 @@
 
 ### P2 — Before onboarding US/EMEA *paying* clients (region/currency truth)
 - **Kill the Africa/ZAR assumptions:** signup defaults to "South Africa" + writes `amount_zar` only; model **USD** at signup. 🤖 (preview) — done-when: a US/EMEA signup is modelled in USD with the right region.
-- **Currency/honesty backlog (folds in here):** C2/236 kill `fmtZAR` in partner dashboard · C4/238 subscriptions store USD not ZAR · C3/237 retire Paystack → Stripe (US/EMEA) + Flutterwave (Africa) · C5/239 unify price tables to `@kind/shared`. 🤖 (preview) — done-when: no ZAR write paths remain; one USD price source.
+- **Currency/honesty backlog (folds in here):** C1/235 partner code shows old tiered rates → 20/5 · C2/236 kill `fmtZAR` in partner dashboard · C3/237 retire Paystack → Stripe (US/EMEA) + Flutterwave (Africa) · C4/238 subscriptions store USD not ZAR · C5/239 unify price tables to `@kind/shared` · C6/240 settings copy overstates voice automation. 🤖 (preview) — done-when: no ZAR write paths remain; one USD price source; no overstated copy.
 
 ### P3 — Before scale (volume safety)
 - **Fix the N+1 enrollment loop** — batch-insert instead of a serial per-lead loop (times out ~1,000 leads today). 🤖 (preview) — done-when: a 1,000-lead enroll completes without timeout.
@@ -94,19 +94,24 @@
 ## 🗂️ MOVED OUT OF THIS REWRITE — full sight, nothing lost
 *This rewrite stripped LAUNCH-PAD to the operational essentials. Below is everything removed from the old plan and exactly where it now lives. **Nothing is deleted — every item's status of record still lives in PRODUCT-INVENTORY (the complete 250-item board).** "Moved out of LAUNCH-PAD" only means "not part of getting-operational right now."*
 
+*Audited old vs new (25 Jun) against the real inventory IDs — every old reference is accounted for below.*
+
 | What was in the old LAUNCH-PAD | Now lives in | Why moved out |
 |--------------------------------|--------------|---------------|
-| **The day-by-day 2-week sprint** (Wed 24 → Tue 7 Jul calendar) | Replaced by the **priority-ordered fix list** above (P0→P5 + P-OPS) | The fixed-day cram was the over-compression you're undoing — order matters, dates don't |
-| **"My queue — buildable now"** feature builds: 118 nav · 135 onboarding emails · 137 guarantee · 174–176 onboarding fork · 131 funnel instrumentation · 162 prompt library | **PARKED** (above) + PRODUCT-INVENTORY | Not required for a fully operational, safe system |
-| **212 FIGSY 6-step rebuild** | **PARKED** — *except* the US/EMEA sequence copy, which lives in the **🅐 outreach track** | Only the copy serves first-revenue; the full rebuild waits |
-| **243 / 242 data-layer "FOCUS"** | **🅐 track** (list-build only) + PRODUCT-INVENTORY 243/242 | Email-reveal already works; widening sources isn't a foundation blocker |
-| **Partner / seller engine**: 197 · 200 · 203 · 213–226 · 228 (portal, comp, AE, recruiter) | **PARKED** + V2-TRACKER | Whole channel build; not on the operational/first-revenue path |
-| **Channels**: 96 Vapi voice · 128 WhatsApp · 178 voice widget | **PARKED** + PRODUCT-INVENTORY | Not on the cash path (parked 25 Jun) |
-| **Intelligence + scale**: 120 · 141 · 143 · 144 · 145 · 147 · 150–161 · 165 | **PARKED** + PRODUCT-INVENTORY | Client/margin/scale-gated; pulled in only when a signed client needs them |
-| **GTM detail**: 133 design partners · 138 influencer · 142 Product Hunt/G2 · 134 social cuts · 129 demo | **🧍 standing list** + PRODUCT-INVENTORY | Sit behind first outreach; surfaced when 🅐 is live |
-| **55a RLS migration** | **PARKED** (app-layer isolation is holding) + noted as P-level defense-in-depth | Real but not urgent; app-code enforces isolation today |
+| **The day-by-day 2-week sprint** (Wed 24 → Tue 7 Jul calendar) | Replaced by the **priority-ordered fix list** above | Fixed-day cram was the over-compression you're undoing — order matters, dates don't |
+| **🟢 LIVE core product** — agents + lead engine + outreach + admin + infra + billing (items **1–56, 92, 104, 195, 244**) | **PRODUCT-INVENTORY** (status home) | Already live; the walkthrough re-verifies them. Not forward work |
+| **🩷 live-not-walked** — 59 · 80 · 106–109 · 112–114 · 245 · 246 · R-wave 60–79 | **ACTIVE → "finish the walkthrough"** | These ARE the walkthrough — flipped 🩷→🟢 there |
+| **Feature builds** — 27 · 57 · 97 · 115 · 118 · 131 · 135 · 137 · 162 · 174–176 | **⏸ PARKED** + inventory | Not required for a fully operational, safe system |
+| **212 FIGSY 6-step rebuild** | **PARKED** — *except* the US/EMEA copy in the **🅐 track** | Only the copy serves first revenue; the rebuild waits |
+| **Data layer** — 242 · 243 (FOCUS) · 140 (waterfall rest) | **🅐 track** (list-build) + inventory | Email-reveal already works; widening sources isn't a foundation blocker |
+| **Partner / seller engine** — 197 · 200 · 201 · 202 · 203 · 204 · 213–226 · 228 · 235 | **PARKED** + V2-TRACKER | Whole channel/seller build; not on the operational/first-revenue path |
+| **Channels** — 96 Vapi · 128 WhatsApp · 178 voice widget · 229 voice backend | **PARKED** + inventory | Not on the cash path (parked 25 Jun) |
+| **Intelligence + scale** — 120 · 141 · 143 · 144 · 145 · 147 · 150–161 · 165 · 227 | **PARKED** + inventory | Client/margin/scale-gated; pulled in when a signed client needs them |
+| **GTM detail** — 129 · 132 · 133 · 134 · 138 · 142 | **🧍 standing list** + 🅐 track | Sit behind first outreach; surfaced when 🅐 is live |
+| **Founder-led EPIC tracks** — 231 Content · 232 Legal · 234 SEIS · 103 Apollo ⏸ · 117 drop ⏸ · 123 Y12–14 | **🧍 founder-owned** + inventory | Off the build path; you drive these |
+| **Code-fix / housekeeping** — 230 lena dead-code · 235/240 (also in P2) · 241 migrations · 55a RLS | **P2 / P-OPS** above + PARKED | Honesty fixes fold into P2; RLS app-layer is holding |
 
-> **The safety net:** PRODUCT-INVENTORY is the full board — if it's not in LAUNCH-PAD, it's still there with its true dot. LAUNCH-PAD is only ever "what to do now"; this table is the bridge so nothing falls through.
+> **The safety net:** PRODUCT-INVENTORY is the full 250-item board — if it's not in LAUNCH-PAD, it's still there with its true dot. LAUNCH-PAD is only ever "what to do now"; this ledger is the bridge so **nothing falls through** (audited 25 Jun: every old reference accounted for).
 
 ---
 *Daily rhythm: open this → do the top of the ACTIVE list + the next foundation fix in order. Status flips live in PRODUCT-INVENTORY (the only place status is edited). Why → KIND-MASTER. Future → V2-TRACKER.*

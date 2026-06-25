@@ -4,7 +4,7 @@
 >
 > **Status of record → PRODUCT-INVENTORY** (epic **242** Apollo Outbound OS → FIGSY · **243** data-source router + BYOK · **244** PDL/Hunter lead-source test). This doc holds the detail; the dots live in the inventory.
 >
-> **Last-checked: 25 Jun 2026** · stale-after: when item 242/243 ships, or Apollo's deck/Zoom transcript lands. *(Living sub-doc — reconcile when 211/212/139/140/103 change, per RULEBOOK §10 + DOC-MAP.)* · **25 Jun: added §3A aggregator research → recommend BetterContact for item 243.**
+> **Last-checked: 25 Jun 2026** · stale-after: when item 242/243 ships, or Apollo's deck/Zoom transcript lands. *(Living sub-doc — reconcile when 211/212/139/140/103 change, per RULEBOOK §10 + DOC-MAP.)* · **25 Jun: §3A aggregator research (→BetterContact) · §3B data-sources action (3→more, Clay re-look, better-process) · §3C sequences VITAL flag (rebuild 212).**
 
 ---
 
@@ -129,6 +129,53 @@ Africa is the **worst-covered region in sales intelligence** — single-provider
 - **Built:** a read-only admin diagnostic `GET /engine/leads/test` (admin-key gated, `?key=` browser-openable) — runs **PDL discovery** for a sample ICP + the **Hunter/Clearbit waterfall** on one lead; returns the leads + per-lead **source label** + email-validity. **Apollo not touched, no sends.** Needs `PDL_API_KEY`/`HUNTER_API_KEY` (in Railway, item 104).
 - **Run it:** `https://api.get-kind.com/engine/leads/test?key=<ADMIN_SECRET_KEY>` → judge: do PDL leads have real titles/geo + deliverable `work_email`? what `email_status`? does the waterfall recover an email + which source?
 - **Then:** take a handful of those emails through verification (Hunter verify / mail-tester) to measure **bounce risk before they touch the warmed domain** — untested lists can torch deliverability.
+
+---
+
+## 3B. DATA SOURCES — the action (founder, 25 Jun): 3 is too few, get more
+
+> **Founder directive:** *"Alta uses many data sources (waterfall). We have 3. We need more — make it an action item."* **Status of record → PRODUCT-INVENTORY item 243** (this is the detail; the trackable action is on the LAUNCH-PAD pointing at 243). **Do NOT duplicate 243 into a new item** — same fact, one home.
+
+### Where we are
+- **We have 3:** Apollo (BYOK) · **PDL** (discovery — now verified working, 244) · **Hunter** (email enrichment).
+- **Coverage math (sourced):** a single source covers ~40–60% of a list; a **waterfall** of several pushes it to **80%+**. With 3 we leave a lot on the table — and risk drying up per-ICP, exactly the founder's worry.
+
+### Clay — the fresh look (25 Jun)
+- **What Clay is:** an **orchestration layer** over **150+ data providers** (marketplace; ~75+ core integrations) with built-in **waterfall**. It is the reference for "many sources from one place."
+- **Why we still can't *embed* it:** Clay has **no public REST API** for calling from inside our product (confirmed again). So Clay is **not** our in-product engine. *(BetterContact/FullEnrich remain the embeddable waterfall options — §3A.)*
+- **How Clay can still help us — two real uses:**
+  1. **As OUR internal tool** (not embedded): run Clay ourselves to **build + enrich our own US/UK outreach lists** (the 🅱️ fast-cash track) — fastest way to a high-coverage list today, no build.
+  2. **As the blueprint to copy:** Clay's waterfall *ordering + validation + fall-through* logic is exactly what our `enrichment.ts` waterfall should do across more providers.
+
+### The action — add sources behind our waterfall (extends 243)
+Candidate providers to add behind the existing dedup'd waterfall (sourced shortlist):
+- **Cognism** — EMEA depth + GDPR + verified mobiles (the US/EMEA direct track).
+- **Clearbit · Lusha · RocketReach · Proxycurl (LinkedIn) · Crunchbase** — email/phone/firmographic fill + LinkedIn discovery.
+- **An embeddable aggregator (BetterContact)** = the single-integration way to get 20+ at once (§3A recommendation).
+**Sequence:** (1) wire the **email-reveal** step the 244 test proved we're missing (PDL Enrich/Hunter/BetterContact) → (2) add 1–2 discovery sources for breadth (Proxycurl/LinkedIn + a regional one) → (3) a **source router** (SMB→PDL/Hunter · BYOK→Apollo · EMEA→Cognism), source kept server-side.
+
+### Better the process (data pipeline) — using the 244 findings
+The 244 test proved **discovery works (PDL), email-reveal is the gap**. So the pipeline should be:
+**discover (PDL/Proxycurl) → dedupe → REVEAL email via waterfall (Hunter→BetterContact→Clearbit, stop on first valid) → verify (bounce-check before the warmed domain) → status-gate (only campaign verified).**
+🐛 **Fix in the build:** `waterfallEnrich` currently takes PDL's boolean `work_email` as if it were an address instead of falling through to the next provider — fix so it only accepts a real string and cascades otherwise.
+
+*Sources (25 Jun): clay.com (waterfall + marketplace), lelab0/Cleanlist (Clay provider counts), Apollo/Amplemarket/Findymail (waterfall coverage 40–60%→80%+), Cognism (EMEA DaaS).*
+
+---
+
+## ⚠️ 3C. SEQUENCES — VITAL LEARNING (founder flag, 25 Jun): "our sequences are not great"
+
+> **Founder, flagged loud:** our current FIGSY sequences are weak. The Apollo doc's §1③ blueprint is the fix. **This is high-leverage — a better sequence lifts reply rate on every lead we already pay to source.** Status/action → PRODUCT-INVENTORY **212** (rewrite) + **242** (analytics/optimise); execution → LAUNCH-PAD.
+
+**What "good" looks like (the blueprint to rebuild 212 to):**
+- **4–6 multi-channel steps** (email + LinkedIn), not a couple of generic emails.
+- **≤50-word emails** (short copy = measurably higher reply), **one clear ask** per email.
+- **In-thread follow-ups** (reply on the same thread, not new sends).
+- **A genuinely personalised opener line** (one researched detail > five polished paragraphs).
+- **A/B variants** per step + **timing/intent** targeting (ties 139).
+- **An analytics + optimise loop** (242): reply-rate by step/variant/time/segment/domain → promote winners, drop losers, re-engage job-changers.
+
+**Why it's vital now:** the two-track plan runs on outreach (our own US/UK machine + clients'). Deliverability gets the email *seen*; the **sequence** is what gets a *reply*. Weak sequences waste every warmed inbox and every sourced lead. **Rebuild 212 to this blueprint before we scale sends.**
 
 ---
 

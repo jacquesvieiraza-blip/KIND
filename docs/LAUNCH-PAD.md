@@ -12,7 +12,8 @@
 
 - **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241) · **#725** (Apollo Engine doc + items 242–244). Board now **Σ249** (`--check` OK — items 245/246 logged 25 Jun). *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
 - **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
-- **▶️ TODAY (Thu 25) — your actions:** ① **confirm 220** (`kind-staging`? + keep `expansion`?) · ② submit **Vapi (96) · WhatsApp-Meta (128) · Google OAuth (126)** keys (long-lead, start now) · ③ **decide Paystack** keep/kill (gates C3 / item 237). · 🤖 I begin **C1/C2** partner fix (rates→20%+5% + kill ZAR) on a preview branch.
+- **🔖 RESUME BOOKMARK (25 Jun, mid-session — pick up HERE):** working the founder action list step-by-step. **✅ done:** 244 (verdict — SA 1,360 / US 71,123, two-track confirmed) · 220 decided (kind-staging preview-first ~Mon 29 · keep all 3 commission types) · 237 Paystack → **KILL** · 96 Vapi + 128 WhatsApp → **PARKED** (not revenue-path) · 233 LinkedIn openers drafted (in `PARTNER-BRIEF.md`). **⏸ mid-flight: 126 Google OAuth** — walkthrough given; founder doing setup (needs the portal host to set `NEXT_PUBLIC_SOCIAL_LOGIN=true`). **⏭ next: finish 126 → fire 233 openers.** *(New action items added this session: 243 more-data-sources · 212 sequence rebuild — see below.)*
+- **▶️ TODAY (Thu 25) — your actions:** ① **finish 126** Google OAuth setup (Parts A–D) · ② **fire 3–5 LinkedIn partner openers (233)** — the Africa track, live today · 🤖 I begin **C1/C2** partner fix + the **Paystack→Stripe/Flutterwave cutover (237/C3)** on preview branches.
 - **🌍 GTM FRAME — TWO TRACKS (decided 25 Jun · detail → KIND-MASTER + V2-TRACKER "🌍 MARKET STRATEGY"):**
   - **🌍 US / UK / EMEA → OUR OWN OUTREACH (the fast-cash track).** Data-rich + deliverability-driven → we dogfood FIGSY to win clients. *Build the outreach machine DURING the warmup window so we fire the day the domain's warm.*
   - **🌍 AFRICA → PARTNERS (the moat track).** Thin data → partners sell relationship-first. **Founder-led LinkedIn recruiting needs no engine → start NOW.**
@@ -102,14 +103,19 @@
 ## ⏸ PARKED BEHIND FIRST REVENUE — the deliberate de-scope *(critical revision, 25 Jun)*
 **The 24-Jun plan tried to run 8 parallel build lanes beside the engine. That's over-scoped for a small team chasing "sell fast" — it's how we'd ship a lot and sell nothing.** New rule: **nothing builds unless it's on the path to first revenue (entry-ticket, fast-cash, or moat) OR a signed client needs it.** These carry — they're good, just not now:
 - **120** Memory v2/pgvector · **144** Denise-deep · **141** Context-MCP · **145** LENA+TONY churn · **157/158** personalised images + voice brief — *no first-client depends on these.*
+- **96** Vapi (voice calling) + **128** WhatsApp/Meta — **parked 25 Jun** (not on the cold-email cash path; WhatsApp isn't even a cold channel per our own blog). Revisit post-first-revenue.
 - **121** Casey onboarding V2 — pull in only when the first client actually onboards (then it earns its place fast).
 - **212** FIGSY 6-step / **174–176** onboarding fork — *partially* in scope: the **US/EMEA sequence copy** (242/212) IS the fast-cash track (Fri 3); the rest of the 6-step rebuild waits.
 - **221–226** partner real-data UI — wait until we have activated partners with real numbers to show (220 backend first).
 - ⏸ **165** Visitor Intelligence — deferred (thin Africa coverage).
 > **Still genuinely client/data/margin-gated (unchanged):** 143 Learning Engine · 147 outcome pricing · 150/155/156/159/161 scale · 151 SOC2 · 160 white-label.
 
+## 🆕 NEW ACTION ITEMS (25 Jun · from the 244 data test + Apollo-doc review)
+- **🤖 243 — MORE DATA SOURCES (founder priority).** 3 sources (Apollo/PDL/Hunter) is too few; single-source coverage ~40–60% → waterfall 80%+. Add behind the waterfall: email-reveal layer first (the 244 gap), then Cognism (EMEA)/Clearbit/Lusha/Proxycurl + a router. Clay = our internal list-builder + blueprint (no embeddable API). **Detail → `APOLLO-ENGINE.md §3B`.**
+- **🤖 212 — REBUILD FIGSY SEQUENCES (vital, founder flag: "our sequences are not great").** Rework to the Apollo blueprint: 4–6 multi-channel steps · ≤50-word in-thread emails · personalised opener · A/B · analytics+optimise loop (242). Highest-leverage product fix — lifts reply on every lead. **Detail → `APOLLO-ENGINE.md §3C`.**
+
 ## 🧍 YOUR STANDING LIST *(status of record = PRODUCT-INVENTORY by ID)*
-- **Keys:** 211 Smartlead · 96 Vapi · 128 WhatsApp/Meta · 126 OAuth · 136 Flutterwave · 58 Denise price. *(104 Hunter/PDL ✅ already confirmed in Railway.)*
+- **Keys:** 211 Smartlead · 126 OAuth · 136 Flutterwave · 58 Denise price. *(104 Hunter/PDL ✅ confirmed in Railway · 96 Vapi + 128 WhatsApp → PARKED.)*
 - **Decisions:** 196 accounting + VAT · 203 repo + auth · 108 credit behaviour · 211 markup + migration · 165 visitor-intel · 120 pgvector · 121 Casey voice.
 - **Legal:** 102 pack · 103 Apollo ⏸ · SEIS · DPAs.
 - **🅱️ GTM — US/EMEA (OUR OUTREACH, fast-cash):** 127 outreach (US/UK/IE/FR/NL — avoid DE/PL) · 129 demo/offer · 132 dogfood · 133 design partners · 142 Product Hunt · 138 influencer. *Fires when the domain's warm.*

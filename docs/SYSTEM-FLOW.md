@@ -81,7 +81,7 @@
 |---|---|---|
 | PDL discovery | 244 | 🟢 verified working |
 | Email-reveal — boolean-bug fix | 243 | 🟡 SHIPPED + verified live (#740, 8/8 tests) — `email:true` killed |
-| Email-reveal — DEPTH (real domain→Hunter) | 243 | 🔴 next — turns "found 1,360" into "can email them" |
+| Email-reveal — DEPTH (real domain→Hunter) | 243 | 🟡 BUILT (11/11 tests) — Clearbit free autocomplete → real domain → Hunter; live-verify pending |
 | More data sources (waterfall) | 243 | 🔴 the focus |
 | FIGSY sequences (weak → rebuild) | 212 | 🔴 vital |
 | Instantly (our warmup) | 198 | 🟡 warming |

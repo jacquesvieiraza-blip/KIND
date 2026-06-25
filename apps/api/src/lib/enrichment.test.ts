@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
-import { isRealEmail, normalizeDomain, waterfallEnrich } from './enrichment'
+import { isRealEmail, normalizeDomain, resolveDomain, waterfallEnrich } from './enrichment'
 
 // ── Pure-guard tests (the 244 bug) ───────────────────────────────────────────
 describe('isRealEmail — guards the PDL free-tier boolean', () => {
@@ -39,6 +39,26 @@ function mockFetch(handler: (url: string) => { ok: boolean; body: unknown }) {
     return { ok, json: async () => body, text: async () => JSON.stringify(body) } as Response
   }) as unknown as typeof fetch
 }
+
+describe('resolveDomain — email-reveal DEPTH (item 243): real domain for Hunter', () => {
+  const realFetch2 = global.fetch
+  afterEach(() => { global.fetch = realFetch2; vi.restoreAllMocks() })
+
+  it('uses a known domain as-is (no lookup)', async () => {
+    expect(await resolveDomain('https://www.simplepay.co.za/x', 'SimplePay')).toBe('simplepay.co.za')
+  })
+  it('resolves a real domain from the company NAME via Clearbit autocomplete (no key)', async () => {
+    global.fetch = vi.fn(async (u: unknown) => {
+      expect(String(u)).toContain('autocomplete.clearbit.com')
+      return { ok: true, json: async () => ([{ name: 'SimplePay', domain: 'simplepay.co.za' }]) } as Response
+    }) as unknown as typeof fetch
+    expect(await resolveDomain(null, 'SimplePay')).toBe('simplepay.co.za')  // NOT the wrong "simplepay.com" guess
+  })
+  it('falls back to the heuristic if autocomplete finds nothing', async () => {
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => ([]) } as Response)) as unknown as typeof fetch
+    expect(await resolveDomain(null, 'Acme')).toBe('acme.com')
+  })
+})
 
 describe('waterfallEnrich — email-reveal (item 243)', () => {
   beforeEach(() => {

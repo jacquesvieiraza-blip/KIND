@@ -160,11 +160,14 @@ export async function waterfallEnrich(lead: LeadProfile): Promise<EnrichmentResu
   // 1. PDL — profile, possibly a real work_email, and (key) the real company domain.
   mergeInto(merged, await tryPDL(lead))
 
-  // 2. Still no email? Hunter reveals it from name + the BEST domain we now have
-  //    (caller-supplied → PDL's company website → rough fallback).
+  // 2. Still no email? Reveal it via Hunter — but Hunter needs a REAL domain.
+  //    Resolve the best one we can (this is the email-reveal DEPTH fix, item 243).
   if (!merged.email) {
-    const domain = lead.domain ?? merged.domain ?? extractDomain(lead.company)
-    if (domain) mergeInto(merged, await tryHunter({ ...lead, domain }))
+    const domain = await resolveDomain(lead.domain ?? merged.domain, lead.company)
+    if (domain) {
+      merged.domain = merged.domain ?? domain
+      mergeInto(merged, await tryHunter({ ...lead, domain }))
+    }
   }
 
   // 3. Clearbit — enrich phone/firmographics once we have any email to key on.
@@ -172,6 +175,29 @@ export async function waterfallEnrich(lead: LeadProfile): Promise<EnrichmentResu
   if (email) mergeInto(merged, await tryClearbit({ ...lead, email }))
 
   return merged
+}
+
+// Resolve a REAL company domain for Hunter's email-finder (the email-reveal DEPTH fix,
+// item 243). Priority: a known domain (caller / PDL website) → Clearbit's FREE company
+// autocomplete (name → domain, NO api key) → a rough last-resort guess. The Clearbit
+// step is what turns "SimplePay" into "simplepay.co.za" instead of a wrong ".com" guess.
+export async function resolveDomain(known?: string | null, company?: string | null): Promise<string | undefined> {
+  const n = normalizeDomain(known)
+  if (n) return n
+
+  if (company && company.trim()) {
+    try {
+      const url = `https://autocomplete.clearbit.com/v1/companies/suggest?query=${encodeURIComponent(company.trim())}`
+      const res = await fetch(url, { signal: AbortSignal.timeout(6000) })
+      if (res.ok) {
+        const arr = await res.json() as Array<{ domain?: string; name?: string }>
+        const hit = arr.find((c) => typeof c.domain === 'string' && c.domain.includes('.'))
+        if (hit?.domain) return normalizeDomain(hit.domain)
+      }
+    } catch { /* fall through to the heuristic */ }
+  }
+
+  return extractDomain(company) ?? undefined
 }
 
 // Turn a PDL company website ("https://www.simplepay.co.za/pricing") into a bare

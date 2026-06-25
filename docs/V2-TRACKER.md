@@ -83,7 +83,7 @@ Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, A
 ## The decision
 **Match the GTM motion to how each market actually buys:**
 - **🌍 US / UK / EMEA → OUR OWN OUTREACH (direct, product-led).** Data-rich + deliverability-driven + automatable → our FIGSY engine produces pipeline here. We *dogfood* — "we used FIGSY to land you" is the demo. **This is the fast-cash track.**
-- **🌍 AFRICA → PARTNERS (channel-led).** Relationship-driven, thin data, fragmented + price-sensitive SMEs → human partners with local trust carry it. Africa's thin automated data stops mattering when partners sell relationship-first. **This is the moat/mission track (front-loaded recruiting, then low-touch).**
+- **🌍 AFRICA → DIRECT (data-powered) + PARTNERS *(sharpened 25 Jun — NOT partners-only)*.** **Two routes:** (1) **direct** — stack ALL data sources in a waterfall (item 243) to build enough African coverage to run our OWN outbound there; (2) **partners** — relationship-led, cover what data can't reach + price-sensitive/relationship buyers. **Data is the Africa-direct unlock; partners are the residual + the moat.** *(244: African data is real, not empty — 1,360 SA founders on PDL alone — just thinner, so direct goes as far as data reaches.)*
 
 ## Why this is right (the evidence, 25 Jun)
 **The prize is in US/EMEA.** AI-SDR market ≈ **$5.8B (2026) → $17.6B (2030), ~32% CAGR**; North America ≈ **39% of global** (US = 84% of NA). EMEA is a deep second pool (Cognism ~200M contacts, lemlist 450M+).
@@ -121,6 +121,13 @@ The aggregators (Clay / BetterContact / FullEnrich) are **enrichment, not discov
 - **Park behind first revenue:** the heavy parallel builds (120 memory · 144 Denise-deep · 141 MCP · 145 churn · 157/158) — not on the path to first cash.
 
 *Sources (25 Jun web research): MarketsandMarkets + Fortune Business Insights (AI-SDR market size) · Overloop + litemail (cold-email legality by country) · MarTech (Google/Yahoo bulk-sender rules) · CustomerThink + Digital Applied (AI-SDR backlash) · Landbase (2026 GTM wedge) · UnifyGTM (deliverability moat) · Limio (African reseller channel) · Knowlee (EMEA data providers).*
+
+## ⏸ PARKED — Qualified competitor analysis (Manus, 25 Jun)
+A competitor teardown of **Qualified.com** (enterprise, Salesforce-native, *inbound* AI SDR "Piper") + a 9-epic borrow/build roadmap + Claude Code handoff. Built **outside-in from public pages only** (no access to our code/strategy). **Founder decision (25 Jun): PARKED — focus our own product first; revisit later.** Full analysis lives in **Google Drive** (`KIND_vs_Qualified_Analysis_and_Claude_Code_Handoff.docx` + `kind_qualified_claude_code_handoff.zip`), not imported (its `backlog.json`/`ROADMAP.md` structure would clash with our four-doc system).
+- **Why parked:** it's an **inbound/enterprise** program — opposite of our outbound-first, sell-fast, two-track plan. Most of it isn't on the path to first revenue. It even gets our family wrong (Tony in, Casey out).
+- **It really maps to ONE agent — Vida** (our inbound web/WhatsApp agent). Treat the whole doc as **Vida's future inbound spec**, to revisit once outbound is driving traffic.
+- **3 cheap wins to mine when we revisit:** fix website timing inconsistency (10min/24h/5d) · a "K.I.N.D vs Qualified" comparison page · start capturing real proof as clients land (ties our credibility rule).
+- **Useful as-is:** independent outside-in confirmation that (a) our positioning is distinct, (b) our proof gap is visible even externally.
 
 ---
 

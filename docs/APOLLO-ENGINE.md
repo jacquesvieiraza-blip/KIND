@@ -132,13 +132,22 @@ Africa is the **worst-covered region in sales intelligence** — single-provider
 
 ---
 
-## 3B. DATA SOURCES — the action (founder, 25 Jun): 3 is too few, get more
+## 3B. DATA SOURCES — 🎯 THE FOCUS (founder, 25 Jun): use ALL sources to penetrate Africa DIRECT
 
-> **Founder directive:** *"Alta uses many data sources (waterfall). We have 3. We need more — make it an action item."* **Status of record → PRODUCT-INVENTORY item 243** (this is the detail; the trackable action is on the LAUNCH-PAD pointing at 243). **Do NOT duplicate 243 into a new item** — same fact, one home.
+> **Founder directive (sharpened 25 Jun):** *"We need a way to penetrate Africa OTHER than partners. That's why I referenced the other data sources — Clay, ZoomInfo, and many more. We need to use ALL. This is a focus."* **Status of record → PRODUCT-INVENTORY item 243** (the trackable focus). **Do NOT duplicate into a new item.**
+
+### The strategic shift
+**Africa is no longer partners-only.** Stacking **every** data source in a waterfall is the lever that lets us run **our OWN outbound into Africa** — partners then cover relationships + whatever data can't reach. So the data layer powers **direct outreach everywhere** (US/EMEA *and* Africa) and is specifically the **Africa-direct unlock.** Honest ceiling: most providers are US/EU-weighted, so even fully stacked Africa stays thinner than the US — **go as far as data takes us direct, partners pick up the residual.** (244 proved African data is real, not empty: 1,360 SA founders on PDL alone.)
 
 ### Where we are
-- **We have 3:** Apollo (BYOK) · **PDL** (discovery — now verified working, 244) · **Hunter** (email enrichment).
+- **We have 3:** Apollo (BYOK) · **PDL** (discovery — verified working, 244) · **Hunter** (email enrichment).
 - **Coverage math (sourced):** a single source covers ~40–60% of a list; a **waterfall** of several pushes it to **80%+**. With 3 we leave a lot on the table — and risk drying up per-ICP, exactly the founder's worry.
+
+### Use ALL — the source list + how each comes in
+- **Wire into the product (API):** Apollo (BYOK) · PDL · Hunter · **Cognism** (EMEA + verified mobiles) · Clearbit · Lusha · RocketReach · **Proxycurl** (LinkedIn discovery) — behind the existing dedup'd waterfall.
+- **One integration = 20+ at once:** **BetterContact** (embeddable async/webhook aggregator) — the fastest way to "many sources" (§3A).
+- **ZoomInfo** — strongest raw coverage but **enterprise contract (~$15–40k/yr, annual)** → a cost decision, not a quick wire. Park until the spend is justified.
+- **Clay** — 150+ providers but **no embeddable API** → use as **our internal list-builder** (pull max-coverage Africa/US lists now) **+ the blueprint** for our waterfall ordering/validation logic.
 
 ### Clay — the fresh look (25 Jun)
 - **What Clay is:** an **orchestration layer** over **150+ data providers** (marketplace; ~75+ core integrations) with built-in **waterfall**. It is the reference for "many sources from one place."

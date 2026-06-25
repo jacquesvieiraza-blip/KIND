@@ -116,7 +116,7 @@ The aggregators (Clay / BetterContact / FullEnrich) are **enrichment, not discov
 ## What it changes in the roadmap
 - **211 (engine) + 198 (warmup)** rise from "foundation" to **"the unlock for the big market"** — the entry ticket, not optional.
 - **Our own outbound machine = the fast-cash track:** US/UK ICP + lead lists (243 + Apollo/Cognism) · US/EMEA FIGSY sequences (242/212) · the offer/demo (129) · dogfood (132) → built DURING the warmup window so we fire the day the domain's warm.
-- **Africa partner recruiting (233 + PARTNER GTM below)** = front-loaded, low-build, **founder-led LinkedIn runnable NOW** (no engine needed).
+- **Africa partner recruiting (233 + PARTNER GTM below)** = **email + brand-led (stealth — NO founder identity/LinkedIn)**: source an African agency DB (243) → email the pitch via the warmed domain (198).
 - **Content/ICP need US + EMEA variants** — the blog + FIGSY copy are Africa-flavoured today.
 - **Park behind first revenue:** the heavy parallel builds (120 memory · 144 Denise-deep · 141 MCP · 145 churn · 157/158) — not on the path to first cash.
 
@@ -193,7 +193,7 @@ A competitor teardown of **Qualified.com** (enterprise, Salesforce-native, *inbo
 
 **Partner ICP:** agencies/operators who already own SMB trust + want recurring income without building product — marketing/lead-gen/web/digital agencies · consultants · BPOs · vertical specialists (trade playbooks = their wedge) — across SA → NG → KE → GH.
 **The pitch:** *"Add a recurring revenue line, zero build. Sell our AI sales team to the SMB clients you already have — 20% upfront + 5% every month they stay. We give you the demo, dashboard, playbooks — and you can use our tool to find clients."*
-**Channels (ranked):** ① dogfood — FIGSY at agency-owner ICPs · ② Demmy + warm referrals · ③ founder-led LinkedIn (no warmed domain needed) · ④ communities · ⑤ inbound (PARTNER-BRIEF page + monthly demo).
+**Channels (ranked) — ⚠️ STEALTH-CONSTRAINED (25 Jun): NO founder LinkedIn / no public founder identity (employer would issue notice on a leak).** ① **dogfood email** — source an African agency DB (243 engine) → FIGSY emails the pitch via the warmed domain (faceless brand) · ② Demmy + warm referrals (private intros only) · ③ inbound (PARTNER-BRIEF page + monthly demo) · ④ communities (brand, not founder). *(Founder-led LinkedIn removed — reinstate only if/when the founder can go public.)*
 **Funnel:** target agency → demo (portal + forecaster + product) → sign agreement → onboard (sandbox + certify) → **first client landed.** Count *activated* partners, not signups.
 **Plan to 10:** now build recruiting assets (portal preview + income forecaster + pitch) + land 2–3 from Demmy/warm; wks 2–6 founder outbound to ~50 agencies (dogfood list) → ~1/mo. **10 good agencies > 30 dormant referrers.**
 

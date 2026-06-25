@@ -68,8 +68,8 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 
 ---
 
-## 📣 PARTNER-RECRUITING OPENERS (LinkedIn — item 233 · drafted 25 Jun)
-> Short on purpose (long DMs don't get replies). Fill the `{{…}}` and send. For founder-led recruiting of agency partners (SA → NG → KE → GH). Status/action → PRODUCT-INVENTORY 233 · LAUNCH-PAD.
+## 📣 PARTNER-RECRUITING OPENERS (item 233 · drafted 25 Jun)
+> ⚠️ **STEALTH PIVOT (25 Jun): channel changed from founder-LinkedIn → EMAIL, brand-led (faceless K.I.N.D).** The founder cannot be publicly identified (employer-leak risk), so these are **sent by the brand via the warmed domain to a sourced African agency database** — NOT from the founder's LinkedIn. The copy below works as-is for email (drop "saw your LinkedIn"-style lines; lead with the brand). Fill `{{…}}`. Status/action → PRODUCT-INVENTORY 233 · LAUNCH-PAD.
 
 **1 · Warm (someone you know):**
 > Hey {{first}} — quick one. I've built **K.I.N.D**: an AI sales team for small businesses — it finds leads, writes & sends the outreach, and books meetings. I'm signing a few partners to resell it to the SMB clients they already have: **20% upfront + 5% every month they stay**, zero build on your side. Worth a 15-min look?

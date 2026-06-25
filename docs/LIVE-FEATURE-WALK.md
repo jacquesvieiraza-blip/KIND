@@ -27,7 +27,7 @@
 | `/dashboard/figsy/[id]` | 14/113 | (from list) | REAL | — |
 | `/dashboard/figsy/replies` | 18 | ⛔ orphan | REAL | superseded by `/inbox` — decide cut |
 | `/dashboard/figsy/sequences` | 70/187 | ✅ Sequences | REAL | — |
-| `/dashboard/figsy/sequence-builder` | 82 | ✅ Seq Builder | **SHELL** | ⚠️ **"coming live in #89" MOCK sits in the LIVE nav** |
+| `/dashboard/figsy/sequence-builder` | 82 | ✅ Seq Builder | **SHELL** | ⚠️ **DOT-FIX 25 Jun: 🩷→🔴** (mock in live nav, no save/apply) — pull from nav + build |
 | `/dashboard/figsy/kanban` | 114 | ⛔ orphan | REAL | built, not linked |
 | `/dashboard/figsy/linkedin` | 127 | ⛔ orphan | REAL | needs Phantombuster key |
 | `/dashboard/figsy/webhooks` | 47 | ✅ Webhooks | REAL | — |
@@ -38,7 +38,7 @@
 | `/dashboard/assistant` | 2 | ✅🔒 Milla | REAL | integrations row all "coming soon" |
 | `/dashboard/denise` | 4 | ✅🔒 Denise | REAL | — |
 | `/dashboard/chatbot` | 3 | ✅🔒 Vida | REAL | — |
-| `/dashboard/knowledge` | 74 | ✅🔒 FIGSY | **PARTIAL** | ⚠️ `TRAINING_LIVE=false` → every Save is a noop |
+| `/dashboard/knowledge` | 74 | ✅🔒 FIGSY | **PARTIAL** | ⚠️ **DOT-FIX 25 Jun: 🩷→🔴** (`TRAINING_LIVE=false`, saves are noop) — flip flag + verify |
 | `/dashboard/notetaker` | 81 | ✅🔒 Milla | REAL | export-to-Slack / add-to-tasks stubbed |
 | `/dashboard/kpis` | 195 | ✅ Performance | REAL | — |
 | `/dashboard/analytics` | 193 | ✅ Analytics | REAL | — |

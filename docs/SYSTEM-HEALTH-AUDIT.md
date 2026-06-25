@@ -15,6 +15,7 @@ The system is **fundamentally sound and substantially honest** — the inventory
 - ⚠️ **"7 migrations never run on prod" — overstated.** There is **no auto-migration runner** (api `start` = `node dist/index.js`); migrations are applied **manually**. Folder location doesn't decide what's live → P0 confirms the real prod state. `webhook_endpoints` is confirmed unrun.
 
 ## Findings → tier mapping (plan lives in LAUNCH-PAD)
+> **PROGRESS (25 Jun):** ✅ **T1 done (#753)** — H1 rate-limits · M3 CRM fail-closed · 611 dup deleted; M5 verified not-a-bug (dropped). ✅ **T2a done (#754)** — M1 region default · C6 voice copy (240). **Remaining:** T2b (C4/C5 + `amount_usd` migration + tier CHECK), T2c (C3 Paystack), M2 (pause-stops-Stripe), then T3/T4/T5. C1/C2 → moved to item 220 (parked).
 ### 🔴 Must-fix before clients run *on the product*
 - **H1 — No rate-limiting on expensive authed endpoints** (`/leads`, `/campaigns/:id/enroll`, `/icps/:id/run`, `/figsy/send-due`) → credit-drain/abuse. ✅ → **T1**
 - **H2 — 211 sending engine** — shared, unwarmed Resend sender; no per-client isolation (clients poison each other; nothing lands warmed). ✅ → **T4**

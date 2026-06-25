@@ -35,16 +35,19 @@
 - ✅ **Signup T&C flag** = `NEXT_PUBLIC_FEATURE_V2_SCREENS=ALL` → consent renders + is captured.
 - ✅ **Prod-migration state confirmed + fixed:** ran the 3 missing that matter — `outcome_events` (data floor, item 48 — was a fake-green) · `leads.research_summary` · `figsy_chat_messages`. Double-charge guard confirmed live; bad dup `611` never ran (deleted in T1); `webhook_endpoints` present (not unrun); `linkedin_queue` skipped (parked).
 
-### T1 — SAFETY *(🤖 preview · gate: before ANY client sends on the product)*
-- **Rate-limit the expensive authed endpoints** (`/leads`, `/campaigns/:id/enroll`, `/icps/:id/run`, `/figsy/send-due`) — H1. — done-when: per-user cap returns 429 under load.
-- **CRM dedup fails *closed*** — M3: today if the CRM check errors, it emails anyway; flip to skip-on-error. — done-when: a broken CRM connection blocks (not allows) the send.
-- **Migration cleanup** — H3: kill the dup `company_engine` (20260611 vs 612), consolidate the scattered dirs into `supabase/migrations/`, run the confirmed-unrun `webhook_endpoints`, reconcile `subscriptions.tier` CHECK. — done-when: one migration dir, no dups, verified on prod.
-- **`send-due-all` client_id filter** — M5: the global send loop lacks a tenant filter. — done-when: send scoping is per-client.
+### T1 — SAFETY ✅ DONE (PR #753, merged) *(gate: before ANY client sends on the product)*
+- ✅ **Per-user rate-limits** on the 4 expensive endpoints (H1) — 429 past the cap.
+- ✅ **CRM dedup fail-closed** (M3) — a broken/unreachable CRM skips the lead, never emails.
+- ✅ **Deleted dead dup migration 611** (part of H3) — confirmed via P0 it never ran on prod.
+- ✅ **M5 verified NOT a bug** (intended global cron) → dropped; the real per-client cap is T3.
+- ↪️ *Carries into T2b:* `subscriptions.tier` CHECK reconcile + migration-dir consolidation. (`webhook_endpoints` already present per P0 — moot.)
 
-### T2 — REGION & MONEY *(🤖 preview · gate: before US/EMEA *paying* clients)*
-- **USD modelling + kill the South-Africa default** — M1: signup defaults to "South Africa" + writes `amount_zar` only. — done-when: a US/EMEA signup is modelled in USD with the right region.
-- **Currency/honesty backlog C1–C6** (235–240): partner old rates → 20/5 · kill `fmtZAR` · retire Paystack → Stripe+Flutterwave · subscriptions store USD · unify price tables to `@kind/shared` · fix settings copy that overstates voice. — done-when: no ZAR write paths; one USD price source.
-- **Pause stops Stripe billing** — M2: today pause only handles Paystack; a paused Stripe client keeps getting charged. — done-when: pausing a Stripe sub stops the charge.
+### T2 — REGION & MONEY *(gate: before US/EMEA *paying* clients)*
+- ✅ **T2a (PR #754, merged):** killed the South-Africa signup default (region modelled true) + fixed the overstated voice copy (C6/240).
+- 🔴 **T2b — currency storage:** add `amount_usd` column (🧍 founder-run migration) → write USD not ZAR (C4/238) · unify price tables to `@kind/shared` (C5/239) · reconcile `subscriptions.tier` CHECK. 🤖 code + 🧍 migration.
+- 🔴 **T2c — kill Paystack (C3/237):** 🧍 confirm no client mid-sub on Paystack → 🤖 remove the router + ZAR write paths.
+- 🔴 **M2 — pause stops Stripe billing:** today pause only handles Paystack. 🤖.
+- ↪️ **C1/C2 (partner rates + partner-dashboard ZAR) MOVED to item 220** (partner earnings backend, PARKED) — the dashboard *stores* earnings in ZAR; the fix belongs with 220, not T2.
 
 ### T3 — SCALE SAFETY *(🤖 preview · gate: before volume)*
 - **N+1 batch enrollment** — M4: serial per-lead loop times out ~1,000 leads. — done-when: a 1,000-lead enroll completes without timeout.

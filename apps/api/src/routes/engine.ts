@@ -9,7 +9,7 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { verifySmartlead, smartleadConfigured } from '../lib/smartlead'
-import { pdlSearchPeople } from '../lib/pdl-search'
+import { pdlSearchPeople, pdlSearchDiagnostic } from '../lib/pdl-search'
 import { waterfallEnrich } from '../lib/enrichment'
 
 export const engineRouter = Router()
@@ -68,6 +68,8 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
     const hunterConfigured = !!process.env.HUNTER_API_KEY
     const leads = pdlConfigured ? await pdlSearchPeople(icp, 1) : []
     const withEmail = leads.filter((l) => l.email && l.email.includes('@')).length
+    // Surface the REAL PDL outcome (status + error) so a 0 isn't ambiguous (item 244).
+    const pdlDiagnostic = await pdlSearchDiagnostic(icp, 1)
 
     // Prove the multi-source enrichment + the per-lead source label on one record:
     // blank the email and let the waterfall (PDL/Hunter/Clearbit) recover it.
@@ -88,6 +90,7 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
       success: true,
       icp,
       sources: { pdl: pdlConfigured, hunter: hunterConfigured },
+      pdlDiagnostic,
       pdl: {
         count: leads.length,
         withWorkEmail: withEmail,

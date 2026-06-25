@@ -61,17 +61,8 @@ type IcpQuery = {
   industries:       string[]
 }
 
-/**
- * Search PDL for people matching an ICP. Returns [] when no PDL_API_KEY is set
- * (dormant), on error, or on no matches — never throws, so it's a safe fallback.
- */
-export async function pdlSearchPeople(icp: IcpQuery, page = 1): Promise<ApolloContact[]> {
-  const key = process.env.PDL_API_KEY
-  if (!key) return [] // dormant until a key is configured — identical to today
-
-  // Build an Elasticsearch bool query from the ICP filters.
+function buildPdlBody(icp: IcpQuery, page: number) {
   const must: unknown[] = []
-
   if (icp.job_titles.length) {
     must.push({ bool: { should: icp.job_titles.map(t => ({ match: { job_title: t } })), minimum_should_match: 1 } })
   }
@@ -87,8 +78,48 @@ export async function pdlSearchPeople(icp: IcpQuery, page = 1): Promise<ApolloCo
   if (sizes.length) must.push({ terms: { job_company_size: sizes } })
   // Only return people we can actually email.
   must.push({ exists: { field: 'work_email' } })
+  return { query: { bool: { must } }, size: 50, from: (page - 1) * 50 }
+}
 
-  const body = { query: { bool: { must } }, size: 50, from: (page - 1) * 50 }
+/**
+ * DIAGNOSTIC ONLY (item 244 test) — runs the same PDL search but SURFACES the
+ * outcome instead of swallowing it: HTTP status, PDL's error text, and the match
+ * count. Lets the read-only /engine/leads/test endpoint report "works / no-data /
+ * errored (reason)" instead of an ambiguous 0. Never throws.
+ */
+export async function pdlSearchDiagnostic(
+  icp: IcpQuery,
+  page = 1,
+): Promise<{ configured: boolean; ok: boolean; status: number | null; count: number; error: string | null }> {
+  const key = process.env.PDL_API_KEY
+  if (!key) return { configured: false, ok: false, status: null, count: 0, error: 'PDL_API_KEY not set' }
+  try {
+    const res = await fetch(PDL_SEARCH_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
+      body:    JSON.stringify(buildPdlBody(icp, page)),
+      signal:  AbortSignal.timeout(15000),
+    })
+    if (!res.ok) {
+      const text = (await res.text().catch(() => '')).slice(0, 300)
+      return { configured: true, ok: false, status: res.status, count: 0, error: text || `HTTP ${res.status}` }
+    }
+    const json = await res.json() as { data?: PdlPerson[]; total?: number }
+    return { configured: true, ok: true, status: res.status, count: json.total ?? json.data?.length ?? 0, error: null }
+  } catch (err) {
+    return { configured: true, ok: false, status: null, count: 0, error: err instanceof Error ? err.message : 'request failed' }
+  }
+}
+
+/**
+ * Search PDL for people matching an ICP. Returns [] when no PDL_API_KEY is set
+ * (dormant), on error, or on no matches — never throws, so it's a safe fallback.
+ */
+export async function pdlSearchPeople(icp: IcpQuery, page = 1): Promise<ApolloContact[]> {
+  const key = process.env.PDL_API_KEY
+  if (!key) return [] // dormant until a key is configured — identical to today
+
+  const body = buildPdlBody(icp, page)
 
   try {
     const res = await fetch(PDL_SEARCH_URL, {

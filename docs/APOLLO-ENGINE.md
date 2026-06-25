@@ -4,7 +4,7 @@
 >
 > **Status of record → PRODUCT-INVENTORY** (epic **242** Apollo Outbound OS → FIGSY · **243** data-source router + BYOK · **244** PDL/Hunter lead-source test). This doc holds the detail; the dots live in the inventory.
 >
-> **Last-checked: 24 Jun 2026** · stale-after: when item 242/243 ships, or Apollo's deck/Zoom transcript lands. *(Living sub-doc — reconcile when 211/212/139/140/103 change, per RULEBOOK §10 + DOC-MAP.)*
+> **Last-checked: 25 Jun 2026** · stale-after: when item 242/243 ships, or Apollo's deck/Zoom transcript lands. *(Living sub-doc — reconcile when 211/212/139/140/103 change, per RULEBOOK §10 + DOC-MAP.)* · **25 Jun: added §3A aggregator research → recommend BetterContact for item 243.**
 
 ---
 
@@ -92,6 +92,36 @@ Apollo exposes **55+ dimensions**: reply rate **by step, by A/B variant, by send
 
 - **PDL** = the only non-Apollo **discovery** source (`pdl-search.ts`; returns `work_email`). **Hunter** = **enrichment-only** (`email-finder`; needs name+domain) — it cannot discover.
 - **Data-source router (item 243):** route SMB→PDL/Hunter, BYOK→client Apollo key. The router is what would let us actually "choose PDL/Hunter" — it does **not** exist yet.
+
+---
+
+## 3A. AGGREGATOR RESEARCH — item 243 (web research, 25 Jun)
+
+> **Why:** the founder's worry was "Alta claims 50+ sources, we have 3 → we're thin / risk drying up per-ICP." This research splits that worry into the two things it actually contains.
+
+### ⚠️ The reframe (the key finding)
+Clay / FullEnrich / BetterContact are all **enrichment**, not **discovery**. They take a lead you *already have* (name + company) and waterfall many providers to return a verified **email/phone**. **None of them find net-new leads matching an ICP.** So:
+- **What an aggregator buys us:** a higher **email/phone fill-rate** behind our existing dedup'd waterfall — one integration = 20–150 underlying providers. This is exactly what "Alta's 50+ sources" actually *is* (a waterfall enrichment count). **We can match that claim with ONE integration.**
+- **What it does NOT fix:** the **discovery** breadth (net-new African leads per ICP) — that's the genuinely scarce axis, and it's still on **PDL** (+ BYOK Apollo, + LinkedIn/Sales-Nav/web discovery later). Don't let an enrichment aggregator masquerade as a discovery fix.
+
+### The three candidates
+| Tool | Providers | Embeddable API? | Entry price | Africa-relevant edge |
+|---|---|---|---|---|
+| **BetterContact** ✅ rec | 20+ | **Yes — purpose-built for product embedding** (single endpoint, async + webhook) | **$15/mo** (1 credit/email · 10/phone); enterprise from $799 | **AI routing layer picks the provider by geography/industry/company-size** before spending — directly helps Africa's patchy coverage |
+| **FullEnrich** (close 2nd) | 15–20+ | **Yes** — clean REST, Bearer auth, bulk async (100/req, 6000/min), webhook | $69/mo (500 cr) → $149 (2k) → $359 (6k) | Same waterfall pattern; solid docs; no explicit geo-router |
+| **Clay** ❌ out for us | 100–150+ | **No public REST API for embedding** — HTTP integration is in-platform only ("the dealbreaker for product-building companies") | $185/mo → $495/mo | Most breadth, but built for in-Clay spreadsheets, not behind our product |
+
+**Pick: BetterContact** — it wins on the only axis that matters for 243 (a clean, async, webhook-based API *designed to be embedded in a product*, same shape as our existing `enrichment.ts` waterfall) **plus** an AI geo-router that's tailor-made for Africa's thin, uneven coverage, at the lowest entry cost. **FullEnrich is the fallback** (near-identical architecture, pricier). **Clay is ruled out** — no embeddable API; its 100+ providers can't reach our product.
+
+### Africa reality (sets expectations)
+Africa is the **worst-covered region in sales intelligence** — single-provider coverage runs ~30–45% in Sub-Saharan markets; combining providers is "the difference between a usable list and an empty spreadsheet." So a waterfall **matters more here**, not less — but it only lifts fill-rate on leads we already discovered. For **discovery depth** in NG/ZA/KE the real levers (separate spend decision, not this aggregator): keep **PDL**, evaluate **Apollo (BYOK)**, and the premium ZA/NG direct-dial sets (**Cognism**, human-verified **SalesIntel**) if a client's ICP demands it.
+
+### Recommendation for the 243 build
+1. **Integrate BetterContact** as one more stage at the **end** of the existing dedup'd waterfall (`enrichment.ts` already stamps a server-side `source`) — only fires when PDL+Hunter miss, so credits are spent sparingly. Source stays **server-side, never shown to clients** (disintermediation decision, §0).
+2. **Don't** treat it as a discovery fix — log the discovery gap as the next, separate lever.
+3. **Gate on the item-244 test result first:** if PDL+Hunter already clear ~70%+ deliverable on a real African ICP, BetterContact is a thin top-up (start on the $15 tier). If they come back thin, BetterContact moves up the priority list.
+
+*Sources: Clay/FullEnrich/BetterContact pricing + API reviews (SyncGTM, Landbase, Prospeo, Cleanlist, Deepline), FullEnrich + BetterContact API docs, SyncGTM "Best B2B Databases for Sub-Saharan Africa," Cognism vs Apollo (2026).*
 
 ---
 

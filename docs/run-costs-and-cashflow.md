@@ -409,7 +409,7 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 | **$5,000 MRR** | Founder salary begins | Month 12 | Month 5 | Month 3 |
 | **$10,000 MRR** | First hire possible | Year 2 | Month 7 | Month 4 |
 | **$25,000 MRR** | Series A conversations | Year 2+ | Month 11 | Month 6 |
-| **$100,000 MRR** | Market leader, SA dominant | Year 3 | Month 24 | Month 15 |
+| **$100,000 MRR** | Market leader across both tracks (US/UK/EMEA + Africa) | Year 3 | Month 24 | Month 15 |
 
 *Note: break-even now hits at Month 1 even in conservative, vs. Month 2 before.*
 

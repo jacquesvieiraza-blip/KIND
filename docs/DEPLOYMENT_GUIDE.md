@@ -3,7 +3,7 @@
 
 > 🟢 **22 JUN CORRECTIONS (current stack — `docs/TECH-STACK.md` is the source of truth):**
 > - **Email:** **Resend** sends (system + FIGSY cold, `RESEND_API_KEY` + `FIGSY_COLD_FROM`); **Zoho Mail** hosts the company mailboxes (replies/webmail). *(Not Google Workspace.)*
-> - **Payments:** **Stripe** (global) + **Paystack/Flutterwave** (Africa). Currency = **USD**.
+> - **Payments:** **Stripe** (US/EMEA, primary) + **Flutterwave** (Africa). Currency = **USD everywhere, no ZAR**. *(Paystack KILLED 25 Jun — see item 237.)*
 > - **Open-tracking:** set **`TRACKING_URL`** (e.g. `https://api.get-kind.com`) — open-pixel on warm/transactional only.
 > - `MASTER.md` is archived — current truth lives in the 4 core docs + `TECH-STACK.md`. The env-var/cron detail below is still broadly correct; re-verify against Railway before a deploy.
 

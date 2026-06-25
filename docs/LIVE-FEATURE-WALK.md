@@ -24,7 +24,7 @@
 - ⬜ **113** A/B subject UI — FIGSY campaign → **A/B Test** tab 🩷
 - ⬜ **114** Kanban polish — `/dashboard/figsy/kanban` 🩷
 - ⬜ **136a** Invoices — Company → Documents → Invoices 🩷
-- ⬜ **178** Voice widget — Vida bubble ("coming soon" until Vapi key) 🩷
+- ⬜ **178** Voice widget — Vida bubble (⏸ **Vapi PARKED 25 Jun** — not on the revenue path; shell only) 🩷
 - ⬜ **140** Leads waterfall (backend) — confirm Hunter/PDL keys in Railway → see PDL/Hunter leads on an ICP run 🩷
 
 ---
@@ -32,7 +32,7 @@
 ## 🤖 The 5 agents (client portal)
 - ⬜ **1 FIGSY** (AI SDR) — finds leads, unique email/lead, 3-step follow-up *(→ 6-step planned, item 212)*, books meetings 🟢
 - ⬜ **2 Milla** (Brain/VA) — drafting, Q&A, weekly brief 🟢
-- ⬜ **3 Vida** (Connector) — website + WhatsApp chatbot, captures/routes 🟢
+- ⬜ **3 Vida** (Connector) — website chat widget, captures/routes 🟢 *(WhatsApp PARKED — not a cold channel; inbound-only if ever)*
 - ⬜ **4 Denise** (Closer) — warm follow-up + proposals, sub-gated 🟢
 - ⬜ **Casey** (onboarding) — conversational setup (`/v2/setup`)
 
@@ -69,7 +69,7 @@
 - ⬜ 178 voice widget 🩷 · ⬜ 191 ROI dashboard 🩷 · ⬜ 192 activation nudges 🩷 · ⬜ 162 Prompt Library 🩷 · ⬜ 179 shareable pipeline view 🩷
 
 ## 🛠️ Developer / integrations
-- ⬜ 45 MCP server 🟢 · ⬜ 46 Developer API 🟢 · ⬜ 47 webhooks (Stripe/Flutterwave/Resend/Vapi) 🟢
+- ⬜ 45 MCP server 🟢 · ⬜ 46 Developer API 🟢 · ⬜ 47 webhooks (Stripe/Flutterwave/Resend) 🟢 *(Vapi webhook ⏸ parked)*
 - ⬜ 182 Zapier/Make + 185 outbound webhooks + event API 🩷 · ⬜ 183 campaign kill-switch 🩷
 
 ## 🔐 Admin OS (`admin.get-kind.com`)

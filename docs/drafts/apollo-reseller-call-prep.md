@@ -1,6 +1,6 @@
 # 📞 Apollo Reseller Call — Prep Sheet (Wed 17 Jun)
 
-> ⚠️ HISTORICAL — prep sheet for the 17 Jun Apollo call (now past). Reference only; see PRODUCT-INVENTORY item 103 for current Apollo status.
+> ⚠️ HISTORICAL — prep sheet for the 17 Jun Apollo call (now past). Reference only; see PRODUCT-INVENTORY item 103 for current Apollo status. **Strategy has since moved to the two-track GTM + a multi-source data layer (Apollo = BYOK/optional) — see `APOLLO-ENGINE.md §3B`. The Africa-first / WhatsApp / 3-step framing below is superseded.**
 
 **Who:** Ali, Partnerships @ Apollo · **Goal:** get K.I.N.D approved for Apollo's **Data Reseller Program**.
 **Their one concern:** *competitive overlap* — they think K.I.N.D might compete with Apollo.

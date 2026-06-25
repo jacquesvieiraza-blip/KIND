@@ -45,7 +45,7 @@ All data handled by K.I.N.D is classified into one of four tiers. Classification
 
 ### 3.2 Database — Supabase
 - **Provider:** Supabase (supabase.com)
-- **Region:** `af-south-1` (Cape Town, South Africa) — chosen for POPIA compliance (SA data residency)
+- **Region:** `af-south-1` (Cape Town, South Africa) — chosen for POPIA compliance (SA data residency). ⚠️ **REVIEW (25 Jun, founder decision):** with the two-track GTM adding US/UK/EMEA as a primary market, hosting all client+lead data only in Cape Town raises a **UK/EU-GDPR data-residency + latency** question. Decide: keep af-south-1 + document EU-transfer safeguards (SCCs), or add an EU/UK region. *(Not yet actioned — flagged for the founder.)*
 - **Plan:** daily automated backups, 30-day retention; **no PITR yet** (PITR needs Supabase Pro/Team — upgrade decision post-launch; see `restore-runbook.md`). *(⚠️ reconciled 24 Jun — was wrongly "Pro + PITR".)*
 - **Access:**
   - Service role key: API only, never browser/frontend

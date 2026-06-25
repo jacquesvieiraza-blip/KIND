@@ -9,7 +9,7 @@
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | **57** | **65** | **6** | **15** | **101** | **5** | **249** |
 
-**Ladder:** 🔴 → 🟡 → 🟣 → 🩷 → 🟢. Nothing is 🟢 until verified live in production (live-but-unwalked = 🩷). **Anti-staleness:** live/pending items carry `✓<date> · stale-after <when>`; when overdue an item reads **"Needs Review,"** never silently "done" (that convention is what catches a false-live like the 136a slip). *(Last script-count: 25 Jun — 🟢56 · 🩷65 · 🟣6 · 🟡16 · 🔴101 · ⏸5 · Σ249. Items 242–249 logged 24–25 Jun audit.)*
+**Ladder:** 🔴 → 🟡 → 🟣 → 🩷 → 🟢. Nothing is 🟢 until verified live in production (live-but-unwalked = 🩷). **Anti-staleness:** live/pending items carry `✓<date> · stale-after <when>`; when overdue an item reads **"Needs Review,"** never silently "done" (that convention is what catches a false-live like the 136a slip). *(Last script-count: 25 Jun — 🟢57 · 🩷65 · 🟣6 · 🟡15 · 🔴101 · ⏸5 · Σ249. Items 242–249 logged 24–25 Jun audit.)*
 
 
 > **AUTHORITY (operating system — see root `CLAUDE.md`):** this is the ONLY home for product **status** (one dot + one owner per item). Not a task list. For daily execution → `LAUNCH-PAD.md`; for strategy/decisions/history → `KIND-MASTER.md`; for future detail → `V2-TRACKER.md`. **Nothing is 🟢 unless verified live in production** (live-but-unwalked = 🩷). **🟣 = founder approved it on the PREVIEW site, not yet live** (RULEBOOK §11 — client-facing work is previewed before it ships).

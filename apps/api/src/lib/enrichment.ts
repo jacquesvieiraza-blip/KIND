@@ -177,6 +177,43 @@ export async function waterfallEnrich(lead: LeadProfile): Promise<EnrichmentResu
   return merged
 }
 
+// DIAGNOSTIC (item 243): runs the same email-reveal path but SURFACES every step —
+// did PDL return a website, what domain did we resolve, did Hunter run, what did it
+// say — so we can see WHY an email is/isn't found instead of guessing. Admin-only.
+export async function revealTrace(lead: LeadProfile): Promise<Record<string, unknown>> {
+  const t: Record<string, unknown> = { company: lead.company ?? null }
+  const pdl = await tryPDL(lead)
+  t.pdl_returned   = !!pdl
+  t.pdl_website    = pdl?.domain ?? null
+  t.pdl_email_real = isRealEmail(pdl?.email)
+
+  const domain = await resolveDomain(lead.domain ?? pdl?.domain, lead.company)
+  t.resolvedDomain = domain ?? null
+  t.domain_source  = lead.domain ? 'caller' : pdl?.domain ? 'pdl_website' : domain ? 'autocomplete_or_heuristic' : 'none'
+
+  const key = process.env.HUNTER_API_KEY
+  if (!key)        { t.hunter = 'HUNTER_API_KEY not set'; return t }
+  if (!domain)     { t.hunter = 'skipped — no domain resolved'; return t }
+  try {
+    const url = new URL('https://api.hunter.io/v2/email-finder')
+    url.searchParams.set('domain', domain)
+    url.searchParams.set('first_name', lead.first_name)
+    url.searchParams.set('last_name', lead.last_name)
+    url.searchParams.set('api_key', key)
+    const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) })
+    const j = await res.json().catch(() => null) as { data?: { email?: string; score?: number }; errors?: unknown } | null
+    t.hunter = {
+      status: res.status,
+      email:  j?.data?.email ?? null,
+      score:  j?.data?.score ?? null,
+      error:  res.ok ? null : JSON.stringify(j?.errors ?? j ?? '').slice(0, 200),
+    }
+  } catch (e) {
+    t.hunter = { error: e instanceof Error ? e.message : 'hunter request failed' }
+  }
+  return t
+}
+
 // Resolve a REAL company domain for Hunter's email-finder (the email-reveal DEPTH fix,
 // item 243). Priority: a known domain (caller / PDL website) → Clearbit's FREE company
 // autocomplete (name → domain, NO api key) → a rough last-resort guess. The Clearbit

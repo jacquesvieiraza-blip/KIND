@@ -10,7 +10,7 @@ import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { verifySmartlead, smartleadConfigured } from '../lib/smartlead'
 import { pdlSearchPeople, pdlSearchDiagnostic } from '../lib/pdl-search'
-import { waterfallEnrich } from '../lib/enrichment'
+import { waterfallEnrich, revealTrace } from '../lib/enrichment'
 
 export const engineRouter = Router()
 
@@ -75,16 +75,19 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
     // Prove the multi-source enrichment + the per-lead source label on one record:
     // blank the email and let the waterfall (PDL/Hunter/Clearbit) recover it.
     let enrichmentWaterfall: { source: string; email?: string } | null = null
+    let revealDebug: Record<string, unknown> | null = null
     if (leads[0]) {
-      const r = await waterfallEnrich({
+      const leadProfile = {
         first_name:   leads[0].first_name,
         last_name:    leads[0].last_name,
         company:      leads[0].organization_name ?? leads[0].organization?.name ?? null,
         email:        null,
         linkedin_url: leads[0].linkedin_url,
         domain:       null,
-      })
+      }
+      const r = await waterfallEnrich(leadProfile)
       enrichmentWaterfall = { source: r.source, email: r.email }
+      revealDebug = await revealTrace(leadProfile)   // surfaces WHY (domain resolved? Hunter status?)
     }
 
     res.status(200).json({
@@ -92,6 +95,7 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
       icp,
       sources: { pdl: pdlConfigured, hunter: hunterConfigured },
       pdlDiagnostic,
+      revealDebug,
       pdl: {
         count: leads.length,
         withWorkEmail: withEmail,

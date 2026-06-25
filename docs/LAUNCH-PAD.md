@@ -12,11 +12,12 @@
 
 - **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241) · **#725** (Apollo Engine doc + items 242–244). Board now **Σ249** (`--check` OK — items 245/246 logged 25 Jun). *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
 - **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
-- **🔖 RESUME BOOKMARK (25 Jun — pick up HERE):** **✅ done + verified:** 244 verdict (SA 1,360/US 71,123) · 243 **email-reveal boolean bug FIXED LIVE** (#740, 8/8 tests, prod-verified) · staging branch REPAIRED (deployed OK, build e272bf5) · 220/Paystack/96/128/Qualified decided · 243→🎯 FOCUS · 212 vital · full doc reconciliation + `SYSTEM-FLOW.md`. **⏭ NEXT BIG THING — 🤖 me:** **243 email-reveal DEPTH** (real domain → Hunter → actual emails return). **⏭ 🧍 you (pending):** set staging env-vars on Railway (`ANTHROPIC_API_KEY`, `ADMIN_SECRET_KEY` — see image findings) · finish 126 OAuth · fire 233 openers. **Cadence: each result → verify → update docs → then next.**
-- **▶️ TODAY (Thu 25) — your actions:** ① **finish 126** Google OAuth setup (Parts A–D) · ② **fire 3–5 LinkedIn partner openers (233)** — the Africa track, live today · 🤖 I begin **C1/C2** partner fix + the **Paystack→Stripe/Flutterwave cutover (237/C3)** on preview branches.
+- **🔖 RESUME BOOKMARK (25 Jun — pick up HERE):** **✅ done + verified today:** email-reveal pipeline LIVE (real emails, #740+#742) · staging FULLY LIVE + isolated (`heartfelt-essence-production-1434.up.railway.app`) · 220/Paystack/96/128/Qualified decided · 243→🎯 FOCUS · 212 vital · all docs reconciled + `SYSTEM-FLOW.md`. **⏭ TONIGHT (🧍 founder back): THE TRUST WALKTHROUGH** — `app.get-kind.com`, flip 65 🩷→🟢 (`LIVE-FEATURE-WALK.md`, batches; I flip dots live). **⏭ TOMORROW:** 126 OAuth · partner-recruiting rework (email/brand-led — stealth) + 🤖 source the African agency DB. **🕵️ STEALTH LOCKED: no founder identity public → no founder LinkedIn.**
+- **▶️ TODAY (Thu 25) — ✅ big wins banked:** email-reveal pipeline **LIVE + verified** · **staging fully live + isolated.** **🚶 TONIGHT (founder back from school run) = THE TRUST WALKTHROUGH** — walk `app.get-kind.com` + flip the **65 🩷 → 🟢** (batches in `LIVE-FEATURE-WALK.md`; I flip dots live as you confirm). **→ Moved to TOMORROW (Fri 26):** 126 Google OAuth + the partner-recruiting **rework** (↓). 🤖 I continue C1/C2 + the Paystack cutover.
+- **🕵️ STEALTH CONSTRAINT (founder, 25 Jun — LOCKED):** the founder **cannot be publicly identified** yet (current employer would issue notice on any leak). → **Partner recruiting is NOT founder-led LinkedIn.** It becomes **email + brand-led (faceless K.I.N.D)** to a **sourced African agency database** (we build the DB with our own data engine — 243 — then email the pitch via the warmed domain — 198). No founder identity anywhere public.
 - **🌍 GTM FRAME — TWO TRACKS (decided 25 Jun · detail → KIND-MASTER + V2-TRACKER "🌍 MARKET STRATEGY"):**
   - **🌍 US / UK / EMEA → OUR OWN OUTREACH (the fast-cash track).** Data-rich + deliverability-driven → we dogfood FIGSY to win clients. *Build the outreach machine DURING the warmup window so we fire the day the domain's warm.*
-  - **🌍 AFRICA → DIRECT (data-powered) + PARTNERS *(sharpened 25 Jun — NOT partners-only)*.** Stack ALL data sources (243) to run our OWN outbound into Africa *as far as data reaches*; **partners** cover relationships + the residual. Founder-led LinkedIn partner recruiting needs no engine → **start NOW**; the data layer (243) opens the direct route.
+  - **🌍 AFRICA → DIRECT (data-powered) + PARTNERS *(sharpened 25 Jun — NOT partners-only)*.** Stack ALL data sources (243) to run our OWN outbound into Africa *as far as data reaches*; **partners** cover relationships + the residual. **Partner recruiting = EMAIL + brand-led (stealth — no founder identity)** to a sourced African agency DB; not LinkedIn.
 - **🎯 GOAL (reframed): FIRST REVENUE, not "engine hot."** Engine (211) + warmup (198) are the **entry ticket** to the US/EMEA market, not the finish line. **Critical path = warm domain + an engine good enough to deliver the first clients** (NOT all 6 phases before we sell). ✅ **STAGING FULLY LIVE (25 Jun) — the hard gate for every engine phase is cleared:** branch=`staging` (auto-deploy), API responding at `api-staging-production-2185.up.railway.app`, isolated DB (≠ prod). Engine previews unblocked. *(Staging has the 6 core env-vars; add feature keys — SMARTLEAD/PDL/HUNTER — when previewing that feature.)*
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
@@ -32,7 +33,7 @@
 > 🔥 **Freeze lifted 24 Jun.** **CRITICAL REVISION (25 Jun, two-track strategy):** the old plan poured almost all capacity into *building* (engine + 8 parallel lanes) and pushed selling to "after engine hot." That's backwards for "sell fast." **New shape = THREE tracks, revenue-first:**
 > - **🅰️ ENTRY TICKET (🤖):** engine (211) right-sized to deliver the *first* clients + warmup (198) — *not* all 6 phases before we sell.
 > - **🅱️ FAST-CASH (🤝):** build OUR US/UK outreach machine *during* the warmup window — ICP + lists (243 + Apollo/Cognism) · US/EMEA FIGSY copy (242/212) · offer/demo (129) → fire the day the domain's warm.
-> - **🅲 MOAT (🧍):** Africa partner recruiting — founder-led LinkedIn, **runnable NOW, no engine needed** (233).
+> - **🅲 MOAT (🤝):** Africa partner recruiting — **email + brand-led (stealth)** to a sourced African agency DB (233); needs the DB (243) + warm domain (198), so it's a build-the-list-now / email-when-warm motion. *(NOT founder LinkedIn.)*
 > - **⏸ PARKED behind first revenue (critical cut):** 120 memory · 144 Denise-deep · 141 MCP · 145 churn · 157/158 — none are on the path to first cash. They carry. *(See the PARKED section below — this is the deliberate de-scope.)*
 > 🧍 you · 🤖 me · 🤝 both.
 
@@ -45,17 +46,19 @@
 - ✅ 🤖 **243 — email-reveal fix SHIPPED + VERIFIED LIVE (#740, 8/8 tests).** The `email: true` boolean bug is dead in prod (244 re-run: `enrichmentWaterfall` = `{source:pdl}`, no `true`). **Bug fixed — but emails still empty** (free PDL gates the address + Hunter has no real domain) → next ↓.
 - ✅ 🤖 **243 — email-reveal: WORKING LIVE, end-to-end verified.** Pipeline proven on prod: PDL finds person + domain → `resolveDomain` → **Hunter reveals the real email** (`samantha@samsalesconsulting.com`, score 96). Root blocker was a **bad `HUNTER_API_KEY`** in Railway (401) — 🧍 founder fixed it. *"Found 71k US founders → can email them" is LIVE.* *(Africa reveal-rate lower — Hunter is US/EU-weighted; that's the data-coverage/two-track point, not a code issue.)*
 - ✅ **Decided today:** 220 (staging-preview + keep 3 commission types) · **Paystack → KILL** · **96 Vapi + 128 WhatsApp → PARKED** · 244 run (verdict in).
-- 🧍 finish **126 Google OAuth** setup · fire **233 LinkedIn partner openers** (Africa moat track, live today).
+- ↪️ **moved to tomorrow:** 126 Google OAuth · 233 partner recruiting (now **email/brand-led**, not LinkedIn — stealth).
 - 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR) on a preview branch.
 - ✅ 🧍 **APOLLO/244 test RUN** → verdict: PDL works (**SA 1,360 / US 71,123**), real cos; **email-reveal is the gap** (free PDL gates emails everywhere). African data is real, just thinner → **Africa-direct is viable via stacked sources** (243), partners cover the rest.
 - ✅ 🤖 **aggregators researched (243→§3A)** → BetterContact (enrichment-only). **243 now elevated to 🎯 THE FOCUS** (max-coverage data → Africa-direct + US/EMEA — see NEW ACTION ITEMS).
-- 🅲 **MOAT — start NOW (no engine needed):** 🧍 founder-led **LinkedIn partner outreach (233)** — first 2–3 warm agency conversations this week. Done-when: 3 partner convos opened.
+- 🚶 **TONIGHT (founder back) = THE TRUST WALKTHROUGH** — walk `app.get-kind.com`, confirm each live feature, flip the **65 🩷 → 🟢** (batches in `LIVE-FEATURE-WALK.md`; I flip dots live). *Biggest green-mover on the board.*
+- 🅲 **MOAT pivot (stealth):** partner recruiting → **email + brand-led**, not founder LinkedIn. New task: **🤖 source an African agency partner database** (via the 243 data engine) → email the `PARTNER-BRIEF` pitch when the domain's warm (198).
 - 📋 *Items 245 (internal exec-brief generator) + 246 (in-portal support AI) logged this session — both 🟡 built, not yet walked.*
 
-### Fri 26 Jun — Day 3 · TRUST WALK + ENGINE
-- ✅ **243 email-reveal boolean fix** done 25 Jun (#740). **243 email-reveal DEPTH** (real domain → Hunter) carries from Thu 25 → verify real emails return.
-- 🤖🔴 **211 Phase 2** SendingProvider seam → preview *(staging repaired → no longer blocked)*.
-- 🤝 **Live walk** `app.get-kind.com` — walk the **🩷 live-not-walked set** (65 items; `LIVE-FEATURE-WALK.md`) → flip 🟢. *(Biggest single 🩷→🟢 unlock.)*
+### Fri 26 Jun — Day 3 · OAUTH + PARTNER DB + ENGINE
+- ✅ email-reveal LIVE (#740 + #742). Trust walkthrough = **Thu-25 evening** (above).
+- 🧍 **126 Google OAuth** finish (moved from Thu). 🤝 **233 — source the African agency partner database** (via 243 data engine) → ready to email when warm. *(Stealth: email/brand-led, no founder LinkedIn.)*
+- 🤖🔴 **211 Phase 2** SendingProvider seam → **preview on staging** *(now live)* → founder approves → live.
+- 🤝 finish any 🩷→🟢 not covered in the Thu-night walk.
 - 🤖 build **220** real-data backend → preview · 🧍 confirm Denise **$39** checkout (58).
 
 ### Sat 27 / Sun 28 Jun — light (FAST-CASH + DATA STACK start here)
@@ -103,7 +106,7 @@
 
 ### ▶️ AFTER FIRST OUTREACH (from ~8 Jul)
 - 🅱️ 🤝 **iterate the cash track:** reply-handling → demo → close the first US/UK clients (132 dogfood · 133 design partners) · **138** influencer.
-- 🅲 🧍 **scale partners:** founder LinkedIn → ~50-agency dogfood list → ~1 activated partner/mo (233 · PARTNER GTM in V2).
+- 🅲 🤝 **scale partners (stealth, email/brand-led):** sourced African agency DB → email pitch via warm domain → ~1 activated partner/mo (233 · PARTNER GTM in V2). *(No founder LinkedIn.)*
 - 🤖 **only then** the PARKED builds (120/144/141/145/157/158) + remaining **partner UI** (221–226) + intelligence layer (139/143, client-gated) — pulled in as a *signed client* needs them.
 - 🤝 seller engine real build (200/202/203) + **228** recruiter override · business-model training day → operating SOP (204).
 
@@ -129,7 +132,7 @@
 - **Decisions:** 196 accounting + VAT · 203 repo + auth · 108 credit behaviour · 211 markup + migration · 165 visitor-intel · 120 pgvector · 121 Casey voice.
 - **Legal:** 102 pack · 103 Apollo ⏸ · SEIS · DPAs.
 - **🅱️ GTM — US/EMEA (OUR OUTREACH, fast-cash):** 127 outreach (US/UK/IE/FR/NL — avoid DE/PL) · 129 demo/offer · 132 dogfood · 133 design partners · 142 Product Hunt · 138 influencer. *Fires when the domain's warm.*
-- **🅲 GTM — AFRICA (PARTNERS, moat · recruit 10/yr — strat in V2-TRACKER; pitch = `PARTNER-BRIEF.md`):** ① founder-led LinkedIn (warm — **NOW**, no engine needed) · ② Demmy 2–3 intros · ③ dogfood a ~50-agency list. *Count activated partners.*
+- **🅲 GTM — AFRICA (PARTNERS, moat · recruit 10/yr — strat in V2-TRACKER; pitch = `PARTNER-BRIEF.md`) · STEALTH = email/brand-led, NO founder LinkedIn:** ① **source an African agency DB** (243 engine) → email the pitch (faceless brand, when warm) · ② Demmy warm intros (private, no public identity) · ③ inbound via the PARTNER-BRIEF page. *Count activated partners.*
 - **Seller engine:** 201 hire AE · 202 agreements (incl. **partner agreement** — to be drafted) · 200 partner+AE portal.
 - **Business/ops:** Business-model training day → operating-model SOP (Notion, 204) + the partner/AE **earnings-capture** model (Day 6).
 

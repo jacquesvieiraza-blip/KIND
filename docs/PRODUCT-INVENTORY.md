@@ -88,7 +88,7 @@
 | 45 | 🟢 | MCP server (find_leads · stats · suggest · milla_ask) | — |
 | 46 | 🟢 | Developer API (key management + MCP guide) | — |
 | 47 | 🟢 | Webhooks — Stripe/Flutterwave/Resend/Vapi (signature-verified) | — |
-| 48 | 🟢 | Outcome-event data floor (append-only log) | — |
+| 48 | 🟢 | Outcome-event data floor (append-only log) — *table was missing on prod (fake-green caught 25 Jun); `outcome_events` created 25 Jun → now genuinely capturing* | — |
 | 49 | 🟢 | Rate limiting (signup/demo/subscribe/unsubscribe) | — |
 | 50 | 🟢 | Push notifications (hot-reply web push) | — |
 | 51 | 🟢 | Failover (Render standby + Cloudflare LB) | — |

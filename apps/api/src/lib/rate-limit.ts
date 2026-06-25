@@ -7,7 +7,7 @@ import type { Request, Response, NextFunction } from 'express'
  *
  *   router.post('/signup', rateLimit({ limit: 10, windowMs: 60_000, key: 'signup' }), handler)
  */
-export function rateLimit(opts: { limit: number; windowMs: number; key?: string }) {
+export function rateLimit(opts: { limit: number; windowMs: number; key?: string; byUser?: boolean }) {
   const map = new Map<string, { count: number; resetAt: number }>()
   // Prune stale entries every 5 min so the map can't grow unbounded.
   const t = setInterval(() => {
@@ -20,7 +20,10 @@ export function rateLimit(opts: { limit: number; windowMs: number; key?: string 
     const ip = req.ip
       ?? (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim()
       ?? 'unknown'
-    const id = `${opts.key ?? 'rl'}:${ip}`
+    // For authed endpoints, key by the authenticated user (set by requireAuth,
+    // which runs before this middleware) so the cap is per-account, not per-IP.
+    const who = opts.byUser ? ((req as { userId?: string }).userId ?? ip) : ip
+    const id = `${opts.key ?? 'rl'}:${who}`
     const now = Date.now()
     const entry = map.get(id)
     if (!entry || now > entry.resetAt) {

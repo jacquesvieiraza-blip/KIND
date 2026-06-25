@@ -784,7 +784,7 @@ figsyRouter.patch('/campaigns/:id', async (req: AuthRequest, res) => {
 })
 
 // ── ENROLL ALL CONSENTED LEADS ────────────────────────────────────────────────
-figsyRouter.post('/campaigns/:id/enroll-consented', async (req: AuthRequest, res) => {
+figsyRouter.post('/campaigns/:id/enroll-consented', rateLimit({ limit: 30, windowMs: 60_000, key: 'figsy-enroll-consented', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
@@ -1176,7 +1176,7 @@ figsyRouter.get('/campaigns/:id/enrollments', async (req: AuthRequest, res) => {
 })
 
 // Enroll one or more leads into a campaign
-figsyRouter.post('/campaigns/:id/enroll', async (req: AuthRequest, res) => {
+figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_000, key: 'figsy-enroll', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const { lead_ids } = z.object({
       lead_ids: z.array(z.string().uuid()).min(1).max(50),
@@ -1334,7 +1334,7 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
 })
 
 // ── SEND NEXT STEP (manual trigger or cron) ───────────────────────────────────
-figsyRouter.post('/send-due', async (req: AuthRequest, res) => {
+figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'figsy-send-due', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }

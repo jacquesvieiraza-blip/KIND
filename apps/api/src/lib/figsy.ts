@@ -876,8 +876,9 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     // ── CRM DEDUP GATE ─────────────────────────────────────────────────────────
     // Never cold-email a client's existing customers / known contacts. If the
     // client enabled dedup and connected a CRM, check it BEFORE enrolling (and
-    // before spending a credit). Fail-soft: if the CRM check errors, we proceed
-    // with outreach rather than silently dropping the lead.
+    // before spending a credit). Fail-CLOSED: if the CRM check errors, SKIP this
+    // lead (item M3) — never cold-email someone who may already be in the client's
+    // CRM. Per-lead skip, not a global halt — the next lead proceeds.
     if (client?.crm_dedup_enabled && client.crm_type && client.crm_type !== 'none' && client.crm_api_key) {
       try {
         const { checkCrmDuplicate } = await import('./crm')
@@ -894,7 +895,8 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
           return // skip enrollment + credit spend
         }
       } catch (err) {
-        console.warn(`[figsy] dedup: CRM check failed for lead ${leadId}, proceeding with outreach —`, err instanceof Error ? err.message : err)
+        console.warn(`[figsy] dedup: CRM check failed for lead ${leadId}, SKIPPING (fail-closed) —`, err instanceof Error ? err.message : err)
+        return // fail-closed: don't enroll/charge when dedup is on but unverifiable
       }
     }
 

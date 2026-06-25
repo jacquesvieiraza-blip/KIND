@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { rateLimit } from '../lib/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
 import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
@@ -198,7 +199,7 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
 })
 
 // ── CREATE ────────────────────────────────────────────────────────────────────
-leadRouter.post('/', async (req: AuthRequest, res) => {
+leadRouter.post('/', rateLimit({ limit: 60, windowMs: 60_000, key: 'leads-create', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const body = z.object({
       icp_id:                    z.string().uuid().optional(),

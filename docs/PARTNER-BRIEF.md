@@ -65,3 +65,19 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 4. They convert → your **20% acquisition** pays out + your **5% retention** starts, both shown on your dashboard.
 
 *Questions: hello@get-kind.com*
+
+---
+
+## 📣 PARTNER-RECRUITING OPENERS (LinkedIn — item 233 · drafted 25 Jun)
+> Short on purpose (long DMs don't get replies). Fill the `{{…}}` and send. For founder-led recruiting of agency partners (SA → NG → KE → GH). Status/action → PRODUCT-INVENTORY 233 · LAUNCH-PAD.
+
+**1 · Warm (someone you know):**
+> Hey {{first}} — quick one. I've built **K.I.N.D**: an AI sales team for small businesses — it finds leads, writes & sends the outreach, and books meetings. I'm signing a few partners to resell it to the SMB clients they already have: **20% upfront + 5% every month they stay**, zero build on your side. Worth a 15-min look?
+
+**2 · Cold (agency owner you don't know):**
+> Hi {{first}} — saw {{agency}} works with {{client type}}. I run **K.I.N.D**, an AI sales team for small businesses (finds + emails leads, books meetings). I'm bringing on a few agencies to resell it to clients they already have — **20% upfront + 5% recurring**. Open to a quick look?
+
+**3 · Intro ask (to a connector, e.g. Demmy):**
+> Hey {{first}} — building out K.I.N.D's partner channel: agencies resell our AI sales team for **20% + 5% recurring**, zero build. You know a lot of agency owners — could you intro me to **2–3** who'd want a recurring revenue line? Happy to send a one-pager you can forward.
+
+**When they reply "tell me more":** send `get-kind.com/small-business-playbook` or offer a 15-min demo. **Follow-up if quiet (~4 days):** *"No worries if the timing's off, {{first}} — want me to send the one-pager so it's there when it's useful?"*

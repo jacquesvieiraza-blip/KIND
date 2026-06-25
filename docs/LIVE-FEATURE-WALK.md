@@ -78,6 +78,18 @@
 
 **Note on your Documents ask:** the Documents page **already does** what you wanted — it surfaces Terms + Privacy + DPA *and* the signed-acceptance record from signup, plus Stripe invoices. The only catch: it's hidden unless **Milla** is unlocked. That's a P1-reachability call, not a build.
 
+## 🔬 PASS 1B — BACKEND/BEHAVIOURAL DOT-HONESTY SWEEP (25 Jun 2026)
+> **Founder's concern: "is anything 🟢/🩷 actually fake and should be 🔴?"** So all 122 live items (58 🟢 + 64 🩷) were code-verified — not just the portal screens. Method: 7 parallel code-readers + reconciliation against the frontend (a few backend-only "FAKE" flags were false alarms for frontend features).
+> **RESULT: the live board is substantially honest.** Zero fake greens. The only genuine fakes were the 3 already caught on the portal (82 Sequence Builder, 74 Knowledge → 🔴; fabricated lead-columns → removed, item 247). Every other live item is REAL in code or NEEDS-LIVE confirmation.
+>
+> **REAL in code (no change):** Lead-gen+Data 5–13/94/95 · FIGSY 14–22 · R-wave 60–73/75–79 · Billing 23/26/28/58/124/166–171/190 · Company 55/56/59/106–111 · Components 85/86/87/89/91/192/193 · Admin 29–40 · Infra 41–54.
+> **Demoted for honesty (25 Jun):** 84 SSO 🩷→🟡 (buttons gated off until OAuth registered) · 178 Voice 🩷→🟡 (shell, Vapi parked). 78 What's New kept 🩷 (real page, hardcoded content — flip 🔴 if a dynamic feed is required).
+> **👀 NEEDS-LIVE / walk to settle:** 106 invite-email sending · 109 owner↔rep notifications · 75 internal evals · 67 saved views / 69 goals (localStorage, per-browser) · 47 webhook signatures · 52 key rotation.
+>
+> **The real problem was never a fake board — it's (1) gating, (2) reachability (8 orphan screens), (3) the 2 shells (fixed), (4) the fake lead-columns (fixed).**
+
+---
+
 > **Pass 2 = the live-walk** (below). Pass 1 tells us which screens are worth walking and which need a fix first.
 
 ---

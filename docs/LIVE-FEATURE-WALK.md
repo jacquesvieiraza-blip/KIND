@@ -17,7 +17,7 @@
 | Route | Item | Live nav | Code | Gap to polish |
 |-------|------|----------|------|---------------|
 | `/dashboard` | 116 | ✅ Home | REAL | ✅ **WALKED 25 Jun → 🟢** |
-| `/dashboard/leads` | 13/18 | ✅ People | REAL | bulk ops use raw `fetch` → fail silently |
+| `/dashboard/leads` | 13/18 | ✅ People | REAL | ⏳ **WALKED 25 Jun — fix in progress (preview):** removed 3 fabricated columns (Technographics, "Hiring", Growth-signal → real versions = item 247). TODO: dedup rows (same email twice) + panel "120" vs table "115" count mismatch. → 🟢 after preview-approve |
 | `/dashboard/leads/overview` | — | ⛔ orphan | REAL | built, linked from nowhere |
 | `/dashboard/leads/icp` | 5 | ✅ ICP Builder | REAL | vertical templates hardcoded (gated) |
 | `/dashboard/leads/icp/builder` | 121 | 🔒 flag | PARTIAL | Milla chat behind feature flag |

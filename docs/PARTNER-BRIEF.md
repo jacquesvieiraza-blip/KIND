@@ -8,7 +8,7 @@
 **An AI sales team for small businesses — that runs itself.** Four AI agents find leads, write and send personalised outreach, follow up, and book meetings, so the owner just shows up and closes.
 - **FIGSY — The Opener (AI SDR):** finds qualified leads, writes a unique email per lead, sends + follows up (a multi-step sequence), books the meeting.
 - **Milla — The Brain:** reads the numbers, answers business questions, sends a weekly brief.
-- **Vida — The Connector:** website + WhatsApp chatbot, qualifies inbound 24/7.
+- **Vida — The Connector:** website chat widget, qualifies inbound 24/7. *(WhatsApp is not a cold channel.)*
 - **Denise — The Closer:** warm follow-up on quiet prospects, confirms meetings, drafts proposals.
 
 **Why it lands:** outcome pricing (you pay for results, not seats), starts in under 5 minutes, no card for the trial, compliance built in (GDPR / POPIA).

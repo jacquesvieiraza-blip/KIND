@@ -1,8 +1,9 @@
 # KIND Sales Playbook
 
 > Version 1.0 — May 2026 · For internal use only
-> `Last-checked: 23 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, website+WhatsApp $29) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
-> ⚠️ **REPLY-RATE CORRECTION (23 Jun):** the "8% — our actual average" lines below were an **UNVALIDATED target, never measured** — do NOT present 8% as a result. **Plan + quote 2–3%** (cold industry average) until live campaigns prove otherwise; in-call, say "we'll show you *your* real numbers in the trial." **Sequence is moving to 6 steps** (was 3-step Day 0/4/9 — tracked as item 212; not built yet, so the product still sends 3) to capture slow responders. Funnel maths: `run-costs-and-cashflow.md` §"funnel targets".
+> `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat** $29 — WhatsApp is NOT a cold channel) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
+> 🌍 **GTM = TWO-TRACK (25 Jun):** **US/UK/EMEA via OUR OWN outreach** (dogfood FIGSY) + **Africa via DIRECT (data, item 243) + partners** — supersedes the old "Africa-first." Cold legal in US/UK/IE/FR/NL (avoid DE/PL).
+> ⚠️ **REPLY-RATE CORRECTION (23 Jun):** the "8% — our actual average" lines below were an **UNVALIDATED target, never measured** — do NOT present 8% as a result. **Plan + quote 2–3%** (cold industry average) until live campaigns prove otherwise; in-call, say "we'll show you *your* real numbers in the trial." **Sequence is being rebuilt to the Apollo blueprint — 4–6 multi-channel steps** (was 3-step Day 0/4/9 — tracked as item 212; not built yet, so the product still sends 3; **our sequences are weak today — do NOT pitch sequencing as a strength yet**). Funnel maths: `run-costs-and-cashflow.md` §"funnel targets".
 
 ---
 
@@ -15,7 +16,7 @@
 | **Title** | Founder, CEO, MD, Sales Director |
 | **Company size** | 5–50 employees |
 | **Business model** | B2B only |
-| **Primary markets** | South Africa, Nigeria, Kenya |
+| **Primary markets** | **Two tracks:** US · UK · IE · FR · NL (our own direct outreach) · **+** Africa: South Africa, Nigeria, Kenya (direct-data + partners) |
 | **Secondary markets** | Ghana, Zimbabwe, diaspora |
 | **Industries** | Professional services, Fintech, Logistics, Tech, Consulting, SaaS, Marketing agencies |
 | **Pain point** | Founder IS the sales team — no scalable outbound motion |
@@ -99,7 +100,7 @@ Work through these 5 questions. Don't rush. The gold is in the follow-up probes.
 - "What made you stop — was it the results, the time, or something else?"
 - "Did you use any tools like Apollo, Lemlist, Instantly?"
 
-*What you're listening for:* bad past experience to address, what they tried vs what KIND does differently (Africa-first data, AI scoring, FIGSY sequences).
+*What you're listening for:* bad past experience to address, what they tried vs what KIND does differently (multi-source data + Africa depth, AI scoring, compliance). *(Don't lead on sequences yet — being rebuilt, item 212.)*
 
 ---
 
@@ -187,7 +188,7 @@ Navigate to: **ICP Builder**
 
 Navigate to: **Lead Gen**
 
-"Based on your ICP, KIND pulls leads from our Africa-first database. You can see each lead has a score — that's not a random number. Click on any lead."
+"Based on your ICP, KIND pulls leads from a multi-source data waterfall (with deep Africa coverage). You can see each lead has a score — that's not a random number. Click on any lead."
 
 *Show lead scoring reasoning:*
 
@@ -291,7 +292,7 @@ Navigate to: **Billing**
 
 **"Is my data safe? What about POPIA?"**
 
-"Great question — and one we take seriously. KIND is POPIA compliant. We have a built-in consent workflow that captures and stores consent records for every contact. Your client data stays in your environment — we don't sell or share it. We're hosted on infrastructure compliant with South African data residency requirements. I can send you our data processing agreement if you want to review it with your legal team — most clients find it straightforward."
+"Great question — and one we take seriously. KIND is compliance-first across markets: **POPIA** (Africa), **UK/EU-GDPR** (legitimate-interest basis for B2B), and **CAN-SPAM** (US). We have a built-in consent/opt-out workflow that captures and stores records for every contact. Your client data stays in your environment — we don't sell or share it. I can send you our data processing agreement to review with your legal team — most clients find it straightforward." *(Data-residency note: review per-track — see `it-security-pack.md`.)*
 
 ---
 

@@ -88,7 +88,7 @@ FIGSY already does this via Claude — and does it better. FIGSY personalises th
 **5. Community — "Lemlist Family"**
 This is Lemlist's biggest differentiator and the thing most people miss. They built a massive community — templates, playbooks, case studies, weekly newsletters, a Slack group with tens of thousands of members. When someone Googles "cold email template for SaaS" — Lemlist is in the results. They made their product the hub of a community, not just a tool.
 
-K.I.N.D version: Become the go-to resource for B2B outreach in South Africa and Africa. Nobody owns that space. Blog posts on "how to do B2B outreach in Nigeria," "POPIA and cold email — what's allowed," "best industries to target in SA." Costs nothing. Compounds over time. **Start now.**
+K.I.N.D version: Become the go-to resource for B2B outreach — in Africa (where nobody owns the space) AND for our US/UK/EMEA direct track. Blog posts on "how to do B2B outreach in Nigeria," "POPIA and cold email — what's allowed," "best industries to target in SA." Costs nothing. Compounds over time. **Start now.**
 
 **6. Multi-channel sequences (email + LinkedIn)**
 Lemlist combines email + LinkedIn connection + LinkedIn message in one sequence. K.I.N.D deliberately avoids this — LinkedIn automation is against their ToS. Decision stands. But the principle (multi-surface contact over 3 weeks without spamming any single channel) is right. **Off roadmap unless LinkedIn ToS changes.**
@@ -141,7 +141,7 @@ Instead of a stats page — a live ops centre. Three columns, real-time, everyth
 |-------|------|------|
 | FIGSY | AI SDR — outbound prospecting + sequences | ✅ Live |
 | Milla | Virtual Assistant — business knowledge + queries | ✅ Live — Jun 2026 |
-| Vida | Chatbot — website + WhatsApp inbound qualifier | ✅ Live — Jun 2026 |
+| Vida | Chatbot — website inbound qualifier *(WhatsApp parked — not a cold channel)* | ✅ Live — Jun 2026 |
 | REEVE | AI AE — books + runs discovery calls via voice | Year 2 |
 | LENA | AI CS — onboarding, check-ins, churn prevention | Year 2 |
 | OTTO | AI Ops — pipeline analysis, revenue forecasting, anomaly escalation | Year 2 |
@@ -431,7 +431,7 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 
 ### What We Borrowed
 
-- **Sequence engine** — multi-step outreach (Day 1, Day 4, Day 9) with personalisation ✅ Built
+- **Sequence engine** — multi-step outreach with personalisation ✅ Built *(legacy 3-step; being rebuilt to the 4–6-step Apollo blueprint — item 212; today's sequences are weak)*
 - **Reply handling** — when a reply comes in, pause the sequence, notify the client ✅ Built
 - **Campaign-level reporting** — open rate, reply rate, interested vs not interested ✅ Built
 - **Personalisation variables** — `{{firstName}}`, `{{company}}` in templates ✅ Built
@@ -442,7 +442,7 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 - Lemlist is a tool — you still have to write the emails and manage replies manually
 - FIGSY writes the emails AND handles the replies autonomously
 - Lemlist = $59/mo just for the sending tool. KIND = $1/$3 per credit, full AI SDR included
-- No African contact coverage. No POPIA compliance. No ZAR billing.
+- No African contact coverage. No POPIA compliance. *(Note: we bill USD — "ZAR billing" is no longer a KIND advantage.)*
 
 ### What We Don't Build (Their Feature)
 - **Multi-channel LinkedIn automation** — against LinkedIn ToS. Decision locked. Not building.
@@ -485,7 +485,7 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 ### What We Exploit (Their Gap)
 - Clay is a power-user tool — requires technical knowledge to set up
 - $149–800/mo just for enrichment. KIND includes enrichment + outreach + management.
-- No African contact coverage. Apollo (our source) covers Africa well.
+- No African contact coverage. Our multi-source waterfall (PDL discovery + Hunter + stack; Apollo BYOK) covers Africa — 244 verified real data (1,360 SA founders).
 
 ---
 

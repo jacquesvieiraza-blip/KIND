@@ -8,7 +8,7 @@ _Last updated: 11 Jun 2026. Owner: 🤝 both._
 
 A **Video Hub** on the website (`apps/landing/videos.html`) — a clean, on-brand page where visitors can browse and watch all KIND video content without leaving the site. Videos are embedded (YouTube) or self-hosted MP4s. Also a `videos` section wired into the homepage hero and the blog sidebar.
 
-**Why:** Video is the highest-converting content format for a product like KIND. Founders and sales leaders watch a 90-second product demo before they read a word of copy. Africa-first markets have strong YouTube penetration. This is also our content moat — the YouTube plan (`docs/content/youtube-plan.md`) drives SEO + awareness; the on-site video hub converts that traffic.
+**Why:** Video is the highest-converting content format for a product like KIND. Founders and sales leaders watch a 90-second product demo before they read a word of copy. Our markets (US/UK/EMEA + Africa) have strong YouTube penetration. This is also our content moat — the YouTube plan (`docs/content/youtube-plan.md`) drives SEO + awareness; the on-site video hub converts that traffic.
 
 ---
 

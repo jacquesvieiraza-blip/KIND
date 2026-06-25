@@ -63,7 +63,7 @@ to Render and pages the founder (optional: configure Cloudflare notification).
 
    Optional (add if set in Railway):
    `PHANTOMBUSTER_API_KEY`, `PHANTOMBUSTER_LINKEDIN_AGENT_ID`,
-   `PAYSTACK_SECRET_KEY`, `FLUTTERWAVE_SECRET_KEY`, `EXTRA_ALLOWED_ORIGINS`
+   `FLUTTERWAVE_SECRET_KEY`, `EXTRA_ALLOWED_ORIGINS` *(PAYSTACK_SECRET_KEY removed — Paystack killed 25 Jun)*
 
 5. **Deploy** → wait for first build (~4 min). Confirm:
    ```

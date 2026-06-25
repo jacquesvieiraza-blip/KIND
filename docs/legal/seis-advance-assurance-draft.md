@@ -27,11 +27,12 @@ _Last-checked: 24 Jun 2026 — draft; ~18 [INSERT]/[LEGAL REVIEW] gaps remain (t
 
 **What KIND does:**
 
-K.I.N.D Technologies Ltd develops and operates KIND AI, a B2B artificial intelligence sales platform designed specifically for African businesses. The platform delivers three AI-powered sales agents as a service: FIGSY (automated personalised outbound email and LinkedIn prospecting); Milla (strategic lead generation and ICP-matched prospect list building); and Vida (AI-driven inbound web chat agent that qualifies and captures leads from customers' websites).
+<!-- ⚠️ ACCOUNTANT/SOLICITOR REVIEW: market framing updated 25 Jun to the two-track GTM (US/UK/EMEA + Africa). Confirm this aligns with the SEIS UK-qualifying-trade requirements before filing. -->
+K.I.N.D Technologies Ltd develops and operates KIND AI, a B2B artificial intelligence sales platform serving SMBs globally. The platform delivers three AI-powered sales agents as a service: FIGSY (automated personalised outbound email and LinkedIn prospecting); Milla (strategic lead generation and ICP-matched prospect list building); and Vida (AI-driven inbound web chat agent that qualifies and captures leads from customers' websites).
 
 **Primary market:**
 
-Small and medium-sized enterprises across Sub-Saharan Africa and South Africa engaged in B2B sales, with particular focus on professional services, technology, logistics, financial services, and business process outsourcing. The platform is accessed globally via web application, with primary customer concentration in African markets.
+Small and medium-sized B2B enterprises across **two go-to-market tracks: the US, UK and EMEA (served via the company's own direct outreach) and Africa** (served via direct data-driven outreach + a partner channel) — with particular focus on professional services, technology, logistics, financial services, and business process outsourcing. The platform is UK-built and accessed globally via web application.
 
 **Revenue model:**
 

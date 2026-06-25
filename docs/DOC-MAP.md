@@ -1,7 +1,7 @@
 # 🗺️ K.I.N.D — DOC MAP (every doc · what it's for · is it fresh)
 
 > **What this is:** the index of *every* doc in the repo — what it holds, which of the 4 core docs it hangs off, and whether it's current. **You live off the 4 core docs; this is how the supporting docs stay honest so they never rot underneath you.**
-> **Last full audit:** **24 Jun 2026** — full repo doc sweep (5 parallel agents + code/PR check; every line item verified vs git/code). **Re-run the sweep at every weekly close (RULEBOOK §10).**
+> **Last full audit:** **25 Jun 2026** — full repo doc sweep (5 parallel agents vs the locked two-track strategy; stale Paystack/Vapi/WhatsApp/Africa-first refs reconciled). *(Prior: 24 Jun — code/PR line-item check.)* **Re-run the sweep at every weekly close (RULEBOOK §10).**
 >
 > **🧭 Four-doc contract (canonical):** LAUNCH-PAD = today · PRODUCT-INVENTORY = status · KIND-MASTER = strategy/why · V2-TRACKER = future. No fifth core doc. **The status board is script-generated** — `scripts/count-inventory.sh` (RULEBOOK §4.7). **THE ENGINE** (deliverability/sending engine, item 211) is named in RULEBOOK §12.
 >
@@ -69,6 +69,7 @@
 | `LIVE-FEATURE-WALK.md` | **the verification checklist — every live feature/element to walk 🩷→🟢** *(also covers the company-engine walk — replaces the archived `COMPANY-ENGINE-TEST`)* | ✅ | as items are walked / new features ship |
 | `render-cloudflare-failover.md` · `portal-admin-failover.md` | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
 | `DELIVERABILITY-D9-CHECKLIST.md` | D9 mail-tester readiness (FIGSY_COLD_FROM, DKIM) | ✅ | deliverability change |
+| `AUDIT-24JUN-RECONCILIATION.md` | the 24-Jun doc↔code reconciliation snapshot (findings + remediation) — **historical record** | ✅ ref *(snapshot 24 Jun)* | n/a — dated snapshot |
 
 ### ⚖️ Legal · compliance · hiring
 | Doc | Unique content | Status | Update when |

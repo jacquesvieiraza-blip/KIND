@@ -2,7 +2,9 @@
 
 > **Format rule (faceless brand):** the public brand stays faceless — no founder name, no founder face on camera. Videos run as **brand voice** (voiceover + screen + slides), published under the K.I.N.D channel, not a personal one. CTAs point to the K.I.N.D brand LinkedIn, never a personal profile. (Per the faceless-brand decision; founder identity is reserved for the private investor process only.)
 
-**Channel Goal:** Build authority for KIND AI among African B2B founders and sales leaders, drive trial sign-ups, establish K.I.N.D as the definitive voice on AI-powered sales for Africa.
+> 🌍 **GTM note (25 Jun):** under the two-track GTM this channel **intentionally targets the AFRICA audience** (content/SEO/awareness for the Africa track). The **US/UK/EMEA track is won via our own direct outreach, not content** — so the Africa-centric framing below is by design, not a market exclusion. Add US/UK/EMEA-angled videos later if that track wants content support.
+
+**Channel Goal:** Build authority for KIND AI among African B2B founders and sales leaders, drive trial sign-ups, establish K.I.N.D as a definitive voice on AI-powered sales for Africa (the content track for the Africa side of the two-track GTM).
 
 ---
 
@@ -60,7 +62,7 @@
 
 ## VIDEO 7 — Proof/Story
 **Title:** "Why KIND Was Built From Cape Town — The Origin Story"
-**Description:** The honest origin story, told in the brand's voice (no founder face): what was broken in African B2B sales, why KIND is built from the UK while keeping Africa as the primary market, what it took to build KIND Technologies Ltd, and what the mission actually is. The human layer that builds trust — carried by the story, not a personal identity.
+**Description:** The honest origin story, told in the brand's voice (no founder face): what was broken in African B2B sales, why KIND is built from the UK and runs two tracks (US/UK/EMEA direct + Africa via direct-data + partners), what it took to build KIND Technologies Ltd, and what the mission actually is. The human layer that builds trust — carried by the story, not a personal identity.
 **Length:** 12–18 minutes
 **CTA:** "If you're building something in Africa, follow K.I.N.D on LinkedIn. Link below. Subscribe for the next video."
 

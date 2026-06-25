@@ -21,10 +21,10 @@ Two **separate** systems, do not conflate:
 | **Instantly** | cold-email warmup/send for **K.I.N.D's OWN outreach** now (item 198) · ENGINE fallback (no white-label) |
 | **Zoho Mail** | company **mailboxes** — MX/receiving + webmail + human send (`get-kind.com` only) |
 | **Stripe** | primary payments — subscriptions, credit purchases, invoices (USD) |
-| **Paystack · Flutterwave** | African payment rails |
-| **Apollo · PDL · Hunter** | lead-data enrichment waterfall (Apollo also via MCP) |
+| **Stripe · Flutterwave** | payments — Stripe (US/EMEA, primary, USD) + Flutterwave (Africa). *Paystack KILLED 25 Jun (no ZAR).* |
+| **Apollo · PDL · Hunter** | lead-data waterfall (Apollo BYOK/optional). *Planned adds per item 243: Cognism · Clearbit · Lusha · RocketReach · Proxycurl + BetterContact aggregator.* |
 | **Anthropic (Claude)** | the agents (FIGSY · Milla · Vida · Denise · Casey) |
-| **Vapi** | voice agent infra (future — items 96/144/178) |
+| **Vapi** | voice agent infra — ⏸ **PARKED 25 Jun** (items 96/144/178; not on the revenue path) |
 | **HubSpot / Pipedrive** | CRM dedup + deal push integration (item 43, built) |
 | **Domains** | `get-kind.com` (product) · `gettingkind.com` (cold-send identity) |
 

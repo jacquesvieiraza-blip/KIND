@@ -32,7 +32,7 @@ The flow maps onto the real product surface that already exists (Portal routes p
 > Tell FIGSY who your best customer looks like — industry, role, country. Not sure? Paste your website and we'll draft it for you. You can change it any time; this just gives FIGSY a place to start.
 
 ### Step 3 — Get your first leads — Portal `/dashboard` → `/leads`
-**What the client sees:** a "Get first leads" action that runs the Apollo 3-pass + Claude scoring pipeline against their ICP, then populates the `leads` table. Scored, POPIA-compliant leads appear with a score (0–100) and reasoning. The **first-leads email** (already built) also fires.
+**What the client sees:** a "Get first leads" action that runs the data waterfall (PDL discovery + Hunter; Apollo BYOK-optional — item 243) + Claude scoring pipeline against their ICP, then populates the `leads` table. Scored, POPIA-compliant leads appear with a score (0–100) and reasoning. The **first-leads email** (already built) also fires.
 
 **How-to card:**
 > **Your first leads are landing now.**
@@ -46,7 +46,7 @@ The flow maps onto the real product surface that already exists (Portal routes p
 > Every lead is handled POPIA/NDPR-compliant — consent is tracked per contact, opt-outs are permanent. You don't have to think about it. Just pick who's worth a conversation.
 
 ### Step 5 — Start your first FIGSY campaign — Portal `/figsy`
-**What the client sees:** campaign creation (writes a `figsy_campaigns` row, `status='draft'`), a 3-step sequence FIGSY drafts for them, and enrollment of selected leads (`figsy_enrollments`). On activate, `status='active'` and FIGSY begins sending (`figsy_sent_emails`), classifying replies (`figsy_replies`), and following up.
+**What the client sees:** campaign creation (writes a `figsy_campaigns` row, `status='draft'`), a multi-step sequence FIGSY drafts for them (rebuilding to the 4–6-step Apollo blueprint — item 212), and enrollment of selected leads (`figsy_enrollments`). On activate, `status='active'` and FIGSY begins sending (`figsy_sent_emails`), classifying replies (`figsy_replies`), and following up.
 
 **How-to card:**
 > **Now hand it to FIGSY.**
@@ -79,7 +79,7 @@ Three Looms back the onboarding flow (ties to Part 1 item **#29 — Record 3 onb
 Embed at Step 1–3. Should cover: the signup landing, building/auto-suggesting your ICP, and watching the first scored leads appear. End on the score + reasoning so the viewer sees *why* a lead is good, not just that it exists. Tone: "here's the afternoon of work we just did for you."
 
 ### [LOOM PLACEHOLDER 2] — "Launching your first FIGSY campaign" (target 2 min)
-Embed at Step 5. Should cover: creating a campaign, reviewing FIGSY's 3-step sequence drafts, enrolling leads, and hitting activate. Show one real draft email so the viewer sees the quality and personalisation. Make the human/AI split explicit: FIGSY writes and sends; you approve and book.
+Embed at Step 5. Should cover: creating a campaign, reviewing FIGSY's multi-step sequence drafts (4–6-step Apollo blueprint — item 212), enrolling leads, and hitting activate. Show one real draft email so the viewer sees the quality and personalisation. Make the human/AI split explicit: FIGSY writes and sends; you approve and book.
 
 ### [LOOM PLACEHOLDER 3] — "Where your replies land + what to do next" (target 90s)
 Embed at Step 6 and link from the day-7 email. Should cover: the Unibox two-way inbox, reply classification (interested / not interested / opt-out), and the exact moment to step in and book the meeting. End on the booking link / Calendly handoff so the client knows the one action they own.

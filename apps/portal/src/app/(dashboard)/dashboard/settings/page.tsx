@@ -897,7 +897,7 @@ export default function SettingsPage() {
           <p className="text-sm text-[#9B8EC4] mb-3">
             FIGSY places follow-up calls using Vapi.ai — leaving voicemails, qualifying interest, and booking meetings.
           </p>
-          <p className="text-sm text-green-600">Vapi is active. FIGSY will call leads on day 4 of the sequence.</p>
+          <p className="text-sm text-green-600">Vapi is connected. Voice calls are available on demand — automatic in-sequence calling isn&apos;t enabled yet.</p>
         </div>
       )}
 

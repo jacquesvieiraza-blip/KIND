@@ -80,7 +80,8 @@
 | Piece | Item | State |
 |---|---|---|
 | PDL discovery | 244 | 🟢 verified working |
-| Email-reveal fix (the gap) | 243 | 🔴 next build (the #1 data unlock) |
+| Email-reveal — boolean-bug fix | 243 | 🟡 SHIPPED + verified live (#740, 8/8 tests) — `email:true` killed |
+| Email-reveal — DEPTH (real domain→Hunter) | 243 | 🔴 next — turns "found 1,360" into "can email them" |
 | More data sources (waterfall) | 243 | 🔴 the focus |
 | FIGSY sequences (weak → rebuild) | 212 | 🔴 vital |
 | Instantly (our warmup) | 198 | 🟡 warming |

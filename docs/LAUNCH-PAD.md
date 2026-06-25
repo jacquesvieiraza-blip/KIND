@@ -12,7 +12,7 @@
 
 - **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241) · **#725** (Apollo Engine doc + items 242–244). Board now **Σ249** (`--check` OK — items 245/246 logged 25 Jun). *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
 - **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
-- **🔖 RESUME BOOKMARK (25 Jun — pick up HERE):** **✅ done:** 244 verdict (SA 1,360/US 71,123) · 220 decided · 237 Paystack KILL · 96/128 PARKED · Qualified PARKED · 243→🎯 FOCUS · 212 flagged vital · full doc reconciliation + `SYSTEM-FLOW.md` (#738) · **🔓 STAGING REPAIRED (git side) — the engine's hard gate, cleared ~4 days early.** **⏭ NEXT — 🧍 you:** finish 126 OAuth · fire 233 openers · **finish staging on Railway** (redeploy + kind-staging DB). **⏭ NEXT — 🤖 me:** **243 email-reveal fix (starting now — #1 unlock)** → then 211 Phase 2.
+- **🔖 RESUME BOOKMARK (25 Jun — pick up HERE):** **✅ done + verified:** 244 verdict (SA 1,360/US 71,123) · 243 **email-reveal boolean bug FIXED LIVE** (#740, 8/8 tests, prod-verified) · staging branch REPAIRED (deployed OK, build e272bf5) · 220/Paystack/96/128/Qualified decided · 243→🎯 FOCUS · 212 vital · full doc reconciliation + `SYSTEM-FLOW.md`. **⏭ NEXT BIG THING — 🤖 me:** **243 email-reveal DEPTH** (real domain → Hunter → actual emails return). **⏭ 🧍 you (pending):** set staging env-vars on Railway (`ANTHROPIC_API_KEY`, `ADMIN_SECRET_KEY` — see image findings) · finish 126 OAuth · fire 233 openers. **Cadence: each result → verify → update docs → then next.**
 - **▶️ TODAY (Thu 25) — your actions:** ① **finish 126** Google OAuth setup (Parts A–D) · ② **fire 3–5 LinkedIn partner openers (233)** — the Africa track, live today · 🤖 I begin **C1/C2** partner fix + the **Paystack→Stripe/Flutterwave cutover (237/C3)** on preview branches.
 - **🌍 GTM FRAME — TWO TRACKS (decided 25 Jun · detail → KIND-MASTER + V2-TRACKER "🌍 MARKET STRATEGY"):**
   - **🌍 US / UK / EMEA → OUR OWN OUTREACH (the fast-cash track).** Data-rich + deliverability-driven → we dogfood FIGSY to win clients. *Build the outreach machine DURING the warmup window so we fire the day the domain's warm.*
@@ -42,7 +42,8 @@
 
 ### Thu 25 Jun — Day 2 · DECISIONS + 🔓 STAGING UNBLOCK
 - ✅ 🤝 **STAGING BRANCH REPAIRED today** (force-reset `staging`→`main`; the 1,300-commit stale lineage cleared, nothing live lost). **This was THE critical-path gate for the whole engine — now cleared, ~4 days early.** 🧍 finish on Railway: redeploy the staging service + confirm `kind-staging` DB → preview URL loads. **→ 211 Phase 2 unblocked NOW (pulled earlier than Mon 29).**
-- 🤖 **243 — email-reveal fix STARTS today** (the #1 data unlock — the `waterfallEnrich` bug; PDL boolean → cascade to Hunter). Preview → target **done Fri 27**.
+- ✅ 🤖 **243 — email-reveal fix SHIPPED + VERIFIED LIVE (#740, 8/8 tests).** The `email: true` boolean bug is dead in prod (244 re-run: `enrichmentWaterfall` = `{source:pdl}`, no `true`). **Bug fixed — but emails still empty** (free PDL gates the address + Hunter has no real domain) → next ↓.
+- 🤖🔴 **243 — email-reveal DEPTH (next, today):** get Hunter a **real domain** so actual emails come back (PDL free tier gives the person, not the email; our domain guess is wrong — `simplepay.com` vs real `simplepay.co.za`). This is the line between "found 1,360 founders" and "can email them." Verify by re-running 244 → real addresses.
 - ✅ **Decided today:** 220 (staging-preview + keep 3 commission types) · **Paystack → KILL** · **96 Vapi + 128 WhatsApp → PARKED** · 244 run (verdict in).
 - 🧍 finish **126 Google OAuth** setup · fire **233 LinkedIn partner openers** (Africa moat track, live today).
 - 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR) on a preview branch.
@@ -51,9 +52,9 @@
 - 🅲 **MOAT — start NOW (no engine needed):** 🧍 founder-led **LinkedIn partner outreach (233)** — first 2–3 warm agency conversations this week. Done-when: 3 partner convos opened.
 - 📋 *Items 245 (internal exec-brief generator) + 246 (in-portal support AI) logged this session — both 🟡 built, not yet walked.*
 
-### Fri 26 Jun — Day 3 · TRUST WALK + EMAIL-REVEAL
-- 🤖🔴 **243 — email-reveal fix DONE** → preview → 🧍 verify (re-run the 244 test → real emails come back, not boolean). *Unblocks usable leads everywhere.*
-- 🤖🔴 **211 Phase 2** SendingProvider seam → preview *(staging now repaired → no longer blocked)*.
+### Fri 26 Jun — Day 3 · TRUST WALK + ENGINE
+- ✅ **243 email-reveal boolean fix** done 25 Jun (#740). **243 email-reveal DEPTH** (real domain → Hunter) carries from Thu 25 → verify real emails return.
+- 🤖🔴 **211 Phase 2** SendingProvider seam → preview *(staging repaired → no longer blocked)*.
 - 🤝 **Live walk** `app.get-kind.com` — walk the **🩷 live-not-walked set** (65 items; `LIVE-FEATURE-WALK.md`) → flip 🟢. *(Biggest single 🩷→🟢 unlock.)*
 - 🤖 build **220** real-data backend → preview · 🧍 confirm Denise **$39** checkout (58).
 

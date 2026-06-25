@@ -16,8 +16,8 @@
 | **P0** | Confirm cold-domain · T&C flag · migrations | ✅ done | confirmed live 25 Jun |
 | **T1** | Safety — rate-limits · CRM fail-closed · dup migration | ✅ done | #753 |
 | **T2a** | Region default + voice copy | ✅ done | #754 |
-| **T2b** | Currency stored in USD (`amount_usd`) | ⏳ code ready — **needs migration run** | #756 |
-| **T2c** | Kill Paystack | ⏸ waiting on your Paystack-clear check | — |
+| **T2b** | Currency stored in USD (`amount_usd`) | ✅ done (migration run + merged) | #756 |
+| **T2c** | Kill Paystack | 🔴 next — **cleared** (Paystack subs = 0 confirmed) | — |
 | **M2** | Pause stops Stripe billing | 🔴 next | — |
 | **T3** | Scale — N+1 batch enroll · per-client cap | 🔴 | — |
 | **T4** | The 211 sending engine (clients-on-product unlock) | 🔴 | — |
@@ -62,8 +62,8 @@
 
 ### T2 — REGION & MONEY *(gate: before US/EMEA *paying* clients)*
 - ✅ **T2a (PR #754, merged):** killed the South-Africa signup default (region modelled true) + fixed the overstated voice copy (C6/240).
-- ⏳ **T2b — currency storage (#756, code ready):** `amount_usd` write wired in subscriptions + signup (C4/238) — **🧍 run the migration, then merge.** Remaining (with the T2c migration pass): unify price tables to `@kind/shared` (C5/239) · reconcile `subscriptions.tier` CHECK.
-- 🔴 **T2c — kill Paystack (C3/237):** 🧍 confirm no client mid-sub on Paystack → 🤖 remove the router + ZAR write paths.
+- ✅ **T2b — currency storage (#756, merged + migration run):** `amount_usd` now the source of truth in subscriptions + signup (C4/238). Remaining (with the T2c pass): unify price tables to `@kind/shared` (C5/239) · reconcile `subscriptions.tier` CHECK.
+- 🔴 **T2c — kill Paystack (C3/237) — CLEARED (Paystack subs = 0 confirmed 25 Jun):** 🤖 remove the router + ZAR write paths. *First thing next session.*
 - 🔴 **M2 — pause stops Stripe billing:** today pause only handles Paystack. 🤖.
 - ↪️ **C1/C2 (partner rates + partner-dashboard ZAR) MOVED to item 220** (partner earnings backend, PARKED) — the dashboard *stores* earnings in ZAR; the fix belongs with 220, not T2.
 

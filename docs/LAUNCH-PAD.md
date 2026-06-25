@@ -13,7 +13,10 @@
 - **✅ DONE (Wed 24, merged):** the full **doc↔code reconciliation** — **#719** (audit) · **#721** (audit fixes) · **#723** (P0 truth-fixes · P1 dots-match-code · P2 untracked items 229–234 · P3 code-fix backlog 235–241) · **#725** (Apollo Engine doc + items 242–244). Board now **Σ249** (`--check` OK — items 245/246 logged 25 Jun). *(Earlier: 198 ordered · 211 Phase 1 verified · portal v2 #712 + Alex · steal 227 · items 220/228 logged.)*
 - **🔥 BUILD FREEZE LIFTED (24 Jun).** Build resumes — **every client-facing change previews first (§11); the founder merges, never Claude.**
 - **▶️ TODAY (Thu 25) — your actions:** ① **confirm 220** (`kind-staging`? + keep `expansion`?) · ② submit **Vapi (96) · WhatsApp-Meta (128) · Google OAuth (126)** keys (long-lead, start now) · ③ **decide Paystack** keep/kill (gates C3 / item 237). · 🤖 I begin **C1/C2** partner fix (rates→20%+5% + kill ZAR) on a preview branch.
-- **🎯 GOAL: ENGINE HOT ≈ mid-July** — domain warmed (~90%) **and** 211 Phases 2–6 built/previewed/live. **Critical path = the `staging`-branch repair (Mon 29)** — every engine preview gates on it.
+- **🌍 GTM FRAME — TWO TRACKS (decided 25 Jun · detail → KIND-MASTER + V2-TRACKER "🌍 MARKET STRATEGY"):**
+  - **🌍 US / UK / EMEA → OUR OWN OUTREACH (the fast-cash track).** Data-rich + deliverability-driven → we dogfood FIGSY to win clients. *Build the outreach machine DURING the warmup window so we fire the day the domain's warm.*
+  - **🌍 AFRICA → PARTNERS (the moat track).** Thin data → partners sell relationship-first. **Founder-led LinkedIn recruiting needs no engine → start NOW.**
+- **🎯 GOAL (reframed): FIRST REVENUE, not "engine hot."** Engine (211) + warmup (198) are the **entry ticket** to the US/EMEA market, not the finish line. **Critical path = warm domain + an engine good enough to deliver the first clients** (NOT all 6 phases before we sell). The `staging`-branch repair (Mon 29) still gates engine previews.
 - **🚀 Live since 18 Jun.** 4 builds are shipped-but-not-yet-walked (112 inbox · 113 A/B · 114 Kanban · 178 voice-shell) + the 140 PDL-waterfall part → **the walk turns them 🟢.**
 - **🔥 #1 priority = DELIVERABILITY. Two SEPARATE things — don't confuse them:**
   - **198 · Instantly** = warm **OUR** cold domain so **YOU** can do outreach to win clients. A **~1–2 week clock.** 🧍 **you set it up — Day 1.**
@@ -23,9 +26,14 @@
 
 ---
 
-## 🗓️ THE 2-WEEK PLAN — day by day (Wed 24 Jun → Tue 7 Jul) · 🎯 ENGINE HOT ≈ mid-July
+## 🗓️ THE 2-WEEK PLAN — day by day (Wed 24 Jun → Tue 7 Jul) · 🎯 FIRST REVENUE via two tracks
 
-> 🔥 **Freeze lifted 24 Jun · AGGRESSIVE + parallel.** The engine (211) is the spine; ex-gated builds run as **parallel previewed lanes** beside it — fast but **accurate** (each: own branch → preview → founder approve → live; nothing ships unwalked). 🧍 you · 🤖 me · 🤝 both.
+> 🔥 **Freeze lifted 24 Jun.** **CRITICAL REVISION (25 Jun, two-track strategy):** the old plan poured almost all capacity into *building* (engine + 8 parallel lanes) and pushed selling to "after engine hot." That's backwards for "sell fast." **New shape = THREE tracks, revenue-first:**
+> - **🅰️ ENTRY TICKET (🤖):** engine (211) right-sized to deliver the *first* clients + warmup (198) — *not* all 6 phases before we sell.
+> - **🅱️ FAST-CASH (🤝):** build OUR US/UK outreach machine *during* the warmup window — ICP + lists (243 + Apollo/Cognism) · US/EMEA FIGSY copy (242/212) · offer/demo (129) → fire the day the domain's warm.
+> - **🅲 MOAT (🧍):** Africa partner recruiting — founder-led LinkedIn, **runnable NOW, no engine needed** (233).
+> - **⏸ PARKED behind first revenue (critical cut):** 120 memory · 144 Denise-deep · 141 MCP · 145 churn · 157/158 — none are on the path to first cash. They carry. *(See the PARKED section below — this is the deliberate de-scope.)*
+> 🧍 you · 🤖 me · 🤝 both.
 
 ### Wed 24 Jun — Day 1 · AUDIT → RECONCILE ✅ DONE
 - ✅ 198 ordered · 211 Phase 1 done · portal v2 #712 + Alex · steal 227 + item 228 logged · **full doc↔code audit (2 passes, cross-checked).**
@@ -36,14 +44,16 @@
 - 🧍 confirm **220** (run on `kind-staging`? + keep 3 commission types?) · 🤝 decide **Paystack** keep/kill (gates C3).
 - 🤖 begin **C1/C2** partner fix (rates→20/5 + kill ZAR display) on a preview branch.
 - 🧍 **APOLLO ENGINE (244):** run `api.get-kind.com/engine/leads/test?key=<ADMIN_SECRET_KEY>` → open in browser, judge lead quality + source labels. Done-when: verdict on PDL/Hunter Africa coverage → tells us whether to build 243 (aggregator) or BYOK-only. *(No Apollo spend, no sends — read-only.)*
-- 🤖 **research aggregators (243):** Clay vs Bettercontact vs FullEnrich — Africa coverage depth, pricing, one-call API — present recommendation. Runs in parallel while you run 244.
+- ✅ 🤖 **aggregators researched (243):** recommend **BetterContact** (enrichment-only; for US/EMEA coverage = BetterContact + Apollo BYOK + Cognism · Africa stays partner-led). Detail → `APOLLO-ENGINE.md §3A`.
+- 🅲 **MOAT — start NOW (no engine needed):** 🧍 founder-led **LinkedIn partner outreach (233)** — first 2–3 warm agency conversations this week. Done-when: 3 partner convos opened.
 - 📋 *Items 245 (internal exec-brief generator) + 246 (in-portal support AI) logged this session — both 🟡 built, not yet walked.*
 
 ### Fri 26 Jun — Day 3 · TRUST WALK + 220
 - 🤝 **Live walk** `app.get-kind.com` — walk the **🩷 live-not-walked set** (65 items; checklist = `LIVE-FEATURE-WALK.md`) → flip 🟢 or I revert. *(Biggest single unlock.)*
 - 🤖 build **220** real-data backend → preview · 🧍 confirm Denise **$39** checkout (58).
 
-### Sat 27 / Sun 28 Jun — light
+### Sat 27 / Sun 28 Jun — light (but the FAST-CASH track starts here)
+- 🅱️ 🤝 **OUR outreach machine — kickoff:** define the **US/UK ICP** (who we sell to) + pull a first **lead list** (PDL + Apollo BYOK; Cognism for EMEA) → the fuel for when the domain's warm. Done-when: a 200–500 lead US/UK list exists.
 - 🤖 (preview) finish C1/C2 partner fix · 55a RLS clarify · 106–109 verify.
 - 🧍 warmup progress · **194/101** real-Gmail placement test.
 
@@ -63,44 +73,47 @@
 - 🤖 **57** Stripe→company-pool billing (preview) · **118** nav rewire · **C6** settings copy + migration hygiene (crm_dedup · tier CHECK).
 - 🧍 **204** start the Notion workspace.
 
-### Fri 3 Jul — Day 8 · LEGAL + CONTENT
+### Fri 3 Jul — Day 8 · FAST-CASH CONTENT + LEGAL
+- 🅱️ 🤖 **OUR outreach machine — copy:** US/UK **FIGSY sequences** on the Apollo playbook (242/212) — ≤50-word emails, in-thread follow-ups, the "we used FIGSY to land you" angle + a clear offer/demo (129). Done-when: a 4-step US/UK sequence is drafted + ready to load.
 - 🧍 legal calendar: **102** pack · SEIS · trademark (resolve the L192/L305 contradiction) · D&O · DPAs · ARIPO.
 - 🤖 **131** funnel instrumentation *(needs 🧍 the 10-analytics decision)* · **134** social-cut groundwork.
 
 ### Sat 4 / Sun 5 Jul — light
-- 🧍 warmup placement check (near inbox-ready) · publish the 3 ready blog articles.
+- 🧍 warmup placement check (near inbox-ready) · publish the 3 ready blog articles **(+ a US/EMEA-angled variant — the blog is Africa-flavoured today).**
+- 🅲 🧍 partner recruiting continues — aim 1 activated agency conversation → agreement.
 
 ### Mon 6 Jul — Day 9 · ENGINE PHASES 5/6 🔥
 - 🤖 **211 Phase 5/6** deliverability monitoring + the live client sending path → preview → 🧍 approve → **GO LIVE.**
 - 🧍 **199** wire UptimeRobot/BetterStack + Railway/Supabase/Resend alerts.
 
-### Tue 7 Jul — Day 10 · CLOSE + GO 🔥
+### Tue 7 Jul — Day 10 · 🔥 FIRE THE OUTREACH (the whole point)
+- 🅱️ 🤝 domain warmed (~90%) → **start OUR US/UK outreach** (127): load the list (Sat 27) + the sequence (Fri 3) into Instantly → send at low, ramped volume. **This is the first-revenue motion going live.**
 - 🤝 fortnight-close walk → flip remaining 🩷→🟢, reconcile the board · prune stale branches.
-- 🧍 domain warmed (~90%) → **ENGINE HOT** · **127** warm outreach + LinkedIn begins · **142** Product Hunt/G2 prep.
+- 🧍 **142** Product Hunt/G2 prep.
 
-### ▶️ AFTER ENGINE HOT (from ~8 Jul)
-- 🧍 GTM on: **129** demo → Drop 01 · **132** dogfood · **133** 2 design partners · **138** influencer.
-- 🤖 anything that didn't land in the fortnight's parallel lanes (120/121/144/145/141/212) + remaining **partner UI** (221–226) + the **intelligence layer** (139 contextual-bandit · 143 learning engine when client-gated).
-- 🤝 seller engine real build (200/202/203) + **228** recruiter override + the partner-recruiting motion · business-model training day → operating SOP (204).
+### ▶️ AFTER FIRST OUTREACH (from ~8 Jul)
+- 🅱️ 🤝 **iterate the cash track:** reply-handling → demo → close the first US/UK clients (132 dogfood · 133 design partners) · **138** influencer.
+- 🅲 🧍 **scale partners:** founder LinkedIn → ~50-agency dogfood list → ~1 activated partner/mo (233 · PARTNER GTM in V2).
+- 🤖 **only then** the PARKED builds (120/144/141/145/157/158) + remaining **partner UI** (221–226) + intelligence layer (139/143, client-gated) — pulled in as a *signed client* needs them.
+- 🤝 seller engine real build (200/202/203) + **228** recruiter override · business-model training day → operating SOP (204).
 
 ---
 
-## 🔓 EX-GATED BUILDS — PULLED INTO THE FORTNIGHT, in PARALLEL with the engine *(aggressive, 24 Jun)*
-The engine (211) is the spine but doesn't consume all capacity — these run as **parallel previewed lanes** beside it (each its own branch → preview → founder approve → live; **accurate + fast, not rushed**). Status of record = PRODUCT-INVENTORY.
-**🤖 Parallel build map (each previewed):**
-- **Fri 26 + weekend:** 121 Casey onboarding V2 ⭐ · 120 Memory v2 / pgvector · 106–109 company fast-follows.
-- **Mon 29 → Wed 1 (beside engine Ph 2–4):** 145 LENA + TONY ⭐ churn-defence · 144 Denise deep · 141 Context-MCP — one per day.
-- **Thu 2 → Fri 3:** 212 FIGSY 6-step · 174–176 onboarding fork (ties engine Ph 4) · 157/158 personalised images + voice brief.
-- **Mon 6 (beside engine Ph 5/6):** 221/222/223 partner real-data UI (on 220) · 224/225/226 partner trust/docs/sell-through.
-- ⏸ **165 Visitor Intelligence** — deferred (thin Africa coverage).
-> **Honest scope:** aggressive but **accurate** — every lane previews + verifies before live; whatever doesn't land **carries**, nothing ships unwalked. *(Still genuinely gated — need real clients/data/margin: 143 Learning Engine · 147 outcome pricing · 150/155/156/159/161 scale · 151 SOC2 · 160 white-label.)*
+## ⏸ PARKED BEHIND FIRST REVENUE — the deliberate de-scope *(critical revision, 25 Jun)*
+**The 24-Jun plan tried to run 8 parallel build lanes beside the engine. That's over-scoped for a small team chasing "sell fast" — it's how we'd ship a lot and sell nothing.** New rule: **nothing builds unless it's on the path to first revenue (entry-ticket, fast-cash, or moat) OR a signed client needs it.** These carry — they're good, just not now:
+- **120** Memory v2/pgvector · **144** Denise-deep · **141** Context-MCP · **145** LENA+TONY churn · **157/158** personalised images + voice brief — *no first-client depends on these.*
+- **121** Casey onboarding V2 — pull in only when the first client actually onboards (then it earns its place fast).
+- **212** FIGSY 6-step / **174–176** onboarding fork — *partially* in scope: the **US/EMEA sequence copy** (242/212) IS the fast-cash track (Fri 3); the rest of the 6-step rebuild waits.
+- **221–226** partner real-data UI — wait until we have activated partners with real numbers to show (220 backend first).
+- ⏸ **165** Visitor Intelligence — deferred (thin Africa coverage).
+> **Still genuinely client/data/margin-gated (unchanged):** 143 Learning Engine · 147 outcome pricing · 150/155/156/159/161 scale · 151 SOC2 · 160 white-label.
 
 ## 🧍 YOUR STANDING LIST *(status of record = PRODUCT-INVENTORY by ID)*
 - **Keys:** 211 Smartlead · 96 Vapi · 128 WhatsApp/Meta · 126 OAuth · 136 Flutterwave · 58 Denise price. *(104 Hunter/PDL ✅ already confirmed in Railway.)*
 - **Decisions:** 196 accounting + VAT · 203 repo + auth · 108 credit behaviour · 211 markup + migration · 165 visitor-intel · 120 pgvector · 121 Casey voice.
 - **Legal:** 102 pack · 103 Apollo ⏸ · SEIS · DPAs.
-- **GTM:** 129 demo · 127 outreach · 132 dogfood · 133 partners · 142 Product Hunt · 138 influencer.
-- **🤝 PARTNER GTM (recruit 10/yr — strat in V2-TRACKER; pitch = `PARTNER-BRIEF.md`):** ① Demmy 2–3 intros · ② dogfood a ~50-agency list · ③ founder-led LinkedIn (warm — NOW). *Count activated partners.*
+- **🅱️ GTM — US/EMEA (OUR OUTREACH, fast-cash):** 127 outreach (US/UK/IE/FR/NL — avoid DE/PL) · 129 demo/offer · 132 dogfood · 133 design partners · 142 Product Hunt · 138 influencer. *Fires when the domain's warm.*
+- **🅲 GTM — AFRICA (PARTNERS, moat · recruit 10/yr — strat in V2-TRACKER; pitch = `PARTNER-BRIEF.md`):** ① founder-led LinkedIn (warm — **NOW**, no engine needed) · ② Demmy 2–3 intros · ③ dogfood a ~50-agency list. *Count activated partners.*
 - **Seller engine:** 201 hire AE · 202 agreements (incl. **partner agreement** — to be drafted) · 200 partner+AE portal.
 - **Business/ops:** Business-model training day → operating-model SOP (Notion, 204) + the partner/AE **earnings-capture** model (Day 6).
 

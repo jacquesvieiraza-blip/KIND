@@ -77,6 +77,49 @@ Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, A
 
 ---
 
+# ░ 🌍 MARKET STRATEGY — TWO-TRACK GTM (decided 25 Jun · founder) ░
+> **The frame for ALL go-to-market.** Strategy of record → KIND-MASTER; this is the future-detail + market evidence behind it. Triggered by the 25 Jun data research (item 243 aggregator study + US/EMEA market scan).
+
+## The decision
+**Match the GTM motion to how each market actually buys:**
+- **🌍 US / UK / EMEA → OUR OWN OUTREACH (direct, product-led).** Data-rich + deliverability-driven + automatable → our FIGSY engine produces pipeline here. We *dogfood* — "we used FIGSY to land you" is the demo. **This is the fast-cash track.**
+- **🌍 AFRICA → PARTNERS (channel-led).** Relationship-driven, thin data, fragmented + price-sensitive SMEs → human partners with local trust carry it. Africa's thin automated data stops mattering when partners sell relationship-first. **This is the moat/mission track (front-loaded recruiting, then low-touch).**
+
+## Why this is right (the evidence, 25 Jun)
+**The prize is in US/EMEA.** AI-SDR market ≈ **$5.8B (2026) → $17.6B (2030), ~32% CAGR**; North America ≈ **39% of global** (US = 84% of NA). EMEA is a deep second pool (Cognism ~200M contacts, lemlist 450M+).
+**Cold B2B outreach is legal where we'd send:** US (CAN-SPAM, opt-out) · **UK** (PECR corporate-subscriber exemption — friendliest) · **Ireland · France · Netherlands** (GDPR legitimate interest). ⚠️ **Germany (UWG §7) + Poland = strict/consent** → not first targets. **→ Lead with US · UK · IE · FR · NL.**
+**Deliverability is THE moat — and it's what we already bet on (211).** Google/Yahoo Feb-2024 rules (spam <0.3%, DKIM+SPF+DMARC) → warmed inboxes ~91% inbox-placement vs ~68% unwarmed; *"only one platform treats deliverability as core infrastructure."* The whole market's #1 pain is our chosen foundation.
+**Africa = channel country.** Research: reseller/partner channels are *"particularly well suited to the African business landscape"* — local trust, lower CAC, partners fill the localization gap. 85% of African enterprises increasing digital spend; SaaS +25%/yr. Maps 1:1 onto our 20%/5% partner model (items 200/213–226/233).
+
+## 🔌 Tool fit — are Instantly + Smartlead OK with this? (founder Q, 25 Jun)
+**Yes — the two-track plan fits them BETTER than Africa-first did; both are US/EMEA-native cold-email platforms.** Keep the split clear:
+- **Instantly = OUR own outreach (198) to win clients.** Built *for* cold B2B outreach (unlike HubSpot, which bans it), with its own warmup network + mailbox provisioning on US-friendly domains. Pointing it at US/UK/EMEA plays to its strengths. Constraint is **compliance discipline** (DMARC/SPF/DKIM + one-click unsubscribe + spam <0.3%), not geography.
+- **Smartlead = the CLIENT-facing engine (211).** Purpose-built for our exact model: **one master account → unlimited isolated client sub-accounts** (own mailboxes/campaigns/reporting) + **white-label add-on (~$100–200/mo)** = per-client domain isolation so Client A's complaints never poison Client B. Geography-agnostic for sending; DATA coverage isn't its job (that's our 243 layer).
+- **What to actually verify (don't assume — RULEBOOK §1.0):** ① **Smartlead** ToS/acceptable-use for the **white-label reseller** model + that sub-account isolation is real (we send on clients' behalf). ② **Instantly** acceptable-use covers our outreach geos + volumes. ③ Both: confirm the **compliance baseline** (auth + unsubscribe + complaint-rate ceiling) is enforced in our setup. ④ **No client-mixing** — never share a sender/domain across clients. *(Action: read both ToS pages + confirm on a support thread before scaling sends.)*
+
+## ⚠️ The risks (be honest)
+1. **AI-SDR backlash / bubble** — 50–70% churn, open rates ~18%, "AI spam" fatigue, ≥1 vendor predicted to shut/pivot by Sept 2026. **Winning approach = human-in-the-loop + deep personalization, NOT volume.** Our "honest, quality-not-volume" brand (the blog) is the antidote — we must *walk* it.
+2. **We have NO data edge in US/EMEA** — incumbents (Apollo 275M, ZoomInfo, Cognism) own data there. **Our wedge = engine (deliverability-first infra) + vertical AI brain + brand + price + dogfood proof.** Don't compete head-to-head on data or features.
+3. **Deliverability is now do-or-die** — the crackdown means we torch ourselves if we outreach before the domain is warm (198) + engine solid. **Sequence is locked: warm → sell.**
+4. **Focus dilution** — two motions on a small team. Mitigant: partners are self-running once recruited (front-load recruit, then low-touch); our outreach is the continuous motion.
+
+## How the data layer (item 243) FEEDS each track — coverage answer
+The aggregators (Clay / BetterContact / FullEnrich) are **enrichment, not discovery** — they lift email/phone fill-rate on leads we already found; they don't find net-new leads.
+- **US/EMEA = coverage SOLVED.** Aggregator (BetterContact rec) **+ Apollo (BYOK) + Cognism (EMEA) + PDL** = near-complete coverage → **our outreach machine has all the fuel it needs.** This is the "match Alta's 50+ sources" move — done with ONE integration. **Coverage is NOT the blocker for the direct track.**
+- **Africa = coverage still thin.** Even the aggregator's 20+ providers are weak (worst-covered region, ~30–45% single-provider); enrichment helps at the margin but **discovery stays thin → which is exactly why Africa is PARTNER-led** (humans + relationships, not data volume). The aggregator does *not* rescue Africa discovery — it confirms the two-track split.
+- **→ 243 build implication:** the router must prioritise **Apollo BYOK + Cognism for the US/EMEA direct track**, not only Africa sources. (Detail: `APOLLO-ENGINE.md §3A`.)
+
+## What it changes in the roadmap
+- **211 (engine) + 198 (warmup)** rise from "foundation" to **"the unlock for the big market"** — the entry ticket, not optional.
+- **Our own outbound machine = the fast-cash track:** US/UK ICP + lead lists (243 + Apollo/Cognism) · US/EMEA FIGSY sequences (242/212) · the offer/demo (129) · dogfood (132) → built DURING the warmup window so we fire the day the domain's warm.
+- **Africa partner recruiting (233 + PARTNER GTM below)** = front-loaded, low-build, **founder-led LinkedIn runnable NOW** (no engine needed).
+- **Content/ICP need US + EMEA variants** — the blog + FIGSY copy are Africa-flavoured today.
+- **Park behind first revenue:** the heavy parallel builds (120 memory · 144 Denise-deep · 141 MCP · 145 churn · 157/158) — not on the path to first cash.
+
+*Sources (25 Jun web research): MarketsandMarkets + Fortune Business Insights (AI-SDR market size) · Overloop + litemail (cold-email legality by country) · MarTech (Google/Yahoo bulk-sender rules) · CustomerThink + Digital Applied (AI-SDR backlash) · Landbase (2026 GTM wedge) · UnifyGTM (deliverability moat) · Limio (African reseller channel) · Knowlee (EMEA data providers).*
+
+---
+
 # ░ 🤝 THE SELLER ENGINE — Partners + AEs on ONE foundation (V2 SPEC · logged 18 Jun) ░
 > **Founder thesis (18 Jun):** a **partner** and an **Account Executive (AE)** are the *same primitive* — a **seller** who refers, manages, and earns on clients **staying alive**. Build the foundation **once**, branch only on **paid vs free**. This is the channel/sales engine that sits on top of the live Company Engine (#88). **Status lives in PRODUCT-INVENTORY: 196 (ledger) · 197 (partner model) · 200 (the portals/foundation) · 201 (hire founding AE) · 202 (the document/legal pack) · 203 (THE BUILD).** Detail (the "why/how") lives here. **Gated post-launch — do not build before first revenue.**
 > **Phase 1 of 203 — commission-engine module** *(status of record: PRODUCT-INVENTORY item 203):* the **pure commission-engine module** (`apps/api/src/lib/comp-engine.ts`) — the single home for "20/5/5" (Land 20% · Retain 5% · Expand 5%; AE base + 60/40 + ramp guarantee 100/100/75/75; partner 20%+5% no base) — merged (#666), **USD**, **33 vitest tests passing**, **not yet wired** to Stripe/DB/portals. Next phases (founder-gated, need the **203 repo + auth/hosting** decision): Stripe webhooks → attribution → engine → admin P&L portal → partner portal → AE portal → founder-approved payouts.

@@ -8,8 +8,16 @@ export interface EnrichmentResult {
   industry?: string
   tech_stack?: string[]
   linkedin_url?: string
+  domain?: string
   source: 'apollo' | 'pdl' | 'hunter' | 'clearbit' | 'claude' | 'none'
   raw?: Record<string, unknown>
+}
+
+// A real, usable email address — NOT PDL's free-tier boolean presence flag
+// (the 244 bug: PDL returns `work_email: true` when the address is gated, which
+// must never be treated as an email). Anything that isn't a string with '@' is rejected.
+export function isRealEmail(v: unknown): v is string {
+  return typeof v === 'string' && v.includes('@') && v.length > 3
 }
 
 export interface LeadProfile {
@@ -71,10 +79,11 @@ async function tryPDL(lead: LeadProfile): Promise<EnrichmentResult | null> {
     if (!res.ok) return null
     const json = await res.json() as {
       data?: {
-        work_email?: string
+        work_email?: unknown        // free tier returns boolean `true` (presence), paid returns the address
         mobile_phone?: string
         industry?: string
         job_company_employee_count?: number
+        job_company_website?: string
         skills?: string[]
         linkedin_url?: string
       }
@@ -84,10 +93,11 @@ async function tryPDL(lead: LeadProfile): Promise<EnrichmentResult | null> {
 
     const d = json.data
     const result: EnrichmentResult = { source: 'pdl' }
-    if (d.work_email)                  result.email = d.work_email
+    if (isRealEmail(d.work_email))     result.email = d.work_email   // guard: never accept the boolean flag
     if (d.mobile_phone)                result.phone = d.mobile_phone
     if (d.industry)                    result.industry = d.industry
     if (d.linkedin_url)                result.linkedin_url = d.linkedin_url
+    if (d.job_company_website)         result.domain = normalizeDomain(d.job_company_website)  // feed Hunter a REAL domain
     if (d.job_company_employee_count)  result.company_size = employeeCountToRange(d.job_company_employee_count)
     if (d.skills?.length)              result.tech_stack = d.skills.slice(0, 10)
     return result
@@ -125,31 +135,53 @@ async function tryClearbit(lead: LeadProfile): Promise<EnrichmentResult | null> 
   }
 }
 
-// Waterfall: try each provider, merge non-null fields
+// Fill any field on `merged` that is still empty from `result`. Email is guarded so a
+// provider's non-string (PDL boolean) can never land as the address.
+function mergeInto(merged: EnrichmentResult, result: EnrichmentResult | null): void {
+  if (!result) return
+  if (!merged.email        && isRealEmail(result.email))  { merged.email        = result.email;        merged.source = result.source }
+  if (!merged.phone        && result.phone)               { merged.phone        = result.phone;        merged.source = result.source }
+  if (!merged.company_size && result.company_size)        { merged.company_size = result.company_size; merged.source = result.source }
+  if (!merged.industry     && result.industry)            { merged.industry     = result.industry;     merged.source = result.source }
+  if (!merged.tech_stack   && result.tech_stack)          { merged.tech_stack   = result.tech_stack;   merged.source = result.source }
+  if (!merged.linkedin_url && result.linkedin_url)        { merged.linkedin_url = result.linkedin_url; merged.source = result.source }
+  if (!merged.domain       && result.domain)              { merged.domain       = result.domain }
+}
+
+// Waterfall EMAIL-REVEAL (item 243): PDL first (profile + maybe a real email + a real
+// company domain) → if the email is still missing, Hunter reveals it by name + that
+// domain → Clearbit enriches once we have an email. The old version ran all three in
+// parallel, so Hunter never had PDL's domain and PDL's boolean flag was treated as an
+// email — both fixed here.
 export async function waterfallEnrich(lead: LeadProfile): Promise<EnrichmentResult> {
   const merged: EnrichmentResult = { source: 'none' }
+  if (isRealEmail(lead.email)) merged.email = lead.email
 
-  const missingEmail      = !lead.email
+  // 1. PDL — profile, possibly a real work_email, and (key) the real company domain.
+  mergeInto(merged, await tryPDL(lead))
 
-  // Run PDL + Hunter + Clearbit in parallel to save time
-  const [pdl, hunter, clearbit] = await Promise.all([
-    tryPDL(lead),
-    missingEmail ? tryHunter(lead) : Promise.resolve(null),
-    lead.email   ? tryClearbit(lead) : Promise.resolve(null),
-  ])
-
-  // Merge in order of quality: PDL > Clearbit > Hunter
-  for (const result of [pdl, clearbit, hunter]) {
-    if (!result) continue
-    if (!merged.email         && result.email)        { merged.email        = result.email;        merged.source = result.source }
-    if (!merged.phone         && result.phone)        { merged.phone        = result.phone;        merged.source = result.source }
-    if (!merged.company_size  && result.company_size) { merged.company_size = result.company_size; merged.source = result.source }
-    if (!merged.industry      && result.industry)     { merged.industry     = result.industry;     merged.source = result.source }
-    if (!merged.tech_stack    && result.tech_stack)   { merged.tech_stack   = result.tech_stack;   merged.source = result.source }
-    if (!merged.linkedin_url  && result.linkedin_url) { merged.linkedin_url = result.linkedin_url; merged.source = result.source }
+  // 2. Still no email? Hunter reveals it from name + the BEST domain we now have
+  //    (caller-supplied → PDL's company website → rough fallback).
+  if (!merged.email) {
+    const domain = lead.domain ?? merged.domain ?? extractDomain(lead.company)
+    if (domain) mergeInto(merged, await tryHunter({ ...lead, domain }))
   }
 
+  // 3. Clearbit — enrich phone/firmographics once we have any email to key on.
+  const email = isRealEmail(lead.email) ? lead.email : merged.email
+  if (email) mergeInto(merged, await tryClearbit({ ...lead, email }))
+
   return merged
+}
+
+// Turn a PDL company website ("https://www.simplepay.co.za/pricing") into a bare
+// domain ("simplepay.co.za") that Hunter's email-finder accepts.
+export function normalizeDomain(website?: string | null): string | undefined {
+  if (!website) return undefined
+  let d = website.trim().toLowerCase()
+  d = d.replace(/^https?:\/\//, '').replace(/^www\./, '')
+  d = d.split('/')[0].split('?')[0].trim()
+  return d || undefined
 }
 
 function extractDomain(company?: string | null): string | null {

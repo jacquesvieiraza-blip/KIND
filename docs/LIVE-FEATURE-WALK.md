@@ -95,6 +95,7 @@
 ## ✅ WALK LOG — Pass 2 (live, founder-confirmed)
 - **25 Jun:** Home ✅🟢 (116) · People ✅🟢 (fake columns removed → item 247).
 - **26 Jun — Batch 1:** ICP Builder ✅ (5) · LinkedIn Import ✅ (11) · Agents hub ✅🟢 (125, 🟣→🟢) · **Denise ✅ good** (4) · **Milla ⚠️ works but chat renders raw markdown + cold tone → fix item 248** (2 kept 🟢, defect logged) · **Vida 🟢→🩷** (3, works but needs refinement, parked).
+- **26 Jun — Batch 2 (FIGSY):** FIGSY-chat ✅ (22) · Campaigns ✅ (14) · A/B tab (113) ⚠️ works but "unsure what it means" → needs in-UI explainer · Sequences (187) works but FIGSY can't AI-draft it → 212 · **Sequence-builder (82) confirmed shell → REMOVED from nav** · Inbox (112) founder unsure → verify with a real reply.
 
 ---
 

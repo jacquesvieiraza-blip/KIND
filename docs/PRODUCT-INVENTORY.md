@@ -185,15 +185,15 @@
 ### Tonight's builds + recent
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 112 | 🩷 | Unibox inbox rebuild (Alta-style) — ICP-score/archive/booked TODOs | 🧍 walk |
-| 113 | 🩷 | A/B subject-testing UI (campaign A/B tab) | 🧍 walk |
+| 112 | 🩷 | Unibox inbox rebuild (Alta-style) — *walk 26 Jun: founder unsure (no live reply to test); verify with a real reply.* Known TODOs: ICP-score "—", archive dead, booked not persisted | 🧍 walk |
+| 113 | 🩷 | A/B subject-testing UI (campaign A/B tab) — *walk 26 Jun: works but founder didn't understand it → needs an in-UI explainer of what A/B testing does + when to use it* | 🤖 |
 | 114 | 🩷 | Kanban pipeline polish (⚠️ orphan — not nav-linked) | 🧍 walk |
 | 162 | 🩷 | Prompt Library (website Resources) | 🧍 walk |
 | 179 | 🩷 | Shareable stakeholder pipeline view (public share token) | 🧍 walk |
 | 183 | 🩷 | Campaign kill-switch (pause-all panic button) | 🧍 walk |
 | 184 | 🩷 | Public uptime/status page (built, ⚠️ unlinked from nav) | 🧍 walk |
 | 186 | 🩷 | Record signup T&C acceptance (timestamp + IP) | 🧍 walk |
-| 187 | 🩷 | Sequence/template → apply-to-campaign (email-first) | 🧍 walk |
+| 187 | 🩷 | Sequence/template → apply-to-campaign (email-first) — *walk 26 Jun: manual build+apply works; confidence gap = FIGSY can't AI-draft the sequence on request ("he says he can't") → that's the 212 build* | 🧍 walk |
 | 188 | 🩷 | Denise enabled + seeded on demo account | 🧍 walk |
 | 191 | 🩷 | ROI / value dashboard ("what KIND did for you") | 🧍 walk |
 | 193 | 🩷 | Real open-tracking (fabricated 28% removed) | 🧍 walk |
@@ -256,7 +256,7 @@
 |---|---|------|-------|
 | 55a | 🔴 | Company-Engine RLS — rep-data isolation on clients/leads (API-enforced today) | 🤖 |
 | 74 | 🔴 | R15 Train-FIGSY knowledge (UI built; `TRAINING_LIVE=false`, saves noop — flip+verify) | 🤖 |
-| 82 | 🔴 | Visual Sequence Builder (shell in nav; no save/apply — build or pull from nav) | 🤖 |
+| 82 | 🔴 | Visual Sequence Builder — **walk 26 Jun: confirmed shell ("coming live #89"); REMOVED from live nav (hide-until-real).** Re-add when real (build or cut). | 🤖 |
 | 247 | 🔴 | Real lead signals — technographics · job-postings · growth, from Apollo (replaces removed fakes) | 🤖 |
 | 248 | 🔴 | **Milla chat — render markdown + warmer tone** *(walk 26 Jun)*: the assistant dumps raw `**bold**` + `|---|` table pipes as literal text (not rendered) and the tone is cold/robotic. Fix: render markdown in the assistant chat (+ Milla draft output) + warm the system prompt. Client-confidence fix — looks broken today. | 🤖 |
 | 235 | 🔴 | C1 — partner code shows OLD tiered rates → 20%+5% | 🤖 |
@@ -275,7 +275,7 @@
 | 211 | 🔴 | THE sending/deliverability engine — integrate Smartlead (client-facing) | 🤝 |
 | 243 | 🔴 | 🎯 **URGENT FOCUS — max-coverage multi-source data layer** (we run thin: PDL+Hunter only). Top lever = **BetterContact** (1 integration = 20+ providers) → source router. Build during warm-up. Feeds 212. | 🤝 |
 | 242 | 🔴 | EPIC — Apollo Outbound OS → FIGSY (6-stage playbook) | 🤖 |
-| 212 | 🔴 | **FIGSY sequences — thin + weak per-email context** (founder 25 Jun). Rebuild to the Apollo blueprint (242): 4–6 steps · ≤50-word · **personalised opener using the lead's real data/signals (enough context per email)** · in-thread · A/B. **Fed by 243's richer data.** 🔭 Depth Track. | 🤖 |
+| 212 | 🔴 | **FIGSY sequences — thin + weak per-email context** (founder 25 Jun). Rebuild to the Apollo blueprint (242): 4–6 steps · ≤50-word · **personalised opener using the lead's real data/signals (enough context per email)** · in-thread · A/B · **FIGSY AI-drafts the whole sequence on request** (today FIGSY says it can't from the Sequences page — founder 26 Jun). **Fed by 243's richer data.** 🔭 Depth Track. | 🤖 |
 | 140 | 🔴 | Waterfall cluster — rest (adaptive volume · CRM pull · inbox rotation) | 🤝 |
 | 139 | 🔴 | Intelligence cluster — contextual-bandit (4/5 already live) | 🤖 |
 | 141 | 🔴 | Context-backed MCP server | 🤖 |

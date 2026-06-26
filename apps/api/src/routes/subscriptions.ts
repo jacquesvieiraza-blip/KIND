@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { PRODUCTS } from '@kind/shared'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { pauseStripeSubscription, resumeStripeSubscription } from '../lib/stripe'
 
 export const subscriptionRouter = Router()
 subscriptionRouter.use(requireAuth)
@@ -120,7 +121,7 @@ subscriptionRouter.post('/:id/pause', async (req: AuthRequest, res) => {
 
     // Verify this subscription belongs to this client
     const { data: sub } = await db.from('subscriptions')
-      .select('id, product, status, paystack_subscription_code')
+      .select('id, product, status, paystack_subscription_code, stripe_subscription_id')
       .eq('id', req.params.id)
       .eq('client_id', client.id)
       .single()
@@ -132,14 +133,19 @@ subscriptionRouter.post('/:id/pause', async (req: AuthRequest, res) => {
     const now = new Date()
     const resumeAt = new Date(now.getTime() + months * 30 * 86400000)
 
-    // Stop billing the SAME way cancel does — disable the Paystack-side recurring
-    // charge. (Stripe-side pause is FLAGGED for the founder — see PR notes.)
+    // Actually STOP the recurring charge so "billing is stopped" is true, not a lie.
+    // Stripe (the live processor) via pause_collection; legacy Paystack via disable.
+    const stripePaused = await pauseStripeSubscription(sub.stripe_subscription_id)
     if (sub.paystack_subscription_code) {
       await fetch(`https://api.paystack.co/subscription/disable`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: sub.paystack_subscription_code, token: sub.paystack_subscription_code }),
       })
+    }
+    // If neither processor was actually paused, do NOT claim billing stopped.
+    if (!stripePaused && !sub.paystack_subscription_code) {
+      console.warn(`[subscriptions/pause] no external billing paused for sub ${sub.id} (no stripe id / paystack code) — DB pause only.`)
     }
 
     // Mark paused in DB. Data + settings are untouched (no delete).
@@ -186,13 +192,17 @@ subscriptionRouter.post('/:id/resume', async (req: AuthRequest, res) => {
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: sub } = await db.from('subscriptions')
-      .select('id, product, status')
+      .select('id, product, status, stripe_subscription_id')
       .eq('id', req.params.id)
       .eq('client_id', client.id)
       .single()
 
     if (!sub) { res.status(404).json({ success: false, error: 'Subscription not found' }); return }
     if (sub.status !== 'paused') { res.status(400).json({ success: false, error: 'Subscription is not paused' }); return }
+
+    // Re-enable the Stripe recurring charge (clears pause_collection) so resuming
+    // actually restarts billing, mirroring the pause above.
+    await resumeStripeSubscription(sub.stripe_subscription_id)
 
     const { error: updErr } = await db.from('subscriptions')
       .update({ status: 'active', paused_at: null, paused_until: null })

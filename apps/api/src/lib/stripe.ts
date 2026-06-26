@@ -186,3 +186,30 @@ export function constructWebhookEvent(payload: Buffer, sig: string): any | null 
     return null
   }
 }
+
+// ── Pause / resume the recurring charge (item 190 / M2) ──────────────────────
+// Stripe `pause_collection` STOPS invoicing while keeping the subscription, so a
+// paused client is genuinely not charged — not just flagged "paused" in our DB.
+// Resume clears it. Both no-op safely if Stripe isn't configured or the sub has
+// no Stripe id (e.g. a Paystack/legacy sub). Returns whether Stripe was touched.
+export async function pauseStripeSubscription(subscriptionId: string | null | undefined): Promise<boolean> {
+  if (!stripe || !subscriptionId) return false
+  try {
+    await stripe.subscriptions.update(subscriptionId, { pause_collection: { behavior: 'void' } })
+    return true
+  } catch (err) {
+    console.error('[Stripe] pause_collection failed:', err)
+    return false
+  }
+}
+
+export async function resumeStripeSubscription(subscriptionId: string | null | undefined): Promise<boolean> {
+  if (!stripe || !subscriptionId) return false
+  try {
+    await stripe.subscriptions.update(subscriptionId, { pause_collection: null })
+    return true
+  } catch (err) {
+    console.error('[Stripe] resume (clear pause_collection) failed:', err)
+    return false
+  }
+}

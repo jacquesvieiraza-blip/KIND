@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { Bot, Calendar, FileText, Database, MessageSquare, CheckCircle2, XCircle } from 'lucide-react'
+import MarkdownLite from '@/components/MarkdownLite'
 
 interface MillaDocument {
   id: string; name: string; type: string
@@ -523,7 +524,7 @@ export default function AssistantPage() {
                         <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                           <div className={`max-w-[80%] ${msg.role === 'user' ? 'order-1' : ''}`}>
                             <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${msg.role === 'user' ? 'bg-[#7C3AED] text-white rounded-br-sm' : 'bg-gray-50 text-gray-800 border border-purple-100/60 rounded-bl-sm'}`}>
-                              {msg.content}
+                              {msg.role === 'assistant' ? <MarkdownLite content={msg.content} /> : msg.content}
                             </div>
                             {msg.role === 'assistant' && msg.sources && msg.sources.length > 0 && <SourceChips sources={msg.sources} />}
                           </div>

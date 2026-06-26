@@ -227,7 +227,7 @@
 | 118 | 🟡 | Site nav/footer rewire (partial — Demo removed; Watch/Drop pending) | 🤖 |
 | 124 | 🟡 | Money-path tests (billing-rules.ts + 13 regression tests) | 🤖 |
 | 165 | 🟡 | Visitor Intelligence tracking snippet (on 43/62 pages; de-anon deferred) | 🤝 |
-| 178 | 🟡 | Voice ("speak") chat widget (shell; Vapi parked) | 🤖 |
+| 178 | 🟡 | Voice ("speak") chat widget (shell; Vapi parked) — **audit 26 Jun: now shows a VISIBLE "Voice · coming soon" teaser** (was a live-looking mic that only signalled on tap). Honest teaser per founder rule; flips to a real mic when the Vapi key lands. | 🤖 |
 | 180 | 🟡 | Admin audit log (backend exists; no UI) | 🤖 |
 | 182 | 🟡 | Zapier / Make integration (built; migration unrun) | 🤖 |
 | 185 | 🟡 | Outbound webhooks + public event API (built; migration unrun) | 🤖 |
@@ -256,11 +256,11 @@
 |---|---|------|-------|
 | 55a | 🔴 | Company-Engine RLS — rep-data isolation on clients/leads (API-enforced today) | 🤖 |
 | 74 | 🔴 | R15 Train-FIGSY knowledge (UI built; `TRAINING_LIVE=false`, saves noop) — *walk 26 Jun: honest "coming soon" banner shown, so KEPT in nav (not a deceptive shell); this item tracks turning it on (flip flag + verify saves)* | 🤖 |
-| 82 | 🔴 | Visual Sequence Builder — **walk 26 Jun: confirmed shell ("coming live #89"); REMOVED from live nav (hide-until-real).** Re-add when real (build or cut). | 🤖 |
+| 82 | 🔴 | Visual Sequence Builder — **walk 26 Jun: confirmed shell ("coming live #89"); REMOVED from live nav (hide-until-real) — full Sidebar + the slim Sidebar (the latter caught in the 26 Jun yellow/red live-exposure audit).** Re-add when real (build or cut). | 🤖 |
 | 247 | 🔴 | Real lead signals — technographics · job-postings · growth, from Apollo (replaces removed fakes) | 🤖 |
 | 248 | 🟡 | **Milla outputs — render fix BUILT 26 Jun (🔴→🟡, pending preview verify).** New zero-dep `MarkdownLite` renderer now renders **bold**/italics/code/headers/lists/tables in the assistant chat AND the agent side-panels (was raw `**` + `|---|` text); notetaker JSON now parsed (ties 81). **Still open: warmer tone** (system-prompt copy) — keep tracking that half. | 🤖 |
 | 249 | 🟡 | **Open-rate 0% → honest "n/a" — FIX BUILT 26 Jun (🔴→🟡, pending preview).** Root: cold sends carry no tracking pixel by design (deliverability), so opens are structurally 0; showing "0%" read as failure. Fixed: Analytics + KPIs now show **"n/a" with "tracking off for cold — use reply rate"** (API `trackingEnabled` corrected to reflect cold reality; honest banner; open-rate dropped from the downloadable report + benchmark shows n/a). tsc clean both apps. *(ROI "$873k" label temper is separate → item 191.)* | 🤖 |
-| 250 | 🔴 | **FIGSY Webhooks = SHELL — hidden from nav 26 Jun** *(walk 26 Jun)*: not a 404 bug — the whole inbound-enrolment webhook was never built. The page documents `POST /figsy/webhook/enrol` (doesn't exist) and "Send test" hits `/api/proxy/figsy/webhook/test` (no proxy, no backend route). **Hidden from both sidebars (hide-until-real)** so clients don't see a fake feature. To make real: build a secure inbound endpoint with a per-client secret/API-key, campaign-ownership check + credit charge (mirror auth'd `/figsy/campaigns/:id/enroll`), then re-add to nav. | 🤖 |
+| 250 | 🔴 | **FIGSY Webhooks = SHELL — hidden from nav 26 Jun** *(walk 26 Jun)*: not a 404 bug — the whole inbound-enrolment webhook was never built. The page documents `POST /figsy/webhook/enrol` (doesn't exist) and "Send test" hits `/api/proxy/figsy/webhook/test` (no proxy, no backend route). **Hidden from both sidebars (hide-until-real)** so clients don't see a fake feature. **Audit 26 Jun: the page ROUTE itself is now also pulled** (`/figsy/webhooks` redirects to `/dashboard/figsy`) — it was still URL-reachable as a shell. To make real: build a secure inbound endpoint with a per-client secret/API-key, campaign-ownership check + credit charge (mirror auth'd `/figsy/campaigns/:id/enroll`), then restore the page + re-add to nav. | 🤖 |
 | 251 | 🟡 | **Documents moved to Account — FIX BUILT 26 Jun (🔴→🟡, pending preview).** The trust vault (T&C/DPA/invoices) was buried under the Milla agent. Moved out of Milla nav → into the **Account nav next to Billing/Usage** (full Sidebar) and the **profile-menu "Account" group** (slim sidebar). Page wasn't Milla-gated, so no access change. tsc clean. | 🤖 |
 | 235 | 🔴 | C1 — partner code shows OLD tiered rates → 20%+5% | 🤖 |
 | 236 | 🔴 | C2 — kill fmtZAR in partner dashboard → USD | 🤖 |
@@ -319,7 +319,7 @@
 ### Onboarding + agents (next-build)
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 121 | 🔴 | Casey conversational onboarding V2 (voice/tone captured) | 🤝 |
+| 121 | 🔴 | Casey conversational onboarding V2 (voice/tone captured) — **audit 26 Jun: the `/dashboard/v2` demo route is now pulled** (redirects to `/dashboard`); it was a URL-reachable "coming soon / demo" surface. Restore on the T5 wire-or-cut. | 🤝 |
 | 120 | 🔴 | FIGSY Memory v2 / pgvector (enabled on staging) | 🤝 |
 | 174 | 🔴 | Onboarding — website → firmographics read (routing) | 🤖 |
 | 175 | 🔴 | Onboarding — seat-based auto-routing (1 vs 2+ seats) | 🤖 |
@@ -367,7 +367,7 @@
 ### GTM / content / legal (founder-led)
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 127 | 🔴 | 10 warm outreach · LinkedIn 1/day · PhantomBuster | 🧍 |
+| 127 | 🔴 | 10 warm outreach · LinkedIn 1/day · PhantomBuster — **audit 26 Jun: the parked `/dashboard/figsy/linkedin` queue route is now pulled** (redirects to `/dashboard/figsy`); it was a URL-reachable parked surface. (Live LinkedIn CSV *import* = item 11, unaffected.) | 🧍 |
 | 128 | 🔴 | Meta/WhatsApp API application | 🧍 |
 | 129 | 🔴 | Record product demo + Drop 01 video + onboarding Looms | 🧍 |
 | 131 | 🔴 | GTM funnel instrumentation | 🤝 |

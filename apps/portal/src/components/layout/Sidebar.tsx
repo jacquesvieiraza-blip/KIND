@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
   LogOut, Zap, FileText, Coins, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, Webhook, ShieldCheck, LineChart,
+  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, ShieldCheck, LineChart,
   Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate, Sparkles, Mic, GitBranch, Library,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
@@ -46,7 +46,9 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },
       { href: '/dashboard/roi',                    label: 'Your ROI',         icon: Sparkles },
       { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
-      { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
+      // Webhooks (250) hidden from nav 26 Jun — shell: the documented
+      // /figsy/webhook/enrol endpoint was never built and "Send test" 404s.
+      // Re-add when the inbound enrolment webhook is real (per-client secret).
     ],
   },
   {

@@ -8,7 +8,7 @@ import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
   Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
-  LayoutTemplate, GitBranch, Library, ShieldCheck, Webhook, FileText, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
+  LayoutTemplate, GitBranch, Library, ShieldCheck, FileText, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -37,7 +37,7 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },
       { href: '/dashboard/roi',                    label: 'Your ROI',         icon: Sparkles },
       { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
-      { href: '/dashboard/figsy/webhooks',         label: 'Webhooks',         icon: Webhook },
+      // Webhooks (250) hidden from nav 26 Jun — shell (endpoint never built). Re-add when real.
     ],
   },
   {

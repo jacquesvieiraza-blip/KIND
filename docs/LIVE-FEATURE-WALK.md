@@ -98,6 +98,7 @@
 - **26 Jun — Batch 2 (FIGSY):** FIGSY-chat ✅ (22) · Campaigns ✅ (14) · A/B tab (113) ⚠️ works but "unsure what it means" → needs in-UI explainer · Sequences (187) works but FIGSY can't AI-draft it → 212 · **Sequence-builder (82) confirmed shell → REMOVED from nav** · Inbox (112) founder unsure → verify with a real reply.
 - **26 Jun — Batch 3 (value + FIGSY):** KPIs ✅ (195) · Analytics ✅ (193) — both show **0% open rate (reads broken; cold has no pixel) → new item 249** · **ROI ✅🟢 (191)** the value screen (temper "$873k estimate" label) · Knowledge (74) honest coming-soon, kept · **Webhooks "Send test" = 404 → new item 250.** Templates (70) static-ok.
 - **26 Jun — Batch 4 (billing + trust):** Billing ✅ (23) · **Documents ✅🟢 (136a)** — works but **buried under Milla → relocate, item 251** · Usage (28) displays, 🧪 verify credit calc · Proposals ✅ (39) · **Pause ❌ didn't work → 190 🩷→🔴.**
+- **26 Jun — Batch 5 (shell/connect/support):** Team (80) overview ✅ (tabs pending) · **Notetaker (81) BROKEN — raw ```json [] → 🩷→🔴 (ties 248)** · Integrations (83) status ✅ (connect pending) · What's New (78) static · Messages/support path ✅ · Settings (41) ✅ · **Status bar (87) + Notification bell (89) ✅🟢.** Activity (88) not walked (orphan).
 
 ---
 

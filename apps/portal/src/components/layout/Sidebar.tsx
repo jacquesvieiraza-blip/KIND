@@ -40,7 +40,7 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
       { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
       { href: '/dashboard/figsy/sequences',        label: 'Sequences',        icon: Library },
-      { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
+      // Sequence Builder (82) hidden from nav 26 Jun — still a "coming soon" shell (#89). Re-add when real.
       { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox, badge: 'unread' },
       { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
       { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },

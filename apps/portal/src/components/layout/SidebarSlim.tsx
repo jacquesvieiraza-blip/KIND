@@ -8,7 +8,7 @@ import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
   Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
-  LayoutTemplate, GitBranch, Library, ShieldCheck, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
+  LayoutTemplate, Library, ShieldCheck, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -31,7 +31,8 @@ const AGENTS: AgentDef[] = [
       { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
       { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
       { href: '/dashboard/figsy/sequences',        label: 'Sequences',        icon: Library },
-      { href: '/dashboard/figsy/sequence-builder', label: 'Sequence Builder', icon: GitBranch },
+      // Sequence Builder (82) hidden from nav 26 Jun — shell ("coming soon" #89).
+      // Was already removed from the full Sidebar; this completes the hide here too.
       { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox },
       { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
       { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },

@@ -104,7 +104,7 @@ function FunnelStep({
 }
 
 function BenchmarkRow({
-  label, value, good, ok, industryAvg, unit = '%'
+  label, value, good, ok, industryAvg, unit = '%', na = false, naNote
 }: {
   label: string
   value: number
@@ -112,7 +112,22 @@ function BenchmarkRow({
   ok: number
   industryAvg: number
   unit?: string
+  na?: boolean
+  naNote?: string
 }) {
+  // n/a — the metric isn't measurable (e.g. open rate on cold = no pixel). Show an
+  // honest "n/a" instead of a misleading 0%/"below avg".
+  if (na) {
+    return (
+      <div className="py-3 border-b border-gray-50 last:border-0">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-gray-700">{label}</span>
+          <span className="text-sm font-semibold text-gray-400">n/a</span>
+        </div>
+        {naNote && <p className="text-[11px] text-[#9B8EC4] mt-0.5">{naNote}</p>}
+      </div>
+    )
+  }
   const display = unit === '%' ? `${(value * 100).toFixed(1)}%` : value.toFixed(1)
   const avgDisplay = unit === '%' ? `${(industryAvg * 100).toFixed(1)}%` : industryAvg.toFixed(1)
   const status = value >= good ? 'great' : value >= ok ? 'good' : 'building'
@@ -407,6 +422,11 @@ export default function KPIsPage() {
   const l: LeadStats = leads ?? { total: 0, scored: 0, consented: 0, exported: 0, opted_out: 0, avg_score: 0, pipeline_value_usd: 0 }
   const f: FigsyKPIs = figsy ?? { totalSent: 0, totalReplied: 0, replyRate: 0, interested: 0, interestedRate: 0, optOuts: 0, activeCampaigns: 0, totalLeads: 0, leadsContacted: 0, avgScore: 0 }
 
+  // Open-tracking is OFF for cold outreach by design — cold emails carry no tracking
+  // pixel (it hurts inbox placement). So opens are always 0 here; we show "n/a", never
+  // a misleading 0% that reads as "nobody opened it". Reply rate is the real cold signal.
+  const openTrackingOff = true
+
   const pipelineValue = l.pipeline_value_usd > 0
     ? l.pipeline_value_usd >= 1_000_000
       ? `$${(l.pipeline_value_usd / 1_000_000).toFixed(1)}M`
@@ -423,14 +443,14 @@ export default function KPIsPage() {
     const now = new Date()
     const dateRange = `${new Date(now.getTime() - 30 * 86400000).toLocaleDateString()} – ${now.toLocaleDateString()}`
     const replyRatePct = f.totalSent > 0 ? ((f.replyRate ?? 0) * 100).toFixed(1) : '0'
-    const openRatePct  = f.totalSent > 0 && f.openRate ? (f.openRate * 100).toFixed(1) : '0'
     const interestedRatePct = f.totalSent > 0 ? ((f.interestedRate ?? 0) * 100).toFixed(1) : '0'
     const pipeVal = pipelineValue
 
+    // Open rate is intentionally omitted — cold email carries no tracking pixel, so any
+    // figure would be a misleading 0%. Reply rate is the real cold signal.
     const metrics = [
       { label: 'Leads sourced', value: l.total, max: Math.max(l.total, 100) },
       { label: 'FIGSY sent', value: f.totalSent, max: Math.max(f.totalSent, 100) },
-      { label: 'Open rate', value: parseFloat(openRatePct), max: 60, unit: '%' },
       { label: 'Reply rate', value: parseFloat(replyRatePct), max: 30, unit: '%' },
       { label: 'Positive replies', value: f.interested, max: Math.max(f.interested, 10) },
       { label: 'Meetings booked', value: f.meetingsBooked ?? 0, max: Math.max(f.meetingsBooked ?? 0, 10) },
@@ -754,7 +774,7 @@ export default function KPIsPage() {
               <h2 className="text-sm font-bold text-gray-900 mb-1">Outreach benchmarks</h2>
               <p className="text-xs text-[#9B8EC4] mb-3">vs B2B cold outreach industry averages</p>
               <BenchmarkRow label="Reply rate" value={f.replyRate} good={0.08} ok={0.03} industryAvg={0.071} />
-              <BenchmarkRow label="Open rate" value={f.openRate ?? 0} good={0.42} ok={0.20} industryAvg={0.42} />
+              <BenchmarkRow label="Open rate" value={f.openRate ?? 0} good={0.42} ok={0.20} industryAvg={0.42} na={openTrackingOff} naNote="Not tracked on cold email — reply rate is the signal" />
               <BenchmarkRow label="Interested rate" value={f.interestedRate} good={0.02} ok={0.005} industryAvg={0.020} />
               <BenchmarkRow
                 label="Meeting booking rate"
@@ -841,11 +861,11 @@ export default function KPIsPage() {
             muted
           />
           <MetricCard
-            label="Open rate (7d)"
-            value={f.totalSent > 0 && f.openRate ? `${(f.openRate * 100).toFixed(1)}%` : '—'}
-            sub={f.totalSent > 0 ? `${f.totalOpened ?? 0} opens of ${f.totalSent} sent` : 'No data yet'}
+            label="Open rate"
+            value={openTrackingOff ? 'n/a' : (f.totalSent > 0 && f.openRate ? `${(f.openRate * 100).toFixed(1)}%` : '—')}
+            sub={openTrackingOff ? 'Tracking off for cold — use reply rate' : (f.totalSent > 0 ? `${f.totalOpened ?? 0} opens of ${f.totalSent} sent` : 'No data yet')}
             icon={<Mail className="w-4 h-4" />}
-            accent={(f.openRate ?? 0) >= 0.25}
+            muted={openTrackingOff}
           />
           <MetricCard
             label="Bounce rate"

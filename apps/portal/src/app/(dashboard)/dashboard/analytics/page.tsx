@@ -251,7 +251,7 @@ export default function AnalyticsPage() {
         {[
           { label: 'Total Leads',   value: totalLeads.toLocaleString(),     icon: <Users className="w-5 h-5" />,       bg: 'bg-purple-100 text-purple-500',  text: 'text-gray-900' },
           { label: 'Emails Sent',   value: totalEmails.toLocaleString(),    icon: <Send className="w-5 h-5" />,        bg: 'bg-blue-100 text-blue-500',       text: 'text-blue-700' },
-          { label: 'Open Rate',     value: openRate === null ? '—' : `${openRate}%`, icon: <Eye className="w-5 h-5" />,  bg: 'bg-cyan-100 text-cyan-600',       text: openRate === null ? 'text-gray-400' : 'text-cyan-700' },
+          { label: openRate === null ? 'Open Rate · n/a' : 'Open Rate', value: openRate === null ? 'n/a' : `${openRate}%`, icon: <Eye className="w-5 h-5" />,  bg: 'bg-cyan-100 text-cyan-600',       text: openRate === null ? 'text-gray-400' : 'text-cyan-700' },
           { label: 'Reply Rate',    value: `${replyRate}%`,                 icon: <MessageSquare className="w-5 h-5" />, bg: replyRate >= 3 ? 'bg-green-100 text-green-500' : 'bg-amber-100 text-amber-500', text: replyRate >= 3 ? 'text-green-700' : 'text-amber-700' },
           { label: 'Meetings Booked', value: meetingsBooked.toLocaleString(), icon: <Calendar className="w-5 h-5" />,    bg: 'bg-amber-100 text-amber-500',     text: 'text-amber-700' },
         ].map(({ label, value, icon, bg, text }) => (
@@ -276,7 +276,7 @@ export default function AnalyticsPage() {
         {trackingOff && (
           <div className="flex items-start gap-2 mb-4 px-3 py-2 rounded-lg bg-amber-50 border border-amber-100 text-xs text-amber-700">
             <Eye className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-            <span>Email open tracking is <strong>off</strong>, so opens show as 0. Turn it on by setting a branded tracking domain (<code>TRACKING_URL</code>) — until then we never estimate a number.</span>
+            <span>Open rate is <strong>n/a for cold outreach</strong> — cold emails deliberately carry no tracking pixel (an invisible tracker hurts inbox placement and is a spam signal). This is intentional: <strong>0 opens here does not mean nobody read your email.</strong> Reply rate is the real signal for cold.</span>
           </div>
         )}
 
@@ -370,8 +370,8 @@ export default function AnalyticsPage() {
                       <td className="py-3 px-3 text-right text-gray-700">{c.contacts}</td>
                       <td className="py-3 px-3 text-right text-gray-700">{c.sent}</td>
                       <td className="py-3 px-3 text-right">
-                        {/* "—" when open-tracking is off, matching the summary card — never a misleading 0%. */}
-                        <span className="text-gray-600">{trackingOff ? '—' : `${c.open_rate}%`}</span>
+                        {/* "n/a" when open-tracking is off (cold = no pixel), matching the summary card — never a misleading 0%. */}
+                        <span className="text-gray-400">{trackingOff ? 'n/a' : `${c.open_rate}%`}</span>
                       </td>
                       <td className="py-3 px-3 text-right">
                         <span className={`font-semibold ${c.reply_rate >= 5 ? 'text-green-700' : c.reply_rate >= 2 ? 'text-amber-700' : 'text-gray-500'}`}>

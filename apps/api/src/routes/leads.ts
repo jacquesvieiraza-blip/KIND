@@ -11,7 +11,6 @@ import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
-import { trackingBaseUrl } from '../lib/deliverability'
 
 export const leadRouter = Router()
 
@@ -911,10 +910,13 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
       }
     }).sort((a: any, b: any) => (a.created_at < b.created_at ? 1 : -1))
 
-    // Open-tracking is only live when a BRANDED tracking domain is configured
-    // (D3 anti-spam rule). If off, the pixel is never embedded so opened_at is
-    // always null — the UI shows "—" rather than a misleading 0 or a fake estimate.
-    const trackingEnabled = trackingBaseUrl() !== null
+    // Open-tracking is OFF for FIGSY cold outreach BY DESIGN: cold mail is sent via
+    // `coldEmailHtml`, which deliberately embeds NO open pixel (D3 — an invisible <img>
+    // to a tracking host is a phishing signal that tanks inbox placement). So `opened_at`
+    // is structurally always null here, regardless of TRACKING_URL. We report tracking as
+    // off so the UI shows an honest "n/a" instead of a misleading 0% open rate. (A branded
+    // TRACKING_URL only powers warm/transactional opens, not this cold analytics.)
+    const trackingEnabled = false
 
     // ── Headline totals counted the EXACT way /figsy/kpis does (a head count, no row
     // fetch) so the Analytics summary cards CANNOT disagree with Performance. We also

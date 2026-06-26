@@ -11,18 +11,14 @@
 ## 📌 WHERE AM I — read this first (the 20-second answer)
 *The single "where are we" block. Status board = `PRODUCT-INVENTORY` (script-counted; not copied here so it can't go stale).*
 
-**🔴 IN FLIGHT (only these):**
-1. **Fix-in-place walkthrough** — walk every item; if it's broken we fix it then & there, or mark it 🔴 + hide it from clients. (Trust walk Batches 1–6 ✅ done, PR #760 merged.) 🤝
-2. **Doc hygiene** — KIND-MASTER trimmed, this header, item-204 decision closed. 🤖
+**🔴 IN FLIGHT (two tracks):**
+1. **Fix-in-place walkthrough** — clearing the defects we found; broken = fixed now or hidden from clients. 🤝
+2. **Launchpad operational tiers** — getting from here to "warm + clients-on-product" (T2c → M2 → T3 → T4). 🤝
 
-**📬 OPEN PRs — need you:**
-| PR | What | Your move |
-|----|------|-----------|
-| **#761** | Milla/Notetaker render fix (248+81) | preview → verify → merge |
-| **#762** | Webhooks shell hidden from nav (250) | merge |
-| **#763** | Doc hygiene (KIND-MASTER trim · this header · docs sweep · item-204 deferred) | merge |
-
-**🔜 NEXT 3 FIXES (after the above merge, in order):** **249** open-rate 0% → honest label · **251** Documents → Account section · **190** Pause action fails.
+**✅ WALKTHROUGH FIXES — SHIPPED (merged):** 248/81 Milla+Notetaker render (#761) · 250 Webhooks shell hidden (#762) · doc hygiene (#763) · 249 open-rate→n/a (#764).
+**📬 OPEN PR — need you:** **#765** Documents → Account hub (251) — preview → verify → merge.
+**🔜 WALKTHROUGH FIXES — LEFT (in order):** **190** pause action fails · **113** A/B explainer · **28** verify usage credit calc · **248-tone** Milla warmth · **112** inbox (needs a live reply) · then the "needs work" trio **3** Vida · **55** Command Centre · **114** Kanban (each: fix-or-hide).
+**🚀 LAUNCHPAD — GET CRACKING (after the walk fixes, or in parallel):** **T2c** kill Paystack (cleared, subs=0) → **M2** pause-stops-Stripe (pairs with 190) → **T3** scale → **T4** the 211 sending engine (unlocks clients-on-product). Depth track **243→212** during warm-up.
 
 ---
 

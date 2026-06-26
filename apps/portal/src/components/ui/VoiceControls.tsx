@@ -68,6 +68,23 @@ export function VoiceControls({ onUnavailable }: VoiceControlsProps) {
       ? 'Stop voice chat'
       : 'Start voice chat — tap to talk'
 
+  // Not built yet (no Vapi key) → show an honest, VISIBLE "coming soon" teaser, not a
+  // live-looking mic. Tapping still posts the friendly note. (Audit 26 Jun, item 178.)
+  if (!VOICE_ENABLED) {
+    return (
+      <button
+        type="button"
+        onClick={onUnavailable}
+        aria-label={micLabel}
+        title={micLabel}
+        className="flex items-center gap-1.5 shrink-0 h-8 px-2.5 rounded-xl bg-purple-50 border border-purple-100 text-[#7C3AED]/70"
+      >
+        <Mic className="w-3.5 h-3.5" />
+        <span className="text-[11px] font-medium whitespace-nowrap">Voice · coming soon</span>
+      </button>
+    )
+  }
+
   return (
     <div className="flex items-center gap-2">
       {/* Tap-to-talk mic */}

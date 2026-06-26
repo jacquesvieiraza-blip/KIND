@@ -5,6 +5,7 @@ import { Send, Loader2, Sparkles, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import MarkdownLite from '@/components/MarkdownLite'
 
 export interface AgentChip {
   label: string
@@ -305,7 +306,9 @@ export function AgentSidePanel({
                 }`}>
                   {i === 0 && m.role === 'assistant' && m.typing
                     ? <>{displayedFirst}{shownChars < greeting.length && <span className="inline-block w-0.5 h-3 bg-purple-300 animate-pulse ml-0.5 align-middle" />}</>
-                    : m.content
+                    : m.role === 'assistant'
+                      ? <MarkdownLite content={m.content} />
+                      : m.content
                   }
                 </div>
               </div>

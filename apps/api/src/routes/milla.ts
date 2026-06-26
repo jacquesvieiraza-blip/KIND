@@ -400,15 +400,38 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
     )
     const rawText = textBlock?.text.trim() ?? '[]'
 
+    // The model often wraps the array in a ```json … ``` fence or adds a sentence
+    // of prose. Strip the fence and pull out the JSON array before parsing so the
+    // UI never receives the raw fenced text as a "task".
+    let cleaned = rawText
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/i, '')
+      .trim()
+    const firstBracket = cleaned.indexOf('[')
+    const lastBracket  = cleaned.lastIndexOf(']')
+    if (firstBracket !== -1 && lastBracket > firstBracket) {
+      cleaned = cleaned.slice(firstBracket, lastBracket + 1)
+    }
+
     try {
-      const items = JSON.parse(rawText) as Array<{ task: string; owner: string; due: string }>
+      const parsed = JSON.parse(cleaned) as unknown
+      // Keep only well-formed action items; drop anything malformed so the UI
+      // shows real items or a clean empty state — never raw text.
+      const items = Array.isArray(parsed)
+        ? parsed
+            .filter((it): it is { task: unknown; owner?: unknown; due?: unknown } =>
+              !!it && typeof it === 'object' && 'task' in it)
+            .map(it => ({
+              task:  String(it.task ?? '').trim(),
+              owner: String(it.owner ?? 'Unknown').trim() || 'Unknown',
+              due:   String(it.due ?? '').trim(),
+            }))
+            .filter(it => it.task.length > 0)
+        : []
       res.json({ success: true, items })
     } catch {
-      // Fallback: return the raw text as a single item so the UI still shows something
-      res.json({
-        success: true,
-        items: [{ task: rawText, owner: 'Unknown', due: '' }],
-      })
+      // Parsing failed entirely — return a clean empty result, not raw text.
+      res.json({ success: true, items: [] })
     }
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

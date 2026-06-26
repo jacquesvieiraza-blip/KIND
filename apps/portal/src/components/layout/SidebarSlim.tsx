@@ -8,7 +8,7 @@ import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
   Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
-  LayoutTemplate, GitBranch, Library, ShieldCheck, FileText, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
+  LayoutTemplate, GitBranch, Library, ShieldCheck, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
 } from 'lucide-react'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
@@ -44,7 +44,8 @@ const AGENTS: AgentDef[] = [
     id: 'milla', name: 'Milla', role: 'The Brain', accent: '#F472B6', price: '$49/mo',
     nav: [
       { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
-      { href: '/dashboard/documents', label: 'Documents', icon: FileText },
+      // Documents (251) moved to the account hub (ProfileMenu) 26 Jun — trust vault
+      // (T&C/DPA/invoices), not a Milla feature; was buried under the Milla agent.
       { href: '/dashboard/notetaker', label: 'Notetaker', icon: Mic },
     ],
   },

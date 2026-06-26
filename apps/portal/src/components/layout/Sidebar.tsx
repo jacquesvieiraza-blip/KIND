@@ -61,7 +61,8 @@ const AGENTS: AgentDef[] = [
     price: '$49/mo',
     nav: [
       { href: '/dashboard/assistant',  label: 'Assistant',  icon: Bot },
-      { href: '/dashboard/documents',  label: 'Documents',  icon: FileText },
+      // Documents (251) moved to ACCOUNT_NAV 26 Jun — it's the trust vault (T&C/DPA/
+      // invoices), not a Milla feature; it was buried under the Milla agent.
       { href: '/dashboard/notetaker',  label: 'Notetaker',  icon: Mic },
     ],
   },
@@ -114,6 +115,7 @@ const ACCOUNT_NAV = [
   { href: '/dashboard/proposals',  label: 'Proposals',    icon: FileText },
   { href: '/dashboard/developer',  label: 'Developer API', icon: Code2 },
   { href: '/dashboard/billing',    label: 'Billing',      icon: CreditCard },
+  { href: '/dashboard/documents',  label: 'Documents',    icon: FileText },
   { href: '/dashboard/team',       label: 'Team',         icon: UserCheck },
   { href: '/dashboard/messages',   label: 'Messages',     icon: MessageCircle },
   { href: '/dashboard/settings',   label: 'Settings',     icon: Settings },

@@ -92,6 +92,10 @@
 
 > **Pass 2 = the live-walk** (below). Pass 1 tells us which screens are worth walking and which need a fix first.
 
+## ✅ WALK LOG — Pass 2 (live, founder-confirmed)
+- **25 Jun:** Home ✅🟢 (116) · People ✅🟢 (fake columns removed → item 247).
+- **26 Jun — Batch 1:** ICP Builder ✅ (5) · LinkedIn Import ✅ (11) · Agents hub ✅🟢 (125, 🟣→🟢) · **Denise ✅ good** (4) · **Milla ⚠️ works but chat renders raw markdown + cold tone → fix item 248** (2 kept 🟢, defect logged) · **Vida 🟢→🩷** (3, works but needs refinement, parked).
+
 ---
 
 ## 🗓️ THE PLAN — walk everything by Monday next week (~120 items, ~1 area/day)

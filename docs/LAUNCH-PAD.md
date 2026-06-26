@@ -1,6 +1,6 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 25 June 2026** · post-launch (live since 18 Jun) · currency **USD**
+**As of: 26 June 2026** · post-launch (live since 18 Jun) · currency **USD**
 **🎯 The aim right now: a FULLY OPERATIONAL, SAFE system — not speed, not more features.** Stabilize the foundation, close the gaps, *then* scale.
 
 > 🧭 **Four-doc contract:** **LAUNCH-PAD** (this) = what to do, in what order, by whom · **PRODUCT-INVENTORY** = status (the board lives there only, script-counted) · **KIND-MASTER** = strategy + why · **V2-TRACKER** = future. This doc holds **only the essentials to get operational** — everything else is parked.
@@ -8,8 +8,26 @@
 
 ---
 
-## 📍 PROGRESS AT A GLANCE — the ONE place to see done vs not
-> ✅ done · ⏳ in progress · 🔴 not started · ⏸ waiting on you. **This is the live tracker — look here first.** Detail per step is in the foundation list below.
+## 📌 WHERE AM I — read this first (the 20-second answer)
+*The single "where are we" block. Status board = `PRODUCT-INVENTORY` (script-counted; not copied here so it can't go stale).*
+
+**🔴 IN FLIGHT (only these):**
+1. **Fix-in-place walkthrough** — walk every item; if it's broken we fix it then & there, or mark it 🔴 + hide it from clients. (Trust walk Batches 1–6 ✅ done, PR #760 merged.) 🤝
+2. **Doc hygiene** — KIND-MASTER trimmed, this header, item-204 decision closed. 🤖
+
+**📬 OPEN PRs — need you:**
+| PR | What | Your move |
+|----|------|-----------|
+| **#761** | Milla/Notetaker render fix (248+81) | preview → verify → merge |
+| **#762** | Webhooks shell hidden from nav (250) | merge |
+| **#763** | Doc hygiene (KIND-MASTER trim · this header · docs sweep · item-204 deferred) | merge |
+
+**🔜 NEXT 3 FIXES (after the above merge, in order):** **249** open-rate 0% → honest label · **251** Documents → Account section · **190** Pause action fails.
+
+---
+
+## 📍 PROGRESS AT A GLANCE — the foundation tiers
+> ✅ done · ⏳ in progress · 🔴 not started · ⏸ waiting on you. Detail per step is in the foundation list below.
 
 | Step | What | Status | PR |
 |------|------|--------|-----|
@@ -35,14 +53,6 @@
   - **🅑 CLIENTS sending through the product** runs through a shared, unwarmed sender with no rate limits and engine **211 unbuilt**. **Gated** until the foundation fixes land.
 - **So the path is:** finish the walkthrough → close the foundation fixes (in order) → 🅐 ramps in parallel as the domain warms → 🅑 (paying clients on the product) opens only when its blockers clear.
 - **📊 Status board → PRODUCT-INVENTORY** (`scripts/count-inventory.sh`). Not copied here, so it can't go stale.
-
----
-
-## ✅ ACTIVE NOW — the only things in flight
-
-1. **Merge PR #749** (walkthrough + clean inventory rebuild). 🧍 — done-when: merged to main.
-2. **Finish the trust walkthrough** — `app.get-kind.com`, flip the remaining **🩷 → 🟢** in `LIVE-FEATURE-WALK.md` (I flip dots live as you confirm), fixing orphans/shells as we hit them. 🤝 — done-when: every live item is walked (🟢 or honestly dropped).
-3. **Then the inventory walkthrough proper** — re-walk the rest of the board against reality. 🤝 — done-when: board fully reconciled.
 
 ---
 

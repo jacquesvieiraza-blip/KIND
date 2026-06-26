@@ -3,6 +3,8 @@
 > **What this is:** the index of *every* doc in the repo — what it holds, which of the 4 core docs it hangs off, and whether it's current. **You live off the 4 core docs; this is how the supporting docs stay honest so they never rot underneath you.**
 > **Last full audit:** **25 Jun 2026** — full repo doc sweep (5 parallel agents vs the locked two-track strategy; stale Paystack/Vapi/WhatsApp/Africa-first refs reconciled). *(Prior: 24 Jun — code/PR line-item check.)* **Re-run the sweep at every weekly close (RULEBOOK §10).**
 >
+> **🧹 Hygiene sweep 26 Jun:** verified **no live doc duplicates the canonical-4's ownership** (status/execution/strategy/future) — the 23-Jun archive run already cleared the dead trackers. Residue handled: `apollo-reseller-call-prep` (was 🗄️ but still in `drafts/`) → **archived**. **Recommend-archive (founder call, low priority):** `AUDIT-24JUN-RECONCILIATION.md` (dated snapshot, superseded by `SYSTEM-HEALTH-AUDIT.md`). **Still-open honesty flag (not a tracker dup):** pitch-deck Alta numbers in `KIND_DECK.html`/`kind-pitch-deck.html` (contradiction #3 below). Also rotated: 110 old session-log entries (≤24 Jun) `KIND-MASTER.md` → `archive/KIND-MASTER-ARCHIVE.md` (204KB→96KB).
+>
 > **🧭 Four-doc contract (canonical):** LAUNCH-PAD = today · PRODUCT-INVENTORY = status · KIND-MASTER = strategy/why · V2-TRACKER = future. No fifth core doc. **The status board is script-generated** — `scripts/count-inventory.sh` (RULEBOOK §4.7). **THE ENGINE** (deliverability/sending engine, item 211) is named in RULEBOOK §12.
 >
 > **🗄️ PR 2 DONE (23 Jun) — 19 dead docs MOVED to `docs/archive/`:** `DEPLOY-CHECKLIST` · `COMPANY-ENGINE-TEST` · `ADMIN-BOOKKEEPER-AUDIT` · `SMOKE-BILLING-166-173` · `STAGING-REVIEW` · `BOOKMARK-week-plan` · `EVERYTHING` · `MASTER_TODO` · `GETTING_STARTED` · `MORNING-FIXLOG` · `SESSION-HANDOFF-7JUN` · `SESSION-SUMMARY-13JUN` · `LAUNCH-AUDIT-12JUN` · `KIND-MASTER-ARCHIVE` + root `BUILD_STATUS` · `CHANGELOG` · `MASTER`. **`AUDIT.md` + `FULL_CHECK.md`** → methodology folded into **RULEBOOK §13**, originals archived. **Kept at root (evergreen):** `AGENT_AVATARS.md` · `CLAUDE.md` · `README.md`. *(PR 3 = the 3→6-step domain fixes.)*
@@ -53,7 +55,7 @@
 | `CHURN-PREVENTION-PLAN.md` | retention 6 levers (190–193, Lena 145) | ✅ | churn strategy / item 190s change |
 | `drafts/AI_REVENUE_OS_POSITIONING.md` | LOCKED hero ("You close the deals. We'll bring you the meetings… from $20") + anti-copy list | ✅ | positioning change |
 | `drafts/GTM_FUNNEL_INSTRUMENTATION.md` | item 131 detail — fire-points · `gtm_events` schema · 10 open decisions | ✅ | when 131 is built |
-| `drafts/apollo-reseller-call-prep.md` | 17-Jun Apollo reseller call prep (historical — see item 103) | 🗄️ | Apollo decision |
+| `archive/apollo-reseller-call-prep.md` | 17-Jun Apollo reseller call prep (historical — see item 103) | 🗄️ | ✅ archived 26 Jun (was in `drafts/`) |
 | **`APOLLO-ENGINE.md`** | **THE outbound-OS playbook** (Apollo-learned) → FIGSY: 6-stage loop (target→enrich→sequence→send→measure→optimise) · endpoint ref · BYOK/PDL-Hunter data architecture · source-labeling decision · the 212/139/140 build spec. **Items 242/243/244.** | ✅ *(new 24 Jun)* | 211/212/139/140/103 change · Apollo deck/Zoom lands · 242/243 ships |
 
 ### 🎬 Product flow · demo · onboarding

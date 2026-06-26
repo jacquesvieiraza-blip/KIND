@@ -20,9 +20,10 @@ const GROUPS: Group[] = [
   {
     heading: 'Account',
     links: [
-      { href: '/dashboard/settings', label: 'My profile', icon: User },
-      { href: '/dashboard/billing',  label: 'Billing',    icon: CreditCard },
-      { href: '/dashboard/usage',    label: 'Usage',      icon: BarChart2 },
+      { href: '/dashboard/settings',  label: 'My profile', icon: User },
+      { href: '/dashboard/billing',   label: 'Billing',    icon: CreditCard },
+      { href: '/dashboard/usage',     label: 'Usage',      icon: BarChart2 },
+      { href: '/dashboard/documents', label: 'Documents',  icon: FileText },
     ],
   },
   {

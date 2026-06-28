@@ -1276,32 +1276,39 @@
     .human-strip-btn:hover { opacity: 0.8; transform: translateY(-1px); }
 
     /* ── AI FAMILY SCROLL SHOWCASE ── */
-    .af-section { background:#07030f; }
+    .af-section { background:linear-gradient(180deg,#f6f3fd 0%,#efe9fb 42%,#efe9fb 86%,#0a0a0a 100%); position:relative; }
+    .af-orbs{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+    .af-orb{position:absolute;border-radius:50%;filter:blur(1px);opacity:.5;mix-blend-mode:multiply;will-change:transform}
+    .af-intro,.af-stack{position:relative;z-index:1}
+    @keyframes orbA{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-50px)}}
+    @keyframes orbB{0%,100%{transform:translate(0,0)}50%{transform:translate(-38px,44px)}}
+    @keyframes orbC{0%,100%{transform:translate(0,0)}34%{transform:translate(44px,34px)}68%{transform:translate(-24px,-34px)}}
+    @media (prefers-reduced-motion:reduce){.af-orb{animation:none!important}}
     .af-figsy{--ac:#ec4899;--ac2:#a3155f}.af-milla{--ac:#8b5cf6;--ac2:#5b21b6}.af-vida{--ac:#3b82f6;--ac2:#1e40af}.af-denise{--ac:#f59e0b;--ac2:#b45309}.af-tony{--ac:#14b8a6;--ac2:#0f766e}
     .af-intro { position:relative; text-align:center; padding:118px 24px 74px; overflow:hidden;
-      background:radial-gradient(72% 120% at 50% 0%, #3a1d7a 0%, #1a0b3a 46%, #07030f 100%); }
+      background:transparent; }
     .af-intro::before { content:''; position:absolute; top:-32%; left:50%; transform:translateX(-50%); width:78%; height:80%;
-      background:radial-gradient(circle, rgba(167,139,250,.55), transparent 62%); filter:blur(50px); z-index:0; }
+      background:radial-gradient(circle, rgba(124,58,237,.16), transparent 64%); filter:blur(60px); z-index:0; }
     .af-intro > * { position:relative; z-index:1; }
-    .af-intro .s-label { display:inline-block; font-size:.8rem; font-weight:900; letter-spacing:.2em; color:#fff;
-      background:rgba(167,139,250,.2); border:1px solid rgba(167,139,250,.5); padding:9px 20px; border-radius:100px;
-      margin-bottom:24px; box-shadow:0 0 44px rgba(167,139,250,.45); }
-    .af-intro .s-title { color:#fff; font-size:clamp(2.8rem,8vw,6rem); font-weight:900; letter-spacing:-.05em; line-height:.94;
-      margin-bottom:20px; text-shadow:0 0 60px rgba(167,139,250,.6), 0 6px 34px rgba(0,0,0,.45); }
-    .af-intro p { font-size:clamp(1.05rem,2vw,1.35rem); color:rgba(255,255,255,.72); max-width:560px; margin:0 auto;
+    .af-intro .s-label { display:inline-block; font-size:.8rem; font-weight:900; letter-spacing:.2em; color:#6d3bef;
+      background:rgba(124,58,237,.08); border:1px solid rgba(124,58,237,.28); padding:9px 20px; border-radius:100px;
+      margin-bottom:24px; }
+    .af-intro .s-title { color:#13101c; font-size:clamp(2.6rem,7vw,5.4rem); font-weight:900; letter-spacing:-.05em; line-height:.96;
+      margin-bottom:18px; }
+    .af-intro p { font-size:clamp(1rem,2vw,1.25rem); color:rgba(19,16,28,.5); max-width:560px; margin:0 auto;
       line-height:1.55; font-weight:500; }
     /* rolling banner marquee */
     .af-marquee { width:100%; overflow:hidden; margin:16px 0 26px; -webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent); }
     .af-track { display:flex; align-items:center; gap:38px; width:max-content; animation:afroll 34s linear infinite; }
     .af-marquee:hover .af-track { animation-play-state:paused; }
     @keyframes afroll { from{transform:translateX(0)} to{transform:translateX(-50%)} }
-    .afm-word { font-size:clamp(2.2rem,6vw,5rem); font-weight:900; letter-spacing:-.04em; color:#fff; white-space:nowrap; text-shadow:0 0 50px rgba(167,139,250,.5),0 4px 24px rgba(0,0,0,.4); }
+    .afm-word { font-size:clamp(2rem,5.5vw,4.4rem); font-weight:900; letter-spacing:-.04em; color:#1a1430; white-space:nowrap; }
     .afm-tiles { display:flex; align-items:center; gap:14px; }
-    .afm-tile { width:clamp(60px,7.5vw,92px); height:clamp(60px,7.5vw,92px); border-radius:22px; overflow:hidden; flex-shrink:0; box-shadow:0 14px 34px rgba(0,0,0,.34); display:flex; align-items:flex-end; justify-content:center; }
+    .afm-tile { width:clamp(60px,7.5vw,92px); height:clamp(60px,7.5vw,92px); border-radius:22px; overflow:hidden; flex-shrink:0; box-shadow:0 12px 30px rgba(80,40,140,.18); display:flex; align-items:flex-end; justify-content:center; }
     .afm-tile img { width:100%; height:100%; object-fit:cover; object-position:top center; display:block; }
     .afm-tony img { width:100%; height:100%; object-fit:cover; }
-    .afm-dot { font-size:clamp(1.6rem,3vw,3rem); color:#a78bfa; text-shadow:0 0 24px rgba(167,139,250,.85); line-height:1; flex-shrink:0; }
-    .afm-word2 { font-weight:800; color:rgba(255,255,255,.78); }
+    .afm-dot { font-size:clamp(1.6rem,3vw,3rem); color:#7c3aed; line-height:1; flex-shrink:0; }
+    .afm-word2 { font-weight:800; color:rgba(19,16,28,.55); }
     @media (prefers-reduced-motion: reduce){ .af-track{animation:none} }
     .af-scrolly { position:relative; height:560vh; }
     /* Clay-style stacking agent cards */
@@ -1868,6 +1875,14 @@
 
 <!-- AI FAMILY — scroll showcase -->
 <section class="af-section" id="products">
+  <div class="af-orbs" aria-hidden="true">
+    <span class="af-orb" style="width:170px;height:170px;background:#c9b8ff;top:5%;left:7%;animation:orbA 12s ease-in-out infinite"></span>
+    <span class="af-orb" style="width:120px;height:120px;background:#ffc6e2;top:16%;right:9%;animation:orbB 14s ease-in-out infinite"></span>
+    <span class="af-orb" style="width:200px;height:200px;background:#bfe0ff;top:33%;left:5%;animation:orbC 17s ease-in-out infinite"></span>
+    <span class="af-orb" style="width:130px;height:130px;background:#ffe6b0;top:49%;right:7%;animation:orbA 13s ease-in-out infinite"></span>
+    <span class="af-orb" style="width:160px;height:160px;background:#bff3e4;top:65%;left:8%;animation:orbB 16s ease-in-out infinite"></span>
+    <span class="af-orb" style="width:120px;height:120px;background:#d8c7ff;top:80%;right:10%;animation:orbC 15s ease-in-out infinite"></span>
+  </div>
   <div class="af-intro reveal">
     <div class="s-label">YOUR FAMILY</div>
     <div class="af-marquee" aria-label="Meet your AI Family — 5 specialists, one family"><div class="af-track"><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word">Meet your AI&nbsp;Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span><span class="afm-word afm-word2">5 Specialists. One Family</span><span class="afm-dot">&bull;</span><span class="afm-tiles"><span class="afm-tile" style="background:linear-gradient(160deg,#ffd6ed,#ff85c0)"><img src="figsy-cut.png" alt="FIGSY"></span><span class="afm-tile" style="background:linear-gradient(160deg,#e8d8ff,#b88fff)"><img src="milla-cut.png" alt="Milla"></span><span class="afm-tile" style="background:linear-gradient(160deg,#c8ecff,#5cbfff)"><img src="vida-cut.png" alt="Vida"></span><span class="afm-tile" style="background:linear-gradient(160deg,#fff3d6,#f5c46b)"><img src="denise-cut.png" alt="Denise"></span><span class="afm-tile afm-tony" style="background:linear-gradient(160deg,#d6fff5,#5eead4)"><img src="tony.png" alt="Tony"></span></span><span class="afm-dot">&bull;</span></div></div>

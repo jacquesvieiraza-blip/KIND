@@ -60,7 +60,7 @@
 | 198 | **Instantly domains warm** — your outreach rig | ⏸ | 🧍 | health ~90% **+ inbox-placement test passes** (101/194) — *you confirm* |
 | — | **Outreach list built** — **🔧 seed built: 179 rows (158 active) US SMB/Mid-Market, your competitor-customer Excel + Claude additions + ICP, delivered as files.** Enrich→verified-email volume via 243. | 🔧 | 🤝 | verified-email list loaded into the system |
 | — | **Sequence loaded** into Instantly (dogfood + free-sample CTA) — **🔧 4-step sequence DRAFTED + delivered; founder loads into Instantly (no Claude access to Instantly).** | 🔧 | 🧍 | sequence + list attached in Instantly, ready to fire |
-| 127 | **First outreach fired** — low, ramped → replies → demos | 🔴 | 🤝 | first US/UK send out, on warm domains |
+| 127 | **First outreach fired** — low, ramped → replies → demos — *gated on Instantly warmth* | 🔴 | 🤝 | first **US** send out, on warm domains |
 
 **Milestone 1 blockers:** the walkthrough (trust) + Instantly warmth (reach). Neither needs the product's sending engine — so **you can be sell-ready well before Milestone 2.**
 
@@ -74,11 +74,11 @@
 | T1 | **Safety** — per-user rate limits · CRM dedup fail-closed (#753) | ✅ | 🤖 | *done + verified 25 Jun* |
 | T2a | **Region default** fixed (no ZA default) + voice copy (#754) | ✅ | 🤖 | *done* |
 | T2b | **Currency stored in USD** (`amount_usd`, #756) | ✅ | 🤖 | *done + migration run* |
-| T2c | **Kill Paystack** — remove router + ZAR write paths (subs = 0, cleared) — **✅ APPROVED, build tomorrow (remove entirely)** | 🔴→🔜 | 🤖 | Paystack code gone; Stripe-only |
-| M2 | **Pause stops Stripe billing** — **BUILT #769 · migration RUN on prod 28 Jun** (pause calls Stripe `pause_collection`; 190 folded in) | ✅ | 🤝 | *migration run → a paused sub now stops the Stripe charge; pending one verification walk* |
-| T3 | **Per-client send cap + N+1 batch enroll** — cap is global today (clients starve each other) — **✅ APPROVED, build tomorrow (default 50/client/day, configurable)** | 🔴→🔜 | 🤖 | each client/rep has its own daily cap; 1,000-lead enroll doesn't time out |
-| T4 | **211 — the engine:** per-client isolated + warmed sending (Smartlead) | 🔴 | 🤝 | a client sends from an isolated, warmed sender — verified |
-| T5 | **Harden** — monitoring/alerts (199) · Smoke Test 2 (100) · dead-control cleanup | 🔴 | 🤝 | an outage pages you; all paths pass; no dead controls live |
+| T2c | **Kill Paystack** — remove router + ZAR write paths (subs = 0, cleared) — **✅ APPROVED, build MON (remove entirely)** | 🔴→🔜 | 🤖 | Paystack code gone; Stripe-only |
+| M2 | **Pause stops Stripe billing** — BUILT #769 · migration RUN on prod 28 Jun (pause calls Stripe `pause_collection`; 190 folded in) — **⚠️ showed ❌ on 26-Jun walk; RE-VERIFY Mon** | 🔧 | 🤝 | re-walk confirms a paused sub stops the Stripe charge → then ✅ |
+| T3 | **Per-client send cap + N+1 batch enroll** — cap is global today (clients starve each other) — **✅ APPROVED, build MON (default 50/client/day, configurable)** | 🔴→🔜 | 🤖 | each client/rep has its own daily cap; 1,000-lead enroll doesn't time out |
+| T4 | **211 — the engine:** per-client isolated + warmed sending (Smartlead) — **build STARTS WED** (needs 2 founder decisions: mailbox markup + Resend→per-client); paying clients gated on warmth + test | 🔴→🔜 | 🤝 | a client sends from an isolated, warmed sender — verified |
+| T5 | **Harden** — **dead-control cleanup = TUE** (88/230/122 + unrun migrations); monitoring/alerts (199) + Smoke Test 2 (100) = after the engine | 🔴 | 🤝 | an outage pages you; all paths pass; no dead controls live |
 
 **⛔ Do NOT put paying clients on the product's sending path until T3 + T4 are done.** **⛔ Do NOT onboard US/EMEA *paying* clients until T2c is done** (still modelled with ZAR paths).
 
@@ -101,8 +101,8 @@
 
 | # | Item | Status | Owner | Done when |
 |---|------|:--:|:--:|-----------|
-| 243 | **Lead-source depth** — add BetterContact (1 integration = 20+ providers) → source router | 🔴 | 🤝 | a US/EMEA ICP returns verified emails at 80%+ coverage |
-| 212 | **Context-rich sequences** — 4–6 steps, ≤50-word opener using the lead's real data | 🔴 | 🤖 | a sent email visibly uses lead context, not a template |
+| 243 | **Lead-source depth** — PDL→Hunter→Clearbit + BetterContact → source router — **scheduled TUE** (BetterContact key from founder) | 🔴→🔜 | 🤝 | a US ICP returns verified emails at 80%+ coverage |
+| 212 | **Context-rich sequences** — 4–6 steps, ≤50-word opener using the lead's real data — **scheduled TUE** (depends on 243) | 🔴→🔜 | 🤖 | a sent email visibly uses lead context, not a template |
 
 ---
 

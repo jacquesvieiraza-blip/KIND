@@ -17,15 +17,31 @@
 
 > ⚠️ **The honest headline:** we are **NOT near** "clients on the product." Smartlead has **zero sending built**; Instantly warmth is **unconfirmed**. This tracker now shows that truthfully so the warm date can't surprise us again.
 
-## 🔜 TOMORROW'S RUNLIST (locked 28 Jun — momentum)
-*Agreed with founder. Order: safest code first, then bigger.*
-1. **T2c — Kill Paystack** 🤖 — remove the Paystack router + ZAR write paths entirely; Stripe-only. Fresh branch → build/typecheck → PR. *(subs = 0, safe.)*
-2. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — per-client daily cap (default **50/client/day, configurable**) + batched enroll so 1,000 leads don't time out. Fresh branch → tests → PR.
-3. **Outreach list → ≥2,000 names** 🤖 — pull at least 2,000 real named **US SMB/Mid-Market** contacts via Apollo MCP (one-off list-build tool, separate from the product's no-Apollo stack), dedupe vs the existing 179, output a loadable CSV. Emails revealed by PDL→Hunter on load. *(Founder-approved 28 Jun; do tomorrow.)*
-4. **243 — Lead-source depth / source-router** 🤝 — add the multi-provider source router (PDL→Hunter→Clearbit + BetterContact) so the list enriches to verified-email volume.
-5. **Sequence → Instantly** 🧍 — founder loads the drafted 4-step sequence (delivered) into Instantly.
-6. **Walkthrough** 🤝 — founder walks all 🩷/🟢 items; Claude fixes breakages on the spot + flips dots.
-- **Gated (not tomorrow unless warm):** First outreach fired — only once **Instantly confirmed warm** (health ~90% + inbox test). Firing cold burns the rig.
+## 📅 MON 29 + TUE 30 JUN — THE 2-DAY SPRINT (locked 28 Jun)
+**Goal:** clear everything on the road-to-ready so the *only* thing left waiting is **time-gated** (Instantly warmth + the engine that depends on it). Prioritised highest → least. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
+
+### ▶ MONDAY (highest → least)
+1. **T2c — Kill Paystack** 🤖 — remove Paystack router + ZAR write paths entirely; Stripe-only (covers inv 169/237). Fresh branch → typecheck → PR. *(subs = 0, safe.)*
+2. **Verify Pause/M2** 🤝 — the 26-Jun walk showed pause ❌; migration ran 28 Jun → re-walk to confirm it now stops Stripe billing. Flips 🩷→🟢 or I fix on the spot.
+3. **Outreach list → ≥2,000 names** 🤖 — Apollo MCP pull (US SMB/Mid-Market), dedupe vs the 179, loadable CSV. Emails revealed by PDL→Hunter on load.
+4. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — per-client daily cap (default 50/day, configurable) + batched enroll. Fresh branch → tests → PR.
+5. **Walkthrough — Section A (23 click-walk items)** 🤝 — founder self-walks portal screens (inbox 112 · A/B 113 · kanban 114 · Vida 3 · etc., per `PINK-WALK-CHECKLIST.md`); Claude fixes ❌ live + flips dots.
+6. **Company — business training session** 🧍 — run the how-we-operate / business-model session.
+
+### ▶ TUESDAY (highest → least)
+1. **243 — Multi-source data layer / source-router** 🤝 — PDL→Hunter→Clearbit + BetterContact router (BetterContact key from founder). The lever that turns the list into **verified-email volume**.
+2. **212 — Context-rich sequences** 🤖 — 4–6 steps, ≤50-word opener using each lead's real data (depends on 243).
+3. **Walkthrough — Section B (8 demo-account items)** 🤝 — Claude provisions a test company; founder walks Command Centre 55 · provisioning 59 · rep flows 106–111.
+4. **T5 housekeeping** 🤖 — dead-control cleanup (88 activity orphan · 230 lena · 122 vercel), run unrun migrations (182/185), close small 🟡 (118 nav · 248–251 preview-walks).
+5. **Company — Xero + backend** 🧍🤝 — pick + connect accounting platform (Xero/QB), USD reporting + VAT threshold (inv 196); banking + Wise commission rails. Claude assists any code/export.
+6. **Doc hygiene** 🤖 — archive `AUDIT-24JUN-RECONCILIATION.md`; relabel Alta numbers in the pitch decks as illustrative.
+
+### ⏳ TRACKED / GATED — time-based, NOT Mon-Tue (waiting, by design)
+- **198 Instantly warmth** 🧍 — confirm ~90% health + inbox-placement test. *The one allowed waiter.*
+- **127 First outreach fired** 🤝 — fires the moment Instantly is warm + sequence loaded. Cold = burns the rig.
+- **T4 / 211 — the client sending engine (Smartlead, Phases 2–6)** 🤝 — gated on 198 + your decisions (mailbox markup + Resend migration). Its own track once warmth lands.
+- **Section C walkthrough (27 behavioural items)** 🤝 — fire on the first real campaign; can't click-walk.
+- **258 data residency** 🤝 — trigger-gated: build same-day on the first US/UK client.
 
 ---
 

@@ -117,8 +117,8 @@
 
 ## 🧍 YOUR STANDING LIST (decisions + keys only you can do)
 - **Confirm warmth:** Instantly health % + inbox test (the Milestone-1 unblocker).
-- **Keys:** 126 Google OAuth · 136 Flutterwave · 58 Denise price. *(Hunter/PDL ✅ · Smartlead key ✅ live.)*
-- **Decisions:** 211 mailbox markup + Resend-client migration · 196 accounting + VAT · v2/Casey wire-or-cut (T5).
+- **Keys:** 126 Google OAuth · 136 Flutterwave · 58 Denise price · **BetterContact key (for Tue 243 source-router)**. *(Hunter/PDL ✅ · Smartlead key ✅ live.)*
+- **Decisions:** **211 mailbox markup + Resend→per-client (the 2 Wed engine decisions)** · 196 accounting platform (Xero/QB) + VAT · v2/Casey wire-or-cut (T5).
 - **Legal (own track):** 102 pack · SEIS · DPAs · trademark.
 
 ## 🏢 THIS WEEK — COMPANY OPS SETUP (founder, added 28 Jun)

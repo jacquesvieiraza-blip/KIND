@@ -21,15 +21,26 @@ const REQUIRED_VARS: VarSpec[] = [
   { key: 'ANTHROPIC_API_KEY',         level: 'critical',  description: 'Claude AI — FIGSY sequences, reply classification' },
 
   // Payments — Stripe is primary. Paystack removed (requires SA entity).
-  { key: 'STRIPE_SECRET_KEY',         level: 'important', description: 'Stripe — subscription billing' },
+  // NOTE: these fail SILENTLY at runtime (graceful no-op / disabled Buy button) — so they MUST be loud here.
+  { key: 'STRIPE_SECRET_KEY',         level: 'important', description: 'Stripe — unset = no checkout, customers cannot pay' },
+  { key: 'STRIPE_WEBHOOK_SECRET',     level: 'important', description: 'Stripe webhook — unset = customer charged but NEVER credited' },
+  { key: 'STRIPE_PRICE_LEADGEN_20',   level: 'important', description: 'Stripe price ID — Lead Gen 20 bundle (checkout fails without it)' },
+  { key: 'STRIPE_PRICE_LEADGEN_40',   level: 'important', description: 'Stripe price ID — Lead Gen 40 bundle' },
+  { key: 'STRIPE_PRICE_LEADGEN_100',  level: 'important', description: 'Stripe price ID — Lead Gen 100 bundle' },
+  { key: 'STRIPE_PRICE_FIGSY_20',     level: 'important', description: 'Stripe price ID — FIGSY 20 bundle' },
+  { key: 'STRIPE_PRICE_FIGSY_40',     level: 'important', description: 'Stripe price ID — FIGSY 40 bundle' },
+  { key: 'STRIPE_PRICE_FIGSY_100',    level: 'important', description: 'Stripe price ID — FIGSY 100 bundle' },
   { key: 'PAYSTACK_SECRET_KEY',       level: 'optional',  description: 'Paystack — legacy only, not in use (removed from billing UI)' },
-  { key: 'STRIPE_WEBHOOK_SECRET',     level: 'important', description: 'Stripe webhook validation — payments not activated without this' },
 
-  // Email
-  { key: 'RESEND_API_KEY',            level: 'critical',  description: 'Resend — all outbound email (sequences, digests, alerts)' },
+  // Email — Resend is THE send transport (sequences, FIGSY cold, digests, alerts)
+  { key: 'RESEND_API_KEY',            level: 'critical',  description: 'Resend — all outbound email; unset = FIGSY records "sent" but sends NOTHING' },
+  { key: 'RESEND_WEBHOOK_SECRET',     level: 'important', description: 'Resend inbound webhook — unset = client replies rejected (no reply capture)' },
+  { key: 'FIGSY_COLD_FROM',           level: 'important', description: 'FIGSY cold From — unset = cold mail sends from hello@get-kind.com and POISONS the domain' },
 
-  // Lead enrichment
-  { key: 'APOLLO_API_KEY',            level: 'important', description: 'Apollo — lead sourcing and enrichment' },
+  // Lead engine — we run PDL + Hunter. Apollo is optional/BYO, NOT used day-to-day.
+  { key: 'PDL_API_KEY',               level: 'important', description: 'People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads' },
+  { key: 'HUNTER_API_KEY',            level: 'important', description: 'Hunter.io — email reveal in the enrichment waterfall' },
+  { key: 'APOLLO_API_KEY',            level: 'optional',  description: 'Apollo — optional / BYO-key; not used in the day-to-day PDL+Hunter stack' },
 
   // App URLs
   { key: 'PORTAL_URL',                level: 'important', description: 'Portal URL — used in email links and CORS' },
@@ -95,6 +106,33 @@ export function runStartupCheck(): void {
     lines.push(`\n  ℹ️  OPTIONAL — not yet configured:`)
     for (const v of optional) {
       lines.push(`     ${v.key.padEnd(30)} → ${v.description}`)
+    }
+  }
+
+  // ── 🚦 GO-LIVE READINESS — capability-level, impossible to miss ──────────────
+  // Each go-live capability fails SILENTLY at runtime if its config is missing, so
+  // we surface ON/OFF here loudly. (Skipped in staging — secrets intentionally absent.)
+  if (!STAGING) {
+    const isSet = (k: string) => !!process.env[k] && process.env[k]!.trim() !== ''
+    const capability = (label: string, vars: string[]) => {
+      const miss = vars.filter(k => !isSet(k))
+      return { label, ok: miss.length === 0, miss }
+    }
+    const caps = [
+      capability('💳 PAYMENTS   (customers can pay)',     ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_PRICE_LEADGEN_20', 'STRIPE_PRICE_LEADGEN_40', 'STRIPE_PRICE_LEADGEN_100', 'STRIPE_PRICE_FIGSY_20', 'STRIPE_PRICE_FIGSY_40', 'STRIPE_PRICE_FIGSY_100']),
+      capability('🎯 LEAD ENGINE (deliver leads)',        ['PDL_API_KEY', 'HUNTER_API_KEY', 'ANTHROPIC_API_KEY']),
+      capability('✉️  CLIENT SENDING (FIGSY emails)',      ['RESEND_API_KEY', 'ANTHROPIC_API_KEY', 'ADMIN_SECRET_KEY', 'FIGSY_COLD_FROM']),
+    ]
+    lines.push('  🚦 GO-LIVE READINESS')
+    for (const c of caps) {
+      lines.push(c.ok
+        ? `     ✅ ${c.label}`
+        : `     ❌ ${c.label}  — MISSING: ${c.miss.join(', ')}`)
+    }
+    const offCount = caps.filter(c => !c.ok).length
+    if (offCount > 0) {
+      lines.push('')
+      lines.push(`  🚨🚨  ${offCount} GO-LIVE CAPABILITY${offCount === 1 ? '' : 'IES'} OFF — these fail SILENTLY in prod. Set the vars above before claiming "ready". 🚨🚨`)
     }
   }
 

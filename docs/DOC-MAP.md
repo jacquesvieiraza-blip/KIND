@@ -25,12 +25,12 @@
 ## 🟢 THE 4 CORE — you live and breathe off these (always current)
 | Doc | Owns | Open it for |
 |-----|------|-------------|
-| **LAUNCH-PAD.md** | today's + this week's execution | "what do I do now?" |
-| **PRODUCT-INVENTORY.md** | product STATUS (one dot, one owner) | "what's built / live / left?" |
-| **KIND-MASTER.md** | strategy · decisions · history · session log | "where are we + why decided X?" |
-| **V2-TRACKER.md** | future detail · roadmap · risks · steals | "what's the longer-term plan?" |
+| **[LAUNCH-PAD.md](./LAUNCH-PAD.md)** | today's + this week's execution | "what do I do now?" |
+| **[PRODUCT-INVENTORY.md](./PRODUCT-INVENTORY.md)** | product STATUS (one dot, one owner) | "what's built / live / left?" |
+| **[KIND-MASTER.md](./KIND-MASTER.md)** | strategy · decisions · history · session log | "where are we + why decided X?" |
+| **[V2-TRACKER.md](./V2-TRACKER.md)** | future detail · roadmap · risks · steals | "what's the longer-term plan?" |
 
-**Always-loaded config:** `CLAUDE.md` (agent rules) · `docs/RULEBOOK.md` (working rules — incl. **§11 PREVIEW-BEFORE-LIVE**: client-facing builds preview on `staging`/`heartfelt-essence` → founder approves → ship to LIVE) · `docs/README.md` (the doc signpost) · `docs/TECH-STACK.md` (tools/vendors register).
+**Always-loaded config:** [`CLAUDE.md`](../CLAUDE.md) (agent rules) · [`RULEBOOK.md`](./RULEBOOK.md) (working rules — incl. **§11 PREVIEW-BEFORE-LIVE**) · [`README.md`](./README.md) (the doc signpost) · [`TECH-STACK.md`](./TECH-STACK.md) (tools/vendors register).
 
 ---
 
@@ -40,70 +40,71 @@
 ### 🗺️ Orientation
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
-| `DOC-MAP.md` *(this doc)* | the index of every doc + freshness — start here to find anything | ✅ | a doc is added / archived |
-| `SYSTEM-FLOW.md` | **the one-page visual of the whole machine** — data → FIGSY → sending (Instantly vs Smartlead) · the data layer (243) · two GTM tracks · build order. The "where do I start / how does it fit" map. | ✅ *(new 25 Jun)* | engine (211) / data (243) / GTM change |
-| `AFRICA-PLAYBOOK.md` | **the one-click Africa GTM** — thesis (direct-data + partners) · how we source African leads · the stealth email/brand partner motion · markets SA→NG→KE→GH. Consolidates V2/APOLLO-ENGINE/PARTNER-BRIEF (points to them for status). | ✅ *(new 25 Jun)* | two-track / 233 / 243 / stealth change |
-| `SYSTEM-HEALTH-AUDIT.md` | **the evidence behind the P0+T1–T5 fix plan** (LAUNCH-PAD) — full code+doc+operational health audit (25 Jun): verified findings, file:line detail, what's safe vs not. Plan lives in LAUNCH-PAD; this is the *why/where*. | ✅ *(new 25 Jun)* | a fix lands / a new health audit runs |
+| [`DOC-MAP.md`](./DOC-MAP.md) *(this doc)* | the index of every doc + freshness — start here to find anything | ✅ | a doc is added / archived |
+| [`PINK-WALK-CHECKLIST.md`](./PINK-WALK-CHECKLIST.md) | the founder self-walk aid for the 58 🩷 pinks — grouped A (click-walk now) / B (needs demo company) / C (needs test campaign) / D (verify on first charge) | ✅ *(new 28 Jun)* | as pinks are walked / new pinks appear |
+| [`SYSTEM-FLOW.md`](./SYSTEM-FLOW.md) | **the one-page visual of the whole machine** — data → FIGSY → sending (Instantly vs Smartlead) · the data layer (243) · two GTM tracks · build order. The "where do I start / how does it fit" map. | ✅ *(new 25 Jun)* | engine (211) / data (243) / GTM change |
+| [`AFRICA-PLAYBOOK.md`](./AFRICA-PLAYBOOK.md) | **the one-click Africa GTM** — thesis (direct-data + partners) · how we source African leads · the stealth email/brand partner motion · markets SA→NG→KE→GH. Consolidates V2/APOLLO-ENGINE/PARTNER-BRIEF (points to them for status). | ✅ *(new 25 Jun)* | two-track / 233 / 243 / stealth change |
+| [`SYSTEM-HEALTH-AUDIT.md`](./SYSTEM-HEALTH-AUDIT.md) | **the evidence behind the P0+T1–T5 fix plan** (LAUNCH-PAD) — full code+doc+operational health audit (25 Jun): verified findings, file:line detail, what's safe vs not. Plan lives in LAUNCH-PAD; this is the *why/where*. | ✅ *(new 25 Jun)* | a fix lands / a new health audit runs |
 
 ### 💷 Sales & money
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
-| `run-costs-and-cashflow.md` | the only financial model — fixed stack ~$138/mo · ~99% margin · ARPU tiers · sales-target ladder · 3 scenarios | 🛠️ | pricing · stack · ARPU · launch/billing status changes |
-| `SALARY-BREAKEVEN-PLAN.md` | founder-vs-partner break-even; "reaching ≠ holding" churn-treadmill | 🛠️ | currency · targets · headcount change |
-| `sales-playbook.md` | the only sales manual — qualification · 5-Q discovery · objection rebuttals · proposal tiers · loss reasons | ✅ | agents · pricing · positioning change |
-| `PARTNER-BRIEF.md` | partner one-pager — 5 trade playbooks · pricing · 20% recurring terms | ✅ | partner comp/pricing change |
-| `CHURN-PREVENTION-PLAN.md` | retention 6 levers (190–193, Lena 145) | ✅ | churn strategy / item 190s change |
-| `drafts/AI_REVENUE_OS_POSITIONING.md` | LOCKED hero ("You close the deals. We'll bring you the meetings… from $20") + anti-copy list | ✅ | positioning change |
-| `drafts/GTM_FUNNEL_INSTRUMENTATION.md` | item 131 detail — fire-points · `gtm_events` schema · 10 open decisions | ✅ | when 131 is built |
-| `archive/apollo-reseller-call-prep.md` | 17-Jun Apollo reseller call prep (historical — see item 103) | 🗄️ | ✅ archived 26 Jun (was in `drafts/`) |
-| **`APOLLO-ENGINE.md`** | **THE outbound-OS playbook** (Apollo-learned) → FIGSY: 6-stage loop (target→enrich→sequence→send→measure→optimise) · endpoint ref · BYOK/PDL-Hunter data architecture · source-labeling decision · the 212/139/140 build spec. **Items 242/243/244.** | ✅ *(new 24 Jun)* | 211/212/139/140/103 change · Apollo deck/Zoom lands · 242/243 ships |
+| [`run-costs-and-cashflow.md`](./run-costs-and-cashflow.md) | the only financial model — fixed stack ~$138/mo · ~99% margin · ARPU tiers · sales-target ladder · 3 scenarios | 🛠️ | pricing · stack · ARPU · launch/billing status changes |
+| [`SALARY-BREAKEVEN-PLAN.md`](./SALARY-BREAKEVEN-PLAN.md) | founder-vs-partner break-even; "reaching ≠ holding" churn-treadmill | 🛠️ | currency · targets · headcount change |
+| [`sales-playbook.md`](./sales-playbook.md) | the only sales manual — qualification · 5-Q discovery · objection rebuttals · proposal tiers · loss reasons | ✅ | agents · pricing · positioning change |
+| [`PARTNER-BRIEF.md`](./PARTNER-BRIEF.md) | partner one-pager — 5 trade playbooks · pricing · 20%+5% terms | ✅ | partner comp/pricing change |
+| [`CHURN-PREVENTION-PLAN.md`](./CHURN-PREVENTION-PLAN.md) | retention 6 levers (190–193, Lena 145) | ✅ | churn strategy / item 190s change |
+| [`drafts/AI_REVENUE_OS_POSITIONING.md`](./drafts/AI_REVENUE_OS_POSITIONING.md) | LOCKED hero ("You close the deals. We'll bring you the meetings… from $20") + anti-copy list | ✅ | positioning change |
+| [`drafts/GTM_FUNNEL_INSTRUMENTATION.md`](./drafts/GTM_FUNNEL_INSTRUMENTATION.md) | item 131 detail — fire-points · `gtm_events` schema · 10 open decisions | ✅ | when 131 is built |
+| [`archive/apollo-reseller-call-prep.md`](./archive/apollo-reseller-call-prep.md) | 17-Jun Apollo reseller call prep (historical — see item 103) | 🗄️ | ✅ archived 26 Jun (was in `drafts/`) |
+| **[`APOLLO-ENGINE.md`](./APOLLO-ENGINE.md)** | **THE outbound-OS playbook** (Apollo-learned) → FIGSY: 6-stage loop (target→enrich→sequence→send→measure→optimise) · endpoint ref · BYOK/PDL-Hunter data architecture · source-labeling decision · the 212/139/140 build spec. **Items 242/243/244.** | ✅ *(new 24 Jun)* | 211/212/139/140/103 change · Apollo deck/Zoom lands · 242/243 ships |
 
 ### 🎬 Product flow · demo · onboarding
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
-| `RECORDING-SHOOTING-SCRIPT.md` | the master recording bible (capture-once, cut-everything; 6-beat scenes) — for items 129/134 | ✅ | product UI · pricing in-script change |
-| `client-flow-sop.md` | 7 onboarding/billing paths | ✅ | onboarding flow change |
-| `drafts/ONBOARDING_V2.md` | 6-step flow + 3 lifecycle emails (Day 0/3/7) — item 30/174–176 | ✅ (draft) | when onboarding ships |
-| `demo-walkthrough-script.html` | verbatim 12-scene demo | ✅ | demo/positioning change |
-| `setup-dashboard-preview.html` · `portal-v2-*` · `CLIENT_FLOW*.html` · `previews/*` · `MCP-EXPLAINED.html` · `pwa-mockup.html` · `updates-live/client-journey-flowchart.html` | UI mockups/specs + reference HTML (Casey design, inbox-v2, sequence-builder, MCP explainer, PWA mockup, client-journey flowchart) — *3 added 24 Jun (were unindexed)* | ✅ ref | design lock change |
-| `content/blog-articles.md` · `content/youtube-plan.md` · `content/website-video-plan.md` | publish-ready posts + 10-video plan (faceless voice) + the website video plan | ✅ | content cadence |
-| `content/our-outreach-us-uk.md` | **OUR own US/UK outreach pack** (the 🅱️ fast-cash track) — ICP · channels · offer · 4-step dogfood sequence · compliance — items 127/129/132/242 | ✅ *(new 25 Jun)* | offer/ICP/pricing change |
-| `art-of-possible.md` | future-vision / inspiration log (product ideas, competitive reads — explicitly "nothing built unless marked") | ✅ ref | when an idea graduates to a 🔴 item |
+| [`RECORDING-SHOOTING-SCRIPT.md`](./RECORDING-SHOOTING-SCRIPT.md) | the master recording bible (capture-once, cut-everything; 6-beat scenes) — for items 129/134 | ✅ | product UI · pricing in-script change |
+| [`client-flow-sop.md`](./client-flow-sop.md) | 7 onboarding/billing paths | ✅ | onboarding flow change |
+| [`drafts/ONBOARDING_V2.md`](./drafts/ONBOARDING_V2.md) | 6-step flow + 3 lifecycle emails (Day 0/3/7) — item 30/174–176 | ✅ (draft) | when onboarding ships |
+| [`demo-walkthrough-script.html`](./demo-walkthrough-script.html) | verbatim 12-scene demo | ✅ | demo/positioning change |
+| UI mockups/preview HTML → folders: [`previews/`](./previews/) (25 screens) · [`setup-dashboard-preview.html`](./setup-dashboard-preview.html) · [`portal-v2-preview.html`](./portal-v2-preview.html) · [`CLIENT_FLOW.html`](./CLIENT_FLOW.html)/[`_PER_REP`](./CLIENT_FLOW_PER_REP.html) · [`MCP-EXPLAINED.html`](./MCP-EXPLAINED.html) · [`pwa-mockup.html`](./pwa-mockup.html) · [`updates-live/`](./updates-live/) | ✅ ref | design lock change |
+| [`content/blog-articles.md`](./content/blog-articles.md) · [`youtube-plan`](./content/youtube-plan.md) · [`website-video-plan`](./content/website-video-plan.md) | publish-ready posts + 10-video plan (faceless voice) + the website video plan | ✅ | content cadence |
+| [`content/our-outreach-us-uk.md`](./content/our-outreach-us-uk.md) | **OUR own US/UK outreach pack** (the 🅱️ fast-cash track) — ICP · channels · offer · 4-step dogfood sequence · compliance — items 127/129/132/242 | ✅ *(new 25 Jun)* | offer/ICP/pricing change |
+| [`art-of-possible.md`](./art-of-possible.md) | future-vision / inspiration log (product ideas, competitive reads — explicitly "nothing built unless marked") | ✅ ref | when an idea graduates to a 🔴 item |
 
 ### 🛠️ Ops · deploy · infra
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
-| `TECH-STACK.md` | the tools/vendors register + email architecture (**cold `gettingkind.com` = Resend send + Resend inbound, NO mailbox · human `get-kind.com` = Zoho** · Smartlead/Instantly = THE ENGINE) | ✅ | a tool is added/changed |
-| `DEPLOYMENT_GUIDE.md` | full env-var-per-service · Railway crons · DNS values *(the live deploy reference — replaces the archived `DEPLOY-CHECKLIST`)* | ✅ | env/cron/deploy change (22-Jun corrections banner) |
-| `SMOKE_TEST.md` | step-level T1–T10 | ✅ | test flow change |
-| `LIVE-FEATURE-WALK.md` | **the verification checklist — every live feature/element to walk 🩷→🟢** *(also covers the company-engine walk — replaces the archived `COMPANY-ENGINE-TEST`)* | ✅ | as items are walked / new features ship |
-| `render-cloudflare-failover.md` · `portal-admin-failover.md` | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
-| `DELIVERABILITY-D9-CHECKLIST.md` | D9 mail-tester readiness (FIGSY_COLD_FROM, DKIM) | ✅ | deliverability change |
-| `AUDIT-24JUN-RECONCILIATION.md` | the 24-Jun doc↔code reconciliation snapshot (findings + remediation) — **historical record** | ✅ ref *(snapshot 24 Jun)* | n/a — dated snapshot |
+| [`TECH-STACK.md`](./TECH-STACK.md) | the tools/vendors register + email architecture (**cold `gettingkind.com` = Resend send + Resend inbound, NO mailbox · human `get-kind.com` = Zoho** · Smartlead/Instantly = THE ENGINE) | ✅ | a tool is added/changed |
+| [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md) | full env-var-per-service · Railway crons · DNS values *(the live deploy reference — replaces the archived `DEPLOY-CHECKLIST`)* | ✅ | env/cron/deploy change (22-Jun corrections banner) |
+| [`SMOKE_TEST.md`](./SMOKE_TEST.md) | step-level T1–T10 | ✅ | test flow change |
+| [`LIVE-FEATURE-WALK.md`](./LIVE-FEATURE-WALK.md) | **the verification checklist — every live feature/element to walk 🩷→🟢** *(also covers the company-engine walk — replaces the archived `COMPANY-ENGINE-TEST`)* | ✅ | as items are walked / new features ship |
+| [`render-cloudflare-failover.md`](./render-cloudflare-failover.md) · [`portal-admin-failover.md`](./portal-admin-failover.md) | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
+| [`DELIVERABILITY-D9-CHECKLIST.md`](./DELIVERABILITY-D9-CHECKLIST.md) | D9 mail-tester readiness (FIGSY_COLD_FROM, DKIM) | ✅ | deliverability change |
+| [`AUDIT-24JUN-RECONCILIATION.md`](./AUDIT-24JUN-RECONCILIATION.md) | the 24-Jun doc↔code reconciliation snapshot (findings + remediation) — **historical record** | ✅ ref *(snapshot 24 Jun)* | n/a — dated snapshot |
 
 ### ⚖️ Legal · compliance · hiring
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
-| `legal.md` | Apollo ToS exposure + 4 structural options (correction: risk from client #1) | ✅ (maintained) | Apollo decision |
-| `legal/legal-pack.md` | Co.No 17260532 · ICO · DPAs · trademark plan · VAT £90k threshold | ✅ | compliance milestone |
-| `legal/it-security-pack.md` | data classification · incident register · RTO/RPO | ✅ | security incident/policy |
-| `legal/seis-advance-assurance-draft.md` | registered office · SEIS conditions · trademark table | ✅ | funding step |
-| `legal/partner-agreement.md` | partner agreement — 20% acquisition + 5% retention (item 197), USD, no clawback | ✅ | partner comp/terms change |
-| `legal/key-rotation-runbook.md` · `legal/restore-runbook.md` | key-rotation + DB-restore runbooks | ✅ | infra/security procedure change |
-| `hiring/` (4 docs) | AE comp plan (OTE $112.5k) · partner comp · Claude-Code build brief (203) · SELLER-ENGINE-MAP (+ .html calculators) | ✅ | comp/seller-engine change |
-| `SALARY-BREAKEVEN-PLAN.md` | (see Sales & money) | 🛠️ | — |
+| [`legal.md`](./legal.md) | Apollo ToS exposure + 4 structural options (correction: risk from client #1) | ✅ (maintained) | Apollo decision |
+| [`legal/legal-pack.md`](./legal/legal-pack.md) | Co.No 17260532 · ICO · DPAs · trademark plan · VAT £90k threshold | ✅ | compliance milestone |
+| [`legal/it-security-pack.md`](./legal/it-security-pack.md) | data classification · incident register · RTO/RPO | ✅ | security incident/policy |
+| [`legal/seis-advance-assurance-draft.md`](./legal/seis-advance-assurance-draft.md) | registered office · SEIS conditions · trademark table | ✅ | funding step |
+| [`legal/partner-agreement.md`](./legal/partner-agreement.md) | partner agreement — 20% acquisition + 5% retention (item 197), USD, no clawback | ✅ | partner comp/terms change |
+| [`legal/key-rotation-runbook.md`](./legal/key-rotation-runbook.md) · [`legal/restore-runbook.md`](./legal/restore-runbook.md) | key-rotation + DB-restore runbooks | ✅ | infra/security procedure change |
+| [`hiring/`](./hiring/) (4 docs) | [AE comp plan](./hiring/KIND-AE-COMP-PLAN.md) (OTE $112.5k) · [partner comp](./hiring/KIND-PARTNER-COMP-PLAN.md) · [Claude-Code brief](./hiring/KIND-CLAUDE-CODE-BRIEF.md) (203) · [SELLER-ENGINE-MAP](./hiring/SELLER-ENGINE-MAP.md) (+ .html calculators) | ✅ | comp/seller-engine change |
+| [`SALARY-BREAKEVEN-PLAN.md`](./SALARY-BREAKEVEN-PLAN.md) | (see Sales & money) | 🛠️ | — |
 
 ### 📁 Root-level files (were untracked — now indexed)
 | Doc | Unique content | Status | Disposition |
 |-----|----------------|:--:|-------------|
-| `README.md` (root) | repo front door → pointer to the 4 core + DOC-MAP | ✅ | keep (PR 1 made it a pointer) |
-| `CLAUDE.md` | agent operating config (four-doc contract, rules) | ✅ | keep — always-loaded |
-| `AGENT_AVATARS.md` | avatar/art-direction generation prompts | ✅ ref | keep (evergreen) |
-| `AUDIT.md` | 27-May sprint snapshot | 🗄️ | ✅ archived → `docs/archive/` |
-| `FULL_CHECK.md` | audit protocol | 🗄️ | ✅ methodology folded into **RULEBOOK §13**; original archived |
-| `BUILD_STATUS.md` | 27-May sprint status (pre-launch) | 🗄️ | ✅ archived → `docs/archive/` |
-| `CHANGELOG.md` | 27-May change log (pre-launch) | 🗄️ | ✅ archived → `docs/archive/` |
-| `MASTER.md` (root) | old stale master (known-broken) | 🗄️ | ✅ archived → `docs/archive/` |
+| [`README.md`](../README.md) (root) | repo front door → pointer to the 4 core + DOC-MAP | ✅ | keep (PR 1 made it a pointer) |
+| [`CLAUDE.md`](../CLAUDE.md) | agent operating config (four-doc contract, rules) | ✅ | keep — always-loaded |
+| [`AGENT_AVATARS.md`](../AGENT_AVATARS.md) | avatar/art-direction generation prompts | ✅ ref | keep (evergreen) |
+| [`AUDIT.md`](./archive/AUDIT.md) | 27-May sprint snapshot | 🗄️ | ✅ archived → `docs/archive/` |
+| [`FULL_CHECK.md`](./archive/FULL_CHECK.md) | audit protocol | 🗄️ | ✅ methodology folded into **RULEBOOK §13**; original archived |
+| [`BUILD_STATUS.md`](./archive/BUILD_STATUS.md) | 27-May sprint status (pre-launch) | 🗄️ | ✅ archived → `docs/archive/` |
+| [`CHANGELOG.md`](./archive/CHANGELOG.md) | 27-May change log (pre-launch) | 🗄️ | ✅ archived → `docs/archive/` |
+| [`MASTER.md`](./archive/MASTER.md) (root) | old stale master (known-broken) | 🗄️ | ✅ archived → `docs/archive/` |
 
 ---
 

@@ -13,9 +13,18 @@
 - **Milestone 1 — READY TO SELL & ONBOARD:** 🔧 in progress — **0 of 5 done** (the walkthrough is the live work; Instantly not yet confirmed warm).
 - **Milestone 2 — CLIENTS RUN ON THE PRODUCT:** 🔴 early — **4 of 8 done** (T1 + T2a + T2b + M2); **M2/pause migration RUN on prod 28 Jun — pause now stops Stripe billing.** The engine (211) is still barely started.
 - **In flight right now:** the **pink walkthrough** — you self-walking Group A (see `PINK-WALK-CHECKLIST.md`); I flip dots + fix breakages as you report.
-- **Open PR:** dot-flip 253/255→🟢 (docs). **Merged → LIVE this session:** pricing compare-table (255 🟢) + social-proof scaffold (253 🟢, hidden-until-data) + memory rule (#801) · homepage de-clutter (#797, 259 🟢) · product-page dashboards (#798, 254 🟢) · hero fix (#799/#800) · data-residency (#795) · nav/footer (#796). **Outreach list (Milestone 1) built** → loadable CSV (179 rows) + ICP, delivered as files; **fire on Instantly warm-confirm + walkthrough (~early July)**. **Stack: PDL→Hunter→Clearbit; 243 source-router = next.**
+- **Open PR:** LAUNCH-PAD tomorrow-runlist wiring (docs). **All session work merged → LIVE.** **Merged → LIVE this session:** pricing compare-table (255 🟢) + social-proof scaffold (253 🟢, hidden-until-data) + memory rule (#801) · homepage de-clutter (#797, 259 🟢) · product-page dashboards (#798, 254 🟢) · hero fix (#799/#800) · data-residency (#795) · nav/footer (#796). **Outreach list (Milestone 1) built** → loadable CSV (179 rows) + ICP, delivered as files; **fire on Instantly warm-confirm + walkthrough (~early July)**. **Stack: PDL→Hunter→Clearbit; 243 source-router = next.**
 
 > ⚠️ **The honest headline:** we are **NOT near** "clients on the product." Smartlead has **zero sending built**; Instantly warmth is **unconfirmed**. This tracker now shows that truthfully so the warm date can't surprise us again.
+
+## 🔜 TOMORROW'S RUNLIST (locked 28 Jun — momentum)
+*Agreed with founder. Order: safest code first, then bigger.*
+1. **T2c — Kill Paystack** 🤖 — remove the Paystack router + ZAR write paths entirely; Stripe-only. Fresh branch → build/typecheck → PR. *(subs = 0, safe.)*
+2. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — per-client daily cap (default **50/client/day, configurable**) + batched enroll so 1,000 leads don't time out. Fresh branch → tests → PR.
+3. **243 — Lead-source depth / source-router** 🤝 — add the multi-provider source router (PDL→Hunter→Clearbit + BetterContact) so the outreach list enriches to verified-email volume.
+4. **Sequence → Instantly** 🧍 — founder loads the drafted 4-step sequence (delivered) into Instantly.
+5. **Walkthrough** 🤝 — founder walks all 🩷/🟢 items; Claude fixes breakages on the spot + flips dots.
+- **Gated (not tomorrow unless warm):** First outreach fired — only once **Instantly confirmed warm** (health ~90% + inbox test). Firing cold burns the rig.
 
 ---
 
@@ -26,8 +35,8 @@
 |---|------|:--:|:--:|-----------|
 | — | **Walkthrough complete** — every live element verified 🟢 or fixed; nothing broken/half-baked reachable by a client | 🔧 | 🤝 | inventory has no broken-in-live; all 🩷 walked to 🟢 or 🔴 |
 | 198 | **Instantly domains warm** — your outreach rig | ⏸ | 🧍 | health ~90% **+ inbox-placement test passes** (101/194) — *you confirm* |
-| — | **Outreach list built** — 200–500 US/UK leads (`content/our-outreach-us-uk.md` + engine) | 🔴 | 🤝 | list ready to load |
-| — | **Sequence loaded** into Instantly (dogfood angle + free-sample CTA) | 🔴 | 🤖 | sequence + list attached, ready to fire |
+| — | **Outreach list built** — **🔧 seed built: 179 rows (158 active) US SMB/Mid-Market, your competitor-customer Excel + Claude additions + ICP, delivered as files.** Enrich→verified-email volume via 243. | 🔧 | 🤝 | verified-email list loaded into the system |
+| — | **Sequence loaded** into Instantly (dogfood + free-sample CTA) — **🔧 4-step sequence DRAFTED + delivered; founder loads into Instantly (no Claude access to Instantly).** | 🔧 | 🧍 | sequence + list attached in Instantly, ready to fire |
 | 127 | **First outreach fired** — low, ramped → replies → demos | 🔴 | 🤝 | first US/UK send out, on warm domains |
 
 **Milestone 1 blockers:** the walkthrough (trust) + Instantly warmth (reach). Neither needs the product's sending engine — so **you can be sell-ready well before Milestone 2.**
@@ -42,9 +51,9 @@
 | T1 | **Safety** — per-user rate limits · CRM dedup fail-closed (#753) | ✅ | 🤖 | *done + verified 25 Jun* |
 | T2a | **Region default** fixed (no ZA default) + voice copy (#754) | ✅ | 🤖 | *done* |
 | T2b | **Currency stored in USD** (`amount_usd`, #756) | ✅ | 🤖 | *done + migration run* |
-| T2c | **Kill Paystack** — remove router + ZAR write paths (subs = 0, cleared) | 🔴 | 🤖 | Paystack code gone; Stripe-only |
+| T2c | **Kill Paystack** — remove router + ZAR write paths (subs = 0, cleared) — **✅ APPROVED, build tomorrow (remove entirely)** | 🔴→🔜 | 🤖 | Paystack code gone; Stripe-only |
 | M2 | **Pause stops Stripe billing** — **BUILT #769 · migration RUN on prod 28 Jun** (pause calls Stripe `pause_collection`; 190 folded in) | ✅ | 🤝 | *migration run → a paused sub now stops the Stripe charge; pending one verification walk* |
-| T3 | **Per-client send cap + N+1 batch enroll** — cap is global today (clients starve each other) | 🔴 | 🤖 | each client/rep has its own daily cap; 1,000-lead enroll doesn't time out |
+| T3 | **Per-client send cap + N+1 batch enroll** — cap is global today (clients starve each other) — **✅ APPROVED, build tomorrow (default 50/client/day, configurable)** | 🔴→🔜 | 🤖 | each client/rep has its own daily cap; 1,000-lead enroll doesn't time out |
 | T4 | **211 — the engine:** per-client isolated + warmed sending (Smartlead) | 🔴 | 🤝 | a client sends from an isolated, warmed sender — verified |
 | T5 | **Harden** — monitoring/alerts (199) · Smoke Test 2 (100) · dead-control cleanup | 🔴 | 🤝 | an outage pages you; all paths pass; no dead controls live |
 

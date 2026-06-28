@@ -98,28 +98,28 @@
 ## SECTION 5 — RESPOND  *(replies, sorted)*
 > **6-beat:** *Replies come in at all hours, mixed with noise (problem). Owners miss the hot ones or reply too late (pain). Speed-to-lead is the #1 conversion driver — 5 minutes vs an hour is 20× (metric). A slow reply = the meeting goes to whoever answered first (cost). What if replies sorted themselves (way out)? K.I.N.D classifies every reply, hot to cold (solution).*
 
-### Scene 5.1 — Classified replies *(~10s)*
+### Scene 5.1 — Classified replies → FIGSY books the meeting *(~12s)*
 - **SCREEN:** `/dashboard/figsy/replies` (and `/dashboard/inbox`)
 - **🔴 PAIN:** "Interested replies get buried under out-of-offices and opt-outs."
-- **RECORD:** show replies sorted hot / interested / opt-out; open a hot one
-- **SAY:** *"Every reply comes back classified. The hot ones rise to the top, ready for you — nothing slips."*
+- **RECORD:** show replies sorted hot / interested / opt-out; open a hot one → show the **"Meeting booked"** event *(FIGSY books it via the calendar link in its outreach — meeting lands on your calendar)*
+- **SAY:** *"Every reply comes back classified — the hot ones rise to the top. And when a prospect says yes, FIGSY books the meeting straight onto your calendar."*
 
-## SECTION 6 — CLOSE  *(Denise books it)*
-> **6-beat:** *Warm replies still need chasing, confirming, proposing (problem). Between jobs, the owner forgets to follow up (pain). Most deals need 5+ touches; most people stop at 1–2 (metric). The quiet "maybe" never becomes a "yes" (cost). What if a closer handled the warm ones (way out)? Denise follows up, confirms, and drafts the proposal (solution).*
+## SECTION 6 — CLOSE  *(Denise takes the booked meeting)*
+> **6-beat:** *A booked meeting isn't a closed deal (problem). After the call, the owner forgets to follow up, handle the objection, send the proposal (pain). Most deals need 5+ touches; most people stop at 1–2 (metric). The quiet "maybe" never becomes a "yes" (cost). What if a closer handled the warm ones after the meeting (way out)? Denise handles objections, drafts the proposal, and follows up (solution).*
 
 ### Scene 6.1 — Denise closes *(~10s)*
-- **SCREEN:** `/dashboard/denise` → booked meeting / `/dashboard/proposals`
-- **🔴 PAIN:** "The follow-up that books the job is the one you never send."
-- **RECORD:** show Denise's warm follow-up → a booked meeting / a drafted proposal
-- **SAY:** *"Denise chases the warm replies, confirms the meeting, and drafts the proposal. FIGSY opens — Denise closes."*
+- **SCREEN:** `/dashboard/denise` (and `/dashboard/proposals`)
+- **🔴 PAIN:** "The follow-up that wins the deal is the one you never send."
+- **RECORD:** show Denise's warm follow-up + a drafted proposal *(post-meeting — she does NOT book; FIGSY already did that in Scene 5.1)*
+- **SAY:** *"Once the meeting's booked, Denise takes over — handles objections, drafts the proposal, and follows up so the warm deal never goes cold. FIGSY opens, Denise closes."*
 
 ## SECTION 7 — INTELLIGENCE  *(Milla + your numbers)*
-> **6-beat:** *Owners fly blind — no idea what's working (problem). So they repeat what doesn't and stop what does (pain). Most never see a reply-rate or a forecast (metric). Decisions on a hunch cost real money (cost). What if the numbers came to you (way out)? Milla reads everything and briefs you weekly (solution).*
+> **6-beat:** *Owners fly blind — no idea what's working (problem). So they repeat what doesn't and stop what does (pain). Most never see a reply-rate or a forecast (metric). Decisions on a hunch cost real money (cost). What if you could just ask (way out)? Milla answers business questions and learns from your own documents (solution).*
 
-### Scene 7.1 — Milla's brief *(~8s)*
+### Scene 7.1 — Ask Milla anything *(~8s)*
 - **SCREEN:** `/dashboard/assistant`
-- **RECORD:** ask Milla a business question; show the weekly brief
-- **SAY:** *"Milla reads your numbers, answers questions in plain language, and sends a brief every Monday."*
+- **RECORD:** ask Milla a business question → she answers in plain language; show the **"based on your documents"** source chip *(her knowledge = docs you upload, real RAG)*
+- **SAY:** *"Milla answers business questions in plain language — and the more of your own documents you give her, the sharper she gets."* *(NOTE: no auto "weekly brief" feature exists yet — don't claim one.)*
 
 ### Scene 7.2 — Live results *(~8s)*
 - **SCREEN:** `/dashboard/analytics` (and `/dashboard/kpis`)

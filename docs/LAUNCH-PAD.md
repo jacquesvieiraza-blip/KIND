@@ -15,7 +15,9 @@
 - **In flight / next:** the **📅 Mon/Tue full-business sprint** (section below) + the **pink walkthrough** — Section A (you click-walk) Mon, Section B (demo account) Tue; I fix breakages + flip dots.
 - **Open PR:** **#803** — Mon/Tue sprint plan + runlist (docs) — *awaiting your clean merge.* **Merged → LIVE this session:** homepage de-clutter (#797, 259 🟢) · product-page dashboards (#798, 254 🟢) · hero fix (#799/#800) · pricing compare-table (255 🟢) + social-proof scaffold (253 🟢, hidden-until-data) + memory rule (#801) · green-verify (#802) · data-residency (#795) · nav/footer (#796) · audit/legal/global (#782/#783) · competitor sweep (#784). **Outreach list built** (179-row seed + ICP, delivered as files). **Stack: PDL→Hunter→Clearbit; 243 router = Tue.**
 
-> ⚠️ **The honest headline:** we are **NOT near** "clients on the product." Smartlead has **zero sending built**; Instantly warmth is **unconfirmed**. This tracker now shows that truthfully so the warm date can't surprise us again.
+> ⚠️ **The honest headline (code-audited 28 Jun):** the product is **built end-to-end** — signup→pay→source→enrich→score→deliver→charge→**FIGSY sends via Resend**→replies all work in code. **We are NOT behind on building.** The real risk is **go-live CONFIG that fails SILENTLY** (Stripe price IDs, the send cron's `ADMIN_SECRET_KEY`, `FIGSY_COLD_FROM`) + **unverified Railway env** — the app runs "green" while payments/cron/cold-domain can be quietly dead. **Status = code-complete, config-UNVERIFIED.** Smartlead/211 is NOT "zero sending" — basic sending already runs on Resend; 211 only adds **per-client isolated + warmed** mailboxes (deliverability/scale). Instantly warmth = the one external clock.
+>
+> 🔑 **Before any go-live claim, verify Railway env against `scratchpad GO-LIVE-CONFIG-VERIFY` (sent to founder).**
 
 ## 📅 THE PLAN — MON/TUE = OUR OUTREACH (M1) · WED = CLIENT SYSTEM (M2)
 **Mon–Tue:** everything so **we can outreach our own clients**. Barring **Instantly warmth** (a clock you confirm), we are GO. **Wed:** build everything a paying **client** needs to run on the system. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
@@ -33,7 +35,7 @@
 
 ### ▶ WED 1 JUL — MILESTONE 2: BUILD EVERYTHING FOR CLIENTS TO USE THE SYSTEM
 *Everything a paying client needs to run their own sending on the product.*
-1. **T4 / 211 — the engine** 🤝 — Smartlead: provision → warm → sending seam → credit alignment → test. **Gated on 2 decisions: mailbox markup + Resend→per-client.** The big one; spans past Wed.
+1. **T4 / 211 — the engine** 🤝 — *(basic client sending ALREADY works via Resend; this adds per-client **isolated + warmed** mailboxes for deliverability/scale)* Smartlead: provision → warm → sending seam → credit alignment → test. **Gated on 2 decisions: mailbox markup + Resend→per-client.** The big one; spans past Wed.
 2. **T2c — Kill Paystack** 🤖 — remove router + ZAR write paths; Stripe-only (client billing US-ready).
 3. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — per-client daily cap (50/day, configurable) + batched enroll.
 4. **243 — Multi-source source-router** 🤝 — PDL→Hunter→Clearbit + BetterContact (key from founder); client-grade verified-email coverage.
@@ -84,7 +86,7 @@
 | T2c | **Kill Paystack** — remove router + ZAR write paths (subs = 0, cleared) — **✅ APPROVED, build WED (remove entirely)** | 🔴→🔜 | 🤖 | Paystack code gone; Stripe-only |
 | M2 | **Pause stops Stripe billing** — BUILT #769 · migration RUN on prod 28 Jun (pause calls Stripe `pause_collection`; 190 folded in) — **⚠️ showed ❌ on 26-Jun walk; RE-VERIFY Wed** | 🔧 | 🤝 | re-walk confirms a paused sub stops the Stripe charge → then ✅ |
 | T3 | **Per-client send cap + N+1 batch enroll** — cap is global today (clients starve each other) — **✅ APPROVED, build WED (default 50/client/day, configurable)** | 🔴→🔜 | 🤖 | each client/rep has its own daily cap; 1,000-lead enroll doesn't time out |
-| T4 | **211 — the engine:** per-client isolated + warmed sending (Smartlead) — **build STARTS WED** (needs 2 founder decisions: mailbox markup + Resend→per-client); paying clients gated on warmth + test | 🔴→🔜 | 🤝 | a client sends from an isolated, warmed sender — verified |
+| T4 | **211 — the engine:** per-client **isolated + warmed** sending (Smartlead) — *basic sending already live via Resend; this is the deliverability/scale layer.* **build STARTS WED** (2 decisions: mailbox markup + Resend→per-client) | 🔴→🔜 | 🤝 | a client sends from an isolated, warmed sender — verified |
 | T5 | **Harden** — **dead-control cleanup + monitoring (199) + Smoke Test 2 (100) = WED** (M2 harden) | 🔴 | 🤝 | an outage pages you; all paths pass; no dead controls live |
 
 **⛔ Do NOT put paying clients on the product's sending path until T3 + T4 are done.** **⛔ Do NOT onboard US/EMEA *paying* clients until T2c is done** (still modelled with ZAR paths).
@@ -97,9 +99,9 @@
 | Tool | Powers | Real status (audited 26 Jun) | What's left | Owner |
 |------|--------|------------------------------|-------------|:--:|
 | **Instantly** | 🅐 **YOUR** outreach (Milestone 1) | ⏸ **Ordered ~23 Jun, warming. NOT confirmed warm** — no health % or inbox-placement test on record. | You confirm ~90% health + run the inbox test (101/194) | 🧍 |
-| **Smartlead** | 🅑 the **CLIENT** engine (211, Milestone 2 / T4) | 🔴 **Connectivity only** — read-only stub, **zero sending built** (verified in `lib/smartlead.ts`). Phase 1 of 6. | Build Phases 2–6: provision + warm per-client mailboxes + the sending seam | 🤝 |
+| **Smartlead** | 🅑 per-client **isolated+warmed** sending (211 / T4) — *NOT basic sending; clients already send via Resend today* | 🔴 read-only stub (`lib/smartlead.ts`). Phase 1 of 6. | Build Phases 2–6: provision + warm per-client mailboxes + sending seam | 🤝 |
 
-> This is the answer to "are we tracking these or assuming all's ok": **we're tracking them, and the truth is both are early.** Instantly = warming-unconfirmed; Smartlead = barely begun. We will not say "the system is warming" as if ready again — readiness is the rows above flipping ✅.
+> Truth: **Instantly = warming-unconfirmed** (the clock); **Smartlead = dormant** — but client sending is NOT blocked on it (Resend handles sending today). Smartlead is the *isolation+warmth* upgrade. We will not call the system "ready" until the GO-LIVE CONFIG is verified in Railway and the rows above flip ✅.
 
 ---
 

@@ -35,7 +35,7 @@
 | **State** | warming (~1–2 wk clock) | Phase 1 done (key verified); Phases 2–6 to build |
 | **Rule** | warm before you campaign | 1 domain per client, never shared |
 
-**The one-liner:** *Instantly is how WE get clients. Smartlead is how CLIENTS send. They never touch each other.*
+**The one-liner:** *Instantly is how WE get clients. CLIENTS send via **Resend today** → migrating to **Smartlead** (per-client isolated+warmed, item 211). The two rigs never touch each other.*
 
 ---
 

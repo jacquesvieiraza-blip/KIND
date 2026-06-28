@@ -113,18 +113,38 @@ PORTAL_URL=https://app.get-kind.com
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-APOLLO_API_KEY=your-apollo-key
-STRIPE_SECRET_KEY=sk_live_xxxxx                     ← use test key until go-live
-STRIPE_WEBHOOK_SECRET=whsec_xxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 RESEND_API_KEY=re_xxxxx
-ADMIN_SECRET_KEY=your-random-secret-string
+ADMIN_SECRET_KEY=your-random-secret-string          ← ALSO powers the FIGSY send cron — unset = nothing sends on schedule
 FOUNDER_EMAIL=hello@get-kind.com                    ← your email — all internal agent alerts go here
+
+# --- Lead engine (we run PDL + Hunter, NOT Apollo) ---
+PDL_API_KEY=your-pdl-key                            ← PRIMARY lead sourcing (required for us)
+HUNTER_API_KEY=your-hunter-key                      ← email reveal (required for us)
+APOLLO_API_KEY=                                     ← OPTIONAL / BYO-key — not used day-to-day
+
+# --- FIGSY cold sending / replies ---
+FIGSY_COLD_FROM=K.I.N.D <cold@cold-domain.com>      ← REQUIRED: unset = cold mail poisons get-kind.com
 FIGSY_REPLY_TO=replies@get-kind.com                 ← update after Resend inbound is configured
+RESEND_WEBHOOK_SECRET=whsec_xxxxx                   ← required to RECEIVE replies (else inbound rejected)
 FIGSY_DAILY_SEND_LIMIT=20                           ← protects domain reputation
+
+# --- Stripe (payments). BOTH the API price IDs here AND the NEXT_PUBLIC_ twins on the portal are required ---
+STRIPE_SECRET_KEY=sk_live_xxxxx                     ← use test key until go-live
+STRIPE_WEBHOOK_SECRET=whsec_xxxxx
+STRIPE_PRICE_LEADGEN_20=price_xxxxx
+STRIPE_PRICE_LEADGEN_40=price_xxxxx
+STRIPE_PRICE_LEADGEN_100=price_xxxxx
+STRIPE_PRICE_FIGSY_20=price_xxxxx
+STRIPE_PRICE_FIGSY_40=price_xxxxx
+STRIPE_PRICE_FIGSY_100=price_xxxxx
+STRIPE_PRICE_MILLA_MONTHLY=price_xxxxx
+STRIPE_PRICE_VIDA_MONTHLY=price_xxxxx
+STRIPE_PRICE_DENISE_MONTHLY=price_xxxxx
 ```
 
-> **Stripe note:** Use test key (`sk_test_...`) during development. Swap to `sk_live_...` for go-live. Price IDs must be set as Railway env vars — never in code.
+> **⚠️ Silent-failure warning (hard-code audit 28 Jun):** the app boots fine even when the Stripe price IDs, `STRIPE_WEBHOOK_SECRET`, `ADMIN_SECRET_KEY`, or `FIGSY_COLD_FROM` are missing — it just quietly doesn't charge / doesn't send / poisons the domain. Confirm every var above on the live deploy; cross-check the **🔑 GO-LIVE CONFIG** section in LAUNCH-PAD.
+> **Stripe note:** the **API** needs `STRIPE_PRICE_*` (above) to build checkout; the **portal** needs the matching `NEXT_PUBLIC_STRIPE_PRICE_*` (Step 3b) to enable the Buy button. Both sets, same price IDs.
 
 ### 2c. Get your Railway API URL
 
@@ -160,6 +180,13 @@ Railway → portal service → **Variables**:
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 NEXT_PUBLIC_API_URL=https://your-railway-api-url.up.railway.app
+# Stripe price IDs — the Buy button is DISABLED without these (same price IDs as the API)
+NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40=price_xxxxx
+NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100=price_xxxxx
 ```
 
 ### 3c. Add custom domain

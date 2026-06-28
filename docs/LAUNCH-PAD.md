@@ -21,9 +21,10 @@
 *Agreed with founder. Order: safest code first, then bigger.*
 1. **T2c — Kill Paystack** 🤖 — remove the Paystack router + ZAR write paths entirely; Stripe-only. Fresh branch → build/typecheck → PR. *(subs = 0, safe.)*
 2. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — per-client daily cap (default **50/client/day, configurable**) + batched enroll so 1,000 leads don't time out. Fresh branch → tests → PR.
-3. **243 — Lead-source depth / source-router** 🤝 — add the multi-provider source router (PDL→Hunter→Clearbit + BetterContact) so the outreach list enriches to verified-email volume.
-4. **Sequence → Instantly** 🧍 — founder loads the drafted 4-step sequence (delivered) into Instantly.
-5. **Walkthrough** 🤝 — founder walks all 🩷/🟢 items; Claude fixes breakages on the spot + flips dots.
+3. **Outreach list → ≥2,000 names** 🤖 — pull at least 2,000 real named **US SMB/Mid-Market** contacts via Apollo MCP (one-off list-build tool, separate from the product's no-Apollo stack), dedupe vs the existing 179, output a loadable CSV. Emails revealed by PDL→Hunter on load. *(Founder-approved 28 Jun; do tomorrow.)*
+4. **243 — Lead-source depth / source-router** 🤝 — add the multi-provider source router (PDL→Hunter→Clearbit + BetterContact) so the list enriches to verified-email volume.
+5. **Sequence → Instantly** 🧍 — founder loads the drafted 4-step sequence (delivered) into Instantly.
+6. **Walkthrough** 🤝 — founder walks all 🩷/🟢 items; Claude fixes breakages on the spot + flips dots.
 - **Gated (not tomorrow unless warm):** First outreach fired — only once **Instantly confirmed warm** (health ~90% + inbox test). Firing cold burns the rig.
 
 ---

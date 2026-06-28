@@ -79,7 +79,7 @@
 - **Feature builds:** 120 memory · 144 Denise-deep · 141 context-MCP · 145 LENA/TONY · 157/158 images+voice-brief · 162 prompt library.
 - **Partner / seller engine:** 197 · 200 · 203 · 213–226 · 228 (whole partner UI/comp). Stealth recruiting 233 = list-build only.
 - **Channels:** 96 Vapi · 128 WhatsApp · 178/229 voice — off the cash path.
-- **Later / gated:** 139/143 · 147 · 150–161 · 165 · 55a RLS · 181 enterprise SSO.
+- **Later / gated:** 139/143 · 147 · 150–161 · 165 · 55a RLS · 181 enterprise SSO · **258 regional data residency** (trigger-gated: framework pre-built → provision + test + go-live **same day** on the 1st US/UK client → runbook `docs/DATA-RESIDENCY-PLAYBOOK.md`).
 
 ---
 

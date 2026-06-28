@@ -1281,6 +1281,35 @@
       .af-card{position:relative;margin:8px auto}
       .af-scene::before,.af-scene::after{display:none}
     }
+
+    /* SOCIAL PROOF scaffold (item 253) — built ready, kept HIDDEN until real data.
+       NO fake logos / testimonials / numbers ship (founder rule). To go live: fill
+       in real entries below and remove style="display:none" from .social-proof. */
+    .social-proof{padding:72px 24px;background:#fff;border-top:1px solid var(--border)}
+    .sp-inner{max-width:1080px;margin:0 auto;text-align:center}
+    .sp-eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--blue);margin-bottom:12px}
+    .sp-title{font-size:clamp(1.6rem,3.4vw,2.4rem);font-weight:900;letter-spacing:-.03em;color:var(--dark);margin-bottom:36px}
+    /* logo wall */
+    .sp-logos{display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;margin-bottom:56px}
+    .sp-logo{height:30px;opacity:.55;filter:grayscale(1);transition:opacity .2s,filter .2s}
+    .sp-logo:hover{opacity:1;filter:none}
+    .sp-logo img{height:100%;width:auto;display:block}
+    /* results ticker */
+    .sp-ticker{overflow:hidden;border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:18px 0;margin-bottom:56px}
+    .sp-ticker-track{display:inline-flex;gap:56px;white-space:nowrap;animation:sp-scroll 28s linear infinite}
+    .sp-stat{display:inline-flex;align-items:baseline;gap:8px}
+    .sp-stat b{font-size:1.5rem;font-weight:900;letter-spacing:-.02em;color:var(--dark)}
+    .sp-stat span{font-size:.85rem;color:rgba(0,0,0,.45)}
+    @keyframes sp-scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    /* testimonials */
+    .sp-quotes{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;text-align:left}
+    .sp-quote{background:var(--light);border:1px solid var(--border);border-radius:18px;padding:26px 24px}
+    .sp-quote p{font-size:.95rem;line-height:1.6;color:var(--dark);margin-bottom:18px}
+    .sp-who{display:flex;align-items:center;gap:12px}
+    .sp-who img{width:40px;height:40px;border-radius:50%;object-fit:cover}
+    .sp-who-name{font-weight:800;font-size:.85rem;color:var(--dark)}
+    .sp-who-role{font-size:.76rem;color:rgba(0,0,0,.45)}
+    @media(max-width:760px){.sp-quotes{grid-template-columns:1fr}}
   </style>
   <!-- Shared K.I.N.D design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
@@ -1553,6 +1582,40 @@
     </div>
   </div>
 </div>
+
+<!-- SOCIAL PROOF (item 253) — SCAFFOLD, ready to populate. HIDDEN until real data exists.
+     GO-LIVE: (1) replace the template logo/quote/stat entries below with REAL ones,
+     (2) delete style="display:none" from the .social-proof div. No placeholders ship. -->
+<section class="social-proof" style="display:none">
+  <div class="sp-inner">
+    <div class="sp-eyebrow">Trusted by teams that ship pipeline</div>
+    <h2 class="sp-title">Real results, real names.</h2>
+
+    <!-- LOGO WALL — add one .sp-logo per real client logo (PNG/SVG with transparent bg) -->
+    <div class="sp-logos">
+      <!-- <div class="sp-logo"><img src="clients/example-co.png" alt="Example Co" /></div> -->
+    </div>
+
+    <!-- RESULTS TICKER — duplicate the set of .sp-stat once so the loop is seamless. Real numbers only. -->
+    <div class="sp-ticker">
+      <div class="sp-ticker-track">
+        <!-- <span class="sp-stat"><b>00</b><span>meetings booked</span></span>
+             <span class="sp-stat"><b>00%</b><span>reply rate</span></span>
+             <span class="sp-stat"><b>$000k</b><span>pipeline sourced</span></span> -->
+      </div>
+    </div>
+
+    <!-- TESTIMONIALS — add one .sp-quote per real, attributed testimonial (name + role + photo) -->
+    <div class="sp-quotes">
+      <!-- <div class="sp-quote">
+             <p>&ldquo;Real quote from a named client.&rdquo;</p>
+             <div class="sp-who"><img src="clients/person.jpg" alt="Name" />
+               <div><div class="sp-who-name">Full Name</div><div class="sp-who-role">Title, Company</div></div>
+             </div>
+           </div> -->
+    </div>
+  </div>
+</section>
 
 <!-- WHY KIND PILLARS removed (14 Jun): "Four levers" was redundant — the levers are
      already shown in the agent shots (SEE THEM WORK) and The Human Ceiling section below. -->

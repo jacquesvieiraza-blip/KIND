@@ -272,6 +272,34 @@
     .human-strip-sub { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.6; max-width: 520px; }
     .human-strip-btn { display: inline-block; background: #0a0a0a; color: #fff; font-size: 0.88rem; font-weight: 700; padding: 13px 26px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s, transform .2s; flex-shrink: 0; }
     .human-strip-btn:hover { opacity: 0.8; transform: translateY(-1px); }
+
+    /* COMPARE ALL PLANS — feature matrix (item 255) */
+    .cmp-wrap { max-width: 1080px; margin: 0 auto 8px; padding: 0 24px; }
+    .cmp-head { text-align: center; margin: 16px 0 28px; }
+    .cmp-head h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: var(--dark); }
+    .cmp-head p { font-size: 0.92rem; color: rgba(0,0,0,0.45); margin-top: 8px; }
+    .cmp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: 20px; background: #fff; }
+    .cmp-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    .cmp-table th, .cmp-table td { padding: 15px 20px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
+    .cmp-table thead th { position: sticky; top: 0; background: #fff; z-index: 2; }
+    .cmp-table th:first-child, .cmp-table td:first-child { text-align: left; color: rgba(0,0,0,0.7); font-weight: 600; width: 38%; }
+    .cmp-plan-name { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.4); }
+    .cmp-plan-price { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.03em; color: var(--dark); line-height: 1.1; margin-top: 2px; }
+    .cmp-plan-price small { font-size: 0.78rem; font-weight: 400; color: rgba(0,0,0,0.35); }
+    .cmp-col-pop { background: linear-gradient(180deg, rgba(124,58,237,0.05), rgba(124,58,237,0.02)); }
+    .cmp-col-pop .cmp-plan-name { color: var(--blue); }
+    .cmp-grouprow td { background: var(--light); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.7rem; color: rgba(0,0,0,0.5); text-align: left; }
+    .cmp-yes { color: #059669; font-weight: 800; }
+    .cmp-no { color: rgba(0,0,0,0.2); }
+    .cmp-val { color: var(--dark); font-weight: 700; }
+    .cmp-table tbody tr:last-child td { border-bottom: none; }
+    .cmp-cta-row td { padding-top: 20px; padding-bottom: 22px; }
+    .cmp-cta { display: inline-block; font-size: 0.82rem; font-weight: 700; padding: 10px 20px; border-radius: 100px; text-decoration: none; }
+    .cmp-cta-out { border: 1px solid rgba(0,0,0,0.18); color: var(--dark); }
+    .cmp-cta-pop { background: var(--blue); color: #fff; }
+    .cmp-cta-out:hover { border-color: rgba(0,0,0,0.4); }
+    .cmp-cta-pop:hover { opacity: 0.9; }
+    @media (max-width: 600px) { .cmp-table th, .cmp-table td { padding: 12px 14px; font-size: 0.8rem; } }
   </style>
 </head>
 <body>
@@ -480,6 +508,59 @@
 
   </div>
   <p class="p-vol-note">💳 Billed in USD · Stripe-secured · Cancel anytime · No contracts · Volume discounts from 500+ leads · Enterprise pricing on request · <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.35);text-decoration:none">hello@get-kind.com</a></p>
+</div>
+
+<!-- COMPARE ALL PLANS — feature matrix (item 255) -->
+<div class="cmp-wrap">
+  <div class="cmp-head">
+    <h2>Compare all plans</h2>
+    <p>Every feature, side by side. Pay for results — credits never expire, cancel anytime.</p>
+  </div>
+  <div class="cmp-scroll">
+    <table class="cmp-table">
+      <thead>
+        <tr>
+          <th></th>
+          <th><div class="cmp-plan-name">Start</div><div class="cmp-plan-price">$1<small>/lead</small></div></th>
+          <th class="cmp-col-pop"><div class="cmp-plan-name">Scale · Most popular</div><div class="cmp-plan-price">$3<small>/lead</small></div></th>
+          <th><div class="cmp-plan-name">Dominate</div><div class="cmp-plan-price">Let's talk</div></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="cmp-grouprow"><td colspan="4">Lead generation</td></tr>
+        <tr><td>ICP-matched lead sourcing (250M+ contacts)</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>AI lead score 0–100</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>GDPR &amp; POPIA consent workflow</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>CRM deduplication &amp; CSV export</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Lead volume</td><td class="cmp-val">Pay per lead</td><td class="cmp-col-pop cmp-val">Pay per lead</td><td class="cmp-val">Custom</td></tr>
+
+        <tr class="cmp-grouprow"><td colspan="4">FIGSY autonomous outreach</td></tr>
+        <tr><td>Personalised AI outreach (unique per lead)</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Multi-step follow-up sequences</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Reply detection &amp; handling</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Meeting booking automation</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Campaign dashboard</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+
+        <tr class="cmp-grouprow"><td colspan="4">Integrations &amp; support</td></tr>
+        <tr><td>HubSpot &amp; Salesforce integration</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Dedicated Account Executive</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Custom SLA &amp; onboarding</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Priority support</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
+
+        <tr class="cmp-grouprow"><td colspan="4">Billing</td></tr>
+        <tr><td>No monthly minimum · cancel anytime</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-val">Custom</td></tr>
+        <tr><td>Credits never expire</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+        <tr><td>Yearly billing — save 20%</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+
+        <tr class="cmp-cta-row">
+          <td></td>
+          <td><a href="#" onclick="openAuth('signup');return false;" class="cmp-cta cmp-cta-out">Start free</a></td>
+          <td class="cmp-col-pop"><a href="https://calendly.com/kind-ai-demo/new-meeting" target="_blank" rel="noopener noreferrer" class="cmp-cta cmp-cta-pop">Book a call →</a></td>
+          <td><a href="mailto:hello@get-kind.com?subject=Dominate%20Plan%20Enquiry" class="cmp-cta cmp-cta-out">Get in touch →</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <!-- COMPLIANCE BADGES + CALCULATOR CTA -->

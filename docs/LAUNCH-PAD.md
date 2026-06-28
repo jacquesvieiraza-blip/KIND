@@ -27,7 +27,9 @@
 3. **Sequence → Instantly** 🧍 — founder loads the drafted 4-step dogfood + free-sample sequence.
 4. **Walkthrough — trust pass (so demos hold up)** 🤝 — Section A (23 click-walk, Mon) + Section B (8 demo-account, Tue); Claude fixes ❌ live + flips dots.
 5. **Company — business training** 🧍 *(Mon)* + **Xero/accounting + banking + Wise rails** 🧍🤝 *(Tue)*.
-- **GATED — the only waiter:** **198 Instantly warmth** 🧍 (confirm ~90% health + inbox test) → then **127 first outreach fired** 🤝. Cold = burns the rig.
+6. **Deliverability go-live (config, NO code)** 🧍 — set cold-domain env `FIGSY_COLD_FROM` · `FIGSY_COLD_REPLY_TO` · `TRACKING_URL` + DNS **SPF/DKIM/DMARC**, then **mail-tester 10/10 (item 101)**. *Required before ANY send.*
+7. **Payment go-live (config, NO code)** 🧍 — register the **Stripe Price IDs** + set `STRIPE_PRICE_*` env in Railway (9 prices + webhook secret). *Without this a customer can't actually pay (items 25/168). Code is live + verified — this is config only.*
+- **GATED — the only waiter:** **198 Instantly warmth** 🧍 (confirm ~90% health + inbox test) → **test-send 10–20 leads first** → then **127 first outreach fired** 🤝. Cold = burns the rig.
 
 ### ▶ WED 1 JUL — MILESTONE 2: BUILD EVERYTHING FOR CLIENTS TO USE THE SYSTEM
 *Everything a paying client needs to run their own sending on the product.*
@@ -38,12 +40,20 @@
 5. **212 — Context-rich FIGSY sequences** 🤖 — 4–6 steps using each lead's real data.
 6. **T5 — Harden** 🤝 — dead-control cleanup (88/230/122) + unrun migrations (182/185); monitoring (199) + Smoke Test 2 (100).
 7. **Verify Pause/M2** 🤝 — re-walk to confirm pause stops Stripe billing (showed ❌ 26-Jun; migration ran 28-Jun) → 🔧→🟢.
+8. **55a — Company-engine RLS (rep-data isolation)** 🤖 — DB-enforced row-level security so reps in a paying company can't see each other's data (today it's app-logic only). Needed BEFORE onboarding a multi-rep client.
 - *T2c/T3 are quick — I can pull them into Tue if Mon-Tue has slack; otherwise they run Wed with the rest.*
+
+### ▶ THU–FRI 3–4 JUL — RECORD + UPLOAD VERIFIED DEMOS
+*Turns the now-trustworthy product into proof on the marketing site. No new features — record + embed.*
+1. **Record demos** 🧍 — founder films per `RECORDING-SHOOTING-SCRIPT.md` (item 129). Claude provisions a demo company first (for the Command-Centre scene, item 55).
+2. **Demo-page prep (HTML only)** 🤖 — `demo.html` is already video-ready (swap the embed); **The Drop, blog, and home need a small video-embed block added** to host the clips. Decision: one **/watch** hub (held item 93) or consolidate on `demo.html`? *(my rec: consolidate on demo.html now, build /watch later.)*
+3. **Upload + publish** 🤝 — drop the verified videos into demo + Drop + blog + home; flip item 129/130/163 as they go live.
 
 ### ⏳ TRACKED / GATED — time-based or trigger-gated
 - **198 Instantly warmth** 🧍 — the one allowed waiter (gates our first send).
 - **Section C walkthrough (27 behavioural items)** 🤝 — fire on the first real campaign; can't click-walk.
 - **258 data residency** 🤝 — trigger-gated: build same-day on the first US/UK client.
+- **Pitch-strengtheners (NOT blocking the sale, post-first-client):** 131 GTM funnel instrumentation · 133 design-partner case study + logo · 137 90-day guarantee · 135 onboarding-v2 emails. Flagged so they're not lost; do after first client/results.
 - **Doc hygiene** 🤖 — archive `AUDIT-24JUN-RECONCILIATION.md`; relabel Alta numbers in the pitch decks (anytime).
 
 ---

@@ -18,7 +18,7 @@
 > ⚠️ **The honest headline:** we are **NOT near** "clients on the product." Smartlead has **zero sending built**; Instantly warmth is **unconfirmed**. This tracker now shows that truthfully so the warm date can't surprise us again.
 
 ## 📅 MON 29 + TUE 30 JUN — THE 2-DAY SPRINT (locked 28 Jun)
-**Goal:** clear everything on the road-to-ready so the *only* thing left waiting is **time-gated** (Instantly warmth + the engine that depends on it). Prioritised highest → least. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
+**Goal:** Mon–Tue = get **100% sell-ready** (everything except the warmth clock). **Wed = start the engine (211/T4).** The *only* thing that can still be "waiting" is **Instantly warmth** — a ~2-week clock you confirm, not a build. Prioritised highest → least. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
 
 ### ▶ MONDAY (highest → least)
 1. **T2c — Kill Paystack** 🤖 — remove Paystack router + ZAR write paths entirely; Stripe-only (covers inv 169/237). Fresh branch → typecheck → PR. *(subs = 0, safe.)*
@@ -36,10 +36,16 @@
 5. **Company — Xero + backend** 🧍🤝 — pick + connect accounting platform (Xero/QB), USD reporting + VAT threshold (inv 196); banking + Wise commission rails. Claude assists any code/export.
 6. **Doc hygiene** 🤖 — archive `AUDIT-24JUN-RECONCILIATION.md`; relabel Alta numbers in the pitch decks as illustrative.
 
+### ▶ WEDNESDAY 1 JUL — START THE ENGINE (#2 / 211 / T4)
+*The client sending engine. Build can start Wed — it does NOT need warmth; only putting paying clients on it does. Gated on 2 founder decisions:*
+1. **Mailbox markup** 🧍 — what we charge a client per sending mailbox.
+2. **Resend → per-client sending** 🧍 — confirm the switch to isolated, warmed per-client mailboxes (Smartlead).
+- Then 🤖 builds Smartlead Phases 2–6: provision → warm → sending seam → credit alignment → test. Multi-day; spans past Wed.
+
 ### ⏳ TRACKED / GATED — time-based, NOT Mon-Tue (waiting, by design)
 - **198 Instantly warmth** 🧍 — confirm ~90% health + inbox-placement test. *The one allowed waiter.*
 - **127 First outreach fired** 🤝 — fires the moment Instantly is warm + sequence loaded. Cold = burns the rig.
-- **T4 / 211 — the client sending engine (Smartlead, Phases 2–6)** 🤝 — gated on 198 + your decisions (mailbox markup + Resend migration). Its own track once warmth lands.
+- **T4 / 211 — the client sending engine** 🤝 — **build STARTS Wed** (see Wednesday block); putting *paying clients* on it waits for warmth + testing.
 - **Section C walkthrough (27 behavioural items)** 🤝 — fire on the first real campaign; can't click-walk.
 - **258 data residency** 🤝 — trigger-gated: build same-day on the first US/UK client.
 

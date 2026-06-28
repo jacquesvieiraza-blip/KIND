@@ -125,7 +125,7 @@
 | 170 | 🩷 | Atomic FIGSY credit RPC (increment_figsy_credits) | 🧍 walk |
 | 171 | 🩷 | "How credits work" panel honesty | 🧍 walk |
 | 58 | 🩷 | Denise $39 Stripe price (verify at checkout) | 🧍 walk |
-| 190 | 🟡 | Save / pause / win-back flow — **FIX BUILT 26 Jun (🔴→🟡).** Two root causes found: (1) the action 409'd because migration `20260622_subscription_pause.sql` (the `paused` enum + `paused_at`/`paused_until` cols) was never run on prod; (2) it only disabled Paystack, so a Stripe client would be told "billing stopped" while Stripe kept charging (the old M2 gap). Fixed in code: pause now also calls Stripe `pause_collection` + resume clears it (M2 folded in — pause genuinely stops billing). tsc clean. **🧍 GATING ACTION: founder runs the migration on prod** (SQL provided) → then pause works end-to-end → preview → 🟢. | 🤝 |
+| 190 | 🩷 | Save / pause / win-back flow — **BUILT #769; migration RUN on prod 28 Jun → pause works end-to-end (🟡→🩷, pending one verification walk).** Two root causes found: (1) the action 409'd because migration `20260622_subscription_pause.sql` (the `paused` enum + `paused_at`/`paused_until` cols) was never run on prod; (2) it only disabled Paystack, so a Stripe client would be told "billing stopped" while Stripe kept charging (the old M2 gap). Fixed in code: pause now also calls Stripe `pause_collection` + resume clears it (M2 folded in — pause genuinely stops billing). tsc clean. Migration done — next: founder walks one live pause → 🟢. | 🤝 |
 | 136a | 🟢 | Client invoicing + agreements — **walk-confirmed 26 Jun** (T&C+Privacy+DPA+acceptance record+invoices all show). ⚠️ findability: it's buried under the Milla agent → relocate (item 251) | 🤝 |
 
 ### R-wave (R1–R20, live via #502)

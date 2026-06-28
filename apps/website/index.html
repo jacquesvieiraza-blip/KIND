@@ -362,6 +362,33 @@
     }
     .dogfood-callout-text strong { color: #fff; }
 
+    /* SYSTEM FLOW (added) */
+    .kfx{background:#fff;padding:90px 24px;text-align:center;overflow:hidden}
+    .kfx-head{max-width:620px;margin:0 auto 30px}
+    .kfx-eyebrow{font-size:.7rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin-bottom:14px}
+    .kfx-title{font-size:clamp(1.9rem,4vw,3rem);font-weight:900;letter-spacing:-.03em;line-height:1.05;margin-bottom:12px;color:#0a0a0a}
+    .kfx-sub{color:rgba(0,0,0,.48);font-size:1rem;max-width:540px;margin:0 auto}
+    .kfx-flow{position:relative;max-width:1000px;margin:30px auto 0;height:210px}
+    .kfx-rail{position:absolute;top:60px;left:5%;right:5%;height:4px;border-radius:4px;background:linear-gradient(90deg,#db2777,#7c3aed,#2563eb,#b45309,#0e9f6e);opacity:.32}
+    .kfx-stations{position:absolute;inset:0;display:flex;justify-content:space-between;padding:0 2%}
+    .kfx-st{width:130px;text-align:center;position:relative;z-index:2}
+    .kfx-node{width:78px;height:78px;border-radius:22px;margin:22px auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;color:#fff;box-shadow:0 12px 26px rgba(40,20,80,.16);position:relative}
+    .kfx-node::after{content:'';position:absolute;inset:-6px;border-radius:28px;border:2px solid var(--c);opacity:.3;animation:kfxring 2.6s ease-in-out infinite}
+    @keyframes kfxring{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.12);opacity:0}}
+    .kfx-nm{font-weight:800;font-size:.9rem;color:#0a0a0a}.kfx-rl{font-size:.72rem;color:rgba(0,0,0,.45);margin-top:2px}
+    .kfx-f .kfx-node{background:#db2777}.kfx-f{--c:#db2777}
+    .kfx-m .kfx-node{background:#7c3aed}.kfx-m{--c:#7c3aed}
+    .kfx-v .kfx-node{background:#2563eb}.kfx-v{--c:#2563eb}
+    .kfx-d .kfx-node{background:#b45309}.kfx-d{--c:#b45309}
+    .kfx-r .kfx-node{background:#0e9f6e}.kfx-r{--c:#0e9f6e}
+    .kfx-packet{position:absolute;top:54px;width:44px;height:28px;border-radius:8px;background:#fff;box-shadow:0 6px 16px rgba(40,20,80,.18);border:1px solid rgba(0,0,0,.06);display:flex;align-items:center;justify-content:center;z-index:1;animation:kfxtravel 6s linear infinite}
+    .kfx-packet i{width:18px;height:4px;border-radius:3px;background:#c9b8ff;box-shadow:0 6px 0 #ffc6e2,0 -6px 0 #bfe0ff}
+    @keyframes kfxtravel{0%{left:3%;opacity:0;transform:scale(.7)}6%{opacity:1;transform:scale(1)}90%{opacity:1}100%{left:92%;opacity:0;transform:scale(.7)}}
+    .kfx-p2{animation-delay:1.5s}.kfx-p3{animation-delay:3s}.kfx-p4{animation-delay:4.5s}
+    .kfx-badge{position:absolute;top:-8px;right:-8px;background:#0e9f6e;color:#fff;font-size:.52rem;font-weight:800;padding:3px 7px;border-radius:100px;white-space:nowrap}
+    .kfx-foot{margin-top:50px;font-size:.95rem;color:rgba(0,0,0,.5)}.kfx-foot b{color:#0a0a0a}
+    @media(max-width:760px){.kfx-flow{height:auto}.kfx-rail{display:none}.kfx-stations{position:static;flex-direction:column;gap:18px;padding:0}.kfx-st{width:auto}.kfx-packet{display:none}.kfx-node{margin-top:0}}
+    @media (prefers-reduced-motion:reduce){.kfx-packet,.kfx-node::after{animation:none}}
     /* HOW IT WORKS */
     .hiw-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
     .hiw-card { padding: 32px; background: var(--light); border-radius: 20px; }
@@ -1459,6 +1486,7 @@
         <a href="pipeline-calculator.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><line x1="8" y1="7" x2="16" y2="7"/><path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01"/></svg></span><span><span class="dd-title">Pipeline Calculator</span><span class="dd-sub">Estimate the meetings FIGSY could add</span></span></a>
       </div>
     </div>
+    <a href="solutions.html" class="nav-link">Solutions</a>
     <div class="nav-item">
       <a href="blog.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown" style="min-width:300px">
@@ -1868,6 +1896,30 @@
 </div>
 
 <!-- AI FAMILY — scroll showcase -->
+<!-- SYSTEM FLOW -->
+<section class="kfx">
+  <div class="kfx-head">
+    <div class="kfx-eyebrow">How it works</div>
+    <div class="kfx-title">One lead in. A booked meeting out.</div>
+    <div class="kfx-sub">Watch a lead flow through the family &mdash; sourced, understood, engaged, closed &mdash; without you lifting a finger.</div>
+  </div>
+  <div class="kfx-flow">
+    <div class="kfx-rail"></div>
+    <div class="kfx-packet kfx-p1"><i></i></div>
+    <div class="kfx-packet kfx-p2"><i></i></div>
+    <div class="kfx-packet kfx-p3"><i></i></div>
+    <div class="kfx-packet kfx-p4"><i></i></div>
+    <div class="kfx-stations">
+      <div class="kfx-st kfx-f"><div class="kfx-node">F</div><div class="kfx-nm">FIGSY</div><div class="kfx-rl">Finds &amp; emails</div></div>
+      <div class="kfx-st kfx-m"><div class="kfx-node">M</div><div class="kfx-nm">Milla</div><div class="kfx-rl">Reads &amp; scores</div></div>
+      <div class="kfx-st kfx-v"><div class="kfx-node">V</div><div class="kfx-nm">Vida</div><div class="kfx-rl">Captures inbound</div></div>
+      <div class="kfx-st kfx-d"><div class="kfx-node">D</div><div class="kfx-nm">Denise</div><div class="kfx-rl">Closes &amp; follows up</div></div>
+      <div class="kfx-st kfx-r"><div class="kfx-node">&#10003;<span class="kfx-badge">Meeting booked</span></div><div class="kfx-nm">Result</div><div class="kfx-rl">On your calendar</div></div>
+    </div>
+  </div>
+  <div class="kfx-foot">Every agent shares <b>one memory</b> &mdash; what one learns, they all use.</div>
+</section>
+
 <section class="af-section" id="products">
   <div class="af-intro reveal">
     <div class="s-label">YOUR FAMILY</div>
@@ -2311,6 +2363,7 @@
         <h4>Company</h4>
         <a href="about.html">About K.I.N.D</a>
         <a href="use-cases.html">Use Cases</a>
+        <a href="solutions.html">Solutions</a>
         <a href="pricing.html">Pricing</a>
         <a href="trust.html">Trust &amp; Security</a>
         <a href="partners.html">Partners</a>

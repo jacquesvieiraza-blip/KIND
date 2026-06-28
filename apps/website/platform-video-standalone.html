@@ -721,7 +721,7 @@
     <div style="z-index:2">
       <div class="pipeline-card fade-up">
         <div class="p-label">Pipeline Growth</div>
-        <div class="p-val" id="pval">R0</div>
+        <div class="p-val" id="pval">$0</div>
         <div class="p-delta">↑ +38% this month</div>
         <div class="chart-area">
           <div class="cbar" id="cb1" style="height:30%"></div>
@@ -791,7 +791,7 @@
         <span class="agent-pill-sm" id="ap4">📊 KPI Dashboard</span>
         <span class="agent-pill-sm" id="ap5">🤝 Partner Programme</span>
       </div>
-      <div style="font-size:0.9rem;color:rgba(255,255,255,0.6);margin:14px 0">African-first · POPIA compliant · Start from $20</div>
+      <div style="font-size:0.9rem;color:rgba(255,255,255,0.6);margin:14px 0">Global · GDPR &amp; POPIA compliant · Start from $20</div>
       <a href="https://app.get-kind.com/login" class="cta-btn">Start free trial →</a>
     </div>
   </div>
@@ -988,12 +988,12 @@ function onSceneEnter(idx) {
     })
     const pval = document.getElementById('pval')
     if (pval) {
-      pval.textContent = 'R0'
+      pval.textContent = '$0'
       let n = 0; const target = 420000
       const iv = setInterval(() => {
         n += 14000
         if (n >= target) { n = target; clearInterval(iv) }
-        pval.textContent = 'R' + n.toLocaleString()
+        pval.textContent = '$' + n.toLocaleString()
       }, 40)
       sceneTimers.push(iv)
     }

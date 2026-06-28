@@ -1,5 +1,7 @@
 # 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER (future detail ONLY)
 
+> 🗓️ **28 Jun note:** content below is future-detail and still accurate in shape; a **hygiene trim of this doc is PARKED** (founder decision 26 Jun — low priority vs the daily docs). Current truth always lives in PRODUCT-INVENTORY / LAUNCH-PAD. The 26 Jun yellow/red audit + 190 fix are logged in KIND-MASTER, not here.
+
 > **AUTHORITY (operating system — see root `CLAUDE.md`):** future detail only — roadmap rationale, risks, learning engine, GTM, steals, moat. **No current build statuses or daily execution here.** For current status → `PRODUCT-INVENTORY.md`; for current execution → `LAUNCH-PAD.md`; for strategy → `KIND-MASTER.md`.
 
 > **🧭 Four-doc contract:** **V2-TRACKER** *(this doc)* = future roadmap, risks, rationale, steals — **no live status** · **LAUNCH-PAD** = daily execution · **PRODUCT-INVENTORY** = status (one dot, one owner) · **KIND-MASTER** = strategy + session log. **Conflict rule:** future truth = here; status = PRODUCT-INVENTORY; daily = LAUNCH-PAD; strategy = KIND-MASTER. No fifth core doc.

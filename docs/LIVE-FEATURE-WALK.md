@@ -1,5 +1,5 @@
 # 🚶 K.I.N.D — LIVE-FEATURE WALK (the verification checklist)
-`Last-checked: 25 Jun 2026` _(the "Mon 22" walk-plan dates below are historical; the walk is still pending — status of record = PRODUCT-INVENTORY)_
+`Last-checked: 28 Jun 2026` _(trust-walk Batches 1–6 done 26 Jun; yellow/red live-exposure audit done 26 Jun; **the 58 pinks are now driven by `PINK-WALK-CHECKLIST.md`** — founder self-walking Group A. The "Mon 22" dates below are historical; status of record = PRODUCT-INVENTORY)_
 
 > **Purpose:** every feature/element that is LIVE in production, in one tickable list — so we confirm **it all works** and move the board from 🩷 → 🟢. Source of record for status stays `PRODUCT-INVENTORY`; this is the *walk tool* that drives the flips.
 > **How to use:** walk each item on the live site, mark it, and tell me the IDs. **✅ works → I flip 🩷→🟢** · ⚠️ placeholder → note it · **🔴 broken → I fix same-day** (drops to 🔴 on the board until fixed).

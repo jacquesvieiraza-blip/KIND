@@ -11,9 +11,9 @@
 
 ## 📌 WHERE AM I — the 20-second answer
 - **Milestone 1 — READY TO SELL & ONBOARD:** 🔧 in progress — **0 of 5 done** (the walkthrough is the live work; Instantly not yet confirmed warm).
-- **Milestone 2 — CLIENTS RUN ON THE PRODUCT:** 🔴 early — **3 of 8 done** (T1 safety + T2a + T2b). The engine (211) is barely started.
-- **In flight right now:** the walkthrough fix-list (slow, one at a time).
-- **Open PR:** none (all merged). **Next fix:** 190 (pause) — *paused pending this rebuild.*
+- **Milestone 2 — CLIENTS RUN ON THE PRODUCT:** 🔴 early — **3 of 8 done** (T1 + T2a + T2b); **M2/pause now BUILT (#769) — pending your prod migration.** The engine (211) is still barely started.
+- **In flight right now:** the **pink walkthrough** — you self-walking Group A (see `PINK-WALK-CHECKLIST.md`); I flip dots + fix breakages as you report.
+- **Open PR:** **#770** (pink-walk checklist). **Last built:** 190 pause (#769, merged) — ⏳ **needs you to run the prod migration** or pause stays broken in prod.
 
 > ⚠️ **The honest headline:** we are **NOT near** "clients on the product." Smartlead has **zero sending built**; Instantly warmth is **unconfirmed**. This tracker now shows that truthfully so the warm date can't surprise us again.
 
@@ -43,7 +43,7 @@
 | T2a | **Region default** fixed (no ZA default) + voice copy (#754) | ✅ | 🤖 | *done* |
 | T2b | **Currency stored in USD** (`amount_usd`, #756) | ✅ | 🤖 | *done + migration run* |
 | T2c | **Kill Paystack** — remove router + ZAR write paths (subs = 0, cleared) | 🔴 | 🤖 | Paystack code gone; Stripe-only |
-| M2 | **Pause stops Stripe billing** — today pause only handles Paystack | 🔴 | 🤖 | a paused sub stops the Stripe charge (pairs w/ walk-fix 190) |
+| M2 | **Pause stops Stripe billing** — **BUILT #769** (pause now calls Stripe `pause_collection`; 190 folded in) | 🔧 | 🤝 | ⏳ founder runs `20260622_subscription_pause.sql` on prod → then a paused sub actually stops the Stripe charge |
 | T3 | **Per-client send cap + N+1 batch enroll** — cap is global today (clients starve each other) | 🔴 | 🤖 | each client/rep has its own daily cap; 1,000-lead enroll doesn't time out |
 | T4 | **211 — the engine:** per-client isolated + warmed sending (Smartlead) | 🔴 | 🤝 | a client sends from an isolated, warmed sender — verified |
 | T5 | **Harden** — monitoring/alerts (199) · Smoke Test 2 (100) · dead-control cleanup | 🔴 | 🤝 | an outage pages you; all paths pass; no dead controls live |

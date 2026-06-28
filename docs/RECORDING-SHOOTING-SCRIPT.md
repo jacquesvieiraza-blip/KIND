@@ -29,24 +29,26 @@
 ## SECTION 1 — ONBOARD  *(signup → welcome → setup)*
 > **6-beat:** *Small businesses can't afford a sales team (problem). So the owner sells between jobs — late nights, cold lists, no follow-up (pain). Most never contact a lead more than once (metric). Every un-chased lead is a job lost to a competitor (cost). What if setup took five minutes, not a hire (way out)? K.I.N.D gets you live, guided, in minutes (solution).*
 
+> ⚙️ **RECORDING NOTE (updated 28 Jun — read first):** the old `/v2/*` preview routes (`/v2/signup`, `/v2/welcome`, `/v2/setup`, `/v2/thinking`) were **pulled** in the 26-Jun audit and now redirect — **do not record them.** Scenes below use the **real** live flow. Log in via **`/demo-login`** to record inside the seeded demo account.
+
 ### Scene 1.1 — Sign up + accept terms *(~7s)*
-- **SCREEN:** `get-kind.com` → **Start free** → `/v2/signup`
+- **SCREEN:** `get-kind.com` → **Start free** → the real signup form
 - **🔴 PAIN:** "Hiring a salesperson takes months and thousands a month."
 - **RECORD:** type a business email → tick **"I agree to the Terms & Conditions and Privacy Policy"** *(required — no account without it)* → **Create account**
 - **SAY:** *"No hire, no contract — tick the terms, and you're in, in seconds."*
 
-### Scene 1.2 — Welcome / Spotlight *(~8s)* — **MOCKUP** (`/v2/welcome/b`, `previews/welcome-concepts.html`)
+### Scene 1.2 — Guided setup (the REAL thing) *(~12s)* — **LIVE** (`/onboard`)
+- **🔴 PAIN:** "Setup wizards are forms you abandon."
+- **RECORD:** the `/onboard` conversation — it asks for your **website**, scans it, and **pre-fills your ICP automatically** (type a site, watch it build); one calm step at a time
+- **SAY:** *"It walks you through it — give it your website, it reads your business and builds your targeting for you. One step at a time, no manual."*
+
+### Scene 1.3 — Meet your AI sales team *(~8s)* — **LIVE** (`/dashboard`)
 - **🔴 PAIN:** "New tools usually dump you on an empty dashboard."
-- **RECORD:** the Spotlight welcome screen; the agents introduce themselves
+- **RECORD:** the dashboard home — the agent grid (FIGSY · Milla · Vida · Denise) with where-to-start
 - **SAY:** *"K.I.N.D meets you with your AI sales team — FIGSY, Milla, Vida and Denise — and shows you exactly where to start."*
 
-### Scene 1.3 — Casey guided setup *(~10s)* — **MOCKUP** (`/v2/setup`)
-- **🔴 PAIN:** "Setup wizards are forms you abandon."
-- **RECORD:** Casey walks the steps conversationally
-- **SAY:** *"Casey walks you through it — build your targeting, launch your first campaign — one calm step at a time. No manual."*
-
 ### Scene 1.4 — Your agreements, on record *(~6s)*
-- **SCREEN:** `/dashboard/documents` ("Documents & Agreements") — *⚠️ the demo account needs a purchase so the "Agreement on record" state shows (otherwise it reads "No purchase yet")*
+- **SCREEN:** **Account menu → Documents** (`/dashboard/documents`) — *⚠️ moved to the Account/profile menu (no longer under Milla, item 251). The demo account needs a purchase so the "Agreement on record" state shows (otherwise "No purchase yet").*
 - **🔴 PAIN:** "With most tools you never see what you actually agreed to."
 - **RECORD:** open the page — show **"Agreement on record"** + the Terms / Privacy / DPA *(read-only — no contract to sign; acceptance is recorded automatically at your first purchase, ECTA-compliant)*
 - **SAY:** *"No contract to sign — you tick the terms at sign-up, and it's recorded automatically when you buy. All here, transparent — GDPR and POPIA."*
@@ -63,9 +65,9 @@
 ## SECTION 3 — SOURCE  *(real, scored leads)*
 > **6-beat:** *Finding contacts means hours in spreadsheets and LinkedIn (problem/pain). And you still don't know who's worth the call (metric: most reps chase the wrong 80%). Time on bad leads is revenue lost (cost). What if the list arrived ranked (way out)? K.I.N.D sources and scores every lead, with the reason why (solution).*
 
-### Scene 3.1 — It thinks *(~6s)*
-- **SCREEN:** `/v2/thinking`
-- **RECORD:** let the thinking panel run; don't touch
+### Scene 3.1 — It thinks *(~6s)* — **LIVE** (capture during a real run)
+- **SCREEN:** `/dashboard/leads/icp/builder` → **Find leads** — the thinking/loading state shows **live** while it sources (no separate `/v2/thinking` route anymore)
+- **RECORD:** kick off a run and capture the thinking state as it sources; don't touch
 - **SAY:** *"It goes hunting across millions of contacts."*
 
 ### Scene 3.2 — Scored leads *(~10s)*
@@ -128,8 +130,8 @@
 ## SECTION 8 — SCALE  *(Command Centre · per-rep)*
 > **6-beat:** *One person can only do so much (problem). Hire reps and you're back to managing humans, tools, and chaos (pain). New reps take months to ramp (metric). Uneven teams leave money on the table (cost). What if every rep had their own AI from one account (way out)? The Command Centre gives each seat its own engine and you full visibility (solution).*
 
-### Scene 8.1 — Command Centre *(~10s)*
-- **SCREEN:** `/dashboard/company` (and `/dashboard/team`)
+### Scene 8.1 — Command Centre *(~10s)* — ⚠️ **needs a provisioned demo company**
+- **SCREEN:** `/dashboard/company` (and `/dashboard/team`) — *⚠️ reachable by URL but it's empty without a seeded company (item 55/59). **Ask me to provision a demo company before recording this scene**, or skip Section 8 for the first cut.*
 - **🔴 PAIN:** "Managing a sales team means chasing reps for updates."
 - **RECORD:** show seats, per-rep stats, budgets, request→approve
 - **SAY:** *"Got a team? Give every rep their own AI, set budgets, see everything from one screen. Level up your whole team to your best performer."*
@@ -143,10 +145,9 @@
 - **RECORD:** show the credit panel (Lead-Gen + FIGSY pools); tick **"I agree to the Terms of Service"** before buying credits *(required at payment)*
 - **SAY:** *"You pay for outcomes — one credit, one positive reply, no reply no charge. Agree to the terms at checkout, and you're topped up."*
 
-### Scene 9.2 — Knowledge *(~6s)*
-- **SCREEN:** `/dashboard/knowledge`
-- **RECORD:** show uploaded docs powering Milla
-- **SAY:** *"Feed it your docs — it learns your business."*
+### Scene 9.2 — Knowledge *(~6s)* — ⛔ **CUT for now (coming-soon)**
+- **SCREEN:** ~~`/dashboard/knowledge`~~ — this page is a **"coming soon" teaser** (training not live, item 74). **Do NOT record it for a sell demo** — it would show an unbuilt feature. Re-add this scene when 74 is live.
+- *(If you need a 9.2 filler, use **Milla's Documents/knowledge upload** on `/dashboard/assistant` instead, which is real.)*
 
 ### Scene 9.3 — Integrations *(~6s)*
 - **SCREEN:** `/dashboard/integrations`

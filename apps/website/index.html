@@ -372,7 +372,8 @@
     .kfx-rail{position:absolute;top:60px;left:5%;right:5%;height:4px;border-radius:4px;background:linear-gradient(90deg,#db2777,#7c3aed,#2563eb,#b45309,#0e9f6e);opacity:.32}
     .kfx-stations{position:absolute;inset:0;display:flex;justify-content:space-between;padding:0 2%}
     .kfx-st{width:130px;text-align:center;position:relative;z-index:2}
-    .kfx-node{width:78px;height:78px;border-radius:22px;margin:22px auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;color:#fff;box-shadow:0 12px 26px rgba(40,20,80,.16);position:relative}
+    .kfx-node{width:78px;height:78px;border-radius:22px;margin:22px auto 12px;display:flex;align-items:center;justify-content:center;font-size:1.7rem;font-weight:900;color:#fff;box-shadow:0 12px 26px rgba(40,20,80,.16);position:relative;overflow:hidden}
+    .kfx-node img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
     .kfx-node::after{content:'';position:absolute;inset:-6px;border-radius:28px;border:2px solid var(--c);opacity:.3;animation:kfxring 2.6s ease-in-out infinite}
     @keyframes kfxring{0%,100%{transform:scale(1);opacity:.3}50%{transform:scale(1.12);opacity:0}}
     .kfx-nm{font-weight:800;font-size:.9rem;color:#0a0a0a}.kfx-rl{font-size:.72rem;color:rgba(0,0,0,.45);margin-top:2px}
@@ -1910,10 +1911,10 @@
     <div class="kfx-packet kfx-p3"><i></i></div>
     <div class="kfx-packet kfx-p4"><i></i></div>
     <div class="kfx-stations">
-      <div class="kfx-st kfx-f"><div class="kfx-node">F</div><div class="kfx-nm">FIGSY</div><div class="kfx-rl">Finds &amp; emails</div></div>
-      <div class="kfx-st kfx-m"><div class="kfx-node">M</div><div class="kfx-nm">Milla</div><div class="kfx-rl">Reads &amp; scores</div></div>
-      <div class="kfx-st kfx-v"><div class="kfx-node">V</div><div class="kfx-nm">Vida</div><div class="kfx-rl">Captures inbound</div></div>
-      <div class="kfx-st kfx-d"><div class="kfx-node">D</div><div class="kfx-nm">Denise</div><div class="kfx-rl">Closes &amp; follows up</div></div>
+      <div class="kfx-st kfx-f"><div class="kfx-node"><img src="figsy-cut.png" alt="FIGSY" /></div><div class="kfx-nm">FIGSY</div><div class="kfx-rl">Finds &amp; emails</div></div>
+      <div class="kfx-st kfx-m"><div class="kfx-node"><img src="milla-cut.png" alt="Milla" /></div><div class="kfx-nm">Milla</div><div class="kfx-rl">Reads &amp; scores</div></div>
+      <div class="kfx-st kfx-v"><div class="kfx-node"><img src="vida-cut.png" alt="Vida" /></div><div class="kfx-nm">Vida</div><div class="kfx-rl">Captures inbound</div></div>
+      <div class="kfx-st kfx-d"><div class="kfx-node"><img src="denise-cut.png" alt="Denise" /></div><div class="kfx-nm">Denise</div><div class="kfx-rl">Closes &amp; follows up</div></div>
       <div class="kfx-st kfx-r"><div class="kfx-node">&#10003;<span class="kfx-badge">Meeting booked</span></div><div class="kfx-nm">Result</div><div class="kfx-rl">On your calendar</div></div>
     </div>
   </div>

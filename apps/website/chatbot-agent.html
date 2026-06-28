@@ -230,7 +230,132 @@
     .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
     .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
 
-  </style>
+  
+    /* ── LIVE DASHBOARD (item 254) — self-contained agent showcase ── */
+    .kdash{--figsy:#ec4899;--figsy-deep:#be185d;--figsy-soft:#fdf2f8;--milla:#7c3aed;--milla-deep:#5b21b6;--milla-soft:#f5f3ff;--vida:#0ea5e9;--vida-deep:#0369a1;--vida-soft:#f0f9ff;--denise:#f59e0b;--denise-deep:#b45309;--denise-soft:#fffbeb;--as-dark:#1e1152;--as-ink:#1f2937;--as-line:#eef0f4;--as-muted:#6b7280; padding:74px 24px; background:#fff; text-align:center; overflow:hidden}
+    .kdash-inner{max-width:1000px; margin:0 auto}
+    .kdash-eyebrow{font-size:.72rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; margin-bottom:14px}
+    .kdash-figsy .kdash-eyebrow{color:var(--figsy-deep)} .kdash-milla .kdash-eyebrow{color:var(--milla-deep)} .kdash-vida .kdash-eyebrow{color:var(--vida-deep)} .kdash-denise .kdash-eyebrow{color:var(--denise-deep)}
+    .kdash-h{font-size:clamp(1.8rem,4vw,2.6rem); font-weight:900; letter-spacing:-.03em; line-height:1.08; margin:0 auto 14px; max-width:640px; color:#0a0a0a}
+    .kdash-sub{color:rgba(0,0,0,.5); font-size:1.02rem; max-width:560px; margin:0 auto 34px; line-height:1.55}
+    .kdash-cap{margin-top:24px; font-size:.92rem; color:rgba(0,0,0,.45)} .kdash-cap b{color:#0a0a0a}
+    /* AGENT PRODUCT SHOWCASE (Monday-style pill swap) */
+    .showcase { padding: 30px 48px 20px; }
+    .showcase-inner { max-width: 1080px; margin: 0 auto; text-align: center; }
+    .sc-pills { display: inline-flex; flex-wrap: wrap; gap: 8px; justify-content: center; background: rgba(124,58,237,0.05); border: 1px solid rgba(124,58,237,0.12); padding: 7px; border-radius: 100px; margin: 26px 0 28px; }
+    .sc-pill { display: inline-flex; align-items: center; gap: 9px; font-size: 0.85rem; font-weight: 700; color: rgba(0,0,0,0.55); background: transparent; border: none; padding: 9px 18px; border-radius: 100px; cursor: pointer; transition: all .2s; }
+    .sc-pill img { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
+    .sc-pill.on { background: #fff; color: var(--dark); box-shadow: 0 4px 14px rgba(30,17,82,0.12); }
+    .sc-stage { position: relative; max-width: 940px; margin: 0 auto; border-radius: 22px; overflow: hidden; box-shadow: 0 36px 80px rgba(30,17,82,0.18); }
+    .sc-shot { display: none; width: 100%; }
+    .sc-shot.on { display: block; animation: scfade .45s ease; }
+    @keyframes scfade { from { opacity: 0; transform: scale(0.99); } to { opacity: 1; transform: none; } }
+    .sc-shot img { width: 100%; display: block; }
+    .sc-caption { font-size: 0.9rem; color: rgba(0,0,0,0.45); margin-top: 22px; }
+    .sc-caption b { color: var(--dark); font-weight: 700; }
+
+    /* ── Agent shots: live HTML/CSS panels (replaces flat gen-home-*.png) ── */
+    .sc-stage {
+      --as-dark:#1e1152; --as-ink:#1f2937; --as-muted:#6b7280; --as-line:#eef0f4;
+      --figsy:#ec4899; --figsy-soft:#fdf2f8; --figsy-deep:#be185d;
+      --milla:#7c3aed; --milla-soft:#f5f3ff; --milla-deep:#5b21b6;
+      --vida:#0ea5e9;  --vida-soft:#f0f9ff;  --vida-deep:#0369a1;
+      --denise:#f59e0b; --denise-soft:#fffbeb; --denise-deep:#b45309;
+      background:#fff;
+    }
+    .sc-shot { text-align:left; }
+    .sc-shot .app { background:#fff; height:588px; display:flex; flex-direction:column; font-size:16px; }
+    .sc-shot .app-bar { display:flex; align-items:center; gap:12px; padding:16px 22px; border-bottom:1px solid var(--as-line); }
+    .sc-shot .ab-avatar { width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font-weight:800; color:#fff; font-size:.9rem; flex-shrink:0; }
+    .sc-shot .ab-name { font-weight:800; font-size:.95rem; color:var(--as-dark); }
+    .sc-shot .ab-role { font-size:.72rem; color:var(--as-muted); font-weight:600; }
+    .sc-shot .ab-status { margin-left:auto; display:inline-flex; align-items:center; gap:7px; font-size:.72rem; font-weight:700; padding:6px 12px; border-radius:100px; }
+    .sc-shot .live { width:7px; height:7px; border-radius:50%; animation:as-pulse 1.8s ease-in-out infinite; }
+    @keyframes as-pulse { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+    .sc-shot .app-body { flex:1; padding:18px 22px; overflow:hidden; }
+    .sc-shot .chip { display:inline-flex; align-items:center; gap:5px; font-size:.68rem; font-weight:700; padding:4px 9px; border-radius:7px; }
+    /* FIGSY table */
+    .sc-shot .fg-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+    .sc-shot .fg-tabs { display:inline-flex; gap:4px; background:#f8f8fb; padding:4px; border-radius:9px; }
+    .sc-shot .fg-tab { font-size:.74rem; font-weight:700; color:var(--as-muted); padding:6px 12px; border-radius:6px; }
+    .sc-shot .fg-tab.on { background:#fff; color:var(--figsy-deep); box-shadow:0 1px 3px rgba(0,0,0,.07); }
+    .sc-shot .fg-search { margin-left:auto; font-size:.74rem; color:#9ca3af; background:#f8f8fb; border:1px solid var(--as-line); padding:7px 14px; border-radius:8px; }
+    .sc-shot .fg-sort { font-size:.74rem; font-weight:700; color:var(--figsy-deep); }
+    .sc-shot table { width:100%; border-collapse:collapse; }
+    .sc-shot thead th { font-size:.64rem; text-transform:uppercase; letter-spacing:.07em; color:#9ca3af; font-weight:700; text-align:left; padding:0 8px 10px; }
+    .sc-shot thead th.r { text-align:right; }
+    .sc-shot tbody tr { border-top:1px solid var(--as-line); }
+    .sc-shot tbody td { padding:11px 8px; vertical-align:middle; }
+    .sc-shot .lead { display:flex; align-items:center; gap:11px; }
+    .sc-shot .lead-av { width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-weight:800; font-size:.72rem; flex-shrink:0; }
+    .sc-shot .lead-name { font-weight:700; font-size:.85rem; color:var(--as-ink); }
+    .sc-shot .lead-co { font-size:.72rem; color:var(--as-muted); }
+    .sc-shot .score-cell { text-align:right; }
+    .sc-shot .score-wrap { display:inline-flex; align-items:center; gap:9px; }
+    .sc-shot .score-bar { width:54px; height:6px; border-radius:100px; background:#f0eef5; overflow:hidden; }
+    .sc-shot .score-bar i { display:block; height:100%; border-radius:100px; background:linear-gradient(90deg,var(--figsy),var(--figsy-deep)); }
+    .sc-shot .score-num { font-weight:800; font-size:.82rem; width:26px; text-align:right; }
+    .sc-shot .fg-foot { display:flex; align-items:center; gap:10px; padding:13px 22px; border-top:1px solid var(--as-line); background:var(--figsy-soft); font-size:.74rem; color:var(--figsy-deep); font-weight:700; }
+    /* MILLA dashboard */
+    .sc-shot .ml-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:16px; }
+    .sc-shot .ml-stat { border:1px solid var(--as-line); border-radius:13px; padding:14px 16px; }
+    .sc-shot .ml-stat .k { font-size:.68rem; color:var(--as-muted); font-weight:700; text-transform:uppercase; letter-spacing:.05em; }
+    .sc-shot .ml-stat .v { font-size:1.7rem; font-weight:800; color:var(--as-dark); line-height:1.2; }
+    .sc-shot .ml-stat .d { font-size:.7rem; font-weight:700; }
+    .sc-shot .up { color:#16a34a; } .sc-shot .down { color:#dc2626; }
+    .sc-shot .ml-chart { border:1px solid var(--as-line); border-radius:13px; padding:16px 18px; }
+    .sc-shot .ml-chart-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+    .sc-shot .ml-chart-title { font-size:.8rem; font-weight:800; color:var(--as-dark); }
+    .sc-shot .ml-legend { font-size:.68rem; color:var(--as-muted); font-weight:600; display:inline-flex; gap:14px; }
+    .sc-shot .ml-legend span { display:inline-flex; align-items:center; gap:5px; }
+    .sc-shot .lg-dot { width:9px; height:9px; border-radius:3px; }
+    .sc-shot .bars { display:flex; align-items:flex-end; gap:16px; height:150px; padding-top:6px; }
+    .sc-shot .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:8px; height:100%; justify-content:flex-end; }
+    .sc-shot .bar { width:100%; max-width:46px; border-radius:8px 8px 4px 4px; background:linear-gradient(180deg,var(--milla),#c4b5fd); position:relative; }
+    .sc-shot .bar.peak { background:linear-gradient(180deg,var(--milla-deep),var(--milla)); }
+    .sc-shot .bar-val { position:absolute; top:-18px; left:0; right:0; text-align:center; font-size:.66rem; font-weight:800; color:var(--milla-deep); }
+    .sc-shot .bar-day { font-size:.68rem; color:var(--as-muted); font-weight:600; }
+    /* VIDA chat */
+    .sc-shot .vd-body { display:flex; flex-direction:column; height:100%; }
+    .sc-shot .vd-thread { flex:1; display:flex; flex-direction:column; gap:12px; padding:6px 4px; overflow:hidden; }
+    .sc-shot .msg { max-width:74%; font-size:.84rem; line-height:1.45; padding:11px 15px; border-radius:15px; }
+    .sc-shot .msg.them { align-self:flex-start; background:#f4f5f8; color:var(--as-ink); border-bottom-left-radius:5px; }
+    .sc-shot .msg.us { align-self:flex-end; background:linear-gradient(135deg,var(--vida),var(--vida-deep)); color:#fff; border-bottom-right-radius:5px; }
+    .sc-shot .vd-sysnote { align-self:center; display:inline-flex; align-items:center; gap:7px; font-size:.7rem; font-weight:700; color:var(--vida-deep); background:var(--vida-soft); border:1px solid #e0f2fe; padding:6px 13px; border-radius:100px; }
+    .sc-shot .vd-cta { align-self:flex-end; display:inline-flex; align-items:center; gap:7px; background:#fff; color:var(--vida-deep); border:1.5px solid var(--vida); font-weight:800; font-size:.8rem; padding:9px 16px; border-radius:11px; }
+    .sc-shot .vd-input { display:flex; align-items:center; gap:10px; margin-top:14px; border:1px solid var(--as-line); border-radius:13px; padding:11px 14px; }
+    .sc-shot .vd-input span { flex:1; font-size:.82rem; color:#9ca3af; }
+    .sc-shot .vd-send { width:34px; height:34px; border-radius:9px; background:linear-gradient(135deg,var(--vida),var(--vida-deep)); display:grid; place-items:center; color:#fff; font-weight:800; }
+    /* DENISE email */
+    .sc-shot .dn-body { display:flex; gap:18px; height:100%; }
+    .sc-shot .dn-rail { width:188px; flex-shrink:0; border-right:1px solid var(--as-line); padding-right:16px; }
+    .sc-shot .dn-rail-title { font-size:.66rem; text-transform:uppercase; letter-spacing:.06em; color:#9ca3af; font-weight:700; margin-bottom:14px; }
+    .sc-shot .dn-step { display:flex; gap:11px; padding-bottom:18px; position:relative; }
+    .sc-shot .dn-step:not(:last-child)::before { content:''; position:absolute; left:9px; top:22px; bottom:0; width:2px; background:var(--as-line); }
+    .sc-shot .dn-dot { width:20px; height:20px; border-radius:50%; display:grid; place-items:center; font-size:.6rem; font-weight:800; flex-shrink:0; z-index:1; }
+    .sc-shot .dn-dot.done { background:#dcfce7; color:#16a34a; }
+    .sc-shot .dn-dot.now { background:var(--denise); color:#fff; box-shadow:0 0 0 4px var(--denise-soft); }
+    .sc-shot .dn-dot.queued { background:#f1f1f4; color:#9ca3af; }
+    .sc-shot .dn-step .t { font-size:.78rem; font-weight:700; color:var(--as-ink); }
+    .sc-shot .dn-step .s { font-size:.68rem; color:var(--as-muted); }
+    .sc-shot .dn-mail { flex:1; display:flex; flex-direction:column; }
+    .sc-shot .dn-row { display:flex; gap:12px; padding:9px 0; border-bottom:1px solid var(--as-line); font-size:.82rem; }
+    .sc-shot .dn-row .lbl { color:#9ca3af; font-weight:700; width:56px; }
+    .sc-shot .dn-row .val { font-weight:600; color:var(--as-ink); }
+    .sc-shot .dn-text { flex:1; padding:16px 2px; font-size:.85rem; line-height:1.6; color:var(--as-ink); }
+    .sc-shot .dn-foot { display:flex; align-items:center; gap:10px; padding-top:12px; border-top:1px solid var(--as-line); }
+    .sc-shot .dn-by { font-size:.72rem; color:var(--as-muted); font-weight:600; }
+    .sc-shot .dn-send { margin-left:auto; background:linear-gradient(135deg,var(--denise),var(--denise-deep)); color:#fff; font-weight:800; font-size:.8rem; padding:10px 20px; border-radius:10px; }
+    @media (max-width: 768px) {
+      .sc-shot .app { height:auto; min-height:420px; }
+      .sc-shot .app-body { padding:14px; }
+      .sc-shot .ml-stat .v { font-size:1.3rem; }
+      .sc-shot .dn-rail { width:140px; }
+      .sc-shot thead th, .sc-shot .lead-co, .sc-shot .fg-search { display:none; }
+    }
+    @media (max-width: 768px) { .sc-pill span { display: none; } .showcase { padding: 24px 20px; } }
+
+    </style>
 </head>
 <body>
 
@@ -483,6 +608,39 @@
     </div>
   </div>
 </div>
+
+
+<!-- LIVE DASHBOARD — see the agent at work (item 254) -->
+<section class="kdash kdash-vida">
+  <div class="kdash-inner">
+    <div class="kdash-eyebrow">See Vida at work</div>
+    <h2 class="kdash-h">Every visitor, captured.</h2>
+    <p class="kdash-sub">Vida greets, qualifies and books inbound visitors on your site and WhatsApp &mdash; 24/7, in seconds, never off the clock.</p>
+    <div class="sc-stage">
+            <div class="sc-shot on" data-shot="vida">
+              <div class="app">
+                <div class="app-bar">
+                  <div class="ab-avatar" style="background:linear-gradient(135deg,var(--vida),var(--vida-deep))">V</div>
+                  <div><div class="ab-name">Vida</div><div class="ab-role">The Connector &middot; Web &amp; WhatsApp</div></div>
+                  <div class="ab-status" style="background:var(--vida-soft);color:var(--vida-deep)"><span class="live" style="background:#22c55e"></span>Online &middot; get-kind.com</div>
+                </div>
+                <div class="app-body vd-body">
+                  <div class="vd-thread">
+                    <div class="msg them">Hi! Do you work with logistics teams in Lagos?</div>
+                    <div class="msg us">Absolutely &mdash; we book qualified meetings for logistics teams automatically. Want me to set one up?</div>
+                    <div class="msg them">Yes please &#128588;</div>
+                    <div class="vd-sysnote">&#10003; Lead qualified &middot; pushed to CRM &middot; Sarah notified</div>
+                    <div class="vd-cta">&#128197; Book a 20-min intro &rarr;</div>
+                  </div>
+                  <div class="vd-input"><span>Type a message&hellip;</span><div class="vd-send">&uarr;</div></div>
+                </div>
+              </div>
+            </div>
+
+    </div>
+    <p class="kdash-cap">A real capture &mdash; <b>visitor in, qualified lead out.</b></p>
+  </div>
+</section>
 
 <!-- WHO THIS IS FOR -->
 <div class="section">

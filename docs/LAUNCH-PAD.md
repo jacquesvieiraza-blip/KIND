@@ -10,10 +10,10 @@
 ---
 
 ## 📌 WHERE AM I — the 20-second answer
-- **Milestone 1 — READY TO SELL & ONBOARD:** 🔧 in progress — **0 of 5 done** (the walkthrough is the live work; Instantly not yet confirmed warm).
-- **Milestone 2 — CLIENTS RUN ON THE PRODUCT:** 🔴 early — **4 of 8 done** (T1 + T2a + T2b + M2); **M2/pause migration RUN on prod 28 Jun — pause now stops Stripe billing.** The engine (211) is still barely started.
-- **In flight right now:** the **pink walkthrough** — you self-walking Group A (see `PINK-WALK-CHECKLIST.md`); I flip dots + fix breakages as you report.
-- **Open PR:** LAUNCH-PAD tomorrow-runlist wiring (docs). **All session work merged → LIVE.** **Merged → LIVE this session:** pricing compare-table (255 🟢) + social-proof scaffold (253 🟢, hidden-until-data) + memory rule (#801) · homepage de-clutter (#797, 259 🟢) · product-page dashboards (#798, 254 🟢) · hero fix (#799/#800) · data-residency (#795) · nav/footer (#796). **Outreach list (Milestone 1) built** → loadable CSV (179 rows) + ICP, delivered as files; **fire on Instantly warm-confirm + walkthrough (~early July)**. **Stack: PDL→Hunter→Clearbit; 243 source-router = next.**
+- **Milestone 1 — READY TO SELL & ONBOARD:** 🔧 — **0/5 fully done, 2 in progress.** Outreach list seed built (≥2,000 pull Mon) · 4-step sequence drafted (you load) · walkthrough in progress · **gated on Instantly warmth.**
+- **Milestone 2 — CLIENTS RUN ON THE PRODUCT:** 🔴 early — T1 + T2a + T2b done; **M2 pause: migration ran 28 Jun → ⚠️ re-verify walk Mon** (showed ❌ on the 26-Jun walk). **T2c + T3 build Mon.** Engine (211 / T4) gated on warmth + your decisions.
+- **In flight / next:** the **📅 Mon/Tue full-business sprint** (section below) + the **pink walkthrough** — Section A (you click-walk) Mon, Section B (demo account) Tue; I fix breakages + flip dots.
+- **Open PR:** **#803** — Mon/Tue sprint plan + runlist (docs) — *awaiting your clean merge.* **Merged → LIVE this session:** homepage de-clutter (#797, 259 🟢) · product-page dashboards (#798, 254 🟢) · hero fix (#799/#800) · pricing compare-table (255 🟢) + social-proof scaffold (253 🟢, hidden-until-data) + memory rule (#801) · green-verify (#802) · data-residency (#795) · nav/footer (#796) · audit/legal/global (#782/#783) · competitor sweep (#784). **Outreach list built** (179-row seed + ICP, delivered as files). **Stack: PDL→Hunter→Clearbit; 243 router = Tue.**
 
 > ⚠️ **The honest headline:** we are **NOT near** "clients on the product." Smartlead has **zero sending built**; Instantly warmth is **unconfirmed**. This tracker now shows that truthfully so the warm date can't surprise us again.
 

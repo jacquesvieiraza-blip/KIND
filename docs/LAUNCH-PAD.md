@@ -17,7 +17,7 @@
 
 > ⚠️ **The honest headline (code-audited 28 Jun):** the product is **built end-to-end** — signup→pay→source→enrich→score→deliver→charge→**FIGSY sends via Resend**→replies all work in code. **We are NOT behind on building.** The real risk is **go-live CONFIG that fails SILENTLY** (Stripe price IDs, the send cron's `ADMIN_SECRET_KEY`, `FIGSY_COLD_FROM`) + **unverified Railway env** — the app runs "green" while payments/cron/cold-domain can be quietly dead. **Status = code-complete, config-UNVERIFIED.** Smartlead/211 is NOT "zero sending" — basic sending already runs on Resend; 211 only adds **per-client isolated + warmed** mailboxes (deliverability/scale). Instantly warmth = the one external clock.
 >
-> 🔑 **Before any go-live claim, verify Railway env against `scratchpad GO-LIVE-CONFIG-VERIFY` (sent to founder).**
+> 🔑 **Before any go-live claim, verify Railway env against the 🔑 GO-LIVE CONFIG section below.**
 
 ## 📅 THE PLAN — MON/TUE = OUR OUTREACH (M1) · WED = CLIENT SYSTEM (M2)
 **Mon–Tue:** everything so **we can outreach our own clients**. Barring **Instantly warmth** (a clock you confirm), we are GO. **Wed:** build everything a paying **client** needs to run on the system. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
@@ -57,6 +57,22 @@
 - **258 data residency** 🤝 — trigger-gated: build same-day on the first US/UK client.
 - **Pitch-strengtheners (NOT blocking the sale, post-first-client):** 131 GTM funnel instrumentation · 133 design-partner case study + logo · 137 90-day guarantee · 135 onboarding-v2 emails. Flagged so they're not lost; do after first client/results.
 - **Doc hygiene** 🤖 — archive `AUDIT-24JUN-RECONCILIATION.md`; relabel Alta numbers in the pitch decks (anytime).
+
+---
+
+## 🔑 GO-LIVE CONFIG — verify in Railway (code is built; these fail SILENTLY if unset)
+*From the 28-Jun hard-code audit. The app boots "green" even when these are missing — confirm each on the live deploy. This lives HERE now, not in a side doc.*
+
+**(A) Customer can pay** — ⚠️ not enforced at startup:
+`STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` (endpoint `https://<api>/stripe/webhook`) · API price IDs `STRIPE_PRICE_LEADGEN_20/40/100` + `STRIPE_PRICE_FIGSY_20/40/100` + `STRIPE_PRICE_{MILLA,VIDA,DENISE}_MONTHLY` · portal twins `NEXT_PUBLIC_STRIPE_PRICE_*` (Buy button reads these) · Stripe Prices in **USD** · `ADMIN_SECRET_KEY`.
+
+**(B) Lead engine delivers** — we run PDL+Hunter, NOT Apollo:
+`PDL_API_KEY` + `HUNTER_API_KEY` (required for us) · `ANTHROPIC_API_KEY` (scoring) · `APOLLO_API_KEY` = optional, not needed.
+
+**(C) FIGSY sends a client email** — ⚠️ cron + from-domain fail silently:
+`RESEND_API_KEY` (else records "sent" but sends nothing) · `ADMIN_SECRET_KEY` (else the 2-hourly send cron silently no-ops) · `FIGSY_COLD_FROM` (else cold mail poisons get-kind.com) · `RESEND_WEBHOOK_SECRET` (else replies rejected).
+
+**Our-own-outreach (Instantly rig):** cold-domain DNS **SPF/DKIM/DMARC** · mail-tester **10/10** (101) · Instantly health ~90% + inbox test (198).
 
 ---
 

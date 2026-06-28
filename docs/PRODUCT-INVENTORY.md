@@ -276,7 +276,7 @@
 | # | ● | Item | Owner |
 |---|---|------|-------|
 | 198 | 🔴 | Cold-email WARMUP — #1 priority (Instantly rig warming) | 🧍 |
-| 211 | 🔴 | THE sending/deliverability engine — integrate Smartlead (client-facing) | 🤝 |
+| 211 | 🔴 | **Per-client isolated + warmed sending engine (Smartlead).** NOTE (code-audit 28 Jun): basic client sending ALREADY works via **Resend** (figsy.ts) — this item is the *deliverability/scale* layer (isolated, warmed per-client mailboxes), NOT "zero sending". Smartlead today = read-only stub. | 🤝 |
 | 243 | 🔴 | 🎯 **URGENT FOCUS — max-coverage multi-source data layer** (we run thin: PDL+Hunter only). Top lever = **BetterContact** (1 integration = 20+ providers) → source router. Build during warm-up. Feeds 212. | 🤝 |
 | 242 | 🔴 | EPIC — Apollo Outbound OS → FIGSY (6-stage playbook) | 🤖 |
 | 212 | 🔴 | **FIGSY sequences — thin + weak per-email context** (founder 25 Jun). Rebuild to the Apollo blueprint (242): 4–6 steps · ≤50-word · **personalised opener using the lead's real data/signals (enough context per email)** · in-thread · A/B · **FIGSY AI-drafts the whole sequence on request** (today FIGSY says it can't from the Sequences page — founder 26 Jun). **Fed by 243's richer data.** 🔭 Depth Track. | 🤖 |

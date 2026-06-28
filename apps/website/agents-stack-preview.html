@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agents — stacking-cards preview (Clay-style) · K.I.N.D</title>
+  <meta name="description" content="Preview: Clay-style sticky-stacking agent cards for K.I.N.D." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --blue: #7c3aed;
+      --dark: #0a0a0a;
+      --ink: #1a1626;
+      --nav-h: 64px;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #f4f2fb; color: var(--ink); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+    /* tiny demo nav so the sticky offset looks real */
+    .pv-nav { position: sticky; top: 0; height: var(--nav-h); z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; background: rgba(255,255,255,0.85); backdrop-filter: blur(14px);
+      border-bottom: 1px solid rgba(0,0,0,0.06); }
+    .pv-nav .logo { font-weight: 800; letter-spacing: -0.01em; }
+    .pv-nav .pv-tag { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); background: rgba(124,58,237,0.1); padding: 5px 12px; border-radius: 100px; }
+
+    /* intro */
+    .intro { max-width: 720px; margin: 0 auto; padding: 96px 24px 40px; text-align: center; }
+    .intro .eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); background: rgba(124,58,237,0.07); border: 1px solid rgba(124,58,237,0.16); padding: 6px 14px; border-radius: 100px; display: inline-block; margin-bottom: 22px; }
+    .intro h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; color: var(--dark); margin-bottom: 16px; }
+    .intro p { font-size: 1rem; color: rgba(0,0,0,0.5); max-width: 540px; margin: 0 auto; }
+    .scroll-hint { margin-top: 28px; font-size: 0.78rem; color: rgba(0,0,0,0.35); letter-spacing: 0.04em; }
+
+    /* THE STACK */
+    .stack { max-width: 1120px; margin: 0 auto; padding: 0 20px 40vh; }
+    .stack-card {
+      position: sticky;
+      top: calc(var(--nav-h) + 20px);
+      border-radius: 40px;
+      padding: clamp(32px, 4vw, 60px);
+      min-height: 78vh;
+      display: grid;
+      grid-template-columns: 1.05fr 1fr;
+      gap: 40px;
+      align-items: center;
+      overflow: hidden;
+      box-shadow: 0 -16px 60px rgba(20, 10, 40, 0.10), 0 8px 40px rgba(20,10,40,0.06);
+      margin-bottom: 28px;
+    }
+    /* per-agent pastels + accents */
+    .c-figsy  { background: #ece8ff; }   .c-figsy  .eyebrow, .c-figsy  h2 span { color: #6d3bef; }  .c-figsy  .pill { background:#6d3bef; }
+    .c-milla  { background: #e6f0ff; }   .c-milla  .eyebrow, .c-milla  h2 span { color: #2563eb; }  .c-milla  .pill { background:#2563eb; }
+    .c-vida   { background: #e3f6ee; }   .c-vida   .eyebrow, .c-vida   h2 span { color: #0e9f6e; }  .c-vida   .pill { background:#0e9f6e; }
+    .c-denise { background: #fde6f1; }   .c-denise .eyebrow, .c-denise h2 span { color: #d6357f; }  .c-denise .pill { background:#d6357f; }
+
+    .card-copy { max-width: 460px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 18px; }
+    .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .stack-card h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); font-weight: 900; letter-spacing: -0.035em; line-height: 1.05; color: var(--ink); margin-bottom: 16px; }
+    .stack-card .lede { font-size: 1.02rem; color: rgba(26,22,38,0.62); margin-bottom: 26px; }
+    .feats { list-style: none; display: grid; gap: 12px; margin-bottom: 28px; }
+    .feats li { display: flex; align-items: flex-start; gap: 11px; font-size: 0.92rem; color: rgba(26,22,38,0.72); }
+    .feats li svg { flex-shrink: 0; margin-top: 3px; }
+    .pill { color: #fff; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; padding: 8px 16px; border-radius: 100px; display: inline-block; }
+
+    /* agent visual */
+    .card-visual { position: relative; height: 100%; min-height: 320px; display: flex; align-items: center; justify-content: center; }
+    .card-visual img { max-width: 100%; max-height: 56vh; object-fit: contain; filter: drop-shadow(0 30px 50px rgba(20,10,40,0.18)); }
+    .visual-fallback { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      width: min(360px, 80%); aspect-ratio: 1; border-radius: 32px; background: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.7); }
+    .visual-fallback .big-init { font-size: 5rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; }
+    .visual-fallback .fb-note { font-size: 0.72rem; color: rgba(26,22,38,0.4); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* subtle scale-settle polish where supported (degrades to plain stack) */
+    @supports (animation-timeline: view()) {
+      .stack-card { view-timeline-name: --card; animation: settle linear both; animation-timeline: --card; animation-range: exit 0% exit 95%; }
+      @keyframes settle { to { transform: scale(0.94); filter: saturate(0.92) brightness(0.97); } }
+    }
+
+    @media (max-width: 820px) {
+      .stack-card { grid-template-columns: 1fr; min-height: auto; gap: 24px; }
+      .card-visual { order: -1; min-height: 240px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="pv-nav">
+    <span class="logo">K.I.N.D</span>
+    <span class="pv-tag">Preview · agents stacking-cards</span>
+  </nav>
+
+  <section class="intro">
+    <span class="eyebrow">The AI Family</span>
+    <h1>Four agents. One shared memory.</h1>
+    <p>Each agent owns one job — and every one learns from your market and feeds the others. Scroll to see them stack.</p>
+    <div class="scroll-hint">↓ scroll — each card pins and the next slides over it</div>
+  </section>
+
+  <div class="stack">
+
+    <!-- FIGSY -->
+    <article class="stack-card c-figsy">
+      <div class="card-copy">
+        <span class="eyebrow"><span class="dot"></span>FIGSY · The Opener</span>
+        <h2>The AI SDR that <span>never stops prospecting.</span></h2>
+        <p class="lede">Finds, scores, writes, sends, follows up, and books the meeting — entirely on her own, in your voice, on your calendar.</p>
+        <ul class="feats">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6d3bef" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ICP-matched lead sourcing, scored 0–100</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6d3bef" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>A unique email per lead — never a template</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6d3bef" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Reads every reply and books straight to your calendar</li>
+        </ul>
+        <span class="pill">Autonomous AI SDR</span>
+      </div>
+      <div class="card-visual">
+        <img src="figsy-cut.png" alt="FIGSY" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="visual-fallback"><div class="big-init" style="color:#6d3bef">F</div><div class="fb-note">FIGSY render</div></div>
+      </div>
+    </article>
+
+    <!-- MILLA -->
+    <article class="stack-card c-milla">
+      <div class="card-copy">
+        <span class="eyebrow"><span class="dot"></span>Milla · The Brain</span>
+        <h2>Knows your business <span>better than your CRM.</span></h2>
+        <p class="lede">Reads your numbers, leads and replies, learns your documents, and answers anything you ask — anytime.</p>
+        <ul class="feats">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Knowledge & document recall across your stack</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Reads what's converting and surfaces what to do next</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Ask her anything — instant, grounded answers</li>
+        </ul>
+        <span class="pill">Knowledge & analysis</span>
+      </div>
+      <div class="card-visual">
+        <img src="milla-cut.png" alt="Milla" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="visual-fallback"><div class="big-init" style="color:#2563eb">M</div><div class="fb-note">Milla render</div></div>
+      </div>
+    </article>
+
+    <!-- VIDA -->
+    <article class="stack-card c-vida">
+      <div class="card-copy">
+        <span class="eyebrow"><span class="dot"></span>Vida · The Connector</span>
+        <h2>Converts your visitors <span>while you sleep.</span></h2>
+        <p class="lede">Greets, qualifies and captures every website and WhatsApp visitor — 24/7, in seconds, never off the clock.</p>
+        <ul class="feats">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0e9f6e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Instant replies on your site & WhatsApp</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0e9f6e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Qualifies inbound and routes the hot ones</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0e9f6e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Never misses a lead, day or night</li>
+        </ul>
+        <span class="pill">Inbound, 24/7</span>
+      </div>
+      <div class="card-visual">
+        <img src="vida-cut.png" alt="Vida" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="visual-fallback"><div class="big-init" style="color:#0e9f6e">V</div><div class="fb-note">Vida render</div></div>
+      </div>
+    </article>
+
+    <!-- DENISE -->
+    <article class="stack-card c-denise">
+      <div class="card-copy">
+        <span class="eyebrow"><span class="dot"></span>Denise · The Closer</span>
+        <h2>Turns warm replies <span>into closed deals.</span></h2>
+        <p class="lede">Picks up after the meeting — handles objections, drafts the proposal, and follows up until it's signed.</p>
+        <ul class="feats">
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d6357f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Calm, value-first objection handling</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d6357f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Drafts tailored proposals in your voice</li>
+          <li><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d6357f" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Follows up persistently until the deal closes</li>
+        </ul>
+        <span class="pill">Post-meeting closer</span>
+      </div>
+      <div class="card-visual">
+        <img src="denise-cut.png" alt="Denise" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+        <div class="visual-fallback"><div class="big-init" style="color:#d6357f">D</div><div class="fb-note">Denise render</div></div>
+      </div>
+    </article>
+
+  </div>
+
+</body>
+</html>

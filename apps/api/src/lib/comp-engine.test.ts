@@ -27,11 +27,11 @@ describe('roundUsd', () => {
   })
 })
 
-describe('rate constants (the locked 20/5/5)', () => {
+describe('rate constants (the locked 20/5/20)', () => {
   it('matches the founder-locked plan', () => {
     expect(RATES.LAND).toBe(0.2)
     expect(RATES.RETAIN).toBe(0.05)
-    expect(RATES.EXPAND).toBe(0.05)
+    expect(RATES.EXPAND).toBe(0.2)
     expect(RATES.MULTI_SEAT_KICKER).toBe(0.05)
     expect(RATES.PARTNER_ACQUISITION).toBe(0.2)
     expect(RATES.PARTNER_RETENTION).toBe(0.05)
@@ -187,9 +187,9 @@ describe('aeMonthlyPay — greater-of(earned, guarantee) + base', () => {
     expect(r.landCommission).toBe(1406.25)
     // retain: 20000 × 0.05 = 1000
     expect(r.retainCommission).toBe(1000)
-    // expansion: 500 × 0.05 = 25
-    expect(r.expansionCommission).toBe(25)
-    expect(r.earnedCommission).toBe(2431.25)
+    // expansion: 500 × 0.20 = 100
+    expect(r.expansionCommission).toBe(100)
+    expect(r.earnedCommission).toBe(2506.25)
     expect(r.guaranteeFloor).toBe(0)
     expect(r.guaranteeApplied).toBe(false)
     expect(r.variablePaid).toBe(2431.25)

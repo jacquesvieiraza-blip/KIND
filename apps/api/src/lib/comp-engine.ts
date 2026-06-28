@@ -37,8 +37,11 @@ export const RATES = {
   LAND: 0.2,
   /** Retain — recurring, 5% of the rep's active book each month. */
   RETAIN: 0.05,
-  /** Expansion — one-time, 5% of an MRR increase (upsell / added seat). */
-  EXPAND: 0.05,
+  /** Expansion — one-time, 20% of an MRR increase (new product line / upsell /
+   *  added seat). Set to 20% (founder, 28 Jun): expansion is treated like a new
+   *  logo for that product — it drives reps/partners to hunt new departments AND
+   *  grow their existing book, not just chase fresh accounts. */
+  EXPAND: 0.20,
   /** Multi-seat kicker — +5% added to the land rate on deals of 2+ seats. */
   MULTI_SEAT_KICKER: 0.05,
   /** Partner acquisition — one-time, 20% of a new client's first-month MRR. */

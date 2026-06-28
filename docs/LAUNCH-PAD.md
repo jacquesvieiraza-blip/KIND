@@ -89,6 +89,12 @@
 - **Decisions:** 211 mailbox markup + Resend-client migration · 196 accounting + VAT · v2/Casey wire-or-cut (T5).
 - **Legal (own track):** 102 pack · SEIS · DPAs · trademark.
 
+## 🏢 THIS WEEK — COMPANY OPS SETUP (founder, added 28 Jun)
+*Get the business backend right alongside the product/demo work.*
+- **Run the company business training** (the business-model / how-we-operate session).
+- **Set up the business backend properly:** accounting platform (196 — pick + connect, USD reporting, VAT threshold) · banking/invoicing flow · expense + payout rails (Wise for partner/AE commission) · bookkeeping cadence.
+- Done-when: accounting platform live + reconciled to Stripe revenue; training delivered.
+
 ---
 
 ## 🗂️ MOVED OUT — full sight, nothing lost

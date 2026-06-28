@@ -19,37 +19,39 @@
 >
 > 🔑 **Before any go-live claim, verify Railway env against the 🔑 GO-LIVE CONFIG section below.**
 
-## 📅 THE PLAN — MON/TUE = OUR OUTREACH (M1) · WED = CLIENT SYSTEM (M2)
-**Mon–Tue:** everything so **we can outreach our own clients**. Barring **Instantly warmth** (a clock you confirm), we are GO. **Wed:** build everything a paying **client** needs to run on the system. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
+## 📅 THE WEEK — MON→FRI, DAY BY DAY
+**Mon–Tue = M1 (ready to outreach OUR clients).** **Wed = M2 (build the client system).** **Thu–Fri = record + upload demos.** Only **Instantly warmth** is allowed to still be waiting. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
 
-### ▶ MON–TUE — MILESTONE 1: READY TO OUTREACH OUR OWN CLIENTS
-*Done = we can fire the day Instantly warms. The only thing waiting is Instantly.*
-1. **Outreach list → ≥2,000 names** 🤖 — Apollo pull (US SMB/Mid-Market), dedupe vs the 179. *(Mon)*
-2. **Enrich list → verified emails + Instantly-ready CSV** 🤖 — run the 2,000 through our **live PDL→Hunter**, export the contactable ones ready to import into Instantly. *(uses existing keys — NOT the 243 router.)* *(Mon/Tue)*
-3. **Sequence → Instantly** 🧍 — founder loads the drafted 4-step dogfood + free-sample sequence.
-4. **Walkthrough — trust pass (so demos hold up)** 🤝 — Section A (23 click-walk, Mon) + Section B (8 demo-account, Tue); Claude fixes ❌ live + flips dots.
-5. **Company — business training** 🧍 *(Mon)* + **Xero/accounting + banking + Wise rails** 🧍🤝 *(Tue)*.
-6. **Deliverability go-live (config, NO code)** 🧍 — set cold-domain env `FIGSY_COLD_FROM` · `FIGSY_COLD_REPLY_TO` · `TRACKING_URL` + DNS **SPF/DKIM/DMARC**, then **mail-tester 10/10 (item 101)**. *Required before ANY send.*
-7. **Payment go-live (config, NO code)** 🧍 — register the **Stripe Price IDs** + set `STRIPE_PRICE_*` env in Railway (9 prices + webhook secret). *Without this a customer can't actually pay (items 25/168). Code is live + verified — this is config only.*
-- **GATED — the only waiter:** **198 Instantly warmth** 🧍 (confirm ~90% health + inbox test) → **test-send 10–20 leads first** → then **127 first outreach fired** 🤝. Cold = burns the rig.
+### ▶ MONDAY 29 JUN — M1 (our outreach)
+1. **Outreach list → ≥2,000 names** 🤖 — Apollo pull (US SMB/Mid-Market), dedupe vs the 179.
+2. **Start enrichment → verified emails** 🤖 — run the list through our live PDL→Hunter.
+3. **Walkthrough — Section A (23 click-walk)** 🤝 — founder click-walks portal screens (`PINK-WALK-CHECKLIST.md`); Claude fixes ❌ live + flips dots.
+4. **Company — business training** 🧍.
+5. **Deliverability config** 🧍 — cold-domain env (`FIGSY_COLD_FROM`/`REPLY_TO`/`TRACKING_URL`) + DNS SPF/DKIM/DMARC.
+6. **Payment config** 🧍 — register Stripe Price IDs + set `STRIPE_PRICE_*` env (see 🔑 GO-LIVE CONFIG).
 
-### ▶ WED 1 JUL — MILESTONE 2: BUILD EVERYTHING FOR CLIENTS TO USE THE SYSTEM
-*Everything a paying client needs to run their own sending on the product.*
-1. **T4 / 211 — the engine** 🤝 — *(basic client sending ALREADY works via Resend; this adds per-client **isolated + warmed** mailboxes for deliverability/scale)* Smartlead: provision → warm → sending seam → credit alignment → test. **Gated on 2 decisions: mailbox markup + Resend→per-client.** The big one; spans past Wed.
-2. **T2c — Kill Paystack** 🤖 — remove router + ZAR write paths; Stripe-only (client billing US-ready).
-3. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — per-client daily cap (50/day, configurable) + batched enroll.
-4. **243 — Multi-source source-router** 🤝 — PDL→Hunter→Clearbit + BetterContact (key from founder); client-grade verified-email coverage.
-5. **212 — Context-rich FIGSY sequences** 🤖 — 4–6 steps using each lead's real data.
-6. **T5 — Harden** 🤝 — dead-control cleanup (88/230/122) + unrun migrations (182/185); monitoring (199) + Smoke Test 2 (100).
-7. **Verify Pause/M2** 🤝 — re-walk to confirm pause stops Stripe billing (showed ❌ 26-Jun; migration ran 28-Jun) → 🔧→🟢.
-8. **55a — Company-engine RLS (rep-data isolation)** 🤖 — DB-enforced row-level security so reps in a paying company can't see each other's data (today it's app-logic only). Needed BEFORE onboarding a multi-rep client.
-- *T2c/T3 are quick — I can pull them into Tue if Mon-Tue has slack; otherwise they run Wed with the rest.*
+### ▶ TUESDAY 30 JUN — M1 (our outreach)
+1. **Finish enrich → Instantly-ready CSV** 🤖 — export the contactable leads ready to import to Instantly.
+2. **Sequence → load into Instantly** 🧍 — the drafted 4-step dogfood + free-sample.
+3. **Walkthrough — Section B (8 demo-account)** 🤝 — Claude provisions a demo company; founder walks Command Centre 55 · provisioning 59 · rep flows 106–111.
+4. **Company — Xero/accounting + banking + Wise rails** 🧍🤝.
+5. **mail-tester 10/10 (101)** 🧍 + **test-send 10–20 leads** to validate before volume.
+- **END OF TUE = M1 DONE.** Only **198 Instantly warmth** still waiting → then **127 first outreach fired** (cold = burns the rig).
+
+### ▶ WEDNESDAY 1 JUL — M2 (build the client system)
+1. **T4 / 211 — the engine** 🤝 — *(basic sending already works via Resend; this adds per-client **isolated + warmed** mailboxes for deliverability/scale)*. Smartlead: provision → warm → sending seam → credit alignment → test. **2 decisions: mailbox markup + Resend→per-client.** Spans past Wed.
+2. **T2c — Kill Paystack** 🤖 — remove router + ZAR paths; Stripe-only.
+3. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — daily cap (50/day, configurable).
+4. **243 — Multi-source source-router** 🤝 — PDL→Hunter→Clearbit + BetterContact (key from founder).
+5. **212 — Context-rich FIGSY sequences** 🤖.
+6. **T5 — Harden** 🤝 — dead-control cleanup (88/230/122) + unrun migrations (182/185) + monitoring (199) + Smoke Test 2 (100).
+7. **55a — Company-engine RLS** 🤖 — DB-enforced rep-data isolation (before any multi-rep client).
+8. **Verify Pause/M2** 🤝 — re-walk to confirm pause stops Stripe billing → 🔧→🟢.
 
 ### ▶ THU–FRI 3–4 JUL — RECORD + UPLOAD VERIFIED DEMOS
-*Turns the now-trustworthy product into proof on the marketing site. No new features — record + embed.*
-1. **Record demos** 🧍 — founder films per `RECORDING-SHOOTING-SCRIPT.md` (item 129). Claude provisions a demo company first (for the Command-Centre scene, item 55).
-2. **Demo-page prep (HTML only)** 🤖 — `demo.html` is already video-ready (swap the embed); **The Drop, blog, and home need a small video-embed block added** to host the clips. Decision: one **/watch** hub (held item 93) or consolidate on `demo.html`? *(my rec: consolidate on demo.html now, build /watch later.)*
-3. **Upload + publish** 🤝 — drop the verified videos into demo + Drop + blog + home; flip item 129/130/163 as they go live.
+1. **Record demos** 🧍 — founder films per `RECORDING-SHOOTING-SCRIPT.md` (item 129); Claude provisions the demo company first.
+2. **Demo-page prep (HTML only)** 🤖 — `demo.html` is video-ready; The Drop/blog/home need a small video-embed block. *(rec: consolidate on demo.html now, /watch later.)*
+3. **Upload + publish** 🤝 — verified videos into demo + Drop + blog + home; flip 129/130/163 as they go live.
 
 ### ⏳ TRACKED / GATED — time-based or trigger-gated
 - **198 Instantly warmth** 🧍 — the one allowed waiter (gates our first send).

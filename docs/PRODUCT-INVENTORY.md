@@ -58,7 +58,7 @@
 ### Billing
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 23 | 🟢 | Stripe — checkout, idempotent webhooks, price IDs | — |
+| 23 | 🟢 | Stripe — checkout, idempotent webhooks, price IDs — **re-verified 29 Jun: credit purchase confirmed working live** (`NEXT_PUBLIC_STRIPE_PRICE_*` on Portal + `STRIPE_PRICE_*` on API both set in Railway; session creates + redirects to Stripe successfully) | — |
 | 26 | 🟢 | Agent subscriptions (Vida $29 · Milla $49 · Denise $39) | — |
 | 28 | 🟢 | Usage tracking per client — *walk 26 Jun: displays, but 🧪 verify credit calc + consumption accuracy with a real test (founder unsure it's calculating right)* | 🧍 test |
 

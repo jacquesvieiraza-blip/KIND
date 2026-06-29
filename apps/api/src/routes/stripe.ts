@@ -128,7 +128,7 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
     const clientEmail = user?.email || ''
 
     const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const url = await createCheckoutSession({
+    const { url, error } = await createCheckoutSession({
       clientId:   client.id,
       priceId,
       credits,
@@ -138,7 +138,7 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
       cancelUrl:  `${portalUrl}/dashboard/billing?stripe=cancelled`,
     })
 
-    if (!url) { res.status(500).json({ success: false, error: 'Failed to create Stripe Checkout session' }); return }
+    if (!url) { res.status(500).json({ success: false, error: error || 'Failed to create Stripe Checkout session' }); return }
     res.json({ success: true, url })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -190,7 +190,7 @@ stripeRouter.post('/subscribe', requireAuth, async (req: AuthRequest, res: Respo
     const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
     const successPage = product === 'milla' ? 'assistant' : product === 'denise' ? 'denise' : 'chatbot'
 
-    const url = await createSubscriptionCheckoutSession({
+    const { url, error } = await createSubscriptionCheckoutSession({
       clientId:   client.id,
       product,
       priceId,
@@ -199,7 +199,7 @@ stripeRouter.post('/subscribe', requireAuth, async (req: AuthRequest, res: Respo
       cancelUrl:  `${portalUrl}/dashboard/${successPage}`,
     })
 
-    if (!url) { res.status(500).json({ success: false, error: 'Failed to create subscription checkout' }); return }
+    if (!url) { res.status(500).json({ success: false, error: error || 'Failed to create subscription checkout' }); return }
     res.json({ success: true, url })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

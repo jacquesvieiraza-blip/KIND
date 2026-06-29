@@ -49,9 +49,12 @@ function publicApiUrl(): string {
 // D3 — a branded tracking domain, or null. We refuse to embed a bare platform host
 // (railway/onrender/vercel/heroku) in cold mail: an <img> pointing at a random
 // *.up.railway.app URL is a classic phishing signal and tanks inbox placement.
-// Better to lose open-tracking than to land in spam.
+// Exception: an explicitly set TRACKING_URL is trusted — the founder knowingly set it.
+// The filter only applies when falling back to the generic API_URL env var.
 export function trackingBaseUrl(): string | null {
-  const url = process.env.TRACKING_URL || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || ''
+  const explicit = process.env.TRACKING_URL
+  if (explicit) return explicit.replace(/\/$/, '')
+  const url = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || ''
   if (!url) return null
   if (/railway\.app|onrender\.com|vercel\.app|herokuapp\.com|\.run\.app/i.test(url)) return null
   return url.replace(/\/$/, '')
@@ -129,11 +132,12 @@ export function unsubscribeFooterText(email: string): string {
 // what Gmail's own compose produces. Compliance is still met by the one-click
 // List-Unsubscribe header (unsubscribeHeaders) + the "Reply STOP to opt out." line the
 // FIGSY prompt always puts in the body.
-// TRADE-OFF (intentional, founder-agreed): no pixel ⇒ no open-tracking on cold. For
-// cold outreach, landing in the inbox beats knowing the open rate.
-export function coldEmailHtml(body: string): string {
+// Open tracking re-enabled 29 Jun (founder decision). Pixel is included when emailId
+// is passed and TRACKING_URL is set. Near-plain HTML is preserved for deliverability.
+export function coldEmailHtml(body: string, emailId: string | null = null): string {
   const lines = (body || '').split('\n').map(line => (line.length ? line : '')).join('<br>')
-  return `<div dir="ltr" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">${lines}</div>`
+  const pixel = emailId ? trackingPixelHtml(emailId) : ''
+  return `<div dir="ltr" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">${lines}${pixel}</div>`
 }
 
 // Warmup ramp schedule — given a YYYY-MM-DD start date, returns the cold-send cap

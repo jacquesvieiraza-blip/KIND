@@ -425,7 +425,7 @@ export async function sendSequenceEmail(
       subject,
       headers:  unsubscribeHeaders(lead.email),
       text:     body,
-      html:     coldEmailHtml(body),
+      html:     coldEmailHtml(body, emailId),
     })
     messageId = (result as any).data?.id ?? undefined
 

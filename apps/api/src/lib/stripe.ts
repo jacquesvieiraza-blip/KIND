@@ -51,6 +51,20 @@ export function isStripeConfigured(): boolean {
   return stripe !== null
 }
 
+// Pull a human-readable reason out of a Stripe error so the founder/customer can
+// SEE why checkout failed (e.g. "No such price: price_xxx" = test/live mismatch,
+// or "price is recurring" = bundle created with the wrong type) instead of a
+// generic "Failed to create…". Stripe SDK errors carry .message and .code.
+function stripeErrorMessage(err: unknown): string {
+  if (err && typeof err === 'object') {
+    const e = err as { message?: unknown; code?: unknown }
+    const msg = typeof e.message === 'string' ? e.message : ''
+    const code = typeof e.code === 'string' ? ` (${e.code})` : ''
+    if (msg) return `Stripe: ${msg}${code}`
+  }
+  return 'Stripe rejected the request for an unknown reason'
+}
+
 // ── One-time credit purchase checkout ────────────────────────────────────────
 export async function createCheckoutSession(params: {
   clientId:    string
@@ -60,8 +74,8 @@ export async function createCheckoutSession(params: {
   successUrl:  string
   cancelUrl:   string
   clientEmail: string
-}): Promise<string | null> {
-  if (!stripe) return null
+}): Promise<{ url: string | null; error?: string }> {
+  if (!stripe) return { url: null, error: 'Stripe not configured' }
   try {
     const session = await stripe.checkout.sessions.create({
       mode:                 'payment',
@@ -77,10 +91,10 @@ export async function createCheckoutSession(params: {
         type:       'credit_purchase',
       },
     })
-    return session.url
+    return { url: session.url }
   } catch (err) {
     console.error('[Stripe] createCheckoutSession error:', err)
-    return null
+    return { url: null, error: stripeErrorMessage(err) }
   }
 }
 
@@ -92,8 +106,8 @@ export async function createSubscriptionCheckoutSession(params: {
   clientEmail: string
   successUrl:  string
   cancelUrl:   string
-}): Promise<string | null> {
-  if (!stripe) return null
+}): Promise<{ url: string | null; error?: string }> {
+  if (!stripe) return { url: null, error: 'Stripe not configured' }
   try {
     const session = await stripe.checkout.sessions.create({
       mode:                 'subscription',
@@ -114,10 +128,10 @@ export async function createSubscriptionCheckoutSession(params: {
         },
       },
     })
-    return session.url
+    return { url: session.url }
   } catch (err) {
     console.error('[Stripe] createSubscriptionCheckoutSession error:', err)
-    return null
+    return { url: null, error: stripeErrorMessage(err) }
   }
 }
 

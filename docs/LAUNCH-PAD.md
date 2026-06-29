@@ -28,7 +28,7 @@
 3. **Walkthrough — Section A (23 click-walk)** 🤝 — founder click-walks portal screens (`PINK-WALK-CHECKLIST.md`); Claude fixes ❌ live + flips dots.
 4. **Company — business training** 🧍.
 5. **Deliverability config** 🧍 — cold-domain env (`FIGSY_COLD_FROM`/`REPLY_TO`/`TRACKING_URL`) + DNS SPF/DKIM/DMARC.
-6. **Payment config** 🧍 — register Stripe Price IDs + set `STRIPE_PRICE_*` env (see 🔑 GO-LIVE CONFIG).
+6. ✅ **Payment config** — Stripe Price IDs set on both API + Portal Railway services; credit purchase verified working 29 Jun (PR #807).
 
 ### ▶ TUESDAY 30 JUN — M1 (our outreach)
 1. **Finish enrich → Instantly-ready CSV** 🤖 — export the contactable leads ready to import to Instantly.

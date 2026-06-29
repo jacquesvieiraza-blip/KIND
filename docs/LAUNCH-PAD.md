@@ -27,7 +27,13 @@
 2. ✅ **Enrichment → verified emails** — 1,461 contacts all have verified emails (Apollo bulk_match already run); `kind_instantly_import.csv` ready for Instantly import (email · first_name · last_name · job_title · company · linkedin_url).
 3. **Walkthrough — Section A (23 click-walk)** 🤝 — founder click-walks portal screens (`PINK-WALK-CHECKLIST.md`); Claude fixes ❌ live + flips dots.
 4. **Company — business training** 🧍.
-5. **Deliverability config** 🧍 — cold-domain env (`FIGSY_COLD_FROM`/`REPLY_TO`/`TRACKING_URL`) + DNS SPF/DKIM/DMARC.
+5. **Deliverability config + open tracking fix** 🤝 — **6pm tonight:**
+   - 🧍 Railway: set `FIGSY_COLD_FROM=figsy@gettingkind.com` · `REPLY_TO=replies@gettingkind.com` · `TRACKING_URL=https://api.get-kind.com` (or Railway API URL)
+   - 🧍 **Pause the current FIGSY campaign** until cold domain is confirmed clean
+   - 🧍 Resend dashboard: add `gettingkind.com` as a sending domain → copy DKIM record
+   - 🧍 DNS on `gettingkind.com`: add SPF + DKIM (from Resend) + DMARC records
+   - 🤖 **Enable open tracking on cold emails** — add pixel to `coldEmailHtml()` in `deliverability.ts` (tracking pixel is built; was deliberately disabled; decision reversed 29 Jun)
+   - ⚠️ **Root cause of 0 replies:** 310 emails sent from `hello@get-kind.com` (wrong domain, no warming) — likely all in spam. Fix this before resuming.
 6. ✅ **Payment config** — Stripe Price IDs set on both API + Portal Railway services; credit purchase verified working 29 Jun (PR #807).
 
 ### ▶ TUESDAY 30 JUN — M1 (our outreach)
@@ -72,7 +78,7 @@
 `PDL_API_KEY` + `HUNTER_API_KEY` (required for us) · `ANTHROPIC_API_KEY` (scoring) · `APOLLO_API_KEY` = optional, not needed.
 
 **(C) FIGSY sends a client email** — ⚠️ cron + from-domain fail silently:
-`RESEND_API_KEY` (else records "sent" but sends nothing) · `ADMIN_SECRET_KEY` (else the 2-hourly send cron silently no-ops) · `FIGSY_COLD_FROM` (else cold mail poisons get-kind.com) · `RESEND_WEBHOOK_SECRET` (else replies rejected).
+`RESEND_API_KEY` (else records "sent" but sends nothing) · `ADMIN_SECRET_KEY` (else the 2-hourly send cron silently no-ops) · `FIGSY_COLD_FROM` (else cold mail poisons get-kind.com) · `RESEND_WEBHOOK_SECRET` (else replies rejected) · `TRACKING_URL` (else open tracking pixel is skipped → 0 open-rate visibility — **add tonight**).
 
 **Our-own-outreach (Instantly rig):** cold-domain DNS **SPF/DKIM/DMARC** · mail-tester **10/10** (101) · Instantly health ~90% + inbox test (198).
 

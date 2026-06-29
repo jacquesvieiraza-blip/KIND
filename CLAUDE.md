@@ -50,5 +50,13 @@ A **steal** = any pattern worth taking from another tool (Notion, Glean, competi
 - **Do not merge** anything lacking a test path or a done condition.
 - The founder merges. After every push, reconcile against `origin/main` and end with the merge-state footer (RULEBOOK 5.6/5.7).
 
+## 🛑 AUDIT YOURSELF BEFORE REPORTING ANY DELIVERABLE (founder-LOCKED 29 Jun)
+Before reporting the state of any previously-built deliverable (CSV list, file, count, enrichment result, feature):
+1. **Locate the actual file** — `ls` the scratchpad / repo path. If it doesn't exist, say so.
+2. **Verify the real numbers** — `wc -l`, `grep`, `head` — not what was said last session.
+3. **Report what the file actually contains**, not what was claimed when it was built.
+4. **Never say "we have X leads / Y rows / Z emails" without running the count live** — memory of a prior build is not evidence.
+This rule exists because the 2k pull was reported as "2,000 names" when it had **0 verified emails** — a useless file for outreach. The founder caught it. Never again.
+
 ## Session start
 Read in order: **LAUNCH-PAD → PRODUCT-INVENTORY → KIND-MASTER → V2-TRACKER**, then `docs/RULEBOOK.md`. Open with a one-line reconciled state (RULEBOOK §8).

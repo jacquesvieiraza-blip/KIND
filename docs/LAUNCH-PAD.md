@@ -23,15 +23,15 @@
 **Mon–Tue = M1 (ready to outreach OUR clients).** **Wed = M2 (build the client system).** **Thu–Fri = record + upload demos.** Only **Instantly warmth** is allowed to still be waiting. Owner: 🧍 founder · 🤖 Claude · 🤝 both.
 
 ### ▶ MONDAY 29 JUN — M1 (our outreach)
-1. **Outreach list → ≥2,000 names** 🤖 — Apollo pull (US SMB/Mid-Market), dedupe vs the 179.
-2. **Start enrichment → verified emails** 🤖 — run the list through our live PDL→Hunter.
+1. ✅ **Outreach list** — 1,461 verified-email US contacts confirmed in `kind_outreach_FINAL.csv` (audited 29 Jun; 2k pull exhausted via Apollo bulk_match last session).
+2. ✅ **Enrichment → verified emails** — 1,461 contacts all have verified emails (Apollo bulk_match already run); `kind_instantly_import.csv` ready for Instantly import (email · first_name · last_name · job_title · company · linkedin_url).
 3. **Walkthrough — Section A (23 click-walk)** 🤝 — founder click-walks portal screens (`PINK-WALK-CHECKLIST.md`); Claude fixes ❌ live + flips dots.
 4. **Company — business training** 🧍.
 5. **Deliverability config** 🧍 — cold-domain env (`FIGSY_COLD_FROM`/`REPLY_TO`/`TRACKING_URL`) + DNS SPF/DKIM/DMARC.
 6. ✅ **Payment config** — Stripe Price IDs set on both API + Portal Railway services; credit purchase verified working 29 Jun (PR #807).
 
 ### ▶ TUESDAY 30 JUN — M1 (our outreach)
-1. **Finish enrich → Instantly-ready CSV** 🤖 — export the contactable leads ready to import to Instantly.
+1. ✅ **Instantly-ready CSV** — `kind_instantly_import.csv` (1,461 contacts, 6 columns) ready to import. Pulled forward from Tue to Mon 29 Jun.
 2. **Sequence → load into Instantly** 🧍 — the drafted 4-step dogfood + free-sample.
 3. **Walkthrough — Section B (8 demo-account)** 🤝 — Claude provisions a demo company; founder walks Command Centre 55 · provisioning 59 · rep flows 106–111.
 4. **Company — Xero/accounting + banking + Wise rails** 🧍🤝.

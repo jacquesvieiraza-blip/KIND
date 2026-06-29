@@ -150,9 +150,10 @@
 
 ## 🏢 THIS WEEK — COMPANY OPS SETUP (founder, added 28 Jun)
 *Get the business backend right alongside the product/demo work.*
-- **Run the company business training** (the business-model / how-we-operate session).
-- **Set up the business backend properly:** accounting platform (196 — pick + connect, USD reporting, VAT threshold) · banking/invoicing flow · expense + payout rails (Wise for partner/AE commission) · bookkeeping cadence.
-- Done-when: accounting platform live + reconciled to Stripe revenue; training delivered.
+- ✅ **Company business training delivered** (29 Jun) — model, money flow, ops, weekly rhythm → `docs/run-costs-and-cashflow.md §16`.
+- ✅ **Wise Business opened** · ✅ **Stripe payouts → Wise** (29 Jun).
+- ⏸ **Xero (item 196)** — open on first paying client; connect Stripe + Wise same day.
+- Done-when: ✅ training delivered · Xero + reconciliation on first paying client.
 
 ---
 

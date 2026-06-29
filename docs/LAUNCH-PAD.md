@@ -1,6 +1,6 @@
 # 🚀 K.I.N.D — LAUNCH PAD (the readiness tracker)
 
-**As of: 26 June 2026** · post-launch (live since 18 Jun) · currency **USD**
+**As of: 29 June 2026** · post-launch (live since 18 Jun) · currency **USD**
 **🎯 The aim: get to two clear milestones — (1) I can SELL & onboard, (2) clients can run on the product safely. Track every essential item to those, honestly.**
 
 > 🧭 **Four-doc contract:** **LAUNCH-PAD** (this) = the road to ready, item by item · **PRODUCT-INVENTORY** = product status / the walkthrough · **KIND-MASTER** = strategy + why · **V2-TRACKER** = future.
@@ -10,9 +10,9 @@
 ---
 
 ## 📌 WHERE AM I — the 20-second answer
-- **Milestone 1 — READY TO SELL & ONBOARD:** 🔧 — **0/5 fully done, 2 in progress.** Outreach list seed built (≥2,000 pull Mon) · 4-step sequence drafted (you load) · walkthrough in progress · **gated on Instantly warmth.**
+- **Milestone 1 — READY TO SELL & ONBOARD:** 🔧 — **Mon 29 Jun: items 1 ✅ 2 ✅ 5 ✅ 6 ✅ done.** Walkthrough Section A (item 3) still pending · sequence load (item Tue-2) you do · **gated on Instantly warmth.**
 - **Milestone 2 — CLIENTS RUN ON THE PRODUCT:** 🔴 early — T1 + T2a + T2b done. **WED = build the whole client system** (T4/211 engine · T2c · T3 · 243 · 212 · T5 · verify-pause). Engine needs your 2 decisions (mailbox markup + Resend→per-client).
-- **In flight / next:** the **📅 Mon/Tue full-business sprint** (section below) + the **pink walkthrough** — Section A (you click-walk) Mon, Section B (demo account) Tue; I fix breakages + flip dots.
+- **In flight / next:** **Walkthrough Section A** (you click-walk 23 screens, I fix + flip dots) — then Tue items → Wed M2 build.
 - **Open PR:** **#803** — Mon/Tue sprint plan + runlist (docs) — *awaiting your clean merge.* **Merged → LIVE this session:** homepage de-clutter (#797, 259 🟢) · product-page dashboards (#798, 254 🟢) · hero fix (#799/#800) · pricing compare-table (255 🟢) + social-proof scaffold (253 🟢, hidden-until-data) + memory rule (#801) · green-verify (#802) · data-residency (#795) · nav/footer (#796) · audit/legal/global (#782/#783) · competitor sweep (#784). **Outreach list built** (179-row seed + ICP, delivered as files). **Stack: PDL→Hunter→Clearbit; 243 router = Tue.**
 
 > ⚠️ **The honest headline (code-audited 28 Jun):** the product is **built end-to-end** — signup→pay→source→enrich→score→deliver→charge→**FIGSY sends via Resend**→replies all work in code. **We are NOT behind on building.** The real risk is **go-live CONFIG that fails SILENTLY** (Stripe price IDs, the send cron's `ADMIN_SECRET_KEY`, `FIGSY_COLD_FROM`) + **unverified Railway env** — the app runs "green" while payments/cron/cold-domain can be quietly dead. **Status = code-complete, config-UNVERIFIED.** Smartlead/211 is NOT "zero sending" — basic sending already runs on Resend; 211 only adds **per-client isolated + warmed** mailboxes (deliverability/scale). Instantly warmth = the one external clock.
@@ -27,13 +27,13 @@
 2. ✅ **Enrichment → verified emails** — 1,461 contacts all have verified emails (Apollo bulk_match already run); `kind_instantly_import.csv` ready for Instantly import (email · first_name · last_name · job_title · company · linkedin_url).
 3. **Walkthrough — Section A (23 click-walk)** 🤝 — founder click-walks portal screens (`PINK-WALK-CHECKLIST.md`); Claude fixes ❌ live + flips dots.
 4. **Company — business training** 🧍.
-5. **Deliverability config + open tracking fix** 🤝 — **6pm tonight:**
-   - 🧍 Railway: set `FIGSY_COLD_FROM=figsy@gettingkind.com` · `REPLY_TO=replies@gettingkind.com` · `TRACKING_URL=https://api.get-kind.com` (or Railway API URL)
-   - 🧍 **Pause the current FIGSY campaign** until cold domain is confirmed clean
-   - 🧍 Resend dashboard: add `gettingkind.com` as a sending domain → copy DKIM record
-   - 🧍 DNS on `gettingkind.com`: add SPF + DKIM (from Resend) + DMARC records
-   - 🤖 **Enable open tracking on cold emails** — add pixel to `coldEmailHtml()` in `deliverability.ts` (tracking pixel is built; was deliberately disabled; decision reversed 29 Jun)
-   - ⚠️ **Root cause of 0 replies:** 310 emails sent from `hello@get-kind.com` (wrong domain, no warming) — likely all in spam. Fix this before resuming.
+5. ✅ **Deliverability config + open tracking fix** 🤝 — **DONE 29 Jun (PR #814):**
+   - ✅ Railway: `FIGSY_COLD_FROM=K.I.N.D <figsy@gettingkind.com>` · `REPLY_TO=replies@gettingkind.com` · `TRACKING_URL` all set
+   - ✅ FIGSY campaign paused then resumed after domain confirmed clean
+   - ✅ Resend: `gettingkind.com` DKIM ✅ SPF ✅ MX ✅ fully verified
+   - ✅ Cloudflare: DMARC added (`p=quarantine; rua=mailto:dmarc@gettingkind.com`)
+   - ✅ Open tracking pixel re-enabled on cold emails (`coldEmailHtml()` + `trackingBaseUrl()` fix, PR #814)
+   - ✅ GA4 (G-0BCMTW9HSK) added to all 62 website pages (PR #812)
 6. ✅ **Payment config** — Stripe Price IDs set on both API + Portal Railway services; credit purchase verified working 29 Jun (PR #807).
 
 ### ▶ TUESDAY 30 JUN — M1 (our outreach)

@@ -196,7 +196,7 @@
 | 187 | 🩷 | Sequence/template → apply-to-campaign (email-first) — *walk 26 Jun: manual build+apply works; confidence gap = FIGSY can't AI-draft the sequence on request ("he says he can't") → that's the 212 build* | 🧍 walk |
 | 188 | 🩷 | Denise enabled + seeded on demo account | 🧍 walk |
 | 191 | 🟢 | ROI / value dashboard ("what KIND did for you") — **walk-confirmed 26 Jun (the value screen, real numbers).** ⚠️ follow-up: the "$873k pipeline touched" is leads×estimate — with 0 replies it can read inflated; temper/clarify the label (anti-fake-number) → tracked under 249-note. | 🤝 |
-| 193 | 🩷 | Real open-tracking (fabricated 28% removed) | 🧍 walk |
+| 193 | 🩷 | Real open-tracking — **pixel re-enabled 29 Jun (PR #814)**. `TRACKING_URL` set in Railway; `trackingBaseUrl()` updated to trust explicit override; `coldEmailHtml()` now embeds the pixel when `emailId` is present. Cold opens will now register when a recipient opens. Walk to confirm data appears in Analytics → 🟢. | 🧍 walk |
 | 194 | 🩷 | Deliverability content hardened (reputation fix = 198) | 🤝 |
 | 259 | 🟢 | **Homepage de-clutter — 3 agent stacks → 1 (LIVE + founder-verified 28 Jun via #797).** Removed the system-flow band ("One lead in. A booked meeting out.") + the pill-swap showcase ("An agent for every job"); the surviving stacking-card pills now link to each agent's product page (FIGSY→figsy · Milla→virtual-assistant · Vida→chatbot-agent · Denise→denise; Tony stays unlinked — coming soon). Detailed per-agent dashboard showcase → product pages (item 254). | 🤖 |
 

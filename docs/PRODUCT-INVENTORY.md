@@ -219,8 +219,8 @@
 | # | ● | Item | Owner |
 |---|---|------|-------|
 | 24 | 🟡 | Flutterwave (wired; activation = item 136) | 🤝 |
-| 25 | 🟡 | Credit bundles (price tables disagree → 168) | 🤝 |
-| 27 | 🟡 | Credit system + atomic ledger (FIGSY-pool note → 170) | 🤝 |
+| 25 | 🟡 | Credit bundles — **closing Wed 1 Jul** (Lead Gen retirement: one FIGSY credit at $3, bundles 20/40/100 = $60/$120/$300 → pricing page rewrite) | 🤖 |
+| 27 | 🟡 | Credit system + atomic ledger — **closing Wed 1 Jul** (single pool: `figsy_credits_remaining` only; `credit_balance` retired; `billing-rules.ts` simplified) | 🤖 |
 | 57 | 🟡 | Company payment system — Stripe → pool billing | 🤝 |
 | 84 | 🟡 | Signup + SSO buttons (built; gated off until OAuth registered, item 126) | 🧍 |
 | 96 | 🟡 | Voice (Vapi) + WhatsApp (code wired, dormant on keys) | 🧍 |
@@ -267,7 +267,7 @@
 | 236 | 🔴 | C2 — kill fmtZAR in partner dashboard → USD | 🤖 |
 | 237 | 🔴 | C3 — Paystack: KILL → Stripe (US/EMEA) + Flutterwave (Africa) | 🤖 |
 | 238 | 🩷 | C4 — subscriptions now write `amount_usd` (source of truth) — **DONE via T2b #756 + migration**; `amount_zar` kept until partner stats move to USD (220) | 🤝 |
-| 239 | 🔴 | C5 — unify price tables to @kind/shared | 🤖 |
+| 239 | 🔴 | C5 — unify price tables to @kind/shared — **superseded Wed 1 Jul** by Lead Gen retirement (one product, one price, no split to reconcile) | 🤖 |
 | 240 | 🩷 | C6 — settings voice copy fixed (no longer claims auto day-4 calling) — **DONE via T2a #754, walk to confirm** | 🤝 |
 | 241 | 🔴 | Migration hygiene — **dup `20260611` deleted (T1 #753)**; still: crm-fields migration + `subscriptions.tier` CHECK reconcile (T2b) | 🤖 |
 | 230 | 🔴 | lena.ts dead code — mount (under 145) or delete | 🤖 |

@@ -45,14 +45,15 @@
 - **END OF TUE = M1 DONE.** Only **198 Instantly warmth** still waiting → then **127 first outreach fired** (cold = burns the rig).
 
 ### ▶ WEDNESDAY 1 JUL — M2 (build the client system)
-1. **T4 / 211 — the engine** 🤝 — *(basic sending already works via Resend; this adds per-client **isolated + warmed** mailboxes for deliverability/scale)*. Smartlead: provision → warm → sending seam → credit alignment → test. **2 decisions: mailbox markup + Resend→per-client.** Spans past Wed.
+1. **T4 / 211 — the engine** 🤝 — *(basic sending already works via Resend; this adds per-client **isolated + warmed** mailboxes for deliverability/scale)*. Smartlead: provision → warm → sending seam → credit alignment → test. White-label NOT needed — API `client_id` isolation confirmed on Pro plan ($5–9/mailbox only, no $29/client fee). Spans past Wed.
 2. **T2c — Kill Paystack** 🤖 — remove router + ZAR paths; Stripe-only.
 3. **T3 — Per-client send cap + N+1 batch enroll** 🤖 — daily cap (50/day, configurable).
-4. **243 — Multi-source source-router** 🤝 — PDL→Hunter→Clearbit + BetterContact (key from founder).
-5. **212 — Context-rich FIGSY sequences** 🤖.
-6. **T5 — Harden** 🤝 — dead-control cleanup (88/230/122) + unrun migrations (182/185) + monitoring (199) + Smoke Test 2 (100).
-7. **55a — Company-engine RLS** 🤖 — DB-enforced rep-data isolation (before any multi-rep client).
-8. **Verify Pause/M2** 🤝 — re-walk to confirm pause stops Stripe billing → 🔧→🟢.
+4. **💡 Lead Gen retirement → single FIGSY credit product** 🤖 — *(decided 29 Jun, 0 clients = clean switch)*. Retire `lead_gen` plan + `credit_balance` pool. One product: FIGSY credits at **$3/credit** covers find + score + enrich + send. Changes: `billing-rules.ts` · Stripe Lead Gen price IDs removed · portal credits UI → one balance · pricing page rewritten. Closes items 25 · 27 · 168 · 239.
+5. **243 — Multi-source source-router** 🤝 — PDL→Hunter→Clearbit + BetterContact (key from founder).
+6. **212 — Context-rich FIGSY sequences** 🤖.
+7. **T5 — Harden** 🤝 — dead-control cleanup (88/230/122) + unrun migrations (182/185) + monitoring (199) + Smoke Test 2 (100).
+8. **55a — Company-engine RLS** 🤖 — DB-enforced rep-data isolation (before any multi-rep client).
+9. **Verify Pause/M2** 🤝 — re-walk to confirm pause stops Stripe billing → 🔧→🟢.
 
 ### ▶ THU–FRI 3–4 JUL — RECORD + UPLOAD VERIFIED DEMOS
 1. **Record demos** 🧍 — founder films per `RECORDING-SHOOTING-SCRIPT.md` (item 129); Claude provisions the demo company first.

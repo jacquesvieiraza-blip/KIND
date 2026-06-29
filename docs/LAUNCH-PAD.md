@@ -91,6 +91,32 @@
 | Record product demo + Drop 01 video (item 129) | 🧍 you |
 | Upload + publish verified videos (demo.html · The Drop · home) | 🤝 both |
 
+### 🔧 Fri 4 Jul — LINKEDIN CONTENT GENERATION (same day, after recording)
+
+> **12-week clock starts Mon 7 Jul** — the week after recording so videos are ready before video posts go out.
+> **Audit rules (founder-locked):** no pricing (in flux), no traction numbers, safe claims only. 7 flags from Content Playbook v3 review below.
+
+| Item | Owner |
+|------|-------|
+| Generate all 12 weeks of LinkedIn posts in one session — copy-ready text + image brief per post | 🤝 both |
+| Apply Playbook v3 hard rules: no pricing · no traction numbers · safe claims only | 🤖 me |
+| Flag every post that needs a missing page; apply homepage / demo fallback CTAs | 🤖 me |
+| Hold Flag 4 (Milla demo — needs live campaign data) · Flag 5 (CRM integrations — unconfirmed) · Flag 6 (partners page — not built) · Flag 7 (50-page playbook — not built) until live | 🤖 me |
+| Build 12 stat-card + agent portrait images in Canva — use Brand Guide v2 hex codes | 🧍 you |
+| Schedule all 36 posts in Buffer on Sun 6 Jul | 🧍 you |
+
+**Content Playbook v3 — 7 audit flags (locked before any post goes live):**
+
+| # | Flag | Rule |
+|---|------|------|
+| 1 | Pricing figures in posts | Playbook v3: pricing in flux → BLOCK all until settled |
+| 2 | Video posts in Wks 1–4 | Videos record Fri 4 Jul → can't publish before that; clock starts Mon 7 Jul |
+| 3 | Missing pages (13 URLs) | `/story` `/trust` `/partners` `/the-drop` `/drop-01–09` `/blog-*` etc. → fallback to `/` or `/demo.html` |
+| 4 | Milla demo video | Claims real reply-rate data → hold until 2+ weeks of live campaign |
+| 5 | CRM integrations claim | "HubSpot · Salesforce · Pipedrive" not confirmed built → hold post |
+| 6 | Partner programme post | `/partners.html` not built · "live in 48h" claim unverified → hold post |
+| 7 | "50+ page playbook" | Resource doesn't exist → hold post until created |
+
 ---
 
 ## 🧍 YOUR STANDING LIST (only you can do these)

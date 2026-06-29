@@ -649,7 +649,99 @@ The `partners@apollo.io` email (sent 14 Jun) decides it:
 
 ---
 
+---
+
+## 16. How to Run the Company — Business Training
+
+*Delivered 29 Jun 2026. Operational reference for running K.I.N.D day-to-day — business model, money flow, company ops status, and weekly rhythm.*
+
+### What this business actually is
+
+K.I.N.D is a SaaS platform that sells AI sales automation to SMBs. You make money two ways:
+
+1. **Credit bundles** (one-time purchases) — clients buy lead-gen or outreach credits and consume them
+2. **Agent subscriptions** (recurring monthly) — clients pay monthly for AI agents (Milla, Vida, Denise)
+
+The model is ~95% gross margin. Fixed costs are ~$138/month. Break-even is **2 clients**. After that, almost every dollar of revenue is profit.
+
+### The five products and what they charge
+
+| Product | Type | Price |
+|---|---|---|
+| Lead Gen (K.I.N.D AI) | Credits | $20 / $40 / $100 bundles ($1/lead flat) |
+| FIGSY | Credits | $60 / $120 / $300 bundles ($3/lead flat) |
+| Milla (VA / Brain) | Subscription | $49/month |
+| Vida (Chatbot) | Subscription | $29/month |
+| Denise (AI Account Executive) | Subscription | $39/month |
+
+Highest-leverage upsell: $20 Lead Gen starter → FIGSY ($60+) → Denise ($39) = ~$199/month client, ~10× the margin of a starter.
+
+### Break-even and salary target
+
+- **Break-even (infra only):** 2 clients at $80 blended ARPU
+- **Break-even (incl. dev costs):** 5 clients
+- **Salary target (£75k/year gross):** ~$5,000 MRR — ~63 clients at $80 blended, or ~25 clients at $199 (FIGSY + Denise mix)
+- **Churn is the treadmill:** at 5% monthly churn you replace ~3 clients/month forever. Quality of first leads matters more than volume for retention.
+
+### How money flows
+
+```
+Client pays → Stripe (global) or Flutterwave (Africa)
+                ↓
+        Credits land in wallet / subscription activates
+                ↓
+        Revenue sits in Stripe/Flutterwave balance
+                ↓
+        Stripe pays out → Wise Business (UK sort code + USD balance)
+                ↓
+        You pay fixed stack (~$138/mo) from Wise
+                ↓
+        Profit → withdraw to personal account as salary/dividend
+```
+
+### Company ops — current status (29 Jun 2026)
+
+| Item | Status | Next action |
+|---|---|---|
+| UK Ltd (Companies House) | ✅ Active | File confirmation statement annually |
+| ICO registration (data protection) | ✅ C1959926 | Renew annually |
+| Business bank account | ✅ Wise Business (primary) | Save sort code + account number |
+| Stripe payouts | ✅ → Wise Business | Done |
+| Flutterwave (Africa) | ✅ Wired | Confirm payout destination |
+| Wise (partner/AE commission payouts) | ✅ Open | Use for partner commissions |
+| Accounting platform (item 196) | ⏸ Xero — open on first paying client | Connect Stripe + Wise same day as first client pays |
+| Bookkeeping cadence | ⏸ Blocked on Xero | Monthly reconciliation — starts on first client |
+| VAT registration | Not yet | Threshold: £90k/year UK turnover — nowhere near it |
+| HMRC (corp tax) | Active obligation | Xero + accountant handles this once connected |
+
+**Xero — why it's the right choice and when to open it:**
+- Connects directly to Stripe (auto-imports every payment) and to Wise
+- Handles USD revenue reconciled to GBP for HMRC filing
+- Standard for UK Ltd — most UK accountants work in it
+- Start on Xero Starter (~£15/mo) on the day first client pays; it backfills Stripe history from day one
+
+### Weekly numbers rhythm (15 min/week, every Monday)
+
+| Metric | What it tells you | Where to check |
+|---|---|---|
+| MRR | Is the business growing? | Stripe dashboard |
+| New clients this week | Lead indicator | Admin portal |
+| Churn (cancellations) | Are you keeping clients? | Admin portal |
+| ARPU | Are clients upgrading or staying on $20 starter? | Admin portal |
+| Credits consumed vs. purchased | Are clients active or stalled? | Admin portal |
+| Stripe balance / payout | Cash in hand | Stripe + Wise |
+
+If MRR is flat and churn is rising — focus on client success before new sales.
+
+### The three levers that determine which scenario you land in (recap from §5d)
+
+1. **ARPU uplift** — push FIGSY + Denise after first leads land. Turns a $20 starter into $199/month.
+2. **Partner channel** — 1 good agency partner ≈ 10 clients/month. Bypasses the whole cold funnel.
+3. **Per-rep company engine (#88)** — sell teams, not seats. A 10-seat company ≈ 10× a single client at almost the same cost to serve.
+
+---
+
 *Document owner: K.I.N.D founding team*
-*Last updated: **16 June 2026** — prices reconciled to LOCKED flat constants + $1M ARR goal (math corrected) + §13 Apollo strategy + §14 Onboarding/Segmentation + §15 Execution tickets (166–173 + onboarding)*
-*Previous: 10 June 2026 — Cost Per Product & Scaling Map*
+*Last updated: **29 Jun 2026** — §16 added: How to Run the Company (business training delivered)*
+*Previous: 16 June 2026 — prices reconciled to LOCKED flat constants + $1M ARR goal + §13 Apollo strategy + §14 Onboarding/Segmentation + §15 Execution tickets*
 *Review this model quarterly as pricing, client mix, and ARPU evolves.*

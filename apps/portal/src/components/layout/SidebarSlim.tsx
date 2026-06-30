@@ -216,8 +216,10 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
           </div>
         )}
 
-        {/* Active agent nav */}
-        <div className="mt-1 space-y-0.5">
+        {/* Active agent nav — hidden while the switcher is open so the full
+            agent list (incl. the last entry, Denise) is never pushed/clipped
+            by a long nav like FIGSY's. */}
+        <div className={`mt-1 space-y-0.5 ${open ? 'hidden' : ''}`}>
           {unlocked
             ? agent.nav.map(item => <Row key={item.href} {...item} />)
             : (

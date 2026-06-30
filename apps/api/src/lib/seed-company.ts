@@ -7,8 +7,9 @@ import { db } from '@kind/db'
  * REAL reads — varied performance for a believable leaderboard, a couple of
  * pending credit requests, a mix of unlocked agents, and a winning-play library.
  *
- * Only ever called for an is_demo owner client. Reps are is_demo clients with a
- * NULL user_id (no login needed — the owner just views their rolled-up stats).
+ * Only ever called for an is_demo owner client. Reps are is_demo clients; each
+ * gets its own throwaway auth user because clients.user_id is NOT NULL + unique
+ * (reps don't log in — the owner just views their rolled-up stats).
  */
 
 const FIRST = ['Amara', 'Tunde', 'Zola', 'Sipho', 'Naledi', 'Kwame', 'Fatima', 'Emeka', 'Thandeka', 'Yusuf']
@@ -55,7 +56,17 @@ export async function seedDemoCompany(
     const name = `${FIRST[r % FIRST.length]} ${LAST[r % LAST.length]}`
     const email = `${FIRST[r % FIRST.length].toLowerCase()}@${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.demo`
 
+    // clients.user_id is NOT NULL + unique, so every rep needs its own auth user
+    // (demo reps never log in, but the row still requires a real auth.users id).
+    // Without this the insert silently failed and the company seeded with 0 reps.
+    const suffix = Math.random().toString(36).slice(2, 10)
+    const { data: repUser, error: uErr } = await db.auth.admin.createUser({
+      email: `rep-${suffix}@kind-demo.internal`, password: `Demo${suffix}!`, email_confirm: true,
+    })
+    if (uErr) { console.error('[seedDemoCompany] rep auth user failed:', uErr.message); continue }
+
     const { data: rep, error: rErr } = await db.from('clients').insert({
+      user_id: repUser.user!.id,
       company_id: companyId,
       company_name: name,
       invited_email: email,

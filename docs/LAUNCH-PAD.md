@@ -1,6 +1,6 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 29 June 2026** · post-launch (live since 18 Jun) · currency **USD**
+**As of: 30 June 2026** · post-launch (live since 18 Jun) · currency **USD**
 
 > **Status key:** ✅ done · 🔧 next build · ⏸ gated (waiting on external clock or trigger)
 > **Owner:** 🧍 you · 🤖 me · 🤝 both
@@ -27,11 +27,12 @@
 | Stripe payment config — all price IDs set · credit purchase verified live | ✅ |
 | Lead Gen retirement — decision locked (single FIGSY credit at $3); build is Wednesday | ✅ |
 
-### 🔧 Tue 30 Jun — TOMORROW
+### 🔧 Tue 30 Jun — TODAY (in progress)
 
 | Item | Owner |
 |------|-------|
-| Walkthrough Section A — 20 portal screens click-walk (Claude fixes broken items live + flips dots) | 🤝 both |
+| Walkthrough Section A — portal screens click-walk: **15 verified 🟢** (#3,62,70,72,78,80,83,85,86,88,90,113,114,162,179) · **3 held 🩷** no live reply data (#66,68,112) · **2 left** (#183 kill-switch, #91 PWA) | 🤝 both |
+| Section A live fixes shipped — #828 Add-member scroll · #831+#833 agent switcher (dup + Denise) · #835 V2-home share link · logged #78b, #113b 🔴 | ✅ |
 | Walkthrough Section B — 8 company screens (Claude provisions demo company first) | 🤝 both |
 
 ### ⏸ Gated on Instantly warmth (external clock — you confirm ~90% health)

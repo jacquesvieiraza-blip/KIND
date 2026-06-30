@@ -21,7 +21,7 @@
 
 <!-- COUNT:START -->
 
-# ░ 🟢 LIVE + VERIFIED (58) ░
+# ░ 🟢 LIVE + VERIFIED (80) ░
 *Walked in production, working on real data. The terminal "done" state.*
 
 ### The agents + lead engine
@@ -100,7 +100,6 @@
 ### Company engine
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 55 | 🩷 | Command Centre — **walk 26 Jun: needs work (🟢→🩷).** Founder flagged it; also an **orphan (not in client nav)** + needs a **company demo account** to walk properly. Re-walk with a provisioned company, fix what's rough, then re-green. | 🤝 |
 | 56 | 🟢 | Per-rep agent unlock (rolled-up bill) | — |
 
 ### Misc verified
@@ -112,7 +111,35 @@
 
 ---
 
-# ░ 🩷 LIVE, NOT WALKED (60) ░
+### Re-sectioned 30 Jun (flipped in place — moved to match dot)
+
+| # | ● | Item | Owner |
+|---|---|------|-------|
+| 62 | 🟢 | R3 Vida in-portal help bubble — verified 30 Jun: opens, answers | 🧍 walk |
+| 70 | 🟢 | R11 sequence-template library (one-click copy) — verified 30 Jun: copy works | 🧍 walk |
+| 72 | 🟢 | R13 Cmd+K quick actions — verified 30 Jun: palette opens + jumps | 🧍 walk |
+| 78 | 🟢 | R19 "What's New" feed — verified 30 Jun: renders, newest-first; works as designed (manual changelog). Latest entry = template library. Freshness/auto-update tracked as #78b | 🤝 |
+| 80 | 🟢 | Teams Hub — verified 30 Jun: overview loads, "Add member" lands on settings#team (fixed PR #828), other tabs "coming soon" by design | 🤖 |
+| 83 | 🟢 | Integrations Hub — verified 30 Jun: status list loads; Connect "coming soon" by design | 🤖 |
+| 85 | 🟢 | Shell — slim nav + agent switcher — verified 30 Jun: switches cleanly; no duplicate of current agent (fix #831); full list incl. Denise shows on every agent (fix #833) | 🧍 walk |
+| 86 | 🟢 | Shell — profile dropdown account hub — verified 30 Jun: all account links work | 🧍 walk |
+| 87 | 🟢 | Shell — status bar — **walk-confirmed 26 Jun** (live status shows on every screen) | — |
+| 88 | 🟢 | Activity feed standalone page — verified 30 Jun: loads (also lives as Home widget 116) | 🤝 |
+| 89 | 🟢 | Notification centre (bell) — **walk-confirmed 26 Jun** | — |
+| 90 | 🟢 | Deliverability dashboard (redirects to Performance) — verified 30 Jun: legacy URL redirects to /dashboard/kpis | 🧍 walk |
+| 113 | 🟢 | A/B subject-testing UI (campaign A/B tab) — verified 30 Jun: tab loads, A auto-generated per lead, B–E optional manual variants, winner picked after 48h + ≥5 sends per variant | 🤖 |
+| 114 | 🟢 | Kanban pipeline — verified 30 Jun: real cards load, drag-to-Replied/Completed marks via PATCH endpoint | 🤖 |
+| 125 | 🟢 | "Your AI Family" agents hub — **walk-confirmed 26 Jun** (4 agents show with correct unlock/status) | — |
+| 136a | 🟢 | Client invoicing + agreements — **walk-confirmed 26 Jun** (T&C+Privacy+DPA+acceptance record+invoices all show). ⚠️ findability: it's buried under the Milla agent → relocate (item 251) | 🤝 |
+| 162 | 🟢 | Prompt Library (website Resources) — verified 30 Jun: renders + searchable | 🧍 walk |
+| 179 | 🟢 | Shareable stakeholder pipeline view (public share token) — verified 30 Jun: "Copy share link" surfaced on V2 home (fix #835), public /share/<token> view loads | 🧍 walk |
+| 191 | 🟢 | ROI / value dashboard ("what KIND did for you") — **walk-confirmed 26 Jun (the value screen, real numbers).** ⚠️ follow-up: the "$873k pipeline touched" is leads×estimate — with 0 replies it can read inflated; temper/clarify the label (anti-fake-number) → tracked under 249-note. | 🤝 |
+| 253 | 🟢 | **Social-proof display system — SCAFFOLD LIVE + founder-verified 28 Jun (🔴→🟢) — visible-on-data.** Logo wall + named-testimonial cards (photo/title/metric) + live results ticker on the homepage, **kept HIDDEN (`display:none`) until real data** — no fake logos/quotes/numbers ship (founder rule). Go-live = fill real entries + remove the hide. Case-study template still to add. | 🤝 |
+| 254 | 🟢 | **"See each agent work" detailed showcase — LIVE + founder-verified 28 Jun via #798.** The dashboard mockups removed from the homepage (item 259) are now embedded **on each agent's product page** as a self-contained "See [agent] at work" section: FIGSY lead-desk (figsy.html) · Milla analytics (virtual-assistant.html) · Vida live-capture chat (chatbot-agent.html) · Denise close-sequence email (denise.html). Per-page, in each agent's accent colour. *(Delivered as product-page showcases, not a homepage 7-tab — the agreed declutter direction.)* | 🤖 |
+| 255 | 🟢 | **Pricing depth — compare-all-plans matrix BUILT 28 Jun (🔴→🟢, founder-verified 28 Jun).** Added a grouped "Compare all plans" feature matrix (Start/Scale/Dominate × lead-gen / FIGSY / integrations / billing) to pricing.html, Scale column highlighted. Annual-discount (20% off yearly toggle) already live. Bulk/volume prepay tiers still to deepen. | 🤝 |
+| 259 | 🟢 | **Homepage de-clutter — 3 agent stacks → 1 (LIVE + founder-verified 28 Jun via #797).** Removed the system-flow band ("One lead in. A booked meeting out.") + the pill-swap showcase ("An agent for every job"); the surviving stacking-card pills now link to each agent's product page (FIGSY→figsy · Milla→virtual-assistant · Vida→chatbot-agent · Denise→denise; Tony stays unlinked — coming soon). Detailed per-agent dashboard showcase → product pages (item 254). | 🤖 |
+
+# ░ 🩷 LIVE, NOT WALKED (44) ░
 *Shipped to production but not yet walked. Earns 🟢 on the walk, or drops to 🔴 if broken.*
 
 ### Billing correctness (self-certify on next real charge)
@@ -126,14 +153,12 @@
 | 171 | 🩷 | "How credits work" panel honesty | 🧍 walk |
 | 58 | 🩷 | Denise $39 Stripe price (verify at checkout) | 🧍 walk |
 | 190 | 🩷 | Save / pause / win-back flow — **BUILT #769; migration RUN on prod 28 Jun → pause works end-to-end (🟡→🩷, pending one verification walk).** Two root causes found: (1) the action 409'd because migration `20260622_subscription_pause.sql` (the `paused` enum + `paused_at`/`paused_until` cols) was never run on prod; (2) it only disabled Paystack, so a Stripe client would be told "billing stopped" while Stripe kept charging (the old M2 gap). Fixed in code: pause now also calls Stripe `pause_collection` + resume clears it (M2 folded in — pause genuinely stops billing). tsc clean. Migration done — next: founder walks one live pause → 🟢. | 🤝 |
-| 136a | 🟢 | Client invoicing + agreements — **walk-confirmed 26 Jun** (T&C+Privacy+DPA+acceptance record+invoices all show). ⚠️ findability: it's buried under the Milla agent → relocate (item 251) | 🤝 |
 
 ### R-wave (R1–R20, live via #502)
 | # | ● | Item | Owner |
 |---|---|------|-------|
 | 60 | 🩷 | R1 demo-bounce guard (skips synthetic demo mailboxes) | 🧍 walk |
 | 61 | 🩷 | R2 daily client brief toggle (server-backed) | 🧍 walk |
-| 62 | 🟢 | R3 Vida in-portal help bubble — verified 30 Jun: opens, answers | 🧍 walk |
 | 63 | 🩷 | R4 speed-to-lead (hot visitor → scored lead + Denise draft) | 🧍 walk |
 | 64 | 🩷 | R5 milestone cards + partner badge | 🧍 walk |
 | 65 | 🩷 | R6 onboarding day-0/3/7 emails (paid clients) | 🧍 walk |
@@ -141,29 +166,16 @@
 | 67 | 🩷 | R8 saved views (localStorage, per-browser) | 🧍 walk |
 | 68 | 🩷 | R9 "Why FIGSY wrote this" card | 🧍 walk |
 | 69 | 🩷 | R10 Goals (localStorage, per-browser) | 🧍 walk |
-| 70 | 🟢 | R11 sequence-template library (one-click copy) — verified 30 Jun: copy works | 🧍 walk |
 | 71 | 🩷 | R12 embeddable lead-capture forms → scored pipeline | 🧍 walk |
-| 72 | 🟢 | R13 Cmd+K quick actions — verified 30 Jun: palette opens + jumps | 🧍 walk |
 | 73 | 🩷 | R14 Meeting-Prep (Denise pre-call brief) | 🧍 walk |
 | 75 | 🩷 | R16 internal evals harness (admin; reads real data) | 🧍 walk |
 | 76 | 🩷 | R17 spam-score pre-send check | 🧍 walk |
 | 77 | 🩷 | R18 multi-model toggle (Haiku/Sonnet per campaign) | 🧍 walk |
-| 78 | 🟢 | R19 "What's New" feed — verified 30 Jun: renders, newest-first; works as designed (manual changelog). Latest entry = template library. Freshness/auto-update tracked as #78b | 🤝 |
-| 78b | 🔴 | **"What's New" feed — dates + auto-generate** — add a date to each entry and auto-append a line on every release merge (or pull from a changelog source) so the feed can't silently go stale. Today it's a hand-edited static array with no dates. | 🤝 |
 | 79 | 🩷 | R20 job-change alerts on leads | 🧍 walk |
 
 ### Design screens + shell
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 80 | 🟢 | Teams Hub — verified 30 Jun: overview loads, "Add member" lands on settings#team (fixed PR #828), other tabs "coming soon" by design | 🤖 |
-| 81 | 🟡 | AI Notetaker — **FIX BUILT 26 Jun (🔴→🟡, pending preview verify).** Root cause: model wrapped the JSON in a ` ```json ` fence so `JSON.parse` failed → fallback dumped the raw fence as a "task". Fixed: strip fence + extract array + validate items; malformed → clean empty state, never raw text. *(Export buttons still stubbed — separate.)* | 🤖 |
-| 83 | 🟢 | Integrations Hub — verified 30 Jun: status list loads; Connect "coming soon" by design | 🤖 |
-| 85 | 🟢 | Shell — slim nav + agent switcher — verified 30 Jun: switches cleanly; no duplicate of current agent (fix #831); full list incl. Denise shows on every agent (fix #833) | 🧍 walk |
-| 86 | 🟢 | Shell — profile dropdown account hub — verified 30 Jun: all account links work | 🧍 walk |
-| 87 | 🟢 | Shell — status bar — **walk-confirmed 26 Jun** (live status shows on every screen) | — |
-| 88 | 🟢 | Activity feed standalone page — verified 30 Jun: loads (also lives as Home widget 116) | 🤝 |
-| 89 | 🟢 | Notification centre (bell) — **walk-confirmed 26 Jun** | — |
-| 90 | 🟢 | Deliverability dashboard (redirects to Performance) — verified 30 Jun: legacy URL redirects to /dashboard/kpis | 🧍 walk |
 | 91 | 🩷 | Mobile PWA icons + manifest | 🧍 walk |
 
 ### Data engine
@@ -187,36 +199,35 @@
 | # | ● | Item | Owner |
 |---|---|------|-------|
 | 112 | 🩷 | Unibox inbox rebuild (Alta-style) — *walk 26 Jun: founder unsure (no live reply to test); verify with a real reply.* Known TODOs: ICP-score "—", archive dead, booked not persisted | 🧍 walk |
-| 113 | 🟢 | A/B subject-testing UI (campaign A/B tab) — verified 30 Jun: tab loads, A auto-generated per lead, B–E optional manual variants, winner picked after 48h + ≥5 sends per variant | 🤖 |
-| 113b | 🔴 | **FIGSY auto-generates A/B variant suggestions** — "Generate variants" button inside the A/B tab: FIGSY reads the campaign ICP + sequence and suggests B–E subject lines in one click, fields pre-fill, founder approves/tweaks. Today B–E are manual-only. | 🤖 |
-| 114 | 🟢 | Kanban pipeline — verified 30 Jun: real cards load, drag-to-Replied/Completed marks via PATCH endpoint | 🤖 |
-| 162 | 🟢 | Prompt Library (website Resources) — verified 30 Jun: renders + searchable | 🧍 walk |
-| 179 | 🟢 | Shareable stakeholder pipeline view (public share token) — verified 30 Jun: "Copy share link" surfaced on V2 home (fix #835), public /share/<token> view loads | 🧍 walk |
 | 183 | 🩷 | Campaign kill-switch (pause-all panic button) | 🧍 walk |
 | 184 | 🩷 | Public uptime/status page (built, ⚠️ unlinked from nav) | 🧍 walk |
 | 186 | 🩷 | Record signup T&C acceptance (timestamp + IP) | 🧍 walk |
 | 187 | 🩷 | Sequence/template → apply-to-campaign (email-first) — *walk 26 Jun: manual build+apply works; confidence gap = FIGSY can't AI-draft the sequence on request ("he says he can't") → that's the 212 build* | 🧍 walk |
 | 188 | 🩷 | Denise enabled + seeded on demo account | 🧍 walk |
-| 191 | 🟢 | ROI / value dashboard ("what KIND did for you") — **walk-confirmed 26 Jun (the value screen, real numbers).** ⚠️ follow-up: the "$873k pipeline touched" is leads×estimate — with 0 replies it can read inflated; temper/clarify the label (anti-fake-number) → tracked under 249-note. | 🤝 |
 | 193 | 🩷 | Real open-tracking — **pixel re-enabled 29 Jun (PR #814)**. `TRACKING_URL` set in Railway; `trackingBaseUrl()` updated to trust explicit override; `coldEmailHtml()` now embeds the pixel when `emailId` is present. Cold opens will now register when a recipient opens. Walk to confirm data appears in Analytics → 🟢. | 🧍 walk |
 | 194 | 🩷 | Deliverability content hardened (reputation fix = 198) | 🤝 |
-| 259 | 🟢 | **Homepage de-clutter — 3 agent stacks → 1 (LIVE + founder-verified 28 Jun via #797).** Removed the system-flow band ("One lead in. A booked meeting out.") + the pill-swap showcase ("An agent for every job"); the surviving stacking-card pills now link to each agent's product page (FIGSY→figsy · Milla→virtual-assistant · Vida→chatbot-agent · Denise→denise; Tony stays unlinked — coming soon). Detailed per-agent dashboard showcase → product pages (item 254). | 🤖 |
 
 ---
 
-# ░ 🟣 APPROVED ON PREVIEW, NOT LIVE (6) ░
+### Re-sectioned 30 Jun (flipped in place — moved to match dot)
+
+| # | ● | Item | Owner |
+|---|---|------|-------|
+| 55 | 🩷 | Command Centre — **walk 26 Jun: needs work (🟢→🩷).** Founder flagged it; also an **orphan (not in client nav)** + needs a **company demo account** to walk properly. Re-walk with a provisioned company, fix what's rough, then re-green. | 🤝 |
+| 238 | 🩷 | C4 — subscriptions now write `amount_usd` (source of truth) — **DONE via T2b #756 + migration**; `amount_zar` kept until partner stats move to USD (220) | 🤝 |
+| 240 | 🩷 | C6 — settings voice copy fixed (no longer claims auto day-4 calling) — **DONE via T2a #754, walk to confirm** | 🤝 |
+
+# ░ 🟣 APPROVED ON PREVIEW, NOT LIVE (4) ░
 | # | ● | Item | Owner |
 |---|---|------|-------|
 | 93 | 🟣 | Marketing: The Drop + Watch (The Drop live; Watch held) | 🤖 |
 | 98 | 🟣 | Offline flow docs (reference) | — |
 | 99 | 🟣 | /v2/* design mockups (design-source locked) | 🤝 |
 | 113a | 🟣 | Agent side-panel — conversational, acts-in-place (5 agents) | 🤖 |
-| 125 | 🟢 | "Your AI Family" agents hub — **walk-confirmed 26 Jun** (4 agents show with correct unlock/status) | — |
-| 204 | 🔴 | Notion for ops/human layer — **DEFERRED 26 Jun (🟣→🔴, trigger-gated).** Reviewed against the actual setup: one project, status already tracked rigorously in PRODUCT-INVENTORY (script-verified), velocity comes from git-native markdown Claude edits directly. Adopting Notion now = status in two places (the duplication that filled `archive/`). **TRIGGER to revisit:** first hire (bookkeeper/AE/partner) or an investor needing read-only status — i.e. when status needs a second audience who shouldn't touch the repo. Until then: GitHub for code + the four canonical docs for ops. | 🧍 |
 
 ---
 
-# ░ 🟡 BUILT, PENDING REVIEW (17) ░
+# ░ 🟡 BUILT, PENDING REVIEW (21) ░
 *Code-complete on branch/preview/disabled — not approved or not switched on.*
 | # | ● | Item | Owner |
 |---|---|------|-------|
@@ -240,6 +251,15 @@
 
 ---
 
+### Re-sectioned 30 Jun (flipped in place — moved to match dot)
+
+| # | ● | Item | Owner |
+|---|---|------|-------|
+| 81 | 🟡 | AI Notetaker — **FIX BUILT 26 Jun (🔴→🟡, pending preview verify).** Root cause: model wrapped the JSON in a ` ```json ` fence so `JSON.parse` failed → fallback dumped the raw fence as a "task". Fixed: strip fence + extract array + validate items; malformed → clean empty state, never raw text. *(Export buttons still stubbed — separate.)* | 🤖 |
+| 248 | 🟡 | **Milla outputs — render fix BUILT 26 Jun (🔴→🟡, pending preview verify).** New zero-dep `MarkdownLite` renderer now renders **bold**/italics/code/headers/lists/tables in the assistant chat AND the agent side-panels (was raw `**` + `|---|` text); notetaker JSON now parsed (ties 81). **Still open: warmer tone** (system-prompt copy) — keep tracking that half. | 🤖 |
+| 249 | 🟡 | **Open-rate 0% → honest "n/a" — FIX BUILT 26 Jun (🔴→🟡, pending preview).** Root: cold sends carry no tracking pixel by design (deliverability), so opens are structurally 0; showing "0%" read as failure. Fixed: Analytics + KPIs now show **"n/a" with "tracking off for cold — use reply rate"** (API `trackingEnabled` corrected to reflect cold reality; honest banner; open-rate dropped from the downloadable report + benchmark shows n/a). tsc clean both apps. *(ROI "$873k" label temper is separate → item 191.)* | 🤖 |
+| 251 | 🟡 | **Documents moved to Account — FIX BUILT 26 Jun (🔴→🟡, pending preview).** The trust vault (T&C/DPA/invoices) was buried under the Milla agent. Moved out of Milla nav → into the **Account nav next to Billing/Usage** (full Sidebar) and the **profile-menu "Account" group** (slim sidebar). Page wasn't Milla-gated, so no access change. tsc clean. | 🤖 |
+
 # ░ ⏸ BLOCKED (5) ░
 | # | ● | Item | Owner |
 |---|---|------|-------|
@@ -251,7 +271,7 @@
 
 ---
 
-# ░ 🔴 NOT BUILT (104) ░
+# ░ 🔴 NOT BUILT (110) ░
 *Future, in rough build order. Some carry locked designs to build to.*
 
 ### Honesty + fast-follow fixes (caught in the walkthrough / audit)
@@ -261,16 +281,11 @@
 | 74 | 🔴 | R15 Train-FIGSY knowledge (UI built; `TRAINING_LIVE=false`, saves noop) — *walk 26 Jun: honest "coming soon" banner shown, so KEPT in nav (not a deceptive shell); this item tracks turning it on (flip flag + verify saves)* | 🤖 |
 | 82 | 🔴 | Visual Sequence Builder — **walk 26 Jun: confirmed shell ("coming live #89"); REMOVED from live nav (hide-until-real) — full Sidebar + the slim Sidebar (the latter caught in the 26 Jun yellow/red live-exposure audit).** Re-add when real (build or cut). | 🤖 |
 | 247 | 🔴 | Real lead signals — technographics · job-postings · growth, from Apollo (replaces removed fakes) | 🤖 |
-| 248 | 🟡 | **Milla outputs — render fix BUILT 26 Jun (🔴→🟡, pending preview verify).** New zero-dep `MarkdownLite` renderer now renders **bold**/italics/code/headers/lists/tables in the assistant chat AND the agent side-panels (was raw `**` + `|---|` text); notetaker JSON now parsed (ties 81). **Still open: warmer tone** (system-prompt copy) — keep tracking that half. | 🤖 |
-| 249 | 🟡 | **Open-rate 0% → honest "n/a" — FIX BUILT 26 Jun (🔴→🟡, pending preview).** Root: cold sends carry no tracking pixel by design (deliverability), so opens are structurally 0; showing "0%" read as failure. Fixed: Analytics + KPIs now show **"n/a" with "tracking off for cold — use reply rate"** (API `trackingEnabled` corrected to reflect cold reality; honest banner; open-rate dropped from the downloadable report + benchmark shows n/a). tsc clean both apps. *(ROI "$873k" label temper is separate → item 191.)* | 🤖 |
 | 250 | 🔴 | **FIGSY Webhooks = SHELL — hidden from nav 26 Jun** *(walk 26 Jun)*: not a 404 bug — the whole inbound-enrolment webhook was never built. The page documents `POST /figsy/webhook/enrol` (doesn't exist) and "Send test" hits `/api/proxy/figsy/webhook/test` (no proxy, no backend route). **Hidden from both sidebars (hide-until-real)** so clients don't see a fake feature. **Audit 26 Jun: the page ROUTE itself is now also pulled** (`/figsy/webhooks` redirects to `/dashboard/figsy`) — it was still URL-reachable as a shell. To make real: build a secure inbound endpoint with a per-client secret/API-key, campaign-ownership check + credit charge (mirror auth'd `/figsy/campaigns/:id/enroll`), then restore the page + re-add to nav. | 🤖 |
-| 251 | 🟡 | **Documents moved to Account — FIX BUILT 26 Jun (🔴→🟡, pending preview).** The trust vault (T&C/DPA/invoices) was buried under the Milla agent. Moved out of Milla nav → into the **Account nav next to Billing/Usage** (full Sidebar) and the **profile-menu "Account" group** (slim sidebar). Page wasn't Milla-gated, so no access change. tsc clean. | 🤖 |
 | 235 | 🔴 | C1 — partner code shows OLD tiered rates → 20%+5% | 🤖 |
 | 236 | 🔴 | C2 — kill fmtZAR in partner dashboard → USD | 🤖 |
 | 237 | 🔴 | C3 — Paystack: KILL → Stripe (US/EMEA) + Flutterwave (Africa) | 🤖 |
-| 238 | 🩷 | C4 — subscriptions now write `amount_usd` (source of truth) — **DONE via T2b #756 + migration**; `amount_zar` kept until partner stats move to USD (220) | 🤝 |
 | 239 | 🔴 | C5 — unify price tables to @kind/shared — **superseded Wed 1 Jul** by Lead Gen retirement (one product, one price, no split to reconcile) | 🤖 |
-| 240 | 🩷 | C6 — settings voice copy fixed (no longer claims auto day-4 calling) — **DONE via T2a #754, walk to confirm** | 🤝 |
 | 241 | 🔴 | Migration hygiene — **dup `20260611` deleted (T1 #753)**; still: crm-fields migration + `subscriptions.tier` CHECK reconcile (T2b) | 🤖 |
 | 230 | 🔴 | lena.ts dead code — mount (under 145) or delete | 🤖 |
 
@@ -345,9 +360,6 @@
 | 209 | 🔴 | Prospecting play-artifact + progress tracker (Hypo) | 🤖 |
 | 210 | 🔴 | Call-coaching agent (Glean) | 🤖 |
 | 252 | 🔴 | Agent Village — 3D brand-world hero (Clay ball-pit) | 🤝 |
-| 253 | 🟢 | **Social-proof display system — SCAFFOLD LIVE + founder-verified 28 Jun (🔴→🟢) — visible-on-data.** Logo wall + named-testimonial cards (photo/title/metric) + live results ticker on the homepage, **kept HIDDEN (`display:none`) until real data** — no fake logos/quotes/numbers ship (founder rule). Go-live = fill real entries + remove the hide. Case-study template still to add. | 🤝 |
-| 254 | 🟢 | **"See each agent work" detailed showcase — LIVE + founder-verified 28 Jun via #798.** The dashboard mockups removed from the homepage (item 259) are now embedded **on each agent's product page** as a self-contained "See [agent] at work" section: FIGSY lead-desk (figsy.html) · Milla analytics (virtual-assistant.html) · Vida live-capture chat (chatbot-agent.html) · Denise close-sequence email (denise.html). Per-page, in each agent's accent colour. *(Delivered as product-page showcases, not a homepage 7-tab — the agreed declutter direction.)* | 🤖 |
-| 255 | 🟢 | **Pricing depth — compare-all-plans matrix BUILT 28 Jun (🔴→🟢, founder-verified 28 Jun).** Added a grouped "Compare all plans" feature matrix (Start/Scale/Dominate × lead-gen / FIGSY / integrations / billing) to pricing.html, Scale column highlighted. Annual-discount (20% off yearly toggle) already live. Bulk/volume prepay tiers still to deepen. | 🤝 |
 | 256 | 🔴 | Education flywheel — K.I.N.D Academy / email course off the Playbook + feature Prompt Library (Clay University) | 🤝 |
 | 257 | 🔴 | Interactive "what do you want FIGSY to find?" prompt hook (Clay build box) — flagged risky | 🤖 |
 
@@ -404,6 +416,14 @@
 | 105 | 🔴 | Go/No-Go launch gate (history — launched 18 Jun) | 🤝 |
 | 122 | 🔴 | Kill dead Vercel↔GitHub integration | 🧍 |
 | 123 | 🔴 | Failover parity · D&O+trademarks · demo-seed isolation | 🤝 |
+
+### Re-sectioned 30 Jun (flipped in place — moved to match dot)
+
+| # | ● | Item | Owner |
+|---|---|------|-------|
+| 78b | 🔴 | **"What's New" feed — dates + auto-generate** — add a date to each entry and auto-append a line on every release merge (or pull from a changelog source) so the feed can't silently go stale. Today it's a hand-edited static array with no dates. | 🤝 |
+| 113b | 🔴 | **FIGSY auto-generates A/B variant suggestions** — "Generate variants" button inside the A/B tab: FIGSY reads the campaign ICP + sequence and suggests B–E subject lines in one click, fields pre-fill, founder approves/tweaks. Today B–E are manual-only. | 🤖 |
+| 204 | 🔴 | Notion for ops/human layer — **DEFERRED 26 Jun (🟣→🔴, trigger-gated).** Reviewed against the actual setup: one project, status already tracked rigorously in PRODUCT-INVENTORY (script-verified), velocity comes from git-native markdown Claude edits directly. Adopting Notion now = status in two places (the duplication that filled `archive/`). **TRIGGER to revisit:** first hire (bookkeeper/AE/partner) or an investor needing read-only status — i.e. when status needs a second audience who shouldn't touch the repo. Until then: GitHub for code + the four canonical docs for ops. | 🧍 |
 
 <!-- COUNT:END -->
 

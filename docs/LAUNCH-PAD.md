@@ -36,7 +36,8 @@
 | Inventory audit — board regenerated + 33 items re-sectioned to match dots (PR #837) | ✅ |
 | Demo company provisioning fixed — #840 (reps seeded) merged; #839 admin toast **awaiting admin redeploy** | ✅/🤖 |
 | Section B (company engine, on demo) — **3 🟢:** #55 Command Centre · #107 owner drill-down · #108 edit/deactivate (PR #842) | ✅ |
-| **🛑 #28b VITAL NEXT — verify lead/credit usage DEDUCTS from balance** (else clients never run out = revenue leak) | 🤖 |
+| #28b — code VERIFIED prod deducts (lead-delivery.ts:104 · figsy.ts:969, atomic RPCs); demo just fakes it. Re-scoped → real-money walk owed | ✅ |
+| **🛑 CRITICAL (scheduled, NOT today) — $60 real-money billing walk:** founder adds $60 to a LIVE account → run real leads → confirm balance drops 1-per-lead + counters reconcile (proves #8/#28/#28b/#170) | 🤝 both |
 | Section B remaining — #59 (validated via #840) · #106 rep invite · #109 manager alerts · #110 routing · #111 calendars | 🤝 both |
 | ⚠️ Process — client-facing fixes went straight to LIVE this session, not staging-preview-first (§11); founder to decide go-forward | 🤝 both |
 

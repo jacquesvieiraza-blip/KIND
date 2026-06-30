@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { Loader2, ArrowLeft, Users, Mail, MessageSquare, CheckCircle2, XCircle } from 'lucide-react'
@@ -41,12 +41,18 @@ const COLUMNS = [
 
 type ColKey = typeof COLUMNS[number]['key']
 
-function LeadCard({ lead, onDragStart }: { lead: KanbanLead; onDragStart: (e: React.DragEvent, lead: KanbanLead) => void }) {
+function LeadCard({ lead }: { lead: KanbanLead }) {
+  function handleDragStart(e: React.DragEvent) {
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('enrollmentId', lead.enrollment_id)
+    e.dataTransfer.setData('leadStatus', lead.status)
+    e.dataTransfer.setData('leadData', JSON.stringify(lead))
+  }
   return (
     <div
-      draggable
-      onDragStart={e => onDragStart(e, lead)}
-      className="bg-white rounded-xl border border-gray-100 px-3 py-2.5 shadow-sm hover:shadow-md hover:border-brand-200 hover:-translate-y-px transition-all cursor-grab active:cursor-grabbing active:opacity-60 active:scale-95"
+      draggable={true}
+      onDragStart={handleDragStart}
+      className="bg-white rounded-xl border border-gray-100 px-3 py-2.5 shadow-sm hover:shadow-md hover:border-brand-200 hover:-translate-y-px transition-all cursor-grab"
     >
       <p className="text-sm font-semibold text-gray-900 truncate leading-snug">{lead.first_name} {lead.last_name}</p>
       {lead.job_title && <p className="text-xs text-[#7B6FA0] truncate mt-0.5 leading-snug">{lead.job_title}</p>}
@@ -68,7 +74,6 @@ export default function KanbanPage() {
   const [data, setData] = useState<KanbanData | null>(null)
   const [loading, setLoading] = useState(false)
   const [dragOver, setDragOver] = useState<ColKey | null>(null)
-  const dragLead = useRef<KanbanLead | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -94,11 +99,6 @@ export default function KanbanPage() {
       .finally(() => setLoading(false))
   }, [selectedCampaign, token])
 
-  function handleDragStart(e: React.DragEvent, lead: KanbanLead) {
-    dragLead.current = lead
-    e.dataTransfer.effectAllowed = 'move'
-  }
-
   function handleDragOver(e: React.DragEvent, colKey: ColKey) {
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
@@ -108,35 +108,31 @@ export default function KanbanPage() {
   async function handleDrop(e: React.DragEvent, colKey: ColKey) {
     e.preventDefault()
     setDragOver(null)
-    const lead = dragLead.current
-    dragLead.current = null
-    if (!lead || !token || !data) return
-    if (lead.status === colKey) return
+    if (!token || !data) return
+    const enrollmentId = e.dataTransfer.getData('enrollmentId')
+    const leadStatus = e.dataTransfer.getData('leadStatus')
+    const lead: KanbanLead | null = (() => { try { return JSON.parse(e.dataTransfer.getData('leadData')) } catch { return null } })()
+    if (!enrollmentId || !lead || leadStatus === colKey) return
 
     // Optimistic update
     setData(prev => {
       if (!prev) return prev
-      const next = { ...prev, columns: { ...prev.columns } }
-      const fromKey = Object.keys(next.columns).find(k =>
-        (next.columns as Record<string, KanbanLead[]>)[k].some(l => l.enrollment_id === lead.enrollment_id)
-      ) as ColKey | undefined
-      if (fromKey) {
-        next.columns = {
-          ...next.columns,
-          [fromKey]: (next.columns as Record<string, KanbanLead[]>)[fromKey].filter(l => l.enrollment_id !== lead.enrollment_id),
-          [colKey]: [...(next.columns as Record<string, KanbanLead[]>)[colKey], { ...lead, status: colKey }],
-        }
-      }
-      return next
+      const cols = prev.columns as unknown as Record<string, KanbanLead[]>
+      const fromKey = Object.keys(cols).find(k => cols[k].some(l => l.enrollment_id === enrollmentId))
+      if (!fromKey) return prev
+      const next: typeof prev.columns = {
+        ...prev.columns,
+        [fromKey]: cols[fromKey].filter(l => l.enrollment_id !== enrollmentId),
+        [colKey]: [...cols[colKey], { ...lead, status: colKey }],
+      } as typeof prev.columns
+      return { ...prev, columns: next }
     })
 
     try {
-      await api.patch(`/figsy/enrollments/${lead.enrollment_id}/status`, { status: colKey }, token)
+      await api.patch(`/figsy/enrollments/${enrollmentId}/status`, { status: colKey }, token)
     } catch {
-      // Revert on failure
       api.get<{ data: KanbanData }>(`/figsy/campaigns/${selectedCampaign}/kanban`, token)
-        .then(res => setData(res.data))
-        .catch(() => {})
+        .then(res => setData(res.data)).catch(() => {})
     }
   }
 
@@ -211,7 +207,7 @@ export default function KanbanPage() {
                           </div>
                         ) : (
                           leads.map(lead => (
-                            <LeadCard key={lead.enrollment_id} lead={lead} onDragStart={handleDragStart} />
+                            <LeadCard key={lead.enrollment_id} lead={lead} />
                           ))
                         )}
                       </div>

@@ -143,7 +143,7 @@
 | 69 | 🩷 | R10 Goals (localStorage, per-browser) | 🧍 walk |
 | 70 | 🟢 | R11 sequence-template library (one-click copy) — verified 30 Jun: copy works | 🧍 walk |
 | 71 | 🩷 | R12 embeddable lead-capture forms → scored pipeline | 🧍 walk |
-| 72 | 🩷 | R13 Cmd+K quick actions | 🧍 walk |
+| 72 | 🟢 | R13 Cmd+K quick actions — verified 30 Jun: palette opens + jumps | 🧍 walk |
 | 73 | 🩷 | R14 Meeting-Prep (Denise pre-call brief) | 🧍 walk |
 | 75 | 🩷 | R16 internal evals harness (admin; reads real data) | 🧍 walk |
 | 76 | 🩷 | R17 spam-score pre-send check | 🧍 walk |

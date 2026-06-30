@@ -1,4 +1,5 @@
 # 🌍 DATA-RESIDENCY PLAYBOOK — same-day US / UK go-live (item 258)
+`Last-checked: 30 Jun 2026`
 
 > **The deal (founder, 28 Jun):** the *framework* is built and ready NOW; the *regional database* is provisioned **the day our first US or UK client signs** — provision → test → live in one day. This doc is the runbook so that day is fast and boring.
 

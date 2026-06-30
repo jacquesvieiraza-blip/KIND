@@ -151,6 +151,7 @@ export default async function DashboardPage() {
         sent={totalSent}
         replied={totalReplies}
         hot={totalInterested}
+        shareToken={shareToken}
         hasFigsy={isLive('lead_gen_figsy') || isLive('figsy_addon')}
         hasMilla={isLive('virtual_assistant')}
         hasVida={isLive('chatbot')}

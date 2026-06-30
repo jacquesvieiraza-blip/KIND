@@ -161,9 +161,9 @@
 | 85 | 🟢 | Shell — slim nav + agent switcher — verified 30 Jun: switches cleanly; no duplicate of current agent (fix #831); full list incl. Denise shows on every agent (fix #833) | 🧍 walk |
 | 86 | 🟢 | Shell — profile dropdown account hub — verified 30 Jun: all account links work | 🧍 walk |
 | 87 | 🟢 | Shell — status bar — **walk-confirmed 26 Jun** (live status shows on every screen) | — |
-| 88 | 🩷 | Activity feed standalone page (⚠️ orphan — not walked 26 Jun; decide cut/wire — also lives as Home widget 116) | 🤝 |
+| 88 | 🟢 | Activity feed standalone page — verified 30 Jun: loads (also lives as Home widget 116) | 🤝 |
 | 89 | 🟢 | Notification centre (bell) — **walk-confirmed 26 Jun** | — |
-| 90 | 🩷 | Deliverability dashboard (redirects to Performance) | 🧍 walk |
+| 90 | 🟢 | Deliverability dashboard (redirects to Performance) — verified 30 Jun: legacy URL redirects to /dashboard/kpis | 🧍 walk |
 | 91 | 🩷 | Mobile PWA icons + manifest | 🧍 walk |
 
 ### Data engine
@@ -190,8 +190,8 @@
 | 113 | 🟢 | A/B subject-testing UI (campaign A/B tab) — verified 30 Jun: tab loads, A auto-generated per lead, B–E optional manual variants, winner picked after 48h + ≥5 sends per variant | 🤖 |
 | 113b | 🔴 | **FIGSY auto-generates A/B variant suggestions** — "Generate variants" button inside the A/B tab: FIGSY reads the campaign ICP + sequence and suggests B–E subject lines in one click, fields pre-fill, founder approves/tweaks. Today B–E are manual-only. | 🤖 |
 | 114 | 🟢 | Kanban pipeline — verified 30 Jun: real cards load, drag-to-Replied/Completed marks via PATCH endpoint | 🤖 |
-| 162 | 🩷 | Prompt Library (website Resources) | 🧍 walk |
-| 179 | 🩷 | Shareable stakeholder pipeline view (public share token) | 🧍 walk |
+| 162 | 🟢 | Prompt Library (website Resources) — verified 30 Jun: renders + searchable | 🧍 walk |
+| 179 | 🟢 | Shareable stakeholder pipeline view (public share token) — verified 30 Jun: "Copy share link" surfaced on V2 home (fix #835), public /share/<token> view loads | 🧍 walk |
 | 183 | 🩷 | Campaign kill-switch (pause-all panic button) | 🧍 walk |
 | 184 | 🩷 | Public uptime/status page (built, ⚠️ unlinked from nav) | 🧍 walk |
 | 186 | 🩷 | Record signup T&C acceptance (timestamp + IP) | 🧍 walk |

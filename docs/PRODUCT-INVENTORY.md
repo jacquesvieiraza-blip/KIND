@@ -190,7 +190,7 @@
 | 113 | 🟢 | A/B subject-testing UI (campaign A/B tab) — verified 30 Jun: tab loads, A auto-generated per lead, B–E optional manual variants, winner picked after 48h + ≥5 sends per variant | 🤖 |
 | 113b | 🔴 | **FIGSY auto-generates A/B variant suggestions** — "Generate variants" button inside the A/B tab: FIGSY reads the campaign ICP + sequence and suggests B–E subject lines in one click, fields pre-fill, founder approves/tweaks. Today B–E are manual-only. | 🤖 |
 | 114 | 🟢 | Kanban pipeline — verified 30 Jun: real cards load, drag-to-Replied/Completed marks via PATCH endpoint | 🤖 |
-| 162 | 🩷 | Prompt Library (website Resources) | 🧍 walk |
+| 162 | 🟢 | Prompt Library (website Resources) — verified 30 Jun: renders + searchable | 🧍 walk |
 | 179 | 🩷 | Shareable stakeholder pipeline view (public share token) | 🧍 walk |
 | 183 | 🩷 | Campaign kill-switch (pause-all panic button) | 🧍 walk |
 | 184 | 🩷 | Public uptime/status page (built, ⚠️ unlinked from nav) | 🧍 walk |

@@ -34,7 +34,11 @@
 | Walkthrough Section A — **COMPLETE: 17 verified 🟢** (#3,62,70,72,78,80,83,85,86,88,90,113,114,162,179,183,91) · **3 held 🩷** no live data, re-walk later (#66,68,112) | ✅ |
 | Section A live fixes shipped — #828 Add-member scroll · #831+#833 agent switcher (dup + Denise) · #835 V2-home share link · logged #78b, #113b 🔴 | ✅ |
 | Inventory audit — board regenerated + 33 items re-sectioned to match dots (PR #837) | ✅ |
-| **Walkthrough Section B — 8 company screens — NEXT** (Claude provisions a demo company first) | 🤝 both |
+| Demo company provisioning fixed — #840 (reps seeded) merged; #839 admin toast **awaiting admin redeploy** | ✅/🤖 |
+| Section B (company engine, on demo) — **3 🟢:** #55 Command Centre · #107 owner drill-down · #108 edit/deactivate (PR #842) | ✅ |
+| **🛑 #28b VITAL NEXT — verify lead/credit usage DEDUCTS from balance** (else clients never run out = revenue leak) | 🤖 |
+| Section B remaining — #59 (validated via #840) · #106 rep invite · #109 manager alerts · #110 routing · #111 calendars | 🤝 both |
+| ⚠️ Process — client-facing fixes went straight to LIVE this session, not staging-preview-first (§11); founder to decide go-forward | 🤝 both |
 
 ### ⏸ Gated on Instantly warmth (external clock — you confirm ~90% health)
 

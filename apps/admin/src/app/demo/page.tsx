@@ -94,7 +94,10 @@ export default function DemoPage() {
       if (!data.success) throw new Error(data.error || 'Failed to create demo')
       setShowForm(false)
       setForm({ prospect_name: '', company_name: '', industry: 'Fintech', country: 'South Africa', website_url: '', expires_at: defaultExpiry, created_by: SALES_TEAM[0], showcase: true, company_demo: false })
-      showToast(`Demo created for ${data.data.company_name} — ICP running in background`)
+      // Surface the backend's real outcome (reps/pool seeded, or a ⚠️ seed-failure
+      // reason) instead of a hardcoded line — otherwise a failed Company-demo seed
+      // is invisible and the Command Centre looks empty for no apparent reason.
+      showToast(data.data.message || `Demo created for ${data.data.company_name}`)
       loadDemos()
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : 'Failed to create demo')

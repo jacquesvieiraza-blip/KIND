@@ -1,4 +1,5 @@
 # 🩷 PINK WALK — self-walk checklist (58 items)
+`Last-checked: 30 Jun 2026`
 
 Pink = **live but not verified.** For each: walk it → if it works it's 🟢, if it's broken it's 🔴 (note it, I'll fix). Make notes in the right column. Come back to me with anything stuck or broken.
 

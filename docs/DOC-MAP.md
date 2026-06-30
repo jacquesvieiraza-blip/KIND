@@ -1,7 +1,7 @@
 # 🗺️ K.I.N.D — DOC MAP (every doc · what it's for · is it fresh)
 
 > **What this is:** the index of *every* doc in the repo — what it holds, which of the 4 core docs it hangs off, and whether it's current. **You live off the 4 core docs; this is how the supporting docs stay honest so they never rot underneath you.**
-> **Last full audit:** **25 Jun 2026** — full repo doc sweep (5 parallel agents vs the locked two-track strategy; stale Paystack/Vapi/WhatsApp/Africa-first refs reconciled). *(Prior: 24 Jun — code/PR line-item check.)* **Re-run the sweep at every weekly close (RULEBOOK §10).**
+> **Last full audit:** **30 Jun 2026** — full code + docs audit (2 parallel agents; LAUNCH-PAD rewritten to two-front cockpit; #211 engine reality + #55a RLS gap reconciled; PARTNER-BRIEF/DEPLOYMENT_GUIDE flagged ⚠️). *(Prior: 25 Jun — 5-agent doc sweep · 24 Jun — code/PR line-item.)* **Re-run the sweep at every weekly close (RULEBOOK §10).**
 >
 > **🧹 Hygiene sweep 26 Jun:** verified **no live doc duplicates the canonical-4's ownership** (status/execution/strategy/future) — the 23-Jun archive run already cleared the dead trackers. Residue handled: `apollo-reseller-call-prep` (was 🗄️ but still in `drafts/`) → **archived**. **Recommend-archive (founder call, low priority):** `AUDIT-24JUN-RECONCILIATION.md` (dated snapshot, superseded by `SYSTEM-HEALTH-AUDIT.md`). **Still-open honesty flag (not a tracker dup):** pitch-deck Alta numbers in `KIND_DECK.html`/`kind-pitch-deck.html` (contradiction #3 below). Also rotated: 110 old session-log entries (≤24 Jun) `KIND-MASTER.md` → `archive/KIND-MASTER-ARCHIVE.md` (204KB→96KB).
 >
@@ -41,7 +41,7 @@
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
 | [`DOC-MAP.md`](./DOC-MAP.md) *(this doc)* | the index of every doc + freshness — start here to find anything | ✅ | a doc is added / archived |
-| [`PINK-WALK-CHECKLIST.md`](./PINK-WALK-CHECKLIST.md) | the founder self-walk aid for the 58 🩷 pinks — grouped A (click-walk now) / B (needs demo company) / C (needs test campaign) / D (verify on first charge) | ✅ *(new 28 Jun)* | as pinks are walked / new pinks appear |
+| [`PINK-WALK-CHECKLIST.md`](./PINK-WALK-CHECKLIST.md) | the founder self-walk aid — grouped A (click-walk) / B (demo company) / C (test campaign) / D (first charge). **30 Jun: Sections A+B WALKED — 35 🩷 remain** (most clear on the $60 live run) | ✅ *(walked 30 Jun)* | as pinks are walked / new pinks appear |
 | [`SYSTEM-FLOW.md`](./SYSTEM-FLOW.md) | **the one-page visual of the whole machine** — data → FIGSY → sending (Instantly vs Smartlead) · the data layer (243) · two GTM tracks · build order. The "where do I start / how does it fit" map. | ✅ *(new 25 Jun)* | engine (211) / data (243) / GTM change |
 | [`AFRICA-PLAYBOOK.md`](./AFRICA-PLAYBOOK.md) | **the one-click Africa GTM** — thesis (direct-data + partners) · how we source African leads · the stealth email/brand partner motion · markets SA→NG→KE→GH. Consolidates V2/APOLLO-ENGINE/PARTNER-BRIEF (points to them for status). | ✅ *(new 25 Jun)* | two-track / 233 / 243 / stealth change |
 | [`SYSTEM-HEALTH-AUDIT.md`](./SYSTEM-HEALTH-AUDIT.md) | **the evidence behind the P0+T1–T5 fix plan** (LAUNCH-PAD) — full code+doc+operational health audit (25 Jun): verified findings, file:line detail, what's safe vs not. Plan lives in LAUNCH-PAD; this is the *why/where*. | ✅ *(new 25 Jun)* | a fix lands / a new health audit runs |
@@ -52,7 +52,7 @@
 | [`run-costs-and-cashflow.md`](./run-costs-and-cashflow.md) | the only financial model — fixed stack ~$138/mo · ~99% margin · ARPU tiers · sales-target ladder · 3 scenarios | 🛠️ | pricing · stack · ARPU · launch/billing status changes |
 | [`SALARY-BREAKEVEN-PLAN.md`](./SALARY-BREAKEVEN-PLAN.md) | founder-vs-partner break-even; "reaching ≠ holding" churn-treadmill | 🛠️ | currency · targets · headcount change |
 | [`sales-playbook.md`](./sales-playbook.md) | the only sales manual — qualification · 5-Q discovery · objection rebuttals · proposal tiers · loss reasons | ✅ | agents · pricing · positioning change |
-| [`PARTNER-BRIEF.md`](./PARTNER-BRIEF.md) | partner one-pager — 5 trade playbooks · pricing · 20%+5% terms | ✅ | partner comp/pricing change |
+| [`PARTNER-BRIEF.md`](./PARTNER-BRIEF.md) | partner one-pager — 5 trade playbooks · pricing · 20%+5% terms | ⚠️ | **stale pricing (flagged 30 Jun): shows old Lead Gen $1 tier — banner added; fix post-Wed Lead-Gen retirement** |
 | [`CHURN-PREVENTION-PLAN.md`](./CHURN-PREVENTION-PLAN.md) | retention 6 levers (190–193, Lena 145) | ✅ | churn strategy / item 190s change |
 | [`drafts/AI_REVENUE_OS_POSITIONING.md`](./drafts/AI_REVENUE_OS_POSITIONING.md) | LOCKED hero ("You close the deals. We'll bring you the meetings… from $20") + anti-copy list | ✅ | positioning change |
 | [`drafts/GTM_FUNNEL_INSTRUMENTATION.md`](./drafts/GTM_FUNNEL_INSTRUMENTATION.md) | item 131 detail — fire-points · `gtm_events` schema · 10 open decisions | ✅ | when 131 is built |
@@ -75,7 +75,7 @@
 | Doc | Unique content | Status | Update when |
 |-----|----------------|:--:|-------------|
 | [`TECH-STACK.md`](./TECH-STACK.md) | the tools/vendors register + email architecture (**cold `gettingkind.com` = Resend send + Resend inbound, NO mailbox · human `get-kind.com` = Zoho** · Smartlead/Instantly = THE ENGINE) | ✅ | a tool is added/changed |
-| [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md) | full env-var-per-service · Railway crons · DNS values *(the live deploy reference — replaces the archived `DEPLOY-CHECKLIST`)* | ✅ | env/cron/deploy change (22-Jun corrections banner) |
+| [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md) | full env-var-per-service · Railway crons · DNS values *(the live deploy reference — replaces the archived `DEPLOY-CHECKLIST`)* | ⚠️ | **Last-checked 2 Jun — stale (flagged 30 Jun); verify env/cron/admin-service deploy + bump** |
 | [`SMOKE_TEST.md`](./SMOKE_TEST.md) | step-level T1–T10 | ✅ | test flow change |
 | [`LIVE-FEATURE-WALK.md`](./LIVE-FEATURE-WALK.md) | **the verification checklist — every live feature/element to walk 🩷→🟢** *(also covers the company-engine walk — replaces the archived `COMPANY-ENGINE-TEST`)* | ✅ | as items are walked / new features ship |
 | [`render-cloudflare-failover.md`](./render-cloudflare-failover.md) · [`portal-admin-failover.md`](./portal-admin-failover.md) | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
@@ -123,4 +123,4 @@
 4. ✅ ~~README empty~~ (now the doc signpost) · ✅ ~~NEXT_PUBLIC_ADMIN_KEY in failover doc~~ (verified — the doc warns *against* it).
 
 ---
-*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. (Code-adjacent READMEs such as `supabase/seeds/competitor_icps_readme.md` document seed data, not project status — out of scope here.) Last full sweep: **24 Jun 2026** (5 parallel agents, every line verified vs git/code). PR 1 ✅ four-doc contract + script-counted board + 136a fix. PR 2 ✅ 19 dead docs filed to `docs/archive/`, FULL_CHECK protocol → RULEBOOK §13, archive README de-staled. PR 3 ✅ 3→6-step resolved honestly: the 6-step is now **tracked item 212** (🔴, not built — product is still 3-step); client/demo docs say "multi-step," internal docs cross-ref 212. Board → 231 (script-counted).*
+*This map is the freshness index. If a doc isn't listed here, it isn't tracked — add it. (Code-adjacent READMEs such as `supabase/seeds/competitor_icps_readme.md` document seed data, not project status — out of scope here.) Last full sweep: **24 Jun 2026** (5 parallel agents, every line verified vs git/code). PR 1 ✅ four-doc contract + script-counted board + 136a fix. PR 2 ✅ 19 dead docs filed to `docs/archive/`, FULL_CHECK protocol → RULEBOOK §13, archive README de-staled. PR 3 ✅ 3→6-step resolved honestly: the 6-step is now **tracked item 212** (🔴, not built — product is still 3-step); client/demo docs say "multi-step," internal docs cross-ref 212. **Board → Σ269 (script-counted, 30 Jun): 🟢89 · 🩷35 · 🟣4 · 🟡21 · 🔴115 · ⏸5.***

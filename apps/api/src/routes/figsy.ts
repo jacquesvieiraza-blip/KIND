@@ -1136,6 +1136,7 @@ figsyRouter.get('/campaigns/:id/kanban', async (req: AuthRequest, res) => {
     for (const e of enrollments ?? []) {
       const lead = {
         id: e.lead_id,
+        enrollment_id: e.id,
         first_name: (e.leads as any)?.first_name ?? '',
         last_name: (e.leads as any)?.last_name ?? '',
         company: (e.leads as any)?.company ?? null,
@@ -1155,6 +1156,28 @@ figsyRouter.get('/campaigns/:id/kanban', async (req: AuthRequest, res) => {
 
     res.json({ success: true, data: { campaign, columns } })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to load kanban' }) }
+})
+
+figsyRouter.patch('/enrollments/:enrollmentId/status', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { status } = req.body as { status: string }
+    if (!['replied', 'completed'].includes(status)) {
+      res.status(400).json({ success: false, error: 'Status must be replied or completed' }); return
+    }
+    // Verify ownership through campaign
+    const { data: enrollment } = await db.from('figsy_enrollments')
+      .select('id, campaign_id')
+      .eq('id', req.params.enrollmentId)
+      .maybeSingle()
+    if (!enrollment) { res.status(404).json({ success: false, error: 'Enrollment not found' }); return }
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id').eq('id', enrollment.campaign_id).eq('client_id', clientId).maybeSingle()
+    if (!campaign) { res.status(403).json({ success: false, error: 'Forbidden' }); return }
+    await db.from('figsy_enrollments').update({ status }).eq('id', enrollment.id)
+    res.json({ success: true })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to update status' }) }
 })
 
 // ── ENROLLMENTS ───────────────────────────────────────────────────────────────

@@ -158,7 +158,7 @@
 | 80 | 🟢 | Teams Hub — verified 30 Jun: overview loads, "Add member" lands on settings#team (fixed PR #828), other tabs "coming soon" by design | 🤖 |
 | 81 | 🟡 | AI Notetaker — **FIX BUILT 26 Jun (🔴→🟡, pending preview verify).** Root cause: model wrapped the JSON in a ` ```json ` fence so `JSON.parse` failed → fallback dumped the raw fence as a "task". Fixed: strip fence + extract array + validate items; malformed → clean empty state, never raw text. *(Export buttons still stubbed — separate.)* | 🤖 |
 | 83 | 🟢 | Integrations Hub — verified 30 Jun: status list loads; Connect "coming soon" by design | 🤖 |
-| 85 | 🩷 | Shell — slim nav + agent switcher | 🧍 walk |
+| 85 | 🟢 | Shell — slim nav + agent switcher — verified 30 Jun: switches cleanly; no duplicate of current agent (fix #831); full list incl. Denise shows on every agent (fix #833) | 🧍 walk |
 | 86 | 🟢 | Shell — profile dropdown account hub — verified 30 Jun: all account links work | 🧍 walk |
 | 87 | 🟢 | Shell — status bar — **walk-confirmed 26 Jun** (live status shows on every screen) | — |
 | 88 | 🩷 | Activity feed standalone page (⚠️ orphan — not walked 26 Jun; decide cut/wire — also lives as Home widget 116) | 🤝 |

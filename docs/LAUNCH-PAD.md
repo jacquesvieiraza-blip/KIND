@@ -27,13 +27,14 @@
 | Stripe payment config — all price IDs set · credit purchase verified live | ✅ |
 | Lead Gen retirement — decision locked (single FIGSY credit at $3); build is Wednesday | ✅ |
 
-### 🔧 Tue 30 Jun — TODAY (in progress)
+### ✅ Tue 30 Jun — TODAY
 
 | Item | Owner |
 |------|-------|
-| Walkthrough Section A — portal screens click-walk: **15 verified 🟢** (#3,62,70,72,78,80,83,85,86,88,90,113,114,162,179) · **3 held 🩷** no live reply data (#66,68,112) · **2 left** (#183 kill-switch, #91 PWA) | 🤝 both |
+| Walkthrough Section A — **COMPLETE: 17 verified 🟢** (#3,62,70,72,78,80,83,85,86,88,90,113,114,162,179,183,91) · **3 held 🩷** no live data, re-walk later (#66,68,112) | ✅ |
 | Section A live fixes shipped — #828 Add-member scroll · #831+#833 agent switcher (dup + Denise) · #835 V2-home share link · logged #78b, #113b 🔴 | ✅ |
-| Walkthrough Section B — 8 company screens (Claude provisions demo company first) | 🤝 both |
+| Inventory audit — board regenerated + 33 items re-sectioned to match dots (PR #837) | ✅ |
+| **Walkthrough Section B — 8 company screens — NEXT** (Claude provisions a demo company first) | 🤝 both |
 
 ### ⏸ Gated on Instantly warmth (external clock — you confirm ~90% health)
 

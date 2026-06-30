@@ -126,12 +126,20 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
   }
   await insertBatched('figsy_replies', replyRows)
 
-  // 6) Credit ledger — one usage row per delivered lead
+  // 6) Credit ledger — one usage row per delivered lead (600 used)…
   const txRows = leads.map(() => ({
     client_id: clientId, type: 'usage', amount: -1, plan: 'lead_gen',
     note: 'Lead delivered (demo)', created_at: daysAgo(ri(1, 35)),
   }))
   await insertBatched('credit_transactions', txRows, 500)
+
+  // …plus purchase rows so the usage page reconciles: purchased 9,200 − used 600
+  // = balance 8,600 (set below). Without these "Credits purchased" reads 0 next to
+  // a healthy balance, and the numbers don't tie out on a demo (#55d).
+  await insertBatched('credit_transactions', [
+    { client_id: clientId, type: 'purchase', amount: 5000, plan: 'lead_gen', note: 'Credit top-up (demo)', created_at: daysAgo(40) },
+    { client_id: clientId, type: 'purchase', amount: 4200, plan: 'lead_gen', note: 'Credit top-up (demo)', created_at: daysAgo(12) },
+  ], 500)
 
   // 6b) Set the campaign's denormalised counters to match the seeded rows, so any
   //     counter-reading surface shows the right numbers too (the reconcile already
@@ -147,8 +155,15 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
     leads_enrolled: enrollments.length,
   }).eq('id', campaignId)
 
-  // 7) Healthy balance
+  // 7) Healthy balance — reconciles with the ledger: 9,200 purchased − 600 used = 8,600.
   await db.from('clients').update({ credit_balance: 8600 }).eq('id', clientId)
+
+  // 7b) Back-date the billing period so the seeded deliveries (1–35 days ago) count
+  //     as "this period". Otherwise period_start = account creation (now) and the
+  //     usage page shows "0 leads this period" beside 600 delivered leads (#55d).
+  await db.from('subscriptions')
+    .update({ current_period_start: daysAgo(40) })
+    .eq('client_id', clientId)
 
   // 8) DENISE — unlock + seed so The Closer is demoable (item 188). The page and
   //    API both gate on an active 'denise' subscription; without it Denise shows

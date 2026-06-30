@@ -89,6 +89,7 @@ export default function UsagePage() {
   const [loadError, setLoadError]       = useState<string | null>(null)
   const [balance, setBalance]           = useState(0)
   const [transactions, setTransactions] = useState<CreditTransaction[]>([])
+  const [totals, setTotals]             = useState<{ purchased: number | null; used: number | null }>({ purchased: null, used: null })
   const [stats, setStats]               = useState<LeadStats | null>(null)
   const [usage, setUsage]               = useState<UsageData | null>(null)
 
@@ -98,12 +99,16 @@ export default function UsagePage() {
       if (!session) { setLoading(false); return }
       try {
         const [creditsRes, statsRes, usageRes] = await Promise.all([
-          api.get<{ data: { balance: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
+          api.get<{ data: { balance: number; total_purchased?: number; total_used?: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
           api.get<{ data: LeadStats }>('/leads/stats', session.access_token).catch(() => ({ data: null })),
           api.get<{ data: UsageData }>('/clients/me/usage', session.access_token).catch(() => ({ data: null })),
         ])
         setBalance(creditsRes.data.balance)
         setTransactions(creditsRes.data.transactions)
+        setTotals({
+          purchased: creditsRes.data.total_purchased ?? null,
+          used:      creditsRes.data.total_used ?? null,
+        })
         if (statsRes.data) setStats(statsRes.data)
         if (usageRes.data) setUsage(usageRes.data)
       } catch (err) {
@@ -132,8 +137,10 @@ export default function UsagePage() {
     </div>
   )
 
-  const totalSpent     = transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0)
-  const totalPurchased = transactions.filter(t => t.type === 'purchase').reduce((s, t) => s + t.amount, 0)
+  // Prefer the server-computed totals (full ledger); fall back to summing the
+  // 50-row display slice only if the API didn't supply them (older API).
+  const totalSpent     = totals.used      ?? transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0)
+  const totalPurchased = totals.purchased ?? transactions.filter(t => t.type === 'purchase').reduce((s, t) => s + t.amount, 0)
 
   const leadsThisPeriod = usage?.leads_this_period ?? 0
   const overageLeads    = Math.max(0, leadsThisPeriod - INCLUDED_LEADS)

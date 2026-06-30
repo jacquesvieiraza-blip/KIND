@@ -51,6 +51,7 @@ export async function seedDemoCompany(
 
   // 2. Reps — each a real workspace with its own leads/campaign/replies.
   const repClientIds: string[] = []
+  let allocated = 0  // sum of rep budgets handed out — debited from the pool below
   for (let r = 0; r < repCount; r++) {
     const p = REP_PROFILES[r % REP_PROFILES.length]
     const name = `${FIRST[r % FIRST.length]} ${LAST[r % LAST.length]}`
@@ -84,6 +85,7 @@ export async function seedDemoCompany(
     if (rErr) { console.error('[seedDemoCompany] rep insert failed:', rErr.message); continue }
     const repId = rep.id
     repClientIds.push(repId)
+    allocated += p.budget
 
     // Rep's campaign
     const { data: camp } = await db.from('figsy_campaigns').insert({
@@ -129,6 +131,13 @@ export async function seedDemoCompany(
       if (replyRows.length) await db.from('figsy_replies').insert(replyRows)
     }
   }
+
+  // 2b. Debit the pool for what we handed to reps, so the Command Centre's
+  //     Pool + Allocated reconcile to the funded total (POOL). Without this the
+  //     pool reads a flat 40,000 next to ~15,000 allocated and never ties out (#55d).
+  await db.from('companies')
+    .update({ credit_pool: Math.max(0, POOL - allocated) })
+    .eq('id', companyId)
 
   // 3. A couple of pending credit requests (the approve/deny demo moment)
   let requests = 0

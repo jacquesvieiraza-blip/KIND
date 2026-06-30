@@ -161,7 +161,7 @@
 | 85 | 🟢 | Shell — slim nav + agent switcher — verified 30 Jun: switches cleanly; no duplicate of current agent (fix #831); full list incl. Denise shows on every agent (fix #833) | 🧍 walk |
 | 86 | 🟢 | Shell — profile dropdown account hub — verified 30 Jun: all account links work | 🧍 walk |
 | 87 | 🟢 | Shell — status bar — **walk-confirmed 26 Jun** (live status shows on every screen) | — |
-| 88 | 🩷 | Activity feed standalone page (⚠️ orphan — not walked 26 Jun; decide cut/wire — also lives as Home widget 116) | 🤝 |
+| 88 | 🟢 | Activity feed standalone page — verified 30 Jun: loads (also lives as Home widget 116) | 🤝 |
 | 89 | 🟢 | Notification centre (bell) — **walk-confirmed 26 Jun** | — |
 | 90 | 🩷 | Deliverability dashboard (redirects to Performance) | 🧍 walk |
 | 91 | 🩷 | Mobile PWA icons + manifest | 🧍 walk |

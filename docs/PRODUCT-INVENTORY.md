@@ -163,7 +163,7 @@
 | 87 | 🟢 | Shell — status bar — **walk-confirmed 26 Jun** (live status shows on every screen) | — |
 | 88 | 🟢 | Activity feed standalone page — verified 30 Jun: loads (also lives as Home widget 116) | 🤝 |
 | 89 | 🟢 | Notification centre (bell) — **walk-confirmed 26 Jun** | — |
-| 90 | 🩷 | Deliverability dashboard (redirects to Performance) | 🧍 walk |
+| 90 | 🟢 | Deliverability dashboard (redirects to Performance) — verified 30 Jun: legacy URL redirects to /dashboard/kpis | 🧍 walk |
 | 91 | 🩷 | Mobile PWA icons + manifest | 🧍 walk |
 
 ### Data engine

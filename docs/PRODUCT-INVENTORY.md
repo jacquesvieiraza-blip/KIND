@@ -29,7 +29,7 @@
 |---|---|------|-------|
 | 1 | 🟢 | FIGSY — The Opener (AI SDR): finds leads, unique email/lead, follow-up, books meetings | — |
 | 2 | 🟢 | Milla — The Brain (AI VA): drafting, business Q&A, weekly brief — ⚠️ *walk 26 Jun: works, but chat output renders raw markdown + cold tone → fix = item 248* | 🤖 |
-| 3 | 🩷 | Vida — The Connector: website chatbot — *walk 26 Jun: works but needs refinement before green (founder), parked* | 🤝 |
+| 3 | 🟢 | Vida — The Connector: website chatbot — verified 30 Jun: bubble loads, replies, config screen loads | 🤝 |
 | 4 | 🟢 | Denise — The Closer: warm follow-up + proposal drafts, sub-gated | — |
 | 5 | 🟢 | Conversational ICP Builder (AI-suggested ICP from chat) | — |
 | 6 | 🟢 | Apollo lead sourcing (3-pass, preview-count) | — |
@@ -133,7 +133,7 @@
 |---|---|------|-------|
 | 60 | 🩷 | R1 demo-bounce guard (skips synthetic demo mailboxes) | 🧍 walk |
 | 61 | 🩷 | R2 daily client brief toggle (server-backed) | 🧍 walk |
-| 62 | 🩷 | R3 Vida in-portal help bubble | 🧍 walk |
+| 62 | 🟢 | R3 Vida in-portal help bubble — verified 30 Jun: opens, answers | 🧍 walk |
 | 63 | 🩷 | R4 speed-to-lead (hot visitor → scored lead + Denise draft) | 🧍 walk |
 | 64 | 🩷 | R5 milestone cards + partner badge | 🧍 walk |
 | 65 | 🩷 | R6 onboarding day-0/3/7 emails (paid clients) | 🧍 walk |

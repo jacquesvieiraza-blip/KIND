@@ -324,9 +324,10 @@ export function Sidebar({
             {open && (
               <div className="mt-1.5 rounded-xl bg-white border border-purple-100 overflow-hidden shadow-lg shadow-purple-100/50 z-50">
                 <p className="text-[10px] text-[#7C3AED]/40 px-3 pt-3 pb-1.5 font-semibold uppercase tracking-wider">
-                  Your AI Family
+                  Switch agent
                 </p>
-                {AGENTS.map(a => {
+                {/* The current agent already shows in the header above — list only the others to switch to. */}
+                {AGENTS.filter(a => a.id !== activeId).map(a => {
                   const locked = !isUnlocked(a.id)
                   return (
                     <button

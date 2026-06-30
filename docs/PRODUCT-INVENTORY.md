@@ -155,9 +155,9 @@
 ### Design screens + shell
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 80 | 🩷 | Teams Hub — *walk 26 Jun: overview confirmed working; Analytics/Activity/Permissions tabs still "coming soon" → green when those land* | 🤖 |
+| 80 | 🟢 | Teams Hub — verified 30 Jun: overview loads, "Add member" lands on settings#team (fixed PR #828), other tabs "coming soon" by design | 🤖 |
 | 81 | 🟡 | AI Notetaker — **FIX BUILT 26 Jun (🔴→🟡, pending preview verify).** Root cause: model wrapped the JSON in a ` ```json ` fence so `JSON.parse` failed → fallback dumped the raw fence as a "task". Fixed: strip fence + extract array + validate items; malformed → clean empty state, never raw text. *(Export buttons still stubbed — separate.)* | 🤖 |
-| 83 | 🩷 | Integrations Hub — *walk 26 Jun: status list confirmed; Connect button still "coming soon" → green when connect flows wire* | 🤖 |
+| 83 | 🟢 | Integrations Hub — verified 30 Jun: status list loads; Connect "coming soon" by design | 🤖 |
 | 85 | 🩷 | Shell — slim nav + agent switcher | 🧍 walk |
 | 86 | 🩷 | Shell — profile dropdown account hub | 🧍 walk |
 | 87 | 🟢 | Shell — status bar — **walk-confirmed 26 Jun** (live status shows on every screen) | — |

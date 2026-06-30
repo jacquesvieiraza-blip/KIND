@@ -186,7 +186,8 @@
 | # | ● | Item | Owner |
 |---|---|------|-------|
 | 112 | 🩷 | Unibox inbox rebuild (Alta-style) — *walk 26 Jun: founder unsure (no live reply to test); verify with a real reply.* Known TODOs: ICP-score "—", archive dead, booked not persisted | 🧍 walk |
-| 113 | 🩷 | A/B subject-testing UI (campaign A/B tab) — *walk 26 Jun: works but founder didn't understand it → needs an in-UI explainer of what A/B testing does + when to use it* | 🤖 |
+| 113 | 🟢 | A/B subject-testing UI (campaign A/B tab) — verified 30 Jun: tab loads, A auto-generated per lead, B–E optional manual variants, winner picked after 48h + ≥5 sends per variant | 🤖 |
+| 113b | 🔴 | **FIGSY auto-generates A/B variant suggestions** — "Generate variants" button inside the A/B tab: FIGSY reads the campaign ICP + sequence and suggests B–E subject lines in one click, fields pre-fill, founder approves/tweaks. Today B–E are manual-only. | 🤖 |
 | 114 | 🩷 | Kanban pipeline — *walk 26 Jun: needs work + orphan (not nav-linked). Decide cut/wire + polish before green* | 🤖 |
 | 162 | 🩷 | Prompt Library (website Resources) | 🧍 walk |
 | 179 | 🩷 | Shareable stakeholder pipeline view (public share token) | 🧍 walk |

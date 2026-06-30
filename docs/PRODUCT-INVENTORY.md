@@ -141,7 +141,7 @@
 | 67 | 🩷 | R8 saved views (localStorage, per-browser) | 🧍 walk |
 | 68 | 🩷 | R9 "Why FIGSY wrote this" card | 🧍 walk |
 | 69 | 🩷 | R10 Goals (localStorage, per-browser) | 🧍 walk |
-| 70 | 🩷 | R11 sequence-template library (one-click copy) | 🧍 walk |
+| 70 | 🟢 | R11 sequence-template library (one-click copy) — verified 30 Jun: copy works | 🧍 walk |
 | 71 | 🩷 | R12 embeddable lead-capture forms → scored pipeline | 🧍 walk |
 | 72 | 🩷 | R13 Cmd+K quick actions | 🧍 walk |
 | 73 | 🩷 | R14 Meeting-Prep (Denise pre-call brief) | 🧍 walk |

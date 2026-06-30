@@ -3,6 +3,7 @@
 
 import Link from 'next/link'
 import { ArrowRight, BadgeCheck } from 'lucide-react'
+import { CopyShareLink } from '@/components/ui/CopyShareLink'
 
 const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
@@ -13,13 +14,14 @@ interface Props {
   sent: number
   replied: number
   hot: number
+  shareToken?: string | null
   hasFigsy: boolean
   hasMilla: boolean
   hasVida: boolean
   hasDenise: boolean
 }
 
-export function DashboardHomeV2({ firstName, timeOfDay, sent, replied, hot, hasFigsy, hasMilla, hasVida, hasDenise }: Props) {
+export function DashboardHomeV2({ firstName, timeOfDay, sent, replied, hot, shareToken, hasFigsy, hasMilla, hasVida, hasDenise }: Props) {
   const agents = [
     { name: 'FIGSY',  role: 'The Opener',    img: '/agents/figsy.png',  g: 'from-[#7C3AED] to-[#6025c0]', href: '/dashboard/figsy',
       active: hasFigsy, metrics: [['Sent', sent], ['Replied', replied], ['Hot leads', hot]] as [string, number][] },
@@ -33,9 +35,12 @@ export function DashboardHomeV2({ firstName, timeOfDay, sent, replied, hot, hasF
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Good {timeOfDay}, {firstName} 👋</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Your AI Family — at a glance.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Good {timeOfDay}, {firstName} 👋</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Your AI Family — at a glance.</p>
+        </div>
+        {sent > 0 && shareToken && <CopyShareLink token={shareToken} />}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {agents.map(a => (

@@ -425,6 +425,18 @@ export default function SettingsPage() {
     load()
   }, [])
 
+  // When navigated here with a hash (e.g. Teams Hub "Add member" → #team), the
+  // target section renders only after data loads, so the browser's native
+  // hash-scroll fires before the element exists and leaves you at the top.
+  // Re-run the scroll once content is ready.
+  useEffect(() => {
+    if (loading) return
+    const hash = window.location.hash
+    if (!hash) return
+    const el = document.querySelector(hash)
+    if (el) requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }, [loading])
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)

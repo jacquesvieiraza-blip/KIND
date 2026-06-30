@@ -273,7 +273,7 @@
 ### Honesty + fast-follow fixes (caught in the walkthrough / audit)
 | # | ● | Item | Owner |
 |---|---|------|-------|
-| 55a | 🔴 | Company-Engine RLS — rep-data isolation on clients/leads (API-enforced today) | 🤖 |
+| 55a | 🔴 | Company-Engine RLS — rep-data isolation **API-enforced only** (audit 30 Jun): `companies`/`seat_credit_requests`/`winning_plays`/`credit_transactions` have RLS, but **`leads` + `figsy_campaigns`/`enrollments`/`replies`/`sent_emails` have NO row policies** → a team isn't DB-isolated; add client_id RLS on those tables | 🤖 |
 | 28b | 🔴 | **CRITICAL real-money walk owed — prove lead usage deducts.** Code VERIFIED 30 Jun: prod DOES deduct — lead-gen `increment_client_credits(-n)` at delivery (`lead-delivery.ts:104`), FIGSY `increment_figsy_credits(-1)` at enrollment (`figsy.ts:969`), both atomic RPCs + ledger rows, enrollment gated at 0. **Not a prod leak.** The demo's "600 leads · 0 used · balance unchanged" was demo theatre (seed hard-sets balance — see #55d). **Still owed (iron rule = walk it live):** founder adds **$60** to a LIVE account → walk **money flow on ALL credit movements**: (1) pool funded via Stripe top-up · (2) rep invite/allocation deducts the pool (`company.ts:325`) · (3) credit-request approve moves pool→rep · (4) lead delivery / FIGSY enrollment deducts balance 1-per · (5) deactivate returns credits to pool (#108b) · (6) usage counters reconcile. Scheduled (not today). Closes #8/#28/#170 confidence. | 🤝 |
 | 108b | 🔴 | Deactivate rep → **return their remaining credits to the company pool.** Today deactivating a rep strands their unspent budget (lost to the company). On deactivate, move `credit_balance` back to `companies.credit_pool`. | 🤖 |
 | 55c | 🔴 | Company pool top-up checkout sends legacy `creditType: 'lead_gen'` (apps/portal company page `handleTopUp`). Lead Gen is being retired (Wed M2) → top-up must fund the single FIGSY credit bucket, not `lead_gen`, or the pool funds the wrong wallet. | 🤖 |
@@ -294,7 +294,7 @@
 | # | ● | Item | Owner |
 |---|---|------|-------|
 | 198 | 🔴 | Cold-email WARMUP — #1 priority (Instantly rig warming) | 🧍 |
-| 211 | 🔴 | **Per-client isolated + warmed sending engine (Smartlead).** NOTE (code-audit 28 Jun): basic client sending ALREADY works via **Resend** (figsy.ts) — this item is the *deliverability/scale* layer (isolated, warmed per-client mailboxes), NOT "zero sending". Smartlead today = read-only stub. | 🤝 |
+| 211 | 🔴 | **Per-client isolated + warmed sending engine (Smartlead) — THE #1 gate for paid clients.** Audit 30 Jun: today **every client sends from ONE shared Resend domain** (`figsy.ts`, single `FIGSY_COLD_FROM`) — no per-client isolation, no warmed dedicated domains, no mailbox rotation → one client's spam poisons all. Smartlead = **Phase 1 read-only only**; Phases 2–6 (isolated warmed sending) not built. | 🤝 |
 | 243 | 🔴 | 🎯 **URGENT FOCUS — max-coverage multi-source data layer** (we run thin: PDL+Hunter only). Top lever = **BetterContact** (1 integration = 20+ providers) → source router. Build during warm-up. Feeds 212. | 🤝 |
 | 242 | 🔴 | EPIC — Apollo Outbound OS → FIGSY (6-stage playbook) | 🤖 |
 | 212 | 🔴 | **FIGSY sequences — thin + weak per-email context** (founder 25 Jun). Rebuild to the Apollo blueprint (242): 4–6 steps · ≤50-word · **personalised opener using the lead's real data/signals (enough context per email)** · in-thread · A/B · **FIGSY AI-drafts the whole sequence on request** (today FIGSY says it can't from the Sequences page — founder 26 Jun). **Fed by 243's richer data.** 🔭 Depth Track. | 🤖 |

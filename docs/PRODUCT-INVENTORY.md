@@ -148,7 +148,8 @@
 | 75 | 🩷 | R16 internal evals harness (admin; reads real data) | 🧍 walk |
 | 76 | 🩷 | R17 spam-score pre-send check | 🧍 walk |
 | 77 | 🩷 | R18 multi-model toggle (Haiku/Sonnet per campaign) | 🧍 walk |
-| 78 | 🩷 | R19 "What's New" feed — *walk 26 Jun: shows, but content is hardcoded/static (founder "unsure if real" = correct). Acceptable as a manual changelog; make dynamic if wanted* | 🤝 |
+| 78 | 🟢 | R19 "What's New" feed — verified 30 Jun: renders, newest-first; works as designed (manual changelog). Latest entry = template library. Freshness/auto-update tracked as #78b | 🤝 |
+| 78b | 🔴 | **"What's New" feed — dates + auto-generate** — add a date to each entry and auto-append a line on every release merge (or pull from a changelog source) so the feed can't silently go stale. Today it's a hand-edited static array with no dates. | 🤝 |
 | 79 | 🩷 | R20 job-change alerts on leads | 🧍 walk |
 
 ### Design screens + shell

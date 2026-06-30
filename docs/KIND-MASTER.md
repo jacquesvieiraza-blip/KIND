@@ -2,7 +2,7 @@
 
 > **🧭 Four-doc contract:** **KIND-MASTER** *(this doc)* = strategy, decisions, why, dated session log · **LAUNCH-PAD** = daily execution · **PRODUCT-INVENTORY** = status (one dot, one owner) · **V2-TRACKER** = future. **Conflict rule:** strategy/decision truth = here; status = PRODUCT-INVENTORY; daily action = LAUNCH-PAD; future = V2-TRACKER. No fifth core doc. *(This supersedes every older "two docs" / "three source docs" line below — those are archived history.)*
 
-## ▶️ RESUME HERE — where we are *(23 Jun 2026, post-launch)*
+## ▶️ RESUME HERE — where we are *(30 Jun 2026, post-launch)*
 - **🚀 Launched 18 Jun.** The product loop, Company Engine, billing, admin OS and the 5 agents (FIGSY · Milla · Vida · Denise · Casey) are live.
 - **The strategic centre now = THE ENGINE (item 211, RULEBOOK §12)** — the warmed deliverability/sending layer. No engine → **SMB dead · mid-market can't scale · enterprise out.** **Decision (23 Jun): integrate Smartlead (primary) + Instantly (backup + our own outreach)** — two operating models by ACV (managed SMB mailboxes · connect-your-own for enterprise). Full spec → V2-TRACKER "⚙️ THE ENGINE".
 - **The one open risk:** the cold domain isn't reputation-warmed → don't campaign hard until it is (item 198).

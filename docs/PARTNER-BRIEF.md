@@ -1,6 +1,8 @@
 # 🤝 K.I.N.D — Partner Brief & Sales One-Pager
 `Last-checked: 25 Jun 2026`
 
+> ⚠️ **STALE PRICING (flagged 30 Jun):** this still shows the old two-product model (Lead Gen $1/lead + FIGSY $3). **Lead Gen is being retired → single FIGSY product at $3/credit** (decision 29 Jun, builds Wed 1 Jul). Do not quote the $1 lead-only tier. Current pricing: see LAUNCH-PAD after the Wed build.
+
 *For approved K.I.N.D partners. Everything you need to sell K.I.N.D to small businesses — the pitch, the trade playbooks, pricing, and how you earn.*
 
 ---

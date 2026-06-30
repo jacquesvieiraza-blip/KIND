@@ -188,7 +188,8 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
         {/* Dropdown — agent list with little photos */}
         {open && (
           <div className={`mx-2 mt-1.5 rounded-xl bg-[#1a0f3d] border border-white/10 overflow-hidden shadow-xl transition-opacity ${labelCls}`}>
-            {AGENTS.map(a => {
+            {/* The current agent already shows in the card above — list only the others to switch to. */}
+            {AGENTS.filter(a => a.id !== activeId).map(a => {
               const locked = !isUnlocked(a.id)
               return (
                 <button key={a.id}

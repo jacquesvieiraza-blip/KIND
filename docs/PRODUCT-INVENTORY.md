@@ -191,7 +191,7 @@
 | 113b | 🔴 | **FIGSY auto-generates A/B variant suggestions** — "Generate variants" button inside the A/B tab: FIGSY reads the campaign ICP + sequence and suggests B–E subject lines in one click, fields pre-fill, founder approves/tweaks. Today B–E are manual-only. | 🤖 |
 | 114 | 🟢 | Kanban pipeline — verified 30 Jun: real cards load, drag-to-Replied/Completed marks via PATCH endpoint | 🤖 |
 | 162 | 🟢 | Prompt Library (website Resources) — verified 30 Jun: renders + searchable | 🧍 walk |
-| 179 | 🩷 | Shareable stakeholder pipeline view (public share token) | 🧍 walk |
+| 179 | 🟢 | Shareable stakeholder pipeline view (public share token) — verified 30 Jun: "Copy share link" surfaced on V2 home (fix #835), public /share/<token> view loads | 🧍 walk |
 | 183 | 🩷 | Campaign kill-switch (pause-all panic button) | 🧍 walk |
 | 184 | 🩷 | Public uptime/status page (built, ⚠️ unlinked from nav) | 🧍 walk |
 | 186 | 🩷 | Record signup T&C acceptance (timestamp + IP) | 🧍 walk |

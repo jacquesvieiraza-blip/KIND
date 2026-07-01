@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { DollarSign, Target, TrendingUp, CheckCircle2, MinusCircle, XCircle } from 'lucide-react'
+import { DollarSign, Target, TrendingUp, CheckCircle2, MinusCircle, XCircle, Wallet, Landmark, ExternalLink } from 'lucide-react'
 import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
 
 const MONTHLY_TARGETS = [
@@ -137,13 +137,53 @@ export default async function RevenuePage() {
       <div className="flex items-center gap-3">
         <DollarSign className="w-6 h-6 text-gray-400" />
         <div className="flex-1">
-          <h1 className="text-2xl font-bold text-gray-900">Revenue</h1>
-          <p className="text-sm text-gray-400 mt-0.5">Deep-dive: MRR tracking, scenarios, ARPU breakdown</p>
+          <h1 className="text-2xl font-bold text-gray-900">💷 Finance</h1>
+          <p className="text-sm text-gray-400 mt-0.5">The money truth — Xero &amp; Wise, MRR tracking, scenarios, ARPU</p>
         </div>
         <span className="text-xs bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full font-medium flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           Live MRR · projections below
         </span>
+      </div>
+
+      {/* Finance — the money truth (Xero / Wise hyperlinked; cost stack an estimate until Xero) */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Finance — the money truth</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">connect Xero + Wise to go live</span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Xero card */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><Landmark className="w-5 h-5" /></div>
+              <a href="https://go.xero.com" target="_blank" rel="noopener noreferrer" className="text-xs text-[#7C3AED] font-semibold inline-flex items-center gap-1 hover:underline">Open Xero <ExternalLink className="w-3 h-3" /></a>
+            </div>
+            <p className="text-lg font-bold text-gray-900">P&amp;L · VAT</p>
+            <p className="text-sm text-gray-500 mt-0.5">Books &amp; tax at a glance</p>
+            <p className="text-xs text-amber-600 mt-1">needs Jacques — connect Xero (item 196)</p>
+          </div>
+          {/* Wise card */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Wallet className="w-5 h-5" /></div>
+              <a href="https://wise.com/user/account" target="_blank" rel="noopener noreferrer" className="text-xs text-[#7C3AED] font-semibold inline-flex items-center gap-1 hover:underline">Open Wise <ExternalLink className="w-3 h-3" /></a>
+            </div>
+            <p className="text-lg font-bold text-gray-900">Cash &amp; runway</p>
+            <p className="text-sm text-gray-500 mt-0.5">The #1 &quot;lights on&quot; number</p>
+            <p className="text-xs text-amber-600 mt-1">needs Jacques — connect Wise</p>
+          </div>
+          {/* Net (MRR real; cost stack estimate) */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+            <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#7C3AED] flex items-center justify-center mb-3"><DollarSign className="w-5 h-5" /></div>
+            <p className="text-lg font-bold text-gray-900">${stats.mrrUsd.toLocaleString()} <span className="text-sm font-medium text-gray-400">MRR</span></p>
+            <div className="text-sm text-gray-500 mt-1 space-y-0.5">
+              <div className="flex justify-between"><span>Est. cost stack</span><span className="text-gray-400">– $690</span></div>
+              <div className="flex justify-between font-semibold"><span className="text-gray-700">Net</span><span className={stats.mrrUsd - 690 >= 0 ? 'text-emerald-600' : 'text-red-600'}>{stats.mrrUsd - 690 >= 0 ? '+' : ''}${(stats.mrrUsd - 690).toLocaleString()}</span></div>
+            </div>
+            <p className="text-xs text-amber-600 mt-1">cost = estimate until Xero connects</p>
+          </div>
+        </div>
       </div>
 
       {/* Live MRR + context */}

@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K.I.N.D — New Client Sending Flow (preview)</title>
+<style>
+  :root{ --green:#d1fae5; --greenb:#059669; --red:#fee2e2; --redb:#dc2626; --blue:#dbeafe; --blueb:#2563eb; --ink:#0f172a; }
+  *{ box-sizing:border-box; }
+  body{ font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:#f8fafc; color:var(--ink); margin:0; padding:28px; }
+  h1{ font-size:20px; margin:0 0 4px; }
+  .sub{ color:#64748b; font-size:13px; margin:0 0 18px; }
+  .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:22px; }
+  .chip{ font-size:12px; font-weight:600; padding:5px 10px; border-radius:999px; border:1px solid; }
+  .c-green{ background:var(--green); border-color:var(--greenb); color:#064e3b; }
+  .c-red{ background:var(--red); border-color:var(--redb); color:#7f1d1d; }
+  .c-blue{ background:var(--blue); border-color:var(--blueb); color:#1e3a8a; }
+  .wrap{ display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap; }
+  .col{ flex:1 1 520px; max-width:640px; }
+  .box{ border:1.5px solid; border-radius:12px; padding:12px 14px; font-size:14px; line-height:1.35; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .box b{ display:block; font-size:12px; letter-spacing:.4px; text-transform:uppercase; opacity:.7; margin-bottom:3px; }
+  .green{ background:var(--green); border-color:var(--greenb); }
+  .red{ background:var(--red); border-color:var(--redb); }
+  .blue{ background:var(--blue); border-color:var(--blueb); }
+  .trigger{ background:#fff7ed; border:2px dashed var(--redb); border-radius:12px; padding:12px 14px; font-weight:700; color:#7f1d1d; font-size:14px; }
+  .arrow{ text-align:center; color:#94a3b8; font-size:20px; margin:7px 0; }
+  .decision{ background:#fef9c3; border:2px solid #ca8a04; border-radius:12px; padding:12px 14px; font-weight:700; text-align:center; }
+  .branches{ display:flex; gap:14px; margin-top:10px; }
+  .branch{ flex:1; }
+  .blabel{ font-weight:700; font-size:12px; margin-bottom:6px; }
+  .no{ color:var(--redb); } .yes{ color:var(--greenb); }
+  .pool{ background:#fffbeb; border:2px solid #d97706; border-radius:14px; padding:16px; }
+  .pool h2{ font-size:14px; margin:0 0 10px; color:#92400e; }
+  .pool .box{ margin-bottom:10px; }
+  .note{ font-size:12px; color:#64748b; margin-top:8px; }
+</style>
+</head>
+<body>
+  <h1>🔵 New-Client Sending Flow — PREVIEW</h1>
+  <p class="sub">Nothing built or merged. Both triggers (signup + payment) included.</p>
+  <div class="legend">
+    <span class="chip c-green">■ Exists today</span>
+    <span class="chip c-red">■ New build (#211)</span>
+    <span class="chip c-blue">■ Our manual step</span>
+  </div>
+
+  <div class="wrap">
+    <div class="col">
+      <div class="box green"><b>Stage 1 · Day 0</b>Client signs up for the 14-day free trial (self-serve)</div>
+      <div class="arrow">▼</div>
+      <div class="trigger">⚡ TRIGGER ① — new signup → ALERT US</div>
+      <div class="arrow">▼</div>
+      <div class="box blue">We assign <b style="display:inline">1 pooled pre-warmed inbox</b> — per seat (SMB = 1 · company = 1 per rep)</div>
+      <div class="arrow">▼</div>
+      <div class="box red">Client <b style="display:inline">SENDS day 1</b> — instant results</div>
+      <div class="arrow">▼</div>
+      <div class="box green"><b>Stage 2 · Day 0–14 (trial)</b>Build ICP · find/score/enrich leads · draft sequences · send on the pooled inbox</div>
+      <div class="arrow">▼</div>
+      <div class="decision">◆ Convert? — pays at day 14</div>
+
+      <div class="branches">
+        <div class="branch">
+          <div class="blabel no">NO ▼</div>
+          <div class="box red">Release pooled inbox back to pool · off-board · <b style="display:inline">no branded inbox ever bought</b> (zero wasted cost)</div>
+        </div>
+        <div class="branch">
+          <div class="blabel yes">YES ▼</div>
+          <div class="trigger">⚡ TRIGGER ② — client PAYS → ALERT US</div>
+          <div class="arrow">▼</div>
+          <div class="box blue">We buy their <b style="display:inline">own branded inbox</b> (per seat) → warm-up ~14 days</div>
+          <div class="arrow">▼</div>
+          <div class="box red">Client keeps sending on the pooled inbox — <b style="display:inline">no gap</b></div>
+          <div class="arrow">▼</div>
+          <div class="box red"><b>~Day 29</b>SWITCH client to their branded inbox · release pooled inbox back to pool</div>
+          <div class="arrow">▼</div>
+          <div class="box green"><b>Steady state</b>Own branded, isolated sending · scale by seats</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col" style="flex:0 1 330px;">
+      <div class="pool">
+        <h2>⚙️ POOL OPERATIONS — always running</h2>
+        <div class="box blue">Keep <b style="display:inline">~10 generic pre-warmed inboxes</b> ready (Smartlead Option 1 — instant, no warm lag)</div>
+        <div class="arrow">▼</div>
+        <div class="box blue">Monitor stock · reorder <b style="display:inline">before</b> low (size to concurrent trials + waiting-to-switch)</div>
+        <div class="arrow">▼</div>
+        <div class="box red">Released inboxes return to the pool ↻</div>
+        <p class="note">The trial + no-convert + switch steps all draw from / return to this pool.</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

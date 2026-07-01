@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K.I.N.D — Our Own Outreach Flow (preview)</title>
+<style>
+  :root{ --green:#d1fae5; --greenb:#059669; --red:#fee2e2; --redb:#dc2626; --blue:#dbeafe; --blueb:#2563eb; --ink:#0f172a; }
+  *{ box-sizing:border-box; }
+  body{ font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:#f8fafc; color:var(--ink); margin:0; padding:28px; }
+  h1{ font-size:20px; margin:0 0 4px; }
+  .sub{ color:#64748b; font-size:13px; margin:0 0 18px; }
+  .legend{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:22px; }
+  .chip{ font-size:12px; font-weight:600; padding:5px 10px; border-radius:999px; border:1px solid; }
+  .c-green{ background:var(--green); border-color:var(--greenb); color:#064e3b; }
+  .c-red{ background:var(--red); border-color:var(--redb); color:#7f1d1d; }
+  .c-blue{ background:var(--blue); border-color:var(--blueb); color:#1e3a8a; }
+  .wrap{ display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap; }
+  .col{ flex:1 1 520px; max-width:640px; }
+  .box{ border:1.5px solid; border-radius:12px; padding:12px 14px; font-size:14px; line-height:1.35; box-shadow:0 1px 2px rgba(0,0,0,.05); }
+  .box b{ display:block; font-size:12px; letter-spacing:.4px; text-transform:uppercase; opacity:.7; margin-bottom:3px; }
+  .green{ background:var(--green); border-color:var(--greenb); }
+  .red{ background:var(--red); border-color:var(--redb); }
+  .blue{ background:var(--blue); border-color:var(--blueb); }
+  .gate{ background:#fef9c3; border:2px solid #ca8a04; border-radius:12px; padding:12px 14px; font-weight:700; text-align:center; }
+  .arrow{ text-align:center; color:#94a3b8; font-size:20px; margin:7px 0; }
+  .compare{ background:#eef2ff; border:2px solid #6366f1; border-radius:14px; padding:16px; }
+  .compare h2{ font-size:14px; margin:0 0 10px; color:#3730a3; }
+  .compare table{ width:100%; border-collapse:collapse; font-size:13px; }
+  .compare td,.compare th{ text-align:left; padding:6px 8px; border-bottom:1px solid #c7d2fe; vertical-align:top; }
+  .compare th{ color:#3730a3; }
+</style>
+</head>
+<body>
+  <h1>🟠 OUR OWN OUTREACH FLOW — Milestone 1 (preview)</h1>
+  <p class="sub">How WE sell K.I.N.D via our own cold email. Runs on Instantly. Compare against the New-Client flow.</p>
+  <div class="legend">
+    <span class="chip c-green">■ Done / built</span>
+    <span class="chip c-blue">■ Your action (⏱ manual / clock)</span>
+    <span class="chip c-red">■ New build</span>
+  </div>
+
+  <div class="wrap">
+    <div class="col">
+      <div class="box green"><b>All built — nothing to code</b>Product walked · 1,461 verified list · 4-step sequence written · deliverability code (D1–D5) · <b style="display:inline">gettingkind.com</b> DNS (SPF/DKIM/DMARC) · cold-send env · GA4 · Stripe purchase live</div>
+      <div class="arrow">▼</div>
+      <div class="gate">🛑 GATE — Instantly inbox warmth ≥90% (~1–2 week clock, your side)</div>
+      <div class="arrow">▼</div>
+      <div class="box blue">Upgrade Instantly plan (capacity for ≥1,500 sends)</div>
+      <div class="arrow">▼</div>
+      <div class="box blue">Import the 1,461 list into Instantly</div>
+      <div class="arrow">▼</div>
+      <div class="box blue">Load the 4-step sequence (Day 0/3/6/10)</div>
+      <div class="arrow">▼</div>
+      <div class="box blue">mail-tester 10/10</div>
+      <div class="arrow">▼</div>
+      <div class="box blue">Test-send 10–20 → check placement (Primary · bounce &lt;2% · spam &lt;0.3%)</div>
+      <div class="arrow">▼</div>
+      <div class="box blue">🚀 Fire first outreach → dogfood monitor</div>
+      <div class="arrow">▼</div>
+      <div class="box green"><b>Live</b>Replies land in the unibox · track reply rate (≥5% d3 / ≥10% d7)</div>
+    </div>
+
+    <div class="col" style="flex:0 1 360px;">
+      <div class="compare">
+        <h2>🔍 OURS vs A CLIENT — the key differences</h2>
+        <table>
+          <tr><th></th><th>Our outreach (M1)</th><th>A client (M2)</th></tr>
+          <tr><td><b>Tool</b></td><td>Instantly</td><td>Smartlead</td></tr>
+          <tr><td><b>Domain</b></td><td>ONE (gettingkind.com)</td><td>Pooled → own branded, per client</td></tr>
+          <tr><td><b>Inboxes</b></td><td>Our own, one set</td><td>Pool + branded, per seat</td></tr>
+          <tr><td><b>Who runs it</b></td><td>You, manually</td><td>Client, self-serve</td></tr>
+          <tr><td><b>Triggers</b></td><td>None</td><td>Signup + payment → assign</td></tr>
+          <tr><td><b>To build</b></td><td><b style="color:#059669">Nothing</b> — all done</td><td><b style="color:#dc2626">Lots</b> (#211 engine)</td></tr>
+          <tr><td><b>Gate</b></td><td>Warmth clock only</td><td>Security + engine + pool</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

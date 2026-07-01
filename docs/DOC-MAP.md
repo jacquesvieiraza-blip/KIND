@@ -30,7 +30,12 @@
 | **[KIND-MASTER.md](./KIND-MASTER.md)** | strategy · decisions · history · session log | "where are we + why decided X?" |
 | **[V2-TRACKER.md](./V2-TRACKER.md)** | future detail · roadmap · risks · steals | "what's the longer-term plan?" |
 
-**Always-loaded config:** [`CLAUDE.md`](../CLAUDE.md) (agent rules) · [`RULEBOOK.md`](./RULEBOOK.md) (working rules — incl. **§11 PREVIEW-BEFORE-LIVE**) · [`README.md`](./README.md) (the doc signpost) · [`TECH-STACK.md`](./TECH-STACK.md) (tools/vendors register).
+**Always-loaded config:** [`CLAUDE.md`](../CLAUDE.md) (agent rules) · [`RULEBOOK.md`](./RULEBOOK.md) (working rules — incl. **§11 PREVIEW-BEFORE-LIVE**) · [`README.md`](./README.md) (the doc signpost) · [`TECH-STACK.md`](./TECH-STACK.md) (tools/vendors register) · [`client-flow-sop.md`](./client-flow-sop.md) (**THE SOP** — the locked sending/onboarding operating model).
+
+**Key operating docs (promoted):**
+- 📋 **SOP** — [`client-flow-sop.md`](./client-flow-sop.md): the locked Sending & Onboarding Model (M1/M2/M3) + 7 client paths.
+- 🖼️ **Flow visuals** — [`flows/new-client-flow.html`](./flows/new-client-flow.html) · [`flows/our-outreach-flow.html`](./flows/our-outreach-flow.html) (download + open in a browser) · [`flows/new-client-flow.mmd`](./flows/new-client-flow.mmd). *(The new-client flow also renders inline inside the SOP as a Mermaid diagram.)*
+- 💷 **Business / finance (the company + Xero side)** — [`run-costs-and-cashflow.md`](./run-costs-and-cashflow.md): the financial model + **company ops (§16)**; **Xero/banking/HMRC** = the M3 Admin-Centre finance view (Xero itself is item 196, parked until first paying client).
 
 ---
 

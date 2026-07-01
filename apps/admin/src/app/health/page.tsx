@@ -87,11 +87,11 @@ export default function HealthPage() {
         <div className="flex items-center gap-3">
           <Activity className="w-6 h-6 text-gray-400" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Platform Health</h1>
+            <h1 className="text-2xl font-bold text-gray-900">⚙️ Engine / Deliverability</h1>
             <p className="text-sm text-gray-400 mt-0.5">
-              {lastChecked
-                ? `Last checked: ${lastChecked.toLocaleTimeString()}`
-                : 'Checking services...'}
+              Is it actually sending? {lastChecked
+                ? `· last checked ${lastChecked.toLocaleTimeString()}`
+                : '· checking services…'}
             </p>
           </div>
         </div>
@@ -153,6 +153,32 @@ export default function HealthPage() {
         <div className="mt-3 bg-gray-50 border border-gray-100 rounded-lg p-4">
           <p className="text-xs text-gray-400">FIGSY cron run history will appear here once the reporting endpoint is connected.</p>
         </div>
+      </div>
+
+      {/* Deliverability readiness — the silent-fail checklist */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <h2 className="font-semibold text-gray-900 mb-1">Deliverability readiness</h2>
+        <p className="text-xs text-gray-400 mb-4">The send engine only works if these are set. Unset keys fail <b>silently</b> — verify before any real send.</p>
+        <div className="space-y-2">
+          {[
+            { k: 'RESEND_API_KEY', d: 'Unset → rows say "sent" but no mail leaves', need: false },
+            { k: 'ADMIN_SECRET_KEY', d: 'Unset → every cron silently skips (only step 1 sends)', need: false },
+            { k: 'Send cron (every 2h)', d: 'Sequences drip via /internal/figsy/send-due-all', need: false },
+            { k: 'Bounce / complaint suppression (#267)', d: 'Enable email.bounced + email.complained on the Resend webhook', need: true },
+            { k: 'PDL_API_KEY (#243)', d: 'Set in Railway so discovery survives Apollo being absent', need: true },
+          ].map(row => (
+            <div key={row.k} className="flex items-start justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900">{row.k}</p>
+                <p className="text-xs text-gray-400">{row.d}</p>
+              </div>
+              <span className={`shrink-0 text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 ${row.need ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'bg-gray-50 text-gray-400 border border-gray-200'}`}>
+                {row.need ? 'needs Jacques' : 'verify'}
+              </span>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-gray-400 mt-3">Live bounce/complaint % + cron last-run wire in when the reporting endpoint lands.</p>
       </div>
 
       {/* Last audit result */}

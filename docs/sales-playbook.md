@@ -1,5 +1,6 @@
 # KIND Sales Playbook
 
+> ⚠️ **STALE PRICING (audit 1 Jul):** the Lead Gen $20/$40/$100 bundle lines below reflect the **retired $1 Lead-Gen tier**. Product is moving to a **single $3 FIGSY credit** (#239/#283). Treat the $1 bundle numbers as historical; pricing source of truth = `run-costs-and-cashflow.md` §3.
 > Version 1.0 — May 2026 · For internal use only
 > `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat** $29 — WhatsApp is NOT a cold channel) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
 > 🌍 **GTM = TWO-TRACK (25 Jun):** **US/UK/EMEA via OUR OWN outreach** (dogfood FIGSY) + **Africa via DIRECT (data, item 243) + partners** — supersedes the old "Africa-first." Cold legal in US/UK/IE/FR/NL (avoid DE/PL).

@@ -1,6 +1,8 @@
 # K.I.N.D — Run Costs & Cashflow Model
 `Last-checked: 22 Jun 2026`
 
+> ⚠️ **STALE PRICING (audit 1 Jul):** the body models the **two-product $1 Lead-Gen + $3 FIGSY** setup. The $1 Lead-Gen tier is being **retired → single $3 FIGSY credit** (#239/#283). Margins/ARPU/scenarios still directionally valid, but treat every `$1/lead` figure as historical until this doc is re-modelled on the single-$3 product.
+
 > ### 🟢 22 JUN STATUS UPDATE (read before the body — the model below is sound; this corrects its framing)
 > - **🚀 LAUNCHED 18 Jun** — the doc body is written pre-launch ("gate Fri-19" etc.); treat those as historical. The economics (margins, ARPU, break-even, scenarios) are **still valid**.
 > - **💵 Currency = USD (locked 22 Jun, "we are USD").** Ignore the ZAR/£ columns — they're illustrative only; we **bill USD**. UK Ltd files GBP to HMRC (accounting platform decision = item 196, open).

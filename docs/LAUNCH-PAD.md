@@ -87,25 +87,161 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 ### 👉 Bottom line: M2 makes the product usable *by a client*; **M3 is how WE actually onboard, operate, and get paid.** Onboarding triggers + finance + team/partner oversight + Nora (admin co-pilot) live here. **Full spec: `docs/admin-centre-spec.md`.** Preview: `scratchpad/admin-centre-preview.html`.
 ### 🏗️ Build mode = **LIVE.** Admin is internal (not client-facing) → no preview gate. I build → push live → **you beta-test in the live system** → verify → next piece.
 
-### 📊 Status board (full audit 1 Jul — same ladder: 🔴 not built · 🩷 live not verified · 🟢 live+verified · ⏸ blocked)
-**Shipped live 🩷 (need restyle/verify):**
-| Item | Status |
-|------|--------|
-| **#272 Cockpit** (Pulse + Action Queue + unit economics; nav reshaped) | 🩷 |
-| **#274 Sales Channel** (Overall/AE/Partner × Analytics·Performance·ROI·Pipeline·Targets · demos+closure — partners live, AE/overall sample) | 🩷 |
-| **#272 Finance** (Track Xero/Wise/Stripe · MRR live · Risk · Scenario · ARPU · cost stack · cohorts folded) | 🩷 |
-| **#275 Nora** (right-rail, context-aware, live chat) — ⚠️ bespoke, weak → rebuild on portal `AgentSidePanel` (#277) | 🩷 |
-| Ops · Sales Demo · Compliance · Terms | 🟢 |
+### 📊 FULL BUILD AUDIT (1 Jul — the complete M3 picture)
+Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked. *(Status of record = PRODUCT-INVENTORY #272/#274/#275/#276/#277–#282; full structure = `admin-centre-spec.md`.)*
 
-**Left to build 🔴 (Thursday's job):**
-| # | Item | Status |
-|---|------|--------|
-| 1 | **#277 Adopt the client-portal design system** — theme + shared kit + slim sidebar + **rebuild Nora on `AgentSidePanel`** + restyle every screen (portal never touched) | 🔴 |
-| 2 | **#282 Single-source dedup** — Cohorts→`/cohorts` · churn→Clients · MRR→Finance (Cockpit glances) | 🔴 |
-| 3 | **#281 Clients rebuild** — layout to kit + fold Activity/Activation/Messages | 🔴 |
-| 4 | **#278 GTM rebuild** — Strategy · Results · Winning plays · Content calendar · cut HubSpot | 🔴 |
-| 5 | **#279 Engine health graph** · **#280 Ops** (inbox pool mgmt · onboarding ops) | 🔴 |
-| 🛑 6 | **#270/#271 triggers** (signup→assign · payment→provision · day-29) + **#276 per-staff logins** | 🔴 ⏸ |
+**🎨 Design foundation**
+| Item | Status |
+|---|---|
+| Portal theme adopted (violet/Inter/gradients/dark) | 🔴 |
+| Shared kit — StatCard | 🟡 |
+| Shared kit — Card / Button / Pill / Table | 🟡 |
+| Shared kit — MarkdownLite | 🔴 |
+| Slim collapsible sidebar (portal look) | 🔴 |
+| Recharts added | 🔴 |
+
+**🤖 Nora**
+| Item | Status |
+|---|---|
+| Nora right rail (bespoke `NoraRail`) | 🩷 |
+| Nora context-aware per screen | 🩷 |
+| Nora live chat endpoint (`/founder/nora`) | 🩷 |
+| Nora rebuilt on portal `AgentSidePanel` | 🔴 |
+
+**🩺 Cockpit**
+| Item | Status |
+|---|---|
+| Pulse — MRR | 🩷 |
+| Pulse — Cash & runway | 🩷 ⏸ |
+| Pulse — Clients | 🩷 |
+| Pulse — This week | 🩷 |
+| Pulse — System health | 🩷 |
+| Pulse — Pool stock | 🩷 ⏸ |
+| Needs you now — at-risk (live) | 🩷 |
+| Needs you now — trigger rows (signup/payment/switch/pool) | 🔴 |
+| Unit economics — margin | 🩷 |
+| Unit economics — net | 🩷 |
+| Cockpit layout → portal kit | 🔴 |
+
+**👥 Clients**
+| Item | Status |
+|---|---|
+| Client list | 🩷 |
+| Client drill-down | 🩷 |
+| Summary tiles | 🔴 |
+| Fold in Activity | 🔴 |
+| Fold in Activation | 🔴 |
+| Fold in Messages | 🔴 |
+| Rebuilt layout → kit | 🔴 |
+
+**🎖️ Sales Channel**
+| Item | Status |
+|---|---|
+| Lens — Overall | 🩷 (sample) |
+| Lens — per-AE | 🩷 (sample) |
+| Lens — per-Partner | 🩷 (live) |
+| Tab — Analytics | 🩷 |
+| Tab — Performance | 🩷 |
+| Tab — ROI | 🩷 |
+| Tab — Pipeline | 🩷 |
+| Tab — Targets (KPI/monthly/core) | 🩷 |
+| Demos + closure | 🩷 |
+| Book MRR + commission | 🩷 |
+| Targets per person (mo/qtr/yr) | 🩷 ⏸ |
+| 3× pipeline coverage | 🩷 |
+| Mini-CRM | 🩷 |
+| Contracts vault | 🩷 |
+| Winning plays (per person) | 🩷 |
+| Partner management folded (approve/deals/commissions) | 🔴 |
+| Proposals folded | 🔴 |
+| AEs real + logins | 🔴 |
+
+**💷 Finance**
+| Item | Status |
+|---|---|
+| Track — Xero | 🩷 ⏸ |
+| Track — Wise | 🩷 ⏸ |
+| Track — Stripe | 🩷 ⏸ |
+| Revenue — MRR live | 🩷 |
+| Revenue — Active paying subs | 🩷 |
+| Revenue — Blended ARPU | 🩷 |
+| Risk — revenue at risk | 🩷 |
+| Scenario tracker | 🩷 |
+| 90-day forecast | 🩷 |
+| ARPU breakdown | 🩷 |
+| Credit sales | 🩷 |
+| Cost stack | 🩷 |
+| Finance layout → kit | 🩷 |
+| Cohorts duplication removed | 🔴 |
+
+**📣 GTM**
+| Item | Status |
+|---|---|
+| CMO tools | 🩷 |
+| Our replies (unibox) | 🩷 |
+| Visitor intelligence | 🩷 |
+| GTM Strategy | 🔴 |
+| GTM Results | 🔴 |
+| Winning plays | 🔴 |
+| Content calendar | 🔴 |
+| HubSpot removed | 🔴 |
+| GTM layout → kit | 🔴 |
+
+**⚙️ Engine**
+| Item | Status |
+|---|---|
+| Send status (cron / volume / bounce) | 🩷 |
+| Env readiness checklist | 🩷 |
+| Health graph | 🔴 |
+| Engine layout → kit | 🔴 |
+
+**🛠️ Ops**
+| Item | Status |
+|---|---|
+| Sales Demo | 🟢 |
+| Inbox pool management | 🔴 |
+| Onboarding ops | 🔴 |
+| Founder-agent → Nora | 🔴 |
+
+**🛡️ Compliance**
+| Item | Status |
+|---|---|
+| Compliance | 🟢 |
+| Terms | 🟢 |
+
+**🧪 Dev (hidden)**
+| Item | Status |
+|---|---|
+| Seed | 🩷 |
+| Smoke test | 🩷 |
+
+**🔌 Data wiring — blocked (needs reporting endpoint)**
+| Item | Status |
+|---|---|
+| AE / Overall analytics live | ⏸ |
+| Engine health graph live | ⏸ |
+| Content calendar live | ⏸ |
+| Winning plays live | ⏸ |
+
+**🧍 Founder-blocked (connect / creds)**
+| Item | Status |
+|---|---|
+| Connect Xero | ⏸ |
+| Connect Wise | ⏸ |
+| Connect Stripe | ⏸ |
+| Smartlead pool access | ⏸ |
+| Trigger #270 signup→assign | 🔴 |
+| Trigger #271 payment→provision | 🔴 |
+| Day-29 switch | 🔴 |
+| PDL_API_KEY (#243) | ⏸ |
+| Resend bounce events (#267) | ⏸ |
+| Set targets per AE/partner | 🧍 |
+| Contract templates | 🧍 |
+
+**🏗️ Bigger build**
+| Item | Status |
+|---|---|
+| Per-staff AE logins + roles (#276) | 🔴 |
 
 ### 🧍 What you do (unblocks the live data + verifies)
 | Item | Why |

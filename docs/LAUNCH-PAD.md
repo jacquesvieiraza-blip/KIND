@@ -84,16 +84,38 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 ---
 
 ## ③ ADMIN CENTRE + OPERATIONS — Milestone 3 · *the cockpit we run the business from*
-### 👉 Bottom line: M2 makes the product usable *by a client*; **M3 is how WE actually onboard, operate, and get paid.** The client-onboarding triggers live here, plus finance and staff access. Nothing built yet. Full flows in the SOP (`client-flow-sop.md` → Sending & Onboarding Model).
+### 👉 Bottom line: M2 makes the product usable *by a client*; **M3 is how WE actually onboard, operate, and get paid.** Onboarding triggers + finance + team/partner oversight + Nora (admin co-pilot) live here. **Full spec: `docs/admin-centre-spec.md`.** Preview: `scratchpad/admin-centre-preview.html`.
+### 🏗️ Build mode = **LIVE.** Admin is internal (not client-facing) → no preview gate. I build → push live → **you beta-test in the live system** → verify → next piece.
 
-### 🔲 Left — build list
-| # | Item | Why |
-|---|------|-----|
-| 🛑 1 | **#270 Signup trigger** → alert us + assign a pooled pre-warmed inbox | can't onboard a trial without it (SOP model) |
-| 🛑 2 | **#271 Payment trigger** → buy the client's branded inbox + schedule the ~day-29 switch | converts a trial into a real, isolated sender |
-| 3 | **#272 Admin Centre rebuild** — triggers surfaced in admin + email · Xero/banking/HMRC finance view · **per-staff (AE) logins** | our operational + financial backbone |
+### 🔨 What I build (🤖 me — ship each live, one at a time)
+| # | Item | What ships |
+|---|------|-----------|
+| 1 | **#272 Cockpit** | Pulse (6 tiles) + Action Queue + unit economics; consolidate 19 pages; cut 8 dev/vanity pages |
+| 🛑 2 | **#270 + #271 Action Queue triggers** | signup→assign pooled inbox · payment→provision branded + schedule day-29 switch · pool-low · at-risk (surfaced in admin + email) |
+| 3 | **#272 Finance** | Xero + Wise cards (hyperlinked) · cost stack · cash/runway · margin-per-client |
+| 4 | **#274 Command Centre** | per-AE + per-partner: book MRR + commission · targets (mo/qtr/yr) tracking · pipeline + 3× coverage · mini-CRM · plays · contracts/docs vault · add-team-member · read-only partner view |
+| 5 | **#275 Nora — The Keeper** | right-rail admin co-pilot, all-round, context-aware per screen |
+| 6 | **#276 Per-staff logins + roles** | each AE their own login; role-scoped (founder vs AE vs SDR) |
 
-**Milestone 3 is done when:** a client signs up → we're alerted → inbox assigned → on payment, branded inbox provisioned + switched — all visible and run from the Admin Centre, with finances tied in.
+### 🧍 What you do (unblocks the live data + verifies)
+| Item | Why |
+|------|-----|
+| Connect **Xero** (OAuth) + **Wise** | Finance cards go live (P&L, VAT, cash, runway) |
+| Give **Smartlead** pool access/API (ties to #211) | Pool-stock tile + provision/switch triggers work |
+| Set **PDL_API_KEY** (#243) + enable **Resend bounce events** (#267) | Engine section shows green |
+| **Set targets** per AE / partner | the numbers Nora + Command Centre track against |
+| Provide **contract/doc templates** (AE agreement · partner agreement) | wire into the per-person vault |
+| **Beta-test each shipped piece in the live admin → verify → flip the dot** | build-live rhythm |
+
+### 🤝 What we do together (decide before I build)
+| Item | Decision needed |
+|------|-----------------|
+| **Action Queue rules** | exact thresholds — pool-low count · at-risk definition · day-29 timing |
+| **Role matrix** | what a founder vs AE vs SDR can see/do |
+| **Nora's scope + tone** | what she opens with per screen (all-round agreed; refine starters) |
+| **Sequencing** | ship order (list above) — you test each live before the next |
+
+**Milestone 3 is done when:** a client signs up → we're alerted → inbox assigned → on payment, branded inbox provisioned + switched — all run from the Admin Centre, with finance (Xero/Wise) tied in, the Command Centre watching every AE + partner against target, and Nora on the right rail.
 
 ---
 

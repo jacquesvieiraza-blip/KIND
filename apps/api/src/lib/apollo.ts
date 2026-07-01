@@ -1,5 +1,5 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
-import { pdlSearchPeople } from './pdl-search'
+import { pdlSearchPeople, pdlSearchDiagnostic } from './pdl-search'
 
 // Apollo's PUBLIC REST API is under /api/v1. The bare /v1 host is Apollo's internal
 // web API (session/OAuth) — calling it with an X-Api-Key is accepted but runs
@@ -194,7 +194,18 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
     sentBody: body,
   }
 
-  if (!apiKey) return { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
+  // #243: when Apollo is unusable (no key / error), fall back to a PDL count so the
+  // ICP preview works Apollo-free once PDL_API_KEY is set. Returns null if PDL isn't
+  // configured or also fails → caller keeps Apollo's original 0/error.
+  const pdlFallback = async (reason: string): Promise<PreviewCountResult | null> => {
+    if (!process.env.PDL_API_KEY) return null
+    const d = await pdlSearchDiagnostic(icp)
+    return d.ok ? { count: d.count, error: null, debug: { ...baseDebug, rawCountField: `pdl:${reason}` } } : null
+  }
+
+  if (!apiKey) {
+    return (await pdlFallback('no-apollo-key')) ?? { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
+  }
 
   try {
     const res = await fetch(APOLLO_PEOPLE_SEARCH, {
@@ -204,7 +215,7 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
     })
     if (!res.ok) {
       const text = await res.text().catch(() => '')
-      return { count: 0, error: `Apollo ${res.status}: ${text.slice(0, 240)}`, debug: { ...baseDebug, httpStatus: res.status } }
+      return (await pdlFallback(`apollo-${res.status}`)) ?? { count: 0, error: `Apollo ${res.status}: ${text.slice(0, 240)}`, debug: { ...baseDebug, httpStatus: res.status } }
     }
     // Apollo returns the match count as a top-level `total_entries` on the current
     // API; older/other shapes nest it under `pagination.total_entries`. Read both,
@@ -219,7 +230,7 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
     const rawCountField = fromPagination != null ? 'pagination.total_entries' : fromTop != null ? 'total_entries' : 'none-found'
     return { count, error: null, debug: { ...baseDebug, httpStatus: res.status, rawCountField } }
   } catch (e) {
-    return { count: 0, error: e instanceof Error ? e.message : 'preview request failed', debug: baseDebug }
+    return (await pdlFallback('apollo-exception')) ?? { count: 0, error: e instanceof Error ? e.message : 'preview request failed', debug: baseDebug }
   }
 }
 

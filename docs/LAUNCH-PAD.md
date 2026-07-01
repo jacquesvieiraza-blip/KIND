@@ -89,7 +89,8 @@ The product itself works for them — they can find leads, send, get replies, us
 
 | Day | Front | What | Owner |
 |-----|-------|------|-------|
-| **Wed 1 Jul — TODAY** | ② | 6-agent code audit done → **all docs reconciled to verified code** (4 new 🔴 logged: #265/#266/#267/#268). **M2 build starts security-first**: **#266 /team auth · #260 blocklist · #261 ownership checks · #265 Stripe grant**, then per-client cap + **#211 engine**. *One clean PR per item.* | 🤝 |
+| **Wed 1 Jul — TODAY** | ② | Shipped one-by-one: **#263 CI green (🟢)** · **#260 blocklist + #265 Stripe grant (🩷, verify owed)**. Then designed the **#211 client-sending model** — pool of pre-warmed inboxes + branded-domain switch + signup/payment triggers (preview flow; not built yet). | 🤝 |
+| **Thu 2 Jul** | ② | **#211 onboarding triggers + admin/ops (VITAL).** Design where the **signup** + **payment** triggers live — surfaced in the **Admin Centre + email alert**, wired into the business operations/backend (inbox assignment · branded-inbox purchase · ~day-29 switch). The operational backbone of client onboarding; lock the flow model, then build. | 🤝 |
 | **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
 | **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only — `docs/content/linkedin-playbook.md`) | 🤝 |
 | **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b) | 🤝 |

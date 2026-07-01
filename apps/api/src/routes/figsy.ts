@@ -133,6 +133,37 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
   try {
     // Handle both Resend webhook format { type, data: {...} } and flat { from, subject, text }
     const raw = JSON.parse(rawBuf.toString('utf8') || '{}') as Record<string, unknown>
+
+    // #267 — hard bounces + spam complaints: suppress the address so we stop mailing
+    // dead/hostile inboxes (wasted credits + reputation damage). Resend delivers these
+    // as email.bounced / email.complained on this same Svix webhook. The blocklist is
+    // the single suppression source the send path already checks, so adding here stops
+    // all future sends; we also pause any active enrollment for that address now.
+    if (raw.type === 'email.bounced' || raw.type === 'email.complained') {
+      const d = (raw.data && typeof raw.data === 'object') ? raw.data as Record<string, unknown> : {}
+      const toRaw = d.to
+      const to = Array.isArray(toRaw) ? toRaw[0] : toRaw
+      const bounceEmail = (typeof to === 'string' ? to : '').toLowerCase().trim()
+      const bounceType = String((d.bounce as Record<string, unknown> | undefined)?.type ?? d.type ?? '').toLowerCase()
+      const isComplaint = raw.type === 'email.complained'
+      const isTransient = /transient|soft|temporary/.test(bounceType)
+      // Complaints always suppress; bounces suppress unless clearly transient/soft.
+      if (bounceEmail && (isComplaint || !isTransient)) {
+        await db.from('opt_out_blocklist').upsert(
+          { email: bounceEmail, reason: isComplaint ? 'spam_complaint' : 'hard_bounce' },
+          { onConflict: 'email', ignoreDuplicates: false },
+        )
+        const { data: bounced } = await db.from('leads').select('id').eq('email', bounceEmail)
+        const ids = (bounced ?? []).map((l: { id: string }) => l.id)
+        if (ids.length) {
+          await db.from('figsy_enrollments').update({ status: 'opted_out' })
+            .in('lead_id', ids).in('status', ['enrolled', 'in_progress'])
+        }
+        console.log(`[figsy/webhook] ${raw.type} → suppressed ${bounceEmail}${bounceType ? ` (${bounceType})` : ''}`)
+      }
+      res.status(200).json({ received: true }); return
+    }
+
     const payload = (raw.type === 'email.received' && raw.data && typeof raw.data === 'object')
       ? raw.data as Record<string, unknown>
       : raw

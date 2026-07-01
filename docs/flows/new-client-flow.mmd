@@ -1,0 +1,40 @@
+flowchart TD
+    subgraph LEGEND[" Legend "]
+        direction LR
+        L1[Exists today]:::exists
+        L2[New build #211]:::newbuild
+        L3[Our manual action]:::manual
+    end
+
+    A([Client signs up — 14-day free trial]):::exists --> T1{{"TRIGGER ①  new signup → ALERT US"}}:::newbuild
+    T1 --> B["We assign 1 pooled pre-warmed inbox<br/>(per seat: SMB = 1 · company = 1 per rep)"]:::manual
+    B --> C["Client SENDS day 1 — instant results"]:::newbuild
+    C --> D["Trial Day 0–14: build ICP · find/score/enrich leads ·<br/>draft sequences · send on the pooled inbox"]:::exists
+    D --> E{"Convert?  (pays at day 14)"}:::exists
+
+    E -->|"No"| F["Release pooled inbox back to pool ·<br/>off-board · NO branded inbox ever bought (no wasted cost)"]:::newbuild
+
+    E -->|"Yes"| T2{{"TRIGGER ②  client PAYS → ALERT US"}}:::newbuild
+    T2 --> G["We buy their OWN branded inbox (per seat)<br/>→ warm-up ~14 days"]:::manual
+    G --> H["Client keeps sending on the pooled inbox — NO gap"]:::newbuild
+    H --> I["~Day 29: SWITCH client to their branded inbox"]:::newbuild
+    I --> J["Release pooled inbox back to pool"]:::newbuild
+    J --> K([Steady state: own branded, isolated sending · scale by seats]):::exists
+
+    subgraph POOL["⚙️ POOL OPERATIONS — always running"]
+        direction TB
+        P1["Keep ~10 generic pre-warmed inboxes ready<br/>(Smartlead Option 1 — instant, no warm lag)"]:::manual
+        P2["Monitor stock · reorder BEFORE low<br/>(size to concurrent trials + waiting-to-switch)"]:::manual
+        P3["Released inboxes return to the pool"]:::newbuild
+        P1 --> P2 --> P3 --> P1
+    end
+
+    B -.->|"draws from"| POOL
+    F -.->|"returns to"| POOL
+    J -.->|"returns to"| POOL
+
+    classDef exists fill:#d1fae5,stroke:#059669,color:#064e3b
+    classDef newbuild fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
+    classDef manual fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    style LEGEND fill:#f8fafc,stroke:#94a3b8
+    style POOL fill:#fffbeb,stroke:#d97706

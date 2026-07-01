@@ -9,6 +9,8 @@
 
 *How email actually gets sent — for us (M1) and for a client (M2), plus the operations behind it (M3). Cost model locked: pre-warmed pool inbox ~$45 · client branded = $13/yr domain + $4.50/mo per mailbox.*
 
+> **Visuals:** [`flows/new-client-flow.html`](./flows/new-client-flow.html) · [`flows/our-outreach-flow.html`](./flows/our-outreach-flow.html) (open in a browser). **Finance / company side:** [`run-costs-and-cashflow.md`](./run-costs-and-cashflow.md) (model + company ops §16); the M3 Admin Centre carries the Xero/banking/HMRC view.
+
 ### A · Our own outreach — Milestone 1 (Instantly)
 - **Tool:** Instantly · **one** domain (`gettingkind.com`) · founder-run · **nothing to build.**
 - Gated only on the inbox **warmth clock** (~1–2 weeks).

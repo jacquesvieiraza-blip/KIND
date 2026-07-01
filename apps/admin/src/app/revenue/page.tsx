@@ -208,37 +208,8 @@ export default async function RevenuePage() {
       {/* FX disclosure — USD figures are converted at this rate */}
       <p className="text-xs text-gray-400 -mt-2">FX: {fxLabel(stats.fx)} · as of {stats.fx.asOf}</p>
 
-      {/* Current month progress */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <Target className="w-5 h-5 text-[#7C3AED]" />
-          <h2 className="font-semibold text-gray-900">KPI Progress — {current.month}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-gray-500">MRR</span>
-              <span className="font-semibold text-gray-900">${stats.mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div className={`h-2 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-emerald-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
-                   style={{ width: `${mrrPct}%` }} />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{mrrPct.toFixed(1)}% of target</p>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-gray-500">Clients</span>
-              <span className="font-semibold text-gray-900">{stats.totalClients} / {current.clientTarget}</span>
-            </div>
-            <div className="w-full bg-gray-100 rounded-full h-2">
-              <div className={`h-2 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-emerald-500' : ragStatus(clientPct) === 'amber' ? 'bg-amber-500' : 'bg-indigo-400'}`}
-                   style={{ width: `${clientPct}%` }} />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{clientPct.toFixed(1)}% of target</p>
-          </div>
-        </div>
-      </div>
+      {/* Targets moved → Sales Channel (target-based sales). See /command → Targets. */}
+      <p className="text-xs text-gray-400 -mt-2">🎯 KPI progress, monthly revenue targets &amp; core KPIs now live in <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel → Targets</a> (target‑based sales).</p>
 
       {/* Scenario Tracker */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
@@ -279,59 +250,6 @@ export default async function RevenuePage() {
         </div>
       </div>
 
-      {/* Monthly revenue targets table */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="font-semibold text-gray-900">Monthly Revenue Targets</h2>
-          <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Reference · targets</span>
-        </div>
-        <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200">
-                {['Month', 'MRR Target', 'Client Target', 'Current vs Target', ''].map(h => (
-                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {MONTHLY_TARGETS.map(t => {
-                const isCurrentMonth = t.month === current.month
-                const pct = Math.min((stats.mrrUsd / t.mrrTarget) * 100, 100)
-                const isFuture = new Date(t.month).getTime() > Date.now() + 86400000 * 30
-                return (
-                  <tr key={t.month} className={isCurrentMonth ? 'bg-purple-50' : 'hover:bg-purple-50/30'}>
-                    <td className="px-3 py-3">
-                      <span className="font-medium text-gray-900">{t.month}</span>
-                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED]/20 text-[#4d94ff] px-1.5 py-0.5 rounded font-medium">Now</span>}
-                    </td>
-                    <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
-                    <td className="px-3 py-3">
-                      {isFuture ? (
-                        <span className="text-xs text-gray-400">upcoming</span>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 bg-gray-100 rounded-full h-1.5">
-                            <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-emerald-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
-                                 style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="text-xs text-gray-500">{pct.toFixed(0)}%</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      {!isFuture && <RagIcon pct={pct} />}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       {/* ARPU Breakdown */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-1">
@@ -357,21 +275,6 @@ export default async function RevenuePage() {
             </p>
           </div>
           <p className="text-xs text-gray-400 text-right max-w-xs">Calculated from {stats.activeCount} active subscriptions in Supabase</p>
-        </div>
-      </div>
-
-      {/* Core KPI Targets */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">Core KPI Targets</h2>
-        <p className="text-xs text-gray-400 mb-4">Track these weekly — they&apos;re the leading indicators of growth</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {KEY_KPIS.map(k => (
-            <div key={k.label} className="bg-white border border-purple-100 rounded-lg px-4 py-3">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">{k.unit}</p>
-              <p className="text-lg font-bold text-gray-900 mt-0.5">{k.target}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{k.label}</p>
-            </div>
-          ))}
         </div>
       </div>
 

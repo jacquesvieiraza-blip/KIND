@@ -1,7 +1,7 @@
 # 🗺️ K.I.N.D — DOC MAP (every doc · what it's for · is it fresh)
 
 > **What this is:** the index of *every* doc in the repo — what it holds, which of the 4 core docs it hangs off, and whether it's current. **You live off the 4 core docs; this is how the supporting docs stay honest so they never rot underneath you.**
-> **Last full audit:** **30 Jun 2026** — full code + docs audit (2 parallel agents; LAUNCH-PAD rewritten to two-front cockpit; #211 engine reality + #55a RLS gap reconciled; PARTNER-BRIEF/DEPLOYMENT_GUIDE flagged ⚠️). *(Prior: 25 Jun — 5-agent doc sweep · 24 Jun — code/PR line-item.)* **Re-run the sweep at every weekly close (RULEBOOK §10).**
+> **Last full audit:** **1 Jul 2026** — admin-centre code↔spec reconciliation (all 31 admin `page.tsx` routes verified against `admin-centre-spec.md`; Command Centre / Nora / per-staff logins confirmed NOT built = correctly 🔴) + full docs sweep (115 doc files diffed against this map; 2 untracked added — `DATA-RESIDENCY-PLAYBOOK`, `portal-v2-layout`; hiring bucket count corrected to 7; previews bucket verified = 25). *(Prior: 30 Jun — 2-agent code+docs; 25 Jun — 5-agent doc sweep; 24 Jun — code/PR line-item.)* **Re-run the sweep at every weekly close (RULEBOOK §10).**
 >
 > **🧹 Hygiene sweep 26 Jun:** verified **no live doc duplicates the canonical-4's ownership** (status/execution/strategy/future) — the 23-Jun archive run already cleared the dead trackers. Residue handled: `apollo-reseller-call-prep` (was 🗄️ but still in `drafts/`) → **archived**. **Recommend-archive (founder call, low priority):** `AUDIT-24JUN-RECONCILIATION.md` (dated snapshot, superseded by `SYSTEM-HEALTH-AUDIT.md`). **Still-open honesty flag (not a tracker dup):** pitch-deck Alta numbers in `KIND_DECK.html`/`kind-pitch-deck.html` (contradiction #3 below). Also rotated: 110 old session-log entries (≤24 Jun) `KIND-MASTER.md` → `archive/KIND-MASTER-ARCHIVE.md` (204KB→96KB).
 >
@@ -72,6 +72,7 @@
 | [`client-flow-sop.md`](./client-flow-sop.md) | **THE SOP** — the locked **Sending & Onboarding Model** (M1 our-outreach · M2 pool→branded client sending · M3 ops/triggers) + the 7 onboarding/billing paths | ✅ *(1 Jul)* | sending/onboarding model or a client path changes |
 | [`admin-centre-spec.md`](./admin-centre-spec.md) | **Admin Centre spec (M3)** — Cockpit (Pulse + Action Queue) + sections · **Command Centre (per-AE + per-partner: targets · 3× pipeline · mini-CRM · contracts)** · **Nora** admin co-pilot · build-LIVE (#272/#274/#275/#276) | ✅ *(1 Jul)* | admin structure / Command Centre / Nora scope changes |
 | [`drafts/ONBOARDING_V2.md`](./drafts/ONBOARDING_V2.md) | 6-step flow + 3 lifecycle emails (Day 0/3/7) — item 30/174–176 | ✅ (draft) | when onboarding ships |
+| [`portal-v2-layout.md`](./portal-v2-layout.md) | Portal V2 layout — Month-2 upgrade (ClickUp Super-Agents-inspired UX); all post-launch (week 5+) | ✅ *(Last-checked 25 Jun)* | portal V2 layout direction change |
 | [`demo-walkthrough-script.html`](./demo-walkthrough-script.html) | verbatim 12-scene demo | ✅ | demo/positioning change |
 | UI mockups/preview HTML → folders: [`previews/`](./previews/) (25 screens) · [`setup-dashboard-preview.html`](./setup-dashboard-preview.html) · [`portal-v2-preview.html`](./portal-v2-preview.html) · [`CLIENT_FLOW.html`](./CLIENT_FLOW.html)/[`_PER_REP`](./CLIENT_FLOW_PER_REP.html) · [`MCP-EXPLAINED.html`](./MCP-EXPLAINED.html) · [`pwa-mockup.html`](./pwa-mockup.html) · [`updates-live/`](./updates-live/) | ✅ ref | design lock change |
 | [`content/blog-articles.md`](./content/blog-articles.md) · [`youtube-plan`](./content/youtube-plan.md) · [`website-video-plan`](./content/website-video-plan.md) | publish-ready posts + 10-video plan (faceless voice) + the website video plan | ✅ | content cadence |
@@ -86,6 +87,7 @@
 | [`SMOKE_TEST.md`](./SMOKE_TEST.md) | step-level T1–T10 | ✅ | test flow change |
 | [`LIVE-FEATURE-WALK.md`](./LIVE-FEATURE-WALK.md) | **the verification checklist — every live feature/element to walk 🩷→🟢** *(also covers the company-engine walk — replaces the archived `COMPANY-ENGINE-TEST`)* | ✅ | as items are walked / new features ship |
 | [`render-cloudflare-failover.md`](./render-cloudflare-failover.md) · [`portal-admin-failover.md`](./portal-admin-failover.md) | failover setup (Render standby + Cloudflare LB) | ✅ | failover infra change |
+| [`DATA-RESIDENCY-PLAYBOOK.md`](./DATA-RESIDENCY-PLAYBOOK.md) | same-day US/UK go-live runbook — framework built now, regional DB provisioned the day the first US/UK client signs (item 258) | ✅ *(Last-checked 30 Jun)* | residency framework / regional DB change |
 | [`DELIVERABILITY-D9-CHECKLIST.md`](./DELIVERABILITY-D9-CHECKLIST.md) | D9 mail-tester readiness (FIGSY_COLD_FROM, DKIM) | ✅ | deliverability change |
 | [`AUDIT-24JUN-RECONCILIATION.md`](./AUDIT-24JUN-RECONCILIATION.md) | the 24-Jun doc↔code reconciliation snapshot (findings + remediation) — **historical record** | ✅ ref *(snapshot 24 Jun)* | n/a — dated snapshot |
 
@@ -98,7 +100,7 @@
 | [`legal/seis-advance-assurance-draft.md`](./legal/seis-advance-assurance-draft.md) | registered office · SEIS conditions · trademark table | ✅ | funding step |
 | [`legal/partner-agreement.md`](./legal/partner-agreement.md) | partner agreement — 20% acquisition + 5% retention (item 197), USD, no clawback | ✅ | partner comp/terms change |
 | [`legal/key-rotation-runbook.md`](./legal/key-rotation-runbook.md) · [`legal/restore-runbook.md`](./legal/restore-runbook.md) | key-rotation + DB-restore runbooks | ✅ | infra/security procedure change |
-| [`hiring/`](./hiring/) (4 docs) | [AE comp plan](./hiring/KIND-AE-COMP-PLAN.md) (OTE $112.5k) · [partner comp](./hiring/KIND-PARTNER-COMP-PLAN.md) · [Claude-Code brief](./hiring/KIND-CLAUDE-CODE-BRIEF.md) (203) · [SELLER-ENGINE-MAP](./hiring/SELLER-ENGINE-MAP.md) (+ .html calculators) | ✅ | comp/seller-engine change |
+| [`hiring/`](./hiring/) (7 files = 4 md + 3 .html) | [AE comp plan](./hiring/KIND-AE-COMP-PLAN.md) (OTE $112.5k) · [partner comp](./hiring/KIND-PARTNER-COMP-PLAN.md) · [Claude-Code brief](./hiring/KIND-CLAUDE-CODE-BRIEF.md) (203) · [SELLER-ENGINE-MAP](./hiring/SELLER-ENGINE-MAP.md) + 3 calculators ([AE-commission](./hiring/KIND-AE-commission-calculator.html) · [partner](./hiring/KIND-partner-calculator.html) · [team-pnl](./hiring/KIND-team-pnl-calculator.html)) | ✅ | comp/seller-engine change |
 | [`SALARY-BREAKEVEN-PLAN.md`](./SALARY-BREAKEVEN-PLAN.md) | (see Sales & money) | 🛠️ | — |
 
 ### 📁 Root-level files (were untracked — now indexed)

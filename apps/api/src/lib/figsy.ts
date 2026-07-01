@@ -56,6 +56,28 @@ async function coldCapReached(): Promise<boolean> {
   return (count ?? 0) >= cap
 }
 
+// PER-CLIENT daily cap — enforced IN ADDITION to the global cap above (T3).
+// Today all clients share one domain, so the GLOBAL cap protects that domain; this
+// per-client cap adds FAIRNESS (one client can't consume the whole global quota) and
+// becomes each client's own limit once #211 gives them isolated inboxes. Default 50/day,
+// override with FIGSY_PER_CLIENT_DAILY_CAP. Fails OPEN (never blocks a send on a query
+// error — the global cap is the backstop). Counts today's sends for this client via the
+// figsy_sent_emails→leads join (sent_emails has no client_id column).
+async function perClientCapReached(clientId: string | null | undefined): Promise<boolean> {
+  if (!clientId) return false
+  const cap = parseInt(process.env.FIGSY_PER_CLIENT_DAILY_CAP ?? '50', 10)
+  if (!Number.isFinite(cap) || cap <= 0) return false
+  try {
+    const start = new Date()
+    start.setUTCHours(0, 0, 0, 0)
+    const { count } = await db.from('figsy_sent_emails')
+      .select('id, leads!inner(client_id)', { count: 'exact', head: true })
+      .eq('leads.client_id', clientId)
+      .gte('sent_at', start.toISOString())
+    return (count ?? 0) >= cap
+  } catch { return false }
+}
+
 // Strip markdown code fences that Claude sometimes wraps JSON in
 function stripJson(text: string): string {
   return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
@@ -393,6 +415,13 @@ export async function sendSequenceEmail(
   // record inserted → enrollment stays due and retries on the next cron run).
   if (await coldCapReached()) {
     console.warn(`[figsy] sendSequenceEmail: daily cold-send cap reached — step ${step} to ${lead.email} deferred to next run.`)
+    return
+  }
+
+  // PER-CLIENT cap (T3) — defer if THIS client has hit their own daily limit, even if
+  // the global cap has room (fairness). Same defer semantics: enrollment stays due.
+  if (await perClientCapReached(lead.client_id)) {
+    console.warn(`[figsy] sendSequenceEmail: per-client daily cap reached for client ${lead.client_id} — step ${step} to ${lead.email} deferred.`)
     return
   }
 

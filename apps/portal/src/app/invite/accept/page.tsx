@@ -33,7 +33,10 @@ function AcceptInviteInner() {
         }
       } catch { /* fall through to team accept */ }
 
-      const res = await fetch(`${apiUrl}/team/accept?token=${token}&user_id=${user.id}`)
+      // #266: accepting user is taken from the auth token server-side, not a spoofable user_id param
+      const res = await fetch(`${apiUrl}/team/accept?token=${token}`, {
+        headers: { Authorization: `Bearer ${data.session!.access_token}` },
+      })
       if (res.ok) {
         setStatus('done')
         setTimeout(() => router.push('/dashboard'), 1500)

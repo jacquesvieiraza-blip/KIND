@@ -225,26 +225,35 @@ function TeamSection({ clientId, userRole }: { clientId: string; userRole: strin
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+  const supabase = createClient()
 
-  useEffect(() => {
-    fetch(`${apiUrl}/team/members?client_id=${clientId}`)
+  // #266: /team is now authenticated — send the session token; the API derives the
+  // workspace from it (no more client_id passed in the URL/body).
+  async function authHeader(): Promise<Record<string, string>> {
+    const { data } = await supabase.auth.getSession()
+    return data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {}
+  }
+  async function loadMembers() {
+    const h = await authHeader()
+    fetch(`${apiUrl}/team/members`, { headers: h })
       .then(r => r.ok ? r.json() : []).then(d => setMembers(Array.isArray(d) ? d : [])).catch(() => setMembers([]))
-  }, [clientId])
+  }
+
+  useEffect(() => { loadMembers() }, [clientId])
 
   async function invite(e: React.FormEvent) {
     e.preventDefault()
     setSending(true)
+    const h = await authHeader()
     await fetch(`${apiUrl}/team/invite`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ client_id: clientId, email, role }),
+      headers: { 'Content-Type': 'application/json', ...h },
+      body: JSON.stringify({ email, role }),
     })
     setSending(false)
     setSent(true)
     setEmail('')
-    // Refresh list
-    fetch(`${apiUrl}/team/members?client_id=${clientId}`)
-      .then(r => r.ok ? r.json() : []).then(d => setMembers(Array.isArray(d) ? d : [])).catch(() => setMembers([]))
+    loadMembers()
     setTimeout(() => setSent(false), 3000)
   }
 
@@ -381,9 +390,9 @@ export default function SettingsPage() {
         setDailyBriefEnabled((c as { daily_brief_enabled?: boolean | null }).daily_brief_enabled ?? true)
         if (c.id) {
           setClientId(c.id)
-          // Fetch the user's role in this team
+          // Fetch the user's role in this team (#266: authenticated; API derives the workspace)
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-          fetch(`${apiUrl}/team/members?client_id=${c.id}`)
+          fetch(`${apiUrl}/team/members`, { headers: { Authorization: `Bearer ${session.access_token}` } })
             .then(r => r.ok ? r.json() : Promise.resolve([]))
             .then((members: { email: string; role: string }[]) => {
               const me = members.find(m => m.email === session.user.email)

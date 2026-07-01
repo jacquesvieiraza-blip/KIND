@@ -101,8 +101,8 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 
 | Day | Front | What | Owner |
 |-----|-------|------|-------|
-| **Wed 1 Jul — TODAY** | ② | Shipped one-by-one: **#263 CI green (🟢)** · **#260 blocklist + #265 Stripe grant (🩷, verify owed)**. Then designed the **#211 client-sending model** — pool of pre-warmed inboxes + branded-domain switch + signup/payment triggers (preview flow; not built yet). | 🤝 |
-| **Thu 2 Jul** | ③ | **Milestone 3 kickoff — Admin Centre rebuild (VITAL).** Flow now **LOCKED** (in SOP). Build the triggers into admin + email (**#270** signup→assign · **#271** payment→provision+switch), tie in finance (Xero/banking/HMRC), design per-staff logins (**#272**). | 🤝 |
+| **Wed 1 Jul — TODAY** | ② | **M2 security+sending sweep — shipped one-by-one:** 🟢 #266 /team auth · 🟢 #261 ownership+RLS · 🟢 #263 CI · 🟢 #262 pause-migration · 🩷 #260 blocklist · 🩷 #265 Stripe grant · 🩷 cap+#267 bounce · 🩷 #243 Apollo-independence. Locked the **#211 client-sending model** (SOP). Lead-Gen→$3 parked to Thu. | 🤝 |
+| **Thu 2 Jul** | ②/③ | **(a) Lead-Gen → single $3 FIGSY** *(parked from today)* — multi-front: API `billing-rules` + portal `billing` + **website `pricing.html`** + docs; **client-facing → preview.** **(b) Milestone 3 kickoff — Admin Centre rebuild:** triggers into admin+email (**#270** signup→assign · **#271** payment→provision+switch), finance (Xero/banking/HMRC), per-staff logins (**#272**). *(#211 engine + $60 walk also queued.)* | 🤝 |
 | **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
 | **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only — `docs/content/linkedin-playbook.md`) | 🤝 |
 | **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b) | 🤝 |

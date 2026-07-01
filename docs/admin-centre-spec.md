@@ -28,6 +28,23 @@ Preview mockup (clickthrough): `scratchpad/admin-centre-preview.html`.
 - **Slice 5 — Engine / Deliverability (#272): SHIPPED 🩷** (1 Jul) — `health/page.tsx` renamed to Engine + a **Deliverability readiness** checklist (the silent-fail keys: RESEND/ADMIN, cron, bounce events #267, PDL #243). *Needs Jacques: enable Resend bounce events + set PDL_API_KEY (flagged in-page).*
 - **Still to build (blocked on founder creds/design):** **triggers #270/#271** (real inbox provision/switch needs Smartlead API access) · **per-staff logins #276** (real multi-user auth — needs a design call; not safe to ship blind to a live admin). Cockpit Action Queue already surfaces these as "soon".
 
+## ⚠️ Course-correction (1 Jul, founder) — adopt the client-portal design system
+The ad-hoc slices above shipped but the admin reads **inconsistent** (layout drift, weak Nora, duplicated metrics). Root cause: the admin **hand-rolls UI** instead of reusing the polished **client portal** (`apps/portal`). Decision:
+- **Adopt the portal's design system into `apps/admin` — copy only; the live client portal is NEVER touched.** (#277)
+  - Theme tokens (violet `#7C3AED` · Inter · gradients · dark) → admin Tailwind + globals
+  - Components: `StatCard` · `Card` · `Button` · `Pill` · `MarkdownLite` · Recharts wrappers
+  - **Slim collapsible sidebar** (portal look — icon rail expands to labels on hover/pin)
+  - **Rebuild Nora on the portal `AgentSidePanel`** (avatar header · bubble thread · chips · live endpoint) — the current bespoke `NoraRail` is the weak version
+- **Single source of truth for metrics** (#282): each metric has ONE detailed home; the Cockpit only *glances* + links.
+  - Cohorts → `/cohorts` only · churn/at-risk → Clients · MRR → Finance.
+
+### 📊 Admin build audit (1 Jul) — the truth going to LAUNCH-PAD + inventory
+- 🩷 **live, not verified:** Cockpit · Sales Channel (partners live, AE/overall sample) · Finance · Nora (bespoke)
+- 🟢 **live + verified:** Sales Demo · Compliance · Terms
+- 🔴 **not built:** #277 design-adoption (+ Nora rebuild) · #282 dedup · #281 Clients rebuild · #278 GTM (Strategy/Results/Winning plays/Content calendar; cut HubSpot) · #279 Engine health graph · #280 Ops (pool mgmt · onboarding) · #270/#271 triggers · #276 logins
+- ⏸ **blocked on founder:** Xero/Wise/Stripe connects · Smartlead (pool + triggers) · PDL key · Resend events · targets · contracts
+- 🔌 **needs reporting endpoint (live data):** AE/Overall analytics · Engine graph · content calendar · winning plays
+
 ---
 
 ## 🎖️ Command Centre (#274) — per-AE + per-partner

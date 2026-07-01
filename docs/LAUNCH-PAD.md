@@ -68,22 +68,21 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 | **Lead finding works (Apollo default)** + enrichment waterfall PDL→Hunter→Clearbit | `apollo.ts:251`, `enrichment.ts:1` |
 | **Company/team engine (#88)** — owner + reps, per-rep live stats, budgets, credit requests | `routes/company.ts` |
 | Lead-Gen double-charge (#166) killed; `plan` column shipped; Paystack legacy | migration `20260616`, `routes/paystack.ts` |
-| ✅ **Shipped 1 Jul** — **#266** `/team` auth (🟢 verified live) · **#263** CI green (🟢) · **#260** blocklist scoped · **#265** Stripe grant atomic | PR #859/#855 *(#260/#265 🩷 verify owed)* |
+| ✅ **Shipped 1 Jul** — **#266** `/team` auth (🟢) · **#261** ownership leaks + RLS (🟢, migration applied) · **#263** CI green (🟢) · **#260** blocklist scoped · **#265** Stripe grant atomic | PRs #859/#861/#855 *(#260/#265 🩷 verify owed)* |
 
 > ⚠️ **The "warm and nothing happens" trap (env, silent no-ops):** if `RESEND_API_KEY` is unset, rows say "sent" but **no mail leaves** (`figsy.ts:414`); if `ADMIN_SECRET_KEY` is unset, **every cron silently skips** → only step 1 ever sends (`cron.ts:8`). Also confirm `ANTHROPIC_API_KEY`, `RESEND_WEBHOOK_SECRET`, `FIGSY_COLD_FROM` (NOT the transactional domain), `FIGSY_WARMUP_START`, `TRACKING_URL`. **Verify these BEFORE any real send.**
 
 ### 🔲 Left — the build list, ranked (Wednesday order: security → money → isolation → data → depth)
 | # | Item | Size | Why it blocks a paying client |
 |---|------|------|-------------------------------|
-| 🛑 1 | **#261 RLS is bypassed (service-role root cause)** + #55a | med | API uses the **service-role key** (`db/src/client.ts:16`) → **all RLS is ignored**; app-level ownership checks are the only guard. Fix = ownership checks on every route + enable RLS as defense-in-depth (4 PII tables have none). |
-| 🛑 2 | 🛑 **#211 sending engine = Smartlead** — per-client isolated + warmed mailboxes | **BIG (multi-day)** | we signed up, but only Phase-1 read-only is built (`smartlead.ts`, zero sending). Real sends share ONE domain + ONE global cap. **Smartlead replaces Apollo's SENDING, not its DATA.** |
-| 3 | **Per-client send cap** + **#267 bounce handling** | small–med | cap is global (one client starves the rest); no bounce webhook → mails dead addresses, burns credits + reputation. |
-| 4 | **#243 Apollo-independence (DATA)** | med | discovery is **Apollo-only** (PDL dormant → crash if Apollo pulled). Fix = set `PDL_API_KEY` + PDL fallback on 3 endpoints. BetterContact (20+ enrichment) = breadth, decided/not-built. |
-| 5 | **#262 schema/prod drift** | small | `20260622_subscription_pause` may **not be applied on prod** (pause fails); 8 tables missing from staging schema. Confirm + apply. |
-| 6 | **Lead-Gen → single $3 FIGSY** · **#212 sequence depth** · **#268 approval-send stub** · **#199 monitoring** · **#264 webhook idempotency** · **#269 per-key rate limits** | med | product simplification + depth + hardening. |
+| 🛑 1 | 🛑 **#211 sending engine = Smartlead** — per-client isolated + warmed mailboxes | **BIG (multi-day)** | we signed up, but only Phase-1 read-only is built (`smartlead.ts`, zero sending). Real sends share ONE domain + ONE global cap. **Smartlead replaces Apollo's SENDING, not its DATA.** |
+| 2 | **Per-client send cap** + **#267 bounce handling** | small–med | cap is global (one client starves the rest); no bounce webhook → mails dead addresses, burns credits + reputation. |
+| 3 | **#243 Apollo-independence (DATA)** | med | discovery is **Apollo-only** (PDL dormant → crash if Apollo pulled). Fix = set `PDL_API_KEY` + PDL fallback on 3 endpoints. BetterContact (20+ enrichment) = breadth, decided/not-built. |
+| 4 | **#262 schema/prod drift** | small | `20260622_subscription_pause` may **not be applied on prod** (pause fails); 8 tables missing from staging schema. Confirm + apply. |
+| 5 | **Lead-Gen → single $3 FIGSY** · **#212 sequence depth** · **#268 approval-send stub** · **#199 monitoring** · **#264 webhook idempotency** · **#269 per-key rate limits** | med | product simplification + depth + hardening. |
 | V | **$60 live money walk** (#28b) | ⏱ your action | prove every credit movement with real money. |
 
-**Front ② is done when:** security closed (✅#266 + #261 + ✅#260) · money-grant atomic (✅#265) · each client isolated (#211) · $60 proven live. *(✅ = #266 verified live · #260/#265 shipped, verify owed.)*
+**Front ② is done when:** security closed (✅#266 + ✅#261 + ✅#260) · money-grant atomic (✅#265) · each client isolated (#211) · $60 proven live. *(✅ = #266/#261 verified · #260/#265 shipped, verify owed.)*
 
 ---
 

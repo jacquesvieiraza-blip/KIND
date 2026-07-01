@@ -38,33 +38,36 @@
 ---
 
 ## ② OPERATE A PAID CLIENT + TEAM — *a client pays, then runs the product*
-### 👉 Bottom line: payment, billing, the team engine, and **default** lead-finding are **BUILT**. **NOT built:** the client sending engine (**#211 = Smartlead — read-only today, zero sending**), the max-coverage data layer (**#243 = BetterContact aggregator**), and two security holes. Until #211 + security close, we cannot onboard a paying client.
+### 👉 Bottom line: the client **revenue loop works end-to-end** (log in → build ICP → find leads → FIGSY sends on a 2-hourly scheduler → replies classified → 4 agents → billing → ROI → Command Centre). **NOT ready** because of **security holes that leak/hijack across clients**, **no per-client sending isolation (#211=Smartlead, read-only today)**, a **Stripe purchase-grant race**, and **Apollo-only discovery**. Security is now the #1 gate — above #211.
 
-### ✅ Done (code-verified 1 Jul — file:line checked)
+### ✅ Done — genuinely works (code-verified 1 Jul, file:line)
 | What | Evidence |
 |------|----------|
-| **Client can PAY** — Stripe credit purchase live; charge-on-delivery + enroll-time charge, both **atomic RPCs** | `increment_client_credits` / `increment_figsy_credits`; `lead-delivery.ts`, `figsy.ts:966` |
-| **Lead finding works (default path)** — Apollo primary (3-pass) + PDL discovery + Hunter/Clearbit **enrichment waterfall** + consent gate. *(Apollo-independence is a BUILD — see #243 below.)* | `apollo.ts:251`, `enrichment.ts:1`, `icps.ts` |
-| **Non-Apollo path proven (read-only)** — `/engine/leads/test` runs PDL discovery + Hunter/Clearbit with "Apollo NOT used" | `routes/engine.ts:49` (#244) |
-| **Company/team engine (#88)** — owner + reps, per-rep live stats, Command Centre, budgets, credit requests | `routes/company.ts`, `seed-company.ts` |
-| **Per-client lead data is RLS-isolated** (leads/campaigns/enrollments/replies) | `schema.sql:279`, `002_figsy.sql:118` |
-| Paystack is **legacy/inactive** — Stripe is the only live processor | `routes/paystack.ts` (webhook-only, no new charges) |
+| **Full client UI loop** — leads · ICP · FIGSY campaigns · unibox/replies · all 4 agents (Figsy/Milla/Denise/Vida) · billing · ROI · Command Centre | portal audit — no dead buttons on the money path |
+| **Sequences actually drip** — a 2-hourly cron sends due steps; auto-enroll sends step 1 on enroll | `cron.ts:41`, `figsy.ts:993` *(gated on `RESEND_API_KEY` + `ADMIN_SECRET_KEY` — see ⚠️ env)* |
+| **Replies captured + AI-classified** — inbound webhook, hot→pause+CRM, opt-out→blocklist | `figsy.ts:118` |
+| **Client can PAY + charges are correct** — Stripe checkout live; **deduction** is atomic (charge-on-delivery + enroll-charge via RPCs); no delivery-without-charge leak; pause stops billing (#190) | `lead-delivery.ts:104`, `figsy.ts:969` |
+| **Lead finding works (Apollo default)** + enrichment waterfall PDL→Hunter→Clearbit | `apollo.ts:251`, `enrichment.ts:1` |
+| **Company/team engine (#88)** — owner + reps, per-rep live stats, budgets, credit requests | `routes/company.ts` |
+| Lead-Gen double-charge (#166) killed; `plan` column shipped; Paystack legacy | migration `20260616`, `routes/paystack.ts` |
 
-### 🔲 Left — **the machinery to build** (this is the Wednesday list, ordered)
-| # | Item | 🔨/⏱ | Size | Why it blocks a paying client |
-|---|------|------|------|-------------------------------|
-| 🛑 1 | **#211 sending engine = Smartlead (client-facing)** — per-client isolated + warmed mailboxes | 🔨 | **BIG (multi-day)** | **Smartlead is THE planned client engine — we signed up — but only Phase-1 read-only connectivity is built (`smartlead.ts`: zero sending).** Real sends still go via Resend where **every client shares ONE domain + ONE ~50/day cap.** Phases 2–6 (send seam · modes · reply capture · per-client warmth) = the build. **THE blocker.** *(Smartlead replaces Apollo's SENDING, not its DATA.)* |
-| 2 | **#260 blocklist leak** (CRITICAL security) | 🔨 | **small** | `GET /leads/blocklist` has no `client_id` filter **and** RLS allows any authed read → client A sees every client's opt-outs |
-| 3 | **#261 RLS + #55a + team-members auth** | 🔨 | small–med | no RLS on `companies`/`seats`/`credit_requests`; `GET /team/members` trusts a `client_id` query param with **no ownership check** → a team isn't DB-isolated |
-| 4 | **Per-client send cap** | 🔨 | small | cap is global today; one client can starve the rest |
-| 5 | **Lead-Gen retirement → single FIGSY $3 product** | 🔨 | med | simplify `billing-rules.ts` + rewrite pricing page (decided 29 Jun, not built) |
-| 6 | **#212 context-rich sequences** (4–6 steps, data-personalized) | 🔨 | med | product is still 3-step; depth for real client campaigns |
-| 7 | **#243 Apollo-independence data layer = BetterContact aggregator** — NOT built | 🔨 | med | **This is the "can't rely on Apollo" fix for DATA.** Today Apollo is still primary; we run thin behind it (PDL+Hunter+Clearbit). **BetterContact = 1 integration → 20+ sources** + geo-router (Africa coverage), feeds #212. Productionize the proven non-Apollo path (#244). |
-| 8 | **#263 test CI** — LIVE but **RED** (`deliverability.test.ts:64`) | 🔨 | tiny | regressions can merge undetected until green |
-| 9 | **Harden** — #199 monitoring · #264 webhook idempotency | 🔨 | med | production safety |
-| V | **$60 live money walk** (#28b) | ⏱ | your action | proves billing end-to-end with real money (fund a live account → run leads → watch every credit move) |
+> ⚠️ **The "warm and nothing happens" trap (env, silent no-ops):** if `RESEND_API_KEY` is unset, rows say "sent" but **no mail leaves** (`figsy.ts:414`); if `ADMIN_SECRET_KEY` is unset, **every cron silently skips** → only step 1 ever sends (`cron.ts:8`). Also confirm `ANTHROPIC_API_KEY`, `RESEND_WEBHOOK_SECRET`, `FIGSY_COLD_FROM` (NOT the transactional domain), `FIGSY_WARMUP_START`, `TRACKING_URL`. **Verify these BEFORE any real send.**
 
-**Front ② is done when:** engine isolates each client (#211) + security closed (#260 + #261) + $60 money proven live.
+### 🔲 Left — the build list, ranked (Wednesday order: security → money → isolation → data → depth)
+| # | Item | Size | Why it blocks a paying client |
+|---|------|------|-------------------------------|
+| 🛑 1 | **#266 `/team` router is UNAUTHENTICATED** — `invite`/`members`/`member/:id` | **small** | **Live hole today:** anyone can invite themselves as **admin** to any workspace (account takeover), read any team's emails, delete any member. `routes/team.ts`, no `requireAuth`. |
+| 🛑 2 | **#261 RLS is bypassed (service-role root cause)** + #55a | med | API uses the **service-role key** (`db/src/client.ts:16`) → **all RLS is ignored**; app-level ownership checks are the only guard. Fix = ownership checks on every route + enable RLS as defense-in-depth (4 PII tables have none). |
+| 🛑 3 | **#260 blocklist leak** | **small** | `GET /leads/blocklist` returns **every client's** opt-outs (no `client_id` filter). |
+| 4 | **#265 Stripe purchase-grant race** | small | non-atomic `Promise.all` + no unique constraint → webhook retry can **double-grant credits**. Mirror Paystack's ledger-first+RPC. |
+| 5 | 🛑 **#211 sending engine = Smartlead** — per-client isolated + warmed mailboxes | **BIG (multi-day)** | we signed up, but only Phase-1 read-only is built (`smartlead.ts`, zero sending). Real sends share ONE domain + ONE global cap. **Smartlead replaces Apollo's SENDING, not its DATA.** |
+| 6 | **Per-client send cap** + **#267 bounce handling** | small–med | cap is global (one client starves the rest); no bounce webhook → mails dead addresses, burns credits + reputation. |
+| 7 | **#243 Apollo-independence (DATA)** | med | discovery is **Apollo-only** (PDL dormant → crash if Apollo pulled). Fix = set `PDL_API_KEY` + PDL fallback on 3 endpoints. BetterContact (20+ enrichment) = breadth, decided/not-built. |
+| 8 | **#262 schema/prod drift** | small | `20260622_subscription_pause` may **not be applied on prod** (pause fails); 8 tables missing from staging schema. Confirm + apply. |
+| 9 | **Lead-Gen → single $3 FIGSY** · **#212 sequence depth** · **#268 approval-send stub** · **#263 CI green** · **#199 monitoring** · **#264 webhook idempotency** | med | product simplification + depth + hardening. |
+| V | **$60 live money walk** (#28b) | ⏱ your action | prove every credit movement with real money. |
+
+**Front ② is done when:** security closed (#266 + #261 + #260) · money-grant atomic (#265) · each client isolated (#211) · $60 proven live.
 
 ---
 
@@ -72,7 +75,7 @@
 
 | Day | Front | What | Owner |
 |-----|-------|------|-------|
-| **Wed 1 Jul — TODAY** | ② | Full code+docs audit done → LAUNCH-PAD rebuilt with the full checklist. **M2 build starts**: fast security + CI first (**#263 green · #260 blocklist · #261/team-members auth · per-client cap**), then scope the **#211 engine**. *One clean PR per item.* | 🤝 |
+| **Wed 1 Jul — TODAY** | ② | 6-agent code audit done → **all docs reconciled to verified code** (4 new 🔴 logged: #265/#266/#267/#268). **M2 build starts security-first**: **#266 /team auth · #260 blocklist · #261 ownership checks · #265 Stripe grant**, then per-client cap + **#211 engine**. *One clean PR per item.* | 🤝 |
 | **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
 | **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only — `docs/content/linkedin-playbook.md`) | 🤝 |
 | **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b) | 🤝 |

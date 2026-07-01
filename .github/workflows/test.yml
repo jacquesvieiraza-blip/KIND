@@ -1,0 +1,32 @@
+# Test CI — runs the vitest suite on every push + PR to main (item #263).
+#
+# WHY THIS EXISTS:
+# The audit (30 Jun) found tests existed (apps/api/src/lib/*.test.ts) but NOTHING
+# ran them — CI was daily-audit only, so a broken change could merge and deploy
+# undetected. This runs them automatically. It does NOT gate Railway's auto-deploy
+# (Railway deploys independently); it surfaces failures as a red check on the PR/commit
+# so we catch regressions before relying on them. The suite is pure-library unit
+# tests (billing rules, suppression, comp-engine, deliverability, enrichment,
+# sequence-apply) — no DB or secrets required.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install
+        run: yarn install --frozen-lockfile
+      - name: Build shared packages
+        run: yarn workspace @kind/db build && yarn workspace @kind/shared build
+      - name: Run API tests
+        run: yarn workspace @kind/api test

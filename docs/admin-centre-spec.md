@@ -15,10 +15,13 @@ Preview mockup (clickthrough): `scratchpad/admin-centre-preview.html`.
 2. **NEEDS YOU NOW** — the Action Queue (the whole point): signup→assign · payment→provision · day-29 switch · pool-low · at-risk.
 3. **SECTIONS** — Clients · Finance · GTM/Pipeline · Engine/Deliverability · Compliance · Sales Demo. Plus **Command Centre** (team + partners). Xero + Wise hyperlinked.
 
-## The 31 pages → decision
-- **Keep / consolidate (~19 → 1 cockpit + 6 sections):** root, founder, status → Cockpit; health → Engine; revenue, cohorts → Finance; clients, clients/[id], activation, activity, agents/[agent] → Clients; compliance, terms-library → Compliance; partners, partners/[id], proposals → GTM + Command Centre; cmo, unibox, messages, visitors, analytics, hubspot → GTM; demo → Sales Demo.
+## The 31 pages → decision *(23 keep/consolidate + 8 cut = 31, all accounted)*
+- **Keep / consolidate (23 → 1 cockpit + 6 sections):** root, founder, status → Cockpit; health → Engine; revenue, cohorts → Finance; clients, clients/[id], activation, activity, agents/[agent] → Clients; compliance, terms-library → Compliance; partners, partners/[id], proposals → GTM + Command Centre; cmo, unibox, messages, visitors, analytics, hubspot → GTM; demo → Sales Demo.
 - **Cut from daily (8):** data-moat, scalability (→ quarterly) · roadmap, playbook, docs/[doc] (→ hyperlink) · launch (→ archive) · seed, smoketest (→ dev flag).
-- **Build new (6):** Action Queue · Pool-stock tile · Unit economics/margin · Cash/runway + Xero P&L · **Command Centre** · Deliverability view.
+- **Build new (8):** Action Queue · Pool-stock tile · Unit economics/margin · Cash/runway + Xero P&L · **Command Centre (per-AE + per-partner, #274)** · Deliverability view · **Nora — admin co-pilot (#275)** · **Per-staff logins + roles (#276)**.
+
+## Build progress (live)
+- **Slice 1 — Cockpit (#272): SHIPPED 🩷** (1 Jul) — root `apps/admin/src/app/page.tsx` rebuilt to **Pulse (6 tiles) + Needs-You-Now Action Queue + Unit economics**; nav reshaped to the IA above (`AdminSidebar.tsx`), 8 pages moved to "Dev · not daily"; `/command` placeholder added. Real data: MRR, clients, signups-this-week, at-risk (churn engine). *Needs Jacques (live switches): Wise → cash/runway tile · Smartlead → pool-stock tile + triggers · Xero → real cost stack in unit economics.*
 
 ---
 

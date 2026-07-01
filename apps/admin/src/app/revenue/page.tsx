@@ -146,7 +146,7 @@ export default async function RevenuePage() {
   else if (stats.mrrUsd >= current.mrrTarget * 0.7) scenarioLabel = 'Base'
 
   return (
-    <main className="px-8 py-6 max-w-5xl space-y-6">
+    <main className="px-8 py-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
         <DollarSign className="w-6 h-6 text-gray-400" />
@@ -257,7 +257,7 @@ export default async function RevenuePage() {
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp className="w-5 h-5 text-gray-400" />
-          <h2 className="font-semibold text-gray-900">Scenario Tracker — {current.month}</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Scenario Tracker — {current.month}</h2>
           <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Projection</span>
         </div>
         <p className="text-xs text-gray-400 mb-5">Which path are you on? Current MRR tracked against 3 scenarios.</p>
@@ -295,7 +295,7 @@ export default async function RevenuePage() {
       {/* ARPU Breakdown */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-1">
-          <h2 className="font-semibold text-gray-900">ARPU Breakdown</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">ARPU Breakdown</h2>
           <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Reference · targets</span>
         </div>
         <p className="text-xs text-gray-400 mb-4">Average Revenue Per User across product tiers</p>
@@ -324,7 +324,7 @@ export default async function RevenuePage() {
       <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-5 h-5 text-purple-500" />
-          <h2 className="font-semibold text-gray-900">90-Day Revenue Forecast</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">90-Day Revenue Forecast</h2>
           <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Projection</span>
         </div>
         <p className="text-xs text-gray-400 mb-5">Based on current MRR, growth trajectory, and churn assumptions</p>
@@ -393,7 +393,7 @@ export default async function RevenuePage() {
 
       {/* Credit sales placeholder */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">Credit Sales — This Month</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Credit Sales — This Month</h2>
         <p className="text-xs text-gray-400 mb-4">Apollo credit purchases attributed to client accounts</p>
         <div className="bg-white border border-purple-100 rounded-lg p-5 text-center">
           <p className="text-gray-400 text-sm">Credit transaction data will appear here once the billing webhook is connected.</p>
@@ -401,9 +401,26 @@ export default async function RevenuePage() {
         </div>
       </div>
 
+      {/* Cohorts — retention (folded in) */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Cohorts — retention</h2>
+        <p className="text-xs text-gray-400 mb-4">Retention by signup month · activation → conversion → churn</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-gray-200">{['Cohort', 'Clients', 'Activated', 'Trial → Paid', 'Churned'].map(h => <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-gray-100">
+              {[['Jun 2026', '3', '67%', '33%', '0%'], ['May 2026', '2', '100%', '100%', '0%'], ['Apr 2026', '3', '100%', '67%', '33%']].map(r => (
+                <tr key={r[0]}><td className="px-3 py-3 font-medium text-gray-900">{r[0]}</td><td className="px-3 py-3 text-gray-700">{r[1]}</td><td className="px-3 py-3 text-gray-600">{r[2]}</td><td className="px-3 py-3 text-emerald-600">{r[3]}</td><td className="px-3 py-3 text-gray-500">{r[4]}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 mt-3">Full cohort analytics → <a href="/cohorts" className="text-[#7C3AED] hover:underline">Cohorts</a> (sample rows until wired to the cohort query).</p>
+      </div>
+
       {/* Cost stack — money out */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">Cost stack — money out</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Cost stack — money out</h2>
         <p className="text-xs text-gray-400 mb-4">~$690/mo · estimate until Xero connects</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">

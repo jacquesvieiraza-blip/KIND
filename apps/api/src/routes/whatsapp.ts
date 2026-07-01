@@ -75,11 +75,9 @@ whatsappRouter.post('/webhook', async (req, res) => {
           clientId = client?.id ?? null
         }
 
-        // Fallback: allow clientId to be passed as a query param during webhook registration
-        if (!clientId && req.query.client_id) {
-          clientId = req.query.client_id as string
-        }
-
+        // #261: removed the `?client_id=` query fallback — on a public webhook it let
+        // anyone inject messages into any client's Vida by spoofing the id. The client
+        // is now resolved ONLY from the verified phone_number_id.
         if (!clientId) {
           console.warn('[whatsapp/webhook] Could not resolve clientId for phone_number_id:', phoneNumberId)
           continue

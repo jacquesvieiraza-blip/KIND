@@ -283,3 +283,49 @@ founderRouter.get('/digest', async (_req: Request, res: Response) => {
     res.status(500).json({ success: false, error: 'Failed to get digest' })
   }
 })
+
+/**
+ * POST /founder/nora — NORA (The Keeper), the admin co-pilot (#275).
+ * All-round admin assistant, context-aware to the current admin screen.
+ * Admin-key gated (via the router-level requireAdminKey). Called by the admin
+ * app at /api/proxy/founder/nora.
+ */
+founderRouter.post('/nora', async (req: Request, res: Response) => {
+  try {
+    const { messages, screen } = z.object({
+      messages: z.array(z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().min(1).max(4000),
+      })).min(1).max(20),
+      screen: z.string().max(60).optional(),
+    }).parse(req.body)
+
+    const system = `You are Nora — "The Keeper" — the admin co-pilot inside the K.I.N.D Admin Centre.
+K.I.N.D is a B2B AI outbound platform (finds leads, scores, enriches, sends cold email sequences via FIGSY; clients pay per credit).
+You are all-round: you help the founder run the business — clients, revenue, pipeline, deliverability, partners, team, ops, security.
+Persona: tidy, secure, in control. Warm but concise. You are founder-facing (internal), not a client agent.
+The founder is currently on the "${screen || 'Cockpit'}" screen — bias your answer to that context.
+Rules: be brief and practical (a few sentences or a short list). If you don't have live data, say what you'd check and where. Never invent specific numbers. Suggest the next concrete action.`
+
+    const response = await anthropic.messages.create({
+      model:      'claude-haiku-4-5-20251001',
+      max_tokens: 600,
+      system,
+      messages: messages.map(m => ({ role: m.role, content: m.content })),
+    })
+    const reply = response.content
+      .map(b => (b.type === 'text' ? b.text : ''))
+      .join('\n').trim() || 'Sorry — I could not compose a reply just now.'
+
+    await Promise.resolve(db.from('founder_agent_logs').insert({
+      agent:   'nora',
+      action:  'admin_chat',
+      payload: { screen: screen || null, last_user: messages[messages.length - 1]?.content?.slice(0, 300) },
+    })).catch(() => {})
+
+    res.json({ success: true, data: { reply } })
+  } catch (err) {
+    console.error('[founder/nora]', err)
+    res.status(500).json({ success: false, error: 'Nora is unavailable right now.' })
+  }
+})

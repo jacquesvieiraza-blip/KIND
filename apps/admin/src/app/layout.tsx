@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import { AdminSidebar } from '@/components/AdminSidebar'
 import { AdminHeader } from '@/components/AdminHeader'
+import { NoraRail } from '@/components/NoraRail'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,6 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {children}
             </main>
           </div>
+          <NoraRail />
         </div>
       </body>
     </html>

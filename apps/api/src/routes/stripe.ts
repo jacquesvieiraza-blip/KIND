@@ -242,41 +242,35 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
 
         if (isNaN(credits) || credits <= 0) { res.sendStatus(200); return }
 
-        // Idempotency: Stripe delivers webhooks at-least-once. If we've already
-        // recorded a credit_transaction for this session, do nothing — otherwise
-        // a retried webhook would re-read the already-incremented balance and
-        // double-credit the customer.
-        const { data: already } = await db.from('credit_transactions')
-          .select('id').eq('reference', session.id).maybeSingle()
-        if (already) {
-          console.log(`[Stripe] Duplicate webhook for session ${session.id} — already credited, skipping`)
-          res.sendStatus(200); return
+        // #265 idempotency + atomicity (mirrors the Paystack path in credits.ts):
+        // insert the ledger row FIRST — the unique index on credit_transactions.
+        // reference (migration 20260526) is the true idempotency guard, so a
+        // retried/concurrent webhook hits a unique-violation (23505) and stops
+        // instead of double-granting. Then increment via the atomic RPC (no
+        // read-modify-write race). Previously this SELECT-checked then ran a
+        // Promise.all balance-update + ledger-insert — non-atomic + TOCTOU.
+        const isFigsy = creditType === 'figsy'
+        const { error: ledgerErr } = await db.from('credit_transactions').insert({
+          client_id: clientId,
+          type:      'purchase',
+          amount:    credits,
+          plan:      isFigsy ? 'figsy' : 'kind_ai',
+          reference: session.id,
+          note:      `Purchased ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits via Stripe`,
+        })
+        if (ledgerErr) {
+          if (ledgerErr.code === '23505') { // unique_violation — already credited (retry/race)
+            console.log(`[Stripe] Duplicate webhook for session ${session.id} — already credited, skipping`)
+            res.sendStatus(200); return
+          }
+          throw ledgerErr
         }
 
-        const { data: client } = await db.from('clients')
-          .select('id, credit_balance, figsy_credits_remaining')
-          .eq('id', clientId).single()
-        if (!client) { res.sendStatus(200); return }
-
-        if (creditType === 'figsy') {
-          const newBalance = (client.figsy_credits_remaining ?? 0) + credits
-          await Promise.all([
-            db.from('clients').update({ figsy_credits_remaining: newBalance }).eq('id', clientId),
-            db.from('credit_transactions').insert({
-              client_id: clientId, type: 'purchase', amount: credits, plan: 'figsy',
-              reference: session.id, note: `Purchased ${credits} FIGSY credits via Stripe`,
-            }),
-          ])
-        } else {
-          const newBalance = (client.credit_balance ?? 0) + credits
-          await Promise.all([
-            db.from('clients').update({ credit_balance: newBalance }).eq('id', clientId),
-            db.from('credit_transactions').insert({
-              client_id: clientId, type: 'purchase', amount: credits, plan: 'kind_ai',
-              reference: session.id, note: `Purchased ${credits} lead gen credits via Stripe`,
-            }),
-          ])
-        }
+        const { error: rpcErr } = await db.rpc(
+          isFigsy ? 'increment_figsy_credits' : 'increment_client_credits',
+          { p_client_id: clientId, p_amount: credits },
+        )
+        if (rpcErr) throw rpcErr
 
         // Auto-commission: look up USD price from bundle config
         const bundleList = STRIPE_BUNDLES[creditType as 'lead_gen' | 'figsy'] as readonly { credits: number; price: number }[]

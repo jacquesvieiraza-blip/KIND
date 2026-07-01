@@ -515,10 +515,15 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
 })
 
 // ── OPT-OUT BLOCKLIST LIST ─────────────────────────────────────────────────────
-leadRouter.get('/blocklist', async (_req: AuthRequest, res) => {
+leadRouter.get('/blocklist', async (req: AuthRequest, res) => {
   try {
+    // #260: scope the LIST to the caller's own client. Suppression-at-send stays
+    // global (a lead opted out anywhere is never mailed), but the list endpoint
+    // must not expose other clients' opted-out emails/names.
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data, error } = await db.from('opt_out_blocklist')
-      .select('*').is('opted_back_in_at', null).order('created_at', { ascending: false })
+      .select('*').eq('blocked_by_client_id', clientId).is('opted_back_in_at', null).order('created_at', { ascending: false })
     if (error) throw error
     res.json({ success: true, data })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch blocklist' }) }

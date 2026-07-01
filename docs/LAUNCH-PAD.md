@@ -4,7 +4,22 @@
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
 > Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. This page = what to do now.
-> **Rebuilt 1 Jul off a full code + docs audit (3 parallel passes, every claim checked at file:line).** The two questions this page answers: **① what's left for US to 100% run our own outreach · ② what's left for a CLIENT to 100% pay + use the system.**
+
+---
+
+## 🧠 IN ONE MINUTE (read this, then the detail below is optional)
+
+**We're trying to do two things. Here's exactly where each stands.**
+
+**① Use K.I.N.D to send OUR OWN cold outreach.**
+The product works, the 1,461-person list is ready, the emails are written. **Nothing to build.** The only thing in the way is the inboxes finishing warm-up in Instantly (~1–2 weeks, your side). When warm → import the list → test → send. *(Detail: Front ① below.)*
+
+**② Let a PAYING CLIENT log in and run it themselves.**
+The product itself works for them — they can find leads, send, get replies, use the agents. **But don't put a paying client on yet — two things aren't built:**
+- **Security** — with more than one client, one could see or mess with another's account. Not safe yet. *(Quick to fix.)*
+- **Separate sending** — today every client sends from the *same* email identity, so one client's spam hurts everyone's delivery. This is the big build ("Smartlead"). *(Detail: Front ② below.)*
+
+**So:** ① = just wait for warm-up (no building). ② = build security first (fast), then separate sending (the big one).
 
 ---
 

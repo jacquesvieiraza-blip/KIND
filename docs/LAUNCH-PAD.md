@@ -1,127 +1,59 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 30 June 2026** · post-launch (live since 18 Jun) · currency **USD**
+**As of: 30 June 2026** · Two fronts. Nothing else on this page.
+**Keys:** ✅ done · 🔲 not done · 🛑 the one gate that unblocks the rest · 🧍 you · 🤖 me · 🤝 both
 
-> **Status key:** ✅ done · 🔧 next build · ⏸ gated (waiting on an external clock or trigger) · 🛑 blocker
-> **Owner:** 🧍 you · 🤖 me · 🤝 both
-> **Four-doc contract:** LAUNCH-PAD (this) = daily execution · PRODUCT-INVENTORY = status · KIND-MASTER = strategy/why · V2-TRACKER = future
-
----
-
-## 📌 WHERE AM I — two fronts, nothing else
-
-| Front | One-line state | The single gate |
-|-------|----------------|-----------------|
-| **① Outreach ourselves** (sell K.I.N.D) | Product is walked & working. No build left. | ⏸ **Instantly warmth ~90%** — your external clock |
-| **② Operate a paid client + team** | Screens all walked (Sections A+B 🟢). The machinery isn't ready. | 🛑 **#211 sending engine** (clients still share one domain) |
-
-> Everything below hangs off these two. If a task doesn't move Front ① or Front ②, it's noise.
+> Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. This page = what to do now.
 
 ---
 
-## ① FRONT ONE — OUTREACH OURSELVES
+## ① OUTREACH OURSELVES — *sell K.I.N.D via our own cold email*
 
-**Build is done.** Walkthrough proved the product. This front is now warmth + your setup — **no engineering blocks it.**
+### ✅ Done
+- Product built + fully walked (the thing we're selling works)
+- Outreach list — 1,461 verified emails
+- Deliverability set — gettingkind.com SPF/DKIM/DMARC · cold-FROM · GA4
+- Stripe credit purchase verified live
 
-### ⏸ Gated on Instantly warmth (you confirm ~90% inbox health)
+### 🔲 Left — all 🧍 you, all gated on one thing
+- 🛑 **Confirm Instantly inbox warmth ~90%** ← nothing sends until this
+- Upgrade Instantly plan → import the 1,461 list
+- Load the 4-step sequence (`docs/content/our-outreach-us-uk.md`)
+- mail-tester 10/10 → test-send 10–20 → **first outreach fired**
 
-| Step | Owner |
-|------|-------|
-| Confirm Instantly inbox health ~90% (#198) | 🧍 you |
-| Upgrade Instantly plan (250 → enough for 1,461) | 🧍 you |
-| Import 1,461 contacts (`kind_instantly_import.csv`) | 🧍 you |
-| Load the 4-step sequence (`docs/content/our-outreach-us-uk.md`) | 🧍 you |
-| mail-tester 10/10 (#101) | 🧍 you |
-| Test-send 10–20 → **first outreach fired (#127)** | 🤝 both |
-
-**✅ Already done:** 1,461 verified list · gettingkind.com SPF/DKIM/DMARC · `FIGSY_COLD_FROM` set · GA4 live · Stripe credit purchase verified.
-
-**Front ① done when:** Instantly warm + first real send out.
+**Front ① is done when:** Instantly warm + first send out. *(No build needed — it's your warmth clock + import.)*
 
 ---
 
-## ② FRONT TWO — OPERATE A PAID CLIENT + TEAM
+## ② OPERATE A PAID CLIENT + TEAM — *run the product for a paying client*
 
-The UI is fully walked. What's left is the real machinery, **in priority order**:
+### ✅ Done
+- Every portal screen walked — Section A (17 🟢) + Section B company engine (7 🟢: Command Centre, provisioning, rep invite, drill-down, edit/deactivate, manager role, per-rep routing)
+- Demo company provisioning fixed (owner + 3 reps seed correctly)
+- Demo numbers made coherent — 🟡 *pending your eyeball on a fresh demo*
+- Billing deduction verified in **code** (atomic — lead delivery + FIGSY enrollment)
 
-### 🛑 Gate 1 — THE SENDING ENGINE (#211) · the #1 blocker
+### 🔲 Left — the machinery (none of this is built)
+- 🛑 **#211 sending engine** — per-client isolated + warmed sending. Today all clients share ONE domain. *This is the blocker to onboarding any paying client.*
+- **$60 live billing proof** (#28b) — fund a real account, run leads, watch money move
+- **Security** — #260 blocklist leak · #261 + #55a missing RLS (a team isn't DB-isolated)
+- **Lead-Gen retirement** → single FIGSY $3 product · per-client send cap · sequences depth (#212) · data router (#243)
+- **Harden** — monitoring (#199) · test CI (#263) · #111 per-rep calendar (live booking)
 
-| Reality (audit 30 Jun) | Owner |
-|------------------------|-------|
-| Today **every client sends from ONE shared Resend domain** (`figsy.ts` → Resend, single `FIGSY_COLD_FROM`). No per-client isolation, no warmed dedicated domains, no mailbox rotation. | — |
-| Smartlead is **Phase 1 only** (read-only API check); Phases 2–6 (per-client isolated + warmed sending) **not built**. | 🤖 |
-| **Why it blocks paid clients:** one client's spam complaints poison everyone else's deliverability. Cannot safely onboard a paying client until this is isolated. | 🛑 |
-
-### 🛑 Gate 2 — PROVE MONEY FLOW ($60 live walk, #28b)
-
-| Step | Owner |
-|------|-------|
-| Code is verified to deduct (lead `increment_client_credits`, FIGSY `increment_figsy_credits` — atomic). **Never walked with real money.** | ✅ code |
-| **Add $60 to a LIVE account → run real leads → confirm EVERY credit movement:** pool fund (Stripe) · rep allocate (debits pool) · request approve (pool→rep) · lead deduct 1-per · **deactivate-return** · usage counters reconcile. | 🤝 both |
-| One run clears all billing-correctness pinks at once (#166–171, #58, #238, #190) + #28/#8/#170 + #111 live booking. **Scheduled — critical, not today.** | 🤝 both |
-
-### 🔧 Gate 3 — Wed 1 Jul M2 BUILD DAY (nothing starts until you say go)
-
-| Build | Owner |
-|-------|-------|
-| **Lead Gen retirement** → single FIGSY product: retire `lead_gen` plan + pool, simplify `billing-rules.ts` (still dual today), fix pool top-up `creditType` (#55c), rewrite pricing page | 🤖 |
-| **#55a Company-Engine RLS** — DB-enforce isolation on `leads` + `figsy_campaigns/enrollments/replies/sent_emails` (today API-only → a team isn't DB-isolated) | 🤖 |
-| **#108b** — deactivating a rep must **return unused credits to the pool** (today one-way out) | 🤖 |
-| Per-client send cap (T3, 50/day) · FIGSY sequences depth (#212) · multi-source data router (#243) | 🤝 |
-| Harden (T5): monitoring/alerting (#199 — none today) · cron run-visibility · Smoke Test 2 (#100) · remove dead Paystack code (#237 — already legacy, not in checkout) | 🤝 |
-
-### ⏸ Gated on first live campaign / first charge
-
-| Item | Owner |
-|------|-------|
-| Walkthrough Section C — 16 behavioural items (open-rate · reply-triggers · charge fires) | 🤝 |
-| Walkthrough Section D — 14 self-certify items · Xero connect (#196) at first paying client | 🧍 |
-
-**Front ② done when:** engine isolates each client + money flow proven live + Sections C/D green.
+**Front ② is done when:** engine isolates each client + money proven live + security closed.
 
 ---
 
-## 🗓️ THIS WEEK'S CALENDAR
+## 🗓️ THE DAYS
 
-| When | What | Owner |
-|------|------|-------|
-| **Wed 1 Jul** | M2 build day (Gate 3 above) — say go first | 🤝 |
-| **Thu–Fri 3–4 Jul** | Record product demo + Drop 01 (#129); Claude preps demo company + shooting setup; upload/publish | 🤝 |
-| **Fri 4 Jul** | Generate all 12 weeks of LinkedIn posts (clock starts Mon 7 Jul). Hard rules: **no pricing · no traction numbers · safe claims only**; fallback CTAs for missing pages | 🤝 |
-
-**Content guardrails (founder-locked):** pricing in flux → block · videos record Fri so no video posts before then · hold posts that need unbuilt pages (Milla demo data, CRM claim, partners page, 50-page playbook).
-
----
-
-## 🧍 YOUR STANDING LIST (only you)
-
-| Item | When |
-|------|------|
-| Confirm Instantly warmth ~90% | the Front ① unblocker |
-| Upgrade Instantly + import 1,461 | when warm |
-| **$60 to a live account** for the money walk | the Front ② proof |
-| BetterContact API key (#243 router) | Wednesday |
-| Google OAuth (#126) · Flutterwave (#136) · Legal pack (#102) | own track |
+| Day | Front | What | Owner |
+|-----|-------|------|-------|
+| **Tue 30 Jun — TODAY ✅** | ② | Walked Sections A+B (24 🟢), shipped 7 fixes, full code+docs audit, demo-numbers fix, LAUNCH-PAD rebuilt | ✅ |
+| **Wed 1 Jul** | ② | M2 build day — Lead-Gen retirement · send cap · #55a RLS · sequences #212 · data #243 · harden. *Say go first.* | 🤝 |
+| **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
+| **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (rules: no pricing · no traction claims · safe only — `docs/content/linkedin-playbook.md`) | 🤝 |
+| **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b), closes the billing pinks | 🤝 |
 
 ---
 
-## 🔑 GO-LIVE CONFIG — verify in Railway (these fail SILENTLY if unset)
-
-- **Customer can pay:** `STRIPE_SECRET_KEY` · `STRIPE_WEBHOOK_SECRET` · `STRIPE_PRICE_*` (API + Portal) · `ADMIN_SECRET_KEY`
-- **Lead engine delivers:** `PDL_API_KEY` · `HUNTER_API_KEY` · `ANTHROPIC_API_KEY`
-- **FIGSY sends:** `RESEND_API_KEY` · `ADMIN_SECRET_KEY` (cron no-ops without it) · `FIGSY_COLD_FROM` · `RESEND_WEBHOOK_SECRET` · `TRACKING_URL`
-- ⚠️ **Audit flag:** missing `RESEND_API_KEY` logs emails as "sent" but sends nothing — verify it's set in prod.
-
----
-
-## ✅ Done this session (30 Jun) — for the record (status of record = PRODUCT-INVENTORY)
-
-- Walkthrough **Section A (17 🟢)** + **Section B (7 🟢)** complete; **24 items greened**.
-- Fixes shipped: #828 · #831 · #833 · #835 · #840 (demo reps) · #839 (admin toast).
-- Inventory **rebuilt + re-sectioned** (board now script-true: 🟢89 · 🩷35 · 🟣4 · 🟡21 · 🔴115 · ⏸5 · Σ269).
-- #28b billing **verified in code**; $60 live walk scheduled as the real proof.
-- Logged real gaps: #28b, #55c, #55d, #78b, #80b, #108b, #113b.
-
----
-
-*Open this → two fronts → do the next item in order. Status flips → PRODUCT-INVENTORY only. Why → KIND-MASTER. Future → V2-TRACKER.*
+*Open this → pick a front → do the next 🔲 in order. That's the whole page.*

@@ -38,13 +38,14 @@
 ---
 
 ## ② OPERATE A PAID CLIENT + TEAM — *a client pays, then runs the product*
-### 👉 Bottom line: payment + lead-finding + billing + the team engine are **BUILT**. What's missing is **safe multi-client sending (#211)** + **two security holes** — until those close, we cannot onboard a paying client.
+### 👉 Bottom line: payment, billing, the team engine, and **default** lead-finding are **BUILT**. **NOT built:** the client sending engine (**#211 = Smartlead — read-only today, zero sending**), the max-coverage data layer (**#243 = BetterContact aggregator**), and two security holes. Until #211 + security close, we cannot onboard a paying client.
 
 ### ✅ Done (code-verified 1 Jul — file:line checked)
 | What | Evidence |
 |------|----------|
 | **Client can PAY** — Stripe credit purchase live; charge-on-delivery + enroll-time charge, both **atomic RPCs** | `increment_client_credits` / `increment_figsy_credits`; `lead-delivery.ts`, `figsy.ts:966` |
-| **Lead finding works** — **we DO use Apollo** (3-pass fallback) + PDL supplement + Hunter email waterfall + consent gate | `apollo.ts:251`, `lead-delivery.ts:19`, `icps.ts` |
+| **Lead finding works (default path)** — Apollo primary (3-pass) + PDL discovery + Hunter/Clearbit **enrichment waterfall** + consent gate. *(Apollo-independence is a BUILD — see #243 below.)* | `apollo.ts:251`, `enrichment.ts:1`, `icps.ts` |
+| **Non-Apollo path proven (read-only)** — `/engine/leads/test` runs PDL discovery + Hunter/Clearbit with "Apollo NOT used" | `routes/engine.ts:49` (#244) |
 | **Company/team engine (#88)** — owner + reps, per-rep live stats, Command Centre, budgets, credit requests | `routes/company.ts`, `seed-company.ts` |
 | **Per-client lead data is RLS-isolated** (leads/campaigns/enrollments/replies) | `schema.sql:279`, `002_figsy.sql:118` |
 | Paystack is **legacy/inactive** — Stripe is the only live processor | `routes/paystack.ts` (webhook-only, no new charges) |
@@ -52,13 +53,13 @@
 ### 🔲 Left — **the machinery to build** (this is the Wednesday list, ordered)
 | # | Item | 🔨/⏱ | Size | Why it blocks a paying client |
 |---|------|------|------|-------------------------------|
-| 🛑 1 | **#211 sending engine** — per-client isolated + warmed sending | 🔨 | **BIG (multi-day)** | Today **every client shares ONE domain** (`gettingkind.com`) + **ONE platform-wide ~50/day cap**; Smartlead is read-only. One client exhausts the cap for all + shares reputation. **THE blocker.** |
+| 🛑 1 | **#211 sending engine = Smartlead (client-facing)** — per-client isolated + warmed mailboxes | 🔨 | **BIG (multi-day)** | **Smartlead is THE planned client engine — we signed up — but only Phase-1 read-only connectivity is built (`smartlead.ts`: zero sending).** Real sends still go via Resend where **every client shares ONE domain + ONE ~50/day cap.** Phases 2–6 (send seam · modes · reply capture · per-client warmth) = the build. **THE blocker.** *(Smartlead replaces Apollo's SENDING, not its DATA.)* |
 | 2 | **#260 blocklist leak** (CRITICAL security) | 🔨 | **small** | `GET /leads/blocklist` has no `client_id` filter **and** RLS allows any authed read → client A sees every client's opt-outs |
 | 3 | **#261 RLS + #55a + team-members auth** | 🔨 | small–med | no RLS on `companies`/`seats`/`credit_requests`; `GET /team/members` trusts a `client_id` query param with **no ownership check** → a team isn't DB-isolated |
 | 4 | **Per-client send cap** | 🔨 | small | cap is global today; one client can starve the rest |
 | 5 | **Lead-Gen retirement → single FIGSY $3 product** | 🔨 | med | simplify `billing-rules.ts` + rewrite pricing page (decided 29 Jun, not built) |
 | 6 | **#212 context-rich sequences** (4–6 steps, data-personalized) | 🔨 | med | product is still 3-step; depth for real client campaigns |
-| 7 | **#243 data router** — mostly built (Apollo+PDL+Hunter); harden / add non-Apollo path if ToS forces | 🔨 | med | resilience if we ever drop Apollo |
+| 7 | **#243 Apollo-independence data layer = BetterContact aggregator** — NOT built | 🔨 | med | **This is the "can't rely on Apollo" fix for DATA.** Today Apollo is still primary; we run thin behind it (PDL+Hunter+Clearbit). **BetterContact = 1 integration → 20+ sources** + geo-router (Africa coverage), feeds #212. Productionize the proven non-Apollo path (#244). |
 | 8 | **#263 test CI** — LIVE but **RED** (`deliverability.test.ts:64`) | 🔨 | tiny | regressions can merge undetected until green |
 | 9 | **Harden** — #199 monitoring · #264 webhook idempotency | 🔨 | med | production safety |
 | V | **$60 live money walk** (#28b) | ⏱ | your action | proves billing end-to-end with real money (fund a live account → run leads → watch every credit move) |

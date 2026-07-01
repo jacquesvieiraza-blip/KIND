@@ -37,9 +37,11 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    label: 'Command Centre',
+    label: 'Sales Channel',
     items: [
-      { href: '/command',    label: 'Team & Partners', icon: Gauge, soon: true },
+      { href: '/command',    label: 'Sales Channel', icon: Gauge },
+      { href: '/partners',   label: 'Partners (manage)', icon: Handshake },
+      { href: '/proposals',  label: 'Proposals',   icon: FileText },
     ],
   },
   {
@@ -52,11 +54,8 @@ const SECTIONS: Section[] = [
   {
     label: 'GTM / Pipeline',
     items: [
-      { href: '/partners',   label: 'Partners',    icon: Handshake },
-      { href: '/proposals',  label: 'Proposals',   icon: FileText },
       { href: '/cmo',        label: 'CMO Tools',   icon: Megaphone },
       { href: '/unibox',     label: 'Unibox',      icon: Inbox },
-      { href: '/analytics',  label: 'Analytics',   icon: BarChart2 },
       { href: '/visitors',   label: 'Visitors',    icon: Eye },
       { href: '/hubspot',    label: 'HubSpot',     icon: GitMerge },
     ],
@@ -82,14 +81,10 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    label: 'Dev · not daily',
+    label: 'Dev',
     items: [
-      { href: '/data-moat',  label: 'Data Moat',   icon: Database,     isRef: true },
-      { href: '/smoketest',  label: 'Smoke Test',  icon: FlaskConical, isRef: true },
       { href: '/seed',       label: 'Seed',        icon: Sprout,       isRef: true },
-      { href: '/roadmap',    label: 'Roadmap',     icon: Map,          isRef: true },
-      { href: '/playbook',   label: 'Playbook',    icon: BookOpen,     isRef: true },
-      { href: '/launch',     label: 'Launch',      icon: Rocket,       isRef: true },
+      { href: '/smoketest',  label: 'Smoke Test',  icon: FlaskConical, isRef: true },
     ],
   },
 ]

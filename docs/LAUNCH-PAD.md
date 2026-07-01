@@ -51,7 +51,9 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 | 5 | ⏱ Test-send 10–20 → check placement | Primary (not Promotions), bounce <2%, spam <0.3%, replies land in unibox |
 | 6 | 🚀 ⏱ **Fire first outreach** (#127) → dogfood monitor (#132) | campaign running; reply rate tracked (target ≥5% d3 / ≥10% d7) |
 
-**Front ① is done when:** Instantly warm + first send fired. **No engineering blocks this — only your warmth clock + these 6 steps.**
+> 🛑 **BUILD BLOCKER before prospects land (audit 1 Jul):** the **website still sells the retired $1 Lead-Gen tier** and **FIGSY is mispriced at $1** on its own page + ToS still defines it (**#283**). Prospects from our outreach land on wrong pricing → fix to single **$3 FIGSY** first. Ties to Lead-Gen→$3 (#239). *(This is the one engineering/content item gating ① — not just the warmth clock.)*
+
+**Front ① is done when:** website priced correctly (#283) · Instantly warm · first send fired.
 
 ---
 
@@ -272,7 +274,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | **Wed 1 Jul — TODAY** | ② | **M2 security+sending sweep — shipped one-by-one:** 🟢 #266 /team auth · 🟢 #261 ownership+RLS · 🟢 #263 CI · 🟢 #262 pause-migration · 🩷 #260 blocklist · 🩷 #265 Stripe grant · 🩷 cap+#267 bounce · 🩷 #243 Apollo-independence. Locked the **#211 client-sending model** (SOP). Lead-Gen→$3 parked to Thu. | 🤝 |
 | **Thu 2 Jul** | ②/③ | **(a) Lead-Gen → single $3 FIGSY** *(parked from today)* — multi-front: API `billing-rules` + portal `billing` + **website `pricing.html`** + docs; **client-facing → preview.** **(b) Milestone 3 kickoff — Admin Centre rebuild** *(build-LIVE; full spec `docs/admin-centre-spec.md`)*: Cockpit (**#272**) · triggers into admin+email (**#270** signup→assign · **#271** payment→provision+switch) · **Command Centre per-AE/partner (#274)** · **Nora admin co-pilot (#275)** · per-staff logins (**#276**) · finance (Xero/Wise/HMRC). *(#211 engine + $60 walk also queued.)* | 🤝 |
 | **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
-| **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only — `docs/content/linkedin-playbook.md`) | 🤝 |
+| **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only) → **output to create: `docs/content/linkedin-playbook.md`** *(doesn't exist yet — this task creates it)* | 🤝 |
 | **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b) | 🤝 |
 | **Your clock (parallel)** | ① | Instantly warmth ≥90% → import → mail-tester → test-send → **first outreach fired** | 🧍 |
 

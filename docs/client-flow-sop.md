@@ -43,10 +43,12 @@ flowchart TD
 ```
 
 ### C · Operations — Milestone 3 (Admin Centre)
+> **Full structure = [`admin-centre-spec.md`](./admin-centre-spec.md)** (Cockpit + Command Centre + Nora; builds LIVE). This section owns the *onboarding flow*; the spec owns the *admin shape*.
 - **Pool management:** pre-warmed inboxes (~$45 each). Two options (decide Thu): **on-demand** (buy one per trial signup — leanest, zero idle spend, if Smartlead has stock instantly) or a **small standing buffer** (2–3) for safety. **Monitor concurrent trials; never run dry.** Released inboxes recycle.
 - **The two triggers live in the Admin Centre + email alert** — this is the M3 rebuild: *signup → assign*, *payment → buy + schedule switch*, all visible in admin and wired to the business backend.
 - **Financial flow:** Xero · banking · HMRC — the admin cockpit ties billing → accounting.
-- **Future:** each AE / staff hire gets **their own** admin access.
+- **Command Centre + Nora:** the admin also gives **read+manage oversight of every AE** and **read-only oversight of every partner** (book/targets/pipeline/mini-CRM/contracts), with **Nora** the all-round admin co-pilot on the right rail. Detail in the spec.
+- **Future:** each AE / staff hire gets **their own** role-scoped admin access.
 
 ---
 

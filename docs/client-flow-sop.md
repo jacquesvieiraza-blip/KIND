@@ -1,7 +1,50 @@
 # K.I.N.D — Client Flow SOP
-*Last-checked: 23 Jun 2026 (flow re-verified, unchanged)*
+*Last-checked: 1 Jul 2026 — added the locked SENDING & ONBOARDING MODEL (below). The 7 signup/billing paths further down are unchanged (note: Lead-Gen is being retired → single $3 FIGSY, so Paths 5–6 will simplify).*
 
-Complete start-to-finish — all paths.
+> **This is the SOP — the standard operating procedures for how the business runs.** It owns the *procedures/flows*; status lives in PRODUCT-INVENTORY, execution in LAUNCH-PAD. Linked from DOC-MAP.
+
+---
+
+## 🔒 SENDING & ONBOARDING MODEL — locked 1 Jul 2026
+
+*How email actually gets sent — for us (M1) and for a client (M2), plus the operations behind it (M3). Cost model locked: pre-warmed pool inbox ~$45 · client branded = $13/yr domain + $4.50/mo per mailbox.*
+
+### A · Our own outreach — Milestone 1 (Instantly)
+- **Tool:** Instantly · **one** domain (`gettingkind.com`) · founder-run · **nothing to build.**
+- Gated only on the inbox **warmth clock** (~1–2 weeks).
+- **Flow:** warmth ≥90% (#198) → upgrade plan → import the 1,461 list → load the 4-step sequence → mail-tester 10/10 (#101) → test-send 10–20 → **fire first outreach** (#127) → replies land in the unibox, monitor reply rate.
+
+### B · New-client sending — Milestone 2 (Smartlead), the pool → branded model
+- **Tool:** Smartlead. Each client is **isolated** — their own inbox(es); **count = seats** (SMB = 1 · company = 1 per rep).
+- **Instant results via a pre-warmed inbox, then switch to the client's branded domain:**
+  1. **Trial signup → TRIGGER ①** (admin alert) → assign a **generic pre-warmed inbox** (Smartlead "Pre-Warmed", instant) → **client sends day 1.**
+  2. **Trial (Day 0–14):** client builds ICP / finds leads / drafts sequences and sends on the pooled inbox (theirs alone while active).
+  3. **Convert (pays) → TRIGGER ②** (admin alert) → buy the client's **own branded inbox** ($13/yr domain + $4.50/mo) → warms ~14 days (client keeps sending on the pooled inbox — **no gap**).
+  4. **~Day 29 → switch** the client to their branded inbox; pooled inbox released back.
+  5. **No convert →** release the pooled inbox; off-board; **no branded inbox ever bought** (zero wasted cost).
+
+```mermaid
+flowchart TD
+    A([Trial signup]) --> T1{{"TRIGGER ①: alert us → assign pooled inbox"}}
+    T1 --> B["Assign 1 pre-warmed pooled inbox per seat"]
+    B --> C["Client SENDS day 1 — instant"]
+    C --> D["Trial Day 0-14: ICP · leads · sequences · send on pooled"]
+    D --> E{"Convert? pays day 14"}
+    E -->|No| F["Release pooled inbox · off-board · no branded bought"]
+    E -->|Yes| T2{{"TRIGGER ②: client pays → alert us"}}
+    T2 --> G["Buy branded inbox per seat → warm ~14 days"]
+    G --> H["Keep sending on pooled — no gap"]
+    H --> I["~Day 29: switch to branded inbox · release pooled"]
+    I --> K([Steady state: own branded isolated sending])
+    classDef t fill:#fff7ed,stroke:#dc2626,color:#7f1d1d
+    class T1,T2 t
+```
+
+### C · Operations — Milestone 3 (Admin Centre)
+- **Pool management:** pre-warmed inboxes (~$45 each). Two options (decide Thu): **on-demand** (buy one per trial signup — leanest, zero idle spend, if Smartlead has stock instantly) or a **small standing buffer** (2–3) for safety. **Monitor concurrent trials; never run dry.** Released inboxes recycle.
+- **The two triggers live in the Admin Centre + email alert** — this is the M3 rebuild: *signup → assign*, *payment → buy + schedule switch*, all visible in admin and wired to the business backend.
+- **Financial flow:** Xero · banking · HMRC — the admin cockpit ties billing → accounting.
+- **Future:** each AE / staff hire gets **their own** admin access.
 
 ---
 

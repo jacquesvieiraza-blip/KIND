@@ -1,15 +1,15 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 1 July 2026** · Two fronts. Nothing else on this page.
+**As of: 1 July 2026** · Three milestones. Nothing else on this page.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
-> Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. This page = what to do now.
+> Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. Procedures/flows = SOP (`client-flow-sop.md`). This page = what to do now.
 
 ---
 
 ## 🧠 IN ONE MINUTE (read this, then the detail below is optional)
 
-**We're trying to do two things. Here's exactly where each stands.**
+**We're trying to do three things. Here's exactly where each stands.**
 
 **① Use K.I.N.D to send OUR OWN cold outreach.**
 The product works, the 1,461-person list is ready, the emails are written. **Nothing to build.** The only thing in the way is the inboxes finishing warm-up in Instantly (~1–2 weeks, your side). When warm → import the list → test → send. *(Detail: Front ① below.)*
@@ -19,11 +19,14 @@ The product itself works for them — they can find leads, send, get replies, us
 - **Security** — with more than one client, one could see or mess with another's account. Not safe yet. *(Quick to fix.)*
 - **Separate sending** — today every client sends from the *same* email identity, so one client's spam hurts everyone's delivery. This is the big build ("Smartlead"). *(Detail: Front ② below.)*
 
-**So:** ① = just wait for warm-up (no building). ② = build security first (fast), then separate sending (the big one).
+**③ Run the business behind it (our Admin Centre).**
+The onboarding triggers (signup → assign an inbox · payment → provision + switch), finances (Xero · banking · HMRC), and future staff logins all live in a **rebuilt Admin Centre.** *(Detail: Milestone 3 below.)*
+
+**So:** ① = wait for warm-up (no build). ② = build security + the Smartlead sending engine. ③ = rebuild the Admin Centre as our operational + financial cockpit.
 
 ---
 
-## ① OUTREACH OURSELVES — *sell K.I.N.D via our own cold email*
+## ① OUTREACH OURSELVES — Milestone 1 · *sell K.I.N.D via our own cold email*
 ### 👉 Bottom line: **ZERO code left to build.** Front ① is gated only on the **Instantly warmth clock** + your manual import/test/fire. Everything the code needs is done.
 
 ### ✅ Done (code-verified 1 Jul)
@@ -52,7 +55,7 @@ The product itself works for them — they can find leads, send, get replies, us
 
 ---
 
-## ② OPERATE A PAID CLIENT + TEAM — *a client pays, then runs the product*
+## ② OPERATE A PAID CLIENT + TEAM — Milestone 2 · *a client pays, then runs the product*
 ### 👉 Bottom line: the client **revenue loop works end-to-end** (log in → build ICP → find leads → FIGSY sends on a 2-hourly scheduler → replies classified → 4 agents → billing → ROI → Command Centre). **NOT ready** because of **security holes that leak/hijack across clients**, **no per-client sending isolation (#211=Smartlead, read-only today)**, a **Stripe purchase-grant race**, and **Apollo-only discovery**. Security is now the #1 gate — above #211.
 
 ### ✅ Done — genuinely works (code-verified 1 Jul, file:line)
@@ -85,11 +88,26 @@ The product itself works for them — they can find leads, send, get replies, us
 
 ---
 
+## ③ ADMIN CENTRE + OPERATIONS — Milestone 3 · *the cockpit we run the business from*
+### 👉 Bottom line: M2 makes the product usable *by a client*; **M3 is how WE actually onboard, operate, and get paid.** The client-onboarding triggers live here, plus finance and staff access. Nothing built yet. Full flows in the SOP (`client-flow-sop.md` → Sending & Onboarding Model).
+
+### 🔲 Left — build list
+| # | Item | Why |
+|---|------|-----|
+| 🛑 1 | **#270 Signup trigger** → alert us + assign a pooled pre-warmed inbox | can't onboard a trial without it (SOP model) |
+| 🛑 2 | **#271 Payment trigger** → buy the client's branded inbox + schedule the ~day-29 switch | converts a trial into a real, isolated sender |
+| 3 | **#272 Admin Centre rebuild** — triggers surfaced in admin + email · Xero/banking/HMRC finance view · **per-staff (AE) logins** | our operational + financial backbone |
+
+**Milestone 3 is done when:** a client signs up → we're alerted → inbox assigned → on payment, branded inbox provisioned + switched — all visible and run from the Admin Centre, with finances tied in.
+
+---
+
 ## 🗓️ THE DAYS
 
 | Day | Front | What | Owner |
 |-----|-------|------|-------|
-| **Wed 1 Jul — TODAY** | ② | 6-agent code audit done → **all docs reconciled to verified code** (4 new 🔴 logged: #265/#266/#267/#268). **M2 build starts security-first**: **#266 /team auth · #260 blocklist · #261 ownership checks · #265 Stripe grant**, then per-client cap + **#211 engine**. *One clean PR per item.* | 🤝 |
+| **Wed 1 Jul — TODAY** | ② | Shipped one-by-one: **#263 CI green (🟢)** · **#260 blocklist + #265 Stripe grant (🩷, verify owed)**. Then designed the **#211 client-sending model** — pool of pre-warmed inboxes + branded-domain switch + signup/payment triggers (preview flow; not built yet). | 🤝 |
+| **Thu 2 Jul** | ③ | **Milestone 3 kickoff — Admin Centre rebuild (VITAL).** Flow now **LOCKED** (in SOP). Build the triggers into admin + email (**#270** signup→assign · **#271** payment→provision+switch), tie in finance (Xero/banking/HMRC), design per-staff logins (**#272**). | 🤝 |
 | **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
 | **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only — `docs/content/linkedin-playbook.md`) | 🤝 |
 | **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b) | 🤝 |
@@ -97,4 +115,4 @@ The product itself works for them — they can find leads, send, get replies, us
 
 ---
 
-*Open this → pick a front → do the next 🔲 in order. ① needs no build (warm + fire). ② needs the build list above. That's the whole page.*
+*Open this → pick a milestone → do the next 🔲 in order. ① warm + fire (no build) · ② build the client sending engine + security · ③ build the Admin Centre cockpit. That's the whole page.*

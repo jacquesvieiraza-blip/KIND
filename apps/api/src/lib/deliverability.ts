@@ -49,12 +49,11 @@ function publicApiUrl(): string {
 // D3 — a branded tracking domain, or null. We refuse to embed a bare platform host
 // (railway/onrender/vercel/heroku) in cold mail: an <img> pointing at a random
 // *.up.railway.app URL is a classic phishing signal and tanks inbox placement.
-// Exception: an explicitly set TRACKING_URL is trusted — the founder knowingly set it.
-// The filter only applies when falling back to the generic API_URL env var.
+// The platform-host filter applies to TRACKING_URL too — an inbox spam filter does
+// not care who set the URL; only a branded domain (e.g. track.gettingkind.com) is
+// safe to embed. A bare platform host is refused no matter which env var supplied it.
 export function trackingBaseUrl(): string | null {
-  const explicit = process.env.TRACKING_URL
-  if (explicit) return explicit.replace(/\/$/, '')
-  const url = process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || ''
+  const url = process.env.TRACKING_URL || process.env.API_URL || process.env.NEXT_PUBLIC_API_URL || ''
   if (!url) return null
   if (/railway\.app|onrender\.com|vercel\.app|herokuapp\.com|\.run\.app/i.test(url)) return null
   return url.replace(/\/$/, '')

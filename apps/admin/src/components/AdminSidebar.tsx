@@ -8,63 +8,88 @@ import {
   Rocket, MonitorPlay, BookOpen, Inbox,
   ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
   UserSquare2, Layers, MessageCircle, Database, Eye,
-  Handshake, GitMerge, Pin, Flag,
+  Handshake, GitMerge, Pin, Flag, Gauge, Wallet, HeartPulse, Sprout,
 } from 'lucide-react'
 
 // NOTE: do not name this `ref` — React reserves `ref`, and since the items are
 // spread onto <Row> with {...it}, a `ref` field gets hijacked as a real ref and
 // crashes the whole app (strict-mode `true.current = …`). Use `isRef`.
-type Item = { href: string; label: string; icon: React.ElementType; isRef?: boolean }
+// `soon` = built but not yet wired to live data (M3 build in progress).
+type Item = { href: string; label: string; icon: React.ElementType; isRef?: boolean; soon?: boolean }
 type Section = { label: string; items: Item[] }
 
+// M3 Admin Centre IA (docs/admin-centre-spec.md): Cockpit + 6 sections +
+// Command Centre + Ops; the 8 cut-from-daily pages moved to "Dev · not daily".
 const SECTIONS: Section[] = [
   {
-    label: 'Overview',
+    label: 'Cockpit',
     items: [
-      { href: '/',          label: 'Dashboard',   icon: LayoutDashboard },
-      { href: '/unibox',    label: 'Unibox',      icon: Inbox },
-      { href: '/analytics', label: 'Analytics',   icon: BarChart2 },
-      { href: '/activity',  label: 'Activity',    icon: Activity },
-      { href: '/revenue',   label: 'Revenue',     icon: DollarSign },
+      { href: '/',          label: 'Cockpit',       icon: HeartPulse },
     ],
   },
   {
     label: 'Clients',
     items: [
       { href: '/clients',    label: 'All Clients', icon: Users },
-      { href: '/partners',   label: 'Partners',    icon: Handshake },
-      { href: '/messages',   label: 'Messages',    icon: MessageCircle },
-      { href: '/proposals',  label: 'Proposals',   icon: FileText },
-      { href: '/visitors',   label: 'Visitors',    icon: Eye },
+      { href: '/activity',   label: 'Activity',    icon: Activity },
       { href: '/activation', label: 'Activation',  icon: Flag },
+      { href: '/messages',   label: 'Messages',    icon: MessageCircle },
+    ],
+  },
+  {
+    label: 'Command Centre',
+    items: [
+      { href: '/command',    label: 'Team & Partners', icon: Gauge, soon: true },
+    ],
+  },
+  {
+    label: 'Finance',
+    items: [
+      { href: '/revenue',    label: 'Revenue',     icon: DollarSign },
       { href: '/cohorts',    label: 'Cohorts',     icon: Layers },
+    ],
+  },
+  {
+    label: 'GTM / Pipeline',
+    items: [
+      { href: '/partners',   label: 'Partners',    icon: Handshake },
+      { href: '/proposals',  label: 'Proposals',   icon: FileText },
+      { href: '/cmo',        label: 'CMO Tools',   icon: Megaphone },
+      { href: '/unibox',     label: 'Unibox',      icon: Inbox },
+      { href: '/analytics',  label: 'Analytics',   icon: BarChart2 },
+      { href: '/visitors',   label: 'Visitors',    icon: Eye },
       { href: '/hubspot',    label: 'HubSpot',     icon: GitMerge },
     ],
   },
   {
-    label: 'Product',
+    label: 'Engine',
     items: [
-      { href: '/health',     label: 'Health',      icon: Activity,  isRef: true },
-      { href: '/data-moat',  label: 'Data Moat',   icon: Database },
+      { href: '/health',     label: 'Deliverability', icon: Activity, isRef: true },
+    ],
+  },
+  {
+    label: 'Compliance',
+    items: [
+      { href: '/compliance',    label: 'Compliance',  icon: ShieldCheck },
+      { href: '/terms-library', label: 'Terms',       icon: FileText },
     ],
   },
   {
     label: 'Ops',
     items: [
-      { href: '/cmo',           label: 'CMO Tools',   icon: Megaphone },
-      { href: '/demo',          label: 'Demo Envs',   icon: MonitorPlay },
-      { href: '/terms-library', label: 'Terms',       icon: FileText },
-      { href: '/founder',       label: 'Founder',     icon: UserSquare2 },
+      { href: '/demo',       label: 'Sales Demo',  icon: MonitorPlay },
+      { href: '/founder',    label: 'Founder',     icon: UserSquare2 },
     ],
   },
   {
-    label: 'Reference',
+    label: 'Dev · not daily',
     items: [
-      { href: '/roadmap',     label: 'Roadmap',     icon: Map,          isRef: true },
-      { href: '/smoketest',   label: 'Smoke Test',  icon: FlaskConical, isRef: true },
-      { href: '/playbook',    label: 'Playbook',    icon: BookOpen,     isRef: true },
-      { href: '/compliance',  label: 'Compliance',  icon: ShieldCheck,  isRef: true },
-      { href: '/launch',      label: 'Launch',      icon: Rocket,       isRef: true },
+      { href: '/data-moat',  label: 'Data Moat',   icon: Database,     isRef: true },
+      { href: '/smoketest',  label: 'Smoke Test',  icon: FlaskConical, isRef: true },
+      { href: '/seed',       label: 'Seed',        icon: Sprout,       isRef: true },
+      { href: '/roadmap',    label: 'Roadmap',     icon: Map,          isRef: true },
+      { href: '/playbook',   label: 'Playbook',    icon: BookOpen,     isRef: true },
+      { href: '/launch',     label: 'Launch',      icon: Rocket,       isRef: true },
     ],
   },
 ]
@@ -76,7 +101,7 @@ export function AdminSidebar() {
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'
   const labelCls = pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
 
-  function Row({ href, label, icon: Icon, isRef }: Item) {
+  function Row({ href, label, icon: Icon, isRef, soon }: Item) {
     const active = href === '/' ? pathname === '/' : pathname === href || pathname.startsWith(href + '/')
     return (
       <Link href={href}
@@ -85,7 +110,14 @@ export function AdminSidebar() {
         }`}>
         <Icon className="w-[18px] h-[18px] shrink-0" />
         <span className={`text-[13px] font-medium whitespace-nowrap transition-opacity duration-150 ${labelCls}`}>{label}</span>
-        {isRef && (
+        {soon && (
+          <span
+            title="Built — live data coming as we hire AEs / onboard partners"
+            className={`ml-auto text-[9px] font-bold uppercase tracking-wide text-[#a78bfa] bg-[#7C3AED]/25 rounded-full px-1.5 py-0.5 transition-opacity duration-150 ${labelCls}`}>
+            soon
+          </span>
+        )}
+        {isRef && !soon && (
           <span
             title="Static reference — not live data"
             className={`ml-auto text-[9px] font-semibold uppercase tracking-wide text-purple-300/30 transition-opacity duration-150 ${labelCls}`}>

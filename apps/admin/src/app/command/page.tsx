@@ -25,16 +25,16 @@ const zar = (n: number | null | undefined) => 'R ' + Number(n ?? 0).toLocaleStri
 interface Ent {
   name: string; kind: 'company' | 'ae' | 'partner'; role?: string; sample?: boolean
   leads?: number; emails?: number; reply?: string; meetings?: number; pipeline?: string; replies?: number; positive?: number; contacted?: number
-  reptarget?: number; mtgtarget?: number; book?: string; commission?: string; clients?: number; atrisk?: number
+  reptarget?: number; mtgtarget?: number; book?: string; commission?: string; clients?: number; atrisk?: number; demos?: number
   funnel: [string, number][]; deals: [string, string, string][]
 }
-const OVERALL: Ent = { name: 'Overall — our company', kind: 'company', sample: true, leads: 600, emails: 1350, reply: '13%', meetings: 16, pipeline: '$1.8M', replies: 169, positive: 70, contacted: 600, reptarget: 200, mtgtarget: 20,
+const OVERALL: Ent = { name: 'Overall — our company', kind: 'company', sample: true, leads: 600, emails: 1350, reply: '13%', meetings: 16, pipeline: '$1.8M', replies: 169, positive: 70, contacted: 600, reptarget: 200, mtgtarget: 20, demos: 24,
   funnel: [['Total leads', 600], ['Enrolled', 600], ['Emails sent', 1350], ['Replied', 169], ['Interested', 70], ['Meeting', 16]],
   deals: [['Harbour Freight', 'trial', '$267/mo'], ['Greenfield Dental', 'demo', '$237/mo'], ['Pinnacle Acct', 'registered', '$417/mo']] }
 const AES: Record<string, Ent> = {
-  ama: { name: 'Ama N.', kind: 'ae', role: 'Account Executive · SA', sample: true, leads: 412, emails: 128, reply: '11%', meetings: 6, pipeline: '$3,200', replies: 14, positive: 6, contacted: 128, reptarget: 20, mtgtarget: 8, book: '$890', commission: '$178', funnel: [['Sourced', 412], ['Sent', 128], ['Replied', 14], ['Interested', 6], ['Meeting', 6]], deals: [['Harbour Freight', 'trial', '$267/mo'], ['Greenfield Dental', 'demo', '$237/mo']] },
-  ben: { name: 'Ben K.', kind: 'ae', role: 'Account Executive · UK', sample: true, leads: 210, emails: 74, reply: '6%', meetings: 2, pipeline: '$1,400', replies: 5, positive: 2, contacted: 74, reptarget: 20, mtgtarget: 8, book: '$267', commission: '$53', funnel: [['Sourced', 210], ['Sent', 74], ['Replied', 5], ['Interested', 2], ['Meeting', 2]], deals: [['Ledger & Co', 'demo', '$237/mo'], ['Brooks Ltd', 'registered', '$207/mo']] },
-  carla: { name: 'Carla R.', kind: 'ae', role: 'SDR · US', sample: true, leads: 560, emails: 203, reply: '13%', meetings: 9, pipeline: '$6,800', replies: 22, positive: 9, contacted: 203, reptarget: 20, mtgtarget: 8, book: '$1,740', commission: '$348', funnel: [['Sourced', 560], ['Sent', 203], ['Replied', 22], ['Interested', 9], ['Meeting', 9]], deals: [['Summit Roofing', 'won', '$417/mo'], ['Delta Movers', 'trial', '$267/mo'], ['Vista Dental', 'demo', '$237/mo']] },
+  ama: { name: 'Ama N.', kind: 'ae', role: 'Account Executive · SA', sample: true, leads: 412, emails: 128, reply: '11%', meetings: 6, pipeline: '$3,200', replies: 14, positive: 6, contacted: 128, reptarget: 20, mtgtarget: 8, book: '$890', commission: '$178', demos: 8, funnel: [['Sourced', 412], ['Sent', 128], ['Replied', 14], ['Interested', 6], ['Meeting', 6]], deals: [['Harbour Freight', 'trial', '$267/mo'], ['Greenfield Dental', 'demo', '$237/mo']] },
+  ben: { name: 'Ben K.', kind: 'ae', role: 'Account Executive · UK', sample: true, leads: 210, emails: 74, reply: '6%', meetings: 2, pipeline: '$1,400', replies: 5, positive: 2, contacted: 74, reptarget: 20, mtgtarget: 8, book: '$267', commission: '$53', demos: 3, funnel: [['Sourced', 210], ['Sent', 74], ['Replied', 5], ['Interested', 2], ['Meeting', 2]], deals: [['Ledger & Co', 'demo', '$237/mo'], ['Brooks Ltd', 'registered', '$207/mo']] },
+  carla: { name: 'Carla R.', kind: 'ae', role: 'SDR · US', sample: true, leads: 560, emails: 203, reply: '13%', meetings: 9, pipeline: '$6,800', replies: 22, positive: 9, contacted: 203, reptarget: 20, mtgtarget: 8, book: '$1,740', commission: '$348', demos: 11, funnel: [['Sourced', 560], ['Sent', 203], ['Replied', 22], ['Interested', 9], ['Meeting', 9]], deals: [['Summit Roofing', 'won', '$417/mo'], ['Delta Movers', 'trial', '$267/mo'], ['Vista Dental', 'demo', '$237/mo']] },
 }
 
 export default function SalesChannelPage() {
@@ -62,8 +62,10 @@ export default function SalesChannelPage() {
     const open = pd.filter(d => !['won', 'lost', 'expired'].includes(d.status))
     const paid = commissions.filter(c => c.partner_id === p.id && c.status === 'paid').reduce((s, c) => s + (c.amount_usd ?? c.amount_zar / 18), 0)
     const owed = commissions.filter(c => c.partner_id === p.id && !['paid', 'cancelled'].includes(c.status)).reduce((s, c) => s + (c.amount_usd ?? c.amount_zar / 18), 0)
+    const demos = pd.filter(d => ['demo', 'trial', 'won'].includes(d.status)).length
+    const won = pd.filter(d => d.status === 'won').length
     return { name: p.name, kind: 'partner', role: `${p.tier || 'Partner'} · ${p.country || '—'}`, clients: p.referral_count, book: '$' + Math.round(paid + owed).toLocaleString(), commission: '$' + Math.round(owed).toLocaleString(),
-      pipeline: zar(open.reduce((s, d) => s + (d.estimated_value ?? 0), 0)), atrisk: 0,
+      pipeline: zar(open.reduce((s, d) => s + (d.estimated_value ?? 0), 0)), atrisk: 0, demos, meetings: won,
       funnel: [['Registered', pd.filter(d => d.status === 'registered').length], ['Demo', pd.filter(d => d.status === 'demo').length], ['Trial', pd.filter(d => d.status === 'trial').length], ['Won', pd.filter(d => d.status === 'won').length]],
       deals: open.map(d => [d.company_name, d.status, (daysUntil(d.protected_until) ?? '—') + 'd left']) as [string, string, string][] }
   }
@@ -143,8 +145,13 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
     const t: [string, ReactNode, string?][] = ent.kind === 'partner'
       ? [['Live clients', ent.clients ?? 0], ['Book', ent.book ?? '—'], ['Commission', ent.commission ?? '—'], ['Open pipeline', ent.pipeline ?? '—'], ['At‑risk', ent.atrisk ?? 0]]
       : [['Total leads', ent.leads ?? 0], ['Emails sent', (ent.emails ?? 0).toLocaleString()], ['Open rate', 'n/a', 'cold'], ['Reply rate', ent.reply ?? '—'], ['Meetings', ent.meetings ?? 0]]
+    const clos = (ent.demos && typeof ent.meetings === 'number') ? Math.round((ent.meetings / ent.demos) * 100) + '%' : '—'
     return <div className="space-y-4">
       <Tiles items={t} />
+      <div className="grid md:grid-cols-2 gap-3">
+        <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">🎬 Demos done</p><p className="text-2xl font-bold text-gray-900 mt-1">{ent.demos ?? 0}</p><p className="text-[11px] text-gray-400 mt-0.5">{ent.kind === 'company' ? 'across team + partners' : 'this month'}</p></div>
+        <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">🎯 Closure rate</p><p className="text-2xl font-bold text-emerald-600 mt-1">{clos}</p><p className="text-[11px] text-gray-400 mt-0.5">{ent.kind === 'partner' ? 'won per demo' : 'meetings won per demo'}</p></div>
+      </div>
       <div className="bg-white border border-purple-100 rounded-2xl p-4">
         <p className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Outreach over time</p>
         <svg viewBox="0 0 600 150" width="100%" height="150">

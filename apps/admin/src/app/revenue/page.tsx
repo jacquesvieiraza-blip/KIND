@@ -1,7 +1,21 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { DollarSign, Target, TrendingUp, CheckCircle2, MinusCircle, XCircle, Wallet, Landmark, ExternalLink } from 'lucide-react'
+import { DollarSign, Target, TrendingUp, CheckCircle2, MinusCircle, XCircle, Wallet, Landmark, ExternalLink, CreditCard, AlertTriangle } from 'lucide-react'
+
+// Revenue-at-risk: at-risk clients from the churn engine (same source as the cockpit).
+interface ChurnRiskEntry { client_id: string; company_name: string; reasons?: string[] }
+async function getChurnRisk(): Promise<ChurnRiskEntry[]> {
+  const adminKey = process.env.ADMIN_SECRET_KEY
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+  if (!adminKey) return []
+  try {
+    const res = await fetch(`${apiBase}/admin/churn-risk`, { headers: { 'x-admin-key': adminKey }, cache: 'no-store' })
+    if (!res.ok) return []
+    const json = await res.json() as { success: boolean; data?: { at_risk: ChurnRiskEntry[] } }
+    return json.data?.at_risk ?? []
+  } catch { return [] }
+}
 import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
 
 const MONTHLY_TARGETS = [
@@ -120,7 +134,7 @@ async function getRevStats() {
 }
 
 export default async function RevenuePage() {
-  const stats = await getRevStats()
+  const [stats, atRisk] = await Promise.all([getRevStats(), getChurnRisk()])
   if (!stats) return <div className="p-8 text-amber-600">Missing env vars — add SUPABASE_SERVICE_ROLE_KEY in Railway admin service.</div>
   const current = getCurrentTarget()
   const mrrPct = Math.min((stats.mrrUsd / current.mrrTarget) * 100, 100)
@@ -173,17 +187,45 @@ export default async function RevenuePage() {
             <p className="text-sm text-gray-500 mt-0.5">The #1 &quot;lights on&quot; number</p>
             <p className="text-xs text-amber-600 mt-1">needs Jacques — connect Wise</p>
           </div>
-          {/* Net (MRR real; cost stack estimate) */}
+          {/* Stripe */}
           <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
-            <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#7C3AED] flex items-center justify-center mb-3"><DollarSign className="w-5 h-5" /></div>
-            <p className="text-lg font-bold text-gray-900">${stats.mrrUsd.toLocaleString()} <span className="text-sm font-medium text-gray-400">MRR</span></p>
-            <div className="text-sm text-gray-500 mt-1 space-y-0.5">
-              <div className="flex justify-between"><span>Est. cost stack</span><span className="text-gray-400">– $690</span></div>
-              <div className="flex justify-between font-semibold"><span className="text-gray-700">Net</span><span className={stats.mrrUsd - 690 >= 0 ? 'text-emerald-600' : 'text-red-600'}>{stats.mrrUsd - 690 >= 0 ? '+' : ''}${(stats.mrrUsd - 690).toLocaleString()}</span></div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#7C3AED] flex items-center justify-center"><CreditCard className="w-5 h-5" /></div>
+              <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer" className="text-xs text-[#7C3AED] font-semibold inline-flex items-center gap-1 hover:underline">Open Stripe <ExternalLink className="w-3 h-3" /></a>
             </div>
-            <p className="text-xs text-amber-600 mt-1">cost = estimate until Xero connects</p>
+            <p className="text-lg font-bold text-gray-900">Payments</p>
+            <p className="text-sm text-gray-500 mt-0.5">${stats.mrrUsd.toLocaleString()} payouts this month</p>
+            <p className="text-xs text-gray-400 mt-1">checkout live · payouts via Wise</p>
           </div>
         </div>
+      </div>
+
+      {/* Risk — revenue at risk (from the churn engine) */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <AlertTriangle className="w-4 h-4 text-red-500" />
+          <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Risk — revenue at risk</span>
+        </div>
+        {atRisk.length === 0 ? (
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5 text-sm text-gray-500">No clients at risk right now — MRR is protected.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-5">
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Accounts at risk</p>
+              <p className="text-2xl font-bold text-red-600 mt-1">{atRisk.length}</p>
+              <p className="text-xs text-gray-400 mt-0.5">save these → protect MRR</p>
+            </div>
+            <div className="md:col-span-2 bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+              {atRisk.slice(0, 4).map(c => (
+                <div key={c.client_id} className="flex items-center justify-between text-sm py-1.5 border-b border-dashed border-purple-50 last:border-0">
+                  <span className="text-gray-700">{c.company_name} <span className="text-gray-400">— {c.reasons?.join(' · ') || 'churn signals'}</span></span>
+                  <a href={`/clients/${c.client_id}`} className="text-xs font-semibold text-[#7C3AED] hover:underline whitespace-nowrap">Open →</a>
+                </div>
+              ))}
+              <p className="text-xs text-gray-400 mt-2">Pulled live from the churn engine.</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Live MRR + context */}
@@ -358,6 +400,27 @@ export default async function RevenuePage() {
           <p className="text-gray-400 text-xs mt-2">Expected data: credit_type | client_id | amount_usd | timestamp</p>
         </div>
       </div>
+
+      {/* Cost stack — money out */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <h2 className="font-semibold text-gray-900 mb-1">Cost stack — money out</h2>
+        <p className="text-xs text-gray-400 mb-4">~$690/mo · estimate until Xero connects</p>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="border-b border-gray-200">{['Item', 'Monthly', 'Notes'].map(h => <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>)}</tr></thead>
+            <tbody className="divide-y divide-gray-100">
+              {[['Infra (Railway / Supabase / Cloudflare)', '~$138', 'fixed'],
+                ['Smartlead inboxes (pool + branded)', '~$220', 'scales with clients'],
+                ['Data credits (Apollo / PDL / Hunter / Clearbit)', '~$180', 'per-lead, variable'],
+                ['Claude (AI) + Resend', '~$150', 'per-send, variable']].map(r => (
+                <tr key={r[0]}><td className="px-3 py-3 text-gray-900">{r[0]}</td><td className="px-3 py-3 font-medium text-gray-700">{r[1]}</td><td className="px-3 py-3 text-gray-500">{r[2]}</td></tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="text-xs text-gray-400">Retention cohorts → <a href="/cohorts" className="text-[#7C3AED] hover:underline">Cohorts</a> · targets → <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel</a>.</p>
     </main>
   )
 }

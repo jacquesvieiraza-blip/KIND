@@ -6,6 +6,8 @@ Use these prompts in **Midjourney** (v6) or **DALL-E 3** to generate the 3D avat
 Save outputs as PNG, ideally 512×512 or 1024×1024. Place in `apps/portal/public/agents/`.
 
 > **⚠️ AUDIT 24 Jun — roster behind reality.** This doc has prompts for only 3 agents, but `apps/portal/public/agents/` now holds **8 avatars**: `figsy` · `milla` · `vida` · `denise` · `casey` · `Alex` · `lena` · `tony`. Prompts for Denise/Casey/Alex/Lena/Tony are **TBD**. *(AI family = FIGSY·Milla·Vida·Denise·Casey; Alex = non-family partner-channel agent (216); Lena/Tony = roadmap (145).)*
+>
+> **➕ 1 Jul — NORA added (admin agent, #275).** Nora — The Keeper is the **Admin Centre** co-pilot (not a client/portal agent), so her image lives in **`apps/admin/public/agents/Nora.png`** (referenced as `/agents/Nora.png` inside the admin app), NOT the portal folder. Roster now: family (portal) + Alex (partner portal) + **Nora (admin)**.
 
 ---
 
@@ -84,6 +86,34 @@ illustration. Soft teal-to-cyan gradient background. Square format, centered por
 
 **Color theme:** Teal (#0d9488)
 **Personality:** Warm, conversational, always available. "The one your customers talk to first."
+
+---
+
+## Nora — The Keeper (Admin co-pilot · #275)
+
+> Lives in the **admin** app → save as `apps/admin/public/agents/Nora.png` (create the folder), loaded as `/agents/Nora.png`.
+
+**Midjourney prompt:**
+```
+3D cartoon character portrait, calm composed professional woman with a reassuring 
+smile, dark hair in a low ponytail, wearing a deep navy blazer over a white top, 
+small pearl earrings, holding a tablet showing a clean admin dashboard, 
+poised "in-control" posture, background is a soft blue bokeh gradient sphere, 
+style of modern SaaS product character illustration, clean background, 
+centered composition, high detail, Pixar-inspired 3D render, --ar 1:1 --style raw --v 6
+```
+
+**DALL-E 3 prompt:**
+```
+A 3D illustrated character for a SaaS product. A calm, composed professional woman 
+with dark hair in a low ponytail and small pearl earrings, wearing a deep navy blazer 
+over a white top. She holds a tablet showing a tidy admin dashboard and has a 
+reassuring, in-control expression. The style is modern Pixar-inspired 3D illustration, 
+clean and polished. Soft blue bokeh gradient background. Square format, centered portrait. No text.
+```
+
+**Color theme:** Deep navy / admin-slate (with the #6d28d9 admin-purple accent)
+**Personality:** Tidy, secure, in control. All-round admin co-pilot — "The one who keeps the whole system in order." Context-aware to whatever admin screen you're on.
 
 ---
 

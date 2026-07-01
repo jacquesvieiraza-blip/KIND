@@ -20,13 +20,21 @@ export async function emitSignal(
   }
 }
 
-// POST /signals — any agent writes a signal
+// #261: the caller's own workspace, derived from auth — never a caller-supplied id.
+async function getClientId(userId: string): Promise<string | null> {
+  const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
+  return data?.id ?? null
+}
+
+// POST /signals — write a signal for the CALLER'S OWN workspace (client_id derived from auth).
 router.post('/', requireAuth, async (req: AuthRequest, res) => {
   try {
-    const { client_id, agent, signal_type, payload } = req.body
-    if (!client_id || !agent || !signal_type) {
-      res.status(400).json({ error: 'client_id, agent, signal_type required' }); return
+    const { agent, signal_type, payload } = req.body
+    if (!agent || !signal_type) {
+      res.status(400).json({ error: 'agent, signal_type required' }); return
     }
+    const client_id = await getClientId(req.userId!)
+    if (!client_id) { res.status(404).json({ error: 'Client not found' }); return }
     const { data, error } = await db
       .from('agent_signals')
       .insert({ client_id, agent, signal_type, payload: payload || {} })
@@ -43,10 +51,12 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
 // NOTE: must be registered BEFORE /:client_id to avoid param shadowing
 router.get('/:client_id/summary', requireAuth, async (req: AuthRequest, res) => {
   try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId || clientId !== req.params.client_id) { res.status(403).json({ error: 'Forbidden' }); return }
     const { data, error } = await db
       .from('agent_signals')
       .select('agent, signal_type, created_at, payload')
-      .eq('client_id', req.params.client_id)
+      .eq('client_id', clientId)
       .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       .order('created_at', { ascending: false })
 
@@ -76,11 +86,13 @@ router.get('/:client_id/summary', requireAuth, async (req: AuthRequest, res) => 
 // GET /signals/:client_id — read all signals for a client (last 100)
 router.get('/:client_id', requireAuth, async (req: AuthRequest, res) => {
   try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId || clientId !== req.params.client_id) { res.status(403).json({ error: 'Forbidden' }); return }
     const { agent, signal_type, limit } = req.query
     let query = db
       .from('agent_signals')
       .select('*')
-      .eq('client_id', req.params.client_id)
+      .eq('client_id', clientId)
       .order('created_at', { ascending: false })
       .limit(Number(limit) || 100)
 

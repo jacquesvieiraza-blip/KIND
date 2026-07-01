@@ -20,7 +20,7 @@ The product itself works for them — they can find leads, send, get replies, us
 - **Separate sending** — today every client sends from the *same* email identity, so one client's spam hurts everyone's delivery. This is the big build ("Smartlead"). *(Detail: Front ② below.)*
 
 **③ Run the business behind it (our Admin Centre).**
-The onboarding triggers (signup → assign an inbox · payment → provision + switch), finances (Xero · banking · HMRC), and future staff logins all live in a **rebuilt Admin Centre.** *(Detail: Milestone 3 below.)*
+The onboarding triggers (signup → assign an inbox · payment → provision + switch), finances (Xero · banking · HMRC), **oversight of every AE + partner (the Command Centre)**, **Nora (our admin co-pilot)**, and future staff logins all live in a **rebuilt Admin Centre.** *(Detail: Milestone 3 below.)*
 
 **So:** ① = wait for warm-up (no build). ② = build security + the Smartlead sending engine. ③ = rebuild the Admin Centre as our operational + financial cockpit.
 
@@ -124,7 +124,7 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 | Day | Front | What | Owner |
 |-----|-------|------|-------|
 | **Wed 1 Jul — TODAY** | ② | **M2 security+sending sweep — shipped one-by-one:** 🟢 #266 /team auth · 🟢 #261 ownership+RLS · 🟢 #263 CI · 🟢 #262 pause-migration · 🩷 #260 blocklist · 🩷 #265 Stripe grant · 🩷 cap+#267 bounce · 🩷 #243 Apollo-independence. Locked the **#211 client-sending model** (SOP). Lead-Gen→$3 parked to Thu. | 🤝 |
-| **Thu 2 Jul** | ②/③ | **(a) Lead-Gen → single $3 FIGSY** *(parked from today)* — multi-front: API `billing-rules` + portal `billing` + **website `pricing.html`** + docs; **client-facing → preview.** **(b) Milestone 3 kickoff — Admin Centre rebuild:** triggers into admin+email (**#270** signup→assign · **#271** payment→provision+switch), finance (Xero/banking/HMRC), per-staff logins (**#272**). *(#211 engine + $60 walk also queued.)* | 🤝 |
+| **Thu 2 Jul** | ②/③ | **(a) Lead-Gen → single $3 FIGSY** *(parked from today)* — multi-front: API `billing-rules` + portal `billing` + **website `pricing.html`** + docs; **client-facing → preview.** **(b) Milestone 3 kickoff — Admin Centre rebuild** *(build-LIVE; full spec `docs/admin-centre-spec.md`)*: Cockpit (**#272**) · triggers into admin+email (**#270** signup→assign · **#271** payment→provision+switch) · **Command Centre per-AE/partner (#274)** · **Nora admin co-pilot (#275)** · per-staff logins (**#276**) · finance (Xero/Wise/HMRC). *(#211 engine + $60 walk also queued.)* | 🤝 |
 | **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
 | **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only — `docs/content/linkedin-playbook.md`) | 🤝 |
 | **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b) | 🤝 |

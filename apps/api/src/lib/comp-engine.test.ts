@@ -119,9 +119,10 @@ describe('aeRetainCommission', () => {
 })
 
 describe('aeExpansionCommission', () => {
-  it('5% of the MRR increase (new − prior)', () => {
-    // upsell $1,000 → $1,500 = $500 increase → $25
-    expect(aeExpansionCommission(1000, 1500)).toBe(25)
+  it('20% of the MRR increase (new − prior)', () => {
+    // upsell $1,000 → $1,500 = $500 increase → $100
+    // Rate is 20% (founder, 28 Jun): expansion is treated like a new logo (RATES.EXPAND).
+    expect(aeExpansionCommission(1000, 1500)).toBe(100)
   })
   it('never negative on a downgrade', () => {
     expect(aeExpansionCommission(1500, 1000)).toBe(0)
@@ -192,8 +193,8 @@ describe('aeMonthlyPay — greater-of(earned, guarantee) + base', () => {
     expect(r.earnedCommission).toBe(2506.25)
     expect(r.guaranteeFloor).toBe(0)
     expect(r.guaranteeApplied).toBe(false)
-    expect(r.variablePaid).toBe(2431.25)
-    expect(r.totalPay).toBe(MONTHLY_BASE + 2431.25)
+    expect(r.variablePaid).toBe(2506.25)
+    expect(r.totalPay).toBe(MONTHLY_BASE + 2506.25)
   })
 
   it('month 1 not-onboarded with low earnings → only earned commission pays', () => {

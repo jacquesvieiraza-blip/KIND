@@ -278,7 +278,12 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
         try {
           const searchBody = buildSearchBody(icpArg, 1)
           searchBody.per_page = 3
-          const contacts = await searchPeople(searchBody)
+          let contacts = await searchPeople(searchBody).catch(() => [])
+          if (contacts.length === 0) {
+            // #243: fall back to PDL so preview samples work Apollo-free (PDL_API_KEY set)
+            const { pdlSearchPeople } = await import('../lib/pdl-search')
+            contacts = await pdlSearchPeople(icpArg, 1, 3)
+          }
           return {
             samples: contacts.slice(0, 3).map(c => ({
               first_name:   c.first_name,

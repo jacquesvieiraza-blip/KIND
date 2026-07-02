@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Activity, CheckCircle2, Circle, AlertTriangle, Flag } from 'lucide-react'
+import { ClientsTabs } from '@/components/ClientsTabs'
 
 // ITEM 192 — Onboarding activation tracking + nudges
 // READ-ONLY funnel computed from EXISTING data. No new table / column / migration.
@@ -176,6 +177,7 @@ export default async function ActivationPage({
 
   return (
     <div className="px-8 py-6 max-w-6xl mx-auto space-y-6">
+      <ClientsTabs />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

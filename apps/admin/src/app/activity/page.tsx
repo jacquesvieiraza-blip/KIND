@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { Activity, Mail, ShieldCheck, MessageSquare, CalendarCheck, Coins, Ban } from 'lucide-react'
+import { ClientsTabs } from '@/components/ClientsTabs'
 
 // ITEM 180 — Admin Activity / Audit log.
 // READ-ONLY view that aggregates EXISTING logged data (email sends, outcome
@@ -101,6 +102,8 @@ export default async function ActivityPage({
 
   return (
     <div className="px-8 py-6 max-w-6xl mx-auto space-y-6">
+
+      <ClientsTabs />
 
       <div className="flex items-center justify-between">
         <div>

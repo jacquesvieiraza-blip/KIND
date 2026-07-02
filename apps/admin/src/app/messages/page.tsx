@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import { MessageCircle } from 'lucide-react'
+import { ClientsTabs } from '@/components/ClientsTabs'
 
 interface Message {
   id: string
@@ -42,6 +43,7 @@ export default async function MessagesPage() {
 
   return (
     <div className="p-8 max-w-4xl mx-auto">
+      <div className="mb-6"><ClientsTabs /></div>
       <div className="flex items-center gap-3 mb-8">
         <MessageCircle className="w-6 h-6 text-purple-600" />
         <h1 className="text-2xl font-bold text-gray-900">Client Messages</h1>

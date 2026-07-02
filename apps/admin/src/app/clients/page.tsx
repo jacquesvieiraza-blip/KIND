@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 import Link from 'next/link'
 import { Users, ShieldCheck, AlertTriangle } from 'lucide-react'
 import CloneBestClientButton from './CloneBestClientButton'
+import { ClientsTabs } from '@/components/ClientsTabs'
 
 interface ChurnRiskEntry {
   client_id: string
@@ -233,6 +234,8 @@ export default async function ClientsPage({
   return (
     <div className="px-8 py-6 max-w-6xl mx-auto space-y-6">
 
+      <ClientsTabs />
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">All Clients</h1>
@@ -261,23 +264,24 @@ export default async function ClientsPage({
         </div>
       </div>
 
-      {/* Summary strip */}
-      <div className="grid grid-cols-4 gap-4">
+      {/* Summary tiles (kit · frosted) — At-risk lives HERE (churn single-home, #282) */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: 'Active',         value: counts.active,        color: 'text-green-600' },
+          { label: 'Active',         value: counts.active,        color: 'text-emerald-600' },
           { label: 'On Trial',       value: counts.trial,         color: 'text-[#7C3AED]' },
+          { label: 'At risk',        value: counts.atRisk,        color: counts.atRisk > 0 ? 'text-red-600' : 'text-gray-400' },
           { label: 'T&Cs Accepted',  value: counts.termsAccepted, color: 'text-[#7C3AED]' },
           { label: 'No Credits',     value: counts.noCredits,     color: 'text-gray-400' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4 text-center">
+          <div key={label} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-4 text-center">
             <p className={`text-2xl font-bold ${color}`}>{value}</p>
             <p className="text-xs text-gray-500 mt-1">{label}</p>
           </div>
         ))}
       </div>
 
-      {/* Client table */}
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+      {/* Client table (kit · frosted) */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 overflow-hidden">
         {clients.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />

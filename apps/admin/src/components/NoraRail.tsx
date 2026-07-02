@@ -88,12 +88,12 @@ export function NoraRail() {
       {/* Panel — AgentSidePanel design language */}
       {open && (
         <div className="fixed bottom-5 right-5 z-40 w-[380px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-2rem)] bg-white rounded-2xl border border-brand-200/50 shadow-2xl flex flex-col overflow-hidden">
-          {/* Photo header */}
-          <div className="relative h-36 overflow-hidden bg-brand-100 shrink-0">
+          {/* Photo header — matches the portal AgentSidePanel (h-60 head-and-shoulders).
+             Uses Nora-card.png, a head-and-shoulders crop of the full portrait, so
+             object-top frames like FIGSY instead of zooming into her eyes. */}
+          <div className="relative h-60 overflow-hidden bg-brand-100 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            {/* object position tuned to the face band of the 1024×1536 portrait —
-               object-top showed hair with the eyes cut at the bottom edge. */}
-            <img src="/agents/Nora.png" alt="Nora" className="w-full h-[calc(100%+24px)] object-cover object-[50%_23%] agent-img-float"
+            <img src="/agents/Nora-card.png" alt="Nora" className="w-full h-[calc(100%+24px)] object-cover object-top agent-img-float"
               onError={(e) => { (e.currentTarget.style.display = 'none') }} />
             <button onClick={() => setOpen(false)}
               className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/25 text-white hover:bg-black/40 flex items-center justify-center backdrop-blur-sm">

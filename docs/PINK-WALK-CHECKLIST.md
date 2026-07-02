@@ -3,7 +3,7 @@
 
 Pink = **live but not verified.** For each: walk it → if it works it's 🟢, if it's broken it's 🔴 (note it, I'll fix). Make notes in the right column. Come back to me with anything stuck or broken.
 
-> **Reconciled 2 Jul to the board's 43 🩷** = **35 remaining** from the original 58-item walk (Sections A+B walked 30 Jun; most of the rest clear on the $60 live run) **+ 7 new pinks shipped 1 Jul + #15 re-dotted 🟢→🩷 by the 2-Jul audit** (Section E below). Status of record = PRODUCT-INVENTORY.
+> **Reconciled 2 Jul PM to the board's 45 🩷** = **35 remaining** from the original 58-item walk (Sections A+B walked 30 Jun; most of the rest clear on the $60 live run) **+ 7 new pinks shipped 1 Jul + #15 re-dotted 🟢→🩷 + #283/#264 shipped LIVE 2 Jul** (Section E below). Status of record = PRODUCT-INVENTORY.
 
 **Portal = `app.get-kind.com` · Website = `www.get-kind.com` · Admin = `admin.get-kind.com`**
 
@@ -20,6 +20,8 @@ Pink = **live but not verified.** For each: walk it → if it works it's 🟢, i
 | 274 | Sales Channel | Command Centre → Partners lens shows real partners/deals/commissions (AE/Overall = sample-tagged) | |
 | 275 | Nora | Ask Nora bottom-right → replies, re-greets per screen | |
 | 15 | Auto/Co-Pilot modes *(re-dotted 🟢→🩷: review-gate refuted, #268)* | modes UI works; do NOT trust "review before send" until #268 ships — everything auto-sends | |
+| 283 | Website $1→$3 single-FIGSY *(LIVE 2 Jul, #883)* | walk `www.get-kind.com`: index · pricing · figsy · vs-hiring · use-cases · solutions · partners all show **$3/lead · $60/$120/$300 bundles**, zero $1/$20; ToS reads $3-only (⛔ + your legal sign-off). ⚠️ do NOT drive prospects until #284 (product mismatch) is fixed | |
+| 264 | Webhook replay guard *(code LIVE 2 Jul, #884)* | **first run migration `20260702_webhook_idempotency.sql`** → then resend a webhook from the Resend dashboard → no duplicate reply row / CRM push / top-up charge | |
 
 ---
 

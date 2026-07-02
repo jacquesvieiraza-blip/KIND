@@ -86,7 +86,7 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 ---
 
 ## ③ ADMIN CENTRE + OPERATIONS — Milestone 3 · *the cockpit we run the business from*
-### 👉 Bottom line: M2 makes the product usable *by a client*; **M3 is how WE actually onboard, operate, and get paid.** Onboarding triggers + finance + team/partner oversight + Nora (admin co-pilot) live here. **Full spec: `docs/admin-centre-spec.md`.** Preview: `scratchpad/admin-centre-preview.html`.
+### 👉 Bottom line: M2 makes the product usable *by a client*; **M3 is how WE actually onboard, operate, and get paid.** Onboarding triggers + finance + team/partner oversight + Nora (admin co-pilot) live here. **Full spec: `docs/admin-centre-spec.md`.** *(The clickthrough preview was a session artifact shared in-chat — not stored in the repo.)*
 ### 🏗️ Build mode = **LIVE.** Admin is internal (not client-facing) → no preview gate. I build → push live → **you beta-test in the live system** → verify → next piece.
 
 ### 📊 FULL BUILD AUDIT (1 Jul — the complete M3 picture)

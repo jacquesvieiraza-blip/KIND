@@ -469,7 +469,7 @@ That + outbound + partners = the motion.
 **Positioning to carry through all content:** Africa-first · **augment-not-replace** (give every rep their own AI, not "fire the team") · POPIA/compliance moat · velocity moat · low per-seat price vs $500+/mo US tools · **"level up your whole team to your top performer."**
 
 ### 🎬 VIDEO ACTION PLAN (sharpened 11 Jun late — content based on the inventory)
-**Principle: the pages are BUILT and embed-ready (`the-drop.html` video slot · `product-videos.html` "Watch") — the bottleneck is RECORDING, all 🧍. Record → upload to YouTube → paste the video ID → live. The PRODUCT-INVENTORY (Part A 53 live features + Part B0 release train) is the shot list: every shipped feature is video material; every merged release feeds a Drop with its own video.**
+**Principle: `the-drop.html` is BUILT and embed-ready; ⚠️ `product-videos.html` ("Watch") is **NOT in the repo** (audit 2 Jul — file doesn't exist; status of record = inventory #93 🟣 "Watch held"). The bottleneck is RECORDING, all 🧍. Record → upload to YouTube → paste the video ID → live. The PRODUCT-INVENTORY (Part A 53 live features + Part B0 release train) is the shot list: every shipped feature is video material; every merged release feeds a Drop with its own video.**
 
 | # | Video | Source material (inventory) | Where it lands | When |
 |---|-------|------------------------------|----------------|------|
@@ -484,7 +484,7 @@ That + outbound + partners = the motion.
 
 ## ✨ MARKETING SITE — "THE DROP" + SITE IA (approved 10 Jun · PR #503 · post-launch)
 - **"The Drop"** (`apps/website/the-drop.html`, built + founder-approved · **+ video slot per drop added 11 Jun** — Drop 01 = a 60-sec walkthrough, embed-ready) — a product-drop archive (Glean-style stacked cards) = **the honest replacement for the client-facing roadmap we hid (Y9)**: it celebrates what *shipped* (past-tense, real, live), not what's promised. **Each drop pairs a short video + feature cards** (video = the trust multiplier). **Cadence rule: never publish empty or stale** — launch it WITH the 19th as **"Drop 01"**, then a new drop ~monthly (it's a forcing function for the post-19th velocity). It's the public proof of the "velocity = moat" call + a recurring re-engagement touchpoint.
-- **"Watch" / Product Videos** (`apps/website/product-videos.html`, built + approved) — replaces the plain Demo link; built for the **founder's personal YouTube walkthroughs** (authentic "real run-throughs", YouTube-embed-ready). Authenticity > polish for the Africa-SMB trust market.
+- **"Watch" / Product Videos** — ⚠️ **corrected 2 Jul (audit): `apps/website/product-videos.html` does NOT exist in the repo** (earlier "built + approved" claim was drift; status of record = inventory **#93 🟣 "Watch held"**). The intent stands: replaces the plain Demo link, built for the **founder's personal YouTube walkthroughs** (authentic "real run-throughs", YouTube-embed-ready) — but the page must be (re)built before anything can land on it. Authenticity > polish for the Africa-SMB trust market.
 - **Lean footer** — keep it tight (4 honest columns + legal strip); every link = a real page. Do NOT copy Glean's enterprise sprawl. Existing site footer is already lean — grow it as we grow.
 - **HELD (post-launch wiring step):** site-wide nav/footer rewire across ~40 pages — Demo→"Watch", add "The Drop". On PR #503, applied when founder says wire-it-in. Pages are orphan/unlinked until then (safe — can't surface).
 

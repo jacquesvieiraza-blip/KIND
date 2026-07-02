@@ -34,7 +34,7 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 |---|---------|-------|
 | 1a | **Cold emails have NO opt-out line + NO postal address** (CAN-SPAM, US list). "Reply STOP" lives only in FIGSY code — Instantly bypasses it | `our-outreach-us-uk.md:39-55` |
 | 1b | **"4-step sequence" is only 3 emails** — Step 3 (Day 6) is a LinkedIn touch; can't "paste 4 into Instantly" | `our-outreach-us-uk.md:51` |
-| 1c | **Website/ToS sell the retired $1 tier · FIGSY mispriced at $1** (#283) | `figsy.html:831` vs `terms.html:288` |
+| 1c | ✅ **BUILT 2 Jul → website $1→$3 single-FIGSY** (#283, branch `claude/pr1-website-3usd-pricing`, **pending your preview**) · ⛔ ToS $3-only wording drafted, needs your legal sign-off before go-live | `figsy.html:831` `terms.html` §2/§4/§6 |
 
 **2 · Demo prep — cheap, do before ANY face-to-face** ⚠️
 Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-275`) · create the demo BEFORE the meeting (seeding runs inline) · never reopen an expired demo · steer around **Knowledge · Team · Integrations** (live nav, say "coming soon") · don't quote the demo form's numbers (says ~1,750 emails, seeds ~1,350).
@@ -77,7 +77,7 @@ Board corrected below (4 rows were overclaimed → now 🔴). Build order: **#27
 > 🛑 **BUILD BLOCKERS before prospects land (audit 2 Jul) — the three 1a/1b/1c items from HYPER-FOCUS:**
 > **1a — CAN-SPAM:** the paste-ready cold emails have **no opt-out line and no postal address** (`our-outreach-us-uk.md:39-55`); the "Reply STOP" net is FIGSY-code-only (`deliverability.ts:132`) and does NOT apply when sending via Instantly. Illegal to fire at the US list as-is.
 > **1b — Sequence math:** Step 3 (Day 6) is a **LinkedIn touch, not an email** (`our-outreach-us-uk.md:51`) — only 3 email steps exist to paste into Instantly; step 3 must become an email or the plan must say 3-email + LinkedIn.
-> **1c — Pricing (#283):** website still sells the retired **$1 Lead-Gen tier**; **FIGSY mispriced at $1** on its own page (`figsy.html:831`) while ToS says $3 (`terms.html:288`). Fix to single **$3 FIGSY** (ties to #239).
+> **1c — Pricing (#283) — ✅ BUILT 2 Jul (branch `claude/pr1-website-3usd-pricing`, pending your preview):** retired the **$1 Lead-Gen tier** + stale **$20 entry** across the whole site → single **$3 FIGSY** (entry $60; bundles 20/40/100 = $60/$120/$300). Fixed `index.html`, `pricing.html` (cards + compare matrix + FAQ + JS + add-on reframe), `figsy.html`, `vs-hiring-an-sdr.html`, `use-cases.html`, `solutions.html`, `partners.html`; dead footer `#products` link fixed (55 pages); footer "Lead Gen" entry relabelled (56 pages). **⛔ ToS $3-only wording drafted in `terms.html` §2/§4/§6 — needs your legal sign-off before it goes live.** Ties #239. **Next: you preview on staging → approve → it ships.**
 
 **Front ① is done when:** website priced correctly (#283) · Instantly warm · first send fired.
 

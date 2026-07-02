@@ -157,7 +157,7 @@ export default function DemoPage() {
   return (
     <>
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium bg-gray-900 text-gray-900">
+        <div className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium bg-gray-900 text-white">
           {toast}
         </div>
       )}
@@ -173,7 +173,7 @@ export default function DemoPage() {
               <RefreshCw className="w-4 h-4" />
             </button>
             <button onClick={() => { setShowForm(true); setCreateError(null) }}
-              className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] text-gray-900 text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+              className="flex items-center gap-2 px-4 py-2 bg-[#7C3AED] text-white text-sm font-medium rounded-lg hover:bg-[#6D28D9] transition-colors">
               <Plus className="w-4 h-4" />New Demo
             </button>
           </div>

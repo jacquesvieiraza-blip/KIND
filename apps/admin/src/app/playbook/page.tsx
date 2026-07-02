@@ -338,14 +338,14 @@ What questions do you have before I put together your proposal?"`,
       </div>
       {steps.map((s) => (
         <div key={s.step} className="border border-gray-100 rounded-xl overflow-hidden">
-          <div className="bg-[#001f4d] px-4 py-3 flex items-center justify-between">
+          <div className="bg-brand-900 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <span className="w-7 h-7 rounded-full bg-gray-200 text-gray-900 text-xs font-bold flex items-center justify-center">
+              <span className="w-7 h-7 rounded-full bg-white/15 text-white text-xs font-bold flex items-center justify-center">
                 {s.step}
               </span>
               <div>
-                <p className="text-gray-900 font-medium text-sm">{s.title}</p>
-                {s.nav && <p className="text-gray-500 text-xs">{s.nav}</p>}
+                <p className="text-white font-medium text-sm">{s.title}</p>
+                {s.nav && <p className="text-white/50 text-xs">{s.nav}</p>}
               </div>
             </div>
             <Tag color="blue">{s.time}</Tag>
@@ -446,7 +446,7 @@ function ObjectionContent() {
 function ProposalContent() {
   return (
     <div className="space-y-6">
-      <div className="bg-[#001f4d]/5 border border-[#001f4d]/10 rounded-lg p-5 space-y-4">
+      <div className="bg-brand-100/40 border border-brand-200/50 rounded-lg p-5 space-y-4">
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Subject line</p>
           <p className="text-sm text-gray-700 font-mono">KIND Proposal — [Company Name] — [Date]</p>

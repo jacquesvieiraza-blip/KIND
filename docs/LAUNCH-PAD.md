@@ -47,7 +47,7 @@ Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-2
 Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.
 - ▶ **Slice A — design-system foundation: BUILT + MERGED (#887)** — kit + tokens + recharts (invisible plumbing; the admin was already violet, so nothing changed on screen — by design).
 - ▶ **Slice B — Nora + Cockpit: MERGED (#888), founder saw it live** — Nora on the `AgentSidePanel` look (photo header · avatar bubbles · **MarkdownLite** · typing dots), admin on the `kind-gradient` backdrop, Cockpit on frosted portal cards.
-- ▶ **Next: Slice C — walk-critical honesty + audit-defect fixes:** fake charts in the Sales-Channel Partners lens · cut HubSpot · static "Healthy" health label · **invisible toast** (`demo:160`) · dark-text-on-violet buttons (`demo:176` · `clients/[id]:238` · `terms-library:154`) · dark-navy relics (`scalability:136` · `playbook:341,449`) · Cockpit dead `KpiTargetsSection` (render-or-delete) · Nora float keyframes + bubble-avatar fallback · **Cockpit MRR reads $0 with 11 active subs** (`amount_zar` null on those subs — investigate data or sum Stripe USD too).
+- ▶ **Slice C — honesty + defect sweep: BUILT 2 Jul PM** (branch `claude/admin-c-honesty-fixes`, tsc + build green): **fake charts now render ONLY on sample-tagged lenses** (live partner lens gets honest wire-in states; per-card `sample` pills added — when AEs go live via #276 the fakes auto-vanish) · **HubSpot cut** (nav + page deleted) · **System-health tile = real `/health` probe** (Healthy/Degraded/Unreachable — was a hardcoded string) · **Cockpit MRR fixed** (sums `amount_usd` source-of-truth, falls back to ZAR, flags subs missing amounts — was $0 with 11 active) · invisible toast + 3 dark-text-on-violet buttons + navy relics fixed · dead `KpiTargetsSection` deleted (targets ladder lives in Sales Channel → actuals in Finance, #282) · Nora float keyframes + bubble-avatar fallback. **Next: Slice D — #282 dedup (Cohorts/churn/MRR one home each + cohorts' flat cards).**
 
 **GTM — Fri 3 Jul (tomorrow):** 12 weeks of LinkedIn posts → creates `docs/content/linkedin-playbook.md`.
 
@@ -148,7 +148,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Pulse — Cash & runway | 🩷 ⏸ |
 | Pulse — Clients | 🩷 |
 | Pulse — This week | 🩷 |
-| Pulse — System health | 🩷 *(static "Healthy" label, not a live check)* |
+| Pulse — System health | 🩷 *(real `/health` probe since Slice C — Healthy/Degraded/Unreachable)* |
 | Pulse — Pool stock | 🩷 ⏸ |
 | Needs you now — at-risk (live) | 🩷 |
 | Needs you now — trigger rows (signup/payment/switch/pool) | 🔴 |

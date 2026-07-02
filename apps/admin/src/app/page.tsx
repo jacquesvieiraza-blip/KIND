@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import { PRICING, PRODUCTS } from '@kind/shared'
-import { Users, DollarSign, TrendingUp, AlertCircle, Clock, Target, CheckCircle2, XCircle, MinusCircle,
+import { Users, DollarSign, AlertCircle, Target, CheckCircle2,
   Zap, Wallet, Package, HeartPulse, ArrowUpRight, CreditCard, Repeat } from 'lucide-react'
 import Link from 'next/link'
 import { getZarPerUsd, zarToUsd, fxLabel, type FxRate } from '../lib/fx'
@@ -21,6 +21,16 @@ async function getChurnRisk(): Promise<ChurnRiskEntry[]> {
     const json = await res.json() as { success: boolean; data?: { at_risk: ChurnRiskEntry[] } }
     return json.data?.at_risk ?? []
   } catch { return [] }
+}
+
+// System health = a REAL probe of the live API (was a hardcoded 'Healthy' string —
+// Slice C honesty fix). Green only when /health answers 200.
+async function getSystemHealth(): Promise<'Healthy' | 'Degraded' | 'Unreachable'> {
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+  try {
+    const res = await fetch(`${apiBase}/health`, { cache: 'no-store', signal: AbortSignal.timeout(4000) })
+    return res.ok ? 'Healthy' : 'Degraded'
+  } catch { return 'Unreachable' }
 }
 
 interface ClientRow {
@@ -101,8 +111,14 @@ async function getAdminStats() {
   })()
 
   const fx = await getZarPerUsd()
+  // MRR: amount_usd is the source of truth (C4, subscriptions.ts); amount_zar is the
+  // Paystack/back-compat leg. Summing only amount_zar showed $0 with active USD subs
+  // (Slice C honesty fix) — take USD when set, else convert ZAR, and COUNT the subs
+  // that carry no amount at all so the tile can say so instead of silently lying.
   const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0), 0)
-  const mrrUsd = zarToUsd(mrrZar, fx.zarPerUsd)
+  const mrrUsd = Math.round((activeSubs || []).reduce((sum, sub) =>
+    sum + (sub.amount_usd ? Number(sub.amount_usd) : zarToUsd(sub.amount_zar || 0, fx.zarPerUsd)), 0))
+  const subsMissingAmount = (activeSubs || []).filter(sub => !sub.amount_usd && !sub.amount_zar).length
 
   const firstLeadByClient: Record<string, string> = {}
   for (const row of allLeads ?? []) {
@@ -138,6 +154,7 @@ async function getAdminStats() {
     signupsThisWeek: signupsThisWeek || 0,
     mrrZar,
     mrrUsd,
+    subsMissingAmount,
     fx,
     avgTtfl,
     clients: clientsWithTtfl as ClientRow[],
@@ -201,169 +218,20 @@ function StatusBadge({ status }: { status: string | null }) {
   )
 }
 
-const MONTHLY_TARGETS = [
-  { month: 'May 2026',  mrrTarget: 500,    clientTarget: 8   },
-  { month: 'Jun 2026',  mrrTarget: 2000,   clientTarget: 15  },
-  { month: 'Jul 2026',  mrrTarget: 5000,   clientTarget: 30  },
-  { month: 'Aug 2026',  mrrTarget: 10000,  clientTarget: 55  },
-  { month: 'Sep 2026',  mrrTarget: 17000,  clientTarget: 80  },
-  { month: 'Oct 2026',  mrrTarget: 26000,  clientTarget: 120 },
-  { month: 'Nov 2026',  mrrTarget: 36000,  clientTarget: 160 },
-  { month: 'Dec 2026',  mrrTarget: 48000,  clientTarget: 200 },
-]
-
-const KEY_KPIS = [
-  { label: 'Time to First Lead',     target: '< 4 hrs',   unit: 'TTFL' },
-  { label: 'Trial → Paid Conv.',     target: '> 40%',     unit: 'CVR' },
-  { label: 'Monthly Churn',          target: '< 5%',      unit: 'Churn' },
-  { label: 'FIGSY Reply Rate',       target: '> 3%',      unit: 'Reply' },
-  { label: 'FIGSY Interested Rate',  target: '> 0.5%',    unit: 'Int.' },
-  { label: 'NPS',                    target: '> 50',      unit: 'NPS' },
-]
-
-function ragStatus(pct: number): 'green' | 'amber' | 'red' {
-  if (pct >= 80) return 'green'
-  if (pct >= 50) return 'amber'
-  return 'red'
-}
-
-function RagIcon({ pct }: { pct: number }) {
-  const status = ragStatus(pct)
-  if (status === 'green') return <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-  if (status === 'amber') return <MinusCircle className="w-4 h-4 text-amber-400" />
-  return <XCircle className="w-4 h-4 text-red-400" />
-}
-
-function getCurrentTarget() {
-  const now = new Date()
-  const nowMs = now.getTime()
-  for (const t of MONTHLY_TARGETS) {
-    const d = new Date(t.month)
-    if (d.getTime() >= nowMs - 86400000 * 30) return t
-  }
-  return MONTHLY_TARGETS[MONTHLY_TARGETS.length - 1]
-}
-
-function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClients: number }) {
-  const current = getCurrentTarget()
-  const mrrPct    = Math.min((mrrUsd / current.mrrTarget) * 100, 100)
-  const clientPct = Math.min((totalClients / current.clientTarget) * 100, 100)
-
-  return (
-    <div className="space-y-4">
-      {/* Current month progress */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-[#7C3AED]" />
-          <h2 className="font-semibold text-gray-900">KPI Progress — {current.month}</h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-gray-500">MRR</span>
-              <span className="font-semibold text-gray-900">${mrrUsd.toLocaleString()} / ${current.mrrTarget.toLocaleString()}</span>
-            </div>
-            <div className="w-full bg-purple-100 rounded-full h-2.5">
-              <div className={`h-2.5 rounded-full transition-all ${ragStatus(mrrPct) === 'green' ? 'bg-green-500' : ragStatus(mrrPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
-                   style={{ width: `${mrrPct}%` }} />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{mrrPct.toFixed(1)}% of target</p>
-          </div>
-          <div>
-            <div className="flex justify-between text-sm mb-1.5">
-              <span className="text-gray-500">Clients</span>
-              <span className="font-semibold text-gray-900">{totalClients} / {current.clientTarget}</span>
-            </div>
-            <div className="w-full bg-purple-100 rounded-full h-2.5">
-              <div className={`h-2.5 rounded-full transition-all ${ragStatus(clientPct) === 'green' ? 'bg-green-500' : ragStatus(clientPct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
-                   style={{ width: `${clientPct}%` }} />
-            </div>
-            <p className="text-xs text-gray-400 mt-1">{clientPct.toFixed(1)}% of target</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Monthly targets roadmap */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">Monthly Revenue Targets</h2>
-        <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-purple-100">
-                {['Month', 'MRR Target', 'Client Target', 'Current vs Target', ''].map(h => (
-                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-purple-50">
-              {MONTHLY_TARGETS.map(t => {
-                const isCurrentMonth = t.month === current.month
-                const pct = Math.min((mrrUsd / t.mrrTarget) * 100, 100)
-                const isFuture = new Date(t.month).getTime() > Date.now() + 86400000 * 30
-                return (
-                  <tr key={t.month} className={isCurrentMonth ? 'bg-purple-50/60' : 'hover:bg-purple-50/30 transition-colors'}>
-                    <td className="px-3 py-3">
-                      <span className="font-medium text-gray-900">{t.month}</span>
-                      {isCurrentMonth && <span className="ml-2 text-xs bg-[#7C3AED] text-white px-1.5 py-0.5 rounded font-medium">Now</span>}
-                    </td>
-                    <td className="px-3 py-3 font-medium text-gray-700">${t.mrrTarget.toLocaleString()}</td>
-                    <td className="px-3 py-3 text-gray-500">{t.clientTarget} clients</td>
-                    <td className="px-3 py-3">
-                      {isFuture ? (
-                        <span className="text-xs text-gray-300">upcoming</span>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <div className="w-24 bg-purple-100 rounded-full h-1.5">
-                            <div className={`h-1.5 rounded-full ${ragStatus(pct) === 'green' ? 'bg-green-500' : ragStatus(pct) === 'amber' ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
-                                 style={{ width: `${pct}%` }} />
-                          </div>
-                          <span className="text-xs text-gray-500">{pct.toFixed(0)}%</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      {!isFuture && <RagIcon pct={pct} />}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Key KPI targets */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
-        <h2 className="font-semibold text-gray-900 mb-1">Core KPI Targets</h2>
-        <p className="text-xs text-gray-400 mb-4">Track these weekly — they're the leading indicators of growth</p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {KEY_KPIS.map(k => (
-            <div key={k.label} className="bg-purple-50/60 border border-purple-100 rounded-xl px-4 py-3">
-              <p className="text-xs text-[#7C3AED]/60 font-semibold uppercase tracking-wide">{k.unit}</p>
-              <p className="text-lg font-bold text-gray-900 mt-0.5">{k.target}</p>
-              <p className="text-xs text-gray-500 mt-0.5">{k.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ── PULSE — 6 tiles: the whole business at a glance ──────────────────────────
-function PulseTiles({ stats, atRiskCount }: { stats: NonNullable<Awaited<ReturnType<typeof getAdminStats>>>; atRiskCount: number }) {
+function PulseTiles({ stats, atRiskCount, health }: { stats: NonNullable<Awaited<ReturnType<typeof getAdminStats>>>; atRiskCount: number; health: 'Healthy' | 'Degraded' | 'Unreachable' }) {
+  const healthCls = health === 'Healthy' ? 'bg-emerald-50 text-emerald-600' : health === 'Degraded' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
   const tiles = [
     { label: 'MRR (USD)', value: `$${stats.mrrUsd.toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, cls: 'bg-green-50 text-green-600',
-      note: <span className="text-gray-400">{stats.activeSubscriptions} active · R{stats.mrrZar.toLocaleString()}</span> },
+      note: <span className="text-gray-400">{stats.activeSubscriptions} active{stats.subsMissingAmount > 0 && <span className="text-amber-600"> · {stats.subsMissingAmount} missing amount</span>}</span> },
     { label: 'Cash & runway', value: 'Connect Wise', icon: <Wallet className="w-5 h-5" />, cls: 'bg-gray-50 text-gray-400',
       note: <span className="text-amber-600">needs Jacques — link Wise</span> },
     { label: 'Clients', value: stats.totalClients, icon: <Users className="w-5 h-5" />, cls: 'bg-purple-50 text-[#7C3AED]',
       note: <span className="text-gray-400">{stats.trialClients} trial · {atRiskCount > 0 ? <span className="text-red-600">{atRiskCount} at-risk</span> : 'none at-risk'}</span> },
     { label: 'This week', value: stats.signupsThisWeek, icon: <ArrowUpRight className="w-5 h-5" />, cls: 'bg-purple-50 text-[#7C3AED]',
       note: <span className="text-gray-400">new signups (7d)</span> },
-    { label: 'System health', value: 'Healthy', icon: <HeartPulse className="w-5 h-5" />, cls: 'bg-emerald-50 text-emerald-600',
-      note: <Link href="/health" className="text-[#7C3AED] hover:underline">open engine →</Link> },
+    { label: 'System health', value: health, icon: <HeartPulse className="w-5 h-5" />, cls: healthCls,
+      note: <Link href="/health" className="text-[#7C3AED] hover:underline">live `/health` probe · open engine →</Link> },
     { label: 'Pool stock', value: 'Connect', icon: <Package className="w-5 h-5" />, cls: 'bg-gray-50 text-gray-400',
       note: <span className="text-amber-600">needs Jacques — Smartlead</span> },
   ]
@@ -465,7 +333,7 @@ function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: num
 }
 
 export default async function AdminPage() {
-  const [stats, atRisk] = await Promise.all([getAdminStats(), getChurnRisk()])
+  const [stats, atRisk, health] = await Promise.all([getAdminStats(), getChurnRisk(), getSystemHealth()])
 
   if (!stats) {
     return (
@@ -498,7 +366,7 @@ export default async function AdminPage() {
       </div>
 
       {/* PULSE — 6 tiles */}
-      <PulseTiles stats={stats} atRiskCount={atRisk.length} />
+      <PulseTiles stats={stats} atRiskCount={atRisk.length} health={health} />
 
       {/* NEEDS YOU NOW — the Action Queue */}
       <ActionQueue atRisk={atRisk} />

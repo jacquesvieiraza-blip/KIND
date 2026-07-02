@@ -57,3 +57,16 @@ html, body, #__next { height: 100%; }
 /* Hide scrollbars on the slim sidebar rail */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Agent image float (copied from apps/portal, #277) — used by Nora's photo ── */
+@keyframes agent-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-10px); }
+}
+.agent-img-float {
+  animation: agent-float 4s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .agent-img-float { animation: none !important; }
+}

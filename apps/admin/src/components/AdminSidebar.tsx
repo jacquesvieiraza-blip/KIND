@@ -4,11 +4,11 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Users, FileText, Map, Megaphone,
-  Rocket, MonitorPlay, BookOpen, Inbox,
-  ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
-  UserSquare2, Layers, Database, Eye,
-  Handshake, Pin, Gauge, Wallet, HeartPulse, Sprout, Boxes,
+  Users, FileText, Megaphone,
+  Rocket, MonitorPlay, Inbox,
+  ShieldCheck, DollarSign, Activity, FlaskConical,
+  UserSquare2, Layers, Eye,
+  Handshake, Pin, Gauge, HeartPulse, Sprout, Boxes,
 } from 'lucide-react'
 
 // NOTE: do not name this `ref` — React reserves `ref`, and since the items are

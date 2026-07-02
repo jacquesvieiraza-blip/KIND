@@ -223,11 +223,13 @@ function PulseTiles({ stats, atRiskCount, health }: { stats: NonNullable<Awaited
   const healthCls = health === 'Healthy' ? 'bg-emerald-50 text-emerald-600' : health === 'Degraded' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
   const tiles = [
     { label: 'MRR (USD)', value: `$${stats.mrrUsd.toLocaleString()}`, icon: <DollarSign className="w-5 h-5" />, cls: 'bg-green-50 text-green-600',
-      note: <span className="text-gray-400">{stats.activeSubscriptions} active{stats.subsMissingAmount > 0 && <span className="text-amber-600"> · {stats.subsMissingAmount} missing amount</span>}</span> },
+      // #282 single-home: MRR's detailed home is Finance — the Cockpit only glances + links.
+      note: <span className="text-gray-400">{stats.activeSubscriptions} active{stats.subsMissingAmount > 0 && <span className="text-amber-600"> · {stats.subsMissingAmount} missing amount</span>} · <Link href="/revenue" className="text-[#7C3AED] hover:underline">Finance →</Link></span> },
     { label: 'Cash & runway', value: 'Connect Wise', icon: <Wallet className="w-5 h-5" />, cls: 'bg-gray-50 text-gray-400',
       note: <span className="text-amber-600">needs Jacques — link Wise</span> },
     { label: 'Clients', value: stats.totalClients, icon: <Users className="w-5 h-5" />, cls: 'bg-purple-50 text-[#7C3AED]',
-      note: <span className="text-gray-400">{stats.trialClients} trial · {atRiskCount > 0 ? <span className="text-red-600">{atRiskCount} at-risk</span> : 'none at-risk'}</span> },
+      // #282 single-home: at-risk / churn's detailed home is Clients — glance + link only.
+      note: <span className="text-gray-400">{stats.trialClients} trial · {atRiskCount > 0 ? <Link href="/clients" className="text-red-600 hover:underline">{atRiskCount} at-risk →</Link> : 'none at-risk'}</span> },
     { label: 'This week', value: stats.signupsThisWeek, icon: <ArrowUpRight className="w-5 h-5" />, cls: 'bg-purple-50 text-[#7C3AED]',
       note: <span className="text-gray-400">new signups (7d)</span> },
     { label: 'System health', value: health, icon: <HeartPulse className="w-5 h-5" />, cls: healthCls,

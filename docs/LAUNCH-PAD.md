@@ -1,6 +1,7 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 2 July 2026 (PM — Fable regroup)** · Three milestones. Nothing else on this page.
+**As of: 2 July 2026 (PM — Fable regroup, post-merge)** · Three milestones. Nothing else on this page.
+**This pass:** all M1 fixes + all 9 M3 build slices merged to `main`; the two Finance defects FIXED (commit `45fb71b`); the **7-officer executive-lens gap report** logged in full below (§③) and minted as tracked items **#285–#299**.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
 > Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. Procedures/flows = SOP (`client-flow-sop.md`). This page = what to do now.
@@ -56,14 +57,29 @@ Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) 
 - ▶ **Slice H — Engine graph shell: MERGED #900 (#279)** — Deliverability-over-time frosted card (empty axes + "needs reporting endpoint", no fake points) + Engine cards to kit. Stays 🔴 pending endpoint.
 - ▶ **Slice I — Sales Channel shells: MERGED #901 (#274)** — Contracts vault + Winning plays tabs + per-person targets card, all labelled "needs AE data (#276)". Stays 🔴 pending #276.
 - ▶ **Slice Ops — Admin Ops shells: MERGED #902 (#280)** — new `/ops` route + sidebar row · inbox-pool/day-29/onboarding cards labelled "needs Smartlead access". Stays 🔴/⏸ pending Smartlead.
-- 🐛 **AUDIT (2 Jul PM) — 2 live Finance defects to fix next:** (1) **Finance MRR still sums `amount_zar` only** (`revenue/page.tsx:126`) → can read $0 with USD subs; Cockpit got the `amount_usd` fix, Finance (the MRR single-home) didn't. (2) **ARPU tiers card shows the retired "$20 Starter · Lead Gen only" pricing as current** (`revenue/page.tsx:80-84`). Plus 6 dead icon imports in `AdminSidebar.tsx`. **Next: fix these + the M1/M2 🐛 rows (see §1–§3).**
+- ✅ **AUDIT (2 Jul PM) — the 2 Finance defects are now FIXED** (commit `45fb71b`): MRR prefers `amount_usd` (was `amount_zar`-only → $0 with USD subs); retired "$20 Lead Gen" ARPU tier cards removed (real Blended ARPU kept). **Open admin 🐛 now: (1) Sales-Channel Coverage "2.1× ✓" + Needed "$4,500" are hardcoded literal strings** (`command/page.tsx:212` → **#294**); **(2) 6 dead icon imports** in `AdminSidebar.tsx` (**#299**).
+- 🕳️ **AUDIT (2 Jul PM) — the executive-lens gap report (§③ below):** 9 nervous-system holes logged as tracked items — **#285 alerting · #286 dunning · #287 MRR waterfall · #288 sales analytics · #289 NPS · #290 error-tracking · #291 funnel-join · #292 usage-trend · #293 at-risk-playbook** (+ #295 invoices · #296 refunds · #297 renewals · #298 backup-drill). All 🤖 buildable now except #298 (🤝 drill). **The pattern: we have a good dashboard; what's missing is the nervous system — nothing tells you anything, you must go look.**
 
 **GTM — Fri 3 Jul (tomorrow):** 12 weeks of LinkedIn posts → creates `docs/content/linkedin-playbook.md`.
 
 ---
 
 ## ① OUTREACH OURSELVES — Milestone 1 · *sell K.I.N.D via our own cold email*
-### 👉 Bottom line *(Fable regroup, 2 Jul PM)*: the ENGINE is done; 1a/1b are drafted (need your postal address + cadence call) and the site is repriced 🩷 — **what now gates ① is #284 (the product still sells the retired $1 tier — fix before any prospect lands)** + the **Instantly warmth clock** + your manual import/test/fire.
+### 👉 Bottom line *(Fable regroup, 2 Jul PM · post-merge)*: the ENGINE is done and **every build blocker is now cleared** — 1a postal address + 1b 4-email cadence + ToS $3 all LOCKED (merged #913), site repriced to $3 (#912), **#284 lead_gen retired in the product** (signup now creates a FIGSY plan, portal sells FIGSY-only — merged #911). **What now gates ① is ONLY the Instantly warm-up clock (your side) + your manual import/test/fire.** Nothing left for me to build here except the 2 tiny wording defects (to re-verify).
+
+### 🔲 WHAT'S LEFT (the full drill — all 🧍 you, all ⏱ no-build, in strict order)
+| # | What's left | Dot | Owner |
+|---|-------------|-----|-------|
+| 🛑 GATE | Instantly inbox warm-up ≥90% (#198) — the #1 gate, 1–2 wk clock | ⏸ | 🧍 you |
+| 1 | Upgrade Instantly plan (capacity ≥1,500 sends) | 🔴 | 🧍 you |
+| 2 | Import the 1,461-person list | 🔴 | 🧍 you |
+| 3 | Load the **4 emails + 1 LinkedIn** sequence into Instantly (Day 0/3/6-LI/8/10) | 🔴 | 🧍 you |
+| 4 | mail-tester 10/10 (#101) | 🔴 | 🧍 you |
+| 5 | Test-send 10–20 → check inbox placement (Primary, bounce <2%, spam <0.3%) | 🔴 | 🧍 you |
+| 6 | 🚀 Fire first outreach (#127) + dogfood monitor (#132) | 🔴 | 🧍 you |
+| 7 | 2 tiny wording defects `vs-salesloft:351,354` ("$60 total") | 🐛 | 🤖 me (re-verify if still live) |
+
+**Cleared this pass:** 1a address · 1b 4-email cadence · ToS $3 (#913) · 1c/1d website $3 + #284 lead_gen retired (#911/#912).
 
 ### ✅ Done (code-verified 1 Jul)
 | What | Evidence |
@@ -114,14 +130,18 @@ Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) 
 
 > ⚠️ **The "warm and nothing happens" trap (env, silent no-ops):** if `RESEND_API_KEY` is unset, rows say "sent" but **no mail leaves** (`figsy.ts:414`); if `ADMIN_SECRET_KEY` is unset, **every cron silently skips** → only step 1 ever sends (`cron.ts:8`). Also confirm `ANTHROPIC_API_KEY`, `RESEND_WEBHOOK_SECRET`, `FIGSY_COLD_FROM` (NOT the transactional domain), `FIGSY_WARMUP_START`, `TRACKING_URL`. **Verify these BEFORE any real send.**
 
-### 🔲 Left — the build list, ranked (Wednesday order: security → money → isolation → data → depth)
-| # | Item | Size | Why it blocks a paying client |
-|---|------|------|-------------------------------|
-| 🛑 1 | 🛑 **#211 sending engine = Smartlead** — per-client isolated + warmed mailboxes | **BIG (multi-day)** | we signed up, but only Phase-1 read-only is built (`smartlead.ts`, zero sending). Real sends share ONE domain + ONE global cap. **Smartlead replaces Apollo's SENDING, not its DATA.** *(tomorrow)* |
-| 2 | **Lead-Gen → single $3 FIGSY** · **#212 sequence depth** · **#268 approval-send stub** · **#199 monitoring** · **#264 webhook idempotency** · **#269 rate limits** · **#273 schema consolidation** | med | product simplification + depth + hardening. |
-| V | **$60 live money walk** (#28b) | ⏱ your action | prove every credit movement with real money. *(tomorrow)* |
+### 🔲 WHAT'S LEFT (the full drill — two real gates + hardening; revenue loop itself 🟢 works)
+| # | What's left | Dot | Size | Owner |
+|---|-------------|-----|------|-------|
+| 🛑 1 | **#211 sending engine = Smartlead** — per-client isolated + warmed mailboxes. Only Phase-1 read-only built (`smartlead.ts`, zero sending); real sends share ONE domain + ONE global cap. **Smartlead replaces Apollo's SENDING, not its DATA.** | 🔴 | **BIG (multi-day)** | 🤝 blocked on you giving Smartlead access → then I build |
+| 🛑 2 | **#264 run migration** `20260702_webhook_idempotency.sql` on prod — code is LIVE, safe no-op until the migration runs (then webhook replay is idempotent). | 🩷→needs run | ⏱ | 🧍 you |
+| 3 | **$60 live money walk** (#28b) — add $60 to a LIVE account → prove every credit movement (pool fund · rep allocate · approve · delivery/enroll deduct · deactivate return · counters reconcile). | 🔴 | ⏱ | 🧍 you (when funded) |
+| 4 | **Depth + hardening:** #212 sequence depth · #199 monitoring · #269 rate limits · #273 schema consolidation. | 🔴 | med | 🤖 me |
+| 5 | **Audit hardening** — idempotency key on the Paystack charge + record-after-success (a mid-crash retry currently loses the reply). | 🐛 | small | 🤖 me |
 
-**Front ② is done when:** security closed (✅#266 + ✅#261 + ✅#260) · money-grant atomic (✅#265) · each client isolated (#211) · $60 proven live. *(✅ = #266/#261/#262/#263 done · #260/#265/#267/#243 🩷 shipped, your env/webhook action to finish.)*
+**Cleared this pass:** #268 review-gate false-promise **hidden** (#907, toggle no longer shown) · **charge-without-send guard added** (#906, refuses to enroll/charge if `RESEND_API_KEY` unset) · security 🟢 #266/#261/#262/#263 · 🩷 #260/#265/#267/#243.
+
+**Front ② is done when:** each client isolated (#211) · #264 migration run on prod · $60 proven live. *(Security + money-grant already closed: ✅#266/#261/#262/#263 · 🩷#260/#265/#267/#243.)*
 
 ---
 
@@ -190,7 +210,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Demos + closure | 🩷 |
 | Book MRR + commission | 🩷 |
 | Targets per person (mo/qtr/yr) | 🔴 *(shell built #901 — per-person card in Targets tab, labelled "needs AE data #276"; not functional until #276)* |
-| 3× pipeline coverage | 🩷 *(hardcoded shell — "2.1×" is a literal string, not computed)* |
+| 3× pipeline coverage | 🐛 *(**#294** — Coverage "2.1× ✓" + Needed "$4,500" are hardcoded literal strings on the AE lens, `command/page.tsx:212`, NOT computed. The real open admin bug. Fix: compute or honest `—`. Full compute = #288.)* |
 | Mini-CRM | 🩷 |
 | Contracts vault | 🔴 *(shell built #901 — wire-in tab, "needs AE data #276")* |
 | Winning plays (per person) | 🔴 *(shell built #901 — wire-in tab, "needs AE data #276")* |
@@ -204,13 +224,13 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Track — Xero | 🩷 ⏸ |
 | Track — Wise | 🩷 ⏸ |
 | Track — Stripe | 🩷 ⏸ |
-| Revenue — MRR live | 🐛 *(AUDIT 2 Jul — sums `amount_zar` only, `revenue/page.tsx:126`; reads $0 with USD subs. Cockpit got the `amount_usd` fix, Finance did NOT — and Finance is the MRR single-home. FIX NEXT)* |
+| Revenue — MRR live | 🩷 *(FIXED 2 Jul, commit `45fb71b` — now prefers `amount_usd` source-of-truth + zar fallback, `revenue/page.tsx:126`; was `amount_zar`-only → $0 with USD subs. Live, not walked.)* |
 | Revenue — Active paying subs | 🩷 |
 | Revenue — Blended ARPU | 🩷 |
 | Risk — revenue at risk | 🩷 |
 | Scenario tracker | 🩷 |
 | 90-day forecast | 🩷 |
-| ARPU breakdown (tiers card) | 🐛 *(AUDIT 2 Jul — shows retired "$20 Starter · Lead Gen only / $160 Growth" as current pricing, `revenue/page.tsx:80-84`; contradicts $3-only. FIX NEXT)* |
+| ARPU breakdown (tiers card) | 🩷 *(FIXED 2 Jul, commit `45fb71b` — retired "$20 Starter · Lead Gen" tier cards removed; real Blended ARPU kept, `revenue/page.tsx`. Live, not walked.)* |
 | Credit sales | 🩷 *(empty placeholder — no data path until the billing webhook wires in)* |
 | Cost stack | 🩷 |
 | Finance layout → kit | 🩷 *(all 16 revenue cards frosted, Slice F #898)* |
@@ -284,6 +304,123 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Item | Status |
 |---|---|
 | Per-staff AE logins + roles (#276) | 🔴 |
+
+### 🩺 EXECUTIVE-LENS GAP REPORT — the nervous-system holes (Fable audit, 2 Jul · full drill, not condensed)
+**Framing:** you are CEO / CFO / COO / CMO / CTO / CS **+ Sales Director** in one person. The admin IS your entire executive team. Each lens = "what that officer must know to not fly blind," what you HAVE, and the HOLE. *(Every 🔴 HOLE / 🐛 below is now a tracked item — #285–#299.)*
+
+#### 1 · CEO lens — "is the business winning?"
+| Need | Have | Verdict |
+|------|------|---------|
+| One-screen company pulse | Cockpit: MRR, clients, signups-7d, system health, at-risk | 🩷 works (real data) |
+| Targets vs actuals | Targets ladder (Sales Channel) + Finance progress bars | 🩷 works |
+| Unit economics | Cockpit margin/net card | 🩷 works — cost side is an estimate until Xero |
+| Growth trend (MoM MRR, net new) | ❌ nowhere — only point-in-time MRR | 🔴 HOLE (**#287**) |
+| Cash & runway | "Connect Wise" placeholder | ⏸ you (Wise) |
+| Decision log | KIND-MASTER (docs) | 🟢 |
+| Being told when something breaks | ❌ nothing pushes to you — every screen is pull | 🔴 **BIGGEST HOLE (#285)** |
+
+#### 2 · CFO lens — "where's the money?"
+| Need | Have | Verdict |
+|------|------|---------|
+| MRR of record | Finance page | 🩷 **FIXED** (`45fb71b` — was 🐛 ZAR-only) |
+| MRR movements (new/expansion/contraction/churn waterfall) | ❌ | 🔴 HOLE (**#287**) — can't see *why* MRR moved |
+| ARPU / pricing tiers | ARPU card | 🩷 **FIXED** (`45fb71b` — retired $20 tiers removed) |
+| Revenue-at-risk | Real (churn engine) | 🩷 works |
+| Scenario / forecast | Conservative/Base/Optimistic + 90-day | 🩷 works (model, not data) |
+| Cost stack (real) | Estimate table | ⏸ Xero |
+| Cash position / burn | ❌ | ⏸ Wise |
+| Failed payments / dunning | Cockpit *counts* past_due — no workflow, no retry, no alert | 🔴 HOLE (**#286**) — a failed payment silently sits |
+| Invoice/receipt ledger | ❌ no admin view (client-side exists) | 🔴 HOLE (**#295**) |
+| Refunds tracking | ❌ | 🔴 HOLE (**#296**) |
+| Partner commission payouts | Partners + Sales Channel (real) | 🩷 works |
+
+**CFO verdict:** the two money bugs are FIXED; cash is still invisible (⏸ Wise/Xero) and there's no dunning/invoice/refund view.
+
+#### 3 · COO lens — "does the machine run?"
+| Need | Have | Verdict |
+|------|------|---------|
+| Onboarding pipeline (signup→value) | Activation funnel — real milestones, stall flags | 🩷 works, genuinely good |
+| Client lifecycle triggers | Cockpit queue + Ops shells | 🔴 ⏸ Smartlead (#270/#271) |
+| Capacity (inbox pool) | Ops shell | 🔴 ⏸ Smartlead (#280) |
+| Delivery SLA (time-to-first-lead) | TTFL per client on Cockpit | 🩷 works |
+| Engine health | Real `/health` probe + env checklist + `/engine/env` | 🩷 works |
+| Audit trail | Activity log — real, filterable | 🩷 works |
+| Incident response — know within minutes if sends fail / API dies | ❌ `/health` only answers when YOU open it | 🔴 HOLE (**#285**) |
+| Runbooks/SOP | `client-flow-sop.md` | 🟢 |
+
+#### 4 · CMO lens — "where do customers come from?"
+| Need | Have | Verdict |
+|------|------|---------|
+| Funnel: visitor→signup→trial→paid | Pieces exist (Visitors, signups, Activation) — never joined | 🔴 HOLE (**#291**) — no conversion rates, no attribution |
+| CAC by channel | ❌ | 🔴 HOLE (**#291** — needs spend data + attribution) |
+| Campaign results (our outreach) | GTM Results shell | 🔴 (#278 — waits on M1 live; correct sequencing) |
+| Content calendar | Shell | 🔴 (#278 — Friday's LinkedIn playbook feeds it) |
+| Winning plays | Shell | 🔴 (#278 — needs data) |
+| Reply management | Unibox | 🩷 works |
+| Website intel | Visitors | 🩷 works |
+
+**CMO verdict:** correctly mostly-shells — can't measure marketing before you DO marketing (M1). The visitor→paid funnel join (#291) is the one buildable-now piece.
+
+#### 5 · CTO lens — "is it safe and up?"
+| Need | Have | Verdict |
+|------|------|---------|
+| Uptime awareness | `/health` probe (pull) | 🩷 partial (#199 = uptime pings) |
+| Error tracking (exceptions in prod) | ❌ no Sentry/equivalent | 🔴 HOLE (**#290**) — prod errors vanish into Railway logs |
+| Env/config readiness | `/engine/env` | 🩷 |
+| Security posture | Route scoping sound; rate-limit gaps (#269); admin key in URL | 🐛 two knowns (#269) |
+| Deploy status | Railway auto-deploy (outside admin) | 🟢 acceptable |
+| Backups/restore | ❌ never tested | 🔴 HOLE (**#298**) — Supabase backs up, restore untested |
+| Smoke test | `/smoketest` | 🩷 |
+
+#### 6 · Customer Success lens — "do clients stay?"
+| Need | Have | Verdict |
+|------|------|---------|
+| Health scores + churn risk | Real churn engine, reasons, scores | 🩷 works — best-in-class for your stage |
+| At-risk workflow | List + "Open client" — no playbook/next-action | 🐛 half (**#293**) — you see risk, nothing guides the save |
+| Onboarding progress per client | Activation | 🩷 works |
+| Support inbox | Messages (2-way) | 🩷 works — no SLA tracking |
+| NPS / feedback | Target ">50" exists — no collection mechanism | 🔴 HOLE (**#289**) — a KPI you cannot measure |
+| Usage trends per client | Point-in-time only (leads 14d, sends 7d) | 🐛 no trend (**#292**) — can't see a client fading |
+| Renewal/expansion signals | ❌ | 🔴 HOLE (**#297** — early-stage acceptable) |
+
+#### 7 · Sales Director lens — "is the pipeline going to close?"
+| Need | Have | Verdict |
+|------|------|---------|
+| Pipeline value by stage (weighted $) | Mini-CRM stages (won/lost/demo/trial/registered/expired); "Open pipeline" per rep | 🩷 partner side real · 🔴 AE side sample (⏸ #276) |
+| Coverage ratio (pipeline ÷ target) | "Coverage 2.1× ✓" on screen | 🐛 **FAKE** (**#294**) — hardcoded string (`command/page.tsx:212`), not computed |
+| Quota / target attainment per rep | "Needed (3×) $4,500" on screen | 🐛 **FAKE** (**#294**) — hardcoded string; no target table, no attainment math |
+| Win rate (won ÷ closed) | stages exist in data | 🔴 HOLE (**#288**) — never computed |
+| Sales-cycle length / velocity | deal timestamps exist | 🔴 HOLE (**#288**) — never computed |
+| Forecast (this month/quarter close) | ❌ | 🔴 HOLE (**#288**) |
+| Stalled / at-risk deals (no movement N days) | ❌ (the at-risk playbook is CS-churn, not deal-stall) | 🔴 HOLE (**#288**) |
+| Per-rep leaderboard / activity | AES entities `sample:true` (tagged) | 🔴 shell (⏸ #276) |
+| Partner-sourced pipeline | live from `/api/proxy/partners/admin/*` | 🩷 works |
+
+**Sales Director verdict:** the screen exists (#274 — 7 tabs) but is partner-live / AE-sample-shell, and two headline numbers — **Coverage and Needed — are hardcoded fictions (#294), not honest shells.** More dangerous than a missing chart: a Sales Director makes headcount calls on a "2.1× ✓ coverage" that was typed by hand. Shares CFO's old disease — the number lies.
+
+#### 🕳️ THE HOLES — ranked (what should be here and isn't)
+| # | Hole | Officer | Item | Why it matters | Unblock |
+|---|------|---------|------|----------------|---------|
+| 1 | No push alerting — payment fails / sends die / API down / churn → silence | CEO/COO | **#285** | You run the business by remembering to look; one missed day = silent damage | 🤖 buildable now |
+| 2 | Sales Channel lies — Coverage "2.1×✓" + Needed "$4,500" hardcoded | Sales Dir | **#294** | Headcount/quota calls off a typed-in number | 🤖 buildable now |
+| 3 | No dunning / failed-payment workflow | CFO | **#286** | Churn you never see = revenue leak | 🤖 buildable now |
+| 4 | No MRR movement waterfall + MoM trend | CFO/CEO | **#287** | "MRR moved" without the why | 🤖 buildable now |
+| 5 | No sales analytics — win-rate/velocity/forecast/stalled-deal | Sales Dir | **#288** | Can't tell if pipeline will actually close (deal data already exists) | 🤖 buildable now |
+| 6 | No NPS collection | CS | **#289** | KPI exists, measurement doesn't | 🤖 small build |
+| 7 | No error tracking | CTO | **#290** | Prod exceptions invisible | 🤖 small (Sentry free tier) |
+| 8 | Funnel not joined (visitor→paid) + CAC | CMO | **#291** | Can't compute conversion/CAC | 🤖 buildable now |
+| 9 | No per-client usage trend | CS | **#292** | Can't see fading clients before churn engine fires | 🤖 buildable |
+| 10 | At-risk save playbook | CS | **#293** | Risk visible, action isn't (fold into Nora) | 🤖 buildable |
+| 11 | No admin invoice/receipt ledger | CFO | **#295** | Can't see what clients were billed | 🤖 buildable |
+| 12 | No refunds tracking | CFO | **#296** | Refunds don't reconcile against revenue | 🤖 buildable |
+| 13 | No renewal/expansion signals | CS | **#297** | Early-stage acceptable, but a named hole | 🤖 buildable |
+| 14 | 6 dead sidebar imports | CTO | **#299** | Lint/bundle hygiene | 🤖 tiny |
+| 15 | Cash/runway · real costs | CFO | ⏸ | Flying on estimates | ⏸ you — Wise + Xero |
+| 16 | Pool/triggers/provisioning | COO | #270/#271/#280 | The onboarding machine | ⏸ you — Smartlead |
+| 17 | Per-AE pipeline / leaderboard / real coverage | Sales Dir | #276 | Rep-level management | ⏸ #276 (real AE logins + data) |
+| 18 | Backup restore never tested | CTO | **#298** | Existential, low-likelihood | 🤝 one-time drill |
+
+**The pattern:** what you HAVE is a good dashboard company. What's MISSING is the **nervous system** — nothing tells you anything; you must go look. And where a number *is* shown, one officer (Sales Director) is still shown a lie (#294 — CFO's two lies are now fixed). Holes 1–5 are the difference between a dashboard and an operating system, and all five are buildable without waiting on Smartlead, Xero, or anyone. **Recommended order once M1/M2 are clear: #294 (kill the last lie) → #285 (alerting) → #286 (dunning) → #287 (waterfall) → #288 (sales analytics).**
 
 ### 🧍 What you do (unblocks the live data + verifies)
 | Item | Why |

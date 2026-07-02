@@ -168,7 +168,7 @@ export default async function RevenuePage() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Xero card */}
-          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center"><Landmark className="w-5 h-5" /></div>
               <a href="https://go.xero.com" target="_blank" rel="noopener noreferrer" className="text-xs text-[#7C3AED] font-semibold inline-flex items-center gap-1 hover:underline">Open Xero <ExternalLink className="w-3 h-3" /></a>
@@ -178,7 +178,7 @@ export default async function RevenuePage() {
             <p className="text-xs text-amber-600 mt-1">needs Jacques — connect Xero (item 196)</p>
           </div>
           {/* Wise card */}
-          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Wallet className="w-5 h-5" /></div>
               <a href="https://wise.com/user/account" target="_blank" rel="noopener noreferrer" className="text-xs text-[#7C3AED] font-semibold inline-flex items-center gap-1 hover:underline">Open Wise <ExternalLink className="w-3 h-3" /></a>
@@ -188,7 +188,7 @@ export default async function RevenuePage() {
             <p className="text-xs text-amber-600 mt-1">needs Jacques — connect Wise</p>
           </div>
           {/* Stripe */}
-          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-5">
             <div className="flex items-center justify-between mb-3">
               <div className="w-9 h-9 rounded-xl bg-purple-50 text-[#7C3AED] flex items-center justify-center"><CreditCard className="w-5 h-5" /></div>
               <a href="https://dashboard.stripe.com" target="_blank" rel="noopener noreferrer" className="text-xs text-[#7C3AED] font-semibold inline-flex items-center gap-1 hover:underline">Open Stripe <ExternalLink className="w-3 h-3" /></a>
@@ -207,15 +207,15 @@ export default async function RevenuePage() {
           <span className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Risk — revenue at risk</span>
         </div>
         {atRisk.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5 text-sm text-gray-500">No clients at risk right now — MRR is protected.</div>
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-5 text-sm text-gray-500">No clients at risk right now — MRR is protected.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white rounded-2xl border border-red-200 shadow-sm p-5">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-red-200 p-5">
               <p className="text-xs text-gray-400 uppercase tracking-wide">Accounts at risk</p>
               <p className="text-2xl font-bold text-red-600 mt-1">{atRisk.length}</p>
               <p className="text-xs text-gray-400 mt-0.5">save these → protect MRR</p>
             </div>
-            <div className="md:col-span-2 bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
+            <div className="md:col-span-2 bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-5">
               {atRisk.slice(0, 4).map(c => (
                 <div key={c.client_id} className="flex items-center justify-between text-sm py-1.5 border-b border-dashed border-purple-50 last:border-0">
                   <span className="text-gray-700">{c.company_name} <span className="text-gray-400">— {c.reasons?.join(' · ') || 'churn signals'}</span></span>
@@ -236,7 +236,7 @@ export default async function RevenuePage() {
           { label: 'Active Paying',      value: stats.activeCount,                      sub: 'subscriptions',      color: 'bg-blue-500/10 text-blue-600' },
           { label: 'Blended ARPU',       value: stats.blendedArpu ? `$${stats.blendedArpu}` : '—', sub: 'per active client', color: 'bg-purple-400/10 text-purple-400' },
         ].map(({ label, value, sub, color }) => (
-          <div key={label} className="bg-white border border-gray-200 rounded-xl p-5">
+          <div key={label} className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${color}`}>
               <DollarSign className="w-4 h-4" />
             </div>
@@ -254,7 +254,7 @@ export default async function RevenuePage() {
       <p className="text-xs text-gray-400 -mt-2">🎯 KPI progress, monthly revenue targets &amp; core KPIs now live in <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel → Targets</a> (target‑based sales).</p>
 
       {/* Scenario Tracker */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-2">
           <TrendingUp className="w-5 h-5 text-gray-400" />
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Scenario Tracker — {current.month}</h2>
@@ -293,7 +293,7 @@ export default async function RevenuePage() {
       </div>
 
       {/* ARPU Breakdown */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-1">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">ARPU Breakdown</h2>
           <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Reference · targets</span>
@@ -301,14 +301,14 @@ export default async function RevenuePage() {
         <p className="text-xs text-gray-400 mb-4">Average Revenue Per User across product tiers</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
           {ARPU_TIERS.map(tier => (
-            <div key={tier.name} className="bg-white border border-purple-100 rounded-lg p-4">
+            <div key={tier.name} className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-lg p-4">
               <p className={`text-lg font-bold ${tier.color}`}>{tier.name}</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">${tier.price}<span className="text-sm text-gray-400">/mo</span></p>
               <p className="text-xs text-gray-400 mt-2">{tier.description}</p>
             </div>
           ))}
         </div>
-        <div className="bg-white border border-purple-100 rounded-lg p-4 flex items-center justify-between">
+        <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-lg p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">Blended ARPU</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">
@@ -321,7 +321,7 @@ export default async function RevenuePage() {
       </div>
 
       {/* 90-Day Revenue Forecast */}
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
         <div className="flex items-center gap-2 mb-1">
           <TrendingUp className="w-5 h-5 text-purple-500" />
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">90-Day Revenue Forecast</h2>
@@ -392,10 +392,10 @@ export default async function RevenuePage() {
       </div>
 
       {/* Credit sales placeholder */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Credit Sales — This Month</h2>
         <p className="text-xs text-gray-400 mb-4">Apollo credit purchases attributed to client accounts</p>
-        <div className="bg-white border border-purple-100 rounded-lg p-5 text-center">
+        <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-lg p-5 text-center">
           <p className="text-gray-400 text-sm">Credit transaction data will appear here once the billing webhook is connected.</p>
           <p className="text-gray-400 text-xs mt-2">Expected data: credit_type | client_id | amount_usd | timestamp</p>
         </div>
@@ -405,7 +405,7 @@ export default async function RevenuePage() {
          duplicates the table (it was hardcoded sample rows); it glances + links. */}
 
       {/* Cost stack — money out */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Cost stack — money out</h2>
         <p className="text-xs text-gray-400 mb-4">~$690/mo · estimate until Xero connects</p>
         <div className="overflow-x-auto">

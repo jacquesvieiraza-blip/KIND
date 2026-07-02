@@ -105,8 +105,37 @@ export default function HealthPage() {
         </button>
       </div>
 
+      {/* Deliverability over time (#279) — the headline silent-fail graph.
+         SHELL: empty axes + honest wire-in message, NO fabricated data points.
+         Goes live when the reporting endpoint (bounce/complaint % per day) lands. */}
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-semibold text-gray-900">Deliverability over time</h2>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+            wire-in · needs reporting endpoint
+          </span>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">Bounce % and complaint % per day — catches a domain going bad <b>before</b> it poisons the send.</p>
+        {/* Empty chart frame — gridlines + axis labels, deliberately no data line */}
+        <div className="relative h-44 rounded-lg border border-brand-200/50 bg-white/50 overflow-hidden">
+          <div className="absolute inset-0 flex flex-col justify-between py-3 px-3">
+            {['5%', '3%', '1%', '0%'].map(y => (
+              <div key={y} className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-300 w-6 shrink-0">{y}</span>
+                <span className="flex-1 border-t border-dashed border-gray-100" />
+              </div>
+            ))}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="text-xs text-gray-400 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1 border border-brand-200/50">
+              No deliverability history yet — appears once the reporting endpoint is connected.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Service status cards */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Service Status</h2>
         <div className="space-y-3">
           {SERVICES.map((svc) => {
@@ -141,7 +170,7 @@ export default function HealthPage() {
       </div>
 
       {/* FIGSY cron */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">FIGSY Cron</h2>
         <div className="flex items-center justify-between py-3">
           <div>
@@ -156,7 +185,7 @@ export default function HealthPage() {
       </div>
 
       {/* Deliverability readiness — the silent-fail checklist */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Deliverability readiness</h2>
         <p className="text-xs text-gray-400 mb-4">The send engine only works if these are set. Unset keys fail <b>silently</b> — verify before any real send.</p>
         <div className="space-y-2">
@@ -182,7 +211,7 @@ export default function HealthPage() {
       </div>
 
       {/* Last audit result */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">Last Audit Result</h2>
         <div className="bg-gray-50 border border-gray-100 rounded-lg p-5 text-center">
           <p className="text-gray-400 text-sm">Audit results are tracked as GitHub Issues.</p>
@@ -199,7 +228,7 @@ export default function HealthPage() {
       </div>
 
       {/* External status links */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="font-semibold text-gray-900 mb-4">External Status Pages</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[

@@ -1,6 +1,6 @@
 # 🖥️ K.I.N.D — Admin Centre spec (Milestone 3)
 
-> **What this doc is:** the build spec for the rebuilt Admin Centre — the cockpit WE run the business from. **Status of record lives in PRODUCT-INVENTORY** (#270–#276); **daily execution lives in LAUNCH-PAD**; this doc is the *shape we build to*. Locked 1 Jul 2026.
+> **What this doc is:** the build spec for the rebuilt Admin Centre — the cockpit WE run the business from. **Status of record lives in PRODUCT-INVENTORY** (#270–#284); **daily execution lives in LAUNCH-PAD**; this doc is the *shape we build to*. Locked 1 Jul 2026.
 > **Build mode: LIVE.** The Admin Centre is internal (founder + staff only), not client-facing → the preview-first gate (RULEBOOK §11) does **not** apply. We build → push live → founder beta-tests in the live system → verify → next.
 
 *(The approved clickthrough preview was a session artifact shared in-chat — not stored in the repo. This spec is the durable record of what was approved.)*
@@ -41,13 +41,15 @@ The ad-hoc slices above shipped but the admin reads **inconsistent** (layout dri
 ### ▶ #277 build progress (build-live, one slice per PR)
 - **Slice A — design-system foundation: MERGED #887** (tsc + `next build` green). Admin Tailwind adopted the portal violet ramp (`brand.50–900`) + `kind-gradient` + Inter + `darkMode:'class'` (was `brand=#0066FF` blue); `globals.css` gained the portal token system + `.ds-card/.ds-text-*`; `ui.tsx` is now the real shared kit — **Button** + portal-parity **StatCard** added, **MarkdownLite** copied + re-exported; **recharts** installed. Slim collapsible violet sidebar already existed → no rebuild. *(Invisible plumbing by design — the admin was already violet via hardcoded hex.)*
 - **Slice B — Nora + gradient + Cockpit: MERGED #888, founder saw it live.** Nora rebuilt in the `AgentSidePanel` design language (photo header · dark identity bar · avatar bubbles · **MarkdownLite** · typing dots), admin `main` on the **`kind-gradient`** backdrop, Cockpit on frosted portal cards.
-- **Slice C — honesty + defect sweep: BUILT 2 Jul PM** (branch `claude/admin-c-honesty-fixes`) (fake Sales-Channel charts · cut HubSpot · static "Healthy" label · invisible toast `demo:160` · dark-text-on-violet buttons ×3 · navy relics `scalability`/`playbook` · dead `KpiTargetsSection` · Nora float keyframes + avatar fallback · **MRR $0-with-11-active-subs data fix**) · D (#282 dedup — incl. cohorts' flat gray cards) · E (#281 Clients) · F (Sales Channel completion) · G (#278 GTM) · H (#279 Engine graph) · I (#280 Ops).
+- **Slice C — honesty + defect sweep: MERGED #890** (fake Sales-Channel charts gated to sample lenses · cut HubSpot · real `/health` probe · dead `KpiTargetsSection` deleted · Cockpit MRR `amount_usd` fix · Nora float/fallback). **Slice C.2 — chrome parity: MERGED #893** (docked-rail Nora + slim-default sidebar; #892 closed).
+- **Slices D → Ops — ALL MERGED 2 Jul (one PR each, machine-gated, honest wire-in shells / NO fake data):** **D #896** #282 cohorts dedup (Finance sample table removed, `/cohorts` sole home) · **E #897** #281 Clients rebuild (**🔴→🩷** — kit + At-risk tile + Activity/Activation/Messages folded into `ClientsTabs`) · **F #898** #277 Finance→kit (16 cards frosted) · **G #899** #278 GTM Hub shells (`/gtm`) · **H #900** #279 Engine graph shell · **I #901** #274 Sales Channel shells (Contracts/Winning-plays/per-person targets) · **Ops #902** #280 Ops shells (`/ops`). *(Note: actual slice→item map is F = Finance #277, I = Sales Channel #274, Ops = #280.)*
 
 ### 📊 Admin build audit (updated 2 Jul PM — Fable regroup)
-- 🩷 **live, not verified:** Cockpit (restyled #888) · Sales Channel (partners live, AE/overall sample) · Finance · **Nora on the AgentSidePanel look (#888)** · design system foundation (#887)
+- 🩷 **live, not verified (walk these):** Cockpit (#888) · **Clients rebuild (#897)** · Sales Channel (partners live, AE/overall sample) · **Finance → kit (#898)** · cohorts dedup (#896) · **docked-rail Nora (#893)** · design-system foundation (#887)
 - 🟢 **live + verified:** Sales Demo · Compliance · Terms
-- 🔴 **not built:** #277 remaining screen restyles (Slices C–I) · #282 dedup · #281 Clients rebuild · #278 GTM (Strategy/Results/Winning plays/Content calendar; cut HubSpot) · #279 Engine health graph · #280 Ops (pool mgmt · onboarding) · #270/#271 triggers · #276 logins
-- ⏸ **blocked on founder:** Xero/Wise/Stripe connects · Smartlead (pool + triggers) · PDL key · Resend events · targets · contracts
+- 🔴 **shell live but NOT functional (needs data / access):** #278 GTM tabs (Strategy needs sign-off · Results need M1 live · Winning-plays/Content-calendar need feeds) · #279 Engine health graph (needs reporting endpoint) · #274 per-person targets + contracts vault + winning plays (need AE data #276) · #280 Ops pool/onboarding (needs Smartlead) · #270/#271 Cockpit triggers (Smartlead) · #276 per-AE logins (needs auth design call) · #282 remainder (churn/MRR single-homing)
+- 🐛 **live defects found in the 2 Jul audit (NOT yet fixed):** Finance MRR sums `amount_zar` only → $0 with USD subs (`revenue/page.tsx:126`) · ARPU tiers card shows retired "$20 Starter · Lead Gen only" (`revenue/page.tsx:80-84`) · 6 dead icon imports in `AdminSidebar`
+- ⏸ **blocked on founder:** Xero/Wise/Stripe connects · Smartlead (pool + triggers) · #276 auth decision · PDL key · Resend events
 - 🔌 **needs reporting endpoint (live data):** AE/Overall analytics · Engine graph · content calendar · winning plays
 
 ---

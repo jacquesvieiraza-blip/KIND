@@ -43,13 +43,20 @@ Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-2
 **3 · M2 hard gates — before ANY paying client** 🔴
 **#284** product still on $1 lead_gen (see 1d — also an M2 gate: never charge a paying client on the wrong plan) · **#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** 🩷 webhook replay idempotency **LIVE (#884)** — **⛔ run migration `20260702_webhook_idempotency.sql` on prod** to activate (safe no-op until then); *audit hardening owed: idempotency key on the Paystack charge + record-after-success (mid-crash retry currently loses the reply)* · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — **verify prod env in one click: open `/engine/env?key=<ADMIN_SECRET_KEY>`** (live, merged #885; *audit gap: `ready.billing` doesn't check `STRIPE_PRICE_*`/`PAYSTACK_PLAN_*` ids — can read true while checkout would fail*) · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
 
-**4 · M3 admin build (today)** 🔴 — *in progress, build-live, one slice per PR*
-Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.
-- ▶ **Slice A — design-system foundation: BUILT + MERGED (#887)** — kit + tokens + recharts (invisible plumbing; the admin was already violet, so nothing changed on screen — by design).
-- ▶ **Slice B — Nora + Cockpit: MERGED (#888), founder saw it live** — Nora on the `AgentSidePanel` look (photo header · avatar bubbles · **MarkdownLite** · typing dots), admin on the `kind-gradient` backdrop, Cockpit on frosted portal cards.
-- ▶ **Slice C — honesty + defect sweep: MERGED 2 Jul** (tsc + build green): **fake charts now render ONLY on sample-tagged lenses** (live partner lens gets honest wire-in states; per-card `sample` pills added — when AEs go live via #276 the fakes auto-vanish) · **HubSpot cut** (nav + page deleted) · **System-health tile = real `/health` probe** (Healthy/Degraded/Unreachable — was a hardcoded string) · **Cockpit MRR fixed** (sums `amount_usd` source-of-truth, falls back to ZAR, flags subs missing amounts — was $0 with 11 active) · invisible toast + 3 dark-text-on-violet buttons + navy relics fixed · dead `KpiTargetsSection` deleted (targets ladder lives in Sales Channel → actuals in Finance, #282) · Nora float keyframes + bubble-avatar fallback *(merged #890)*.
-- ▶ **Slice C.1 — Nora card crop fix: BUILT 2 Jul PM** (founder-flagged after #890 — the card still cropped to her hair): new square face asset `Nora-face.png` (generated from the portrait) for the launcher + bubble avatars; panel header repositioned `object-top → object-[50%_23%]` so it shows her face, not the top of her head.
-- ▶ **Slice C.2 — chrome parity: MERGED (#893, 2 Jul)** — Nora rebuilt as a **docked collapsible right-rail** (portal `AgentColumn` parity — h-60 `object-top` photo header · `#0F0929` identity bar · `localStorage` collapse · slim avatar strip top-right; supersedes the old floating bubble — redundant #892 closed) **+ admin sidebar slim-by-default** (`pinned` default `true→false`). No new asset (Nora.png frames clean at `object-top`/h-60). tsc + build green. **Next: Slice D — #282 dedup (Cohorts/churn/MRR one home each + cohorts' flat cards).**
+**4 · M3 admin build** 🩷 — *ALL 9 slices MERGED to `main` 2 Jul (build-live, one PR each). Walk the admin; 2 Finance defects + the shells' data wires remain.*
+Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) → **#281** Clients (E) → **#277** Finance→kit (F) → **#278** GTM (G) → **#279** Engine (H) → **#274** Sales Channel (I) → **#280** Ops.
+- ▶ **Slice A — design-system foundation: MERGED #887** — kit + tokens + recharts (invisible plumbing; admin was already violet, so nothing changed on screen — by design).
+- ▶ **Slice B — Nora + Cockpit: MERGED #888 (founder saw it live)** — Nora on the `AgentSidePanel` look, admin on the `kind-gradient` backdrop, Cockpit on frosted cards.
+- ▶ **Slice C — honesty + defect sweep: MERGED #890** — fake charts gated to sample-tagged lenses only · HubSpot cut · System-health = real `/health` probe · **Cockpit MRR fixed** (`amount_usd` source-of-truth) · dead `KpiTargetsSection` deleted · Nora float/fallback. *(C.1 crop fix folded into C.2.)*
+- ▶ **Slice C.2 — chrome parity: MERGED #893** — Nora rebuilt as a **docked collapsible right-rail** (portal `AgentColumn` parity) **+ sidebar slim-by-default** (`pinned` default `true→false`); #892 closed redundant.
+- ▶ **Slice D — Cohorts dedup: MERGED #896 (#282)** — Finance's hardcoded sample cohorts table removed; `/cohorts` (real query) is the sole home.
+- ▶ **Slice E — Clients rebuild: MERGED #897 (#281 🔴→🩷)** — Clients hub to the kit + **At-risk** tile + Activity/Activation/Messages folded into a `ClientsTabs` bar (3 loose sidebar rows dropped).
+- ▶ **Slice F — Finance → kit: MERGED #898 (#277)** — all 16 revenue cards frosted to the kit.
+- ▶ **Slice G — GTM Hub shells: MERGED #899 (#278)** — new `/gtm` route + sidebar row · Strategy/Results/Winning-plays/Content-calendar as honest wire-in shells (no fake data). Stays 🔴 pending real data.
+- ▶ **Slice H — Engine graph shell: MERGED #900 (#279)** — Deliverability-over-time frosted card (empty axes + "needs reporting endpoint", no fake points) + Engine cards to kit. Stays 🔴 pending endpoint.
+- ▶ **Slice I — Sales Channel shells: MERGED #901 (#274)** — Contracts vault + Winning plays tabs + per-person targets card, all labelled "needs AE data (#276)". Stays 🔴 pending #276.
+- ▶ **Slice Ops — Admin Ops shells: MERGED #902 (#280)** — new `/ops` route + sidebar row · inbox-pool/day-29/onboarding cards labelled "needs Smartlead access". Stays 🔴/⏸ pending Smartlead.
+- 🐛 **AUDIT (2 Jul PM) — 2 live Finance defects to fix next:** (1) **Finance MRR still sums `amount_zar` only** (`revenue/page.tsx:126`) → can read $0 with USD subs; Cockpit got the `amount_usd` fix, Finance (the MRR single-home) didn't. (2) **ARPU tiers card shows the retired "$20 Starter · Lead Gen only" pricing as current** (`revenue/page.tsx:80-84`). Plus 6 dead icon imports in `AdminSidebar.tsx`. **Next: fix these + the M1/M2 🐛 rows (see §1–§3).**
 
 **GTM — Fri 3 Jul (tomorrow):** 12 weeks of LinkedIn posts → creates `docs/content/linkedin-playbook.md`.
 
@@ -156,18 +163,18 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Needs you now — trigger rows (signup/payment/switch/pool) | 🔴 |
 | Unit economics — margin | 🩷 |
 | Unit economics — net | 🩷 |
-| Cockpit layout → portal kit | 🩷 *(frosted portal cards live #888 · ⚠️ audit: `KpiTargetsSection` is dead code + MRR tile reads $0 with 11 active subs → Slice C)* |
+| Cockpit layout → portal kit | 🩷 *(frosted portal cards #888 · MRR fixed to `amount_usd` + `KpiTargetsSection` deleted, Slice C #890)* |
 
 **👥 Clients**
 | Item | Status |
 |---|---|
 | Client list | 🩷 |
 | Client drill-down | 🩷 |
-| Summary tiles | 🔴 |
-| Fold in Activity | 🔴 |
-| Fold in Activation | 🔴 |
-| Fold in Messages | 🔴 |
-| Rebuilt layout → kit | 🔴 |
+| Summary tiles (incl. At-risk) | 🩷 *(Slice E #897)* |
+| Fold in Activity | 🩷 *(ClientsTabs #897)* |
+| Fold in Activation | 🩷 *(ClientsTabs #897)* |
+| Fold in Messages | 🩷 *(ClientsTabs #897)* |
+| Rebuilt layout → kit | 🩷 *(frosted cards #897)* |
 
 **🎖️ Sales Channel**
 | Item | Status |
@@ -175,18 +182,18 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Lens — Overall | 🩷 (sample) |
 | Lens — per-AE | 🩷 (sample) |
 | Lens — per-Partner | 🩷 (live) |
-| Tab — Analytics | 🩷 *(tiles real · charts hardcoded — fake even in the LIVE partner lens, `command/page.tsx:157-167`)* |
+| Tab — Analytics | 🩷 *(tiles real · sample charts now gated to `ent.sample` only — live partner lens gets honest wire-in states, Slice C)* |
 | Tab — Performance | 🩷 |
 | Tab — ROI | 🩷 |
 | Tab — Pipeline | 🩷 |
 | Tab — Targets (KPI/monthly/core) | 🩷 |
 | Demos + closure | 🩷 |
 | Book MRR + commission | 🩷 |
-| Targets per person (mo/qtr/yr) | 🔴 *(corrected 2 Jul — Targets tab shows the same company-wide numbers for every AE/partner; no per-person UI)* |
+| Targets per person (mo/qtr/yr) | 🔴 *(shell built #901 — per-person card in Targets tab, labelled "needs AE data #276"; not functional until #276)* |
 | 3× pipeline coverage | 🩷 *(hardcoded shell — "2.1×" is a literal string, not computed)* |
 | Mini-CRM | 🩷 |
-| Contracts vault | 🔴 *(corrected 2 Jul — zero code; was overclaimed)* |
-| Winning plays (per person) | 🔴 *(corrected 2 Jul — zero code; was overclaimed)* |
+| Contracts vault | 🔴 *(shell built #901 — wire-in tab, "needs AE data #276")* |
+| Winning plays (per person) | 🔴 *(shell built #901 — wire-in tab, "needs AE data #276")* |
 | Partner management folded (approve/deals/commissions) | 🔴 |
 | Proposals folded | 🔴 |
 | AEs real + logins | 🔴 |
@@ -197,17 +204,17 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Track — Xero | 🩷 ⏸ |
 | Track — Wise | 🩷 ⏸ |
 | Track — Stripe | 🩷 ⏸ |
-| Revenue — MRR live | 🩷 |
+| Revenue — MRR live | 🐛 *(AUDIT 2 Jul — sums `amount_zar` only, `revenue/page.tsx:126`; reads $0 with USD subs. Cockpit got the `amount_usd` fix, Finance did NOT — and Finance is the MRR single-home. FIX NEXT)* |
 | Revenue — Active paying subs | 🩷 |
 | Revenue — Blended ARPU | 🩷 |
 | Risk — revenue at risk | 🩷 |
 | Scenario tracker | 🩷 |
 | 90-day forecast | 🩷 |
-| ARPU breakdown | 🩷 |
+| ARPU breakdown (tiers card) | 🐛 *(AUDIT 2 Jul — shows retired "$20 Starter · Lead Gen only / $160 Growth" as current pricing, `revenue/page.tsx:80-84`; contradicts $3-only. FIX NEXT)* |
 | Credit sales | 🩷 *(empty placeholder — no data path until the billing webhook wires in)* |
 | Cost stack | 🩷 |
-| Finance layout → kit | 🔴 *(corrected 2 Jul — the kit `ui.tsx` is imported nowhere; was overclaimed)* |
-| Cohorts duplication removed | 🔴 |
+| Finance layout → kit | 🩷 *(all 16 revenue cards frosted, Slice F #898)* |
+| Cohorts duplication removed | 🩷 *(Finance sample table removed, `/cohorts` sole home, Slice D #896 · churn/MRR single-homing still open → #282)* |
 
 **📣 GTM**
 | Item | Status |
@@ -215,27 +222,27 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | CMO tools | 🩷 |
 | Our replies (unibox) | 🩷 |
 | Visitor intelligence | 🩷 |
-| GTM Strategy | 🔴 |
-| GTM Results | 🔴 |
-| Winning plays | 🔴 |
-| Content calendar | 🔴 |
-| HubSpot removed | 🔴 |
-| GTM layout → kit | 🔴 |
+| GTM Strategy | 🔴 *(shell built #899 — `/gtm` wire-in tab; needs strategy sign-off)* |
+| GTM Results | 🔴 *(shell built #899 — wire-in; needs our outreach live, M1)* |
+| Winning plays | 🔴 *(shell built #899 — wire-in; needs the plays feed)* |
+| Content calendar | 🔴 *(shell built #899 — wire-in; needs the content feed)* |
+| HubSpot removed | 🩷 *(cut in Slice C — nav + page deleted)* |
+| GTM layout → kit | 🩷 *(new `/gtm` hub built in the kit #899 · existing cmo/unibox/visitors not yet restyled)* |
 
 **⚙️ Engine**
 | Item | Status |
 |---|---|
 | Send status (cron / volume / bounce) | 🩷 *(service dots live · cron block + volume/bounce are placeholders)* |
 | Env readiness checklist | 🩷 |
-| Health graph | 🔴 |
-| Engine layout → kit | 🔴 |
+| Health graph | 🔴 *(shell built #900 — Deliverability-over-time empty frame; needs reporting endpoint)* |
+| Engine layout → kit | 🩷 *(all Engine cards frosted to kit, Slice H #900)* |
 
 **🛠️ Ops**
 | Item | Status |
 |---|---|
 | Sales Demo | 🟢 |
-| Inbox pool management | 🔴 |
-| Onboarding ops | 🔴 |
+| Inbox pool management | 🔴 ⏸ *(shell built #902 — `/ops` cards "needs Smartlead access")* |
+| Onboarding ops | 🔴 *(shell built #902 — `/ops` onboarding runbook, mirrors SOP)* |
 | Founder-agent → Nora | 🔴 |
 
 **🛡️ Compliance**

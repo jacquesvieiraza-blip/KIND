@@ -3,7 +3,7 @@
 
 Pink = **live but not verified.** For each: walk it → if it works it's 🟢, if it's broken it's 🔴 (note it, I'll fix). Make notes in the right column. Come back to me with anything stuck or broken.
 
-> **Reconciled 2 Jul PM to the board's 45 🩷** = **35 remaining** from the original 58-item walk (Sections A+B walked 30 Jun; most of the rest clear on the $60 live run) **+ 7 new pinks shipped 1 Jul + #15 re-dotted 🟢→🩷 + #283/#264 shipped LIVE 2 Jul** (Section E below). Status of record = PRODUCT-INVENTORY.
+> **Reconciled 2 Jul PM to the board's 46 🩷** = **36 remaining** from the original 58-item walk (Sections A+B walked 30 Jun; most of the rest clear on the $60 live run) **+ 7 new pinks shipped 1 Jul + #15 re-dotted 🟢→🩷 + #283/#264 shipped LIVE 2 Jul + #281 Admin Clients rebuild 🔴→🩷 (Slice E #897)** (Section E below). Status of record = PRODUCT-INVENTORY. *(The whole M3 admin slice-burst A→Ops merged 2 Jul; only #281 crossed into 🩷 — the shells stay 🔴.)*
 
 **Portal = `app.get-kind.com` · Website = `www.get-kind.com` · Admin = `admin.get-kind.com`**
 

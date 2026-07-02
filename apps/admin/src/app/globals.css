@@ -1,10 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 html, body, #__next { height: 100%; }
 
-body {
-  background: #FAFAFE;
-  @apply text-gray-900;
+@layer base {
+  /* ── Design-system tokens (copied from apps/portal, #277) ─────────────
+     Screens restyle to these via .ds-card / .ds-text-muted etc. so the admin
+     and the client portal read as one system, light and dark. */
+  :root {
+    --surface:         250 250 254;   /* admin light bg (#FAFAFE) */
+    --surface-raised:  255 255 255;   /* white */
+    --surface-overlay: 243 244 246;   /* gray-100 */
+
+    --border:          229 231 235;   /* gray-200 */
+    --border-strong:   209 213 219;   /* gray-300 */
+
+    --text:            17  24  39;    /* gray-900 */
+    --text-muted:      107 114 128;   /* gray-500 */
+    --text-faint:      156 163 175;   /* gray-400 */
+  }
+
+  .dark {
+    --surface:         3   7   18;    /* gray-950 */
+    --surface-raised:  17  24  39;    /* gray-900 */
+    --surface-overlay: 31  41  55;    /* gray-800 */
+
+    --border:          31  41  55;    /* gray-800 */
+    --border-strong:   55  65  81;    /* gray-700 */
+
+    --text:            255 255 255;
+    --text-muted:      156 163 175;   /* gray-400 */
+    --text-faint:      107 114 128;   /* gray-500 */
+  }
+
+  body {
+    @apply font-sans;
+    background-color: rgb(var(--surface));
+    color: rgb(var(--text));
+  }
+
+  /* Card — base surface */
+  .ds-card {
+    @apply rounded-xl border;
+    background-color: rgb(var(--surface-raised));
+    border-color: rgb(var(--border));
+  }
+
+  .ds-divider { border-color: rgb(var(--border)); }
+  .ds-text-muted { color: rgb(var(--text-muted)); }
+  .ds-text-faint { color: rgb(var(--text-faint)); }
 }
+
+/* Hide scrollbars on the slim sidebar rail */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

@@ -42,8 +42,9 @@ Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-2
 **3 · M2 hard gates — before ANY paying client** 🔴
 **#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** ✅ webhook replay idempotency **BUILT + merged (#884)** — **⛔ run migration `20260702_webhook_idempotency.sql` on prod** to activate (safe no-op until then) · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — **verify prod env in one click: open `/engine/env?key=<ADMIN_SECRET_KEY>`** (booleans only, no secrets; `ready.sending`=M1, `ready.billing`=M2 — BUILT 2 Jul, branch `claude/pr4-env-readiness`) · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
 
-**4 · M3 admin build (today)** 🔴
-Board corrected below (4 rows were overclaimed → now 🔴). Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.
+**4 · M3 admin build (today)** 🔴 — *in progress, build-live, one slice per PR*
+Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.
+- ▶ **Slice A — design-system foundation: BUILT 2 Jul** (branch `claude/admin-a-design-system`, tsc + build green) — admin Tailwind now the portal violet ramp + Inter + gradients + dark; token system + `.ds-*` in globals; `ui.tsx` real kit (Button + StatCard + MarkdownLite); recharts in. Sidebar already slim/violet. **Next: Slice B — Nora on `AgentSidePanel` + Cockpit restyle.**
 
 **GTM — Fri 3 Jul (tomorrow):** 12 weeks of LinkedIn posts → creates `docs/content/linkedin-playbook.md`.
 

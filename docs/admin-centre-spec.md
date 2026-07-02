@@ -38,6 +38,9 @@ The ad-hoc slices above shipped but the admin reads **inconsistent** (layout dri
 - **Single source of truth for metrics** (#282): each metric has ONE detailed home; the Cockpit only *glances* + links.
   - Cohorts → `/cohorts` only · churn/at-risk → Clients · MRR → Finance.
 
+### ▶ #277 build progress (build-live, one slice per PR)
+- **Slice A — design-system foundation: BUILT 2 Jul** (branch `claude/admin-a-design-system`; tsc + `next build` green). Admin Tailwind adopted the portal violet ramp (`brand.50–900`) + `kind-gradient` + Inter + `darkMode:'class'` (was `brand=#0066FF` blue); `globals.css` gained the portal token system (`--surface/--border/--text`, light+dark) + `.ds-card/.ds-text-*`; `ui.tsx` is now the real shared kit — **Button** + portal-parity **StatCard** added, **MarkdownLite** copied + re-exported, existing `Tile/Card/Pill/Table` kept; **recharts** installed. The slim collapsible violet sidebar already existed → no rebuild. **Next slices:** B = Nora on `AgentSidePanel` + restyle Cockpit; then C (walk-critical honesty fixes) · D (#282 dedup) · E (#281 Clients) · F (Sales Channel) · G (#278 GTM) · H (#279 Engine graph) · I (#280 Ops).
+
 ### 📊 Admin build audit (1 Jul) — the truth going to LAUNCH-PAD + inventory
 - 🩷 **live, not verified:** Cockpit · Sales Channel (partners live, AE/overall sample) · Finance · Nora (bespoke)
 - 🟢 **live + verified:** Sales Demo · Compliance · Terms

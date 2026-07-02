@@ -64,7 +64,9 @@ export function NoraRail() {
     <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 mt-0.5 border border-brand-200 bg-brand-500 text-white text-[9px] font-bold flex items-center justify-center">
       <span className="absolute">N</span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/agents/Nora.png" alt="" className="relative w-full h-full object-cover object-top"
+      {/* Nora-face.png = square face crop generated from Nora.png — the full portrait
+         reads as a top-of-head speck at avatar size (founder-flagged, 2 Jul). */}
+      <img src="/agents/Nora-face.png" alt="" className="relative w-full h-full object-cover"
         onError={(e) => { e.currentTarget.style.display = 'none' }} />
     </div>
   )
@@ -77,7 +79,7 @@ export function NoraRail() {
           className="fixed bottom-5 right-5 z-40 flex items-center gap-2 pl-1.5 pr-4 py-1.5 rounded-full bg-brand-900 text-white shadow-lg shadow-purple-900/30 hover:scale-105 transition">
           <span className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-800 flex items-center justify-center overflow-hidden">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/agents/Nora.png" alt="Nora" className="w-full h-full object-cover object-top" onError={(e) => { (e.currentTarget.style.display = 'none') }} />
+            <img src="/agents/Nora-face.png" alt="Nora" className="w-full h-full object-cover" onError={(e) => { (e.currentTarget.style.display = 'none') }} />
           </span>
           <span className="text-sm font-semibold">Ask Nora</span>
         </button>
@@ -89,7 +91,9 @@ export function NoraRail() {
           {/* Photo header */}
           <div className="relative h-36 overflow-hidden bg-brand-100 shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/agents/Nora.png" alt="Nora" className="w-full h-[calc(100%+24px)] object-cover object-top agent-img-float"
+            {/* object position tuned to the face band of the 1024×1536 portrait —
+               object-top showed hair with the eyes cut at the bottom edge. */}
+            <img src="/agents/Nora.png" alt="Nora" className="w-full h-[calc(100%+24px)] object-cover object-[50%_23%] agent-img-float"
               onError={(e) => { (e.currentTarget.style.display = 'none') }} />
             <button onClick={() => setOpen(false)}
               className="absolute top-2.5 right-2.5 w-7 h-7 rounded-lg bg-black/25 text-white hover:bg-black/40 flex items-center justify-center backdrop-blur-sm">

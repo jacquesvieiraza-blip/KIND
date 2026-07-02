@@ -54,6 +54,7 @@ const SECTIONS: Section[] = [
   {
     label: 'GTM / Pipeline',
     items: [
+      { href: '/gtm',        label: 'GTM Hub',     icon: Rocket },
       { href: '/cmo',        label: 'CMO Tools',   icon: Megaphone },
       { href: '/unibox',     label: 'Unibox',      icon: Inbox },
       { href: '/visitors',   label: 'Visitors',    icon: Eye },

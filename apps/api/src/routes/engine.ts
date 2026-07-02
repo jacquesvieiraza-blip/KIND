@@ -146,6 +146,14 @@ engineRouter.get('/env', (_req: Request, res: Response) => {
     billing: {                                   // M2 — charge a paying client
       STRIPE_SECRET_KEY:        has('STRIPE_SECRET_KEY'),
       STRIPE_WEBHOOK_SECRET:    has('STRIPE_WEBHOOK_SECRET'),
+      // The price IDs checkout actually resolves — without these Stripe checkout
+      // 500s even though the secret keys ARE set (the "false green" the 2 Jul audit
+      // flagged: ready.billing could read true while a real charge failed). FIGSY-only
+      // by design — lead_gen is being retired (#284), so its LEADGEN price IDs are
+      // intentionally NOT required here.
+      STRIPE_PRICE_FIGSY_20:    has('STRIPE_PRICE_FIGSY_20'),
+      STRIPE_PRICE_FIGSY_40:    has('STRIPE_PRICE_FIGSY_40'),
+      STRIPE_PRICE_FIGSY_100:   has('STRIPE_PRICE_FIGSY_100'),
       PAYSTACK_SECRET_KEY:      has('PAYSTACK_SECRET_KEY'),
       FLUTTERWAVE_SECRET_KEY:   has('FLUTTERWAVE_SECRET_KEY'),
       FLUTTERWAVE_WEBHOOK_HASH: has('FLUTTERWAVE_WEBHOOK_HASH'),

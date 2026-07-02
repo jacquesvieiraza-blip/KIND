@@ -17,7 +17,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AdminSidebar />
           <div className="flex-1 flex flex-col overflow-hidden">
             <AdminHeader />
-            <main className="flex-1 overflow-y-auto bg-[#FAFAFE]">
+            {/* #277 — the portal's warm peach→lavender backdrop, so admin screens
+               sit on the same frosted gradient as the client portal. */}
+            <main className="flex-1 overflow-y-auto bg-kind-gradient">
               {children}
             </main>
           </div>

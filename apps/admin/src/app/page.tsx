@@ -252,7 +252,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
   return (
     <div className="space-y-4">
       {/* Current month progress */}
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
         <div className="flex items-center gap-2 mb-4">
           <Target className="w-5 h-5 text-[#7C3AED]" />
           <h2 className="font-semibold text-gray-900">KPI Progress — {current.month}</h2>
@@ -284,7 +284,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
       </div>
 
       {/* Monthly targets roadmap */}
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Monthly Revenue Targets</h2>
         <p className="text-xs text-gray-400 mb-4">May 2026 → Dec 2026 — 8-month ramp to $48K MRR</p>
         <div className="overflow-x-auto">
@@ -334,7 +334,7 @@ function KpiTargetsSection({ mrrUsd, totalClients }: { mrrUsd: number; totalClie
       </div>
 
       {/* Key KPI targets */}
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
         <h2 className="font-semibold text-gray-900 mb-1">Core KPI Targets</h2>
         <p className="text-xs text-gray-400 mb-4">Track these weekly — they're the leading indicators of growth</p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -370,10 +370,10 @@ function PulseTiles({ stats, atRiskCount }: { stats: NonNullable<Awaited<ReturnT
   return (
     <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
       {tiles.map(t => (
-        <div key={t.label} className="bg-white rounded-2xl border border-purple-100 shadow-sm p-5">
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center mb-3 ${t.cls}`}>{t.icon}</div>
+        <div key={t.label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-brand-200/60 p-5">
+          <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${t.cls}`}>{t.icon}</div>
           <p className="text-2xl font-bold text-gray-900">{t.value}</p>
-          <p className="text-sm text-gray-500 mt-0.5">{t.label}</p>
+          <p className="text-sm text-[#7B6FA0] mt-0.5">{t.label}</p>
           <p className="text-xs mt-0.5">{t.note}</p>
         </div>
       ))}
@@ -390,7 +390,7 @@ function ActionQueue({ atRisk }: { atRisk: ChurnRiskEntry[] }) {
     { icon: <Package className="w-4 h-4" />, cls: 'bg-amber-50 text-amber-600', title: 'Pool low → reorder pre-warmed inboxes', sub: 'live once Smartlead pool is connected' },
   ]
   return (
-    <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+    <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 overflow-hidden">
       <div className="flex items-center gap-2 px-6 py-4 border-b border-purple-100">
         <Zap className="w-5 h-5 text-[#7C3AED]" />
         <h2 className="font-semibold text-gray-900">Needs you now</h2>
@@ -447,13 +447,13 @@ function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: num
         <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">cost = estimate until Xero connects</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
           <h3 className="font-semibold text-gray-900 mb-3 text-sm">Margin per paying client (avg)</h3>
           <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">Revenue / client / mo</span><span className="font-semibold text-gray-900">${perClientRev.toLocaleString()}</span></div>
           <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">Est. cost (inbox+data+AI+infra)</span><span className="text-gray-400">– ${estCostPerClient}</span></div>
           <div className="flex justify-between text-sm py-1"><span className="text-gray-900 font-semibold">Margin / client / mo</span><span className={`font-bold ${estMarginPerClient >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>${estMarginPerClient.toLocaleString()} ({marginPct}%)</span></div>
         </div>
-        <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
           <h3 className="font-semibold text-gray-900 mb-3 text-sm">Aggregate</h3>
           <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">MRR</span><span className="font-semibold text-gray-900">${mrrUsd.toLocaleString()}</span></div>
           <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">Est. monthly cost stack</span><span className="text-gray-400">– ${estStack}</span></div>

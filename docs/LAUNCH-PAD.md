@@ -44,7 +44,8 @@ Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-2
 
 **4 · M3 admin build (today)** 🔴 — *in progress, build-live, one slice per PR*
 Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.
-- ▶ **Slice A — design-system foundation: BUILT 2 Jul** (branch `claude/admin-a-design-system`, tsc + build green) — admin Tailwind now the portal violet ramp + Inter + gradients + dark; token system + `.ds-*` in globals; `ui.tsx` real kit (Button + StatCard + MarkdownLite); recharts in. Sidebar already slim/violet. **Next: Slice B — Nora on `AgentSidePanel` + Cockpit restyle.**
+- ▶ **Slice A — design-system foundation: BUILT + MERGED (#887)** — kit + tokens + recharts (invisible plumbing; the admin was already violet, so nothing changed on screen — by design).
+- ▶ **Slice B — Nora + Cockpit: BUILT 2 Jul** (branch `claude/admin-b-nora-cockpit`, tsc + build green) — **first visible portal-parity change:** Nora rebuilt on the `AgentSidePanel` look (photo header · avatar bubbles · **MarkdownLite** · typing dots), admin `main` now on the `kind-gradient` backdrop, Cockpit on frosted portal cards. **Next: Slice C — walk-critical honesty fixes (fake charts in Sales-Channel Partners lens · cut HubSpot · static health label).**
 
 **GTM — Fri 3 Jul (tomorrow):** 12 weeks of LinkedIn posts → creates `docs/content/linkedin-playbook.md`.
 

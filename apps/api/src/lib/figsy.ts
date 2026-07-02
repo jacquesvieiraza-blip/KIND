@@ -937,6 +937,18 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
+    // Charge-without-send guard (audit 2 Jul): FIGSY bills one credit AT enrollment,
+    // then sends step 1 immediately. If the send engine is unconfigured (RESEND_API_KEY
+    // unset → `resend` is null), step 1 would silently never leave while the client is
+    // still charged. Refuse to enroll/charge when we cannot send at all — a
+    // misconfiguration must never bill a client for outreach that didn't go out.
+    // (Note: blocklist / daily-cap skips inside sendSequenceEmail are by-design deferrals,
+    // NOT this bug — this guard targets only the no-send-capability case.)
+    if (!resend) {
+      console.error(`[figsy] autoEnrollLead: RESEND_API_KEY unset — refusing to enroll/charge lead ${leadId} (would deduct a FIGSY credit with no send).`)
+      return
+    }
+
     // Item 187 — if a saved sequence/template has been applied to this campaign, send
     // its literal copy (token-substituted) instead of AI-generating. Falls back to the
     // AI path when no sequence is applied, or the sequence has no usable email steps.

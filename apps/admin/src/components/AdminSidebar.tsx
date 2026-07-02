@@ -7,8 +7,8 @@ import {
   LayoutDashboard, Users, FileText, Map, Megaphone,
   Rocket, MonitorPlay, BookOpen, Inbox,
   ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
-  UserSquare2, Layers, MessageCircle, Database, Eye,
-  Handshake, Pin, Flag, Gauge, Wallet, HeartPulse, Sprout,
+  UserSquare2, Layers, Database, Eye,
+  Handshake, Pin, Gauge, Wallet, HeartPulse, Sprout,
 } from 'lucide-react'
 
 // NOTE: do not name this `ref` — React reserves `ref`, and since the items are
@@ -28,12 +28,10 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    // Activity · Activation · Messages folded into the Clients hub tab bar (#281).
     label: 'Clients',
     items: [
-      { href: '/clients',    label: 'All Clients', icon: Users },
-      { href: '/activity',   label: 'Activity',    icon: Activity },
-      { href: '/activation', label: 'Activation',  icon: Flag },
-      { href: '/messages',   label: 'Messages',    icon: MessageCircle },
+      { href: '/clients',    label: 'Clients', icon: Users },
     ],
   },
   {

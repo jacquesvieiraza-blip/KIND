@@ -62,12 +62,8 @@ interface CreditTransaction {
 }
 
 // ── Stripe credit bundles ─────────────────────────────────────────────────────
-const STRIPE_LEADGEN_BUNDLES = [
-  { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '', creditType: 'lead_gen' as const },
-  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '', creditType: 'lead_gen' as const },
-  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '', creditType: 'lead_gen' as const },
-]
 // FIGSY is $3/credit flat (locked, @kind/shared) → $60 / $120 / $300 (item 168).
+// (#284 — the $1 Lead-Gen bundles were removed; FIGSY is the single live product.)
 const STRIPE_FIGSY_BUNDLES = [
   { credits: 20,  priceUsd: 60,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '', creditType: 'figsy' as const },
   { credits: 40,  priceUsd: 120, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '', creditType: 'figsy' as const },
@@ -135,7 +131,6 @@ export default function BillingPage() {
   const [figsyBalance, setFigsyBalance] = useState<number | null>(null)
 
   // Credit purchases
-  const [selectedLeadGen, setSelectedLeadGen] = useState(STRIPE_LEADGEN_BUNDLES[0].credits)
   const [selectedFigsy, setSelectedFigsy]     = useState(STRIPE_FIGSY_BUNDLES[0].credits)
   const [creditInitiating, setCreditInitiating] = useState<string | null>(null)
 
@@ -299,9 +294,8 @@ export default function BillingPage() {
     </div>
   )
 
-  const leadGenBundle   = STRIPE_LEADGEN_BUNDLES.find(b => b.credits === selectedLeadGen)!
   const figsyBundle     = STRIPE_FIGSY_BUNDLES.find(b => b.credits === selectedFigsy)!
-  const stripeReady     = STRIPE_LEADGEN_BUNDLES.some(b => b.priceId)
+  const stripeReady     = STRIPE_FIGSY_BUNDLES.some(b => b.priceId)
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -384,35 +378,8 @@ export default function BillingPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {/* Lead Gen */}
-          <div className="rounded-xl overflow-hidden border border-purple-100/60">
-            <div className="bg-[#7C3AED] px-5 py-4 text-white">
-              <p className="font-semibold">K.I.N.D AI — Lead Gen</p>
-              <p className="text-white/60 text-xs mt-0.5">Sourcing + scoring + delivery</p>
-            </div>
-            <div className="bg-white px-5 py-5 space-y-4">
-              <div className="relative">
-                <select value={selectedLeadGen} onChange={e => setSelectedLeadGen(Number(e.target.value))}
-                  className="w-full appearance-none border border-purple-100/80 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
-                  {STRIPE_LEADGEN_BUNDLES.map(b => (
-                    <option key={b.credits} value={b.credits}>{b.credits} credits — ${b.priceUsd}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-[#9B8EC4] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
-              <button
-                onClick={() => handleCreditBuy(leadGenBundle.priceId, leadGenBundle.credits, 'lead_gen')}
-                disabled={!!creditInitiating || !termsAccepted || !leadGenBundle.priceId}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                {creditInitiating === `lead_gen_${selectedLeadGen}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Buy {selectedLeadGen} credits — ${leadGenBundle.priceUsd}
-              </button>
-              <p className="text-xs text-[#9B8EC4] text-center">Credits never expire</p>
-            </div>
-          </div>
-
-          {/* FIGSY */}
+        <div className="grid grid-cols-1 gap-5 max-w-md">
+          {/* FIGSY — the single live product (#284; the $1 Lead-Gen tier is retired) */}
           <div className="rounded-xl overflow-hidden border border-purple-100/60">
             <div className="bg-[#0F0929] px-5 py-4 text-white">
               <p className="font-semibold">FIGSY Advanced</p>

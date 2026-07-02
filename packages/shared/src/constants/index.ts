@@ -8,6 +8,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PRICING = {
+  // ⚠️ RETIRED FROM SALE (#284, 2 Jul) — the $1 Lead-Gen tier is no longer sold:
+  // signup creates a FIGSY plan; website + portal billing show FIGSY only. Kept ONLY
+  // for back-compat of existing lead_gen clients + the Stripe credit-purchase webhook
+  // (`stripe.ts` resolves bundles by creditType). Never surface on a NEW purchase path.
   lead_gen: {
     name: 'K.I.N.D AI — Lead Generation',
     description: 'AI-sourced, AI-scored B2B leads matched to your ICP. 1 credit = 1 qualified lead found.',

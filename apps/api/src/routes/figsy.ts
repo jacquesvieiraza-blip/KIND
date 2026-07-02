@@ -12,6 +12,7 @@ import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
 import { rateLimit } from '../lib/rate-limit'
+import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
 
 // Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
 // is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
@@ -128,6 +129,14 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
   const rawBuf: Buffer = Buffer.isBuffer(req.body) ? req.body : Buffer.from(JSON.stringify(req.body ?? {}))
   if (!verifySvixSignature(rawBuf, req.headers, secret) && req.headers['x-webhook-secret'] !== secret) {
     res.status(401).json({ error: 'Unauthorized' }); return
+  }
+
+  // #264 — replay idempotency. Svix retries redeliver the same (authentic) event;
+  // without this guard a retried hot reply re-pushes the CRM deal AND re-fires the
+  // Paystack auto-top-up (double charge). Key on the stable `svix-id`; a delivery we
+  // have already recorded is a no-op. Fails open (see lib/webhook-idempotency).
+  if (await isDuplicateWebhookEvent(db, req.headers['svix-id'], 'resend')) {
+    res.status(200).json({ received: true, deduped: true }); return
   }
 
   try {

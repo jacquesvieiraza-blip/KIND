@@ -40,7 +40,7 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-275`) · create the demo BEFORE the meeting (seeding runs inline) · never reopen an expired demo · steer around **Knowledge · Team · Integrations** (live nav, say "coming soon") · don't quote the demo form's numbers (says ~1,750 emails, seeds ~1,350).
 
 **3 · M2 hard gates — before ANY paying client** 🔴
-**#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** webhook replay can double-charge via Paystack auto-top-up · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — verify prod env · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
+**#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** ✅ webhook replay idempotency **BUILT 2 Jul** (branch `claude/pr3-webhook-idempotency`, 88/88 tests) — **⛔ you run migration `20260702_webhook_idempotency.sql` on prod** to activate (safe no-op until then) · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — verify prod env · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
 
 **4 · M3 admin build (today)** 🔴
 Board corrected below (4 rows were overclaimed → now 🔴). Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.

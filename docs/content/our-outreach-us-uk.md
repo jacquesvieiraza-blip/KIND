@@ -73,9 +73,9 @@
 
 > —
 > Don't want these emails? {{unsubscribe}} *(Instantly one-click)* — or just reply "unsubscribe" and you're off the list.
-> K.I.N.D · **⛔ [REGISTERED POSTAL ADDRESS — founder to confirm the real legal address before first send]** · {{sender_name}}, {{sender_email}}
+> K.I.N.D · 33 Townsend Road, Tidington, CV37 7DE, United Kingdom · {{sender_name}}, {{sender_email}}
 
-**⛔ Founder must confirm before first send:** (a) the real **registered postal address** to drop into the footer; (b) whether to run **3 emails + LinkedIn** (default, ready now) or add the **optional Day-8 email** above (4-email cadence). Until (a) is filled with a real address, the pack is **not legal to fire at the US list**.
+**✅ (a) Postal address confirmed (founder, 2 Jul):** 33 Townsend Road, Tidington, CV37 7DE, United Kingdom — now in the footer above. **⛔ (b) still open:** run **3 emails + LinkedIn** (default, ready now) or add the **optional Day-8 email** for a 4-email cadence — founder reviewing.
 
 ---
 

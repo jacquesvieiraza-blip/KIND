@@ -118,9 +118,11 @@ authRouter.post('/onboard', async (req, res) => {
       if (updateErr) throw new Error(`Update failed: ${updateErr.message} (${updateErr.code})`)
       clientId = updated.id
     } else {
-      // Insert new client
+      // Insert new client. plan='figsy' — the single live product (#284; lead_gen
+      // retired). Set on INSERT only, so a re-onboarding legacy lead_gen client is
+      // never silently re-planned.
       const { data: inserted, error: insertErr } = await db.from('clients')
-        .insert({ user_id: user.id, ...payload })
+        .insert({ user_id: user.id, ...payload, plan: 'figsy' })
         .select()
         .single()
       if (insertErr) throw new Error(`Insert failed: ${insertErr.message} (${insertErr.code})`)
@@ -140,10 +142,10 @@ authRouter.post('/onboard', async (req, res) => {
     const trialEnd = new Date()
     trialEnd.setDate(trialEnd.getDate() + 14)
     const { data: existingSub } = await db.from('subscriptions')
-      .select('id').eq('client_id', clientId).eq('product', 'lead_gen').maybeSingle()
+      .select('id').eq('client_id', clientId).eq('product', 'figsy').maybeSingle()
     if (!existingSub) {
       const { error: subErr } = await db.from('subscriptions').insert({
-        client_id: clientId, product: 'lead_gen', tier: 'starter', status: 'trialing',
+        client_id: clientId, product: 'figsy', tier: 'starter', status: 'trialing',
         billing_interval: 'monthly',
         amount_usd: 0,
         amount_zar: 0,
@@ -152,14 +154,17 @@ authRouter.post('/onboard', async (req, res) => {
       })
       if (subErr) throw new Error(`Subscription insert failed: ${subErr.message} (${subErr.code})`)
 
-      // Grant 20 free trial credits so new clients can immediately run their first ICP search
-      await db.from('clients').update({ credit_balance: 20 }).eq('id', clientId)
+      // Grant 20 free FIGSY trial credits ($60 value, founder-locked) into the FIGSY
+      // wallet so new clients can enrol their first leads. (#284 — lead_gen retired;
+      // was 20 lead_gen credits into credit_balance.)
+      await db.from('clients').update({ figsy_credits_remaining: 20 }).eq('id', clientId)
       try {
         await db.from('credit_transactions').insert({
           client_id: clientId,
           amount: 20,
           type: 'trial_bonus',
-          note: '14-day free trial — 20 starter credits',
+          plan: 'figsy',
+          note: '14-day free trial — 20 FIGSY credits',
           created_at: now,
         })
       } catch { /* non-critical — don't fail signup */ }

@@ -1137,20 +1137,13 @@ export default function FigsyPage() {
                         </div>
                       </div>
 
-                      {/* W12 — Quality gate / Co-pilot toggle */}
-                      <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
-                        <input
-                          type="checkbox"
-                          id={`review-${campaign.id}`}
-                          checked={campaignSettings.review_required ?? false}
-                          onChange={e => setCampaignSettings(s => ({ ...s, review_required: e.target.checked }))}
-                          className="mt-0.5 rounded border-gray-300 text-amber-500 focus:ring-amber-400"
-                        />
-                        <label htmlFor={`review-${campaign.id}`} className="text-xs cursor-pointer">
-                          <span className="font-semibold text-gray-900">✋ Co-pilot mode — review before send</span>
-                          <p className="text-[#9B8EC4] mt-0.5">FIGSY drafts every email for your approval before it goes out. Recommended for new campaigns.</p>
-                        </label>
-                      </div>
+                      {/* W12 — Co-pilot / review-before-send toggle HIDDEN (#268, 2 Jul).
+                         The gate was a FALSE PROMISE: no send/enroll path reads
+                         `review_required`, and `figsy_approval_queue` has approve/reject
+                         routes but ZERO producers — so nothing ever queued for review and
+                         mail auto-sent regardless. Hidden (state plumbing kept) until the
+                         approval queue is actually wired, so no client is told outreach
+                         holds for approval when it doesn't. */}
 
                       {/* P0-14 — AI Model selector */}
                       <div>

@@ -1018,37 +1018,14 @@ export default function CampaignDetailPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#7B6FA0] mb-2">Sending mode</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setCopilotMode(false)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    !copilotMode
-                      ? 'border-2 border-[#7C3AED] bg-purple-50 text-[#7C3AED]'
-                      : 'border border-purple-100/80 text-gray-600 hover:border-[#7C3AED]/40'
-                  }`}
-                >
-                  <Zap className="w-4 h-4" /> Auto-Pilot
-                </button>
-                <button
-                  onClick={() => setCopilotMode(true)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
-                    copilotMode
-                      ? 'border-2 border-amber-500 bg-amber-50 text-amber-700'
-                      : 'border border-purple-100/80 text-gray-600 hover:border-amber-400'
-                  }`}
-                >
-                  <Users className="w-4 h-4" /> Co-Pilot
-                </button>
-              </div>
-              {copilotMode ? (
-                <p className="text-xs text-amber-600 mt-2 flex items-center gap-1.5">
-                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400" />
-                  All emails require your approval before sending — they will show as <strong>Pending approval</strong>.
-                </p>
-              ) : (
-                <p className="text-xs text-[#9B8EC4] mt-2">FIGSY sends emails automatically on schedule without approval.</p>
-              )}
+              {/* Sending-mode (Auto-Pilot / Co-Pilot "review before send") selector HIDDEN
+                 (#268, 2 Jul). Co-Pilot was a FALSE PROMISE: no send/enroll path holds mail
+                 for approval, and `figsy_approval_queue` has approve/reject routes but ZERO
+                 producers — so "All emails require your approval before sending" never held
+                 and mail auto-sent. Hidden (state kept) until the approval queue is wired,
+                 so no client is promised a review that doesn't happen. Effective mode =
+                 Auto-Pilot. */}
+              <p className="text-xs text-[#9B8EC4] mt-2">FIGSY sends emails automatically on schedule.</p>
             </div>
 
             {/* R18 — Writing model (multi-model toggle) */}

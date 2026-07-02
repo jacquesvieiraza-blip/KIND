@@ -32,10 +32,10 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 **1 · M1 blockers — fix BEFORE any prospect lands or any send** 🔴
 | # | Blocker | Where |
 |---|---------|-------|
-| 1a | ✍️ **DRAFTED + merged (#886)** — REQUIRED CAN-SPAM/GDPR footer (opt-out link + reply-to-opt-out + postal address) in §4, to set as the Instantly campaign footer · **⛔ you confirm the real registered POSTAL ADDRESS before first send** (placeholder in place) | `our-outreach-us-uk.md` §4 |
-| 1b | ✍️ **DRAFTED + merged (#886)** — §4 relabelled honestly to **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; paste the 3 emails into Instantly · **⛔ optional Day-8 4th email drafted — confirm copy if you want a 4-email cadence** | `our-outreach-us-uk.md` §4 |
-| 1c | 🩷 **LIVE — website $1→$3 single-FIGSY shipped** (#283, merged #883 = deployed; audit-verified zero stale $1/$20) · **⛔ walk the live pages + ToS legal sign-off** (§2/§4/§6 drafted) · 2 tiny wording defects left (`vs-salesloft:351,354`) | live site · `terms.html` |
-| **1d** | 🛑 **NEW — #284 website↔PRODUCT pricing mismatch (CRITICAL):** the site sells $3-only, but signup still lands clients on **$1 lead_gen + 20 free $1 credits**, and the portal still sells **$20/$40/$100 Lead-Gen bundles**. Retire lead_gen in the product BEFORE driving any prospect. Needs you: Stripe price ID for the 40/$120 bundle + trial-credits decision. | `auth.ts:146` · `billing-rules.ts:19` · portal `billing/page.tsx:391` |
+| 1a | ✅ **CLEARED (2 Jul, PR #913)** — CAN-SPAM/GDPR footer now carries the real registered **postal address** (33 Townsend Road, Tidington, CV37 7DE, UK). Set it once as the Instantly campaign footer. | `our-outreach-us-uk.md` §4 |
+| 1b | ✅ **CLEARED (2 Jul, PR #913)** — cadence **LOCKED by founder = 4 emails (Day 0/3/8/10) + 1 manual LinkedIn (Day 6)**; Day-8 email promoted to Step 4, breakup → Step 5. Paste the 4 emails into Instantly. | `our-outreach-us-uk.md` §4 |
+| 1c | 🩷 **LIVE — website $1→$3 single-FIGSY** (#283) · **✅ $3 ToS approved by founder (2 Jul)** · wording defects fixed in PR #908 (`vs-salesloft` + "Lead Gen" name) — merge to finish. | live site · `terms.html` |
+| **1d** | ✅ **#284 FIXED (PR #911, merging)** — signup → FIGSY plan + 20 FIGSY trial credits; portal billing FIGSY-only. `STRIPE_PRICE_FIGSY_40` confirmed in Railway. (Stripe price ID was already set — the earlier "owed" note was stale.) | `auth.ts` · portal `billing/page.tsx` |
 
 **2 · Demo prep — cheap, do before ANY face-to-face** ⚠️
 Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-275`) · create the demo BEFORE the meeting (seeding runs inline) · never reopen an expired demo · steer around **Knowledge · Team · Integrations** (live nav, say "coming soon") · don't quote the demo form's numbers (says ~1,750 emails, seeds ~1,350).

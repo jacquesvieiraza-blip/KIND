@@ -3,7 +3,7 @@
 
 Pink = **live but not verified.** For each: walk it → if it works it's 🟢, if it's broken it's 🔴 (note it, I'll fix). Make notes in the right column. Come back to me with anything stuck or broken.
 
-> **Reconciled 2 Jul to the board's 42 🩷** = **35 remaining** from the original 58-item walk (Sections A+B walked 30 Jun; most of the rest clear on the $60 live run) **+ 7 new pinks shipped 1 Jul** (Section E below). Status of record = PRODUCT-INVENTORY.
+> **Reconciled 2 Jul to the board's 43 🩷** = **35 remaining** from the original 58-item walk (Sections A+B walked 30 Jun; most of the rest clear on the $60 live run) **+ 7 new pinks shipped 1 Jul + #15 re-dotted 🟢→🩷 by the 2-Jul audit** (Section E below). Status of record = PRODUCT-INVENTORY.
 
 **Portal = `app.get-kind.com` · Website = `www.get-kind.com` · Admin = `admin.get-kind.com`**
 
@@ -19,6 +19,7 @@ Pink = **live but not verified.** For each: walk it → if it works it's 🟢, i
 | 272 | Admin Cockpit | `admin.get-kind.com` → Pulse tiles + Needs-you-now + unit economics render with real data | |
 | 274 | Sales Channel | Command Centre → Partners lens shows real partners/deals/commissions (AE/Overall = sample-tagged) | |
 | 275 | Nora | Ask Nora bottom-right → replies, re-greets per screen | |
+| 15 | Auto/Co-Pilot modes *(re-dotted 🟢→🩷: review-gate refuted, #268)* | modes UI works; do NOT trust "review before send" until #268 ships — everything auto-sends | |
 
 ---
 

@@ -90,7 +90,9 @@ const SECTIONS: Section[] = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const [pinned, setPinned] = useState(true)
+  // Slim by default (portal parity, founder-directed 2 Jul) — the rail starts
+  // collapsed to w-16 and expands on hover; pin to keep it open.
+  const [pinned, setPinned] = useState(false)
 
   const widthCls = pinned ? 'w-56' : 'w-16 hover:w-56'
   const labelCls = pinned ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'

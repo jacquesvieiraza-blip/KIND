@@ -8,7 +8,7 @@ import {
   Rocket, MonitorPlay, BookOpen, Inbox,
   ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
   UserSquare2, Layers, Database, Eye,
-  Handshake, Pin, Gauge, Wallet, HeartPulse, Sprout,
+  Handshake, Pin, Gauge, Wallet, HeartPulse, Sprout, Boxes,
 } from 'lucide-react'
 
 // NOTE: do not name this `ref` — React reserves `ref`, and since the items are
@@ -73,6 +73,7 @@ const SECTIONS: Section[] = [
   {
     label: 'Ops',
     items: [
+      { href: '/ops',        label: 'Ops',         icon: Boxes },
       { href: '/demo',       label: 'Sales Demo',  icon: MonitorPlay },
       { href: '/founder',    label: 'Founder',     icon: UserSquare2 },
     ],

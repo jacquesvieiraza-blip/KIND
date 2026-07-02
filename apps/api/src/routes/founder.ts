@@ -13,6 +13,8 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
+import { computeChurnRisk } from './internal'
+import { suggestWinBack } from './admin'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend    = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -300,12 +302,33 @@ founderRouter.post('/nora', async (req: Request, res: Response) => {
       screen: z.string().max(60).optional(),
     }).parse(req.body)
 
+    // #293 — at-risk SAVE PLAYBOOK, folded into Nora. When the founder asks about
+    // churn / retention / saving a client, give Nora the LIVE at-risk list (churn
+    // engine) + the per-client save action (suggestWinBack, the same logic behind
+    // /admin/win-back) so she guides the save with real clients — not generic advice.
+    const lastUser = (messages[messages.length - 1]?.content || '').toLowerCase()
+    const wantsRetention = /churn|at.?risk|at risk|retention|retain|save|saving|win.?back|winback|cancel|leaving|lapse|renew|disengag/.test(lastUser)
+    let retentionContext = ''
+    if (wantsRetention) {
+      try {
+        const atRisk = await computeChurnRisk()
+        if (atRisk.length > 0) {
+          const top = [...atRisk].sort((a, b) => b.churn_score - a.churn_score).slice(0, 8)
+          retentionContext = `\n\nLIVE AT-RISK CLIENTS — churn engine, highest score first. Answer with THESE exact clients + their SAVE PLAY; never invent clients or numbers beyond this list:\n` +
+            top.map(c => `• ${c.company_name} (churn score ${c.churn_score}) — signals: ${c.reasons.join(', ') || 'general disengagement'} → SAVE PLAY: ${suggestWinBack(c.reasons)}`).join('\n') +
+            `\n(${atRisk.length} at-risk in total.)`
+        } else {
+          retentionContext = `\n\nLIVE: the churn engine shows NO clients at risk right now — reassure the founder and suggest a light proactive check-in cadence.`
+        }
+      } catch { /* fall back to generic guidance if the churn engine is unavailable */ }
+    }
+
     const system = `You are Nora — "The Keeper" — the admin co-pilot inside the K.I.N.D Admin Centre.
 K.I.N.D is a B2B AI outbound platform (finds leads, scores, enriches, sends cold email sequences via FIGSY; clients pay per credit).
 You are all-round: you help the founder run the business — clients, revenue, pipeline, deliverability, partners, team, ops, security.
 Persona: tidy, secure, in control. Warm but concise. You are founder-facing (internal), not a client agent.
 The founder is currently on the "${screen || 'Cockpit'}" screen — bias your answer to that context.
-Rules: be brief and practical (a few sentences or a short list). If you don't have live data, say what you'd check and where. Never invent specific numbers. Suggest the next concrete action.`
+Rules: be brief and practical (a few sentences or a short list). If you don't have live data, say what you'd check and where. Never invent specific numbers. Suggest the next concrete action.${retentionContext ? '\nWhen LIVE AT-RISK CLIENTS are listed below, this IS the retention playbook (#293): name the specific clients, cite their provided churn scores, and give each one its SAVE PLAY as the next action.' : ''}${retentionContext}`
 
     const response = await anthropic.messages.create({
       model:      'claude-haiku-4-5-20251001',

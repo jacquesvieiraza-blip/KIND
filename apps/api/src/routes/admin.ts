@@ -771,7 +771,7 @@ adminRouter.get('/churn-risk', async (_req: Request, res: Response) => {
 //     paused / past_due vs who to nudge before they cancel).
 // No new email/notification infra is created — this just SURFACES the list +
 // the suggested next step for the founder (or Lena) to act on.
-function suggestWinBack(reasons: string[]): string {
+export function suggestWinBack(reasons: string[]): string {
   if (reasons.some(r => r.startsWith('no_login'))) {
     return 'Send a "we miss you" re-engagement nudge — they have not logged in. Offer a 1–3 month pause instead of letting them lapse.'
   }

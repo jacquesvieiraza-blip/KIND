@@ -33,10 +33,10 @@
 
 ---
 
-## 4. THE SEQUENCE — **3 emails + 1 LinkedIn touch** over ~10 days, in-thread, ≤50-word emails
+## 4. THE SEQUENCE — **4 emails + 1 LinkedIn touch** over ~10 days, in-thread, ≤50-word emails
 > Apollo-playbook blueprint (242): short, one ask, in-thread follow-ups, a personalized opener line. Personalize the **{{opener}}** with one real, researched detail — that one line does more than five polished paragraphs.
 >
-> **⚠️ What to paste into Instantly = the 3 EMAIL steps only (Day 0 · Day 3 · Day 10).** Step 3 (Day 6) is a **manual LinkedIn touch, not an email** — do it by hand, it is not an Instantly sequence step. *(1b fix, 2 Jul: the pack previously said "4 steps"; only 3 are emails. If you want a 4-email cadence instead, use the OPTIONAL Day-8 email drafted below — ⛔ confirm its copy first.)*
+> **⚠️ What to paste into Instantly = the 4 EMAIL steps (Day 0 · Day 3 · Day 8 · Day 10).** The Day-6 touch is a **manual LinkedIn message, not an email** — do it by hand, it is not an Instantly sequence step. *(Cadence LOCKED by founder 2 Jul: 4 emails + 1 LinkedIn.)*
 >
 > **🛑 CAN-SPAM / GDPR footer is REQUIRED on every email — see "REQUIRED EMAIL FOOTER" at the end of this section. Set it once as the Instantly campaign footer so it appends to all three emails.**
 
@@ -55,16 +55,13 @@
 **Step 3 — Day 6 · LinkedIn (soft touch — MANUAL, not an Instantly email step)**
 > Connect + one line: "Sent you a note on the AI-SDR idea for {{company}} — no worries if not a fit, thought the timing might land."
 
-**Step 4 — Day 10 · Email (in thread, breakup)**
+**Step 4 — Day 8 · Email (in thread, nudge)**  *(founder-approved copy, 4-email cadence, 2 Jul)*
+> One more idea, {{first_name}} — happy to send the 10 free sample emails over even if a call's not right yet. Reply "sample" and I'll build them for {{company}} this week.
+
+**Step 5 — Day 10 · Email (in thread, breakup)**
 > I'll stop here, {{first_name}}. If pipeline ever gets tight, we're a reply away — and the free sample offer stands. All the best.
 
-*(3–4 touches over ~10 days is the reasonable ceiling — more reads as spam, per the research.)*
-
----
-
-### ⭐ OPTIONAL — Day 8 · Email (in thread) — *only if you want a 4-EMAIL cadence · ⛔ confirm copy before use*
-> *(Draft, 2 Jul. Slot this between the Day-6 LinkedIn touch and the Day-10 breakup if you'd rather run 4 emails than 3+LinkedIn. Founder to approve/rewrite the copy.)*
-> One more idea, {{first_name}} — happy to send the 10 free sample emails over even if a call's not right yet. Reply "sample" and I'll build them for {{company}} this week.
+*(4 emails + 1 LinkedIn over ~10 days — the reasonable ceiling; more reads as spam, per the research.)*
 
 ---
 
@@ -75,7 +72,7 @@
 > Don't want these emails? {{unsubscribe}} *(Instantly one-click)* — or just reply "unsubscribe" and you're off the list.
 > K.I.N.D · 33 Townsend Road, Tidington, CV37 7DE, United Kingdom · {{sender_name}}, {{sender_email}}
 
-**✅ (a) Postal address confirmed (founder, 2 Jul):** 33 Townsend Road, Tidington, CV37 7DE, United Kingdom — now in the footer above. **⛔ (b) still open:** run **3 emails + LinkedIn** (default, ready now) or add the **optional Day-8 email** for a 4-email cadence — founder reviewing.
+**✅ All founder sign-offs cleared (2 Jul):** (a) **postal address** confirmed — 33 Townsend Road, Tidington, CV37 7DE, United Kingdom (in the footer above); (b) **cadence LOCKED = 4 emails + 1 LinkedIn** (Day-8 email promoted to Step 4, breakup → Step 5); (c) **$3 ToS approved** by the founder. The pack is legally + editorially ready to fire — only the Instantly warm-up clock remains.
 
 ---
 

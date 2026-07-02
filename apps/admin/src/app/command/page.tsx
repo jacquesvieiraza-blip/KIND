@@ -9,14 +9,14 @@
  */
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
-import { Building2, Users, Handshake, UserPlus, Target } from 'lucide-react'
+import { Building2, Users, Handshake, UserPlus, Target, FileText, Trophy } from 'lucide-react'
 
 interface Partner { id: string; name: string; company: string | null; country: string | null; tier: string | null; status: string; referral_count: number; total_paid_zar: number; created_at: string }
 interface Deal { id: string; partner_id: string; company_name: string; estimated_value: number | null; protected_until: string | null; status: string }
 interface Commission { id: string; partner_id: string; amount_usd: number | null; amount_zar: number; status: string }
 
 type Scope = 'overall' | 'team' | 'partners'
-type View = 'analytics' | 'performance' | 'roi' | 'pipeline' | 'targets'
+type View = 'analytics' | 'performance' | 'roi' | 'pipeline' | 'targets' | 'contracts' | 'plays'
 
 const daysUntil = (iso: string | null) => iso ? Math.ceil((new Date(iso).getTime() - Date.now()) / 86400000) : null
 const zar = (n: number | null | undefined) => 'R ' + Number(n ?? 0).toLocaleString('en-ZA', { maximumFractionDigits: 0 })
@@ -104,8 +104,8 @@ export default function SalesChannelPage() {
 
       {/* tabs */}
       <div className="flex gap-0.5 border-b border-gray-200 mt-5 mb-4 overflow-x-auto">
-        {(['analytics', 'performance', 'roi', 'pipeline', 'targets'] as View[]).map(v => (
-          <button key={v} onClick={() => setView(v)} className={`px-4 py-2.5 text-sm font-semibold capitalize whitespace-nowrap border-b-2 ${view === v ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-gray-400 border-transparent hover:text-gray-700'}`}>{v}</button>
+        {(['analytics', 'performance', 'roi', 'pipeline', 'targets', 'contracts', 'plays'] as View[]).map(v => (
+          <button key={v} onClick={() => setView(v)} className={`px-4 py-2.5 text-sm font-semibold capitalize whitespace-nowrap border-b-2 ${view === v ? 'text-[#7C3AED] border-[#7C3AED]' : 'text-gray-400 border-transparent hover:text-gray-700'}`}>{v === 'plays' ? 'Winning plays' : v}</button>
         ))}
       </div>
 
@@ -218,10 +218,34 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
       </div>
     </div>
   }
+  // Winning plays — shell (needs AE data #276)
+  if (view === 'plays') return (
+    <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-2xl p-10 text-center">
+      <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#7C3AED] flex items-center justify-center mx-auto mb-4"><Trophy className="w-6 h-6" /></div>
+      <h2 className="text-lg font-bold text-gray-900">Winning plays</h2>
+      <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">The pitches, sequences and objection-handles that close — captured per person so the whole team can run the best play.</p>
+      <span className="inline-block mt-5 text-[11px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">Wire-in · needs AE data (#276)</span>
+    </div>
+  )
+  // Contracts vault — shell (needs AE data #276)
+  if (view === 'contracts') return (
+    <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-2xl p-10 text-center">
+      <div className="w-12 h-12 rounded-2xl bg-purple-50 text-[#7C3AED] flex items-center justify-center mx-auto mb-4"><FileText className="w-6 h-6" /></div>
+      <h2 className="text-lg font-bold text-gray-900">Contracts vault</h2>
+      <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">Signed AE / partner agreements, commission terms and renewal dates — one place per person.</p>
+      <span className="inline-block mt-5 text-[11px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-3 py-1">Wire-in · needs AE data (#276)</span>
+    </div>
+  )
   // targets — the ladder is the founder's real reference; ACTUALS deliberately live
   // in Finance only (#282 single-source: MRR → Finance; this tab links, never copies).
   return <div className="space-y-4">
     <div className="inline-block"><span className="text-[10px] font-bold uppercase tracking-wide bg-purple-50 text-[#7C3AED] rounded-full px-2.5 py-1">Target‑based sales · moved from Finance</span></div>
+    {ent.kind !== 'company' && (
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-1"><p className="text-sm font-semibold text-gray-900">Per‑person targets — {ent.name}</p><span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">needs AE data (#276)</span></div>
+        <p className="text-sm text-gray-500">Monthly / quarterly / yearly targets per person wire in with per‑AE logins (#276). The company ladder below is live today.</p>
+      </div>
+    )}
     <div className="bg-white border border-purple-100 rounded-2xl p-4"><div className="flex items-center gap-2 mb-1"><Target className="w-4 h-4 text-[#7C3AED]" /><p className="text-sm font-semibold text-gray-900">Progress vs target</p></div>
       <p className="text-sm text-gray-500">Live MRR + client actuals have ONE home — <a href="/revenue" className="text-[#7C3AED] font-semibold hover:underline">Finance</a> (single-source #282). This tab holds the target ladder.</p></div>
     <div className="bg-white border border-purple-100 rounded-2xl overflow-hidden"><p className="text-sm font-semibold text-gray-900 p-4 pb-2">Monthly revenue targets</p>

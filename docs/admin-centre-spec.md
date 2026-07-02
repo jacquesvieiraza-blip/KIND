@@ -39,12 +39,14 @@ The ad-hoc slices above shipped but the admin reads **inconsistent** (layout dri
   - Cohorts → `/cohorts` only · churn/at-risk → Clients · MRR → Finance.
 
 ### ▶ #277 build progress (build-live, one slice per PR)
-- **Slice A — design-system foundation: BUILT 2 Jul** (branch `claude/admin-a-design-system`; tsc + `next build` green). Admin Tailwind adopted the portal violet ramp (`brand.50–900`) + `kind-gradient` + Inter + `darkMode:'class'` (was `brand=#0066FF` blue); `globals.css` gained the portal token system (`--surface/--border/--text`, light+dark) + `.ds-card/.ds-text-*`; `ui.tsx` is now the real shared kit — **Button** + portal-parity **StatCard** added, **MarkdownLite** copied + re-exported, existing `Tile/Card/Pill/Table` kept; **recharts** installed. The slim collapsible violet sidebar already existed → no rebuild. **Next slices:** B = Nora on `AgentSidePanel` + restyle Cockpit; then C (walk-critical honesty fixes) · D (#282 dedup) · E (#281 Clients) · F (Sales Channel) · G (#278 GTM) · H (#279 Engine graph) · I (#280 Ops).
+- **Slice A — design-system foundation: MERGED #887** (tsc + `next build` green). Admin Tailwind adopted the portal violet ramp (`brand.50–900`) + `kind-gradient` + Inter + `darkMode:'class'` (was `brand=#0066FF` blue); `globals.css` gained the portal token system + `.ds-card/.ds-text-*`; `ui.tsx` is now the real shared kit — **Button** + portal-parity **StatCard** added, **MarkdownLite** copied + re-exported; **recharts** installed. Slim collapsible violet sidebar already existed → no rebuild. *(Invisible plumbing by design — the admin was already violet via hardcoded hex.)*
+- **Slice B — Nora + gradient + Cockpit: MERGED #888, founder saw it live.** Nora rebuilt in the `AgentSidePanel` design language (photo header · dark identity bar · avatar bubbles · **MarkdownLite** · typing dots), admin `main` on the **`kind-gradient`** backdrop, Cockpit on frosted portal cards.
+- **Next slices:** **C — walk-critical honesty + audit-defect fixes** (fake Sales-Channel charts · cut HubSpot · static "Healthy" label · invisible toast `demo:160` · dark-text-on-violet buttons ×3 · navy relics `scalability`/`playbook` · dead `KpiTargetsSection` · Nora float keyframes + avatar fallback · **MRR $0-with-11-active-subs data fix**) · D (#282 dedup — incl. cohorts' flat gray cards) · E (#281 Clients) · F (Sales Channel completion) · G (#278 GTM) · H (#279 Engine graph) · I (#280 Ops).
 
-### 📊 Admin build audit (1 Jul) — the truth going to LAUNCH-PAD + inventory
-- 🩷 **live, not verified:** Cockpit · Sales Channel (partners live, AE/overall sample) · Finance · Nora (bespoke)
+### 📊 Admin build audit (updated 2 Jul PM — Fable regroup)
+- 🩷 **live, not verified:** Cockpit (restyled #888) · Sales Channel (partners live, AE/overall sample) · Finance · **Nora on the AgentSidePanel look (#888)** · design system foundation (#887)
 - 🟢 **live + verified:** Sales Demo · Compliance · Terms
-- 🔴 **not built:** #277 design-adoption (+ Nora rebuild) · #282 dedup · #281 Clients rebuild · #278 GTM (Strategy/Results/Winning plays/Content calendar; cut HubSpot) · #279 Engine health graph · #280 Ops (pool mgmt · onboarding) · #270/#271 triggers · #276 logins
+- 🔴 **not built:** #277 remaining screen restyles (Slices C–I) · #282 dedup · #281 Clients rebuild · #278 GTM (Strategy/Results/Winning plays/Content calendar; cut HubSpot) · #279 Engine health graph · #280 Ops (pool mgmt · onboarding) · #270/#271 triggers · #276 logins
 - ⏸ **blocked on founder:** Xero/Wise/Stripe connects · Smartlead (pool + triggers) · PDL key · Resend events · targets · contracts
 - 🔌 **needs reporting endpoint (live data):** AE/Overall analytics · Engine graph · content calendar · winning plays
 

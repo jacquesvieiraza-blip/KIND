@@ -1,6 +1,6 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 1 July 2026** · Three milestones. Nothing else on this page.
+**As of: 2 July 2026 (PM — Fable regroup)** · Three milestones. Nothing else on this page.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
 > Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. Procedures/flows = SOP (`client-flow-sop.md`). This page = what to do now.
@@ -26,33 +26,35 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 
 ---
 
-## 🎯 THIS WEEK — HYPER-FOCUS (full-system audit, 2 Jul · machine checks: tsc ×3 clean, 82/82 tests)
+## 🎯 THIS WEEK — HYPER-FOCUS (Fable regroup audit, 2 Jul PM · machine checks: tsc clean, 88/88 tests · runway: Fable until **7 Jul**)
 **Only these four blocks + Friday's GTM. Everything else waits.**
 
 **1 · M1 blockers — fix BEFORE any prospect lands or any send** 🔴
 | # | Blocker | Where |
 |---|---------|-------|
-| 1a | ✍️ **DRAFTED 2 Jul** (branch `claude/pr5-outreach-compliance`) — added the REQUIRED CAN-SPAM/GDPR footer (opt-out link + reply-to-opt-out + postal address) to §4, to set as the Instantly campaign footer · **⛔ you confirm the real registered POSTAL ADDRESS before first send** (placeholder in place) | `our-outreach-us-uk.md` §4 |
-| 1b | ✍️ **DRAFTED 2 Jul** — §4 relabelled honestly to **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; paste the 3 emails into Instantly · **⛔ optional Day-8 4th email drafted — you confirm copy if you want a 4-email cadence** | `our-outreach-us-uk.md` §4 |
-| 1c | ✅ **BUILT 2 Jul → website $1→$3 single-FIGSY** (#283, merged to main #883, **pending your preview**) · ⛔ ToS $3-only wording drafted, needs your legal sign-off before go-live | `figsy.html:831` `terms.html` §2/§4/§6 |
+| 1a | ✍️ **DRAFTED + merged (#886)** — REQUIRED CAN-SPAM/GDPR footer (opt-out link + reply-to-opt-out + postal address) in §4, to set as the Instantly campaign footer · **⛔ you confirm the real registered POSTAL ADDRESS before first send** (placeholder in place) | `our-outreach-us-uk.md` §4 |
+| 1b | ✍️ **DRAFTED + merged (#886)** — §4 relabelled honestly to **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; paste the 3 emails into Instantly · **⛔ optional Day-8 4th email drafted — confirm copy if you want a 4-email cadence** | `our-outreach-us-uk.md` §4 |
+| 1c | 🩷 **LIVE — website $1→$3 single-FIGSY shipped** (#283, merged #883 = deployed; audit-verified zero stale $1/$20) · **⛔ walk the live pages + ToS legal sign-off** (§2/§4/§6 drafted) · 2 tiny wording defects left (`vs-salesloft:351,354`) | live site · `terms.html` |
+| **1d** | 🛑 **NEW — #284 website↔PRODUCT pricing mismatch (CRITICAL):** the site sells $3-only, but signup still lands clients on **$1 lead_gen + 20 free $1 credits**, and the portal still sells **$20/$40/$100 Lead-Gen bundles**. Retire lead_gen in the product BEFORE driving any prospect. Needs you: Stripe price ID for the 40/$120 bundle + trial-credits decision. | `auth.ts:146` · `billing-rules.ts:19` · portal `billing/page.tsx:391` |
 
 **2 · Demo prep — cheap, do before ANY face-to-face** ⚠️
 Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-275`) · create the demo BEFORE the meeting (seeding runs inline) · never reopen an expired demo · steer around **Knowledge · Team · Integrations** (live nav, say "coming soon") · don't quote the demo form's numbers (says ~1,750 emails, seeds ~1,350).
 
 **3 · M2 hard gates — before ANY paying client** 🔴
-**#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** ✅ webhook replay idempotency **BUILT + merged (#884)** — **⛔ run migration `20260702_webhook_idempotency.sql` on prod** to activate (safe no-op until then) · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — **verify prod env in one click: open `/engine/env?key=<ADMIN_SECRET_KEY>`** (booleans only, no secrets; `ready.sending`=M1, `ready.billing`=M2 — BUILT 2 Jul, branch `claude/pr4-env-readiness`) · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
+**#284** product still on $1 lead_gen (see 1d — also an M2 gate: never charge a paying client on the wrong plan) · **#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** 🩷 webhook replay idempotency **LIVE (#884)** — **⛔ run migration `20260702_webhook_idempotency.sql` on prod** to activate (safe no-op until then); *audit hardening owed: idempotency key on the Paystack charge + record-after-success (mid-crash retry currently loses the reply)* · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — **verify prod env in one click: open `/engine/env?key=<ADMIN_SECRET_KEY>`** (live, merged #885; *audit gap: `ready.billing` doesn't check `STRIPE_PRICE_*`/`PAYSTACK_PLAN_*` ids — can read true while checkout would fail*) · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
 
 **4 · M3 admin build (today)** 🔴 — *in progress, build-live, one slice per PR*
 Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.
 - ▶ **Slice A — design-system foundation: BUILT + MERGED (#887)** — kit + tokens + recharts (invisible plumbing; the admin was already violet, so nothing changed on screen — by design).
-- ▶ **Slice B — Nora + Cockpit: BUILT 2 Jul** (branch `claude/admin-b-nora-cockpit`, tsc + build green) — **first visible portal-parity change:** Nora rebuilt on the `AgentSidePanel` look (photo header · avatar bubbles · **MarkdownLite** · typing dots), admin `main` now on the `kind-gradient` backdrop, Cockpit on frosted portal cards. **Next: Slice C — walk-critical honesty fixes (fake charts in Sales-Channel Partners lens · cut HubSpot · static health label).**
+- ▶ **Slice B — Nora + Cockpit: MERGED (#888), founder saw it live** — Nora on the `AgentSidePanel` look (photo header · avatar bubbles · **MarkdownLite** · typing dots), admin on the `kind-gradient` backdrop, Cockpit on frosted portal cards.
+- ▶ **Next: Slice C — walk-critical honesty + audit-defect fixes:** fake charts in the Sales-Channel Partners lens · cut HubSpot · static "Healthy" health label · **invisible toast** (`demo:160`) · dark-text-on-violet buttons (`demo:176` · `clients/[id]:238` · `terms-library:154`) · dark-navy relics (`scalability:136` · `playbook:341,449`) · Cockpit dead `KpiTargetsSection` (render-or-delete) · Nora float keyframes + bubble-avatar fallback · **Cockpit MRR reads $0 with 11 active subs** (`amount_zar` null on those subs — investigate data or sum Stripe USD too).
 
 **GTM — Fri 3 Jul (tomorrow):** 12 weeks of LinkedIn posts → creates `docs/content/linkedin-playbook.md`.
 
 ---
 
 ## ① OUTREACH OURSELVES — Milestone 1 · *sell K.I.N.D via our own cold email*
-### 👉 Bottom line *(corrected by the 2 Jul audit)*: the ENGINE is done, but **three content/site fixes gate ①** — CAN-SPAM opt-out+address in the cold emails (1a) · the 3-vs-4-step sequence fix (1b) · website $1→$3 (#283). After those → it's only the **Instantly warmth clock** + your manual import/test/fire.
+### 👉 Bottom line *(Fable regroup, 2 Jul PM)*: the ENGINE is done; 1a/1b are drafted (need your postal address + cadence call) and the site is repriced 🩷 — **what now gates ① is #284 (the product still sells the retired $1 tier — fix before any prospect lands)** + the **Instantly warmth clock** + your manual import/test/fire.
 
 ### ✅ Done (code-verified 1 Jul)
 | What | Evidence |
@@ -79,9 +81,10 @@ Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePa
 > 🛑 **BUILD BLOCKERS before prospects land (audit 2 Jul) — the three 1a/1b/1c items from HYPER-FOCUS:**
 > **1a — CAN-SPAM — ✍️ DRAFTED 2 Jul (branch `claude/pr5-outreach-compliance`):** added the REQUIRED email footer to §4 (opt-out link + reply-to-opt-out + physical postal address) — because the FIGSY List-Unsubscribe header is code-only and does NOT apply via Instantly. Set it as the Instantly campaign footer. **⛔ still needs the real registered POSTAL ADDRESS (placeholder in place) — not legal to fire at the US list until filled.**
 > **1b — Sequence math — ✍️ DRAFTED 2 Jul:** §4 relabelled to **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; the 3 emails are what you paste into Instantly. An **optional Day-8 4th email** is drafted for a 4-email cadence (⛔ confirm copy).
-> **1c — Pricing (#283) — ✅ BUILT 2 Jul (merged to main #883, pending your preview):** retired the **$1 Lead-Gen tier** + stale **$20 entry** across the whole site → single **$3 FIGSY** (entry $60; bundles 20/40/100 = $60/$120/$300). Fixed `index.html`, `pricing.html` (cards + compare matrix + FAQ + JS + add-on reframe), `figsy.html`, `vs-hiring-an-sdr.html`, `use-cases.html`, `solutions.html`, `partners.html`; dead footer `#products` link fixed (55 pages); footer "Lead Gen" entry relabelled (56 pages). **⛔ ToS $3-only wording drafted in `terms.html` §2/§4/§6 — needs your legal sign-off before it goes live.** Ties #239. **Next: you preview on staging → approve → it ships.**
+> **1c — Pricing (#283) — 🩷 LIVE (merged #883 = deployed; audit-verified 2 Jul PM):** retired the **$1 Lead-Gen tier** + stale **$20 entry** site-wide → single **$3 FIGSY** (entry $60; bundles 20/40/100 = $60/$120/$300); zero stale pricing confirmed by sweep; dead footer link fixed (55 pages) + footer entry relabelled (56). **⛔ Owed: you walk the live pages · ToS legal sign-off (`terms.html` §2/§4/§6 — the wording is my draft and it is ALREADY LIVE)** · 2 tiny wording defects queued (`vs-salesloft:351,354` "$60 total"). Ties #239.
+> **1d — #284 website↔product mismatch — 🛑 THE gate:** the product still signs clients up on **$1 lead_gen** and sells **$20/$40/$100 Lead-Gen bundles** in the portal, contradicting the live site. Retire lead_gen in the product (shared `PRICING` · `billing-rules` default · portal Billing UI · signup product) — **needs you for the Stripe 40/$120 price ID + the trial-credits decision (20 free $1 credits → what in the $3 world?).**
 
-**Front ① is done when:** website priced correctly (#283) · Instantly warm · first send fired.
+**Front ① is done when:** product matches the site (#284) · postal address in the footer (1a) · Instantly warm · first send fired.
 
 ---
 
@@ -120,23 +123,23 @@ Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePa
 ### 📊 FULL BUILD AUDIT (1 Jul — the complete M3 picture)
 Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked. *(Status of record = PRODUCT-INVENTORY #272/#274/#275/#276/#277–#282; full structure = `admin-centre-spec.md`.)*
 
-**🎨 Design foundation**
+**🎨 Design foundation** *(Slice A merged #887 · Slice B merged #888 — 2 Jul)*
 | Item | Status |
 |---|---|
-| Portal theme adopted (violet/Inter/gradients/dark) | 🔴 |
-| Shared kit — StatCard | 🟡 |
-| Shared kit — Card / Button / Pill / Table | 🟡 |
-| Shared kit — MarkdownLite | 🔴 |
-| Slim collapsible sidebar (portal look) | 🔴 *(a basic collapse/pin exists — the portal-look rebuild is what's outstanding)* |
-| Recharts added | 🔴 |
+| Portal theme adopted (violet/Inter/gradients/dark + `kind-gradient` backdrop) | 🩷 *(live #887/#888)* |
+| Shared kit — StatCard | 🩷 *(portal-parity StatCard added #887; kit not yet consumed by screens)* |
+| Shared kit — Card / Button / Pill / Table | 🩷 *(Button added #887; kit not yet consumed by screens)* |
+| Shared kit — MarkdownLite | 🩷 *(copied + re-exported #887; used by Nora)* |
+| Slim collapsible sidebar (portal look) | 🩷 *(already existed — audit confirmed; no rebuild needed)* |
+| Recharts added | 🩷 *(installed #887; first consumer = #279 Engine graph)* |
 
 **🤖 Nora**
 | Item | Status |
 |---|---|
-| Nora right rail (bespoke `NoraRail`) | 🩷 |
+| Nora right rail | 🩷 |
 | Nora context-aware per screen | 🩷 |
 | Nora live chat endpoint (`/founder/nora`) | 🩷 |
-| Nora rebuilt on portal `AgentSidePanel` | 🔴 |
+| Nora rebuilt on portal `AgentSidePanel` look | 🩷 *(live #888 — photo header · avatar bubbles · MarkdownLite · typing dots; float keyframes + bubble-avatar fallback owed → Slice C)* |
 
 **🩺 Cockpit**
 | Item | Status |
@@ -151,7 +154,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Needs you now — trigger rows (signup/payment/switch/pool) | 🔴 |
 | Unit economics — margin | 🩷 |
 | Unit economics — net | 🩷 |
-| Cockpit layout → portal kit | 🔴 |
+| Cockpit layout → portal kit | 🩷 *(frosted portal cards live #888 · ⚠️ audit: `KpiTargetsSection` is dead code + MRR tile reads $0 with 11 active subs → Slice C)* |
 
 **👥 Clients**
 | Item | Status |

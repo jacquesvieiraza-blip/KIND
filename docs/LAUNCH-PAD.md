@@ -26,8 +26,31 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 
 ---
 
+## 🎯 THIS WEEK — HYPER-FOCUS (full-system audit, 2 Jul · machine checks: tsc ×3 clean, 82/82 tests)
+**Only these four blocks + Friday's GTM. Everything else waits.**
+
+**1 · M1 blockers — fix BEFORE any prospect lands or any send** 🔴
+| # | Blocker | Where |
+|---|---------|-------|
+| 1a | **Cold emails have NO opt-out line + NO postal address** (CAN-SPAM, US list). "Reply STOP" lives only in FIGSY code — Instantly bypasses it | `our-outreach-us-uk.md:39-55` |
+| 1b | **"4-step sequence" is only 3 emails** — Step 3 (Day 6) is a LinkedIn touch; can't "paste 4 into Instantly" | `our-outreach-us-uk.md:51` |
+| 1c | **Website/ToS sell the retired $1 tier · FIGSY mispriced at $1** (#283) | `figsy.html:831` vs `terms.html:288` |
+
+**2 · Demo prep — cheap, do before ANY face-to-face** ⚠️
+Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-275`) · create the demo BEFORE the meeting (seeding runs inline) · never reopen an expired demo · steer around **Knowledge · Team · Integrations** (live nav, say "coming soon") · don't quote the demo form's numbers (says ~1,750 emails, seeds ~1,350).
+
+**3 · M2 hard gates — before ANY paying client** 🔴
+**#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** webhook replay can double-charge via Paystack auto-top-up · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — verify prod env · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
+
+**4 · M3 admin build (today)** 🔴
+Board corrected below (4 rows were overclaimed → now 🔴). Build order: **#277** portal design adoption (theme + kit + Nora on `AgentSidePanel`) → walk-critical fixes (fake charts in live Partners lens · cut HubSpot · unify Sales-Channel naming) → **#282** dedup → **#281/#278/#279/#280**.
+
+**GTM — Fri 3 Jul (tomorrow):** 12 weeks of LinkedIn posts → creates `docs/content/linkedin-playbook.md`.
+
+---
+
 ## ① OUTREACH OURSELVES — Milestone 1 · *sell K.I.N.D via our own cold email*
-### 👉 Bottom line: **ZERO code left to build.** Front ① is gated only on the **Instantly warmth clock** + your manual import/test/fire. Everything the code needs is done.
+### 👉 Bottom line *(corrected by the 2 Jul audit)*: the ENGINE is done, but **three content/site fixes gate ①** — CAN-SPAM opt-out+address in the cold emails (1a) · the 3-vs-4-step sequence fix (1b) · website $1→$3 (#283). After those → it's only the **Instantly warmth clock** + your manual import/test/fire.
 
 ### ✅ Done (code-verified 1 Jul)
 | What | Evidence |
@@ -51,7 +74,10 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 | 5 | ⏱ Test-send 10–20 → check placement | Primary (not Promotions), bounce <2%, spam <0.3%, replies land in unibox |
 | 6 | 🚀 ⏱ **Fire first outreach** (#127) → dogfood monitor (#132) | campaign running; reply rate tracked (target ≥5% d3 / ≥10% d7) |
 
-> 🛑 **BUILD BLOCKER before prospects land (audit 1 Jul):** the **website still sells the retired $1 Lead-Gen tier** and **FIGSY is mispriced at $1** on its own page + ToS still defines it (**#283**). Prospects from our outreach land on wrong pricing → fix to single **$3 FIGSY** first. Ties to Lead-Gen→$3 (#239). *(This is the one engineering/content item gating ① — not just the warmth clock.)*
+> 🛑 **BUILD BLOCKERS before prospects land (audit 2 Jul) — the three 1a/1b/1c items from HYPER-FOCUS:**
+> **1a — CAN-SPAM:** the paste-ready cold emails have **no opt-out line and no postal address** (`our-outreach-us-uk.md:39-55`); the "Reply STOP" net is FIGSY-code-only (`deliverability.ts:132`) and does NOT apply when sending via Instantly. Illegal to fire at the US list as-is.
+> **1b — Sequence math:** Step 3 (Day 6) is a **LinkedIn touch, not an email** (`our-outreach-us-uk.md:51`) — only 3 email steps exist to paste into Instantly; step 3 must become an email or the plan must say 3-email + LinkedIn.
+> **1c — Pricing (#283):** website still sells the retired **$1 Lead-Gen tier**; **FIGSY mispriced at $1** on its own page (`figsy.html:831`) while ToS says $3 (`terms.html:288`). Fix to single **$3 FIGSY** (ties to #239).
 
 **Front ① is done when:** website priced correctly (#283) · Instantly warm · first send fired.
 
@@ -99,7 +125,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Shared kit — StatCard | 🟡 |
 | Shared kit — Card / Button / Pill / Table | 🟡 |
 | Shared kit — MarkdownLite | 🔴 |
-| Slim collapsible sidebar (portal look) | 🔴 |
+| Slim collapsible sidebar (portal look) | 🔴 *(a basic collapse/pin exists — the portal-look rebuild is what's outstanding)* |
 | Recharts added | 🔴 |
 
 **🤖 Nora**
@@ -117,7 +143,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Pulse — Cash & runway | 🩷 ⏸ |
 | Pulse — Clients | 🩷 |
 | Pulse — This week | 🩷 |
-| Pulse — System health | 🩷 |
+| Pulse — System health | 🩷 *(static "Healthy" label, not a live check)* |
 | Pulse — Pool stock | 🩷 ⏸ |
 | Needs you now — at-risk (live) | 🩷 |
 | Needs you now — trigger rows (signup/payment/switch/pool) | 🔴 |
@@ -142,18 +168,18 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Lens — Overall | 🩷 (sample) |
 | Lens — per-AE | 🩷 (sample) |
 | Lens — per-Partner | 🩷 (live) |
-| Tab — Analytics | 🩷 |
+| Tab — Analytics | 🩷 *(tiles real · charts hardcoded — fake even in the LIVE partner lens, `command/page.tsx:157-167`)* |
 | Tab — Performance | 🩷 |
 | Tab — ROI | 🩷 |
 | Tab — Pipeline | 🩷 |
 | Tab — Targets (KPI/monthly/core) | 🩷 |
 | Demos + closure | 🩷 |
 | Book MRR + commission | 🩷 |
-| Targets per person (mo/qtr/yr) | 🩷 ⏸ |
-| 3× pipeline coverage | 🩷 |
+| Targets per person (mo/qtr/yr) | 🔴 *(corrected 2 Jul — Targets tab shows the same company-wide numbers for every AE/partner; no per-person UI)* |
+| 3× pipeline coverage | 🩷 *(hardcoded shell — "2.1×" is a literal string, not computed)* |
 | Mini-CRM | 🩷 |
-| Contracts vault | 🩷 |
-| Winning plays (per person) | 🩷 |
+| Contracts vault | 🔴 *(corrected 2 Jul — zero code; was overclaimed)* |
+| Winning plays (per person) | 🔴 *(corrected 2 Jul — zero code; was overclaimed)* |
 | Partner management folded (approve/deals/commissions) | 🔴 |
 | Proposals folded | 🔴 |
 | AEs real + logins | 🔴 |
@@ -171,9 +197,9 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Scenario tracker | 🩷 |
 | 90-day forecast | 🩷 |
 | ARPU breakdown | 🩷 |
-| Credit sales | 🩷 |
+| Credit sales | 🩷 *(empty placeholder — no data path until the billing webhook wires in)* |
 | Cost stack | 🩷 |
-| Finance layout → kit | 🩷 |
+| Finance layout → kit | 🔴 *(corrected 2 Jul — the kit `ui.tsx` is imported nowhere; was overclaimed)* |
 | Cohorts duplication removed | 🔴 |
 
 **📣 GTM**
@@ -192,7 +218,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 **⚙️ Engine**
 | Item | Status |
 |---|---|
-| Send status (cron / volume / bounce) | 🩷 |
+| Send status (cron / volume / bounce) | 🩷 *(service dots live · cron block + volume/bounce are placeholders)* |
 | Env readiness checklist | 🩷 |
 | Health graph | 🔴 |
 | Engine layout → kit | 🔴 |
@@ -271,10 +297,10 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 
 | Day | Front | What | Owner |
 |-----|-------|------|-------|
-| **Wed 1 Jul — TODAY** | ② | **M2 security+sending sweep — shipped one-by-one:** 🟢 #266 /team auth · 🟢 #261 ownership+RLS · 🟢 #263 CI · 🟢 #262 pause-migration · 🩷 #260 blocklist · 🩷 #265 Stripe grant · 🩷 cap+#267 bounce · 🩷 #243 Apollo-independence. Locked the **#211 client-sending model** (SOP). Lead-Gen→$3 parked to Thu. | 🤝 |
-| **Thu 2 Jul** | ②/③ | **(a) Lead-Gen → single $3 FIGSY** *(parked from today)* — multi-front: API `billing-rules` + portal `billing` + **website `pricing.html`** + docs; **client-facing → preview.** **(b) Milestone 3 kickoff — Admin Centre rebuild** *(build-LIVE; full spec `docs/admin-centre-spec.md`)*: Cockpit (**#272**) · triggers into admin+email (**#270** signup→assign · **#271** payment→provision+switch) · **Command Centre per-AE/partner (#274)** · **Nora admin co-pilot (#275)** · per-staff logins (**#276**) · finance (Xero/Wise/HMRC). *(#211 engine + $60 walk also queued.)* | 🤝 |
-| **Thu–Fri 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
-| **Fri 4 Jul** | ① | Generate 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only) → **output to create: `docs/content/linkedin-playbook.md`** *(doesn't exist yet — this task creates it)* | 🤝 |
+| **Wed 1 Jul** | ② | **M2 security+sending sweep — shipped one-by-one:** 🟢 #266 /team auth · 🟢 #261 ownership+RLS · 🟢 #263 CI · 🟢 #262 pause-migration · 🩷 #260 blocklist · 🩷 #265 Stripe grant · 🩷 cap+#267 bounce · 🩷 #243 Apollo-independence. Locked the **#211 client-sending model** (SOP). Lead-Gen→$3 parked to Thu. | 🤝 |
+| **Thu 2 Jul — TODAY** | ①②③ | **THE HYPER-FOCUS (top of this doc):** **1** M1 blockers (1a CAN-SPAM opt-out+address · 1b sequence 3-vs-4 fix · 1c website $1→$3 #283 + Lead-Gen→$3 #239, client-facing → preview) · **3** M2 gates (#211 isolation · #268 fix-or-hide review toggle · #264 webhook idempotency · verify prod env keys) · **4** M3 admin build (#277 design adoption + walk-critical fixes → #282 dedup → #281/#278/#279/#280). *(#270/#271 triggers + #276 logins need Smartlead/role decisions · $60 walk when funded.)* | 🤝 |
+| **Fri 3 Jul — TOMORROW** | ① | **GTM:** 12 weeks of LinkedIn posts (no pricing · no traction claims · safe only) → **output to create: `docs/content/linkedin-playbook.md`** *(doesn't exist yet — this task creates it)*. Plus **demo prep** (HYPER-FOCUS block 2) ahead of recording. | 🤝 |
+| **Fri–Sat 3–4 Jul** | ①/② | Record product demo + Drop 01 (Claude preps demo company + shoot) → upload | 🤝 |
 | **When you fund it** | ② | **$60 live money walk** — proves billing end-to-end (#28b) | 🤝 |
 | **Your clock (parallel)** | ① | Instantly warmth ≥90% → import → mail-tester → test-send → **first outreach fired** | 🧍 |
 

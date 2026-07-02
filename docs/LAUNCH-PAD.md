@@ -32,9 +32,9 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 **1 · M1 blockers — fix BEFORE any prospect lands or any send** 🔴
 | # | Blocker | Where |
 |---|---------|-------|
-| 1a | **Cold emails have NO opt-out line + NO postal address** (CAN-SPAM, US list). "Reply STOP" lives only in FIGSY code — Instantly bypasses it | `our-outreach-us-uk.md:39-55` |
-| 1b | **"4-step sequence" is only 3 emails** — Step 3 (Day 6) is a LinkedIn touch; can't "paste 4 into Instantly" | `our-outreach-us-uk.md:51` |
-| 1c | ✅ **BUILT 2 Jul → website $1→$3 single-FIGSY** (#283, branch `claude/pr1-website-3usd-pricing`, **pending your preview**) · ⛔ ToS $3-only wording drafted, needs your legal sign-off before go-live | `figsy.html:831` `terms.html` §2/§4/§6 |
+| 1a | ✍️ **DRAFTED 2 Jul** (branch `claude/pr5-outreach-compliance`) — added the REQUIRED CAN-SPAM/GDPR footer (opt-out link + reply-to-opt-out + postal address) to §4, to set as the Instantly campaign footer · **⛔ you confirm the real registered POSTAL ADDRESS before first send** (placeholder in place) | `our-outreach-us-uk.md` §4 |
+| 1b | ✍️ **DRAFTED 2 Jul** — §4 relabelled honestly to **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; paste the 3 emails into Instantly · **⛔ optional Day-8 4th email drafted — you confirm copy if you want a 4-email cadence** | `our-outreach-us-uk.md` §4 |
+| 1c | ✅ **BUILT 2 Jul → website $1→$3 single-FIGSY** (#283, merged to main #883, **pending your preview**) · ⛔ ToS $3-only wording drafted, needs your legal sign-off before go-live | `figsy.html:831` `terms.html` §2/§4/§6 |
 
 **2 · Demo prep — cheap, do before ANY face-to-face** ⚠️
 Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-275`) · create the demo BEFORE the meeting (seeding runs inline) · never reopen an expired demo · steer around **Knowledge · Team · Integrations** (live nav, say "coming soon") · don't quote the demo form's numbers (says ~1,750 emails, seeds ~1,350).
@@ -57,7 +57,7 @@ Board corrected below (4 rows were overclaimed → now 🔴). Build order: **#27
 |------|----------|
 | Product built + fully walked (Section A 17 🟢 + Section B engine) | the thing we sell works |
 | Outreach list — **1,461 verified US emails**, 6 cols, 0 blanks/dups | `kind_instantly_import.csv` *(last counted live 29 Jun; file is PII-protected, off-repo)* |
-| 4-step cold sequence written, ≤50 words, Day 0/3/6/10, compliance baked in | `docs/content/our-outreach-us-uk.md` (in repo, ready to paste) |
+| Cold sequence written, ≤50 words — **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; CAN-SPAM/GDPR footer drafted 2 Jul (**⛔ postal address to confirm**) | `docs/content/our-outreach-us-uk.md` (in repo; 3 emails paste-ready once address is set) |
 | Deliverability code D1–D5 — List-Unsubscribe + 1-click, plain-text alt, tracking-pixel phishing guard, cold-FROM, warmup ramp, spam-score check | `apps/api/src/lib/deliverability.ts` |
 | Cold domain `gettingkind.com` — SPF/DKIM/DMARC (`p=quarantine`) verified; MX→Resend inbound (replies webhook to app) | verified 29 Jun (Resend + Cloudflare) |
 | Cold-send env set in Railway — `FIGSY_COLD_FROM` · `FIGSY_COLD_REPLY_TO` · `TRACKING_URL` | set 29 Jun |
@@ -75,9 +75,9 @@ Board corrected below (4 rows were overclaimed → now 🔴). Build order: **#27
 | 6 | 🚀 ⏱ **Fire first outreach** (#127) → dogfood monitor (#132) | campaign running; reply rate tracked (target ≥5% d3 / ≥10% d7) |
 
 > 🛑 **BUILD BLOCKERS before prospects land (audit 2 Jul) — the three 1a/1b/1c items from HYPER-FOCUS:**
-> **1a — CAN-SPAM:** the paste-ready cold emails have **no opt-out line and no postal address** (`our-outreach-us-uk.md:39-55`); the "Reply STOP" net is FIGSY-code-only (`deliverability.ts:132`) and does NOT apply when sending via Instantly. Illegal to fire at the US list as-is.
-> **1b — Sequence math:** Step 3 (Day 6) is a **LinkedIn touch, not an email** (`our-outreach-us-uk.md:51`) — only 3 email steps exist to paste into Instantly; step 3 must become an email or the plan must say 3-email + LinkedIn.
-> **1c — Pricing (#283) — ✅ BUILT 2 Jul (branch `claude/pr1-website-3usd-pricing`, pending your preview):** retired the **$1 Lead-Gen tier** + stale **$20 entry** across the whole site → single **$3 FIGSY** (entry $60; bundles 20/40/100 = $60/$120/$300). Fixed `index.html`, `pricing.html` (cards + compare matrix + FAQ + JS + add-on reframe), `figsy.html`, `vs-hiring-an-sdr.html`, `use-cases.html`, `solutions.html`, `partners.html`; dead footer `#products` link fixed (55 pages); footer "Lead Gen" entry relabelled (56 pages). **⛔ ToS $3-only wording drafted in `terms.html` §2/§4/§6 — needs your legal sign-off before it goes live.** Ties #239. **Next: you preview on staging → approve → it ships.**
+> **1a — CAN-SPAM — ✍️ DRAFTED 2 Jul (branch `claude/pr5-outreach-compliance`):** added the REQUIRED email footer to §4 (opt-out link + reply-to-opt-out + physical postal address) — because the FIGSY List-Unsubscribe header is code-only and does NOT apply via Instantly. Set it as the Instantly campaign footer. **⛔ still needs the real registered POSTAL ADDRESS (placeholder in place) — not legal to fire at the US list until filled.**
+> **1b — Sequence math — ✍️ DRAFTED 2 Jul:** §4 relabelled to **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; the 3 emails are what you paste into Instantly. An **optional Day-8 4th email** is drafted for a 4-email cadence (⛔ confirm copy).
+> **1c — Pricing (#283) — ✅ BUILT 2 Jul (merged to main #883, pending your preview):** retired the **$1 Lead-Gen tier** + stale **$20 entry** across the whole site → single **$3 FIGSY** (entry $60; bundles 20/40/100 = $60/$120/$300). Fixed `index.html`, `pricing.html` (cards + compare matrix + FAQ + JS + add-on reframe), `figsy.html`, `vs-hiring-an-sdr.html`, `use-cases.html`, `solutions.html`, `partners.html`; dead footer `#products` link fixed (55 pages); footer "Lead Gen" entry relabelled (56 pages). **⛔ ToS $3-only wording drafted in `terms.html` §2/§4/§6 — needs your legal sign-off before it goes live.** Ties #239. **Next: you preview on staging → approve → it ships.**
 
 **Front ① is done when:** website priced correctly (#283) · Instantly warm · first send fired.
 

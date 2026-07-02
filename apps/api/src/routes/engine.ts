@@ -119,3 +119,67 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: msg })
   }
 })
+
+// GET /engine/env — prod env-readiness ("verify prod env keys", M1/M2 gate).
+// Returns a derived boolean PER critical key — never the value — so a deploy can be
+// verified at a glance (open in a browser with ?key=). Centralises the env checks
+// that were scattered across routes (calendar/voice/whatsapp/integrations) into the
+// one diagnostic surface. Read-only; admin-gated above; no secrets leave the box.
+engineRouter.get('/env', (_req: Request, res: Response) => {
+  const has = (k: string) => !!(process.env[k] && String(process.env[k]).trim())
+  const groups = {
+    core: {
+      SUPABASE_URL:              has('SUPABASE_URL'),
+      SUPABASE_SERVICE_ROLE_KEY: has('SUPABASE_SERVICE_ROLE_KEY'),
+      SUPABASE_ANON_KEY:         has('SUPABASE_ANON_KEY'),
+      ADMIN_SECRET_KEY:          has('ADMIN_SECRET_KEY'),
+      ANTHROPIC_API_KEY:         has('ANTHROPIC_API_KEY'),
+    },
+    sending: {                                   // M1 — send our own cold outreach
+      RESEND_API_KEY:        has('RESEND_API_KEY'),
+      RESEND_WEBHOOK_SECRET: has('RESEND_WEBHOOK_SECRET'),
+      FIGSY_COLD_FROM:       has('FIGSY_COLD_FROM'),
+      FIGSY_COLD_REPLY_TO:   has('FIGSY_COLD_REPLY_TO'),
+      TRACKING_URL:          has('TRACKING_URL'),
+      UNSUBSCRIBE_SECRET:    has('UNSUBSCRIBE_SECRET'),
+    },
+    billing: {                                   // M2 — charge a paying client
+      STRIPE_SECRET_KEY:        has('STRIPE_SECRET_KEY'),
+      STRIPE_WEBHOOK_SECRET:    has('STRIPE_WEBHOOK_SECRET'),
+      PAYSTACK_SECRET_KEY:      has('PAYSTACK_SECRET_KEY'),
+      FLUTTERWAVE_SECRET_KEY:   has('FLUTTERWAVE_SECRET_KEY'),
+      FLUTTERWAVE_WEBHOOK_HASH: has('FLUTTERWAVE_WEBHOOK_HASH'),
+    },
+    leads: {
+      APOLLO_API_KEY:  has('APOLLO_API_KEY'),
+      PDL_API_KEY:     has('PDL_API_KEY'),
+      HUNTER_API_KEY:  has('HUNTER_API_KEY'),
+      CLEARBIT_API_KEY: has('CLEARBIT_API_KEY'),
+    },
+    integrations: {
+      GOOGLE_CLIENT_ID:      has('GOOGLE_CLIENT_ID'),
+      GOOGLE_CLIENT_SECRET:  has('GOOGLE_CLIENT_SECRET'),
+      HUBSPOT_API_KEY:       has('HUBSPOT_API_KEY'),
+      VAPI_API_KEY:          has('VAPI_API_KEY'),
+      WHATSAPP_TOKEN:        has('WHATSAPP_TOKEN'),
+      SMARTLEAD_API_KEY:     has('SMARTLEAD_API_KEY'),
+      PHANTOMBUSTER_API_KEY: has('PHANTOMBUSTER_API_KEY'),
+      VAPID_PUBLIC_KEY:      has('VAPID_PUBLIC_KEY'),
+      VAPID_PRIVATE_KEY:     has('VAPID_PRIVATE_KEY'),
+    },
+  }
+  const allSet = (g: Record<string, boolean>) => Object.values(g).every(Boolean)
+  const missing = Object.entries(groups).flatMap(([grp, keys]) =>
+    Object.entries(keys).filter(([, v]) => !v).map(([k]) => `${grp}.${k}`))
+  res.json({
+    success: true,
+    ready: {
+      core:    allSet(groups.core),
+      sending: allSet(groups.sending),   // M1 send-ready
+      billing: allSet(groups.billing),   // M2 charge-ready
+    },
+    missing,
+    groups,
+    note: 'Booleans only — no secret values are returned. core+sending = M1 ready; +billing = M2 ready.',
+  })
+})

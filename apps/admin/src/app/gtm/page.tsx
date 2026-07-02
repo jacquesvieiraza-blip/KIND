@@ -1,16 +1,18 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
-import { Rocket, Target, TrendingUp, Trophy, CalendarDays } from 'lucide-react'
+import { createClient } from '@supabase/supabase-js'
+import { Rocket, Target, TrendingUp, Trophy, CalendarDays, Filter } from 'lucide-react'
 
-// M3 · Admin GTM hub (#278). Strategy · Results · Winning plays · Content calendar.
-// SHELLS — honest wire-in states, NO fake data. Each panel states exactly what it
-// will surface and what it's waiting on (our own outreach going live / a data feed).
-// CMO tools · Unibox · Visitor intel keep their own live pages; this hub is the
-// strategy/results/plays/calendar layer the audit called out as 🔴.
+// M3 · Admin GTM hub (#278 + #291). Strategy · Results · Winning plays · Content
+// calendar are honest wire-in SHELLS. The FUNNEL tab (#291) is LIVE: it joins the
+// visitor → signup → trial → paid stages that already exist but were never joined,
+// with real conversion rates. NO fake data — each stage degrades to an honest state
+// when its source has nothing yet. CAC-by-channel stays out (needs ad-spend, ⏸).
 
 const TABS = [
   { key: 'strategy', label: 'Strategy',         icon: Target },
+  { key: 'funnel',   label: 'Funnel',           icon: Filter },
   { key: 'results',  label: 'Results',          icon: TrendingUp },
   { key: 'plays',    label: 'Winning plays',    icon: Trophy },
   { key: 'calendar', label: 'Content calendar', icon: CalendarDays },
@@ -33,8 +35,88 @@ function WireIn({ title, blurb, waiting }: { title: string; blurb: string; waiti
   )
 }
 
-export default function GtmPage({ searchParams }: { searchParams: { tab?: string } }) {
+// ── #291 · the marketing funnel, JOINED from the stages that already exist ──
+interface FunnelData { visitors: number; signups: number; trials: number; paid: number; dbReady: boolean }
+
+async function getFunnel(): Promise<FunnelData> {
+  const API = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+  const ADMIN_KEY = process.env.ADMIN_SECRET_KEY || ''
+
+  // Top of funnel — visitor sessions from the tracking API (same source as /visitors).
+  let visitors = 0
+  try {
+    const res = await fetch(`${API}/track/admin/visitors`, { headers: { 'x-admin-key': ADMIN_KEY }, cache: 'no-store' })
+    if (res.ok) { const j = await res.json(); visitors = Array.isArray(j) ? j.length : 0 }
+  } catch { /* honest 0 if tracking unreachable */ }
+
+  // Signups / trial / paid — real counts from Supabase (same pattern as the Cockpit).
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return { visitors, signups: 0, trials: 0, paid: 0, dbReady: false }
+  }
+  const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+  const [{ count: signups }, { count: trials }, { count: paid }] = await Promise.all([
+    supabase.from('clients').select('id', { count: 'exact', head: true }),
+    supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
+    supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+  ])
+  return { visitors, signups: signups || 0, trials: trials || 0, paid: paid || 0, dbReady: true }
+}
+
+// conversion a→b as a %; honest '—' when the prior stage is empty (no divide-by-zero lie)
+const rate = (b: number, a: number) => (a > 0 ? Math.round((b / a) * 100) + '%' : '—')
+
+function FunnelView({ f }: { f: FunnelData }) {
+  const stages: { label: string; value: number; note: string; conv: string | null }[] = [
+    { label: 'Visitors',  value: f.visitors, note: 'tracked website sessions', conv: null },
+    { label: 'Signups',   value: f.signups,  note: 'clients created',          conv: rate(f.signups, f.visitors) },
+    { label: 'Trialing',  value: f.trials,   note: 'active trials',            conv: rate(f.trials, f.signups) },
+    { label: 'Paid',      value: f.paid,     note: 'active paid subs',         conv: rate(f.paid, f.trials) },
+  ]
+  const max = Math.max(1, ...stages.map(s => s.value))
+  return (
+    <div className="space-y-6">
+      {!f.dbReady && (
+        <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block">
+          Supabase env not set here — signup/trial/paid read 0. Visitor count is live.
+        </div>
+      )}
+      {f.visitors === 0 && (
+        <div className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-block">
+          No visitor sessions tracked yet — add the tracking snippet (Visitors page) so the top of the funnel fills. Signup→paid below are live.
+        </div>
+      )}
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
+        <div className="space-y-3">
+          {stages.map((s, i) => (
+            <div key={s.label}>
+              <div className="flex items-baseline justify-between mb-1">
+                <span className="text-sm font-semibold text-gray-900">{s.label}</span>
+                <span className="text-sm text-gray-500">
+                  <b className="text-gray-900">{s.value.toLocaleString()}</b> · {s.note}
+                  {s.conv && <span className="ml-2 text-[11px] font-semibold text-[#7C3AED]">{s.conv} of {stages[i - 1].label.toLowerCase()}</span>}
+                </span>
+              </div>
+              <div className="h-6 bg-gray-100 rounded-lg overflow-hidden">
+                <div className="h-full rounded-lg bg-gradient-to-r from-[#7C3AED] to-[#4C1D95]" style={{ width: `${Math.max(2, Math.round((s.value / max) * 100))}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 pt-4 border-t border-purple-50 flex flex-wrap gap-x-8 gap-y-2 text-sm">
+          <span className="text-gray-500">Visitor→Paid: <b className="text-gray-900">{rate(f.paid, f.visitors)}</b></span>
+          <span className="text-gray-500">Trial→Paid (CVR): <b className="text-gray-900">{rate(f.paid, f.trials)}</b></span>
+        </div>
+      </div>
+      <div className="bg-white border border-dashed border-purple-200 rounded-2xl p-5 text-sm text-gray-500">
+        📉 <b className="text-gray-700">CAC by channel</b> and source attribution need ad-spend + a per-visitor source tag — not wired yet (needs spend data). The stage counts above are live.
+      </div>
+    </div>
+  )
+}
+
+export default async function GtmPage({ searchParams }: { searchParams: { tab?: string } }) {
   const active: TabKey = (TABS.some(t => t.key === searchParams.tab) ? searchParams.tab : 'strategy') as TabKey
+  const funnel = active === 'funnel' ? await getFunnel() : null
 
   return (
     <div className="px-8 py-6 max-w-6xl mx-auto space-y-6">
@@ -43,7 +125,7 @@ export default function GtmPage({ searchParams }: { searchParams: { tab?: string
         <Rocket className="w-6 h-6 text-[#7C3AED]" />
         <div>
           <h1 className="text-2xl font-bold text-gray-900">GTM Hub</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Go-to-market strategy, results, winning plays and the content calendar.</p>
+          <p className="text-sm text-gray-500 mt-0.5">Go-to-market strategy, the conversion funnel, results, winning plays and the content calendar.</p>
         </div>
       </div>
 
@@ -66,7 +148,7 @@ export default function GtmPage({ searchParams }: { searchParams: { tab?: string
         })}
       </div>
 
-      {/* Panels — honest shells */}
+      {/* Panels */}
       {active === 'strategy' && (
         <WireIn
           title="GTM Strategy"
@@ -74,6 +156,7 @@ export default function GtmPage({ searchParams }: { searchParams: { tab?: string
           waiting="pending strategy sign-off"
         />
       )}
+      {active === 'funnel' && funnel && <FunnelView f={funnel} />}
       {active === 'results' && (
         <WireIn
           title="GTM Results"

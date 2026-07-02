@@ -235,7 +235,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             <p className={`text-sm ${grantMsg.ok ? 'text-emerald-400' : 'text-red-400'}`}>{grantMsg.text}</p>
           )}
           <button type="submit" disabled={granting}
-            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#0052cc] text-gray-900 rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60 transition-colors">
+            className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 py-2 text-sm font-medium disabled:opacity-60 transition-colors">
             {granting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
             Apply Credits
           </button>

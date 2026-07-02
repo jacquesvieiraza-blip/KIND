@@ -21,7 +21,7 @@ function contextFor(path: string): { screen: string; greeting: string; chips: st
   if (p.startsWith('/command')) return { screen: 'Sales Channel', greeting: "You're in the Sales Channel — your team & partners. Ask me about any AE or partner.", chips: ['Which partner is at risk?', 'Who has the weakest pipeline coverage?', 'Draft a check-in to a partner'] }
   if (p.startsWith('/clients')) return { screen: 'Clients', greeting: "You're viewing Clients. Want me to dig into one, or find the at-risk accounts?", chips: ['Which client is at risk and why?', 'Who is healthiest?', 'Draft a re-engagement note'] }
   if (p.startsWith('/revenue') || p.startsWith('/cohorts')) return { screen: 'Finance', greeting: "You're in Finance. Ask me about MRR, margin, runway, or a hiring what-if.", chips: ['What if I hire an AE at $2k/mo?', "What's driving my costs?", 'How long is my runway?'] }
-  if (p.startsWith('/partners') || p.startsWith('/proposals') || p.startsWith('/cmo') || p.startsWith('/unibox') || p.startsWith('/analytics') || p.startsWith('/visitors') || p.startsWith('/hubspot')) return { screen: 'GTM / Pipeline', greeting: "You're in GTM / Pipeline. Ask me about outreach, partners, or the funnel.", chips: ["How's the partner channel doing?", 'When can we start our own sends?', "What's next on content?"] }
+  if (p.startsWith('/partners') || p.startsWith('/proposals') || p.startsWith('/cmo') || p.startsWith('/unibox') || p.startsWith('/analytics') || p.startsWith('/visitors')) return { screen: 'GTM / Pipeline', greeting: "You're in GTM / Pipeline. Ask me about outreach, partners, or the funnel.", chips: ["How's the partner channel doing?", 'When can we start our own sends?', "What's next on content?"] }
   if (p.startsWith('/health') || p.startsWith('/engine')) return { screen: 'Engine / Deliverability', greeting: "You're on Engine / Deliverability. Ask me if anything is silently failing.", chips: ['Are any sends failing?', "What's the bounce rate telling me?", 'What keys are missing?'] }
   if (p.startsWith('/compliance') || p.startsWith('/terms-library')) return { screen: 'Compliance', greeting: "You're in Compliance. Ask me anything on POPIA / GDPR or our terms.", chips: ['Are we POPIA compliant?', "What's on the blocklist?", 'Explain cross-client isolation'] }
   if (p.startsWith('/demo')) return { screen: 'Sales Demo', greeting: "You're in Sales Demo. Want me to prep a demo for a prospect?", chips: ['Set up a demo for a plumber', 'How long do demos last?', 'What data goes in a demo?'] }
@@ -61,9 +61,11 @@ export function NoraRail() {
   }
 
   const Avatar = () => (
-    <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 mt-0.5 border border-brand-200">
+    <div className="w-5 h-5 rounded-full overflow-hidden shrink-0 mt-0.5 border border-brand-200 bg-brand-500 text-white text-[9px] font-bold flex items-center justify-center">
+      <span className="absolute">N</span>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/agents/Nora.png" alt="" className="w-full h-full object-cover object-top" />
+      <img src="/agents/Nora.png" alt="" className="relative w-full h-full object-cover object-top"
+        onError={(e) => { e.currentTarget.style.display = 'none' }} />
     </div>
   )
 

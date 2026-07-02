@@ -151,7 +151,7 @@ export default function TermsLibraryPage() {
                     </>
                   ) : (
                     <button onClick={() => triggerUpload(doc.name)} disabled={isUploading}
-                      className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#0055dd] text-gray-900 text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
+                      className="flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-xs font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
                       {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : succeeded ? <CheckCircle className="w-3.5 h-3.5" /> : <Upload className="w-3.5 h-3.5" />}
                       {isUploading ? 'Uploading…' : succeeded ? 'Done!' : 'Upload PDF'}
                     </button>

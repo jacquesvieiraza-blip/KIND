@@ -133,21 +133,21 @@ export default async function ScalabilityPage() {
         </div>
 
         {/* Current Stage Banner */}
-        <div className="bg-[#001f4d] rounded-xl p-6 text-gray-900">
+        <div className="bg-brand-900 rounded-xl p-6 text-white">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-gray-500 text-xs font-medium uppercase tracking-widest mb-1">Current Stage</p>
+              <p className="text-white/50 text-xs font-medium uppercase tracking-widest mb-1">Current Stage</p>
               <h3 className="text-2xl font-bold">Stage 1 — Proof of Concept</h3>
-              <p className="text-gray-500 text-sm mt-1">Focus: land first 3 paying clients and document a case study.</p>
+              <p className="text-white/60 text-sm mt-1">Focus: land first 3 paying clients and document a case study.</p>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold">{clientCount}<span className="text-gray-400 text-lg font-normal"> / 5</span></p>
-              <p className="text-gray-500 text-xs mt-0.5">clients onboarded</p>
+              <p className="text-3xl font-bold">{clientCount}<span className="text-white/40 text-lg font-normal"> / 5</span></p>
+              <p className="text-white/50 text-xs mt-0.5">clients onboarded</p>
             </div>
           </div>
-          <div className="mt-5 w-full bg-gray-100 rounded-full h-2.5">
+          <div className="mt-5 w-full bg-white/15 rounded-full h-2.5">
             <div
-              className="bg-blue-400 h-2.5 rounded-full transition-all"
+              className="bg-brand-400 h-2.5 rounded-full transition-all"
               style={{ width: `${stagePct}%` }}
             />
           </div>

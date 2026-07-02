@@ -8,7 +8,7 @@ import {
   Rocket, MonitorPlay, BookOpen, Inbox,
   ShieldCheck, BarChart2, DollarSign, Activity, FlaskConical,
   UserSquare2, Layers, MessageCircle, Database, Eye,
-  Handshake, GitMerge, Pin, Flag, Gauge, Wallet, HeartPulse, Sprout,
+  Handshake, Pin, Flag, Gauge, Wallet, HeartPulse, Sprout,
 } from 'lucide-react'
 
 // NOTE: do not name this `ref` — React reserves `ref`, and since the items are
@@ -57,7 +57,6 @@ const SECTIONS: Section[] = [
       { href: '/cmo',        label: 'CMO Tools',   icon: Megaphone },
       { href: '/unibox',     label: 'Unibox',      icon: Inbox },
       { href: '/visitors',   label: 'Visitors',    icon: Eye },
-      { href: '/hubspot',    label: 'HubSpot',     icon: GitMerge },
     ],
   },
   {

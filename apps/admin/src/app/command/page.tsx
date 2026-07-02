@@ -152,20 +152,31 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
         <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">🎬 Demos done</p><p className="text-2xl font-bold text-gray-900 mt-1">{ent.demos ?? 0}</p><p className="text-[11px] text-gray-400 mt-0.5">{ent.kind === 'company' ? 'across team + partners' : 'this month'}</p></div>
         <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">🎯 Closure rate</p><p className="text-2xl font-bold text-emerald-600 mt-1">{clos}</p><p className="text-[11px] text-gray-400 mt-0.5">{ent.kind === 'partner' ? 'won per demo' : 'meetings won per demo'}</p></div>
       </div>
-      <div className="bg-white border border-purple-100 rounded-2xl p-4">
-        <p className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Outreach over time</p>
-        <svg viewBox="0 0 600 150" width="100%" height="150">
-          <polyline fill="none" stroke="#2563eb" strokeWidth="2" points="0,140 100,138 200,128 300,80 400,25 500,55 600,110" />
-          <polyline fill="none" stroke="#059669" strokeWidth="2" points="0,146 100,144 200,140 300,130 400,112 500,120 600,132" />
-        </svg>
-        <p className="text-[11px] text-gray-400">— emails sent · — replies (last 6 mo)</p>
-      </div>
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-3">Prospect status</p>
-          <div className="flex items-center gap-4"><div className="w-28 h-28 rounded-full" style={{ background: 'conic-gradient(#8b5cf6 0 40%,#2563eb 40% 80%,#f59e0b 80% 92%,#059669 92% 100%)' }} />
-            <div className="text-xs space-y-1.5 text-gray-600"><div>🟣 New · 240</div><div>🔵 Pending · 240</div><div>🟠 Interested · 54</div><div>🟢 Meeting · 16</div></div></div></div>
-        <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-3">Top industries</p><Bars data={[['SaaS', 132], ['Logistics', 122], ['Insurtech', 117], ['Fintech', 115], ['E‑commerce', 114]]} /></div>
-      </div>
+      {/* Slice C honesty: these charts are hardcoded sample visuals — show them ONLY
+         on sample-tagged entities (Overall/AEs, banner shown). A LIVE entity (partner
+         today; AEs once #276 lands) gets an honest wire-in state, never fake data. */}
+      {ent.sample ? (
+        <>
+          <div className="bg-white border border-purple-100 rounded-2xl p-4">
+            <p className="text-[11px] uppercase tracking-wide text-gray-400 mb-2">Outreach over time <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">sample</span></p>
+            <svg viewBox="0 0 600 150" width="100%" height="150">
+              <polyline fill="none" stroke="#2563eb" strokeWidth="2" points="0,140 100,138 200,128 300,80 400,25 500,55 600,110" />
+              <polyline fill="none" stroke="#059669" strokeWidth="2" points="0,146 100,144 200,140 300,130 400,112 500,120 600,132" />
+            </svg>
+            <p className="text-[11px] text-gray-400">— emails sent · — replies (last 6 mo)</p>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-3">Prospect status <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">sample</span></p>
+              <div className="flex items-center gap-4"><div className="w-28 h-28 rounded-full" style={{ background: 'conic-gradient(#8b5cf6 0 40%,#2563eb 40% 80%,#f59e0b 80% 92%,#059669 92% 100%)' }} />
+                <div className="text-xs space-y-1.5 text-gray-600"><div>🟣 New · 240</div><div>🔵 Pending · 240</div><div>🟠 Interested · 54</div><div>🟢 Meeting · 16</div></div></div></div>
+            <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-3">Top industries <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">sample</span></p><Bars data={[['SaaS', 132], ['Logistics', 122], ['Insurtech', 117], ['Fintech', 115], ['E‑commerce', 114]]} /></div>
+          </div>
+        </>
+      ) : (
+        <div className="bg-white border border-dashed border-purple-200 rounded-2xl p-5 text-sm text-gray-500">
+          📈 Charts for this {ent.kind === 'partner' ? 'partner' : 'entity'} (outreach over time · prospect status · industries) wire in with the per-entity reporting endpoint — the numbers above are live.
+        </div>
+      )}
     </div>
   }
   if (view === 'performance') {
@@ -176,8 +187,10 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
       <Tiles items={[['FIGSY sent', (ent.emails ?? 0).toLocaleString()], ['Reply rate', ent.reply ?? '—'], ['Positive', ent.positive ?? 0], ['Meetings', ent.meetings ?? 0]]} />
       <div className="grid md:grid-cols-2 gap-4">
         <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-2">Pipeline funnel</p><Bars data={ent.funnel} /></div>
-        <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-2">Deliverability</p>
-          {[['Sender health', 'Healthy'], ['Warmup', 'passing'], ['Bounce', '0.4%'], ['Spam', '0.0%']].map(r => <div key={r[0]} className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50 last:border-0"><span className="text-gray-500">{r[0]}</span><b className="text-emerald-600">{r[1]}</b></div>)}</div>
+        <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-2">Deliverability {ent.sample && <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">sample</span>}</p>
+          {ent.sample
+            ? [['Sender health', 'Healthy'], ['Warmup', 'passing'], ['Bounce', '0.4%'], ['Spam', '0.0%']].map(r => <div key={r[0]} className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50 last:border-0"><span className="text-gray-500">{r[0]}</span><b className="text-emerald-600">{r[1]}</b></div>)
+            : <p className="text-sm text-gray-500">Wires in with the per-entity reporting endpoint (Engine owns deliverability — #279).</p>}</div>
       </div>
     </div>
   }
@@ -189,7 +202,9 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
         <div className="bg-white border border-purple-100 rounded-2xl p-5"><p className="text-[11px] uppercase tracking-wide text-gray-400">Meetings booked</p><p className="text-2xl font-bold mt-1">{ent.meetings ?? 0}</p></div>
       </div>
       <Tiles items={[['Replies earned', ent.replies ?? '—'], ['Positive', ent.positive ?? '—'], ['Outreach sent', (ent.emails ?? 0).toLocaleString()], ['Contacted', ent.contacted ?? ent.clients ?? 0]]} />
-      <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-2">Return — last 6 months</p><Bars data={[['Feb', 0], ['Mar', 0], ['Apr', 0], ['May', 159], ['Jun', 441], ['Jul', 0]]} max={441} /></div>
+      {ent.sample
+        ? <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-2">Return — last 6 months <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">sample</span></p><Bars data={[['Feb', 0], ['Mar', 0], ['Apr', 0], ['May', 159], ['Jun', 441], ['Jul', 0]]} max={441} /></div>
+        : <div className="bg-white border border-dashed border-purple-200 rounded-2xl p-5 text-sm text-gray-500">📊 Return-over-time wires in with the per-entity reporting endpoint — commissions above are live.</div>}
     </div>
   }
   if (view === 'pipeline') {
@@ -203,13 +218,15 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
       </div>
     </div>
   }
-  // targets
+  // targets — the ladder is the founder's real reference; ACTUALS deliberately live
+  // in Finance only (#282 single-source: MRR → Finance; this tab links, never copies).
   return <div className="space-y-4">
     <div className="inline-block"><span className="text-[10px] font-bold uppercase tracking-wide bg-purple-50 text-[#7C3AED] rounded-full px-2.5 py-1">Target‑based sales · moved from Finance</span></div>
-    <div className="bg-white border border-purple-100 rounded-2xl p-4"><div className="flex items-center gap-2 mb-3"><Target className="w-4 h-4 text-[#7C3AED]" /><p className="text-sm font-semibold text-gray-900">KPI Progress — Jul 2026</p></div><GoalBar label="MRR" val={1240} target={5000} /><GoalBar label="Clients" val={17} target={30} /></div>
+    <div className="bg-white border border-purple-100 rounded-2xl p-4"><div className="flex items-center gap-2 mb-1"><Target className="w-4 h-4 text-[#7C3AED]" /><p className="text-sm font-semibold text-gray-900">Progress vs target</p></div>
+      <p className="text-sm text-gray-500">Live MRR + client actuals have ONE home — <a href="/revenue" className="text-[#7C3AED] font-semibold hover:underline">Finance</a> (single-source #282). This tab holds the target ladder.</p></div>
     <div className="bg-white border border-purple-100 rounded-2xl overflow-hidden"><p className="text-sm font-semibold text-gray-900 p-4 pb-2">Monthly revenue targets</p>
-      <table className="w-full text-sm"><thead><tr className="bg-gray-50 text-gray-400 text-[10px] uppercase tracking-wide"><th className="text-left px-4 py-2">Month</th><th className="text-left px-4 py-2">MRR target</th><th className="text-left px-4 py-2">Clients</th><th className="text-left px-4 py-2">vs target</th></tr></thead>
-        <tbody>{[['May', '$500', '8', '0%'], ['Jun', '$2,000', '15', '0%'], ['Jul (now)', '$5,000', '30', '25%'], ['Aug', '$10,000', '55', '—'], ['Sep', '$17,000', '80', '—'], ['Oct', '$26,000', '120', '—'], ['Nov', '$36,000', '160', '—'], ['Dec', '$48,000', '200', '—']].map(r => <tr key={r[0]} className="border-t border-purple-50"><td className="px-4 py-2 font-medium text-gray-900">{r[0]}</td><td className="px-4 py-2 text-gray-700">{r[1]}</td><td className="px-4 py-2 text-gray-500">{r[2]} clients</td><td className="px-4 py-2 text-gray-400">{r[3]}</td></tr>)}</tbody></table></div>
+      <table className="w-full text-sm"><thead><tr className="bg-gray-50 text-gray-400 text-[10px] uppercase tracking-wide"><th className="text-left px-4 py-2">Month</th><th className="text-left px-4 py-2">MRR target</th><th className="text-left px-4 py-2">Clients</th></tr></thead>
+        <tbody>{[['May', '$500', '8'], ['Jun', '$2,000', '15'], ['Jul (now)', '$5,000', '30'], ['Aug', '$10,000', '55'], ['Sep', '$17,000', '80'], ['Oct', '$26,000', '120'], ['Nov', '$36,000', '160'], ['Dec', '$48,000', '200']].map(r => <tr key={r[0]} className="border-t border-purple-50"><td className="px-4 py-2 font-medium text-gray-900">{r[0]}</td><td className="px-4 py-2 text-gray-700">{r[1]}</td><td className="px-4 py-2 text-gray-500">{r[2]} clients</td></tr>)}</tbody></table></div>
     <div><p className="text-sm font-semibold text-gray-900 mb-2">Core KPI targets</p>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">{[['TTFL', '< 4 hrs', 'Time to First Lead'], ['CVR', '> 40%', 'Trial → Paid'], ['CHURN', '< 5%', 'Monthly churn'], ['REPLY', '> 3%', 'FIGSY reply'], ['INT.', '> 0.5%', 'FIGSY interested'], ['NPS', '> 50', 'NPS']].map(k => <div key={k[0]} className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">{k[0]}</p><p className="text-xl font-bold text-gray-900 mt-0.5">{k[1]}</p><p className="text-[11px] text-gray-400">{k[2]}</p></div>)}</div></div>
   </div>

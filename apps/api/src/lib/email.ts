@@ -512,7 +512,7 @@ export async function sendNurtureEmail(
             Subscribe to keep them running.
           </p>`}
           <p style="color:#555;line-height:1.6">
-            Our Lead Gen Starter is R1,900/mo — that's 100 scored, POPIA-compliant leads delivered every month.
+            FIGSY is <strong>$3 per qualified lead</strong> — start from <strong>$60</strong> (a bundle of 20 scored, POPIA-compliant leads). Pay for results, no monthly lock-in.
           </p>
           <a href="${DASH}/billing"
              style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">

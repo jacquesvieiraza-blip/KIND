@@ -12,8 +12,33 @@ import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import { Building2, Users, Handshake, UserPlus, Target, FileText, Trophy } from 'lucide-react'
 
 interface Partner { id: string; name: string; company: string | null; country: string | null; tier: string | null; status: string; referral_count: number; total_paid_zar: number; created_at: string }
-interface Deal { id: string; partner_id: string; company_name: string; estimated_value: number | null; protected_until: string | null; status: string }
+// deal_registrations returns `*` (partners.ts:646) — created_at/won_at/lost_at are
+// present at runtime; declared here so the sales-analytics compute can read them.
+interface Deal { id: string; partner_id: string; company_name: string; estimated_value: number | null; protected_until: string | null; status: string; created_at?: string; won_at?: string | null; lost_at?: string | null }
 interface Commission { id: string; partner_id: string; amount_usd: number | null; amount_zar: number; status: string }
+
+// ── #288 · REAL sales analytics from live deal_registrations (partner lens) ──
+// win-rate, avg sales-cycle, weighted forecast, stalled-deal flag — computed, not
+// typed by hand (kills the #294 hardcoded "2.1× ✓" / "$4,500" coverage lie).
+// deal_registrations statuses: pending · approved · won · lost · expired.
+interface SalesAnalytics { winRate: number | null; cycleDays: number | null; forecast: number; stalled: number; openCount: number; closedCount: number; wonCount: number }
+function salesAnalytics(deals: Deal[]): SalesAnalytics {
+  const open   = deals.filter(d => d.status === 'pending' || d.status === 'approved')
+  const won    = deals.filter(d => d.status === 'won')
+  const closed = deals.filter(d => ['won', 'lost', 'expired'].includes(d.status))
+  const winRate = closed.length > 0 ? Math.round((won.length / closed.length) * 100) : null
+  // sales cycle = avg(won_at − created_at) over won deals that carry both stamps
+  const cycles = won
+    .filter(d => d.won_at && d.created_at)
+    .map(d => (new Date(d.won_at!).getTime() - new Date(d.created_at!).getTime()) / 86400000)
+  const cycleDays = cycles.length ? Math.round(cycles.reduce((s, x) => s + x, 0) / cycles.length) : null
+  // weighted forecast = Σ(open deal value × stage probability)
+  const P: Record<string, number> = { pending: 0.2, approved: 0.5 }
+  const forecast = Math.round(open.reduce((s, d) => s + (d.estimated_value ?? 0) * (P[d.status] ?? 0.3), 0))
+  // stalled = open deal with no movement in >30d (created_at as the last-touch proxy)
+  const stalled = open.filter(d => d.created_at && (Date.now() - new Date(d.created_at).getTime()) / 86400000 > 30).length
+  return { winRate, cycleDays, forecast, stalled, openCount: open.length, closedCount: closed.length, wonCount: won.length }
+}
 
 type Scope = 'overall' | 'team' | 'partners'
 type View = 'analytics' | 'performance' | 'roi' | 'pipeline' | 'targets' | 'contracts' | 'plays'
@@ -27,6 +52,7 @@ interface Ent {
   leads?: number; emails?: number; reply?: string; meetings?: number; pipeline?: string; replies?: number; positive?: number; contacted?: number
   reptarget?: number; mtgtarget?: number; book?: string; commission?: string; clients?: number; atrisk?: number; demos?: number
   funnel: [string, number][]; deals: [string, string, string][]
+  analytics?: SalesAnalytics; hasDeals?: boolean   // #288 — set on the live partner lens
 }
 const OVERALL: Ent = { name: 'Overall — our company', kind: 'company', sample: true, leads: 600, emails: 1350, reply: '13%', meetings: 16, pipeline: '$1.8M', replies: 169, positive: 70, contacted: 600, reptarget: 200, mtgtarget: 20, demos: 24,
   funnel: [['Total leads', 600], ['Enrolled', 600], ['Emails sent', 1350], ['Replied', 169], ['Interested', 70], ['Meeting', 16]],
@@ -66,6 +92,7 @@ export default function SalesChannelPage() {
     const won = pd.filter(d => d.status === 'won').length
     return { name: p.name, kind: 'partner', role: `${p.tier || 'Partner'} · ${p.country || '—'}`, clients: p.referral_count, book: '$' + Math.round(paid + owed).toLocaleString(), commission: '$' + Math.round(owed).toLocaleString(),
       pipeline: zar(open.reduce((s, d) => s + (d.estimated_value ?? 0), 0)), atrisk: 0, demos, meetings: won,
+      analytics: salesAnalytics(pd), hasDeals: pd.length > 0,   // #288 — real win-rate/cycle/forecast/stalled
       funnel: [['Registered', pd.filter(d => d.status === 'registered').length], ['Demo', pd.filter(d => d.status === 'demo').length], ['Trial', pd.filter(d => d.status === 'trial').length], ['Won', pd.filter(d => d.status === 'won').length]],
       deals: open.map(d => [d.company_name, d.status, (daysUntil(d.protected_until) ?? '—') + 'd left']) as [string, string, string][] }
   }
@@ -208,8 +235,28 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
     </div>
   }
   if (view === 'pipeline') {
+    // #288/#294 — analytics are REAL on the live partner lens (a = computed from
+    // deal_registrations); sample AE/Overall get an honest wire-in until #276. NO
+    // hardcoded coverage/needed numbers (that was the #294 lie).
+    const a = ent.analytics
+    const showReal = !!(ent.hasDeals && a)
     return <div className="space-y-4">
-      <Tiles items={[['Open pipeline', ent.pipeline ?? '—'], ['Needed (3×)', ent.kind === 'ae' ? '$4,500' : 'set target'], ['Coverage', ent.kind === 'ae' ? '2.1× ✓' : '—']]} />
+      <Tiles items={[
+        ['Open pipeline', ent.pipeline ?? '—', showReal ? `${a!.openCount} open deal${a!.openCount === 1 ? '' : 's'}` : undefined],
+        ['Weighted forecast', showReal ? '$' + a!.forecast.toLocaleString() : '—', 'likely to close (value × stage odds)'],
+        ['Win rate', showReal && a!.winRate != null ? a!.winRate + '%' : '—', showReal ? `${a!.closedCount} closed · ${a!.wonCount} won` : 'needs closed deals'],
+      ]} />
+      {showReal ? (
+        <div className="grid md:grid-cols-3 gap-3">
+          <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">⏱ Sales cycle</p><p className="text-2xl font-bold text-gray-900 mt-1">{a!.cycleDays != null ? `${a!.cycleDays}d` : '—'}</p><p className="text-[11px] text-gray-400 mt-0.5">avg won_at − created</p></div>
+          <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">🛑 Stalled</p><p className={`text-2xl font-bold mt-1 ${a!.stalled > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{a!.stalled}</p><p className="text-[11px] text-gray-400 mt-0.5">open &gt;30d, no movement</p></div>
+          <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-[11px] uppercase tracking-wide text-gray-400">📐 Coverage</p><p className="text-2xl font-bold text-gray-400 mt-1">set target</p><p className="text-[11px] text-gray-400 mt-0.5">pipeline ÷ target — set one in Targets</p></div>
+        </div>
+      ) : (
+        <div className="bg-white border border-dashed border-purple-200 rounded-2xl p-5 text-sm text-gray-500">
+          📊 Win-rate · sales-cycle · weighted forecast · stalled-deal flags compute from live deal data. {ent.sample ? 'AE / Overall deal data wires in with per-AE logins (#276) — the Partners lens is live today.' : 'No deals registered yet — analytics appear once this partner registers deals.'} <span className="text-gray-400">Coverage needs a target set (Targets tab).</span>
+        </div>
+      )}
       <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-2">Funnel</p><Bars data={ent.funnel} /></div>
       <div className="bg-white border border-purple-100 rounded-2xl overflow-hidden">
         <p className="text-sm font-semibold text-gray-900 p-4 pb-2">Mini‑CRM — open deals</p>

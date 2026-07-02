@@ -401,22 +401,8 @@ export default async function RevenuePage() {
         </div>
       </div>
 
-      {/* Cohorts — retention (folded in) */}
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Cohorts — retention</h2>
-        <p className="text-xs text-gray-400 mb-4">Retention by signup month · activation → conversion → churn</p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead><tr className="border-b border-gray-200">{['Cohort', 'Clients', 'Activated', 'Trial → Paid', 'Churned'].map(h => <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>)}</tr></thead>
-            <tbody className="divide-y divide-gray-100">
-              {[['Jun 2026', '3', '67%', '33%', '0%'], ['May 2026', '2', '100%', '100%', '0%'], ['Apr 2026', '3', '100%', '67%', '33%']].map(r => (
-                <tr key={r[0]}><td className="px-3 py-3 font-medium text-gray-900">{r[0]}</td><td className="px-3 py-3 text-gray-700">{r[1]}</td><td className="px-3 py-3 text-gray-600">{r[2]}</td><td className="px-3 py-3 text-emerald-600">{r[3]}</td><td className="px-3 py-3 text-gray-500">{r[4]}</td></tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="text-xs text-gray-400 mt-3">Full cohort analytics → <a href="/cohorts" className="text-[#7C3AED] hover:underline">Cohorts</a> (sample rows until wired to the cohort query).</p>
-      </div>
+      {/* Cohorts — SINGLE HOME is /cohorts (#282 dedup). Finance no longer
+         duplicates the table (it was hardcoded sample rows); it glances + links. */}
 
       {/* Cost stack — money out */}
       <div className="bg-white border border-gray-200 rounded-xl p-6">

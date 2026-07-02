@@ -77,11 +77,6 @@ const SCENARIOS = [
   },
 ]
 
-const ARPU_TIERS = [
-  { name: 'Starter',  price: 20,  color: 'text-gray-500',  description: 'Lead Gen only — 100 leads included' },
-  { name: 'Growth',   price: 160, color: 'text-blue-600',   description: 'Lead Gen + FIGSY add-on' },
-  { name: 'Scale',    price: 400, color: 'text-emerald-600', description: 'Full platform — VA + Chatbot + FIGSY' },
-]
 
 function ragStatus(pct: number): 'green' | 'amber' | 'red' {
   if (pct >= 80) return 'green'
@@ -125,7 +120,11 @@ async function getRevStats() {
 
   const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0), 0)
   const fx = await getZarPerUsd()
-  const mrrUsd = zarToUsd(mrrZar, fx.zarPerUsd)
+  // MRR: amount_usd is the source of truth (matches the Cockpit fix, C4). Fall back
+  // to converting amount_zar ONLY when a sub has no USD amount — summing amount_zar
+  // alone read $0 for USD-only subs, and Finance is the MRR single-home (#282).
+  const mrrUsd = Math.round((activeSubs || []).reduce((sum, sub) =>
+    sum + (sub.amount_usd ? Number(sub.amount_usd) : zarToUsd(sub.amount_zar || 0, fx.zarPerUsd)), 0))
   const activeCount = activeSubs?.length ?? 0
   const trialCount = trialSubs?.length ?? 0
   const blendedArpu = activeCount > 0 ? Math.round(mrrUsd / activeCount) : 0
@@ -292,22 +291,14 @@ export default async function RevenuePage() {
         </div>
       </div>
 
-      {/* ARPU Breakdown */}
+      {/* Blended ARPU — real, computed from active subs. (The old product-tier
+         cards were removed 2 Jul: they hardcoded the retired "$20 Lead Gen" tiers
+         as current pricing — #284/#283 retired that model.) */}
       <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">ARPU Breakdown</h2>
-          <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Reference · targets</span>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Blended ARPU</h2>
         </div>
-        <p className="text-xs text-gray-400 mb-4">Average Revenue Per User across product tiers</p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-          {ARPU_TIERS.map(tier => (
-            <div key={tier.name} className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-lg p-4">
-              <p className={`text-lg font-bold ${tier.color}`}>{tier.name}</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">${tier.price}<span className="text-sm text-gray-400">/mo</span></p>
-              <p className="text-xs text-gray-400 mt-2">{tier.description}</p>
-            </div>
-          ))}
-        </div>
+        <p className="text-xs text-gray-400 mb-4">Average revenue per active client — computed live from Supabase</p>
         <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-lg p-4 flex items-center justify-between">
           <div>
             <p className="text-xs text-gray-400 uppercase tracking-widest font-semibold">Blended ARPU</p>

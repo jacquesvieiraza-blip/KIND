@@ -1,9 +1,24 @@
-# 🩷 PINK WALK — self-walk checklist (58 items)
-`Last-checked: 30 Jun 2026`
+# 🩷 PINK WALK — self-walk checklist
+`Last-checked: 2 Jul 2026`
 
 Pink = **live but not verified.** For each: walk it → if it works it's 🟢, if it's broken it's 🔴 (note it, I'll fix). Make notes in the right column. Come back to me with anything stuck or broken.
 
+> **Reconciled 2 Jul to the board's 42 🩷** = **35 remaining** from the original 58-item walk (Sections A+B walked 30 Jun; most of the rest clear on the $60 live run) **+ 7 new pinks shipped 1 Jul** (Section E below). Status of record = PRODUCT-INVENTORY.
+
 **Portal = `app.get-kind.com` · Website = `www.get-kind.com` · Admin = `admin.get-kind.com`**
+
+---
+
+## E. NEW PINKS — shipped 1 Jul (walk in the live admin / live portal)
+| # | Item | Walk | Notes |
+|---|------|------|-------|
+| 260 | Blocklist scoped per client | two clients on preview → each sees only their own opt-outs | |
+| 265 | Stripe credit-grant atomic | test-mode purchase + replay the webhook → credits granted once | |
+| 267 | Bounce/complaint suppression | enable `email.bounced`/`email.complained` on the Resend webhook → observe a bounce suppress + pause | |
+| 243 | Apollo-independence (PDL) | set `PDL_API_KEY` in Railway → run an ICP with Apollo keyless → leads return | |
+| 272 | Admin Cockpit | `admin.get-kind.com` → Pulse tiles + Needs-you-now + unit economics render with real data | |
+| 274 | Sales Channel | Command Centre → Partners lens shows real partners/deals/commissions (AE/Overall = sample-tagged) | |
+| 275 | Nora | Ask Nora bottom-right → replies, re-greets per screen | |
 
 ---
 

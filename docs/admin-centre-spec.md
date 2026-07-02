@@ -3,7 +3,7 @@
 > **What this doc is:** the build spec for the rebuilt Admin Centre — the cockpit WE run the business from. **Status of record lives in PRODUCT-INVENTORY** (#270–#276); **daily execution lives in LAUNCH-PAD**; this doc is the *shape we build to*. Locked 1 Jul 2026.
 > **Build mode: LIVE.** The Admin Centre is internal (founder + staff only), not client-facing → the preview-first gate (RULEBOOK §11) does **not** apply. We build → push live → founder beta-tests in the live system → verify → next.
 
-Preview mockup (clickthrough): `scratchpad/admin-centre-preview.html`.
+*(The approved clickthrough preview was a session artifact shared in-chat — not stored in the repo. This spec is the durable record of what was approved.)*
 
 ---
 

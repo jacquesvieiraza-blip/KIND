@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { rateLimit } from '../lib/rate-limit'
 import crypto from 'crypto'
 
 const router = Router()
@@ -190,7 +191,12 @@ const PUBLIC_NAME_BY_DB: Record<string, string> = {
   opt_out:        'opt_out',
 }
 
-router.get('/events', requireApiKey, async (req: ApiKeyRequest, res) => {
+// Per-API-key rate limit (#269) — caps the public event API at 120 requests/min
+// PER KEY so a single key holder can't run up unlimited requests. Runs after
+// requireApiKey so the presented key is available for the limiter to hash.
+const eventsRateLimit = rateLimit({ limit: 120, windowMs: 60_000, key: 'dev-events', byApiKey: true })
+
+router.get('/events', requireApiKey, eventsRateLimit, async (req: ApiKeyRequest, res) => {
   try {
     const clientId = req.apiClientId!
     const { since, type, limit } = req.query as { since?: string; type?: string; limit?: string }

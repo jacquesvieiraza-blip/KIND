@@ -16,6 +16,22 @@ async function getChurnRisk(): Promise<ChurnRiskEntry[]> {
     return json.data?.at_risk ?? []
   } catch { return [] }
 }
+
+// #289 — NPS aggregate (admin/founder side). NPS = %promoters(9–10) − %detractors(0–6).
+// The client-facing collection widget is a SEPARATE preview-gated follow-up — this
+// only READS/computes what /admin/nps returns. Degrades to null on any failure.
+interface NpsData { nps: number | null; count: number; avg: number | null; promoters: number; passives: number; detractors: number }
+async function getNps(): Promise<NpsData | null> {
+  const adminKey = process.env.ADMIN_SECRET_KEY
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+  if (!adminKey) return null
+  try {
+    const res = await fetch(`${apiBase}/admin/nps`, { headers: { 'x-admin-key': adminKey }, cache: 'no-store' })
+    if (!res.ok) return null
+    const json = await res.json() as { success: boolean; data?: NpsData }
+    return json.data ?? null
+  } catch { return null }
+}
 import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
 
 const MONTHLY_TARGETS = [
@@ -133,7 +149,7 @@ async function getRevStats() {
 }
 
 export default async function RevenuePage() {
-  const [stats, atRisk] = await Promise.all([getRevStats(), getChurnRisk()])
+  const [stats, atRisk, nps] = await Promise.all([getRevStats(), getChurnRisk(), getNps()])
   if (!stats) return <div className="p-8 text-amber-600">Missing env vars — add SUPABASE_SERVICE_ROLE_KEY in Railway admin service.</div>
   const current = getCurrentTarget()
   const mrrPct = Math.min((stats.mrrUsd / current.mrrTarget) * 100, 100)
@@ -248,6 +264,41 @@ export default async function RevenuePage() {
 
       {/* FX disclosure — USD figures are converted at this rate */}
       <p className="text-xs text-gray-400 -mt-2">FX: {fxLabel(stats.fx)} · as of {stats.fx.asOf}</p>
+
+      {/* #289 — NPS (admin side). Client-facing survey widget is a separate preview-gated follow-up. */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Target className="w-5 h-5 text-purple-500" />
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">NPS — Net Promoter Score</h2>
+          <span className="rounded-full text-[10px] uppercase tracking-wider bg-gray-100 text-gray-400 px-2 py-0.5 font-semibold">Target &gt; 50</span>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">% promoters (9–10) − % detractors (0–6). Collection widget is a separate preview-gated follow-up.</p>
+        {!nps || nps.count === 0 ? (
+          <div className="bg-gray-50 border border-gray-100 rounded-lg p-5 text-center">
+            <p className="text-gray-400 text-sm">No responses yet — score appears once NPS surveys are collected.</p>
+            <p className="text-gray-400 text-xs mt-2">Run migration <code>20260703_nps_responses.sql</code>, then responses POST to <code>/admin/nps</code>.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white border border-purple-100 rounded-lg p-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide">NPS</p>
+              <p className={`text-3xl font-bold mt-1 ${nps.nps! >= 50 ? 'text-emerald-600' : nps.nps! >= 0 ? 'text-amber-600' : 'text-red-600'}`}>{nps.nps! > 0 ? '+' : ''}{nps.nps}</p>
+            </div>
+            <div className="bg-white border border-purple-100 rounded-lg p-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Responses</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{nps.count}</p>
+            </div>
+            <div className="bg-white border border-purple-100 rounded-lg p-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Avg score</p>
+              <p className="text-3xl font-bold text-gray-900 mt-1">{nps.avg}<span className="text-sm text-gray-400">/10</span></p>
+            </div>
+            <div className="bg-white border border-purple-100 rounded-lg p-4">
+              <p className="text-xs text-gray-400 uppercase tracking-wide">Breakdown</p>
+              <p className="text-sm font-medium mt-2"><span className="text-emerald-600">{nps.promoters} prom</span> · <span className="text-gray-400">{nps.passives} pass</span> · <span className="text-red-600">{nps.detractors} detr</span></p>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Targets moved → Sales Channel (target-based sales). See /command → Targets. */}
       <p className="text-xs text-gray-400 -mt-2">🎯 KPI progress, monthly revenue targets &amp; core KPIs now live in <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel → Targets</a> (target‑based sales).</p>

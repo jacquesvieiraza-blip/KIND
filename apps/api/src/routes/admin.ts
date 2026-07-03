@@ -866,3 +866,59 @@ adminRouter.get('/deliverability/timeseries', async (req: Request, res: Response
   }
 })
 
+
+// ── #289 — NPS (Net Promoter Score) ───────────────────────────────────────────
+// Admin/founder side only. The CLIENT-FACING collection widget (in-app survey
+// prompt) is a SEPARATE preview-gated follow-up — do not build it here.
+//
+// POST /admin/nps  — record a single response { client_id?, score (0..10), comment? }
+// GET  /admin/nps  — aggregate the admin card reads: NPS = %promoters − %detractors
+//                    (promoter 9–10, passive 7–8, detractor 0–6) + count + avg.
+// Both are admin-key gated by adminRouter.use(requireAdminKey) above.
+adminRouter.post('/nps', async (req: Request, res: Response) => {
+  try {
+    const body = z.object({
+      client_id: z.string().uuid().optional().nullable(),
+      score:     z.number().int().min(0).max(10),
+      comment:   z.string().max(2000).optional().nullable(),
+    }).parse(req.body)
+
+    const { data, error } = await db.from('nps_responses')
+      .insert({ client_id: body.client_id ?? null, score: body.score, comment: body.comment ?? null })
+      .select('id, created_at')
+      .single()
+    if (error) throw error
+    res.json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[admin/nps POST]', err)
+    res.status(500).json({ success: false, error: 'Failed to record NPS response' })
+  }
+})
+
+adminRouter.get('/nps', async (_req: Request, res: Response) => {
+  try {
+    // If nps_responses doesn't exist yet (migration not run) this returns an
+    // error, not a throw — degrade to an honest empty aggregate.
+    const { data, error } = await db.from('nps_responses').select('score')
+    if (error || !data) {
+      res.json({ success: true, data: { nps: null, count: 0, avg: null, promoters: 0, passives: 0, detractors: 0 } })
+      return
+    }
+    const scores = (data as { score: number }[]).map(r => r.score)
+    const count = scores.length
+    if (count === 0) {
+      res.json({ success: true, data: { nps: null, count: 0, avg: null, promoters: 0, passives: 0, detractors: 0 } })
+      return
+    }
+    const promoters  = scores.filter(s => s >= 9).length
+    const passives   = scores.filter(s => s >= 7 && s <= 8).length
+    const detractors = scores.filter(s => s <= 6).length
+    const nps = Math.round(((promoters - detractors) / count) * 100)
+    const avg = +(scores.reduce((a, b) => a + b, 0) / count).toFixed(1)
+    res.json({ success: true, data: { nps, count, avg, promoters, passives, detractors } })
+  } catch (err) {
+    console.error('[admin/nps GET]', err)
+    res.status(500).json({ success: false, error: 'Failed to load NPS aggregate' })
+  }
+})

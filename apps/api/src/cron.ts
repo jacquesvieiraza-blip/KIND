@@ -93,5 +93,8 @@ export function startCrons(): void {
   // Daily 08:30 UTC — P3-6 churn risk scoring
   cron.schedule('30 8 * * *', () => callInternal('/ae/churn-risk-check'), { timezone: 'UTC' })
 
-  console.log('[cron] 24 jobs scheduled')
+  // Daily 04:00 UTC — #287 MRR daily snapshot → metrics_daily (MRR-over-time + movement)
+  cron.schedule('0 4 * * *', () => callInternal('/metrics/snapshot'), { timezone: 'UTC' })
+
+  console.log('[cron] 25 jobs scheduled')
 }

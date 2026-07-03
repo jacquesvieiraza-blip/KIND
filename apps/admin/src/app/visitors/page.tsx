@@ -90,7 +90,7 @@ export default async function VisitorsPage() {
           { label: 'Avg intent score', value: avgScore, icon: TrendingUp },
           { label: 'High intent (≥50)', value: highIntent.length, icon: Eye },
         ].map(stat => (
-          <div key={stat.label} className="bg-white rounded-xl border border-purple-100 p-5 shadow-sm">
+          <div key={stat.label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-brand-200/60 p-5">
             <stat.icon className="w-4 h-4 text-purple-400 mb-2" />
             <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
             <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
@@ -99,7 +99,7 @@ export default async function VisitorsPage() {
       </div>
 
       {/* Visitors table */}
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 overflow-hidden">
         <div className="px-5 py-4 border-b border-purple-100 flex items-center gap-2">
           <Eye className="w-4 h-4 text-purple-600" />
           <h2 className="font-semibold text-gray-900 text-sm">Recent Visitors</h2>
@@ -155,7 +155,7 @@ export default async function VisitorsPage() {
       </div>
 
       {/* Tracking snippet */}
-      <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 overflow-hidden">
         <div className="px-5 py-4 border-b border-purple-100">
           <h2 className="font-semibold text-gray-900 text-sm">Tracking Snippet</h2>
           <p className="text-xs text-gray-400 mt-0.5">Add this before &lt;/body&gt; on your website to start tracking visitors</p>

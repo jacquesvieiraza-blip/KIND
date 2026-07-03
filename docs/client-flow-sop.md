@@ -110,9 +110,11 @@ flowchart TD
 
 ---
 
-## Path 5 — Active client upgrades (Lead Gen → Lead Gen + FIGSY bundle)
+## Path 5 — Active client upgrades (Lead Gen → Lead Gen + FIGSY bundle) — ⚠️ LEGACY-ONLY
 
-1. Active client on Lead Gen → Billing → sees FIGSY products
+> **⚠️ 3 Jul:** `lead_gen` is **RETIRED FROM SALE (#284/#911)** — every new signup creates `plan: 'figsy'` (`auth.ts:126`). This path applies ONLY to the handful of legacy clients still on a `lead_gen` subscription; no new client can enter it. New clients are FIGSY from day one, so there is no "upgrade" step.
+
+1. *(Legacy)* Active client on Lead Gen → Billing → sees FIGSY products
 2. Selects FIGSY bundle → Stripe → payment
 3. New subscription created with product: `lead_gen_figsy`
 4. Dashboard shows FIGSY unlocked

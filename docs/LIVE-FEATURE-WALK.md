@@ -140,7 +140,7 @@
 - ⬜ 67 saved views (R8) 🩷 · ⬜ 79 job-change alerts (R20) 🩷 · ⬜ 71 lead-capture forms (R12) 🩷
 
 ## 📣 Outreach / FIGSY
-- ⬜ 14 campaigns CRUD 🟢 · ⬜ 15 Auto/Co-pilot 🟢 · ⬜ 16 3-step sequences 🟢 *(→ 6-step planned, item 212)*
+- ⬜ 14 campaigns CRUD 🟢 · ⬜ 15 Auto-only 🟢 *(Co-pilot / review-before-send toggle HIDDEN #268 — was a false promise: no send/enroll path read `review_required`; `figsy/page.tsx:1140-1142`)* · ⬜ 16 3-step sequences 🟢 *(→ 6-step planned, item 212)*
 - ⬜ 17 reply classification 🟢 · ⬜ 19 mark-booked + KPI 🟢 · ⬜ 22 Suggest Campaigns · FIGSY Chat 🟢
 - ⬜ 20 deliverability suite D1–D5 🟢 · ⬜ 21 warmup 🟢
 - ⬜ 68 "Why FIGSY wrote this" (R9) 🩷 · ⬜ 69 Goals (R10) 🩷 · ⬜ 70 sequence-template library (R11) 🩷

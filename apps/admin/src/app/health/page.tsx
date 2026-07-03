@@ -24,6 +24,9 @@ const SERVICES: Service[] = [
 interface DeliverPoint { date: string; sent: number; bounced: number; complained: number; bounceRate: number; complaintRate: number }
 interface DeliverData { days: number; series: DeliverPoint[]; totals: { sent: number; bounced: number; complained: number; bounceRate: number; complaintRate: number } }
 
+// #290 — a captured unhandled API error (from error_events).
+interface ErrorEvent { id: string; route: string | null; method: string | null; status: number | null; message: string | null; created_at: string }
+
 function buildPoints(series: DeliverPoint[], key: 'bounceRate' | 'complaintRate', yMax: number): string {
   const n = series.length
   return series.map((d, i) => {
@@ -65,6 +68,8 @@ export default function HealthPage() {
   const [checking, setChecking] = useState(false)
   const [deliver, setDeliver] = useState<DeliverData | null>(null)
   const [deliverErr, setDeliverErr] = useState(false)
+  // #290 — recent captured API errors (error_events). null = still loading.
+  const [errors, setErrors] = useState<ErrorEvent[] | null>(null)
 
   async function checkStatuses() {
     setChecking(true)
@@ -99,6 +104,14 @@ export default function HealthPage() {
         if (json?.success && json.data) setDeliver(json.data as DeliverData)
         else setDeliverErr(true)
       } catch { setDeliverErr(true) }
+    })()
+    // #290 — recent captured API errors. Degrades to an empty list on any failure.
+    ;(async () => {
+      try {
+        const res = await fetch('/api/proxy/admin/errors', { cache: 'no-store' })
+        const json = await res.json()
+        setErrors(json?.success && json.data?.errors ? (json.data.errors as ErrorEvent[]) : [])
+      } catch { setErrors([]) }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -257,6 +270,33 @@ export default function HealthPage() {
           ))}
         </div>
         <p className="text-[11px] text-gray-400 mt-3">Bounce/complaint % is now live in the graph above (#279); cron last-run history is still pending a run-log feed.</p>
+      </div>
+
+      {/* Recent API errors (#290) — captured by the error-handling middleware into
+         error_events. Honest empty state until an error is captured / the migration runs. */}
+      <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
+        <div className="flex items-center justify-between mb-1">
+          <h2 className="font-semibold text-gray-900">Recent API errors</h2>
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">last 20</span>
+        </div>
+        <p className="text-xs text-gray-400 mb-4">Unhandled 500s are captured to <code>error_events</code> and the founder is alerted (throttled 1×/hr per signature).</p>
+        {errors === null ? (
+          <div className="h-16 rounded-lg border border-brand-200/50 bg-white/50 flex items-center justify-center text-xs text-gray-400">Loading…</div>
+        ) : errors.length === 0 ? (
+          <div className="rounded-lg border border-brand-200/50 bg-white/50 p-4 text-center text-xs text-emerald-600">No errors captured — clean. (Fills in once the <code>error_events</code> migration is applied and an error occurs.)</div>
+        ) : (
+          <div className="space-y-2">
+            {errors.map(e => (
+              <div key={e.id} className="flex items-start justify-between gap-3 py-2 border-b border-gray-100 last:border-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate"><span className="text-red-600">{e.status ?? 500}</span> · {e.method} {e.route}</p>
+                  <p className="text-xs text-gray-400 truncate">{e.message}</p>
+                </div>
+                <span className="shrink-0 text-[11px] text-gray-400">{new Date(e.created_at).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Last audit result */}

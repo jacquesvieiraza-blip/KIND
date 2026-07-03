@@ -20,6 +20,19 @@ const SERVICES: Service[] = [
   { name: 'Vercel Admin',    type: 'external',  statusPageUrl: 'https://www.vercel-status.com' },
 ]
 
+// #279 — deliverability timeseries (real, from /admin/deliverability/timeseries)
+interface DeliverPoint { date: string; sent: number; bounced: number; complained: number; bounceRate: number; complaintRate: number }
+interface DeliverData { days: number; series: DeliverPoint[]; totals: { sent: number; bounced: number; complained: number; bounceRate: number; complaintRate: number } }
+
+function buildPoints(series: DeliverPoint[], key: 'bounceRate' | 'complaintRate', yMax: number): string {
+  const n = series.length
+  return series.map((d, i) => {
+    const x = n > 1 ? (i / (n - 1)) * 600 : 300
+    const y = 150 - Math.min(1, d[key] / yMax) * 150
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+}
+
 function StatusDot({ status }: { status: ServiceStatus }) {
   const colors: Record<ServiceStatus, string> = {
     checking:    'bg-gray-200 animate-pulse',
@@ -50,6 +63,8 @@ export default function HealthPage() {
   const [statuses, setStatuses] = useState<Record<string, ServiceStatus>>({})
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
   const [checking, setChecking] = useState(false)
+  const [deliver, setDeliver] = useState<DeliverData | null>(null)
+  const [deliverErr, setDeliverErr] = useState(false)
 
   async function checkStatuses() {
     setChecking(true)
@@ -77,6 +92,14 @@ export default function HealthPage() {
 
   useEffect(() => {
     checkStatuses()
+    ;(async () => {
+      try {
+        const res = await fetch('/api/proxy/admin/deliverability/timeseries?days=30', { cache: 'no-store' })
+        const json = await res.json()
+        if (json?.success && json.data) setDeliver(json.data as DeliverData)
+        else setDeliverErr(true)
+      } catch { setDeliverErr(true) }
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -105,33 +128,59 @@ export default function HealthPage() {
         </button>
       </div>
 
-      {/* Deliverability over time (#279) — the headline silent-fail graph.
-         SHELL: empty axes + honest wire-in message, NO fabricated data points.
-         Goes live when the reporting endpoint (bounce/complaint % per day) lands. */}
+      {/* Deliverability over time (#279) — LIVE from figsy_sent_emails + opt_out_blocklist.
+         Real per-day bounce % / complaint % — catches a domain going bad before it poisons the send. */}
       <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <div className="flex items-center justify-between mb-1">
           <h2 className="font-semibold text-gray-900">Deliverability over time</h2>
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
-            wire-in · needs reporting endpoint
+          <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+            live · last {deliver?.days ?? 30}d
           </span>
         </div>
-        <p className="text-xs text-gray-400 mb-4">Bounce % and complaint % per day — catches a domain going bad <b>before</b> it poisons the send.</p>
-        {/* Empty chart frame — gridlines + axis labels, deliberately no data line */}
-        <div className="relative h-44 rounded-lg border border-brand-200/50 bg-white/50 overflow-hidden">
-          <div className="absolute inset-0 flex flex-col justify-between py-3 px-3">
-            {['5%', '3%', '1%', '0%'].map(y => (
-              <div key={y} className="flex items-center gap-2">
-                <span className="text-[10px] text-gray-300 w-6 shrink-0">{y}</span>
-                <span className="flex-1 border-t border-dashed border-gray-100" />
+        <p className="text-xs text-gray-400 mb-4">Bounce % and complaint % per day — catches a domain going bad <b>before</b> it poisons the send. Keep bounce &lt;2% · complaint &lt;0.3%.</p>
+        {!deliver && !deliverErr && (
+          <div className="h-44 rounded-lg border border-brand-200/50 bg-white/50 flex items-center justify-center text-xs text-gray-400">Loading…</div>
+        )}
+        {deliverErr && (
+          <div className="h-44 rounded-lg border border-brand-200/50 bg-white/50 flex items-center justify-center text-xs text-amber-600">Couldn&apos;t load deliverability data — check the API / admin key.</div>
+        )}
+        {deliver && !deliverErr && (deliver.totals.sent === 0 ? (
+          <div className="relative h-44 rounded-lg border border-brand-200/50 bg-white/50 flex items-center justify-center">
+            <p className="text-xs text-gray-400 bg-white/80 rounded-full px-3 py-1 border border-brand-200/50">No sends in the last {deliver.days} days — the graph fills once FIGSY starts sending.</p>
+          </div>
+        ) : (() => {
+          const maxRate = Math.max(...deliver.series.map(d => Math.max(d.bounceRate, d.complaintRate)))
+          const yMax = Math.max(5, Math.ceil(maxRate))
+          const gridY = [yMax, +(yMax * 0.66).toFixed(1), +(yMax * 0.33).toFixed(1), 0]
+          return (
+            <>
+              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm mb-3">
+                <span className="text-gray-500">Sent: <b className="text-gray-900">{deliver.totals.sent.toLocaleString()}</b></span>
+                <span className="text-gray-500">Bounce: <b className={deliver.totals.bounceRate >= 2 ? 'text-red-600' : 'text-gray-900'}>{deliver.totals.bounceRate}%</b> <span className="text-gray-400">({deliver.totals.bounced})</span></span>
+                <span className="text-gray-500">Complaint: <b className={deliver.totals.complaintRate >= 0.3 ? 'text-red-600' : 'text-gray-900'}>{deliver.totals.complaintRate}%</b> <span className="text-gray-400">({deliver.totals.complained})</span></span>
               </div>
-            ))}
-          </div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="text-xs text-gray-400 bg-white/80 backdrop-blur-sm rounded-full px-3 py-1 border border-brand-200/50">
-              No deliverability history yet — appears once the reporting endpoint is connected.
-            </p>
-          </div>
-        </div>
+              <div className="relative h-44 rounded-lg border border-brand-200/50 bg-white/50 overflow-hidden">
+                <div className="absolute inset-0 flex flex-col justify-between py-3 px-3 pointer-events-none">
+                  {gridY.map((y, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-[10px] text-gray-300 w-8 shrink-0">{y}%</span>
+                      <span className="flex-1 border-t border-dashed border-gray-100" />
+                    </div>
+                  ))}
+                </div>
+                <svg viewBox="0 0 600 150" preserveAspectRatio="none" className="absolute inset-0 w-full h-full px-10 py-3">
+                  <polyline fill="none" stroke="#dc2626" strokeWidth="2" vectorEffect="non-scaling-stroke" points={buildPoints(deliver.series, 'bounceRate', yMax)} />
+                  <polyline fill="none" stroke="#7C3AED" strokeWidth="2" vectorEffect="non-scaling-stroke" points={buildPoints(deliver.series, 'complaintRate', yMax)} />
+                </svg>
+              </div>
+              <div className="flex items-center gap-4 mt-2 text-[11px] text-gray-500">
+                <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-[#dc2626] inline-block" /> bounce %</span>
+                <span className="flex items-center gap-1.5"><span className="w-3 h-0.5 bg-[#7C3AED] inline-block" /> complaint %</span>
+                <span className="ml-auto text-gray-400">{deliver.series[0]?.date} → {deliver.series[deliver.series.length - 1]?.date}</span>
+              </div>
+            </>
+          )
+        })())}
       </div>
 
       {/* Service status cards */}
@@ -207,7 +256,7 @@ export default function HealthPage() {
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-gray-400 mt-3">Live bounce/complaint % + cron last-run wire in when the reporting endpoint lands.</p>
+        <p className="text-[11px] text-gray-400 mt-3">Bounce/complaint % is now live in the graph above (#279); cron last-run history is still pending a run-log feed.</p>
       </div>
 
       {/* Last audit result */}

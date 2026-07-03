@@ -23,6 +23,22 @@ async function getChurnRisk(): Promise<ChurnRiskEntry[]> {
   } catch { return [] }
 }
 
+// #286 dunning — past-due subscriptions surfaced as REAL action-queue rows (a failed
+// payment must not silently sit). The founder is also emailed at the payment_failed
+// webhook (lib/alerts). This is the "needs you now" side of the same signal.
+interface PastDueEntry { client_id: string; company_name: string; product: string | null }
+async function getPastDue(): Promise<PastDueEntry[]> {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return []
+  try {
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
+    const { data } = await supabase.from('subscriptions').select('client_id, product, clients(company_name)').eq('status', 'past_due')
+    return (data ?? []).map((s: { client_id: string; product: string | null; clients?: { company_name?: string | null } | { company_name?: string | null }[] | null }) => {
+      const c = Array.isArray(s.clients) ? s.clients[0] : s.clients
+      return { client_id: s.client_id, company_name: c?.company_name || '—', product: s.product }
+    })
+  } catch { return [] }
+}
+
 // System health = a REAL probe of the live API (was a hardcoded 'Healthy' string —
 // Slice C honesty fix). Green only when /health answers 200.
 async function getSystemHealth(): Promise<'Healthy' | 'Degraded' | 'Unreachable'> {
@@ -252,7 +268,7 @@ function PulseTiles({ stats, atRiskCount, health }: { stats: NonNullable<Awaited
 }
 
 // ── NEEDS YOU NOW — the Action Queue ─────────────────────────────────────────
-function ActionQueue({ atRisk }: { atRisk: ChurnRiskEntry[] }) {
+function ActionQueue({ atRisk, pastDue }: { atRisk: ChurnRiskEntry[]; pastDue: PastDueEntry[] }) {
   const soon = [
     { icon: <Users className="w-4 h-4" />, cls: 'bg-blue-50 text-blue-600', title: 'New trial → assign a pooled inbox', sub: 'Trigger ① (#270) — wired when signup trigger + Smartlead land' },
     { icon: <CreditCard className="w-4 h-4" />, cls: 'bg-green-50 text-green-600', title: 'Payment → provision branded inbox', sub: 'Trigger ② (#271) — buy branded + start warm clock' },
@@ -264,9 +280,21 @@ function ActionQueue({ atRisk }: { atRisk: ChurnRiskEntry[] }) {
       <div className="flex items-center gap-2 px-6 py-4 border-b border-purple-100">
         <Zap className="w-5 h-5 text-[#7C3AED]" />
         <h2 className="font-semibold text-gray-900">Needs you now</h2>
+        {pastDue.length > 0 && <span className="text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2 py-0.5">{pastDue.length} past-due</span>}
         {atRisk.length > 0 && <span className="text-xs font-bold bg-red-50 text-red-600 border border-red-200 rounded-full px-2 py-0.5">{atRisk.length} at-risk</span>}
       </div>
       <div className="divide-y divide-purple-50">
+        {/* REAL: past-due payments (#286 dunning) — most urgent, top of queue */}
+        {pastDue.map(c => (
+          <div key={`pd-${c.client_id}`} className="flex items-center gap-3 px-6 py-3 bg-amber-50/50">
+            <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0"><CreditCard className="w-4 h-4" /></div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">Payment failed — {c.company_name}</p>
+              <p className="text-xs text-gray-500 truncate">past-due{c.product ? ` · ${c.product}` : ''} · send a card-update nudge or offer a pause</p>
+            </div>
+            <Link href={`/clients/${c.client_id}`} className="text-xs font-semibold text-[#7C3AED] hover:underline whitespace-nowrap">Open client →</Link>
+          </div>
+        ))}
         {/* REAL: at-risk clients from churn engine */}
         {atRisk.slice(0, 6).map(c => (
           <div key={c.client_id} className="flex items-center gap-3 px-6 py-3 bg-red-50/40">
@@ -335,7 +363,7 @@ function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: num
 }
 
 export default async function AdminPage() {
-  const [stats, atRisk, health] = await Promise.all([getAdminStats(), getChurnRisk(), getSystemHealth()])
+  const [stats, atRisk, health, pastDue] = await Promise.all([getAdminStats(), getChurnRisk(), getSystemHealth(), getPastDue()])
 
   if (!stats) {
     return (
@@ -371,7 +399,7 @@ export default async function AdminPage() {
       <PulseTiles stats={stats} atRiskCount={atRisk.length} health={health} />
 
       {/* NEEDS YOU NOW — the Action Queue */}
-      <ActionQueue atRisk={atRisk} />
+      <ActionQueue atRisk={atRisk} pastDue={pastDue} />
 
       {/* UNIT ECONOMICS */}
       <UnitEconomics mrrUsd={stats.mrrUsd} activeSubs={stats.activeSubscriptions} />

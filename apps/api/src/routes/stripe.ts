@@ -17,6 +17,7 @@ import {
   STRIPE_BUNDLES,
   type SubscriptionProduct,
 } from '../lib/stripe'
+import { sendFounderAlert } from '../lib/alerts'
 
 // ── Auto-commission: if this client was referred by a partner, create a commission record ──
 async function maybeCreatePartnerCommission(clientId: string, amountUsd: number) {
@@ -384,12 +385,25 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         metadata?: { clientId?: string }
       }
       // Mark subscription past_due so the portal can surface a payment warning
+      let failedClientName = invoice.customer_email || 'a client'
       if (invoice.subscription) {
         await db.from('subscriptions')
           .update({ status: 'past_due' })
           .eq('stripe_subscription_id', invoice.subscription)
+        // Look up the client name for a useful alert.
+        const { data: sub } = await db.from('subscriptions')
+          .select('client_id, product, clients(company_name)')
+          .eq('stripe_subscription_id', invoice.subscription).maybeSingle()
+        const cname = (sub as { clients?: { company_name?: string } } | null)?.clients?.company_name
+        if (cname) failedClientName = cname
       }
       console.warn(`[Stripe] Invoice payment failed — subscription ${invoice.subscription} — ${invoice.customer_email}`)
+      // #286 dunning — a failed payment must not silently sit. Alert the founder.
+      void sendFounderAlert('payment_failed', `Payment failed — ${failedClientName}`, [
+        `A subscription payment just failed for ${failedClientName} (${invoice.customer_email || 'no email'}).`,
+        `The subscription is now marked past_due. Stripe will retry per its dunning schedule.`,
+        `Action: check Finance → Billing, and send a card-update nudge (or offer a short pause).`,
+      ])
     }
 
   } catch (err) {

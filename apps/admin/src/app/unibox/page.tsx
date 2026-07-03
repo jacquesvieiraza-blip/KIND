@@ -174,7 +174,7 @@ export default async function UniboxPage({
 
               return (
                 <details key={reply.id}
-                  className={`border rounded-xl overflow-hidden ${cfg.border} bg-white group`}>
+                  className={`border rounded-xl overflow-hidden ${cfg.border} bg-white/80 backdrop-blur-sm group`}>
                   <summary className="px-4 py-3 flex items-start gap-3 cursor-pointer list-none select-none hover:bg-gray-50/50 transition-colors">
                     <Icon className={`w-4 h-4 mt-0.5 flex-shrink-0 ${cfg.text}`} />
                     <div className="flex-1 min-w-0">

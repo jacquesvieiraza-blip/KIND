@@ -816,3 +816,53 @@ adminRouter.get('/win-back', async (_req: Request, res: Response) => {
   }
 })
 
+// GET /admin/deliverability/timeseries — #279. Per-day send volume + bounce/complaint
+// counts and rates, the "domain going bad" early-warning graph. Real sources:
+//   • sends   → figsy_sent_emails.sent_at
+//   • bounces → opt_out_blocklist reason='hard_bounce' (created_at)
+//   • spam    → opt_out_blocklist reason='spam_complaint' (created_at)
+// No new storage: these are already recorded at send/suppression time.
+adminRouter.get('/deliverability/timeseries', async (req: Request, res: Response) => {
+  try {
+    const days = Math.min(60, Math.max(7, Number(req.query.days) || 30))
+    const since = new Date(Date.now() - days * 86400000)
+    const [{ data: sends }, { data: suppressions }] = await Promise.all([
+      db.from('figsy_sent_emails').select('sent_at').gte('sent_at', since.toISOString()),
+      db.from('opt_out_blocklist').select('reason, created_at').gte('created_at', since.toISOString()),
+    ])
+
+    const dayKey = (iso: string | null) => (iso ? String(iso).slice(0, 10) : '')
+    const buckets: Record<string, { date: string; sent: number; bounced: number; complained: number }> = {}
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      buckets[d] = { date: d, sent: 0, bounced: 0, complained: 0 }
+    }
+    for (const s of sends ?? []) { const k = dayKey((s as { sent_at: string }).sent_at); if (buckets[k]) buckets[k].sent++ }
+    for (const b of suppressions ?? []) {
+      const row = b as { reason: string | null; created_at: string | null }
+      const k = dayKey(row.created_at); if (!buckets[k]) continue
+      if (row.reason === 'spam_complaint') buckets[k].complained++
+      else if (row.reason === 'hard_bounce') buckets[k].bounced++
+    }
+    const series = Object.values(buckets).map(d => ({
+      ...d,
+      bounceRate:    d.sent > 0 ? +((d.bounced / d.sent) * 100).toFixed(2) : 0,
+      complaintRate: d.sent > 0 ? +((d.complained / d.sent) * 100).toFixed(2) : 0,
+    }))
+    const totalSent = series.reduce((s, d) => s + d.sent, 0)
+    const totalBounced = series.reduce((s, d) => s + d.bounced, 0)
+    const totalComplained = series.reduce((s, d) => s + d.complained, 0)
+    res.json({ success: true, data: {
+      days, series,
+      totals: {
+        sent: totalSent, bounced: totalBounced, complained: totalComplained,
+        bounceRate:    totalSent > 0 ? +((totalBounced / totalSent) * 100).toFixed(2) : 0,
+        complaintRate: totalSent > 0 ? +((totalComplained / totalSent) * 100).toFixed(2) : 0,
+      },
+    } })
+  } catch (err) {
+    console.error('[admin/deliverability/timeseries]', err)
+    res.status(500).json({ success: false, error: 'Deliverability timeseries failed' })
+  }
+})
+

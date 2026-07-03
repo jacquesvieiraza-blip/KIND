@@ -82,8 +82,10 @@ function fmtDate(dt: string | null) {
   return new Date(dt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function fmtZAR(n: number) {
-  return `R ${n.toLocaleString('en-ZA', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+// #236 — partner earnings display in USD (USD is the commission source of truth,
+// see stripe.ts partner-commission; amount_zar is only a legacy convenience column).
+function fmtUSD(n: number) {
+  return `$${n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 }
 
 function periodLabel(m: string) {
@@ -270,9 +272,12 @@ export default function PartnerPage() {
   // Show onboarding checklist only when partner has no activity yet
   const isNewPartner = referrals.length === 0 && deals.length === 0 && commissions.length === 0
 
-  const commissionRate =
-    partner.partner_type === 'technology' ? '30%' :
-    partner.partner_type === 'agency'     ? '25%' : '20%'
+  // #236 — re-derive Earned/Pending in USD from the per-commission rows (USD source
+  // of truth). Mirrors the API's status filters exactly; falls back to the system
+  // ZAR→USD rate (÷19, matching stripe.ts) only for legacy rows without amount_usd.
+  const usdOf = (c: Commission) => c.amount_usd ?? c.amount_zar / 19
+  const totalEarnedUsd  = commissions.filter(c => c.status === 'paid').reduce((s, c) => s + usdOf(c), 0)
+  const totalPendingUsd = commissions.filter(c => c.status !== 'paid' && c.status !== 'cancelled').reduce((s, c) => s + usdOf(c), 0)
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -330,14 +335,14 @@ export default function PartnerPage() {
             <TrendingUp className="w-4 h-4 text-emerald-500" />
             <span className="text-xs font-semibold text-[#7C3AED]/60 uppercase tracking-wider">Earned</span>
           </div>
-          <p className="text-2xl font-bold text-emerald-600">{fmtZAR(stats.total_earned_zar)}</p>
+          <p className="text-2xl font-bold text-emerald-600">{fmtUSD(totalEarnedUsd)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock className="w-4 h-4 text-amber-500" />
             <span className="text-xs font-semibold text-[#7C3AED]/60 uppercase tracking-wider">Pending</span>
           </div>
-          <p className="text-2xl font-bold text-amber-600">{fmtZAR(stats.total_pending_zar)}</p>
+          <p className="text-2xl font-bold text-amber-600">{fmtUSD(totalPendingUsd)}</p>
         </div>
         <div className="bg-white rounded-2xl border border-purple-100 shadow-sm p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -435,7 +440,7 @@ export default function PartnerPage() {
               <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-gray-900">Application approved</p>
-                <p className="text-xs text-gray-400 mt-0.5">You're an official K.I.N.D {tierLabel} Partner earning {commissionRate} recurring commission.</p>
+                <p className="text-xs text-gray-400 mt-0.5">You're an official K.I.N.D {tierLabel} Partner earning 20% on each client's first month, then 5% recurring for as long as they stay.</p>
               </div>
             </div>
             {/* Step 2 — always done (contract_signed_at set on apply) */}
@@ -677,7 +682,7 @@ export default function PartnerPage() {
                       <td className="px-4 py-3"><StatusBadge status={r.status} type="referral" /></td>
                       <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{fmtDate(r.first_payment_at)}</td>
                       <td className="px-4 py-3 text-gray-500">
-                        {creditBalance != null ? fmtZAR(creditBalance) : '—'}
+                        {creditBalance != null ? fmtUSD(creditBalance) : '—'}
                       </td>
                     </tr>
                   )
@@ -704,7 +709,7 @@ export default function PartnerPage() {
             <table className="w-full text-sm">
               <thead className="bg-purple-50/50">
                 <tr>
-                  {['Period', 'Amount (ZAR)', 'Status', 'Paid date'].map(h => (
+                  {['Period', 'Amount (USD)', 'Status', 'Paid date'].map(h => (
                     <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-[#7C3AED]/60 uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
@@ -713,7 +718,7 @@ export default function PartnerPage() {
                 {commissions.map(c => (
                   <tr key={c.id} className="hover:bg-purple-50/30 transition-colors">
                     <td className="px-4 py-3 font-medium text-gray-900 whitespace-nowrap">{periodLabel(c.period_month)}</td>
-                    <td className="px-4 py-3 text-gray-700 font-mono font-semibold">{fmtZAR(c.amount_zar)}</td>
+                    <td className="px-4 py-3 text-gray-700 font-mono font-semibold">{fmtUSD(c.amount_usd ?? c.amount_zar / 19)}</td>
                     <td className="px-4 py-3"><StatusBadge status={c.status} type="commission" /></td>
                     <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">{fmtDate(c.paid_at)}</td>
                   </tr>

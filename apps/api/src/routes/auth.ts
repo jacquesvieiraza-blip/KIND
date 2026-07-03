@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { sendWelcomeEmail } from '../lib/email'
+import { sendFounderAlert } from '../lib/alerts'
 import { rateLimit } from '../lib/rate-limit'
 
 export const authRouter = Router()
@@ -171,6 +172,14 @@ authRouter.post('/onboard', async (req, res) => {
     }
 
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
+    // #285 alerting — tell the founder a new client just onboarded (new clients only).
+    if (!existing) {
+      void sendFounderAlert('new_signup', `New signup — ${profileFields.company_name}`, [
+        `${profileFields.company_name} just completed onboarding (${user.email}).`,
+        profileFields.country ? `Country: ${profileFields.country}.` : '',
+        `They're on a 14-day FIGSY trial. Assign a pooled inbox so they can send day 1.`,
+      ])
+    }
     fetch(`${process.env.API_INTERNAL_URL || `http://localhost:${process.env.PORT || 4000}`}/founder/cs/followup`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-key': process.env.ADMIN_SECRET_KEY || '' },

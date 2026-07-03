@@ -7,6 +7,7 @@ import {
   Coins, Zap, TrendingUp, Loader2, Check, ChevronDown,
   Shield, CreditCard, Bot, MessageSquare, CheckCircle, Handshake,
 } from 'lucide-react'
+import { PRODUCTS } from '@kind/shared'
 
 // ── Sparkline chart (pure SVG, no library) ───────────────────────────────────
 function SparklineChart({
@@ -76,7 +77,7 @@ const AGENT_PRODUCTS = [
     key:      'milla' as const,
     label:    'Milla',
     subtitle: 'AI Virtual Assistant',
-    price:    49,
+    price:    PRODUCTS.virtual_assistant.price_usd,
     icon:     Bot,
     color:    'bg-[#7C3AED]',
     features: ['Trained on your documents & SOPs', 'Answers questions about your business instantly', 'Drafts emails in your tone & voice', 'Available 24/7 — never misses a question'],
@@ -85,7 +86,7 @@ const AGENT_PRODUCTS = [
     key:      'vida' as const,
     label:    'Vida',
     subtitle: 'AI Chatbot Agent',
-    price:    29,
+    price:    PRODUCTS.chatbot.price_usd,
     icon:     MessageSquare,
     color:    'bg-indigo-600',
     features: ['Answers product questions instantly', 'Captures and qualifies leads 24/7', 'Hands off to your team when needed', 'One-line embed — any website'],
@@ -94,7 +95,7 @@ const AGENT_PRODUCTS = [
     key:      'denise' as const,
     label:    'Denise',
     subtitle: 'AI Account Executive',
-    price:    39,
+    price:    PRODUCTS.denise.price_usd,
     icon:     Handshake,
     color:    'bg-amber-600',
     features: ['Drafts warm follow-ups to quiet prospects', 'Turns call notes into a proposal in minutes', 'Surfaces objections before they kill the deal', 'Closes what FIGSY opens — in your voice'],

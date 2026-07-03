@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { MessageSquare } from 'lucide-react'
+import { PRODUCTS } from '@kind/shared'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -153,11 +154,11 @@ export default function ChatbotPage() {
           ))}
         </ul>
         <div className="text-center mb-4">
-          <span className="text-3xl font-bold text-gray-900">$29</span>
+          <span className="text-3xl font-bold text-gray-900">${PRODUCTS.chatbot.price_usd}</span>
           <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
         </div>
         <div className="flex flex-col gap-3">
-          <a href="/dashboard/billing" className="inline-block w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Unlock Vida — $29/month →</a>
+          <a href="/dashboard/billing" className="inline-block w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Unlock Vida — ${PRODUCTS.chatbot.price_usd}/month →</a>
           <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-purple-100/80">Request a demo instead</a>
         </div>
         <p className="text-xs text-[#9B8EC4] mt-3">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>

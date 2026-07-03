@@ -10,6 +10,7 @@ import {
   Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
   LayoutTemplate, Library, ShieldCheck, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
 } from 'lucide-react'
+import { PRODUCTS } from '@kind/shared'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
 type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
@@ -42,7 +43,7 @@ const AGENTS: AgentDef[] = [
     ],
   },
   {
-    id: 'milla', name: 'Milla', role: 'The Brain', accent: '#F472B6', price: '$49/mo',
+    id: 'milla', name: 'Milla', role: 'The Brain', accent: '#F472B6', price: `$${PRODUCTS.virtual_assistant.price_usd}/mo`,
     nav: [
       { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
       // Documents (251) moved to the account hub (ProfileMenu) 26 Jun — trust vault
@@ -51,11 +52,11 @@ const AGENTS: AgentDef[] = [
     ],
   },
   {
-    id: 'vida', name: 'Vida', role: 'The Connector', accent: '#14B8A6', price: '$29/mo',
+    id: 'vida', name: 'Vida', role: 'The Connector', accent: '#14B8A6', price: `$${PRODUCTS.chatbot.price_usd}/mo`,
     nav: [{ href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare }],
   },
   {
-    id: 'denise', name: 'Denise', role: 'The Closer', accent: '#D97706', price: '$39/mo',
+    id: 'denise', name: 'Denise', role: 'The Closer', accent: '#D97706', price: `$${PRODUCTS.denise.price_usd}/mo`,
     nav: [{ href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake }],
   },
 ]

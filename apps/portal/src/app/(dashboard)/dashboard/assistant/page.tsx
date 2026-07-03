@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { Bot, Calendar, FileText, Database, MessageSquare, CheckCircle2, XCircle } from 'lucide-react'
 import MarkdownLite from '@/components/MarkdownLite'
+import { PRODUCTS } from '@kind/shared'
 
 interface MillaDocument {
   id: string; name: string; type: string
@@ -294,12 +295,12 @@ export default function AssistantPage() {
           ))}
         </div>
         <div className="text-center mb-5">
-          <span className="text-3xl font-bold text-gray-900">$49</span>
+          <span className="text-3xl font-bold text-gray-900">${PRODUCTS.virtual_assistant.price_usd}</span>
           <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
         </div>
         <div className="space-y-3">
           <a href="/dashboard/billing" className="flex items-center justify-center gap-2 w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
-            Unlock Milla — $49/month →
+            Unlock Milla — ${PRODUCTS.virtual_assistant.price_usd}/month →
           </a>
           <DemoRequestButton product="milla" />
         </div>

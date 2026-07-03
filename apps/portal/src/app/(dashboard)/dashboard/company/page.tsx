@@ -18,10 +18,14 @@ import {
 
 // Lead-gen credit bundles — mirrors billing page. $1/credit, three sizes.
 // priceId pulled from env so the company page never hardcodes Stripe IDs.
+// #303 — the company pool top-up funds the FIGSY wallet ($3/credit). lead_gen is
+// retired (#284), so this now mirrors STRIPE_FIGSY_BUNDLES in dashboard/billing/page.tsx
+// (figsy price IDs + creditType 'figsy'). Sending the LEADGEN price IDs with
+// creditType 'figsy' would fail the checkout's priceId↔creditType check (stripe.ts:117).
 const TOPUP_BUNDLES = [
-  { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '' },
-  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '' },
-  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '' },
+  { credits: 20,  priceUsd: 60,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '' },
+  { credits: 40,  priceUsd: 120, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '' },
+  { credits: 100, priceUsd: 300, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '' },
 ]
 
 const BRAND = '#7C3AED'
@@ -234,7 +238,7 @@ export default function CompanyPage() {
     try {
       const res = await api.post<{ url?: string; error?: string }>(
         '/stripe/checkout',
-        { priceId: bundle.priceId, credits: bundle.credits, creditType: 'lead_gen' },
+        { priceId: bundle.priceId, credits: bundle.credits, creditType: 'figsy' },
         token,
       )
       if (res.url) { window.location.href = res.url; return }

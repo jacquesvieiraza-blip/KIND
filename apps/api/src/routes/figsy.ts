@@ -389,6 +389,135 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
   }
 })
 
+// ── #250 — INBOUND ENROLMENT WEBHOOK — API-key auth, must be BEFORE requireAuth ──
+// Lets a client's own system (a form, a CRM, an inbound funnel) enrol leads into a
+// FIGSY campaign WITHOUT a user session. Auth is a per-client developer key
+// (`kind_...`, X-Api-Key / Authorization: Bearer) — the SAME sha256 scheme as
+// /developer, so no new secret store is introduced. The key resolves to a
+// client_id; the campaign must belong to THAT client (ownership check). Enrolment
+// mirrors the authed POST /campaigns/:id/enroll EXACTLY, including the
+// skip-if-already-enrolled idempotency guard — so a retried webhook never
+// double-enrols (and therefore never double-sends / double-charges downstream).
+//
+// MONEY-PATH NOTE: enrolment itself does NOT charge — it inserts figsy_enrollments
+// with next_send_at=now; the charge happens later in the send path, which has its
+// own guards. The idempotency guard here is what prevents duplicate enrollments
+// that would each later be sent + charged.
+//
+// The client-facing enrolment PAGE / nav is a SEPARATE preview-gated follow-up —
+// NOT restored here. This is the API endpoint only.
+const figsyWebhookLimiter = rateLimit({ limit: 60, windowMs: 60_000, key: 'figsy-webhook-enrol' })
+
+async function resolveClientIdFromApiKey(req: { headers: Record<string, unknown> }): Promise<string | null> {
+  const rawHeader = (req.headers['x-api-key'] as string | undefined)
+    ?? (typeof req.headers['authorization'] === 'string'
+        ? (req.headers['authorization'] as string).replace(/^Bearer\s+/i, '')
+        : undefined)
+  if (!rawHeader || !rawHeader.startsWith('kind_')) return null
+  const keyHash = crypto.createHash('sha256').update(rawHeader).digest('hex')
+  const { data } = await db.from('developer_keys')
+    .select('id, client_id, revoked_at')
+    .eq('key_hash', keyHash)
+    .is('revoked_at', null)
+    .maybeSingle()
+  if (!data) return null
+  // Best-effort usage stamp — never blocks the request.
+  void db.from('developer_keys').update({ last_used_at: new Date().toISOString() }).eq('id', data.id)
+  return data.client_id as string
+}
+
+figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
+  try {
+    const clientId = await resolveClientIdFromApiKey(req)
+    if (!clientId) { res.status(401).json({ success: false, error: 'Missing or invalid API key' }); return }
+
+    const { campaign_id, lead_ids } = z.object({
+      campaign_id: z.string().uuid(),
+      lead_ids:    z.array(z.string().uuid()).min(1).max(50),
+    }).parse(req.body)
+
+    // Ownership: the campaign MUST belong to the client that owns the API key.
+    const { data: campaign } = await db.from('figsy_campaigns')
+      .select('id, status, settings').eq('id', campaign_id).eq('client_id', clientId).maybeSingle()
+    if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    // Item 187 — a saved sequence/template applied to this campaign (literal copy).
+    const appliedSequence = ((campaign.settings as { sequence?: SequenceStep[] } | null)?.sequence) ?? undefined
+
+    const { data: client } = await db.from('clients')
+      .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
+    const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
+    const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
+
+    // Leads must belong to the SAME client — cross-tenant enrol is impossible.
+    const { data: leads } = await db.from('leads')
+      .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
+      .in('id', lead_ids).eq('client_id', clientId)
+
+    // POPIA: never enrol anyone on the opt-out blocklist.
+    const batchEmails = (leads ?? []).map((l: { email: string | null }) => l.email).filter(Boolean) as string[]
+    const blocked = new Set<string>()
+    if (batchEmails.length > 0) {
+      const { data: blockRows } = await db.from('opt_out_blocklist')
+        .select('email').in('email', batchEmails).is('opted_back_in_at', null)
+      for (const r of blockRows ?? []) blocked.add((r as { email: string }).email)
+    }
+
+    let enrolled = 0
+    let skipped  = 0
+
+    for (const lead of leads ?? []) {
+      if (!lead.email) { skipped++; continue }
+      if (blocked.has(lead.email)) { skipped++; continue }
+
+      // Idempotency guard (mirrors the authed path): skip if already enrolled in
+      // this campaign — a retried webhook is a safe no-op, never a double-enrol.
+      const { data: existing } = await db.from('figsy_enrollments')
+        .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
+      if (existing) { skipped++; continue }
+
+      try {
+        const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+
+        const { error } = await db.from('figsy_enrollments').insert({
+          campaign_id:    campaign.id,
+          lead_id:        lead.id,
+          client_id:      clientId,
+          status:         'enrolled',
+          current_step:   0,
+          next_send_at:   new Date().toISOString(),
+          step1_subject:  draft.step1.subject,
+          step1_body:     draft.step1.body,
+          step2_subject:  draft.step2.subject,
+          step2_body:     draft.step2.body,
+          step3_subject:  draft.step3.subject,
+          step3_body:     draft.step3.body,
+        })
+        if (error) { skipped++; continue }
+        enrolled++
+      } catch {
+        skipped++
+      }
+    }
+
+    // Bump enrolled count on the campaign (same as the authed path).
+    const { data: camp } = await db.from('figsy_campaigns')
+      .select('leads_enrolled').eq('id', campaign.id).maybeSingle()
+    if (camp && enrolled > 0) {
+      await db.from('figsy_campaigns')
+        .update({ leads_enrolled: (camp.leads_enrolled ?? 0) + enrolled })
+        .eq('id', campaign.id)
+    }
+
+    res.json({ success: true, data: { enrolled, skipped } })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[figsy/webhook/enrol]', err)
+    res.status(500).json({ success: false, error: 'Failed to enrol leads' })
+  }
+})
+
 figsyRouter.use(requireAuth)
 
 async function getClientId(userId: string): Promise<string | null> {

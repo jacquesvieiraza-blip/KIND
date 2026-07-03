@@ -49,6 +49,15 @@ export const PRODUCTS = {
     price_usd: 29,
     billing: 'monthly' as const,
   },
+  // Denise — The Closer. Price LOCKED at $39/mo (founder, 3 Jul — resolving the
+  // $39-portal vs $99-website conflict, #301). This is now the single source of
+  // truth; the portal imports it. (The static website HTML must be synced by hand.)
+  denise: {
+    name: 'Denise — The Closer',
+    description: 'Warm follow-up on quiet prospects, confirms meetings, drafts proposals.',
+    price_usd: 39,
+    billing: 'monthly' as const,
+  },
   bundle: {
     name: 'Milla + Vida Bundle',
     description: 'Both AI team members at a discount.',

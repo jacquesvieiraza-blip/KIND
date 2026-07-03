@@ -13,8 +13,11 @@ const AGENTS = [
   { name: 'Milla',  role: 'The Brain',     stage: 'The intelligence', img: '/agents/milla.png',  price: '$49/mo',  owned: false },
   { name: 'Vida',   role: 'The Connector', stage: 'Inbound capture',  img: '/agents/vida.png',   price: '$29/mo',  owned: false },
   { name: 'Denise', role: 'The Closer',    stage: 'Closes the deal',  img: '/agents/denise.png', price: '$39/mo',  owned: false },
-  { name: 'Lena',   role: 'The Keeper',    stage: 'Retains & grows',  img: '/agents/lena.png',   price: '$79/mo',  owned: false },
-  { name: 'Tony',   role: 'The Operator',  stage: 'Keeps it clean',   img: '/agents/tony.png',   price: '$59/mo',  owned: false },
+  // Lena + Tony have NO backend built — don't sell a price for a product that can't
+  // run (founder call, 3 Jul, #Q5). Show "Coming soon" until they're real; the other
+  // v2 marketplace (dashboard) already does. Prices when they launch: Tony $39, Lena $49.
+  { name: 'Lena',   role: 'The Keeper',    stage: 'Retains & grows',  img: '/agents/lena.png',   price: 'Coming soon', owned: false, comingSoon: true },
+  { name: 'Tony',   role: 'The Operator',  stage: 'Keeps it clean',   img: '/agents/tony.png',   price: 'Coming soon', owned: false, comingSoon: true },
 ]
 
 export default function Marketplace() {

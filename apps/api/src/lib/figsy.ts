@@ -983,6 +983,19 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
     const step1Subject = allVariants[Math.floor(Math.random() * allVariants.length)]
 
+    // #302 — idempotency guard. Without it a retried autoEnrollLead (webhook re-fire,
+    // cron overlap, manual re-run) inserts a SECOND enrollment for the same lead AND
+    // deducts a SECOND FIGSY credit — a real double-charge. Refuse to re-enrol a lead
+    // that already has an enrollment in this campaign. (Belt-and-braces at the app
+    // layer; a DB unique(campaign_id, lead_id) index would enforce it at the store —
+    // proposed as a follow-up migration, see the PR body.)
+    const { data: existingEnrollment } = await db.from('figsy_enrollments')
+      .select('id').eq('campaign_id', campaign.id).eq('lead_id', leadId).maybeSingle()
+    if (existingEnrollment) {
+      console.log(`[figsy] autoEnrollLead: lead ${leadId} already enrolled in campaign ${campaign.id} — skipping (idempotent, no re-charge)`)
+      return
+    }
+
     const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
       campaign_id:    campaign.id,
       lead_id:        leadId,

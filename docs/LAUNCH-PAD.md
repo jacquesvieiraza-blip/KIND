@@ -1,7 +1,8 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 2 July 2026 (PM — Fable regroup, post-merge)** · Three milestones. Nothing else on this page.
-**This pass:** all M1 fixes + all 9 M3 build slices merged to `main`; the two Finance defects FIXED (commit `45fb71b`); the **7-officer executive-lens gap report** logged in full below (§③) and minted as tracked items **#285–#299**.
+**As of: 3 July 2026 (AM — post-deploy + full audit)** · Three milestones. Nothing else on this page.
+**This pass:** all M1 fixes + all 9 M3 slices + buckets 2/3 (#279/#282/#285/#286/#288/#291–#297/#299) built AND **DEPLOYED to prod 3 Jul** (via `railway up` — see the deploy note). 3-agent code↔docs audit run; Finance MRR/ARPU defects confirmed FIXED; docs reconciled; 2 code 🐛 → PRs (#302 enrol-idempotency · #303 top-up creditType); 1 open question (#301 Denise $39 vs $99).
+**🛑 DEPLOY PIPELINE BROKEN (🧍 YOU):** GitHub→Railway **auto-deploy is down** (`repository not found` at snapshot since ~2 Jul 18:35; a merge no longer triggers a build). Today's code went live only because we hand-pushed with `railway up`. **Until you reconnect the Railway GitHub App (github.com/settings/installations) or open a Railway support ticket, every future change needs a manual `railway up`.** Portal still needs its `railway up` if not yet run.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
 > Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. Procedures/flows = SOP (`client-flow-sop.md`). This page = what to do now.
@@ -65,7 +66,7 @@ Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) 
 ---
 
 ## ① OUTREACH OURSELVES — Milestone 1 · *sell K.I.N.D via our own cold email*
-### 👉 Bottom line *(Fable regroup, 2 Jul PM · post-merge)*: the ENGINE is done and **every build blocker is now cleared** — 1a postal address + 1b 4-email cadence + ToS $3 all LOCKED (merged #913), site repriced to $3 (#912), **#284 lead_gen retired in the product** (signup now creates a FIGSY plan, portal sells FIGSY-only — merged #911). **What now gates ① is ONLY the Instantly warm-up clock (your side) + your manual import/test/fire.** Nothing left for me to build here except the 2 tiny wording defects (to re-verify).
+### 👉 Bottom line *(Fable regroup, 2 Jul PM · post-merge)*: the ENGINE is done and **every build blocker is now cleared** — 1a postal address + 1b 4-email cadence + ToS $3 all LOCKED (merged #913), site repriced to $3 (#912), **#284 lead_gen retired in the product** (signup now creates a FIGSY plan, portal sells FIGSY-only — merged #911). **What now gates ① is ONLY the Instantly warm-up clock (your side) + your manual import/test/fire.** (The "2 tiny wording defects" are ✅ closed — 3 Jul audit found the site already reads "from $60".)
 
 ### 🔲 WHAT'S LEFT (the full drill — all 🧍 you, all ⏱ no-build, in strict order)
 | # | What's left | Dot | Owner |
@@ -77,7 +78,7 @@ Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) 
 | 4 | mail-tester 10/10 (#101) | 🔴 | 🧍 you |
 | 5 | Test-send 10–20 → check inbox placement (Primary, bounce <2%, spam <0.3%) | 🔴 | 🧍 you |
 | 6 | 🚀 Fire first outreach (#127) + dogfood monitor (#132) | 🔴 | 🧍 you |
-| 7 | 2 tiny wording defects `vs-salesloft:351,354` ("$60 total") | 🐛 | 🤖 me (re-verify if still live) |
+| 7 | ~~2 wording defects `vs-salesloft`~~ ✅ **NOT PRESENT** — 3 Jul audit verified `vs-salesloft.html:351/354` already read "from $60"; no stale pricing anywhere in `apps/website`. Closed. | ✅ | — |
 
 **Cleared this pass:** 1a address · 1b 4-email cadence · ToS $3 (#913) · 1c/1d website $3 + #284 lead_gen retired (#911/#912).
 

@@ -23,7 +23,7 @@ The system is **fundamentally sound and substantially honest** — the inventory
   - **✅ P0 prod-state confirmed (25 Jun):** ran the 3 missing-that-matter — `outcome_events` (data floor, item 48 — was a fake-green; now capturing) · `leads.research_summary` · `figsy_chat_messages`. **Present already:** `webhook_endpoints` (NOT unrun — corrects earlier), `calendar_bookings`, `push_subscriptions`, `companies`, `client_members`, `subscriptions.paused_at`, `crm_dedup_enabled`, `crm_existing`, and `credit_transactions_reference_unique` (double-charge guard live). **Bad dup `611` never ran → deleted the file in T1.** `linkedin_queue` skipped (parked). Still open (T1/T2): `subscriptions.tier` CHECK reconcile.
 
 ### 🟠 Real gaps (before scaling / US-EMEA paying clients)
-- **M1 — Region/currency** — signup defaults "South Africa", writes `amount_zar` only; USD not modelled. ✅ → **T2**
+- **M1 — Region/currency** — ✅ **RESOLVED (3 Jul):** no SA default (country is a required onboard field); trial sub writes both `amount_usd: 0` + `amount_zar: 0` (`auth.ts:148-154`) and MRR now uses `amount_usd` as source-of-truth. Only genuinely-open remainder: back-fill of legacy ZAR-only subs (T2b).
 - **M2 — Subscription pause doesn't stop Stripe billing** (only Paystack handled; comment flags "Stripe-side pause for founder"). ⚠️ `subscriptions.ts` → **T2**
 - **M3 — CRM dedup fails *open*** — `figsy.ts:881-898` proceeds if the CRM check errors. ⚠️ → **T1**
 - **M4 — N+1 enrollment loop** (~1k-lead timeout) + **global-only send cap**. ✅ → **T3**

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { StatusBar } from '@/components/layout/StatusBar'
+import { PRODUCTS } from '@kind/shared'
 
 type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
 
@@ -58,7 +59,7 @@ const AGENTS: AgentDef[] = [
     role: 'Virtual Assistant · Business Operations',
     accent: '#F472B6',
     ring: 'ring-pink-300/30',
-    price: '$49/mo',
+    price: `$${PRODUCTS.virtual_assistant.price_usd}/mo`,
     nav: [
       { href: '/dashboard/assistant',  label: 'Assistant',  icon: Bot },
       // Documents (251) moved to ACCOUNT_NAV 26 Jun — it's the trust vault (T&C/DPA/
@@ -73,7 +74,7 @@ const AGENTS: AgentDef[] = [
     role: 'Chatbot Agent · Inbound Specialist',
     accent: '#14B8A6',
     ring: 'ring-teal-300/30',
-    price: '$29/mo',
+    price: `$${PRODUCTS.chatbot.price_usd}/mo`,
     nav: [
       { href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare },
     ],
@@ -85,7 +86,7 @@ const AGENTS: AgentDef[] = [
     role: 'AI Account Executive · Closing',
     accent: '#D97706',
     ring: 'ring-amber-300/30',
-    price: '$39/mo',
+    price: `$${PRODUCTS.denise.price_usd}/mo`,
     nav: [
       { href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake },
     ],

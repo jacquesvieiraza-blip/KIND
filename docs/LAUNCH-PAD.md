@@ -1,6 +1,6 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 6 July 2026 PM.** This page = the three milestones and what to do right now. Nothing else lives here.
+**As of: 6 July 2026 PM · plan set for 7 July.** This page = the three milestones and what to do right now. Nothing else lives here.
 **History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
 
 **Board:** 🟢93 verified · 🩷92 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴119 not built · ⏸5 blocked · Σ334 *(live count: `scripts/count-inventory.sh`)*
@@ -9,18 +9,38 @@
 
 ---
 
-## ⚡ DO NEXT (the whole list — in order)
+## 📅 TOMORROW — 7 July (the plan, in order)
+**The whole #306–#328 audit is closed + live — the product is safe. Nothing is blocked on Claude. Tomorrow = UNBLOCK the two big gates + VERIFY what's live. Top to bottom; each block is independent, so a slip on one doesn't stall the rest.**
+
+**☀️ FIRST 30 MIN — the two unlocks (highest leverage — they free up everything else):**
+1. **Send the GitHub flag appeal** — `support.github.com/contact/account-flagged` (paste the drafted reply from 6 Jul). → when it clears, auto-deploy returns and the manual `railway up` ends. *(infra)*
+2. **Sort Smartlead access** — sign up / grab the API key. **This is THE last M2 gate (#211)** — the moment I have it I start the multi-day per-client-sending build. *(M2)*
+3. **Glance at Instantly warm-up %** — the one M1 gate. If ≥90% → jump to the M1 fire-drill (§① below). If not, leave it, it's a clock. *(M1)*
+
+**🕙 MID-MORNING — verify the admin is real (Sitting A, ~1 hr):**
+4. Walk `admin.get-kind.com` — the 7 screens listed in **§③ below**; confirm each loads + shows honest data. Report back screen-by-screen and I flip ~23 dots 🩷→🟢. *(M3)*
+
+**🕐 MIDDAY — two config toggles (Sitting B, 10 min):**
+5. In Railway set **`PDL_API_KEY`**; in Resend enable **`email.bounced`** + **`email.complained`** events. → verifies #243 + #267. *(M2/M3)*
+
+**🕒 AFTERNOON — prove the money (Sitting C, when you have a live account):**
+6. The **$60 live money walk** (#28b) — steps in **§② below**. Nobody has ever run this end-to-end; it's the difference between "should work" and "proven." *(M2)*
+
+**Realistic target:** both unlocks sent + admin walked green. If tomorrow only produces "Smartlead access + GitHub appeal in," that's a great day — those two move M2 and the infra more than anything else.
+
+---
+
+## ⚡ THE FULL RUNLIST (reference — tomorrow's plan pulls from this)
 
 | # | Action | Who |
 |---|--------|-----|
-| 1 | ✅ ~~#966 api `railway up`~~ — DEPLOYED, #323 🩷. Done. | — |
-| 2 | ✅ ~~#324–#328 re-audit batch~~ — merged + deployed, all 🩷. The ENTIRE #306–#328 audit is now live. | — |
-| 3 | **Sitting A** — walk the admin (~23 dots 🩷→🟢, list in M3 below) | 🧍 |
-| 4 | **Sitting B** — 2 toggles: `PDL_API_KEY` in Railway · Resend `email.bounced`+`email.complained` events | 🧍 |
-| 5 | **Sitting C** — the $60 live money walk (list in M2 below) | 🧍 |
-| 6 | **Send GitHub flag appeal** (drafted, in chat 6 Jul) → restores auto-deploy | 🧍 |
-| 7 | **Give Smartlead access** → unblocks #211, the last M2 gate | 🧍 |
-| 8 | **Watch Instantly warm-up** weekly → at ≥90%, run the M1 fire-drill below | 🧍 |
+| 1 | ✅ ~~Whole #306–#328 audit~~ — 23 items merged + deployed + live. Product is safe. | — |
+| 2 | **Sitting A** — walk the admin (~23 dots 🩷→🟢, list in M3 below) | 🧍 |
+| 3 | **Sitting B** — 2 toggles: `PDL_API_KEY` in Railway · Resend `email.bounced`+`email.complained` events | 🧍 |
+| 4 | **Sitting C** — the $60 live money walk (list in M2 below) | 🧍 |
+| 5 | **Send GitHub flag appeal** (drafted, in chat 6 Jul) → restores auto-deploy | 🧍 |
+| 6 | **Give Smartlead access** → unblocks #211, the last M2 gate → 🤖 I build | 🧍→🤖 |
+| 7 | **Watch Instantly warm-up** weekly → at ≥90%, run the M1 fire-drill below | 🧍 |
 
 ---
 

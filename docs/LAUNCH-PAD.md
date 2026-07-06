@@ -9,12 +9,10 @@
 
 ---
 
-## 📦 THE 12-PR BACKLOG (6 Jul) — merge one at a time, then `railway up`
-**All built, all 🟡, all waiting on YOU to merge (I never merge — I hand you the link). After each merge: `git pull` → `railway up --service "<svc>"`.**
-**Merge order (two conflict pairs — respect it):**
-1. **#931** rate-limits → `@kind/api` · 2. **#932** price-centralise → `@kind/portal` · 3. **#933** partner USD → `@kind/portal` · 4. **#934** return-credits (#108b) → `@kind/api` · 5. **#935** schema doc → *(docs, no deploy)* · 6. **#936** sequence personalization → `@kind/api` · 7. **#941** FIGSY webhook → `@kind/api` · 8. **#937** MRR waterfall → api+admin · 9. **#938** NPS → api+admin *(after #937 — both edit revenue page)* · 10. **#940** cron-history → api+admin · 11. **#939** error-tracking → api+admin *(after #940 — both edit health page; keep BOTH sections)* · 12. **#924** usage-trend → api+admin.
-**4 Tier-2 migrations to run** (Supabase, by hand): `20260703_metrics_daily` · `_nps_responses` · `_cron_runs` · `_error_events`.
-**+ still owed from prior passes:** migration `20260702_webhook_idempotency.sql` (#264) · confirm the live website shows **$3** (#283) or run `railway up --service "KIND"`.
+## ✅ THE 12-PR BACKLOG — CLEARED (6 Jul)
+**All 12 merged + deployed (api·portal·admin via `railway up`) + all 5 migrations run + website $3 confirmed live.** The 4 conflicting PRs (#937/#940/#939/#924) were consolidated into **#943** (conflicts resolved, 88/88 + admin build green) and the originals closed; the rest (#931-#936, #941, #938) merged direct. Migrations run: `20260703_metrics_daily` · `_nps_responses` · `_cron_runs` · `_error_events` · `20260702_webhook_idempotency` (#264). Inventory flipped 🟡→🩷 for the batch (live, walk owed).
+**Deploy note:** still hand-deployed via `railway up` — auto-deploy stays dead until the **GitHub account flag** is appealed (`support.github.com/contact/account-flagged`).
+**Hygiene follow-up:** #305/#303 duplicate older #108b/#55c rows (minted 3 Jul) → dedup in a future pass (delete the copy, keep the home).
 
 ---
 

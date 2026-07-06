@@ -145,7 +145,7 @@ export default function BillingPage() {
   const [pauseNotice, setPauseNotice]       = useState<string | null>(null)
 
   // Auto top-up
-  const [autoTopup, setAutoTopup]   = useState({ enabled: false, threshold: 10, plan: 'kind_ai' as 'kind_ai' | 'figsy', bundle_size: 20 })
+  const [autoTopup, setAutoTopup]   = useState({ enabled: false, threshold: 10, plan: 'figsy' as 'kind_ai' | 'figsy', bundle_size: 20 })
   const [savingTopup, setSavingTopup] = useState(false)
   const [topupSaved, setTopupSaved]   = useState(false)
 
@@ -183,7 +183,7 @@ export default function BillingPage() {
           setAutoTopup({
             enabled:     d.auto_topup_enabled ?? false,
             threshold:   d.auto_topup_threshold ?? 10,
-            plan:        (d.auto_topup_plan as 'kind_ai' | 'figsy') ?? 'kind_ai',
+            plan:        (d.auto_topup_plan as 'kind_ai' | 'figsy') ?? 'figsy',
             bundle_size: d.auto_topup_bundle_size ?? 20,
           })
         }
@@ -518,14 +518,6 @@ export default function BillingPage() {
                 <select value={autoTopup.threshold} onChange={e => setAutoTopup(p => ({ ...p, threshold: Number(e.target.value) }))}
                   className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none">
                   {[5, 10, 20, 50].map(v => <option key={v} value={v}>{v} credits</option>)}
-                </select>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Plan</p>
-                <select value={autoTopup.plan} onChange={e => setAutoTopup(p => ({ ...p, plan: e.target.value as 'kind_ai' | 'figsy' }))}
-                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none">
-                  <option value="kind_ai">K.I.N.D AI</option>
-                  <option value="figsy">FIGSY</option>
                 </select>
               </div>
               <div>

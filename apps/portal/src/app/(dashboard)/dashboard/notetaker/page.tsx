@@ -99,7 +99,7 @@ export default function NotetakerPage() {
           </div>
           <div>
             <h1 className="text-2xl font-bold text-[#1E1152]">AI Notetaker</h1>
-            <p className="text-sm text-[#7C3AED]/60">Drop in a meeting transcript or recording. Milla extracts every action item, owner, and deadline — zero manual notes.</p>
+            <p className="text-sm text-[#7C3AED]/60">Paste in a meeting transcript. Milla extracts every action item, owner, and deadline — zero manual notes.</p>
           </div>
         </div>
       </div>
@@ -275,7 +275,7 @@ export default function NotetakerPage() {
 
       {/* Footer note */}
       <p className="mt-6 text-center text-[11px] text-[#9CA3AF]">
-        Milla owns this feature. Input: Zoom/Teams transcript paste or upload. Output: structured action items with owner + deadline, pushable to tasks or Slack.
+        Milla owns this feature. Input: a plain-text (.txt) meeting transcript, pasted or uploaded. Output: structured action items with owner + deadline.
       </p>
     </div>
   )

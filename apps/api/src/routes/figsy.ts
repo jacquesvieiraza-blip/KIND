@@ -3,7 +3,8 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals } from '../lib/figsy'
+import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll } from '../lib/figsy'
+import { canEnroll } from '../lib/billing-rules'
 import { buildDraftFromSequence, emailSteps, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
@@ -463,12 +464,21 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
       for (const r of blockRows ?? []) blocked.add((r as { email: string }).email)
     }
 
+    // #310 — charge + gate the webhook enrol path too (it enrolled + sent for free).
+    const { data: balRow } = await db.from('clients')
+      .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
+    let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
+
     let enrolled = 0
     let skipped  = 0
+    let insufficientCredits = false
 
     for (const lead of leads ?? []) {
       if (!lead.email) { skipped++; continue }
       if (blocked.has(lead.email)) { skipped++; continue }
+
+      // Out of FIGSY credits — stop; never give away free outreach.
+      if (!canEnroll(figsyRemaining)) { insufficientCredits = true; break }
 
       // Idempotency guard (mirrors the authed path): skip if already enrolled in
       // this campaign — a retried webhook is a safe no-op, never a double-enrol.
@@ -495,6 +505,8 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           step3_body:     draft.step3.body,
         })
         if (error) { skipped++; continue }
+        await chargeFigsyEnroll(clientId, lead)
+        figsyRemaining -= 1
         enrolled++
       } catch {
         skipped++
@@ -510,7 +522,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         .eq('id', campaign.id)
     }
 
-    res.json({ success: true, data: { enrolled, skipped } })
+    res.json({ success: true, data: { enrolled, skipped, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[figsy/webhook/enrol]', err)
@@ -1403,14 +1415,25 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
       for (const r of blockRows ?? []) blocked.add((r as { email: string }).email)
     }
 
+    // #310 — FIGSY is charged at enrollment (1 credit = 1 lead enrolled). Read the
+    // client's FIGSY balance up front and gate + deduct PER lead, mirroring
+    // autoEnrollLead. Previously this route enrolled + sent for free at any balance.
+    const { data: balRow } = await db.from('clients')
+      .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
+    let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
+
     let enrolled = 0
     let skipped  = 0
+    let insufficientCredits = false
 
     for (const lead of leads ?? []) {
       if (!lead.email) { skipped++; continue }
       if (blocked.has(lead.email)) { skipped++; continue }   // opted out — never email
 
-      // Skip if already enrolled
+      // Out of FIGSY credits — stop; never give away free outreach.
+      if (!canEnroll(figsyRemaining)) { insufficientCredits = true; break }
+
+      // Skip if already enrolled (idempotent — no charge)
       const { data: existing } = await db.from('figsy_enrollments')
         .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
       if (existing) { skipped++; continue }
@@ -1435,6 +1458,9 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           step3_body:     draft.step3.body,
         })
         if (error) { skipped++; continue }
+        // Charge 1 FIGSY credit for this enrollment (atomic RPC + ledger).
+        await chargeFigsyEnroll(clientId, lead)
+        figsyRemaining -= 1
         enrolled++
       } catch {
         skipped++
@@ -1450,7 +1476,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         .eq('id', campaign.id)
     }
 
-    res.json({ success: true, data: { enrolled, skipped } })
+    res.json({ success: true, data: { enrolled, skipped, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to enroll leads' })

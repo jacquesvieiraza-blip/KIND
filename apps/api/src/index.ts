@@ -30,7 +30,6 @@ import { companyRouter } from './routes/company'
 import { deniseRouter } from './routes/denise'
 import { caseyRouter } from './routes/casey'
 import { stripeRouter } from './routes/stripe'
-import { flutterwaveRouter } from './routes/flutterwave'
 import { orderFormRouter } from './routes/order-forms'
 import { statsRouter } from './routes/stats'
 import { internalBriefsRouter } from './routes/internal-briefs'
@@ -170,7 +169,6 @@ app.use('/company',       companyRouter)
 app.use('/denise',        deniseRouter)
 app.use('/casey',         caseyRouter)
 app.use('/stripe',        stripeRouter)
-app.use('/flutterwave',   flutterwaveRouter)
 app.use('/order-forms',   orderFormRouter)
 app.use('/stats',         statsRouter)
 app.use('/internal/briefs', internalBriefsRouter)

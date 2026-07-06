@@ -114,8 +114,14 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
       creditType: z.enum(['lead_gen', 'figsy']),
     }).parse(req.body)
 
+    // #313 — fail CLOSED. The old guard `if (expectedPriceId && …)` skipped validation
+    // entirely whenever getStripePriceId returned null — i.e. for any `credits` value
+    // that isn't a configured bundle, OR when the bundle's price env var is unset. A
+    // client could then POST a real cheap priceId with `credits: 999999`; the webhook
+    // trusts the metadata `credits` and grants them all. Now an unresolvable/mismatched
+    // bundle is a hard 400 — never a silent pass. `credits` must map to a real bundle.
     const expectedPriceId = getStripePriceId(creditType, credits)
-    if (expectedPriceId && expectedPriceId !== priceId) {
+    if (!expectedPriceId || expectedPriceId !== priceId) {
       res.status(400).json({ success: false, error: 'Price ID does not match credit type and quantity' })
       return
     }

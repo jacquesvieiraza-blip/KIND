@@ -1,7 +1,9 @@
 'use client'
 
-/** Agent Config Panel (live). Clean tabbed view of FIGSY's real configuration,
- *  with links to where each setting is edited. Gated by FEATURE_V2_SCREENS=config. */
+/** Agent Config Panel. The ICP tab shows the client's LIVE ICP (fetched from
+ *  /icps); the Role/Tone/Schedule/Knowledge tabs explain how FIGSY operates and
+ *  link to where the editable pieces live — they are descriptions of FIGSY's
+ *  behaviour, not stored per-account values. Gated by FEATURE_V2_SCREENS=config. */
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -50,7 +52,7 @@ export default function ConfigPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Configure FIGSY</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Clean cards for every setting — no dense forms.</p>
+        <p className="text-sm text-gray-500 mt-0.5">Your live ICP is below. Role, Tone, Schedule &amp; Knowledge explain how FIGSY works — each links to where you change it.</p>
       </div>
 
       {loading ? (

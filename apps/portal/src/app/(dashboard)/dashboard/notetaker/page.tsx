@@ -123,8 +123,8 @@ export default function NotetakerPage() {
                 <Mic className="w-6 h-6" style={{ color: BRAND }} />
               </div>
               <div className="text-center">
-                <p className="text-sm font-semibold text-[#1E1152]">Paste transcript or upload recording</p>
-                <p className="text-xs text-[#9CA3AF] mt-1">Zoom · Teams · Google Meet · .txt · .mp3</p>
+                <p className="text-sm font-semibold text-[#1E1152]">Paste a transcript or upload a .txt file</p>
+                <p className="text-xs text-[#9CA3AF] mt-1">Plain-text transcript (.txt) — export it from Zoom, Teams or Google Meet</p>
               </div>
             </button>
             <input
@@ -248,10 +248,12 @@ export default function NotetakerPage() {
 
                 {/* Action buttons */}
                 <div className="flex gap-3 pt-2">
+                  {/* Not wired yet — there's no tasks store behind this. Kept as an
+                      honest "coming soon" (matches the Slack button) rather than a
+                      button that toasts "Added" without adding anything. */}
                   <button
-                    onClick={() => showToast('Added to tasks')}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
-                    style={{ background: BRAND }}
+                    onClick={() => showToast('Tasks integration coming soon')}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-purple-200 text-[#7C3AED] hover:bg-purple-50 transition-all active:scale-[0.98]"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
                     Add to Milla&apos;s tasks

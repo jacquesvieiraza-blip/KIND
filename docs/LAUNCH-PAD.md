@@ -1,7 +1,7 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
 **As of: 6 July 2026** · Three milestones. Nothing else on this page.
-**This pass (6 Jul):** the **12-PR backlog is CLEARED** — all merged + deployed (api·portal·admin via `railway up`) + 5 migrations run + website $3 confirmed live. Also fixed solo: #268 approval silent-fail, #284 stale dot. Board **🟢92 · 🩷75 · 🟣4 · 🟡22 · 🔴117 · ⏸5 · Σ315**. **Next needle-mover = walk the 75 🩷 → 🟢** (the PICK-UP-HERE block below).
+**This pass (6 Jul PM · Fable full audit):** the **ENTIRE 17-hole deep audit (#306–#322) is FIXED + MERGED** — Tier 1 deployed + walked (#308 🟢), Tier 2 deployed + activated (migration `20260706_pool_atomic` run, Stripe `charge.refunded`/`charge.dispute.created` enabled), Tier 3 merged (#319–#321 api + #318 portal await your `railway up` confirm). All gates green (api tsc + 88/88 · portal build · board `--check`). **Fresh 3-lens re-audit found 6 NEW items → #323–#328** (1 critical: `/internal/founder-brief` unauthenticated). Board = the marker in PRODUCT-INVENTORY (status of record). **Next needle-mover = the 2 deploy confirms + #323 fix + walk the 🩷 → 🟢.**
 **🛑 DEPLOY PIPELINE DEAD — ROOT CAUSE FOUND (6 Jul):** the GitHub account **`jacquesvieiraza-blip` is FLAGGED** ("This account is flagged, and therefore cannot authorize a third party application"). → Railway's GitHub App can't be installed/authorized → **auto-deploy cannot work, and reconnecting is impossible until the flag is lifted** (this is why every reconnect attempt 404'd — it was never a Railway bug). **🧍 Fix = appeal the flag: `support.github.com/contact/account-flagged` + check `github.com/settings/billing`.** Until lifted, EVERY change reaches prod ONLY via **merge → `git pull` → `railway up --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Nothing merged goes live on its own.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
@@ -9,13 +9,15 @@
 
 ---
 
-## 🚨 TOP PRIORITY (6 Jul) — DEEP AUDIT REMEDIATION (#306–#322), build in tier order
-**A 5-lens critical audit found 17 verified holes. Fix in tiers; Opus builds a tier → Fable verifies → next tier. 🧍-only items last.**
-- **TIER 1 — internet-exposed TODAY:** #306 mcp unauth Claude · #307 visitor-PII bypass · #308 admin-app no-auth (🤝 method) · #309 admin key in URL log.
-- **TIER 2 — before the first paying client / first send:** #310 FIGSY enroll sends $0 · #311 dead-Resend invisible · #312 unsub not suppressed · #313 Stripe credit-mint · #314 Flutterwave (🤝 live?) · #315 auto-topup double-charge · #316 pool races · #317 refunds (🤝 policy).
-- **TIER 3 — honesty/hygiene:** #318 portal deception (preview-first) · #319 pause lies · #320 global caps · #321 unthrottled Claude · #322 board integrity.
-- **🧍 founder decisions gating 🤝 items:** admin-auth method (#308) · is Flutterwave live? (#314) · refund policy (#317). Plus env cleanup (remove `ADMIN_API_KEY`) + confirm any host-level admin gate.
-- Full detail per item = PRODUCT-INVENTORY #306–#322. Reassuring result: tenant isolation clean, secrets hygiene good, double-grant guards real, lead-delivery atomic.
+## 🚨 TOP PRIORITY (6 Jul PM — post-audit runlist, in order)
+**The 17-hole deep audit (#306–#322) is DONE — all fixed, Fable-verified, merged. What's left is 2 deploy confirms + the NEW audit round (#323–#328).**
+1. **🧍 Confirm the 2 deploys** (both may already be done — Railway shows the newest deploy Active): `railway up --service "@kind/api"` (ships #319/#320/#321) · `railway up --service "@kind/portal"` (ships #318 — first attempt 500'd, retry). Report → dots flip 🟡→🩷.
+2. **🤖 #323 (CRITICAL, NEW): `POST /internal/founder-brief` is UNAUTHENTICATED** — leaks the business brief (clients/MRR/reply rates) to any anonymous caller + burns a Claude call + emails the founder per hit. 3-line fix (admin-key guard). Build immediately on founder go.
+3. **🤖 #324–#325 (MED, NEW):** internal-briefs query-param key + fail-open guard · Paystack `/verify` no amount/owner binding.
+4. **🤖 #326 (HIGH, client-facing, preview-first):** Settings page no-op toggles — "Approve emails before sending — nothing goes out without you" is a localStorage lie (nothing reads it); writing-style + 4/5 notification toggles same. Honest-label or wire.
+5. **🤖 #327–#328:** website false claims (Salesforce/Outlook, fabricated blog "customer data", unbuyable playbook packages) · #284 residue (auto-topup still defaults to the retired $1 plan; referral "$100" copy).
+- ✅ **Closed this pass:** #306–#322 all fixed+merged · founder decisions #308/#314/#317 all made 6 Jul · migration `20260706_pool_atomic` run · Stripe refund/dispute events enabled.
+- Full detail per item = PRODUCT-INVENTORY #306–#328. Clean on re-audit: Paystack webhook signature enforced · Stripe money path (fail-closed, idempotent, claw-back) · cron/internal auth (except #323) · tenant isolation.
 
 ---
 
@@ -77,7 +79,7 @@ The onboarding triggers (signup → assign an inbox · payment → provision + s
 Test the magic-link "Open Demo" flow beforehand (OTP dependency, `admin.ts:267-275`) · create the demo BEFORE the meeting (seeding runs inline) · never reopen an expired demo · steer around **Knowledge · Team · Integrations** (live nav, say "coming soon") · don't quote the demo form's numbers (says ~1,750 emails, seeds ~1,350).
 
 **3 · M2 hard gates — before ANY paying client** 🔴
-**#284** product still on $1 lead_gen (see 1d — also an M2 gate: never charge a paying client on the wrong plan) · **#211** one shared sending domain (one bad client poisons all) · **#268** review-gate is a FALSE PROMISE (toggle saved, no send path reads it — fix or hide) · **#264** 🩷 webhook replay idempotency **LIVE (#884)** — **⛔ run migration `20260702_webhook_idempotency.sql` on prod** to activate (safe no-op until then); *audit hardening owed: idempotency key on the Paystack charge + record-after-success (mid-crash retry currently loses the reply)* · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — **verify prod env in one click: open `/engine/env?key=<ADMIN_SECRET_KEY>`** (live, merged #885; *audit gap: `ready.billing` doesn't check `STRIPE_PRICE_*`/`PAYSTACK_PLAN_*` ids — can read true while checkout would fail*) · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
+**#284** ✅ RESOLVED 6 Jul (signup → FIGSY plan, portal FIGSY-only — merged #911; residue = #328 auto-topup plan default) · **#211** one shared sending domain (one bad client poisons all) · **#268** ✅ toggle hidden (#907); the second instance found 6 Jul PM = **#326** (Settings "approve before send" no-op — fix preview-first) · **#264** ✅ migration `20260702_webhook_idempotency.sql` RUN on prod (6 Jul, with the backlog batch); *audit hardening owed: idempotency key on the Paystack charge + record-after-success (mid-crash retry currently loses the reply)* · 💰 **charge-without-send** if `RESEND_API_KEY` unset (`lib/figsy.ts:443,998`) — **verify prod env in one click: open `/engine/env?key=<ADMIN_SECRET_KEY>`** (live, merged #885; *audit gap: `ready.billing` doesn't check `STRIPE_PRICE_*`/`PAYSTACK_PLAN_*` ids — can read true while checkout would fail*) · *(doc: inventory #15 re-dotted 🩷 — its review-gate is #268)*.
 
 **4 · M3 admin build** 🩷 — *ALL 9 slices MERGED to `main` 2 Jul (build-live, one PR each). Walk the admin; 2 Finance defects + the shells' data wires remain.*
 Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) → **#281** Clients (E) → **#277** Finance→kit (F) → **#278** GTM (G) → **#279** Engine (H) → **#274** Sales Channel (I) → **#280** Ops.
@@ -142,7 +144,7 @@ Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) 
 > **1a — CAN-SPAM — ✍️ DRAFTED 2 Jul (branch `claude/pr5-outreach-compliance`):** added the REQUIRED email footer to §4 (opt-out link + reply-to-opt-out + physical postal address) — because the FIGSY List-Unsubscribe header is code-only and does NOT apply via Instantly. Set it as the Instantly campaign footer. **⛔ still needs the real registered POSTAL ADDRESS (placeholder in place) — not legal to fire at the US list until filled.**
 > **1b — Sequence math — ✍️ DRAFTED 2 Jul:** §4 relabelled to **3 emails (Day 0/3/10) + 1 manual LinkedIn (Day 6)**; the 3 emails are what you paste into Instantly. An **optional Day-8 4th email** is drafted for a 4-email cadence (⛔ confirm copy).
 > **1c — Pricing (#283) — 🩷 LIVE (merged #883 = deployed; audit-verified 2 Jul PM):** retired the **$1 Lead-Gen tier** + stale **$20 entry** site-wide → single **$3 FIGSY** (entry $60; bundles 20/40/100 = $60/$120/$300); zero stale pricing confirmed by sweep; dead footer link fixed (55 pages) + footer entry relabelled (56). **⛔ Owed: you walk the live pages · ToS legal sign-off (`terms.html` §2/§4/§6 — the wording is my draft and it is ALREADY LIVE)** · 2 tiny wording defects queued (`vs-salesloft:351,354` "$60 total"). Ties #239.
-> **1d — #284 website↔product mismatch — 🛑 THE gate:** the product still signs clients up on **$1 lead_gen** and sells **$20/$40/$100 Lead-Gen bundles** in the portal, contradicting the live site. Retire lead_gen in the product (shared `PRICING` · `billing-rules` default · portal Billing UI · signup product) — **needs you for the Stripe 40/$120 price ID + the trial-credits decision (20 free $1 credits → what in the $3 world?).**
+> **1d — #284 website↔product mismatch — ✅ RESOLVED (merged #911, 6 Jul):** signup now creates a **FIGSY plan + 20 FIGSY trial credits**; portal billing sells FIGSY-only ($60/$120/$300); `STRIPE_PRICE_FIGSY_40` confirmed in Railway. *(Residue tracked as #328: the auto-topup modal still defaults to the retired $1 plan + referral "$100" copy.)*
 
 **Front ① is done when:** product matches the site (#284) · postal address in the footer (1a) · Instantly warm · first send fired.
 
@@ -169,7 +171,7 @@ Build order (done): **#277** design adoption (A/B/C/C.2) → **#282** dedup (D) 
 | # | What's left | Dot | Size | Owner |
 |---|-------------|-----|------|-------|
 | 🛑 1 | **#211 sending engine = Smartlead** — per-client isolated + warmed mailboxes. Only Phase-1 read-only built (`smartlead.ts`, zero sending); real sends share ONE domain + ONE global cap. **Smartlead replaces Apollo's SENDING, not its DATA.** | 🔴 | **BIG (multi-day)** | 🤝 blocked on you giving Smartlead access → then I build |
-| 🛑 2 | **#264 run migration** `20260702_webhook_idempotency.sql` on prod — code is LIVE, safe no-op until the migration runs (then webhook replay is idempotent). | 🩷→needs run | ⏱ | 🧍 you |
+| ✅ 2 | **#264 migration `20260702_webhook_idempotency.sql` — RUN on prod (6 Jul, backlog batch).** Webhook replay idempotency active. | 🩷 walk owed | ✅ | — |
 | 3 | **$60 live money walk** (#28b) — add $60 to a LIVE account → prove every credit movement (pool fund · rep allocate · approve · delivery/enroll deduct · deactivate return · counters reconcile). | 🔴 | ⏱ | 🧍 you (when funded) |
 | 4 | **Depth + hardening:** #212 sequence depth · #199 monitoring · #269 rate limits · #273 schema consolidation. | 🔴 | med | 🤖 me |
 | 5 | **Audit hardening** — idempotency key on the Paystack charge + record-after-success (a mid-crash retry currently loses the reply). | 🐛 | small | 🤖 me |
@@ -402,8 +404,8 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Uptime awareness | `/health` probe (pull) | 🩷 partial (#199 = uptime pings) |
 | Error tracking (exceptions in prod) | ❌ no Sentry/equivalent | 🔴 HOLE (**#290**) — prod errors vanish into Railway logs |
 | Env/config readiness | `/engine/env` | 🩷 |
-| Security posture | Route scoping sound; rate-limit gaps (#269); admin key in URL | 🐛 two knowns (#269) |
-| Deploy status | Railway auto-deploy (outside admin) | 🟢 acceptable |
+| Security posture | Route scoping sound; #309 URL-key + #321 rate limits FIXED 6 Jul; new knowns = #323 founder-brief auth (CRITICAL) · #324 · #325 | 🐛 see #323–#325 |
+| Deploy status | **Auto-deploy DEAD (GitHub flag)** — manual `railway up` per service until the appeal clears | 🛑 manual |
 | Backups/restore | ❌ never tested | 🔴 HOLE (**#298**) — Supabase backs up, restore untested |
 | Smoke test | `/smoketest` | 🩷 |
 

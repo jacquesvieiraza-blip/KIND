@@ -1,7 +1,25 @@
 import { Router } from 'express'
+import crypto from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
+import { db } from '@kind/db'
+import { rateLimit } from '../lib/rate-limit'
 
 const router = Router()
+
+// #306: validate a client's developer API key (mirrors /developer requireApiKey —
+// sha256 lookup in developer_keys, must be un-revoked). The AI-executing MCP tools
+// previously called Anthropic on the founder's key with NO auth and NO rate limit —
+// a free public Claude proxy + a bill-drain DoS. Now the expensive tools require a
+// real key, and both routes are IP-rate-limited below.
+async function validClientKey(raw: unknown): Promise<boolean> {
+  if (!raw || typeof raw !== 'string' || !raw.startsWith('kind_')) return false
+  try {
+    const keyHash = crypto.createHash('sha256').update(raw).digest('hex')
+    const { data, error } = await db.from('developer_keys')
+      .select('id').eq('key_hash', keyHash).is('revoked_at', null).maybeSingle()
+    return !error && !!data
+  } catch { return false }
+}
 
 // ── MCP TOOL LIST ─────────────────────────────────────────────────────────────
 const MCP_TOOLS = [
@@ -62,8 +80,8 @@ router.get('/tools', (_req, res) => {
   res.json({ tools: MCP_TOOLS })
 })
 
-// POST /mcp/call — MCP tool execution
-router.post('/call', async (req, res): Promise<void> => {
+// POST /mcp/call — MCP tool execution (IP rate-limited; AI tools require a valid key)
+router.post('/call', rateLimit({ limit: 20, windowMs: 60_000, key: 'mcp-call' }), async (req, res): Promise<void> => {
   const { tool, input } = req.body as { tool: string; input: Record<string, unknown> }
   if (!tool || !input) {
     res.status(400).json({ error: 'tool and input required' }); return
@@ -85,6 +103,9 @@ router.post('/call', async (req, res): Promise<void> => {
       if (!input.question) {
         res.status(400).json({ error: 'question is required' }); return
       }
+      if (!(await validClientKey(input.client_api_key))) {
+        res.status(401).json({ error: 'A valid KIND API key (client_api_key) is required for this tool.' }); return
+      }
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 1024,
@@ -98,6 +119,9 @@ router.post('/call', async (req, res): Promise<void> => {
     if (tool === 'figsy_suggest_campaign') {
       if (!input.target_description) {
         res.status(400).json({ error: 'target_description is required' }); return
+      }
+      if (!(await validClientKey(input.client_api_key))) {
+        res.status(401).json({ error: 'A valid KIND API key (client_api_key) is required for this tool.' }); return
       }
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
@@ -125,11 +149,13 @@ router.post('/call', async (req, res): Promise<void> => {
   }
 })
 
-// POST /mcp/guide — AI setup guide for clients connecting KIND via MCP
-router.post('/guide', async (req, res): Promise<void> => {
+// POST /mcp/guide — AI setup guide for clients connecting KIND via MCP. Public by
+// design (used pre-signup, before a client has a key) → hard IP rate-limit + bounded
+// input so it can't be turned into an unbounded free-Claude proxy (#306).
+router.post('/guide', rateLimit({ limit: 15, windowMs: 60_000, key: 'mcp-guide' }), async (req, res): Promise<void> => {
   const { messages } = req.body as { messages: { role: string; content: string }[] }
-  if (!messages || !Array.isArray(messages)) {
-    res.status(400).json({ error: 'messages array required' }); return
+  if (!messages || !Array.isArray(messages) || messages.length > 40) {
+    res.status(400).json({ error: 'messages array required (max 40)' }); return
   }
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   try {
@@ -168,7 +194,7 @@ For any MCP client:
 Keep answers short, specific, and step-by-step. If asked about a topic outside MCP setup, redirect politely.`,
       messages: messages.slice(-20).map(m => ({
         role: m.role as 'user' | 'assistant',
-        content: m.content,
+        content: String(m.content ?? '').slice(0, 4000),
       })),
     })
     const text = msg.content[0].type === 'text' ? msg.content[0].text : ''

@@ -3,11 +3,12 @@
  * GET /internal/briefs/:agent
  *
  * Generates a daily brief for each AI exec agent using Claude Haiku.
- * Protected by ADMIN_API_KEY (or ADMIN_SECRET_KEY) header.
- * Falls through in dev mode if no key is set.
+ * Protected by the ADMIN_SECRET_KEY header (x-admin-key). Fails CLOSED — if the
+ * key is unset the router rejects everything (#324).
  */
 
 import { Router, Request, Response } from 'express'
+import crypto from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { fetchDeniseData, deniseSystemPrompt } from '../lib/denise'
@@ -17,12 +18,21 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 export const internalBriefsRouter = Router()
 
 // ── Admin key middleware ──────────────────────────────────────────────────────
+// #324 — fail CLOSED (no key set → reject, never "dev mode" open) and read the key
+// ONLY from the x-admin-key header, never from the URL (a ?admin_key= query param
+// lands in access logs / Referer — the leak #309 removed elsewhere). Constant-time
+// compare, mirroring the internal.ts guard.
+function adminKeyValid(provided: unknown): boolean {
+  const secret = process.env.ADMIN_SECRET_KEY
+  if (!secret) return false
+  const a = Buffer.from(String(provided ?? ''))
+  const b = Buffer.from(secret)
+  if (a.length !== b.length) return false
+  return crypto.timingSafeEqual(a, b)
+}
+
 function requireAdminKey(req: Request, res: Response, next: () => void) {
-  const adminKey = process.env.ADMIN_API_KEY || process.env.ADMIN_SECRET_KEY
-  // Dev mode: if no key configured, allow through
-  if (!adminKey) { next(); return }
-  const provided = (req.headers['x-admin-key'] as string | undefined) || (req.query.admin_key as string | undefined)
-  if (!provided || provided !== adminKey) {
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
     return
   }

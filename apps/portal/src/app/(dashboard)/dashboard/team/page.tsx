@@ -326,9 +326,10 @@ export default function TeamsHubPage() {
             <StatBox label="Active now"     value={activeNow} />
           </div>
 
-          {/* Agent usage this week */}
+          {/* Members per agent — the bars show how team members are distributed
+              across agents (real member counts), NOT usage/activity this week. */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 mb-3">Agent usage this week</p>
+            <p className="text-xs font-semibold text-gray-500 mb-3">Members per agent</p>
             <div className="space-y-3">
               {agentRows.map(agent => {
                 const pct = agent.active

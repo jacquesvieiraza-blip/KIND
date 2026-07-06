@@ -713,33 +713,26 @@ export default function FigsyPage() {
                 <Zap className="w-4 h-4" />
                 Auto-Pilot
               </button>
+              {/* Co-Pilot (draft-and-approve-before-send) is not wired yet — the
+                  send scheduler doesn't gate on it. Shown as an honest "coming
+                  soon" so we never promise an approval step that isn't enforced. */}
               <button
-                onClick={() => setMode('copilot')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
-                  mode === 'copilot'
-                    ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200'
-                    : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
-                }`}
+                type="button"
+                disabled
+                title="Co-Pilot (approve before send) is coming soon"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border bg-white text-gray-400 border-purple-100/60 cursor-not-allowed"
               >
                 <Users className="w-4 h-4" />
                 Co-Pilot
+                <span className="ml-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
               </button>
             </div>
           </div>
           <div className="flex-1 text-sm text-[#7B6FA0] leading-relaxed">
-            {mode === 'autopilot' ? (
-              <p>FIGSY runs fully on your behalf — writing emails, enrolling leads, and following up automatically. No approval needed.</p>
-            ) : (
-              <p>FIGSY drafts every message and waits for your approval before sending.</p>
-            )}
+            <p>FIGSY runs fully on your behalf — writing emails, enrolling leads, and following up automatically. No approval needed.</p>
+            <p className="mt-1.5 text-xs text-[#9B8EC4]">Co-Pilot — draft every message for your approval before it sends — is coming soon.</p>
           </div>
         </div>
-        {mode === 'copilot' && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
-            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-            <p className="text-xs text-amber-700 font-medium">Co-Pilot mode: I will draft sequences for your approval before any email is sent. Check the Inbox for drafts waiting on you.</p>
-          </div>
-        )}
       </div>
 
       {/* Header */}
@@ -905,11 +898,6 @@ export default function FigsyPage() {
                     <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[campaign.status]}`}>
                       {STATUS_LABELS[campaign.status]}
                     </span>
-                    {mode === 'copilot' && campaign.status === 'active' && campaign.emails_sent > 0 && (
-                      <span className="bg-amber-100 text-amber-700 text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                        Co-pilot: review before send
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs text-[#9B8EC4] mt-0.5">
                     Created {new Date(campaign.created_at).toLocaleDateString()}

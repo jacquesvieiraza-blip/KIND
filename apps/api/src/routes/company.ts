@@ -309,24 +309,25 @@ companyRouter.post('/seats', async (req: AuthRequest, res) => {
 
     const token = crypto.randomBytes(32).toString('hex')
     const startBudget = budget ?? 0
-    const { error } = await db.from('clients').insert({
+    const { data: newRep, error } = await db.from('clients').insert({
       company_id: ctx.companyId,
       company_name: email.split('@')[0],
       invited_email: email.toLowerCase(),
       invite_token: token,
       seat_role: 'rep',
       seat_active: true,
-      seat_budget: startBudget,
-      credit_balance: startBudget,   // pre-allocate their starting budget
+      seat_budget: 0,
+      credit_balance: 0,   // #316 — funded atomically from the pool below (no minting)
       country: 'South Africa',
-    })
-    if (error) throw error
+    }).select('id').single()
+    if (error || !newRep) throw error ?? new Error('Failed to create seat')
 
-    // Move the starting budget out of the company pool.
+    // #316 — atomically move the starting budget from the pool (guarded). The old code
+    // deducted with Math.max(0, pool - budget), MINTING credits when the pool was short
+    // (rep got the full budget, pool floored at 0). allocateToRep now refuses if short,
+    // leaving the seat at 0 for the owner to top up later.
     if (startBudget > 0) {
-      await db.from('companies')
-        .update({ credit_pool: Math.max(0, ((company as any)?.credit_pool ?? 0) - startBudget) })
-        .eq('id', ctx.companyId)
+      await allocateToRep(ctx.companyId, newRep.id, startBudget)
     }
 
     // #106 — Deliver the invite email so the rep gets their accept link directly
@@ -431,21 +432,14 @@ companyRouter.post('/seats/:id/allocate', async (req: AuthRequest, res) => {
 
 // Shared: move `amount` from the company pool → a rep's budget + balance.
 async function allocateToRep(companyId: string, repClientId: string, amount: number): Promise<boolean> {
-  const [{ data: company }, { data: rep }] = await Promise.all([
-    db.from('companies').select('credit_pool').eq('id', companyId).maybeSingle(),
-    db.from('clients').select('id, seat_budget, credit_balance').eq('id', repClientId).eq('company_id', companyId).maybeSingle(),
-  ])
-  if (!company || !rep) return false
-  const pool = (company as any).credit_pool ?? 0
-  if (pool < amount) return false
-  await Promise.all([
-    db.from('companies').update({ credit_pool: pool - amount }).eq('id', companyId),
-    db.from('clients').update({
-      seat_budget:    ((rep as any).seat_budget ?? 0) + amount,
-      credit_balance: ((rep as any).credit_balance ?? 0) + amount,
-    }).eq('id', repClientId),
-  ])
-  return true
+  // #316 — atomic guarded move via RPC (was a non-atomic read-then-write that could
+  // mint credits on a double-click or when racing a drip/deactivation).
+  if (!amount || amount <= 0) return false
+  const { data, error } = await db.rpc('allocate_pool_to_rep', {
+    p_company_id: companyId, p_rep_id: repClientId, p_amount: amount,
+  })
+  if (error) { console.error('[company] allocate_pool_to_rep failed', error.message); return false }
+  return data === true
 }
 
 // Shared (#108b): reverse of allocateToRep — move a rep's remaining balance back
@@ -453,19 +447,12 @@ async function allocateToRep(companyId: string, repClientId: string, amount: num
 // exists (credit_pool lives on companies), so this uses the same read-then-write
 // the pool is managed with everywhere in this file.
 async function returnRepCreditsToPool(companyId: string, repClientId: string): Promise<number> {
-  const [{ data: company }, { data: rep }] = await Promise.all([
-    db.from('companies').select('credit_pool').eq('id', companyId).maybeSingle(),
-    db.from('clients').select('id, credit_balance').eq('id', repClientId).eq('company_id', companyId).maybeSingle(),
-  ])
-  if (!company || !rep) return 0
-  const remaining = (rep as any).credit_balance ?? 0
-  if (remaining <= 0) return 0
-  const pool = (company as any).credit_pool ?? 0
-  await Promise.all([
-    db.from('companies').update({ credit_pool: pool + remaining }).eq('id', companyId),
-    db.from('clients').update({ credit_balance: 0 }).eq('id', repClientId),
-  ])
-  return remaining
+  // #316 — atomic via RPC (locks the rep row); was a non-atomic read-then-write.
+  const { data, error } = await db.rpc('return_rep_to_pool', {
+    p_company_id: companyId, p_rep_id: repClientId,
+  })
+  if (error) { console.error('[company] return_rep_to_pool failed', error.message); return 0 }
+  return (data as number | null) ?? 0
 }
 
 // ── POST /company/credit-requests — a rep asks the owner for more ────────────

@@ -254,13 +254,16 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       campaign_id:   enrollment?.campaign_id ?? null,
       lead_id:       lead.id,
       enrollment_id: enrollment?.id ?? null,
-      event_type:    classification === 'opt_out' ? 'opt_out' : 'reply',
+      event_type:    (classification === 'opt_out' || classification === 'unsubscribe') ? 'opt_out' : 'reply',
       channel:       'email',
       payload:       { classification, reasoning, subject: (payload.subject as string) ?? null, body, from_email: fromEmail },
     })
 
-    // Handle opt-out — pause enrollment and add to blocklist
-    if (classification === 'opt_out') {
+    // Handle opt-out — pause enrollment and add to blocklist. #312: the classifier
+    // can tag a reply 'unsubscribe' as well as 'opt_out' ("please unsubscribe me" →
+    // 'unsubscribe'); previously only 'opt_out' was suppressed, so an 'unsubscribe'
+    // reply kept receiving steps 2/3 (POPIA violation). Treat both identically.
+    if (classification === 'opt_out' || classification === 'unsubscribe') {
       if (enrollment) {
         await db.from('figsy_enrollments')
           .update({ status: 'opted_out' }).eq('id', enrollment.id)

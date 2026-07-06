@@ -443,6 +443,17 @@ export async function sendSequenceEmail(
     return
   }
 
+  // #311 — if Resend isn't configured, DEFER: do not record a "sent" row and do not
+  // advance the enrollment. Previously the row was inserted + the enrollment advanced
+  // to sent/completed REGARDLESS of whether mail left, so a dead/rotated RESEND_API_KEY
+  // was invisible: dashboards + counters showed sends, AND the sends-stalled watchdog
+  // (which counts these rows) stayed silent on the exact outage it exists to catch.
+  // Deferring leaves the enrollment due; the next cron retries once the key is restored.
+  if (!resend) {
+    console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} to ${lead.email} DEFERRED (no send, no row, no state change).`)
+    return
+  }
+
   let messageId: string | undefined
 
   // Insert the DB record first so we have the emailId for the tracking pixel
@@ -458,10 +469,8 @@ export async function sendSequenceEmail(
 
   const emailId = (emailRecord as { id?: string } | null)?.id ?? null
 
-  if (!resend) {
-    console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} email to ${lead.email} NOT sent (enrollment still recorded)`)
-  }
-  if (resend) {
+  // resend is guaranteed configured here (deferred above otherwise).
+  {
     // Cold email = a personal 1:1 message → Primary, not Promotions. NO pixel, image
     // banner, visible unsubscribe footer, or templated shell (see coldEmailHtml). The
     // one-click List-Unsubscribe header + the body's "Reply STOP" line cover compliance.
@@ -703,18 +712,23 @@ export async function sendDay1OutreachBatch(
     try {
       const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName)
 
-      if (resend) {
-        await resend.emails.send({
-          from: FROM,
-          reply_to: REPLY_TO,
-          to: lead.email,
-          subject: draft.subject,
-          // Personal 1:1 cold email (Primary, not Promotions) — header-only unsubscribe.
-          headers: unsubscribeHeaders(lead.email),
-          text: draft.body,
-          html: coldEmailHtml(draft.body),
-        })
+      // #311 — do not record a day-1 "sent" row when Resend is unconfigured (that made
+      // a dead key invisible + fed the watchdog false sends). Skip the lead instead.
+      if (!resend) {
+        console.warn(`[figsy] sendDay1OutreachBatch: RESEND_API_KEY not set — day-1 to ${lead.email} skipped (no send, no row).`)
+        continue
       }
+
+      await resend.emails.send({
+        from: FROM,
+        reply_to: REPLY_TO,
+        to: lead.email,
+        subject: draft.subject,
+        // Personal 1:1 cold email (Primary, not Promotions) — header-only unsubscribe.
+        headers: unsubscribeHeaders(lead.email),
+        text: draft.body,
+        html: coldEmailHtml(draft.body),
+      })
 
       await db.from('figsy_sent_emails').insert({
         enrollment_id: null,

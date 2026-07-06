@@ -135,17 +135,50 @@ subscriptionRouter.post('/:id/pause', async (req: AuthRequest, res) => {
 
     // Actually STOP the recurring charge so "billing is stopped" is true, not a lie.
     // Stripe (the live processor) via pause_collection; legacy Paystack via disable.
-    const stripePaused = await pauseStripeSubscription(sub.stripe_subscription_id)
-    if (sub.paystack_subscription_code) {
-      await fetch(`https://api.paystack.co/subscription/disable`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: sub.paystack_subscription_code, token: sub.paystack_subscription_code }),
-      })
+    // CRITICAL (#319): if a processor is attached but its pause CALL FAILS, the card
+    // is still live and will be charged — so we must NOT mark the sub paused or tell
+    // the client "billing is stopped". We only proceed when EVERY attached processor
+    // actually confirmed the pause.
+    let stripeFailed = false
+    if (sub.stripe_subscription_id) {
+      const ok = await pauseStripeSubscription(sub.stripe_subscription_id)
+      if (!ok) stripeFailed = true
     }
-    // If neither processor was actually paused, do NOT claim billing stopped.
-    if (!stripePaused && !sub.paystack_subscription_code) {
-      console.warn(`[subscriptions/pause] no external billing paused for sub ${sub.id} (no stripe id / paystack code) — DB pause only.`)
+
+    let paystackFailed = false
+    if (sub.paystack_subscription_code) {
+      try {
+        const pr = await fetch(`https://api.paystack.co/subscription/disable`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: sub.paystack_subscription_code, token: sub.paystack_subscription_code }),
+        })
+        const pj = (await pr.json().catch(() => ({}))) as { status?: boolean }
+        // Paystack returns { status: true } on success. Anything else = not disabled.
+        if (!pr.ok || pj?.status !== true) paystackFailed = true
+      } catch (e) {
+        console.error('[subscriptions/pause] Paystack disable threw:', e)
+        paystackFailed = true
+      }
+    }
+
+    // An attached processor failed to pause → the client would still be charged.
+    // Make NO DB change and tell them honestly the pause did not take.
+    if (stripeFailed || paystackFailed) {
+      const which = [stripeFailed && 'Stripe', paystackFailed && 'Paystack'].filter(Boolean).join(' + ')
+      console.error(`[subscriptions/pause] external pause FAILED (${which}) for sub ${sub.id} — refusing to mark paused.`)
+      res.status(502).json({
+        success: false,
+        error: `We could not stop billing with your payment processor (${which}), so your subscription was NOT paused and no change was made. Please try again in a moment or contact support.`,
+        code: 'external_pause_failed',
+      })
+      return
+    }
+
+    // No external processor attached at all (e.g. a comped / legacy sub with no live
+    // billing) — there is genuinely nothing to charge, so a DB pause is honest.
+    if (!sub.stripe_subscription_id && !sub.paystack_subscription_code) {
+      console.warn(`[subscriptions/pause] sub ${sub.id} has no stripe id / paystack code — no live billing to stop; DB pause only.`)
     }
 
     // Mark paused in DB. Data + settings are untouched (no delete).

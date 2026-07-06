@@ -11,6 +11,7 @@ import {
   createCheckoutSession,
   createSubscriptionCheckoutSession,
   constructWebhookEvent,
+  getSessionMetaByPaymentIntent,
   getStripePriceId,
   getStripeSubscriptionPriceId,
   STRIPE_SUBSCRIPTIONS,
@@ -410,6 +411,42 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         `The subscription is now marked past_due. Stripe will retry per its dunning schedule.`,
         `Action: check Finance → Billing, and send a card-update nudge (or offer a short pause).`,
       ])
+    }
+
+    // ── #317 — refund / chargeback: CLAW BACK the granted credits ────────────
+    // Policy: on a refund or a dispute, revoke the credits from that purchase (the
+    // client got their money back — they shouldn't keep the product). The claw-back
+    // is idempotent on `refund_<charge/dispute id>` (unique index on reference), uses
+    // the correct wallet, and the atomic RPC clamps at 0 (if they already spent the
+    // credits the balance floors at 0 rather than going negative).
+    if (event.type === 'charge.refunded' || event.type === 'charge.dispute.created') {
+      const obj = event.data.object as { id: string; payment_intent?: string | null }
+      const linked = await getSessionMetaByPaymentIntent(obj.payment_intent)
+      const meta = linked?.metadata ?? {}
+      const credits = parseInt(meta.credits ?? '', 10)
+      if (meta.clientId && meta.creditType && Number.isFinite(credits) && credits > 0) {
+        const isFigsy = meta.creditType === 'figsy'
+        const isDispute = event.type === 'charge.dispute.created'
+        const { error: ledgerErr } = await db.from('credit_transactions').insert({
+          client_id: meta.clientId,
+          type:      'refund',
+          amount:    -credits,
+          plan:      isFigsy ? 'figsy' : 'kind_ai',
+          reference: `refund_${obj.id}`,
+          note:      `${isDispute ? 'Chargeback' : 'Refund'}: revoked ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits (${linked?.sessionId ?? 'unknown session'})`,
+        })
+        if (ledgerErr) {
+          if (ledgerErr.code === '23505') { res.sendStatus(200); return } // already clawed back
+          throw ledgerErr
+        }
+        await db.rpc(isFigsy ? 'increment_figsy_credits' : 'increment_client_credits', { p_client_id: meta.clientId, p_amount: -credits })
+        void sendFounderAlert('churn_risk', `${isDispute ? 'Chargeback' : 'Refund'} — ${credits} credits clawed back`, [
+          `A ${isDispute ? 'chargeback (dispute)' : 'refund'} was processed on Stripe; ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits were revoked from client ${meta.clientId}.`,
+          isDispute ? 'Review the dispute in Stripe — you may need to submit evidence.' : 'No action needed unless this was unexpected.',
+        ])
+      } else {
+        console.warn(`[Stripe] ${event.type} — could not resolve a credit grant to claw back (payment_intent ${obj.payment_intent ?? 'none'})`)
+      }
     }
 
   } catch (err) {

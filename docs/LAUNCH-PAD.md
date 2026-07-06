@@ -1,11 +1,20 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 3 July 2026 (AM — post-deploy + full audit)** · Three milestones. Nothing else on this page.
-**This pass:** all M1 fixes + all 9 M3 slices + buckets 2/3 (#279/#282/#285/#286/#288/#291–#297/#299) built AND **DEPLOYED to prod 3 Jul** (via `railway up` — see the deploy note). 3-agent code↔docs audit run; Finance MRR/ARPU defects confirmed FIXED; docs reconciled; 2 code 🐛 → PRs (#302 enrol-idempotency · #303 top-up creditType); 1 open question (#301 Denise $39 vs $99).
-**🛑 DEPLOY PIPELINE BROKEN (🧍 YOU):** GitHub→Railway **auto-deploy is down** (`repository not found` at snapshot since ~2 Jul 18:35; a merge no longer triggers a build). Today's code went live only because we hand-pushed with `railway up`. **Until you reconnect the Railway GitHub App (github.com/settings/installations) or open a Railway support ticket, every future change needs a manual `railway up`.** Portal still needs its `railway up` if not yet run.
+**As of: 6 July 2026** · Three milestones. Nothing else on this page.
+**This pass (6 Jul):** full milestone audit reconciled to live truth. The **12-PR backlog** (Tier-1 + Tier-2 + admin usage-trend) is staged for one-at-a-time merge — every item's inventory dot set **🟡 (built, not yet live)**. Root cause of the dead deploy pipeline finally found (below). Prior pass (3 Jul): all M1 fixes + the merged M3 admin slices (#279/#282/#285/#286/#288/#291/#293/#294/#295/#296/#297/#299) built AND deployed to prod via `railway up`; Finance MRR/ARPU defects fixed. *(Note: #292 usage-trend + #287 waterfall are NOT in that deployed set — their PRs #924/#937 are still open → 🟡.)*
+**🛑 DEPLOY PIPELINE DEAD — ROOT CAUSE FOUND (6 Jul):** the GitHub account **`jacquesvieiraza-blip` is FLAGGED** ("This account is flagged, and therefore cannot authorize a third party application"). → Railway's GitHub App can't be installed/authorized → **auto-deploy cannot work, and reconnecting is impossible until the flag is lifted** (this is why every reconnect attempt 404'd — it was never a Railway bug). **🧍 Fix = appeal the flag: `support.github.com/contact/account-flagged` + check `github.com/settings/billing`.** Until lifted, EVERY change reaches prod ONLY via **merge → `git pull` → `railway up --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Nothing merged goes live on its own.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
 > Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. Procedures/flows = SOP (`client-flow-sop.md`). This page = what to do now.
+
+---
+
+## 📦 THE 12-PR BACKLOG (6 Jul) — merge one at a time, then `railway up`
+**All built, all 🟡, all waiting on YOU to merge (I never merge — I hand you the link). After each merge: `git pull` → `railway up --service "<svc>"`.**
+**Merge order (two conflict pairs — respect it):**
+1. **#931** rate-limits → `@kind/api` · 2. **#932** price-centralise → `@kind/portal` · 3. **#933** partner USD → `@kind/portal` · 4. **#934** return-credits (#108b) → `@kind/api` · 5. **#935** schema doc → *(docs, no deploy)* · 6. **#936** sequence personalization → `@kind/api` · 7. **#941** FIGSY webhook → `@kind/api` · 8. **#937** MRR waterfall → api+admin · 9. **#938** NPS → api+admin *(after #937 — both edit revenue page)* · 10. **#940** cron-history → api+admin · 11. **#939** error-tracking → api+admin *(after #940 — both edit health page; keep BOTH sections)* · 12. **#924** usage-trend → api+admin.
+**4 Tier-2 migrations to run** (Supabase, by hand): `20260703_metrics_daily` · `_nps_responses` · `_cron_runs` · `_error_events`.
+**+ still owed from prior passes:** migration `20260702_webhook_idempotency.sql` (#264) · confirm the live website shows **$3** (#283) or run `railway up --service "KIND"`.
 
 ---
 

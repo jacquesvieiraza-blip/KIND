@@ -1,11 +1,28 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
 **As of: 6 July 2026** · Three milestones. Nothing else on this page.
-**This pass (6 Jul):** full milestone audit reconciled to live truth. The **12-PR backlog** (Tier-1 + Tier-2 + admin usage-trend) is staged for one-at-a-time merge — every item's inventory dot set **🟡 (built, not yet live)**. Root cause of the dead deploy pipeline finally found (below). Prior pass (3 Jul): all M1 fixes + the merged M3 admin slices (#279/#282/#285/#286/#288/#291/#293/#294/#295/#296/#297/#299) built AND deployed to prod via `railway up`; Finance MRR/ARPU defects fixed. *(Note: #292 usage-trend + #287 waterfall are NOT in that deployed set — their PRs #924/#937 are still open → 🟡.)*
+**This pass (6 Jul):** the **12-PR backlog is CLEARED** — all merged + deployed (api·portal·admin via `railway up`) + 5 migrations run + website $3 confirmed live. Also fixed solo: #268 approval silent-fail, #284 stale dot. Board **🟢92 · 🩷75 · 🟣4 · 🟡22 · 🔴117 · ⏸5 · Σ315**. **Next needle-mover = walk the 75 🩷 → 🟢** (the PICK-UP-HERE block below).
 **🛑 DEPLOY PIPELINE DEAD — ROOT CAUSE FOUND (6 Jul):** the GitHub account **`jacquesvieiraza-blip` is FLAGGED** ("This account is flagged, and therefore cannot authorize a third party application"). → Railway's GitHub App can't be installed/authorized → **auto-deploy cannot work, and reconnecting is impossible until the flag is lifted** (this is why every reconnect attempt 404'd — it was never a Railway bug). **🧍 Fix = appeal the flag: `support.github.com/contact/account-flagged` + check `github.com/settings/billing`.** Until lifted, EVERY change reaches prod ONLY via **merge → `git pull` → `railway up --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Nothing merged goes live on its own.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
 > Status of record = PRODUCT-INVENTORY. Why = KIND-MASTER. Future = V2-TRACKER. Procedures/flows = SOP (`client-flow-sop.md`). This page = what to do now.
+
+---
+
+## 🔖 PICK UP HERE (bookmarked 6 Jul) — move the 75 🩷 pinks → 🟢
+**Where we are:** builds are essentially done for M1 + M2 core; the needle-mover now is **verifying live** — walk each 🩷 (live-but-unwalked) into 🟢 (verified in prod). This is founder-walk work; Claude flips the dot the moment you confirm.
+
+**The 3 sittings (do in any order, report back and dots flip):**
+- **A · Admin walkthrough (~23 M3 flips)** — at `admin.get-kind.com`, confirm each screen loads + shows honest data: **1** Cockpit (#272) · **2** Sales Channel — partner lens real, AE lens says "sample" (#274/#288/#294) · **3** Finance/Revenue — MRR·ARPU·invoices·refunds·renewals·**NPS card**·**MRR-over-time** (#287/#289/#295/#296/#297) · **4** Clients — list·drill-down·at-risk·**usage sparkline** (#281/#292) · **5** Engine/Health — deliverability graph·**cron history**·**Recent API errors** (#279/#304/#290) · **6** Nora rail — ask a question, get a reply (#275) · **7** GTM/Funnel (#291).
+- **B · 2 config toggles (unblocks ~4 M2 flips)** — set `PDL_API_KEY` in Railway (→ #243 verifies) · enable Resend `email.bounced`/`email.complained` webhook events (→ #267 verifies).
+- **C · $60 live money walk (#28b + ~5 billing flips)** — add $60 to a live account, walk every credit movement (top-up → rep allocation → delivery/enrollment deduct → deactivate returns to pool). Closes #28b + verifies #265/#166/#190.
+
+**Also still open (not pinks):**
+- 🛑 **M2 gate #211** = per-client Smartlead sending — blocked on you giving a Smartlead API key, then Claude builds. Same key unblocks M3 #270/#271/#280.
+- 🧍 **GitHub flag appeal** (`support.github.com/contact/account-flagged`) → restores auto-deploy (kills the manual `railway up`).
+- 🧍 **M1** = warm Instantly ≥90% → import 1,461 → mail-tester → fire. No build, no Smartlead.
+
+*(All backlog + solo-fix PRs through #945 merged + deployed. No open PRs pending as of this bookmark.)*
 
 ---
 

@@ -46,6 +46,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   const [campaigns, setCampaigns] = useState<FigsyCampaign[]>([])
   const [icps, setIcps]       = useState<ICP[]>([])
   const [leads, setLeads]     = useState<Lead[]>([])
+  const [usage, setUsage]     = useState<{ days: number; series: { date: string; leads: number }[]; total: number; recent: number; prior: number; trend: number } | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Credit grant form
@@ -57,12 +58,13 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
 
   useEffect(() => {
     async function load() {
-      const [clientRes, creditRes, campaignsRes, icpsRes, leadsRes] = await Promise.all([
+      const [clientRes, creditRes, campaignsRes, icpsRes, leadsRes, usageRes] = await Promise.all([
         proxyGet(`clients/${params.id}`),
         proxyGet(`clients/${params.id}/credits`),
         fetch(`/api/proxy/figsy/campaigns?client_id=${params.id}`).then(r => r.json()),
         fetch(`/api/proxy/icps?client_id=${params.id}`).then(r => r.json()),
         fetch(`/api/proxy/leads?client_id=${params.id}&limit=50`).then(r => r.json()),
+        proxyGet(`admin/clients/${params.id}/usage`),
       ])
       if (clientRes.success) {
         setClient(clientRes.data)
@@ -80,6 +82,9 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
       }
       if (leadsRes.success) {
         setLeads(leadsRes.data || [])
+      }
+      if (usageRes.success) {
+        setUsage(usageRes.data)
       }
       setLoading(false)
     }
@@ -196,6 +201,27 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
           ) : <p className="text-gray-400 text-sm">—</p>}
         </div>
       </div>
+
+      {/* Usage trend (#292) — leads delivered per day; spot a client fading early */}
+      {usage && usage.total > 0 && (() => {
+        const max = Math.max(1, ...usage.series.map(d => d.leads))
+        return (
+          <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2"><Zap className="w-4 h-4 text-[#7C3AED]" />Usage trend · leads / day ({usage.days}d)</h3>
+              <span className={`text-xs font-semibold ${usage.trend < 0 ? 'text-red-600' : usage.trend > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
+                {usage.trend > 0 ? '↑' : usage.trend < 0 ? '↓' : '→'} {usage.recent} recent vs {usage.prior} prior half
+              </span>
+            </div>
+            <div className="flex items-end gap-0.5 h-16">
+              {usage.series.map((d, i) => (
+                <div key={i} title={`${d.date}: ${d.leads}`} className="flex-1 bg-[#7C3AED]/70 hover:bg-[#7C3AED] rounded-t" style={{ height: `${Math.max(3, Math.round((d.leads / max) * 100))}%` }} />
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400 mt-2">{usage.total} leads in {usage.days} days · a falling second half is an early fade signal (before the churn engine fires).</p>
+          </div>
+        )
+      })()}
 
       {/* Credit management */}
       <div className="bg-gray-50 border border-gray-100 rounded-xl p-6 space-y-5">

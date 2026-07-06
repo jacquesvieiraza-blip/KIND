@@ -922,3 +922,74 @@ adminRouter.get('/nps', async (_req: Request, res: Response) => {
     res.status(500).json({ success: false, error: 'Failed to load NPS aggregate' })
   }
 })
+
+// ── Engine cron run-history — last run per job ────────────────────────────────
+// Reads cron_runs (written by the instrumented callInternal in cron.ts). Returns
+// the most recent run per distinct job so the health page can show a real
+// last-run-per-job panel. If cron_runs doesn't exist yet (migration not run) it
+// degrades to an honest empty list.
+adminRouter.get('/cron-runs', async (_req: Request, res: Response) => {
+  try {
+    // Pull recent runs; reduce to the newest per job in JS (Supabase has no
+    // DISTINCT ON). 1000 rows covers ~40 daily jobs × ~3 weeks — plenty.
+    const { data, error } = await db.from('cron_runs')
+      .select('job, started_at, finished_at, ok, note')
+      .order('started_at', { ascending: false })
+      .limit(1000)
+    if (error || !data) { res.json({ success: true, data: { jobs: [] } }); return }
+
+    const seen = new Map<string, { job: string; started_at: string | null; finished_at: string | null; ok: boolean | null; note: string | null }>()
+    for (const row of data as { job: string; started_at: string | null; finished_at: string | null; ok: boolean | null; note: string | null }[]) {
+      if (!seen.has(row.job)) seen.set(row.job, row)
+    }
+    const jobs = [...seen.values()].sort((a, b) => a.job.localeCompare(b.job))
+    res.json({ success: true, data: { jobs } })
+  } catch (err) {
+    console.error('[admin/cron-runs]', err)
+    res.json({ success: true, data: { jobs: [] } })
+  }
+})
+
+// ── #290 — recent error events (lightweight error tracking) ───────────────────
+// Read by the admin Engine/health page. If error_events doesn't exist yet
+// (migration not run) this returns an honest empty list instead of erroring.
+adminRouter.get('/errors', async (_req: Request, res: Response) => {
+  try {
+    const { data, error } = await db.from('error_events')
+      .select('id, route, method, status, message, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    if (error || !data) { res.json({ success: true, data: { errors: [] } }); return }
+    res.json({ success: true, data: { errors: data } })
+  } catch (err) {
+    console.error('[admin/errors]', err)
+    res.json({ success: true, data: { errors: [] } })
+  }
+})
+
+// GET /admin/clients/:id/usage — #292. Per-client usage trend: leads delivered per
+// day over the last N days (leads.client_id + created_at). Lets the founder see a
+// client fading BEFORE the churn engine fires. No new storage — direct query.
+adminRouter.get('/clients/:id/usage', async (req: Request, res: Response) => {
+  try {
+    const days = Math.min(60, Math.max(7, Number(req.query.days) || 30))
+    const since = new Date(Date.now() - days * 86400000)
+    const { data: leads } = await db.from('leads')
+      .select('created_at').eq('client_id', req.params.id).gte('created_at', since.toISOString())
+    const buckets: Record<string, { date: string; leads: number }> = {}
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      buckets[d] = { date: d, leads: 0 }
+    }
+    for (const l of leads ?? []) { const k = String((l as { created_at: string }).created_at).slice(0, 10); if (buckets[k]) buckets[k].leads++ }
+    const series = Object.values(buckets)
+    const total = (leads ?? []).length
+    const half = Math.floor(days / 2)
+    const recent = series.slice(half).reduce((s, d) => s + d.leads, 0)
+    const prior = series.slice(0, half).reduce((s, d) => s + d.leads, 0)
+    res.json({ success: true, data: { days, series, total, recent, prior, trend: recent - prior } })
+  } catch (err) {
+    console.error('[admin/clients/:id/usage]', err)
+    res.status(500).json({ success: false, error: 'Usage trend failed' })
+  }
+})

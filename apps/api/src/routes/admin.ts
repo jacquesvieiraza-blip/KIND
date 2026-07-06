@@ -949,3 +949,20 @@ adminRouter.get('/cron-runs', async (_req: Request, res: Response) => {
     res.json({ success: true, data: { jobs: [] } })
   }
 })
+
+// ── #290 — recent error events (lightweight error tracking) ───────────────────
+// Read by the admin Engine/health page. If error_events doesn't exist yet
+// (migration not run) this returns an honest empty list instead of erroring.
+adminRouter.get('/errors', async (_req: Request, res: Response) => {
+  try {
+    const { data, error } = await db.from('error_events')
+      .select('id, route, method, status, message, created_at')
+      .order('created_at', { ascending: false })
+      .limit(20)
+    if (error || !data) { res.json({ success: true, data: { errors: [] } }); return }
+    res.json({ success: true, data: { errors: data } })
+  } catch (err) {
+    console.error('[admin/errors]', err)
+    res.json({ success: true, data: { errors: [] } })
+  }
+})

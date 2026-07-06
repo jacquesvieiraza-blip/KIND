@@ -3,7 +3,7 @@
 **As of: 6 July 2026 PM · plan set for 7 July.** This page = the three milestones and what to do right now. Nothing else lives here.
 **History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
 
-**Board:** 🟢93 verified · 🩷92 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴119 not built · ⏸5 blocked · Σ334 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢93 verified · 🩷97 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴114 not built · ⏸5 blocked · Σ334 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
@@ -77,11 +77,11 @@
 | # | Blocker | Why it matters | Who |
 |---|---------|----------------|-----|
 | 🛑 1 | **#211 Smartlead — per-client sending isolation** | today every client sends from ONE shared identity; one bad client poisons everyone's deliverability. THE gate. | 🧍 access → 🤖 multi-day build |
-| 2 | **#326 Settings lies** (part of the #324–#328 batch) | Settings still says "Approve emails before sending — nothing goes out without you" while FIGSY auto-sends. A trusting client gets burned. Preview-first. | 🤖 |
-| 3 | **$60 live money walk (#28b)** | nobody has pushed real money through the whole loop yet: top-up → pool fund → rep allocate → delivery/enroll deduct → deactivate returns to pool → counters reconcile | 🧍 |
-| 4 | Hardening batch: #324 (key-in-URL) · #325 (Paystack /verify binding) · #327 (website false claims) · #328 ($1-plan residue) — plus later #212 depth · #199 monitoring | small, none client-blocking alone | 🤖 |
+| 2 | **$60 live money walk (#28b)** | nobody has pushed real money through the whole loop yet: top-up → pool fund → rep allocate → delivery/enroll deduct → deactivate returns to pool → counters reconcile | 🧍 |
+| — | ✅ ~~#326 Settings lies · #324/#325/#327/#328 hardening~~ — all shipped + live in the #306–#328 audit (🩷). | — |
+| 3 | Later depth (not client-blocking): #212 sequence depth · #199 monitoring | small | 🤖 |
 
-**M2 is DONE when:** Smartlead isolation live · #326 shipped · the $60 walk reconciles clean.
+**M2 is DONE when:** Smartlead isolation live · the $60 walk reconciles clean. *(Security + honesty already shipped.)*
 
 ---
 

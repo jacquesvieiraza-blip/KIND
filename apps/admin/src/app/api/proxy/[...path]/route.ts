@@ -1,10 +1,20 @@
 export const dynamic = 'force-dynamic'
 
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient, isAllowedAdminEmail } from '@/lib/supabase/server'
 
 const API = 'https://kindapi-production-e64c.up.railway.app'
 
 async function proxy(req: NextRequest, path: string[]) {
+  // #308 defense-in-depth: this route injects ADMIN_SECRET_KEY into upstream calls,
+  // so it must verify the caller itself — not merely rely on middleware. Require a
+  // signed-in Supabase user on the admin allowlist; otherwise 401 (never proxy).
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!isAllowedAdminEmail(user?.email)) {
+    return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   // Admin key is read SERVER-SIDE only. Never fall back to NEXT_PUBLIC_* — that would
   // ship the admin secret into the browser bundle (full auth bypass).
   const key = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET || ''

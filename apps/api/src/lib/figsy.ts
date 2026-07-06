@@ -113,7 +113,15 @@ interface SequenceDraft {
 // R9 (Apollo) — "Why FIGSY wrote this": the exact personalization hooks FIGSY
 // uses to open a sequence. Extracted so both the generator and the transparency
 // endpoint share one source of truth (no drift between what we show and use).
-export function personalizationSignals(lead: Pick<Lead, 'tech_stack' | 'industry' | 'score_reasoning'>): string[] {
+//
+// #212 — surfaces MORE distinct, truthful hooks (seniority/role, geography,
+// company size) so a multi-step sequence can open each follow-up on a fresh
+// angle instead of repeating the one opener. Priority order is unchanged
+// (tech_stack → industry → score_reasoning first) so the Step-1 best-signal
+// behaviour is identical; the extra hooks only add depth for later steps.
+export function personalizationSignals(
+  lead: Pick<Lead, 'tech_stack' | 'industry' | 'score_reasoning' | 'seniority' | 'job_title' | 'country'>,
+): string[] {
   const signals: string[] = []
   if (lead.tech_stack && lead.tech_stack.length > 0) {
     signals.push(`Uses ${lead.tech_stack.slice(0, 2).join(' and ')} in their tech stack`)
@@ -123,6 +131,12 @@ export function personalizationSignals(lead: Pick<Lead, 'tech_stack' | 'industry
   }
   if (lead.score_reasoning) {
     signals.push(lead.score_reasoning)
+  }
+  if (lead.seniority || lead.job_title) {
+    signals.push(`Is a ${[lead.seniority, lead.job_title].filter(Boolean).join(' ')} — pitch to their level of decision-making`)
+  }
+  if (lead.country) {
+    signals.push(`Based in ${lead.country} — a local/geography angle will land`)
   }
   return signals
 }
@@ -138,6 +152,9 @@ export async function generateSequence(
   // ── Signal detection — pick the best personalization hook ─────────────────
   const signals = personalizationSignals(lead)
   const bestSignal = signals[0] ?? null
+  // #212 — the remaining hooks feed later steps so each follow-up opens on a
+  // fresh, real angle rather than re-using the Step-1 opener.
+  const extraSignals = signals.slice(1)
 
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
 
@@ -150,6 +167,7 @@ Lead details:
 - Country: ${lead.country || 'unknown'}
 ${bestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${bestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
+${extraSignals.length ? `- Other real signals about this lead (use a DIFFERENT one to open each follow-up so no two emails repeat the same angle):\n${extraSignals.map(s => `  • ${s}`).join('\n')}` : ''}
 
 Write a 3-email sequence:
 
@@ -161,13 +179,13 @@ Step 1 (Day 0) — First touch:
 
 Step 2 (Day 4) — Follow-up:
 - Acknowledge you sent something already — don't pretend this is the first email.
-- Add a new angle: a question, a stat, a short insight relevant to their industry.
+- Add a new angle: a question, a stat, a short insight relevant to their industry.${extraSignals.length ? ' Open on a DIFFERENT real signal from the list above than Step 1 used.' : ''}
 - Keep it shorter than Step 1. Lighter. No pressure.
 - Max 60 words.
 
 Step 3 (Day 9) — Final touch:
 - Be direct: this is the last email.
-- Leave it genuinely open — no guilt, no urgency tactics.
+- Leave it genuinely open — no guilt, no urgency tactics.${extraSignals.length ? '\n- If it fits naturally, ground the close in a real signal not yet used in Steps 1–2.' : ''}
 ${bookingUrl ? `- Include the booking link once more on its own line: ${bookingUrl}` : ''}
 - 3–4 sentences max.
 

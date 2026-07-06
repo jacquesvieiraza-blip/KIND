@@ -527,6 +527,30 @@ export async function sendSequenceEmail(
   }
 }
 
+// #310 — charge 1 FIGSY credit for one enrollment (atomic RPC + ledger row), the
+// SAME deduction autoEnrollLead does. Used by the manual UI enroll + the developer
+// webhook enrol paths, which previously enrolled + sent for FREE (the balance gate
+// and the deduction only ever ran inside autoEnrollLead). Call AFTER a successful
+// enrollment insert. Best-effort ledger; the balance RPC clamps at 0 in SQL.
+export async function chargeFigsyEnroll(
+  clientId: string,
+  lead: { first_name?: string | null; last_name?: string | null; company?: string | null },
+): Promise<void> {
+  const { error: balErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: -1 })
+  if (balErr) {
+    console.error('[figsy] chargeFigsyEnroll: FIGSY credit deduction failed', balErr.message)
+    return
+  }
+  await db.from('credit_transactions').insert({
+    client_id: clientId,
+    amount: -1,
+    type: 'usage',
+    plan: 'figsy',
+    note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
+    created_at: new Date().toISOString(),
+  }).then(() => {}, () => {})
+}
+
 // Recompute a single campaign's denormalised counters from the authoritative
 // source tables and persist them. Call this AFTER a reply/opt-out/meeting event
 // has written its source row (figsy_replies / figsy_enrollments). It replaces the

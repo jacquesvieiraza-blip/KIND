@@ -1,7 +1,26 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 6 July 2026** · Three milestones. Nothing else on this page.
-**This pass (6 Jul PM · Fable full audit):** the **ENTIRE 17-hole deep audit (#306–#322) is FIXED + MERGED** — Tier 1 deployed + walked (#308 🟢), Tier 2 deployed + activated (migration `20260706_pool_atomic` run, Stripe `charge.refunded`/`charge.dispute.created` enabled), Tier 3 merged (#319–#321 api + #318 portal await your `railway up` confirm). All gates green (api tsc + 88/88 · portal build · board `--check`). **Fresh 3-lens re-audit found 6 NEW items → #323–#328** (1 critical: `/internal/founder-brief` unauthenticated). Board = the marker in PRODUCT-INVENTORY (status of record). **Next needle-mover = the 2 deploy confirms + #323 fix + walk the 🩷 → 🟢.**
+**As of: 6 July 2026 PM** · Three milestones. Nothing else on this page.
+
+## 🧭 WHERE WE STAND — the truth (read this first)
+**Board: 🟢93 verified · 🩷91 live-but-unwalked · 🟣4 approved · 🟡21 built-on-branch · 🔴120 not-built · ⏸5 blocked · Σ334.** (Live count = `scripts/count-inventory.sh`.)
+
+**What is TRUE right now:**
+- **The whole 17-hole deep audit (#306–#322) is FIXED, MERGED, and LIVE IN PRODUCTION.** Both deploys confirmed 6 Jul PM (api + portal). This was the work that made the product *safe*: admin now needs a login · the API can't be drained by strangers · every FIGSY send is charged · refunds claw back credits · unsubscribes actually stop sending · pause no longer lies about billing · no client can starve another's sending · the portal stopped promising clients things it doesn't do. #308 is walked (🟢); the other 16 are live but not yet walked (🩷).
+- **A fresh 3-lens re-audit (6 Jul PM) found 6 more items → #323–#328.** None are emergencies. The scariest-sounding one, **#323, was RE-CLASSIFIED after I read the code**: the "unauthenticated founder-brief route" is actually *shadowed* by a guarded duplicate mounted first, so a stranger hits the 401, not the leak. It's dead code to delete, not a live breach. See #323 row for the honest severity.
+- **Deploys are still manual** (`railway up` per service) until the GitHub account-flag appeal clears — you have the reply drafted.
+
+**The three milestones, honestly:**
+- **① Our own outreach — BUILD DONE. Waiting on you + a clock.** Engine, list (1,461), sequence, compliance, $3 site: all finished + verified. Gate = Instantly warm-up ≥90% (1–2 wk, your dashboard), then 6 manual steps. Nothing left for me to build.
+- **② A paying client — SAFE as of today, not READY.** Today's audit closed every "client discovers a hole" risk. Still blocking a real client: **#211 Smartlead** (per-client sending isolation — the one true gate, needs your Smartlead access, then a multi-day build) · the **$60 live money walk** (#28b, you) · honesty fix **#326** (Settings still says "nothing goes out without you" while FIGSY auto-sends — mine, preview-first).
+- **③ Admin cockpit — BUILT + HONEST. Needs your eyes.** All 9 slices live, login-gated, re-audit came back clean. ~23 screens sit 🩷 waiting for one walkthrough sitting to go 🟢. Nothing to build here until Smartlead unlocks the data-hungry shells.
+
+**The runlist (in order, by owner):**
+1. 🤖 **#323** delete the dead founder-brief router (Opus building; Fable confirms before merge) — low-risk hygiene, not urgent.
+2. 🤖 **#324–#328** small batch (Opus); **#326** goes preview-first (client-facing).
+3. 🧍 **Walk the 🩷 → 🟢** — three sittings: **A** admin walkthrough (~23 flips) · **B** 2 config toggles (PDL key + Resend bounce events) · **C** the $60 money walk.
+4. 🧍 **The two unlocks:** GitHub-flag appeal (kills manual deploys) · Smartlead access (unblocks #211 = last M2 gate).
+5. 🧍 **M1 fire:** Instantly warm ≥90% → import → test → send.
 **🛑 DEPLOY PIPELINE DEAD — ROOT CAUSE FOUND (6 Jul):** the GitHub account **`jacquesvieiraza-blip` is FLAGGED** ("This account is flagged, and therefore cannot authorize a third party application"). → Railway's GitHub App can't be installed/authorized → **auto-deploy cannot work, and reconnecting is impossible until the flag is lifted** (this is why every reconnect attempt 404'd — it was never a Railway bug). **🧍 Fix = appeal the flag: `support.github.com/contact/account-flagged` + check `github.com/settings/billing`.** Until lifted, EVERY change reaches prod ONLY via **merge → `git pull` → `railway up --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Nothing merged goes live on its own.
 **Keys:** ✅ done · 🔲 left · 🛑 the one gate · 🧍 you · 🤖 me · 🤝 both · 🔨 needs a BUILD · ⏱ needs a CLOCK/action (no build)
 
@@ -9,15 +28,15 @@
 
 ---
 
-## 🚨 TOP PRIORITY (6 Jul PM — post-audit runlist, in order)
-**The 17-hole deep audit (#306–#322) is DONE — all fixed, Fable-verified, merged. What's left is 2 deploy confirms + the NEW audit round (#323–#328).**
-1. **🧍 Confirm the 2 deploys** (both may already be done — Railway shows the newest deploy Active): `railway up --service "@kind/api"` (ships #319/#320/#321) · `railway up --service "@kind/portal"` (ships #318 — first attempt 500'd, retry). Report → dots flip 🟡→🩷.
-2. **🤖 #323 (CRITICAL, NEW): `POST /internal/founder-brief` is UNAUTHENTICATED** — leaks the business brief (clients/MRR/reply rates) to any anonymous caller + burns a Claude call + emails the founder per hit. 3-line fix (admin-key guard). Build immediately on founder go.
-3. **🤖 #324–#325 (MED, NEW):** internal-briefs query-param key + fail-open guard · Paystack `/verify` no amount/owner binding.
-4. **🤖 #326 (HIGH, client-facing, preview-first):** Settings page no-op toggles — "Approve emails before sending — nothing goes out without you" is a localStorage lie (nothing reads it); writing-style + 4/5 notification toggles same. Honest-label or wire.
-5. **🤖 #327–#328:** website false claims (Salesforce/Outlook, fabricated blog "customer data", unbuyable playbook packages) · #284 residue (auto-topup still defaults to the retired $1 plan; referral "$100" copy).
-- ✅ **Closed this pass:** #306–#322 all fixed+merged · founder decisions #308/#314/#317 all made 6 Jul · migration `20260706_pool_atomic` run · Stripe refund/dispute events enabled.
-- Full detail per item = PRODUCT-INVENTORY #306–#328. Clean on re-audit: Paystack webhook signature enforced · Stripe money path (fail-closed, idempotent, claw-back) · cron/internal auth (except #323) · tenant isolation.
+## 🚨 THE NEW AUDIT BATCH (#323–#328) — detail behind the runlist above
+**The 17-hole deep audit (#306–#322) is DONE + LIVE.** These 6 are the fresh-eyes re-audit findings, in build order (all 🤖 mine):
+- **#323 (LOW — re-classified):** delete the dead unguarded `founder-brief.ts` router. NOT a live breach — a guarded duplicate mounted first already shadows it, so strangers get a 401. Hygiene, not urgent. *(Opus builds → Fable confirms before merge.)*
+- **#324 (MED):** `internal-briefs.ts` guard fails-open + accepts the key in the URL (the #309 log-leak class). Fail closed + header-only.
+- **#325 (MED):** Paystack `/verify` doesn't check amount or bind the buyer to the caller. Closes automatically if Paystack is deleted (#237).
+- **#326 (HIGH, client-facing → PREVIEW-FIRST):** Settings "Approve emails before sending — nothing goes out without you" is a localStorage lie (nothing reads it); writing-style + 4/5 notification toggles same. Honest-label or wire — the 2nd instance of the #318 Co-Pilot lie.
+- **#327 (MED):** website false claims — Salesforce/Outlook integrations that don't exist · fabricated blog "customer data" · playbook packages you can't buy.
+- **#328 (LOW):** #284 residue — auto-topup still defaults to the retired $1 plan · referral "$100" copy prices credits at the old rate.
+- **Clean on re-audit (verified, not assumed):** Paystack webhook signature enforced · Stripe money path (fail-closed, idempotent, claw-back) · cron/internal auth · tenant isolation · portal money-path buttons · $1 tier absent from the site.
 
 ---
 
@@ -404,7 +423,7 @@ Ladder: 🔴 not built · 🟡 built (pending) · 🩷 live, not verified · �
 | Uptime awareness | `/health` probe (pull) | 🩷 partial (#199 = uptime pings) |
 | Error tracking (exceptions in prod) | ❌ no Sentry/equivalent | 🔴 HOLE (**#290**) — prod errors vanish into Railway logs |
 | Env/config readiness | `/engine/env` | 🩷 |
-| Security posture | Route scoping sound; #309 URL-key + #321 rate limits FIXED 6 Jul; new knowns = #323 founder-brief auth (CRITICAL) · #324 · #325 | 🐛 see #323–#325 |
+| Security posture | Route scoping sound; #309 URL-key + #321 rate limits FIXED 6 Jul; new knowns = #323 (LOW, dead-code — reclassified) · #324 · #325 (both MED) | 🐛 see #323–#325 |
 | Deploy status | **Auto-deploy DEAD (GitHub flag)** — manual `railway up` per service until the appeal clears | 🛑 manual |
 | Backups/restore | ❌ never tested | 🔴 HOLE (**#298**) — Supabase backs up, restore untested |
 | Smoke test | `/smoketest` | 🩷 |

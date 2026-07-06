@@ -48,14 +48,56 @@ done
 board="🟢${count["🟢"]} · 🩷${count["🩷"]} · 🟣${count["🟣"]} · 🟡${count["🟡"]} · 🔴${count["🔴"]} · ⏸${count["⏸"]} · Σ${total}"
 
 if [ "${1:-}" = "--check" ]; then
+  # #322 — validate EVERY place the board is shown, not just the hidden marker.
+  # The drift that bit us (🩷45/🔴126/Σ294 marker vs a visible table reading the
+  # truth) slipped through precisely because --check only ever read the comment.
+  # Now the hidden marker AND the visible summary table AND every section header
+  # must agree with the script-derived counts, or the check fails loudly.
+  fail=0
+
+  # 1) Hidden marker: <!-- BOARD: … -->
   stated="$(grep -oE '<!-- BOARD:[^>]*-->' "$DOC" | head -1 | sed -E 's/<!-- BOARD: ?//; s/ ?-->//')"
-  if [ "$stated" = "$board" ]; then
-    echo "OK  board matches: $board"
+  if [ "$stated" != "$board" ]; then
+    echo "MISMATCH (hidden marker)" >&2
+    echo "  marker: ${stated:-<no BOARD marker>}" >&2
+    echo "  real  : $board" >&2
+    fail=1
+  fi
+
+  # 2) Visible summary table — the first row of seven bold-number cells, in board
+  #    order: 🟢 | 🩷 | 🟣 | 🟡 | 🔴 | ⏸ | Σ.
+  trow="$(grep -E '^\| \*\*[0-9]+\*\*( \| \*\*[0-9]+\*\*){6} \|$' "$DOC" | head -1 || true)"
+  if [ -z "$trow" ]; then
+    echo "MISMATCH (visible table): no 7-column bold-number summary row found" >&2
+    fail=1
+  else
+    read -r -a tnums <<< "$(printf '%s\n' "$trow" | grep -oE '[0-9]+' | tr '\n' ' ')"
+    expect=("${count["🟢"]}" "${count["🩷"]}" "${count["🟣"]}" "${count["🟡"]}" "${count["🔴"]}" "${count["⏸"]}" "$total")
+    labels=("🟢" "🩷" "🟣" "🟡" "🔴" "⏸" "Σ")
+    for i in 0 1 2 3 4 5 6; do
+      if [ "${tnums[$i]:-}" != "${expect[$i]}" ]; then
+        echo "MISMATCH (visible table ${labels[$i]}): doc=${tnums[$i]:-<none>} real=${expect[$i]}" >&2
+        fail=1
+      fi
+    done
+  fi
+
+  # 3) Section headers: '# ░ <dot> LABEL (N) ░' — N must equal the derived count
+  #    for that dot (grouped-by-status headers are a board surface too).
+  while IFS= read -r line; do
+    hdot="$(printf '%s\n' "$line" | grep -oE '🟢|🩷|🟣|🟡|🔴|⏸' | head -1 || true)"
+    hnum="$(printf '%s\n' "$line" | grep -oE '\([0-9]+\)' | head -1 | tr -dc '0-9' || true)"
+    exp="${count[$hdot]:-}"
+    if [ "$hnum" != "$exp" ]; then
+      echo "MISMATCH (section header $hdot): doc=${hnum:-<none>} real=${exp:-<none>}" >&2
+      fail=1
+    fi
+  done < <(grep -E '^# ░ (🟢|🩷|🟣|🟡|🔴|⏸).*\([0-9]+\) ░' "$DOC" || true)
+
+  if [ "$fail" -eq 0 ]; then
+    echo "OK  board matches (marker + visible table + section headers): $board"
     exit 0
   fi
-  echo "MISMATCH" >&2
-  echo "  doc  : ${stated:-<no BOARD marker>}" >&2
-  echo "  real : $board" >&2
   exit 1
 fi
 

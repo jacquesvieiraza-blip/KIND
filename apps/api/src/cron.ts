@@ -136,5 +136,8 @@ export function startCrons(): void {
   // has stalled (enrollments overdue but zero sends in the last 6 hours).
   cron.schedule('20 * * * *', () => { void checkSendsStalled() }, { timezone: 'UTC' })
 
+  // Daily 04:00 UTC — #287 MRR daily snapshot → metrics_daily (MRR-over-time + movement)
+  cron.schedule('0 4 * * *', () => callInternal('/metrics/snapshot'), { timezone: 'UTC' })
+
   console.log('[cron] 25 jobs scheduled')
 }

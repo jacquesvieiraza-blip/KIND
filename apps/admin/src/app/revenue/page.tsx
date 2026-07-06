@@ -33,6 +33,7 @@ async function getNps(): Promise<NpsData | null> {
   } catch { return null }
 }
 import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
+import MrrOverTime from './MrrOverTime'
 
 const MONTHLY_TARGETS = [
   { month: 'May 2026',  mrrTarget: 500,    clientTarget: 8   },
@@ -299,6 +300,9 @@ export default async function RevenuePage() {
           </div>
         )}
       </div>
+
+      {/* #287 — MRR over time + movement (new / churned / expansion / contraction) */}
+      <MrrOverTime />
 
       {/* Targets moved → Sales Channel (target-based sales). See /command → Targets. */}
       <p className="text-xs text-gray-400 -mt-2">🎯 KPI progress, monthly revenue targets &amp; core KPIs now live in <a href="/command" className="text-[#7C3AED] hover:underline">Sales Channel → Targets</a> (target‑based sales).</p>

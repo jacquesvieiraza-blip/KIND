@@ -2381,3 +2381,40 @@ internalRouter.post('/ae/churn-risk-check', async (_req: Request, res: Response)
     res.status(500).json({ success: false, error: 'Churn risk check failed' })
   }
 })
+
+// ── #287 — MRR daily snapshot (MRR waterfall + MoM trend) ─────────────────────
+// Writes one row/day into metrics_daily so the admin revenue page can chart MRR
+// over time and diff two days to show movement (new / churned / expansion /
+// contraction). MRR = sum(amount_usd) of ACTIVE subscriptions — the same active
+// set the revenue page sums. subs_json holds { client_id, amount_usd } per active
+// sub so movement can be computed. Scheduled daily in cron.ts. Upsert keyed on
+// today's date → re-running the same day is a safe overwrite, never a duplicate.
+internalRouter.post('/metrics/snapshot', async (_req: Request, res: Response) => {
+  try {
+    const [{ data: activeSubs }, { count: trialCount }] = await Promise.all([
+      db.from('subscriptions').select('client_id, amount_usd').eq('status', 'active'),
+      db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
+    ])
+
+    const subsJson = (activeSubs ?? []).map((s: { client_id: string; amount_usd: number | null }) => ({
+      client_id:  s.client_id,
+      amount_usd: s.amount_usd ?? 0,
+    }))
+    const mrrUsd = subsJson.reduce((sum, s) => sum + (s.amount_usd || 0), 0)
+    const today  = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
+
+    const { error } = await db.from('metrics_daily').upsert({
+      date:        today,
+      mrr_usd:     mrrUsd,
+      active_subs: subsJson.length,
+      trial_subs:  trialCount ?? 0,
+      subs_json:   subsJson,
+    }, { onConflict: 'date' })
+    if (error) throw error
+
+    res.json({ success: true, data: { date: today, mrr_usd: mrrUsd, active_subs: subsJson.length, trial_subs: trialCount ?? 0 } })
+  } catch (err) {
+    console.error('[metrics/snapshot]', err)
+    res.status(500).json({ success: false, error: 'Metrics snapshot failed' })
+  }
+})

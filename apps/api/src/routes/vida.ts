@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateVidaReply, scoreSession, notifyHotLead, speedToLeadHandoff } from '../lib/vida'
+import { rateLimit } from '../lib/rate-limit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -82,6 +83,10 @@ async function getOrCreateConfig(clientId: string) {
 const portalRouter = Router()
 portalRouter.use(requireAuth)
 
+// #321 — per-user cap on the Claude-backed in-portal help chat (keyed by userId).
+// The public website widget (widgetRouter) already has its own widgetRateLimit.
+const vidaHelpAiLimit = rateLimit({ limit: 20, windowMs: 60_000, key: 'vida-help-ai', byUser: true })
+
 // GET /vida/config
 portalRouter.get('/config', async (req: AuthRequest, res) => {
   try {
@@ -137,7 +142,7 @@ portalRouter.put('/config', async (req: AuthRequest, res) => {
 
 // POST /vida/help — R3 (V2-11): in-portal product help. Stateless: the client
 // sends the recent turns and the latest question; Vida replies with how-to help.
-portalRouter.post('/help', async (req: AuthRequest, res) => {
+portalRouter.post('/help', vidaHelpAiLimit, async (req: AuthRequest, res) => {
   try {
     const { message, history } = z.object({
       message: z.string().min(1).max(2000),

@@ -2,11 +2,15 @@ import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { rateLimit } from '../lib/rate-limit'
 
 export const supportRouter = Router()
 supportRouter.use(requireAuth)
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// #321 — per-user cap on the Claude-backed support chat (keyed by userId).
+const supportAiLimit = rateLimit({ limit: 20, windowMs: 60_000, key: 'support-ai', byUser: true })
 
 const SYSTEM_PROMPT = `You are K.I.N.D Support, the helpful AI assistant for the K.I.N.D platform.
 
@@ -53,7 +57,7 @@ const bodySchema = z.object({
   })).min(1).max(20),
 })
 
-supportRouter.post('/chat', async (req: AuthRequest, res) => {
+supportRouter.post('/chat', supportAiLimit, async (req: AuthRequest, res) => {
   try {
     const parsed = bodySchema.safeParse(req.body)
     if (!parsed.success) { res.status(400).json({ success: false, error: 'Invalid request' }); return }

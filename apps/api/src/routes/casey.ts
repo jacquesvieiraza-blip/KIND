@@ -9,8 +9,13 @@ import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { rateLimit } from '../lib/rate-limit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// #321 — per-user cap on the Claude-backed chat so one authenticated client can't
+// burn unbounded tokens. Keyed by userId (requireAuth runs first).
+const caseyAiLimit = rateLimit({ limit: 20, windowMs: 60_000, key: 'casey-ai', byUser: true })
 
 const CASEY_CHAT_SYSTEM = [
   "You are Casey, the friendly onboarding guide inside the K.I.N.D client portal.",
@@ -29,7 +34,7 @@ caseyRouter.use(requireAuth)
  * setup/onboarding screens. Body: { message, history?: [{role, content}] }
  * → { success, data: { reply } }
  */
-caseyRouter.post('/chat', async (req: AuthRequest, res) => {
+caseyRouter.post('/chat', caseyAiLimit, async (req: AuthRequest, res) => {
   try {
     const { message, history } = z.object({
       message: z.string().min(1).max(2000),

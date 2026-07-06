@@ -921,31 +921,91 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
     }
 
     // Only send for ACTIVE campaigns — paused / archived / low-performance
-    // campaigns must stop sending. Filter enrollments to active campaigns.
-    const { data: activeCamps } = await db.from('figsy_campaigns').select('id').eq('status', 'active')
+    // campaigns must stop sending. Pull each active campaign's client + settings so
+    // we can (a) enforce its per-campaign daily_send_limit and (b) spread the shared
+    // budget FAIRLY across clients instead of letting one client's backlog drain it.
+    const { data: activeCamps } = await db.from('figsy_campaigns')
+      .select('id, client_id, settings')
+      .eq('status', 'active')
     const activeCampaignIds = (activeCamps ?? []).map((c: { id: string }) => c.id)
     if (activeCampaignIds.length === 0) {
       res.json({ success: true, data: { sent: 0, no_active_campaigns: true } })
       return
     }
 
+    // Per-campaign daily cap (#320): `settings.daily_send_limit` was written by the UI
+    // + the auto-tuner but never read on the send path. A numeric value caps that
+    // campaign's sends for the UTC day (0 = paused for today); null/absent = no
+    // per-campaign cap (only the global cap applies).
+    const campaignLimit = new Map<string, number | null>()
+    for (const c of activeCamps ?? []) {
+      const dl = (c as { settings?: { daily_send_limit?: unknown } | null }).settings?.daily_send_limit
+      campaignLimit.set((c as { id: string }).id, typeof dl === 'number' && dl >= 0 ? dl : null)
+    }
+
+    // How many each campaign has ALREADY sent today, to enforce the per-campaign cap.
+    const { data: sentRows } = await db.from('figsy_sent_emails')
+      .select('campaign_id')
+      .gte('sent_at', todayUTC.toISOString())
+      .in('campaign_id', activeCampaignIds)
+    const sentByCampaign = new Map<string, number>()
+    for (const r of sentRows ?? []) {
+      const cid = (r as { campaign_id: string | null }).campaign_id
+      if (cid) sentByCampaign.set(cid, (sentByCampaign.get(cid) ?? 0) + 1)
+    }
+
+    // Pull a WIDE window of due enrollments (more than the global budget) so the fair
+    // scheduler has candidates from every client to interleave, oldest-due first.
+    // Capped so a huge backlog can't blow memory.
     const now = new Date().toISOString()
+    const fetchCeil = Math.min(Math.max(remaining, 1) * 5, 2000)
     const { data: due } = await db.from('figsy_enrollments')
       .select('*, leads(id,first_name,last_name,email,job_title,company,industry,seniority,country,tech_stack,score,score_reasoning)')
       .in('status', ['enrolled', 'in_progress'])
       .in('campaign_id', activeCampaignIds)
       .lte('next_send_at', now)
-      .limit(remaining)
+      .order('next_send_at', { ascending: true })
+      .limit(fetchCeil)
+
+    // FAIR ORDER (#320): group due enrollments by client, then interleave round-robin —
+    // every client's Nth email is only reached after every client's (N-1)th. So a
+    // client with 500 due leads can't send its 3rd before another client with 5 due
+    // gets its 1st. Prevents one backlog starving everyone under the shared cap.
+    const dueRows = due ?? []
+    const byClient = new Map<string, typeof dueRows>()
+    for (const e of dueRows) {
+      const cid = ((e as { client_id?: string | null }).client_id) ?? 'unknown'
+      if (!byClient.has(cid)) byClient.set(cid, [])
+      byClient.get(cid)!.push(e)
+    }
+    const clientQueues = [...byClient.values()]
+    const maxLen = clientQueues.reduce((m, q) => Math.max(m, q.length), 0)
+    const fairOrder: typeof dueRows = []
+    for (let i = 0; i < maxLen; i++) {
+      for (const q of clientQueues) {
+        if (i < q.length) fairOrder.push(q[i])
+      }
+    }
 
     const { sendSequenceEmail, applyReplyBranching } = await import('../lib/figsy')
 
     const stepsCache = new Map<string, { step: number; on_reply?: 'stop' | 'skip_next' | 'continue' }[] | null>()
     let sent = 0
-    for (const enrollment of due ?? []) {
+    let campaignCappedSkips = 0
+    for (const enrollment of fairOrder) {
+      if (sent >= remaining) break   // shared daily budget spent
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
       const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
       if (nextStep > 3) continue
+
+      // Per-campaign daily cap — skip if this campaign hit its own limit today.
+      const campId = enrollment.campaign_id as string
+      const capForCampaign = campaignLimit.get(campId)
+      if (capForCampaign != null && (sentByCampaign.get(campId) ?? 0) >= capForCampaign) {
+        campaignCappedSkips++
+        continue
+      }
 
       // Honour the step's on_reply setting if the lead has replied since last send
       try {
@@ -960,12 +1020,13 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       try {
         await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
         sent++
+        sentByCampaign.set(campId, (sentByCampaign.get(campId) ?? 0) + 1)
       } catch (err) {
         console.error('[figsy/send-due-all] enrollment', enrollment.id, ':', err)
       }
     }
 
-    res.json({ success: true, data: { sent, remaining_today: remaining - sent, daily_limit: dailyLimit } })
+    res.json({ success: true, data: { sent, remaining_today: remaining - sent, daily_limit: dailyLimit, clients_served: byClient.size, campaign_capped_skips: campaignCappedSkips } })
   } catch (err) {
     console.error('[figsy/send-due-all]', err)
     res.status(500).json({ success: false, error: 'FIGSY send-due-all failed' })

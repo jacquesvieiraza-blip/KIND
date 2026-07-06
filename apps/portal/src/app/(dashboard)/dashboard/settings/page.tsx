@@ -54,12 +54,16 @@ function NotificationPreferences({ serverDailyBrief, onDailyBriefToggle }: {
   // The daily-brief toggle reflects the server value; the rest are local.
   const effective: NotifPrefs = { ...prefs, daily_brief: serverDailyBrief ?? false }
 
-  const items: { key: keyof NotifPrefs; label: string; desc: string }[] = [
-    { key: 'reply_received',  label: 'Reply received',      desc: 'When a lead replies to a FIGSY sequence.' },
-    { key: 'low_credits',     label: 'Low credits warning', desc: 'When credit balance drops below 10.' },
-    { key: 'campaign_paused', label: 'Campaign paused',     desc: 'When a campaign is auto-paused due to low performance.' },
-    { key: 'weekly_digest',   label: 'Weekly digest',       desc: 'Summary of outreach results every Monday.' },
-    { key: 'daily_brief',     label: 'Daily brief',         desc: 'Morning update on active campaigns and replies.' },
+  // #326 — only the Daily brief toggle is wired to a real server-side email cron.
+  // The other four were localStorage-only (nothing read them), so their on/off did
+  // nothing. Mark them "Soon" + disabled until each is actually wired, rather than
+  // showing a live-looking switch that changes nothing.
+  const items: { key: keyof NotifPrefs; label: string; desc: string; wired: boolean }[] = [
+    { key: 'daily_brief',     label: 'Daily brief',         desc: 'Morning update on active campaigns and replies.',      wired: true  },
+    { key: 'reply_received',  label: 'Reply received',      desc: 'When a lead replies to a FIGSY sequence.',              wired: false },
+    { key: 'low_credits',     label: 'Low credits warning', desc: 'When credit balance drops below 10.',                   wired: false },
+    { key: 'campaign_paused', label: 'Campaign paused',     desc: 'When a campaign is auto-paused due to low performance.', wired: false },
+    { key: 'weekly_digest',   label: 'Weekly digest',       desc: 'Summary of outreach results every Monday.',            wired: false },
   ]
 
   return (
@@ -77,22 +81,29 @@ function NotificationPreferences({ serverDailyBrief, onDailyBriefToggle }: {
       </div>
       <p className="text-sm text-[#9B8EC4] mb-4">Choose which notifications you receive from K.I.N.D.</p>
       <div className="space-y-3">
-        {items.map(({ key, label, desc }) => (
+        {items.map(({ key, label, desc, wired }) => (
           <div key={key} className="flex items-center justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900">{label}</p>
+              <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                {label}
+                {!wired && (
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
+                )}
+              </p>
               <p className="text-xs text-[#9B8EC4]">{desc}</p>
             </div>
             <button
-              onClick={() => toggle(key)}
+              onClick={() => { if (wired) toggle(key) }}
+              disabled={!wired}
               aria-label={`Toggle ${label}`}
+              title={wired ? undefined : 'Coming soon'}
               className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:ring-offset-2 ${
-                effective[key] ? 'bg-[#7C3AED]' : 'bg-gray-200'
+                !wired ? 'bg-gray-100 cursor-not-allowed' : effective[key] ? 'bg-[#7C3AED]' : 'bg-gray-200'
               }`}
             >
               <span
-                className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${
-                  effective[key] ? 'translate-x-4' : 'translate-x-0.5'
+                className={`inline-block h-4 w-4 rounded-full shadow transform transition-transform duration-200 mt-0.5 ${
+                  !wired ? 'bg-gray-300 translate-x-0.5' : effective[key] ? 'bg-white translate-x-4' : 'bg-white translate-x-0.5'
                 }`}
               />
             </button>
@@ -103,29 +114,10 @@ function NotificationPreferences({ serverDailyBrief, onDailyBriefToggle }: {
   )
 }
 
-const FIGSY_APPROVE_STORAGE_KEY = 'kind_approve_before_send'
-
+// #326 — the "approve before send" control is not wired (the send scheduler never
+// gated on it), so this is a static, honest "coming soon" panel — no state, no
+// localStorage that pretends to save a preference nothing reads.
 function FigsyOutreachSettings() {
-  const [approveBeforeSend, setApproveBeforeSend] = useState(false)
-  const [saved, setSaved] = useState(false)
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(FIGSY_APPROVE_STORAGE_KEY)
-      if (raw !== null) setApproveBeforeSend(raw === 'true')
-    } catch { /* ignore */ }
-  }, [])
-
-  function toggle() {
-    setApproveBeforeSend(prev => {
-      const next = !prev
-      try { localStorage.setItem(FIGSY_APPROVE_STORAGE_KEY, String(next)) } catch { /* ignore */ }
-      return next
-    })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
   return (
     <div className="border-t border-gray-100 pt-6">
       <div className="flex items-center justify-between mb-1">
@@ -133,32 +125,30 @@ function FigsyOutreachSettings() {
           <Eye className="w-4 h-4 text-[#9B8EC4]" />
           <h2 className="font-semibold">FIGSY — Outreach Control</h2>
         </div>
-        {saved && (
-          <span className="flex items-center gap-1 text-xs text-green-600">
-            <CheckCircle className="w-3 h-3" /> Saved
-          </span>
-        )}
       </div>
       <p className="text-sm text-[#9B8EC4] mb-4">Control how FIGSY sends outbound emails on your behalf.</p>
       <div className="flex items-center justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900">Approve emails before sending</p>
+          <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
+            Approve emails before sending
+            <span className="text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
+          </p>
+          {/* #326 — this was a live-looking toggle that only wrote localStorage; the
+              send path never read it, so FIGSY kept sending autonomously. Shown as an
+              honest "coming soon" so we never promise an approval gate that isn't
+              enforced. The real approval queue is tracked as #268. */}
           <p className="text-xs text-[#9B8EC4]">
-            Review every outbound email before FIGSY sends it. Emails queue here for your approval — nothing goes out without you.
+            Coming soon — review each email before FIGSY sends it. For now FIGSY runs on Auto-Pilot (sends autonomously); there is no approval hold yet.
           </p>
         </div>
         <button
-          onClick={toggle}
-          aria-label="Toggle approve before send"
-          className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-[#7C3AED] focus:ring-offset-2 ${
-            approveBeforeSend ? 'bg-[#7C3AED]' : 'bg-gray-200'
-          }`}
+          type="button"
+          disabled
+          aria-label="Approve before send (coming soon)"
+          title="Approve before send is coming soon"
+          className="relative inline-flex h-5 w-9 shrink-0 rounded-full bg-gray-100 cursor-not-allowed"
         >
-          <span
-            className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${
-              approveBeforeSend ? 'translate-x-4' : 'translate-x-0.5'
-            }`}
-          />
+          <span className="inline-block h-4 w-4 rounded-full bg-gray-300 shadow transform mt-0.5 translate-x-0.5" />
         </button>
       </div>
     </div>
@@ -670,10 +660,15 @@ export default function SettingsPage() {
       <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center gap-2 mb-1">
           <Pencil className="w-4 h-4 text-[#9B8EC4]" />
-          <h2 className="font-semibold">FIGSY Writing Style</h2>
+          <h2 className="font-semibold flex items-center gap-2">
+            FIGSY Writing Style
+            <span className="text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
+          </h2>
         </div>
+        {/* #326 — the pasted style is saved on-device but not yet sent to the
+            server-side sequence generator, so FIGSY doesn't apply it yet. Say so. */}
         <p className="text-sm text-[#9B8EC4] mb-4">
-          Paste 2–3 of your best-performing cold emails below. FIGSY will match your tone and style when generating sequences.
+          Paste 2–3 of your best-performing cold emails below. Applying your custom tone to FIGSY's generated sequences is coming soon — for now this is saved on your device only.
         </p>
 
         {/* Sign emails as — the name every cold email signs off with */}
@@ -711,7 +706,7 @@ export default function SettingsPage() {
             placeholder={`Paste your best emails here. Example:\n\nSubject: quick question\n\nHi Sarah,\n\nI noticed Acme recently expanded into fintech — we work with companies at exactly that inflection point...\n\n---\n\nPaste another email below`}
             className="w-full border border-purple-100/80 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#7C3AED] resize-none font-mono text-xs leading-relaxed"
           />
-          {writingStyleSaved && <p className="text-green-600 text-xs font-medium">✓ Style saved — FIGSY will use this for your next sequence</p>}
+          {writingStyleSaved && <p className="text-green-600 text-xs font-medium">✓ Saved on this device — applying it to FIGSY sequences is coming soon</p>}
           {writingStyleError && <p className="text-red-600 text-xs">{writingStyleError}</p>}
           <button
             type="button"

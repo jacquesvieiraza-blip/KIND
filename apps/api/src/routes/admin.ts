@@ -922,3 +922,30 @@ adminRouter.get('/nps', async (_req: Request, res: Response) => {
     res.status(500).json({ success: false, error: 'Failed to load NPS aggregate' })
   }
 })
+
+// ── Engine cron run-history — last run per job ────────────────────────────────
+// Reads cron_runs (written by the instrumented callInternal in cron.ts). Returns
+// the most recent run per distinct job so the health page can show a real
+// last-run-per-job panel. If cron_runs doesn't exist yet (migration not run) it
+// degrades to an honest empty list.
+adminRouter.get('/cron-runs', async (_req: Request, res: Response) => {
+  try {
+    // Pull recent runs; reduce to the newest per job in JS (Supabase has no
+    // DISTINCT ON). 1000 rows covers ~40 daily jobs × ~3 weeks — plenty.
+    const { data, error } = await db.from('cron_runs')
+      .select('job, started_at, finished_at, ok, note')
+      .order('started_at', { ascending: false })
+      .limit(1000)
+    if (error || !data) { res.json({ success: true, data: { jobs: [] } }); return }
+
+    const seen = new Map<string, { job: string; started_at: string | null; finished_at: string | null; ok: boolean | null; note: string | null }>()
+    for (const row of data as { job: string; started_at: string | null; finished_at: string | null; ok: boolean | null; note: string | null }[]) {
+      if (!seen.has(row.job)) seen.set(row.job, row)
+    }
+    const jobs = [...seen.values()].sort((a, b) => a.job.localeCompare(b.job))
+    res.json({ success: true, data: { jobs } })
+  } catch (err) {
+    console.error('[admin/cron-runs]', err)
+    res.json({ success: true, data: { jobs: [] } })
+  }
+})

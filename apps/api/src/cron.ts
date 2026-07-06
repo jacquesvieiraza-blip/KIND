@@ -6,20 +6,47 @@ const PORT       = process.env.PORT || 4000
 const API_BASE   = `http://localhost:${PORT}`
 const ADMIN_KEY  = process.env.ADMIN_SECRET_KEY
 
+// Run-history: record one row per cron execution into cron_runs so the admin
+// Engine/health page can show a real last-run-per-job panel. Best-effort — never
+// throws into the job, and if the table doesn't exist yet (migration not run) the
+// insert simply errors and is swallowed.
+async function recordCronRun(job: string, startedAt: string, ok: boolean, note: string): Promise<void> {
+  try {
+    await db.from('cron_runs').insert({
+      job,
+      started_at:  startedAt,
+      finished_at: new Date().toISOString(),
+      ok,
+      note: note.slice(0, 500),
+    })
+  } catch (err) {
+    console.error(`[cron] failed to record run for ${job}:`, err instanceof Error ? err.message : err)
+  }
+}
+
 async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Promise<void> {
   if (!ADMIN_KEY) {
     console.warn(`[cron] ADMIN_SECRET_KEY not set — skipping ${path}`)
     return
   }
+  const startedAt = new Date().toISOString()
+  let ok   = false
+  let note = ''
   try {
     const res  = await fetch(`${API_BASE}/internal${path}`, {
       method,
       headers: { 'x-admin-key': ADMIN_KEY, 'content-type': 'application/json' },
     })
     const data = await res.json() as Record<string, unknown>
+    ok   = res.ok && data?.success !== false
+    note = `HTTP ${res.status} · ${JSON.stringify(data)}`
     console.log(`[cron] ${path} →`, JSON.stringify(data))
   } catch (err) {
+    ok   = false
+    note = err instanceof Error ? err.message : String(err)
     console.error(`[cron] ${path} failed:`, err)
+  } finally {
+    await recordCronRun(path, startedAt, ok, note)
   }
 }
 

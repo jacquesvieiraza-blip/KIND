@@ -2861,6 +2861,13 @@ figsyRouter.get('/approval-queue', requireAuth, async (req: AuthRequest, res) =>
 })
 
 // POST /api/figsy/approval-queue/:id/approve
+// #268: records the human's approval — but must NEVER pretend an email was sent.
+// The old code silently set status='sent' WITHOUT calling sendSequenceEmail, so an
+// approved draft looked delivered while nothing left. This queue also has no producer
+// yet (nothing enqueues drafts) and real sends run on the standard enrollment/cron
+// path (which keys off `leads` + the enrollment step counter, not this table). So the
+// honest, fail-closed behaviour is: mark the row approved, report sent:false. Wiring
+// the charged send path here is a separate scoped build (producer + UI + validated send).
 figsyRouter.post('/approval-queue/:id/approve', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
@@ -2869,12 +2876,15 @@ figsyRouter.post('/approval-queue/:id/approve', requireAuth, async (req: AuthReq
       .update({ status: 'approved' })
       .eq('id', req.params.id)
       .eq('client_id', clientId)
-      .select('id, to_email, subject, body, campaign_id, lead_id')
+      .eq('status', 'pending')
+      .select('id')
       .single()
-    if (error || !data) { res.status(404).json({ error: 'Not found' }); return }
-    // Mark sent (actual send happens via existing sendSequenceEmail — stub for now)
-    await db.from('figsy_approval_queue').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', req.params.id)
-    res.json({ approved: true, id: req.params.id })
+    if (error || !data) { res.status(404).json({ error: 'Not found or already processed' }); return }
+    res.json({
+      approved: true,
+      sent: false,
+      note: 'Approval recorded. Sending from the approval queue is not enabled — sequences send on the standard scheduler; this queue has no producer yet.',
+    })
   } catch (err: unknown) { res.status(500).json({ error: (err as Error).message }) }
 })
 

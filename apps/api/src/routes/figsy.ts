@@ -336,22 +336,48 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         from:      fromEmail,
       })
 
-      // Auto top-up check
+      // Auto top-up check — #315 hardened: correct wallet per plan, atomic grant,
+      // cooldown so two near-simultaneous hot replies can't both charge the card, and
+      // canonical bundle pricing.
       try {
         const { data: clientForTopup } = await db.from('clients')
-          .select('id, user_id, credit_balance, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
+          .select('id, user_id, credit_balance, figsy_credits_remaining, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
           .eq('id', lead.client_id).maybeSingle()
+
+        const plan = clientForTopup?.auto_topup_plan ?? 'kind_ai'
+        const isFigsy = plan === 'figsy'
+        // Threshold + grant must use the SAME wallet the plan spends from: figsy outreach
+        // draws figsy_credits_remaining; lead_gen draws credit_balance. The old code always
+        // read + wrote credit_balance, so a figsy client paid real money and received
+        // lead-gen credits while their figsy pool stayed empty (and never crossed threshold).
+        const currentBalance = isFigsy
+          ? (clientForTopup?.figsy_credits_remaining ?? 0)
+          : (clientForTopup?.credit_balance ?? 0)
+
         if (clientForTopup?.auto_topup_enabled &&
             clientForTopup.auto_topup_paystack_auth &&
-            (clientForTopup.credit_balance ?? 0) < (clientForTopup.auto_topup_threshold ?? 0)) {
-          const plan = clientForTopup.auto_topup_plan ?? 'kind_ai'
+            currentBalance < (clientForTopup.auto_topup_threshold ?? 0)) {
+
+          // Anti-double-charge cooldown: the svix idempotency guard only stops IDENTICAL
+          // event replays; two DISTINCT hot replies close together would otherwise each
+          // charge the card. Skip if this client was auto-topped-up in the last 30 min.
+          const cooldownAgo = new Date(Date.now() - 30 * 60_000).toISOString()
+          const { count: recentTopups } = await db.from('credit_transactions')
+            .select('id', { count: 'exact', head: true })
+            .eq('client_id', clientForTopup.id).eq('type', 'purchase')
+            .ilike('note', 'Auto top-up%').gte('created_at', cooldownAgo)
+
           const bundleSize = clientForTopup.auto_topup_bundle_size ?? 20
+          // Canonical pricing — lead_gen $1/credit, figsy $3/credit (no volume discounts).
           const BUNDLES: Record<string, Record<number, number>> = {
-            kind_ai: { 10: 12, 20: 20, 40: 38, 75: 68, 100: 88, 200: 160, 500: 375 },
-            figsy:   { 10: 35, 20: 60, 40: 110, 75: 195, 100: 250, 200: 460, 500: 1100 },
+            kind_ai: { 10: 10, 20: 20, 40: 40, 75: 75, 100: 100, 200: 200, 500: 500 },
+            figsy:   { 10: 30, 20: 60, 40: 120, 75: 225, 100: 300, 200: 600, 500: 1500 },
           }
           const amountUsd = BUNDLES[plan]?.[bundleSize]
-          if (amountUsd) {
+
+          if ((recentTopups ?? 0) > 0) {
+            console.log(`[auto-topup] client ${clientForTopup.id} topped up within 30 min — skipping (cooldown)`)
+          } else if (amountUsd) {
             const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.user_id)
             const topupEmail = user?.email
             if (!topupEmail) throw new Error('No email for auto-topup client')
@@ -367,19 +393,23 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
                 metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
               }),
             })
-            const chargeData = await chargeRes.json() as { status: boolean; data: { status: string } }
+            const chargeData = await chargeRes.json() as { status: boolean; data: { status: string; reference?: string } }
             if (chargeData.status && chargeData.data?.status === 'success') {
-              const newBal = (clientForTopup.credit_balance ?? 0) + bundleSize
-              await Promise.all([
-                db.from('clients').update({ credit_balance: newBal }).eq('id', clientForTopup.id),
-                db.from('credit_transactions').insert({
+              // Atomic grant to the CORRECT wallet (was a read-modify-write on credit_balance).
+              const rpc = isFigsy ? 'increment_figsy_credits' : 'increment_client_credits'
+              const { error: grantErr } = await db.rpc(rpc, { p_client_id: clientForTopup.id, p_amount: bundleSize })
+              if (grantErr) {
+                console.error('[auto-topup] grant RPC failed after successful charge', grantErr.message)
+              } else {
+                await db.from('credit_transactions').insert({
                   client_id: clientForTopup.id,
                   type: 'purchase',
                   amount: bundleSize,
                   plan,
+                  reference: chargeData.data?.reference ?? undefined,
                   note: `Auto top-up: ${bundleSize} credits (${plan})`,
-                }),
-              ])
+                }).then(() => {}, () => {})
+              }
             }
           }
         }

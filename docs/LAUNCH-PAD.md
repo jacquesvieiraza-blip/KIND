@@ -14,7 +14,7 @@
 | # | Action | Who |
 |---|--------|-----|
 | 1 | ✅ ~~#966 api `railway up`~~ — DEPLOYED, #323 🩷. Done. | — |
-| 2 | Build **#324–#328** (the re-audit batch; #326 preview-first) — say "go opus" to start | 🤖 |
+| 2 | ✅ ~~#324–#328 re-audit batch~~ — merged + deployed, all 🩷. The ENTIRE #306–#328 audit is now live. | — |
 | 3 | **Sitting A** — walk the admin (~23 dots 🩷→🟢, list in M3 below) | 🧍 |
 | 4 | **Sitting B** — 2 toggles: `PDL_API_KEY` in Railway · Resend `email.bounced`+`email.complained` events | 🧍 |
 | 5 | **Sitting C** — the $60 live money walk (list in M2 below) | 🧍 |

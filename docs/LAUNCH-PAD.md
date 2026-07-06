@@ -9,6 +9,16 @@
 
 ---
 
+## 🚨 TOP PRIORITY (6 Jul) — DEEP AUDIT REMEDIATION (#306–#322), build in tier order
+**A 5-lens critical audit found 17 verified holes. Fix in tiers; Opus builds a tier → Fable verifies → next tier. 🧍-only items last.**
+- **TIER 1 — internet-exposed TODAY:** #306 mcp unauth Claude · #307 visitor-PII bypass · #308 admin-app no-auth (🤝 method) · #309 admin key in URL log.
+- **TIER 2 — before the first paying client / first send:** #310 FIGSY enroll sends $0 · #311 dead-Resend invisible · #312 unsub not suppressed · #313 Stripe credit-mint · #314 Flutterwave (🤝 live?) · #315 auto-topup double-charge · #316 pool races · #317 refunds (🤝 policy).
+- **TIER 3 — honesty/hygiene:** #318 portal deception (preview-first) · #319 pause lies · #320 global caps · #321 unthrottled Claude · #322 board integrity.
+- **🧍 founder decisions gating 🤝 items:** admin-auth method (#308) · is Flutterwave live? (#314) · refund policy (#317). Plus env cleanup (remove `ADMIN_API_KEY`) + confirm any host-level admin gate.
+- Full detail per item = PRODUCT-INVENTORY #306–#322. Reassuring result: tenant isolation clean, secrets hygiene good, double-grant guards real, lead-delivery atomic.
+
+---
+
 ## 🔖 PICK UP HERE (bookmarked 6 Jul) — move the 75 🩷 pinks → 🟢
 **Where we are:** builds are essentially done for M1 + M2 core; the needle-mover now is **verifying live** — walk each 🩷 (live-but-unwalked) into 🟢 (verified in prod). This is founder-walk work; Claude flips the dot the moment you confirm.
 

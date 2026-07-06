@@ -201,6 +201,25 @@ export function constructWebhookEvent(payload: Buffer, sig: string): any | null 
   }
 }
 
+// #317 — resolve a checkout session's metadata from a payment_intent. A refund /
+// dispute webhook carries the charge + payment_intent, NOT the checkout session id
+// that the original credit grant was keyed on — so we look the session up here to
+// recover { clientId, credits, creditType } and claw those credits back.
+export async function getSessionMetaByPaymentIntent(
+  paymentIntentId: string | null | undefined,
+): Promise<{ sessionId: string; metadata: Record<string, string> } | null> {
+  if (!stripe || !paymentIntentId) return null
+  try {
+    const sessions = await stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 })
+    const s = sessions.data[0]
+    if (!s) return null
+    return { sessionId: s.id, metadata: (s.metadata ?? {}) as Record<string, string> }
+  } catch (err) {
+    console.error('[Stripe] getSessionMetaByPaymentIntent', err)
+    return null
+  }
+}
+
 // ── Pause / resume the recurring charge (item 190 / M2) ──────────────────────
 // Stripe `pause_collection` STOPS invoicing while keeping the subscription, so a
 // paused client is genuinely not charged — not just flagged "paused" in our DB.

@@ -966,3 +966,30 @@ adminRouter.get('/errors', async (_req: Request, res: Response) => {
     res.json({ success: true, data: { errors: [] } })
   }
 })
+
+// GET /admin/clients/:id/usage — #292. Per-client usage trend: leads delivered per
+// day over the last N days (leads.client_id + created_at). Lets the founder see a
+// client fading BEFORE the churn engine fires. No new storage — direct query.
+adminRouter.get('/clients/:id/usage', async (req: Request, res: Response) => {
+  try {
+    const days = Math.min(60, Math.max(7, Number(req.query.days) || 30))
+    const since = new Date(Date.now() - days * 86400000)
+    const { data: leads } = await db.from('leads')
+      .select('created_at').eq('client_id', req.params.id).gte('created_at', since.toISOString())
+    const buckets: Record<string, { date: string; leads: number }> = {}
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      buckets[d] = { date: d, leads: 0 }
+    }
+    for (const l of leads ?? []) { const k = String((l as { created_at: string }).created_at).slice(0, 10); if (buckets[k]) buckets[k].leads++ }
+    const series = Object.values(buckets)
+    const total = (leads ?? []).length
+    const half = Math.floor(days / 2)
+    const recent = series.slice(half).reduce((s, d) => s + d.leads, 0)
+    const prior = series.slice(0, half).reduce((s, d) => s + d.leads, 0)
+    res.json({ success: true, data: { days, series, total, recent, prior, trend: recent - prior } })
+  } catch (err) {
+    console.error('[admin/clients/:id/usage]', err)
+    res.status(500).json({ success: false, error: 'Usage trend failed' })
+  }
+})

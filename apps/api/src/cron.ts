@@ -1,4 +1,6 @@
 import cron from 'node-cron'
+import { db } from '@kind/db'
+import { sendFounderAlert } from './lib/alerts'
 
 const PORT       = process.env.PORT || 4000
 const API_BASE   = `http://localhost:${PORT}`
@@ -18,6 +20,43 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
     console.log(`[cron] ${path} →`, JSON.stringify(data))
   } catch (err) {
     console.error(`[cron] ${path} failed:`, err)
+  }
+}
+
+// #285 — sends-stalled watchdog. FIGSY sending runs on /figsy/send-due-all every 2h;
+// if that pipeline silently dies (bad API key, crashed worker, DB error) enrollments
+// pile up "due" while nothing goes out. This detects that: enrollments that SHOULD have
+// sent (enrolled/in_progress with next_send_at in the past) but ZERO real sends in the
+// last 6 hours → alert the founder. Guarded to avoid false alarms — it never alerts when
+// there is simply nothing due to send. Best-effort; a failure here must not crash the cron.
+async function checkSendsStalled(): Promise<void> {
+  try {
+    const now      = new Date()
+    const sixHrAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString()
+
+    // How many enrollments are overdue right now (should have sent already)?
+    const { count: dueCount } = await db.from('figsy_enrollments')
+      .select('id', { count: 'exact', head: true })
+      .in('status', ['enrolled', 'in_progress'])
+      .lte('next_send_at', now.toISOString())
+
+    // Nothing is due — nothing to send, so a lack of sends is NOT a stall. Skip.
+    if (!dueCount || dueCount <= 0) return
+
+    // Real sends in the last 6 hours.
+    const { count: recentSends } = await db.from('figsy_sent_emails')
+      .select('id', { count: 'exact', head: true })
+      .gte('sent_at', sixHrAgo)
+
+    if ((recentSends ?? 0) > 0) return  // pipeline is moving — healthy.
+
+    await sendFounderAlert('sends_stalled', 'FIGSY sending has stalled', [
+      `${dueCount} enrollment(s) are past due to send, but 0 emails have gone out in the last 6 hours.`,
+      'The FIGSY send pipeline (/figsy/send-due-all) may be failing silently — check the API/worker logs and the send provider (Resend) key.',
+    ])
+    console.warn(`[cron] sends-stalled alert fired — ${dueCount} due, 0 sent in 6h`)
+  } catch (err) {
+    console.error('[cron] sends-stalled check failed:', err)
   }
 }
 
@@ -93,5 +132,9 @@ export function startCrons(): void {
   // Daily 08:30 UTC — P3-6 churn risk scoring
   cron.schedule('30 8 * * *', () => callInternal('/ae/churn-risk-check'), { timezone: 'UTC' })
 
-  console.log('[cron] 24 jobs scheduled')
+  // #285: Hourly (:20) — sends-stalled watchdog. Alerts the founder if FIGSY sending
+  // has stalled (enrollments overdue but zero sends in the last 6 hours).
+  cron.schedule('20 * * * *', () => { void checkSendsStalled() }, { timezone: 'UTC' })
+
+  console.log('[cron] 25 jobs scheduled')
 }

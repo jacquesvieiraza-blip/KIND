@@ -380,7 +380,7 @@ companyRouter.patch('/seats/:id', async (req: AuthRequest, res) => {
     }).parse(req.body)
 
     const { data: seat } = await db.from('clients')
-      .select('id, seat_role').eq('id', req.params.id).eq('company_id', ctx.companyId).maybeSingle()
+      .select('id, seat_role, seat_active, credit_balance').eq('id', req.params.id).eq('company_id', ctx.companyId).maybeSingle()
     if (!seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
 
     // #109 — Only the OWNER may change a seat's role (a manager runs reps but must
@@ -395,6 +395,14 @@ companyRouter.patch('/seats/:id', async (req: AuthRequest, res) => {
 
     const { error } = await db.from('clients').update(body).eq('id', req.params.id)
     if (error) throw error
+
+    // #108b — deactivating a rep returns their remaining credits to the company
+    // pool so funds aren't stranded on an inactive seat. Fires only on the active→
+    // inactive transition, and is idempotent (a zero balance returns nothing).
+    if (body.seat_active === false && (seat as any).seat_active !== false) {
+      await returnRepCreditsToPool(ctx.companyId, req.params.id)
+    }
+
     res.json({ success: true })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'Invalid input' }); return }
@@ -438,6 +446,26 @@ async function allocateToRep(companyId: string, repClientId: string, amount: num
     }).eq('id', repClientId),
   ])
   return true
+}
+
+// Shared (#108b): reverse of allocateToRep — move a rep's remaining balance back
+// to the company pool and zero the seat. Returns the amount reclaimed. No pool RPC
+// exists (credit_pool lives on companies), so this uses the same read-then-write
+// the pool is managed with everywhere in this file.
+async function returnRepCreditsToPool(companyId: string, repClientId: string): Promise<number> {
+  const [{ data: company }, { data: rep }] = await Promise.all([
+    db.from('companies').select('credit_pool').eq('id', companyId).maybeSingle(),
+    db.from('clients').select('id, credit_balance').eq('id', repClientId).eq('company_id', companyId).maybeSingle(),
+  ])
+  if (!company || !rep) return 0
+  const remaining = (rep as any).credit_balance ?? 0
+  if (remaining <= 0) return 0
+  const pool = (company as any).credit_pool ?? 0
+  await Promise.all([
+    db.from('companies').update({ credit_pool: pool + remaining }).eq('id', companyId),
+    db.from('clients').update({ credit_balance: 0 }).eq('id', repClientId),
+  ])
+  return remaining
 }
 
 // ── POST /company/credit-requests — a rep asks the owner for more ────────────

@@ -1,7 +1,22 @@
 import { Router } from 'express'
+import crypto from 'crypto'
 import { db } from '@kind/db'
 
 const router = Router()
+
+// Constant-time admin-key check against the SHARED admin secret (ADMIN_SECRET_KEY —
+// the same var every other admin/internal/engine guard uses). Fails CLOSED when the
+// secret is unset. (#307: the old guard compared against ADMIN_API_KEY — a var
+// nothing else sets — so when it was unset `undefined !== undefined` was false and
+// the route passed with NO key, leaking visitor PII to anyone.)
+function adminKeyValid(provided: unknown): boolean {
+  const secret = process.env.ADMIN_SECRET_KEY
+  if (!secret) return false
+  const a = Buffer.from(String(provided ?? ''))
+  const b = Buffer.from(secret)
+  if (a.length !== b.length) return false
+  return crypto.timingSafeEqual(a, b)
+}
 
 // POST /track/visit — called from website tracking snippet
 router.post('/visit', async (req, res) => {
@@ -57,8 +72,7 @@ router.post('/visit', async (req, res) => {
 // GET /track/admin/visitors — requires admin key, returns recent visitor sessions
 router.get('/admin/visitors', async (req, res) => {
   try {
-    const adminKey = req.headers['x-admin-key']
-    if (adminKey !== process.env.ADMIN_API_KEY) { res.status(401).json({ error: 'unauthorized' }); return }
+    if (!adminKeyValid(req.headers['x-admin-key'])) { res.status(401).json({ error: 'unauthorized' }); return }
     const { data, error } = await db.from('visitor_sessions')
       .select('*')
       .order('visited_at', { ascending: false })

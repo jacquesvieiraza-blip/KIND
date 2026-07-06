@@ -1,10 +1,15 @@
 import { Router } from 'express'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { rateLimit } from '../lib/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
 
 const router = Router()
 const claude = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// #321 — per-user cap on the Claude-backed task extractor (keyed by userId; sits
+// after requireAuth in the route chain).
+const figsyTasksAiLimit = rateLimit({ limit: 20, windowMs: 60_000, key: 'figsy-tasks-ai', byUser: true })
 
 async function getClientId(userId: string): Promise<string | null> {
   const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
@@ -31,7 +36,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
 })
 
 // POST /figsy-tasks — assign a new task to FIGSY
-router.post('/', requireAuth, async (req: AuthRequest, res) => {
+router.post('/', requireAuth, figsyTasksAiLimit, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ error: 'Client not found' }); return }

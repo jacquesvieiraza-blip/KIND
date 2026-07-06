@@ -14,8 +14,14 @@ import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { draftFollowUp, draftProposal, draftMeetingPrep } from '../lib/denise'
+import { rateLimit } from '../lib/rate-limit'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// #321 — one per-user cap SHARED across all of Denise's Claude-backed routes (chat +
+// the three draft generators), so a single client can't run up unbounded token cost
+// across them. Keyed by userId (requireAuth runs first).
+const deniseAiLimit = rateLimit({ limit: 20, windowMs: 60_000, key: 'denise-ai', byUser: true })
 
 // Stateless side-panel chat persona (113a) — the right-rail "ask Denise"
 // thread. Her draft generators stay as the dedicated POST endpoints below;
@@ -77,7 +83,7 @@ async function requireDeniseAccess(
  * Denise subscription (fail-open on lookup error, per requireDeniseAccess).
  * Body: { message, history?: [{role, content}] }  →  { success, data: { reply } }
  */
-deniseRouter.post('/chat', async (req: AuthRequest, res) => {
+deniseRouter.post('/chat', deniseAiLimit, async (req: AuthRequest, res) => {
   try {
     const { message, history } = z.object({
       message: z.string().min(1).max(2000),
@@ -122,7 +128,7 @@ deniseRouter.post('/chat', async (req: AuthRequest, res) => {
 })
 
 // ── POST /denise/draft-followup ────────────────────────────────────────────────
-deniseRouter.post('/draft-followup', async (req: AuthRequest, res) => {
+deniseRouter.post('/draft-followup', deniseAiLimit, async (req: AuthRequest, res) => {
   try {
     const access = await requireDeniseAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
@@ -152,7 +158,7 @@ deniseRouter.post('/draft-followup', async (req: AuthRequest, res) => {
 // ── POST /denise/meeting-prep ──────────────────────────────────────────────────
 // R14 (#54 slice) — Denise preps the human for a booked meeting. Pass a reply_id
 // and she assembles the prospect + conversation context and returns a briefing.
-deniseRouter.post('/meeting-prep', async (req: AuthRequest, res) => {
+deniseRouter.post('/meeting-prep', deniseAiLimit, async (req: AuthRequest, res) => {
   try {
     const access = await requireDeniseAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
@@ -195,7 +201,7 @@ deniseRouter.post('/meeting-prep', async (req: AuthRequest, res) => {
 })
 
 // ── POST /denise/draft-proposal ────────────────────────────────────────────────
-deniseRouter.post('/draft-proposal', async (req: AuthRequest, res) => {
+deniseRouter.post('/draft-proposal', deniseAiLimit, async (req: AuthRequest, res) => {
   try {
     const access = await requireDeniseAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }

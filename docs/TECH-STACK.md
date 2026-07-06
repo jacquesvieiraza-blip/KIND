@@ -29,6 +29,25 @@ Two **separate** systems, do not conflate:
 | **HubSpot / Pipedrive** | CRM dedup + deal push integration (item 43, built) |
 | **Domains** | `get-kind.com` (product) · `gettingkind.com` (cold-send identity) |
 
+## 🗄️ DATABASE MIGRATIONS — canonical source-of-truth (#273)
+> There are **three** migration folders + one consolidated snapshot, historically out of sync. This is the map. **Do NOT delete or move any migration** — several are already applied to prod; deleting them loses the audit trail. This is documentation only.
+
+**Applied truth (what the DB actually is):** the live/staging Supabase database. `supabase/staging-schema.sql` is a **consolidated, idempotent snapshot** (generated 2026-06-12) that rebuilds a fresh Supabase project in one paste — use it as the diff baseline, but note it predates every migration dated after 2026-06-12.
+
+**Canonical dir going forward = `supabase/migrations/`.** It is the Supabase-CLI-convention folder, the most complete (60 files), and the only one still receiving new work (dated through 2026-07-02, incl. RLS, RPCs, billing-correctness). New migrations go here.
+
+| Folder | Role | Rule |
+|--------|------|------|
+| **`supabase/migrations/`** | **CANONICAL.** Date-prefixed (`YYYYMMDD_*.sql`), current, actively maintained. | All new migrations land here. |
+| `packages/db/src/migrations/` | **Legacy.** Numbered `001`–`013`, seeded the original core tables (figsy_*, milla_*, vida_*, denise_*, partners). Superseded for new work. | Keep (historical/applied); don't add to. |
+| `apps/api/src/migrations/` | **App-run set.** 7 files (2026-06-02 → 06-22). Hand-applied, tracked separately from the canonical dir. | Fold future changes into `supabase/migrations/`. |
+
+**Known discrepancies (as of 3 Jul 2026):**
+- **7 tables live ONLY in `apps/api/src/migrations/`** and are absent from `supabase/migrations/`: `calendar_bookings`, `figsy_chat_messages`, `figsy_approval_queue`, `figsy_linkedin_queue`, `push_subscriptions`, `outcome_events`, `webhook_endpoints`.
+- **`webhook_endpoints` is FLAGGED as not-yet-applied to the live DB** — see the note in `apps/api/src/routes/developer.ts` (`20260622_webhook_endpoints.sql`). Those routes degrade gracefully until it is run.
+- **`calendar_bookings`** is defined in **two** dirs (`packages/db/.../007_calendar.sql` and `apps/api/.../20260602_calendar_bookings.sql`) but not in the canonical dir.
+- **No exact-content duplicate files** exist across the three folders (verified by md5) — the overlaps are same-table / different-file, not literal copies.
+
 ## 🏢 BUSINESS / OPS STACK (the company layer)
 | Tool | Role | Status |
 |------|------|--------|

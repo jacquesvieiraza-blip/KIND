@@ -3,7 +3,7 @@
 **As of: 7 July 2026 PM · admin walk banked + Fable money audit → MILESTONE 0 opened.** This page = the four milestones and what to do right now. Nothing else lives here.
 **History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
 
-**Board:** 🟢106 verified · 🩷84 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴123 not built · ⏸5 blocked · Σ343 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢107 verified · 🩷91 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴115 not built · ⏸5 blocked · Σ343 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
@@ -48,7 +48,7 @@
 
 # ⓪ MILESTONE 0 — MONEY-PATH INTEGRITY (opened 7 Jul · Fable audit · BLOCKS M2)
 
-**WHERE IT STANDS: the Fable end-to-end money audit (7 Jul) returned PASS-WITH-RISKS.** Nobody can forge a payment or mint credits — but 8 holes let value ship unpaid, hide the meter, or break a client's safety net. **No real client until M0 closes.** All 8 logged 🔴 as **#330–#337** (detail by ID in PRODUCT-INVENTORY).
+**WHERE IT STANDS: all 8 fixes SHIPPED + LIVE 7 Jul (🩷). Money path is fail-closed.** The Fable audit returned PASS-WITH-RISKS; all 8 holes (#330–#337) were built, then a **triple Fable re-audit** found 13 more edge-cases (paid-but-nothing, self-referral, drip-starves-payers…) — all closed in the P1–P14 patch round (**PR #985**). Merged as 4 clean PRs (#980 docs · #978 funnel · #985 money+patches · #982 portal), SQL run on staging **and** prod, api+admin+portal deployed. `/engine/env` now reports `money_rpcs: installed` — the permanent anti-drift guard. **Two things still close M0:** (a) set `PDL_API_KEY`+`HUNTER_API_KEY` → run `/engine/leads/test`; (b) the $60 walk showing a credit visibly drop. Until those, the 8 stay 🩷 (live, not walked).
 
 **The money model (locked):** every client = FIGSY plan · **$3 = 1 credit = 1 lead ENROLLED** (FIGSY works the prospect start-to-finish; browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits at signup.
 

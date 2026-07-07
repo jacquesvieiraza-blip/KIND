@@ -1734,21 +1734,37 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
             s.status === 'trialing' &&
             ((s.trial_ends_at && new Date(s.trial_ends_at).getTime() > nowMs) ||
              (s.current_period_end && new Date(s.current_period_end).getTime() > nowMs)))
-          if (!hasActive && !hasValidTrial) {
-            console.log(`[leads/drip] skip client ${client.id} — FIGSY trial expired unconverted (no active or in-period trialing subscription)`)
+          // P2 — FIGSY clients convert by BUYING A CREDIT BUNDLE (a one-time checkout
+          // that creates NO subscription row), not only by holding an active/trialing
+          // subscription. Treating "converted" as subscription-only starves paying
+          // bundle-buyers of their leads. If the client has EVER purchased FIGSY
+          // credits, they are converted — never halt them (the 3× cap below still
+          // applies to everyone and self-relaxes as balance grows).
+          const { count: figsyPurchaseCount } = await db.from('credit_transactions')
+            .select('id', { count: 'exact', head: true })
+            .eq('client_id', client.id).eq('type', 'purchase').eq('plan', 'figsy')
+          const hasPurchased = (figsyPurchaseCount ?? 0) > 0
+          if (!hasActive && !hasValidTrial && !hasPurchased) {
+            console.log(`[leads/drip] skip client ${client.id} — FIGSY trial expired unconverted (no active/in-period trialing subscription and no FIGSY bundle purchase)`)
             continue
           }
 
           // (b) 3× free-leads cap: never let delivered-but-never-enrolled (free) leads
           // run more than 3× the client's current FIGSY balance ahead. A delivered
           // lead with no figsy_enrollments row for this client is a free lead.
-          const [{ count: deliveredCount }, { count: enrolledCount }] = await Promise.all([
+          const [deliveredRes, enrolledRows] = await Promise.all([
             db.from('leads').select('id', { count: 'exact', head: true })
               .eq('client_id', client.id).not('delivered_at', 'is', null),
-            db.from('figsy_enrollments').select('id', { count: 'exact', head: true })
+            db.from('figsy_enrollments').select('lead_id')
               .eq('client_id', client.id),
           ])
-          const freeLeads = Math.max(0, (deliveredCount ?? 0) - (enrolledCount ?? 0))
+          // P14 — count DISTINCT enrolled leads. A lead enrolled in 2 campaigns has 2
+          // figsy_enrollments rows; a raw row count would over-count enrollments and
+          // under-count free leads (a delivered lead is "free" only if it has NO
+          // enrollment at all, regardless of how many campaigns it's in).
+          const deliveredCount = deliveredRes.count ?? 0
+          const enrolledCount = new Set((enrolledRows.data ?? []).map((r: { lead_id: string }) => r.lead_id)).size
+          const freeLeads = Math.max(0, deliveredCount - enrolledCount)
           if (freeLeads >= 3 * balance) {
             console.log(`[leads/drip] skip client ${client.id} — free-leads cap hit (${freeLeads} delivered-unenrolled ≥ 3× ${balance} FIGSY credits)`)
             continue

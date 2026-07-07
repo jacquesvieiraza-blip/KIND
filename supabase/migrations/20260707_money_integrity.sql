@@ -50,3 +50,24 @@ ALTER TABLE public.clients
 -- retries follow.
 ALTER TABLE public.clients
   ADD COLUMN IF NOT EXISTS referral_bonus_paid_at timestamptz;
+
+-- ── P7: figsy_enrollments (campaign_id, lead_id) uniqueness — race-safety index ─
+-- Two concurrent enrolls of the same lead into the same campaign (webhook re-fire,
+-- cron overlap, manual re-run) both pass the app-layer "already enrolled?" SELECT
+-- before either INSERT lands — a classic TOCTOU that double-charges (two credits,
+-- two enrollment rows, two sends). The app guard cannot close that window; only a
+-- DB unique index can. With the index in place the second concurrent insert fails,
+-- and the refund path (refundFigsyEnroll) self-heals the credit that was charged.
+-- Staging already has this as a table-level UNIQUE(campaign_id, lead_id); PROD needs
+-- it added here.
+--
+-- Dedupe first (a plain CREATE UNIQUE INDEX would fail if duplicates already exist):
+-- keep the earliest row per (campaign_id, lead_id), delete the rest.
+DELETE FROM public.figsy_enrollments a
+USING public.figsy_enrollments b
+WHERE a.campaign_id = b.campaign_id
+  AND a.lead_id     = b.lead_id
+  AND a.id > b.id;
+
+CREATE UNIQUE INDEX IF NOT EXISTS figsy_enrollments_campaign_lead_uidx
+  ON public.figsy_enrollments(campaign_id, lead_id);

@@ -373,6 +373,10 @@ create index if not exists figsy_enrollments_campaign_id_idx  on public.figsy_en
 create index if not exists figsy_enrollments_lead_id_idx      on public.figsy_enrollments(lead_id);
 create index if not exists figsy_enrollments_next_send_at_idx on public.figsy_enrollments(next_send_at);
 create index if not exists figsy_enrollments_status_idx       on public.figsy_enrollments(status);
+-- P7 — race-safety uniqueness. The table-level unique(campaign_id, lead_id) above
+-- already enforces this on staging; this named index mirrors prod's money-integrity
+-- migration (20260707) so the two schemas match name-for-name.
+create unique index if not exists figsy_enrollments_campaign_lead_uidx on public.figsy_enrollments(campaign_id, lead_id);
 
 create table if not exists public.figsy_sent_emails (
   id            uuid primary key default uuid_generate_v4(),

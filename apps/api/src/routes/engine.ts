@@ -8,6 +8,7 @@
 
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
+import { db } from '@kind/db'
 import { verifySmartlead, smartleadConfigured } from '../lib/smartlead'
 import { pdlSearchPeople, pdlSearchDiagnostic } from '../lib/pdl-search'
 import { waterfallEnrich, revealTrace } from '../lib/enrichment'
@@ -126,7 +127,7 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
 // verified at a glance (open in a browser with ?key=). Centralises the env checks
 // that were scattered across routes (calendar/voice/whatsapp/integrations) into the
 // one diagnostic surface. Read-only; admin-gated above; no secrets leave the box.
-engineRouter.get('/env', (_req: Request, res: Response) => {
+engineRouter.get('/env', async (_req: Request, res: Response) => {
   const has = (k: string) => !!(process.env[k] && String(process.env[k]).trim())
   const groups = {
     core: {
@@ -180,6 +181,34 @@ engineRouter.get('/env', (_req: Request, res: Response) => {
   const allSet = (g: Record<string, boolean>) => Object.values(g).every(Boolean)
   const missing = Object.entries(groups).flatMap(([grp, keys]) =>
     Object.entries(keys).filter(([, v]) => !v).map(([k]) => `${grp}.${k}`))
+
+  // P13 — the anti-#330 guard. Env keys being present says nothing about whether the
+  // money RPCs are actually installed in the live DB. A missing function is invisible
+  // until a real charge/grant silently 42883-fails. Probe both money RPCs against the
+  // all-zeros UUID (a no-op: try_charge_figsy_credit finds no row → false; a 0-amount
+  // increment changes nothing) so "is the live DB missing a money function" is
+  // answerable with one curl, forever. A function-not-found error (Postgres 42883 /
+  // PostgREST PGRST202) = MISSING; any other outcome (clean value, or a data error
+  // like a bad-uuid) = the function EXISTS and was reached = installed.
+  const probeRpc = async (fn: string, args: Record<string, unknown>): Promise<'installed' | 'MISSING'> => {
+    try {
+      const { error } = await db.rpc(fn, args)
+      if (error && (error.code === '42883' || error.code === 'PGRST202')) return 'MISSING'
+      return 'installed'
+    } catch {
+      return 'installed' // reached the DB and it threw for another reason → the fn exists
+    }
+  }
+  const ZERO_UUID = '00000000-0000-0000-0000-000000000000'
+  const [tryChargeStatus, incrementStatus] = await Promise.all([
+    probeRpc('try_charge_figsy_credit', { p_client_id: ZERO_UUID }),
+    probeRpc('increment_figsy_credits', { p_client_id: ZERO_UUID, p_amount: 0 }),
+  ])
+  const money_rpcs = {
+    try_charge_figsy_credit: tryChargeStatus,
+    increment_figsy_credits: incrementStatus,
+  }
+
   res.json({
     success: true,
     ready: {
@@ -189,6 +218,7 @@ engineRouter.get('/env', (_req: Request, res: Response) => {
     },
     missing,
     groups,
-    note: 'Booleans only — no secret values are returned. core+sending = M1 ready; +billing = M2 ready.',
+    money_rpcs,
+    note: 'Booleans only — no secret values are returned. core+sending = M1 ready; +billing = M2 ready. money_rpcs probes the live DB for the FIGSY charge/grant functions (installed | MISSING).',
   })
 })

@@ -596,7 +596,10 @@ export async function chargeFigsyEnroll(
 ): Promise<boolean> {
   const leadName = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || '(unknown lead)'
   const { data: charged, error } = await db.rpc('try_charge_figsy_credit', { p_client_id: clientId })
-  if (error || charged === false) {
+  // P6 — fail CLOSED: only a hard `true` from the RPC counts as a real charge. A
+  // null/undefined return (RPC returned no row, or an unexpected shape) must NOT be
+  // treated as a successful charge — that would enrol a lead for free.
+  if (error || charged !== true) {
     console.error('[figsy] chargeFigsyEnroll: FIGSY credit charge failed', error?.message ?? 'insufficient balance', 'client', clientId)
     void sendFounderAlert('charge_failed', 'FIGSY enrollment charge failed — lead NOT enrolled', [
       `Client: ${clientId}`,
@@ -624,6 +627,13 @@ export async function refundFigsyEnroll(clientId: string): Promise<void> {
   const { error } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 })
   if (error) {
     console.error('[figsy] refundFigsyEnroll: FIGSY credit refund failed', error.message, 'client', clientId)
+    // P9 — a failed refund means the client LOST a credit for an enrollment that
+    // never landed. Don't let that sit in console-only; alert so it can be fixed.
+    void sendFounderAlert('charge_failed', 'FIGSY refund failed — client lost a credit', [
+      `Client: ${clientId}`,
+      `An enrollment failed after the FIGSY credit was charged, and returning the credit also failed: ${error.message}`,
+      'Action: grant 1 FIGSY credit back to this client manually.',
+    ])
     return
   }
   await db.from('credit_transactions').insert({
@@ -703,6 +713,7 @@ async function generateDay1Email(
   senderCompany: string,
   senderIndustry: string | null,
   senderName?: string | null,
+  clientKnowledge?: string,
 ): Promise<Day1Draft> {
   const prompt = `You are writing a cold email on behalf of ${senderCompany}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — someone who noticed this prospect and decided to reach out. Not templated. Not AI-sounding. Like someone who typed this in 90 seconds.
 
@@ -713,12 +724,16 @@ Lead:
 - Industry: ${lead.industry || 'unknown'}
 - Country: ${lead.country || 'unknown'}
 ${lead.score_reasoning ? `- Why they're a fit: ${lead.score_reasoning}` : ''}
-
+${clientKnowledge ? `
+What the sender offers (grounding) — the ONLY source of truth about ${senderCompany}'s product, results and proof. Use these facts to make the "why it matters to them" line specific; never invent a capability, metric, customer, or result for ${senderCompany} beyond it:
+${clientKnowledge}
+` : ''}
 Write one cold email. First touch. Under 70 words.
 
 Rules:
 - Open with a specific observation about their role or company — not a compliment, a real observation
 - One sentence on what ${senderCompany} does and why it matters to them
+- Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above. If that block is empty or doesn't cover something, stay generic about the sender — never invent a capability, metric, customer, or result for ${senderCompany}.
 - One CTA: short call, 15 minutes
 - No bullet points in the body
 - No em-dashes (—)
@@ -764,6 +779,11 @@ export async function sendDay1OutreachBatch(
   const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
   const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
+  // P10/#335 — ground the day-1 writer in what the client actually sells (fetched
+  // ONCE for the whole batch), so it can't invent sender claims. Same digest +
+  // hard no-fabrication rule the multi-step generateSequence path already uses.
+  const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
   const { data: leads } = await db.from('leads')
     .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
     .in('id', leadIds)
@@ -786,7 +806,7 @@ export async function sendDay1OutreachBatch(
     if (blocked) continue
 
     try {
-      const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName)
+      const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName, clientKnowledge)
 
       // #311 — do not record a day-1 "sent" row when Resend is unconfigured (that made
       // a dead key invisible + fed the watchdog false sends). Skip the lead instead.
@@ -1148,20 +1168,32 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
-    const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
-      campaign_id:    campaign.id,
-      lead_id:        leadId,
-      client_id:      clientId,
-      status:         'enrolled',
-      current_step:   0,
-      next_send_at:   new Date().toISOString(), // send step 1 immediately
-      step1_subject:  step1Subject,
-      step1_body:     draft.step1.body,
-      step2_subject:  draft.step2.subject,
-      step2_body:     draft.step2.body,
-      step3_subject:  draft.step3.subject,
-      step3_body:     draft.step3.body,
-    }).select('id').single()
+    // P8 — a supabase insert normally RETURNS its error, but any THROW here (network
+    // drop, unexpected client error) after a successful charge would otherwise land in
+    // the outer catch as a SILENT credit leak (charged, never enrolled, never refunded).
+    // Guard the insert: on a throw, return the credit before bailing.
+    let insertRes
+    try {
+      insertRes = await db.from('figsy_enrollments').insert({
+        campaign_id:    campaign.id,
+        lead_id:        leadId,
+        client_id:      clientId,
+        status:         'enrolled',
+        current_step:   0,
+        next_send_at:   new Date().toISOString(), // send step 1 immediately
+        step1_subject:  step1Subject,
+        step1_body:     draft.step1.body,
+        step2_subject:  draft.step2.subject,
+        step2_body:     draft.step2.body,
+        step3_subject:  draft.step3.subject,
+        step3_body:     draft.step3.body,
+      }).select('id').single()
+    } catch (insertThrow) {
+      console.error('[figsy] autoEnrollLead: enrollment insert threw after charge — refunding credit for lead', leadId, insertThrow)
+      await refundFigsyEnroll(clientId)
+      return
+    }
+    const { data: enrollment, error } = insertRes
 
     if (error || !enrollment) {
       // We already charged — return the credit so the wallet + ledger reconcile.

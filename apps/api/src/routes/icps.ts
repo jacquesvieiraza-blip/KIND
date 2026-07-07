@@ -203,22 +203,11 @@ export async function runIcpJob(
         created_at: now,
       })
 
-      if (clientRow.referred_by) {
-        const { data: referrer } = await db.from('clients')
-          .select('id, credit_balance').eq('id', clientRow.referred_by).maybeSingle()
-        if (referrer) {
-          await db.from('clients')
-            .update({ credit_balance: (referrer.credit_balance ?? 0) + 100 })
-            .eq('id', referrer.id)
-          await db.from('credit_transactions').insert({
-            client_id: referrer.id,
-            amount: 100,
-            type: 'referral_bonus',
-            note: `Referral bonus — ${clientRow.company_name ?? 'a new client'} joined`,
-            created_at: now,
-          })
-        }
-      }
+      // NOTE (#336): the REFERRER bonus used to fire here on the referred
+      // client's first ICP run — but a first run is FREE, so a referrer could
+      // farm +100 per fake signup, and the grant landed in the retired
+      // credit_balance wallet. It now fires on the referred client's first
+      // PURCHASE (see stripe.ts webhook), paid in spendable FIGSY credits.
 
       try {
         const { data: { user } } = await db.auth.admin.getUserById(userId)

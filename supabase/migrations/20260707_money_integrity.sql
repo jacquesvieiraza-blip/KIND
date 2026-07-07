@@ -40,3 +40,13 @@ GRANT  EXECUTE ON FUNCTION try_charge_figsy_credit TO service_role;
 -- daily sweep re-warns at most once per 7 days.
 ALTER TABLE public.clients
   ADD COLUMN IF NOT EXISTS low_credit_warned_at timestamptz;
+
+-- ── referral bonus idempotency marker (#336) ────────────────────────────────
+-- The referrer bonus moved off "first ICP run" (free → farmable, paid the
+-- retired credit_balance wallet) to the referred client's FIRST PURCHASE, paid
+-- in FIGSY credits. This timestamp on the REFERRED client's row is the single
+-- idempotency guard: an atomic conditional UPDATE claims it only while null, so
+-- the referrer is paid exactly once no matter how many purchases or webhook
+-- retries follow.
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS referral_bonus_paid_at timestamptz;

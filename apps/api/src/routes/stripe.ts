@@ -74,6 +74,51 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
   }
 }
 
+// ── #336 — client referral bonus on the referred client's FIRST PURCHASE ──────
+// A client who was referred by another CLIENT (clients.referred_by) earns their
+// referrer 15 spendable FIGSY credits (≈$45) the first time they actually pay.
+// This replaces the old "first ICP run" trigger in icps.ts, which was farmable
+// (a first run is free) and paid into the retired credit_balance wallet.
+//
+// Idempotency: a single atomic conditional UPDATE claims clients.
+// referral_bonus_paid_at only while it is still null. If the UPDATE returns a
+// row we won the claim and pay exactly once; a retried/concurrent webhook or a
+// later purchase finds the marker set and no-ops. Never throws — the caller
+// runs it fire-and-forget so a payout failure can't break the payment webhook.
+const REFERRAL_BONUS_FIGSY_CREDITS = 15
+async function payReferrerOnFirstPurchase(referredClientId: string) {
+  const { data: client } = await db.from('clients')
+    .select('id, company_name, referred_by, referral_bonus_paid_at')
+    .eq('id', referredClientId)
+    .maybeSingle()
+
+  if (!client?.referred_by || client.referral_bonus_paid_at) return // no referrer, or already paid
+
+  // Atomic claim: only the first winner flips the marker from null.
+  const now = new Date().toISOString()
+  const { data: claimed } = await db.from('clients')
+    .update({ referral_bonus_paid_at: now })
+    .eq('id', referredClientId)
+    .is('referral_bonus_paid_at', null)
+    .select('id')
+  if (!claimed || claimed.length === 0) return // lost the race — someone else is paying
+
+  // Ledger row first (audit trail), then the atomic FIGSY credit grant.
+  await db.from('credit_transactions').insert({
+    client_id: client.referred_by,
+    type:      'referral_bonus',
+    amount:    REFERRAL_BONUS_FIGSY_CREDITS,
+    plan:      'figsy',
+    note:      `Referral bonus — ${client.company_name ?? 'a referred client'} made their first purchase`,
+    created_at: now,
+  })
+  const { error: rpcErr } = await db.rpc('increment_figsy_credits', {
+    p_client_id: client.referred_by,
+    p_amount:    REFERRAL_BONUS_FIGSY_CREDITS,
+  })
+  if (rpcErr) throw rpcErr
+}
+
 export const stripeRouter = Router()
 
 // ── GET /stripe/status ────────────────────────────────────────────────────────
@@ -302,6 +347,11 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         const bundle = bundleList.find(b => b.credits === credits)
         const amountUsd = bundle?.price ?? 0
         if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
+
+        // #336 — pay the referrer on this client's FIRST purchase (see helper).
+        // Fire-and-forget: a payout failure must never break the paid webhook.
+        void payReferrerOnFirstPurchase(clientId).catch(err =>
+          console.error('[Stripe] referral bonus payout failed (non-fatal):', err))
       }
     }
 

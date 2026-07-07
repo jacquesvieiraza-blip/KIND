@@ -28,9 +28,9 @@ export function ReferralBanner({ referralCode }: Props) {
           <Gift className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">
-          <p className="font-semibold text-sm">Refer a friend — both of you get $100 in leads</p>
+          <p className="font-semibold text-sm">Refer a friend — get 15 FIGSY credits when they buy</p>
           <p className="text-white/60 text-xs mt-0.5 mb-3">
-            Share your link. When they sign up and run their first ICP, you each get 100 credits ($100 worth of leads) added automatically.
+            Share your link. When a business you refer makes their first purchase, 15 FIGSY credits are added to your account automatically.
           </p>
           <div className="flex items-center gap-2">
             <div className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-xs text-white/80 font-mono truncate">

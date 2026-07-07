@@ -597,6 +597,7 @@ GRANT  EXECUTE ON FUNCTION try_charge_figsy_credit TO service_role;
 alter table public.clients add column if not exists referred_by           uuid references public.clients(id) on delete set null;
 alter table public.clients add column if not exists credit_balance        integer not null default 0;
 alter table public.clients add column if not exists low_credit_warned_at  timestamptz; -- mirrors 20260707_money_integrity (FIGSY low-credit warning sweep)
+alter table public.clients add column if not exists referral_bonus_paid_at timestamptz; -- mirrors 20260707_money_integrity (#336 referrer bonus paid once on referred client's first purchase)
 alter table public.clients add column if not exists first_icp_run_at      timestamptz;
 alter table public.clients add column if not exists terms_accepted_at     timestamptz;
 alter table public.clients add column if not exists terms_accepted_ip     text;

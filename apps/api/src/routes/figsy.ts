@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
 import { buildDraftFromSequence, emailSteps, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
@@ -502,6 +502,10 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
       .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
     let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
 
+    // #335 — fetch the client's business-knowledge digest ONCE (bounded), reused
+    // for every lead's generated sequence so the solution half is grounded.
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
     let enrolled = 0
     let skipped  = 0
     let insufficientCredits = false
@@ -521,7 +525,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
 
       try {
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
 
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
         // failure means the balance is gone — stop enrolling further leads.
@@ -1459,6 +1463,10 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
       .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
     let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
 
+    // #335 — fetch the client's business-knowledge digest ONCE (bounded), reused
+    // for every lead's generated sequence so the solution half is grounded.
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
     let enrolled = 0
     let skipped  = 0
     let insufficientCredits = false
@@ -1478,7 +1486,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
       try {
         // Item 187 — applied sequence's literal copy if present, else AI-generated.
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
 
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
         // failure means the balance is gone — stop enrolling further leads.
@@ -1540,7 +1548,8 @@ figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res
     const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
     const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
-    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
     res.json({ success: true, data: draft })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -1577,8 +1586,10 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
       industry: client?.industry ?? null, seniority: 'senior',
       country: 'ZA', tech_stack: [], score: 85, score_reasoning: 'Test preview',
     }
-    // Pass the configured signer so the test reflects the real campaign sign-off.
-    const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null, undefined, undefined, (client as { signer_name?: string | null })?.signer_name ?? null)
+    // Pass the configured signer so the test reflects the real campaign sign-off,
+    // plus the client's knowledge digest so the test copy is grounded like production.
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+    const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null, undefined, undefined, (client as { signer_name?: string | null })?.signer_name ?? null, clientKnowledge)
     const step1 = sequence?.step1
     if (!step1?.subject || !step1?.body) {
       res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return

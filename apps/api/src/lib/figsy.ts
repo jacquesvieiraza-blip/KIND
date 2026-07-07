@@ -142,6 +142,46 @@ export function personalizationSignals(
   return signals
 }
 
+// #335 — Feed the client's own business knowledge (the Train-FIGSY "knowledge"
+// store, figsy_knowledge) into cold-outreach generation so the SOLUTION half of
+// every email is grounded in what the sender actually sells, their proof points
+// and results — instead of a generic pitch — and so the AI can never invent
+// claims about the sender's own product. Returns a compact plain-text digest,
+// capped so the prompt stays bounded, or '' when the client has saved nothing
+// (→ generation behaves exactly as before: generic but never fabricated).
+export async function getClientKnowledgeForOutreach(clientId: string): Promise<string> {
+  if (!clientId) return ''
+  try {
+    // Only the kinds that describe the SENDER's offer/positioning — not the
+    // targeting keywords or guardrails, which don't belong in the copy.
+    const KINDS = ['pitch', 'messaging']
+    const { data } = await db.from('figsy_knowledge')
+      .select('kind, data').eq('client_id', clientId).in('kind', KINDS)
+    if (!data?.length) return ''
+    const byKind = new Map<string, Record<string, unknown>>()
+    for (const row of data as { kind: string; data: Record<string, unknown> | null }[]) {
+      byKind.set(row.kind, row.data ?? {})
+    }
+    const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
+    const lines: string[] = []
+    const pitch = byKind.get('pitch')
+    if (pitch) {
+      if (str(pitch.pitch))           lines.push(`Value proposition: ${str(pitch.pitch)}`)
+      if (str(pitch.product))         lines.push(`What the sender sells: ${str(pitch.product)}`)
+      if (str(pitch.pain_points))     lines.push(`Pains the sender solves: ${str(pitch.pain_points)}`)
+      if (str(pitch.differentiators)) lines.push(`Differentiators / proof points: ${str(pitch.differentiators)}`)
+    }
+    const messaging = byKind.get('messaging')
+    if (messaging && str(messaging.style)) lines.push(`Preferred voice/persona: ${str(messaging.style)}`)
+    const digest = lines.filter(Boolean).join('\n').trim()
+    // Cap so the prompt stays bounded regardless of how much the client saved.
+    return digest.slice(0, 1500)
+  } catch (err) {
+    console.warn('[figsy] getClientKnowledgeForOutreach failed — proceeding without grounding', err)
+    return ''
+  }
+}
+
 export async function generateSequence(
   lead: Lead,
   senderCompanyName: string,
@@ -149,6 +189,7 @@ export async function generateSequence(
   campaignIntent?: string,
   bookingUrl?: string | null,
   senderName?: string | null,
+  clientKnowledge?: string,
 ): Promise<SequenceDraft> {
   // ── Signal detection — pick the best personalization hook ─────────────────
   const signals = personalizationSignals(lead)
@@ -169,7 +210,10 @@ Lead details:
 ${bestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${bestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
 ${extraSignals.length ? `- Other real signals about this lead (use a DIFFERENT one to open each follow-up so no two emails repeat the same angle):\n${extraSignals.map(s => `  • ${s}`).join('\n')}` : ''}
-
+${clientKnowledge ? `
+What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use these facts to make the SOLUTION half of each email specific ("this is YOUR problem, and here's how ${senderCompanyName} solves it"):
+${clientKnowledge}
+` : ''}
 Write a 3-email sequence:
 
 Step 1 (Day 0) — First touch:
@@ -196,6 +240,7 @@ Hard rules (violating any of these makes the email useless):
 - No em-dashes (—) — they read as AI
 - Don't mention you're an AI or automation
 - Don't make up facts about their company you don't know
+- Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above. If that block is empty or doesn't cover something, stay generic about the sender — never invent a capability, metric, customer, or result for ${senderCompanyName}.
 - Subject lines: 4–6 words, lowercase, no punctuation, no questions
 - End every email with: "Reply STOP to opt out."
 ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, or use any other name.` : '- Sign off with a real first name (pick a name that fits the sender\'s company)'}
@@ -832,8 +877,11 @@ export async function generateSequenceWithMemory(
   const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
   const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
+  // #335 — ground the SOLUTION half in what the client actually sells.
+  const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
   if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge)
   }
 
   // P2-1: 3-type memory model
@@ -887,7 +935,10 @@ export async function generateSequenceWithMemory(
 
 FIGSY Campaign Intelligence (use this to improve your writing):
 ${memoryContext}
-${campaignIntent ? `
+${clientKnowledge ? `
+What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use it to make the solution half specific; never invent a capability, metric, customer, or result for ${senderCompanyName} beyond it:
+${clientKnowledge}
+` : ''}${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.
 ` : ''}
@@ -912,6 +963,7 @@ Hard rules:
 - No bullet points in the email body
 - No em-dashes (—)
 - Don't mention AI or automation
+- Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above; if it's empty or silent on something, stay generic about the sender — never fabricate.
 - Subject: 4–6 words, lowercase, no punctuation
 - End every email: "Reply STOP to opt out."
 ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a South African-sounding first name'}
@@ -932,7 +984,7 @@ Return ONLY valid JSON:
     return JSON.parse(stripJson(raw)) as SequenceDraft
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge)
   }
 }
 

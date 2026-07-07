@@ -1,9 +1,9 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 6 July 2026 PM · plan set for 7 July.** This page = the three milestones and what to do right now. Nothing else lives here.
+**As of: 7 July 2026 · admin walk banked.** This page = the three milestones and what to do right now. Nothing else lives here.
 **History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
 
-**Board:** 🟢93 verified · 🩷97 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴114 not built · ⏸5 blocked · Σ334 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢106 verified · 🩷84 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴115 not built · ⏸5 blocked · Σ335 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
@@ -17,8 +17,8 @@
 2. **Sort Smartlead access** — sign up / grab the API key. **This is THE last M2 gate (#211)** — the moment I have it I start the multi-day per-client-sending build. *(M2)*
 3. **Glance at Instantly warm-up %** — the one M1 gate. If ≥90% → jump to the M1 fire-drill (§① below). If not, leave it, it's a clock. *(M1)*
 
-**🕙 MID-MORNING — verify the admin is real (Sitting A, ~1 hr):**
-4. Walk `admin.get-kind.com` — the 7 screens listed in **§③ below**; confirm each loads + shows honest data. Report back screen-by-screen and I flip ~23 dots 🩷→🟢. *(M3)*
+**🕙 MID-MORNING — ✅ Sitting A DONE 7 Jul:**
+4. ~~Walk `admin.get-kind.com`~~ — walked; 13 dots flipped 🩷→🟢. Remaining: deploy PR #978 (funnel fix) → re-walk #291 green; #279/#289/#290 need data/wiring before they can go green. *(M3)*
 
 **🕐 MIDDAY — two config toggles (Sitting B, 10 min):**
 5. In Railway set **`PDL_API_KEY`**; in Resend enable **`email.bounced`** + **`email.complained`** events. → verifies #243 + #267. *(M2/M3)*
@@ -35,7 +35,7 @@
 | # | Action | Who |
 |---|--------|-----|
 | 1 | ✅ ~~Whole #306–#328 audit~~ — 23 items merged + deployed + live. Product is safe. | — |
-| 2 | **Sitting A** — walk the admin (~23 dots 🩷→🟢, list in M3 below) | 🧍 |
+| 2 | ✅ ~~**Sitting A** — walk the admin~~ — DONE 7 Jul: 13 dots 🩷→🟢; 4 held back (#291 bug-fixed PR #978 · #279/#289/#290 need data/wiring) | — |
 | 3 | **Sitting B** — 2 toggles: `PDL_API_KEY` in Railway · Resend `email.bounced`+`email.complained` events | 🧍 |
 | 4 | **Sitting C** — the $60 live money walk (list in M2 below) | 🧍 |
 | 5 | **Send GitHub flag appeal** (drafted, in chat 6 Jul) → restores auto-deploy | 🧍 |
@@ -87,20 +87,19 @@
 
 # ③ MILESTONE 3 — The admin cockpit we run the business from
 
-**WHERE IT STANDS: built, honest, login-gated, re-audit clean. Zero verified — because you haven't walked it. That's the whole gap.**
+**WHERE IT STANDS: WALKED 7 Jul — 13 screens verified honest + live → flipped 🟢. Four data-backed shells held back (they render honestly but have no real data yet) + one bug fixed. That's the whole remaining gap.**
 
-**Sitting A — one pass at `admin.get-kind.com`, confirm each loads + shows honest data (~23 dots flip 🩷→🟢):**
-1. **Cockpit** (#272) — KPIs, real system-health probe, real MRR
-2. **Sales Channel** (#274/#288/#294) — partner lens real, AE lens says "sample"
-3. **Finance/Revenue** (#287/#289/#295/#296/#297) — MRR · ARPU · invoices · refunds · renewals · NPS card · MRR-over-time
-4. **Clients** (#281/#292) — list · drill-down · at-risk tile · usage sparkline
-5. **Engine/Health** (#279/#304/#290) — deliverability graph · cron history · recent API errors
-6. **Nora rail** (#275) — ask a question, get a reply
-7. **GTM/Funnel** (#291)
+**✅ Sitting A — DONE 7 Jul.** Walked `admin.get-kind.com`; each screen loaded + showed honest data. **13 dots flipped 🩷→🟢:** #272 Cockpit · #274/#288/#294 Sales Channel · #287/#295/#296/#297 Finance · #281/#292/#293 Clients · #304 Engine cron history · #275 Nora ("she replies").
 
-**Stays empty on purpose (correctly labelled, don't fail it for this):** Ops inbox-pool + AE lenses + deliverability data — they wait for Smartlead (#211/#270/#271/#276/#280).
+**🩷 Held back on purpose (built + live but NOT verifiable-green yet — no real data / not wired):**
+- **#291 GTM funnel** — had a >100% conversion bug (Trial→Paid 367%); **fixed in PR #978** (cohort math). Flips 🟢 once deployed + re-walked.
+- **#279 Engine deliverability graph** — honest empty axes; waits on the reporting endpoint (bounce/complaint % per day).
+- **#289 NPS** — endpoint + card shell exist but migration not run + 0 clients to survey.
+- **#290 Sentry error tracking** — not wired yet (no `@sentry` in the tree).
 
-**M3 is DONE when:** the walk is complete (screens 🟢) and the Smartlead-fed shells get their data after #211.
+**Stays empty on purpose (correctly labelled):** Ops inbox-pool + AE lenses + deliverability data — they wait for Smartlead (#211/#270/#271/#276/#280).
+
+**M3 is DONE when:** #291 re-walked green post-deploy · #279/#289/#290 built + fed data · the Smartlead-fed shells get their data after #211.
 
 ---
 

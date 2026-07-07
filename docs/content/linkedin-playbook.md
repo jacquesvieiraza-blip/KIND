@@ -1,133 +1,230 @@
-# LinkedIn Playbook — K.I.N.D company credibility
+# LinkedIn Playbook — K.I.N.D (v3, reconciled)
 
-> **Purpose:** build K.I.N.D's credibility as a company through LinkedIn. We have no case studies yet, so **candor is the credibility** — the honest, useful take nobody else in AI-outbound will post. This matches the "no invented percentages" voice in `blog-articles.md` + the Content Playbook (v3 Honest).
-
-## The one decision (recommended answer baked in)
-**Post from the FOUNDER's personal profile, not the company page.** A young company page has ~0 followers and reads as an ad; a founder posting honest insight gets 5–20× the reach and *is* the credibility. Company page just re-shares. Voice = first person ("I / we're seeing / here's what we believe"). If you'd rather lead with the company page, tell me and I'll re-voice these to "we."
-
-## Voice rules (non-negotiable — this is the brand)
-1. **No invented numbers.** No "our clients see 40% reply rates." If we don't have the data, we say what we're seeing or what we believe — and say it's a belief.
-2. **Lead with a real insight, not a pitch.** Give value away. The product is mentioned once, softly, at the end (or not at all).
-3. **Short lines, one idea, a hook in the first line** (LinkedIn cuts off after ~2 lines — earn the "…see more").
-4. **End with a genuine question** — engagement is what LinkedIn rewards.
-5. **Contrarian but fair.** We can say "the hype is wrong" — but we're honest about where the hyped thing *does* work.
-
-## Cadence for this week
-- **3–5 posts, Mon–Fri, one per day, ~9am your audience's time** (US/UK morning if that's the buyer).
-- Reply to every comment for the first 2 hours (this is 80% of the reach game).
-- Comment thoughtfully on 3–5 other people's posts each day in your space — that's how a cold profile gets seen.
+> **This is the real playbook.** Ported from the founder's **Content Playbook v3 (Honest)** and reconciled for two decisions made since it was written:
+> 1. **Anonymity (founder-locked):** post everything **as the company page**, in the "we" voice. The village family is **brand lore — never presented as the founder's real family**. No origin post names a real person.
+> 2. **Global, not Africa-only** (site pivoted 28 Jun): SA-specific claims (POPIA, Cape Town hosting, "African outbound") are **globalised**. WhatsApp stays as a product feature, not an "Africa" angle.
+>
+> Structure, posts, pillars and the 12-week schedule are the founder's — this doc just makes them repo-versioned, anonymous, and global.
 
 ---
 
-# THIS WEEK — 5 ready-to-post drafts (copy, tweak a line to sound like you, publish)
+## 🔒 THE HONESTY RULE (read first — applies to EVERY post)
+K.I.N.D has **no customer traction yet** and pricing is in flux. So:
 
-## POST 1 — The manifesto (why we exist)
-> *Sets the brand: the honest player in a hyped category. Best first post.*
+**❌ LEAVE OUT entirely (for now):** all pricing · "conversations handled" · "leads delivered/generated" · "meetings booked" · customers/users/"happy clients" · revenue · **any number implying our own traction.**
 
-We built an AI SDR. And we refuse to fake the numbers.
+**✅ SAFE to use — true regardless of customers, price-free:**
+- 250M+ verified B2B contacts (the data source exists)
+- 0–100 lead scoring (how the product works)
+- 5 business days to first campaign live · 24 hours to first leads after ICP (our process/guarantee)
+- 90-day pipeline guarantee (our offer — no price attached)
+- Privacy-by-default · your choice of data region · WhatsApp-native (product facts — *globalised: was "POPIA / Cape Town"*)
+- Cited **industry** stats (not ours): 40% of rep time on prospecting · 80% of deals need 5+ touches · 85% WhatsApp vs 22% email open rates · 8–12 hrs/week lost to manual prospecting · $180k+/yr for a full manual outbound stack
 
-Every AI-outbound tool on the market right now shows you a dashboard with "47% reply rate" and a wall of five-star testimonials from companies you've never heard of.
+## Voice + anonymity rules
+- Post **as the K.I.N.D company page**, "we" voice. Never a personal profile. (Don't list K.I.N.D on any personal profile — see anonymity checklist at bottom.)
+- The **village is a family archetype**, not real people. Never write "FIGSY is the founder / his daughter / his mother." Personalities, not biographies.
+- Hook in line 1 · pain → impact → solution → one CTA to a specific site page · one emoji anchor (🏘 for village).
 
-Most of it is invented. I've watched founders paste ChatGPT-generated case studies onto a landing page before they had a single customer.
-
-We decided to do the opposite. If we don't have the data, we don't quote a number. If a feature isn't finished, we label it "coming soon" instead of pretending. If cold email is the wrong channel for you, we'll tell you.
-
-It's a strange thing to build a sales company around — honesty as the differentiator. But I think the market is exhausted by the hype, and the companies that win the next few years will be the ones that are straight with people.
-
-That's the whole idea behind K.I.N.D.
-
-Would you rather a vendor show you an inflated number, or tell you the honest one? Genuinely curious where people land on this.
-
----
-
-## POST 2 — Contrarian / useful (WhatsApp for B2B)
-> *Repurposed from `blog-articles.md`. Shows you know the terrain — pure credibility, zero pitch.*
-
-"Just use WhatsApp for B2B sales." I hear this constantly. It's half right, and the half that's wrong will burn your reputation.
-
-Where WhatsApp genuinely works:
-→ Warm follow-up after a meeting ("sending that proposal now")
-→ Inbound — someone reached out to *you* first
-→ Post-sale customer success — it's the fastest way to keep a client happy
-→ SMB-to-SMB in markets where email culture is thin
-
-Where it quietly fails:
-→ Cold outreach to someone who never gave you their number. That's not "modern" — it's an interruption into a personal space, and it reads as one.
-
-The mistake people make is treating WhatsApp as a *replacement* for cold email rather than a *channel for relationships that already exist.*
-
-Cold gets the first reply. WhatsApp keeps the warm ones warm. Different jobs.
-
-Where have you actually seen WhatsApp work in B2B — and where has it blown up in your face?
+## Cadence — the 12-week engine
+**3 posts/week · Mon · Wed · Fri · batch + schedule on Sunday** (Buffer or LinkedIn native scheduler). Reply to comments as the page in the first 2 hrs. Full schedule at the bottom.
 
 ---
 
-## POST 3 — Give the value away (what drives cold-email replies)
-> *The practical post. Genuinely useful → credibility. No invented %.*
+# PART 1 — VILLAGE LAUNCH (use first)
 
-I'm not going to tell you our clients get some magic reply rate. I'll tell you what actually moves the needle, from watching a lot of cold campaigns:
+## 1A · The village is open
+> IMAGE: Village scene (full illustration, 1200×627) · CTA → get-kind.com
 
-1. **Real personalisation.** Not "Hi {FirstName} at {Company}." One sentence that proves you understand what *they* deal with. It out-performs five paragraphs of polish.
+The K.I.N.D Agent Village is open. 🏘
 
-2. **Short.** If it takes more than 30 seconds to read, most people won't. Three short paragraphs. One ask.
+Meet the family:
 
-3. **A specific, low-friction CTA.** "Let me know if you'd like to explore this" is dead on arrival. "Open to a 20-min call next week?" — or a booking link — removes the friction.
+**FIGSY — The Opener.** Finds, scores, writes, sends, follows up, and books. Autonomously. Every day.
 
-4. **Relevance over volume.** A CFO in logistics and a VP Sales in fintech do not have the same pain. If your copy could be sent to either, it'll land with neither.
+**Milla — The Brain.** Reads your numbers, learns your documents, surfaces the intelligence you didn't know you needed.
 
-None of this is clever. It's just discipline most teams skip because it doesn't scale easily.
+**Vida — The Connector.** On your website and WhatsApp 24/7. No lead goes cold on her watch.
 
-(That last part — making disciplined personalisation actually scale — is the problem we're building K.I.N.D to solve. But the principles above work with or without us.)
+**Denise — The Closer.** Picks up where FIGSY leaves off — handles objections, drafts the proposal, follows up until it's signed.
 
-What's the one cold email that ever actually made you reply?
+Four agents. One shared memory. One mission: unlimited pipeline.
 
----
+They work while you sleep. They learn from every campaign. They hand work to each other with no gaps, no dropped batons.
 
-## POST 4 — The honest take on your own category (what AI can't do)
-> *Counter-intuitive for a sales-AI company to post — which is exactly why it builds trust.*
+👉 Come meet the family: get-kind.com
 
-An honest thing a company selling "AI sales agents" probably shouldn't say: AI will not do your sales for you.
+## 1B · Why K.I.N.D was built
+> IMAGE: Stat card SC-10 "$180k+ — a full manual outbound stack per year" · CTA → get-kind.com/story.html
 
-It'll do the parts humans are bad at — finding the right people, writing a personalised first touch at volume, following up without forgetting, never letting a warm reply go cold at 11pm.
+Every morning started the same way.
 
-It will not close your deals. It won't build the trust that makes someone wire you money. It won't know your product better than you do.
+A spreadsheet. 200 leads. A blank email client. And the knowledge that today's pipeline depended entirely on today's manual effort.
 
-The tools that overpromise this — "fully autonomous AI that closes deals while you sleep" — are setting their customers up to be disappointed, and setting the whole category up for a backlash.
+A lead database. A sales-engagement tool. A copywriter. Someone to manage replies. Someone to chase follow-ups. Book meetings. Log calls.
 
-We build agents that do the tireless 80% and hand the human the 20% that actually needs a human. That's not a limitation we're apologising for. It's the design.
+For a growth-stage team, a manual outbound stack like that runs past **$180,000 a year** before a single deal closes.
 
-If a vendor tells you their AI closes deals on its own — run.
+The problem was never finding leads. It was that every piece of the machine needed a human to keep it moving. Stop pushing — the pipeline stops flowing.
 
-Where's the line for you: what should AI own in your sales process, and what should it never touch?
+K.I.N.D was built to fix that. For the teams good enough to close — if only someone would get them in the room.
 
----
+The village runs so you don't have to. 🏘
 
-## POST 5 — Build in public (founder note)
-> *Transparency = credibility for a young company. Talk about the WORK and the principle, never invented results.*
+👉 get-kind.com/story.html
 
-Spent this week doing the least glamorous thing in a software startup: a top-to-bottom honesty audit of our own product.
+## 1C · Why a family? (origin — brand lore, anonymous)
+> *Reconciled: replaces the original "family behind the names" post, which named the founder's real family. Same warmth, zero reveal.* · IMAGE: 2×2 agent portrait grid · CTA → get-kind.com/story.html
 
-We went screen by screen and asked one question of every button, toggle and claim: *does this do what it says it does?*
+The agents aren't product names invented in a boardroom. They're a family — because the best teams work like one.
 
-We found things we weren't proud of. A toggle that said "nothing sends without your approval" — that didn't actually hold the send. Marketing copy that listed integrations we hadn't built yet. We fixed or honestly re-labelled every one.
+Someone opens. Someone thinks. Someone connects. Someone closes. And nobody drops the baton.
 
-It would've been easier to leave them. Nobody had complained. But "nobody's noticed yet" is a terrible standard for a company whose entire pitch is that it's the honest one.
+**FIGSY, The Opener** — learned early that sales was never about selling. It's about listening, understanding, and helping people move from a problem to a better place.
 
-Building in public means showing the unglamorous parts too. This was one of them.
+**Milla, The Brain** — razor-sharp. She'll catch the flaw in your logic before you've finished the sentence.
 
-If you run a product: when did you last audit your own marketing against what your product actually does? Bet you'd find one thing.
+**Vida, The Connector** — always talking, always smiling, makes everyone feel like they belong.
 
----
+**Denise, The Closer** — built success not by pushing, but because people genuinely liked and trusted her.
 
-# BACKLOG — hooks for weeks 2+ (draft on demand)
-- The 2,000-name list that had zero verified emails — why "how many contacts" is the wrong question (real story, no numbers needed).
-- Cold email is not dead. Bad cold email is dead. (The deliverability discipline post.)
-- What "AI SDR" actually means vs what the ads imply.
-- Why we price in credits, not seats (and what that says about incentives).
-- Selling into Africa vs the US/UK — what actually changes (you have genuine ground-truth here).
-- The unsexy truth about email warm-up (why we're not sending yet).
-- Founder note: shipping vs verifying — the gap nobody talks about.
+**Tony, The Order Maker** — coming soon. The steady hand who watches, finds the pattern, and quietly brings everything into line.
+
+Personalities with a job to do. That's the K.I.N.D village. 🏘
+
+👉 get-kind.com/story.html
 
 ---
 
-*Owner: founder posts · Claude drafts. Update this file when a post ships (move it to a "Published" list) so we don't repeat. Not a status doc — status of any GTM item lives in PRODUCT-INVENTORY.*
+# PART 2 — AGENT SPOTLIGHTS (one each — pain → impact → solution)
+
+## FIGSY — The Opener
+> IMAGE: FIGSY portrait card · overlay "250M+ contacts scored for your ICP" · CTA → get-kind.com
+
+Your sales rep started Monday with a blank spreadsheet and 200 names to research.
+
+By Friday: 40 emails sent. 3 replies. 1 call booked.
+
+Five days of their best hours for one conversation. And next Monday, they start again.
+
+FIGSY, The Opener, doesn't work like that.
+
+She searches 250M+ verified contacts against your ICP. Scores every match 0–100. Writes a unique personalised email per lead — no template, every message sounds like a human did their homework. Sends it. Reads every reply. Handles the objections. Books the meeting.
+
+Without being told to.
+
+You show up to the call. The village handles everything before that. 🏘
+
+👉 Start your free trial — get-kind.com
+
+## Milla — The Brain
+> IMAGE: Milla portrait card · overlay "Ask her anything about your pipeline" · CTA → get-kind.com/virtual-assistant.html
+
+Most pipelines are built on numbers nobody actually checks.
+
+Reply rate says 4%. But which leads? Which sequence? Which subject line? Which market? Nobody knows, because nobody has time to dig.
+
+So you keep running the same campaigns. Getting the same results. Wondering why nothing improves.
+
+Milla, The Brain, reads your campaign data, your lead scoring, your reply patterns — and tells you what to do next.
+
+Ask her anything. She answers instantly, grounded in your actual business intelligence — not a gut feeling, not a guess.
+
+The village doesn't just generate leads. It gets smarter with every campaign. 🧠
+
+👉 get-kind.com/virtual-assistant.html
+
+## Vida — The Connector
+> IMAGE: Vida portrait card · overlay "24/7 · Website & WhatsApp" · CTA → get-kind.com/chatbot-agent.html
+
+Someone visited your pricing page at 11:43pm last night.
+
+Spent 6 minutes reading. Scrolled back to the top. Read it again. Then left.
+
+No chat. No form. No way to know who they were or what stopped them.
+
+That's a warm lead who made a decision in the dark — because no one was there to answer the one question between them and signing up.
+
+Vida, The Connector, was built for that moment.
+
+She's on your website and WhatsApp 24/7. Greets every visitor in seconds. Asks the right qualifying questions. Captures their details. Routes the hot ones straight to your team.
+
+The village never closes. 🏘
+
+👉 get-kind.com/chatbot-agent.html
+
+## Denise — The Closer
+> IMAGE: Denise portrait card · overlay "80% of deals need 5+ touches" · CTA → get-kind.com/denise.html
+
+The proposal went out on a Tuesday.
+
+Thursday: nothing. Friday: "just checking in" — no reply. Following week: silence. Two weeks later, the deal's cold. Quarter ends. Written off.
+
+Nobody killed it. It just died — in the gap between the meeting and the signature.
+
+That gap is where most deals are lost (80% need five or more touches to close), and it's where Denise, The Closer, lives.
+
+She picks up where FIGSY leaves off. Confirms attendance. Surfaces objections before they kill the deal. Drafts the proposal in your voice. Follows up persistently — not desperately — until it's signed or definitively dead.
+
+No deal dies quietly in the village. 🏆
+
+👉 get-kind.com/denise.html
+
+## Tony — The Order Maker (teaser)
+> IMAGE: Tony teaser card (coming-soon treatment) · CTA → get-kind.com
+
+Something's coming to the village. 👀
+
+His name is Tony. The Order Maker.
+
+He's the steady hand that keeps operations running when everything else is moving fast. Won deals turned into clean orders. Tasks coordinated across the family. Back-office chaos, quietly resolved.
+
+He doesn't chase attention. He watches. Finds the pattern. Brings order where others only see chaos.
+
+Tony is joining the village soon. The family is growing. 🏘
+
+👉 get-kind.com
+
+---
+
+# PARTS 3–9 — TO PORT NEXT (from v3, reconciled)
+Your v3 has ~28 more posts across these pillars. They need the same anonymity + global pass, so I'll port them in the next wave (or on request) rather than dump them unreviewed:
+- **Part 3 · The Drop posts (9)** — tie-ins to the Monday show (`docs/previews/marketing-the-drop.html`)
+- **Part 4 · Solutions posts** — "leads go cold," "can't afford an SDR," "pay for results"
+- **Part 5 · Use-case / industry posts** — recruitment, professional services, real estate, SaaS, financial services *(globalise any SA framing)*
+- **Part 6 · Trust & compliance** — *globalise: POPIA → GDPR/global privacy; "Cape Town data sovereignty" → choose-your-region hosting*
+- **Part 7 · Value posts (no pricing)**
+- **Part 8 · Blog teasers** — outbound + WhatsApp 85/22 *(reframe African → global market lens)*
+- **Part 9 · Video captions** — full walkthrough, per-agent demos
+
+---
+
+# PART 10 — THE 12-WEEK SCHEDULE (3/week · Mon · Wed · Fri)
+| Wk | Mon | Wed | Fri |
+|----|-----|-----|-----|
+| 1 | Village launch (1A) | Full walkthrough video | Why K.I.N.D built (SC-10, 1B) |
+| 2 | FIGSY demo video | FIGSY spotlight | Drop 02 (SC-05) |
+| 3 | Vida demo video | Vida spotlight | Drop 05 (Vida) |
+| 4 | Milla demo video | Milla spotlight | Drop 07 (Milla) |
+| 5 | Denise spotlight | Leads go cold (SC-11) | Can't afford an SDR (SC-10) |
+| 6 | Why-a-family (1C, 2×2) | The Drop launch (card) | Tony teaser |
+| 7 | Privacy explainer (SC-08, *globalised*) | Drop 08 (SC-08) | Recruitment (FIGSY) |
+| 8 | Drop 04 (deliverability) | Pay for results (SC-07) | Drop 01 (FIGSY) |
+| 9 | Professional services (SC-09) | Drop 03 (SC-07) | Data region / hosting (*globalised*) |
+| 10 | Real estate (FIGSY) | SaaS (SC-01) | Financial services (compliance) |
+| 11 | Free Playbook (card) | Blog: global outbound (card) | Blog: WhatsApp (85/22) |
+| 12 | *(reserve / repeat best performers)* | | |
+
+*Weeks 7–12 pull from Parts 3–9 — port those before we reach them.*
+
+---
+
+## Anonymity checklist (keeps the founder invisible)
+1. Company-page admins are private by default ✓
+2. **Never list K.I.N.D on any personal profile** (that's what surfaces you in "People")
+3. Always post/comment **as the page**
+4. Manage from a locked-down admin account
+5. Site / blog / email say "the K.I.N.D team," never a name
+6. *(Outside LinkedIn: a UK-registered company's director name is public at Companies House — separate fix needed for full anonymity.)*
+
+*Source: founder's Content Playbook v3 (Honest). Owner: posted AS the company page · Claude ports & reconciles. When a post ships, move it to a "Published" list so we don't repeat.*

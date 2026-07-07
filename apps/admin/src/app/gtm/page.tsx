@@ -54,12 +54,22 @@ async function getFunnel(): Promise<FunnelData> {
     return { visitors, signups: 0, trials: 0, paid: 0, dbReady: false }
   }
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
-  const [{ count: signups }, { count: trials }, { count: paid }] = await Promise.all([
+  // A funnel is a COHORT, not a snapshot: each stage must be a strict subset of the
+  // one before it, or the conversion % lies (a sub that converts LEAVES 'trialing' for
+  // 'active', so snapshot-active ÷ snapshot-trialing can exceed 100% — the old bug).
+  // So we count DISTINCT CLIENTS reaching each stage:
+  //   signups        = clients created
+  //   started a trial= clients with ≥1 subscription (every sub starts as a trial)
+  //   paid           = clients with ≥1 currently-active subscription
+  // clients-with-active ⊆ clients-with-any-sub ⊆ all-clients → every rate ≤ 100%.
+  const [{ count: signups }, { data: subs }] = await Promise.all([
     supabase.from('clients').select('id', { count: 'exact', head: true }),
-    supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
-    supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('subscriptions').select('client_id, status'),
   ])
-  return { visitors, signups: signups || 0, trials: trials || 0, paid: paid || 0, dbReady: true }
+  const rows = subs || []
+  const trials = new Set(rows.map(s => s.client_id)).size
+  const paid = new Set(rows.filter(s => s.status === 'active').map(s => s.client_id)).size
+  return { visitors, signups: signups || 0, trials, paid, dbReady: true }
 }
 
 // conversion a→b as a %; honest '—' when the prior stage is empty (no divide-by-zero lie)
@@ -67,10 +77,10 @@ const rate = (b: number, a: number) => (a > 0 ? Math.round((b / a) * 100) + '%' 
 
 function FunnelView({ f }: { f: FunnelData }) {
   const stages: { label: string; value: number; note: string; conv: string | null }[] = [
-    { label: 'Visitors',  value: f.visitors, note: 'tracked website sessions', conv: null },
-    { label: 'Signups',   value: f.signups,  note: 'clients created',          conv: rate(f.signups, f.visitors) },
-    { label: 'Trialing',  value: f.trials,   note: 'active trials',            conv: rate(f.trials, f.signups) },
-    { label: 'Paid',      value: f.paid,     note: 'active paid subs',         conv: rate(f.paid, f.trials) },
+    { label: 'Visitors',  value: f.visitors, note: 'tracked website sessions',      conv: null },
+    { label: 'Signups',   value: f.signups,  note: 'clients created',               conv: rate(f.signups, f.visitors) },
+    { label: 'Started trial', value: f.trials, note: 'clients with ≥1 subscription', conv: rate(f.trials, f.signups) },
+    { label: 'Paid',      value: f.paid,     note: 'clients with an active sub',     conv: rate(f.paid, f.trials) },
   ]
   const max = Math.max(1, ...stages.map(s => s.value))
   return (

@@ -136,7 +136,7 @@ flowchart TD
 
 1. AE goes to admin.get-kind.com → Demo Environments
 2. Fills in: prospect name, company name, industry, country, expiry date, AE name
-3. System creates: real Supabase user + client + all 4 products active + runs real Apollo ICP
+3. System creates: real Supabase user + client + all 4 products active + runs a real ICP (PDL discovery)
 4. Leads start appearing within minutes
 5. AE clicks "Open Demo" → portal opens in new tab, logged in as the demo client
 6. AE walks the prospect through the live platform — real leads, real scores
@@ -174,7 +174,7 @@ flowchart TD
     DB_CREATE --> DASHBOARD[Dashboard loads\nTrial banner visible]
 
     %% ── PATH 1: SELF-SERVICE TRIAL ──
-    DASHBOARD --> ICP[Build ICP\nApollo search fires automatically]
+    DASHBOARD --> ICP[Build ICP\nPDL discovery fires automatically]
     ICP --> LEADS[Leads appear\nAI scored 0–100]
     LEADS --> EXPLORE[Explore for 14 days]
     EXPLORE --> TRIAL_END{Day 14\nTrial expires?}
@@ -213,7 +213,7 @@ flowchart TD
 
     %% ── PATH 7: SALES DEMO ──
     DEMO_FORM[Fill in: prospect name · company\nindustry · country · expiry · AE]
-    DEMO_FORM --> DEMO_CREATE[(System creates:\nReal Supabase user + client\nAll 4 products active\nApollo ICP runs automatically)]
+    DEMO_FORM --> DEMO_CREATE[(System creates:\nReal Supabase user + client\nAll 4 products active\nICP runs automatically (PDL))]
     DEMO_CREATE --> DEMO_LEADS[Real leads appear\nwith AI scores]
     DEMO_LEADS --> OPEN_DEMO[AE clicks Open Demo\nPortal opens as demo client]
     OPEN_DEMO --> DEMO_WALKTHROUGH[AE walks prospect through\nlive platform]

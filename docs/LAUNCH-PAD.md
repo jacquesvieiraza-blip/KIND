@@ -1,15 +1,17 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 6 July 2026 PM · plan set for 7 July.** This page = the three milestones and what to do right now. Nothing else lives here.
+**As of: 7 July 2026 PM · admin walk banked + Fable money audit → MILESTONE 0 opened.** This page = the four milestones and what to do right now. Nothing else lives here.
 **History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
 
-**Board:** 🟢93 verified · 🩷97 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴114 not built · ⏸5 blocked · Σ334 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢106 verified · 🩷84 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴123 not built · ⏸5 blocked · Σ343 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
 ---
 
-## 📅 TOMORROW — 7 July (the plan, in order)
+> **⚠️ 7 Jul PM — MILESTONE 0 (below) now outranks this plan.** The money audit opened 8 must-fix holes; the two unlocks (GitHub appeal ✅ sent, Smartlead) still run in parallel, but M0 closes before any real client.
+
+## 📅 TODAY — 7 July (the plan, in order)
 **The whole #306–#328 audit is closed + live — the product is safe. Nothing is blocked on Claude. Tomorrow = UNBLOCK the two big gates + VERIFY what's live. Top to bottom; each block is independent, so a slip on one doesn't stall the rest.**
 
 **☀️ FIRST 30 MIN — the two unlocks (highest leverage — they free up everything else):**
@@ -17,8 +19,8 @@
 2. **Sort Smartlead access** — sign up / grab the API key. **This is THE last M2 gate (#211)** — the moment I have it I start the multi-day per-client-sending build. *(M2)*
 3. **Glance at Instantly warm-up %** — the one M1 gate. If ≥90% → jump to the M1 fire-drill (§① below). If not, leave it, it's a clock. *(M1)*
 
-**🕙 MID-MORNING — verify the admin is real (Sitting A, ~1 hr):**
-4. Walk `admin.get-kind.com` — the 7 screens listed in **§③ below**; confirm each loads + shows honest data. Report back screen-by-screen and I flip ~23 dots 🩷→🟢. *(M3)*
+**🕙 MID-MORNING — ✅ Sitting A DONE 7 Jul:**
+4. ~~Walk `admin.get-kind.com`~~ — walked; 13 dots flipped 🩷→🟢. Remaining: deploy PR #978 (funnel fix) → re-walk #291 green; #279/#289/#290 need data/wiring before they can go green. *(M3)*
 
 **🕐 MIDDAY — two config toggles (Sitting B, 10 min):**
 5. In Railway set **`PDL_API_KEY`**; in Resend enable **`email.bounced`** + **`email.complained`** events. → verifies #243 + #267. *(M2/M3)*
@@ -35,12 +37,40 @@
 | # | Action | Who |
 |---|--------|-----|
 | 1 | ✅ ~~Whole #306–#328 audit~~ — 23 items merged + deployed + live. Product is safe. | — |
-| 2 | **Sitting A** — walk the admin (~23 dots 🩷→🟢, list in M3 below) | 🧍 |
+| 2 | ✅ ~~**Sitting A** — walk the admin~~ — DONE 7 Jul: 13 dots 🩷→🟢; 4 held back (#291 bug-fixed PR #978 · #279/#289/#290 need data/wiring) | — |
 | 3 | **Sitting B** — 2 toggles: `PDL_API_KEY` in Railway · Resend `email.bounced`+`email.complained` events | 🧍 |
 | 4 | **Sitting C** — the $60 live money walk (list in M2 below) | 🧍 |
 | 5 | **Send GitHub flag appeal** (drafted, in chat 6 Jul) → restores auto-deploy | 🧍 |
 | 6 | **Give Smartlead access** → unblocks #211, the last M2 gate → 🤖 I build | 🧍→🤖 |
 | 7 | **Watch Instantly warm-up** weekly → at ≥90%, run the M1 fire-drill below | 🧍 |
+
+---
+
+# ⓪ MILESTONE 0 — MONEY-PATH INTEGRITY (opened 7 Jul · Fable audit · BLOCKS M2)
+
+**WHERE IT STANDS: the Fable end-to-end money audit (7 Jul) returned PASS-WITH-RISKS.** Nobody can forge a payment or mint credits — but 8 holes let value ship unpaid, hide the meter, or break a client's safety net. **No real client until M0 closes.** All 8 logged 🔴 as **#330–#337** (detail by ID in PRODUCT-INVENTORY).
+
+**The money model (locked):** every client = FIGSY plan · **$3 = 1 credit = 1 lead ENROLLED** (FIGSY works the prospect start-to-finish; browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits at signup.
+
+**The fixes (🤖 Opus builds → Fable verifies → 🧍 you merge + `railway up`):**
+
+| # | Fix | Why it can't wait |
+|---|-----|-------------------|
+| #330 | Staging DB missing the FIGSY charge function | preview shows "credits never drop" — it's lying, not the product |
+| #331 | Cap the trial drip | $0 signup receives enriched leads forever; we pay PDL/Hunter per lead |
+| #332 | Fail-closed charging + race fix | a DB hiccup = enrolled + emailed, $3 never taken, silently |
+| #333 | Stripe retry on failed grant | client pays, gets nothing, Stripe told "all good" — trust-killer |
+| #334 | Grey out dead auto-top-up | the toggle promises a safety net that can never fire (Paystack gone) |
+| #335 | Feed `figsy_knowledge` into outreach | emails know the prospect but not the client's business — the pain→impact→solution gap |
+| #336 | Referral: purchase-gated, 15 FIGSY credits | today: farmable via free fake signups, paid in a dead wallet |
+| #337 | Sweep: uncharged insert · low-credit warning · source-down alert · prompt/doc residue | the quiet leftovers that bite later |
+
+**🧍 YOUR three (10 min total):**
+1. Railway → `@kind/api` → set **`PDL_API_KEY`** + confirm **`HUNTER_API_KEY`** — *without these the product finds ZERO leads (startup-check's own words). Discovery = PDL primary + Hunter email-reveal; Apollo is NOT used.*
+2. Run the staging SQL I'll hand you with #330's PR (one paste into the kind-staging Supabase).
+3. Merge the M0 PRs as they land + `railway up` per PR instructions.
+
+**M0 is DONE when:** all 8 shipped + live · `/engine/leads/test` proves PDL+Hunter sourcing · a preview enrollment visibly drops a credit.
 
 ---
 
@@ -87,20 +117,19 @@
 
 # ③ MILESTONE 3 — The admin cockpit we run the business from
 
-**WHERE IT STANDS: built, honest, login-gated, re-audit clean. Zero verified — because you haven't walked it. That's the whole gap.**
+**WHERE IT STANDS: WALKED 7 Jul — 13 screens verified honest + live → flipped 🟢. Four data-backed shells held back (they render honestly but have no real data yet) + one bug fixed. That's the whole remaining gap.**
 
-**Sitting A — one pass at `admin.get-kind.com`, confirm each loads + shows honest data (~23 dots flip 🩷→🟢):**
-1. **Cockpit** (#272) — KPIs, real system-health probe, real MRR
-2. **Sales Channel** (#274/#288/#294) — partner lens real, AE lens says "sample"
-3. **Finance/Revenue** (#287/#289/#295/#296/#297) — MRR · ARPU · invoices · refunds · renewals · NPS card · MRR-over-time
-4. **Clients** (#281/#292) — list · drill-down · at-risk tile · usage sparkline
-5. **Engine/Health** (#279/#304/#290) — deliverability graph · cron history · recent API errors
-6. **Nora rail** (#275) — ask a question, get a reply
-7. **GTM/Funnel** (#291)
+**✅ Sitting A — DONE 7 Jul.** Walked `admin.get-kind.com`; each screen loaded + showed honest data. **13 dots flipped 🩷→🟢:** #272 Cockpit · #274/#288/#294 Sales Channel · #287/#295/#296/#297 Finance · #281/#292/#293 Clients · #304 Engine cron history · #275 Nora ("she replies").
 
-**Stays empty on purpose (correctly labelled, don't fail it for this):** Ops inbox-pool + AE lenses + deliverability data — they wait for Smartlead (#211/#270/#271/#276/#280).
+**🩷 Held back on purpose (built + live but NOT verifiable-green yet — no real data / not wired):**
+- **#291 GTM funnel** — had a >100% conversion bug (Trial→Paid 367%); **fixed in PR #978** (cohort math). Flips 🟢 once deployed + re-walked.
+- **#279 Engine deliverability graph** — honest empty axes; waits on the reporting endpoint (bounce/complaint % per day).
+- **#289 NPS** — endpoint + card shell exist but migration not run + 0 clients to survey.
+- **#290 Sentry error tracking** — not wired yet (no `@sentry` in the tree).
 
-**M3 is DONE when:** the walk is complete (screens 🟢) and the Smartlead-fed shells get their data after #211.
+**Stays empty on purpose (correctly labelled):** Ops inbox-pool + AE lenses + deliverability data — they wait for Smartlead (#211/#270/#271/#276/#280).
+
+**M3 is DONE when:** #291 re-walked green post-deploy · #279/#289/#290 built + fed data · the Smartlead-fed shells get their data after #211.
 
 ---
 

@@ -1,15 +1,17 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 7 July 2026 · admin walk banked.** This page = the three milestones and what to do right now. Nothing else lives here.
+**As of: 7 July 2026 PM · admin walk banked + Fable money audit → MILESTONE 0 opened.** This page = the four milestones and what to do right now. Nothing else lives here.
 **History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
 
-**Board:** 🟢106 verified · 🩷84 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴115 not built · ⏸5 blocked · Σ335 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢106 verified · 🩷84 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴123 not built · ⏸5 blocked · Σ343 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
 ---
 
-## 📅 TOMORROW — 7 July (the plan, in order)
+> **⚠️ 7 Jul PM — MILESTONE 0 (below) now outranks this plan.** The money audit opened 8 must-fix holes; the two unlocks (GitHub appeal ✅ sent, Smartlead) still run in parallel, but M0 closes before any real client.
+
+## 📅 TODAY — 7 July (the plan, in order)
 **The whole #306–#328 audit is closed + live — the product is safe. Nothing is blocked on Claude. Tomorrow = UNBLOCK the two big gates + VERIFY what's live. Top to bottom; each block is independent, so a slip on one doesn't stall the rest.**
 
 **☀️ FIRST 30 MIN — the two unlocks (highest leverage — they free up everything else):**
@@ -41,6 +43,34 @@
 | 5 | **Send GitHub flag appeal** (drafted, in chat 6 Jul) → restores auto-deploy | 🧍 |
 | 6 | **Give Smartlead access** → unblocks #211, the last M2 gate → 🤖 I build | 🧍→🤖 |
 | 7 | **Watch Instantly warm-up** weekly → at ≥90%, run the M1 fire-drill below | 🧍 |
+
+---
+
+# ⓪ MILESTONE 0 — MONEY-PATH INTEGRITY (opened 7 Jul · Fable audit · BLOCKS M2)
+
+**WHERE IT STANDS: the Fable end-to-end money audit (7 Jul) returned PASS-WITH-RISKS.** Nobody can forge a payment or mint credits — but 8 holes let value ship unpaid, hide the meter, or break a client's safety net. **No real client until M0 closes.** All 8 logged 🔴 as **#330–#337** (detail by ID in PRODUCT-INVENTORY).
+
+**The money model (locked):** every client = FIGSY plan · **$3 = 1 credit = 1 lead ENROLLED** (FIGSY works the prospect start-to-finish; browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits at signup.
+
+**The fixes (🤖 Opus builds → Fable verifies → 🧍 you merge + `railway up`):**
+
+| # | Fix | Why it can't wait |
+|---|-----|-------------------|
+| #330 | Staging DB missing the FIGSY charge function | preview shows "credits never drop" — it's lying, not the product |
+| #331 | Cap the trial drip | $0 signup receives enriched leads forever; we pay PDL/Hunter per lead |
+| #332 | Fail-closed charging + race fix | a DB hiccup = enrolled + emailed, $3 never taken, silently |
+| #333 | Stripe retry on failed grant | client pays, gets nothing, Stripe told "all good" — trust-killer |
+| #334 | Grey out dead auto-top-up | the toggle promises a safety net that can never fire (Paystack gone) |
+| #335 | Feed `figsy_knowledge` into outreach | emails know the prospect but not the client's business — the pain→impact→solution gap |
+| #336 | Referral: purchase-gated, 15 FIGSY credits | today: farmable via free fake signups, paid in a dead wallet |
+| #337 | Sweep: uncharged insert · low-credit warning · source-down alert · prompt/doc residue | the quiet leftovers that bite later |
+
+**🧍 YOUR three (10 min total):**
+1. Railway → `@kind/api` → set **`PDL_API_KEY`** + confirm **`HUNTER_API_KEY`** — *without these the product finds ZERO leads (startup-check's own words). Discovery = PDL primary + Hunter email-reveal; Apollo is NOT used.*
+2. Run the staging SQL I'll hand you with #330's PR (one paste into the kind-staging Supabase).
+3. Merge the M0 PRs as they land + `railway up` per PR instructions.
+
+**M0 is DONE when:** all 8 shipped + live · `/engine/leads/test` proves PDL+Hunter sourcing · a preview enrollment visibly drops a credit.
 
 ---
 

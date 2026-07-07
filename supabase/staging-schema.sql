@@ -373,6 +373,10 @@ create index if not exists figsy_enrollments_campaign_id_idx  on public.figsy_en
 create index if not exists figsy_enrollments_lead_id_idx      on public.figsy_enrollments(lead_id);
 create index if not exists figsy_enrollments_next_send_at_idx on public.figsy_enrollments(next_send_at);
 create index if not exists figsy_enrollments_status_idx       on public.figsy_enrollments(status);
+-- P7 — race-safety uniqueness. The table-level unique(campaign_id, lead_id) above
+-- already enforces this on staging; this named index mirrors prod's money-integrity
+-- migration (20260707) so the two schemas match name-for-name.
+create unique index if not exists figsy_enrollments_campaign_lead_uidx on public.figsy_enrollments(campaign_id, lead_id);
 
 create table if not exists public.figsy_sent_emails (
   id            uuid primary key default uuid_generate_v4(),
@@ -543,12 +547,61 @@ $$;
 revoke execute on function increment_client_credits from public;
 grant  execute on function increment_client_credits to service_role;
 
+-- Atomic FIGSY credit decrement RPC — mirrors the 20260616_billing_correctness
+-- migration exactly (clamps at 0 via GREATEST). Kept here so a staging rebuild
+-- from this schema file carries the FIGSY decrement RPC too.
+CREATE OR REPLACE FUNCTION increment_figsy_credits(
+  p_client_id uuid,
+  p_amount    integer
+) RETURNS integer
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_new_balance integer;
+BEGIN
+  UPDATE public.clients
+    SET figsy_credits_remaining = GREATEST(0, COALESCE(figsy_credits_remaining, 0) + p_amount)
+  WHERE id = p_client_id
+  RETURNING figsy_credits_remaining INTO v_new_balance;
+
+  RETURN v_new_balance;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION increment_figsy_credits FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION increment_figsy_credits TO service_role;
+
+-- Fail-closed FIGSY enrollment charge — mirrors the 20260707_money_integrity
+-- migration. The conditional decrement IS the gate: only charges when the
+-- balance is still >= 1, and reports via FOUND whether it charged.
+CREATE OR REPLACE FUNCTION try_charge_figsy_credit(
+  p_client_id uuid
+) RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.clients
+    SET figsy_credits_remaining = COALESCE(figsy_credits_remaining, 0) - 1
+  WHERE id = p_client_id
+    AND COALESCE(figsy_credits_remaining, 0) >= 1;
+
+  RETURN FOUND;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION try_charge_figsy_credit FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION try_charge_figsy_credit TO service_role;
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- CLIENTS EXTRA COLUMNS (from migrations)
 -- ════════════════════════════════════════════════════════════════════════════
 
 alter table public.clients add column if not exists referred_by           uuid references public.clients(id) on delete set null;
 alter table public.clients add column if not exists credit_balance        integer not null default 0;
+alter table public.clients add column if not exists low_credit_warned_at  timestamptz; -- mirrors 20260707_money_integrity (FIGSY low-credit warning sweep)
+alter table public.clients add column if not exists referral_bonus_paid_at timestamptz; -- mirrors 20260707_money_integrity (#336 referrer bonus paid once on referred client's first purchase)
 alter table public.clients add column if not exists first_icp_run_at      timestamptz;
 alter table public.clients add column if not exists terms_accepted_at     timestamptz;
 alter table public.clients add column if not exists terms_accepted_ip     text;

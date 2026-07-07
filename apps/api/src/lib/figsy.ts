@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
 import { canEnroll } from './billing-rules'
+import { sendFounderAlert } from './alerts'
 import { buildDraftFromSequence, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
@@ -141,6 +142,46 @@ export function personalizationSignals(
   return signals
 }
 
+// #335 — Feed the client's own business knowledge (the Train-FIGSY "knowledge"
+// store, figsy_knowledge) into cold-outreach generation so the SOLUTION half of
+// every email is grounded in what the sender actually sells, their proof points
+// and results — instead of a generic pitch — and so the AI can never invent
+// claims about the sender's own product. Returns a compact plain-text digest,
+// capped so the prompt stays bounded, or '' when the client has saved nothing
+// (→ generation behaves exactly as before: generic but never fabricated).
+export async function getClientKnowledgeForOutreach(clientId: string): Promise<string> {
+  if (!clientId) return ''
+  try {
+    // Only the kinds that describe the SENDER's offer/positioning — not the
+    // targeting keywords or guardrails, which don't belong in the copy.
+    const KINDS = ['pitch', 'messaging']
+    const { data } = await db.from('figsy_knowledge')
+      .select('kind, data').eq('client_id', clientId).in('kind', KINDS)
+    if (!data?.length) return ''
+    const byKind = new Map<string, Record<string, unknown>>()
+    for (const row of data as { kind: string; data: Record<string, unknown> | null }[]) {
+      byKind.set(row.kind, row.data ?? {})
+    }
+    const str = (v: unknown): string => (typeof v === 'string' ? v.trim() : '')
+    const lines: string[] = []
+    const pitch = byKind.get('pitch')
+    if (pitch) {
+      if (str(pitch.pitch))           lines.push(`Value proposition: ${str(pitch.pitch)}`)
+      if (str(pitch.product))         lines.push(`What the sender sells: ${str(pitch.product)}`)
+      if (str(pitch.pain_points))     lines.push(`Pains the sender solves: ${str(pitch.pain_points)}`)
+      if (str(pitch.differentiators)) lines.push(`Differentiators / proof points: ${str(pitch.differentiators)}`)
+    }
+    const messaging = byKind.get('messaging')
+    if (messaging && str(messaging.style)) lines.push(`Preferred voice/persona: ${str(messaging.style)}`)
+    const digest = lines.filter(Boolean).join('\n').trim()
+    // Cap so the prompt stays bounded regardless of how much the client saved.
+    return digest.slice(0, 1500)
+  } catch (err) {
+    console.warn('[figsy] getClientKnowledgeForOutreach failed — proceeding without grounding', err)
+    return ''
+  }
+}
+
 export async function generateSequence(
   lead: Lead,
   senderCompanyName: string,
@@ -148,6 +189,7 @@ export async function generateSequence(
   campaignIntent?: string,
   bookingUrl?: string | null,
   senderName?: string | null,
+  clientKnowledge?: string,
 ): Promise<SequenceDraft> {
   // ── Signal detection — pick the best personalization hook ─────────────────
   const signals = personalizationSignals(lead)
@@ -168,7 +210,10 @@ Lead details:
 ${bestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${bestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
 ${extraSignals.length ? `- Other real signals about this lead (use a DIFFERENT one to open each follow-up so no two emails repeat the same angle):\n${extraSignals.map(s => `  • ${s}`).join('\n')}` : ''}
-
+${clientKnowledge ? `
+What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use these facts to make the SOLUTION half of each email specific ("this is YOUR problem, and here's how ${senderCompanyName} solves it"):
+${clientKnowledge}
+` : ''}
 Write a 3-email sequence:
 
 Step 1 (Day 0) — First touch:
@@ -195,9 +240,10 @@ Hard rules (violating any of these makes the email useless):
 - No em-dashes (—) — they read as AI
 - Don't mention you're an AI or automation
 - Don't make up facts about their company you don't know
+- Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above. If that block is empty or doesn't cover something, stay generic about the sender — never invent a capability, metric, customer, or result for ${senderCompanyName}.
 - Subject lines: 4–6 words, lowercase, no punctuation, no questions
 - End every email with: "Reply STOP to opt out."
-${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, or use any other name.` : '- Sign off with a real first name (pick a South African-sounding name that fits the sender\'s industry)'}
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, or use any other name.` : '- Sign off with a real first name (pick a name that fits the sender\'s company)'}
 ${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.` : ''}
@@ -536,19 +582,31 @@ export async function sendSequenceEmail(
   }
 }
 
-// #310 — charge 1 FIGSY credit for one enrollment (atomic RPC + ledger row), the
-// SAME deduction autoEnrollLead does. Used by the manual UI enroll + the developer
-// webhook enrol paths, which previously enrolled + sent for FREE (the balance gate
-// and the deduction only ever ran inside autoEnrollLead). Call AFTER a successful
-// enrollment insert. Best-effort ledger; the balance RPC clamps at 0 in SQL.
+// #310/#332 — charge 1 FIGSY credit for one enrollment, FAIL-CLOSED. The
+// try_charge_figsy_credit RPC makes the decrement itself the gate: a single
+// atomic conditional UPDATE that only decrements at balance >= 1 and reports via
+// its boolean whether it actually charged. This kills the gate-then-charge race
+// at balance 1 AND the old silent clamp-at-0 free enroll (increment_figsy_credits
+// GREATEST(0,…) returned "success" while charging nothing). Callers MUST charge
+// BEFORE inserting the enrollment and abort the enroll on a false return.
+// Returns true only when a credit was really taken (then the ledger row is written).
 export async function chargeFigsyEnroll(
   clientId: string,
   lead: { first_name?: string | null; last_name?: string | null; company?: string | null },
-): Promise<void> {
-  const { error: balErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: -1 })
-  if (balErr) {
-    console.error('[figsy] chargeFigsyEnroll: FIGSY credit deduction failed', balErr.message)
-    return
+): Promise<boolean> {
+  const leadName = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || '(unknown lead)'
+  const { data: charged, error } = await db.rpc('try_charge_figsy_credit', { p_client_id: clientId })
+  // P6 — fail CLOSED: only a hard `true` from the RPC counts as a real charge. A
+  // null/undefined return (RPC returned no row, or an unexpected shape) must NOT be
+  // treated as a successful charge — that would enrol a lead for free.
+  if (error || charged !== true) {
+    console.error('[figsy] chargeFigsyEnroll: FIGSY credit charge failed', error?.message ?? 'insufficient balance', 'client', clientId)
+    void sendFounderAlert('charge_failed', 'FIGSY enrollment charge failed — lead NOT enrolled', [
+      `Client: ${clientId}`,
+      `Lead: ${leadName}${lead.company ? ` at ${lead.company}` : ''}`,
+      error ? `Reason: RPC error — ${error.message}` : 'Reason: no FIGSY credits at charge time (balance hit 0 between the pre-check and the charge).',
+    ])
+    return false
   }
   await db.from('credit_transactions').insert({
     client_id: clientId,
@@ -556,6 +614,34 @@ export async function chargeFigsyEnroll(
     type: 'usage',
     plan: 'figsy',
     note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
+    created_at: new Date().toISOString(),
+  }).then(() => {}, () => {})
+  return true
+}
+
+// #332 — return a charged credit when the enrollment insert fails AFTER we
+// charged (charge-first ordering). Best-effort: restores the balance via the
+// clamping increment RPC and writes a refund ledger row so the wallet + ledger
+// stay reconciled. Never throws into the caller.
+export async function refundFigsyEnroll(clientId: string): Promise<void> {
+  const { error } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 })
+  if (error) {
+    console.error('[figsy] refundFigsyEnroll: FIGSY credit refund failed', error.message, 'client', clientId)
+    // P9 — a failed refund means the client LOST a credit for an enrollment that
+    // never landed. Don't let that sit in console-only; alert so it can be fixed.
+    void sendFounderAlert('charge_failed', 'FIGSY refund failed — client lost a credit', [
+      `Client: ${clientId}`,
+      `An enrollment failed after the FIGSY credit was charged, and returning the credit also failed: ${error.message}`,
+      'Action: grant 1 FIGSY credit back to this client manually.',
+    ])
+    return
+  }
+  await db.from('credit_transactions').insert({
+    client_id: clientId,
+    amount: 1,
+    type: 'refund',
+    plan: 'figsy',
+    note: 'Enrollment failed after charge — credit returned',
     created_at: new Date().toISOString(),
   }).then(() => {}, () => {})
 }
@@ -627,6 +713,7 @@ async function generateDay1Email(
   senderCompany: string,
   senderIndustry: string | null,
   senderName?: string | null,
+  clientKnowledge?: string,
 ): Promise<Day1Draft> {
   const prompt = `You are writing a cold email on behalf of ${senderCompany}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — someone who noticed this prospect and decided to reach out. Not templated. Not AI-sounding. Like someone who typed this in 90 seconds.
 
@@ -637,12 +724,16 @@ Lead:
 - Industry: ${lead.industry || 'unknown'}
 - Country: ${lead.country || 'unknown'}
 ${lead.score_reasoning ? `- Why they're a fit: ${lead.score_reasoning}` : ''}
-
+${clientKnowledge ? `
+What the sender offers (grounding) — the ONLY source of truth about ${senderCompany}'s product, results and proof. Use these facts to make the "why it matters to them" line specific; never invent a capability, metric, customer, or result for ${senderCompany} beyond it:
+${clientKnowledge}
+` : ''}
 Write one cold email. First touch. Under 70 words.
 
 Rules:
 - Open with a specific observation about their role or company — not a compliment, a real observation
 - One sentence on what ${senderCompany} does and why it matters to them
+- Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above. If that block is empty or doesn't cover something, stay generic about the sender — never invent a capability, metric, customer, or result for ${senderCompany}.
 - One CTA: short call, 15 minutes
 - No bullet points in the body
 - No em-dashes (—)
@@ -688,6 +779,11 @@ export async function sendDay1OutreachBatch(
   const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
   const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
+  // P10/#335 — ground the day-1 writer in what the client actually sells (fetched
+  // ONCE for the whole batch), so it can't invent sender claims. Same digest +
+  // hard no-fabrication rule the multi-step generateSequence path already uses.
+  const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
   const { data: leads } = await db.from('leads')
     .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
     .in('id', leadIds)
@@ -710,7 +806,7 @@ export async function sendDay1OutreachBatch(
     if (blocked) continue
 
     try {
-      const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName)
+      const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName, clientKnowledge)
 
       // #311 — do not record a day-1 "sent" row when Resend is unconfigured (that made
       // a dead key invisible + fed the watchdog false sends). Skip the lead instead.
@@ -801,8 +897,11 @@ export async function generateSequenceWithMemory(
   const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
   const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
+  // #335 — ground the SOLUTION half in what the client actually sells.
+  const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
   if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge)
   }
 
   // P2-1: 3-type memory model
@@ -856,7 +955,10 @@ export async function generateSequenceWithMemory(
 
 FIGSY Campaign Intelligence (use this to improve your writing):
 ${memoryContext}
-${campaignIntent ? `
+${clientKnowledge ? `
+What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use it to make the solution half specific; never invent a capability, metric, customer, or result for ${senderCompanyName} beyond it:
+${clientKnowledge}
+` : ''}${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.
 ` : ''}
@@ -881,6 +983,7 @@ Hard rules:
 - No bullet points in the email body
 - No em-dashes (—)
 - Don't mention AI or automation
+- Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above; if it's empty or silent on something, stay generic about the sender — never fabricate.
 - Subject: 4–6 words, lowercase, no punctuation
 - End every email: "Reply STOP to opt out."
 ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a South African-sounding first name'}
@@ -901,7 +1004,7 @@ Return ONLY valid JSON:
     return JSON.parse(stripJson(raw)) as SequenceDraft
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge)
   }
 }
 
@@ -1052,42 +1155,51 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
-    const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
-      campaign_id:    campaign.id,
-      lead_id:        leadId,
-      client_id:      clientId,
-      status:         'enrolled',
-      current_step:   0,
-      next_send_at:   new Date().toISOString(), // send step 1 immediately
-      step1_subject:  step1Subject,
-      step1_body:     draft.step1.body,
-      step2_subject:  draft.step2.subject,
-      step2_body:     draft.step2.body,
-      step3_subject:  draft.step3.subject,
-      step3_body:     draft.step3.body,
-    }).select('id').single()
-
-    if (error || !enrollment) {
-      console.error('[figsy] autoEnrollLead: enrollment insert failed', error?.message, 'for lead', leadId)
+    // ── CHARGE FIRST (#332) ─────────────────────────────────────────────────────
+    // Fail-closed ordering: charge the FIGSY credit BEFORE inserting the enrollment.
+    // The charge is the real gate (try_charge_figsy_credit) — canEnroll() above is
+    // only the fast UX pre-check. The per-campaign idempotency guard runs ABOVE this,
+    // so a lead already enrolled is never charged. If the charge fails (RPC error or
+    // no credit), abort WITHOUT inserting or sending — chargeFigsyEnroll already
+    // alerted the founder.
+    const charged = await chargeFigsyEnroll(clientId, lead)
+    if (!charged) {
+      console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling.`)
       return
     }
 
-    // ── Deduct 1 FIGSY credit per lead enrolled (item 170: atomic RPC) ──────────
-    // Use the increment_figsy_credits RPC (mirrors increment_client_credits) so the
-    // balance update is atomic — no read-modify-write race that could desync the
-    // balance from the ledger row. Clamps at 0 in SQL.
-    const { error: balErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: -1 })
-    if (balErr) {
-      console.error('[figsy] autoEnrollLead: FIGSY credit deduction failed', balErr.message)
-    } else {
-      await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount: -1,
-        type: 'usage',
-        plan: 'figsy',
-        note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
-        created_at: new Date().toISOString(),
-      }).then(() => {}, () => {})
+    // P8 — a supabase insert normally RETURNS its error, but any THROW here (network
+    // drop, unexpected client error) after a successful charge would otherwise land in
+    // the outer catch as a SILENT credit leak (charged, never enrolled, never refunded).
+    // Guard the insert: on a throw, return the credit before bailing.
+    let insertRes
+    try {
+      insertRes = await db.from('figsy_enrollments').insert({
+        campaign_id:    campaign.id,
+        lead_id:        leadId,
+        client_id:      clientId,
+        status:         'enrolled',
+        current_step:   0,
+        next_send_at:   new Date().toISOString(), // send step 1 immediately
+        step1_subject:  step1Subject,
+        step1_body:     draft.step1.body,
+        step2_subject:  draft.step2.subject,
+        step2_body:     draft.step2.body,
+        step3_subject:  draft.step3.subject,
+        step3_body:     draft.step3.body,
+      }).select('id').single()
+    } catch (insertThrow) {
+      console.error('[figsy] autoEnrollLead: enrollment insert threw after charge — refunding credit for lead', leadId, insertThrow)
+      await refundFigsyEnroll(clientId)
+      return
+    }
+    const { data: enrollment, error } = insertRes
+
+    if (error || !enrollment) {
+      // We already charged — return the credit so the wallet + ledger reconcile.
+      console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— refunding credit')
+      await refundFigsyEnroll(clientId)
+      return
     }
 
     // Increment campaign enrolled count

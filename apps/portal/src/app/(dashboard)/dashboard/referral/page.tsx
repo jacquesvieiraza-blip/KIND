@@ -78,9 +78,9 @@ export default function ReferralPage() {
     <div className="space-y-8 max-w-2xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Refer a business, earn free credits</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Refer a business, earn FIGSY credits</h1>
         <p className="text-[#7B6FA0] text-sm mt-1">
-          Share your unique link. When a business signs up and runs their first ICP, you both get 100 free credits.
+          Share your unique link. When a business you refer makes their first purchase, you get 15 FIGSY credits.
         </p>
       </div>
 
@@ -96,13 +96,13 @@ export default function ReferralPage() {
             },
             {
               step: '2',
-              title: 'They sign up',
-              description: 'Your referred business signs up using your link and starts their free trial.',
+              title: 'They sign up and buy',
+              description: 'Your referred business signs up using your link, starts their free trial, and makes their first purchase.',
             },
             {
               step: '3',
-              title: 'Both get 100 free credits',
-              description: 'Once they run their first ICP, you each automatically receive 100 bonus credits.',
+              title: 'You get 15 FIGSY credits',
+              description: 'The moment your referral makes their first purchase, 15 FIGSY credits are added to your account automatically.',
             },
           ].map((item, i) => (
             <div key={item.step} className="flex items-start gap-4">

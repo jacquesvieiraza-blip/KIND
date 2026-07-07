@@ -575,6 +575,45 @@ export async function sendZeroCreditsWarning(
   })
 }
 
+// #337② — low FIGSY credits warning. Sent while the client still has credits
+// (1–5 left) so FIGSY keeps selling — a heads-up to top up BEFORE outreach stalls,
+// modelled on sendZeroCreditsWarning above.
+export async function sendLowCreditsWarning(
+  to: string,
+  companyName: string,
+  remaining: number,
+) {
+  if (!resend) return
+
+  const subject = `Only ${remaining} credit${remaining === 1 ? '' : 's'} left — top up to keep FIGSY selling`
+
+  await sendTx({
+    from: FROM,
+    to,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
+        <p>Hi ${companyName},</p>
+        <p style="color:#555;line-height:1.6">
+          You're down to <strong>${remaining} FIGSY credit${remaining === 1 ? '' : 's'}</strong>. FIGSY keeps
+          working your prospects and booking replies right up until your credits run out — but once they hit
+          zero, new outreach stops and warm prospects go cold.
+        </p>
+        <p style="color:#555;line-height:1.6">
+          Top up now to keep the pipeline moving. Your ICP, leads, and campaigns stay exactly as they are.
+        </p>
+        <a href="${DASH}/billing"
+           style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
+          Top up credits now →
+        </a>
+        <p style="color:#999;font-size:0.8rem;margin-top:24px">
+          Questions? Reply to this email — <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        </p>
+      </div>
+    `,
+  })
+}
+
 // Sent when FIGSY auto-pauses a campaign for low performance (reply rate < 1%)
 export async function sendCampaignPausedEmail(
   to: string,

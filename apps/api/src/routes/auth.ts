@@ -90,6 +90,12 @@ authRouter.post('/onboard', async (req, res) => {
     const { data: existing } = await db.from('clients')
       .select('id, signup_terms_accepted_at').eq('user_id', user.id).maybeSingle()
 
+    // P4 — self-referral loophole: a client can never be their own referrer. Ignore
+    // the ref when it resolves to the caller's own client row.
+    if (resolvedReferredBy && existing && resolvedReferredBy === existing.id) {
+      resolvedReferredBy = undefined
+    }
+
     // Item 186 — record the signup T&C tick once, at account creation. Never overwrite
     // an existing consent timestamp (the first acceptance is the binding one).
     const recordSignupTerms = terms_accepted === true && !existing?.signup_terms_accepted_at
@@ -101,16 +107,18 @@ authRouter.post('/onboard', async (req, res) => {
         }
       : {}
 
+    // P4 — referred_by is attribution set ONCE, at creation. Never in the shared
+    // payload: an existing client re-onboarding must NEVER change/overwrite who
+    // referred them (that would let a client rewrite attribution after the fact).
     const payload = {
       ...profileFields,
       onboarded_at: now,
-      ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}),
       ...signupTermsFields,
     }
 
     let clientId: string
     if (existing) {
-      // Update existing client
+      // Update existing client — deliberately WITHOUT referred_by (see P4 above).
       const { data: updated, error: updateErr } = await db.from('clients')
         .update(payload)
         .eq('user_id', user.id)
@@ -121,9 +129,9 @@ authRouter.post('/onboard', async (req, res) => {
     } else {
       // Insert new client. plan='figsy' — the single live product (#284; lead_gen
       // retired). Set on INSERT only, so a re-onboarding legacy lead_gen client is
-      // never silently re-planned.
+      // never silently re-planned. referred_by is likewise set ONLY here (P4).
       const { data: inserted, error: insertErr } = await db.from('clients')
-        .insert({ user_id: user.id, ...payload, plan: 'figsy' })
+        .insert({ user_id: user.id, ...payload, ...(resolvedReferredBy ? { referred_by: resolvedReferredBy } : {}), plan: 'figsy' })
         .select()
         .single()
       if (insertErr) throw new Error(`Insert failed: ${insertErr.message} (${insertErr.code})`)

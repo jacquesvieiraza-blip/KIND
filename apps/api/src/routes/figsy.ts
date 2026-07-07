@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
 import { buildDraftFromSequence, emailSteps, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
@@ -14,6 +14,7 @@ import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
 import { rateLimit } from '../lib/rate-limit'
 import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
+import { sendFounderAlert } from '../lib/alerts'
 
 // Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
 // is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
@@ -400,6 +401,15 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
               const { error: grantErr } = await db.rpc(rpc, { p_client_id: clientForTopup.id, p_amount: bundleSize })
               if (grantErr) {
                 console.error('[auto-topup] grant RPC failed after successful charge', grantErr.message)
+                // P11 — the card was CHARGED but the credit grant failed: the client
+                // paid and got nothing. Don't let that sit console-only — alert so it
+                // can be granted manually. (Landmine: unreachable until a Paystack auth
+                // exists, but a silent charge-without-grant must never ship.)
+                void sendFounderAlert('payment_failed', 'Auto-topup charged but grant failed', [
+                  `Client: ${clientForTopup.id}`,
+                  `Auto top-up charged ${bundleSize} ${plan} credits (ref ${chargeData.data?.reference ?? 'unknown'}) but the grant RPC failed: ${grantErr.message}`,
+                  'Action: grant the credits manually — the client was billed.',
+                ])
               } else {
                 await db.from('credit_transactions').insert({
                   client_id: clientForTopup.id,
@@ -433,10 +443,11 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
 // skip-if-already-enrolled idempotency guard — so a retried webhook never
 // double-enrols (and therefore never double-sends / double-charges downstream).
 //
-// MONEY-PATH NOTE: enrolment itself does NOT charge — it inserts figsy_enrollments
-// with next_send_at=now; the charge happens later in the send path, which has its
-// own guards. The idempotency guard here is what prevents duplicate enrollments
-// that would each later be sent + charged.
+// MONEY-PATH NOTE (P12): enrolment CHARGES one FIGSY credit per lead, charge-FIRST
+// (#310/#332) — chargeFigsyEnroll runs BEFORE the figsy_enrollments insert, and the
+// enroll aborts if the charge fails (no credit / RPC error). A failed insert after a
+// successful charge refunds the credit. The idempotency guard skips a lead already
+// enrolled in this campaign, so a retried webhook never double-charges.
 //
 // The client-facing enrolment PAGE / nav is a SEPARATE preview-gated follow-up —
 // NOT restored here. This is the API endpoint only.
@@ -502,6 +513,10 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
       .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
     let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
 
+    // #335 — fetch the client's business-knowledge digest ONCE (bounded), reused
+    // for every lead's generated sequence so the solution half is grounded.
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
     let enrolled = 0
     let skipped  = 0
     let insufficientCredits = false
@@ -519,9 +534,15 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
       if (existing) { skipped++; continue }
 
+      let didCharge = false
       try {
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
+
+        // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
+        // failure means the balance is gone — stop enrolling further leads.
+        didCharge = await chargeFigsyEnroll(clientId, lead)
+        if (!didCharge) { insufficientCredits = true; break }
 
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
@@ -537,11 +558,13 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { skipped++; continue }
-        await chargeFigsyEnroll(clientId, lead)
+        if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
         figsyRemaining -= 1
         enrolled++
       } catch {
+        // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
+        // the credit into this catch with no refund. Return it before skipping.
+        if (didCharge) await refundFigsyEnroll(clientId)
         skipped++
       }
     }
@@ -1455,6 +1478,10 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
       .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
     let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
 
+    // #335 — fetch the client's business-knowledge digest ONCE (bounded), reused
+    // for every lead's generated sequence so the solution half is grounded.
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+
     let enrolled = 0
     let skipped  = 0
     let insufficientCredits = false
@@ -1471,10 +1498,16 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         .select('id').eq('campaign_id', campaign.id).eq('lead_id', lead.id).maybeSingle()
       if (existing) { skipped++; continue }
 
+      let didCharge = false
       try {
         // Item 187 — applied sequence's literal copy if present, else AI-generated.
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
+
+        // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
+        // failure means the balance is gone — stop enrolling further leads.
+        didCharge = await chargeFigsyEnroll(clientId, lead)
+        if (!didCharge) { insufficientCredits = true; break }
 
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
@@ -1490,12 +1523,13 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { skipped++; continue }
-        // Charge 1 FIGSY credit for this enrollment (atomic RPC + ledger).
-        await chargeFigsyEnroll(clientId, lead)
+        if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
         figsyRemaining -= 1
         enrolled++
       } catch {
+        // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
+        // the credit into this catch with no refund. Return it before skipping.
+        if (didCharge) await refundFigsyEnroll(clientId)
         skipped++
       }
     }
@@ -1533,7 +1567,8 @@ figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res
     const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
     const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
-    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
     res.json({ success: true, data: draft })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -1570,8 +1605,10 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
       industry: client?.industry ?? null, seniority: 'senior',
       country: 'ZA', tech_stack: [], score: 85, score_reasoning: 'Test preview',
     }
-    // Pass the configured signer so the test reflects the real campaign sign-off.
-    const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null, undefined, undefined, (client as { signer_name?: string | null })?.signer_name ?? null)
+    // Pass the configured signer so the test reflects the real campaign sign-off,
+    // plus the client's knowledge digest so the test copy is grounded like production.
+    const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
+    const sequence = await generateSequence(fakeLead as any, client?.company_name ?? '', client?.industry ?? null, undefined, undefined, (client as { signer_name?: string | null })?.signer_name ?? null, clientKnowledge)
     const step1 = sequence?.step1
     if (!step1?.subject || !step1?.body) {
       res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return

@@ -1,5 +1,19 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPeople, pdlSearchDiagnostic } from './pdl-search'
+import { sendFounderAlert } from './alerts'
+
+// #337④ — dedup the "lead discovery is down" founder alert to at most once per 6h.
+// Only fires when a REAL source error left us with zero contacts (Apollo threw and
+// PDL is unconfigured or also errored to nothing) — never on a genuinely-narrow ICP
+// that returns 0 without any source error.
+let lastSourceDownAlertAt = 0
+const SOURCE_DOWN_ALERT_INTERVAL_MS = 6 * 60 * 60 * 1000
+function alertSourceDown(lines: string[]): void {
+  const now = Date.now()
+  if (now - lastSourceDownAlertAt < SOURCE_DOWN_ALERT_INTERVAL_MS) return
+  lastSourceDownAlertAt = now
+  void sendFounderAlert('source_down', 'Lead discovery is down — clients are getting zero leads', lines)
+}
 
 // Apollo's PUBLIC REST API is under /api/v1. The bare /v1 host is Apollo's internal
 // web API (session/OAuth) — calling it with an X-Api-Key is accepted but runs
@@ -319,11 +333,27 @@ export async function searchPeopleWithFallback(
   } catch (apolloErr) {
     // Apollo unavailable. If PDL is configured, fail over to it; else preserve the
     // original behaviour (let the credits/rate/other error propagate to the caller).
-    if (!pdlConfigured) throw apolloErr
-    console.warn('[apollo] search failed — failing over to PDL:', apolloErr instanceof Error ? apolloErr.message : apolloErr)
+    const errMsg = apolloErr instanceof Error ? apolloErr.message : String(apolloErr)
+    if (!pdlConfigured) {
+      // #337④ — discovery is COMPLETELY down: Apollo errored and there is no second
+      // source configured. Clients are getting zero leads. Alert, then propagate.
+      alertSourceDown([
+        'Apollo lead search errored and no secondary provider (PDL) is configured.',
+        `Apollo error: ${errMsg}`,
+        'Every client ICP run is returning zero leads until this recovers.',
+      ])
+      throw apolloErr
+    }
+    console.warn('[apollo] search failed — failing over to PDL:', errMsg)
     // Reuse the in-flight supplement fetch rather than calling PDL twice.
     const pdl = await pdlSupplement
     if (pdl.length > 0) return { contacts: pdl, relaxed: 'Sourced via the secondary data provider (Apollo was unavailable).' }
+    // #337④ — both sources are down: Apollo errored AND PDL returned nothing.
+    alertSourceDown([
+      'Apollo lead search errored and the secondary provider (PDL) returned zero.',
+      `Apollo error: ${errMsg}`,
+      'Every client ICP run is returning zero leads until at least one source recovers.',
+    ])
     return { contacts: [], relaxed: 'No contacts found — Apollo was unavailable and the secondary provider returned none.' }
   }
 

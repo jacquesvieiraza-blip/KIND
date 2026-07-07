@@ -2,8 +2,8 @@
 
 > **Purpose:** build K.I.N.D's credibility as a company through LinkedIn. We have no case studies yet, so **candor is the credibility** — the honest, useful take nobody else in AI-outbound will post. This matches the "no invented percentages" voice in `blog-articles.md` + the Content Playbook (v3 Honest).
 
-## The one decision (recommended answer baked in)
-**Post from the FOUNDER's personal profile, not the company page.** A young company page has ~0 followers and reads as an ad; a founder posting honest insight gets 5–20× the reach and *is* the credibility. Company page just re-shares. Voice = first person ("I / we're seeing / here's what we believe"). If you'd rather lead with the company page, tell me and I'll re-voice these to "we."
+## Hard constraint (founder-locked) — POST AS THE COMPANY, founder never revealed
+The founder's identity must **never** be visible. So everything runs from the **K.I.N.D company page**, in the company "we" voice — never a personal profile. This trades away some founder-led reach, but anonymity is non-negotiable. Anonymity checklist: (1) page admins are private by default ✓; (2) never list K.I.N.D on any personal profile (that's what surfaces you in "People"); (3) always post/comment AS the page; (4) manage from a locked-down admin account; (5) site/blog/email say "the K.I.N.D team," never a name. *(Outside LinkedIn's control: a UK-registered company's director name is public at Companies House — needs a separate fix if full anonymity is required.)*
 
 ## Voice rules (non-negotiable — this is the brand)
 1. **No invented numbers.** No "our clients see 40% reply rates." If we don't have the data, we say what we're seeing or what we believe — and say it's a belief.
@@ -19,7 +19,7 @@
 
 ---
 
-# THIS WEEK — 5 ready-to-post drafts (copy, tweak a line to sound like you, publish)
+# THIS WEEK — 5 ready-to-post drafts (copy, tweak a line, publish AS the K.I.N.D page)
 
 ## POST 1 — The manifesto (why we exist)
 > *Sets the brand: the honest player in a hyped category. Best first post.*
@@ -28,11 +28,11 @@ We built an AI SDR. And we refuse to fake the numbers.
 
 Every AI-outbound tool on the market right now shows you a dashboard with "47% reply rate" and a wall of five-star testimonials from companies you've never heard of.
 
-Most of it is invented. I've watched founders paste ChatGPT-generated case studies onto a landing page before they had a single customer.
+Most of it is invented — we've watched companies paste ChatGPT-generated case studies onto a landing page before they had a single customer.
 
 We decided to do the opposite. If we don't have the data, we don't quote a number. If a feature isn't finished, we label it "coming soon" instead of pretending. If cold email is the wrong channel for you, we'll tell you.
 
-It's a strange thing to build a sales company around — honesty as the differentiator. But I think the market is exhausted by the hype, and the companies that win the next few years will be the ones that are straight with people.
+It's a strange thing to build a sales company around — honesty as the differentiator. But we think the market is exhausted by the hype, and the companies that win the next few years will be the ones that are straight with people.
 
 That's the whole idea behind K.I.N.D.
 
@@ -43,7 +43,7 @@ Would you rather a vendor show you an inflated number, or tell you the honest on
 ## POST 2 — Contrarian / useful (WhatsApp for B2B)
 > *Repurposed from `blog-articles.md`. Shows you know the terrain — pure credibility, zero pitch.*
 
-"Just use WhatsApp for B2B sales." I hear this constantly. It's half right, and the half that's wrong will burn your reputation.
+"Just use WhatsApp for B2B sales." We hear this constantly. It's half right, and the half that's wrong will burn your reputation.
 
 Where WhatsApp genuinely works:
 → Warm follow-up after a meeting ("sending that proposal now")
@@ -65,7 +65,7 @@ Where have you actually seen WhatsApp work in B2B — and where has it blown up 
 ## POST 3 — Give the value away (what drives cold-email replies)
 > *The practical post. Genuinely useful → credibility. No invented %.*
 
-I'm not going to tell you our clients get some magic reply rate. I'll tell you what actually moves the needle, from watching a lot of cold campaigns:
+We're not going to quote you some magic reply rate — we don't have clients to average yet, and we wouldn't invent one. Here's what actually moves the needle, from watching a lot of cold campaigns:
 
 1. **Real personalisation.** Not "Hi {FirstName} at {Company}." One sentence that proves you understand what *they* deal with. It out-performs five paragraphs of polish.
 
@@ -102,10 +102,10 @@ Where's the line for you: what should AI own in your sales process, and what sho
 
 ---
 
-## POST 5 — Build in public (founder note)
+## POST 5 — Build in public (company note)
 > *Transparency = credibility for a young company. Talk about the WORK and the principle, never invented results.*
 
-Spent this week doing the least glamorous thing in a software startup: a top-to-bottom honesty audit of our own product.
+We spent this week doing the least glamorous thing in a software startup: a top-to-bottom honesty audit of our own product.
 
 We went screen by screen and asked one question of every button, toggle and claim: *does this do what it says it does?*
 
@@ -130,4 +130,4 @@ If you run a product: when did you last audit your own marketing against what yo
 
 ---
 
-*Owner: founder posts · Claude drafts. Update this file when a post ships (move it to a "Published" list) so we don't repeat. Not a status doc — status of any GTM item lives in PRODUCT-INVENTORY.*
+*Owner: posted AS the company page (founder never revealed) · Claude drafts. Update this file when a post ships (move it to a "Published" list) so we don't repeat. Not a status doc — status of any GTM item lives in PRODUCT-INVENTORY.*

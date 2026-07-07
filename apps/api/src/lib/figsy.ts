@@ -4,6 +4,7 @@ import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
 import { canEnroll } from './billing-rules'
+import { sendFounderAlert } from './alerts'
 import { buildDraftFromSequence, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
@@ -197,7 +198,7 @@ Hard rules (violating any of these makes the email useless):
 - Don't make up facts about their company you don't know
 - Subject lines: 4–6 words, lowercase, no punctuation, no questions
 - End every email with: "Reply STOP to opt out."
-${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, or use any other name.` : '- Sign off with a real first name (pick a South African-sounding name that fits the sender\'s industry)'}
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, or use any other name.` : '- Sign off with a real first name (pick a name that fits the sender\'s company)'}
 ${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.` : ''}
@@ -536,19 +537,28 @@ export async function sendSequenceEmail(
   }
 }
 
-// #310 — charge 1 FIGSY credit for one enrollment (atomic RPC + ledger row), the
-// SAME deduction autoEnrollLead does. Used by the manual UI enroll + the developer
-// webhook enrol paths, which previously enrolled + sent for FREE (the balance gate
-// and the deduction only ever ran inside autoEnrollLead). Call AFTER a successful
-// enrollment insert. Best-effort ledger; the balance RPC clamps at 0 in SQL.
+// #310/#332 — charge 1 FIGSY credit for one enrollment, FAIL-CLOSED. The
+// try_charge_figsy_credit RPC makes the decrement itself the gate: a single
+// atomic conditional UPDATE that only decrements at balance >= 1 and reports via
+// its boolean whether it actually charged. This kills the gate-then-charge race
+// at balance 1 AND the old silent clamp-at-0 free enroll (increment_figsy_credits
+// GREATEST(0,…) returned "success" while charging nothing). Callers MUST charge
+// BEFORE inserting the enrollment and abort the enroll on a false return.
+// Returns true only when a credit was really taken (then the ledger row is written).
 export async function chargeFigsyEnroll(
   clientId: string,
   lead: { first_name?: string | null; last_name?: string | null; company?: string | null },
-): Promise<void> {
-  const { error: balErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: -1 })
-  if (balErr) {
-    console.error('[figsy] chargeFigsyEnroll: FIGSY credit deduction failed', balErr.message)
-    return
+): Promise<boolean> {
+  const leadName = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || '(unknown lead)'
+  const { data: charged, error } = await db.rpc('try_charge_figsy_credit', { p_client_id: clientId })
+  if (error || charged === false) {
+    console.error('[figsy] chargeFigsyEnroll: FIGSY credit charge failed', error?.message ?? 'insufficient balance', 'client', clientId)
+    void sendFounderAlert('charge_failed', 'FIGSY enrollment charge failed — lead NOT enrolled', [
+      `Client: ${clientId}`,
+      `Lead: ${leadName}${lead.company ? ` at ${lead.company}` : ''}`,
+      error ? `Reason: RPC error — ${error.message}` : 'Reason: no FIGSY credits at charge time (balance hit 0 between the pre-check and the charge).',
+    ])
+    return false
   }
   await db.from('credit_transactions').insert({
     client_id: clientId,
@@ -556,6 +566,27 @@ export async function chargeFigsyEnroll(
     type: 'usage',
     plan: 'figsy',
     note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
+    created_at: new Date().toISOString(),
+  }).then(() => {}, () => {})
+  return true
+}
+
+// #332 — return a charged credit when the enrollment insert fails AFTER we
+// charged (charge-first ordering). Best-effort: restores the balance via the
+// clamping increment RPC and writes a refund ledger row so the wallet + ledger
+// stay reconciled. Never throws into the caller.
+export async function refundFigsyEnroll(clientId: string): Promise<void> {
+  const { error } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 })
+  if (error) {
+    console.error('[figsy] refundFigsyEnroll: FIGSY credit refund failed', error.message, 'client', clientId)
+    return
+  }
+  await db.from('credit_transactions').insert({
+    client_id: clientId,
+    amount: 1,
+    type: 'refund',
+    plan: 'figsy',
+    note: 'Enrollment failed after charge — credit returned',
     created_at: new Date().toISOString(),
   }).then(() => {}, () => {})
 }
@@ -1052,6 +1083,19 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       return
     }
 
+    // ── CHARGE FIRST (#332) ─────────────────────────────────────────────────────
+    // Fail-closed ordering: charge the FIGSY credit BEFORE inserting the enrollment.
+    // The charge is the real gate (try_charge_figsy_credit) — canEnroll() above is
+    // only the fast UX pre-check. The per-campaign idempotency guard runs ABOVE this,
+    // so a lead already enrolled is never charged. If the charge fails (RPC error or
+    // no credit), abort WITHOUT inserting or sending — chargeFigsyEnroll already
+    // alerted the founder.
+    const charged = await chargeFigsyEnroll(clientId, lead)
+    if (!charged) {
+      console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling.`)
+      return
+    }
+
     const { data: enrollment, error } = await db.from('figsy_enrollments').insert({
       campaign_id:    campaign.id,
       lead_id:        leadId,
@@ -1068,26 +1112,10 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }).select('id').single()
 
     if (error || !enrollment) {
-      console.error('[figsy] autoEnrollLead: enrollment insert failed', error?.message, 'for lead', leadId)
+      // We already charged — return the credit so the wallet + ledger reconcile.
+      console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— refunding credit')
+      await refundFigsyEnroll(clientId)
       return
-    }
-
-    // ── Deduct 1 FIGSY credit per lead enrolled (item 170: atomic RPC) ──────────
-    // Use the increment_figsy_credits RPC (mirrors increment_client_credits) so the
-    // balance update is atomic — no read-modify-write race that could desync the
-    // balance from the ledger row. Clamps at 0 in SQL.
-    const { error: balErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: -1 })
-    if (balErr) {
-      console.error('[figsy] autoEnrollLead: FIGSY credit deduction failed', balErr.message)
-    } else {
-      await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount: -1,
-        type: 'usage',
-        plan: 'figsy',
-        note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
-        created_at: new Date().toISOString(),
-      }).then(() => {}, () => {})
     }
 
     // Increment campaign enrolled count

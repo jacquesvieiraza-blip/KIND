@@ -278,7 +278,24 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           isFigsy ? 'increment_figsy_credits' : 'increment_client_credits',
           { p_client_id: clientId, p_amount: credits },
         )
-        if (rpcErr) throw rpcErr
+        if (rpcErr) {
+          // #333 — the client PAID but the credit grant just failed. The ledger row
+          // we inserted above (reference = session.id, unique index) would otherwise
+          // block Stripe's retry via a 23505 — so the client would have paid and got
+          // NOTHING, forever. Delete that ledger row so the replay can re-grant, alert
+          // the founder, and return 500 so Stripe retries this webhook. DO NOT fall
+          // through to the 200.
+          console.error('[Stripe] credit grant RPC failed after payment — deleting ledger row for retry', rpcErr.message, 'session', session.id)
+          await db.from('credit_transactions').delete().eq('reference', session.id)
+          void sendFounderAlert('payment_failed', 'Credit grant failed after payment — Stripe will retry', [
+            `Client: ${clientId}`,
+            `Purchased: ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits (session ${session.id}).`,
+            `The payment succeeded but the credit grant RPC failed — the ledger row was rolled back so Stripe's retry can re-grant. Reason: ${rpcErr.message}`,
+            'Action: confirm the client received their credits once Stripe retries; grant manually if the retries exhaust.',
+          ])
+          res.status(500).json({ error: 'credit grant failed — retry' })
+          return
+        }
 
         // Auto-commission: look up USD price from bundle config
         const bundleList = STRIPE_BUNDLES[creditType as 'lead_gen' | 'figsy'] as readonly { credits: number; price: number }[]
@@ -439,7 +456,20 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           if (ledgerErr.code === '23505') { res.sendStatus(200); return } // already clawed back
           throw ledgerErr
         }
-        await db.rpc(isFigsy ? 'increment_figsy_credits' : 'increment_client_credits', { p_client_id: meta.clientId, p_amount: -credits })
+        const { error: clawbackErr } = await db.rpc(isFigsy ? 'increment_figsy_credits' : 'increment_client_credits', { p_client_id: meta.clientId, p_amount: -credits })
+        if (clawbackErr) {
+          // #333 — the ledger row is written but the balance claw-back RPC failed:
+          // the client keeps credits they were refunded for. Keep the 200 (correct
+          // for Stripe — re-running the webhook is idempotent on the ledger row and
+          // would NOT re-attempt the RPC), but never let a failed claw-back be silent.
+          console.error('[Stripe] refund claw-back RPC failed — balance not revoked', clawbackErr.message, 'client', meta.clientId)
+          void sendFounderAlert('payment_failed', `${isDispute ? 'Chargeback' : 'Refund'} claw-back failed — revoke credits manually`, [
+            `Client: ${meta.clientId}`,
+            `A ${isDispute ? 'chargeback' : 'refund'} of ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits was recorded, but the balance claw-back RPC failed — the client still holds those credits.`,
+            `Reason: ${clawbackErr.message}`,
+            'Action: revoke the credits manually in the admin.',
+          ])
+        }
         void sendFounderAlert('churn_risk', `${isDispute ? 'Chargeback' : 'Refund'} — ${credits} credits clawed back`, [
           `A ${isDispute ? 'chargeback (dispute)' : 'refund'} was processed on Stripe; ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits were revoked from client ${meta.clientId}.`,
           isDispute ? 'Review the dispute in Stripe — you may need to submit evidence.' : 'No action needed unless this was unexpected.',

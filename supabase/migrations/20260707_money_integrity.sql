@@ -1,0 +1,42 @@
+-- 20260707_money_integrity.sql
+-- M0 money-integrity pass. Makes FIGSY enrollment charging FAIL-CLOSED.
+--
+-- Run on STAGING first (kind-staging), then PRODUCTION (confirm the Supabase
+-- project name first).
+
+-- ── try_charge_figsy_credit — the decrement IS the gate ──────────────────────
+-- Previously enrollment did gate-then-charge: canEnroll() checked the balance,
+-- THEN increment_figsy_credits(-1) decremented (clamping at 0 via GREATEST).
+-- Two money bugs lived in that gap:
+--   1. Balance-1 race — two concurrent enrolls both pass the >=1 gate, both
+--      decrement, and the GREATEST(0, …) clamp SILENTLY swallows the second
+--      overdraw: two leads enrolled, one credit charged (a free enroll).
+--   2. Clamp-at-0 free enroll — any decrement at balance 0 clamps to 0 and
+--      returns "success", so a lead gets enrolled for free.
+-- This function makes the decrement itself the gate: a SINGLE atomic conditional
+-- UPDATE that only decrements when the balance is still >= 1, and reports via
+-- FOUND whether it actually charged. No credit → no charge → caller aborts.
+CREATE OR REPLACE FUNCTION try_charge_figsy_credit(
+  p_client_id uuid
+) RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.clients
+    SET figsy_credits_remaining = COALESCE(figsy_credits_remaining, 0) - 1
+  WHERE id = p_client_id
+    AND COALESCE(figsy_credits_remaining, 0) >= 1;
+
+  RETURN FOUND;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION try_charge_figsy_credit FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION try_charge_figsy_credit TO service_role;
+
+-- ── low-credit warning bookkeeping (Fix 5 / #337②) ──────────────────────────
+-- Timestamp of the last "you're running low on FIGSY credits" email, so the
+-- daily sweep re-warns at most once per 7 days.
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS low_credit_warned_at timestamptz;

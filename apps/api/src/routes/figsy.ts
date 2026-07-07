@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll } from '../lib/figsy'
+import { generateSequence, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
 import { buildDraftFromSequence, emailSteps, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
@@ -523,6 +523,11 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
           || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
 
+        // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
+        // failure means the balance is gone — stop enrolling further leads.
+        const charged = await chargeFigsyEnroll(clientId, lead)
+        if (!charged) { insufficientCredits = true; break }
+
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
           lead_id:        lead.id,
@@ -537,8 +542,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { skipped++; continue }
-        await chargeFigsyEnroll(clientId, lead)
+        if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
         figsyRemaining -= 1
         enrolled++
       } catch {
@@ -1476,6 +1480,11 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
           || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName)
 
+        // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
+        // failure means the balance is gone — stop enrolling further leads.
+        const charged = await chargeFigsyEnroll(clientId, lead)
+        if (!charged) { insufficientCredits = true; break }
+
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
           lead_id:        lead.id,
@@ -1490,9 +1499,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { skipped++; continue }
-        // Charge 1 FIGSY credit for this enrollment (atomic RPC + ledger).
-        await chargeFigsyEnroll(clientId, lead)
+        if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
         figsyRemaining -= 1
         enrolled++
       } catch {

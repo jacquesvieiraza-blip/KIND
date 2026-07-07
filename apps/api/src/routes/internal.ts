@@ -17,7 +17,7 @@ import crypto from 'crypto'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
@@ -1207,7 +1207,35 @@ internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => 
       }
     }
 
-    res.json({ success: true, data: { sent } })
+    // ── #337② — FIGSY low-credit warning sweep ────────────────────────────────
+    // FIGSY-plan clients still selling but running low (1–5 credits). Warn once,
+    // then re-warn at most every 7 days (low_credit_warned_at).
+    let lowSent = 0
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
+    const { data: lowClients } = await db.from('clients')
+      .select('id, company_name, user_id, figsy_credits_remaining, low_credit_warned_at')
+      .eq('plan', 'figsy')
+      .gte('figsy_credits_remaining', 1)
+      .lte('figsy_credits_remaining', 5)
+      .not('user_id', 'is', null)
+
+    for (const client of lowClients ?? []) {
+      try {
+        if (client.low_credit_warned_at && client.low_credit_warned_at > sevenDaysAgo) continue
+
+        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
+        const email = user?.email
+        if (!email) continue
+
+        await sendLowCreditsWarning(email, client.company_name ?? '', client.figsy_credits_remaining ?? 0)
+        await db.from('clients').update({ low_credit_warned_at: now.toISOString() }).eq('id', client.id)
+        lowSent++
+      } catch (err) {
+        console.error(`[low-credits-figsy] failed for client ${client.id}:`, err)
+      }
+    }
+
+    res.json({ success: true, data: { sent, low_credits_sent: lowSent } })
   } catch (err) {
     console.error('[zero-credits]', err)
     res.status(500).json({ success: false, error: 'Zero-credits run failed' })
@@ -1691,6 +1719,41 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
 
         // Can't deliver leads to a client with no credits in the relevant pool
         if (balance < 1) continue
+
+        // ── #331 — cap the free trial drip (FIGSY plan only; lead_gen untouched) ──
+        if (normalizePlan(client.plan) === 'figsy') {
+          // (a) Trial-expired-unconverted halt: stop dripping free leads to a client
+          // whose trial lapsed without converting to a paying subscription. Deliver
+          // only when they have an ACTIVE subscription, or a still-valid trialing one.
+          const { data: subs } = await db.from('subscriptions')
+            .select('status, trial_ends_at, current_period_end')
+            .eq('client_id', client.id)
+          const nowMs = Date.now()
+          const hasActive = (subs ?? []).some((s: { status?: string | null }) => s.status === 'active')
+          const hasValidTrial = (subs ?? []).some((s: { status?: string | null; trial_ends_at?: string | null; current_period_end?: string | null }) =>
+            s.status === 'trialing' &&
+            ((s.trial_ends_at && new Date(s.trial_ends_at).getTime() > nowMs) ||
+             (s.current_period_end && new Date(s.current_period_end).getTime() > nowMs)))
+          if (!hasActive && !hasValidTrial) {
+            console.log(`[leads/drip] skip client ${client.id} — FIGSY trial expired unconverted (no active or in-period trialing subscription)`)
+            continue
+          }
+
+          // (b) 3× free-leads cap: never let delivered-but-never-enrolled (free) leads
+          // run more than 3× the client's current FIGSY balance ahead. A delivered
+          // lead with no figsy_enrollments row for this client is a free lead.
+          const [{ count: deliveredCount }, { count: enrolledCount }] = await Promise.all([
+            db.from('leads').select('id', { count: 'exact', head: true })
+              .eq('client_id', client.id).not('delivered_at', 'is', null),
+            db.from('figsy_enrollments').select('id', { count: 'exact', head: true })
+              .eq('client_id', client.id),
+          ])
+          const freeLeads = Math.max(0, (deliveredCount ?? 0) - (enrolledCount ?? 0))
+          if (freeLeads >= 3 * balance) {
+            console.log(`[leads/drip] skip client ${client.id} — free-leads cap hit (${freeLeads} delivered-unenrolled ≥ 3× ${balance} FIGSY credits)`)
+            continue
+          }
+        }
 
         // Deliver up to min(drip_rate, pool balance) leads
         const toDeliver = Math.min(drip, balance)
@@ -2236,16 +2299,15 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
           .select('id').eq('lead_id', lead.id).eq('campaign_id', campaign.id).maybeSingle()
         if (existing) continue
 
-        // Enroll
-        const { error: enrollErr } = await db.from('figsy_enrollments').insert({
-          lead_id:     lead.id,
-          campaign_id: campaign.id,
-          client_id:   campaign.client_id,
-          status:      'enrolled',
-          trigger:     triggerReasons.join(','),
-          enrolled_at: new Date().toISOString(),
-        })
-        if (!enrollErr) enrolled++
+        // #337① — enroll through the CHARGED path. The old raw insert here created a
+        // free "enrolled" row with no gate, no charge and no sequence — which then
+        // permanently blocked paid re-enrollment of that lead (the idempotency guards
+        // key on existence). autoEnrollLead gates on the FIGSY balance, charges one
+        // credit (fail-closed) and writes a real sequence. Count is best-effort — it
+        // no-ops silently when the balance is empty or the lead is already enrolled.
+        const { autoEnrollLead } = await import('../lib/figsy')
+        await autoEnrollLead(lead.id, campaign.client_id)
+        enrolled++
       }
     }
 

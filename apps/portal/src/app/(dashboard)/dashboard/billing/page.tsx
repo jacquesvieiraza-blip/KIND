@@ -144,10 +144,11 @@ export default function BillingPage() {
   const [pausing, setPausing]               = useState<string | null>(null)
   const [pauseNotice, setPauseNotice]       = useState<string | null>(null)
 
-  // Auto top-up
-  const [autoTopup, setAutoTopup]   = useState({ enabled: false, threshold: 10, plan: 'figsy' as 'kind_ai' | 'figsy', bundle_size: 20 })
-  const [savingTopup, setSavingTopup] = useState(false)
-  const [topupSaved, setTopupSaved]   = useState(false)
+  // Auto top-up — display only. The backend gate (apps/api figsy route) requires a
+  // saved Paystack card, and Paystack was removed from the product (#325/#334), so
+  // this can never fire. Shown disabled + "Soon" so we don't promise a safety net we
+  // can't keep. No save handler: the controls no longer write (dead writes removed).
+  const [autoTopup] = useState({ enabled: false, threshold: 10, plan: 'figsy' as 'kind_ai' | 'figsy', bundle_size: 20 })
 
   useEffect(() => {
     async function load() {
@@ -155,10 +156,9 @@ export default function BillingPage() {
       if (!session) { setLoading(false); return }
 
       try {
-        const [creditsRes, subsRes, autoRes] = await Promise.allSettled([
+        const [creditsRes, subsRes] = await Promise.allSettled([
           api.get<{ data: { balance: number; figsy_credits_remaining: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
           api.get<{ data: { id: string; product: string; status: string; paused_until?: string | null }[] }>('/subscriptions', session.access_token),
-          api.get<{ data: { auto_topup_enabled?: boolean; auto_topup_threshold?: number; auto_topup_plan?: string; auto_topup_bundle_size?: number } }>('/clients/me', session.access_token),
         ])
 
         if (creditsRes.status === 'fulfilled') {
@@ -176,16 +176,6 @@ export default function BillingPage() {
             .filter(s => s.status === 'active')
             .map(s => s.product)
           setActiveProducts(active)
-        }
-
-        if (autoRes.status === 'fulfilled' && autoRes.value.data) {
-          const d = autoRes.value.data
-          setAutoTopup({
-            enabled:     d.auto_topup_enabled ?? false,
-            threshold:   d.auto_topup_threshold ?? 10,
-            plan:        (d.auto_topup_plan as 'kind_ai' | 'figsy') ?? 'figsy',
-            bundle_size: d.auto_topup_bundle_size ?? 20,
-          })
         }
       } catch { setLoadError('Could not load billing data — please refresh.') }
 
@@ -260,23 +250,6 @@ export default function BillingPage() {
         body: JSON.stringify({ product, client_id: session.user.id, message: '' }),
       })
     } catch { /* silent */ }
-  }
-
-  async function saveAutoTopup() {
-    setSavingTopup(true)
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) return
-    try {
-      await api.patch('/clients/me/auto-topup', {
-        auto_topup_enabled:     autoTopup.enabled,
-        auto_topup_threshold:   autoTopup.threshold,
-        auto_topup_plan:        autoTopup.plan,
-        auto_topup_bundle_size: autoTopup.bundle_size,
-      }, session.access_token)
-      setTopupSaved(true)
-      setTimeout(() => setTopupSaved(false), 3000)
-    } catch { setBuyError('Failed to save auto-topup settings') }
-    setSavingTopup(false)
   }
 
   if (loading) return (
@@ -499,42 +472,57 @@ export default function BillingPage() {
       </div>
 
       {/* ── AUTO TOP-UP ─────────────────────────────────────────────────────── */}
+      {/* #334 — the backend gate (apps/api figsy route) requires a saved Paystack
+          card, and Paystack was removed from the product (#325). So auto top-up can
+          never fire. Disabled + "Soon" (the #326 honesty class) so we never promise
+          a safety net we can't keep; controls no longer persist (dead writes gone). */}
       <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-base font-semibold text-gray-900">Auto top-up</h2>
-            <p className="text-xs text-[#9B8EC4] mt-0.5">Automatically recharge when balance drops below your threshold.</p>
+            <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+              Auto top-up
+              <span className="text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
+            </h2>
+            <p className="text-xs text-[#9B8EC4] mt-0.5">
+              Auto top-up is coming soon. Until then we&apos;ll email you when credits run low, and again at zero.
+            </p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input type="checkbox" checked={autoTopup.enabled} onChange={e => setAutoTopup(p => ({ ...p, enabled: e.target.checked }))} className="sr-only peer" />
-            <div className="w-10 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-purple-300 rounded-full peer peer-checked:bg-[#7C3AED] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-4"></div>
-          </label>
+          <button
+            type="button"
+            disabled
+            aria-label="Auto top-up (coming soon)"
+            title="Auto top-up is coming soon"
+            className="relative inline-flex h-5 w-9 shrink-0 rounded-full bg-gray-100 cursor-not-allowed"
+          >
+            <span className="inline-block h-4 w-4 rounded-full bg-gray-300 shadow transform mt-0.5 translate-x-0.5" />
+          </button>
         </div>
-        {autoTopup.enabled && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Recharge when below</p>
-                <select value={autoTopup.threshold} onChange={e => setAutoTopup(p => ({ ...p, threshold: Number(e.target.value) }))}
-                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none">
-                  {[5, 10, 20, 50].map(v => <option key={v} value={v}>{v} credits</option>)}
-                </select>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Recharge amount</p>
-                <select value={autoTopup.bundle_size} onChange={e => setAutoTopup(p => ({ ...p, bundle_size: Number(e.target.value) }))}
-                  className="w-full border border-purple-100/80 rounded-lg px-3 py-2 text-sm focus:outline-none">
-                  {[10, 20, 40, 75, 100, 200].map(v => <option key={v} value={v}>{v} credits</option>)}
-                </select>
-              </div>
-            </div>
-            <button onClick={saveAutoTopup} disabled={savingTopup}
-              className="px-4 py-2 bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2">
-              {savingTopup ? <Loader2 className="w-4 h-4 animate-spin" /> : topupSaved ? <Check className="w-4 h-4" /> : null}
-              {topupSaved ? 'Saved!' : 'Save settings'}
-            </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md opacity-60">
+          <div>
+            <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Recharge when below</p>
+            <select
+              value={autoTopup.threshold}
+              disabled
+              aria-label="Recharge threshold (coming soon)"
+              title="Auto top-up is coming soon"
+              className="w-full border border-purple-100/80 bg-gray-50 text-gray-400 rounded-lg px-3 py-2 text-sm focus:outline-none cursor-not-allowed"
+            >
+              {[5, 10, 20, 50].map(v => <option key={v} value={v}>{v} credits</option>)}
+            </select>
           </div>
-        )}
+          <div>
+            <p className="text-xs font-medium text-[#7B6FA0] mb-1.5">Recharge amount</p>
+            <select
+              value={autoTopup.bundle_size}
+              disabled
+              aria-label="Recharge amount (coming soon)"
+              title="Auto top-up is coming soon"
+              className="w-full border border-purple-100/80 bg-gray-50 text-gray-400 rounded-lg px-3 py-2 text-sm focus:outline-none cursor-not-allowed"
+            >
+              {[10, 20, 40, 75, 100, 200].map(v => <option key={v} value={v}>{v} credits</option>)}
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* ── SPENDING SPARKLINE ──────────────────────────────────────────────── */}

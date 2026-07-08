@@ -19,7 +19,7 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | # | Task | Owner | Status |
 |---|------|:---:|:---:|
 | 1 | Deploy `railway up "KIND"` → walk live site → flip **#417 · #418 · #419 · #408 · #348** 🟡→🩷 | 🧍 | ⏳ |
-| 2 | Review + merge the reconciliation PR **#1002** (docs single-source-of-truth) | 🧍 | ⏳ |
+| 2 | Stale-docs fix **Batch B — LEGAL** (ledger `AUDIT-8JUL-STALE-SWEEP.md`: DPA sub-processor list Apollo→PDL+Hunter+Flutterwave first) | 🤖 | 🔴 |
 | 3 | Run §D prod-DB SQL → turns ~10 findings into facts (5 min) | 🧍 | 🔴 |
 | 4 | FIGSY reliability — start **#338 + #339** (Phase 3) | 🤖 | 🔴 |
 

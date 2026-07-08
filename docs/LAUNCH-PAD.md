@@ -1,9 +1,9 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 7 July 2026 PM · admin walk banked + Fable money audit → MILESTONE 0 opened.** This page = the four milestones and what to do right now. Nothing else lives here.
-**History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
+**As of: 8 July 2026 · 7-pass deep audit + 3-question verdict → 67 findings (#338–#404) in MILESTONE 0.** This page = the four milestones and what to do right now. Nothing else lives here.
+**History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP · full audit → `docs/AUDIT-8JUL-DEEP.md`.**
 
-**Board:** 🟢107 verified · 🩷91 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴115 not built · ⏸5 blocked · Σ343 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢105 verified · 🩷88 live-not-walked · 🟣4 approved · 🟡25 on branch · 🔴182 not built · ⏸6 blocked · Σ410 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
@@ -48,7 +48,42 @@
 
 # ⓪ MILESTONE 0 — MONEY-PATH INTEGRITY (opened 7 Jul · Fable audit · BLOCKS M2)
 
-**WHERE IT STANDS: all 8 fixes SHIPPED + LIVE 7 Jul (🩷). Money path is fail-closed.** The Fable audit returned PASS-WITH-RISKS; all 8 holes (#330–#337) were built, then a **triple Fable re-audit** found 13 more edge-cases (paid-but-nothing, self-referral, drip-starves-payers…) — all closed in the P1–P14 patch round (**PR #985**). Merged as 4 clean PRs (#980 docs · #978 funnel · #985 money+patches · #982 portal), SQL run on staging **and** prod, api+admin+portal deployed. `/engine/env` now reports `money_rpcs: installed` — the permanent anti-drift guard. **Two things still close M0:** (a) set `PDL_API_KEY`+`HUNTER_API_KEY` → run `/engine/leads/test`; (b) the $60 walk showing a credit visibly drop. Until those, the 8 stay 🩷 (live, not walked).
+**WHERE IT STANDS (8 Jul): a 7-pass deep audit blew M0 wide open — the original 8 (#330–#337) hold, but the SURROUNDING product has ~67 confirmed rocks logged as 🔴 #338–#404.** The enrollment *charge* is genuinely safe; almost everything around it (subscriptions, the send outcome, crons, tenant isolation, the agents, the dashboards, the claims) is partial/inert/broken. Full evidence: **`docs/AUDIT-8JUL-DEEP.md`**. **Nothing runtime-proven — the auditor had no prod/staging access; §D SQL + §N tests are the proof instruments.** No real client until the CRITICAL tier is fixed-or-hidden and runtime-proven.
+
+**Original 8 — real status:** #330/#331/#332/#333 ✅ complete · #334 ◐ UI honest but Paystack backend residue (#352) · #335 ◐ inert, knowledge UI disabled (#346) · #336 ◐ inert, `?ref=` dropped (#355) · #337 ◐ ④ SA-name not done (#400).
+
+**AUDIT REGISTER — 67 findings by tier (owner: 🤖 Claude · 🧍 Founder · 🤝 Both). Full text in PRODUCT-INVENTORY #338–#404.**
+
+- **🔴🔴 CRITICAL (13) — fix or hide before ONE client:** #338 phantom sends · #339 blind alarm · #340 sub-status→active · #341 cancel-doesn't-cancel · #342 lapse cron 500s daily · #343 no cron singleton · #344 kill-switch gap · #345 lookalike IDOR · #346 #335 inert · #347 approve-queue dead · #348 guarantee inoperable · #349 ~140 unchecked money writes · #350 visitor_sessions anon-readable *(confirmed prod)*.
+- **🔴 HIGH (29):** #351 partner commission · #352 auto-topup double-charge · #353 trial-expiry spam · #354 double-send · #355 #336 unearnable · #356 consent ungated · #357 MRR $0 · #358 fake scores · #359 WhatsApp forgeable webhook · #360 WhatsApp not multi-tenant · #361 Calendar crashes · #362 Vida no knowledge · #363 seed-leads clobber · #364 demo pollutes metrics · #365 fake KPI injection · #366 50-lead ceiling · #367 reveal-down silent · #368 Calendar OAuth CSRF · #369 Vapi fail-open · #370 partners ilike-injection · #371 racy grants · #372 pool credits destroyed · #373 prod constraint gaps · #374 intent-signals drain · #375 self-outreach dead sends · #376 delivery overdraw · #377 support black hole · #378 hallucinated availability · #379 webhook catch→200 · #403 "autonomous replies" false.
+- **🔴 MEDIUM (13):** #380 missing tables · #381 dev webhooks dead · #382 churn scoring dead · #383 missing send-counter RPC · #384 dead portal buttons · #385 fake overage panel · #386 onboarding double-submit · #387 referral attrib swallowed · #388 LinkedIn limbo · #389 migration hygiene · #390 observability gaps · #391 cron JSONB clobber · #392 AB resolves on 0 data · #393 data-moat dup rows · #404 Lena dead (not mounted).
+- **🔴 LOW (10):** #394 $1 residue · #395 Milla mock UI · #396 Denise false claims · #397 HubSpot dead code · #398 Wise "integration" · #399 integrations shell · #400 #337④ SA-name · #401 lying dots (corrected) · #402 auth/observability nits.
+
+**🧍 YOUR 5-min facts that de-risk ~10 items (audit §D read-only SQL):** the `subscription_status` enum (#342) · the four idempotency uniques (#351/#354/#373/#386) · missing tables (#380/#381/#382) · `amount_usd` null (#357) · **Railway API replica count** (#343) · is `apps/landing` deployed (#394). Run those → paste outputs → ~10 rocks move from suspected to confirmed.
+
+**DECISION PENDING (you):** Scope A (FIGSY-only, hide the rest — *recommended*) · Scope B (+ billing/referrals) · Scope C (full surface). Detail in `AUDIT-8JUL-DEEP.md §O`. Once chosen, 🤖 builds the CRITICAL tier as small verified PRs — **#338 phantom-send + #339 blind-alarm first** (they gate visibility of everything else).
+
+**🧭 RECOMMENDATION (8 Jul · full reasoning in `AUDIT-8JUL-DEEP.md §4-10`):** **Scope A + the deterministic-workflow architecture.** The audit proves the root cause is *engineering* (state advances without verifying provider/DB success; fail-open; AI in the authority path) — **not** "AI is bad." So: **AI drafts/scores/classifies only; deterministic software decides + fails closed; state advances only after verified success; every risky flow becomes a state machine.** This directly prevents ~40 of the 67 findings; the rest need copy/legal rewrites, feature builds, prod-DB ops, and tests. **ML is not the fix — deterministic control-flow + provider/DB success checks + tests + bounded AI is.** Build order = the **Top-20 controls** in `AUDIT-8JUL-DEEP.md §10`, starting #338 + #339. One real client is safe on Scope A **after** the Top-20 + runtime proof on staging (§K).
+
+---
+
+### 🎯 THE 3-QUESTION VERDICT (8 Jul · fresh code re-read, not memory · code-confirmed, not runtime-proven)
+
+**Q1 · Do all our agents do what we say — and can they develop more?** **HALF do. Every real one can extend.**
+- **REAL:** FIGSY (lead engine + sequence writer) · Milla (daily brief + doc-RAG chat) · Denise (drafts, human sends) · Nora (admin co-pilot) · Casey (internal chat).
+- **FALSE / broken (all logged):** Vida "learns your business / no hallucinations" (no knowledge layer, `vida.ts:46` → #362) · Vida/WhatsApp "connect your number" (one global number → #360) · Calendar "auto-books" (`googleapis` in no package.json → crashes → #361) · Denise "trained on your closed-won / confirms meetings" (#396) · Milla "connects CRM/Gmail" (fabricated mock → #395) · **FIGSY "handles replies autonomously" (draft-only → #403)** · **Lena (dead, not mounted → #404)**.
+- **Develop more:** YES for every real agent — good architecture; the false claims are *build gaps* (Vida can reuse Milla's RAG; Denise can ingest deals), not walls.
+
+**Q2 · Is a client getting what they paid for?** **PARTIALLY — and the core step can fail silently.** Leads DO source now (keys set) but ~50/run not "250M" (#366); scores real but degrade to fake-50 on AI error (#358); **the outreach email advances to "sent" whether or not Resend actually sent it (`figsy.ts:540` → #338)** — the prospect may get nothing and the dashboard says sent; copy is generic because the client can't enter their knowledge (#346); replies are drafts not autonomous (#403); no auto-booking (#361). **Biggest gap: the email may never send and nobody knows.**
+
+**Q3 · Do we get paid for what we give?** **Correct AT enrollment; leaks + drifts everywhere around it.**
+- ✅ Enrollment charge is atomic, fail-closed, charge-before-send (`chargeFigsyEnroll` #332).
+- 🔴 **Pay-and-get-nothing:** the $3 is taken before the send, and the send is phantom (#338) → **credit spent, no email, no alert.**
+- 🔴 **Books lie:** credit-ledger inserts are swallowed (`figsy.ts:611/639` → #349) → wallet moves, ledger doesn't reconcile.
+- 🔴 **Subscriptions:** charge-after-cancel (#341) + active-on-failed-card (#340).
+- **Bottom line: we are not reliably paid for exactly what we give, and can't fully trust our own records of it.**
+
+**One-line truth:** FIGSY is a real engine that under-delivers on its promises and can silently fail to send the one thing it charges for; the other agents are a mix of real and oversold; the money is correct at enrollment but leaks and drifts around it. The two fixes that move all three answers most: **#338 (send checks its result) + #346 (flip knowledge UI on)**.
 
 **The money model (locked):** every client = FIGSY plan · **$3 = 1 credit = 1 lead ENROLLED** (FIGSY works the prospect start-to-finish; browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits at signup.
 
@@ -70,7 +105,7 @@
 2. Run the staging SQL I'll hand you with #330's PR (one paste into the kind-staging Supabase).
 3. Merge the M0 PRs as they land + `railway up` per PR instructions.
 
-**M0 is DONE when:** all 8 shipped + live · `/engine/leads/test` proves PDL+Hunter sourcing · a preview enrollment visibly drops a credit.
+**M0 is DONE when:** the chosen scope's CRITICAL + relevant HIGH items (#338–#402) are fixed-or-hidden AND runtime-proven on staging (audit §N tests) · `/engine/leads/test` proves PDL+Hunter sourcing · the $60 walk shows a credit visibly drop. *(The original 8 fixes above are shipped; the register #338–#402 is the real remaining gate.)*
 
 ---
 

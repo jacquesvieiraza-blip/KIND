@@ -3,9 +3,9 @@
 > The **one** day-to-day page: what to do now · who owns it · where it stands. One line per item.
 > Status of record → **PRODUCT-INVENTORY** · why/history → **KIND-MASTER** · future detail → **V2-TRACKER** · deep audits → **AUDIT-8JUL-DEEP.md** (code) + **AUDIT-8JUL-STALE-SWEEP.md** (docs) · M0 punch-list → **MILESTONE-0-CHECKLIST.md**.
 
-**THE PLAN (locked 8 Jul):** sell **FIGSY + Lead-Gen reveal** — **$1 to reveal a lead + $3 for FIGSY to work it = $4**. **Everything else** (Milla · Vida · Denise · Tony) **STAYS on the site + portal, marked "coming soon" + greyed** — built later in **Milestone 4**, never deleted. **Milestone 0 is the gate** — make FIGSY + Lead-Gen *honest → work fully → proven* before one real client.
+**THE PLAN (locked 8 Jul):** **one price logic across the whole family — per qualified lead. No subscriptions, no contracts, no order-forms.** Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; **Vida inbound $3** + same add-ons → $4/$5. Sell **FIGSY + Lead-Gen** now; **Milla · Vida · Denise · Tony STAY on site + portal marked "coming soon" + greyed** (built in **M4**, never deleted). **Milestone 0 is the gate** — make FIGSY + Lead-Gen *honest → work fully → proven* before one real client.
 
-**Board:** 🟢98 · 🩷85 · 🟣3 · 🟡23 · 🔴216 · ⏸5 · **Σ430**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢98 · 🩷85 · 🟣3 · 🟡23 · 🔴221 · ⏸5 · **Σ435**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -36,6 +36,7 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | #394 | **Restore the $1 reveal tier** — add the $1 section back **BEFORE** $3 (two-charge $4); it is NOT residue to remove | 🤖 | 🔴 |
 | #408 | Pricing was collapsed to ONE FIGSY product — **rework to show $1 reveal + $3 FIGSY = $4** (merged #990, walk→🩷 then rework) | 🤖 | 🟡 #990 |
 | #419 | Pricing page "The family" cards + comparison — **must show FIGSY buyable + $1 Lead-Gen reveal**, others greyed coming-soon (merged #1000, rework owed) | 🤖 | 🟡 #1000 |
+| #430 | Pricing page **"two engines, two layers" redesign** (R1) — FIGSY + Vida engine cards; Milla/Denise = +$1 layer cards (no $/month); comparison cols FIGSY·Vida·+Milla·+Denise (supersedes #419 note) — **preview-first** | 🤖 | 🔴 |
 | #417 | Homepage top grid → 3D carousel (merged #999 — deploy + walk → 🩷) | 🤖 | 🟡 #999 |
 | #418 | Lower "village" section → orbital selector (merged #999+#1000 — deploy + walk → 🩷) | 🤖 | 🟡 #999 |
 | #348 | 90-day guarantee removed → true signals (merged #991 — deploy + walk → 🩷) | 🤖 | 🟡 #991 |
@@ -67,6 +68,10 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | #424 | Charge-once-per-lead — per-lead idempotency + DB uniques ($1 once, $3 once) | 🤝 | 🔴 |
 | #425 | Trial credit mix — reveal + work credits (20 free are FIGSY-only today) | 🤝 | 🔴 |
 | #426 | Enforce 10-step sequence cap (bounds per-lead work cost) | 🤖 | 🔴 |
+| #427 | Milla per-lead intelligence layer +$1 (FIGSY/Vida leads; reasons over paid PDL data — no new buys; separate from account-VA Milla, parked M4) | 🤖 | 🔴 |
+| #428 | Denise per-lead action layer +$1 (reply→close scope; FIGSY owns cold→reply) | 🤖 | 🔴 |
+| #429 | Vida inbound engine $3/qualified inbound + add-ons ($4/$5); spam-guard + "qualified" definition (R3) | 🤖 | 🔴 |
+| #431 | Retire agent-subscription billing (reframes #340/#341/#342/#357/#386; ties #26) | 🤝 | 🔴 |
 
 ## PHASE 3 · RELIABLE — fix FIGSY's own faults so it *works fully*. Each a small **tested** PR. **Do #338 + #339 first.**
 | Item | What it is | Owner | Status |
@@ -165,7 +170,7 @@ In M0 these are made *honest* (kept, "coming soon"); **here** they're made *real
 
 > **M4 FIGSY-relevance audit (8 Jul):** **#361 + #368 (calendar booking) sit in M0** — founder-locked differentiator. The rest are genuinely non-FIGSY **except** these **FIGSY-adjacent** ones, which stay M4 only because the features they belong to are *coming-soon at launch* — **promote any to M0 on your word:** #388 (LinkedIn channel) · #352 (FIGSY credit auto-top-up, currently disabled #334) · #391/#392/#393 (FIGSY A/B + adaptive-send + Campaign-Intelligence cluster) · #397/#399 (CRM-connect, behind the "CRM dedup" claim).
 
-**Subscriptions (Milla/Vida/Denise billing)**
+**Subscriptions (Milla/Vida/Denise billing)** — ⚠️ **RETIRING (#431):** the whole family moved to per-qualified-lead (#420). These five are no longer "fix" work — they become **delete the subscription machinery** (zero real subscribers).
 | Item | What it is | Owner | Status |
 |---|---|:---:|:---:|
 | #340 | Subscription goes "active" even on a failed/incomplete card | 🤖 | 🔴 |
@@ -217,7 +222,10 @@ In M0 these are made *honest* (kept, "coming soon"); **here** they're made *real
 ---
 
 ## 📌 Standing notes
-- **Money model (LOCKED 8 Jul, Fable-verified — two charges = $4/worked lead):** **$1 to reveal a lead** (the "database" — verified contact) **+ $3 for FIGSY to work it** (client's sequence/template, ≤10 steps). Two entry points: $1 data-only → +$3 full FIGSY. Charged once each per lead; no refund on outcome. Cost ≈ $0.36/worked lead → **~91% margin**. Two wallets ($1 reveal `credit_balance` + $3 work `figsy_credits`). The $1 gates **Hunter reveal + visibility**; **PDL is spent at sourcing → controlled by quotas, not the charge.** Build spec = #420–#426. *(PDL + Hunter keys set. No Apollo.)*
-- **Sell FIGSY + Lead-Gen only; everything else STAYS "coming soon."** The non-FIGSY agents are 🔴 OUT OF PLAY in the inventory (code parked M4) — they are NOT deleted from the site/portal, just greyed + coming-soon (#405/#406).
+- **Money model (LOCKED 8 Jul ~10pm, Fable-verified — per qualified lead, no subscriptions):** **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; **Vida inbound $3** + same add-ons → $4/$5. **Two engines** (FIGSY outbound · Vida inbound) **× two layers** (Milla intelligence · Denise action). Charged once each per lead; no refund on outcome. Two wallets ($1 reveal `credit_balance` + $3 work `figsy_credits`); +$1 layers charged at enroll when toggled. Full stack $6 ≈ **~92% margin**; +$1 layers ≈ 95%+ (one Haiku call, reasons over already-paid PDL data). $1 gates Hunter+visibility; **PDL spent at sourcing → quotas, not the charge.** Spec = #420–#431. *(PDL+Hunter keys set. No Apollo.)*
+  - **R1 (pricing marketing):** "Two engines. Two layers. One price: per qualified lead." Engine cards (FIGSY buyable · Vida coming-soon) + layer cards (Milla/Denise +$1) + comparison FIGSY·Vida·+Milla·+Denise. No "$/month" anywhere (#430).
+  - **R2 (FIGSY/Denise boundary):** FIGSY owns **cold → first reply** (outreach copy + sequence); Denise owns **reply → close** (objections, proposals, post-call, chase).
+  - **R3 (qualified-lead definition — needs founder+legal sign-off, ties #413):** ICP-match + verified contact + score ≥ threshold (~60); Vida = captured contact + ICP-fit + real intent, spam never billed.
+- **Sell FIGSY + Lead-Gen only; everything else STAYS "coming soon."** The non-FIGSY agents are 🔴 OUT OF PLAY in the inventory (code parked M4) — NOT deleted from site/portal, just greyed + coming-soon (#405/#406). When they return they come back as **per-lead layers/engine (#427–#429), not subscriptions.**
 - **Before any real send:** check `/engine/env` — `RESEND_API_KEY` · `ADMIN_SECRET_KEY` · `ANTHROPIC_API_KEY` · `RESEND_WEBHOOK_SECRET` · `FIGSY_COLD_FROM` · `TRACKING_URL`.
 - **Architecture (locked):** AI drafts/scores; deterministic code decides + **fails closed**; state advances only after verified provider/DB success. Reasoning → `AUDIT-8JUL-DEEP.md §4–10`.

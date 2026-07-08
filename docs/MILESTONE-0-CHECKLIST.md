@@ -2,19 +2,38 @@
 
 > **This is the working execution list for M0** (linked from LAUNCH-PAD). M0 = make the product **HONEST → RELIABLE → PROVEN** before one real client. Sell FIGSY only; everything else = "coming soon."
 > **THE RULE for Move 1: DON'T DELETE. Mark not-real features "Coming soon" + grey/disable** (the #326/#334 pattern — badge + greyed + non-interactive). Code stays for Milestone 4.
-> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#426.
+> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#431.
 
 ---
 
 # 💰 THE MONEY MODEL — the M0 spine (LOCKED 8 Jul 2026)
 
-> **This is the most critical M0 build.** Everything else makes the product honest; this makes it *earn*. Full economics = `docs/run-costs-and-cashflow.md` §0. Spec items = PRODUCT-INVENTORY **#420–#426**. Owners: 🤖 Claude · 🧍 founder · 🤝 both.
+> **This is the most critical M0 build.** Everything else makes the product honest; this makes it *earn*. Full economics = `docs/run-costs-and-cashflow.md` §0. Spec items = PRODUCT-INVENTORY **#420–#431**. Owners: 🤖 Claude · 🧍 founder · 🤝 both.
 
-**The deliverable (LOCKED, founder-confirmed):** *"$1 reveals a lead (the database) + $3 for FIGSY to work it = $4 per fully-worked lead. Two wallets, two entry points (data-only $1, or +$3 full FIGSY). Charged once per lead per wallet, fail-closed, sequences capped at 10 steps."*
+**The deliverable (LOCKED 8 Jul ~10pm, founder-confirmed, Fable-verified):** *"One price logic across the whole family — **per qualified lead. No subscriptions, no contracts, no order-forms.**"*
 
-**Why:** we pay to *source* (PDL, ~$0.28/record at sourcing) and to *reveal* (Hunter, ~$0.009 at reveal). The old "free browsing + $3 only at enrolment" gave data away. The $1 reveal charge gates the Hunter+visibility cost; PDL is policed by quotas. Verified margin on a fully-worked lead ≈ **91%** ($4 − ~$0.36).
+**The ladder:**
+| Rung | Price | What the client gets |
+|---|---|---|
+| Reveal (the database) | **$1** | verified contact, theirs to work |
+| + FIGSY works it | **$4** | outreach, client-built sequence ≤10 steps, reply drafts, booking link |
+| + Milla | **$5** | an *understood* lead (intelligence layer) |
+| + Milla + Denise | **$6** | a *ready-to-send sales motion* (action layer) |
+| **Vida inbound** | **$3** | qualified inbound lead (no reveal — inbound has no data cost) |
+| Vida + Milla / + Denise | **$4 / $5** | same +$1 layers on the inbound engine |
 
-**The 7 build conditions — each a small, TESTED, staging-proven PR (the careful money-path work):**
+**Two engines** (FIGSY outbound · Vida inbound) **× two layers** (Milla intelligence · Denise action), each layer +$1/qualified lead. **Milla split:** her per-lead intelligence layer (above) is a *different product* from her account-level VA (doc recall / ask-anything / weekly brief) — **the VA half is KEPT as a separate product, unpriced, parked M4; never billed per-lead.**
+
+**Why:** we pay to *source* (PDL ~$0.28/record at sourcing) and *reveal* (Hunter ~$0.009). The $1 gates Hunter+visibility; PDL is policed by quotas. Full-stack $6 lead ≈ **~92% margin**; each +$1 layer ≈ 95%+ (one Haiku call over already-paid PDL data). Going all-per-lead **retires the entire subscription defect surface** (#340/#341/#342/#357/#386 → #431).
+
+**Logged recommendations (Fable, founder-accepted):**
+- **R1 — pricing marketing:** "Two engines. Two layers. One price: per qualified lead." Engine cards (FIGSY buyable · Vida coming-soon, real pricing) + layer cards (Milla/Denise +$1) + comparison FIGSY·Vida·+Milla·+Denise. **No "$X/month" anywhere.** (#430)
+- **R2 — FIGSY/Denise boundary:** FIGSY owns **cold → first reply** (outreach copy + sequence live there); Denise owns **reply → close** (objections, proposals, call notes, post-call, buyer intent, urgency, chase/stop). +$1 charged once per lead at enrolment when toggled on.
+- **R3 — "qualified lead" definition** *(PROPOSED — needs founder + legal sign-off in Terms, ties #413):* ICP-match + verified contact (email found + verified) + score ≥ threshold (~60). Vida = captured contact + ICP-fit + real intent, spam **never billed**. No refund on outcome.
+
+**Feature-list guardrails (bake into all client copy — Fable verification):** "3-step sequences" → **"client-built sequences, up to 10 steps" (#426)** everywhere (FIGSY + Denise); "reply drafts for approval" only marketable **after #347/#268 ship**; soften "CRM dedup & CSV export" (#416); "GDPR/PECR compliant" needs **legal sign-off** before use (#411 discipline); Milla "company context" must reason over **already-paid PDL data — no new per-lead data buys** (protects the +$1 margin).
+
+**The build conditions — each a small, TESTED, staging-proven PR (the careful money-path work):**
 - [ ] **#420** — Umbrella: un-retire the `lead_gen` tier as the **reveal product**; wire the two-charge path end-to-end ($1 reveal + $3 work), two wallets (`credit_balance` reveals · `figsy_credits` work). 🤝
 - [ ] **#421** — Atomic **`try_charge_reveal_credit`** RPC, **fail-closed** (only a hard `true` charges; refund-on-failed-reveal). Do NOT reuse the swallow-prone `increment_client_credits`. Supersedes #376. 🤖
 - [ ] **#422** — **Reveal gating:** mask the email in browse; unmask ONLY after the $1 charge succeeds. 🤖
@@ -22,6 +41,11 @@
 - [ ] **#424** — **Charge-once-per-lead:** per-lead idempotency + DB uniques so a lead is never charged $1 twice or $3 twice (today's guard is per-campaign, `figsy.ts:1151`). 🤝
 - [ ] **#425** — **Trial credit mix:** the 20 free credits are figsy-only → a trial client can't reveal. Grant a reveal allocation so trials can experience the $1 data step. 🤝
 - [ ] **#426** — **Enforce the 10-step sequence cap** (no endless sequences — founder-locked). 🤖
+- [ ] **#427** — **Milla per-lead intelligence layer (+$1)** — activates on FIGSY *or* Vida qualified leads; reasons over already-paid PDL data (no new buys); charged once per lead at enrol when toggled. Separate from the account-VA Milla (parked M4). 🤖
+- [ ] **#428** — **Denise per-lead action layer (+$1)** — reply→close scope (R2); FIGSY keeps cold→reply. 🤖
+- [ ] **#429** — **Vida inbound engine ($3 + add-ons)** — qualifies inbound vs ICP, scores, spam-guard (never bill spam), same +$1 layers → $4/$5. 🤖
+- [ ] **#430** — **Pricing page "two engines, two layers" redesign (R1)** — client-facing, **preview-first**; supersedes the #419 rework note. 🤖
+- [ ] **#431** — **Retire agent-subscription billing** — reframes #340/#341/#342/#357/#386 to "delete the machinery"; ties #26. 🤝
 
 **Also wire the wording to match (client-facing → preview first, §11):** un-retire the $1 tier on website + portal billing (#394) · Terms §5 rewritten to the two-charge reveal+work model, no-reply refund residue deleted (#413) · usage "$1/lead overage" panel becomes the REAL reveal charge, not a fake (#385).
 
@@ -139,4 +163,4 @@
 
 ---
 
-**M0 is DONE when:** every box above is checked, **the money model (#420–#426) is built, tested and staging-proven**, each Move-2 fix has a regression test, and Move 3 is proven on staging. *(Progress mirrored in PRODUCT-INVENTORY dots #338–#426; this doc is the working punch-list.)*
+**M0 is DONE when:** every box above is checked, **the money model (#420–#431) is built, tested and staging-proven**, each Move-2 fix has a regression test, and Move 3 is proven on staging. *(Progress mirrored in PRODUCT-INVENTORY dots #338–#431; this doc is the working punch-list.)*

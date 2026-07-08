@@ -23,6 +23,17 @@
 > - **$1 reveal alone:** $1 revenue − ~$0.009 Hunter = ~99% on the reveal charge itself (PDL sourcing is the separate leak below).
 > - **+$3 work alone:** $3 revenue − ~$0.06 AI+Resend = ~98% on the work charge.
 >
+> ### The full ladder (LOCKED 8 Jul ~10pm — one price logic, no subscriptions)
+> | Rung | Price | Add'l cost | Margin on the rung |
+> |---|---|---|---|
+> | $1 reveal | $1 | Hunter ~$0.009 (+PDL sourcing) | ~99% |
+> | + $3 FIGSY works it = **$4** | +$3 | AI+Resend ~$0.06 | ~98% |
+> | + $1 Milla (intelligence) = **$5** | +$1 | ~one Haiku call ~$0.02–0.05 *(reasons over already-paid PDL data — no new buys)* | ~95%+ |
+> | + $1 Denise (action) = **$6** | +$1 | ~one Haiku call ~$0.02–0.05 | ~95%+ |
+> | **Vida inbound = $3** (+$1 Milla/+$1 Denise → $4/$5) | $3 | multi-turn chat, still <$0.10 **on qualified**; but LLM cost lands on *all* visitors incl. spam → **qualify-rate is the sensitivity** (a 1-in-20 qualify-rate eats ~20 chats/billable lead → margin toward ~80%). Spam-guard + the "qualified" definition protect it. | ~80–95% |
+>
+> **Full stack $6 fully-worked lead** ≈ $0.36 + ~$0.10 layers ≈ **~92% margin.** Every agent now earns per qualified lead; **monthly subscriptions are removed from the revenue model** (Milla/Vida/Denise are per-lead layers/engine, not $/mo — kills the subscription-billing surface + defects #340/#341/#342/#357/#386). Milla's account-level VA stays a separate, unpriced, parked product.
+>
 > ⚠️ **The one real leak to police — PDL is spent at SOURCING, before any charge.** Every record we pull costs ~$0.28 whether the client ever reveals it or not, so unrevealed sourced records are sunk cost. This is why sourcing needs **per-client/day quotas + a regen cap** (#423), NOT just the reveal gate. Reveal ($1) and work ($3) are self-funding; **sourcing is the cost to control.**
 >
 > **On the body below:** §1 (fixed infra) is still broadly right. §2–§5 and §12 were written on the retired single-$3 / Apollo model — where a section says "Apollo ~$0.008/lead," "$3 all-in," or "double-charge bug," the LOCKED block above supersedes it. Blended-ARPU/scenario tables (§5a–§8) are directional: a fully-worked lead is now **$4**, so per-client ARPU rises accordingly.

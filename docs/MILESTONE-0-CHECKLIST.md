@@ -2,7 +2,7 @@
 
 > **This is the working execution list for M0** (linked from LAUNCH-PAD). M0 = make the product **HONEST → RELIABLE → PROVEN** before one real client. Sell FIGSY only; everything else = "coming soon."
 > **THE RULE for Move 1: DON'T DELETE. Mark not-real features "Coming soon" + grey/disable** (the #326/#334 pattern — badge + greyed + non-interactive). Code stays for Milestone 4.
-> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#412.
+> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#416.
 
 ---
 
@@ -11,7 +11,8 @@
 **Global claims to hunt on EVERY page** (reword/remove wherever they appear): "250M+ contacts" (#366) · "handles replies autonomously" (#403) · "books meetings into your calendar" (#361) · "$1 per lead" (#394) · Apollo-as-source, incl. the **legal sub-processor lists** → PDL+Hunter (#407 internal / **#410** legal pages) · POPIA/SA-only framing · **ALL speed/time promises + any "guarantee" wording — DELETE, unproven (#411):** "first leads in 10 minutes / 7 days", "first campaign live in 5 business days", the "5-day launch guarantee" card, and the 90-day guarantee residue (#348).
 
 ## Agent pages (heaviest work)
-- [ ] **figsy.html** — ⭐ KEEP (the product we sell). Reword: "books meetings/calendar" → "booking link in every email" (#361) · "handles replies autonomously" → "drafts replies for your approval" (#403) · "250M" → "targeted, verified contacts" (#366) · LinkedIn "sends" → "coming soon" (#388).
+- [ ] **figsy.html** — ⭐ KEEP (the product we sell). Reword: "books meetings/calendar" → "booking link in every email" (#361) · "handles replies autonomously" → "drafts replies for your approval" (#403) · "250M" → "targeted, verified contacts" (#366) · LinkedIn "sends" → "coming soon" (#388) · soften "CRM dedup & CSV export" bullet (#416).
+- [ ] **Stripe checkout copy** — `packages/shared/src/constants/index.ts:29` product description repeats "handles replies + meeting booking" (false) → reword to honest FIGSY scope (#414). *(code, not a page — but a client-facing claim at the point of payment.)*
 - [ ] **virtual-assistant.html (Milla)** — COMING-SOON the connectors: remove/label the "✓ HubSpot synced ✓ Gmail connected" mock (#395); keep the real "daily brief + ask about your data" framing.
 - [ ] **chatbot-agent.html (Vida)** — COMING-SOON: "learns your business / no hallucinations / upload docs" (#362) + "connect your WhatsApp Business number" (#360). Keep only "website chat widget."
 - [ ] **denise.html** — COMING-SOON: "trained on your closed-won deals" + "confirms booked meetings / notetaker" (#396). Keep "drafts proposals/follow-ups, you send."
@@ -35,7 +36,7 @@
 - [ ] **the-drop.html** + **drop-01…09.html** (9) + **blog-drop-01…09.html** (9) — scan for stale claims; banner or reword.
 
 ## Legal (careful — these carry contractual weight)
-- [~] **terms.html** — ✅ *Batch 2:* 90-day guarantee (Section 5A + TOC + cross-refs) removed (#348). *Remaining:* §8 names **Apollo/250M** as sub-processor → PDL+Hunter (#410); any 5-day/speed wording (#411).
+- [~] **terms.html** — ✅ *Batch 2:* 90-day guarantee (Section 5A + TOC + cross-refs) removed (#348). *Remaining:* §8 names **Apollo/250M** as sub-processor → PDL+Hunter (#410); any 5-day/speed wording (#411); **⚠️ §5 CRITICAL — rewrite the credit-consumption clause to match the enrollment charge; as written it entitles a refund on nearly every lead (#413).**
 - [ ] **privacy.html** · [ ] **dpa.html** · [ ] **dpa-us.html** — review; POPIA→global privacy where relevant.
 
 ## Tools / lead-magnets / misc
@@ -107,6 +108,7 @@
 - [ ] Run §D prod-DB SQL (enum · uniques · missing tables · MRR).
 - [ ] Confirm Railway API replica count (is #343 live?).
 - [ ] Confirm whether `apps/landing` is deployed (#394 priority).
+- [ ] **Rebuild FIGSY unit economics for the real PDL + Hunter prices** — the current model is the retired Apollo/$1 one; confirm we make money at $3/lead given cost scales with leads *sourced*, revenue with leads *enrolled* (#415). **Founder supplies the real contract prices.**
 
 ## Sell
 - [ ] Everything above green → sell FIGSY to ONE client → watch it work.

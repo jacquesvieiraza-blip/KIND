@@ -5,7 +5,7 @@
 
 **THE PLAN (locked 8 Jul):** sell **FIGSY only**. Everything else = **"coming soon"**, built later in **Milestone 4**. **Milestone 0 is the gate** — make FIGSY *honest → reliable → proven* before one real client.
 
-**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴188 · ⏸6 · **Σ418**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴192 · ⏸6 · **Σ422**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -44,6 +44,9 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | #410 | Legal pages (privacy/dpa/terms) name Apollo as sub-processor → it's PDL + Hunter | 🤖 | 🔴 |
 | #411 | Delete ALL speed promises — "leads in 10 min / 5-day launch guarantee" (unproven) | 🤖 | 🔴 |
 | #412 | `proposals` portal screen missing from the sweep checklist → add it | 🤖 | 🔴 |
+| #413 | **Terms §5 entitles a refund on nearly every lead** — contradicts the enrollment charge (rewrite §5) | 🧍 | 🔴 |
+| #414 | Stripe checkout description still says "handles replies + books meetings" (false) → reword | 🤖 | 🔴 |
+| #416 | Pricing-card "CRM dedup & CSV export" overstates → soften in figsy copy | 🤖 | 🔴 |
 
 ### Move 2 · RELIABLE — fix FIGSY's own faults. Each a small **tested** PR. Do #338 + #339 first.
 | Item | What it is | Owner | Status |
@@ -81,6 +84,9 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 
 ### Move 3 · PROVEN — prove on staging, then sell to ONE client · 🤝
 🔴 a credit actually spent · an email that actually landed · knowledge visibly changes the copy · a real lead sources + sends · the alarm fires on a money failure.
+| Item | What it is | Owner | Status |
+|---|---|:---:|:---:|
+| #415 | **Do we make money at $3?** — rebuild FIGSY unit economics for the real PDL+Hunter prices (old model was Apollo/$1); cost scales with leads *sourced*, revenue with leads *enrolled* | 🧍 | 🔴 |
 
 ### M0 originals (#330–#337) — already shipped
 | Item | What it is | Status |

@@ -1,117 +1,193 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-> The **one** day-to-day page: what to do now · who owns it · where it stands.
-> Status of record → **PRODUCT-INVENTORY** · why/history → **KIND-MASTER** · future detail → **V2-TRACKER** · find any doc → **DOC-MAP** · deep audit → **AUDIT-8JUL-DEEP.md** · M0 punch-list → **MILESTONE-0-CHECKLIST.md**.
+> The **one** day-to-day page: what to do now · who owns it · where it stands. One line per item.
+> Status of record → **PRODUCT-INVENTORY** · why/history → **KIND-MASTER** · future detail → **V2-TRACKER** · deep audit → **AUDIT-8JUL-DEEP.md** · M0 punch-list → **MILESTONE-0-CHECKLIST.md**.
 
-**THE PLAN (locked 8 Jul):** sell **FIGSY only** — everything else is **"coming soon"**, built later in **Milestone 4**. **Milestone 0 is the gate:** make FIGSY *honest → reliable → proven* before one real client.
+**THE PLAN (locked 8 Jul):** sell **FIGSY only**. Everything else = **"coming soon"**, built later in **Milestone 4**. **Milestone 0 is the gate** — make FIGSY *honest → reliable → proven* before one real client.
 
-**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡26 · 🔴186 · ⏸6 · **Σ415**  *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴185 · ⏸6 · **Σ415**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
-**Status dot:** 🔴 not built · 🟡 built, on a branch · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
+**Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
 **Owner:** 🤖 **Claude** (writes code, opens PRs) · 🧍 **You** (merge · deploy · give access · approve · run prod-SQL) · 🤝 **both**
 
 ### ⚠️ HOW THINGS GO LIVE — a merge is NOT a deploy
-GitHub is flagged, so **auto-deploy is off**. Every change ships **by hand**:
-**🧍 1.** merge the PR → **🧍 2.** `git pull` → **🧍 3.** `railway up --detach --service "<svc>"`
-| App | Railway service name |
-|---|---|
-| Website (`get-kind.com`) | `KIND` |
-| Portal (`app.get-kind.com`) | `@kind/portal` |
-| Admin (`admin.get-kind.com`) | `@kind/admin` |
-| API | `@kind/api` |
-*Claude cannot deploy — no Railway access in its environment. Auto-deploy returns when the GitHub flag appeal clears.*
+GitHub is flagged → auto-deploy is off. Each change ships **by hand**: **🧍** merge PR → **🧍** `git pull` → **🧍** `railway up --detach --service "<svc>"`.
+Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admin` · api = `@kind/api`. *(Claude can't deploy — no Railway access.)*
 
----
-
-## ▶ DO NOW — in order
+### ▶ DO NOW — in order
 | # | Task | Owner | Status |
 |---|------|:---:|:---:|
-| 1 | Website honesty sweep — batch by batch (M0 · Move 1) | 🤖 | 🟡 in progress |
-| 2 | Deploy each merged batch: `railway up … "KIND"` | 🧍 | ⏳ |
+| 1 | Merge open PRs → `railway up "KIND"` (see below) | 🧍 | ⏳ |
+| 2 | `/signup → /login` sweep on the 31 remaining pages (#409) | 🤖 | 🔴 |
 | 3 | Run §D prod-DB SQL → turns ~10 findings into facts (5 min) | 🧍 | 🔴 |
-| 4 | FIGSY reliability — start **#338 + #339** (M0 · Move 2) | 🤖 | 🔴 |
-| 5 | Instantly warm-up watch (M1 clock) · GitHub flag appeal | 🧍 | ⏳ |
+| 4 | Redesign homepage agent section (with you) | 🤝 | 🔴 |
+| 5 | FIGSY reliability — start **#338 + #339** | 🤖 | 🔴 |
 
-**Open PRs (you merge, then `railway up`):** #990 ✅ merged (one-product pricing + coming-soon) · **#991 🟡 guarantee removal**.
+**Open PRs (you merge):** #990 ✅ merged · #991 ✅ merged · **#992** *(superseded by this doc — close it)* · **#993** homepage fix · **#994** this doc *(one line per item)*.
 
 ---
 
-# ⓪ MILESTONE 0 — MAKE FIGSY TRUE → RELIABLE → PROVEN
-**The gate to selling anything.** Sell FIGSY only. Punch-list → **MILESTONE-0-CHECKLIST.md** · every item's full text → PRODUCT-INVENTORY #338–#409.
+# ⓪ MILESTONE 0 — MAKE FIGSY HONEST → RELIABLE → PROVEN · the gate to selling · owner 🤖 (you merge+deploy)
 
-### Move 1 · HONEST 🤖 — sweep website + portal; not-real → "coming soon" + grey. **DON'T delete** (code stays for M4).
-| Batch | What | Status |
-|---|------|:---:|
-| 1 | one-FIGSY-product pricing (home + pricing) · story/home coming-soon badges + Tony · FIGSY → `/login` (#408 #409) | 🟡 PR #990 merged |
-| 2 | 90-day guarantee removed → true trust signals (#348) | 🟡 PR #991 |
-| 3 | agent-page "Get started" CTAs · global claims (#403 #394 #366 #395 #396 #360 #361) · **portal** screens (#405 #406) | 🔴 next |
+### Move 1 · HONEST — sweep the site; not-real → "coming soon" + grey, **don't delete**
+| Item | What it is | Owner | Status |
+|---|---|:---:|:---:|
+| #408 | Pricing is now ONE FIGSY product (home + pricing), tiers removed | 🤖 | 🟡 #990 |
+| #348 | 90-day guarantee couldn't run → removed, replaced with true signals | 🤖 | 🟡 #991 |
+| #409 | 42 "Start free trial" buttons point at dead `/signup` → send to `/login` | 🤖 | 🔴 |
+| #405 | Website sweep — every page: mark not-real features "coming soon" | 🤖 | 🔴 |
+| #406 | Portal sweep — every screen: same rule | 🤖 | 🔴 |
+| #403 | "FIGSY handles replies autonomously" is false (it drafts) → reword | 🤖 | 🔴 |
+| #394 | "$1 per lead" residue still animating on the homepage → remove | 🤖 | 🔴 |
+| #407 | Docs still say Apollo/250M/$1 in places → clean up | 🤖 | 🔴 |
 
-### Move 2 · RELIABLE 🤖 — fix FIGSY's own faults. Each a small **tested** PR, in this order:
-🔴 **#338** send-before-charge → **#339** real alarm → #346 knowledge ON → #354 no double-send → #349 checked ledger → #366 pagination → #358 score-fail quarantine → #367 reveal-down alert → #347 approve-queue → #343 cron singleton → #344 kill-switch → #345 tenant isolation → #350 visitor_sessions → #353 · #356 · #363 · #365 · #371 · #373 · #374 · #376 · #379 · #383 · #389 · #390 · #400 · #401 · #402.
+### Move 2 · RELIABLE — fix FIGSY's own faults. Each a small **tested** PR. Do #338 + #339 first.
+| Item | What it is | Owner | Status |
+|---|---|:---:|:---:|
+| #338 | FIGSY marks an email "sent" even if the send failed — charges $3 for nothing | 🤖 | 🔴 |
+| #339 | The founder alarm can itself fail silently — you'd never know | 🤖 | 🔴 |
+| #346 | Client can't enter their business knowledge → generic copy (turn the UI on) | 🤖 | 🔴 |
+| #354 | No guard against sending the same email twice | 🤖 | 🔴 |
+| #349 | ~140 money writes don't check for failure → the ledger can silently drift | 🤖 | 🔴 |
+| #366 | Sourcing stops at ~50 leads (no pagination); also the "250M" wording | 🤖 | 🔴 |
+| #358 | If the AI scorer errors, every lead gets a fake score of 50 | 🤖 | 🔴 |
+| #367 | If the email-reveal quota runs out, 0 leads deliver with no alert | 🤖 | 🔴 |
+| #347 | "Approve before send" queue points at the wrong table → dead | 🤖 | 🔴 |
+| #343 | Crons run on every server copy → duplicate sends | 🤖 | 🔴 |
+| #344 | The kill-switch doesn't actually stop the cron sends | 🤖 | 🔴 |
+| #345 | A client can pull another client's lookalike data (tenant leak) | 🤖 | 🔴 |
+| #350 | The `visitor_sessions` table is publicly readable (data leak) | 🤖 | 🔴 |
+| #353 | "Your trial has ended" email can send repeatedly | 🤖 | 🔴 |
+| #356 | Consent emails aren't inside the outreach gate | 🤖 | 🔴 |
+| #363 | `/admin/seed-leads` can overwrite real client leads | 🤖 | 🔴 |
+| #365 | A demo endpoint can inject fake KPIs into a client dashboard | 🤖 | 🔴 |
+| #371 | Welcome/trial credit grants aren't atomic (race → wrong balance) | 🤖 | 🔴 |
+| #373 | Missing uniqueness constraints on FIGSY tables in prod | 🤖 | 🔴 |
+| #374 | Intent-signal auto-enroll can drain the wallet unbounded | 🤖 | 🔴 |
+| #376 | Delivery can overdraw credits (decrement not checked) | 🤖 | 🔴 |
+| #379 | A Stripe refund path returns 500 instead of clawing credits back | 🤖 | 🔴 |
+| #383 | Missing DB function to count FIGSY emails sent | 🤖 | 🔴 |
+| #384 | Dead portal buttons (Export CSV, etc.) → wire or coming-soon | 🤖 | 🔴 |
+| #385 | Usage page shows a fake "$1/lead overage" panel → delete | 🤖 | 🔴 |
+| #389 | No migration runner (prod schema is hand-pasted) — risky | 🤖 | 🔴 |
+| #390 | No dead-letter/retry table — failures just vanish | 🤖 | 🔴 |
+| #400 | "South-African-sounding name" prompt residue → make it global | 🤖 | 🔴 |
+| #401 | A few inventory dots were lying → corrected | 🤖 | 🔴 |
+| #402 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 | 🔴 |
 
-### Move 3 · PROVEN 🤝 — prove on staging, then sell to **ONE** client:
+### Move 3 · PROVEN — prove on staging, then sell to ONE client · 🤝
 🔴 a credit actually spent · an email that actually landed · knowledge visibly changes the copy · a real lead sources + sends · the alarm fires on a money failure.
 
-**Original 8:** #330–#333 🩷 done · #334/#335/#336/#337 folded into Moves 1–2 (residue → #352 #346 #355 #400).
-**✅ M0 is DONE when:** Move 1 shipped · Move 2 fixed **+ tested** · Move 3 proven on staging.
+### M0 originals (#330–#337) — already shipped
+| Item | What it is | Status |
+|---|---|:---:|
+| #330 | Missing FIGSY-credit DB function — added | 🩷 |
+| #331 | Free-trial client got leads forever — drip now drains | 🩷 |
+| #332 | Enrollment now charges fail-closed (no free work) | 🩷 |
+| #333 | Stripe under-grant fixed (client not short-changed) | 🩷 |
+| #334 | Dead auto-top-up switch — greyed out | 🩷 |
+| #335 | FIGSY knowledge-writing built — UI still off, see #346 | 🟡 |
+| #336 | Referral bonus was farmable — purchase-gated | 🟡 |
+| #337 | Money-path sweep | 🩷 |
+
+**✅ M0 done when:** Move 1 shipped · Move 2 fixed **+ tested** · Move 3 proven on staging.
 
 ---
 
-# ① MILESTONE 1 — Send OUR OWN outreach · owner 🧍 (build done)
-Build 100% done — nothing left for Claude. **The only gate is the Instantly warm-up clock.**
+# ① MILESTONE 1 — Send OUR OWN outreach · owner 🧍 (build done, only the warm-up clock)
 | Step | Action | Done when |
 |---|---|---|
-| 🛑 GATE | Instantly warm-up ≥90% (#198) — check weekly | ≥90% inbox placement |
+| 🛑 GATE | Instantly warm-up ≥90% (#198) — check weekly | ≥90% inbox |
 | 1 | Upgrade Instantly plan (≥1,500 send) | plan active |
-| 2 | Import the 1,461 verified list | all rows, 0 errors |
+| 2 | Import the 1,461 verified list | 0 errors |
 | 3 | Paste 4 emails + footer (`content/our-outreach-us-uk.md`) | Day 0/3/8/10 built |
-| 4 | mail-tester.com (#101) | 10/10, SPF/DKIM/DMARC aligned |
-| 5 | Test-send 10–20 | lands Primary · bounce <2% |
-| 6 | 🚀 **FIRE** (#127) | running · reply ≥5% d3 / ≥10% d7 |
+| 4 | mail-tester.com (#101) | 10/10 aligned |
+| 5 | Test-send 10–20 | Primary · bounce <2% |
+| 6 | 🚀 FIRE (#127) | running · reply ≥5% d3 |
 
 ---
 
 # ② MILESTONE 2 — A paying CLIENT runs it · ⏸ BLOCKED on M0
-Not true yet: FIGSY can charge and not send (#338), copy is generic (#346). Becomes true only **after** M0 Moves 1+2 land + Move 3 proves it. Then:
-| # | Blocker | Owner | Status |
+| Item | What it is | Owner | Status |
 |---|---|:---:|:---:|
-| 🛑 1 | **#211 Smartlead** — per-client sending isolation (today all clients share ONE identity; one bad actor poisons everyone) | 🧍 access → 🤖 build | 🔴 |
-| 2 | **$60 live money walk** (#28b) — real money through the whole loop, counters reconcile | 🧍 | 🔴 |
-| 3 | depth (not client-blocking): #212 sequences · #199 monitoring | 🤖 | 🔴 |
-*Security + honesty for M2 already shipped 6 Jul (🩷, audit waves #306–#328).*
+| #211 | Smartlead — per-client sending isolation (all clients share one identity today) | 🧍→🤖 | 🔴 |
+| #28b | $60 live money walk — real money through the whole loop, counters reconcile | 🧍 | 🔴 |
+| #212 | Sequence depth (not client-blocking) | 🤖 | 🔴 |
+| #199 | Sending monitoring (not client-blocking) | 🤖 | 🔴 |
+*Security + honesty for M2 already shipped 6 Jul (🩷).*
 
 ---
 
-# ③ MILESTONE 3 — Admin cockpit we run the business from · 🤝 mostly done
-13 screens walked **🟢** on 7 Jul. Remaining:
-| Item | What | Owner | Status |
+# ③ MILESTONE 3 — Admin cockpit · 🤝 mostly done (13 screens walked 🟢 on 7 Jul)
+| Item | What it is | Owner | Status |
 |---|---|:---:|:---:|
-| #291 | GTM funnel — 367% bug fixed (PR #978); re-walk after deploy | 🤝 | 🩷 |
-| #279 | deliverability graph — needs bounce/complaint reporting endpoint | 🤖 | 🩷 |
-| #289 | NPS — migration not run + 0 clients to survey | 🤖 | 🔴 |
-| #290 | Sentry error tracking — not wired (`@sentry` absent) | 🤖 | 🔴 |
-| #364 | exclude demo data from founder metrics | 🤖 | 🔴 |
-*Ops inbox-pool / AE lenses / deliverability data wait on Smartlead (#211 → #270 #271 #276 #280).*
+| #291 | GTM funnel showed 367% — bug fixed (PR #978), re-walk after deploy | 🤝 | 🩷 |
+| #279 | Deliverability graph — needs the bounce/complaint reporting endpoint | 🤖 | 🩷 |
+| #289 | NPS — endpoint exists, migration not run + no clients yet | 🤖 | 🔴 |
+| #290 | Sentry error tracking — not wired in | 🤖 | 🔴 |
+| #364 | Demo data pollutes your founder metrics → exclude it | 🤖 | 🔴 |
+*Ops inbox-pool / AE lenses / deliverability data wait on Smartlead (#211).*
 
 ---
 
-# ④ MILESTONE 4 — EVERYTHING ELSE · all non-FIGSY findings · FROZEN until FIGSY ships · 🤖 later
-Every non-FIGSY agent, integration, and money-path. In **M0** these are made *honest* (hidden, "coming soon"); **here** they're made *real* — one at a time, each proven before the next. All **🔴**. Future build detail → **V2-TRACKER**.
-| Area | Build these (later) |
-|---|---|
-| **Subscriptions** (Milla/Vida/Denise billing) | #340 status→active · #341 real Stripe cancel · #342 lapse cron · #357 MRR amount · #386 double-sub · #379 sub-side |
-| **Partner + referral** | #351 commission (20/5 + clawback) · #355 referral link + payout · #370 partner lookup · #372 pool credits · #387 attribution |
-| **Auto top-up** | #352 (Stripe off-session, or remove) |
-| **Other agents — real builds** | Vida knowledge #362 · WhatsApp multi-tenant #359 #360 · Calendar booking #361 #368 · Voice/Vapi #369 · Denise closed-won #396 · Milla connectors #395 · LinkedIn #388 · Lena mount #404 |
-| **Integrations · infra · ops** | #375 self-outreach · #377 support inbox · #378 demo availability · #380 missing tables · #381 dev webhooks · #382 churn scoring · #391 cron JSONB · #392 A/B guard · #393 data-moat dedup · #397 HubSpot sync · #399 integrations hub |
+# ④ MILESTONE 4 — EVERYTHING ELSE · all non-FIGSY findings · FROZEN until FIGSY ships · owner 🤖 (later)
+In M0 these are made *honest* (hidden, "coming soon"); **here** they're made *real* — one at a time, each proven before the next. Future build detail → V2-TRACKER.
 
-**✅ M4 is DONE when:** each area is rebuilt on the deterministic architecture (state machine + provider-confirmed + tests) and its "coming soon" is lifted — one at a time.
+**Subscriptions (Milla/Vida/Denise billing)**
+| Item | What it is | Owner | Status |
+|---|---|:---:|:---:|
+| #340 | Subscription goes "active" even on a failed/incomplete card | 🤖 | 🔴 |
+| #341 | Cancelling a subscription doesn't actually cancel it in Stripe | 🤖 | 🔴 |
+| #342 | The subscription "lapse" cron 500s every day | 🤖 | 🔴 |
+| #357 | MRR is structurally $0 (the subscription amount is never stored) | 🤖 | 🔴 |
+| #386 | Onboarding can double-submit a subscription | 🤖 | 🔴 |
+
+**Partner + referral**
+| Item | What it is | Owner | Status |
+|---|---|:---:|:---:|
+| #351 | Partner commission math wrong (20% recurring, no clawback) | 🤖 | 🔴 |
+| #355 | Referral link drops the `?ref=` → referral can't be earned | 🤖 | 🔴 |
+| #370 | Partner lookup is injectable (`.ilike` on email) | 🤖 | 🔴 |
+| #372 | `allocate_pool_to_rep` destroys pool credits | 🤖 | 🔴 |
+| #387 | Referral attribution is swallowed | 🤖 | 🔴 |
+| #398 | "Wise integration" — partner payouts are actually manual | 🤖 | 🔴 |
+
+**Other agents — real builds**
+| Item | What it is | Owner | Status |
+|---|---|:---:|:---:|
+| #362 | Vida has no knowledge layer (sold "no hallucinations") | 🤖 | 🔴 |
+| #360 | WhatsApp uses one global number — not per-client | 🤖 | 🔴 |
+| #359 | WhatsApp webhook is forgeable (no signature check) | 🤖 | 🔴 |
+| #361 | Calendar auto-book crashes (`googleapis` not installed) | 🤖 | 🔴 |
+| #368 | Calendar OAuth has a CSRF hole (unsigned state) | 🤖 | 🔴 |
+| #369 | Voice/Vapi webhook fails open if the secret is unset | 🤖 | 🔴 |
+| #396 | Denise false claims ("trained on closed-won / confirms meetings") | 🤖 | 🔴 |
+| #395 | Milla page shows a fake "HubSpot/Gmail connected" mock | 🤖 | 🔴 |
+| #388 | LinkedIn steps stuck (PhantomBuster not wired) | 🤖 | 🔴 |
+| #404 | Lena agent is dead code (never mounted → 404) | 🤖 | 🔴 |
+
+**Auto top-up + integrations + infra + ops**
+| Item | What it is | Owner | Status |
+|---|---|:---:|:---:|
+| #352 | Auto top-up can double-charge a card | 🤖 | 🔴 |
+| #399 | Integrations hub — all 8 "Connect" tiles are dead | 🤖 | 🔴 |
+| #397 | HubSpot platform sync is dead code | 🤖 | 🔴 |
+| #375 | Our own self-outreach sends are dead | 🤖 | 🔴 |
+| #377 | Support inbox auto-reply phantom-sends → black hole | 🤖 | 🔴 |
+| #378 | `/ae/demo-request` hallucinates availability | 🤖 | 🔴 |
+| #380 | Missing tables (`subscribers` / `whatsapp_messages`) | 🤖 | 🔴 |
+| #381 | Developer webhooks section is dead (no table) | 🤖 | 🔴 |
+| #382 | Churn scoring reads a column that's never written | 🤖 | 🔴 |
+| #391 | Cron JSONB writes clobber each other | 🤖 | 🔴 |
+| #392 | A/B test "wins" on zero data | 🤖 | 🔴 |
+| #393 | Data-moat table gets duplicate rows (no dedup key) | 🤖 | 🔴 |
+
+**✅ M4 done when:** each item is rebuilt (state machine + provider-confirmed + tests) and its "coming soon" is lifted — one at a time.
 
 ---
 
 ## 📌 Standing notes
-- **Money model:** buy credits · **$3 = 1 credit = 1 lead ENROLLED** (browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits. *(PDL discovery + Hunter reveal keys set in Railway. Apollo not used.)*
-- **Before any real send** (the "warm and nothing happens" trap): check `/engine/env` — `RESEND_API_KEY` · `ADMIN_SECRET_KEY` · `ANTHROPIC_API_KEY` · `RESEND_WEBHOOK_SECRET` · `FIGSY_COLD_FROM` · `TRACKING_URL`.
-- **Demo prep:** build the demo before the meeting · test the magic-link first · never reopen an expired demo · steer around Knowledge/Team/Integrations (coming soon).
-- **Architecture (locked):** deterministic workflows — AI drafts/scores/classifies; deterministic code decides + **fails closed**; state advances only after verified provider/DB success. Full reasoning → `AUDIT-8JUL-DEEP.md §4–10`.
+- **Money model:** buy credits · **$3 = 1 credit = 1 lead ENROLLED** (browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial. *(PDL + Hunter keys set. No Apollo.)*
+- **Before any real send:** check `/engine/env` — `RESEND_API_KEY` · `ADMIN_SECRET_KEY` · `ANTHROPIC_API_KEY` · `RESEND_WEBHOOK_SECRET` · `FIGSY_COLD_FROM` · `TRACKING_URL`.
+- **Architecture (locked):** AI drafts/scores; deterministic code decides + **fails closed**; state advances only after verified provider/DB success. Reasoning → `AUDIT-8JUL-DEEP.md §4–10`.

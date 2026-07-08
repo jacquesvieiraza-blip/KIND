@@ -22,14 +22,17 @@
 
 ---
 
-## 🔴 TIER 1 — HIGH (client- / partner- / contractual-facing) — fix first
+> ### ✅ FABLE PASS 1 — VERIFIED 8 Jul
+> Every 🔴 HIGH finding below was **independently re-checked at its exact file:line** (Fable, not the 5 discovery agents). **All CONFIRMED — none refuted.** One line-ref correction: `legal/key-rotation-runbook.md` Apollo is at **L14** (not L15–16). Safe to action; Batch B (legal) recommended first — `legal/legal-pack.md` L157 (DPA sub-processor list) is the sharpest contractual fix.
+
+## 🔴 TIER 1 — HIGH (client- / partner- / contractual-facing) — fix first · **all CONFIRMED (Fable Pass 1, 8 Jul)**
 
 ### Legal / contractual (carry contractual weight)
 - [ ] **`legal.md`** — pervasively stale; the *entire doc* assumes Apollo is THE source (250M contacts, 50-client Apollo-partnership trigger, Apollo API key storage, Apollo cost tables). **Recommend rewrite-or-archive**, not line patches. Also L104 "meeting booking" (booking link, not auto-book).
 - [ ] **`legal/legal-pack.md`** — L157 the **DPA sub-processor list** names **Apollo**; missing **PDL + Hunter + Flutterwave**. L60 DPA-coverage list incomplete. L233 Apollo enrichment row. *(Contractual — top priority.)*
 - [ ] **`legal/it-security-pack.md`** — L60 key list, L89 access register, L114 vendor table all name **Apollo** → PDL + Hunter; add Flutterwave.
 - [ ] **`legal/seis-advance-assurance-draft.md`** *(filed to HMRC)* — L31 FIGSY "automated … LinkedIn prospecting" (overstated); L39–40 generic "credit" model doesn't reflect $1 reveal + $3 work.
-- [ ] **`legal/key-rotation-runbook.md`** — L15–16 lists an active **Apollo** key (stale) alongside the correct PDL/Hunter. *(Internal-ish, but asserts a live Apollo key.)*
+- [ ] **`legal/key-rotation-runbook.md`** — **L14** lists an active **Apollo** key (stale) alongside the correct PDL/Hunter. *(Internal-ish, but asserts a live Apollo key.)* *(Fable Pass 1: confirmed at L14, not L15–16.)*
 - ✅ CLEAN: `legal/partner-agreement.md`, `legal/restore-runbook.md`.
 - ⚠️ **Off-repo:** `privacy` / `dpa` / `terms` live on get-kind.com — the on-site DPA almost certainly carries the same stale Apollo sub-processor entry as legal-pack L157. **Check there too** (also the terms §5 refund clause — inventory #413).
 

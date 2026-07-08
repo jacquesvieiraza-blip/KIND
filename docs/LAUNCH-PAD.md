@@ -5,7 +5,7 @@
 
 **THE PLAN (locked 8 Jul):** sell **FIGSY only**. Everything else = **"coming soon"**, built later in **Milestone 4**. **Milestone 0 is the gate** — make FIGSY *honest → reliable → proven* before one real client.
 
-**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴192 · ⏸6 · **Σ422**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴193 · ⏸6 · **Σ423**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -21,7 +21,7 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | 1 | Confirm `railway up "KIND"` deployed → walk live site → flip #408/#348 🩷 | 🧍 | ⏳ |
 | 2 | `/signup → /login` sweep on the 31 remaining pages (#409) | 🤖 | 🔴 |
 | 3 | Run §D prod-DB SQL → turns ~10 findings into facts (5 min) | 🧍 | 🔴 |
-| 4 | Redesign homepage agent section (with you) | 🤝 | 🔴 |
+| 4 | Redesign homepage agent section → **3D fluid carousel** (#417) | 🤝 | 🔴 |
 | 5 | FIGSY reliability — start **#338 + #339** | 🤖 | 🔴 |
 
 **PRs #990–#994 all merged.** ▶ Next: confirm `railway up "KIND"` deployed the live site → walk it → flip #408/#348 🟡→🩷. New from the 8-Jul docs-vs-code audit: **#410** (legal pages name Apollo, not PDL+Hunter) · **#411** (delete all unproven speed promises) · **#412** (`proposals` screen missing from the sweep).

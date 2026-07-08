@@ -18,7 +18,7 @@
 - [ ] **denise.html** — COMING-SOON: "trained on your closed-won deals" + "confirms booked meetings / notetaker" (#396). Keep "drafts proposals/follow-ups, you send."
 
 ## Core marketing pages
-- [~] **index.html** — ▸ *Batch 1 merged:* pricing section → one FIGSY product; FIGSY CTA → `/login` (#990). *(The homepage 5-card + Tony + coming-soon-badge change was **reverted in #993** — wrong for the front page.)* *Remaining:* global claims sweep, speed promises (#411), $1 is clean here now (#394 → landing only), agent-section redesign.
+- [~] **index.html** — ▸ *Batch 1 merged:* pricing section → one FIGSY product; FIGSY CTA → `/login` (#990). *(The homepage 5-card + Tony + coming-soon-badge change was **reverted in #993** — wrong for the front page.)* *Remaining:* global claims sweep, speed promises (#411), $1 is clean here now (#394 → landing only), **agent-section redesign → 3D fluid carousel (#417)** *(4 live agents now; Tony's 5th slide ⏸ on a `tony-cut.png` cut-out)*.
 - [x] **pricing.html** — ✅ *Batch 1:* collapsed 3 same-price tiers → one FIGSY product; bundles kept ($3 · 20/40/100); Milla/Vida/Denise add-ons → "coming soon" greyed; removed compare-all-plans table + Monthly/Yearly toggle; FIGSY CTA → `/login`. ✅ *Batch 2:* 90-day guarantee removed → true trust signals (#348).
 - [ ] **about.html** · [~] **story.html** *(Batch 1: coming-soon badges on Milla/Vida/Denise cards)* · [ ] **values.html** · [ ] **solutions.html** · [ ] **use-cases.html** — review each for the global claims + agent name-drops → coming-soon where not FIGSY.
 - [ ] **support.html** — "first leads in 24h / 5 business days" — keep only if true for FIGSY; reword agent claims.

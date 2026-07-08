@@ -1,7 +1,7 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
 **As of: 8 July 2026 · 7-pass deep audit + 3-question verdict → 71 findings (#338–#407) in MILESTONE 0.** This page = the four milestones and what to do right now. Nothing else lives here.
-**History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP · full audit → `docs/AUDIT-8JUL-DEEP.md`.**
+**History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP · full audit → `docs/AUDIT-8JUL-DEEP.md` · **M0 punch-list → `docs/MILESTONE-0-CHECKLIST.md`**.**
 
 **Board:** 🟢105 verified · 🩷88 live-not-walked · 🟣4 approved · 🟡25 on branch · 🔴185 not built · ⏸6 blocked · Σ413 *(live count: `scripts/count-inventory.sh`)*
 
@@ -31,6 +31,8 @@
 **WHERE IT STANDS (8 Jul): a 7-pass deep audit + 3-question verdict — the original 8 (#330–#337) hold, but the SURROUNDING product has ~69 confirmed rocks logged as 🔴 #338–#406.** The enrollment *charge* is genuinely safe; almost everything around it (subscriptions, the send outcome, crons, tenant isolation, the agents, the dashboards, the claims) is partial/inert/broken. Full evidence: **`docs/AUDIT-8JUL-DEEP.md`**. **Nothing runtime-proven — no prod/staging access; §D SQL + §K tests are the proof instruments.** No real client until Moves 1+2 are done and Move 3 is proven.
 
 **Original 8 — real status:** #330/#331/#332/#333 ✅ complete · #334 ◐ UI honest but Paystack backend residue (#352) · #335 ◐ inert, knowledge UI disabled (#346) · #336 ◐ inert, `?ref=` dropped (#355) · #337 ◐ ④ SA-name not done (#400).
+
+**📋 WORKING PUNCH-LIST: [`docs/MILESTONE-0-CHECKLIST.md`](./MILESTONE-0-CHECKLIST.md)** — every website page, every portal screen, every FIGSY fix, checked off as done.
 
 **⓪ M0 = FIGSY ONLY. These are the ONLY fixes for this milestone. Everything non-FIGSY → MILESTONE 4 (below). Full text of every item in PRODUCT-INVENTORY #338–#406.**
 

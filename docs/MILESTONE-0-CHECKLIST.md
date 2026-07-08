@@ -2,13 +2,37 @@
 
 > **This is the working execution list for M0** (linked from LAUNCH-PAD). M0 = make the product **HONEST → RELIABLE → PROVEN** before one real client. Sell FIGSY only; everything else = "coming soon."
 > **THE RULE for Move 1: DON'T DELETE. Mark not-real features "Coming soon" + grey/disable** (the #326/#334 pattern — badge + greyed + non-interactive). Code stays for Milestone 4.
-> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#416.
+> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#426.
+
+---
+
+# 💰 THE MONEY MODEL — the M0 spine (LOCKED 8 Jul 2026)
+
+> **This is the most critical M0 build.** Everything else makes the product honest; this makes it *earn*. Full economics = `docs/run-costs-and-cashflow.md` §0. Spec items = PRODUCT-INVENTORY **#420–#426**. Owners: 🤖 Claude · 🧍 founder · 🤝 both.
+
+**The deliverable (LOCKED, founder-confirmed):** *"$1 reveals a lead (the database) + $3 for FIGSY to work it = $4 per fully-worked lead. Two wallets, two entry points (data-only $1, or +$3 full FIGSY). Charged once per lead per wallet, fail-closed, sequences capped at 10 steps."*
+
+**Why:** we pay to *source* (PDL, ~$0.28/record at sourcing) and to *reveal* (Hunter, ~$0.009 at reveal). The old "free browsing + $3 only at enrolment" gave data away. The $1 reveal charge gates the Hunter+visibility cost; PDL is policed by quotas. Verified margin on a fully-worked lead ≈ **91%** ($4 − ~$0.36).
+
+**The 7 build conditions — each a small, TESTED, staging-proven PR (the careful money-path work):**
+- [ ] **#420** — Umbrella: un-retire the `lead_gen` tier as the **reveal product**; wire the two-charge path end-to-end ($1 reveal + $3 work), two wallets (`credit_balance` reveals · `figsy_credits` work). 🤝
+- [ ] **#421** — Atomic **`try_charge_reveal_credit`** RPC, **fail-closed** (only a hard `true` charges; refund-on-failed-reveal). Do NOT reuse the swallow-prone `increment_client_credits`. Supersedes #376. 🤖
+- [ ] **#422** — **Reveal gating:** mask the email in browse; unmask ONLY after the $1 charge succeeds. 🤖
+- [ ] **#423** — **Sourcing quotas** (the real leak): PDL is spent at sourcing (~$14/run) *before* any charge → cap per client/day + regen cap (#374). Not a charge-gate — a quota. 🤖
+- [ ] **#424** — **Charge-once-per-lead:** per-lead idempotency + DB uniques so a lead is never charged $1 twice or $3 twice (today's guard is per-campaign, `figsy.ts:1151`). 🤝
+- [ ] **#425** — **Trial credit mix:** the 20 free credits are figsy-only → a trial client can't reveal. Grant a reveal allocation so trials can experience the $1 data step. 🤝
+- [ ] **#426** — **Enforce the 10-step sequence cap** (no endless sequences — founder-locked). 🤖
+
+**Also wire the wording to match (client-facing → preview first, §11):** un-retire the $1 tier on website + portal billing (#394) · Terms §5 rewritten to the two-charge reveal+work model, no-reply refund residue deleted (#413) · usage "$1/lead overage" panel becomes the REAL reveal charge, not a fake (#385).
+
+**Portal — confirmed:** the non-FIGSY agents (Milla/Vida/Denise/Tony) are disabled with the **same "coming soon" + grey principle as the website** — see Move 1b (🟠 COMING-SOON block) / inventory #406. No new decision needed; it's already scoped, just not yet built in code.
 
 ---
 
 # ▶ MOVE 1a — WEBSITE SWEEP (`apps/website/*.html` + `apps/landing`) · 62 pages
 
-**Global claims to hunt on EVERY page** (reword/remove wherever they appear): "250M+ contacts" (#366) · "handles replies autonomously" (#403) · "books meetings into your calendar" (#361) · "$1 per lead" (#394) · Apollo-as-source, incl. the **legal sub-processor lists** → PDL+Hunter (#407 internal / **#410** legal pages) · POPIA/SA-only framing · **ALL speed/time promises + any "guarantee" wording — DELETE, unproven (#411):** "first leads in 10 minutes / 7 days", "first campaign live in 5 business days", the "5-day launch guarantee" card, and the 90-day guarantee residue (#348).
+**Global claims to hunt on EVERY page** (reword/remove wherever they appear): "250M+ contacts" (#366) · "handles replies autonomously" (#403) · "books meetings into your calendar" (#361) · Apollo-as-source, incl. the **legal sub-processor lists** → PDL+Hunter (#407 internal / **#410** legal pages) · POPIA/SA-only framing · **ALL speed/time promises + any "guarantee" wording — DELETE, unproven (#411):** "first leads in 10 minutes / 7 days", "first campaign live in 5 business days", the "5-day launch guarantee" card, and the 90-day guarantee residue (#348).
+> **⚠️ $1 FLIPPED (#394):** "$1 per lead" is **no longer a claim to remove — it's the REVEAL tier, restored.** Under the LOCKED two-charge model $1 reveals a lead + $3 works it = $4. So on client-facing pages, **add the $1 reveal step back** (before $3), don't delete it. See the MONEY MODEL section above.
 
 ## Agent pages (heaviest work)
 - [ ] **figsy.html** — ⭐ KEEP (the product we sell). Reword: "books meetings/calendar" → "booking link in every email" (#361) · "handles replies autonomously" → "drafts replies for your approval" (#403) · "250M" → "targeted, verified contacts" (#366) · LinkedIn "sends" → "coming soon" (#388) · soften "CRM dedup & CSV export" bullet (#416).
@@ -18,7 +42,7 @@
 - [ ] **denise.html** — COMING-SOON: "trained on your closed-won deals" + "confirms booked meetings / notetaker" (#396). Keep "drafts proposals/follow-ups, you send."
 
 ## Core marketing pages
-- [~] **index.html** — ▸ *Batch 1 merged:* pricing section → one FIGSY product; FIGSY CTA → `/login` (#990). *(The homepage 5-card + Tony + coming-soon-badge change was **reverted in #993** — wrong for the front page.)* *Remaining:* global claims sweep, speed promises (#411), $1 is clean here now (#394 → landing only), **two agent-section redesigns: top card grid → 3D carousel (#417)** *(Tony's 5th slide ⏸ on `tony-cut.png`)* + **lower "It takes a village" → orbital selector (#418)**.
+- [~] **index.html** — ▸ *Batch 1 merged:* pricing section → one FIGSY product; FIGSY CTA → `/login` (#990). *(The homepage 5-card + Tony + coming-soon-badge change was **reverted in #993** — wrong for the front page.)* *Remaining:* global claims sweep, speed promises (#411), **$1 reveal tier to ADD BACK before $3 (#394 flipped — see Money Model)**, **two agent-section redesigns: top card grid → 3D carousel (#417)** *(Tony's 5th slide ⏸ on `tony-cut.png`)* + **lower "It takes a village" → orbital selector (#418)**.
 - [~] **pricing.html** — ✅ *Batch 1:* collapsed 3 same-price tiers → one FIGSY product; bundles kept ($3 · 20/40/100); Milla/Vida/Denise add-ons → "coming soon" greyed; removed compare-all-plans table + Monthly/Yearly toggle; FIGSY CTA → `/login`. ✅ *Batch 2:* 90-day guarantee removed → true trust signals (#348). ▸ *Next:* **"The family" layout + full feature-comparison table (#419)** — 4 agent cards side-by-side (FIGSY buyable; Milla/Vida/Denise greyed intended price + coming-soon) + comparison matrix; soften CRM/CSV bullet (#416).
 - [ ] **about.html** · [~] **story.html** *(Batch 1: coming-soon badges on Milla/Vida/Denise cards)* · [ ] **values.html** · [ ] **solutions.html** · [ ] **use-cases.html** — review each for the global claims + agent name-drops → coming-soon where not FIGSY.
 - [ ] **support.html** — "first leads in 24h / 5 business days" — keep only if true for FIGSY; reword agent claims.
@@ -36,18 +60,18 @@
 - [ ] **the-drop.html** + **drop-01…09.html** (9) + **blog-drop-01…09.html** (9) — scan for stale claims; banner or reword.
 
 ## Legal (careful — these carry contractual weight)
-- [~] **terms.html** — ✅ *Batch 2:* 90-day guarantee (Section 5A + TOC + cross-refs) removed (#348). *Remaining:* §8 names **Apollo/250M** as sub-processor → PDL+Hunter (#410); any 5-day/speed wording (#411); **⚠️ §5 CRITICAL — rewrite the credit-consumption clause to match the enrollment charge; as written it entitles a refund on nearly every lead (#413).**
+- [~] **terms.html** — ✅ *Batch 2:* 90-day guarantee (Section 5A + TOC + cross-refs) removed (#348). *Remaining:* §8 names **Apollo/250M** as sub-processor → PDL+Hunter (#410); any 5-day/speed wording (#411); **⚠️ §5 CRITICAL — rewrite the credit-consumption clause to the LOCKED two-charge model ($1 reveal consumed at reveal · $3 work consumed at enrolment); DELETE the "no-reply / do-not-consume" refund residue that as-written entitles a refund on nearly every lead (#413).**
 - [ ] **privacy.html** · [ ] **dpa.html** · [ ] **dpa-us.html** — review; POPIA→global privacy where relevant.
 
 ## Tools / lead-magnets / misc
-- [ ] **small-business-playbook.html** — bundle/pricing math ($1 residue) (#394).
+- [ ] **small-business-playbook.html** — bundle/pricing math → the two-charge model ($1 reveal + $3 work = $4); $1 is VALID now, not residue (#394 flipped).
 - [ ] **playbook.html** · [ ] **prompt-library.html** · [ ] **pipeline-calculator.html** — review claims/numbers.
 - [ ] **partners.html** — partner program → "coming soon" (payouts are manual #398).
 - [ ] **demo.html** · [ ] **demo-video.html** · [ ] **figsy-video.html** · [ ] **platform-video.html** · [ ] **platform-video-standalone.html** — review what the videos show vs reality; steer demos to FIGSY only.
 - [ ] **solutions.html** (if not covered above) · [ ] **the-drop.html**
 
-## 🔴 `apps/landing` (separate app — may be deployed, still sells the RETIRED $1 tier)
-- [ ] **landing/index.html** — sells "$1 per qualified lead · from $20" (#394) → fix to $3 FIGSY or take the app down.
+## 🟠 `apps/landing` (separate app — may be deployed; sells the $1 tier)
+- [ ] **landing/index.html** — sells "$1 per qualified lead · from $20" (#394). **$1 is now VALID (reveal tier)** — align it to the two-charge model ($1 reveal + $3 work = $4), don't strip the $1. Confirm the app is deployed first.
 - [ ] **landing/demo.html** · [ ] **landing/figsy-video.html** · [ ] **landing/platform-video.html** — review. **First: confirm whether `apps/landing` is even deployed** (if not, lower priority).
 
 ---
@@ -66,7 +90,7 @@
 
 ## 🔧 FIX (FIGSY-adjacent — not just hide)
 - [ ] **billing** — keep FIGSY credit purchase; HIDE Milla/Vida/Denise subscription products + auto-topup (dead Paystack #352/#334); "Cancel" path is subscription (M4).
-- [ ] **usage** — DELETE the fabricated "$1/lead overage" panel (#385).
+- [ ] **usage** — the "$1/lead overage" panel becomes the **REAL reveal charge** (wire it to the live $1 reveal ledger), no longer a fabricated panel (#385 flipped — it's now the truth, not a lie to delete).
 - [ ] **settings** · [ ] **config** — verify toggles do what they say (the #326 "Soon" pattern already partly here).
 
 ## 🔍 REVIEW / hide
@@ -108,11 +132,11 @@
 - [ ] Run §D prod-DB SQL (enum · uniques · missing tables · MRR).
 - [ ] Confirm Railway API replica count (is #343 live?).
 - [ ] Confirm whether `apps/landing` is deployed (#394 priority).
-- [ ] **Rebuild FIGSY unit economics for the real PDL + Hunter prices** — the current model is the retired Apollo/$1 one; confirm we make money at $3/lead given cost scales with leads *sourced*, revenue with leads *enrolled* (#415). **Founder supplies the real contract prices.**
+- [x] **Rebuild FIGSY unit economics for the real PDL + Hunter prices (#415 — RESOLVED 8 Jul).** Costed on the real contracts (Fable-verified): PDL Full ~$0.28/record at sourcing · Hunter ~$0.009/reveal · AI+Resend ~$0.06 → **~$0.36/fully-worked lead, ~91% margin at $4** ($1 reveal + $3 work). The sourcing-vs-revenue mismatch is real and handled by **sourcing quotas (#423)**. Full model = `run-costs-and-cashflow.md` §0. *Remaining = the money-path CODE build (#420–#426), not the economics question.*
 
 ## Sell
 - [ ] Everything above green → sell FIGSY to ONE client → watch it work.
 
 ---
 
-**M0 is DONE when:** every box above is checked, each Move-2 fix has a regression test, and Move 3 is proven on staging. *(Progress mirrored in PRODUCT-INVENTORY dots #338–#407; this doc is the working punch-list.)*
+**M0 is DONE when:** every box above is checked, **the money model (#420–#426) is built, tested and staging-proven**, each Move-2 fix has a regression test, and Move 3 is proven on staging. *(Progress mirrored in PRODUCT-INVENTORY dots #338–#426; this doc is the working punch-list.)*

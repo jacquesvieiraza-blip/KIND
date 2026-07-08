@@ -1,21 +1,37 @@
 # K.I.N.D — Run Costs & Cashflow Model
-`Last-checked: 22 Jun 2026`
+`Last-checked: 8 Jul 2026`
 
-> ⚠️ **STALE PRICING (audit 1 Jul):** the body models the **two-product $1 Lead-Gen + $3 FIGSY** setup. The $1 Lead-Gen tier is being **retired → single $3 FIGSY credit** (#239/#283). Margins/ARPU/scenarios still directionally valid, but treat every `$1/lead` figure as historical until this doc is re-modelled on the single-$3 product.
+> ## 💰 THE MONEY MODEL — LOCKED 8 Jul 2026 (read this first; the doc is being re-modelled onto it)
+> **$1 to REVEAL a lead + $3 for FIGSY to WORK it = $4 per fully-worked lead.** Two charges, two wallets, two entry points:
+> - **$1 — reveal / "the database":** un-retire the `lead_gen` tier. Client pays $1 → we unmask + verify the contact (Hunter) → it lands in their leads. This is the data product on its own.
+> - **+$3 — FIGSY works it:** client pays $3 → FIGSY enrols the revealed lead into a sequence (**capped at 10 steps** — no endless sequences), drafts/sends the emails, drops a booking link.
+> - **Effectively $4** for a lead we reveal *and* fully work. A client can stop at $1 (data only) or add $3 (full FIGSY). Spec = inventory **#420–#426**.
+>
+> **Why this replaces the single-$3 model:** we pay to *source* every lead (PDL, at sourcing) and to *reveal* every email (Hunter, at reveal). The old "free browsing, $3 only at enrolment" gave the data away and only charged if the client happened to enrol — so a browsing-only client cost us data for $0 revenue. The $1 reveal charge puts a paid gate in front of the Hunter+visibility cost; PDL (spent earlier, at sourcing) is policed by **quotas**, not the charge (#423).
+>
+> ### Verified costs (Fable-checked 8 Jul, against the real contracts)
+> | Cost line | When incurred | Rate | Basis |
+> |---|---|---|---|
+> | **PDL Full API** | at **SOURCING** (per record pulled) | **~$0.28/record** | $98 ÷ 350 records |
+> | **Hunter (Scale)** | at **REVEAL** (per email verified) | **~$0.009/reveal** | £175/mo ≈ 300k/yr |
+> | **AI (Claude Haiku)** — scoring + up-to-10 emails | at **WORK** | **~$0.05/lead** | ~$0.005/email |
+> | **Resend** — email sends | at **WORK** | **~$0.009/lead** | ~$0.0009/email |
+> | **Google Calendar** (booking) | at **WORK** | **$0 (free API)** | — |
+> | **TOTAL per fully-worked lead** | | **~$0.36** | |
+>
+> **Margin: $4 revenue − ~$0.36 cost = ~91% gross margin per fully-worked lead.** Even if AI generation runs **4× my estimate**, cost ≈ $0.53 → still **~87%**. The model is sound at $1+$3.
+> - **$1 reveal alone:** $1 revenue − ~$0.009 Hunter = ~99% on the reveal charge itself (PDL sourcing is the separate leak below).
+> - **+$3 work alone:** $3 revenue − ~$0.06 AI+Resend = ~98% on the work charge.
+>
+> ⚠️ **The one real leak to police — PDL is spent at SOURCING, before any charge.** Every record we pull costs ~$0.28 whether the client ever reveals it or not, so unrevealed sourced records are sunk cost. This is why sourcing needs **per-client/day quotas + a regen cap** (#423), NOT just the reveal gate. Reveal ($1) and work ($3) are self-funding; **sourcing is the cost to control.**
+>
+> **On the body below:** §1 (fixed infra) is still broadly right. §2–§5 and §12 were written on the retired single-$3 / Apollo model — where a section says "Apollo ~$0.008/lead," "$3 all-in," or "double-charge bug," the LOCKED block above supersedes it. Blended-ARPU/scenario tables (§5a–§8) are directional: a fully-worked lead is now **$4**, so per-client ARPU rises accordingly.
 
-> ### 🟢 22 JUN STATUS UPDATE (read before the body — the model below is sound; this corrects its framing)
-> - **🚀 LAUNCHED 18 Jun** — the doc body is written pre-launch ("gate Fri-19" etc.); treat those as historical. The economics (margins, ARPU, break-even, scenarios) are **still valid**.
-> - **💵 Currency = USD (locked 22 Jun, "we are USD").** Ignore the ZAR/£ columns — they're illustrative only; we **bill USD**. UK Ltd files GBP to HMRC (accounting platform decision = item 196, open).
-> - **✅ Billing items 166–171 are LIVE** (one-charge-one-wallet, separate pools, Denise $39, atomic credits). Every "fix Tue 16 / double-charge to remove" note below is **DONE** — read it as resolved history.
-> - **👥 5 agents now** (FIGSY · Milla · Vida · Denise · **Casey** onboarding). The "4-agent" framing is pre-Casey; Casey isn't a paid SKU (onboarding), so the paid line-up + economics are unchanged.
-> - **Cross-refs:** the finance *system* (sales ledger, accounting, VAT) lives in item **196**; salary/hiring economics in `SALARY-BREAKEVEN-PLAN.md` (USD) + `docs/hiring/`. **Update-when:** pricing · stack · ARPU · launch/billing status changes.
-
-*Prior header — Last updated **16 June 2026**: prices reconciled to the LOCKED `@kind/shared` constants — **Lead Gen $20/$40/$100, FIGSY $60/$120/$300, flat $1/$3**; Denise $39. Plus §12 $1M goal (math fixed), §13 Apollo strategy, §14 onboarding/segmentation.*
-*🔍 **AUDIT FIXES (10 Jun, founder-flagged):** email = **Zoho Mail** (was wrongly "Google Workspace"); **2 domains** now listed (`get-kind.com` + `gettingkind.com`, was 1); **3 agent subscriptions added to §3** (Vida $29 · Milla $49 · Denise $99 + Milla+Vida $69 bundle — previously only the 2 credit products were listed). Also fixed in code/docs (10 Jun sweep): `routes/mcp.ts` + `routes/team.ts` wrong domain `*.kindai.co.za` → `*.get-kind.com`; the admin **"Launch" checklist** rewritten (Google Workspace → **Zoho**, Paystack → **Stripe + Flutterwave**, `privacy@kind.ai` → `privacy@get-kind.com`); `DEPLOYMENT_GUIDE.md` Step 7 → Zoho. **All stale email/domain/processor references now corrected across code + docs.***
-
-> ### 🧭 READ FIRST — the lay of the land (10 Jun)
-> **The model is ~95% gross margin and stays there.** Costs are almost entirely *fixed* (infra ~$140/mo) + a *tiny* variable (data + AI per lead). Revenue scales ~linearly with clients/seats while costs stay near-flat → margin climbs toward 95%+ after a handful of clients. **The whole game is revenue growth, not cost control.**
-> **Two things can dent margin at scale, both manageable:** ① **Apollo data** (the only real variable cost — and the structural fix, "clients bring their own key", drives it toward **$0** while solving the ToS — see §5d); ② **payment processing** (~2.9% Stripe / ~3.8% Flutterwave — the largest %-of-revenue cost at scale).
+> ### 🟢 STATUS NOTES (framing corrections — carried forward)
+> - **🚀 LAUNCHED 18 Jun.** Pre-launch language in the body ("gate Fri-19" etc.) is historical.
+> - **💵 Currency = USD (locked 22 Jun).** ZAR/£ columns are illustrative; we **bill USD**. UK Ltd files GBP to HMRC (accounting = item 196, open).
+> - **Data source = PDL + Hunter (NOT Apollo).** Every "Apollo" cost/plan line in the body is stale — the live stack is **PDL Full API (sourcing) + Hunter Scale (reveal)**; Apollo is retired from the data path. (Apollo strategy in §13 is kept as history only.)
+> - **Cross-refs:** finance *system* (ledger, accounting, VAT) = item **196**; salary/hiring = `SALARY-BREAKEVEN-PLAN.md` + `docs/hiring/`.
 > **The biggest GROWTH lever is the per-rep company engine (#88):** a 10-seat company is ~10× a single-seat client at almost the same cost-to-serve. **Stale-figure note:** older sections (§7/§10/§11) still say "Paystack" — actual processors are **Stripe (global) + Flutterwave (Africa)**; and the "$80 ARPU" is *single-seat* — the per-rep model multiplies it.
 
 ---
@@ -30,7 +46,7 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | Supabase | Database, auth, file storage **+ daily backups** (Free plan has NO backups) | Pro (af-south-1 Cape Town / POPIA) | $25 |
 | Railway | Hosts API + portal + admin + website (all 4 services) | Pro + usage | ~$20 |
 | Resend | FIGSY + transactional email — Free caps at 100/day, hits day 1 | Pro | $20 |
-| Apollo.io | Lead data source — Free plan blocks the API entirely (zero leads) | Basic ($49) · Pro recommended ($99) | $49–99 |
+| **PDL + Hunter** | Lead data source (Apollo retired). **PDL Full API** = sourcing (usage-based, ~$98/350 records); **Hunter** = email reveal/verify | Starter tiers NOW; PDL Full / Hunter Scale modelled at scale (§0). Upgrade when we land a client — founder-locked. | ~$49–220 |
 | **Group A subtotal** | | | **~$114–164/mo** |
 
 ### Group B — Soon (first weeks / before real volume)
@@ -75,16 +91,21 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 
 ---
 
-## 2. Variable Costs (scale with usage)
+## 2. Variable Costs (scale with usage) — LOCKED 8 Jul on the real PDL+Hunter stack
 
-| Cost | Rate | Notes |
-|---|---|---|
-| Apollo — cost per delivered lead | ~$0.008 | 24,000 credits ÷ ~60% yield |
-| Anthropic (Claude) — lead scoring | ~$0.0004/lead | Claude Haiku |
-| Anthropic (Claude) — FIGSY email generation | ~$0.01–0.02/email | Claude Haiku |
-| Stripe — payment processing | ~2.9% + 30¢ per transaction | Cost of revenue, not a fixed fee. Free until money flows. |
+*Data source is **PDL Full API + Hunter**, not Apollo. Each line notes WHEN the cost lands — this matters because sourcing (PDL) happens before any charge, reveal (Hunter) at the $1 charge, work (AI+Resend) at the $3 charge.*
 
-**Total variable cost per delivered lead: ~$0.009** (sub-cent at any volume)
+| Cost | When | Rate | Notes |
+|---|---|---|---|
+| **PDL Full API** — sourcing | at SOURCING (per record pulled) | **~$0.28/record** | $98 ÷ 350 records. The one cost incurred *before* revenue — police with quotas (#423). |
+| **Hunter (Scale)** — email reveal/verify | at REVEAL ($1 charge) | **~$0.009/reveal** | £175/mo ≈ 300k lookups/yr. |
+| **Claude Haiku** — lead scoring | at WORK | ~$0.0004/lead | |
+| **Claude Haiku** — FIGSY email generation | at WORK | ~$0.005/email (~$0.05 across a 10-step cap) | |
+| **Resend** — email send | at WORK | ~$0.0009/email (~$0.009 across 10 steps) | |
+| **Google Calendar** — booking | at WORK | **$0** | Free API — booking adds no running cost (#361). |
+| **Stripe** — payment processing | at CHARGE | ~2.9% + 30¢ per transaction | Cost of revenue, not a fixed fee. Free until money flows. |
+
+**Total variable cost per fully-worked lead: ~$0.36** (PDL $0.28 + Hunter $0.009 + AI ~$0.05 + Resend ~$0.009). Data-only ($1) lead = ~$0.29 (PDL sourcing + Hunter reveal).
 
 ---
 
@@ -93,7 +114,7 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 **All pricing is locked. Never changed. Never increased or decreased.**
 
 ### Credit Bundles (LOCKED model — source of truth: `packages/shared/src/constants/index.ts`)
-*Flat pricing: **Lead Gen $1/credit · FIGSY $3/credit — no volume discounts** (annual plans only). Founder-confirmed 16 Jun as the reconciliation target for item 168.*
+*Flat pricing: **Reveal (Lead Gen) $1/credit · FIGSY $3/credit — no volume discounts** (annual plans only). These two tiers ARE the two-charge model (§0): $1 reveals a lead, $3 works it, $4 fully worked. The `lead_gen` tier is being **un-retired as the reveal product** (#420/#394).*
 
 | Product | Credits | Price USD | Price ZAR | Per-lead |
 |---|---|---|---|---|
@@ -104,12 +125,10 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | FIGSY Advanced | 40 | $120 | R2,280 | $3.00 |
 | FIGSY Advanced | 100 | $300 | R5,700 | $3.00 |
 
-**🚨 PRICE-TABLE BUG (item 168) — three tables disagree, fix Tue 16:**
-- 🔒 **LOCKED constants** (`@kind/shared`): Lead Gen $20/$40/$100 · FIGSY $60/$120/$300 ← **the target (this table)**
-- ❌ **Stripe** (`stripe.ts`): Lead Gen $20/$38/$88 · FIGSY $60/$110/$250 ← discounted values, **recreate to match locked**
-- ❌ **Portal UI** (`billing/page.tsx`, `company/page.tsx`): FIGSY shown $20/$40/$100 ← wrong, **import `@kind/shared`**
-
-→ Lead Gen = **$1/lead flat** · FIGSY Advanced = **$3/lead flat** (separate products — no double-charge after item 166).
+**THE TWO-CHARGE MODEL (LOCKED 8 Jul, supersedes the old item-166 "double-charge is a bug" framing):**
+- **$1 reveal + $3 work = $4 is INTENTIONAL**, not a bug. The old model treated charging both as the "double-charge bug" (item 166) and killed the $1 side. We are **reversing that** — the two charges are the product (#420).
+- **Two wallets, charge-once-per-lead:** reveal draws the `credit_balance` (lead-gen) wallet at $1; work draws the `figsy_credits` wallet at $3. Each lead is charged **once per wallet** — never $1 twice, never $3 twice (per-lead idempotency = #424).
+- **Code to wire (money-path build #420–#426):** un-retire `lead_gen` purchase path · atomic `try_charge_reveal_credit` RPC, fail-closed (#421) · reveal gating — mask email until the $1 charge (#422) · sourcing quotas for PDL (#423) · charge-once-per-lead idempotency (#424) · trial credit mix so trials can reveal (#425) · enforce the 10-step sequence cap (#426).
 
 ### Agent Subscriptions — monthly (added to doc 10 Jun · live in Stripe)
 *The doc previously listed only the two credit products. These three monthly agents are also live (`STRIPE_PRICE_VIDA/MILLA/DENISE_MONTHLY`).*
@@ -125,59 +144,66 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 
 ---
 
-## 4. Unit Economics Per Lead (flat pricing)
+## 4. Unit Economics Per Lead — TWO-CHARGE MODEL (LOCKED 8 Jul)
 
-*Pricing is **flat** — $1/lead Lead Gen, $3/lead FIGSY, at every bundle size. No volume discounts. So the per-lead economics are the same whether a client buys 20 or 100 credits.*
+*Two charges, flat at every bundle size: **$1 to reveal, $3 to work, $4 fully worked.** Per-lead economics are the same whether a client buys 20 or 100 credits.*
 
-### 4a. Lead Gen Pro — per lead
+### 4a. Reveal ($1) — the data product
 | | Amount |
 |---|---|
-| You charge per lead (flat, all bundles) | **$1.00** |
-| Apollo delivery/verification | ~$0.008 |
-| Scoring (Claude Haiku) | ~$0.0004 |
-| **Variable cost** | **~$0.008** |
-| **Gross margin per lead** | **~$0.99 (99%)** |
+| You charge to reveal (flat, all bundles) | **$1.00** |
+| Hunter reveal/verify (at the $1 charge) | ~$0.009 |
+| PDL sourcing (spent EARLIER, at sourcing) | ~$0.28/record sourced |
+| **Gross margin on the reveal charge itself** | **~$0.99 (99%)** |
+| **…but net of PDL sourcing (if every sourced lead is revealed)** | **~$0.71 (71%)** |
 
-### 4b. FIGSY Advanced — per lead
+> ⚠️ **The reveal charge nets 99% against Hunter — the PDL sourcing cost is the variable to watch.** If 100% of sourced records get revealed, each $1 reveal carries ~$0.28 PDL → ~71% net. If only 50% are ever revealed, the unrevealed PDL doubles onto the revealed ones (~$0.56) → ~44% net on the $1 tier alone. **This is why sourcing quotas (#423) matter more than the reveal gate.** The $3 work charge more than absorbs it (below).
+
+### 4b. Work (+$3) — FIGSY on a revealed lead
 | | Amount |
 |---|---|
-| You charge per lead (flat, all bundles) | **$3.00** |
-| Apollo lead cost | ~$0.008 |
-| Claude Haiku 3-email generation | ~$0.012 |
-| Claude scoring | ~$0.0004 |
-| Resend send | ~negligible |
-| **Variable cost** | **~$0.024** |
-| **Gross margin per lead** | **~$2.98 (99%)** |
+| You charge to work (flat, all bundles) | **$3.00** |
+| Claude Haiku — scoring + up-to-10 emails | ~$0.05 |
+| Resend — sends across the sequence | ~$0.009 |
+| Google Calendar — booking | $0 |
+| **Variable cost of the work** | **~$0.06** |
+| **Gross margin on the work charge** | **~$2.94 (98%)** |
 
-### 4c. The Double-Charge Bug (item 166 — fix Tue 16)
-**Bug:** a client running FIGSY is charged BOTH — lead-gen $1 on delivery (`lead-delivery.ts:64`) AND FIGSY $3 on enrolment (`figsy.ts:907-921`) on the same lead = **$4/lead**; the deck promises **$3 all-in**.
+### 4c. Fully-worked lead ($4 = $1 + $3)
+| | Amount |
+|---|---|
+| Total charged (reveal + work) | **$4.00** |
+| PDL sourcing | ~$0.28 |
+| Hunter reveal | ~$0.009 |
+| AI (Haiku) scoring + 10-step emails | ~$0.05 |
+| Resend sends | ~$0.009 |
+| **Total variable cost** | **~$0.36** |
+| **Gross margin per fully-worked lead** | **~$3.64 (91%)** |
+| *Stress test — AI 4× my estimate* | cost ≈ $0.53 → **~87%** |
 
-**Fix:** Lead Gen and FIGSY are separate products charged from separate pools (item 169 `clients.plan`). Client chooses:
-- Lead Gen **only** → **$1/lead** (pure lead delivery, no outreach)
-- FIGSY **only** → **$3/lead** (FIGSY finds, qualifies, emails — one pool, item 167)
-- **Both** → each pool charged once, never stacked on the same lead.
+**Even taking PDL sourcing at full whack on a fully-worked lead, margin is ~91%.** The model earns because the $3 work charge dwarfs its ~$0.06 cost and the $1 reveal covers Hunter with room to spare; sourcing efficiency (reveal-rate × quotas) is the only real dial.
 
-### 4d. What a customer actually pays (flat)
+### 4d. What a customer actually pays
 | Scenario | What they buy | Cost | What they get |
 |---|---|---|---|
-| **Starter** | Lead Gen 20 | $20 | 20 leads ($1 each) |
-| **Lead Gen heavy** | Lead Gen 100 | $100 | 100 leads ($1 each) |
-| **FIGSY entry** | FIGSY 20 | $60 | 20 enrolled ($3 each) |
-| **FIGSY heavy** | FIGSY 100 | $300 | 100 enrolled ($3 each) |
-| **Growth blend** | Lead Gen 100 + FIGSY 20 | $160 | 100 leads + 20 FIGSY |
-| **Scale blend** | Lead Gen 100 + FIGSY 100 | $400 | 100 leads + 100 FIGSY |
+| **Data only** | Reveal 20 | $20 | 20 revealed leads ($1 each) — the database |
+| **Data heavy** | Reveal 100 | $100 | 100 revealed leads ($1 each) |
+| **FIGSY entry** | FIGSY 20 | $60 | 20 leads worked ($3 each, on already-revealed leads) |
+| **FIGSY heavy** | FIGSY 100 | $300 | 100 leads worked ($3 each) |
+| **Fully-worked blend** | Reveal 100 + FIGSY 100 | $400 | 100 leads revealed **and** worked = **$4 each** |
+| **Growth blend** | Reveal 100 + FIGSY 20 | $160 | 100 revealed, 20 fully worked |
 
 ---
 
-## 5. Unit Economics Summary
+## 5. Unit Economics Summary (two-charge model)
 
-| | Lead Gen | FIGSY |
-|---|---|---|
-| Charge per lead | $1.00 | $3.00 |
-| Variable cost | ~$0.008 | ~$0.024 |
-| **Gross margin per lead** | **~99%** | **~99%** |
+| | Reveal ($1) | Work (+$3) | **Fully worked ($4)** |
+|---|---|---|---|
+| Charge | $1.00 | $3.00 | **$4.00** |
+| Variable cost | Hunter ~$0.009 (+PDL ~$0.28 at sourcing) | AI+Resend ~$0.06 | **~$0.36** |
+| **Gross margin** | ~99% on Hunter (~71% net of PDL) | ~98% | **~91%** |
 
-The data cost is negligible. Your real cost is the fixed stack (~$138/mo) spread across all clients and all their leads.
+Your real variable cost to police is **PDL sourcing (~$0.28/record, spent before revenue)** — capped by quotas (#423). Everything downstream (reveal, work) is near-pure margin. The fixed stack (~$138/mo, §1) is spread across all clients.
 
 ---
 
@@ -271,12 +297,12 @@ At **$199 ARPU** (Growth+ w/ Denise): net ~$192/client/mo.
 
 | Product | What drives the cost | Est. variable cost to serve | What you charge | Gross margin |
 |---|---|---|---|---|
-| **FIGSY** (AI SDR) | Apollo data (~$0.008/lead) + Claude Haiku 3-email generation (~$0.012) + scoring (~$0.0004) + Resend send (~negligible) | **~$0.02–0.10 per lead** fully processed | $3.00 / lead (FIGSY Advanced, flat) | **~97%** |
+| **FIGSY** (AI SDR) | PDL sourcing (~$0.28/record) + Hunter reveal (~$0.009) + Claude Haiku scoring+10-step emails (~$0.05) + Resend (~$0.009) + Google Calendar ($0) | **~$0.36 per fully-worked lead** | **$4.00 fully worked ($1 reveal + $3 work)** | **~91%** |
 | **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | $49/mo | **~95%+** |
 | **Vida** (Chatbot) | Claude tokens per conversation turn | **~$0.01–0.03 per conversation** | $29/mo | **~90%+** (a 100-chat/mo client ≈ $1–3 cost) |
 | **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | $39/mo | **~95%+** *(corrected 16 Jun from $99 display; actual cost was always $39; until voice — see §5d)* |
 
-**The one cost that matters is Apollo (FIGSY's data).** Everything else is sub-cent Claude inference. So: protect FIGSY's data economics (§5d), keep generation on Haiku (cheap) with prompt caching, and the whole platform sits at ~95% gross margin.
+**The one cost that matters is PDL sourcing (FIGSY's data).** PDL is spent at sourcing (~$0.28/record, before any charge) so it's the line to police with quotas (#423); Hunter reveal (~$0.009) and everything else is sub-cent Claude/Resend. Keep generation on Haiku (cheap) with prompt caching, cap sequences at 10 steps, and the fully-worked lead sits at **~91% gross margin** ($4 revenue, ~$0.36 cost).
 *Numbers are estimates on current Haiku pricing — confirm against real Anthropic + Apollo invoices once volume is live; the structure won't change.*
 
 ---
@@ -744,6 +770,6 @@ If MRR is flat and churn is rising — focus on client success before new sales.
 ---
 
 *Document owner: K.I.N.D founding team*
-*Last updated: **29 Jun 2026** — §16 added: How to Run the Company (business training delivered)*
-*Previous: 16 June 2026 — prices reconciled to LOCKED flat constants + $1M ARR goal + §13 Apollo strategy + §14 Onboarding/Segmentation + §15 Execution tickets*
+*Last updated: **8 Jul 2026** — **re-modelled onto the LOCKED two-charge money model: $1 reveal + $3 work = $4/fully-worked lead.** New §0 header + §2–§5/§5c rebuilt on the real PDL Full + Hunter Scale costs (Fable-verified: ~$0.36/lead → ~91% margin). Apollo retired from the data path (body Apollo lines flagged stale). Spec = inventory #420–#426.*
+*Previous: 29 Jun 2026 — §16 How to Run the Company · 16 Jun 2026 — flat-constants reconciliation + $1M ARR goal + §13/§14/§15.*
 *Review this model quarterly as pricing, client mix, and ARPU evolves.*

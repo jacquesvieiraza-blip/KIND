@@ -5,7 +5,7 @@
 
 **THE PLAN (locked 8 Jul):** sell **FIGSY only**. Everything else = **"coming soon"**, built later in **Milestone 4**. **Milestone 0 is the gate** — make FIGSY *honest → reliable → proven* before one real client.
 
-**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴195 · ⏸6 · **Σ425**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴202 · ⏸6 · **Σ432**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -86,6 +86,13 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | #402 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 | 🔴 |
 | #361 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (moved M4→M0): install googleapis + prospect-facing booking page (slots → create event). *#361b build · #361a interim = coming-soon* | 🤝 | 🔴 |
 | #368 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 | 🔴 |
+| **#420** | **TWO-CHARGE MONEY MODEL — $1 reveal + $3 work = $4** (umbrella #421–#426; two wallets; un-retire lead_gen as reveal tier) | 🤝 | 🔴 |
+| #421 | Atomic `try_charge_reveal_credit` + fail-closed refund-on-failed-reveal (supersedes #376) | 🤖 | 🔴 |
+| #422 | Reveal gating — mask email in browse; reveal only on the $1 charge | 🤖 | 🔴 |
+| #423 | Sourcing quotas — PDL spent at *sourcing* (~$14/run); cap per client/day + regen cap (#374) | 🤖 | 🔴 |
+| #424 | Charge-once-per-lead — per-lead idempotency + DB uniques ($1 once, $3 once) | 🤝 | 🔴 |
+| #425 | Trial credit mix — reveal + work credits (20 free are FIGSY-only today) | 🤝 | 🔴 |
+| #426 | Enforce 10-step sequence cap (bounds per-lead work cost) | 🤖 | 🔴 |
 
 ### Move 3 · PROVEN — prove on staging, then sell to ONE client · 🤝
 🔴 a credit actually spent · an email that actually landed · knowledge visibly changes the copy · a real lead sources + sends · the alarm fires on a money failure.
@@ -202,6 +209,6 @@ In M0 these are made *honest* (hidden, "coming soon"); **here** they're made *re
 ---
 
 ## 📌 Standing notes
-- **Money model:** buy credits · **$3 = 1 credit = 1 lead ENROLLED** (browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial. *(PDL + Hunter keys set. No Apollo.)*
+- **Money model (LOCKED 8 Jul, Fable-verified — two charges = $4/worked lead):** **$1 to reveal a lead** (the "database" — verified contact) **+ $3 for FIGSY to work it** (client's sequence/template, ≤10 steps). Two entry points: $1 data-only → +$3 full FIGSY. Charged once each per lead; no refund on outcome. Cost ≈ $0.36/worked lead → **~91% margin**. Two wallets ($1 reveal `credit_balance` + $3 work `figsy_credits`). The $1 gates **Hunter reveal + visibility**; **PDL is spent at sourcing → controlled by quotas, not the charge.** Build spec = #420–#426. *(PDL + Hunter keys set. No Apollo.)*
 - **Before any real send:** check `/engine/env` — `RESEND_API_KEY` · `ADMIN_SECRET_KEY` · `ANTHROPIC_API_KEY` · `RESEND_WEBHOOK_SECRET` · `FIGSY_COLD_FROM` · `TRACKING_URL`.
 - **Architecture (locked):** AI drafts/scores; deterministic code decides + **fails closed**; state advances only after verified provider/DB success. Reasoning → `AUDIT-8JUL-DEEP.md §4–10`.

@@ -46,9 +46,16 @@
 
 ---
 
-# ⓪ MILESTONE 0 — MONEY-PATH INTEGRITY (opened 7 Jul · Fable audit · BLOCKS M2)
+# ⓪ MILESTONE 0 — MAKE IT TRUE + RELIABLE (the gate to selling ANYTHING · was "money-path integrity" · BLOCKS M2)
 
-**WHERE IT STANDS (8 Jul): a 7-pass deep audit blew M0 wide open — the original 8 (#330–#337) hold, but the SURROUNDING product has ~67 confirmed rocks logged as 🔴 #338–#404.** The enrollment *charge* is genuinely safe; almost everything around it (subscriptions, the send outcome, crons, tenant isolation, the agents, the dashboards, the claims) is partial/inert/broken. Full evidence: **`docs/AUDIT-8JUL-DEEP.md`**. **Nothing runtime-proven — the auditor had no prod/staging access; §D SQL + §N tests are the proof instruments.** No real client until the CRITICAL tier is fixed-or-hidden and runtime-proven.
+**THE DECISION (8 Jul): sell ONE agent — FIGSY, the backbone — and mark everything else "coming soon." One reliable agent beats a half-unreliable system.** But FIGSY itself has faults that must be fixed first. So M0 = make the product HONEST, then RELIABLE, then PROVEN — before a single real client.
+
+**▶ THE PLAN — 3 moves, in strict order (reordered 8 Jul):**
+1. **MOVE 1 · MAKE IT HONEST (fastest, do first).** Mark every not-real feature "coming soon" on the **website + portal + pricing**: Vida knowledge/WhatsApp (#360/#362) · Calendar booking (#361) · Denise "closed-won/confirms meetings" (#396) · Milla connectors (#395) · partner "Wise" (#398) · integrations hub (#399) · Lena (#404) · "autonomous replies" (#403) · "250M" reword (#366) · $1 residue (#394) · the 90-day guarantee rewrite/withhold (#348). *One copy/legal PR, no deploy risk, protects you today.*
+2. **MOVE 2 · MAKE FIGSY RELIABLE.** Fix FIGSY's own faults — the **Top-20 controls** (`AUDIT-8JUL-DEEP.md §10`), starting **#338 (send actually sends before we charge) + #339 (alarms are real)**, then knowledge UI on (#346), no double-sends (#354), pagination (#366), honest reply/booking behaviour. Each a small, tested PR.
+3. **MOVE 3 · PROVE + SELL.** Runtime-prove on staging (a credit spent, an email landed, a lead flowed), then sell FIGSY to ONE client.
+
+**WHERE IT STANDS (8 Jul): a 7-pass deep audit + 3-question verdict — the original 8 (#330–#337) hold, but the SURROUNDING product has ~67 confirmed rocks logged as 🔴 #338–#404.** The enrollment *charge* is genuinely safe; almost everything around it (subscriptions, the send outcome, crons, tenant isolation, the agents, the dashboards, the claims) is partial/inert/broken. Full evidence: **`docs/AUDIT-8JUL-DEEP.md`**. **Nothing runtime-proven — no prod/staging access; §D SQL + §K tests are the proof instruments.** No real client until Moves 1+2 are done and Move 3 is proven.
 
 **Original 8 — real status:** #330/#331/#332/#333 ✅ complete · #334 ◐ UI honest but Paystack backend residue (#352) · #335 ◐ inert, knowledge UI disabled (#346) · #336 ◐ inert, `?ref=` dropped (#355) · #337 ◐ ④ SA-name not done (#400).
 
@@ -63,7 +70,7 @@
 
 **DECISION PENDING (you):** Scope A (FIGSY-only, hide the rest — *recommended*) · Scope B (+ billing/referrals) · Scope C (full surface). Detail in `AUDIT-8JUL-DEEP.md §O`. Once chosen, 🤖 builds the CRITICAL tier as small verified PRs — **#338 phantom-send + #339 blind-alarm first** (they gate visibility of everything else).
 
-**🧭 RECOMMENDATION (8 Jul · full reasoning in `AUDIT-8JUL-DEEP.md §4-10`):** **Scope A + the deterministic-workflow architecture.** The audit proves the root cause is *engineering* (state advances without verifying provider/DB success; fail-open; AI in the authority path) — **not** "AI is bad." So: **AI drafts/scores/classifies only; deterministic software decides + fails closed; state advances only after verified success; every risky flow becomes a state machine.** This directly prevents ~40 of the 67 findings; the rest need copy/legal rewrites, feature builds, prod-DB ops, and tests. **ML is not the fix — deterministic control-flow + provider/DB success checks + tests + bounded AI is.** Build order = the **Top-20 controls** in `AUDIT-8JUL-DEEP.md §10`, starting #338 + #339. One real client is safe on Scope A **after** the Top-20 + runtime proof on staging (§K).
+**🧭 RECOMMENDATION (8 Jul · full reasoning in `AUDIT-8JUL-DEEP.md §4-10`):** **Scope A + the deterministic-workflow architecture.** The audit proves the root cause is *engineering* (state advances without verifying provider/DB success; fail-open; AI in the authority path) — **not** "AI is bad." So: **AI drafts/scores/classifies only; deterministic software decides + fails closed; state advances only after verified success; every risky flow becomes a state machine.** This directly prevents ~40 of the 67 findings; the rest need copy/legal rewrites, feature builds, prod-DB ops, and tests. **ML is not the fix — deterministic control-flow + provider/DB success checks + tests + bounded AI is.** Order = **Move 1 (coming-soon everything not real) → Move 2 (Top-20 controls, `§10`, starting #338 + #339) → Move 3 (prove on staging + sell)**. One real client is safe on Scope A **after** Moves 1+2 + runtime proof on staging (§K).
 
 ---
 
@@ -133,7 +140,7 @@
 
 # ② MILESTONE 2 — A paying client runs it themselves
 
-**WHERE IT STANDS: SAFE as of 6 Jul (the whole 17-hole audit is live in prod) — but NOT READY. One big gate: Smartlead.**
+**⚠️ WHERE IT STANDS (8 Jul): NOT TRUE YET — M2 is BLOCKED ON M0.** A paying client cannot reliably use the product today: FIGSY can charge and not send (#338), copy is generic (#346), and several sold features aren't real. **M2 becomes true only after M0 Moves 1+2 land + Move 3 proves it on staging.** Smartlead (#211, per-client sending isolation) is the *next* gate after that. Old note (pre-audit): "SAFE 6 Jul, one gate: Smartlead" — superseded; the audit showed the product isn't yet trustworthy enough to sell.
 
 **What "safe" means (shipped + live 6 Jul):** admin behind a login · API can't be drained by strangers · every FIGSY send is charged · Stripe can't be tricked into minting credits · refunds/chargebacks claw credits back · unsubscribes actually stop · pause doesn't lie about billing · no client starves another's sending · credit pools are race-proof · portal stopped making false promises.
 

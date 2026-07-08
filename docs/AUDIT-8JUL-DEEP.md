@@ -88,12 +88,12 @@ Provider-failure (Resend `{error}`→not sent; Anthropic fail→not `scored`; St
 - **B — + billing/referrals:** adds the subscription lifecycle rebuild — only after Stripe test-mode proof.
 - **C — full surface:** weeks building 4 half-real integrations. Not recommended pre-revenue.
 
-## P. NEXT ACTIONS
-1. 🧍 Run §D SQL in prod + confirm Railway replica count + is `apps/landing` deployed → converts ~10 Unknowns to facts.
-2. 🧍 Pick a scope (A recommended).
-3. 🤖 Build the CRITICAL tier as small, individually-tested PRs — **#338 phantom-send + #339 blind-alarm first** (they gate visibility of everything else), then the top-20 in order.
-4. 🤖 Rewrite/hide false claims + guarantee (one copy/legal PR).
-5. Runtime-prove each fix on staging (§K) before any dot goes 🟢.
+## P. NEXT ACTIONS — reordered 8 Jul (honest-first)
+**DECISION LOCKED: Scope A (FIGSY-only). 3 moves in strict order:**
+1. **MOVE 1 (do first) — 🤖 MAKE IT HONEST:** one copy/legal PR marking every not-real feature "coming soon" on website + portal + pricing (#348 guarantee · #360/#362 Vida+WhatsApp · #361 Calendar · #395 Milla · #396 Denise · #398 Wise · #399 integrations · #403 autonomous-replies · #404 Lena · #366 250M · #394 $1). Fastest, no deploy risk, protects legally today.
+2. **MOVE 2 — 🤖 MAKE FIGSY RELIABLE:** the Top-20 controls (§10) as small tested PRs, **#338 send-before-charge + #339 checked-alarm first**, then #346 knowledge-UI, #354 no-double-send, #366 pagination, honest reply/booking.
+3. **MOVE 3 — PROVE + SELL:** 🧍 run §D SQL + confirm replica count first → 🤝 runtime-prove each fix on staging (§K) → sell FIGSY to ONE client.
+*(No dot goes 🟢 without a regression test + staging proof.)*
 
 ---
 *8 Jul 2026. Code-confirmed on origin/main. No runtime/prod-DB access — §D SQL + §K tests are the proof instruments this doc cannot execute.*

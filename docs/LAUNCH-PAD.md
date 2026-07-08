@@ -63,6 +63,8 @@
 
 **DECISION PENDING (you):** Scope A (FIGSY-only, hide the rest — *recommended*) · Scope B (+ billing/referrals) · Scope C (full surface). Detail in `AUDIT-8JUL-DEEP.md §O`. Once chosen, 🤖 builds the CRITICAL tier as small verified PRs — **#338 phantom-send + #339 blind-alarm first** (they gate visibility of everything else).
 
+**🧭 RECOMMENDATION (8 Jul · full reasoning in `AUDIT-8JUL-DEEP.md §4-10`):** **Scope A + the deterministic-workflow architecture.** The audit proves the root cause is *engineering* (state advances without verifying provider/DB success; fail-open; AI in the authority path) — **not** "AI is bad." So: **AI drafts/scores/classifies only; deterministic software decides + fails closed; state advances only after verified success; every risky flow becomes a state machine.** This directly prevents ~40 of the 67 findings; the rest need copy/legal rewrites, feature builds, prod-DB ops, and tests. **ML is not the fix — deterministic control-flow + provider/DB success checks + tests + bounded AI is.** Build order = the **Top-20 controls** in `AUDIT-8JUL-DEEP.md §10`, starting #338 + #339. One real client is safe on Scope A **after** the Top-20 + runtime proof on staging (§K).
+
 ---
 
 ### 🎯 THE 3-QUESTION VERDICT (8 Jul · fresh code re-read, not memory · code-confirmed, not runtime-proven)

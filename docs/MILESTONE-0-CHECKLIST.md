@@ -1,6 +1,6 @@
-# ✅ MILESTONE 0 — MASTER CHECKLIST (the FIGSY-only punch-list)
+# ✅ MILESTONE 0 — MASTER CHECKLIST (the FIGSY + Lead-Gen punch-list)
 
-> **This is the working execution list for M0** (linked from LAUNCH-PAD). M0 = make the product **HONEST → RELIABLE → PROVEN** before one real client. Sell FIGSY only; everything else = "coming soon."
+> **This is the working execution list for M0** (linked from LAUNCH-PAD). M0 = make the product **HONEST → RELIABLE → PROVEN** before one real client. Sell **FIGSY + Lead-Gen** ($1 reveal + $3 work); everything else = "coming soon" — and returns as **per-lead layers/engine (#427–#429), not subscriptions**.
 > **THE RULE for Move 1: DON'T DELETE. Mark not-real features "Coming soon" + grey/disable** (the #326/#334 pattern — badge + greyed + non-interactive). Code stays for Milestone 4.
 > Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#431.
 

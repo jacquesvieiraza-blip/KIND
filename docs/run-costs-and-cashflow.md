@@ -141,7 +141,8 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 - **Two wallets, charge-once-per-lead:** reveal draws the `credit_balance` (lead-gen) wallet at $1; work draws the `figsy_credits` wallet at $3. Each lead is charged **once per wallet** — never $1 twice, never $3 twice (per-lead idempotency = #424).
 - **Code to wire (money-path build #420–#426):** un-retire `lead_gen` purchase path · atomic `try_charge_reveal_credit` RPC, fail-closed (#421) · reveal gating — mask email until the $1 charge (#422) · sourcing quotas for PDL (#423) · charge-once-per-lead idempotency (#424) · trial credit mix so trials can reveal (#425) · enforce the 10-step sequence cap (#426).
 
-### Agent Subscriptions — monthly (added to doc 10 Jun · live in Stripe)
+### ~~Agent Subscriptions — monthly~~ ⛔ RETIRED (8 Jul, #431 — no subscriptions anywhere)
+> **SUPERSEDED by the §0 per-qualified-lead lock:** Milla/Denise = **+$1/qualified-lead layers** (#427/#428) · Vida = **$3/qualified-inbound engine** (#429). The $/month prices below are DEAD — kept only as history until the Stripe products are removed (#431).
 *The doc previously listed only the two credit products. These three monthly agents are also live (`STRIPE_PRICE_VIDA/MILLA/DENISE_MONTHLY`).*
 
 | Product | Price USD/mo | What it is |
@@ -309,7 +310,7 @@ At **$199 ARPU** (Growth+ w/ Denise): net ~$192/client/mo.
 | Product | What drives the cost | Est. variable cost to serve | What you charge | Gross margin |
 |---|---|---|---|---|
 | **FIGSY** (AI SDR) | PDL sourcing (~$0.28/record) + Hunter reveal (~$0.009) + Claude Haiku scoring+10-step emails (~$0.05) + Resend (~$0.009) + Google Calendar ($0) | **~$0.36 per fully-worked lead** | **$4.00 fully worked ($1 reveal + $3 work)** | **~91%** |
-| **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | $49/mo | **~95%+** |
+| **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | ~~$49/mo~~ **+$1/qualified lead (#427; VA half unpriced, parked M4)** | **~95%+** |
 | **Vida** (Chatbot) | Claude tokens per conversation turn | **~$0.01–0.03 per conversation** | $29/mo | **~90%+** (a 100-chat/mo client ≈ $1–3 cost) |
 | **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | $39/mo | **~95%+** *(corrected 16 Jun from $99 display; actual cost was always $39; until voice — see §5d)* |
 
@@ -709,9 +710,9 @@ The model is ~95% gross margin. Fixed costs are ~$138/month. Break-even is **2 c
 |---|---|---|
 | Lead Gen (K.I.N.D AI) | Credits | $20 / $40 / $100 bundles ($1/lead flat) |
 | FIGSY | Credits | $60 / $120 / $300 bundles ($3/lead flat) |
-| Milla (VA / Brain) | Subscription | $49/month |
-| Vida (Chatbot) | Subscription | $29/month |
-| Denise (AI Account Executive) | Subscription | $39/month |
+| Milla (VA / Brain) | ~~Subscription $49/mo~~ | **+$1/qualified lead** (intelligence layer #427 — LOCKED 8 Jul, §0) |
+| Vida (Chatbot) | ~~Subscription $29/mo~~ | **$3/qualified inbound lead** (engine #429 + add-ons) |
+| Denise (AI Account Executive) | ~~Subscription $39/mo~~ | **+$1/qualified lead** (action layer #428) |
 
 Highest-leverage upsell: $20 Lead Gen starter → FIGSY ($60+) → Denise ($39) = ~$199/month client, ~10× the margin of a starter.
 

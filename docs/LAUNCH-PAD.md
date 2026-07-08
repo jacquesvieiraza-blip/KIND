@@ -1,48 +1,21 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 8 July 2026 · 7-pass deep audit + 3-question verdict → 67 findings (#338–#404) in MILESTONE 0.** This page = the four milestones and what to do right now. Nothing else lives here.
+**As of: 8 July 2026 · 7-pass deep audit + 3-question verdict → 71 findings (#338–#407) in MILESTONE 0.** This page = the four milestones and what to do right now. Nothing else lives here.
 **History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP · full audit → `docs/AUDIT-8JUL-DEEP.md`.**
 
-**Board:** 🟢105 verified · 🩷88 live-not-walked · 🟣4 approved · 🟡25 on branch · 🔴182 not built · ⏸6 blocked · Σ410 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢105 verified · 🩷88 live-not-walked · 🟣4 approved · 🟡25 on branch · 🔴185 not built · ⏸6 blocked · Σ413 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
 ---
 
-> **⚠️ 7 Jul PM — MILESTONE 0 (below) now outranks this plan.** The money audit opened 8 must-fix holes; the two unlocks (GitHub appeal ✅ sent, Smartlead) still run in parallel, but M0 closes before any real client.
+> **⚠️ 8 Jul — THE DEEP AUDIT CHANGED EVERYTHING. The product is NOT safe to sell yet.** The old "product is safe · just needs Smartlead" plan is **SUPERSEDED.** Decision (founder-locked): **sell FIGSY only; mark everything else "coming soon."** Focus = **MILESTONE 0**, and its FIRST task is **MOVE 1 — the full website + portal honesty sweep.** Move slow, get it right.
 
-## 📅 TODAY — 7 July (the plan, in order)
-**The whole #306–#328 audit is closed + live — the product is safe. Nothing is blocked on Claude. Tomorrow = UNBLOCK the two big gates + VERIFY what's live. Top to bottom; each block is independent, so a slip on one doesn't stall the rest.**
-
-**☀️ FIRST 30 MIN — the two unlocks (highest leverage — they free up everything else):**
-1. **Send the GitHub flag appeal** — `support.github.com/contact/account-flagged` (paste the drafted reply from 6 Jul). → when it clears, auto-deploy returns and the manual `railway up` ends. *(infra)*
-2. **Sort Smartlead access** — sign up / grab the API key. **This is THE last M2 gate (#211)** — the moment I have it I start the multi-day per-client-sending build. *(M2)*
-3. **Glance at Instantly warm-up %** — the one M1 gate. If ≥90% → jump to the M1 fire-drill (§① below). If not, leave it, it's a clock. *(M1)*
-
-**🕙 MID-MORNING — ✅ Sitting A DONE 7 Jul:**
-4. ~~Walk `admin.get-kind.com`~~ — walked; 13 dots flipped 🩷→🟢. Remaining: deploy PR #978 (funnel fix) → re-walk #291 green; #279/#289/#290 need data/wiring before they can go green. *(M3)*
-
-**🕐 MIDDAY — two config toggles (Sitting B, 10 min):**
-5. In Railway set **`PDL_API_KEY`**; in Resend enable **`email.bounced`** + **`email.complained`** events. → verifies #243 + #267. *(M2/M3)*
-
-**🕒 AFTERNOON — prove the money (Sitting C, when you have a live account):**
-6. The **$60 live money walk** (#28b) — steps in **§② below**. Nobody has ever run this end-to-end; it's the difference between "should work" and "proven." *(M2)*
-
-**Realistic target:** both unlocks sent + admin walked green. If tomorrow only produces "Smartlead access + GitHub appeal in," that's a great day — those two move M2 and the infra more than anything else.
-
----
-
-## ⚡ THE FULL RUNLIST (reference — tomorrow's plan pulls from this)
-
-| # | Action | Who |
-|---|--------|-----|
-| 1 | ✅ ~~Whole #306–#328 audit~~ — 23 items merged + deployed + live. Product is safe. | — |
-| 2 | ✅ ~~**Sitting A** — walk the admin~~ — DONE 7 Jul: 13 dots 🩷→🟢; 4 held back (#291 bug-fixed PR #978 · #279/#289/#290 need data/wiring) | — |
-| 3 | **Sitting B** — 2 toggles: `PDL_API_KEY` in Railway · Resend `email.bounced`+`email.complained` events | 🧍 |
-| 4 | **Sitting C** — the $60 live money walk (list in M2 below) | 🧍 |
-| 5 | **Send GitHub flag appeal** (drafted, in chat 6 Jul) → restores auto-deploy | 🧍 |
-| 6 | **Give Smartlead access** → unblocks #211, the last M2 gate → 🤖 I build | 🧍→🤖 |
-| 7 | **Watch Instantly warm-up** weekly → at ≥90%, run the M1 fire-drill below | 🧍 |
+## ▶ RIGHT NOW (8 Jul, in strict order)
+1. **🧍 Run the §D prod-DB SQL** (`AUDIT-8JUL-DEEP.md §D`) + confirm the Railway API replica count → turns ~10 suspected findings into confirmed facts (5 min).
+2. **🤖 MOVE 1 — website + portal honesty sweep** (#405/#406, detail in M0 below): every element → keep / coming-soon / grey. Checklist first, then reviewable batches. **This is the first build work.**
+3. **🤖 MOVE 2 — FIGSY reliability** (#338 + #339 first), each a small tested PR.
+4. **🧍 Still valid, parallel:** GitHub flag appeal (restores auto-deploy) · Instantly warm-up watch (the M1 clock). *(Smartlead is the M2 gate — but M2 is blocked on M0, so it waits.)*
 
 ---
 
@@ -51,18 +24,21 @@
 **THE DECISION (8 Jul): sell ONE agent — FIGSY, the backbone — and mark everything else "coming soon." One reliable agent beats a half-unreliable system.** But FIGSY itself has faults that must be fixed first. So M0 = make the product HONEST, then RELIABLE, then PROVEN — before a single real client.
 
 **▶ THE PLAN — 3 moves, in strict order (reordered 8 Jul):**
-1. **MOVE 1 · MAKE IT HONEST (fastest, do first).** Mark every not-real feature "coming soon" on the **website + portal + pricing**: Vida knowledge/WhatsApp (#360/#362) · Calendar booking (#361) · Denise "closed-won/confirms meetings" (#396) · Milla connectors (#395) · partner "Wise" (#398) · integrations hub (#399) · Lena (#404) · "autonomous replies" (#403) · "250M" reword (#366) · $1 residue (#394) · the 90-day guarantee rewrite/withhold (#348). *One copy/legal PR, no deploy risk, protects you today.*
-2. **MOVE 2 · MAKE FIGSY RELIABLE.** Fix FIGSY's own faults — the **Top-20 controls** (`AUDIT-8JUL-DEEP.md §10`), starting **#338 (send actually sends before we charge) + #339 (alarms are real)**, then knowledge UI on (#346), no double-sends (#354), pagination (#366), honest reply/booking behaviour. Each a small, tested PR.
+1. **MOVE 1 · MAKE IT HONEST — sweep the WHOLE website + portal, element by element.** Mark every not-real feature **"Coming soon" + greyed/disabled — DO NOT delete** (keep the code for M4). This is a **large sweep**, done first, before any FIGSY build. Deliverable: a page/screen checklist, then reviewable batches (website → portal).
+2. **MOVE 2 · MAKE FIGSY RELIABLE.** Fix FIGSY's own faults — the **Top-20 controls** (`AUDIT-8JUL-DEEP.md §10`), starting **#338 (send actually sends before we charge) + #339 (alarms are real)**, then knowledge UI on (#346), no double-sends (#354), pagination (#366), honest reply/booking. Each a small, tested PR.
 3. **MOVE 3 · PROVE + SELL.** Runtime-prove on staging (a credit spent, an email landed, a lead flowed), then sell FIGSY to ONE client.
 
-**WHERE IT STANDS (8 Jul): a 7-pass deep audit + 3-question verdict — the original 8 (#330–#337) hold, but the SURROUNDING product has ~67 confirmed rocks logged as 🔴 #338–#404.** The enrollment *charge* is genuinely safe; almost everything around it (subscriptions, the send outcome, crons, tenant isolation, the agents, the dashboards, the claims) is partial/inert/broken. Full evidence: **`docs/AUDIT-8JUL-DEEP.md`**. **Nothing runtime-proven — no prod/staging access; §D SQL + §K tests are the proof instruments.** No real client until Moves 1+2 are done and Move 3 is proven.
+**WHERE IT STANDS (8 Jul): a 7-pass deep audit + 3-question verdict — the original 8 (#330–#337) hold, but the SURROUNDING product has ~69 confirmed rocks logged as 🔴 #338–#406.** The enrollment *charge* is genuinely safe; almost everything around it (subscriptions, the send outcome, crons, tenant isolation, the agents, the dashboards, the claims) is partial/inert/broken. Full evidence: **`docs/AUDIT-8JUL-DEEP.md`**. **Nothing runtime-proven — no prod/staging access; §D SQL + §K tests are the proof instruments.** No real client until Moves 1+2 are done and Move 3 is proven.
 
 **Original 8 — real status:** #330/#331/#332/#333 ✅ complete · #334 ◐ UI honest but Paystack backend residue (#352) · #335 ◐ inert, knowledge UI disabled (#346) · #336 ◐ inert, `?ref=` dropped (#355) · #337 ◐ ④ SA-name not done (#400).
 
-**⓪ M0 = FIGSY ONLY. These are the ONLY fixes for this milestone. Everything non-FIGSY → MILESTONE 4 (below). Full text of every item in PRODUCT-INVENTORY #338–#404.**
+**⓪ M0 = FIGSY ONLY. These are the ONLY fixes for this milestone. Everything non-FIGSY → MILESTONE 4 (below). Full text of every item in PRODUCT-INVENTORY #338–#406.**
 
-**MOVE 1 · HONEST-LAUNCH — coming-soon / disable everything NOT FIGSY** *(one copy PR + route-disable; no deploy risk)*:
-#348 guarantee rewrite/withhold · #359+#360 WhatsApp · #361+#368 Calendar · #362 Vida "knowledge/no-hallucination" · #369 Vapi · #394 $1 residue · #395 Milla connectors · #396 Denise "closed-won/confirms" · #398 Wise · #399 integrations hub · #403 "autonomous replies" reword · #404 Lena.
+**MOVE 1 · HONEST-LAUNCH — SWEEP THE WHOLE WEBSITE + PORTAL, ELEMENT BY ELEMENT.** *(This is a LARGE body of work — the FIRST thing, before any FIGSY build.)*
+- **Rule: DON'T DELETE anything. Mark not-real features "Coming soon" + grey/disable them.** (The #326/#334 pattern — badge + greyed + non-interactive.) Everything stays in the codebase for M4; it just can't be clicked or believed by a client today.
+- **Scope = every element:** every page/section/claim/stat/CTA/button/form/modal/toggle/mock-screenshot on the **website** (`apps/website/*.html` + `apps/landing`) AND every screen/tile/button/tab on the **portal** (`apps/portal`).
+- **Known targets (not exhaustive — the sweep finds the rest):** #348 guarantee · #359/#360 WhatsApp · #361/#368 Calendar · #362 Vida "knowledge/no-hallucination" · #369 Vapi · #394 $1 residue · #395 Milla connectors + mock UI · #396 Denise "closed-won/confirms" · #398 Wise · #399 integrations hub · #403 "autonomous replies" · #404 Lena · #385 fake overage panel · #384 dead portal buttons · #366 "250M" wording.
+- **Deliverable first:** a page-by-page / screen-by-screen **SWEEP CHECKLIST** (every element → keep / coming-soon / grey / reword) so nothing is missed. Then execute in reviewable batches (website first, portal second).
 
 **MOVE 2 · FIGSY RELIABILITY — the Top-20 controls, small tested PRs** *(start #338 + #339)*:
 #338 send-before-charge · #339 checked alarm · #343 cron singleton · #344 kill-switch · #345 lookalike tenant · #346 knowledge UI ON · #347 approve-queue · #349 checked credit writes · #350 visitor_sessions · #353 trial-expiry once · #354 no double-send · #356 consent-gated · #358 score-fail quarantine · #363 seed-leads guard · #365 no fake KPI · #366 pagination · #367 reveal-down alert · #371 atomic grants · #373 FIGSY constraints · #374 intent-signal cap · #376 delivery clamp · #379 refund 500 · #383 send-counter RPC · #384/#385 dead FIGSY UI · #389 migration runner · #390 observability · #400 SA-name · #401 dots · #402 auth nits.
@@ -95,27 +71,9 @@
 
 **One-line truth:** FIGSY is a real engine that under-delivers on its promises and can silently fail to send the one thing it charges for; the other agents are a mix of real and oversold; the money is correct at enrollment but leaks and drifts around it. The two fixes that move all three answers most: **#338 (send checks its result) + #346 (flip knowledge UI on)**.
 
-**The money model (locked):** every client = FIGSY plan · **$3 = 1 credit = 1 lead ENROLLED** (FIGSY works the prospect start-to-finish; browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits at signup.
+**The money model (locked):** every FIGSY client buys credits · **$3 = 1 credit = 1 lead ENROLLED** (FIGSY works the prospect start-to-finish; browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits at signup. *(PDL discovery + Hunter reveal keys — already set in Railway. Apollo not used.)*
 
-**The fixes (🤖 Opus builds → Fable verifies → 🧍 you merge + `railway up`):**
-
-| # | Fix | Why it can't wait |
-|---|-----|-------------------|
-| #330 | Staging DB missing the FIGSY charge function | preview shows "credits never drop" — it's lying, not the product |
-| #331 | Cap the trial drip | $0 signup receives enriched leads forever; we pay PDL/Hunter per lead |
-| #332 | Fail-closed charging + race fix | a DB hiccup = enrolled + emailed, $3 never taken, silently |
-| #333 | Stripe retry on failed grant | client pays, gets nothing, Stripe told "all good" — trust-killer |
-| #334 | Grey out dead auto-top-up | the toggle promises a safety net that can never fire (Paystack gone) |
-| #335 | Feed `figsy_knowledge` into outreach | emails know the prospect but not the client's business — the pain→impact→solution gap |
-| #336 | Referral: purchase-gated, 15 FIGSY credits | today: farmable via free fake signups, paid in a dead wallet |
-| #337 | Sweep: uncharged insert · low-credit warning · source-down alert · prompt/doc residue | the quiet leftovers that bite later |
-
-**🧍 YOUR three (10 min total):**
-1. Railway → `@kind/api` → set **`PDL_API_KEY`** + confirm **`HUNTER_API_KEY`** — *without these the product finds ZERO leads (startup-check's own words). Discovery = PDL primary + Hunter email-reveal; Apollo is NOT used.*
-2. Run the staging SQL I'll hand you with #330's PR (one paste into the kind-staging Supabase).
-3. Merge the M0 PRs as they land + `railway up` per PR instructions.
-
-**M0 is DONE when:** the chosen scope's CRITICAL + relevant HIGH items (#338–#402) are fixed-or-hidden AND runtime-proven on staging (audit §N tests) · `/engine/leads/test` proves PDL+Hunter sourcing · the $60 walk shows a credit visibly drop. *(The original 8 fixes above are shipped; the register #338–#402 is the real remaining gate.)*
+**M0 is DONE when:** **Move 1** — every non-FIGSY feature marked "coming soon" (shipped) · **Move 2** — the FIGSY reliability items (Move-2 list above) fixed, **each with a regression test** · **Move 3** — proven on staging: a credit actually spent, an email that actually landed, a lead actually delivered. *(Originals: #330-333 done; #334/#335/#336/#337④ folded into Moves 1-2.)*
 
 ---
 
@@ -174,7 +132,23 @@
 
 **Stays empty on purpose (correctly labelled):** Ops inbox-pool + AE lenses + deliverability data — they wait for Smartlead (#211/#270/#271/#276/#280).
 
-**M3 is DONE when:** #291 re-walked green post-deploy · #279/#289/#290 built + fed data · the Smartlead-fed shells get their data after #211.
+**M3 is DONE when:** #291 re-walked green post-deploy · #279/#289/#290 built + fed data · the Smartlead-fed shells get their data after #211. *(Admin honesty: #364 exclude demo data from founder metrics lives here.)*
+
+---
+
+# ④ MILESTONE 4 — THE REST OF THE SYSTEM (everything NON-FIGSY · FROZEN until FIGSY ships)
+
+**Why it exists:** we chose to sell FIGSY only. Every other agent, integration, and money-path that isn't FIGSY is **hidden ("coming soon") in M0 and BUILT here in M4 — later, deliberately, one at a time.** Nothing in M4 is touched until M0 is done and FIGSY is sold. **Status of every item = 🔴 in PRODUCT-INVENTORY; future build detail = V2-TRACKER.** In M0 these are made *honest* (hidden); M4 is where they're made *real*.
+
+| Area | Findings (build these later) |
+|---|---|
+| **Subscriptions** (Milla/Vida/Denise monthly billing) | #340 status→active · #341 real Stripe cancel · #342 lapse cron · #357 MRR amount · #386 double-sub · #379(sub side) |
+| **Partner + referral** | #351 commission (20/5 + clawback + unique) · #355 referral link + payout · #370 partner ilike · #372 pool credits · #387 attribution |
+| **Auto top-up** | #352 (Stripe off-session port, or remove) |
+| **Other agents — real builds** | Vida RAG/knowledge (#362) · WhatsApp multi-tenant (#359/#360) · Calendar googleapis + booking (#361/#368) · Voice/Vapi (#369) · Denise closed-won + confirm (#396) · Milla CRM/email connectors (#395) · LinkedIn/PhantomBuster (#388) · Lena mount (#404) |
+| **Integrations / infra / ops** | #377 support inbox · #378 demo-request availability · #380 missing tables · #381 developer webhooks · #382 churn scoring · #391 cron JSONB · #392 A/B guard · #393 data-moat dedup · #397 HubSpot platform sync |
+
+**M4 is DONE when:** each area is rebuilt on the deterministic architecture (state machine + provider-confirmed + tests) and its "coming soon" label is lifted — **one agent/area at a time, each proven before the next.**
 
 ---
 

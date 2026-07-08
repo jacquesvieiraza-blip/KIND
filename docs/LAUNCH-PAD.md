@@ -1,9 +1,9 @@
 # 🚀 K.I.N.D — LAUNCH PAD
 
-**As of: 7 July 2026 PM · admin walk banked + Fable money audit → MILESTONE 0 opened.** This page = the four milestones and what to do right now. Nothing else lives here.
-**History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP.**
+**As of: 8 July 2026 · 7-pass deep audit → 65 findings logged (#338–#402) into MILESTONE 0.** This page = the four milestones and what to do right now. Nothing else lives here.
+**History → KIND-MASTER session log · status of record → PRODUCT-INVENTORY · future → V2-TRACKER · find any doc → DOC-MAP · full audit → `docs/AUDIT-8JUL-DEEP.md`.**
 
-**Board:** 🟢107 verified · 🩷91 live-not-walked · 🟣4 approved · 🟡21 on branch · 🔴115 not built · ⏸5 blocked · Σ343 *(live count: `scripts/count-inventory.sh`)*
+**Board:** 🟢105 verified · 🩷88 live-not-walked · 🟣4 approved · 🟡25 on branch · 🔴180 not built · ⏸6 blocked · Σ408 *(live count: `scripts/count-inventory.sh`)*
 
 > **⚠️ How code goes live (until the GitHub flag is appealed):** merging does NOT deploy. Every change ships by: **merge the PR → `git pull` → `railway up --detach --service "<svc>"`** (`@kind/api` · `@kind/portal` · `@kind/admin` · `KIND`=website). Appeal filed at `support.github.com/contact/account-flagged` — when it clears, auto-deploy returns.
 
@@ -48,7 +48,20 @@
 
 # ⓪ MILESTONE 0 — MONEY-PATH INTEGRITY (opened 7 Jul · Fable audit · BLOCKS M2)
 
-**WHERE IT STANDS: all 8 fixes SHIPPED + LIVE 7 Jul (🩷). Money path is fail-closed.** The Fable audit returned PASS-WITH-RISKS; all 8 holes (#330–#337) were built, then a **triple Fable re-audit** found 13 more edge-cases (paid-but-nothing, self-referral, drip-starves-payers…) — all closed in the P1–P14 patch round (**PR #985**). Merged as 4 clean PRs (#980 docs · #978 funnel · #985 money+patches · #982 portal), SQL run on staging **and** prod, api+admin+portal deployed. `/engine/env` now reports `money_rpcs: installed` — the permanent anti-drift guard. **Two things still close M0:** (a) set `PDL_API_KEY`+`HUNTER_API_KEY` → run `/engine/leads/test`; (b) the $60 walk showing a credit visibly drop. Until those, the 8 stay 🩷 (live, not walked).
+**WHERE IT STANDS (8 Jul): a 7-pass deep audit blew M0 wide open — the original 8 (#330–#337) hold, but the SURROUNDING product has ~65 confirmed rocks logged as 🔴 #338–#402.** The enrollment *charge* is genuinely safe; almost everything around it (subscriptions, the send outcome, crons, tenant isolation, the agents, the dashboards, the claims) is partial/inert/broken. Full evidence: **`docs/AUDIT-8JUL-DEEP.md`**. **Nothing runtime-proven — the auditor had no prod/staging access; §D SQL + §N tests are the proof instruments.** No real client until the CRITICAL tier is fixed-or-hidden and runtime-proven.
+
+**Original 8 — real status:** #330/#331/#332/#333 ✅ complete · #334 ◐ UI honest but Paystack backend residue (#352) · #335 ◐ inert, knowledge UI disabled (#346) · #336 ◐ inert, `?ref=` dropped (#355) · #337 ◐ ④ SA-name not done (#400).
+
+**AUDIT REGISTER — 65 findings by tier (owner: 🤖 Claude · 🧍 Founder · 🤝 Both). Full text in PRODUCT-INVENTORY #338–#402.**
+
+- **🔴🔴 CRITICAL (13) — fix or hide before ONE client:** #338 phantom sends · #339 blind alarm · #340 sub-status→active · #341 cancel-doesn't-cancel · #342 lapse cron 500s daily · #343 no cron singleton · #344 kill-switch gap · #345 lookalike IDOR · #346 #335 inert · #347 approve-queue dead · #348 guarantee inoperable · #349 ~140 unchecked money writes · #350 visitor_sessions anon-readable *(confirmed prod)*.
+- **🔴 HIGH (29):** #351 partner commission · #352 auto-topup double-charge · #353 trial-expiry spam · #354 double-send · #355 #336 unearnable · #356 consent ungated · #357 MRR $0 · #358 fake scores · #359 WhatsApp forgeable webhook · #360 WhatsApp not multi-tenant · #361 Calendar crashes · #362 Vida no knowledge · #363 seed-leads clobber · #364 demo pollutes metrics · #365 fake KPI injection · #366 50-lead ceiling · #367 reveal-down silent · #368 Calendar OAuth CSRF · #369 Vapi fail-open · #370 partners ilike-injection · #371 racy grants · #372 pool credits destroyed · #373 prod constraint gaps · #374 intent-signals drain · #375 self-outreach dead sends · #376 delivery overdraw · #377 support black hole · #378 hallucinated availability · #379 webhook catch→200.
+- **🔴 MEDIUM (13):** #380 missing tables · #381 dev webhooks dead · #382 churn scoring dead · #383 missing send-counter RPC · #384 dead portal buttons · #385 fake overage panel · #386 onboarding double-submit · #387 referral attrib swallowed · #388 LinkedIn limbo · #389 migration hygiene · #390 observability gaps · #391 cron JSONB clobber · #392 AB resolves on 0 data · #393 data-moat dup rows.
+- **🔴 LOW (10):** #394 $1 residue · #395 Milla mock UI · #396 Denise false claims · #397 HubSpot dead code · #398 Wise "integration" · #399 integrations shell · #400 #337④ SA-name · #401 lying dots (corrected) · #402 auth/observability nits.
+
+**🧍 YOUR 5-min facts that de-risk ~10 items (audit §D read-only SQL):** the `subscription_status` enum (#342) · the four idempotency uniques (#351/#354/#373/#386) · missing tables (#380/#381/#382) · `amount_usd` null (#357) · **Railway API replica count** (#343) · is `apps/landing` deployed (#394). Run those → paste outputs → ~10 rocks move from suspected to confirmed.
+
+**DECISION PENDING (you):** Scope A (FIGSY-only, hide the rest — *recommended*) · Scope B (+ billing/referrals) · Scope C (full surface). Detail in `AUDIT-8JUL-DEEP.md §O`. Once chosen, 🤖 builds the CRITICAL tier as small verified PRs — **#338 phantom-send + #339 blind-alarm first** (they gate visibility of everything else).
 
 **The money model (locked):** every client = FIGSY plan · **$3 = 1 credit = 1 lead ENROLLED** (FIGSY works the prospect start-to-finish; browsing leads is free) · bundles 20/$60 · 40/$120 · 100/$300 · 20 free trial credits at signup.
 
@@ -70,7 +83,7 @@
 2. Run the staging SQL I'll hand you with #330's PR (one paste into the kind-staging Supabase).
 3. Merge the M0 PRs as they land + `railway up` per PR instructions.
 
-**M0 is DONE when:** all 8 shipped + live · `/engine/leads/test` proves PDL+Hunter sourcing · a preview enrollment visibly drops a credit.
+**M0 is DONE when:** the chosen scope's CRITICAL + relevant HIGH items (#338–#402) are fixed-or-hidden AND runtime-proven on staging (audit §N tests) · `/engine/leads/test` proves PDL+Hunter sourcing · the $60 walk shows a credit visibly drop. *(The original 8 fixes above are shipped; the register #338–#402 is the real remaining gate.)*
 
 ---
 

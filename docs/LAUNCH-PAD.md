@@ -84,6 +84,8 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | #400 | "South-African-sounding name" prompt residue → make it global | 🤖 | 🔴 |
 | #401 | A few inventory dots were lying → corrected | 🤖 | 🔴 |
 | #402 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 | 🔴 |
+| #361 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (moved M4→M0): install googleapis + prospect-facing booking page (slots → create event). *#361b build · #361a interim = coming-soon* | 🤝 | 🔴 |
+| #368 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 | 🔴 |
 
 ### Move 3 · PROVEN — prove on staging, then sell to ONE client · 🤝
 🔴 a credit actually spent · an email that actually landed · knowledge visibly changes the copy · a real lead sources + sends · the alarm fires on a money failure.
@@ -146,6 +148,8 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 # ④ MILESTONE 4 — EVERYTHING ELSE · all non-FIGSY findings · FROZEN until FIGSY ships · owner 🤖 (later)
 In M0 these are made *honest* (hidden, "coming soon"); **here** they're made *real* — one at a time, each proven before the next. Future build detail → V2-TRACKER.
 
+> **M4 FIGSY-relevance audit (8 Jul):** **#361 + #368 (calendar booking) moved M4→M0** — founder-locked differentiator. The rest are genuinely non-FIGSY **except** these **FIGSY-adjacent** ones, which stay M4 only because the features they belong to are *coming-soon at launch* — **promote any to M0 on your word:** #388 (LinkedIn channel) · #352 (FIGSY credit auto-top-up, currently disabled #334) · #391/#392/#393 (FIGSY A/B + adaptive-send + Campaign-Intelligence cluster) · #397/#399 (CRM-connect, behind the "CRM dedup" claim).
+
 **Subscriptions (Milla/Vida/Denise billing)**
 | Item | What it is | Owner | Status |
 |---|---|:---:|:---:|
@@ -171,8 +175,6 @@ In M0 these are made *honest* (hidden, "coming soon"); **here** they're made *re
 | #362 | Vida has no knowledge layer (sold "no hallucinations") | 🤖 | 🔴 |
 | #360 | WhatsApp uses one global number — not per-client | 🤖 | 🔴 |
 | #359 | WhatsApp webhook is forgeable (no signature check) | 🤖 | 🔴 |
-| #361 | Calendar auto-book crashes (`googleapis` not installed) | 🤖 | 🔴 |
-| #368 | Calendar OAuth has a CSRF hole (unsigned state) | 🤖 | 🔴 |
 | #369 | Voice/Vapi webhook fails open if the secret is unset | 🤖 | 🔴 |
 | #396 | Denise false claims ("trained on closed-won / confirms meetings") | 🤖 | 🔴 |
 | #395 | Milla page shows a fake "HubSpot/Gmail connected" mock | 🤖 | 🔴 |

@@ -444,27 +444,88 @@
     <div class="aa-item aa-good">K.I.N.D — from $60 credit bundle · pay per result · no monthly fee · free trial · cancel anytime</div>
   </div>
   <p style="text-align:center;margin-bottom:32px;"><a href="vs-apollo.html" style="font-size:0.9rem;color:var(--blue);text-decoration:none;font-weight:600;">See how we compare →</a></p>
-  <!-- ONE product: FIGSY. Pay per qualified lead. (Start/Scale/Dominate tiering removed — same price, same product) -->
-  <div style="display:flex;justify-content:center;">
-    <div class="p-card pop reveal" style="max-width:460px;width:100%;">
-      <div class="pop-pill">The product</div>
-      <div class="p-plan">FIGSY</div>
-      <h3>FIGSY — your AI SDR</h3>
-      <p class="p-desc">B2B leads matched to your ICP, with FIGSY personalised outreach and multi-step follow-up. One product. Pay only for qualified leads.</p>
-      <div class="p-price">
-        $3<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.3)">/qualified lead</span>
-      </div>
-      <div class="p-note">Buy credits in bundles — 20 ($60) · 40 ($120) · 100 ($300). 1 credit = 1 qualified lead · credits never expire · cancel anytime.</div>
+  <!-- #419 v2 · The family — 4 agent cards side by side (premium style). FIGSY live/buyable; rest coming-soon greyed. -->
+  <style>
+    .fam-head{text-align:center;margin:8px 0 26px}
+    .fam-head .s-label{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin-bottom:10px}
+    .fam-head h2{font-size:clamp(1.6rem,3vw,2.3rem);font-weight:900;letter-spacing:-.03em;color:var(--dark);line-height:1.1}
+    .fam-head > p{font-size:.95rem;color:rgba(0,0,0,.5);margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto}
+    .fam-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch}
+    .fam-card{position:relative;display:flex;flex-direction:column;background:linear-gradient(165deg,#1a1330,#0a0a0a);border:1px solid rgba(167,139,250,.22);border-radius:22px;padding:26px 22px;color:#fff}
+    .fam-card.live{border-color:rgba(167,139,250,.55);box-shadow:0 24px 60px rgba(124,58,237,.22)}
+    .fam-card.soon{opacity:.62}
+    .fam-pill{align-self:flex-start;font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:5px 12px;border-radius:100px;margin-bottom:14px}
+    .fam-pill.live{background:#7c3aed;color:#fff}
+    .fam-pill.soon{background:rgba(255,255,255,.12);color:rgba(255,255,255,.75)}
+    .fam-card h3{font-size:1.1rem;font-weight:800;letter-spacing:-.01em;margin-bottom:5px;color:#fff}
+    .fam-role{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(167,139,250,.9);margin-bottom:14px}
+    .fam-price{font-size:2rem;font-weight:900;letter-spacing:-.03em;line-height:1}
+    .fam-price span{font-size:.82rem;font-weight:400;color:rgba(255,255,255,.4)}
+    .fam-note{font-size:.7rem;color:rgba(255,255,255,.4);margin:8px 0 16px;line-height:1.5}
+    .fam-card ul{list-style:none;margin:0 0 20px;padding:0;display:flex;flex-direction:column;gap:9px;flex:1}
+    .fam-card li{display:flex;gap:7px;font-size:.78rem;color:rgba(255,255,255,.66);line-height:1.45}
+    .fam-card li svg{flex-shrink:0;margin-top:2px}
+    .fam-btn{display:block;text-align:center;padding:11px;border-radius:100px;font-size:.84rem;font-weight:700;text-decoration:none;margin-top:auto}
+    .fam-btn.live{background:#fff;color:#0a0a0a}
+    .fam-btn.soon{background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);cursor:default;pointer-events:none}
+    @media(max-width:960px){.fam-cards{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:520px){.fam-cards{grid-template-columns:1fr}}
+  </style>
+  <div class="fam-head">
+    <div class="s-label">The family</div>
+    <h2>FIGSY is live today — more on the way</h2>
+    <p>FIGSY is the product you can buy right now. Milla, Vida and Denise are coming soon.</p>
+  </div>
+  <div class="fam-cards">
+    <div class="fam-card live">
+      <span class="fam-pill live">Live · buy now</span>
+      <h3>FIGSY</h3><div class="fam-role">The Opener · AI SDR</div>
+      <div class="fam-price">$3<span>/qualified lead</span></div>
+      <div class="fam-note">Bundles — 20 ($60) · 40 ($120) · 100 ($300). Credits never expire.</div>
       <ul>
-        <li>B2B lead sourcing matched to your ICP</li>
-        <li>AI lead score 0–100</li>
-        <li>GDPR &amp; POPIA consent workflow</li>
-        <li>CRM deduplication &amp; CSV export</li>
-        <li>FIGSY personalised outreach (unique per lead)</li>
-        <li>3-step follow-up sequences</li>
-        <li>Reply tracking &amp; opt-out management</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ICP-matched lead sourcing, scored 0–100</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Personalised outreach (unique per lead)</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>3-step follow-up + reply drafts for approval</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Booking link in every email</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>GDPR/POPIA consent · CRM dedup · CSV export</li>
       </ul>
-      <a href="https://app.get-kind.com/login" class="p-btn p-btn-white">Start free trial &rarr;</a>
+      <a href="https://app.get-kind.com/login" class="fam-btn live">Start free trial &rarr;</a>
+    </div>
+    <div class="fam-card soon">
+      <span class="fam-pill soon">Coming soon</span>
+      <h3>Milla</h3><div class="fam-role">The Brain · Assistant</div>
+      <div class="fam-price">$49<span>/mo</span></div>
+      <div class="fam-note">Intended pricing — not yet available.</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Knowledge &amp; document recall</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Ask-anything, grounded answers</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>What's-converting insights</li>
+      </ul>
+      <span class="fam-btn soon">Coming soon</span>
+    </div>
+    <div class="fam-card soon">
+      <span class="fam-pill soon">Coming soon</span>
+      <h3>Vida</h3><div class="fam-role">The Connector · Chatbot</div>
+      <div class="fam-price">$29<span>/mo</span></div>
+      <div class="fam-note">Intended pricing — not yet available.</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Website chat widget</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>WhatsApp inbound</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>24/7 visitor qualify &amp; capture</li>
+      </ul>
+      <span class="fam-btn soon">Coming soon</span>
+    </div>
+    <div class="fam-card soon">
+      <span class="fam-pill soon">Coming soon</span>
+      <h3>Denise</h3><div class="fam-role">The Closer · AE</div>
+      <div class="fam-price">$39<span>/mo</span></div>
+      <div class="fam-note">Intended pricing — not yet available.</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Objection handling</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Proposal drafts (you send)</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Follow-up until the deal closes</li>
+      </ul>
+      <span class="fam-btn soon">Coming soon</span>
     </div>
   </div>
   <p style="text-align:center;margin-top:24px;font-size:0.9rem;color:rgba(0,0,0,0.5)">Need higher volume or custom onboarding? <a href="mailto:hello@get-kind.com?subject=FIGSY%20volume%20enquiry" style="color:var(--blue);text-decoration:none;font-weight:600">Let&rsquo;s talk &rarr;</a></p>
@@ -501,92 +562,6 @@
         <span style="color:rgba(255,255,255,0.85);font-size:0.98rem;font-weight:600;display:flex;align-items:center;gap:9px"><span style="color:#34d399;font-weight:800">✓</span> Credits never expire</span>
         <span style="color:rgba(255,255,255,0.85);font-size:0.98rem;font-weight:600;display:flex;align-items:center;gap:9px"><span style="color:#34d399;font-weight:800">✓</span> Pay only for qualified leads</span>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- ADD-ONS -->
-<div class="addon-section">
-  <div class="addon-header reveal">
-    <div class="s-label">The family</div>
-    <h2>FIGSY is live today — more on the way</h2>
-    <p>FIGSY is the product you can buy right now. Milla, Vida and Denise are coming soon.</p>
-  </div>
-  <div class="addon-grid">
-    <div class="a-card reveal" id="figsy">
-      <div class="a-icon">🤖</div>
-      <h3>FIGSY — AI SDR credits</h3>
-      <p>FIGSY personalises, sends, and follows up — with a booking link in every email. One flat price — $3 per qualified lead. Buy credits in bundles, pay per result — credits never expire.</p>
-      <div class="a-tiers">
-        <div class="a-tier">
-          <span class="a-tier-name">20 outreach credits</span>
-          <span class="a-tier-price">$60</span>
-        </div>
-        <div class="a-tier">
-          <span class="a-tier-name">40 outreach credits</span>
-          <span class="a-tier-price">$120</span>
-        </div>
-        <div class="a-tier">
-          <span class="a-tier-name">100 outreach credits</span>
-          <span class="a-tier-price">$300</span>
-        </div>
-        <div class="a-tier">
-          <span class="a-tier-name">Volume pricing</span>
-          <span class="a-tier-price" style="color:rgba(0,0,0,0.4)"><a href="mailto:hello@get-kind.com" style="color:inherit;text-decoration:none">hello@get-kind.com</a></span>
-        </div>
-      </div>
-      <a href="https://calendly.com/kind-ai-demo/new-meeting" class="a-demo-btn" target="_blank" rel="noopener noreferrer">Book a Revenue Blueprint Session &rarr;</a>
-    </div>
-    <div class="a-card reveal reveal-delay-1" style="position:relative;opacity:0.6">
-      <span style="position:absolute;top:14px;right:14px;z-index:2;background:rgba(124,58,237,0.92);color:#fff;font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;padding:5px 12px;border-radius:100px">Coming Soon</span>
-      <div class="a-icon">🧠</div>
-      <h3>Milla &mdash; AI Virtual Assistant</h3>
-      <p>A Claude-powered assistant trained on your business. Answers questions, drafts emails in your tone, and surfaces intelligence from your pipeline — 24/7.</p>
-      <div class="a-tiers">
-        <div class="a-tier">
-          <span class="a-tier-name">Monthly subscription</span>
-          <span class="a-tier-price">$49/mo</span>
-        </div>
-        <div class="a-tier">
-          <span class="a-tier-name">Milla + Vida bundle</span>
-          <span class="a-tier-price" style="color:#059669">$69/mo</span>
-        </div>
-      </div>
-      <span class="a-demo-btn" style="opacity:0.55;pointer-events:none;cursor:default">Coming soon</span>
-    </div>
-    <div class="a-card reveal reveal-delay-1" style="position:relative;opacity:0.6">
-      <span style="position:absolute;top:14px;right:14px;z-index:2;background:rgba(124,58,237,0.92);color:#fff;font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;padding:5px 12px;border-radius:100px">Coming Soon</span>
-      <div class="a-icon">💬</div>
-      <h3>Vida &mdash; AI Chatbot Agent</h3>
-      <p>Deploy an AI chatbot on your website in minutes. Vida qualifies visitors, captures leads, and answers questions 24/7 — trained on your business, not a generic bot.</p>
-      <div class="a-tiers">
-        <div class="a-tier">
-          <span class="a-tier-name">Monthly subscription</span>
-          <span class="a-tier-price">$29/mo</span>
-        </div>
-        <div class="a-tier">
-          <span class="a-tier-name">Milla + Vida bundle</span>
-          <span class="a-tier-price" style="color:#059669">$69/mo</span>
-        </div>
-      </div>
-      <span class="a-demo-btn" style="opacity:0.55;pointer-events:none;cursor:default">Coming soon</span>
-    </div>
-    <div class="a-card reveal reveal-delay-2" style="position:relative;opacity:0.6">
-      <span style="position:absolute;top:14px;right:14px;z-index:2;background:rgba(124,58,237,0.92);color:#fff;font-size:0.58rem;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;padding:5px 12px;border-radius:100px">Coming Soon</span>
-      <div class="a-icon">🤝</div>
-      <h3>Denise &mdash; AI Account Executive</h3>
-      <p>Picks up where FIGSY leaves off. Denise confirms the meeting, surfaces objections, drafts the proposal from your call, and follows up warm leads until they sign — in your voice.</p>
-      <div class="a-tiers">
-        <div class="a-tier">
-          <span class="a-tier-name">Monthly subscription</span>
-          <span class="a-tier-price">$39/mo</span>
-        </div>
-        <div class="a-tier">
-          <span class="a-tier-name">The closer that pays for itself</span>
-          <span class="a-tier-price" style="color:#059669;font-size:0.8rem">1 deal covers it</span>
-        </div>
-      </div>
-      <span class="a-demo-btn" style="opacity:0.55;pointer-events:none;cursor:default">Coming soon</span>
     </div>
   </div>
 </div>

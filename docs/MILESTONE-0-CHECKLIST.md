@@ -2,13 +2,13 @@
 
 > **This is the working execution list for M0** (linked from LAUNCH-PAD). M0 = make the product **HONEST → RELIABLE → PROVEN** before one real client. Sell FIGSY only; everything else = "coming soon."
 > **THE RULE for Move 1: DON'T DELETE. Mark not-real features "Coming soon" + grey/disable** (the #326/#334 pattern — badge + greyed + non-interactive). Code stays for Milestone 4.
-> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#407.
+> Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#412.
 
 ---
 
-# ▶ MOVE 1a — WEBSITE SWEEP (`apps/website/*.html` + `apps/landing`) · 63 pages
+# ▶ MOVE 1a — WEBSITE SWEEP (`apps/website/*.html` + `apps/landing`) · 62 pages
 
-**Global claims to hunt on EVERY page** (reword/remove wherever they appear): "250M+ contacts" (#366) · "handles replies autonomously" (#403) · "books meetings into your calendar" (#361) · "$1 per lead" (#394) · Apollo-as-source (#407) · POPIA/SA-only framing · the 90-day guarantee wording (#348).
+**Global claims to hunt on EVERY page** (reword/remove wherever they appear): "250M+ contacts" (#366) · "handles replies autonomously" (#403) · "books meetings into your calendar" (#361) · "$1 per lead" (#394) · Apollo-as-source, incl. the **legal sub-processor lists** → PDL+Hunter (#407 internal / **#410** legal pages) · POPIA/SA-only framing · **ALL speed/time promises + any "guarantee" wording — DELETE, unproven (#411):** "first leads in 10 minutes / 7 days", "first campaign live in 5 business days", the "5-day launch guarantee" card, and the 90-day guarantee residue (#348).
 
 ## Agent pages (heaviest work)
 - [ ] **figsy.html** — ⭐ KEEP (the product we sell). Reword: "books meetings/calendar" → "booking link in every email" (#361) · "handles replies autonomously" → "drafts replies for your approval" (#403) · "250M" → "targeted, verified contacts" (#366) · LinkedIn "sends" → "coming soon" (#388).
@@ -17,7 +17,7 @@
 - [ ] **denise.html** — COMING-SOON: "trained on your closed-won deals" + "confirms booked meetings / notetaker" (#396). Keep "drafts proposals/follow-ups, you send."
 
 ## Core marketing pages
-- [~] **index.html** — ▸ *Batch 1 done (`claude/m0-web-honesty-1`):* agent family → 5 cards + Tony + coming-soon badges on non-live; pricing section → one FIGSY product; FIGSY CTA → `/login`. *Remaining:* global claims sweep, $1 stat (#394), guarantee (#348).
+- [~] **index.html** — ▸ *Batch 1 merged:* pricing section → one FIGSY product; FIGSY CTA → `/login` (#990). *(The homepage 5-card + Tony + coming-soon-badge change was **reverted in #993** — wrong for the front page.)* *Remaining:* global claims sweep, speed promises (#411), $1 is clean here now (#394 → landing only), agent-section redesign.
 - [x] **pricing.html** — ✅ *Batch 1:* collapsed 3 same-price tiers → one FIGSY product; bundles kept ($3 · 20/40/100); Milla/Vida/Denise add-ons → "coming soon" greyed; removed compare-all-plans table + Monthly/Yearly toggle; FIGSY CTA → `/login`. ✅ *Batch 2:* 90-day guarantee removed → true trust signals (#348).
 - [ ] **about.html** · [~] **story.html** *(Batch 1: coming-soon badges on Milla/Vida/Denise cards)* · [ ] **values.html** · [ ] **solutions.html** · [ ] **use-cases.html** — review each for the global claims + agent name-drops → coming-soon where not FIGSY.
 - [ ] **support.html** — "first leads in 24h / 5 business days" — keep only if true for FIGSY; reword agent claims.
@@ -35,7 +35,7 @@
 - [ ] **the-drop.html** + **drop-01…09.html** (9) + **blog-drop-01…09.html** (9) — scan for stale claims; banner or reword.
 
 ## Legal (careful — these carry contractual weight)
-- [x] **terms.html** — ✅ *Batch 2:* 90-day guarantee (Section 5A + TOC + cross-refs) removed — metric couldn't run (#348). *Remaining:* Apollo/250M residue (#407).
+- [~] **terms.html** — ✅ *Batch 2:* 90-day guarantee (Section 5A + TOC + cross-refs) removed (#348). *Remaining:* §8 names **Apollo/250M** as sub-processor → PDL+Hunter (#410); any 5-day/speed wording (#411).
 - [ ] **privacy.html** · [ ] **dpa.html** · [ ] **dpa-us.html** — review; POPIA→global privacy where relevant.
 
 ## Tools / lead-magnets / misc
@@ -69,7 +69,7 @@
 - [ ] **settings** · [ ] **config** — verify toggles do what they say (the #326 "Soon" pattern already partly here).
 
 ## 🔍 REVIEW / hide
-- [ ] **v2** (preview screens → keep hidden) · [ ] **whats-new** · [ ] **documents** · [ ] **deliverability** (redirect) · [ ] **mcp**
+- [ ] **v2** (preview screens → keep hidden) · [ ] **whats-new** · [ ] **documents** · [ ] **deliverability** (redirect) · [ ] **mcp** · [ ] **proposals** (#412 — Denise-adjacent; keep as FIGSY→you-send, or coming-soon)
 
 ---
 

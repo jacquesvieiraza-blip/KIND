@@ -5,7 +5,7 @@
 
 **THE PLAN (locked 8 Jul):** sell **FIGSY only**. Everything else = **"coming soon"**, built later in **Milestone 4**. **Milestone 0 is the gate** — make FIGSY *honest → reliable → proven* before one real client.
 
-**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴185 · ⏸6 · **Σ415**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴188 · ⏸6 · **Σ418**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -18,13 +18,13 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 ### ▶ DO NOW — in order
 | # | Task | Owner | Status |
 |---|------|:---:|:---:|
-| 1 | Merge open PRs → `railway up "KIND"` (see below) | 🧍 | ⏳ |
+| 1 | Confirm `railway up "KIND"` deployed → walk live site → flip #408/#348 🩷 | 🧍 | ⏳ |
 | 2 | `/signup → /login` sweep on the 31 remaining pages (#409) | 🤖 | 🔴 |
 | 3 | Run §D prod-DB SQL → turns ~10 findings into facts (5 min) | 🧍 | 🔴 |
 | 4 | Redesign homepage agent section (with you) | 🤝 | 🔴 |
 | 5 | FIGSY reliability — start **#338 + #339** | 🤖 | 🔴 |
 
-**Open PRs (you merge):** #990 ✅ merged · #991 ✅ merged · **#992** *(superseded by this doc — close it)* · **#993** homepage fix · **#994** this doc *(one line per item)*.
+**PRs #990–#994 all merged.** ▶ Next: confirm `railway up "KIND"` deployed the live site → walk it → flip #408/#348 🟡→🩷. New from the 8-Jul docs-vs-code audit: **#410** (legal pages name Apollo, not PDL+Hunter) · **#411** (delete all unproven speed promises) · **#412** (`proposals` screen missing from the sweep).
 
 ---
 
@@ -41,6 +41,9 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | #403 | "FIGSY handles replies autonomously" is false (it drafts) → reword | 🤖 | 🔴 |
 | #394 | "$1 per lead" residue still animating on the homepage → remove | 🤖 | 🔴 |
 | #407 | Docs still say Apollo/250M/$1 in places → clean up | 🤖 | 🔴 |
+| #410 | Legal pages (privacy/dpa/terms) name Apollo as sub-processor → it's PDL + Hunter | 🤖 | 🔴 |
+| #411 | Delete ALL speed promises — "leads in 10 min / 5-day launch guarantee" (unproven) | 🤖 | 🔴 |
+| #412 | `proposals` portal screen missing from the sweep checklist → add it | 🤖 | 🔴 |
 
 ### Move 2 · RELIABLE — fix FIGSY's own faults. Each a small **tested** PR. Do #338 + #339 first.
 | Item | What it is | Owner | Status |

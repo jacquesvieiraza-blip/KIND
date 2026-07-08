@@ -5,7 +5,7 @@
 
 **THE PLAN (locked 8 Jul):** sell **FIGSY only**. Everything else = **"coming soon"**, built later in **Milestone 4**. **Milestone 0 is the gate** — make FIGSY *honest → reliable → proven* before one real client.
 
-**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴193 · ⏸6 · **Σ423**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢105 · 🩷88 · 🟣4 · 🟡27 · 🔴195 · ⏸6 · **Σ425**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -21,7 +21,7 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | 1 | Confirm `railway up "KIND"` deployed → walk live site → flip #408/#348 🩷 | 🧍 | ⏳ |
 | 2 | `/signup → /login` sweep on the 31 remaining pages (#409) | 🤖 | 🔴 |
 | 3 | Run §D prod-DB SQL → turns ~10 findings into facts (5 min) | 🧍 | 🔴 |
-| 4 | Redesign homepage agent section → **3D fluid carousel** (#417) | 🤝 | 🔴 |
+| 4 | Homepage redesigns → top card grid = **3D carousel** (#417) · lower "village" section = **orbital selector** (#418) | 🤝 | 🔴 |
 | 5 | FIGSY reliability — start **#338 + #339** | 🤖 | 🔴 |
 
 **PRs #990–#994 all merged.** ▶ Next: confirm `railway up "KIND"` deployed the live site → walk it → flip #408/#348 🟡→🩷. New from the 8-Jul docs-vs-code audit: **#410** (legal pages name Apollo, not PDL+Hunter) · **#411** (delete all unproven speed promises) · **#412** (`proposals` screen missing from the sweep).
@@ -47,6 +47,9 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 | #413 | **Terms §5 entitles a refund on nearly every lead** — contradicts the enrollment charge (rewrite §5) | 🧍 | 🔴 |
 | #414 | Stripe checkout description still says "handles replies + books meetings" (false) → reword | 🤖 | 🔴 |
 | #416 | Pricing-card "CRM dedup & CSV export" overstates → soften in figsy copy | 🤖 | 🔴 |
+| #417 | *Design:* homepage top "Meet the family" card grid → **3D fluid carousel** | 🤖 | 🔴 |
+| #418 | *Design:* lower "It takes a village" section → **orbital agent selector** (hover-rotate ring + swap copy) | 🤖 | 🔴 |
+| #419 | *Design:* pricing page → **"The family" cards side-by-side + full feature-comparison table** (coming-soon greyed) | 🤖 | 🔴 |
 
 ### Move 2 · RELIABLE — fix FIGSY's own faults. Each a small **tested** PR. Do #338 + #339 first.
 | Item | What it is | Owner | Status |

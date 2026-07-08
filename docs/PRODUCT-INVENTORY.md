@@ -7,7 +7,7 @@
 
 | 🟢 Live + verified | 🩷 Live, not walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built | ⏸ Blocked | Σ |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **105** | **88** | **4** | **27** | **194** | **6** | **424** |
+| **105** | **88** | **4** | **27** | **195** | **6** | **425** |
 
 > **Rebuilt clean 25 Jun 2026** from the code-verified walkthrough (Pass-1 + Pass-1B — evidence in `LIVE-FEATURE-WALK.md`). One honest line per item; every dot reflects verified reality. Grouped by status so you see at a glance what's **real / live / left**.
 

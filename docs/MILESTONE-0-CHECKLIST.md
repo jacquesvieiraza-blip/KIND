@@ -18,7 +18,7 @@
 
 ## Core marketing pages
 - [~] **index.html** — ▸ *Batch 1 done (`claude/m0-web-honesty-1`):* agent family → 5 cards + Tony + coming-soon badges on non-live; pricing section → one FIGSY product; FIGSY CTA → `/login`. *Remaining:* global claims sweep, $1 stat (#394), guarantee (#348).
-- [x] **pricing.html** — ✅ *Batch 1:* collapsed 3 same-price tiers → one FIGSY product; bundles kept ($3 · 20/40/100); Milla/Vida/Denise add-ons → "coming soon" greyed; removed compare-all-plans table + Monthly/Yearly toggle; FIGSY CTA → `/login`. *Remaining:* rewrite/withhold the 90-day guarantee (#348).
+- [x] **pricing.html** — ✅ *Batch 1:* collapsed 3 same-price tiers → one FIGSY product; bundles kept ($3 · 20/40/100); Milla/Vida/Denise add-ons → "coming soon" greyed; removed compare-all-plans table + Monthly/Yearly toggle; FIGSY CTA → `/login`. ✅ *Batch 2:* 90-day guarantee removed → true trust signals (#348).
 - [ ] **about.html** · [~] **story.html** *(Batch 1: coming-soon badges on Milla/Vida/Denise cards)* · [ ] **values.html** · [ ] **solutions.html** · [ ] **use-cases.html** — review each for the global claims + agent name-drops → coming-soon where not FIGSY.
 - [ ] **support.html** — "first leads in 24h / 5 business days" — keep only if true for FIGSY; reword agent claims.
 - [ ] **trust.html** · [ ] **status.html** — review claims; status page must not imply live integrations that aren't.
@@ -35,7 +35,7 @@
 - [ ] **the-drop.html** + **drop-01…09.html** (9) + **blog-drop-01…09.html** (9) — scan for stale claims; banner or reword.
 
 ## Legal (careful — these carry contractual weight)
-- [ ] **terms.html** — ⚠️ rewrite/withhold the 90-day guarantee (metric can't run) (#348).
+- [x] **terms.html** — ✅ *Batch 2:* 90-day guarantee (Section 5A + TOC + cross-refs) removed — metric couldn't run (#348). *Remaining:* Apollo/250M residue (#407).
 - [ ] **privacy.html** · [ ] **dpa.html** · [ ] **dpa-us.html** — review; POPIA→global privacy where relevant.
 
 ## Tools / lead-magnets / misc

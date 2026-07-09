@@ -139,18 +139,16 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 - **Two wallets, charge-once-per-lead:** reveal draws the `credit_balance` (lead-gen) wallet at $1; work draws the `figsy_credits` wallet at $3. Each lead is charged **once per wallet** — never $1 twice, never $3 twice (per-lead idempotency = #424).
 - **Code to wire (money-path build #420–#426):** un-retire `lead_gen` purchase path · atomic `try_charge_reveal_credit` RPC, fail-closed (#421) · reveal gating — mask email until the $1 charge (#422) · sourcing quotas for PDL (#423) · charge-once-per-lead idempotency (#424) · trial credit mix so trials can reveal (#425) · enforce the 10-step sequence cap (#426).
 
-### ~~Agent Subscriptions — monthly~~ ⛔ RETIRED (8 Jul, #431 — no subscriptions anywhere)
-> **SUPERSEDED by the §0 per-qualified-lead lock:** Milla/Denise = **+$1/qualified-lead layers** (#427/#428) · Vida = **$3/qualified-inbound engine** (#429). The $/month prices below are DEAD — kept only as history until the Stripe products are removed (#431).
-*The doc previously listed only the two credit products. These three monthly agents are also live (`STRIPE_PRICE_VIDA/MILLA/DENISE_MONTHLY`).*
+### The AI family — per-qualified-lead layers & engine (coming soon)
+> **No monthly subscriptions (#431).** Milla / Vida / Denise price **per qualified lead**, activated on the leads a client chooses — the same wallet logic as FIGSY. FIGSY + Lead-Gen are the live products today; these three are coming soon.
 
-| Product | Price USD/mo | What it is |
+| Product | Price | What it is |
 |---|---|---|
-| **Vida** (The Connector) | **$29** | Website + WhatsApp chatbot — converts inbound 24/7 |
-| **Milla** (The Brain) | **$49** | Intelligence, document drafting, knowledge Q&A |
-| **Milla + Vida bundle** | **$69** | (save $9/mo) |
-| **Denise** (The Closer) | **$39** | Warm follow-ups, proposals, confirms meetings *(corrected 16 Jun from $99 display)* |
+| **Milla** (The Brain) | **+$1 / qualified lead** | Intelligence layer — reads the lead so you decide better |
+| **Denise** (The Closer) | **+$1 / qualified lead** | Action layer — reply→close: objections, proposals, follow-ups |
+| **Vida** (The Connector) | **$3 / qualified inbound lead** | Inbound engine — qualifies website + WhatsApp visitors 24/7 |
 
-**Billing model (LOCKED 8 Jul):** **per qualified lead — no subscriptions, ever** (§0 ladder). *The "Phase 2 → recurring monthly subscription" plan is retired (#431); ignore any $/mo agent pricing in this legacy body.*
+**Full stack** = $1 reveal + $3 FIGSY + $1 Milla + $1 Denise = **$6 / fully-worked lead**; Vida inbound $3 (+$1/+$1 → $4/$5). **No $/month anywhere** — the old $29/$49/$69/$39 monthly prices are retired (#431).
 
 ---
 
@@ -217,18 +215,19 @@ Your real variable cost to police is **PDL sourcing (~$0.28/record, spent before
 
 ---
 
-## 5a. ARPU Assumptions (flat pricing, 16 Jun)
+## 5a. Client spend tiers (per-qualified-lead — no subscriptions, no MRR)
 
-| Client Type | Monthly Spend (USD) | Profile |
+*Clients buy credits and spend **per qualified lead** — there is no recurring monthly fee. "Spend" below is a typical credit purchase, not an MRR figure.*
+
+| Client type | Typical spend | What they buy |
 |---|---|---|
-| Starter | $20 | Lead Gen 20 credits only |
-| Growth | $160 | Lead Gen 100 ($100) + FIGSY 20 ($60) |
-| Growth+ | $199 | Lead Gen 100 + FIGSY 20 + Denise ($39) |
-| Scale | $400 | Lead Gen 100 ($100) + FIGSY 100 ($300) |
-| Scale+ | $439 | Lead Gen 100 + FIGSY 100 + Denise ($39) |
-| **Blended ARPU** | **~$80** | Mixed client base, conservative (50% starter, 30% growth, 20% scale) |
+| Data-only | ~$20–100 | Reveal credits ($1/lead) — the database, no outreach |
+| FIGSY entry | ~$60 | 20 leads worked ($3 each, on revealed leads) |
+| Growth blend | ~$160 | Reveal 100 ($100) + FIGSY 20 ($60) |
+| Fully-worked | ~$400 | Reveal 100 + FIGSY 100 → **$4/lead**, 100 leads |
+| + layers *(coming)* | +$1/lead each | Milla / Denise add on top per qualified lead |
 
-The difference between conservative and optimistic scenarios is primarily ARPU. If the average client spends $160 (Growth) instead of $80 blended, all MRR figures roughly double. Denise upsell ($39) is the highest-lever add-on after first leads land.
+Revenue scales with **qualified leads delivered**, not seats or months. The growth levers are volume per client (more leads revealed + worked) and the per-lead layers once live — not a monthly upsell. There is no MRR to double; a heavier client simply reveals + works more leads.
 
 ---
 

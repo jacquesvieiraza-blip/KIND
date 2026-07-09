@@ -2983,7 +2983,7 @@ figsyRouter.get('/approval-queue', requireAuth, async (req: AuthRequest, res) =>
     const { data, error } = await db
       .from('figsy_approval_queue')
       .select(`id, sequence_step, to_email, subject, body, status, created_at, expires_at,
-        figsy_leads ( first_name, last_name, company, job_title ),
+        leads ( first_name, last_name, company, job_title ),
         figsy_campaigns ( name )`)
       .eq('client_id', clientId)
       .eq('status', 'pending')

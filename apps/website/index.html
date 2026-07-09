@@ -1513,35 +1513,102 @@
         <a href="#demo" class="btn-hero-ghost">See how it works</a>
       </div>
     </div>
-    <div class="fig-hero-visual" aria-label="FIGSY, your AI SDR">
+    <div class="fd-hero" aria-label="The FIGSY dashboard">
       <style>
-        .fig-hero-visual{position:relative;width:min(540px,92vw);margin:6px auto 0;aspect-ratio:1/0.9}
-        .fhv-frame{position:absolute;inset:0;border-radius:28px;overflow:hidden;background:linear-gradient(160deg,#FFE1C4 0%,#F7C6E6 48%,#C9B6FF 100%);box-shadow:0 40px 90px -30px rgba(90,40,160,.45)}
-        .fhv-frame img{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:100%;width:auto;object-fit:contain;object-position:bottom}
-        .fhv-ghost{position:absolute;top:6%;left:0;right:0;text-align:center;font-family:'Outfit',sans-serif;font-weight:900;font-size:clamp(3rem,9vw,5rem);letter-spacing:-.05em;color:rgba(255,255,255,.5);line-height:1;z-index:1}
-        .fhv-eyebrow{position:absolute;top:18px;left:20px;font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(30,17,71,.6);z-index:3}
-        .fhv-chip{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.94);border:1px solid rgba(124,58,237,.14);border-radius:100px;padding:8px 13px;font-size:.72rem;font-weight:700;color:#3b2a63;box-shadow:0 10px 30px -8px rgba(90,40,160,.35);white-space:nowrap;animation:fhvFloat 5s ease-in-out infinite}
-        .fhv-chip .d{width:7px;height:7px;border-radius:50%;background:#7C3AED;flex-shrink:0}
-        .fhv-c1{top:15%;left:-3%;animation-delay:0s}
-        .fhv-c2{top:35%;right:-5%;animation-delay:.8s}
-        .fhv-c3{bottom:28%;left:-5%;animation-delay:1.6s}
-        .fhv-c4{bottom:11%;right:-1%;animation-delay:2.4s}
-        .fhv-meet{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:5;display:inline-flex;align-items:center;gap:9px;background:#0F0929;color:#fff;border-radius:100px;padding:10px 12px 10px 18px;font-size:.82rem;font-weight:700;text-decoration:none}
-        .fhv-meet .ar{width:26px;height:26px;border-radius:50%;background:#7C3AED;display:grid;place-items:center;font-size:.8rem}
-        @keyframes fhvFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-        @media(prefers-reduced-motion:reduce){.fhv-chip{animation:none}}
-        @media(max-width:560px){.fhv-chip{font-size:.62rem;padding:6px 10px}.fhv-c1,.fhv-c3{left:-1%}.fhv-c2,.fhv-c4{right:-1%}}
+        .fd-hero{width:min(1000px,95vw);margin:26px auto 0}
+        .fd-window{background:#fff;border:1px solid rgba(20,18,45,.08);border-radius:18px;overflow:hidden;box-shadow:0 50px 120px -40px rgba(70,30,130,.45),0 12px 30px -12px rgba(70,30,130,.2)}
+        .fd-chrome{display:flex;align-items:center;gap:14px;padding:11px 16px;background:#faf8fe;border-bottom:1px solid rgba(20,18,45,.07)}
+        .fd-dots{display:flex;gap:6px}.fd-dots span{width:11px;height:11px;border-radius:50%}
+        .fd-dots span:nth-child(1){background:#ff5f57}.fd-dots span:nth-child(2){background:#febc2e}.fd-dots span:nth-child(3){background:#28c840}
+        .fd-url{flex:1;text-align:center;font-size:.72rem;color:#9b8ec4;font-weight:600;font-family:'JetBrains Mono',monospace}
+        .fd-live{display:inline-flex;align-items:center;gap:6px;font-size:.66rem;font-weight:800;color:#7C3AED;background:#f3ecff;padding:5px 10px;border-radius:100px;text-transform:uppercase;letter-spacing:.06em}
+        .fd-live .d{width:6px;height:6px;border-radius:50%;background:#7C3AED;animation:fdPulse 2s infinite}
+        @keyframes fdPulse{0%{box-shadow:0 0 0 0 rgba(124,58,237,.5)}70%{box-shadow:0 0 0 7px rgba(124,58,237,0)}100%{box-shadow:0 0 0 0 rgba(124,58,237,0)}}
+        .fd-body{display:grid;grid-template-columns:212px 1fr;min-height:440px;text-align:left}
+        .fd-side{background:#0F0929;padding:18px 14px;display:flex;flex-direction:column;gap:16px}
+        .fd-agent{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)}
+        .fd-agent img{width:38px;height:38px;border-radius:10px;object-fit:cover;object-position:top;background:linear-gradient(160deg,#ffd6ed,#c9b6ff)}
+        .fd-agent-name{color:#fff;font-weight:800;font-size:.9rem;line-height:1.1}
+        .fd-agent-role{color:#7fe3b0;font-size:.66rem;font-weight:600;display:flex;align-items:center;gap:5px}
+        .fd-agent-role::before{content:"";width:6px;height:6px;border-radius:50%;background:#34d399}
+        .fd-nav{display:flex;flex-direction:column;gap:3px}
+        .fd-nav a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;color:#9b8ec4;font-size:.8rem;font-weight:600;text-decoration:none}
+        .fd-nav a svg{width:15px;height:15px;opacity:.9}
+        .fd-nav a.on{background:rgba(124,58,237,.22);color:#fff}
+        .fd-nav .fd-badge{margin-left:auto;background:#7C3AED;color:#fff;font-size:.6rem;font-weight:800;padding:1px 7px;border-radius:100px}
+        .fd-credits{margin-top:auto;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:11px 12px;color:#9b8ec4;font-size:.66rem;font-weight:600}
+        .fd-credits b{display:block;color:#fff;font-size:1.25rem;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+        .fd-main{padding:20px 22px;background:#fbfaff}
+        .fd-main-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+        .fd-hello{font-size:1.05rem;font-weight:800;color:#1E1152}
+        .fd-sub{font-size:.78rem;color:#8b80ab;margin-top:2px;font-weight:500}
+        .fd-cta{background:#7C3AED;color:#fff;border:0;border-radius:100px;padding:9px 15px;font-size:.76rem;font-weight:700;white-space:nowrap;box-shadow:0 8px 20px -6px rgba(124,58,237,.6)}
+        .fd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
+        .fd-kpi{background:#fff;border:1px solid rgba(20,18,45,.07);border-radius:13px;padding:13px 13px 12px}
+        .fd-kpi-hot{background:linear-gradient(160deg,#fff,#f3ecff);border-color:rgba(124,58,237,.2)}
+        .fd-k-label{display:block;font-size:.66rem;color:#8b80ab;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+        .fd-k-num{display:block;font-size:1.6rem;font-weight:800;color:#1E1152;margin:5px 0 3px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+        .fd-k-up{font-size:.66rem;font-weight:800;color:#059669}
+        .fd-row{display:grid;grid-template-columns:1.35fr 1fr;gap:11px}
+        .fd-card{background:#fff;border:1px solid rgba(20,18,45,.07);border-radius:13px;padding:14px 15px}
+        .fd-card-h{font-size:.74rem;font-weight:800;color:#1E1152;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+        .fd-card-h span{font-size:.62rem;color:#8b80ab;font-weight:600}
+        .fd-bars{display:flex;align-items:flex-end;gap:6px;height:150px}
+        .fd-bars i{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#a78bfa,#7C3AED)}
+        .fd-bars i:last-child{background:linear-gradient(180deg,#f472b6,#db2777)}
+        .fd-feed{display:flex;flex-direction:column;gap:9px}
+        .fd-act{border:1px solid rgba(20,18,45,.07);border-radius:10px;padding:9px 11px;font-size:.72rem;color:#6b6088;line-height:1.35}
+        .fd-act b{color:#1E1152;font-weight:700}
+        .fd-tag{display:inline-block;margin-top:5px;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:100px;background:#eee9ff;color:#6d28d9;text-transform:uppercase;letter-spacing:.03em}
+        .fd-tag.good{background:#dcfce7;color:#059669}
+        .fd-tag.book{background:#ffedd5;color:#c2410c}
+        @media(max-width:760px){.fd-body{grid-template-columns:1fr}.fd-side{display:none}.fd-kpis{grid-template-columns:repeat(2,1fr)}.fd-row{grid-template-columns:1fr}}
       </style>
-      <div class="fhv-frame">
-        <div class="fhv-ghost">FIGSY</div>
-        <img src="figsy-cut.png" alt="FIGSY — your AI SDR" />
+      <div class="fd-window">
+        <div class="fd-chrome">
+          <div class="fd-dots"><span></span><span></span><span></span></div>
+          <div class="fd-url">app.get-kind.com/dashboard</div>
+          <div class="fd-live"><span class="d"></span>FIGSY is working</div>
+        </div>
+        <div class="fd-body">
+          <aside class="fd-side">
+            <div class="fd-agent">
+              <img src="figsy-cut.png" alt="FIGSY"/>
+              <div><div class="fd-agent-name">FIGSY</div><div class="fd-agent-role">AI SDR</div></div>
+            </div>
+            <nav class="fd-nav">
+              <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 6a3.2 3.2 0 0 1 0 7"/></svg>Leads</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9a2 2 0 0 0-3-3L5 17v3z"/></svg>Campaigns</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Sequences</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Inbox<span class="fd-badge">6</span></a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Analytics</a>
+            </nav>
+            <div class="fd-credits">Reveal wallet<b>1,240</b></div>
+          </aside>
+          <main class="fd-main">
+            <div class="fd-main-head">
+              <div><div class="fd-hello">Good morning &#128075;</div><div class="fd-sub">FIGSY worked 214 leads while you slept.</div></div>
+              <button class="fd-cta">+ New campaign</button>
+            </div>
+            <div class="fd-kpis">
+              <div class="fd-kpi"><span class="fd-k-label">Leads sourced</span><span class="fd-k-num">1,284</span><span class="fd-k-up">&#9650; 12%</span></div>
+              <div class="fd-kpi"><span class="fd-k-label">Emails sent</span><span class="fd-k-num">3,410</span><span class="fd-k-up">&#9650; 8%</span></div>
+              <div class="fd-kpi"><span class="fd-k-label">Replies</span><span class="fd-k-num">218</span><span class="fd-k-up">&#9650; 5%</span></div>
+              <div class="fd-kpi fd-kpi-hot"><span class="fd-k-label">Meetings booked</span><span class="fd-k-num">47</span><span class="fd-k-up">&#9650; 3 today</span></div>
+            </div>
+            <div class="fd-row">
+              <div class="fd-card"><div class="fd-card-h">Pipeline this month <span>+34% vs last</span></div><div class="fd-bars"><i style="height:34%"></i><i style="height:44%"></i><i style="height:40%"></i><i style="height:56%"></i><i style="height:52%"></i><i style="height:66%"></i><i style="height:60%"></i><i style="height:72%"></i><i style="height:68%"></i><i style="height:84%"></i><i style="height:78%"></i><i style="height:96%"></i></div></div>
+              <div class="fd-card fd-feed">
+                <div class="fd-card-h">FIGSY &middot; just now</div>
+                <div class="fd-act"><b>Sarah Chen</b> &middot; VP Sales, TechCorp<br><span class="fd-tag good">Replied &mdash; warm</span></div>
+                <div class="fd-act"><b>James Okoro</b> &middot; Founder, Paylane<br><span class="fd-tag">Follow-up 2 sent</span></div>
+                <div class="fd-act"><b>Mia Roberts</b> &middot; Head of Growth<br><span class="fd-tag book">Meeting booked</span></div>
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
-      <div class="fhv-eyebrow">Agent 01 &middot; The Opener</div>
-      <span class="fhv-chip fhv-c1"><span class="d"></span>Sources your ICP</span>
-      <span class="fhv-chip fhv-c2"><span class="d"></span>Writes every email</span>
-      <span class="fhv-chip fhv-c3"><span class="d"></span>Follows up 24/7</span>
-      <span class="fhv-chip fhv-c4"><span class="d"></span>Books the meeting</span>
-      <a href="figsy.html" class="fhv-meet">Meet FIGSY <span class="ar">&rarr;</span></a>
     </div>
   </div>
 </div>

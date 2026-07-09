@@ -478,7 +478,7 @@ export async function sendSequenceEmail(
   subject: string,
   body: string,
   campaignId: string,
-  opts?: { totalSteps?: number; waitDaysNext?: number },
+  opts?: { totalSteps?: number; waitDaysNext?: number; isPreview?: boolean },
 ): Promise<void> {
   if (!lead.email) throw new Error('Lead has no email')
 
@@ -527,6 +527,25 @@ export async function sendSequenceEmail(
     return
   }
 
+  // #354 (AR-16) — ATOMIC STEP CLAIM. Before sending, move the enrollment from step-1
+  // to `step` conditioned on it STILL being at step-1. If the UPDATE claims no row, a
+  // concurrent runner (overlapping cron / manual send-now) already took this step —
+  // bail so the same prospect is never emailed twice. Skipped for the preview/test path
+  // (no real enrollment row). Runs AFTER the defer guards above so a deferred send never
+  // advances the step without sending. On send failure (#338) the claim is rolled back.
+  if (!opts?.isPreview) {
+    const { data: claimed } = await db.from('figsy_enrollments')
+      .update({ current_step: step })
+      .eq('id', enrollmentId)
+      .eq('current_step', step - 1)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) {
+      console.warn(`[figsy] sendSequenceEmail: step ${step} for enrollment ${enrollmentId} already claimed/advanced — skipping (no double-send)`)
+      return
+    }
+  }
+
   let messageId: string | undefined
 
   // Insert the DB record first so we have the emailId for the tracking pixel
@@ -566,6 +585,13 @@ export async function sendSequenceEmail(
     if (!checked.ok) {
       console.error(`[figsy] sendSequenceEmail: send FAILED for ${lead.email} step ${step} — not advancing enrollment`, checked.error)
       if (emailId) await db.from('figsy_sent_emails').delete().eq('id', emailId)
+      // #354 — roll the atomic claim back to step-1 so the step stays DUE and a later
+      // run retries it (the claim above tentatively moved current_step to `step`).
+      if (!opts?.isPreview) {
+        await db.from('figsy_enrollments')
+          .update({ current_step: step - 1, next_send_at: new Date().toISOString() })
+          .eq('id', enrollmentId)
+      }
       void sendFounderAlert('sends_stalled', 'FIGSY send failed — email did not leave', [
         `Lead: ${lead.email}`,
         `Enrollment: ${enrollmentId} (step ${step})`,

@@ -1,4 +1,5 @@
 import { buildSearchBody, searchPeople, ApolloContact } from './apollo'
+import { isPlaceholderEmail } from './email-hygiene'
 
 // K.I.N.D brand voice + messaging config — update this file to change how the CMO agent writes
 export const KIND_BRAND = {
@@ -77,5 +78,8 @@ export async function findKindProspects(): Promise<ApolloContact[]> {
     keywords:         [],
     apollo_only_consented: false,
   })
-  return searchPeople(icpBody)
+  const people = await searchPeople(icpBody)
+  // #375 (AR-38) — drop Apollo placeholder addresses at the source so no caller can
+  // insert/charge/cold-email a fake mailbox (reputation risk to our sending domain).
+  return people.filter(p => !isPlaceholderEmail(p.email))
 }

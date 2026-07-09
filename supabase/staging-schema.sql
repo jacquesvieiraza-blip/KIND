@@ -1426,6 +1426,22 @@ create table if not exists public.founder_alerts (
 create index if not exists founder_alerts_created_idx on public.founder_alerts (created_at desc);
 create index if not exists founder_alerts_kind_idx    on public.founder_alerts (kind, created_at desc);
 
+-- #391 (AR-61) — atomic settings-key merge so the adaptive-send / A/B crons stop
+-- clobbering concurrent UI saves with a stale wholesale write (mirrors migration
+-- 20260710_figsy_merge_settings).
+create or replace function public.figsy_merge_settings(p_campaign_id uuid, p_patch jsonb)
+returns void language sql as $$
+  update public.figsy_campaigns
+     set settings = coalesce(settings, '{}'::jsonb) || p_patch
+   where id = p_campaign_id;
+$$;
+
+-- #354 (AR-16) — double-send backstop: one figsy_sent_emails row per (enrollment, step)
+-- (mirrors migration 20260710_double_send_guard). enrollment_id is null for day-1 sends.
+create unique index if not exists figsy_sent_emails_enrollment_step_uniq
+  on public.figsy_sent_emails (enrollment_id, step)
+  where enrollment_id is not null;
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- END OF SCHEMA
 -- ════════════════════════════════════════════════════════════════════════════

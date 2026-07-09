@@ -19,6 +19,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
+import { isPlaceholderEmail } from '../lib/email-hygiene'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
@@ -1569,6 +1570,8 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
 
     for (const contact of contacts.slice(0, 20)) {
       if (!contact.email) { skipped++; continue }
+      // #375 (AR-38) — never insert/charge/cold-email an Apollo placeholder address.
+      if (isPlaceholderEmail(contact.email)) { skipped++; continue }
 
       // Skip if already in pipeline
       const { count: existing } = await db.from('leads')
@@ -2128,10 +2131,13 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
       }
 
       if (newLimit !== currentLimit) {
-        await db
-          .from('figsy_campaigns')
-          .update({ settings: { ...existing, daily_send_limit: newLimit } })
-          .eq('id', campaign.id)
+        // #391 (AR-61) — merge ONLY daily_send_limit at the DB (atomic, against the
+        // current row) instead of writing the whole settings blob back from a stale
+        // read, which could clobber a concurrent UI save / resurrect a founder pause.
+        await db.rpc('figsy_merge_settings', {
+          p_campaign_id: campaign.id,
+          p_patch: { daily_send_limit: newLimit },
+        })
 
         changes.push({ campaignId: campaign.id, oldLimit: currentLimit, newLimit, reason })
         adjusted++
@@ -2203,6 +2209,17 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
       const activeVariants = Object.entries(variantGroups).filter(([, emails]) => emails.length >= 5)
       if (activeVariants.length < 2) continue
 
+      // #392 (AR-62) — never resolve on ZERO data. If open-tracking is unset (no
+      // TRACKING_URL / pixel), every variant's open rate is 0 and the first one would
+      // "win" at rate 0 > -1 — irreversibly (ab_test_resolved:true). Require a minimum
+      // of real opens across the active variants before crowning a winner; otherwise
+      // leave the test open so it resolves once tracking data actually accrues.
+      const MIN_OPENS_TO_RESOLVE = 5
+      const totalOpens = activeVariants.reduce(
+        (sum, [, emails]) => sum + emails.filter(e => e.opened_at).length, 0,
+      )
+      if (totalOpens < MIN_OPENS_TO_RESOLVE) continue
+
       // Find winner by open rate
       let bestLabel = 'a'
       let bestRate = -1
@@ -2211,15 +2228,12 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
         if (rate > bestRate) { bestRate = rate; bestLabel = label }
       }
 
-      await db.from('figsy_campaigns')
-        .update({
-          settings: {
-            ...settings,
-            ab_test_resolved: true,
-            ab_test_winner: bestLabel,
-          }
-        })
-        .eq('id', campaign.id)
+      // #391 (AR-61) — merge only the A/B result keys atomically (see adaptive-send
+      // above) instead of writing the whole settings blob back from a stale read.
+      await db.rpc('figsy_merge_settings', {
+        p_campaign_id: campaign.id,
+        p_patch: { ab_test_resolved: true, ab_test_winner: bestLabel },
+      })
 
       resolved++
     }

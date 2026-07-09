@@ -1644,7 +1644,7 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
       res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return
     }
 
-    await sendSequenceEmail('test-preview', fakeLead as any, 1, step1.subject, step1.body, req.params.id)
+    await sendSequenceEmail('test-preview', fakeLead as any, 1, step1.subject, step1.body, req.params.id, { isPreview: true })
     res.json({ success: true, message: `Test email sent to ${toEmail}` })
   } catch (err) {
     console.error(err); res.status(500).json({ success: false, error: 'Failed to send test email' })

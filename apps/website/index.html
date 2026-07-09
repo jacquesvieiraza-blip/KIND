@@ -1363,10 +1363,31 @@
     <div class="logo-icon" style="width:34px;height:34px;border-radius:8px;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><img src="logo-k.png" alt="K.I.N.D" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>
   </a>
   <div class="nav-links">
-    <a href="figsy.html" class="nav-link">How it works</a>
+    <div class="nav-item">
+      <a href="figsy.html" class="nav-link">Product <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">How FIGSY works</span><span class="dd-sub">Source &rarr; write &rarr; follow up &rarr; book</span></span></a>
+        <a href="#demo" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">See it in action</span><span class="dd-sub">Watch FIGSY build a pipeline</span></span></a>
+        <a href="pricing.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Pricing</span><span class="dd-sub">$1 reveal + $3 work = $4 per lead</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="the-drop.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="the-drop.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">The Drop</span><span class="dd-sub">What we just shipped</span></span></a>
+        <a href="pipeline-calculator.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Pipeline Calculator</span><span class="dd-sub">Estimate the meetings FIGSY adds</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:280px">
+        <a href="about.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Why we built FIGSY</span></span></a>
+        <a href="trust.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">GDPR &amp; POPIA compliant</span></span></a>
+        <a href="status.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">System Status</span><span class="dd-sub">Live uptime</span></span></a>
+      </div>
+    </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
-    <a href="demo.html" class="nav-link">Demo</a>
-    <a href="support.html" class="nav-link">Support</a>
   </div>
   <div class="nav-right">
     <a href="demo.html" class="btn-nav-ghost">Get a Demo</a>
@@ -1492,85 +1513,39 @@
         <a href="#demo" class="btn-hero-ghost">See how it works</a>
       </div>
     </div>
-    <!-- #417 · 3D fluid carousel (replaces the flat 4-card grid) -->
-    <div class="kf-carousel" id="kfCarousel">
-      <div class="kf-stage" id="kfStage">
-      <a class="kf-agent" href="figsy.html" data-i="0">
-        <div class="kf-bg" style="background:linear-gradient(160deg,#ffd6ed 0%,#ffb3d9 45%,#ff85c0 100%);"></div>
-        <div class="kf-ghost">FIGSY</div>
-        <div class="kf-eyebrow2">Agent 01 · The Opener</div>
-        <div class="kf-figure"><img src="figsy-cut.png" alt="FIGSY — AI SDR" /></div>
-        <span class="kf-cta">Meet FIGSY →</span>
-      </a>
+    <div class="fig-hero-visual" aria-label="FIGSY, your AI SDR">
+      <style>
+        .fig-hero-visual{position:relative;width:min(540px,92vw);margin:6px auto 0;aspect-ratio:1/0.9}
+        .fhv-frame{position:absolute;inset:0;border-radius:28px;overflow:hidden;background:linear-gradient(160deg,#FFE1C4 0%,#F7C6E6 48%,#C9B6FF 100%);box-shadow:0 40px 90px -30px rgba(90,40,160,.45)}
+        .fhv-frame img{position:absolute;bottom:0;left:50%;transform:translateX(-50%);height:100%;width:auto;object-fit:contain;object-position:bottom}
+        .fhv-ghost{position:absolute;top:6%;left:0;right:0;text-align:center;font-family:'Outfit',sans-serif;font-weight:900;font-size:clamp(3rem,9vw,5rem);letter-spacing:-.05em;color:rgba(255,255,255,.5);line-height:1;z-index:1}
+        .fhv-eyebrow{position:absolute;top:18px;left:20px;font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:.18em;text-transform:uppercase;color:rgba(30,17,71,.6);z-index:3}
+        .fhv-chip{position:absolute;z-index:4;display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.94);border:1px solid rgba(124,58,237,.14);border-radius:100px;padding:8px 13px;font-size:.72rem;font-weight:700;color:#3b2a63;box-shadow:0 10px 30px -8px rgba(90,40,160,.35);white-space:nowrap;animation:fhvFloat 5s ease-in-out infinite}
+        .fhv-chip .d{width:7px;height:7px;border-radius:50%;background:#7C3AED;flex-shrink:0}
+        .fhv-c1{top:15%;left:-3%;animation-delay:0s}
+        .fhv-c2{top:35%;right:-5%;animation-delay:.8s}
+        .fhv-c3{bottom:28%;left:-5%;animation-delay:1.6s}
+        .fhv-c4{bottom:11%;right:-1%;animation-delay:2.4s}
+        .fhv-meet{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:5;display:inline-flex;align-items:center;gap:9px;background:#0F0929;color:#fff;border-radius:100px;padding:10px 12px 10px 18px;font-size:.82rem;font-weight:700;text-decoration:none}
+        .fhv-meet .ar{width:26px;height:26px;border-radius:50%;background:#7C3AED;display:grid;place-items:center;font-size:.8rem}
+        @keyframes fhvFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+        @media(prefers-reduced-motion:reduce){.fhv-chip{animation:none}}
+        @media(max-width:560px){.fhv-chip{font-size:.62rem;padding:6px 10px}.fhv-c1,.fhv-c3{left:-1%}.fhv-c2,.fhv-c4{right:-1%}}
+      </style>
+      <div class="fhv-frame">
+        <div class="fhv-ghost">FIGSY</div>
+        <img src="figsy-cut.png" alt="FIGSY — your AI SDR" />
       </div>
-      <div class="kf-nav">
-        <button class="kf-arrow" id="kfPrev" type="button" aria-label="Previous agent">&lsaquo;</button>
-        <div class="kf-dots" id="kfDots"></div>
-        <button class="kf-arrow" id="kfNext" type="button" aria-label="Next agent">&rsaquo;</button>
-      </div>
+      <div class="fhv-eyebrow">Agent 01 &middot; The Opener</div>
+      <span class="fhv-chip fhv-c1"><span class="d"></span>Sources your ICP</span>
+      <span class="fhv-chip fhv-c2"><span class="d"></span>Writes every email</span>
+      <span class="fhv-chip fhv-c3"><span class="d"></span>Follows up 24/7</span>
+      <span class="fhv-chip fhv-c4"><span class="d"></span>Books the meeting</span>
+      <a href="figsy.html" class="fhv-meet">Meet FIGSY <span class="ar">&rarr;</span></a>
     </div>
   </div>
 </div>
 
-<script>
-/* #417 · 3D fluid carousel */
-(function(){
-  var stage = document.getElementById('kfStage');
-  if (!stage) return;
-  var cards = Array.prototype.slice.call(stage.querySelectorAll('.kf-agent'));
-  var n = cards.length, active = 0, timer = null;
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  var dotsWrap = document.getElementById('kfDots'), dots = [];
-
-  cards.forEach(function(c, i){
-    var d = document.createElement('button');
-    d.className = 'kf-dot'; d.type = 'button';
-    d.setAttribute('aria-label', 'Show agent ' + (i + 1));
-    d.addEventListener('click', function(){ go(i); restart(); });
-    dotsWrap.appendChild(d); dots.push(d);
-    // clicking a side card focuses it; the active card's link works normally
-    c.addEventListener('click', function(e){ if (i !== active){ e.preventDefault(); go(i); restart(); } });
-  });
-
-  function step(){ return window.innerWidth < 820 ? 155 : 240; }
-  function layout(){
-    var s = step();
-    cards.forEach(function(c, i){
-      var off = i - active;
-      if (off >  n/2) off -= n;
-      if (off < -n/2) off += n;
-      var abs = Math.abs(off);
-      var t = 'translate(-50%,-50%) translateX(' + (off * s) + 'px) translateZ(' + (-abs * 230) + 'px) rotateY(' + (off * -24) + 'deg) scale(' + Math.max(0.68, 1 - abs * 0.13) + ')';
-      c.style.setProperty('--kf-t', t);
-      c.style.transform = t;
-      c.style.opacity = abs > 2 ? '0' : String(1 - abs * 0.2);
-      c.style.filter = abs === 0 ? 'none' : 'blur(' + Math.min(abs * 2, 5) + 'px)';
-      c.style.zIndex = String(100 - abs);
-      c.style.pointerEvents = abs > 2 ? 'none' : 'auto';
-      c.classList.toggle('is-active', off === 0);
-    });
-    dots.forEach(function(d, i){ d.classList.toggle('on', i === active); });
-  }
-  function go(i){ active = ((i % n) + n) % n; layout(); }
-  function restart(){ if (reduce) return; clearInterval(timer); timer = setInterval(function(){ go(active + 1); }, 4400); }
-
-  document.getElementById('kfPrev').addEventListener('click', function(){ go(active - 1); restart(); });
-  document.getElementById('kfNext').addEventListener('click', function(){ go(active + 1); restart(); });
-
-  // drag / swipe
-  var down = false, startX = 0;
-  stage.addEventListener('pointerdown', function(e){ down = true; startX = e.clientX; });
-  window.addEventListener('pointerup', function(e){
-    if (!down) return; down = false;
-    var dx = e.clientX - startX;
-    if (dx > 45) { go(active - 1); restart(); }
-    else if (dx < -45) { go(active + 1); restart(); }
-  });
-
-  window.addEventListener('resize', layout);
-  layout(); restart();
-})();
-</script>
 
 <!-- TRUST BAR -->
 <div class="trust-bar">
@@ -1594,11 +1569,11 @@
       <div class="s-label">Proof — first-party</div>
       <h2 class="s-title">We use FIGSY to find our own clients.</h2>
       <p>K.I.N.D runs its own outreach on FIGSY &mdash; the exact system you get on day one. It sources our ICP, scores the leads, follows up automatically, and sends a booking link in every email.</p>
-      <p class="proof-honest">No demo data. No borrowed logos. No invented numbers. The moment our first campaign delivers real results they appear right here &mdash; and named clients follow as they say yes.</p>
+      <p class="proof-honest">The same FIGSY you get on day one &mdash; no demo data, no borrowed logos, no invented numbers. If it works for us, it works for you.</p>
     </div>
     <div class="proof-stat">
-      <div class="proof-stat-num" style="display:flex;align-items:center;gap:12px;font-size:2.2rem"><span class="live-dot"></span>Live</div>
-      <div class="proof-stat-label">First campaign goes live at launch &mdash; real metrics populate here, never placeholders</div>
+      <div class="proof-stat-num">$4<span style="font-size:1rem;font-weight:600;color:rgba(0,0,0,.4)"> / qualified lead</span></div>
+      <div class="proof-stat-label">A human SDR costs ~$60,000 a year &mdash; plus ramp, plus churn. FIGSY works every lead for $4, and never takes a day off.</div>
     </div>
   </div>
 </div>

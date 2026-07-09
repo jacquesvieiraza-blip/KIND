@@ -48,7 +48,7 @@ fi
 # ── 3. Status columns live ONLY in PRODUCT-INVENTORY ──────────────────────────
 # (LAUNCH-PAD de-statused 9 Jul; V2-TRACKER rides the burn-down until the
 #  reconciliation pass de-statuses it, then moves into this enforced list.)
-STATUS_FREE=(docs/LAUNCH-PAD.md docs/KIND-MASTER.md docs/MILESTONE-0-CHECKLIST.md)
+STATUS_FREE=(docs/LAUNCH-PAD.md docs/KIND-MASTER.md docs/MILESTONE-0-CHECKLIST.md docs/V2-TRACKER.md)
 for f in "${STATUS_FREE[@]}"; do
   [ -f "$f" ] || continue
   if hits="$(grep -nE '\| *Status *\|' "$f")" && [ -n "$hits" ]; then
@@ -83,7 +83,6 @@ BANNED=(
 # (format: file:regex). EMPTY this list in Move 2 — do not add to it.
 KNOWN_DIRTY=(
   'docs/run-costs-and-cashflow.md:blended ARPU|Blended ARPU'
-  'docs/V2-TRACKER.md:14-day free trial'
 )
 DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md)
 for f in "${DOCS[@]}"; do

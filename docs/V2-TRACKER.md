@@ -399,7 +399,7 @@ Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-r
 | #49 | Product Hunt launch · #50 G2 listing |
 
 **V2 portal redesign (the rest, on the per-rep foundation):**
-| # | What | Status |
+| # | What | Where it stands (status of record → PRODUCT-INVENTORY) |
 |---|------|--------|
 | V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | 🟡 started — `/v2/setup` runs a **live Casey chat** (`/casey/chat`, 13 Jun); the auto-config (ICP+sequences+knowledge from the conversation) is the remaining build, gated on founder voice/tone (item 121) |
 | V2-8 | **AI Notetaker → action items (Milla)** | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/notetaker` |
@@ -444,7 +444,7 @@ Legal (D&O, ODPC/NDPR, AI Risk Register, pen test, trademarks, VAT) · Funding (
 **The North-Star truth (founder, 11 Jun): cold outreach is necessary but NOT sufficient. Win = a 3-legged GTM.** This section = the clear intentions for the marketing conversation.
 
 **The 3 legs:**
-| Leg | What | Status |
+| Leg | What | State |
 |---|---|---|
 | **1 · Outbound** | FIGSY dogfood (cold email sells K.I.N.D) | ✅ running (warmup) |
 | **2 · Content / Inbound** | **video · product drops · brand LinkedIn (anonymous handle) · blog** | 🔴 **the missing leg — the focus** |

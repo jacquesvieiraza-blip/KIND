@@ -244,11 +244,14 @@ export default function BillingPage() {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) return
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/demo-request`, {
+      // #384 — the demo-request router is mounted at /api (index.ts:172); the bare
+      // /demo-request path 404'd.
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'}/api/demo-request`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ product, client_id: session.user.id, message: '' }),
       })
+      if (res.ok) setPauseNotice("Thanks — we'll email you when it's ready.")
     } catch { /* silent */ }
   }
 
@@ -301,9 +304,11 @@ export default function BillingPage() {
       {/* How credits work */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
-          { icon: <Zap className="w-4 h-4 text-purple-500" />, title: 'Lead found', sub: 'No credit used', bg: 'bg-[#F5F0FF]' },
-          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Lead delivered', sub: '1 Lead-Gen credit', bg: 'bg-green-50' },
-          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'FIGSY outreach', sub: '1 FIGSY credit', bg: 'bg-indigo-50' },
+          // #406 — honest two-wallet model: delivery is FREE + masked; $1 reveals a lead
+          // (reveal wallet), $3 has FIGSY work it (FIGSY wallet). No charge at delivery.
+          { icon: <Zap className="w-4 h-4 text-purple-500" />, title: 'Lead found & delivered', sub: 'No charge — masked', bg: 'bg-[#F5F0FF]' },
+          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Reveal a lead', sub: '$1 · reveal credit', bg: 'bg-green-50' },
+          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'FIGSY works it', sub: '$3 · FIGSY credit', bg: 'bg-indigo-50' },
         ].map(({ icon, title, sub, bg }) => (
           <div key={title} className="bg-purple-50/40 rounded-xl p-4 text-center">
             <div className={`w-8 h-8 ${bg} rounded-full flex items-center justify-center mx-auto mb-2`}>{icon}</div>
@@ -384,8 +389,8 @@ export default function BillingPage() {
 
       {/* ── AGENT SUBSCRIPTIONS ─────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">AI Agents</h2>
-        <p className="text-sm text-[#9B8EC4] mb-4">Monthly subscriptions · Cancel anytime · Activates instantly after payment</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">AI Agents <span className="text-xs font-semibold text-gray-400 align-middle ml-1">· Coming soon</span></h2>
+        <p className="text-sm text-[#9B8EC4] mb-4">FIGSY + Lead-Gen are live today. Milla, Vida and Denise are coming soon — not yet purchasable.</p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {AGENT_PRODUCTS.map(agent => {
@@ -422,9 +427,11 @@ export default function BillingPage() {
                     ))}
                   </ul>
 
+                  {/* #406/#431 — monthly subscription pricing is retired; the agents
+                      return as per-lead add-on layers (money model #420). Don't show a
+                      stale "$X/month". */}
                   <div className="text-center mb-4">
-                    <span className="text-3xl font-bold text-gray-900">${agent.price}</span>
-                    <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
+                    <span className="text-sm font-semibold text-gray-400">Pricing at launch</span>
                   </div>
 
                   {isPaused ? (
@@ -449,18 +456,18 @@ export default function BillingPage() {
                       </button>
                     </div>
                   ) : (
+                    // #406/#26 — agents are NOT purchasable yet. FIGSY + Lead-Gen are the
+                    // only live products; Milla/Vida/Denise return as per-lead layers (M0
+                    // #427/#428/#429) — until then the CTA is a disabled "Coming soon", not
+                    // a live subscription checkout.
                     <div className="space-y-2">
-                      <button
-                        onClick={() => handleSubscribe(agent.key)}
-                        disabled={isLoading || !termsAccepted}
-                        className={`w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${agent.color} hover:opacity-90`}>
-                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                        Unlock {agent.label} — ${agent.price}/month
-                      </button>
+                      <div className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed select-none">
+                        Coming soon
+                      </div>
                       <button
                         onClick={() => handleDemoRequest(agent.key)}
                         className="w-full flex items-center justify-center gap-2 text-sm text-[#7B6FA0] hover:text-gray-800 border border-purple-100/80 hover:border-gray-300 rounded-xl px-4 py-2.5 transition-colors">
-                        Request a demo instead
+                        Notify me when it's ready
                       </button>
                     </div>
                   )}

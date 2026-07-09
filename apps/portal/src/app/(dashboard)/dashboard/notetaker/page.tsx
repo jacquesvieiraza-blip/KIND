@@ -98,8 +98,9 @@ export default function NotetakerPage() {
             <Mic className="w-5 h-5" style={{ color: BRAND }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-[#1E1152]">AI Notetaker</h1>
-            <p className="text-sm text-[#7C3AED]/60">Drop in a meeting transcript or recording. Milla extracts every action item, owner, and deadline — zero manual notes.</p>
+            <h1 className="text-2xl font-bold text-[#1E1152]">AI Notetaker <span className="text-xs font-semibold text-gray-400 align-middle ml-1">· Coming soon</span></h1>
+            {/* #406 — Notetaker is a Milla feature; Milla is coming soon. */}
+            <p className="text-sm text-[#7C3AED]/60">Drop in a meeting transcript and Milla extracts action items, owners, and deadlines. Part of Milla — coming soon.</p>
           </div>
         </div>
       </div>

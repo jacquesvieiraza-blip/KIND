@@ -294,17 +294,18 @@ export default function AssistantPage() {
             </div>
           ))}
         </div>
+        {/* #406/#431 — subscriptions retired; Milla returns as a per-lead layer (#427).
+            No $X/month sell, no checkout — honest coming-soon. */}
         <div className="text-center mb-5">
-          <span className="text-3xl font-bold text-gray-900">${PRODUCTS.virtual_assistant.price_usd}</span>
-          <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
+          <span className="text-sm font-semibold text-gray-400">Coming soon</span>
         </div>
         <div className="space-y-3">
-          <a href="/dashboard/billing" className="flex items-center justify-center gap-2 w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
-            Unlock Milla — ${PRODUCTS.virtual_assistant.price_usd}/month →
-          </a>
+          <span className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-400 font-semibold rounded-xl px-6 py-3 text-sm border border-gray-200 cursor-not-allowed select-none">
+            Coming soon
+          </span>
           <DemoRequestButton product="milla" />
         </div>
-        <p className="text-xs text-[#9B8EC4] text-center mt-4">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
+        <p className="text-xs text-[#9B8EC4] text-center mt-4">We'll let you know the moment Milla is ready.</p>
       </div>
     </div>
   )
@@ -407,8 +408,9 @@ export default function AssistantPage() {
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="font-semibold text-gray-900 text-sm">Integrations</h2>
-            <p className="text-xs text-[#9B8EC4] mt-0.5">Connect external tools so Milla can take actions, not just answer questions.</p>
+            <h2 className="font-semibold text-gray-900 text-sm">Integrations <span className="text-[10px] font-semibold text-gray-400 ml-1">· Coming soon</span></h2>
+            {/* #395 — no live connectors exist yet; don't imply they're connectable. */}
+            <p className="text-xs text-[#9B8EC4] mt-0.5">Direct connectors (Calendar, Docs, CRM, Slack) are coming soon — Milla reads your FIGSY + Vida data natively today.</p>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

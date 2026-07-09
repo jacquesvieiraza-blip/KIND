@@ -184,9 +184,10 @@ export default function IntegrationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E1152]">Integrations Hub</h1>
+          <h1 className="text-2xl font-bold text-[#1E1152]">Integrations Hub <span className="text-xs font-semibold text-gray-400 align-middle ml-1">· Coming soon</span></h1>
+          {/* #399 — the hub is a preview; no connectors are live yet. */}
           <p className="text-[#7B6FA0] text-sm mt-1">
-            Connect your stack — every revenue-relevant tool, one clean screen.
+            Direct connectors are coming soon. FIGSY already dedups against your CRM on export.
           </p>
         </div>
         {connectedCount > 0 && (

@@ -77,6 +77,18 @@ clientRouter.get('/me/usage', async (req: AuthRequest, res) => {
     const leadsThisPeriod = count ?? 0
     const overageLeads    = Math.max(0, leadsThisPeriod - INCLUDED)
 
+    // #385 — real month-to-date per-lead spend by wallet, from the FULL ledger (the
+    // portal previously summed the /credits 50-row slice, which under-reports any client
+    // with >50 rows this month). Each reveal/FIGSY charge is one -1 usage row, so the
+    // row count = credits spent. reveal → plan 'lead_gen' ($1) · FIGSY → plan 'figsy' ($3).
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const [{ count: revealCount }, { count: figsyCount }] = await Promise.all([
+      db.from('credit_transactions').select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId).eq('plan', 'lead_gen').eq('type', 'usage').lt('amount', 0).gte('created_at', monthStart),
+      db.from('credit_transactions').select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId).eq('plan', 'figsy').eq('type', 'usage').lt('amount', 0).gte('created_at', monthStart),
+    ])
+
     res.json({
       success: true,
       data: {
@@ -85,6 +97,8 @@ clientRouter.get('/me/usage', async (req: AuthRequest, res) => {
         period_end:        periodEnd,
         included_leads:    INCLUDED,
         overage_leads:     overageLeads,
+        reveals_this_month: revealCount ?? 0,
+        figsy_this_month:   figsyCount ?? 0,
       },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch usage' }) }

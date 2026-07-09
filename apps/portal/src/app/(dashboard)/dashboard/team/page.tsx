@@ -156,7 +156,9 @@ export default function TeamsHubPage() {
         // 3. Aggregate stats — graceful fallback to 0
         const [leadsRes, emailsRes, campaignsRes] = await Promise.allSettled([
           api.get<{ data: { total?: number } }>('/leads/stats', token),
-          api.get<{ data: { emails_sent?: number } }>('/figsy/stats', token),
+          // #384 — the real endpoint is /figsy/kpis (figsy.ts:709); /figsy/stats 404'd, so
+          // "Emails sent" was always 0.
+          api.get<{ data: { emails_sent?: number } }>('/figsy/kpis', token),
           api.get<{ data: Array<{ status: string }> }>('/figsy/campaigns', token),
         ])
 

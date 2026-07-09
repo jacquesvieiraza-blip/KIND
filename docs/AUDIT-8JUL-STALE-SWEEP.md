@@ -1,5 +1,7 @@
 # 🧹 AUDIT — 8 Jul 2026 · DOCS STALE-INFO SWEEP (post money-model lock)
 
+> ⛔ **SUPERSEDED (8 Jul 10pm) by [`AUDIT-8JUL-DOC-CURRENCY.md`](./AUDIT-8JUL-DOC-CURRENCY.md).** This ledger was written for the pre-ladder `$1 reveal + $3 work = $4` model — it predates the full **per-qualified-lead ladder** ($4→$5→$6, Vida $3) and the **subscription-retirement**. Use the DOC-CURRENCY audit as the live ledger; this is kept as history.
+
 > **Why:** the money model was locked (`$1 reveal + $3 work = $4`, PDL+Hunter data, FIGSY-only, sequences ≤10 steps, global) and folded into the four canonical docs + cashflow (PR #1001, merged). This is the **deep sweep of every OTHER doc + sub-doc** for stale info that now contradicts it. Read-only audit by 5 parallel agents against the **actual files** (not memory), 8 Jul.
 > **Scope:** all of `docs/**` (excl. `archive/`) — 95 files. The **live website (`apps/website`) + portal + admin are NOT in this sweep** — those are Move 1a/1b (separate, client-facing → preview-first). This is docs only.
 > **This is a findings ledger, not a canonical doc.** Fix items in batched PRs; tick them here as they land. Then this doc can be archived.

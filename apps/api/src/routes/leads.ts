@@ -193,6 +193,14 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
       for (const l of rows) l.campaign = byLead.get(l.id) ?? null
     }
 
+    // Mask PII until revealed (#422): hide email + phone on any lead the client
+    // hasn't spent $1 to reveal. `revealed` is the flag the portal reads to show
+    // the value vs a "Reveal ($1)" button.
+    for (const l of rows) {
+      l.revealed = !!l.revealed_at
+      if (!l.revealed) { l.email = null; l.phone = null }
+    }
+
     res.json({ success: true, data: rows, total: count, page: Number(page), limit: Number(limit) })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch leads' }) }
 })
@@ -404,6 +412,98 @@ leadRouter.post('/:id/optout', async (req: AuthRequest, res) => {
 
     res.json({ success: true, message: 'Lead permanently blocked' })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to block lead' }) }
+})
+
+// ── REVEAL a lead — spend $1 to unmask the email (#420/#421/#422) ──────────────
+// The per-qualified-lead model: leads arrive MASKED (email hidden). The client
+// browses free, dedups against their own CRM, and spends $1 only to reveal the
+// net-new ones they choose. Money-safe by design:
+//   • Atomic CLAIM on revealed_at (…WHERE revealed_at IS NULL) → concurrent reveals
+//     can't both charge. Loser is idempotent (returns the email, no charge).
+//   • crm_existing → the client already owns it → NO charge.
+//   • Charge is the gate: try_charge_reveal_credit. No credit → 402, un-claim.
+//   • No email found → REFUND the $1 (fail-closed) + un-claim → 422.
+//   • On success: unique credit_transactions.reference='reveal:'+id backstops
+//     charge-once-per-lead (#424).
+leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'lead-reveal', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // 1. Atomic claim — only the first reveal of this lead wins.
+    const now = new Date().toISOString()
+    const { data: claimedRows, error: claimErr } = await db.from('leads')
+      .update({ revealed_at: now })
+      .eq('id', req.params.id).eq('client_id', clientId).is('revealed_at', null)
+      .select('*')
+    if (claimErr) { console.error('[reveal] claim error', claimErr); res.status(500).json({ success: false, error: 'Failed to reveal lead' }); return }
+    const claim = (claimedRows ?? [])[0] as Record<string, any> | undefined
+
+    // Lost the claim → already revealed (or not ours). Idempotent: return current email.
+    if (!claim) {
+      const { data: existing } = await db.from('leads')
+        .select('email, phone, revealed_at').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+      if (!existing) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+      res.json({ success: true, revealed: !!existing.revealed_at, email: existing.email ?? null, phone: existing.phone ?? null, charged: false })
+      return
+    }
+
+    const unclaim = () => db.from('leads').update({ revealed_at: null }).eq('id', claim.id).then(() => {}, () => {})
+
+    // 2. Already in the client's own CRM → they own it → no charge.
+    if (claim.crm_existing) {
+      await unclaim()
+      res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' })
+      return
+    }
+
+    // 3. Charge $1 (atomic decrement IS the gate).
+    const { data: charged, error: chargeErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
+    if (chargeErr) { console.error('[reveal] charge rpc error', chargeErr); await unclaim(); res.status(500).json({ success: false, error: 'Failed to reveal lead' }); return }
+    if (charged !== true) {
+      await unclaim()
+      res.status(402).json({ success: false, error: 'insufficient_reveal_credits', message: 'Add reveal credits to unmask this lead ($1 each).' })
+      return
+    }
+
+    // 4. Reveal the email. PDL-sourced leads already carry a work_email; only run
+    //    the Hunter waterfall when we don't have one yet.
+    let email: string | null = claim.email ?? null
+    if (!email) {
+      try {
+        const enriched = await waterfallEnrich({
+          first_name:   claim.first_name,
+          last_name:    claim.last_name,
+          company:      claim.company,
+          linkedin_url: claim.linkedin_url,
+        })
+        email = enriched.email ?? null
+      } catch (e) { console.error('[reveal] hunter waterfall failed for lead', claim.id, e); email = null }
+    }
+
+    // 5. No email → REFUND (fail-closed) + un-claim. Client is never charged for a dud.
+    if (!email) {
+      const { error: refundErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: 1 })
+      if (refundErr) console.error('[reveal] REFUND FAILED for client', clientId, 'lead', claim.id, refundErr)
+      await unclaim()
+      res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' })
+      return
+    }
+
+    // 6. Persist + ledger (unique reference backstops charge-once-per-lead #424).
+    await db.from('leads').update({ email, apollo_consented: true }).eq('id', claim.id).then(() => {}, () => {})
+    await db.from('credit_transactions').insert({
+      client_id: clientId,
+      amount:    -1,
+      type:      'usage',
+      plan:      'lead_gen',
+      reference: `reveal:${claim.id}`,
+      note:      'Lead revealed ($1)',
+      created_at: now,
+    }).then(() => {}, () => {}) // unique-reference conflict = already booked; ignore
+
+    res.json({ success: true, revealed: true, email, charged: true })
+  } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })
 
 // ── SEND POPIA CONSENT EMAIL ──────────────────────────────────────────────────
@@ -631,9 +731,17 @@ leadRouter.post('/:id/waterfall-enrich', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: lead, error: leadErr } = await db.from('leads')
-      .select('id, first_name, last_name, email, phone, company, linkedin_url, company_size, industry, tech_stack')
+      .select('id, first_name, last_name, email, phone, company, linkedin_url, company_size, industry, tech_stack, revealed_at')
       .eq('id', req.params.id).eq('client_id', clientId).single()
     if (leadErr || !lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    // #422 — enrichment must not become a free unmask: waterfall-enrich finds and
+    // writes the EMAIL, so it requires the $1 reveal first. POST /leads/:id/reveal
+    // already runs the waterfall as part of the paid reveal.
+    if (!(lead as { revealed_at?: string | null }).revealed_at) {
+      res.status(402).json({ success: false, error: 'reveal_required', message: 'Reveal this lead first ($1) — the reveal includes email enrichment.' })
+      return
+    }
 
     const result = await waterfallEnrich({
       first_name:   lead.first_name,
@@ -763,7 +871,7 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
     // Only export DELIVERED leads — clients can't export leads they haven't
     // been charged for / can't see.
     let query = db.from('leads')
-      .select('first_name,last_name,email,phone,job_title,company,industry,country,score,status,created_at')
+      .select('first_name,last_name,email,phone,job_title,company,industry,country,score,status,created_at,revealed_at')
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
       .order('score', { ascending: false, nullsFirst: false })
@@ -782,8 +890,10 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
       res.setHeader('X-Export-Limit', String(EXPORT_LIMIT))
     }
     const headers = ['first_name', 'last_name', 'email', 'phone', 'job_title', 'company', 'industry', 'country', 'score', 'status', 'created_at']
+    // #422 — masked leads export WITHOUT contact details: email/phone are only
+    // included once the $1 reveal has been paid (revealed_at set).
     const rows = (data || []).map((l: any) => [
-      l.first_name, l.last_name, l.email || '', l.phone || '',
+      l.first_name, l.last_name, l.revealed_at ? (l.email || '') : '', l.revealed_at ? (l.phone || '') : '',
       l.job_title || '', l.company || '', l.industry || '',
       l.country || '', l.score ?? '', l.status,
       l.created_at ? new Date(l.created_at).toLocaleDateString() : '',

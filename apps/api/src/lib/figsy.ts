@@ -592,9 +592,43 @@ export async function sendSequenceEmail(
 // Returns true only when a credit was really taken (then the ledger row is written).
 export async function chargeFigsyEnroll(
   clientId: string,
-  lead: { first_name?: string | null; last_name?: string | null; company?: string | null },
+  lead: { id?: string; first_name?: string | null; last_name?: string | null; company?: string | null },
 ): Promise<boolean> {
   const leadName = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || '(unknown lead)'
+
+  // #420/#422 — the $4 ladder holds at the choke point: enrolling an UNREVEALED
+  // lead auto-charges the $1 reveal first (enrollment implies the reveal — the
+  // reply would expose the contact anyway). Without this, any enroll path would
+  // deliver full outreach for $3 and bypass the reveal charge.
+  if (lead.id) {
+    const { data: row } = await db.from('leads').select('revealed_at').eq('id', lead.id).maybeSingle()
+    if (row && !row.revealed_at) {
+      const { data: revealCharged, error: revealErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
+      if (revealErr || revealCharged !== true) {
+        console.error('[figsy] chargeFigsyEnroll: reveal charge failed for unrevealed lead', lead.id, revealErr?.message ?? 'insufficient reveal credits', 'client', clientId)
+        return false // fail closed — no reveal credit → no enrollment
+      }
+      // Atomic claim; a lost race means someone else revealed — the $1 we just
+      // took is returned to keep the wallet honest.
+      const { data: claimed } = await db.from('leads')
+        .update({ revealed_at: new Date().toISOString() })
+        .eq('id', lead.id).is('revealed_at', null).select('id')
+      if ((claimed ?? []).length === 0) {
+        await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: 1 }).then(() => {}, () => {})
+      } else {
+        await db.from('credit_transactions').insert({
+          client_id: clientId,
+          amount: -1,
+          type: 'usage',
+          plan: 'lead_gen',
+          reference: `reveal:${lead.id}`,
+          note: `Lead revealed at enrollment ($1): ${leadName}`,
+          created_at: new Date().toISOString(),
+        }).then(() => {}, () => {})
+      }
+    }
+  }
+
   const { data: charged, error } = await db.rpc('try_charge_figsy_credit', { p_client_id: clientId })
   // P6 — fail CLOSED: only a hard `true` from the RPC counts as a real charge. A
   // null/undefined return (RPC returned no row, or an unexpected shape) must NOT be

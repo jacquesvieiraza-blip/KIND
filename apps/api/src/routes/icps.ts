@@ -506,25 +506,41 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    // Check credit balance before running — must have at least 1 credit
+    // #420/#422 — browsing is FREE: a run sources MASKED leads (no email exposed,
+    // nothing charged), so a $0 client may run. The wallet gates the REVEAL ($1),
+    // not the sourcing. What bounds our PDL spend instead is the #423 daily
+    // sourcing cap below (PDL is paid at SOURCING, ~$0.28/record).
     const { data: clientCheck } = await db.from('clients')
       .select('credit_balance, first_icp_run_at').eq('id', clientId).single()
 
     const isFirstRun = !clientCheck?.first_icp_run_at
     const currentBalance = clientCheck?.credit_balance ?? 0
 
-    // First-time users: pre-grant 20 trial credits so they can see the platform work
+    // Legacy fallback: pre-mix clients with an empty reveal wallet still get the
+    // welcome reveal credits on first run (post-#425 signups already have them).
     if (isFirstRun && currentBalance < 1) {
       await db.from('clients').update({ credit_balance: 20 }).eq('id', clientId)
       await db.from('credit_transactions').insert({
         client_id: clientId,
         amount: 20,
         type: 'trial_bonus',
-        note: 'Free trial — 20 starter credits',
+        plan: 'lead_gen',
+        note: 'Welcome credits — 20 reveals ($1 each)',
         created_at: new Date().toISOString(),
       })
-    } else if (!isFirstRun && currentBalance < 1) {
-      res.status(402).json({ success: false, error: 'Insufficient credits. Top up at app.get-kind.com/dashboard/billing to continue.' })
+    }
+
+    // #423 — daily sourcing cap: PDL Full is spent when we SOURCE (~50 recs/run),
+    // before any client charge, so cap rows sourced per client per day. 100/day
+    // ≈ 2 runs ≈ ~$28 max COGS exposure per client/day.
+    const SOURCING_DAILY_CAP = 100
+    const dayStart = new Date(); dayStart.setUTCHours(0, 0, 0, 0)
+    const { count: sourcedToday } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .gte('created_at', dayStart.toISOString())
+    if ((sourcedToday ?? 0) >= SOURCING_DAILY_CAP) {
+      res.status(429).json({ success: false, error: `Daily sourcing limit reached (${SOURCING_DAILY_CAP} leads/day) — runs again tomorrow.` })
       return
     }
 

@@ -5,11 +5,14 @@
 // (lead-delivery.ts, icps.ts, internal.ts drip, figsy.ts enrollment) calls these
 // so the lead-gen + FIGSY double-charge (item 166) can never silently come back.
 //
-// The model (founder-locked 16 Jun): ONE lead = ONE charge = ONE wallet, keyed
-// off clients.plan:
-//   • lead_gen → charged once AT DELIVERY  ($1 from credit_balance)
-//   • figsy    → NOT charged at delivery; charged once AT ENROLLMENT
-//                ($3 / 1 credit from figsy_credits_remaining)
+// The model (founder-locked 8 Jul — per-qualified-lead, two charges #420):
+//   • DELIVERY is FREE — leads arrive MASKED (name/company/title/score visible,
+//     email + phone hidden). Browsing costs nothing, so the client can dedup
+//     against their own CRM before spending anything.
+//   • REVEAL = $1 — when the client unmasks a lead they don't already own, $1 is
+//     charged from credit_balance (try_charge_reveal_credit). Once per lead, ever.
+//   • ENROLL (FIGSY work) = $3 — from figsy_credits_remaining at enrollment
+//     (try_charge_figsy_credit). A fully-worked lead = $1 reveal + $3 work = $4.
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type Plan = 'lead_gen' | 'figsy'
@@ -20,31 +23,45 @@ export function normalizePlan(plan: string | null | undefined): Plan {
 }
 
 /**
- * The delivery-time charge decision (item 166). Returns whether a delivered lead
- * is charged AT DELIVERY and from which wallet.
- *   lead_gen → { charge: true,  pool: 'lead_gen' }  → deduct 1 from credit_balance
- *   figsy    → { charge: false, pool: 'lead_gen' }  → delivery is free; the single
- *              FIGSY credit is taken later, at enrollment.
- * The invariant a FIGSY lead is NEVER charged at delivery is what kills the
- * double-charge — guard it with a test, never inline it again.
+ * The delivery-time charge decision. In the per-qualified-lead model (#420),
+ * delivery is ALWAYS free — leads arrive masked and the $1 is taken at REVEAL,
+ * not delivery. Kept as a function (not inlined) so the "delivery never charges"
+ * invariant is guarded by a test and can never silently regress.
  */
-export function deliveryCharge(plan: Plan): { charge: boolean; pool: 'lead_gen' } {
-  return { charge: plan === 'lead_gen', pool: 'lead_gen' }
+export function deliveryCharge(_plan: Plan): { charge: boolean; pool: 'lead_gen' } {
+  return { charge: false, pool: 'lead_gen' }
 }
 
 /**
- * The wallet balance that caps how many leads may be delivered to a client, by
- * plan (item 167). FIGSY-plan clients deliver against the FIGSY pool (so a
- * FIGSY-only client with 0 lead-gen credits can still receive leads); lead-gen
- * clients deliver against the lead-gen balance.
+ * The reveal-time charge (#420/#421). Unmasking a lead costs $1 from the reveal
+ * wallet (credit_balance), regardless of plan. Charged at most once per lead
+ * (gated by leads.revealed_at + the unique reveal ledger row).
  */
+export function revealCharge(): { charge: boolean; pool: 'lead_gen'; amount: number } {
+  return { charge: true, pool: 'lead_gen', amount: 1 }
+}
+
+/** Whether a client can afford to reveal at least one lead (the $1 reveal gate). */
+export function canReveal(creditBalance: number | null | undefined): boolean {
+  return (creditBalance ?? 0) >= 1
+}
+
+/**
+ * How many masked leads may be delivered (made browsable) to a client per drip.
+ * Delivery is FREE now (#420), so this is NO LONGER wallet-gated — a $0 / trial
+ * client must still be able to browse masked leads and choose which to reveal.
+ * Instead it's a flat daily browse allowance that bounds sourcing/enrichment cost
+ * (the #423-lite throttle until per-client sourcing quotas land). Wallet params
+ * are kept in the signature for call-site compatibility but no longer gate.
+ */
+export const DAILY_BROWSE_CAP = 25
+
 export function deliveryCapBalance(
-  plan: Plan,
-  creditBalance: number | null | undefined,
-  figsyCredits: number | null | undefined,
+  _plan: Plan,
+  _creditBalance: number | null | undefined,
+  _figsyCredits: number | null | undefined,
 ): number {
-  const pool = plan === 'figsy' ? (figsyCredits ?? 0) : (creditBalance ?? 0)
-  return Math.max(0, pool)
+  return DAILY_BROWSE_CAP
 }
 
 /**

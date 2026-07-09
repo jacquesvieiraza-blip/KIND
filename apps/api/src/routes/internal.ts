@@ -2352,12 +2352,23 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
     if (!campaigns?.length) { res.json({ success: true, data: { enrolled: 0 } }); return }
 
     let enrolled = 0
+    let capped = 0
+
+    // #374 (AR-37) — the triggers below are STATIC attributes (senior title, company
+    // size), not real deltas, so a client's ENTIRE qualifying book would auto-enrol +
+    // charge in a single run — an unbounded wallet drain + a mass cold-send. Bound each
+    // run: at most INTENT_ENROLL_CAP_PER_CAMPAIGN new enrolments per campaign per run
+    // (env-overridable). True delta detection needs a signal-source feed (follow-up).
+    const INTENT_ENROLL_CAP_PER_CAMPAIGN = Math.max(
+      1, parseInt(process.env.INTENT_ENROLL_CAP_PER_CAMPAIGN || '10', 10) || 10,
+    )
 
     for (const campaign of campaigns) {
       const settings = campaign.settings as Record<string, unknown> ?? {}
       if (!settings.intent_signal_enroll) continue
 
       const signalTypes = (settings.intent_signal_types as string[] | undefined) ?? ['job_change', 'funding']
+      let enrolledThisCampaign = 0
 
       // Find leads for this client/ICP that are scored but not yet enrolled
       // and were updated in the last 7 days (recently changed)
@@ -2397,6 +2408,10 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
 
         if (!triggered) continue
 
+        // #374 — stop this campaign once the per-run cap is hit (the rest wait for the
+        // next run, so no single run can drain the wallet / cold-send the whole book).
+        if (enrolledThisCampaign >= INTENT_ENROLL_CAP_PER_CAMPAIGN) { capped++; break }
+
         // Check not already enrolled in this campaign
         const { data: existing } = await db.from('figsy_enrollments')
           .select('id').eq('lead_id', lead.id).eq('campaign_id', campaign.id).maybeSingle()
@@ -2411,10 +2426,11 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
         const { autoEnrollLead } = await import('../lib/figsy')
         await autoEnrollLead(lead.id, campaign.client_id)
         enrolled++
+        enrolledThisCampaign++
       }
     }
 
-    res.json({ success: true, data: { enrolled } })
+    res.json({ success: true, data: { enrolled, campaigns_capped: capped } })
   } catch (err) {
     console.error('[figsy/check-intent-signals]', err)
     res.status(500).json({ success: false, error: 'Intent signal check failed' })

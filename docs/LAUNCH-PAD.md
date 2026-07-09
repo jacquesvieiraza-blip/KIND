@@ -5,7 +5,7 @@
 
 **THE PLAN (locked 8 Jul):** **one price logic across the whole family — per qualified lead. No subscriptions, no contracts, no order-forms.** Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; **Vida inbound $3** + same add-ons → $4/$5. Sell **FIGSY + Lead-Gen** now; **Milla · Vida · Denise · Tony STAY on site + portal marked "coming soon" + greyed** (built in **M4**, never deleted). **Milestone 0 is the gate** — make FIGSY + Lead-Gen *honest → work fully → proven* before one real client.
 
-**Board:** 🟢111 · 🩷85 · 🟣3 · 🟡23 · 🔴213 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢111 · 🩷92 · 🟣3 · 🟡23 · 🔴206 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
 
 > **📍 STATUS OF RECORD = PRODUCT-INVENTORY (the script-counted board).** This doc no longer carries per-item status dots — they drifted every time the inventory changed. LAUNCH-PAD now lists only **what's next + who owns it**; for the live status of any `#id`, read PRODUCT-INVENTORY. The board number above is the one figure kept in sync (validated by `count-inventory.sh --check`).
 
@@ -50,7 +50,8 @@ Factual staleness (Apollo→PDL+Hunter, subscriptions→per-lead, REEVE/LENA/OTT
 Shipped + founder-walked live → **13 items 🟢** in PRODUCT-INVENTORY: **#405 #394 #408 #419 #430 #417 #418 #348 #403 #409 #366 #411 #416.**
 ⏸ **Held — legal / lawyer track** (not shipped): **#410** (privacy/dpa/terms sub-processor Apollo→PDL+Hunter) · **#413** (Terms §5 rewrite to two-charge) · **#414** (Stripe checkout description) · **#407** (docs Apollo/250M cleanup ledger).
 
-### STEP 2 — PORTAL up to date (same principle)
+### STEP 2 — PORTAL up to date (same principle) — 🩷 SHIPPED, pending founder walk (PR #1021, Fable-audited 2 rounds)
+Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: **#406 #385 #384 #412 #395 #396 #399.** Merge order: **#1021 → `railway up @kind/api` + `@kind/portal` → walk → then 🟢.**
 | Item | What it is | Owner |
 |---|---|:---:|
 | #406 | Portal sweep — every screen: not-real → "coming soon" + grey. **Milla/Vida/Denise/Tony + notetaker greyed; agent subs (#26) unbuyable; billing shows only the two real wallets ($1 reveal · $3 FIGSY) + sells the REVEAL top-up packs ($20/$40/$100 — #420 un-retire). Named sub-rocks: #395 Milla mock "synced" UI · #396 Denise false claims · #399 integrations shell.** | 🤖 |

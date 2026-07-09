@@ -1,4 +1,6 @@
 # 🚶 K.I.N.D — LIVE-FEATURE WALK (the verification checklist)
+
+> ⚠️ 28-Jun snapshot — pre-dates the 8-Jul per-qualified-lead reset. Agent dots below reflect the retired subscription model; status of record = PRODUCT-INVENTORY.
 `Last-checked: 28 Jun 2026` _(trust-walk Batches 1–6 done 26 Jun; yellow/red live-exposure audit done 26 Jun; **the 58 pinks are now driven by `PINK-WALK-CHECKLIST.md`** — founder self-walking Group A. The "Mon 22" dates below are historical; status of record = PRODUCT-INVENTORY)_
 
 > **Purpose:** every feature/element that is LIVE in production, in one tickable list — so we confirm **it all works** and move the board from 🩷 → 🟢. Source of record for status stays `PRODUCT-INVENTORY`; this is the *walk tool* that drives the flips.
@@ -127,11 +129,11 @@
 ---
 
 ## 🤖 The 5 agents (client portal)
-- ⬜ **1 FIGSY** (AI SDR) — finds leads, unique email/lead, 3-step follow-up *(→ 6-step planned, item 212)*, books meetings 🟢
+- ⬜ **1 FIGSY** (AI SDR) — finds leads, unique email/lead, client-built sequences (≤10 steps), booking link in every email (calendar-booking = #361) 🟢
 - ⬜ **2 Milla** (Brain/VA) — drafting, Q&A, weekly brief 🟢
-- ⬜ **3 Vida** (Connector) — website chat widget, captures/routes 🟢 *(WhatsApp PARKED — not a cold channel; inbound-only if ever)*
-- ⬜ **4 Denise** (Closer) — warm follow-up + proposals, sub-gated 🟢
-- ⬜ **Casey** (onboarding) — conversational setup (`/v2/setup`)
+- ⬜ **3 Vida** (Connector) — website chat widget, captures/routes — coming soon (#429, $3/qualified inbound) *(WhatsApp PARKED — not a cold channel; inbound-only if ever)*
+- ⬜ **4 Denise** — reply→close action layer, +$1/qualified lead (coming soon #428)
+- ⬜ **Casey** (onboarding) — conversational setup (`/v2/setup`) *(retired — Tony replaces)*
 
 ## 🎯 Lead gen & data
 - ⬜ 5 ICP builder 🟢 · ⬜ 6 PDL + Hunter sourcing 🟢 · ⬜ 7 AI scoring 0–100 🟢
@@ -140,7 +142,7 @@
 - ⬜ 67 saved views (R8) 🩷 · ⬜ 79 job-change alerts (R20) 🩷 · ⬜ 71 lead-capture forms (R12) 🩷
 
 ## 📣 Outreach / FIGSY
-- ⬜ 14 campaigns CRUD 🟢 · ⬜ 15 Auto-only 🟢 *(Co-pilot / review-before-send toggle HIDDEN #268 — was a false promise: no send/enroll path read `review_required`; `figsy/page.tsx:1140-1142`)* · ⬜ 16 3-step sequences 🟢 *(→ 6-step planned, item 212)*
+- ⬜ 14 campaigns CRUD 🟢 · ⬜ 15 Auto-only 🟢 *(Co-pilot / review-before-send toggle HIDDEN #268 — was a false promise: no send/enroll path read `review_required`; `figsy/page.tsx:1140-1142`)* · ⬜ 16 client-built sequences up to 10 steps (#426)
 - ⬜ 17 reply classification 🟢 · ⬜ 19 mark-booked + KPI 🟢 · ⬜ 22 Suggest Campaigns · FIGSY Chat 🟢
 - ⬜ 20 deliverability suite D1–D5 🟢 · ⬜ 21 warmup 🟢
 - ⬜ 68 "Why FIGSY wrote this" (R9) 🩷 · ⬜ 69 Goals (R10) 🩷 · ⬜ 70 sequence-template library (R11) 🩷
@@ -151,8 +153,8 @@
 - ⬜ 112 NEW Unibox 🩷 · ⬜ 66 "Help me reply" (R7) 🩷 · ⬜ 72 Cmd+K (R13) 🩷 · ⬜ 89 Notification centre 🩷 · ⬜ 50 push notifications 🟢
 
 ## 💳 Billing & payments
-- ⬜ 23 Stripe checkout + webhooks 🟢 · ⬜ 24 Flutterwave wired 🟢 · ⬜ 26 agent per-lead layers (Vida $3 inbound · Milla +$1 · Denise +$1) 🟢 · ⬜ 28 usage tracking 🟢
-- ⬜ 166 double-charge killed 🩷 · ⬜ 167 FIGSY-only delivers 🩷 · ⬜ 168 price tables reconciled 🩷 · ⬜ 169 plan flag 🩷 · ⬜ 170 atomic credits 🩷 · ⬜ 171 credits-panel honesty 🩷
+- ⬜ 23 Stripe checkout + webhooks 🟢 · ⬜ 24 Flutterwave wired 🟢 · ⬜ 26 agent per-lead layers (Vida $3 inbound · Milla +$1 · Denise +$1) — coming soon (#427-#429) · ⬜ 28 usage tracking 🟢
+- ⬜ 166 ladder price correct — $4 = $1 reveal + $3 work (intended two-charge, not a bug — #420) 🩷 · ⬜ 167 FIGSY-only delivers 🩷 · ⬜ 168 price tables reconciled 🩷 · ⬜ 169 plan flag 🩷 · ⬜ 170 atomic credits 🩷 · ⬜ 171 credits-panel honesty 🩷
 - ⬜ 58 Denise +$1/qualified-lead layer 🩷 · ⬜ 136a Invoices 🩷 · ⬜ 190 pause / win-back 🩷
 
 ## 🏢 Company Engine / teams

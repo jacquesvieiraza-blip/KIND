@@ -1,7 +1,7 @@
 # K.I.N.D — End-to-End Smoke Test (prove the money path)
 `Last-checked: 25 Jun 2026`
 
-**Purpose:** verify a real client can sign up → build an ICP → GET leads → run FIGSY → get a reply → book a meeting, with money charged correctly and nothing silently broken. Run this AFTER the pre-flight below. Report failures as `T#-Step# — what I saw` and Claude fixes.
+**Purpose:** verify a real client can sign up → build an ICP → GET leads → run FIGSY → get a reply → record a booking (booking link / mark-booked), with money charged correctly and nothing silently broken. Run this AFTER the pre-flight below. Report failures as `T#-Step# — what I saw` and Claude fixes.
 
 ---
 
@@ -24,7 +24,7 @@
 ## TEST 2 — ICP → Leads (the "client must GET leads" path)
 5. Dashboard → Leads → Build ICP → "Suggest with AI". → **Expect:** form pre-fills.
 6. Save / "Find Leads". → **Expect:** leads appear **immediately** in the list (not empty), each scored 0–100. *(verifies deliver-on-run)*
-7. Check credit balance. → **Expect:** balance dropped by the number of leads delivered (e.g. 20 leads → charged ~20). *(verifies charge-on-delivery)*
+7. Reveal a lead → **Expect:** $1 reveal charge on unmask (`try_charge_reveal_credit`); delivery itself is free/masked — sourcing is quota-limited, not charged per row.
 8. **Activate test:** create a SECOND ICP, click "Set active". → **Expect:** new leads start sourcing for it (not a silent no-op). *(verifies activate→run fix)*
 9. Export CSV. → **Expect:** only delivered leads export; no undelivered/unpaid leads leak. *(verifies delivery gate)*
 
@@ -35,7 +35,7 @@
 13. Pause the campaign. Trigger send again. → **Expect:** NO further emails go out for it. *(verifies paused-campaign send stop)*
 
 ## TEST 4 — Booking + KPI
-14. On the hot reply, connect Google Calendar (or use "Mark as booked"). Book a slot. → **Expect:** `meetings_booked` on the campaign increments; the reply is stamped booked. *(verifies KPI unify)*
+14. On the hot reply, connect Google Calendar (or use "Mark as booked"). Book a slot. → **Expect:** `meetings_booked` on the campaign increments; the reply is stamped booked. *(verifies KPI unify)* (calendar-booking = #361 — until it lands use Mark-as-booked; the live path is the booking LINK)
 
 ## TEST 5 — Billing (paid path)
 15. Buy a credit bundle via Stripe checkout (test mode). → **Expect:** credits added once; balance correct.
@@ -43,7 +43,7 @@
 17. Enable Milla (the **+$1/qualified-lead** layer — no subscription). → **Expect:** Milla unlocks for the account; an account without the Milla layer calling the Milla API directly gets 403. *(verifies Milla API gate)*
 
 ## TEST 6 — Vida widget
-18. Configure a chatbot, copy the embed snippet onto a test page. → **Expect:** the bubble renders (correct API host), is **purple** not blue, a visitor message gets a reply, and a lead is captured. *(verifies Vida host + color + capture)*
+18. Configure a chatbot, copy the embed snippet onto a test page. → **Expect:** the bubble renders (correct API host), is **purple** not blue, a visitor message gets a reply, and a lead is captured. *(verifies Vida host + color + capture)* (Vida = coming-soon; widget smoke only)
 
 ## TEST 7 — Milla & crons hygiene
 19. Confirm a NON-Milla client does NOT receive Milla morning-brief / anomaly emails. *(verifies cron sub-gate)*

@@ -15,7 +15,7 @@ Pink = **live but not verified.** For each: walk it → if it works it's 🟢, i
 | 260 | Blocklist scoped per client | two clients on preview → each sees only their own opt-outs | |
 | 265 | Stripe credit-grant atomic | test-mode purchase + replay the webhook → credits granted once | |
 | 267 | Bounce/complaint suppression | enable `email.bounced`/`email.complained` on the Resend webhook → observe a bounce suppress + pause | |
-| 243 | Apollo-independence (PDL) | set `PDL_API_KEY` in Railway → run an ICP with Apollo keyless → leads return | |
+| 243 | Apollo-independence (PDL) | set `PDL_API_KEY` in Railway → run an ICP with Apollo keyless → leads return — verify `searchPeopleWithFallback` actually returns PDL rows with `APOLLO_API_KEY` unset (code still treats PDL as fallback) | |
 | 272 | Admin Cockpit | `admin.get-kind.com` → Pulse tiles + Needs-you-now + unit economics render with real data | |
 | 274 | Sales Channel | Command Centre → Partners lens shows real partners/deals/commissions (AE/Overall = sample-tagged) | |
 | 275 | Nora | Ask Nora bottom-right → replies, re-greets per screen | |

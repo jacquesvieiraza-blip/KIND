@@ -16,7 +16,7 @@
 | Rung | Price | What the client gets |
 |---|---|---|
 | Reveal (the database) | **$1** | verified contact, theirs to work |
-| + FIGSY works it | **$4** | outreach, client-built sequence ≤10 steps, reply drafts, booking link |
+| + FIGSY works it | **$4 total** ($1 reveal + $3 FIGSY) | outreach, client-built sequence ≤10 steps, reply drafts, booking link |
 | + Milla | **$5** | an *understood* lead (intelligence layer) |
 | + Milla + Denise | **$6** | a *ready-to-send sales motion* (action layer) |
 | **Vida inbound** | **$3** | qualified inbound lead (no reveal — inbound has no data cost) |

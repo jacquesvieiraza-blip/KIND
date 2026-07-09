@@ -1,8 +1,8 @@
 # 🗺️ K.I.N.D — THE SYSTEM FLOW (one page to see the whole machine)
 
-> **What this is:** the plain-English picture of how the whole thing fits together — where leads come from, how they're processed, how they're sent, and the two engines (Instantly vs Smartlead). Built 25 Jun because the moving parts got hard to hold in one head.
+> **What this is:** the plain-English picture of how the whole thing fits together — where leads come from, how they're processed, how they're sent, and the two *planned* sending engines (Instantly vs Smartlead). Built 25 Jun because the moving parts got hard to hold in one head.
 > **Status of record → PRODUCT-INVENTORY** (item IDs in brackets) · **strategy → KIND-MASTER** · **data detail → APOLLO-ENGINE.md** · this is the orientation map only.
-> **Last-checked: 25 Jun 2026.** Reconcile when the engine (211), data layer (243), or GTM changes.
+> **Last-checked: 9 Jul 2026 (reconciled to the per-qualified-lead model).** Reconcile when the engine (211), data layer (243), or GTM changes.
 
 ---
 
@@ -25,6 +25,8 @@
 ---
 
 ## 2. THE TWO ENGINES (the bit that confuses — keep them separate)
+
+**Sending today = Resend. Instantly (#198) is founder-side warmup; Smartlead (#211) is the FUTURE client engine — neither is the live client path.**
 
 | | **Instantly** | **Smartlead** |
 |---|---|---|

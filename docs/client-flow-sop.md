@@ -62,17 +62,16 @@ flowchart TD
 4. Fills in company name, industry, country, phone, website → "Start free trial"
 
 **What happens in the background:**
-- Client record created in DB
-- 14-day trialing subscription created
+- Client record created in DB with pay-per-qualified-lead wallets (no trial subscription) — ⚠️ code still grants a 14-day trial (`auth.ts`) until #425/#431 land
 - Welcome email sent via Resend
 
 5. Dashboard loads — trial banner visible
 6. Client builds ICP → leads appear → explores for 14 days
-7. Day 14 — trial expires → full-screen overlay: "Your trial has ended"
-8. Client clicks "Choose a Plan" → Billing page → selects plan → Stripe → card entered → paid
-9. Webhook fires → subscription flips to active → overlay gone → full access
+7. Access gates on credits, not a trial clock — leads stay masked until a reveal credit is spent
+8. Client goes to Billing → buys reveal/FIGSY credits → Stripe → card entered → paid
+9. Webhook fires → credits granted → charged per qualified lead as leads are revealed/worked
 
-**If they abandon before paying:** subscription stays `trialing (expired)` — no charge ever.
+**If they never buy credits:** no credits purchased → no charge ever — the account simply sits idle.
 
 ---
 
@@ -96,17 +95,17 @@ flowchart TD
 1–4. Identical — client signs up and onboards
 5. Dashboard loads with trial banner
 6. Client goes directly to Billing → selects plan → Stripe → card → payment success
-7. Subscription flips to active immediately
+7. Credits purchased → charged per qualified lead from day 1
 8. No trial overlay, no gates — full access from day 1
 
 ---
 
-## Path 4 — Trial expired, client never paid
+## Path 4 — Credit balance empty, client never paid
 
-1. Trial expires on day 14 → full-screen overlay fires
-2. Client clicks "Choose a Plan" → Billing → pays → active
+1. Credit balance empty (or never funded) → leads stay masked; no reveals, no FIGSY work runs
+2. Client goes to Billing → buys credits → access resumes
 
-**If client abandons entirely:** subscription stays `trialing (expired)` indefinitely. No charge ever. They appear in admin as trial expired.
+**If client abandons entirely:** access gates on credits, not a trial clock — no credits purchased → no charge ever; the account sits idle and shows in admin as never-funded.
 
 ---
 
@@ -146,15 +145,15 @@ flowchart TD
 
 ## Summary table
 
-| Path | Who | Trial? | AE involved? | Works today? |
+| Path | Who | Credits | AE involved? | Works today? |
 |------|-----|--------|-------------|-------------|
-| 1 — Self-service trial | Client | Yes | No | ✅ Yes |
-| 2 — AE-assisted | Client + AE | Yes | Yes | ✅ Yes |
-| 3 — Pay day 1 | Client | Skipped | No | ✅ Yes |
-| 4 — Trial expired, no payment | Client | Expired | Optional | ✅ Yes |
-| 5 — Upgrade to bundle | Active client | No | Admin action | ✅ Yes (manual cancel old sub) |
-| 6 — FIGSY add-on | Active client | No | Yes | ✅ Manual |
-| 7 — Sales demo | AE only | Demo | Yes | ✅ Yes |
+| 1 — Self-service | Client | None at signup — buys to reveal | No | ✅ Yes |
+| 2 — AE-assisted | Client + AE | None at signup — buys to reveal | Yes | ✅ Yes |
+| 3 — Pay day 1 | Client | Bought day 1 — charged per qualified lead | No | ✅ Yes |
+| 4 — Never funded | Client | Empty — account idle, no charge ever | Optional | ✅ Yes |
+| 5 — Upgrade to bundle | Active client | n/a (legacy sub) | Admin action | ✅ Yes (manual cancel old sub) |
+| 6 — FIGSY add-on | Active client | n/a (legacy sub) | Yes | ✅ Manual |
+| 7 — Sales demo | AE only | Demo pool | Yes | ✅ Yes |
 
 ---
 
@@ -170,7 +169,7 @@ flowchart TD
     %% ── COMMON SIGNUP FLOW ──
     SIGNUP[app.get-kind.com/login\nSign up with email + password]
     SIGNUP --> ONBOARD[/onboard\nCompany · Industry · Country · Phone · Website]
-    ONBOARD --> DB_CREATE[(DB: client row created\n14-day trial subscription\nWelcome email via Resend)]
+    ONBOARD --> DB_CREATE[("DB: client row created\nper-lead wallets created (code: trial until #425)\nWelcome email via Resend")]
     DB_CREATE --> DASHBOARD[Dashboard loads\nTrial banner visible]
 
     %% ── PATH 1: SELF-SERVICE TRIAL ──

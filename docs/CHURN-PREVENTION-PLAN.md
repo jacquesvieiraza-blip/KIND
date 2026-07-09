@@ -7,7 +7,7 @@
 
 ## The one-line thesis
 **Acquisition is the accelerator. Retention is the brakes + steering.**
-A new-logo machine with a leaky bucket doesn't grow — it runs a treadmill. At ~$80 blended ARPU and ~91–92% gross margin, a *saved* client is worth a new-logo win **without paying CAC again**. Every point of churn we remove makes every sales effort compound instead of replace.
+A new-logo machine with a leaky bucket doesn't grow — it runs a treadmill. At ~$4/fully-worked lead and ~91–92% gross margin, a *saved* client is worth a new-logo win **without paying CAC again**. Every point of churn we remove makes every sales effort compound instead of replace.
 
 ### Why this is *the* growth lever (be honest about the maths)
 - To net **+10 clients/month** at 5% monthly churn with 50 clients, you must win ~12–13 just to clear the 2–3 you lose. At 10% churn you're winning to stand still.

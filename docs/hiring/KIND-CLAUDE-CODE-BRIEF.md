@@ -25,9 +25,9 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 
 ## 3. The compensation model (engine must match EXACTLY — validate vs the xlsx `Plan Settings` tab)
 **Commission ("20/5/5"):**
-- **Land 20%** — one-time, when a NEW client signs: 20% × first-month MRR.
-- **Retain 5%** — recurring, every month a client stays: 5% × that rep's active book (MRR).
-- **Expand 5%** — one-time, when an EXISTING client upgrades: 5% × MRR increase.
+- **Land 20%** — one-time, when a NEW client signs: 20% × first-month collected revenue.
+- **Retain 5%** — recurring, every month a client stays: 5% × that rep’s active book (collected revenue).
+- **Expand 5%** — one-time, when an EXISTING client upgrades: 5% × collected-revenue increase.
 
 **AE base + ramp guarantee:**
 - Variable target from base via 60/40 mix: variable = base × (1 − mix)/mix (mix 0.6 → variable = base × 0.667). Monthly base = base/12.
@@ -35,15 +35,15 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 - Monthly pay = monthly base + MAX(earned commission, guarantee-that-month). Months 5+: monthly base + earned commission (guarantee 0).
 
 **AE tiers (pay mix 60/40 all):**
-| Tier | Base $/yr | Variable $/yr | OTE $/yr | Avg deal $ MRR | Churn %/mo |
+| Tier | Base $/yr | Variable $/yr | OTE $/yr | Avg deal $/mo (collected) | Churn %/mo |
 |---|---|---|---|---|---|
 | Enterprise | 67,500 | 45,000 | 112,500 | 1,500 | 3% |
 | Mid-Market | 45,000 | 30,000 | 75,000 | 700 | 4% |
 | SMB | 30,000 | 20,000 | 50,000 | 400 | 5% |
 
-**Partners (no base, no guarantee, no expand):** Acquisition **20%** (one-time, new client first-month MRR) + Retention **5%** (recurring, active book). Partner tiers by avg client MRR: SMB $250, Mid $500, Enterprise $750. Churn 4%/mo. Credited via referral code captured at sign-up.
+**Partners (no base, no guarantee, no expand):** Acquisition **20%** (one-time, new client first-month collected revenue) + Retention **5%** (recurring, active book). Partner tiers by avg client collected revenue/mo: SMB $250, Mid $500, Enterprise $750. Churn 4%/mo. Credited via referral code captured at sign-up.
 
-**KIND Agent (self-serve / direct / house):** no partner code & no AE tag → credited to the house. **Revenue only — no base, no commission, no payout.** Modelled avg deal ~$120 MRR, churn ~6%/mo (editable).
+**KIND Agent (self-serve / direct / house):** no partner code & no AE tag → credited to the house. **Revenue only — no base, no commission, no payout.** Modelled avg deal ~$120/mo collected, churn ~6%/mo (editable).
 
 **Margin & P&L:** Gross margin ~91–92%. Net@margin = gross book × ~0.915. Net after sales pay = Net@margin − sales payout. Net after ALL costs = Net after sales pay − operating-team costs.
 
@@ -54,7 +54,7 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 ## 4. The portals
 - **AE portal** (one login per AE, read-only): live book, deals, commission, base, guarantee, total pay. Mirror `KIND-commission-statement.html`.
 - **Partner portal** (one login per partner, read-only): referral code, clients, retention, earnings (20% + 5%).
-- **Admin portal** (founder) = the **live company P&L** (the Master view, live): total sales/new MRR · gross sales (book) · net @ ~91–92% · sales payout (commission + base + guarantee) · operating expenses · net after everything · exit book / run-rate. Plus controls: who's hired, start dates, salaries, **approve-payouts** button.
+- **Admin portal** (founder) = the **live company P&L** (the Master view, live): total sales/new collected revenue · gross sales (book) · net @ ~91–92% · sales payout (commission + base + guarantee) · operating expenses · net after everything · exit book / run-rate. Plus controls: who's hired, start dates, salaries, **approve-payouts** button.
 - **Payouts:** engine calculates → **founder approves (human gate)** → Stripe/payroll pays. **Never auto-pay.**
 
 ## 5. Target roster (admin must hold each as an individual record, own login/actuals)
@@ -66,7 +66,7 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 3. **Admin P&L portal:** the live Master view (§4) + controls.
 4. **AE + partner portals:** read-only personal views.
 5. **Payout approval flow:** calculate → founder approves → pay.
-6. **Metrics + reconciliation:** MRR/churn/NRR; monthly Stripe ↔ books reconciliation.
+6. **Metrics + reconciliation:** revenue run-rate/repeat-purchase retention/NRR; monthly Stripe ↔ books reconciliation.
 
 ## 7. Guardrails
 All currency USD. One repo. Clean small commits. One commission engine, one source of truth (the DB). Rep/partner portals read-only; only the founder writes. Human approval gate before money moves. The HTML calculators + spreadsheet are spec/reference, not the production app. Verify the engine reproduces the tracker's figures before a phase is "done." The spreadsheet stays the founder's planning sandbox — keep it usable.

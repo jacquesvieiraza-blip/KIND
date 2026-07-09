@@ -87,7 +87,7 @@ supabase/migrations/20260518_company_registration.sql
 ### 1e. Verify tables
 
 In Supabase → **Table Editor**, confirm you can see:
-`clients`, `subscriptions`, `leads`, `icps`, `opt_out_blocklist`, `credit_transactions`, `figsy_campaigns`, `figsy_emails`, `figsy_replies`, `assistant_messages`, `chatbot_configs`, `usage_metrics`, `partners`
+`clients`, `subscriptions` (legacy, pre-per-lead), `leads`, `icps`, `opt_out_blocklist`, `credit_transactions`, `figsy_campaigns`, `figsy_emails`, `figsy_replies`, `assistant_messages`, `chatbot_configs`, `usage_metrics`, `partners`
 
 ---
 
@@ -139,7 +139,7 @@ STRIPE_PRICE_LEADGEN_100=price_xxxxx
 STRIPE_PRICE_FIGSY_20=price_xxxxx
 STRIPE_PRICE_FIGSY_40=price_xxxxx
 STRIPE_PRICE_FIGSY_100=price_xxxxx
-# Pricing is per qualified lead (no subscriptions) — there are NO monthly agent price IDs.
+# Pricing is per qualified lead (no subscriptions) — there are NO monthly agent price IDs. (legacy `_MONTHLY` price vars still exist in `stripe.ts` pending #431 — do not create them in Stripe)
 ```
 
 > **⚠️ Silent-failure warning (hard-code audit 28 Jun):** the app boots fine even when the Stripe price IDs, `STRIPE_WEBHOOK_SECRET`, `ADMIN_SECRET_KEY`, or `FIGSY_COLD_FROM` are missing — it just quietly doesn't charge / doesn't send / poisons the domain. Confirm every var above on the live deploy; cross-check the **🔑 GO-LIVE CONFIG** section in LAUNCH-PAD.
@@ -255,7 +255,7 @@ Railway → website service → **Settings** → **Networking** → **Custom Dom
 
 Go to `https://get-kind.com` → you should see the marketing homepage.
 
-> **Note:** the website may alternatively be served via Cloudflare Pages CDN (see MASTER Tier 3) — but the canonical hosting is Railway.
+> **Note:** Website is a Railway Express service (`apps/website`). Cloudflare provides DNS + CDN/failover only — not Pages hosting.
 
 ---
 
@@ -269,13 +269,13 @@ Pricing is **per qualified lead — no subscriptions.** Create the pay-per-lead 
 
 1. Stripe → **Products** → **Add product** — create the **Lead-gen** (reveal) and **FIGSY** credit bundles (20 / 40 / 100).
 2. After creating each product, copy the **Price ID** (`price_xxx...`).
-3. Add the price IDs as Railway env vars (never in code) — the `STRIPE_PRICE_LEADGEN_*` / `STRIPE_PRICE_FIGSY_*` set (see Step 2b / 3b). Milla, Vida and Denise bill per qualified lead when they ship — there are **no `_MONTHLY` recurring products.**
+3. Add the price IDs as Railway env vars (never in code) — the `STRIPE_PRICE_LEADGEN_*` / `STRIPE_PRICE_FIGSY_*` set (see Step 2b / 3b). Milla, Vida and Denise bill per qualified lead when they ship — there are **no `_MONTHLY` recurring products.** (code still defines `_MONTHLY` vars until #431 lands)
 
 ### 6b. Set the webhook URL
 
 1. Stripe → **Developers** → **Webhooks** → **Add endpoint**
 2. URL: `https://kindapi-production-e64c.up.railway.app/webhooks/stripe`
-3. Events to listen for: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`, `invoice.payment_succeeded`, `invoice.payment_failed`
+3. Events to listen for: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted` (legacy until #431 — per-lead needs only checkout.session.completed + invoice events), `invoice.payment_succeeded`, `invoice.payment_failed`
 4. Click **Add endpoint** → copy the **Signing secret** (`whsec_xxx...`) → add to Railway as `STRIPE_WEBHOOK_SECRET`
 
 ### 6c. Test the webhook

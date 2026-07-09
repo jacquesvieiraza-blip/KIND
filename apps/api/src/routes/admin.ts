@@ -480,8 +480,16 @@ adminRouter.post('/seed-leads', async (req: Request, res: Response) => {
     if (!user) { res.status(404).json({ success: false, error: `No user found: ${email}` }); return }
 
     const { data: client, error: clientErr } = await db
-      .from('clients').select('id, company_name').eq('user_id', user.id).single()
+      .from('clients').select('id, company_name, is_demo').eq('user_id', user.id).single()
     if (clientErr || !client) { res.status(404).json({ success: false, error: 'No client for this user' }); return }
+
+    // #363 (AR-25) — this route inserts fabricated demo leads AND overwrites the client's
+    // credit_balance to 50. Run against a REAL client that would clobber their genuine
+    // balance and poison their pipeline with fake leads. Refuse unless is_demo.
+    if (!(client as { is_demo?: boolean }).is_demo) {
+      res.status(403).json({ success: false, error: 'seed-leads is demo-only — refusing to seed a non-demo client (would overwrite real credits + inject fake leads).' })
+      return
+    }
 
     const { data: icp } = await db.from('icps').select('id, name')
       .eq('client_id', client.id).order('created_at', { ascending: false }).limit(1).maybeSingle()

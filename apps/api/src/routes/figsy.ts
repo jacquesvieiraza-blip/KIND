@@ -2051,6 +2051,16 @@ figsyRouter.post('/replies/seed-demo', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
+    // #365 (AR-27) — this endpoint fabricates a 'hot' reply + meeting into REAL stats.
+    // Guarded only by requireAuth, any client could inject fake KPIs into their own
+    // dashboard in production. Allow only outside production, or for a demo client.
+    if (process.env.NODE_ENV === 'production') {
+      const { data: c } = await db.from('clients').select('is_demo').eq('id', clientId).maybeSingle()
+      if (!(c as { is_demo?: boolean } | null)?.is_demo) {
+        res.status(403).json({ success: false, error: 'Demo seeding is disabled for live accounts.' }); return
+      }
+    }
+
     // Pick the most recent active campaign
     const { data: campaign } = await db.from('figsy_campaigns')
       .select('id').eq('client_id', clientId).eq('status', 'active')

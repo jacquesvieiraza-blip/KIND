@@ -204,9 +204,9 @@
 
     /* PROBLEM SECTION */
     .problem-section {
-      background: var(--dark);
+      background: linear-gradient(180deg,#F5F0FF 0%,#FBFAFF 100%);
       padding: 100px 48px;
-      color: #fff;
+      color: #1E1152;
     }
     .problem-inner { max-width: 1080px; margin: 0 auto; }
     .problem-headline {
@@ -217,19 +217,20 @@
       max-width: 700px;
       margin-bottom: 16px;
     }
-    .problem-headline em { font-style: normal; color: rgba(255,255,255,0.3); }
-    .problem-sub { font-size: 0.95rem; color: rgba(255,255,255,0.35); margin-bottom: 64px; }
+    .problem-headline em { font-style: normal; color: rgba(30,17,71,0.28); }
+    .problem-sub { font-size: 0.95rem; color: rgba(30,17,71,0.5); margin-bottom: 64px; }
     .problem-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
     .prob-card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: #fff;
+      border: 1px solid rgba(20,18,45,0.08);
       border-radius: 20px;
       padding: 32px 28px;
+      box-shadow: 0 24px 55px -32px rgba(70,30,130,0.4);
     }
-    .prob-num { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; color: #fff; margin-bottom: 12px; }
-    .prob-num span { font-size: 1rem; font-weight: 400; color: rgba(255,255,255,0.25); }
-    .prob-card h3 { font-size: 1rem; font-weight: 700; color: #fff; margin-bottom: 10px; }
-    .prob-card p { font-size: 0.85rem; color: rgba(255,255,255,0.4); line-height: 1.7; }
+    .prob-num { font-size: 2.4rem; font-weight: 900; letter-spacing: -0.04em; color: #1E1152; margin-bottom: 12px; }
+    .prob-num span { font-size: 1rem; font-weight: 400; color: rgba(30,17,71,0.35); }
+    .prob-card h3 { font-size: 1rem; font-weight: 700; color: #1E1152; margin-bottom: 10px; }
+    .prob-card p { font-size: 0.85rem; color: rgba(30,17,71,0.6); line-height: 1.7; }
 
     /* PRODUCTS */
     .prod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
@@ -1367,7 +1368,7 @@
       <a href="figsy.html" class="nav-link">Product <span class="chevron">&#x25BE;</span></a>
       <div class="nav-dropdown" style="min-width:300px">
         <a href="figsy.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">How FIGSY works</span><span class="dd-sub">Source &rarr; write &rarr; follow up &rarr; book</span></span></a>
-        <a href="#demo" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">See it in action</span><span class="dd-sub">Watch FIGSY build a pipeline</span></span></a>
+        <a href="demo.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">See it in action</span><span class="dd-sub">Watch FIGSY build a pipeline</span></span></a>
         <a href="pricing.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Pricing</span><span class="dd-sub">$1 reveal + $3 work = $4 per lead</span></span></a>
       </div>
     </div>
@@ -1510,13 +1511,13 @@
       <p class="kf-head-line"><span class="grad">One AI rep that never stops</span> — FIGSY learns your market and works your pipeline around the clock.</p>
       <div class="hero-btns" style="justify-content:center">
         <button onclick="openAuth('signup')" class="btn-hero-primary">Get your first leads free →</button>
-        <a href="#demo" class="btn-hero-ghost">See how it works</a>
+        <a href="#figsy" class="btn-hero-ghost">See how it works</a>
       </div>
     </div>
     <div class="fd-hero" aria-label="The FIGSY dashboard">
       <style>
         .fd-hero{width:min(1000px,95vw);margin:26px auto 0}
-        .fd-window{background:#fff;border:1px solid rgba(20,18,45,.08);border-radius:18px;overflow:hidden;box-shadow:0 50px 120px -40px rgba(70,30,130,.45),0 12px 30px -12px rgba(70,30,130,.2)}
+        .fd-window{position:relative;z-index:1;isolation:isolate;background:#fff;border:1px solid rgba(20,18,45,.08);border-radius:18px;overflow:hidden;box-shadow:0 50px 120px -40px rgba(70,30,130,.45),0 12px 30px -12px rgba(70,30,130,.2)}
         .fd-chrome{display:flex;align-items:center;gap:14px;padding:11px 16px;background:#faf8fe;border-bottom:1px solid rgba(20,18,45,.07)}
         .fd-dots{display:flex;gap:6px}.fd-dots span{width:11px;height:11px;border-radius:50%}
         .fd-dots span:nth-child(1){background:#ff5f57}.fd-dots span:nth-child(2){background:#febc2e}.fd-dots span:nth-child(3){background:#28c840}
@@ -1531,10 +1532,10 @@
         .fd-agent-name{color:#fff;font-weight:800;font-size:.9rem;line-height:1.1}
         .fd-agent-role{color:#7fe3b0;font-size:.66rem;font-weight:600;display:flex;align-items:center;gap:5px}
         .fd-agent-role::before{content:"";width:6px;height:6px;border-radius:50%;background:#34d399}
-        .fd-nav{display:flex;flex-direction:column;gap:3px}
+        .fd-nav{display:flex;flex-direction:column;gap:5px;position:relative;z-index:2;background:#0F0929}
         .fd-nav a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;color:#9b8ec4;font-size:.8rem;font-weight:600;text-decoration:none}
         .fd-nav a svg{width:15px;height:15px;opacity:.9}
-        .fd-nav a.on{background:rgba(124,58,237,.22);color:#fff}
+        .fd-nav a.fd-on{background:rgba(124,58,237,.30);color:#fff;transform:none;box-shadow:none;font-size:.8rem}
         .fd-nav .fd-badge{margin-left:auto;background:#7C3AED;color:#fff;font-size:.6rem;font-weight:800;padding:1px 7px;border-radius:100px}
         .fd-credits{margin-top:auto;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:11px 12px;color:#9b8ec4;font-size:.66rem;font-weight:600}
         .fd-credits b{display:block;color:#fff;font-size:1.25rem;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
@@ -1577,7 +1578,7 @@
               <div><div class="fd-agent-name">FIGSY</div><div class="fd-agent-role">AI SDR</div></div>
             </div>
             <nav class="fd-nav">
-              <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
+              <a class="fd-on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
               <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 6a3.2 3.2 0 0 1 0 7"/></svg>Leads</a>
               <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9a2 2 0 0 0-3-3L5 17v3z"/></svg>Campaigns</a>
               <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Sequences</a>
@@ -1859,7 +1860,7 @@
       </div>
     </div>
     <div style="text-align:center;margin-top:48px">
-      <p style="display:inline-block;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-0.01em;border-bottom:2px solid #7C3AED;padding-bottom:4px">When FIGSY is running &mdash; your pipeline growth is unlimited.</p>
+      <p style="display:inline-block;font-size:1.1rem;font-weight:700;color:#1E1152;letter-spacing:-0.01em;border-bottom:2px solid #7C3AED;padding-bottom:4px">When FIGSY is running &mdash; your pipeline growth is unlimited.</p>
     </div>
   </div>
 </div>
@@ -2034,26 +2035,6 @@
 
 <!-- Every Team Wins removed: redundant 4th agent showcase -->
 
-<!-- VIDEO DEMO -->
-<div class="video-section" id="demo" style="scroll-margin-top:88px">
-  <div class="video-inner">
-    <div class="video-header reveal">
-      <div class="s-label" style="text-align:center">See it in action</div>
-      <div class="s-title" style="text-align:center;font-size:clamp(1.8rem,3.5vw,2.8rem)">Watch K.I.N.D build your pipeline.</div>
-      <p style="text-align:center;color:rgba(0,0,0,0.4);font-size:0.95rem;margin-top:8px">A 90-second walkthrough of the full lead gen flow.</p>
-    </div>
-    <div class="video-wrap">
-      <iframe
-        src="figsy-video.html"
-        title="FIGSY &mdash; see it build a pipeline"
-        frameborder="0"
-        allow="autoplay"
-        style="position:absolute;inset:0;width:100%;height:100%;border:0;"
-      ></iframe>
-    </div>
-  </div>
-</div>
-
 <!-- STATS -->
 <div class="stats-section">
   <div class="stats-inner">
@@ -2097,56 +2078,6 @@
         <span class="popia-pill">GDPR aligned</span>
       </div>
     </div>
-  </div>
-</div>
-
-<!-- PRICING -->
-<div class="pricing-section" id="pricing">
-  <div class="pricing-inner">
-    <div class="pricing-header">
-      <div class="s-label" style="text-align:center">Pricing</div>
-      <div class="s-title" style="text-align:center;max-width:none">Pay for results, not promises.</div>
-      <p style="font-size:1rem;color:rgba(0,0,0,0.4);margin-top:8px">Pay per qualified lead — $1 to reveal, $4 fully worked by FIGSY. No subscriptions, no contracts.</p>
-    </div>
-    <!-- Two live products: Lead-Gen ($1 reveal, data-only) + FIGSY ($4 = $1 reveal + $3 work). -->
-    <div class="p-cards" style="grid-template-columns:repeat(2,1fr);justify-content:center;max-width:820px;margin:0 auto;gap:18px">
-      <div class="p-card">
-        <div class="p-plan">Lead-Gen</div>
-        <h3>Lead-Gen &mdash; the database</h3>
-        <p>Net-new, ICP-matched, verified B2B contacts revealed on demand. The data layer &mdash; no outreach. Add FIGSY (+$3) for the full $4.</p>
-        <div class="p-price">$1<span style="font-size:1rem;font-weight:400;color:rgba(0,0,0,0.3)">/qualified lead</span></div>
-        <div class="p-note">Reveal credits in bundles &middot; credits never expire</div>
-        <div class="p-divider"></div>
-        <ul>
-          <li>ICP-matched B2B lead sourcing</li>
-          <li>Verified contact (PDL + Hunter)</li>
-          <li>AI lead score 0&ndash;100</li>
-          <li>Suppression-checked &middot; CRM dedup</li>
-          <li>CSV export &middot; GDPR-compliant delivery</li>
-        </ul>
-        <a href="https://app.get-kind.com/login" class="p-btn p-btn-dark">Get started free &rarr;</a>
-      </div>
-      <div class="p-card featured">
-        <div class="p-badge">The product</div>
-        <div class="p-plan">FIGSY</div>
-        <h3>FIGSY &mdash; your AI SDR</h3>
-        <p>Everything in Lead-Gen, plus FIGSY personalised outreach, follow-up and a booking link. Pay only for qualified leads.</p>
-        <div class="p-price">$4<span style="font-size:1rem;font-weight:400;color:rgba(255,255,255,0.3)">/qualified lead</span></div>
-        <div class="p-note">$1 reveal + $3 FIGSY work &middot; FIGSY credits 20 ($60) &middot; 40 ($120) &middot; 100 ($300) &middot; never expire</div>
-        <div class="p-divider"></div>
-        <ul>
-          <li>Everything in Lead-Gen</li>
-          <li>FIGSY personalised outreach (unique per lead)</li>
-          <li>Client-built sequences, up to 10 steps</li>
-          <li>Reply tracking &amp; opt-out management</li>
-          <li>Booking link in every email &middot; calendar booking launching</li>
-          <li>Free to start &mdash; no card required</li>
-        </ul>
-        <a href="https://app.get-kind.com/login" class="p-btn p-btn-white">Get started free &rarr;</a>
-      </div>
-    </div>
-    <p style="text-align:center;margin-top:22px;font-size:0.9rem;color:rgba(0,0,0,0.5)">Need higher volume or custom onboarding? <a href="mailto:hello@get-kind.com?subject=FIGSY%20volume%20enquiry" style="color:var(--blue);text-decoration:none;font-weight:600">Let&rsquo;s talk &rarr;</a></p>
-    <p class="p-vol-note"><strong>GDPR &amp; POPIA compliant &middot; No contracts &middot; No subscription &middot; Pay per lead, not per seat</strong> &middot; USD billing &middot; <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.3);text-decoration:none">hello@get-kind.com</a></p>
   </div>
 </div>
 

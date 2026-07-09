@@ -17,6 +17,28 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 ---
 
+# ░ 🎯 AGENT CAPABILITY SPECS — the feature set per agent (founder-locked 9 Jul) ░
+
+> **Features only — pricing lives in the money model (#420).** This is the M4 build scope for each agent's capabilities: what each does today vs what it will do. FIGSY is the live qualification engine (M0); **Milla · Denise · Vida capabilities are 🔴 M4** (kept "coming soon" on the site until built one at a time). Inventory status items: **FIGSY** = M0 build · **Milla** #2 / #427 · **Denise** #4 / #428 · **Vida** #3 / #429. Nothing here changes a status dot.
+
+## FIGSY — qualified B2B lead sourcing *(the core qualification engine — the "qualified lead" metric belongs here)*
+**Current (M0 — live/building):** ICP-matched B2B lead sourcing · AI lead score 0–100 · personalised outreach per lead · follow-up sequences (≤10 steps, #212) · reply tracking + drafts for approval · booking link in every email · GDPR/PECR-compliant workflow · CRM dedup + CSV export.
+**Soon:** books meetings into calendar (#361) · LinkedIn outreach (#388).
+
+## Milla — lead intelligence layer *(turns a qualified lead into an **understood** lead — not "AI that answers questions")*
+**Current (built):** business-knowledge + document recall · ask-anything grounded answers · what's-converting insights.
+**🔴 M4 additional build scope (per-lead layer, #427):** explains why this lead is a fit · matches the lead to the right product/service · identifies likely pain points · suggests the best outreach angle · pulls relevant company context into the lead card · adds source-backed reasoning where possible · creates "what to say to this lead" notes · highlights similar past wins / converting patterns · flags weak-fit or risky leads before outreach · suggests which offer/message to use.
+
+## Denise — sales action layer *(turns a qualified lead into a **ready-to-send sales motion** — not "AI that writes emails")*
+**Current (built):** objection handling · proposal drafts · follow-up until the deal closes.
+**🔴 M4 additional build scope (per-lead layer, #428; boundary R2 — FIGSY owns cold→first-reply, Denise owns reply→close):** writes the first outreach message · creates a 3-step follow-up pack · suggests the next best action · generates objection replies · prepares call notes · writes proposal intro/context · creates post-call follow-up drafts · summarises buyer intent · recommends urgency level · flags deals that need chasing · suggests when to stop following up · turns Milla's insights into actual sales copy.
+
+## Vida — inbound qualification layer *(turns website + WhatsApp visitors into **qualified leads**)*
+**Current (built):** website chat widget · WhatsApp inbound · 24/7 visitor qualification + capture.
+**🔴 M4 additional build scope (inbound engine, #429):** qualifies inbound visitors against the same ICP rules · captures name/company/email/phone/need · scores inbound leads 0–100 · detects urgency + buyer intent · filters out spam + bad-fit enquiries · summarises the conversation · suggests the next best reply · routes hot leads for immediate follow-up · adds booking link when appropriate · pushes qualified inbound into CRM/export · hands off to Denise for follow-up copy · hands off to Milla for company-specific context.
+
+---
+
 # ░ WHAT'S BUILT — MOVED ░
 > **🚨 15 Jun — THE WHOLE PRODUCT IS LIVE.** #502 (merged via #564) was a superset of its dev branch — it shipped the Company Engine + design screens 80–91 + **all 20 R-wave features R1–R20** to prod. **PRs #506–#525 are redundant → close, don't merge.** 3 owed prod migrations: R2 `daily_brief_enabled` · R15 `figsy_knowledge` · R20 `job_changed_at`. **Active focus = the FEATURE-VERIFICATION WALK** (LAUNCH-PAD §13) — confirm every live feature works with real data **by THU 18 (founder away Fri 19)**; anything broken drops 🟢→🔴 and gets fixed same-day. **MON 15 closed out:** Company Engine + R1–R20 live · 3 R-train migrations run · Hunter+PDL keys set · 21 redundant PRs closed · Denise $39 · terms docs uploaded.
 > The full Wave 1/2/Tier-3 release tables + Company Engine + shell/staging status live ONLY in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)**.

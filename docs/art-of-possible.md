@@ -21,7 +21,7 @@ That loop, working reliably, for 20+ paying clients, is the foundation everythin
 | Gate | Why |
 |------|-----|
 | 20+ paying clients | Real usage data. Features built on assumptions are wrong features. |
-| Apollo Professional plan live | No data = no patterns to learn from |
+| PDL Full + Hunter data live | No data = no patterns to learn from |
 | FIGSY reply classification running cleanly | Entire self-improving loop depends on this |
 | `figsy_memory` table populated (3 months) | ICP learning engine has nothing until then |
 | Resend inbound routing live | Reply data is lost without this |
@@ -102,7 +102,7 @@ Lemlist combines email + LinkedIn connection + LinkedIn message in one sequence.
 Apollo is the most important company in K.I.N.D's world — simultaneously the data source powering the product, a partial competitor, and the most instructive product to study at scale.
 
 **What Apollo actually is:**
-- Contact database — 275M+ professional contacts. This is what K.I.N.D calls via API.
+- Contact database — 275M+ professional contacts. (K.I.N.D's own sourcing is PDL Full + Hunter; Apollo is optional BYOK.)
 - Sequences — DIY outreach automation. This is where Apollo overlaps with FIGSY.
 - CRM / pipeline — Deals, calls, Salesforce sync. K.I.N.D doesn't play here yet.
 
@@ -141,8 +141,8 @@ Instead of a stats page — a live ops centre. Three columns, real-time, everyth
 | Agent | Role | When |
 |-------|------|------|
 | FIGSY | AI SDR — outbound prospecting + sequences | ✅ Live |
-| Milla | Virtual Assistant — business knowledge + queries | ✅ Live — Jun 2026 |
-| Vida | Chatbot — website inbound qualifier *(WhatsApp parked — not a cold channel)* | ✅ Live — Jun 2026 |
+| Milla | Virtual Assistant — business knowledge + queries | 🔜 Coming soon |
+| Vida | Chatbot — website inbound qualifier *(WhatsApp parked — not a cold channel)* | 🔜 Coming soon |
 | REEVE | AI AE — books + runs discovery calls via voice | Year 2 |
 | LENA | AI CS — onboarding, check-ins, churn prevention | Year 2 |
 | OTTO | AI Ops — pipeline analysis, revenue forecasting, anomaly escalation | Year 2 |
@@ -441,8 +441,8 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 
 ### What We Exploit (Their Gap)
 - Lemlist is a tool — you still have to write the emails and manage replies manually
-- FIGSY writes the emails AND handles the replies autonomously
-- Lemlist = $59/mo just for the sending tool. KIND = $1/$3 per credit, full AI SDR included
+- FIGSY writes the emails AND drafts the replies for approval
+- Lemlist = $59/mo just for the sending tool. KIND = per qualified lead (from $1 reveal), full AI SDR included
 - No African contact coverage. No POPIA compliance. *(Note: we bill USD — "ZAR billing" is no longer a KIND advantage.)*
 
 ### What We Don't Build (Their Feature)
@@ -494,16 +494,16 @@ That content drives SEO, builds trust, and positions K.I.N.D as the category aut
 
 **URL:** https://app.apollo.io
 **Category:** Lead data + sequences
-**Studied:** Ongoing — Apollo is our primary data source
+**Studied:** Ongoing — Apollo is an optional BYOK source (primary sourcing = PDL Full + Hunter)
 **Status:** ✅ Integrated (free plan → upgrade after client 1)
 
 ### Our Relationship with Apollo
 
-Apollo is a supplier, a partial competitor, and the most instructive product to study at scale. They power K.I.N.D's entire lead database. K.I.N.D calls their API — Apollo gets paid per credit used.
+Apollo is a partial competitor and the most instructive product to study at scale. K.I.N.D's own sourcing runs on PDL Full (sourcing) + Hunter (reveal); Apollo is an optional BYOK source, not the primary database.
 
 Where we compete: FIGSY vs Apollo Sequences. Non-overlapping buyers — Apollo sells toolboxes to in-house SDR teams. K.I.N.D sells managed outcomes to founders.
 
-Where we don't compete: Apollo's 275M+ contact database (we depend on it), enterprise CRM, US/EU enterprise tooling.
+Where we don't compete: Apollo's 275M+ contact database, enterprise CRM, US/EU enterprise tooling.
 
 ### What We Learn From Apollo (to build)
 

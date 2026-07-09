@@ -1,5 +1,5 @@
 # K.I.N.D — Full Roadmap Audit
-> 🗄️ **ARCHIVE (22 Jun) — pre-launch (14 May) roadmap verification, superseded by `PRODUCT-INVENTORY`.** Useful only as the most complete early API/endpoint catalogue (noted in DOC-MAP). Do not build from this. `Last-checked: 22 Jun 2026`.
+> 🗄️ **ARCHIVE (22 Jun) — pre-launch (14 May) roadmap verification, superseded by `PRODUCT-INVENTORY`.** Useful only as the most complete early API/endpoint catalogue (noted in DOC-MAP). Do not build from this. **Pricing/model here is stale** — the current model is the **per-qualified-lead ladder** ($1 reveal → +$3 FIGSY = $4 → +$1 Milla/Denise; Vida inbound $3; no monthly subscriptions), data = **PDL + Hunter**, and Milla/Vida/Denise are **coming soon**. See `docs/LAUNCH-PAD.md`. `Last-checked: 22 Jun 2026`.
 
 *Compared against original roadmap document · 14 May 2026*
 *Do not build anything from this document without explicit instruction.*

@@ -40,7 +40,7 @@
 ## TEST 5 — Billing (paid path)
 15. Buy a credit bundle via Stripe checkout (test mode). → **Expect:** credits added once; balance correct.
 16. (If possible) replay the same Stripe webhook. → **Expect:** credits NOT doubled. *(verifies webhook idempotency)*
-17. Subscribe to Milla. → **Expect:** Milla unlocks; a non-subscriber calling the Milla API directly gets 403. *(verifies Milla API gate)*
+17. Enable Milla (the **+$1/qualified-lead** layer — no subscription). → **Expect:** Milla unlocks for the account; an account without the Milla layer calling the Milla API directly gets 403. *(verifies Milla API gate)*
 
 ## TEST 6 — Vida widget
 18. Configure a chatbot, copy the embed snippet onto a test page. → **Expect:** the bubble renders (correct API host), is **purple** not blue, a visitor message gets a reply, and a lead is captured. *(verifies Vida host + color + capture)*

@@ -1,5 +1,5 @@
 # K.I.N.D — Client Flow SOP
-*Last-checked: 1 Jul 2026 — added the locked SENDING & ONBOARDING MODEL (below). The 7 signup/billing paths further down are unchanged (note: Lead-Gen is being retired → single $3 FIGSY, so Paths 5–6 will simplify).*
+*Last-checked: 1 Jul 2026 — added the locked SENDING & ONBOARDING MODEL (below). The 7 signup/billing paths further down are unchanged (note: pricing is now **per qualified lead, no subscriptions** — $1 reveal → +$3 FIGSY — so the legacy Lead-Gen subscription is retired and Paths 5–6 will simplify).*
 
 > **This is the SOP — the standard operating procedures for how the business runs.** It owns the *procedures/flows*; status lives in PRODUCT-INVENTORY, execution in LAUNCH-PAD. Linked from DOC-MAP.
 
@@ -112,7 +112,7 @@ flowchart TD
 
 ## Path 5 — Active client upgrades (Lead Gen → Lead Gen + FIGSY bundle) — ⚠️ LEGACY-ONLY
 
-> **⚠️ 3 Jul:** `lead_gen` is **RETIRED FROM SALE (#284/#911)** — every new signup creates `plan: 'figsy'` (`auth.ts:126`). This path applies ONLY to the handful of legacy clients still on a `lead_gen` subscription; no new client can enter it. New clients are FIGSY from day one, so there is no "upgrade" step.
+> **⚠️ 3 Jul:** the old standalone `lead_gen` **subscription** is **RETIRED FROM SALE (#284/#911)** — pricing is now **per qualified lead**: every signup gets the **$1 reveal** base layer with FIGSY as the **+$3** layer on top (`plan: 'figsy'`, `auth.ts:126`). This path applies ONLY to the handful of legacy clients still on an old `lead_gen` subscription; no new client can enter it. New clients are on the per-lead ladder from day one, so there is no "upgrade" step.
 
 1. *(Legacy)* Active client on Lead Gen → Billing → sees FIGSY products
 2. Selects FIGSY bundle → Stripe → payment
@@ -136,7 +136,7 @@ flowchart TD
 
 1. AE goes to admin.get-kind.com → Demo Environments
 2. Fills in: prospect name, company name, industry, country, expiry date, AE name
-3. System creates: real Supabase user + client + all 4 products active + runs a real ICP (PDL discovery)
+3. System creates: real Supabase user + client + FIGSY + Lead-Gen active (Milla/Vida/Denise coming soon) + runs a real ICP (PDL discovery)
 4. Leads start appearing within minutes
 5. AE clicks "Open Demo" → portal opens in new tab, logged in as the demo client
 6. AE walks the prospect through the live platform — real leads, real scores
@@ -213,7 +213,7 @@ flowchart TD
 
     %% ── PATH 7: SALES DEMO ──
     DEMO_FORM[Fill in: prospect name · company\nindustry · country · expiry · AE]
-    DEMO_FORM --> DEMO_CREATE[(System creates:\nReal Supabase user + client\nAll 4 products active\nICP runs automatically (PDL))]
+    DEMO_FORM --> DEMO_CREATE[(System creates:\nReal Supabase user + client\nFIGSY + Lead-Gen active (rest coming soon)\nICP runs automatically (PDL))]
     DEMO_CREATE --> DEMO_LEADS[Real leads appear\nwith AI scores]
     DEMO_LEADS --> OPEN_DEMO[AE clicks Open Demo\nPortal opens as demo client]
     OPEN_DEMO --> DEMO_WALKTHROUGH[AE walks prospect through\nlive platform]

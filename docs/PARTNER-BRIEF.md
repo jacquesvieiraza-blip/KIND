@@ -1,18 +1,18 @@
 # 🤝 K.I.N.D — Partner Brief & Sales One-Pager
 `Last-checked: 25 Jun 2026`
 
-> ⚠️ **STALE PRICING (flagged 30 Jun):** this still shows the old two-product model (Lead Gen $1/lead + FIGSY $3). **Lead Gen is being retired → single FIGSY product at $3/credit** (decision 29 Jun, builds Wed 1 Jul). Do not quote the $1 lead-only tier. Current pricing: see LAUNCH-PAD after the Wed build.
+> ⚠️ **PRICING (locked):** per **qualified lead**, no subscriptions. Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; Vida inbound $3 (+$1/+$1 → $4/$5). Quote the ladder — the **$1 reveal is live** (supersedes the old "retire $1 / single $3" note). The monthly bundles below are historical.
 
 *For approved K.I.N.D partners. Everything you need to sell K.I.N.D to small businesses — the pitch, the trade playbooks, pricing, and how you earn.*
 
 ---
 
 ## What K.I.N.D is (the 20-second pitch)
-**An AI sales team for small businesses — that runs itself.** Four AI agents find leads, write and send personalised outreach, follow up, and book meetings, so the owner just shows up and closes.
-- **FIGSY — The Opener (AI SDR):** finds qualified leads, writes a unique email per lead, sends + follows up (a multi-step sequence), books the meeting.
-- **Milla — The Brain:** reads the numbers, answers business questions, sends a weekly brief.
-- **Vida — The Connector:** website chat widget, qualifies inbound 24/7. *(WhatsApp is not a cold channel.)*
-- **Denise — The Closer:** warm follow-up on quiet prospects, confirms meetings, drafts proposals.
+**An AI sales team for small businesses.** Four AI agents find leads, draft personalised outreach and follow-ups, and drop a booking link in front of warm replies — so the owner just approves, shows up, and closes.
+- **FIGSY — The Opener (AI SDR):** finds qualified leads, drafts a unique email per lead, follows up (a multi-step sequence), and shares a booking link for warm replies.
+- **Milla — The Brain (coming soon):** reads the numbers, answers business questions, sends a weekly brief.
+- **Vida — The Connector (coming soon):** website chat widget, qualifies inbound 24/7. *(WhatsApp is not a cold channel.)*
+- **Denise — The Closer (coming soon):** warm follow-up on quiet prospects, confirms meetings, drafts proposals.
 
 **Why it lands:** outcome pricing (you pay for results, not seats), starts in under 5 minutes, no card for the trial, compliance built in (GDPR / POPIA).
 
@@ -35,8 +35,8 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 
 ## 💷 Pricing (USD — simple, outcome-based)
 **Two things a client buys:**
-1. **FIGSY outreach** — **$3 per lead** (found + a personalised multi-step sequence written & sent). Bundles: **20 = $60 · 40 = $120 · 100 = $300.** *(The old $1 lead-only tier is RETIRED #284 — FIGSY $3 is the single product.)*
-2. **The agents** (monthly): **Milla $49 · Vida $29 · Denise $39** → all three = **$117/mo**. *(⚠️ Denise price shows $99/mo on the website `denise.html` — reconcile: pick one and centralise in `packages/shared` PRICING. Open question in the 3 Jul audit.)*
+1. **Reveal a verified contact — $1/lead.** Add **FIGSY** drafted outreach for **+$3 → $4/lead** (a personalised multi-step sequence drafted for approval).
+2. **The agents** (per qualified lead — no subscription): **+$1 Milla · +$1 Denise · Vida inbound $3**. So the ladder is $1 reveal → $4 (FIGSY) → $5 (+Milla) → $6 (+Denise). *(⚠️ website `denise.html` still shows a monthly price — reconcile to the per-lead layer and centralise in `packages/shared` PRICING.)*
 
 **Ready-made bundles to quote:**
 | Bundle | Price/mo | What's in it |

@@ -1,8 +1,8 @@
 # KIND Sales Playbook
 
-> ⚠️ **STALE PRICING (audit 1 Jul):** the Lead Gen $20/$40/$100 bundle lines below reflect the **retired $1 Lead-Gen tier**. Product is moving to a **single $3 FIGSY credit** (#239/#283). Treat the $1 bundle numbers as historical; pricing source of truth = `run-costs-and-cashflow.md` §3.
+> ⚠️ **PRICING (locked):** per **qualified lead**, no subscriptions. Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; Vida inbound $3 (+$1/+$1 → $4/$5). The $1/$3-credit, bundle and monthly-sub lines below are historical; pricing source of truth = `run-costs-and-cashflow.md` §3.
 > Version 1.0 — May 2026 · For internal use only
-> `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat** $29 — WhatsApp is NOT a cold channel) · Denise (Closer $39) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
+> `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat**, +$1/qualified inbound lead — WhatsApp is NOT a cold channel) · Denise (Closer, +$1/qualified lead) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
 > 🌍 **GTM = TWO-TRACK (25 Jun):** **US/UK/EMEA via OUR OWN outreach** (dogfood FIGSY) + **Africa via DIRECT (data, item 243) + partners** — supersedes the old "Africa-first." Cold legal in US/UK/IE/FR/NL (avoid DE/PL).
 > ⚠️ **REPLY-RATE CORRECTION (23 Jun):** the "8% — our actual average" lines below were an **UNVALIDATED target, never measured** — do NOT present 8% as a result. **Plan + quote 2–3%** (cold industry average) until live campaigns prove otherwise; in-call, say "we'll show you *your* real numbers in the trial." **Sequence is being rebuilt to the Apollo blueprint — 4–6 multi-channel steps** (was 3-step Day 0/4/9 — tracked as item 212; not built yet, so the product still sends 3; **our sequences are weak today — do NOT pitch sequencing as a strength yet**). Funnel maths: `run-costs-and-cashflow.md` §"funnel targets".
 
@@ -243,7 +243,7 @@ Navigate to: **Billing**
 
 **"We already use Lemlist / Instantly / Apollo."**
 
-"Those are great tools — and they're built for global markets. The problem is their data in Africa is thin. SA, NG, KE contacts are often out of date, wrong email addresses, wrong titles. KIND's database is built specifically for the African B2B market, and our scoring layer tells you which leads are actually worth reaching out to. It's not a replacement for your sequencer — it's the missing intelligence layer. A lot of our clients use KIND's leads and scoring, then push to their existing tool. But most switch to FIGSY because it's already connected."
+"Those are great tools — and they're built for global markets. The problem is their data in Africa is thin. SA, NG, KE contacts are often out of date, wrong email addresses, wrong titles. KIND's data is verified and targeted across global markets (with deep Africa coverage), and our scoring layer tells you which leads are actually worth reaching out to. It's not a replacement for your sequencer — it's the missing intelligence layer. A lot of our clients use KIND's leads and scoring, then push to their existing tool. But most switch to FIGSY because it's already connected."
 
 ---
 
@@ -330,7 +330,7 @@ Based on our discovery conversation, here's what we recommend:
 | Starter | 500 credits | 5–15 leads/week | $[X] |
 | Growth | 1,500 credits | 15–40 leads/week | $[X] |
 | Pro | 5,000 credits | 40+ leads/week | $[X] |
-*(Map tiers to the live bundles: Lead Gen $20/$40/$100 · FIGSY $60/$120/$300 — `run-costs-and-cashflow.md` §3. Add agent subs where they fit: Milla $49 · Vida $29 · Denise $39.)*
+*(Pricing is per qualified lead, no subscriptions: $1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6; Vida inbound $3. Map recommended volumes accordingly — `run-costs-and-cashflow.md` §3.)*
 
 **Recommended for [Company]:** [Tier] — [reason based on their target volume from discovery].
 

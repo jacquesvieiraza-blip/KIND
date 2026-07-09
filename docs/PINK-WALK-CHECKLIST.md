@@ -20,7 +20,7 @@ Pink = **live but not verified.** For each: walk it → if it works it's 🟢, i
 | 274 | Sales Channel | Command Centre → Partners lens shows real partners/deals/commissions (AE/Overall = sample-tagged) | |
 | 275 | Nora | Ask Nora bottom-right → replies, re-greets per screen | |
 | 15 | Auto/Co-Pilot modes *(re-dotted 🟢→🩷: review-gate refuted, #268)* | modes UI works; do NOT trust "review before send" until #268 ships — everything auto-sends | |
-| 283 | Website $1→$3 single-FIGSY *(LIVE 2 Jul, #883)* | walk `www.get-kind.com`: index · pricing · figsy · vs-hiring · use-cases · solutions · partners all show **$3/lead · $60/$120/$300 bundles**, zero $1/$20; ToS reads $3-only (⛔ + your legal sign-off). ⚠️ do NOT drive prospects until #284 (product mismatch) is fixed | |
+| 283 | Website per-lead ladder *(LIVE 2 Jul, #883)* | walk `www.get-kind.com`: index · pricing · figsy · vs-hiring · use-cases · solutions · partners all show the **ladder — $1 reveal + $3 FIGSY = $4/qualified lead** (no subscriptions); ToS matches the ladder (⛔ + your legal sign-off). ⚠️ do NOT drive prospects until #284 (product mismatch) is fixed | |
 | 264 | Webhook replay guard *(code LIVE 2 Jul, #884)* | **first run migration `20260702_webhook_idempotency.sql`** → then resend a webhook from the Resend dashboard → no duplicate reply row / CRM push / top-up charge | |
 
 ---
@@ -87,13 +87,13 @@ Pink = **live but not verified.** For each: walk it → if it works it's 🟢, i
 *Billing correctness — confirm on your next real payment, not by clicking.*
 | # | Item | How it's confirmed | Your note |
 |---|------|--------------------|-----------|
-| 166 | Double-charge killed | one real FIGSY charge = $3 once, not $4 | |
-| 167 | FIGSY-only bundle delivers | FIGSY-only client gets leads | |
-| 168 | 3 price tables reconciled | checkout price = displayed price | |
+| 166 | Ladder price correct | one qualified lead = **$4 = $1 reveal + $3 FIGSY work** (the intended price, not a double-charge bug) | |
+| 167 | Per-lead ladder delivers | qualified-lead client gets leads on the ladder ($1 reveal → +$3 FIGSY) | |
+| 168 | Price tables reconciled to the ladder | checkout price = displayed ladder price | |
 | 169 | clients.plan flag | client billed on correct plan | |
 | 170 | Atomic credit RPC | credits never double-count | |
 | 171 | "How credits work" panel | panel copy matches reality | |
-| 58 | Denise $39 Stripe price | Denise checkout = $39 | |
+| 58 | Denise per-lead layer | Denise = **+$1/qualified-lead** layer (no subscription); charge stacks on the ladder | |
 | 238 | C4 currency | charged in USD | |
 | 240 | C6 voice copy | no overstated voice claims | |
 | 186 | Signup T&C record | signup writes timestamp + IP | |

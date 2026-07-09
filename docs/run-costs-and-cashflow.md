@@ -86,14 +86,12 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 > - **Connect-your-own (mid/enterprise):** the **client carries their own mailbox cost → near-zero to K.I.N.D.**
 > Net: the engine adds a low-hundreds/mo base + a small per-client variable that's largely **passed through / marked up**. Full spec: V2-TRACKER "⚙️ THE ENGINE".
 
-> ⚠️ **Apollo free plan = $0/mo but API access is fully blocked.** The `/mixed_people/search` endpoint requires at minimum the Basic plan ($49/mo). The platform cannot find a single lead without this. Upgrade at app.apollo.io → Settings → Plan & Billing.
+> ⚠️ **Data source = PDL Full (sourcing) + Hunter (reveal), NOT Apollo** (§0). PDL is usage-based (~$98/350 records); Hunter Scale ~£175/mo at scale. The Apollo plan guide below is **STALE/history** — Apollo is retired from the data path.
 > ⚠️ **Supabase Free plan has NO database backups** (confirmed 3 June). One bad query = total data loss. Pro is non-negotiable before onboarding paying clients.
 > ℹ️ **Stripe has no fixed monthly cost** — it charges per transaction (~2.9% + 30¢). "Going live" = switch from test to live keys + add price IDs. See §2.
 
-**Apollo plan guide:**
-- Basic: $49/mo — API access unlocked, ~9,600 credits/mo — sufficient for first 10 clients
-- Professional: $99/mo — 24,000 credits/mo (~14,000 delivered leads) — recommended from day 1
-- Organization: $149/mo — 48,000 credits/mo — when you hit ~50 active clients
+**~~Apollo plan guide~~ (STALE — Apollo retired; kept as history):**
+- ~~Basic: $49/mo · Professional: $99/mo · Organization: $149/mo~~ → replaced by PDL Full + Hunter (§0/§2).
 
 **Claude Code plans:**
 - Pro: $20/mo — sufficient for light usage
@@ -152,7 +150,7 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | **Milla + Vida bundle** | **$69** | (save $9/mo) |
 | **Denise** (The Closer) | **$39** | Warm follow-ups, proposals, confirms meetings *(corrected 16 Jun from $99 display)* |
 
-**Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
+**Billing model (LOCKED 8 Jul):** **per qualified lead — no subscriptions, ever** (§0 ladder). *The "Phase 2 → recurring monthly subscription" plan is retired (#431); ignore any $/mo agent pricing in this legacy body.*
 
 ---
 
@@ -311,8 +309,8 @@ At **$199 ARPU** (Growth+ w/ Denise): net ~$192/client/mo.
 |---|---|---|---|---|
 | **FIGSY** (AI SDR) | PDL sourcing (~$0.28/record) + Hunter reveal (~$0.009) + Claude Haiku scoring+10-step emails (~$0.05) + Resend (~$0.009) + Google Calendar ($0) | **~$0.36 per fully-worked lead** | **$4.00 fully worked ($1 reveal + $3 work)** | **~91%** |
 | **Milla** (Brain/VA) | Claude tokens per question/draft (Haiku/Sonnet) | **~$0.01–0.03 per query** | ~~$49/mo~~ **+$1/qualified lead (#427; VA half unpriced, parked M4)** | **~95%+** |
-| **Vida** (Chatbot) | Claude tokens per conversation turn | **~$0.01–0.03 per conversation** | $29/mo | **~90%+** (a 100-chat/mo client ≈ $1–3 cost) |
-| **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | $39/mo | **~95%+** *(corrected 16 Jun from $99 display; actual cost was always $39; until voice — see §5d)* |
+| **Vida** (Chatbot) | Claude tokens per conversation turn | **~$0.01–0.03 per conversation** | ~~$29/mo~~ **$3/qualified inbound lead (#429; coming soon)** | **~90%+** (a 100-chat/mo client ≈ $1–3 cost) |
+| **Denise** (Closer) | Claude tokens per follow-up/proposal draft (longer outputs) | **~$0.02–0.05 per draft** | ~~$39/mo~~ **+$1/qualified lead (#428; coming soon)** | **~95%+** |
 
 **The one cost that matters is PDL sourcing (FIGSY's data).** PDL is spent at sourcing (~$0.28/record, before any charge) so it's the line to police with quotas (#423); Hunter reveal (~$0.009) and everything else is sub-cent Claude/Resend. Keep generation on Haiku (cheap) with prompt caching, cap sequences at 10 steps, and the fully-worked lead sits at **~91% gross margin** ($4 revenue, ~$0.36 cost).
 *Numbers are estimates on current Haiku pricing — confirm against real Anthropic + Apollo invoices once volume is live; the structure won't change.*
@@ -697,12 +695,12 @@ The `partners@apollo.io` email (sent 14 Jun) decides it:
 
 ### What this business actually is
 
-K.I.N.D is a SaaS platform that sells AI sales automation to SMBs. You make money two ways:
+K.I.N.D is a SaaS platform that sells AI sales automation to SMBs. You make money **one way (LOCKED 8 Jul): per qualified lead — no subscriptions.**
 
-1. **Credit bundles** (one-time purchases) — clients buy lead-gen or outreach credits and consume them
-2. **Agent subscriptions** (recurring monthly) — clients pay monthly for AI agents (Milla, Vida, Denise)
+1. **Reveal** — $1 to reveal a verified contact (the database).
+2. **FIGSY works it** — +$3 (= $4 fully worked); **+$1 Milla · +$1 Denise** layers; **Vida inbound $3**. Sold as prepaid credit packs, consumed per qualified lead. *(The old "agent subscriptions" model is retired — #431.)*
 
-The model is ~95% gross margin. Fixed costs are ~$138/month. Break-even is **2 clients**. After that, almost every dollar of revenue is profit.
+The model is ~91–92% gross margin. Fixed costs are ~$138/month. Break-even is **2 clients**. After that, almost every dollar of revenue is profit.
 
 ### The five products and what they charge
 

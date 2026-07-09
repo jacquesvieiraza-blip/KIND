@@ -272,30 +272,29 @@ Revenue **$4 per fully-worked lead** − variable **~$0.36** (PDL sourcing $0.28
 | **2%** (conservative) | ~250 | **~1,250–1,500** | ~6,250–7,500 | ~285–340 | **~7–9** |
 | *(8% — optimistic, unvalidated)* | ~60 | ~300–360 | ~1,500–1,800 | ~50–60 | ~2 |
 
-**The conversion chain — per 1 client** *(rates: reply→trial ~50% · trial→paid 40%)*:
-> **~167 prospects** (at 3%) → **~5 interested replies** → **~5 demos/meetings** → **~2.5 trials** → **1 paid client.**
-> Per-client rates are **fixed** (~5 replies · ~2.5 trials · 1 client); only the **prospect count** moves with reply rate (~167 at 3% · ~250 at 2%). A *"demo"* = the meeting that turns an interested reply into a trial.
+**The conversion chain — per 1 client** *(rate: reply→paying client ~20%)*:
+> **~167 prospects** (at 3%) → **~5 interested replies** → **~5 demos/meetings** → **1 paying client** (first credit pack).
+> Per-client rates are **fixed** (~5 replies · 1 client); only the **prospect count** moves with reply rate (~167 at 3% · ~250 at 2%). A *"demo"* = the meeting that turns an interested reply into a first paid pack.
 
-**To reach the 5–6 clients/month goal:** **~13–15 trials · ~25–30 demos/meetings · ~835–1,500 prospects** (3%→2%) · **~5–9 warmed mailboxes.** **Shortcut → 1 agency partner ≈ 10 clients/month** (bypasses the cold funnel entirely — see Partner strategy below / item 197).
+**To reach the 5–6 clients/month goal:** **~25–30 demos/meetings · ~835–1,500 prospects** (3%→2%) · **~5–9 warmed mailboxes.** **Shortcut → 1 agency partner ≈ 10 clients/month** (bypasses the cold funnel entirely — see Partner strategy below / item 197).
 
 > **Implication:** cold-only at a real 2–3% needs **~5–9 warmed mailboxes in rotation** (multiple sending domains) — a proper cold rig (Instantly), **not** one mailbox. One agency **partner ≈ 10 clients/month** from a single relationship — far cheaper than ~1,000+ cold prospects. **Lead with partners + warm network + dogfood while the rig warms; cold scales after.**
 
-### Net profit by client count (ARPU $80, operating+failover $138/mo)
-| Clients | MRR | Stripe+data | Fixed | **Net/mo** | Margin |
-|---|---|---|---|---|---|
-| 1 | $80 | $4 | $138 | **−$62** | — |
-| **2** | $160 | $7 | $138 | **+$15** | 9% |
-| 3 | $240 | $11 | $138 | **+$91** | 38% |
-| 5 | $400 | $18 | $138 | **+$244** | 61% |
-| 10 | $800 | $36 | $138 | **+$626** | 78% |
-| 20 | $1,600 | $73 | $138 | **+$1,389** | 87% |
-| 50 | $4,000 | $181 | $222* | **+$3,597** | 90% |
-| 100 | $8,000 | $362 | $242** | **+$7,396** | 92% |
-| 165 | $13,200 | $597 | $242 | **+$12,361** | 94% |
+### Net profit by volume ($4/fully-worked lead · variable ~9% of revenue · fixed $138/mo)
+| Leads/mo | Revenue | Variable (~9%) | Fixed | **Net/mo** |
+|---|---|---|---|---|
+| 25 | $100 | $9 | $138 | **−$47** |
+| **~35 (break-even)** | $140 | $13 | $138 | **≈ $0** |
+| 100 | $400 | $36 | $138 | **+$226** |
+| 250 | $1,000 | $90 | $138 | **+$772** |
+| 500 | $2,000 | $180 | $138 | **+$1,682** |
+| 1,250 | $5,000 | $450 | $158* | **+$4,392** |
+| 2,500 | $10,000 | $900 | $242* | **+$8,858** |
+| 6,250 | $25,000 | $2,250 | $298* | **+$22,452** |
 
-\* Apollo → Organization ($149) at ~50 clients · \** + Resend higher tier at scale.
+\* Fixed floor steps up with Resend/Hunter tiers + monitoring at volume. Stripe (~2.9% + 30¢) lands per credit purchase (~3% of revenue) on top of the ~9% per-lead variable.
 
-**Break-even: 2 clients (infra) · 5 clients (incl. Claude Code dev).** After ~10 clients it's 78%+ margin — the model is almost pure margin once the fixed stack is covered. **The lever that matters is ARPU: a FIGSY client ($160+) is worth ~2× a starter ($80).** Push FIGSY upsell after first leads land.
+**Break-even: ~35 fully-worked leads/mo covers the ~$138 fixed floor.** Past ~250 leads/mo it's 75%+ net margin — almost pure margin once the fixed stack is covered. **The levers that matter are leads per client and layer adoption ($4 → $6/lead).** Push FIGSY work + Milla/Denise layers after first leads land.
 
 ---
 
@@ -315,6 +314,9 @@ Revenue **$4 per fully-worked lead** − variable **~$0.36** (PDL sourcing $0.28
 ---
 
 ## 5d. FUTURE COSTS & THE SCALING MAP (16 Jun, verified 10 Jun baseline)
+
+> ⚠️ **SUPERSEDED (8 Jul) — the Apollo data-strategy below is moot; the live stack is PDL Full + Hunter (§0). Kept as history.**
+
 *"How we actually start scaling." The cost structure barely moves as you grow — here's what comes online, when, and the one structural decision that decides everything.*
 
 ### 🔑 The single biggest cost lever at scale: the Apollo data decision
@@ -342,12 +344,13 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 ---
 
 ## 6. Three Scenarios — Month by Month (directional, use §5b for current numbers)
-*Note: net-profit columns below use the OLD $203 fixed stack — directional only. **Use §5b/§7 for current break-even ($80 ARPU, $138 fixed)**. Client-growth assumptions still hold.*
+*Note: net-profit columns below use the OLD $203 fixed stack — directional only. **Use §5b/§7 for current break-even ($138 fixed)**. Client-growth assumptions still hold.*
+*Revenue/mo = clients × avg leads/mo × $4 — no subscriptions; figures directional.*
 
 ### 🔵 Conservative
-*Assumptions: 30% trial→paid conversion, 5% monthly churn, $80 blended ARPU*
+*Assumptions: 30% demo→paid conversion, 5% monthly churn, ~$80/mo avg client spend (~20 fully-worked leads at $4)*
 
-| Month | New Paid | Churned | Total Clients | MRR (USD) | Net Profit |
+| Month | New Paid | Churned | Total Clients | Revenue/mo (USD) | Net Profit |
 |---|---|---|---|---|---|
 | May 2026 | 3 | 0 | 3 | $240 | +$37 |
 | Jun 2026 | 4 | 0 | 7 | $560 | +$357 |
@@ -357,7 +360,7 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 | Oct 2026 | 10 | 1 | 36 | $2,880 | +$2,585 |
 | Nov 2026 | 12 | 2 | 46 | $3,680 | +$3,341 |
 | Dec 2026 | 13 | 2 | 57 | $4,560 | +$4,180 |
-| **Year 1 end** | | | **~60 clients** | **~$4,800 MRR** | |
+| **Year 1 end** | | | **~60 clients** | **~$4,800/mo revenue** | |
 
 **Year 1 total cash collected: ~$22,000**
 **Break-even: Month 2**
@@ -365,9 +368,9 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 ---
 
 ### 🟡 Base
-*Assumptions: 40% trial→paid conversion, 3% monthly churn, $80 blended ARPU*
+*Assumptions: 40% demo→paid conversion, 3% monthly churn, ~$80/mo avg client spend (~20 fully-worked leads at $4)*
 
-| Month | New Paid | Churned | Total Clients | MRR (USD) | Net Profit |
+| Month | New Paid | Churned | Total Clients | Revenue/mo (USD) | Net Profit |
 |---|---|---|---|---|---|
 | May 2026 | 8 | 0 | 8 | $640 | +$437 |
 | Jun 2026 | 12 | 0 | 20 | $1,600 | +$1,370 |
@@ -377,19 +380,19 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 | Oct 2026 | 28 | 2 | 102 | $8,160 | +$7,779 |
 | Nov 2026 | 32 | 3 | 131 | $10,480 | +$10,044 |
 | Dec 2026 | 36 | 4 | 163 | $13,040 | +$12,553 |
-| **Year 1 end** | | | **~165 clients** | **~$13,200 MRR** | |
+| **Year 1 end** | | | **~165 clients** | **~$13,200/mo revenue** | |
 
-**Year 1 ARR (annualising Month 12): ~$158,000**
+**Year 1 annualised revenue (Month 12 × 12): ~$158,000**
 **Year 1 total cash collected: ~$72,000**
 **Break-even: Month 1**
 
 ---
 
 ### 🟢 Optimistic
-*Assumptions: 50% trial→paid conversion, 2% monthly churn, $80 blended ARPU*
+*Assumptions: 50% demo→paid conversion, 2% monthly churn, ~$80/mo avg client spend (~20 fully-worked leads at $4)*
 *Requires: Partner channel active, Product Hunt listing, strong word of mouth*
 
-| Month | New Paid | Churned | Total Clients | MRR (USD) | Net Profit |
+| Month | New Paid | Churned | Total Clients | Revenue/mo (USD) | Net Profit |
 |---|---|---|---|---|---|
 | May 2026 | 15 | 0 | 15 | $1,200 | +$997 |
 | Jun 2026 | 25 | 1 | 39 | $3,120 | +$2,870 |
@@ -399,9 +402,9 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 | Oct 2026 | 60 | 5 | 217 | $17,360 | +$16,927 |
 | Nov 2026 | 70 | 6 | 281 | $22,480 | +$21,987 |
 | Dec 2026 | 75 | 8 | 348 | $27,840 | +$27,278 |
-| **Year 1 end** | | | **~350 clients** | **~$28,000 MRR** | |
+| **Year 1 end** | | | **~350 clients** | **~$28,000/mo revenue** | |
 
-**Year 1 ARR (annualising Month 12): ~$334,000**
+**Year 1 annualised revenue (Month 12 × 12): ~$334,000**
 **Year 1 total cash collected: ~$138,000**
 **Break-even: Month 1**
 
@@ -409,9 +412,10 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ## 7. Profitability at Scale (16 Jun audit)
 
-### Net profit by client count (ARPU $80, fixed stack $138–242/mo)
+### Net profit by client count (fixed stack $138–242/mo)
+*Per-lead framing: "$80/client" ≈ a client buying ~20 fully-worked leads/mo at $4 — there is no ARPU tier, only leads × $/lead.*
 
-| Total Clients | MRR | Stripe fee | Data cost | Fixed | Total costs | **Net profit** | **Margin** |
+| Total Clients | Revenue/mo | Stripe fee | Data cost | Fixed | Total costs | **Net profit** | **Margin** |
 |---|---|---|---|---|---|---|---|
 | 1 | $80 | $2.62 | $1 | $138 | $141.62 | **−$61.62** | **—** |
 | **2** | $160 | $5.24 | $2 | $138 | $145.24 | **+$14.76** | **9%** |
@@ -427,11 +431,11 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 | 350 | $28,000 | $917.00 | $350 | $298*** | $1,565.00 | **+$26,435.00** | **94%** |
 
 \* Add basic monitoring at ~30 clients
-\** Apollo upgrade to Organization ($149) at ~50 clients; Resend Pro ($20) at scale
+\** Data tier step-up (Hunter Scale) at ~50 clients; Resend Pro ($20) at scale
 \*** Additional infra costs at 300+ clients
 
-**Break-even: 2 clients** at $80 blended ARPU / $138 fixed stack.
-**Break-even: 1 client** if ARPU is $160 (Growth profile) or $199 (Growth+ w/ Denise).
+**Break-even: 2 clients** at ~$80/mo spend each (~20 fully-worked leads at $4) / $138 fixed stack — i.e. ~35 fully-worked leads/mo total.
+**Break-even: 1 client** if that client works ~40+ leads/mo (Growth blend) or stacks the $5–6 layers.
 
 ---
 

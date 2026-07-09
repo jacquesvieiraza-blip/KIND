@@ -5,7 +5,7 @@ import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
 import { canEnroll } from './billing-rules'
 import { sendFounderAlert } from './alerts'
-import { buildDraftFromSequence, type SequenceStep } from './sequence-apply'
+import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
   COLD_REPLY_TO,
@@ -445,13 +445,39 @@ export async function applyReplyBranching(
   return 'skip'
 }
 
+// #212 — a stored enrollment step + the total length of its sequence. Reads the
+// jsonb `steps` array when present, else falls back to the legacy step1-3 columns
+// (3-step behaviour, unchanged for pre-#212 enrollments). One source of truth so
+// the three send loops (internal.ts + routes/figsy.ts ×2) never diverge.
+export interface EnrollmentStepView { subject: string; body: string; wait_days: number; total: number }
+export function enrollmentStep(
+  enrollment: Record<string, any>,
+  stepNum: number,
+): EnrollmentStepView | null {
+  const arr = Array.isArray(enrollment.steps) ? (enrollment.steps as Array<{ subject?: string; body?: string; wait_days?: number }>) : null
+  if (arr && arr.length > 0) {
+    const total = arr.length
+    if (stepNum < 1 || stepNum > total) return null
+    const s = arr[stepNum - 1]
+    if (!s?.subject || !s?.body) return null
+    return { subject: s.subject, body: s.body, wait_days: Math.max(0, Math.round(s.wait_days ?? 4)), total }
+  }
+  // Legacy: step1-3 columns, 3-step cadence.
+  if (stepNum < 1 || stepNum > 3) return null
+  const subject = enrollment[`step${stepNum}_subject`] as string | undefined
+  const body    = enrollment[`step${stepNum}_body`] as string | undefined
+  if (!subject || !body) return null
+  return { subject, body, wait_days: STEP_FOLLOWUP_DELAYS[stepNum] ?? 4, total: 3 }
+}
+
 export async function sendSequenceEmail(
   enrollmentId: string,
   lead: Lead,
-  step: 1 | 2 | 3,
+  step: number,
   subject: string,
   body: string,
   campaignId: string,
+  opts?: { totalSteps?: number; waitDaysNext?: number },
 ): Promise<void> {
   if (!lead.email) throw new Error('Lead has no email')
 
@@ -537,16 +563,21 @@ export async function sendSequenceEmail(
     }
   }
 
-  // Advance enrollment state
-  const nextSendAt = step < 3
-    ? new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[step] ?? 4) * 86400000).toISOString()
-    : null
+  // Advance enrollment state. #212 — total-steps aware: a sequence completes at its
+  // OWN last step (opts.totalSteps, default 3 for legacy callers), and the delay to
+  // the next step comes from that step's wait_days (opts.waitDaysNext).
+  const totalSteps = opts?.totalSteps ?? 3
+  const isLast = step >= totalSteps
+  const waitDays = opts?.waitDaysNext ?? STEP_FOLLOWUP_DELAYS[step] ?? 4
+  const nextSendAt = isLast
+    ? null
+    : new Date(Date.now() + waitDays * 86400000).toISOString()
 
   await db.from('figsy_enrollments').update({
     current_step: step,
-    status:       step === 3 ? 'completed' : 'in_progress',
+    status:       isLast ? 'completed' : 'in_progress',
     next_send_at: nextSendAt,
-    ...(step === 3 ? { completed_at: new Date().toISOString() } : {}),
+    ...(isLast ? { completed_at: new Date().toISOString() } : {}),
   }).eq('id', enrollmentId)
 
   // THE DATA FLOOR (#17b) — log the send (the credit-spend denominator). Fire-and-forget.
@@ -1176,6 +1207,16 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
     const step1Subject = allVariants[Math.floor(Math.random() * allVariants.length)]
 
+    // #212 — build the FULL ordered step array (≤10). A client-built sequence carries
+    // its own copy + per-step cadence; the AI path is the 3-step draft. The first step's
+    // subject is overwritten with the A/B-selected variant so what we STORE equals what
+    // we SEND. The step1-3 columns below are still written (first 3) for legacy readers.
+    const fullSteps = (usingSequence && appliedSequence)
+      ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
+      : draftToSteps(draft)
+    if (fullSteps.length > 0) fullSteps[0] = { ...fullSteps[0], subject: step1Subject }
+    const totalSteps = fullSteps.length > 0 ? fullSteps.length : 3
+
     // #302 — idempotency guard. Without it a retried autoEnrollLead (webhook re-fire,
     // cron overlap, manual re-run) inserts a SECOND enrollment for the same lead AND
     // deducts a SECOND FIGSY credit — a real double-charge. Refuse to re-enrol a lead
@@ -1215,6 +1256,10 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
         status:         'enrolled',
         current_step:   0,
         next_send_at:   new Date().toISOString(), // send step 1 immediately
+        // #212 — full ≤10-step sequence walked by the send engine.
+        steps:          fullSteps.length > 0 ? fullSteps : null,
+        total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
+        // Back-compat: first 3 steps mirrored to the legacy columns (voice.ts, A/B view).
         step1_subject:  step1Subject,
         step1_body:     draft.step1.body,
         step2_subject:  draft.step2.subject,
@@ -1253,6 +1298,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       step1Subject,
       draft.step1.body,
       campaign.id,
+      { totalSteps, waitDaysNext: fullSteps[0]?.wait_days },
     )
   } catch (err) {
     console.error('[figsy] autoEnrollLead failed for lead', leadId, ':', err instanceof Error ? err.message : err)

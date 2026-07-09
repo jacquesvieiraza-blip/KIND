@@ -987,7 +987,7 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       }
     }
 
-    const { sendSequenceEmail, applyReplyBranching } = await import('../lib/figsy')
+    const { sendSequenceEmail, applyReplyBranching, enrollmentStep } = await import('../lib/figsy')
 
     const stepsCache = new Map<string, { step: number; on_reply?: 'stop' | 'skip_next' | 'continue' }[] | null>()
     let sent = 0
@@ -996,8 +996,11 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       if (sent >= remaining) break   // shared daily budget spent
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
-      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
-      if (nextStep > 3) continue
+      // #212 — walk the full ≤10-step sequence via enrollmentStep (jsonb `steps`,
+      // else legacy step1-3 columns). null = past the last usable step (skip).
+      const nextStep = enrollment.current_step + 1
+      const stepView = enrollmentStep(enrollment, nextStep)
+      if (!stepView) continue
 
       // Per-campaign daily cap — skip if this campaign hit its own limit today.
       const campId = enrollment.campaign_id as string
@@ -1014,11 +1017,8 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
         console.error('[figsy/send-due-all] branching', enrollment.id, ':', err)
       }
 
-      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
-      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
-      if (!subject || !body) continue
       try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
+        await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
         sent++
         sentByCampaign.set(campId, (sentByCampaign.get(campId) ?? 0) + 1)
       } catch (err) {

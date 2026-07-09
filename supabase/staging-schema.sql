@@ -362,6 +362,8 @@ create table if not exists public.figsy_enrollments (
   step2_body          text,
   step3_subject       text,
   step3_body          text,
+  steps               jsonb,    -- #212: full ≤10-step sequence [{subject,body,wait_days}] (mirrors 20260710_sequence_depth); step1-3 above kept back-filled for legacy readers
+  total_steps         integer,  -- #212: cached jsonb_array_length(steps)
   crm_deal_id         text,
   crm_pushed_at       timestamptz,
   reply_branch_handled_at timestamptz,

@@ -82,8 +82,7 @@ BANNED=(
 # Pre-existing hits ride here until the reconciliation pass clears them
 # (format: file:regex). EMPTY this list in Move 2 — do not add to it.
 KNOWN_DIRTY=(
-  'docs/run-costs-and-cashflow.md:blended ARPU|Blended ARPU'
-)
+)  # emptied 9 Jul (Move 2 reconciliation) — do not add entries; fix the doc instead
 DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md)
 for f in "${DOCS[@]}"; do
   [ -f "$f" ] || continue

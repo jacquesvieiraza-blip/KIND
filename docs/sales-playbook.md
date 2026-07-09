@@ -2,7 +2,7 @@
 
 > ⚠️ **PRICING (locked):** per **qualified lead**, no subscriptions. Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; Vida inbound $3 (+$1/+$1 → $4/$5). The $1/$3-credit, bundle and monthly-sub lines below are historical; pricing source of truth = `run-costs-and-cashflow.md` §3.
 > Version 1.0 — May 2026 · For internal use only
-> `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat**, +$1/qualified inbound lead — WhatsApp is NOT a cold channel) · Denise (Closer, +$1/qualified lead) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
+> `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat**, $3/qualified inbound lead — WhatsApp is NOT a cold channel) · Denise (Closer, +$1/qualified lead) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
 > 🌍 **GTM = TWO-TRACK (25 Jun):** **US/UK/EMEA via OUR OWN outreach** (dogfood FIGSY) + **Africa via DIRECT (data, item 243) + partners** — supersedes the old "Africa-first." Cold legal in US/UK/IE/FR/NL (avoid DE/PL).
 > ⚠️ **REPLY-RATE CORRECTION (23 Jun):** the "8% — our actual average" lines below were an **UNVALIDATED target, never measured** — do NOT present 8% as a result. **Plan + quote 2–3%** (cold industry average) until live campaigns prove otherwise; in-call, say "we'll show you *your* real numbers in the trial." **Sequence is being rebuilt to the Apollo blueprint — 4–6 multi-channel steps** (was 3-step Day 0/4/9 — tracked as item 212; not built yet, so the product still sends 3; **our sequences are weak today — do NOT pitch sequencing as a strength yet**). Funnel maths: `run-costs-and-cashflow.md` §"funnel targets".
 
@@ -145,7 +145,7 @@ That's exactly what KIND was built to solve. Let me show you what your platform 
 
 *(Handle objections — see Section 4.)*
 
-"Here's what I'd suggest as a next step: we set you up on a 14-day trial. No credit card lock-in, you can cancel any time, credits don't expire. I'll send you a short proposal with exactly what we'd recommend based on what you've told me today. Can we get that sorted now or do you need a day to check in with someone?"
+"Here's what I'd suggest as a next step: we get you set up — it's free to start, no card, no subscription. You pay $1 per lead revealed, $4 fully worked, and credits never expire. I'll send you a short proposal with exactly what we'd recommend based on what you've told me today. Can we get that sorted now or do you need a day to check in with someone?"
 
 If they want time: "Of course. When specifically would be a good time for me to follow up — tomorrow morning or Thursday?"
 
@@ -223,7 +223,7 @@ Navigate to: **Billing**
 
 *Show the credit bundle tiers.*
 
-"You start with a free trial. After that, most clients on 5–50 leads per week run on the Starter bundle. I'll include the right bundle in the proposal based on what you've told me today."
+"It's free to start — no card, no subscription; you pay $1 per lead revealed, $4 fully worked. Most clients on 5–50 leads per week run on the Starter pack. I'll include the right pack in the proposal based on what you've told me today."
 
 ---
 
@@ -249,7 +249,7 @@ Navigate to: **Billing**
 
 **"We don't have budget."**
 
-"I hear you. Can I ask — what are you currently spending on your sales effort? Even if it's just your own time? Because at your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in the first month. Our Starter bundle is [X credits / $[price]] — that's less than one client acquisition on the old way. We also have a 14-day trial so you can prove the ROI before you commit anything."
+"I hear you. Can I ask — what are you currently spending on your sales effort? Even if it's just your own time? Because at your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in the first month. Our Starter pack is [X credits / $[price]] — that's less than one client acquisition on the old way. And it's free to start — no card, no subscription, just $1 per lead revealed — so you can prove the ROI before you commit to any volume."
 
 ---
 
@@ -269,7 +269,7 @@ Navigate to: **Billing**
 
 **"It's too expensive."**
 
-"Compared to what — what were you expecting? [Let them answer.] Okay, so let's put this in context: one new client closed from KIND pays for [X months] of subscription. You said your average deal is [amount from discovery]. If KIND gets you one extra deal in the next 90 days, it's already ROI positive. We also have the credit model — you're not locked in. You top up when you need to. Want to try the starter tier first and scale up as you see results?"
+"Compared to what — what were you expecting? [Let them answer.] Okay, so let's put this in context: one new client closed from KIND pays for your whole lead spend. You said your average deal is [amount from discovery]. If KIND gets you one extra deal in the next 90 days, it's already ROI positive. We also have the credit model — you're not locked in. You top up when you need to. Want to try the starter tier first and scale up as you see results?"
 
 ---
 
@@ -342,7 +342,7 @@ Credits are flexible — top up as needed, never expire, no long-term contract.
 
 | Day | Action |
 |---|---|
-| Day 1 | You sign up, start 14-day trial |
+| Day 1 | You sign up — free to start, no card, pay per lead |
 | Day 2–3 | 30-min onboarding call — we configure your ICP, set up FIGSY |
 | Day 3–5 | First batch of scored leads delivered to your dashboard |
 | Day 5–7 | First campaign launched, sequences running |
@@ -352,16 +352,16 @@ Credits are flexible — top up as needed, never expire, no long-term contract.
 
 ### Risk Reversal
 
-- 14-day free trial — no credit card required upfront
-- Credit model — you pay per use, no monthly lock-in
-- No long-term contract — cancel any time
-- If after the trial the leads don't meet your ICP standards, we'll work with you to rebuild the ICP before you pay a cent
+- Free to start — no card required, no subscription; pay $1 per lead revealed / $4 fully worked
+- Credit model — you pay per use, no monthly lock-in, credits never expire
+- No subscription, no long-term contract
+- If your first leads don't meet your ICP standards, we'll work with you to rebuild the ICP
 
 ---
 
 ### Next Step
 
-**One action:** Click the link below to start your 14-day trial and book your onboarding call.
+**One action:** Click the link below to sign up — free to start, no card, pay per lead — and book your onboarding call.
 
 → [KIND sign-up link]
 → Or reply to this email and I'll set it up with you on a call.
@@ -385,7 +385,7 @@ Great speaking today. As promised — attached is the proposal with my recommend
 Quick summary:
 - **Problem:** [1-line summary of their pain from the call]
 - **Recommended:** [Product(s)]
-- **Next step:** 14-day trial, onboarding call booked for [date if agreed] / [book here: link]
+- **Next step:** free sign-up (no card, pay per lead), onboarding call booked for [date if agreed] / [book here: link]
 
 Any questions, just reply here.
 
@@ -401,7 +401,7 @@ Hi [Name],
 
 Checking in on the proposal — did you get a chance to look at it?
 
-One thing I didn't mention on the call: most clients have their first leads delivered within 2 hours of completing setup. The trial costs nothing to start.
+One thing I didn't mention on the call: most clients have their first leads delivered within 2 hours of completing setup. It costs nothing to start — no card, you only pay per lead.
 
 Worth 15 minutes this week to get it running?
 
@@ -467,7 +467,7 @@ Track these weekly. Review every Monday morning. Adjust activity if you're falli
 | Demos given | 3 | CRM / calendar |
 | Proposals sent | 2 | Email sent folder |
 | Deals closed | 1 | Stripe / Flutterwave |
-| Pipeline value | _$ TBC — founder to set USD target_ | Active proposals × average deal size |
+| Pipeline value | _$ TBC — founder to set the USD revenue run-rate target_ | Active proposals × average deal size |
 
 ### Conversion Benchmarks
 
@@ -480,7 +480,7 @@ Track these weekly. Review every Monday morning. Adjust activity if you're falli
 
 ### Lagging Indicators to Watch
 
-- **Average deal size** — target _$ TBC MRR per client_ (founder to set the USD ARPU target — SMB single-agent ≈ $29–$117/mo, multi-seat company deals higher)
+- **Average deal size** — target _$ TBC collected revenue run-rate per client_ (founder to set the USD per-client spend target — pricing is per-lead: +$1/qualified-lead layers (Milla/Denise), Vida $3/qualified inbound; multi-seat company deals higher)
 - **Time from first contact to close** — target under 14 days
 - **Churn rate** — target under 5% monthly
 - **NPS** — ask after 30 days

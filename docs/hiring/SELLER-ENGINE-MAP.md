@@ -33,7 +33,7 @@ From `getkindbusinesscommandcentre_2.html`. Architecture:
 ## 3. Everything the founder provided — asset inventory
 | Asset | What it is | Lives in | Status |
 |---|---|---|---|
-| **AE Comp Plan v3** | Economics: OTE **$112.5k** ($67.5k base + $45k var, 60/40) · $1,500 ARPU · $4,500/mo quota · hire at ~$10k MRR · deal-floor ~$550 | `docs/hiring/KIND-AE-COMP-PLAN.md` | ✅ filed (this PR) |
+| **AE Comp Plan v3** | Economics: OTE **$112.5k** ($67.5k base + $45k var, 60/40) · $1,500 ARPU · $4,500/mo new-collected-revenue quota · hire at ~$10k/mo collected revenue · deal-floor ~$550 | `docs/hiring/KIND-AE-COMP-PLAN.md` | ✅ filed (this PR) |
 | **AE Commission Calculator (5-yr)** | Live: deal size/churn/base → 5-yr net, compounding book, AE pay curve, break-even | `docs/hiring/KIND-AE-commission-calculator.html` | ✅ filed (this PR) |
 | **Team P&L Calculator (5-yr)** | Live: phase the whole GTM team (AE · partner mgr · CSM · support · eng · mid-market AE) → 5-yr contribution | `docs/hiring/KIND-team-pnl-calculator.html` | ✅ filed (this PR) |
 | **Partner Comp Plan** | Economics on the same spine (20% acquisition + 5% retention) | `docs/hiring/KIND-PARTNER-COMP-PLAN.md` | ✅ drafted (this PR) |
@@ -58,7 +58,7 @@ From `getkindbusinesscommandcentre_2.html`. Architecture:
 ## 6. Open decisions (founder) — must resolve before issuing seats
 1. **Partner commission rate — ✅ LOCKED 19 Jun = 20% acquisition + 5% retention** (the founder's build brief + calculator; item 197 + partner comp plan updated; old "25%+5%" superseded).
 2. **THE BUILD (item 203):** the founder's authoritative **build brief** (`KIND-CLAUDE-CODE-BRIEF.md`) turns all of this into a live system — Stripe → attribution → ONE commission engine → 3 portals → founder-approved payouts. **Founder build priority: ① Admin portal + operating SOP → ② Partner portal → ③ AE portal, account systems right from the start.** **All USD** *(RESOLVED 22 Jun — founder: "we are USD"; matches product pricing)*. Pure commission-engine module built + unit-tested 22 Jun. Still open: repo · auth/hosting.
-2. **AE quota:** **$4,500/mo locked** (v3) — confirmed; corrects the earlier $480/$960 example.
+2. **AE quota:** **$4,500/mo new collected revenue, locked** (v3) — confirmed; corrects the earlier $480/$960 example.
 3. **Team roster / timing:** the Team P&L's default start-months (AE+partner mo1, eng mo7, CSM+support mo13, mid-market AE mo25) — confirm.
 4. **Legal pack:** transcribe the 5 UK templates into the portal's document vault now, or keep as issued PDFs and have the portal just store/serve them? (Recommend: portal stores/serves the signed PDFs; templates live in Notion (204).)
 5. **Calculator → live in portal:** add **saved presets per AE/market** (localStorage → DB) to turn the scratchpad calculators into the in-portal live tool.

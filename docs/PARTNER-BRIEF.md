@@ -1,7 +1,7 @@
 # 🤝 K.I.N.D — Partner Brief & Sales One-Pager
 `Last-checked: 25 Jun 2026`
 
-> ⚠️ **PRICING (locked):** per **qualified lead**, no subscriptions. Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; Vida inbound $3 (+$1/+$1 → $4/$5). Quote the ladder — the **$1 reveal is live** (supersedes the old "retire $1 / single $3" note). The monthly bundles below are historical.
+> ⚠️ **PRICING (locked):** per **qualified lead**, no subscriptions. Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; Vida inbound $3 (+$1/+$1 → $4/$5). Quote the ladder — the **$1 reveal is live** (supersedes the old "retire $1 / single $3" note). The old monthly bundles are retired — the packs below are per-lead volume packs on the ladder.
 
 *For approved K.I.N.D partners. Everything you need to sell K.I.N.D to small businesses — the pitch, the trade playbooks, pricing, and how you earn.*
 
@@ -14,7 +14,7 @@
 - **Vida — The Connector (coming soon):** website chat widget, qualifies inbound 24/7. *(WhatsApp is not a cold channel.)*
 - **Denise — The Closer (coming soon):** warm follow-up on quiet prospects, confirms meetings, drafts proposals.
 
-**Why it lands:** outcome pricing (you pay for results, not seats), starts in under 5 minutes, no card for the trial, compliance built in (GDPR / POPIA).
+**Why it lands:** outcome pricing (you pay for results, not seats), starts in under 5 minutes, no subscription — $1 to reveal your first leads, compliance built in (GDPR / POPIA).
 
 ---
 
@@ -23,11 +23,11 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 
 | Trade | Who you target | The play | Expected ROI |
 |---|---|---|---|
-| ⚡ **Electrician** | Property managers / FM in buildings 10+ yrs (aging electrical) | FIGSY books **panel safety audits** | **19:1 – 53:1** @ ~$237/mo |
-| 🚰 **Plumber** | Homes 30+ yrs, galvanised piping | Free **video inspection → pipe replacement** (40–60% margin on $2.5–4k jobs) | **37:1 – 75:1** @ ~$267/mo |
-| 📸 **Photographer** | Engaged couples / recruiters / estate agents | **Engagement-window** outreach → booked call | **29:1 – 63:1** @ ~$237/mo |
-| ❄️ **HVAC tech** | Homeowners with systems 8+ yrs | **Maintenance contracts** ($25–50/mo recurring) → smooth seasonal cash flow | **6:1 → 10:1+ recurring** @ ~$267/mo |
-| 🔐 **Locksmith** | Property managers, 10+ multi-unit buildings | **B2B rekeying contracts** ($2–5k/yr, 50–70% margin) | strong, recurring @ ~$207/mo |
+| ⚡ **Electrician** | Property managers / FM in buildings 10+ yrs (aging electrical) | FIGSY books **panel safety audits** | **19:1 – 53:1** @ a ~$240 lead pack |
+| 🚰 **Plumber** | Homes 30+ yrs, galvanised piping | Free **video inspection → pipe replacement** (40–60% margin on $2.5–4k jobs) | **37:1 – 75:1** @ a ~$300 lead pack |
+| 📸 **Photographer** | Engaged couples / recruiters / estate agents | **Engagement-window** outreach → booked call | **29:1 – 63:1** @ a ~$240 lead pack |
+| ❄️ **HVAC tech** | Homeowners with systems 8+ yrs | **Maintenance contracts** ($25–50/mo recurring) → smooth seasonal cash flow | **6:1 → 10:1+ recurring** @ a ~$300 lead pack |
+| 🔐 **Locksmith** | Property managers, 10+ multi-unit buildings | **B2B rekeying contracts** ($2–5k/yr, 50–70% margin) | strong, recurring @ a ~$240 lead pack |
 
 **The funnel is the same every time:** FIGSY finds + scores + emails → Vida catches inbound → Denise closes warm replies → Milla reports. *The trade and the target list change; the engine doesn't.* (Full deck: get-kind.com/small-business-playbook)
 
@@ -38,34 +38,34 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 1. **Reveal a verified contact — $1/lead.** Add **FIGSY** drafted outreach for **+$3 → $4/lead** (a personalised multi-step sequence drafted for approval).
 2. **The agents** (per qualified lead — no subscription): **+$1 Milla · +$1 Denise · Vida inbound $3**. So the ladder is $1 reveal → $4 (FIGSY) → $5 (+Milla) → $6 (+Denise). *(⚠️ website `denise.html` still shows a monthly price — reconcile to the per-lead layer and centralise in `packages/shared` PRICING.)*
 
-**Ready-made bundles to quote:**
-| Bundle | Price/mo | What's in it |
+**Ready-made per-lead volume packs to quote (no monthly fee — e.g. 100 fully-worked leads ≈ $400; +Milla/+Denise layers +$1/lead each):**
+| Pack | Price | What's in it |
 |---|---|---|
-| **Lean** | **~$177** | 20 FIGSY leads ($60) + all 3 agents ($117) |
-| **Recommended** | **~$237–267** | 40–50 FIGSY leads ($120–150) + all 3 agents |
-| **Aggressive** | **~$417** | 100 FIGSY leads ($300) + all 3 agents |
-| **Starter (solo)** | **~$79** | 10 FIGSY leads ($30) + Milla ($49) |
+| **Lean** | **~$120** | 20 fully-worked leads ($4/lead) + Milla & Denise layers (+$2/lead) |
+| **Recommended** | **~$240–300** | 40–50 fully-worked leads + both layers ($6/lead full stack) |
+| **Aggressive** | **~$600** | 100 fully-worked leads + both layers ($6/lead full stack) |
+| **Starter (solo)** | **~$50** | 10 fully-worked leads ($4/lead) + Milla layer (+$1/lead) |
 
-**The one-liner:** *"Your best salesperson costs thousands a month before commission. K.I.N.D starts under $200 and only works when it finds you a real lead."*
+**The one-liner:** *"Your best salesperson costs thousands a month before commission. K.I.N.D starts at $1 to reveal a lead and only charges when it finds you a real one."*
 
 ---
 
 ## 💰 How you earn (partner terms)
-- **Acquisition — 20% one-time** of a new client's **first-month** bill, when they sign.
+- **Acquisition — 20% one-time** of a new client's **first-month collected spend**, when they sign.
 - **Retention — 5% recurring** on your **active book** (every client you manage), **every month they stay.**
 - **Earned when we collect** — if a client churns, the retention simply stops. **No clawback. No cap. No paperwork.**
 - **Your own partner dashboard** + an **auto-provisioned demo account** to show prospects live.
 - **Unique referral link** — signups are attributed to you automatically (`/partners/ref/<your-code>`).
 
-**Example:** refer 10 clients on the Recommended bundle (~$250/mo) → **~$500 in acquisition bonuses** as they sign **+ ~$125/mo recurring** on the book — and the recurring grows every month you keep clients alive.
+**Example:** refer 10 clients each buying ~$250 of leads a month (≈ the Recommended pack) → **~$500 in acquisition bonuses** on their first month's spend **+ ~$125/mo recurring** while they keep buying — and the recurring grows every month you keep clients alive.
 
 ---
 
 ## ▶️ How to start
 1. Get approved → receive your partner dashboard + demo account + referral link.
 2. Pick a trade, use its playbook, show the demo, quote the bundle.
-3. Send your referral link; the client signs up free (14-day trial, no card).
-4. They convert → your **20% acquisition** pays out + your **5% retention** starts, both shown on your dashboard.
+3. Send your referral link; the client signs up (free to sign up, pays per lead).
+4. On their first paid leads → your **20% acquisition** pays out + your **5% retention** starts, both shown on your dashboard.
 
 *Questions: hello@get-kind.com*
 

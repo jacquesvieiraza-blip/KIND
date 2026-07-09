@@ -86,7 +86,7 @@ Any single deal landing above **~2× the AE's monthly quota (~$9,000 new collect
 
 ## 10. One-line summary
 
-**Dollar new-MRR quota (ramped to $4,500/mo) · 20% land / 5% retain / 5% expansion on collected MRR · +5% multi-seat & partner override · greater-of guarantee 100/100/75/75 (month-1 onboarding-gated) · accelerators above 100% · earned only when collected · windfall review · $67.5k base / $45k variable / $112.5k OTE · hired at ~$10k MRR for $1,500+ company deals.**
+**Dollar new-collected-revenue quota (ramped to $4,500/mo) · 20% land / 5% retain / 5% expansion on collected revenue · +5% multi-seat & partner override · greater-of guarantee 100/100/75/75 (month-1 onboarding-gated) · accelerators above 100% · earned only when collected · windfall review · $67.5k base / $45k variable / $112.5k OTE · hired at ~$10k/mo collected revenue for $1,500+ company deals.**
 
 ---
 *Use the K.I.N.D AE Commission Calculator (companion file) to flex deal size, churn, and base and watch the target schedule, AE take-home, and net-to-company move live.*

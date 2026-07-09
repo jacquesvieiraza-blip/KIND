@@ -675,7 +675,7 @@ The `partners@apollo.io` email (sent 14 Jun) decides it:
 | #88 | Company Engine, two-pool, seats (Track B core) | 🟢 live (prod Mon 15) | — |
 | **174** | Website → read client's **own firmographics** for routing (PDL company enrich) | 🔴 new | 🤖 |
 | **175** | Seat-based auto-routing (1 = self-serve / 2+ = concierge) | 🔴 new | 🤖 |
-| **176** | 14-day company trial on bundled data (before any Apollo implementation) | 🔴 new | 🤖 |
+| **176** | Free-to-start, pay-per-lead company onboarding on bundled data (before any implementation) | 🔴 new | 🤖 |
 | **177** | White-glove implementation flow (CRM + **optional** BYO-Apollo) | 🔴 new — Month-1 company hardening | 🤝 |
 | 94/95/140 | Multi-source waterfall PDL→Hunter→Apollo (activate) | 🟡 half-wired (keys set 15 Jun) | 🤖 |
 

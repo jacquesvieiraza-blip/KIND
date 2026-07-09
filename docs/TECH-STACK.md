@@ -1,5 +1,5 @@
 # 🛠️ K.I.N.D — TECH STACK & TOOLS REGISTER
-`Last-checked: 25 Jun 2026`
+`Last-checked: 9 Jul 2026 (reconciled to the per-qualified-lead model)`
 
 > The **single ledger of every external tool/vendor we run on** — so none goes missing (the "Zoho Mail wasn't logged" lesson, 22 Jun). Reference register, not a tracker (no status dots). **Seeds the Notion → Command Centre → "Tools" page (item 204).** Update whenever a tool is added/changed.
 
@@ -15,16 +15,16 @@ Two **separate** systems, do not conflate:
 |------|------|
 | **Railway** | hosts the 4 app services: `@kind/api` (Express/TS) · `@kind/portal` (Next.js) · `@kind/admin` (Next.js) · `@kind/website` (static/Express) |
 | **Render** | warm standby / failover for the app (item 51) |
-| **Cloudflare** | marketing website hosting + load-balancer/failover · DNS |
+| **Cloudflare** | DNS + CDN / load-balancer failover. **The website itself is hosted on Railway** (service `KIND`, `apps/website` Express) |
 | **Supabase** | Postgres database + auth (prod) + a sealed `kind-staging` project |
 | **Resend** | programmatic email **sending** (system + FIGSY cold *today*) + inbound webhook *(cold send migrating to the ENGINE — item 211)* |
 | **⚙️ Smartlead** | **THE ENGINE (item 211, decided 23 Jun)** — per-client warmed sending infrastructure: provision+warm mailboxes (SMB) · connect client's own (enterprise) · white-label + `client_id` isolation. The product's deliverability foundation. |
 | **Instantly** | cold-email warmup/send for **K.I.N.D's OWN outreach** now (item 198) · ENGINE fallback (no white-label) |
 | **Zoho Mail** | company **mailboxes** — MX/receiving + webmail + human send (`get-kind.com` only) |
-| **Stripe** | primary payments — subscriptions, credit purchases, invoices (USD) |
+| **Stripe** | primary payments — per-qualified-lead credit purchases ($1 reveal · $3 FIGSY), invoices (USD). **No subscriptions** — legacy `_MONTHLY` price vars in `stripe.ts` pending removal (#431) |
 | **Stripe · Flutterwave** | payments — Stripe (US/EMEA, primary, USD) + Flutterwave (Africa). *Paystack KILLED 25 Jun (no ZAR).* |
-| **Apollo · PDL · Hunter** | lead-data waterfall (Apollo BYOK/optional). *Planned adds per item 243: Cognism · Clearbit · Lusha · RocketReach · Proxycurl + BetterContact aggregator.* |
-| **Anthropic (Claude)** | the agents (FIGSY · Milla · Vida · Denise · Casey) |
+| **PDL Full (sourcing) + Hunter (reveal)** | the live data stack — Apollo retired from the data path (BYO/optional only; ⚠️ code still runs Apollo-primary in `enrichment.ts`/`apollo.ts`, cleanup owed). *Planned adds per item 243: Cognism · Clearbit · Lusha · RocketReach · Proxycurl + BetterContact aggregator.* |
+| **Anthropic (Claude)** | the agents (FIGSY · Milla · Vida · Denise · **Tony**) + **Nora** (admin co-pilot) + **Alex** (partner). *Casey retired.* |
 | **Vapi** | voice agent infra — ⏸ **PARKED 25 Jun** (items 96/144/178; not on the revenue path) |
 | **HubSpot / Pipedrive** | CRM dedup + deal push integration (item 43, built) |
 | **Domains** | `get-kind.com` (product) · `gettingkind.com` (cold-send identity) |

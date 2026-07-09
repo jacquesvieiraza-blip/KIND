@@ -202,10 +202,13 @@ export async function runIcpJob(
 
     if (clientRow && !clientRow.first_icp_run_at) {
       const now = new Date().toISOString()
-      await db.from('clients')
-        .update({ first_icp_run_at: now, credit_balance: (clientRow.credit_balance ?? 0) + 100 })
-        .eq('id', clientId)
-      await db.from('credit_transactions').insert({
+      // #371 (AR-34) — atomic conditional grant: claims first_icp_run_at + adds 100 in
+      // ONE statement (no double-grant on concurrent runs, no clobber of a concurrent
+      // purchase). Write the ledger row only when THIS call actually granted.
+      const { data: granted } = await db.rpc('grant_first_run_credits', {
+        p_client_id: clientId, p_amount: 100, p_max_balance: 2147483647, p_claim_first_run: true,
+      })
+      if (granted) await db.from('credit_transactions').insert({
         client_id: clientId,
         amount: 100,
         type: 'referral_bonus',
@@ -529,8 +532,14 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
     // Legacy fallback: pre-mix clients with an empty reveal wallet still get the
     // welcome reveal credits on first run (post-#425 signups already have them).
     if (isFirstRun && currentBalance < 1) {
-      await db.from('clients').update({ credit_balance: 20 }).eq('id', clientId)
-      await db.from('credit_transactions').insert({
+      // #371 (AR-34) — atomic + conditional: grant 20 only when still first-run AND still
+      // empty (checked inside the UPDATE), additively so a purchase landing mid-run isn't
+      // clobbered by an absolute `= 20`. Does NOT claim first_icp_run_at (site 1 owns that,
+      // preserving prior behaviour). Ledger only when THIS call granted.
+      const { data: granted } = await db.rpc('grant_first_run_credits', {
+        p_client_id: clientId, p_amount: 20, p_max_balance: 1, p_claim_first_run: false,
+      })
+      if (granted) await db.from('credit_transactions').insert({
         client_id: clientId,
         amount: 20,
         type: 'trial_bonus',

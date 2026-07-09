@@ -1453,6 +1453,21 @@ returns integer language sql as $$
   returning emails_sent;
 $$;
 
+-- #371 (AR-34) — atomic first-run credit grant (mirrors 20260710_grant_first_run_credits):
+-- conditional additive grant, claims first_icp_run_at once, returns whether it granted.
+create or replace function public.grant_first_run_credits(
+  p_client_id uuid, p_amount integer, p_max_balance integer, p_claim_first_run boolean
+) returns boolean language plpgsql as $$
+begin
+  update public.clients
+     set credit_balance   = coalesce(credit_balance, 0) + p_amount,
+         first_icp_run_at = case when p_claim_first_run then coalesce(first_icp_run_at, now()) else first_icp_run_at end
+   where id = p_client_id
+     and first_icp_run_at is null
+     and coalesce(credit_balance, 0) < p_max_balance;
+  return found;
+end $$;
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- END OF SCHEMA
 -- ════════════════════════════════════════════════════════════════════════════

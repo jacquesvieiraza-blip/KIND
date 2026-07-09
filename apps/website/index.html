@@ -1629,6 +1629,110 @@
 
 <!-- Promise strip removed: stats consolidated into Trust Bar + Stats section -->
 
+<!-- PRODUCT ROLL — one product, every angle -->
+<div class="pr-band">
+  <style>
+    .pr-band{padding:8px 0 40px;overflow:hidden;background:#fff}
+    .pr-band-h{text-align:center;margin:0 auto 22px;max-width:640px;padding:0 24px}
+    .pr-band-h .lbl{font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#7C3AED;font-weight:700}
+    .pr-band-h h2{font-family:'Outfit',sans-serif;font-weight:900;font-size:clamp(1.5rem,3vw,2.2rem);letter-spacing:-.03em;color:#1E1152;margin:8px 0 6px}
+    .pr-band-h p{font-size:.9rem;color:#8b80ab;font-weight:500}
+    .pr-viewport{position:relative;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+    .pr-track{display:flex;gap:18px;width:max-content;animation:prRoll 46s linear infinite}
+    .pr-band:hover .pr-track{animation-play-state:paused}
+    @keyframes prRoll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    @media(prefers-reduced-motion:reduce){.pr-track{animation:none}}
+    .pr-card{width:340px;flex:0 0 340px;background:#fff;border:1px solid rgba(20,18,45,.09);border-radius:14px;overflow:hidden;box-shadow:0 24px 50px -28px rgba(70,30,130,.4)}
+    .pr-top{display:flex;align-items:center;gap:10px;padding:9px 13px;background:#faf8fe;border-bottom:1px solid rgba(20,18,45,.06)}
+    .pr-dots{display:flex;gap:5px}.pr-dots i{width:8px;height:8px;border-radius:50%;background:#ddd}
+    .pr-dots i:nth-child(1){background:#ff5f57}.pr-dots i:nth-child(2){background:#febc2e}.pr-dots i:nth-child(3){background:#28c840}
+    .pr-title{font-size:.72rem;font-weight:800;color:#1E1152}
+    .pr-body{padding:15px 15px;height:210px}
+    .pr-mini-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+    .pr-mini-kpis div{background:#faf8ff;border:1px solid rgba(20,18,45,.06);border-radius:9px;padding:8px 9px}
+    .pr-mini-kpis span{font-size:.58rem;color:#8b80ab;font-weight:700;text-transform:uppercase}
+    .pr-mini-kpis b{display:block;font-size:1.15rem;color:#1E1152;font-weight:800;font-variant-numeric:tabular-nums}
+    .pr-bars{display:flex;align-items:flex-end;gap:6px;height:96px}
+    .pr-bars i{flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#a78bfa,#7C3AED)}.pr-bars i:last-child{background:linear-gradient(180deg,#f472b6,#db2777)}
+    .pr-steps{display:flex;flex-direction:column;gap:6px}
+    .pr-step{display:flex;align-items:center;gap:8px;font-size:.74rem;font-weight:600;color:#1E1152;background:#faf8ff;border:1px solid rgba(20,18,45,.06);border-radius:8px;padding:7px 10px}
+    .pr-step.pr-dim{opacity:.5}
+    .pr-day{font-size:.58rem;font-weight:800;color:#7C3AED;background:#f0e9ff;padding:2px 6px;border-radius:5px}
+    .pr-ok{margin-left:auto;font-size:.58rem;font-weight:800;color:#059669;text-transform:uppercase}
+    .pr-run{margin-left:auto;font-size:.58rem;font-weight:800;color:#c2410c;text-transform:uppercase}
+    .pr-wait{font-size:.6rem;color:#b3a9cc;text-align:center;font-weight:600}
+    .pr-msgs{display:flex;flex-direction:column;gap:9px}
+    .pr-msg{background:#faf8ff;border:1px solid rgba(20,18,45,.06);border-radius:9px;padding:9px 11px;font-size:.72rem;color:#1E1152}
+    .pr-msg small{color:#8b80ab;font-weight:500}
+    .pr-tag{float:right;font-size:.55rem;font-weight:800;padding:2px 7px;border-radius:100px;background:#eee9ff;color:#6d28d9;text-transform:uppercase}
+    .pr-tag.good{background:#dcfce7;color:#059669}.pr-tag.book{background:#ffedd5;color:#c2410c}
+    .pr-leads{display:flex;flex-direction:column;gap:9px}
+    .pr-lead{display:flex;align-items:center;gap:9px}
+    .pr-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#c9b6ff,#f7c6e6);flex-shrink:0}
+    .pr-ld{flex:1;min-width:0}.pr-ld b{display:block;font-size:.72rem;color:#1E1152}.pr-ld small{font-size:.6rem;color:#8b80ab}
+    .pr-score{width:52px;height:6px;border-radius:100px;background:#eee9ff;overflow:hidden}.pr-score i{display:block;height:100%;background:linear-gradient(90deg,#a78bfa,#7C3AED)}
+    .pr-sc{font-size:.68rem;font-weight:800;color:#7C3AED;width:20px;text-align:right}
+    .pr-camp{display:flex;flex-direction:column;gap:12px}
+    .pr-camp-h{display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:#1E1152}
+    .pr-live2{font-size:.55rem;font-weight:800;color:#059669;background:#dcfce7;padding:2px 8px;border-radius:100px;text-transform:uppercase}
+    .pr-prog{height:8px;border-radius:100px;background:#eee9ff;overflow:hidden}.pr-prog i{display:block;height:100%;background:linear-gradient(90deg,#a78bfa,#7C3AED)}
+    .pr-camp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+    .pr-camp-stats b{display:block;font-size:1.2rem;color:#1E1152;font-weight:800}.pr-camp-stats span{font-size:.58rem;color:#8b80ab;font-weight:700;text-transform:uppercase}
+    .pr-ana{display:flex;align-items:center;gap:16px;height:100%}
+    .pr-donut{width:110px;height:110px;border-radius:50%;flex-shrink:0;background:conic-gradient(#7C3AED 0 17%,#a78bfa 17% 78%,#ece8ff 78% 100%);position:relative}
+    .pr-donut::after{content:"";position:absolute;inset:22px;border-radius:50%;background:#fff}
+    .pr-leg{display:flex;flex-direction:column;gap:8px}.pr-leg span{display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:600;color:#1E1152}
+    .pr-leg i{width:10px;height:10px;border-radius:3px}
+    @media(max-width:600px){.pr-card{width:280px;flex-basis:280px}}
+  </style>
+  <div class="pr-band-h">
+    <div class="lbl">One product. Every angle.</div>
+    <h2>This is the whole machine.</h2>
+    <p>Source, write, sequence, reply, book, measure &mdash; FIGSY runs the entire outbound loop in one place.</p>
+  </div>
+  <div class="pr-viewport"><div class="pr-track"><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Dashboard</span></div><div class="pr-body"><div class="pr-mini-kpis">
+    <div><span>Leads</span><b>1,284</b></div><div><span>Replies</span><b>218</b></div><div><span>Booked</span><b>47</b></div>
+  </div><div class="pr-bars"><i style="height:40%"></i><i style="height:52%"></i><i style="height:46%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:80%"></i><i style="height:96%"></i></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Sequences</span></div><div class="pr-body"><div class="pr-steps">
+    <div class="pr-step"><span class="pr-day">Day 0</span> Intro email <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 2 days</div>
+    <div class="pr-step"><span class="pr-day">Day 2</span> Follow-up 1 <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 3 days</div>
+    <div class="pr-step"><span class="pr-day">Day 5</span> Value nudge <span class="pr-run">queued</span></div>
+    <div class="pr-step pr-dim"><span class="pr-day">Day 9</span> Break-up</div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Inbox</span></div><div class="pr-body"><div class="pr-msgs">
+    <div class="pr-msg"><b>Sarah Chen</b><span class="pr-tag good">warm</span><br><small>"Yes — send times for Thu?"</small></div>
+    <div class="pr-msg"><b>James Okoro</b><span class="pr-tag">follow-up</span><br><small>"Not right now, maybe Q3."</small></div>
+    <div class="pr-msg"><b>Mia Roberts</b><span class="pr-tag book">booked</span><br><small>"Booked Tue 2pm — thanks!"</small></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Leads</span></div><div class="pr-body"><div class="pr-leads"><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Sarah Chen</b><small>VP Sales · TechCorp</small></div><div class="pr-score"><i style="width:92%"></i></div><span class="pr-sc">92</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>James Okoro</b><small>Founder · Paylane</small></div><div class="pr-score"><i style="width:78%"></i></div><span class="pr-sc">78</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Mia Roberts</b><small>Head of Growth · Arc</small></div><div class="pr-score"><i style="width:85%"></i></div><span class="pr-sc">85</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Tom Rivera</b><small>COO · Northwind</small></div><div class="pr-score"><i style="width:64%"></i></div><span class="pr-sc">64</span></div></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Campaigns</span></div><div class="pr-body"><div class="pr-camp">
+    <div class="pr-camp-h"><b>Q3 · Fintech founders</b><span class="pr-live2">live</span></div>
+    <div class="pr-prog"><i style="width:68%"></i></div>
+    <div class="pr-camp-stats"><div><b>640</b><span>enrolled</span></div><div><b>119</b><span>replied</span></div><div><b>22</b><span>meetings</span></div></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Analytics</span></div><div class="pr-body"><div class="pr-ana">
+    <div class="pr-donut"></div>
+    <div class="pr-leg"><span><i style="background:#7C3AED"></i>Replied 17%</span><span><i style="background:#a78bfa"></i>Opened 61%</span><span><i style="background:#ece8ff"></i>No reply 22%</span></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Dashboard</span></div><div class="pr-body"><div class="pr-mini-kpis">
+    <div><span>Leads</span><b>1,284</b></div><div><span>Replies</span><b>218</b></div><div><span>Booked</span><b>47</b></div>
+  </div><div class="pr-bars"><i style="height:40%"></i><i style="height:52%"></i><i style="height:46%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:80%"></i><i style="height:96%"></i></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Sequences</span></div><div class="pr-body"><div class="pr-steps">
+    <div class="pr-step"><span class="pr-day">Day 0</span> Intro email <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 2 days</div>
+    <div class="pr-step"><span class="pr-day">Day 2</span> Follow-up 1 <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 3 days</div>
+    <div class="pr-step"><span class="pr-day">Day 5</span> Value nudge <span class="pr-run">queued</span></div>
+    <div class="pr-step pr-dim"><span class="pr-day">Day 9</span> Break-up</div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Inbox</span></div><div class="pr-body"><div class="pr-msgs">
+    <div class="pr-msg"><b>Sarah Chen</b><span class="pr-tag good">warm</span><br><small>"Yes — send times for Thu?"</small></div>
+    <div class="pr-msg"><b>James Okoro</b><span class="pr-tag">follow-up</span><br><small>"Not right now, maybe Q3."</small></div>
+    <div class="pr-msg"><b>Mia Roberts</b><span class="pr-tag book">booked</span><br><small>"Booked Tue 2pm — thanks!"</small></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Leads</span></div><div class="pr-body"><div class="pr-leads"><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Sarah Chen</b><small>VP Sales · TechCorp</small></div><div class="pr-score"><i style="width:92%"></i></div><span class="pr-sc">92</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>James Okoro</b><small>Founder · Paylane</small></div><div class="pr-score"><i style="width:78%"></i></div><span class="pr-sc">78</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Mia Roberts</b><small>Head of Growth · Arc</small></div><div class="pr-score"><i style="width:85%"></i></div><span class="pr-sc">85</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Tom Rivera</b><small>COO · Northwind</small></div><div class="pr-score"><i style="width:64%"></i></div><span class="pr-sc">64</span></div></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Campaigns</span></div><div class="pr-body"><div class="pr-camp">
+    <div class="pr-camp-h"><b>Q3 · Fintech founders</b><span class="pr-live2">live</span></div>
+    <div class="pr-prog"><i style="width:68%"></i></div>
+    <div class="pr-camp-stats"><div><b>640</b><span>enrolled</span></div><div><b>119</b><span>replied</span></div><div><b>22</b><span>meetings</span></div></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Analytics</span></div><div class="pr-body"><div class="pr-ana">
+    <div class="pr-donut"></div>
+    <div class="pr-leg"><span><i style="background:#7C3AED"></i>Replied 17%</span><span><i style="background:#a78bfa"></i>Opened 61%</span><span><i style="background:#ece8ff"></i>No reply 22%</span></div>
+  </div></div></div></div></div>
+</div>
+
 <!-- HONEST PROOF — first-party dogfooding (no fake logos / testimonials / invented stats) -->
 <div class="proof-strip">
   <div class="proof-inner">

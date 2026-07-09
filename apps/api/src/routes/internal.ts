@@ -20,6 +20,7 @@ import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { isPlaceholderEmail } from '../lib/email-hygiene'
+import { scoreLeadsForIcp } from '../lib/scoring'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
@@ -2149,10 +2150,17 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
         // #391 (AR-61) — merge ONLY daily_send_limit at the DB (atomic, against the
         // current row) instead of writing the whole settings blob back from a stale
         // read, which could clobber a concurrent UI save / resurrect a founder pause.
-        await db.rpc('figsy_merge_settings', {
+        // F3 (Fable audit) — check the returned { error }: supabase-js RPCs return their
+        // error, they don't throw. If the RPC fails (or the migration isn't applied) we
+        // must NOT report "adjusted" as though the write landed.
+        const { error: mergeErr } = await db.rpc('figsy_merge_settings', {
           p_campaign_id: campaign.id,
           p_patch: { daily_send_limit: newLimit },
         })
+        if (mergeErr) {
+          console.error('[figsy/adaptive-send-check] figsy_merge_settings failed for', campaign.id, mergeErr)
+          continue
+        }
 
         changes.push({ campaignId: campaign.id, oldLimit: currentLimit, newLimit, reason })
         adjusted++
@@ -2245,10 +2253,16 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
 
       // #391 (AR-61) — merge only the A/B result keys atomically (see adaptive-send
       // above) instead of writing the whole settings blob back from a stale read.
-      await db.rpc('figsy_merge_settings', {
+      // F3 (Fable audit) — check the returned { error } so a failed merge isn't counted
+      // as "resolved" (and the test stays open to resolve on a later run).
+      const { error: abMergeErr } = await db.rpc('figsy_merge_settings', {
         p_campaign_id: campaign.id,
         p_patch: { ab_test_resolved: true, ab_test_winner: bestLabel },
       })
+      if (abMergeErr) {
+        console.error('[figsy/ab-winner-check] figsy_merge_settings failed for', campaign.id, abMergeErr)
+        continue
+      }
 
       resolved++
     }
@@ -2257,6 +2271,50 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
   } catch (err) {
     console.error('[figsy/ab-winner-check]', err)
     res.status(500).json({ success: false, error: 'AB winner check failed' })
+  }
+})
+
+// ── #358 (F4) — RE-SCORE STRANDED LEADS ───────────────────────────────────────
+// When AI scoring returns no usable result, that batch is left UNSCORED (score null,
+// score_reasoning 'SCORING_FAILED…') rather than faked as a real 50/$5000. But scoring
+// only runs at sourcing time, so nothing re-scored them — "will retry" was aspirational.
+// This sweep makes it true: find stranded leads, group by ICP, re-score each group
+// (scoreLeadsForIcp re-marks them stranded + alerts again if the AI is still down, so
+// it is safe to run repeatedly). Called hourly by cron.
+internalRouter.post('/figsy/rescore-stranded', async (_req: Request, res: Response) => {
+  try {
+    const { data: stranded } = await db.from('leads')
+      .select('id, icp_id')
+      .is('score', null)
+      .like('score_reasoning', 'SCORING_FAILED%')
+      .not('icp_id', 'is', null)
+      .limit(500)
+    if (!stranded || stranded.length === 0) {
+      res.json({ success: true, data: { rescored: 0, groups: 0 } }); return
+    }
+
+    const byIcp = new Map<string, string[]>()
+    for (const l of stranded) {
+      const icpId = (l as { icp_id: string }).icp_id
+      if (!byIcp.has(icpId)) byIcp.set(icpId, [])
+      byIcp.get(icpId)!.push((l as { id: string }).id)
+    }
+
+    let rescored = 0
+    for (const [icpId, leadIds] of byIcp) {
+      const { data: icp } = await db.from('icps')
+        .select('client_id, job_titles, seniority_levels, industries, company_sizes, geographies, keywords')
+        .eq('id', icpId).maybeSingle()
+      if (!icp) continue
+      const { data: client } = await db.from('clients')
+        .select('company_name').eq('id', (icp as { client_id: string }).client_id).maybeSingle()
+      await scoreLeadsForIcp(leadIds, icp as any, (client as { company_name?: string } | null)?.company_name ?? '')
+      rescored += leadIds.length
+    }
+    res.json({ success: true, data: { rescored, groups: byIcp.size } })
+  } catch (err) {
+    console.error('[figsy/rescore-stranded]', err)
+    res.status(500).json({ success: false, error: 'Re-score sweep failed' })
   }
 })
 

@@ -566,22 +566,30 @@ export async function sendSequenceEmail(
     // Cold email = a personal 1:1 message → Primary, not Promotions. NO pixel, image
     // banner, visible unsubscribe footer, or templated shell (see coldEmailHtml). The
     // one-click List-Unsubscribe header + the body's "Reply STOP" line cover compliance.
-    const result = await resend.emails.send({
-      from:     FROM,
-      reply_to: REPLY_TO,
-      to:       lead.email,
-      subject,
-      headers:  unsubscribeHeaders(lead.email),
-      text:     body,
-      html:     coldEmailHtml(body, emailId),
-    })
-
     // #338 (AR-01) — Resend RETURNS { error } instead of throwing. A failed send must
     // NOT advance the enrollment or leave a phantom "sent" row: delete the row we
     // inserted for the pixel, leave the enrollment DUE (so the cron retries once the
     // cause clears), alert the founder, and bail. This is the exact defer-on-failure
     // shape as the RESEND-unset guard above — a failure is retryable, never a phantom.
-    const checked = interpretSend(result)
+    // F1 (Fable audit) — a network THROW mid-send (socket drop) must hit the SAME
+    // rollback as a returned { error }; otherwise the claimed step + inserted row strand
+    // as a phantom and the next cron fires step N+1 while step N never left. Catch it
+    // and synthesise a failed verdict so the one rollback below covers both cases.
+    let checked: ReturnType<typeof interpretSend>
+    try {
+      const result = await resend.emails.send({
+        from:     FROM,
+        reply_to: REPLY_TO,
+        to:       lead.email,
+        subject,
+        headers:  unsubscribeHeaders(lead.email),
+        text:     body,
+        html:     coldEmailHtml(body, emailId),
+      })
+      checked = interpretSend(result)
+    } catch (thrown) {
+      checked = { ok: false, id: null, error: thrown }
+    }
     if (!checked.ok) {
       console.error(`[figsy] sendSequenceEmail: send FAILED for ${lead.email} step ${step} — not advancing enrollment`, checked.error)
       if (emailId) await db.from('figsy_sent_emails').delete().eq('id', emailId)
@@ -646,7 +654,12 @@ export async function sendSequenceEmail(
   // NOTE: supabase-js RPCs/queries RETURN errors, they don't THROW — so a try/catch
   // never sees an RPC failure. Check the returned error and run the direct-update fallback.
   if (emailId) {
-    const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
+    // F2 (Fable audit / #383) — do NOT chain .maybeSingle() here: the RPC returns a
+    // scalar, and if PostgREST rejects that response shape the UPDATE has ALREADY
+    // committed server-side — then the fallback below would bump the counter a SECOND
+    // time, drifting it UP (the exact bug #383 exists to kill). Read the plain { error }
+    // so the fallback only runs on a genuine RPC failure.
+    const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId })
     if (rpcErr) {
       const { data } = await db.from('figsy_campaigns')
         .select('emails_sent').eq('id', campaignId).single()

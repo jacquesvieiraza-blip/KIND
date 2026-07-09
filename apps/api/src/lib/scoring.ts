@@ -127,7 +127,7 @@ Return ONLY a JSON array with no markdown, no code fences, no explanation:
           batchIds.map(id =>
             db.from('leads').update({
               score:                    null,
-              score_reasoning:          'SCORING_FAILED: AI scoring unavailable — not a real score (will retry)',
+              score_reasoning:          'SCORING_FAILED: AI scoring unavailable — not a real score (retried hourly by /figsy/rescore-stranded)',
               scored_at:                null,
               estimated_deal_value_usd: null,
             }).eq('id', id)

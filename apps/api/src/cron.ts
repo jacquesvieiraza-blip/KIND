@@ -106,6 +106,9 @@ export function startCrons(): void {
   // Every 2 hours — FIGSY send due emails across all clients
   cron.schedule('0 */2 * * *', () => callInternal('/figsy/send-due-all'), { timezone: 'UTC' })
 
+  // Hourly — #358 (F4): re-score leads left UNSCORED by a transient AI-scoring failure
+  cron.schedule('20 * * * *', () => callInternal('/figsy/rescore-stranded'), { timezone: 'UTC' })
+
   // Monday 07:00 UTC — weekly client leads digest
   cron.schedule('0 7 * * 1', () => callInternal('/digest/weekly'), { timezone: 'UTC' })
 

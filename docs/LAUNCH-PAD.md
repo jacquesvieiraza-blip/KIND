@@ -5,11 +5,11 @@
 
 **THE PLAN (locked 8 Jul):** **one price logic across the whole family — per qualified lead. No subscriptions, no contracts, no order-forms.** Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; **Vida inbound $3** + same add-ons → $4/$5. Sell **FIGSY + Lead-Gen** now; **Milla · Vida · Denise · Tony STAY on site + portal marked "coming soon" + greyed** (built in **M4**, never deleted). **Milestone 0 is the gate** — make FIGSY + Lead-Gen *honest → work fully → proven* before one real client.
 
-**Board:** 🟢111 · 🩷92 · 🟣3 · 🟡23 · 🔴206 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢91 · 🩷116 · 🟣1 · 🟡12 · 🔴215 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
 
-> **📍 STATUS OF RECORD = PRODUCT-INVENTORY (the script-counted board).** This doc no longer carries per-item status dots — they drifted every time the inventory changed. LAUNCH-PAD now lists only **what's next + who owns it**; for the live status of any `#id`, read PRODUCT-INVENTORY. The board number above is the one figure kept in sync (validated by `count-inventory.sh --check`).
+> **📍 STATUS OF RECORD = PRODUCT-INVENTORY (the script-counted board).** LAUNCH-PAD lists **what's next + who owns it**; each `#id` row is auto-stamped with the inventory's current dot by `scripts/mirror-launchpad.sh` (chained in `update-board.sh`, enforced by `doc-lint.sh`) — **never hand-type a dot here.** The status of record still lives ONLY in the inventory; this doc mirrors it so the two can't drift.
 
-**VERIFIED STATE (9 Jul):** ✅ **Phase 1 website truth sweep — LIVE + founder-walked → 13 items 🟢** (#405 #394 #408 #419 #430 #417 #418 #348 #403 #409 #366 #411 #416). Site now shows the honest per-qualified-lead model: **Lead-Gen $1 · FIGSY $4 ($1 reveal + $3 work) · no subs/trials/contracts**; Milla/Vida/Denise coming-soon; FIGSY calendar booking = "Launching". **⚠️ The site is ahead of the code** — `constants/index.ts` still encodes the old subscription model → **Phase 2 (money path #420–#431) builds what the site now sells.**
+**VERIFIED STATE (9 Jul, reconciled):** ✅ **Phase 1 website truth sweep — LIVE**; site shows the honest per-qualified-lead model: **Lead-Gen $1 · FIGSY $4 ($1 reveal + $3 work) · no subs/trials/contracts**; Milla/Vida/Denise coming-soon; FIGSY calendar = "Launching". ⚠️ **The board was audited + reconciled this session** (dots verified against code across all colours): 🟢 111→91 · 🩷 92→116 · 🟣 3→1 · 🟡 23→12 · 🔴 206→215. **Portal Step 2 UNDER-DELIVERED** — #406 back to 🔴 (agents still enterable by subscribed accounts). **Held for founder rulings:** #283 #284 #301 #93, legal #432–436, and 8 prod-walk greens (#48 #51 #52 #54 #104 #244 #261 #262). **⚠️ Site is ahead of the code** — `constants/index.ts` still encodes the old model → Phase 2 (#420–#431) builds what the site sells.
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -22,13 +22,13 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 ### ▶ DO NOW — in order (only the true next actions) · *updated 9 Jul PM — hand-off-ready*
 | # | Task | Owner |
 |---|------|:---:|
-| 1 | **Merge PR #1017** (Phase-2 money core: masked delivery + $1 reveal + audit fixes — Fable-audited, 3 holes closed, 87/87 tests) → **run `supabase/migrations/20260709_reveal_charge.sql` on kind-staging then prod (BEFORE the deploys)** → `railway up --detach --service "@kind/api"` + `"@kind/portal"` → walk the 8-step test script in the PR body. *Merging fires the autoflip first run: `Flips: #421 #422 #423 #425` → 🩷 automatically.* | 🧍 |
-| 2 | **Merge PR #1018** (M0 scope verify — 7 gray rocks pulled into the phases, docs-only) | 🧍 |
-| 3 | **Build #212 sequence depth** (M0, founder-locked 9 Jul) — engine 3-step → ≤10-step. **Spec + verified file:line map in the #212 inventory row**; design read done (campaign `settings.steps` already N-step — the rails exist). | 🤖 |
-| 4 | **Phase 2 remainder** — #424 (⚠️ needs founder rule: $3 once-per-lead-EVER vs per-campaign) · #431 retire subscription machinery · #426 10-step cap (ships with #212) · portal reveal top-up packs (in #406) | 🤖/🤝 |
-| 5 | **Phase 1 Step 2 — portal truth sweep** (#406 #385 #384 #412 + named rocks #395/#396/#399) | 🤖 |
-| 6 | FIGSY reliability — **#338 + #339 first**, then the Phase-3 list (incl. the 5 pulled-in rocks #391/#392/#375/#377/#378) | 🤖 |
-| 7 | Held: `small-business-playbook.html` per-lead totals (your packaging) · legal #410/#413/#414/#407 (lawyer track) | 🤝 |
+| 1 | **RULE on the 3 Phase-2 money calls** — #424 charge-once ($1+$3 once-per-lead-EVER vs per-campaign) · #425 trial credit mix (20 reveal + 5 work?) · #431 retire subscription billing (now vs later). Unblocks the Phase-2 build. | 🧍 |
+| 2 | **RULE on the reconciliation held-items** — #283 #284 #301 #93 · legal #432–436 (keep 🟡 vs mark 🩷) · keep/remove the portal mocks Templates (#70) + What's New (#78) · walk the 8 prod-only greens (#48 #51 #52 #54 #104 #244 #261 #262). | 🧍 |
+| 3 | **Rebuild #406 properly** — Milla/Vida/Denise/notetaker UNCONDITIONALLY coming-soon (one `LIVE_AGENTS` constant) so subscribed accounts can't enter; agents landing page + dashboard cards + sidebar switcher. | 🤖 |
+| 4 | **Fix the money-truth gaps found in the audit** — reveal top-up packs buyable in billing (#284) · header shows BOTH wallets (reveal + FIGSY) · MRR $0 bug (Stripe subs never write `amount_usd`, #238) · website "Join the waitlist" → real form + notification. | 🤖 |
+| 5 | **Merge PR #1019** (M0 code batch — sequence depth #212 + send-path integrity, 17 items) once Fable re-audits; then **Phase-2 money build** (after row 1 rulings). | 🤝 |
+| 6 | FIGSY reliability — the Phase-3 list (#391/#392/#375/#377/#378 + remainder). | 🤖 |
+| 7 | Held: `small-business-playbook.html` per-lead totals (your packaging) · legal #410/#413/#414/#407 (lawyer track). | 🤝 |
 
 ---
 
@@ -38,11 +38,11 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 Factual staleness (Apollo→PDL+Hunter, subscriptions→per-lead, REEVE/LENA/OTTO→Denise/Tony) **corrected in-doc**. The judgment calls (new data-rights position, HMRC/DPA/partner-contract wording) were **NOT auto-authored** — they carry review flags in each doc. **Do not use externally until signed off.**
 | Item | Done (8 Jul) | ⚖️ Owed | Owner |
 |---|---|---|:---:|
-| #432 | `legal.md` — SUPERSEDE banner (Apollo moot; 250M/sends/subs flagged) | lawyer: fresh PDL+Hunter data-rights review | 🧍 |
-| #433 | `legal/legal-pack.md` — DPA sub-processor list → PDL+Hunter+Flutterwave; REEVE/LENA/OTTO→Denise/Tony | legal review + match on-site /dpa | 🧍 |
-| #434 | `legal/seis-advance-assurance-draft.md` — revenue → per-qualified-lead (no subs) | accountant/solicitor: confirm before HMRC filing | 🧍 |
-| #435 | `legal/partner-agreement.md` — comp → collected per-lead revenue (MRR removed) | legal sign-off before signing partners | 🧍 |
-| #436 | `legal/it-security-pack.md` + `key-rotation-runbook.md` — Apollo removed from registers | light review | 🧍 |
+| #432 🟡 | `legal.md` — SUPERSEDE banner (Apollo moot; 250M/sends/subs flagged) | lawyer: fresh PDL+Hunter data-rights review | 🧍 |
+| #433 🟡 | `legal/legal-pack.md` — DPA sub-processor list → PDL+Hunter+Flutterwave; REEVE/LENA/OTTO→Denise/Tony | legal review + match on-site /dpa | 🧍 |
+| #434 🟡 | `legal/seis-advance-assurance-draft.md` — revenue → per-qualified-lead (no subs) | accountant/solicitor: confirm before HMRC filing | 🧍 |
+| #435 🟡 | `legal/partner-agreement.md` — comp → collected per-lead revenue (MRR removed) | legal sign-off before signing partners | 🧍 |
+| #436 🟡 | `legal/it-security-pack.md` + `key-rotation-runbook.md` — Apollo removed from registers | light review | 🧍 |
 
 ## PHASE 1 · TRUTH SWEEP — site + portal say ONLY what FIGSY + Lead-Gen ($1 reveal) actually do; everything else STAYS, marked "coming soon" + greyed. **Client-facing → preview first (§11).**
 
@@ -54,25 +54,25 @@ Shipped + founder-walked live → **13 items 🟢** in PRODUCT-INVENTORY: **#405
 Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: **#406 #385 #384 #412 #395 #396 #399.** Merge order: **#1021 → `railway up @kind/api` + `@kind/portal` → walk → then 🟢.**
 | Item | What it is | Owner |
 |---|---|:---:|
-| #406 | Portal sweep — every screen: not-real → "coming soon" + grey. **Milla/Vida/Denise/Tony + notetaker greyed; agent subs (#26) unbuyable; billing shows only the two real wallets ($1 reveal · $3 FIGSY) + sells the REVEAL top-up packs ($20/$40/$100 — #420 un-retire). Named sub-rocks: #395 Milla mock "synced" UI · #396 Denise false claims · #399 integrations shell.** | 🤖 |
-| #385 | Usage page "$1/lead overage" panel → wire it to the **REAL $1 reveal ledger** (was a fake panel) | 🤖 |
-| #384 | Dead portal buttons (Export CSV, etc.) → wire or coming-soon | 🤖 |
-| #412 | `proposals` portal screen missing from the sweep checklist → add it | 🤖 |
+| #406 🔴 | Portal sweep — every screen: not-real → "coming soon" + grey. **Milla/Vida/Denise/Tony + notetaker greyed; agent subs (#26) unbuyable; billing shows only the two real wallets ($1 reveal · $3 FIGSY) + sells the REVEAL top-up packs ($20/$40/$100 — #420 un-retire). Named sub-rocks: #395 Milla mock "synced" UI · #396 Denise false claims · #399 integrations shell.** | 🤖 |
+| #385 🩷 | Usage page "$1/lead overage" panel → wire it to the **REAL $1 reveal ledger** (was a fake panel) | 🤖 |
+| #384 🩷 | Dead portal buttons (Export CSV, etc.) → wire or coming-soon | 🤖 |
+| #412 🩷 | `proposals` portal screen missing from the sweep checklist → add it | 🤖 |
 
 ## PHASE 2 · MONEY PATH — build the two-charge model. Each a small **tested, staging-proven** PR. Spec = `run-costs-and-cashflow.md` §0.
 | Item | What it is | Owner |
 |---|---|:---:|
 | **#420** | **TWO-CHARGE MONEY MODEL — $1 reveal + $3 work = $4** (umbrella #421–#426; two wallets; un-retire lead_gen as reveal tier) | 🤝 |
-| #421 | Atomic `try_charge_reveal_credit` + fail-closed refund-on-failed-reveal (supersedes #376) | 🤖 |
-| #422 | Reveal gating — mask email in browse; reveal only on the $1 charge | 🤖 |
-| #423 | Sourcing quotas — PDL spent at *sourcing* (~$14/run); cap per client/day + regen cap (#374) | 🤖 |
-| #424 | Charge-once-per-lead — per-lead idempotency + DB uniques ($1 once, $3 once) | 🤝 |
-| #425 | Trial credit mix — reveal + work credits (20 free are FIGSY-only today) | 🤝 |
-| #426 | Enforce 10-step sequence cap (bounds per-lead work cost) | 🤖 |
-| #427 | Milla per-lead intelligence layer +$1 (FIGSY/Vida leads; reasons over paid PDL data — no new buys; separate from account-VA Milla, parked M4) | 🤖 |
-| #428 | Denise per-lead action layer +$1 (reply→close scope; FIGSY owns cold→reply) | 🤖 |
-| #429 | Vida inbound engine $3/qualified inbound + add-ons ($4/$5); spam-guard + "qualified" definition (R3) | 🤖 |
-| #431 | Retire agent-subscription billing (reframes #340/#341/#342/#357/#386; ties #26) | 🤝 |
+| #421 🔴 | Atomic `try_charge_reveal_credit` + fail-closed refund-on-failed-reveal (supersedes #376) | 🤖 |
+| #422 🔴 | Reveal gating — mask email in browse; reveal only on the $1 charge | 🤖 |
+| #423 🔴 | Sourcing quotas — PDL spent at *sourcing* (~$14/run); cap per client/day + regen cap (#374) | 🤖 |
+| #424 🔴 | Charge-once-per-lead — per-lead idempotency + DB uniques ($1 once, $3 once) | 🤝 |
+| #425 🔴 | Trial credit mix — reveal + work credits (20 free are FIGSY-only today) | 🤝 |
+| #426 🔴 | Enforce 10-step sequence cap (bounds per-lead work cost) | 🤖 |
+| #427 🔴 | Milla per-lead intelligence layer +$1 (FIGSY/Vida leads; reasons over paid PDL data — no new buys; separate from account-VA Milla, parked M4) | 🤖 |
+| #428 🔴 | Denise per-lead action layer +$1 (reply→close scope; FIGSY owns cold→reply) | 🤖 |
+| #429 🔴 | Vida inbound engine $3/qualified inbound + add-ons ($4/$5); spam-guard + "qualified" definition (R3) | 🤖 |
+| #431 🔴 | Retire agent-subscription billing (reframes #340/#341/#342/#357/#386; ties #26) | 🤝 |
 
 ### 🎯 M/V/D LAYER FEATURE SCOPE (founder-locked 9 Jul · features only, pricing = #420) — the full build list behind #427/#428/#429
 > Build one at a time, phase by phase — not in one go. Status of record = inventory #427/#428/#429 (🔴). Full spec + FIGSY current-features → V2-TRACKER AGENT CAPABILITY SPECS.
@@ -89,62 +89,62 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 ## PHASE 3 · RELIABLE — fix FIGSY's own faults so it *works fully*. Each a small **tested** PR. **Do #338 + #339 first.**
 | Item | What it is | Owner |
 |---|---|:---:|
-| #338 | FIGSY marks an email "sent" even if the send failed — charges $3 for nothing | 🤖 |
-| #339 | The founder alarm can itself fail silently — you'd never know | 🤖 |
-| #346 | Client can't enter their business knowledge → generic copy (turn the UI on) | 🤖 |
-| #354 | No guard against sending the same email twice | 🤖 |
-| #349 | ~140 money writes don't check for failure → the ledger can silently drift | 🤖 |
-| #366 | Sourcing stops at ~50 leads (no pagination) *(wording half in Phase 1)* | 🤖 |
-| #358 | If the AI scorer errors, every lead gets a fake score of 50 | 🤖 |
-| #367 | If the email-reveal quota runs out, 0 leads deliver with no alert | 🤖 |
-| #347 | "Approve before send" queue points at the wrong table → dead | 🤖 |
-| #343 | Crons run on every server copy → duplicate sends | 🤖 |
-| #344 | The kill-switch doesn't actually stop the cron sends | 🤖 |
-| #345 | A client can pull another client's lookalike data (tenant leak) | 🤖 |
-| #350 | The `visitor_sessions` table is publicly readable (data leak) | 🤖 |
-| #353 | "Your trial has ended" email can send repeatedly | 🤖 |
-| #356 | Consent emails aren't inside the outreach gate | 🤖 |
-| #363 | `/admin/seed-leads` can overwrite real client leads | 🤖 |
-| #365 | A demo endpoint can inject fake KPIs into a client dashboard | 🤖 |
-| #371 | Welcome/trial credit grants aren't atomic (race → wrong balance) | 🤖 |
-| #373 | Missing uniqueness constraints on FIGSY tables in prod | 🤖 |
-| #374 | Intent-signal auto-enroll can drain the wallet unbounded *(ties #423)* | 🤖 |
-| #376 | Delivery can overdraw credits (decrement not checked) *(→ superseded by #421)* | 🤖 |
-| #379 | A Stripe refund path returns 500 instead of clawing credits back | 🤖 |
-| #383 | Missing DB function to count FIGSY emails sent | 🤖 |
-| #389 | No migration runner (prod schema is hand-pasted) — risky | 🤖 |
-| #390 | No dead-letter/retry table — failures just vanish | 🤖 |
-| #400 | "South-African-sounding name" prompt residue → make it global | 🤖 |
-| #401 | A few inventory dots were lying → corrected | 🤖 |
-| #402 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 |
-| #212 | **⬆ M2→M0 (founder-locked 9 Jul) · SEQUENCE DEPTH — engine sends 3 steps, site sells "up to 10"** — enrollment steps → jsonb array (≤10), stepper walks it + `wait_days`; enforce #426 cap in the builder API. **Full build spec in the #212 inventory row (code-verified file:line).** | 🤖 |
-| #361 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
-| #368 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
-| #391 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |
-| #392 | ⛰️ *pulled in 9 Jul* — A/B "winner" resolves on ZERO data if tracking unset → wrong copy auto-wins the send path | 🤖 |
-| #375 | ⛰️ *pulled in 9 Jul* — self-outreach charges + cold-emails **placeholder addresses** → phantom charges + spam-trap risk to OUR sending reputation | 🤖 |
-| #377 | ⛰️ *pulled in 9 Jul* — support black hole: client emails support → auto-reply phantom-sends, founder-forward suppressed. With ONE client, unacceptable | 🤖 |
-| #378 | ⛰️ *pulled in 9 Jul* — demo-request auto-sends **invented availability times** to prospects (outward-facing honesty) | 🤖 |
+| #338 🔴 | FIGSY marks an email "sent" even if the send failed — charges $3 for nothing | 🤖 |
+| #339 🔴 | The founder alarm can itself fail silently — you'd never know | 🤖 |
+| #346 🔴 | Client can't enter their business knowledge → generic copy (turn the UI on) | 🤖 |
+| #354 🔴 | No guard against sending the same email twice | 🤖 |
+| #349 🔴 | ~140 money writes don't check for failure → the ledger can silently drift | 🤖 |
+| #366 🔴 | Sourcing stops at ~50 leads (no pagination) *(wording half in Phase 1)* | 🤖 |
+| #358 🔴 | If the AI scorer errors, every lead gets a fake score of 50 | 🤖 |
+| #367 🔴 | If the email-reveal quota runs out, 0 leads deliver with no alert | 🤖 |
+| #347 🔴 | "Approve before send" queue points at the wrong table → dead | 🤖 |
+| #343 🔴 | Crons run on every server copy → duplicate sends | 🤖 |
+| #344 🔴 | The kill-switch doesn't actually stop the cron sends | 🤖 |
+| #345 🔴 | A client can pull another client's lookalike data (tenant leak) | 🤖 |
+| #350 🔴 | The `visitor_sessions` table is publicly readable (data leak) | 🤖 |
+| #353 🔴 | "Your trial has ended" email can send repeatedly | 🤖 |
+| #356 🔴 | Consent emails aren't inside the outreach gate | 🤖 |
+| #363 🔴 | `/admin/seed-leads` can overwrite real client leads | 🤖 |
+| #365 🔴 | A demo endpoint can inject fake KPIs into a client dashboard | 🤖 |
+| #371 🔴 | Welcome/trial credit grants aren't atomic (race → wrong balance) | 🤖 |
+| #373 🔴 | Missing uniqueness constraints on FIGSY tables in prod | 🤖 |
+| #374 🔴 | Intent-signal auto-enroll can drain the wallet unbounded *(ties #423)* | 🤖 |
+| #376 🔴 | Delivery can overdraw credits (decrement not checked) *(→ superseded by #421)* | 🤖 |
+| #379 🔴 | A Stripe refund path returns 500 instead of clawing credits back | 🤖 |
+| #383 🔴 | Missing DB function to count FIGSY emails sent | 🤖 |
+| #389 🔴 | No migration runner (prod schema is hand-pasted) — risky | 🤖 |
+| #390 🔴 | No dead-letter/retry table — failures just vanish | 🤖 |
+| #400 🔴 | "South-African-sounding name" prompt residue → make it global | 🤖 |
+| #401 🔴 | A few inventory dots were lying → corrected | 🤖 |
+| #402 🔴 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 |
+| #212 🔴 | **⬆ M2→M0 (founder-locked 9 Jul) · SEQUENCE DEPTH — engine sends 3 steps, site sells "up to 10"** — enrollment steps → jsonb array (≤10), stepper walks it + `wait_days`; enforce #426 cap in the builder API. **Full build spec in the #212 inventory row (code-verified file:line).** | 🤖 |
+| #361 🔴 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
+| #368 🔴 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
+| #391 🔴 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |
+| #392 🔴 | ⛰️ *pulled in 9 Jul* — A/B "winner" resolves on ZERO data if tracking unset → wrong copy auto-wins the send path | 🤖 |
+| #375 🔴 | ⛰️ *pulled in 9 Jul* — self-outreach charges + cold-emails **placeholder addresses** → phantom charges + spam-trap risk to OUR sending reputation | 🤖 |
+| #377 🔴 | ⛰️ *pulled in 9 Jul* — support black hole: client emails support → auto-reply phantom-sends, founder-forward suppressed. With ONE client, unacceptable | 🤖 |
+| #378 🔴 | ⛰️ *pulled in 9 Jul* — demo-request auto-sends **invented availability times** to prospects (outward-facing honesty) | 🤖 |
 
 ## PHASE 4 · PROVE + SELL — prove on staging, then sell to ONE client · 🤝
 🔴 a credit actually spent · an email that actually landed · knowledge visibly changes the copy · a real lead sources + reveals ($1) + sends ($3) · the alarm fires on a money failure.
 | Item | What it is | Owner |
 |---|---|:---:|
-| #415 | **Do we make money?** — RESOLVED 8 Jul: ~$0.36/worked lead → ~91% margin at $4 (`run-costs-and-cashflow.md` §0). *Remaining = prove it live.* | 🧍 |
-| #364 | ⛰️ *pulled in 9 Jul (scope verify)* — **demo/seed data pollutes the founder metrics** the proof reads from (CRO dashboard, active-paying counts). The Phase-4 "prove it" numbers must be demo-clean or the proof lies | 🤖 |
+| #415 🔴 | **Do we make money?** — RESOLVED 8 Jul: ~$0.36/worked lead → ~91% margin at $4 (`run-costs-and-cashflow.md` §0). *Remaining = prove it live.* | 🧍 |
+| #364 🔴 | ⛰️ *pulled in 9 Jul (scope verify)* — **demo/seed data pollutes the founder metrics** the proof reads from (CRO dashboard, active-paying counts). The Phase-4 "prove it" numbers must be demo-clean or the proof lies | 🤖 |
 | — | **Walk the M0-original pinks** (#330–#334 + #337 are 🩷 live-not-verified) — the "fixed + tested" gate includes walking them; do it during the staging proof | 🧍 |
 
 ### M0 originals (#330–#337) — already shipped
 | Item | What it is |
 |---|---|
-| #330 | Missing FIGSY-credit DB function — added |
-| #331 | Free-trial client got leads forever — drip now drains |
-| #332 | Enrollment now charges fail-closed (no free work) |
-| #333 | Stripe under-grant fixed (client not short-changed) |
-| #334 | Dead auto-top-up switch — greyed out |
-| #335 | FIGSY knowledge-writing built — UI still off, see #346 |
-| #336 | Referral bonus was farmable — purchase-gated |
-| #337 | Money-path sweep |
+| #330 🩷 | Missing FIGSY-credit DB function — added |
+| #331 🩷 | Free-trial client got leads forever — drip now drains |
+| #332 🩷 | Enrollment now charges fail-closed (no free work) |
+| #333 🩷 | Stripe under-grant fixed (client not short-changed) |
+| #334 🩷 | Dead auto-top-up switch — greyed out |
+| #335 🩷 | FIGSY knowledge-writing built — UI still off, see #346 |
+| #336 🩷 | Referral bonus was farmable — purchase-gated |
+| #337 🟡 | Money-path sweep |
 
 **✅ M0 done when:** Phase 1 shipped (site + portal honest) · Phase 2 money path built **+ staging-proven** · Phase 3 fixed **+ tested** · Phase 4 proven on staging → one paying client.
 
@@ -166,10 +166,10 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 # ② MILESTONE 2 — A paying CLIENT runs it · ⏸ BLOCKED on M0
 | Item | What it is | Owner |
 |---|---|:---:|
-| #211 | Smartlead — per-client sending isolation (all clients share one identity today) | 🧍→🤖 |
-| #28b | $60 live money walk — real money through the whole loop, counters reconcile | 🧍 |
-| #212 | Sequence depth (not client-blocking) | 🤖 |
-| #199 | Sending monitoring (not client-blocking) | 🤖 |
+| #211 🔴 | Smartlead — per-client sending isolation (all clients share one identity today) | 🧍→🤖 |
+| #28b 🔴 | $60 live money walk — real money through the whole loop, counters reconcile | 🧍 |
+| #212 🔴 | Sequence depth (not client-blocking) | 🤖 |
+| #199 🔴 | Sending monitoring (not client-blocking) | 🤖 |
 *Security + honesty for M2 already shipped 6 Jul (🩷).*
 
 ---
@@ -177,11 +177,11 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 # ③ MILESTONE 3 — Admin cockpit · 🤝 mostly done (13 screens walked 🟢 on 7 Jul)
 | Item | What it is | Owner |
 |---|---|:---:|
-| #291 | GTM funnel showed 367% — bug fixed (PR #978), re-walk after deploy | 🤝 |
-| #279 | Deliverability graph — needs the bounce/complaint reporting endpoint | 🤖 |
-| #289 | NPS — endpoint exists, migration not run + no clients yet | 🤖 |
-| #290 | Sentry error tracking — not wired in | 🤖 |
-| #364 | Demo data pollutes your founder metrics → exclude it | 🤖 |
+| #291 🩷 | GTM funnel showed 367% — bug fixed (PR #978), re-walk after deploy | 🤝 |
+| #279 🩷 | Deliverability graph — needs the bounce/complaint reporting endpoint | 🤖 |
+| #289 🩷 | NPS — endpoint exists, migration not run + no clients yet | 🤖 |
+| #290 🟡 | Sentry error tracking — not wired in | 🤖 |
+| #364 🔴 | Demo data pollutes your founder metrics → exclude it | 🤖 |
 *Ops inbox-pool / AE lenses / deliverability data wait on Smartlead (#211).*
 
 ---
@@ -196,49 +196,49 @@ In M0 these are made *honest* (kept, "coming soon"); **here** they're made *real
 **Subscriptions (Milla/Vida/Denise billing)** — ⚠️ **RETIRING (#431):** the whole family moved to per-qualified-lead (#420). These five are no longer "fix" work — they become **delete the subscription machinery** (zero real subscribers).
 | Item | What it is | Owner |
 |---|---|:---:|
-| #340 | Subscription goes "active" even on a failed/incomplete card | 🤖 |
-| #341 | Cancelling a subscription doesn't actually cancel it in Stripe | 🤖 |
-| #342 | The subscription "lapse" cron 500s every day | 🤖 |
-| #357 | MRR is structurally $0 (the subscription amount is never stored) | 🤖 |
-| #386 | Onboarding can double-submit a subscription | 🤖 |
+| #340 🔴 | Subscription goes "active" even on a failed/incomplete card | 🤖 |
+| #341 🔴 | Cancelling a subscription doesn't actually cancel it in Stripe | 🤖 |
+| #342 🔴 | The subscription "lapse" cron 500s every day | 🤖 |
+| #357 🔴 | MRR is structurally $0 (the subscription amount is never stored) | 🤖 |
+| #386 🔴 | Onboarding can double-submit a subscription | 🤖 |
 
 **Partner + referral**
 | Item | What it is | Owner |
 |---|---|:---:|
-| #351 | Partner commission math wrong (20% recurring, no clawback) | 🤖 |
-| #355 | Referral link drops the `?ref=` → referral can't be earned | 🤖 |
-| #370 | Partner lookup is injectable (`.ilike` on email) | 🤖 |
-| #372 | `allocate_pool_to_rep` destroys pool credits | 🤖 |
-| #387 | Referral attribution is swallowed | 🤖 |
-| #398 | "Wise integration" — partner payouts are actually manual | 🤖 |
+| #351 🔴 | Partner commission math wrong (20% recurring, no clawback) | 🤖 |
+| #355 🔴 | Referral link drops the `?ref=` → referral can't be earned | 🤖 |
+| #370 🔴 | Partner lookup is injectable (`.ilike` on email) | 🤖 |
+| #372 🔴 | `allocate_pool_to_rep` destroys pool credits | 🤖 |
+| #387 🔴 | Referral attribution is swallowed | 🤖 |
+| #398 🔴 | "Wise integration" — partner payouts are actually manual | 🤖 |
 
 **Other agents — real builds**
 | Item | What it is | Owner |
 |---|---|:---:|
-| #362 | Vida has no knowledge layer (sold "no hallucinations") | 🤖 |
-| #360 | WhatsApp uses one global number — not per-client | 🤖 |
-| #359 | WhatsApp webhook is forgeable (no signature check) | 🤖 |
-| #369 | Voice/Vapi webhook fails open if the secret is unset | 🤖 |
-| #396 | Denise false claims ("trained on closed-won / confirms meetings") | 🤖 |
-| #395 | Milla page shows a fake "HubSpot/Gmail connected" mock | 🤖 |
-| #388 | LinkedIn steps stuck (PhantomBuster not wired) | 🤖 |
-| #404 | Lena agent is dead code (never mounted → 404) | 🤖 |
+| #362 🔴 | Vida has no knowledge layer (sold "no hallucinations") | 🤖 |
+| #360 🔴 | WhatsApp uses one global number — not per-client | 🤖 |
+| #359 🔴 | WhatsApp webhook is forgeable (no signature check) | 🤖 |
+| #369 🔴 | Voice/Vapi webhook fails open if the secret is unset | 🤖 |
+| #396 🩷 | Denise false claims ("trained on closed-won / confirms meetings") | 🤖 |
+| #395 🩷 | Milla page shows a fake "HubSpot/Gmail connected" mock | 🤖 |
+| #388 🔴 | LinkedIn steps stuck (PhantomBuster not wired) | 🤖 |
+| #404 🔴 | Lena agent is dead code (never mounted → 404) | 🤖 |
 
 **Auto top-up + integrations + infra + ops**
 | Item | What it is | Owner |
 |---|---|:---:|
-| #352 | Auto top-up can double-charge a card | 🤖 |
-| #399 | Integrations hub — all 8 "Connect" tiles are dead | 🤖 |
-| #397 | HubSpot platform sync is dead code | 🤖 |
-| #375 | Our own self-outreach sends are dead | 🤖 |
-| #377 | Support inbox auto-reply phantom-sends → black hole | 🤖 |
-| #378 | `/ae/demo-request` hallucinates availability | 🤖 |
-| #380 | Missing tables (`subscribers` / `whatsapp_messages`) | 🤖 |
-| #381 | Developer webhooks section is dead (no table) | 🤖 |
-| #382 | Churn scoring reads a column that's never written | 🤖 |
-| #391 | Cron JSONB writes clobber each other | 🤖 |
-| #392 | A/B test "wins" on zero data | 🤖 |
-| #393 | Data-moat table gets duplicate rows (no dedup key) | 🤖 |
+| #352 🔴 | Auto top-up can double-charge a card | 🤖 |
+| #399 🩷 | Integrations hub — all 8 "Connect" tiles are dead | 🤖 |
+| #397 🔴 | HubSpot platform sync is dead code | 🤖 |
+| #375 🔴 | Our own self-outreach sends are dead | 🤖 |
+| #377 🔴 | Support inbox auto-reply phantom-sends → black hole | 🤖 |
+| #378 🔴 | `/ae/demo-request` hallucinates availability | 🤖 |
+| #380 🔴 | Missing tables (`subscribers` / `whatsapp_messages`) | 🤖 |
+| #381 🔴 | Developer webhooks section is dead (no table) | 🤖 |
+| #382 🔴 | Churn scoring reads a column that's never written | 🤖 |
+| #391 🔴 | Cron JSONB writes clobber each other | 🤖 |
+| #392 🔴 | A/B test "wins" on zero data | 🤖 |
+| #393 🔴 | Data-moat table gets duplicate rows (no dedup key) | 🤖 |
 
 **✅ M4 done when:** each item is rebuilt (state machine + provider-confirmed + tests) and its "coming soon" is lifted — one at a time.
 

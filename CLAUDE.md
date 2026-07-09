@@ -34,9 +34,10 @@ On this repo **merging to `main` = shipping to the LIVE site clients use.** So e
 
 ## End-of-session ritual (run every working session, in order)
 1. **Flip the dot(s)** in PRODUCT-INVENTORY for anything that changed — the *only* status edit.
-2. **Overwrite the top of LAUNCH-PAD** — VERIFIED STATE + today's / this week's runlist.
+2. **Overwrite the top of LAUNCH-PAD** — VERIFIED STATE + today's / this week's runlist. **No status dots in LAUNCH-PAD** — it lists what's next + owner; status lives only in the inventory.
 3. **Append one line to the KIND-MASTER session log** — and it is the **same sentence as the git commit message** (write it once).
 4. Touch KIND-MASTER strategy or V2-TRACKER **only when a decision or future plan actually changes.**
+5. **Run `scripts/doc-lint.sh` before committing any doc change** — it fails on status-column drift, board drift, duplicate IDs and banned stale claims (CI runs it too; a red lint = fix the doc, don't bypass).
 
 ## Steals are vital — log every one (RULEBOOK §9)
 A **steal** = any pattern worth taking from another tool (Notion, Glean, competitor demos, internal tools the founder uses…). **Capture on sight, same session, logged in RED** as a 🔴 inventory item (or mapped to an existing item ID). The **STEALS CATALOG** in PRODUCT-INVENTORY is the ledger. **Good steals can't go missing — never leave one floating in prose.**

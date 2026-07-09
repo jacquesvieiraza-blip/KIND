@@ -19,7 +19,7 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 # ░ 🎯 AGENT CAPABILITY SPECS — the feature set per agent (founder-locked 9 Jul) ░
 
-> **Features only — pricing lives in the money model (#420).** This is the M4 build scope for each agent's capabilities: what each does today vs what it will do. FIGSY is the live qualification engine (M0); **Milla · Denise · Vida capabilities are 🔴 M4** (kept "coming soon" on the site until built one at a time). Inventory status items: **FIGSY** = M0 build · **Milla** #2 / #427 · **Denise** #4 / #428 · **Vida** #3 / #429. Nothing here changes a status dot.
+> **Features only — pricing lives in the money model (#420).** This is the **MILESTONE 0** build scope for each agent's capabilities (founder-ruled 9 Jul: M/V/D features belong in M0): what each does today vs what it will do. FIGSY is the live qualification engine; **Milla · Denise · Vida capabilities are 🔴 M0 — #427/#428/#429 in LAUNCH-PAD Phase 2** (kept "coming soon" on the site until built one at a time; only the account-level agent products #2/#3/#4 stay parked M4). Inventory status items: **FIGSY** = M0 build · **Milla** #427 · **Denise** #428 · **Vida** #429. Nothing here changes a status dot.
 
 ## FIGSY — qualified B2B lead sourcing *(the core qualification engine — the "qualified lead" metric belongs here)*
 **Current (M0 — live/building):** ICP-matched B2B lead sourcing · AI lead score 0–100 · personalised outreach per lead · follow-up sequences (≤10 steps, #212) · reply tracking + drafts for approval · booking link in every email · GDPR/PECR-compliant workflow · CRM dedup + CSV export.
@@ -27,15 +27,15 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 ## Milla — lead intelligence layer *(turns a qualified lead into an **understood** lead — not "AI that answers questions")*
 **Current (built):** business-knowledge + document recall · ask-anything grounded answers · what's-converting insights.
-**🔴 M4 additional build scope (per-lead layer, #427):** explains why this lead is a fit · matches the lead to the right product/service · identifies likely pain points · suggests the best outreach angle · pulls relevant company context into the lead card · adds source-backed reasoning where possible · creates "what to say to this lead" notes · highlights similar past wins / converting patterns · flags weak-fit or risky leads before outreach · suggests which offer/message to use.
+**🔴 M0 build scope (per-lead layer, #427):** explains why this lead is a fit · matches the lead to the right product/service · identifies likely pain points · suggests the best outreach angle · pulls relevant company context into the lead card · adds source-backed reasoning where possible · creates "what to say to this lead" notes · highlights similar past wins / converting patterns · flags weak-fit or risky leads before outreach · suggests which offer/message to use.
 
 ## Denise — sales action layer *(turns a qualified lead into a **ready-to-send sales motion** — not "AI that writes emails")*
 **Current (built):** objection handling · proposal drafts · follow-up until the deal closes.
-**🔴 M4 additional build scope (per-lead layer, #428; boundary R2 — FIGSY owns cold→first-reply, Denise owns reply→close):** writes the first outreach message · creates a 3-step follow-up pack · suggests the next best action · generates objection replies · prepares call notes · writes proposal intro/context · creates post-call follow-up drafts · summarises buyer intent · recommends urgency level · flags deals that need chasing · suggests when to stop following up · turns Milla's insights into actual sales copy.
+**🔴 M0 build scope (per-lead layer, #428; boundary R2 — FIGSY owns cold→first-reply, Denise owns reply→close):** writes the first outreach message · creates a 3-step follow-up pack · suggests the next best action · generates objection replies · prepares call notes · writes proposal intro/context · creates post-call follow-up drafts · summarises buyer intent · recommends urgency level · flags deals that need chasing · suggests when to stop following up · turns Milla's insights into actual sales copy.
 
 ## Vida — inbound qualification layer *(turns website + WhatsApp visitors into **qualified leads**)*
 **Current (built):** website chat widget · WhatsApp inbound · 24/7 visitor qualification + capture.
-**🔴 M4 additional build scope (inbound engine, #429):** qualifies inbound visitors against the same ICP rules · captures name/company/email/phone/need · scores inbound leads 0–100 · detects urgency + buyer intent · filters out spam + bad-fit enquiries · summarises the conversation · suggests the next best reply · routes hot leads for immediate follow-up · adds booking link when appropriate · pushes qualified inbound into CRM/export · hands off to Denise for follow-up copy · hands off to Milla for company-specific context.
+**🔴 M0 build scope (inbound engine, #429):** qualifies inbound visitors against the same ICP rules · captures name/company/email/phone/need · scores inbound leads 0–100 · detects urgency + buyer intent · filters out spam + bad-fit enquiries · summarises the conversation · suggests the next best reply · routes hot leads for immediate follow-up · adds booking link when appropriate · pushes qualified inbound into CRM/export · hands off to Denise for follow-up copy · hands off to Milla for company-specific context.
 
 ---
 

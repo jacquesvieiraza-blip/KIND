@@ -1,0 +1,27 @@
+name: doc-lint
+
+# The doc-drift firewall (see scripts/doc-lint.sh). Runs on every PR and on main
+# so stale docs FAIL CI instead of surfacing weeks later. One fact, one home:
+# status → PRODUCT-INVENTORY · pricing → constants/index.ts mirrored once in
+# run-costs-and-cashflow §0.
+
+on:
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'scripts/count-inventory.sh'
+      - 'scripts/doc-lint.sh'
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'scripts/count-inventory.sh'
+      - 'scripts/doc-lint.sh'
+
+jobs:
+  doc-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: doc-lint
+        run: bash scripts/doc-lint.sh

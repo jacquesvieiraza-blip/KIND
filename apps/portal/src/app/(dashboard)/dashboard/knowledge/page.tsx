@@ -9,11 +9,13 @@ import {
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
-// FIGSY training backend (figsy_knowledge table + /figsy/knowledge/* endpoints +
-// wiring into email generation) is NOT built yet — see V2-TRACKER "Train FIGSY".
-// Until then this page is a PREVIEW: saves are disabled and a coming-soon banner
-// shows, so it's honest instead of failing to save. Flip to true on launch.
-const TRAINING_LIVE = false
+// #346 — the FIGSY training backend IS built: figsy_knowledge table + /figsy/knowledge/*
+// endpoints + wiring into email generation (#335 — the digest grounds every sequence).
+// This page stays gated behind an env flag ONLY until the founder confirms figsy_knowledge
+// exists in PROD (no migration runner yet — #373/#389). Set NEXT_PUBLIC_TRAINING_LIVE=true
+// on the portal service to turn it on — no code change/deploy needed. Default OFF (safe:
+// saves stay disabled + the coming-soon banner shows, so it can't fail to save).
+const TRAINING_LIVE = process.env.NEXT_PUBLIC_TRAINING_LIVE === 'true'
 
 type Tab = 'pitch' | 'keywords' | 'signals' | 'dnc' | 'messaging' | 'context' | 'prompts'
 type Section = 'brief' | 'targeting' | 'guardrails'

@@ -11,7 +11,7 @@ step-by-step to rotate the exposed secrets safely. Cross-ref: incident register 
 updated on only one will hard-fail that service on its next boot.
 
 **Priority:** do the 2 crown-jewels first (Stripe secret + Supabase service-role).
-The rest of the keys from the incident (Resend, Anthropic, Apollo, Flutterwave,
+The rest of the keys from the incident (Resend, Anthropic, Flutterwave,
 PDL, Hunter, etc.) follow the same pattern — rotate them too when you have time, but the
 *(Vapi ⏸ PARKED 25 Jun — no active key; Paystack killed.)*
 2 below are the launch-blocking ones.

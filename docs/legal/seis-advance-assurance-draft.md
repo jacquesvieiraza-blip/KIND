@@ -28,16 +28,17 @@ _Last-checked: 24 Jun 2026 — draft; ~18 [INSERT]/[LEGAL REVIEW] gaps remain (t
 **What KIND does:**
 
 <!-- ⚠️ ACCOUNTANT/SOLICITOR REVIEW: market framing updated 25 Jun to the two-track GTM (US/UK/EMEA + Africa). Confirm this aligns with the SEIS UK-qualifying-trade requirements before filing. -->
-K.I.N.D Technologies Ltd develops and operates KIND AI, a B2B artificial intelligence sales platform serving SMBs globally. The platform delivers three AI-powered sales agents as a service: FIGSY (automated personalised outbound email and LinkedIn prospecting); Milla (strategic lead generation and ICP-matched prospect list building); and Vida (AI-driven inbound web chat agent that qualifies and captures leads from customers' websites).
+K.I.N.D Technologies Ltd develops and operates KIND AI, a B2B artificial intelligence sales platform serving SMBs globally. The platform's live product is FIGSY — an AI SDR that sources ICP-matched B2B leads, scores them, and drafts personalised outbound email for the customer to approve and send (with a booking link in every message). Additional AI agents (Milla — lead intelligence; Vida — inbound web-chat qualification; Denise — sales-action drafting) are in development and released progressively.
 
 **Primary market:**
 
 Small and medium-sized B2B enterprises across **two go-to-market tracks: the US, UK and EMEA (served via the company's own direct outreach) and Africa** (served via direct data-driven outreach + a partner channel) — with particular focus on professional services, technology, logistics, financial services, and business process outsourcing. The platform is UK-built and accessed globally via web application.
 
 **Revenue model:**
+<!-- ⚠️ ACCOUNTANT/SOLICITOR REVIEW (updated 8 Jul): revenue model changed to usage-based per-qualified-lead — NO recurring subscriptions. Confirm this wording before filing. -->
 
-1. Recurring SaaS subscriptions billed via Stripe, providing tiered access to the KIND AI platform on a monthly basis.
-2. Credit packs purchased on an as-needed basis via Stripe, allowing customers to purchase additional AI execution credits for high-volume campaigns beyond their subscription tier.
+1. **Usage-based billing — per qualified lead.** Customers purchase prepaid credit packs via Stripe (and Flutterwave in Africa) and consume them per qualified lead: a base charge to reveal a verified contact, plus incremental charges as AI agents work the lead. There are **no recurring monthly subscriptions**.
+2. Pricing scales with usage (volume of qualified leads worked), not a fixed monthly tier.
 
 ---
 

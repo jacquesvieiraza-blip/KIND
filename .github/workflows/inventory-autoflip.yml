@@ -1,0 +1,69 @@
+name: inventory-autoflip
+
+# Merge → doc update, automatically (Move 3 of the 9-Jul doc-management reset).
+#
+# When a PR merges to main and its body carries a line
+#     Flips: #421 #422
+# this workflow flips those PRODUCT-INVENTORY dots to 🩷 (live, NOT verified),
+# regenerates every board surface (scripts/update-board.sh), appends one line to
+# the KIND-MASTER session log, and commits — so the docs update themselves at
+# the moment of merge, same-session, no memory involved.
+#
+# The contract:
+#   • automation only ever sets 🩷 — 🟢 stays founder-only (flip-dots.sh enforces)
+#   • no "Flips:" line in the PR body → the workflow does nothing
+#   • the commit must pass doc-lint (update-board.sh guarantees board consistency)
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  autoflip:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Extract flips from the PR body
+        id: flips
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          ids="$(printf '%s\n' "$PR_BODY" | grep -ioE '^ *Flips?: *(#[0-9]+[a-z]? *)+' | head -1 | grep -oE '#[0-9]+[a-z]?' | tr -d '#' | tr '\n' ' ' || true)"
+          echo "ids=${ids}" >> "$GITHUB_OUTPUT"
+          echo "PR flips: '${ids:-<none>}'"
+
+      - name: Flip dots → 🩷 + regenerate boards
+        if: steps.flips.outputs.ids != ''
+        run: |
+          bash scripts/flip-dots.sh 🩷 ${{ steps.flips.outputs.ids }}
+
+      - name: Append session-log line
+        if: steps.flips.outputs.ids != ''
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          ids_pretty="$(echo '${{ steps.flips.outputs.ids }}' | sed 's/\([0-9a-z]*\) */#\1 /g' | sed 's/ $//')"
+          today="$(date -u '+%-d %b')"
+          line="- **${today} (AUTO — merge #${PR_NUMBER}):** ${PR_TITLE} → flipped ${ids_pretty} 🩷 (live, founder walk owed for 🟢)."
+          awk -v l="$line" '{print} /### 🔄 SESSION LOG/ && !done {print l; done=1}' docs/KIND-MASTER.md > /tmp/km && mv /tmp/km docs/KIND-MASTER.md
+
+      - name: Lint + commit + push
+        if: steps.flips.outputs.ids != ''
+        run: |
+          bash scripts/doc-lint.sh
+          git config user.name  "kind-autoflip"
+          git config user.email "autoflip@get-kind.com"
+          git add docs/PRODUCT-INVENTORY.md docs/LAUNCH-PAD.md docs/KIND-MASTER.md
+          git diff --cached --quiet && { echo "nothing to commit"; exit 0; }
+          git commit -m "auto: PR #${{ github.event.pull_request.number }} merged → flip ${{ steps.flips.outputs.ids }}→ 🩷 + boards + session log"
+          git push origin main

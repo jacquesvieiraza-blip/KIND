@@ -1789,6 +1789,52 @@
 <!-- GRADIENT TRANSITION: white to dark -->
 <div class="grad-wht-dark"></div>
 
+<!-- AGENT REVEAL — FIGSY · The Opener -->
+<section class="opener">
+  <style>
+    .opener{background:linear-gradient(180deg,#1E1152 0%,#150c3a 55%,#0F0929 100%);padding:64px 24px 72px;position:relative;overflow:hidden}
+    .opener::before{content:"";position:absolute;top:-20%;right:-10%;width:620px;height:620px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.45),transparent 62%);filter:blur(20px);pointer-events:none}
+    .opener-inner{position:relative;max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:center}
+    .opener-eyebrow{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#c4b5fd;font-weight:700;margin-bottom:18px;display:inline-flex;align-items:center;gap:9px}
+    .opener-eyebrow::before{content:"";width:26px;height:1px;background:#7C3AED}
+    .opener h2{font-family:'Outfit',sans-serif;font-weight:900;font-size:clamp(2rem,4.4vw,3.4rem);line-height:1.02;letter-spacing:-.04em;color:#fff;margin:0 0 20px}
+    .opener h2 span{background:linear-gradient(90deg,#f472b6,#c4b5fd,#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .opener p{color:rgba(255,255,255,.62);font-size:1.02rem;line-height:1.66;max-width:520px;margin:0 0 24px;font-weight:500}
+    .opener-points{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:30px;max-width:520px}
+    .opener-points span{display:flex;align-items:flex-start;gap:9px;color:#e6e0ff;font-size:.86rem;font-weight:600;line-height:1.35}
+    .opener-points span::before{content:"";flex-shrink:0;width:18px;height:18px;margin-top:1px;border-radius:50%;background:rgba(124,58,237,.25);background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23c4b5fd" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>');background-repeat:no-repeat;background-position:center}
+    .opener-cta{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#1E1152;font-weight:800;font-size:.9rem;padding:13px 24px;border-radius:100px;text-decoration:none;transition:transform .2s,box-shadow .2s;box-shadow:0 14px 40px -12px rgba(124,58,237,.7)}
+    .opener-cta:hover{transform:translateY(-2px)}
+    .opener-visual{position:relative;display:flex;justify-content:center}
+    .opener-photo{position:relative;width:min(380px,84vw);aspect-ratio:1/1.12;border-radius:26px;padding:3px;background:linear-gradient(160deg,#FFD4B2,#F9C8FF 45%,#7C3AED);box-shadow:0 40px 90px -30px rgba(124,58,237,.7)}
+    .opener-photo::after{content:"FIGSY";position:absolute;left:0;right:0;top:12px;text-align:center;font-family:'Outfit',sans-serif;font-weight:900;font-size:3.4rem;letter-spacing:-.05em;color:rgba(255,255,255,.5);z-index:1}
+    .opener-photo img{position:relative;z-index:2;width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:23px;background:linear-gradient(160deg,#ffd6ed,#c9b6ff)}
+    .opener-tag{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:3;background:rgba(15,9,41,.85);backdrop-filter:blur(6px);border:1px solid rgba(196,181,253,.25);color:#fff;font-size:.74rem;font-weight:700;padding:8px 16px;border-radius:100px;white-space:nowrap}
+    @media(max-width:860px){.opener-inner{grid-template-columns:1fr;gap:36px;text-align:center}.opener p,.opener-points{margin-left:auto;margin-right:auto}.opener-points{text-align:left}.opener-eyebrow{justify-content:center}}
+    @media(max-width:520px){.opener-points{grid-template-columns:1fr}}
+  </style>
+  <div class="opener-inner">
+    <div class="opener-copy">
+      <div class="opener-eyebrow">Agent 01 &middot; The Opener</div>
+      <h2>Meet FIGSY.<br>He opens the door &mdash;<br><span>you walk through it.</span></h2>
+      <p>Your AI SDR. FIGSY finds your ideal clients, writes every email in your voice, follows up without being told, and drops a booking link in every message. He takes a lead from cold to booked &mdash; so your best people spend their hours closing, not chasing.</p>
+      <div class="opener-points">
+        <span>Finds &amp; verifies the right people</span>
+        <span>Writes in your voice &mdash; never a template</span>
+        <span>Follows up, every time, on his own</span>
+        <span>Books the meeting into your calendar</span>
+      </div>
+      <a href="figsy.html" class="opener-cta">See how FIGSY works &rarr;</a>
+    </div>
+    <div class="opener-visual">
+      <div class="opener-photo">
+        <img src="figsy-cut.png" alt="FIGSY — The Opener, your AI SDR" />
+        <span class="opener-tag">FIGSY &middot; The Opener &middot; your AI SDR</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- THE HUMAN CEILING -->
 <div class="problem-section">
   <div class="problem-inner">

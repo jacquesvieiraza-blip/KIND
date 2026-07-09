@@ -384,12 +384,15 @@ adminRouter.post('/clients/:id/credits', async (req: Request, res: Response) => 
     const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip || 'unknown'
     const auditNote = `${note ? note + ' · ' : ''}[admin ${type} ${amount > 0 ? '+' : ''}${amount} @ ${new Date().toISOString()} from ${ip}]`
 
-    const [, txRes] = await Promise.all([
+    const [balRes, txRes] = await Promise.all([
       db.from('clients').update({ credit_balance: newBalance }).eq('id', req.params.id),
       db.from('credit_transactions').insert({
         client_id: req.params.id, type, amount, note: auditNote,
       }).select('id').single(),
     ])
+    // #349 (AR-12) — the balance-update error was discarded ([, txRes]); a failed update
+    // with a successful ledger insert reported success while the wallet never moved.
+    if (balRes.error) throw balRes.error
     if (txRes.error) throw txRes.error
 
     res.json({ success: true, data: { new_balance: newBalance } })

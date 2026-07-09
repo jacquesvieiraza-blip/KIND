@@ -169,8 +169,20 @@ authRouter.post('/onboard', async (req, res) => {
       // client can experience the full ladder end-to-end: browse masked → reveal →
       // FIGSY works the lead. (The legacy `subscriptions` trialing row above is
       // #431 retirement scope — the grant itself no longer expires.)
-      await db.from('clients').update({ credit_balance: 20, figsy_credits_remaining: 5 }).eq('id', clientId)
-      try {
+      // #349 (AR-12) — check the balance write. If the grant silently fails but the
+      // ledger rows below still insert, the ledger says "25 credits granted" while the
+      // wallet holds 0 — a drift that reads as free credits the client can't spend.
+      // Only write the ledger when the balance actually changed; alert on failure.
+      const { error: grantErr } = await db.from('clients')
+        .update({ credit_balance: 20, figsy_credits_remaining: 5 }).eq('id', clientId)
+      if (grantErr) {
+        console.error('[auth/signup] welcome-credit grant failed for', clientId, grantErr)
+        void sendFounderAlert('charge_failed', 'Welcome credits NOT granted at signup', [
+          `Client: ${clientId} (${profileFields.company_name})`,
+          `The credit_balance/figsy_credits_remaining write failed: ${grantErr.message}`,
+          `The new client has no starting credits — grant them manually in admin.`,
+        ])
+      } else try {
         await db.from('credit_transactions').insert([
           {
             client_id: clientId,

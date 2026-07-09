@@ -8,7 +8,7 @@
 ---
 
 ## 🎯 The target
-**£75,000/year gross ≈ £4,500/month net ≈ ~£8,000/month in sales.** *(You keep ~93% margin, so revenue ≈ what you need plus a small buffer for costs + FX.)*
+**£75,000/year gross ≈ £4,500/month net ≈ ~£8,000/month in sales.** *(You keep ~91–92% margin, so revenue ≈ what you need plus a small buffer for costs + FX.)*
 
 ## 1️⃣ Reaching it — You vs a Partner
 You keep ~all the revenue. **A partner keeps 20% commission** → they need their clients to be paying **~£31,250/month** in total → **~4–5× the clients you do.**

@@ -605,6 +605,29 @@ export default function LeadsPage() {
     setActionLoading(null)
   }
 
+  // #420/#422 — the $1 reveal: unmask a lead's email (charges 1 reveal credit).
+  async function revealLead(leadId: string) {
+    if (!token || actionLoading === `reveal-${leadId}`) return
+    setActionLoading(`reveal-${leadId}`)
+    try {
+      const res = await api.post<{ revealed: boolean; email: string | null; charged: boolean }>(`/leads/${leadId}/reveal`, {}, token)
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, email: res.email ?? l.email, revealed: true } : l))
+      if (res.charged) showToast('Lead revealed — $1 charged', 'success')
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Reveal failed'
+      if (/insufficient_reveal_credits|402/.test(msg)) {
+        showToast('No reveal credits — top up to unmask leads ($1 each)', 'error')
+      } else if (/no_email_found|422/.test(msg)) {
+        showToast('No verified email found for this lead — you were not charged', 'error')
+      } else if (/already_in_crm|409/.test(msg)) {
+        showToast('Already in your CRM — no charge', 'error')
+      } else {
+        showToast(msg, 'error')
+      }
+    }
+    setActionLoading(null)
+  }
+
   async function enrichLead(leadId: string) {
     if (!token || enrichingIds.has(leadId)) return
     setEnrichingIds(prev => new Set(prev).add(leadId))
@@ -1109,7 +1132,18 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
                         <p className="text-xs text-[#9B8EC4]">{lead.job_title || '—'}</p>
-                        {lead.email && <p className="text-xs text-[#9B8EC4]">{lead.email}</p>}
+                        {lead.email ? (
+                          <p className="text-xs text-[#9B8EC4]">{lead.email}</p>
+                        ) : lead.status !== 'opted_out' && !(lead as { revealed?: boolean }).revealed ? (
+                          /* #422 — masked until the client spends the $1 reveal */
+                          <button
+                            onClick={() => revealLead(lead.id)}
+                            disabled={actionLoading === `reveal-${lead.id}`}
+                            className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 disabled:opacity-50 transition-colors"
+                          >
+                            {actionLoading === `reveal-${lead.id}` ? 'Revealing…' : '🔓 Reveal email · $1'}
+                          </button>
+                        ) : null}
                         {/* R20 — job-change alert badge */}
                         {(lead as { job_changed_at?: string | null }).job_changed_at && (
                           <span className="inline-flex items-center gap-1 mt-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">

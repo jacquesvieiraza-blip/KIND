@@ -163,19 +163,32 @@ authRouter.post('/onboard', async (req, res) => {
       })
       if (subErr) throw new Error(`Subscription insert failed: ${subErr.message} (${subErr.code})`)
 
-      // Grant 20 free FIGSY trial credits ($60 value, founder-locked) into the FIGSY
-      // wallet so new clients can enrol their first leads. (#284 — lead_gen retired;
-      // was 20 lead_gen credits into credit_balance.)
-      await db.from('clients').update({ figsy_credits_remaining: 20 }).eq('id', clientId)
+      // #425 — signup credit MIX for the two-charge model: under $1-reveal + $3-work
+      // a FIGSY-only grant is useless (the client can't reveal anything). Grant
+      // 20 reveal credits ($20 value) + 5 FIGSY work credits ($15 value) so a new
+      // client can experience the full ladder end-to-end: browse masked → reveal →
+      // FIGSY works the lead. (The legacy `subscriptions` trialing row above is
+      // #431 retirement scope — the grant itself no longer expires.)
+      await db.from('clients').update({ credit_balance: 20, figsy_credits_remaining: 5 }).eq('id', clientId)
       try {
-        await db.from('credit_transactions').insert({
-          client_id: clientId,
-          amount: 20,
-          type: 'trial_bonus',
-          plan: 'figsy',
-          note: '14-day free trial — 20 FIGSY credits',
-          created_at: now,
-        })
+        await db.from('credit_transactions').insert([
+          {
+            client_id: clientId,
+            amount: 20,
+            type: 'trial_bonus',
+            plan: 'lead_gen',
+            note: 'Welcome credits — 20 reveals ($1 each)',
+            created_at: now,
+          },
+          {
+            client_id: clientId,
+            amount: 5,
+            type: 'trial_bonus',
+            plan: 'figsy',
+            note: 'Welcome credits — 5 FIGSY work credits ($3 each)',
+            created_at: now,
+          },
+        ])
       } catch { /* non-critical — don't fail signup */ }
     }
 

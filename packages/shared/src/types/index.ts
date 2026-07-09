@@ -110,6 +110,10 @@ export interface Lead {
   crm_contact_id: string | null
   exported_at: string | null
   estimated_deal_value_usd: number | null
+  // #420/#422 — the $1 reveal. Masked leads (revealed=false) have email/phone
+  // nulled by the API until the client spends the reveal credit.
+  revealed_at: string | null
+  revealed?: boolean
   created_at: string
   updated_at: string
 }

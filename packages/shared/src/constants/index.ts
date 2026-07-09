@@ -8,13 +8,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const PRICING = {
-  // ⚠️ RETIRED FROM SALE (#284, 2 Jul) — the $1 Lead-Gen tier is no longer sold:
-  // signup creates a FIGSY plan; website + portal billing show FIGSY only. Kept ONLY
-  // for back-compat of existing lead_gen clients + the Stripe credit-purchase webhook
-  // (`stripe.ts` resolves bundles by creditType). Never surface on a NEW purchase path.
+  // ✅ UN-RETIRED (#420/#394, 9 Jul) — the $1 tier is BACK as the REVEAL tier of the
+  // per-qualified-lead model: leads arrive masked; $1 (credit_balance) unmasks the
+  // email (try_charge_reveal_credit); +$3 FIGSY work = $4 fully-worked. Bundles are
+  // prepaid reveal packs. (Was retired by #284 when the site sold FIGSY-only.)
+  // trial_credits/trial_days below are LEGACY (#425/#431 — signup now grants a
+  // 20-reveal + 5-work welcome mix with no expiry; no trials in the model).
   lead_gen: {
-    name: 'K.I.N.D AI — Lead Generation',
-    description: 'AI-sourced, AI-scored B2B leads matched to your ICP. 1 credit = 1 qualified lead found.',
+    name: 'K.I.N.D AI — Lead-Gen (the database)',
+    description: 'Net-new, ICP-matched, verified B2B contacts. $1 reveals a lead — suppression-checked, CRM-deduped, scored 0-100.',
     credit_rate_usd: 1.00,
     bundles: [
       { credits: 20,  price_usd: 20  },

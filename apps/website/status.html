@@ -96,13 +96,19 @@
 <body>
 
 <nav>
-  <a href="/" class="logo">
+  <a href="/" class="logo" aria-label="K.I.N.D home">
     <div class="logo-icon" style="width:34px;height:34px;border-radius:8px;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><img src="logo-k.png" alt="K.I.N.D" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>
-    <span class="logo-text">K.I.N.D</span>
   </a>
+  <div class="nav-links">
+    <a href="figsy.html" class="nav-link">How it works</a>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+    <a href="demo.html" class="nav-link">Demo</a>
+    <a href="support.html" class="nav-link">Support</a>
+  </div>
   <div class="nav-right">
     <a href="demo.html" class="btn-nav-ghost">Get a Demo</a>
-    <a href="https://app.get-kind.com/login">Client login &rarr;</a>
+    <button onclick="openAuth('login')" class="btn-nav-ghost">Log in</button>
+    <button onclick="openAuth('signup')" class="btn-nav-primary">Get started free</button>
   </div>
 </nav>
 
@@ -190,12 +196,43 @@
 </div>
 
 <footer>
-  <div class="footer-bottom">
-    <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
-    <div class="footer-links">
-      <a href="/">Home</a>
-      <a href="support.html">Support</a>
-      <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <div class="logo-icon" style="width:34px;height:34px;border-radius:8px;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><img src="logo-k.png" alt="K.I.N.D" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>
+          <span class="logo-text">K.I.N.D</span>
+        </a>
+        <p>FIGSY &mdash; your AI sales rep. Finds the leads, writes the outreach, follows up and books the meeting. Pay only for qualified leads &mdash; no subscriptions.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="figsy.html">How FIGSY works</a>
+        <a href="pricing.html">Pricing</a>
+        <a href="demo.html">Book a demo</a>
+        <a href="pipeline-calculator.html">Pipeline calculator</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="the-drop.html">The Drop</a>
+        <a href="status.html">System status</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
+        <a href="support.html">Support</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="terms.html">Terms of Service</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="dpa.html">POPIA &amp; GDPR</a>
+      </div>
     </div>
   </div>
 </footer>

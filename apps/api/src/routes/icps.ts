@@ -165,8 +165,18 @@ export async function runIcpJob(
       .select('id, company_name, referred_by, first_icp_run_at, credit_balance')
       .eq('id', clientId).single()
 
+    // #356 (AR-18) — consent emails are OUTBOUND cold contact to real prospects, so they
+    // must obey the same kill-switch as outreach. Previously they sent unconditionally
+    // (outside the AUTO_OUTREACH_ENABLED gate below), so a "safe test" ICP run still
+    // cold-emailed real execs a consent request. Gate the consent send on the switch.
     scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '')
-      .then(() => autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? ''))
+      .then(() => {
+        if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
+          return autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? '')
+        }
+        console.log(`[icp] auto-consent SKIPPED (AUTO_OUTREACH_ENABLED != true) — ${insertedIds.length} leads scored, no consent emails sent`)
+        return undefined
+      })
       .catch(console.error)
 
     // S5 — FIGSY auto-start: enroll all scored leads (POPIA legitimate interest — no consent gate needed)

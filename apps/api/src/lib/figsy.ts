@@ -47,6 +47,14 @@ function coldDailyCap(): number | null {
   return start ? warmupRampCap(start) : null
 }
 
+// #344 (AR-07) — THE KILL-SWITCH. `AUTO_OUTREACH_ENABLED` was read only on the on-run
+// path (icps.ts); the three cron send paths call sendSequenceEmail directly, so "off"
+// never stopped follow-up steps to already-enrolled leads. This is the single chokepoint
+// every real send funnels through, so checking it here makes the switch actually global.
+export function outreachEnabled(): boolean {
+  return process.env.AUTO_OUTREACH_ENABLED === 'true'
+}
+
 async function coldCapReached(): Promise<boolean> {
   const cap = coldDailyCap()
   if (cap === null) return false
@@ -482,6 +490,15 @@ export async function sendSequenceEmail(
 ): Promise<void> {
   if (!lead.email) throw new Error('Lead has no email')
 
+  // #344 (AR-07) — KILL-SWITCH. If auto-outreach is off, DEFER (no send, no state
+  // change → the enrollment stays due and resumes when the switch is turned back on).
+  // The founder's test-email path (isPreview) is a deliberate 1:1 send to their own
+  // inbox, so it bypasses the switch.
+  if (!opts?.isPreview && !outreachEnabled()) {
+    console.warn(`[figsy] sendSequenceEmail: AUTO_OUTREACH_ENABLED != true — step ${step} to ${lead.email} DEFERRED (kill-switch off).`)
+    return
+  }
+
   // DO-NOT-CONTACT: hard stop — never email anyone connected to the founder's
   // employer, no matter how this lead got enrolled.
   if (isSuppressed({ email: lead.email, company: lead.company })) {
@@ -897,6 +914,12 @@ export async function sendDay1OutreachBatch(
   clientId: string,
   clientCompanyName: string,
 ): Promise<void> {
+  // #344 (AR-07) — KILL-SWITCH. Day-1 cold outreach is a send path; honour the switch.
+  if (!outreachEnabled()) {
+    console.warn(`[figsy] sendDay1OutreachBatch: AUTO_OUTREACH_ENABLED != true — ${leadIds.length} leads NOT day-1 emailed (kill-switch off).`)
+    return
+  }
+
   const { data: client } = await db.from('clients')
     .select('company_name, industry').eq('id', clientId).single()
   // P-a: configurable sign-off name (guarded — null if column missing pre-migration).
@@ -1174,6 +1197,14 @@ export async function campaignReadyLeadIds(clientId: string): Promise<string[]> 
 
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
   try {
+    // #344 (AR-07) — KILL-SWITCH, checked BEFORE the charge. autoEnrollLead charges a
+    // FIGSY credit then sends step 1; if the switch is off, sendSequenceEmail would defer
+    // the send but the charge would already be taken. Bail here so "off" never charges.
+    if (!outreachEnabled()) {
+      console.warn(`[figsy] autoEnrollLead: AUTO_OUTREACH_ENABLED != true — not enrolling/charging lead ${leadId} (kill-switch off).`)
+      return
+    }
+
     const { data: campaign } = await db.from('figsy_campaigns')
       .select('id, name, campaign_intent, settings')
       .eq('client_id', clientId)

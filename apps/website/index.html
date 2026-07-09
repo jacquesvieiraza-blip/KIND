@@ -1363,10 +1363,31 @@
     <div class="logo-icon" style="width:34px;height:34px;border-radius:8px;overflow:hidden;background:transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><img src="logo-k.png" alt="K.I.N.D" style="width:100%;height:100%;object-fit:contain;display:block;" /></div>
   </a>
   <div class="nav-links">
-    <a href="figsy.html" class="nav-link">How it works</a>
+    <div class="nav-item">
+      <a href="figsy.html" class="nav-link">Product <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="figsy.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">How FIGSY works</span><span class="dd-sub">Source &rarr; write &rarr; follow up &rarr; book</span></span></a>
+        <a href="#demo" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">See it in action</span><span class="dd-sub">Watch FIGSY build a pipeline</span></span></a>
+        <a href="pricing.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Pricing</span><span class="dd-sub">$1 reveal + $3 work = $4 per lead</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="the-drop.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:300px">
+        <a href="the-drop.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">The Drop</span><span class="dd-sub">What we just shipped</span></span></a>
+        <a href="pipeline-calculator.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Pipeline Calculator</span><span class="dd-sub">Estimate the meetings FIGSY adds</span></span></a>
+        <a href="support.html#faq" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">FAQ</span><span class="dd-sub">Common questions answered</span></span></a>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown" style="min-width:280px">
+        <a href="about.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">About K.I.N.D</span><span class="dd-sub">Why we built FIGSY</span></span></a>
+        <a href="trust.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">Trust &amp; Security</span><span class="dd-sub">GDPR &amp; POPIA compliant</span></span></a>
+        <a href="status.html" class="dd-link"><span class="dd-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2"/></svg></span><span><span class="dd-title">System Status</span><span class="dd-sub">Live uptime</span></span></a>
+      </div>
+    </div>
     <a href="pricing.html" class="nav-link">Pricing</a>
-    <a href="demo.html" class="nav-link">Demo</a>
-    <a href="support.html" class="nav-link">Support</a>
   </div>
   <div class="nav-right">
     <a href="demo.html" class="btn-nav-ghost">Get a Demo</a>
@@ -1492,85 +1513,106 @@
         <a href="#demo" class="btn-hero-ghost">See how it works</a>
       </div>
     </div>
-    <!-- #417 · 3D fluid carousel (replaces the flat 4-card grid) -->
-    <div class="kf-carousel" id="kfCarousel">
-      <div class="kf-stage" id="kfStage">
-      <a class="kf-agent" href="figsy.html" data-i="0">
-        <div class="kf-bg" style="background:linear-gradient(160deg,#ffd6ed 0%,#ffb3d9 45%,#ff85c0 100%);"></div>
-        <div class="kf-ghost">FIGSY</div>
-        <div class="kf-eyebrow2">Agent 01 · The Opener</div>
-        <div class="kf-figure"><img src="figsy-cut.png" alt="FIGSY — AI SDR" /></div>
-        <span class="kf-cta">Meet FIGSY →</span>
-      </a>
-      </div>
-      <div class="kf-nav">
-        <button class="kf-arrow" id="kfPrev" type="button" aria-label="Previous agent">&lsaquo;</button>
-        <div class="kf-dots" id="kfDots"></div>
-        <button class="kf-arrow" id="kfNext" type="button" aria-label="Next agent">&rsaquo;</button>
+    <div class="fd-hero" aria-label="The FIGSY dashboard">
+      <style>
+        .fd-hero{width:min(1000px,95vw);margin:26px auto 0}
+        .fd-window{background:#fff;border:1px solid rgba(20,18,45,.08);border-radius:18px;overflow:hidden;box-shadow:0 50px 120px -40px rgba(70,30,130,.45),0 12px 30px -12px rgba(70,30,130,.2)}
+        .fd-chrome{display:flex;align-items:center;gap:14px;padding:11px 16px;background:#faf8fe;border-bottom:1px solid rgba(20,18,45,.07)}
+        .fd-dots{display:flex;gap:6px}.fd-dots span{width:11px;height:11px;border-radius:50%}
+        .fd-dots span:nth-child(1){background:#ff5f57}.fd-dots span:nth-child(2){background:#febc2e}.fd-dots span:nth-child(3){background:#28c840}
+        .fd-url{flex:1;text-align:center;font-size:.72rem;color:#9b8ec4;font-weight:600;font-family:'JetBrains Mono',monospace}
+        .fd-live{display:inline-flex;align-items:center;gap:6px;font-size:.66rem;font-weight:800;color:#7C3AED;background:#f3ecff;padding:5px 10px;border-radius:100px;text-transform:uppercase;letter-spacing:.06em}
+        .fd-live .d{width:6px;height:6px;border-radius:50%;background:#7C3AED;animation:fdPulse 2s infinite}
+        @keyframes fdPulse{0%{box-shadow:0 0 0 0 rgba(124,58,237,.5)}70%{box-shadow:0 0 0 7px rgba(124,58,237,0)}100%{box-shadow:0 0 0 0 rgba(124,58,237,0)}}
+        .fd-body{display:grid;grid-template-columns:212px 1fr;min-height:440px;text-align:left}
+        .fd-side{background:#0F0929;padding:18px 14px;display:flex;flex-direction:column;gap:16px}
+        .fd-agent{display:flex;align-items:center;gap:10px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.08)}
+        .fd-agent img{width:38px;height:38px;border-radius:10px;object-fit:cover;object-position:top;background:linear-gradient(160deg,#ffd6ed,#c9b6ff)}
+        .fd-agent-name{color:#fff;font-weight:800;font-size:.9rem;line-height:1.1}
+        .fd-agent-role{color:#7fe3b0;font-size:.66rem;font-weight:600;display:flex;align-items:center;gap:5px}
+        .fd-agent-role::before{content:"";width:6px;height:6px;border-radius:50%;background:#34d399}
+        .fd-nav{display:flex;flex-direction:column;gap:3px}
+        .fd-nav a{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;color:#9b8ec4;font-size:.8rem;font-weight:600;text-decoration:none}
+        .fd-nav a svg{width:15px;height:15px;opacity:.9}
+        .fd-nav a.on{background:rgba(124,58,237,.22);color:#fff}
+        .fd-nav .fd-badge{margin-left:auto;background:#7C3AED;color:#fff;font-size:.6rem;font-weight:800;padding:1px 7px;border-radius:100px}
+        .fd-credits{margin-top:auto;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:11px 12px;color:#9b8ec4;font-size:.66rem;font-weight:600}
+        .fd-credits b{display:block;color:#fff;font-size:1.25rem;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums}
+        .fd-main{padding:20px 22px;background:#fbfaff}
+        .fd-main-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px}
+        .fd-hello{font-size:1.05rem;font-weight:800;color:#1E1152}
+        .fd-sub{font-size:.78rem;color:#8b80ab;margin-top:2px;font-weight:500}
+        .fd-cta{background:#7C3AED;color:#fff;border:0;border-radius:100px;padding:9px 15px;font-size:.76rem;font-weight:700;white-space:nowrap;box-shadow:0 8px 20px -6px rgba(124,58,237,.6)}
+        .fd-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:14px}
+        .fd-kpi{background:#fff;border:1px solid rgba(20,18,45,.07);border-radius:13px;padding:13px 13px 12px}
+        .fd-kpi-hot{background:linear-gradient(160deg,#fff,#f3ecff);border-color:rgba(124,58,237,.2)}
+        .fd-k-label{display:block;font-size:.66rem;color:#8b80ab;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+        .fd-k-num{display:block;font-size:1.6rem;font-weight:800;color:#1E1152;margin:5px 0 3px;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+        .fd-k-up{font-size:.66rem;font-weight:800;color:#059669}
+        .fd-row{display:grid;grid-template-columns:1.35fr 1fr;gap:11px}
+        .fd-card{background:#fff;border:1px solid rgba(20,18,45,.07);border-radius:13px;padding:14px 15px}
+        .fd-card-h{font-size:.74rem;font-weight:800;color:#1E1152;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between}
+        .fd-card-h span{font-size:.62rem;color:#8b80ab;font-weight:600}
+        .fd-bars{display:flex;align-items:flex-end;gap:6px;height:150px}
+        .fd-bars i{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#a78bfa,#7C3AED)}
+        .fd-bars i:last-child{background:linear-gradient(180deg,#f472b6,#db2777)}
+        .fd-feed{display:flex;flex-direction:column;gap:9px}
+        .fd-act{border:1px solid rgba(20,18,45,.07);border-radius:10px;padding:9px 11px;font-size:.72rem;color:#6b6088;line-height:1.35}
+        .fd-act b{color:#1E1152;font-weight:700}
+        .fd-tag{display:inline-block;margin-top:5px;font-size:.6rem;font-weight:800;padding:2px 8px;border-radius:100px;background:#eee9ff;color:#6d28d9;text-transform:uppercase;letter-spacing:.03em}
+        .fd-tag.good{background:#dcfce7;color:#059669}
+        .fd-tag.book{background:#ffedd5;color:#c2410c}
+        @media(max-width:760px){.fd-body{grid-template-columns:1fr}.fd-side{display:none}.fd-kpis{grid-template-columns:repeat(2,1fr)}.fd-row{grid-template-columns:1fr}}
+      </style>
+      <div class="fd-window">
+        <div class="fd-chrome">
+          <div class="fd-dots"><span></span><span></span><span></span></div>
+          <div class="fd-url">app.get-kind.com/dashboard</div>
+          <div class="fd-live"><span class="d"></span>FIGSY is working</div>
+        </div>
+        <div class="fd-body">
+          <aside class="fd-side">
+            <div class="fd-agent">
+              <img src="figsy-cut.png" alt="FIGSY"/>
+              <div><div class="fd-agent-name">FIGSY</div><div class="fd-agent-role">AI SDR</div></div>
+            </div>
+            <nav class="fd-nav">
+              <a class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>Dashboard</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 6a3.2 3.2 0 0 1 0 7"/></svg>Leads</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9a2 2 0 0 0-3-3L5 17v3z"/></svg>Campaigns</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Sequences</a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>Inbox<span class="fd-badge">6</span></a>
+              <a><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Analytics</a>
+            </nav>
+            <div class="fd-credits">Reveal wallet<b>1,240</b></div>
+          </aside>
+          <main class="fd-main">
+            <div class="fd-main-head">
+              <div><div class="fd-hello">Good morning &#128075;</div><div class="fd-sub">FIGSY worked 214 leads while you slept.</div></div>
+              <button class="fd-cta">+ New campaign</button>
+            </div>
+            <div class="fd-kpis">
+              <div class="fd-kpi"><span class="fd-k-label">Leads sourced</span><span class="fd-k-num">1,284</span><span class="fd-k-up">&#9650; 12%</span></div>
+              <div class="fd-kpi"><span class="fd-k-label">Emails sent</span><span class="fd-k-num">3,410</span><span class="fd-k-up">&#9650; 8%</span></div>
+              <div class="fd-kpi"><span class="fd-k-label">Replies</span><span class="fd-k-num">218</span><span class="fd-k-up">&#9650; 5%</span></div>
+              <div class="fd-kpi fd-kpi-hot"><span class="fd-k-label">Meetings booked</span><span class="fd-k-num">47</span><span class="fd-k-up">&#9650; 3 today</span></div>
+            </div>
+            <div class="fd-row">
+              <div class="fd-card"><div class="fd-card-h">Pipeline this month <span>+34% vs last</span></div><div class="fd-bars"><i style="height:34%"></i><i style="height:44%"></i><i style="height:40%"></i><i style="height:56%"></i><i style="height:52%"></i><i style="height:66%"></i><i style="height:60%"></i><i style="height:72%"></i><i style="height:68%"></i><i style="height:84%"></i><i style="height:78%"></i><i style="height:96%"></i></div></div>
+              <div class="fd-card fd-feed">
+                <div class="fd-card-h">FIGSY &middot; just now</div>
+                <div class="fd-act"><b>Sarah Chen</b> &middot; VP Sales, TechCorp<br><span class="fd-tag good">Replied &mdash; warm</span></div>
+                <div class="fd-act"><b>James Okoro</b> &middot; Founder, Paylane<br><span class="fd-tag">Follow-up 2 sent</span></div>
+                <div class="fd-act"><b>Mia Roberts</b> &middot; Head of Growth<br><span class="fd-tag book">Meeting booked</span></div>
+              </div>
+            </div>
+          </main>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-/* #417 · 3D fluid carousel */
-(function(){
-  var stage = document.getElementById('kfStage');
-  if (!stage) return;
-  var cards = Array.prototype.slice.call(stage.querySelectorAll('.kf-agent'));
-  var n = cards.length, active = 0, timer = null;
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches;
-  var dotsWrap = document.getElementById('kfDots'), dots = [];
-
-  cards.forEach(function(c, i){
-    var d = document.createElement('button');
-    d.className = 'kf-dot'; d.type = 'button';
-    d.setAttribute('aria-label', 'Show agent ' + (i + 1));
-    d.addEventListener('click', function(){ go(i); restart(); });
-    dotsWrap.appendChild(d); dots.push(d);
-    // clicking a side card focuses it; the active card's link works normally
-    c.addEventListener('click', function(e){ if (i !== active){ e.preventDefault(); go(i); restart(); } });
-  });
-
-  function step(){ return window.innerWidth < 820 ? 155 : 240; }
-  function layout(){
-    var s = step();
-    cards.forEach(function(c, i){
-      var off = i - active;
-      if (off >  n/2) off -= n;
-      if (off < -n/2) off += n;
-      var abs = Math.abs(off);
-      var t = 'translate(-50%,-50%) translateX(' + (off * s) + 'px) translateZ(' + (-abs * 230) + 'px) rotateY(' + (off * -24) + 'deg) scale(' + Math.max(0.68, 1 - abs * 0.13) + ')';
-      c.style.setProperty('--kf-t', t);
-      c.style.transform = t;
-      c.style.opacity = abs > 2 ? '0' : String(1 - abs * 0.2);
-      c.style.filter = abs === 0 ? 'none' : 'blur(' + Math.min(abs * 2, 5) + 'px)';
-      c.style.zIndex = String(100 - abs);
-      c.style.pointerEvents = abs > 2 ? 'none' : 'auto';
-      c.classList.toggle('is-active', off === 0);
-    });
-    dots.forEach(function(d, i){ d.classList.toggle('on', i === active); });
-  }
-  function go(i){ active = ((i % n) + n) % n; layout(); }
-  function restart(){ if (reduce) return; clearInterval(timer); timer = setInterval(function(){ go(active + 1); }, 4400); }
-
-  document.getElementById('kfPrev').addEventListener('click', function(){ go(active - 1); restart(); });
-  document.getElementById('kfNext').addEventListener('click', function(){ go(active + 1); restart(); });
-
-  // drag / swipe
-  var down = false, startX = 0;
-  stage.addEventListener('pointerdown', function(e){ down = true; startX = e.clientX; });
-  window.addEventListener('pointerup', function(e){
-    if (!down) return; down = false;
-    var dx = e.clientX - startX;
-    if (dx > 45) { go(active - 1); restart(); }
-    else if (dx < -45) { go(active + 1); restart(); }
-  });
-
-  window.addEventListener('resize', layout);
-  layout(); restart();
-})();
-</script>
 
 <!-- TRUST BAR -->
 <div class="trust-bar">
@@ -1587,6 +1629,110 @@
 
 <!-- Promise strip removed: stats consolidated into Trust Bar + Stats section -->
 
+<!-- PRODUCT ROLL — one product, every angle -->
+<div class="pr-band">
+  <style>
+    .pr-band{padding:8px 0 40px;overflow:hidden;background:#fff}
+    .pr-band-h{text-align:center;margin:0 auto 22px;max-width:640px;padding:0 24px}
+    .pr-band-h .lbl{font-family:'JetBrains Mono',monospace;font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;color:#7C3AED;font-weight:700}
+    .pr-band-h h2{font-family:'Outfit',sans-serif;font-weight:900;font-size:clamp(1.5rem,3vw,2.2rem);letter-spacing:-.03em;color:#1E1152;margin:8px 0 6px}
+    .pr-band-h p{font-size:.9rem;color:#8b80ab;font-weight:500}
+    .pr-viewport{position:relative;-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent);mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent)}
+    .pr-track{display:flex;gap:18px;width:max-content;animation:prRoll 46s linear infinite}
+    .pr-band:hover .pr-track{animation-play-state:paused}
+    @keyframes prRoll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+    @media(prefers-reduced-motion:reduce){.pr-track{animation:none}}
+    .pr-card{width:340px;flex:0 0 340px;background:#fff;border:1px solid rgba(20,18,45,.09);border-radius:14px;overflow:hidden;box-shadow:0 24px 50px -28px rgba(70,30,130,.4)}
+    .pr-top{display:flex;align-items:center;gap:10px;padding:9px 13px;background:#faf8fe;border-bottom:1px solid rgba(20,18,45,.06)}
+    .pr-dots{display:flex;gap:5px}.pr-dots i{width:8px;height:8px;border-radius:50%;background:#ddd}
+    .pr-dots i:nth-child(1){background:#ff5f57}.pr-dots i:nth-child(2){background:#febc2e}.pr-dots i:nth-child(3){background:#28c840}
+    .pr-title{font-size:.72rem;font-weight:800;color:#1E1152}
+    .pr-body{padding:15px 15px;height:210px}
+    .pr-mini-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:14px}
+    .pr-mini-kpis div{background:#faf8ff;border:1px solid rgba(20,18,45,.06);border-radius:9px;padding:8px 9px}
+    .pr-mini-kpis span{font-size:.58rem;color:#8b80ab;font-weight:700;text-transform:uppercase}
+    .pr-mini-kpis b{display:block;font-size:1.15rem;color:#1E1152;font-weight:800;font-variant-numeric:tabular-nums}
+    .pr-bars{display:flex;align-items:flex-end;gap:6px;height:96px}
+    .pr-bars i{flex:1;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#a78bfa,#7C3AED)}.pr-bars i:last-child{background:linear-gradient(180deg,#f472b6,#db2777)}
+    .pr-steps{display:flex;flex-direction:column;gap:6px}
+    .pr-step{display:flex;align-items:center;gap:8px;font-size:.74rem;font-weight:600;color:#1E1152;background:#faf8ff;border:1px solid rgba(20,18,45,.06);border-radius:8px;padding:7px 10px}
+    .pr-step.pr-dim{opacity:.5}
+    .pr-day{font-size:.58rem;font-weight:800;color:#7C3AED;background:#f0e9ff;padding:2px 6px;border-radius:5px}
+    .pr-ok{margin-left:auto;font-size:.58rem;font-weight:800;color:#059669;text-transform:uppercase}
+    .pr-run{margin-left:auto;font-size:.58rem;font-weight:800;color:#c2410c;text-transform:uppercase}
+    .pr-wait{font-size:.6rem;color:#b3a9cc;text-align:center;font-weight:600}
+    .pr-msgs{display:flex;flex-direction:column;gap:9px}
+    .pr-msg{background:#faf8ff;border:1px solid rgba(20,18,45,.06);border-radius:9px;padding:9px 11px;font-size:.72rem;color:#1E1152}
+    .pr-msg small{color:#8b80ab;font-weight:500}
+    .pr-tag{float:right;font-size:.55rem;font-weight:800;padding:2px 7px;border-radius:100px;background:#eee9ff;color:#6d28d9;text-transform:uppercase}
+    .pr-tag.good{background:#dcfce7;color:#059669}.pr-tag.book{background:#ffedd5;color:#c2410c}
+    .pr-leads{display:flex;flex-direction:column;gap:9px}
+    .pr-lead{display:flex;align-items:center;gap:9px}
+    .pr-av{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#c9b6ff,#f7c6e6);flex-shrink:0}
+    .pr-ld{flex:1;min-width:0}.pr-ld b{display:block;font-size:.72rem;color:#1E1152}.pr-ld small{font-size:.6rem;color:#8b80ab}
+    .pr-score{width:52px;height:6px;border-radius:100px;background:#eee9ff;overflow:hidden}.pr-score i{display:block;height:100%;background:linear-gradient(90deg,#a78bfa,#7C3AED)}
+    .pr-sc{font-size:.68rem;font-weight:800;color:#7C3AED;width:20px;text-align:right}
+    .pr-camp{display:flex;flex-direction:column;gap:12px}
+    .pr-camp-h{display:flex;align-items:center;justify-content:space-between;font-size:.82rem;color:#1E1152}
+    .pr-live2{font-size:.55rem;font-weight:800;color:#059669;background:#dcfce7;padding:2px 8px;border-radius:100px;text-transform:uppercase}
+    .pr-prog{height:8px;border-radius:100px;background:#eee9ff;overflow:hidden}.pr-prog i{display:block;height:100%;background:linear-gradient(90deg,#a78bfa,#7C3AED)}
+    .pr-camp-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:4px}
+    .pr-camp-stats b{display:block;font-size:1.2rem;color:#1E1152;font-weight:800}.pr-camp-stats span{font-size:.58rem;color:#8b80ab;font-weight:700;text-transform:uppercase}
+    .pr-ana{display:flex;align-items:center;gap:16px;height:100%}
+    .pr-donut{width:110px;height:110px;border-radius:50%;flex-shrink:0;background:conic-gradient(#7C3AED 0 17%,#a78bfa 17% 78%,#ece8ff 78% 100%);position:relative}
+    .pr-donut::after{content:"";position:absolute;inset:22px;border-radius:50%;background:#fff}
+    .pr-leg{display:flex;flex-direction:column;gap:8px}.pr-leg span{display:flex;align-items:center;gap:7px;font-size:.68rem;font-weight:600;color:#1E1152}
+    .pr-leg i{width:10px;height:10px;border-radius:3px}
+    @media(max-width:600px){.pr-card{width:280px;flex-basis:280px}}
+  </style>
+  <div class="pr-band-h">
+    <div class="lbl">One product. Every angle.</div>
+    <h2>This is the whole machine.</h2>
+    <p>Source, write, sequence, reply, book, measure &mdash; FIGSY runs the entire outbound loop in one place.</p>
+  </div>
+  <div class="pr-viewport"><div class="pr-track"><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Dashboard</span></div><div class="pr-body"><div class="pr-mini-kpis">
+    <div><span>Leads</span><b>1,284</b></div><div><span>Replies</span><b>218</b></div><div><span>Booked</span><b>47</b></div>
+  </div><div class="pr-bars"><i style="height:40%"></i><i style="height:52%"></i><i style="height:46%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:80%"></i><i style="height:96%"></i></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Sequences</span></div><div class="pr-body"><div class="pr-steps">
+    <div class="pr-step"><span class="pr-day">Day 0</span> Intro email <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 2 days</div>
+    <div class="pr-step"><span class="pr-day">Day 2</span> Follow-up 1 <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 3 days</div>
+    <div class="pr-step"><span class="pr-day">Day 5</span> Value nudge <span class="pr-run">queued</span></div>
+    <div class="pr-step pr-dim"><span class="pr-day">Day 9</span> Break-up</div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Inbox</span></div><div class="pr-body"><div class="pr-msgs">
+    <div class="pr-msg"><b>Sarah Chen</b><span class="pr-tag good">warm</span><br><small>"Yes — send times for Thu?"</small></div>
+    <div class="pr-msg"><b>James Okoro</b><span class="pr-tag">follow-up</span><br><small>"Not right now, maybe Q3."</small></div>
+    <div class="pr-msg"><b>Mia Roberts</b><span class="pr-tag book">booked</span><br><small>"Booked Tue 2pm — thanks!"</small></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Leads</span></div><div class="pr-body"><div class="pr-leads"><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Sarah Chen</b><small>VP Sales · TechCorp</small></div><div class="pr-score"><i style="width:92%"></i></div><span class="pr-sc">92</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>James Okoro</b><small>Founder · Paylane</small></div><div class="pr-score"><i style="width:78%"></i></div><span class="pr-sc">78</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Mia Roberts</b><small>Head of Growth · Arc</small></div><div class="pr-score"><i style="width:85%"></i></div><span class="pr-sc">85</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Tom Rivera</b><small>COO · Northwind</small></div><div class="pr-score"><i style="width:64%"></i></div><span class="pr-sc">64</span></div></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Campaigns</span></div><div class="pr-body"><div class="pr-camp">
+    <div class="pr-camp-h"><b>Q3 · Fintech founders</b><span class="pr-live2">live</span></div>
+    <div class="pr-prog"><i style="width:68%"></i></div>
+    <div class="pr-camp-stats"><div><b>640</b><span>enrolled</span></div><div><b>119</b><span>replied</span></div><div><b>22</b><span>meetings</span></div></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Analytics</span></div><div class="pr-body"><div class="pr-ana">
+    <div class="pr-donut"></div>
+    <div class="pr-leg"><span><i style="background:#7C3AED"></i>Replied 17%</span><span><i style="background:#a78bfa"></i>Opened 61%</span><span><i style="background:#ece8ff"></i>No reply 22%</span></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Dashboard</span></div><div class="pr-body"><div class="pr-mini-kpis">
+    <div><span>Leads</span><b>1,284</b></div><div><span>Replies</span><b>218</b></div><div><span>Booked</span><b>47</b></div>
+  </div><div class="pr-bars"><i style="height:40%"></i><i style="height:52%"></i><i style="height:46%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:74%"></i><i style="height:80%"></i><i style="height:96%"></i></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Sequences</span></div><div class="pr-body"><div class="pr-steps">
+    <div class="pr-step"><span class="pr-day">Day 0</span> Intro email <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 2 days</div>
+    <div class="pr-step"><span class="pr-day">Day 2</span> Follow-up 1 <span class="pr-ok">sent</span></div>
+    <div class="pr-wait">wait 3 days</div>
+    <div class="pr-step"><span class="pr-day">Day 5</span> Value nudge <span class="pr-run">queued</span></div>
+    <div class="pr-step pr-dim"><span class="pr-day">Day 9</span> Break-up</div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Inbox</span></div><div class="pr-body"><div class="pr-msgs">
+    <div class="pr-msg"><b>Sarah Chen</b><span class="pr-tag good">warm</span><br><small>"Yes — send times for Thu?"</small></div>
+    <div class="pr-msg"><b>James Okoro</b><span class="pr-tag">follow-up</span><br><small>"Not right now, maybe Q3."</small></div>
+    <div class="pr-msg"><b>Mia Roberts</b><span class="pr-tag book">booked</span><br><small>"Booked Tue 2pm — thanks!"</small></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Leads</span></div><div class="pr-body"><div class="pr-leads"><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Sarah Chen</b><small>VP Sales · TechCorp</small></div><div class="pr-score"><i style="width:92%"></i></div><span class="pr-sc">92</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>James Okoro</b><small>Founder · Paylane</small></div><div class="pr-score"><i style="width:78%"></i></div><span class="pr-sc">78</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Mia Roberts</b><small>Head of Growth · Arc</small></div><div class="pr-score"><i style="width:85%"></i></div><span class="pr-sc">85</span></div><div class="pr-lead"><span class="pr-av"></span><div class="pr-ld"><b>Tom Rivera</b><small>COO · Northwind</small></div><div class="pr-score"><i style="width:64%"></i></div><span class="pr-sc">64</span></div></div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Campaigns</span></div><div class="pr-body"><div class="pr-camp">
+    <div class="pr-camp-h"><b>Q3 · Fintech founders</b><span class="pr-live2">live</span></div>
+    <div class="pr-prog"><i style="width:68%"></i></div>
+    <div class="pr-camp-stats"><div><b>640</b><span>enrolled</span></div><div><b>119</b><span>replied</span></div><div><b>22</b><span>meetings</span></div></div>
+  </div></div></div><div class="pr-card"><div class="pr-top"><span class="pr-dots"><i></i><i></i><i></i></span><span class="pr-title">Analytics</span></div><div class="pr-body"><div class="pr-ana">
+    <div class="pr-donut"></div>
+    <div class="pr-leg"><span><i style="background:#7C3AED"></i>Replied 17%</span><span><i style="background:#a78bfa"></i>Opened 61%</span><span><i style="background:#ece8ff"></i>No reply 22%</span></div>
+  </div></div></div></div></div>
+</div>
+
 <!-- HONEST PROOF — first-party dogfooding (no fake logos / testimonials / invented stats) -->
 <div class="proof-strip">
   <div class="proof-inner">
@@ -1594,11 +1740,11 @@
       <div class="s-label">Proof — first-party</div>
       <h2 class="s-title">We use FIGSY to find our own clients.</h2>
       <p>K.I.N.D runs its own outreach on FIGSY &mdash; the exact system you get on day one. It sources our ICP, scores the leads, follows up automatically, and sends a booking link in every email.</p>
-      <p class="proof-honest">No demo data. No borrowed logos. No invented numbers. The moment our first campaign delivers real results they appear right here &mdash; and named clients follow as they say yes.</p>
+      <p class="proof-honest">The same FIGSY you get on day one &mdash; no demo data, no borrowed logos, no invented numbers. If it works for us, it works for you.</p>
     </div>
     <div class="proof-stat">
-      <div class="proof-stat-num" style="display:flex;align-items:center;gap:12px;font-size:2.2rem"><span class="live-dot"></span>Live</div>
-      <div class="proof-stat-label">First campaign goes live at launch &mdash; real metrics populate here, never placeholders</div>
+      <div class="proof-stat-num">$4<span style="font-size:1rem;font-weight:600;color:rgba(0,0,0,.4)"> / qualified lead</span></div>
+      <div class="proof-stat-label">A human SDR costs ~$60,000 a year &mdash; plus ramp, plus churn. FIGSY works every lead for $4, and never takes a day off.</div>
     </div>
   </div>
 </div>
@@ -1643,6 +1789,52 @@
 <!-- GRADIENT TRANSITION: white to dark -->
 <div class="grad-wht-dark"></div>
 
+<!-- AGENT REVEAL — FIGSY · The Opener -->
+<section class="opener">
+  <style>
+    .opener{background:linear-gradient(180deg,#1E1152 0%,#150c3a 55%,#0F0929 100%);padding:64px 24px 72px;position:relative;overflow:hidden}
+    .opener::before{content:"";position:absolute;top:-20%;right:-10%;width:620px;height:620px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.45),transparent 62%);filter:blur(20px);pointer-events:none}
+    .opener-inner{position:relative;max-width:1120px;margin:0 auto;display:grid;grid-template-columns:1.15fr .85fr;gap:52px;align-items:center}
+    .opener-eyebrow{font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:#c4b5fd;font-weight:700;margin-bottom:18px;display:inline-flex;align-items:center;gap:9px}
+    .opener-eyebrow::before{content:"";width:26px;height:1px;background:#7C3AED}
+    .opener h2{font-family:'Outfit',sans-serif;font-weight:900;font-size:clamp(2rem,4.4vw,3.4rem);line-height:1.02;letter-spacing:-.04em;color:#fff;margin:0 0 20px}
+    .opener h2 span{background:linear-gradient(90deg,#f472b6,#c4b5fd,#a78bfa);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .opener p{color:rgba(255,255,255,.62);font-size:1.02rem;line-height:1.66;max-width:520px;margin:0 0 24px;font-weight:500}
+    .opener-points{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:30px;max-width:520px}
+    .opener-points span{display:flex;align-items:flex-start;gap:9px;color:#e6e0ff;font-size:.86rem;font-weight:600;line-height:1.35}
+    .opener-points span::before{content:"";flex-shrink:0;width:18px;height:18px;margin-top:1px;border-radius:50%;background:rgba(124,58,237,.25);background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%23c4b5fd" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>');background-repeat:no-repeat;background-position:center}
+    .opener-cta{display:inline-flex;align-items:center;gap:8px;background:#fff;color:#1E1152;font-weight:800;font-size:.9rem;padding:13px 24px;border-radius:100px;text-decoration:none;transition:transform .2s,box-shadow .2s;box-shadow:0 14px 40px -12px rgba(124,58,237,.7)}
+    .opener-cta:hover{transform:translateY(-2px)}
+    .opener-visual{position:relative;display:flex;justify-content:center}
+    .opener-photo{position:relative;width:min(380px,84vw);aspect-ratio:1/1.12;border-radius:26px;padding:3px;background:linear-gradient(160deg,#FFD4B2,#F9C8FF 45%,#7C3AED);box-shadow:0 40px 90px -30px rgba(124,58,237,.7)}
+    .opener-photo::after{content:"FIGSY";position:absolute;left:0;right:0;top:12px;text-align:center;font-family:'Outfit',sans-serif;font-weight:900;font-size:3.4rem;letter-spacing:-.05em;color:rgba(255,255,255,.5);z-index:1}
+    .opener-photo img{position:relative;z-index:2;width:100%;height:100%;object-fit:cover;object-position:top center;border-radius:23px;background:linear-gradient(160deg,#ffd6ed,#c9b6ff)}
+    .opener-tag{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:3;background:rgba(15,9,41,.85);backdrop-filter:blur(6px);border:1px solid rgba(196,181,253,.25);color:#fff;font-size:.74rem;font-weight:700;padding:8px 16px;border-radius:100px;white-space:nowrap}
+    @media(max-width:860px){.opener-inner{grid-template-columns:1fr;gap:36px;text-align:center}.opener p,.opener-points{margin-left:auto;margin-right:auto}.opener-points{text-align:left}.opener-eyebrow{justify-content:center}}
+    @media(max-width:520px){.opener-points{grid-template-columns:1fr}}
+  </style>
+  <div class="opener-inner">
+    <div class="opener-copy">
+      <div class="opener-eyebrow">Agent 01 &middot; The Opener</div>
+      <h2>Meet FIGSY.<br>He opens the door &mdash;<br><span>you walk through it.</span></h2>
+      <p>Your AI SDR. FIGSY finds your ideal clients, writes every email in your voice, follows up without being told, and drops a booking link in every message. He takes a lead from cold to booked &mdash; so your best people spend their hours closing, not chasing.</p>
+      <div class="opener-points">
+        <span>Finds &amp; verifies the right people</span>
+        <span>Writes in your voice &mdash; never a template</span>
+        <span>Follows up, every time, on his own</span>
+        <span>Books the meeting into your calendar</span>
+      </div>
+      <a href="figsy.html" class="opener-cta">See how FIGSY works &rarr;</a>
+    </div>
+    <div class="opener-visual">
+      <div class="opener-photo">
+        <img src="figsy-cut.png" alt="FIGSY — The Opener, your AI SDR" />
+        <span class="opener-tag">FIGSY &middot; The Opener &middot; your AI SDR</span>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- THE HUMAN CEILING -->
 <div class="problem-section">
   <div class="problem-inner">
@@ -1677,7 +1869,7 @@
   <div style="max-width:1080px;margin:0 auto 72px;padding:0">
     <div class="s-label" style="color:#a78bfa">FIGSY &mdash; The Opener</div>
     <div class="s-title reveal" style="color:#fff">Proactive. Tireless. Never misses a follow-up.</div>
-    <p class="s-sub reveal reveal-delay-1" style="color:rgba(255,255,255,0.4);margin-bottom:0">FIGSY doesn't wait to be told what to do. She finds, scores, writes, sends, follows up, reads every reply and drafts a response for your approval &mdash; with a booking link in every email. This is what it means to have an AI SDR teammate, not a tool.</p>
+    <p class="s-sub reveal reveal-delay-1" style="color:rgba(255,255,255,0.4);margin-bottom:0">FIGSY doesn't wait to be told what to do. He finds, scores, writes, sends, follows up, reads every reply and drafts a response for your approval &mdash; with a booking link in every email. This is what it means to have an AI SDR teammate, not a tool.</p>
 
     <div class="reasoning-loop">
       <div class="reasoning-loop-label">FIGSY's Reasoning Loop</div>
@@ -1793,7 +1985,7 @@
       <div class="figsy-scroll-step" data-thought="Reply rate dropped to 0.6% on campaign 'SA Fintech Q2'. Pausing automatically and alerting. Campaign Intelligence flagging pattern. No wasted credits.">
         <div class="step-num">Step 05</div>
         <h4>Self-managing campaign intelligence</h4>
-        <p>FIGSY monitors her own performance via Campaign Intelligence. If a campaign drops below 1% reply rate, she pauses automatically and alerts you &mdash; no credits wasted on a dead campaign. Every Monday you get a full outreach digest.</p>
+        <p>FIGSY monitors his own performance via Campaign Intelligence. If a campaign drops below 1% reply rate, he pauses automatically and alerts you &mdash; no credits wasted on a dead campaign. Every Monday you get a full outreach digest.</p>
         <div class="step-detail">
           <span class="step-pill">Auto-pauses low performers</span>
           <span class="step-pill">Weekly digest</span>
@@ -1985,6 +2177,7 @@
 
 <!-- FOOTER -->
 <footer>
+  <div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div>
   <div class="footer-inner">
     <div class="footer-grid">
       <div class="footer-brand">

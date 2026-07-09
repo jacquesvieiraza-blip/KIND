@@ -205,14 +205,14 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
                     <p className="text-[10px] mt-0.5" style={{ color: a.accent }}>{a.role}</p>
                   </div>
                   {locked
-                    ? <span className="text-[9px] text-white/35 shrink-0">{a.price}</span>
+                    ? <span className="text-[9px] text-white/35 shrink-0">Coming soon</span>
                     : a.id === activeId && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: a.accent }} />}
                 </button>
               )
             })}
             <Link href={v2Enabled('marketplace') ? '/dashboard/marketplace' : '/dashboard/billing'} onClick={() => setOpen(false)}
               className="block text-[10px] text-purple-300/50 hover:text-purple-200 px-3 py-2 border-t border-white/10 transition-colors">
-              {v2Enabled('marketplace') ? 'Browse all agents →' : 'Unlock agents from Billing →'}
+              {v2Enabled('marketplace') ? 'Browse all agents →' : 'More agents coming soon →'}
             </Link>
           </div>
         )}

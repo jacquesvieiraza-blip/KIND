@@ -300,7 +300,7 @@ export function Sidebar({
                   </div>
                   <p className="text-[10px] font-semibold truncate" style={{ color: agent.accent }}>{agent.subtitle}</p>
                   {!unlocked && agent.price && (
-                    <p className="text-[10px] text-[#6B7280] mt-0.5">{agent.price} · tap to unlock</p>
+                    <p className="text-[10px] text-[#6B7280] mt-0.5">Coming soon</p>
                   )}
                 </div>
               </Link>
@@ -317,7 +317,7 @@ export function Sidebar({
             </div>
             {!open && (
               <p className="px-3 pt-1.5 text-[10px] text-[#7C3AED]/40">
-                4 agents · <button onClick={() => setOpen(true)} className="font-semibold text-[#7C3AED]/70 hover:text-[#7C3AED] transition-colors">switch or unlock →</button>
+                FIGSY live · 3 more coming soon · <button onClick={() => setOpen(true)} className="font-semibold text-[#7C3AED]/70 hover:text-[#7C3AED] transition-colors">view →</button>
               </p>
             )}
 
@@ -363,7 +363,7 @@ export function Sidebar({
                           </span>
                         </div>
                         <p className="text-[#6B7280] text-[10px] mt-0.5">
-                          {locked ? `${a.price} · Unlock →` : 'Active'}
+                          {locked ? 'Coming soon' : 'Active'}
                         </p>
                       </div>
                       {locked

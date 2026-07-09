@@ -80,7 +80,6 @@ const TYPE_LABEL: Record<string, string> = {
   refund:         'Refund',
 }
 
-const INCLUDED_LEADS = 100
 const OVERAGE_RATE_USD = 1
 
 export default function UsagePage() {
@@ -142,13 +141,20 @@ export default function UsagePage() {
   const totalSpent     = totals.used      ?? transactions.filter(t => t.amount < 0).reduce((s, t) => s + Math.abs(t.amount), 0)
   const totalPurchased = totals.purchased ?? transactions.filter(t => t.type === 'purchase').reduce((s, t) => s + t.amount, 0)
 
-  const leadsThisPeriod = usage?.leads_this_period ?? 0
-  const overageLeads    = Math.max(0, leadsThisPeriod - INCLUDED_LEADS)
-  const overageCost     = usage?.overage_cost_usd ?? overageLeads * OVERAGE_RATE_USD
-  const progressPct     = Math.min((leadsThisPeriod / INCLUDED_LEADS) * 100, 100)
 
-  const periodStart = usage?.period_start ? new Date(usage.period_start).toLocaleDateString('en-GB', { dateStyle: 'medium' }) : null
-  const periodEnd   = usage?.period_end   ? new Date(usage.period_end).toLocaleDateString('en-GB', { dateStyle: 'medium' }) : null
+  // #385 — the old "100 included + $1/lead overage" panel was the retired subscription
+  // model (fake — there is no bundle). Under per-qualified-lead, every reveal is a REAL
+  // $1 charge on the reveal wallet. Compute reveals from the REAL ledger: reveal-wallet
+  // spends (plan 'lead_gen') this month. 1 reveal credit = $1.
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0)
+  const revealTxns = transactions.filter(t =>
+    t.plan === 'lead_gen' && t.amount < 0 && new Date(t.created_at) >= monthStart)
+  const revealsThisMonth = revealTxns.reduce((n, t) => n + Math.abs(t.amount), 0)
+  const revealSpendUsd   = revealsThisMonth * OVERAGE_RATE_USD  // $1 per reveal
+  const figsyTxns = transactions.filter(t =>
+    t.plan === 'figsy' && t.amount < 0 && new Date(t.created_at) >= monthStart)
+  const figsyThisMonth = figsyTxns.reduce((n, t) => n + Math.abs(t.amount), 0)
+
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -157,53 +163,35 @@ export default function UsagePage() {
         <p className="text-[#7B6FA0] text-sm mt-1">Credits, lead pipeline, and outreach performance.</p>
       </div>
 
-      {/* Lead usage this billing period */}
+      {/* #385 — Per-qualified-lead spend this month (REAL ledger, not a fake bundle).
+          You pay per lead: $1 to reveal, $3 for FIGSY to work it. No monthly included bundle. */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-base font-semibold text-gray-900">Leads this billing period</h2>
-          {periodStart && periodEnd && (
-            <span className="text-xs text-[#9B8EC4]">{periodStart} – {periodEnd}</span>
-          )}
+          <h2 className="text-base font-semibold text-gray-900">Per-lead spend this month</h2>
+          <span className="text-xs text-[#9B8EC4]">You pay per qualified lead — no monthly bundle</span>
         </div>
 
         <div className="grid grid-cols-3 gap-4">
-          <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900">{leadsThisPeriod}</p>
-            <p className="text-xs text-[#7B6FA0] mt-1">Leads used</p>
+          <div className="bg-green-50 rounded-xl p-4 text-center">
+            <p className="text-3xl font-bold text-green-700">{revealsThisMonth}</p>
+            <p className="text-xs text-[#7B6FA0] mt-1">Reveals · $1 each</p>
+          </div>
+          <div className="bg-indigo-50 rounded-xl p-4 text-center">
+            <p className="text-3xl font-bold text-indigo-700">{figsyThisMonth}</p>
+            <p className="text-xs text-[#7B6FA0] mt-1">FIGSY worked · $3 each</p>
           </div>
           <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900">{INCLUDED_LEADS}</p>
-            <p className="text-xs text-[#7B6FA0] mt-1">Included</p>
-          </div>
-          <div className={`rounded-xl p-4 text-center ${overageLeads > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
-            <p className={`text-3xl font-bold ${overageLeads > 0 ? 'text-amber-700' : 'text-gray-900'}`}>{overageLeads}</p>
-            <p className="text-xs text-[#7B6FA0] mt-1">
-              Overage {overageLeads > 0 ? `· $${overageCost.toFixed(2)}` : ''}
-            </p>
+            <p className="text-3xl font-bold text-gray-900">${(revealSpendUsd + figsyThisMonth * 3).toFixed(0)}</p>
+            <p className="text-xs text-[#7B6FA0] mt-1">Spent this month</p>
           </div>
         </div>
 
-        {/* Progress bar */}
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-[#7B6FA0]">
-            <span>{leadsThisPeriod} of {INCLUDED_LEADS} included leads used</span>
-            <span>{progressPct.toFixed(0)}%</span>
-          </div>
-          <div className="w-full bg-gray-100 rounded-full h-2.5">
-            <div
-              className={`h-2.5 rounded-full transition-all ${overageLeads > 0 ? 'bg-amber-500' : 'bg-[#7C3AED]'}`}
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          {overageLeads > 0 && (
-            <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mt-2">
-              <AlertCircle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
-              <p className="text-xs text-amber-700">
-                You've used {overageLeads} overage lead{overageLeads !== 1 ? 's' : ''} this period at ${OVERAGE_RATE_USD}/lead.
-                Overage total: <strong>${overageCost.toFixed(2)}</strong>
-              </p>
-            </div>
-          )}
+        <div className="flex items-start gap-2 bg-[#F5F0FF]/60 border border-purple-100 rounded-lg px-3 py-2">
+          <AlertCircle className="w-3.5 h-3.5 text-[#7C3AED] mt-0.5 shrink-0" />
+          <p className="text-xs text-[#7B6FA0]">
+            Reveal a delivered lead for <strong>$1</strong>, then have FIGSY work it for <strong>$3</strong>.
+            Sourcing and delivery are free — you only pay for leads you choose to reveal.
+          </p>
         </div>
       </div>
 

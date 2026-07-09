@@ -221,7 +221,8 @@ export default function ProspectsPage() {
       const { data: { session } } = await supabase.auth.getSession()
       const token = session?.access_token
       const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
-      const res = await fetch(`${API_URL}/leads/export`, {
+      // #384 — the real endpoint is /leads/export/csv (leads.ts:1058); /leads/export 404'd.
+      const res = await fetch(`${API_URL}/leads/export/csv`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!res.ok) throw new Error('Export failed')

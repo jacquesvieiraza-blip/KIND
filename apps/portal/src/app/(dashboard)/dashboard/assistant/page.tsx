@@ -407,8 +407,9 @@ export default function AssistantPage() {
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="font-semibold text-gray-900 text-sm">Integrations</h2>
-            <p className="text-xs text-[#9B8EC4] mt-0.5">Connect external tools so Milla can take actions, not just answer questions.</p>
+            <h2 className="font-semibold text-gray-900 text-sm">Integrations <span className="text-[10px] font-semibold text-gray-400 ml-1">· Coming soon</span></h2>
+            {/* #395 — no live connectors exist yet; don't imply they're connectable. */}
+            <p className="text-xs text-[#9B8EC4] mt-0.5">Direct connectors (Calendar, Docs, CRM, Slack) are coming soon — Milla reads your FIGSY + Vida data natively today.</p>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

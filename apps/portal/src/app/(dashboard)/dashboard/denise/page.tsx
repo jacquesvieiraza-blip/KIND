@@ -104,8 +104,11 @@ export default function DenisePage() {
           <img src="/agents/denise.png" alt="Denise" className="w-full h-full object-cover object-top" />
         </div>
         <h1 className="text-xl font-bold text-gray-900">Denise — The Closer</h1>
-        <p className="text-sm text-[#7B6FA0] mt-2 mb-6">Denise drafts warm follow-ups and proposals, confirms meetings, and chases warm leads. Add her to your plan to unlock.</p>
-        <a href="/dashboard/billing" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-[#7C3AED] text-white text-sm font-bold hover:bg-[#6D28D9] transition-colors">Add Denise to your plan</a>
+        {/* #396 — removed the false "confirms meetings" claim (no calendar-book, #361);
+            #406/#431 — "add to plan" retired (subscriptions gone), Denise returns as a
+            per-lead action layer (#428). Honest coming-soon, not a checkout. */}
+        <p className="text-sm text-[#7B6FA0] mt-2 mb-6">Denise turns a qualified lead into a ready-to-send sales motion — objection replies, proposals, and follow-ups from first reply to close. Coming soon.</p>
+        <span className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold border border-gray-200 cursor-not-allowed select-none">Coming soon</span>
       </div>
     )
   }

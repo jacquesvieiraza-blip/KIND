@@ -100,6 +100,27 @@ for f in "${DOCS[@]}"; do
   done
 done
 
+# ── 6. LAUNCH-PAD item rows must MIRROR the inventory dot ─────────────────────
+# Every LAUNCH-PAD row whose first cell is "#id <dot>" must carry the SAME dot the
+# inventory holds for that id. Regenerate with scripts/mirror-launchpad.sh.
+inv_dots="$(awk -F'|' '
+  /<!-- COUNT:START -->/{inside=1} /<!-- COUNT:END -->/{inside=0}
+  inside && NF>=4 { id=$2; gsub(/^ +| +$/,"",id);
+    if(id ~ /^[0-9]+[a-z]?$/){ c2=$3; gsub(/^ +| +$/,"",c2); c3=$4; gsub(/^ +| +$/,"",c3);
+      d=""; if(c2 ~ /^(🟢|🩷|🟣|🟡|🔴|⏸)$/) d=c2; else if(c3 ~ /^(🟢|🩷|🟣|🟡|🔴|⏸)$/) d=c3;
+      if(d!="") print id"="d } }' docs/PRODUCT-INVENTORY.md)"
+mismatch="$(awk -F'|' -v inv="$inv_dots" '
+  BEGIN{ n=split(inv,a,"\n"); for(i=1;i<=n;i++){ split(a[i],kv,"="); m[kv[1]]=kv[2] } }
+  { cell=$2; gsub(/^ +| +$/,"",cell);
+    if(cell ~ /^#[0-9]+[a-z]? (🟢|🩷|🟣|🟡|🔴|⏸)$/){
+      split(cell,p," "); id=p[1]; sub(/^#/,"",id); dot=p[2];
+      if((id in m) && m[id]!=dot) print "  #"id" LAUNCH-PAD="dot" inventory="m[id] } }' docs/LAUNCH-PAD.md)"
+if [ -n "$mismatch" ]; then
+  say "FAIL [launchpad-mirror] LAUNCH-PAD dots disagree with the inventory — run scripts/mirror-launchpad.sh:"
+  echo "$mismatch" >&2
+  FAIL=1
+fi
+
 # ── verdict ───────────────────────────────────────────────────────────────────
 if [ "$FAIL" -eq 0 ]; then
   echo "doc-lint: OK — no drift ($derived)"

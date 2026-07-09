@@ -30,4 +30,7 @@ sed -i -E "s|^(# ░ ⏸[^(]*)\([0-9]+\)|\1($b)|" "$INV"
 # 4. LAUNCH-PAD board line
 sed -i -E "s|🟢[0-9]+ · 🩷[0-9]+ · 🟣[0-9]+ · 🟡[0-9]+ · 🔴[0-9]+ · ⏸[0-9]+ · \*\*Σ[0-9]+\*\*|🟢$g · 🩷$p · 🟣$v · 🟡$y · 🔴$r · ⏸$b · **Σ$s**|" "$LP"
 
+# 5. LAUNCH-PAD item-table rows mirror the inventory dots (never hand-typed).
+scripts/mirror-launchpad.sh
+
 scripts/count-inventory.sh --check

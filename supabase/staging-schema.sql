@@ -1468,6 +1468,19 @@ begin
   return found;
 end $$;
 
+-- #390 (AR-60) — dead-letter store for failed background jobs (mirrors 20260710_dead_letter).
+create table if not exists public.dead_letter (
+  id              uuid primary key default gen_random_uuid(),
+  source          text not null,
+  payload         jsonb,
+  error           text,
+  attempts        integer not null default 1,
+  created_at      timestamptz not null default now(),
+  last_attempt_at timestamptz not null default now(),
+  resolved_at     timestamptz
+);
+create index if not exists dead_letter_unresolved_idx on public.dead_letter (created_at desc) where resolved_at is null;
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- END OF SCHEMA
 -- ════════════════════════════════════════════════════════════════════════════

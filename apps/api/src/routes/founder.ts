@@ -14,7 +14,7 @@ import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { computeChurnRisk } from './internal'
-import { suggestWinBack } from './admin'
+import { suggestWinBack, adminKeyValid } from './admin'
 import { interpretSend } from '../lib/resend-checked'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -25,7 +25,8 @@ const FOUNDER   = process.env.FOUNDER_EMAIL || 'hello@get-kind.com'
 export const founderRouter = Router()
 
 function requireAdminKey(req: Request, res: Response, next: () => void) {
-  if (!process.env.ADMIN_SECRET_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_SECRET_KEY) {
+  // #402 (AR-65) — constant-time compare (avoids the char-by-char timing side-channel).
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
     return
   }

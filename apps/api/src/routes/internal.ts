@@ -464,10 +464,13 @@ internalRouter.get('/cro/dashboard', async (_req: Request, res: Response) => {
       { count: totalLeads },
       { count: leadsThisMonth },
     ] = await Promise.all([
-      db.from('subscriptions').select('amount_zar, created_at').eq('status', 'active'),
-      db.from('subscriptions').select('id, trial_ends_at').eq('status', 'trialing'),
-      db.from('subscriptions').select('id, cancelled_at').eq('status', 'cancelled').gte('cancelled_at', monthStart),
-      db.from('clients').select('id', { count: 'exact', head: true }),
+      // #364 (AR-26) — exclude demo/sandbox from founder revenue metrics. subscriptions
+      // has no is_demo, so filter via an inner join on the owning client (clients.is_demo
+      // = false); client count filters directly.
+      db.from('subscriptions').select('amount_zar, created_at, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
+      db.from('subscriptions').select('id, trial_ends_at, clients!inner(is_demo)').eq('status', 'trialing').eq('clients.is_demo', false),
+      db.from('subscriptions').select('id, cancelled_at, clients!inner(is_demo)').eq('status', 'cancelled').eq('clients.is_demo', false).gte('cancelled_at', monthStart),
+      db.from('clients').select('id', { count: 'exact', head: true }).eq('is_demo', false),
       db.from('leads').select('id', { count: 'exact', head: true }),
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
     ])
@@ -530,13 +533,14 @@ internalRouter.post('/cro/weekly-digest', async (_req: Request, res: Response) =
       { count: consentedTotal },
       { data: atRiskClients },
     ] = await Promise.all([
-      db.from('subscriptions').select('amount_zar').eq('status', 'active'),
-      db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
-      db.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', weekStart),
+      // #364 (AR-26) — exclude demo/sandbox from the founder digest revenue + client counts.
+      db.from('subscriptions').select('amount_zar, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
+      db.from('subscriptions').select('id, clients!inner(is_demo)', { count: 'exact', head: true }).eq('status', 'trialing').eq('clients.is_demo', false),
+      db.from('clients').select('id', { count: 'exact', head: true }).eq('is_demo', false).gte('created_at', weekStart),
       db.from('leads').select('id', { count: 'exact', head: true }),
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', weekStart),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'consent_given'),
-      db.from('clients').select('company_name, first_icp_run_at, created_at').lte('created_at', weekStart),
+      db.from('clients').select('company_name, first_icp_run_at, created_at').eq('is_demo', false).lte('created_at', weekStart),
     ])
 
     const mrrUsd = Math.round((activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0) / 19)

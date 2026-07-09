@@ -32,6 +32,14 @@ router.post('/invite', async (req: AuthRequest, res): Promise<void> => {
   const { email, role = 'member' } = req.body
   if (!email) { res.status(400).json({ error: 'email required' }); return }
 
+  // #402 (AR-65) — validate the role instead of trusting the body. 'owner' is never
+  // invitable (no inviting a second owner / privilege escalation), and an unknown string
+  // must not reach the DB. Allowed invite roles: admin, member, viewer.
+  const INVITABLE_ROLES = ['admin', 'member', 'viewer']
+  if (!INVITABLE_ROLES.includes(role)) {
+    res.status(400).json({ error: `Invalid role. Must be one of: ${INVITABLE_ROLES.join(', ')}` }); return
+  }
+
   const clientId = await ownerClientId(req.userId!)
   if (!clientId) { res.status(404).json({ error: 'No workspace for this user' }); return }
 

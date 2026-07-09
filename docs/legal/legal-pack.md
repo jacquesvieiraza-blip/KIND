@@ -57,7 +57,7 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 - Privacy notice (✅ live at get-kind.com/privacy)
 - Data subject rights: access, rectification, erasure, portability, objection (30-day response window)
 - Data breach notification to ICO within 72 hours if personal data is at risk
-- Data Processing Agreements (DPAs) with all third-party processors (✅ in place with Railway, Supabase, Stripe, Resend)
+- Data Processing Agreements (DPAs) with all third-party processors (✅ in place with Railway, Supabase, Stripe, Resend, PDL, Hunter, Flutterwave)
 - ICO registration and annual fee payment
 
 **ICO registration — REQUIRED NOW:**
@@ -148,13 +148,13 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 - **Live at:** get-kind.com/terms
 - **Covers:** Service scope, acceptable use, payment terms, cancellation, limitation of liability, IP ownership, governing law (England & Wales)
 - **Limitation of liability clause:** K.I.N.D's liability is capped at fees paid in the 12 months preceding the claim. This is critical — without it, a client could claim unlimited damages.
-- **Review trigger:** Any new jurisdiction, new product (REEVE/LENA/OTTO), or material change in service scope
+- **Review trigger:** Any new jurisdiction, new product (Denise/Tony), or material change in service scope
 
 ### 3.2 Data Processing Agreement (DPA)
 - **Live at:** get-kind.com/dpa
 - **Purpose:** Establishes K.I.N.D as data processor acting on the client's instructions. Required for UK GDPR and POPIA compliance.
 - **Covers:** Scope of processing, data subject rights obligations, sub-processor list, breach notification obligations, deletion on contract end, international transfer safeguards
-- **Sub-processors listed:** Railway, Supabase, Stripe, Resend, Apollo, Anthropic
+- **Sub-processors listed:** Railway, Supabase, Stripe, Resend, **PDL, Hunter, Flutterwave**, Anthropic *(Apollo removed — retired from the data path)*
 - **US version:** get-kind.com/dpa-us (CCPA addendum)
 
 ### 3.3 Key Clauses to Protect K.I.N.D in Client Contracts
@@ -175,7 +175,7 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 
 ### 4.1 What K.I.N.D Owns
 - All platform code, algorithms, and software (written by founder or Claude Code agent under founder's direction)
-- All brand assets: name "K.I.N.D", agent names (FIGSY, Milla, Vida, REEVE, LENA, OTTO), logo, brand gradient, Pixar-style agent images
+- All brand assets: name "K.I.N.D", agent names (FIGSY, Milla, Vida, Denise, Tony), logo, brand gradient, Pixar-style agent images
 - All training data, scored leads, and proprietary datasets accumulated through platform operation
 - All content: blog articles, pitch deck, documentation, this pack
 
@@ -230,7 +230,9 @@ K.I.N.D is a customer of these providers. Their standard contracts govern the re
 | Supabase | Data belongs to you. Supabase is a data processor. DPA signed. Cape Town region = POPIA compliant. | Low |
 | Stripe | Regulated financial institution. Stripe is the merchant of record for payment processing. K.I.N.D never holds card data. | Low |
 | Resend | Email delivery service. CAN-SPAM and GDPR compliant. K.I.N.D is responsible for the content it sends. | Medium — ensure opt-out / unsubscribe works |
-| Apollo | Data enrichment. Subject to Apollo's own data licensing terms. GDPR compliant. K.I.N.D is responsible for lawful use of enriched data. | Medium — do not use Apollo data for GDPR-non-compliant outreach |
+| PDL (People Data Labs) | Lead sourcing (people/company data). Subject to PDL's data licensing terms. K.I.N.D is responsible for lawful use of sourced data. | Medium — lawful basis + suppression on all outreach |
+| Hunter | Email finding/verification (reveal). Subject to Hunter's terms. GDPR compliant. | Medium — lawful basis for processing revealed emails |
+| Flutterwave | Payment processing (Africa). Regulated processor; K.I.N.D never holds card data. | Low |
 | Anthropic | Claude API. Data sent in prompts may be used for safety review (check enterprise plan terms). Do not send sensitive PII in prompts. | Medium — review data handling policy annually |
 
 ---

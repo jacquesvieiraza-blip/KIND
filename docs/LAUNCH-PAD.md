@@ -5,7 +5,7 @@
 
 **THE PLAN (locked 8 Jul):** **one price logic across the whole family — per qualified lead. No subscriptions, no contracts, no order-forms.** Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; **Vida inbound $3** + same add-ons → $4/$5. Sell **FIGSY + Lead-Gen** now; **Milla · Vida · Denise · Tony STAY on site + portal marked "coming soon" + greyed** (built in **M4**, never deleted). **Milestone 0 is the gate** — make FIGSY + Lead-Gen *honest → work fully → proven* before one real client.
 
-**Board:** 🟢98 · 🩷85 · 🟣3 · 🟡23 · 🔴226 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢98 · 🩷85 · 🟣3 · 🟡28 · 🔴221 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -27,15 +27,15 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 
 # ⓪ MILESTONE 0 — make FIGSY + Lead-Gen *honest → work fully → proven* · the gate to selling · owner 🤖 (you merge+deploy)
 
-### 🔴🔴 CRITICAL — LEGAL DOCS STALE (held for founder/legal wording · **legal is always critical**)
-The doc-currency audit (9 Jul) found the **contractual + HMRC docs still describe Apollo + monthly subscriptions** — legally wrong. **Founder-held** (needs legal/accountant wording), NOT auto-fixed. Fix before any client contract / investor / HMRC use.
-| Item | What is wrong | Owner |
-|---|---|:---:|
-| #432 | `legal.md` — entire doc is an Apollo thesis → rewrite onto PDL+Hunter + per-lead; FIGSY drafts | 🧍 |
-| #433 | `legal/legal-pack.md` — **published DPA sub-processor list names Apollo** (omits PDL/Hunter/Flutterwave) + stale REEVE/LENA/OTTO | 🧍 |
-| #434 | `legal/seis-advance-assurance-draft.md` — **HMRC filing says "recurring subscriptions"** → per-qualified-lead | 🧍 |
-| #435 | `legal/partner-agreement.md` — commission built on **MRR** (doesn't exist) → per-lead collected revenue | 🧍 |
-| #436 | `legal/it-security-pack.md` + `key-rotation-runbook.md` — **Apollo** in vendor/key/access registers → PDL+Hunter+Flutterwave | 🧍 |
+### 🟡 CRITICAL — LEGAL DOCS (factual fixes done 8 Jul · ⚖️ **still owe your + lawyer/accountant sign-off before external use** · legal is always critical)
+Factual staleness (Apollo→PDL+Hunter, subscriptions→per-lead, REEVE/LENA/OTTO→Denise/Tony) **corrected in-doc**. The judgment calls (new data-rights position, HMRC/DPA/partner-contract wording) were **NOT auto-authored** — they carry review flags in each doc. **Do not use externally until signed off.**
+| Item | Done (8 Jul) | ⚖️ Owed | Owner |
+|---|---|---|:---:|
+| #432 | `legal.md` — SUPERSEDE banner (Apollo moot; 250M/sends/subs flagged) | lawyer: fresh PDL+Hunter data-rights review | 🧍 |
+| #433 | `legal/legal-pack.md` — DPA sub-processor list → PDL+Hunter+Flutterwave; REEVE/LENA/OTTO→Denise/Tony | legal review + match on-site /dpa | 🧍 |
+| #434 | `legal/seis-advance-assurance-draft.md` — revenue → per-qualified-lead (no subs) | accountant/solicitor: confirm before HMRC filing | 🧍 |
+| #435 | `legal/partner-agreement.md` — comp → collected per-lead revenue (MRR removed) | legal sign-off before signing partners | 🧍 |
+| #436 | `legal/it-security-pack.md` + `key-rotation-runbook.md` — Apollo removed from registers | light review | 🧍 |
 
 ## PHASE 1 · TRUTH SWEEP — site + portal say ONLY what FIGSY + Lead-Gen ($1 reveal) actually do; everything else STAYS, marked "coming soon" + greyed. **Client-facing → preview first (§11).**
 

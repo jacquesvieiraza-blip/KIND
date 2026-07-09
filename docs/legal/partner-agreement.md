@@ -26,10 +26,11 @@ The full pack a partner signs (4 parts):
 | **White-label** | reseller presenting K.I.N.D under their own brand | the above + white-label surface + (optional) territory |
 
 ## 3. Commission — the LOCKED model (USD)
+> ⚠️ **Base updated 8 Jul (⚖️ needs legal sign-off before signing partners):** K.I.N.D bills **per qualified lead — no MRR/subscriptions**. Commission is therefore on **collected per-lead revenue**, not "MRR." Rates/cadence unchanged.
 | Component | Rate | Base | Cadence |
 |---|---|---|---|
-| **Acquisition** | **20%** | a new client's **first-month** MRR | one-time, on the client signing |
-| **Retention** | **5%** | the Partner's **active book** (collected MRR of clients they manage) | recurring, every month the client stays |
+| **Acquisition** | **20%** | a new client's **first-period collected revenue** (per-lead spend) | one-time, on the client's first purchase |
+| **Retention** | **5%** | the Partner's **active book** (collected per-lead revenue of clients they manage) | recurring, while the client keeps spending |
 
 - **No base. No expansion. No cap** on referrals or earnings.
 - **Earned-when-collected:** commission is earned only when K.I.N.D **collects** the underlying revenue and reconciles it. A client who churns or refunds simply stops generating commission — **no clawback**, nothing paid ahead of cash.

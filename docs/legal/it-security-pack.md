@@ -57,7 +57,7 @@ All data handled by K.I.N.D is classified into one of four tiers. Classification
 ### 3.3 Authentication
 - **Client auth:** Supabase Auth (magic link + email/password). Sessions expire after 1 hour of inactivity.
 - **Admin auth:** Separate admin secret (`ADMIN_SECRET_KEY`) required on all admin API routes, validated server-side.
-- **No shared credentials:** Each integration (Stripe, Resend, Apollo, HubSpot) uses its own key scoped to minimum required permissions.
+- **No shared credentials:** Each integration (Stripe, Resend, PDL, Hunter, Flutterwave) uses its own key scoped to minimum required permissions.
 
 ### 3.4 Encryption
 - **In transit:** TLS 1.2+ enforced on all services (Railway managed). All database connections use SSL.
@@ -86,7 +86,9 @@ Every system account, API key, and database role is granted only the minimum per
 | GitHub repo | Founder + Claude Code agent | Admin / write | Yes (founder) |
 | Stripe | Founder | Admin | Yes |
 | Resend | Founder | Admin | Yes |
-| Apollo | Founder | Admin | Yes |
+| PDL (People Data Labs) | Founder | Admin | Yes |
+| Hunter | Founder | Admin | Yes |
+| Flutterwave | Founder | Admin | Yes |
 | Admin portal (`/admin`) | Founder | Admin secret | N/A (API key) |
 
 ### 4.3 Contractor / Agent Access
@@ -111,7 +113,9 @@ K.I.N.D is a data processor for its clients and a data controller for its own op
 | Supabase | All client + lead data (af-south-1) | SOC 2 Type II, GDPR + POPIA compliant, Cape Town data residency | Yes (Supabase DPA) |
 | Stripe | Payment card data, billing records | PCI DSS Level 1 certified | Yes (Stripe DPA) |
 | Resend | Email content, recipient addresses | GDPR compliant | Yes (Resend DPA) |
-| Apollo.io | Lead enrichment data | GDPR compliant, US-based | Yes (Apollo DPA) |
+| PDL (People Data Labs) | Lead sourcing data (people/company) | GDPR compliant, US-based | Yes (PDL DPA) |
+| Hunter | Email finding/verification | GDPR compliant | Yes (Hunter DPA) |
+| Flutterwave | Payment data (Africa) | PCI DSS, regulated processor | Yes (Flutterwave DPA) |
 | Anthropic | Prompt/response data (no client PII sent) | Enterprise data agreements | Review annually |
 | HubSpot (optional) | Client CRM data (client-owned) | SOC 2, GDPR | Client responsibility |
 

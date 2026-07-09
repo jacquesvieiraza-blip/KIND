@@ -1,5 +1,10 @@
 # K.I.N.D — Legal
-*Last-checked: 23 Jun 2026 (content current; Apollo reseller reply still pending)*
+*Last-checked: 8 Jul 2026*
+
+> # ⛔ SUPERSEDED — Apollo is retired from the data path (8 Jul 2026)
+> **This entire document analyses the risk of *reselling Apollo data* to clients. K.I.N.D no longer uses Apollo.** The live data stack is **PDL Full (sourcing) + Hunter (reveal)**, plus optional client-BYO keys. The whole "50-client trigger / Apollo ToS / reseller-vs-BYOK / data-source migration" analysis below is therefore **moot and historical** — kept for the record only.
+> **⚠️ Also stale below:** "250M contacts" (Apollo's number), FIGSY described as sending autonomously (it **drafts** for approval), and the subscription/credit revenue framing (now **per qualified lead — no subscriptions**).
+> **⚖️ ACTION (lawyer, before any legal/investor use):** a fresh data-rights review is needed for **PDL Full + Hunter** — confirm K.I.N.D's licence permits sourcing on one account and delivering results to clients (the same question this doc asked of Apollo, now for the real vendors). Do not rely on the Apollo analysis below. Tracked as inventory **#432**.
 
 ---
 

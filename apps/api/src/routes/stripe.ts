@@ -597,7 +597,13 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
     }
 
   } catch (err) {
+    // #379 (AR-54) — do NOT swallow into a 200. A throw here (e.g. mid refund/dispute
+    // claw-back) previously still returned 200, so Stripe considered the webhook handled
+    // and never retried → credits were never clawed back and the client kept them. Return
+    // 500 so Stripe retries; the webhook's idempotency guard makes the replay safe.
     console.error('[Stripe] Webhook handler error:', err)
+    res.status(500).json({ error: 'Webhook handler failed — Stripe should retry' })
+    return
   }
 
   res.sendStatus(200)

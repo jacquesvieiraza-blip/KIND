@@ -19,14 +19,16 @@
 GitHub is flagged → auto-deploy is off. Each change ships **by hand**: **🧍** merge PR → **🧍** `git pull` → **🧍** `railway up --detach --service "<svc>"`.
 Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admin` · api = `@kind/api`. *(Claude can't deploy — no Railway access.)*
 
-### ▶ DO NOW — in order (only the true next actions)
+### ▶ DO NOW — in order (only the true next actions) · *updated 9 Jul PM — hand-off-ready*
 | # | Task | Owner |
 |---|------|:---:|
-| 1 | ✅ **DONE — Phase 1 website sweep LIVE + verified** (13 items 🟢, 9 Jul) | 🧍 |
-| 2 | **Phase 2 — build the money path #420–#431** — the site now sells $1 reveal + $4 ladder + Lead-Gen + booking; `constants/index.ts` still on the old subscription model. Build what the site advertises. | 🤖 |
-| 3 | **Finish held Phase-1 items** — `small-business-playbook.html` per-lead totals (your packaging) · legal pages #410/#413/#414/#407 (lawyer track) | 🤝 |
-| 4 | **Phase 1 Step 2 — portal truth sweep** (Move 1b, 34-screen sweep) | 🤖 |
-| 5 | FIGSY reliability — start **#338 + #339** (Phase 3) | 🤖 |
+| 1 | **Merge PR #1017** (Phase-2 money core: masked delivery + $1 reveal + audit fixes — Fable-audited, 3 holes closed, 87/87 tests) → **run `supabase/migrations/20260709_reveal_charge.sql` on kind-staging then prod (BEFORE the deploys)** → `railway up --detach --service "@kind/api"` + `"@kind/portal"` → walk the 8-step test script in the PR body. *Merging fires the autoflip first run: `Flips: #421 #422 #423 #425` → 🩷 automatically.* | 🧍 |
+| 2 | **Merge PR #1018** (M0 scope verify — 7 gray rocks pulled into the phases, docs-only) | 🧍 |
+| 3 | **Build #212 sequence depth** (M0, founder-locked 9 Jul) — engine 3-step → ≤10-step. **Spec + verified file:line map in the #212 inventory row**; design read done (campaign `settings.steps` already N-step — the rails exist). | 🤖 |
+| 4 | **Phase 2 remainder** — #424 (⚠️ needs founder rule: $3 once-per-lead-EVER vs per-campaign) · #431 retire subscription machinery · #426 10-step cap (ships with #212) · portal reveal top-up packs (in #406) | 🤖/🤝 |
+| 5 | **Phase 1 Step 2 — portal truth sweep** (#406 #385 #384 #412 + named rocks #395/#396/#399) | 🤖 |
+| 6 | FIGSY reliability — **#338 + #339 first**, then the Phase-3 list (incl. the 5 pulled-in rocks #391/#392/#375/#377/#378) | 🤖 |
+| 7 | Held: `small-business-playbook.html` per-lead totals (your packaging) · legal #410/#413/#414/#407 (lawyer track) | 🤝 |
 
 ---
 
@@ -102,6 +104,7 @@ Shipped + founder-walked live → **13 items 🟢** in PRODUCT-INVENTORY: **#405
 | #400 | "South-African-sounding name" prompt residue → make it global | 🤖 |
 | #401 | A few inventory dots were lying → corrected | 🤖 |
 | #402 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 |
+| #212 | **⬆ M2→M0 (founder-locked 9 Jul) · SEQUENCE DEPTH — engine sends 3 steps, site sells "up to 10"** — enrollment steps → jsonb array (≤10), stepper walks it + `wait_days`; enforce #426 cap in the builder API. **Full build spec in the #212 inventory row (code-verified file:line).** | 🤖 |
 | #361 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
 | #368 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
 | #391 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |

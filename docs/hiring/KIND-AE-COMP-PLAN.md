@@ -2,7 +2,7 @@
 *Model: built on the Smartsheet FY25 plan structure (dollar quota · ramped · guarantee schedule · accelerators · earned-when-collected), scaled to a real company-deal closer.*
 *Reference doc — lives under `/docs/hiring/`. Not a fifth canonical tracker.*
 
-> **Locked scenario:** Base **$67,500** · Variable **$45,000** · **OTE $112,500** (60/40) · target ARPU **$1,500** (multi-seat company deals) · hired at **~$10k MRR** ("first hire possible"). Dollar figures below are the working model — localize the base to the hiring market before issuing.
+> **Locked scenario:** Base **$67,500** · Variable **$45,000** · **OTE $112,500** (60/40) · target ARPU **$1,500** (multi-seat company deals) · hired at **~$10k/mo collected revenue** ("first hire possible"). Dollar figures below are the working model — localize the base to the hiring market before issuing.
 
 ---
 
@@ -12,11 +12,11 @@
 
 ## 2. Target (quota) — dollars, not logos
 
-Quota is **new monthly recurring revenue (new MRR) closed**, in dollars, ramped over the first three months like the Smartsheet quarterly ladder. Logos are an output, never the target.
+Quota is **new collected revenue closed (monthly run-rate)**, in dollars, ramped over the first three months like the Smartsheet quarterly ladder. Logos are an output, never the target.
 
 ### Quota / target schedule
 
-| Period | New-MRR target | New ARR (×12) | ≈ Company deals |
+| Period | New collected-revenue target (monthly) | Annualised collected revenue (×12) | ≈ Company deals |
 |---|---|---|---|
 | Month 1 — onboarding | $0 | $0 | 0 |
 | Month 2 — ramp (50%) | $2,250 | $27,000 | 1–2 |
@@ -26,15 +26,15 @@ Quota is **new monthly recurring revenue (new MRR) closed**, in dollars, ramped 
 | **Year 1** (with ramp) | $47,250 | **~$567,000** | 31–32 |
 | **Year 2** (steady) | $54,000 | ~$648,000 | 36 |
 
-The full monthly quota ($4,500 new MRR) sits at ~4.8× the variable target and ~5× OTE — inside the 4–6× quota-to-OTE band for a closing AE. New ARR is *annualized run-rate* (what the book is worth if it sticks), not contracted ARR, since K.I.N.D sells month-to-month.
+The full monthly quota ($4,500 new collected revenue) sits at ~4.8× the variable target and ~5× OTE — inside the 4–6× quota-to-OTE band for a closing AE. Annualised collected revenue is *annualized run-rate* (what the book is worth if it sticks), not contracted revenue, since K.I.N.D bills per qualified lead (prepaid credits), no contracts.
 
-## 3. Commission — paid on **collected** MRR (churn-safe)
+## 3. Commission — paid on **collected revenue** (churn-safe)
 
 | Component | Rate | Basis | Timing |
 |---|---|---|---|
-| **Land** | 20% | New client's first month of MRR | One-time, on conversion |
-| **Retain** | 5% | The client's collected MRR | Recurring, each month retained past the window |
-| **Expansion** | 5% | The MRR *increase* (new − prior MRR) | One-time, per upsell / added seat |
+| **Land** | 20% | New client's first month of collected revenue | One-time, on conversion |
+| **Retain** | 5% | The client's collected revenue | Recurring, each month retained past the window |
+| **Expansion** | 5% | The collected-revenue *increase* (new − prior month) | One-time, per upsell / added seat |
 
 Mirrors the partner economics plus expansion — an employed closer and a referral partner sit on the same spine. **Multi-seat kicker:** +5% land on deals of 2+ seats (the equivalent of Smartsheet's multi-year incentive — it pulls the AE up-market). **Partner override:** ~5% of revenue from partners the AE recruits.
 
@@ -52,7 +52,7 @@ Greater of the guarantee or actual commission, where the guarantee is a % of the
 
 ## 5. Accelerators — reward overperformance
 
-Applied to the **land** commission, on new-MRR quota attainment. Retention and expansion stay flat-rate. Uncapped.
+Applied to the **land** commission, on new-collected-revenue quota attainment. Retention and expansion stay flat-rate. Uncapped.
 
 | Attainment | Multiplier |
 |---|---|
@@ -62,11 +62,11 @@ Applied to the **land** commission, on new-MRR quota attainment. Retention and e
 
 ## 6. Earned-when-collected & clawback
 
-Commissions are paid as **monthly advances**, **earned** only once the revenue is **collected** and reconciled. A client who churns or refunds simply stops earning future advances — no clawback drama, nothing paid ahead of cash. This is what makes month-to-month MRR safe to commission.
+Commissions are paid as **monthly advances**, **earned** only once the revenue is **collected** and reconciled. A client who churns or refunds simply stops earning future advances — no clawback drama, nothing paid ahead of cash. This is what makes pay-per-lead collected revenue safe to commission.
 
 ## 7. Windfall review
 
-Any single deal landing above **~2× the AE's monthly quota (~$9,000 new MRR)** is reviewed before the commission earns, so one whale doesn't overpay.
+Any single deal landing above **~2× the AE's monthly quota (~$9,000 new collected revenue)** is reviewed before the commission earns, so one whale doesn't overpay.
 
 ## 8. Base, variable & pay mix
 
@@ -80,7 +80,7 @@ Any single deal landing above **~2× the AE's monthly quota (~$9,000 new MRR)** 
 
 ## 9. Hire timing & deal-size floor
 
-- **When:** hire at **~$10k MRR**, not pre-revenue. The AE is added on top of an existing book, which funds the base while their own book builds. Pre-revenue, product + FIGSY + partners carry it.
+- **When:** hire at **~$10k/mo collected revenue**, not pre-revenue. The AE is added on top of an existing book, which funds the base while their own book builds. Pre-revenue, product + FIGSY + partners carry it.
 - **Deal-size floor:** below **~$550 ARPU** this AE loses money every year — a $67.5k-base closer on $240 seats is a ~$32k/yr hole. The viable zone is **$1,500+ per account** (6–10 seat companies or bundled multi-product), where the same hire nets **~$150k+ in year one**.
 - **Why:** the margin on company deals dwarfs even a six-figure salary; the margin on SMB seats can't cover it. Salary and deal size move together.
 

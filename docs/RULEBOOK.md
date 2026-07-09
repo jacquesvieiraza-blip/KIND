@@ -26,9 +26,9 @@
 2.2 **The founder merges. Claude does not.** Claude prepares the PR; the founder clicks merge. Claude never merges to `main` (or anything that deploys) without explicit "go live" / "merge it" for that specific change.
 2.3 **Two tracks, kept separate:**
    - **Website (`apps/website`)** → deploys via Cloudflare. Cosmetic site changes can go live when the founder approves.
-   - **Product (portal / api / agents)** → held on the staging branch (`claude/kind-carson-MYhSl`, PR #502) until **go-live after Fri 19 Jun**. Merging it IS go-live — never a routine sync.
+   - **Product (portal / api / agents)** → held on staging until previewed + founder-approved (post-launch: merging to `main` deploys straight to LIVE — §11). Merging it IS go-live — never a routine sync.
 2.4 **State the deploy impact every time.** When presenting work, Claude says plainly: "this goes live on merge" or "this is docs/staging only, nothing deploys."
-2.5 **Launch date is 🚀 Fri 19 Jun 2026.** Held work is post-19 unless the founder names an exception (e.g. the Company Command Centre).
+2.5 **Launched 🚀 19 Jun 2026 (historical).** Every client-facing merge follows the §11 preview loop.
 
 ## 3. 🎨 THE INVENTORY COLOUR SYSTEM (5 states — never blur them)
 Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴 → 🟡 → 🟣 → 🩷 → 🟢.** Claude must use them honestly:

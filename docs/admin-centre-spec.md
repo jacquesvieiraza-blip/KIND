@@ -11,7 +11,7 @@
 31 fragmented admin pages, no single "what needs me now", no unit economics, no team/partner oversight. Rebuild into **one cockpit + a few sections + an always-there co-pilot.**
 
 ## Target shape — 3 layers
-1. **PULSE** — 6 tiles: MRR · Cash & runway (Wise) · Clients · This-week (signups/demos/meetings) · System health · Pool stock.
+1. **PULSE** — 6 tiles: Revenue (per-lead collected) · Cash & runway (Wise) · Clients · This-week (signups/demos/meetings) · System health · Pool stock.
 2. **NEEDS YOU NOW** — the Action Queue (the whole point): signup→assign · payment→provision · day-29 switch · pool-low · at-risk.
 3. **SECTIONS** — Clients · Finance · GTM/Pipeline · Engine/Deliverability · Compliance · Sales Demo. Plus **Command Centre** (team + partners). Xero + Wise hyperlinked.
 
@@ -21,10 +21,10 @@
 - **Build new (8):** Action Queue · Pool-stock tile · Unit economics/margin · Cash/runway + Xero P&L · **Command Centre (per-AE + per-partner, #274)** · Deliverability view · **Nora — admin co-pilot (#275)** · **Per-staff logins + roles (#276)**.
 
 ## Build progress (live)
-- **Slice 1 — Cockpit (#272): SHIPPED 🩷** (1 Jul) — root `apps/admin/src/app/page.tsx` rebuilt to **Pulse (6 tiles) + Needs-You-Now Action Queue + Unit economics**; nav reshaped to the IA above (`AdminSidebar.tsx`), 8 pages moved to "Dev · not daily"; `/command` placeholder added. Real data: MRR, clients, signups-this-week, at-risk (churn engine). *Needs Jacques (live switches): Wise → cash/runway tile · Smartlead → pool-stock tile + triggers · Xero → real cost stack in unit economics.*
+- **Slice 1 — Cockpit (#272): SHIPPED 🩷** (1 Jul) — root `apps/admin/src/app/page.tsx` rebuilt to **Pulse (6 tiles) + Needs-You-Now Action Queue + Unit economics**; nav reshaped to the IA above (`AdminSidebar.tsx`), 8 pages moved to "Dev · not daily"; `/command` placeholder added. Real data: per-lead revenue, clients, signups-this-week, at-risk (churn engine). *Needs Jacques (live switches): Wise → cash/runway tile · Smartlead → pool-stock tile + triggers · Xero → real cost stack in unit economics.*
 - **Slice 2 — Command Centre (#274): SHIPPED 🩷** (1 Jul) — `apps/admin/src/app/command/page.tsx`: Partners tab **live** (list · referrals · open deals mini-CRM · commission paid/owed — from `/api/proxy/partners/admin/*`), read-only; Team tab = add-AE empty-state + the per-AE panel shape. *Needs Jacques: set per-partner targets (→ 3× coverage) · upload contracts to the vault · AEs appear once #276 logins ship.*
 - **Slice 3 — Nora (#275): SHIPPED 🩷** (1 Jul) — right-rail admin co-pilot (`components/NoraRail.tsx`, mounted in the admin layout), context-aware per screen; backend `POST /founder/nora` (`routes/founder.ts`, admin-key gated, Claude Haiku, logs to `founder_agent_logs`). Uses `ANTHROPIC_API_KEY` (already set). Avatar `/agents/Nora.png`. *Live now — walk it by asking Nora on any screen.*
-- **Slice 4 — Finance cards (#272): SHIPPED 🩷** (1 Jul) — Finance section (`revenue/page.tsx`) now leads with **Xero (P&L/VAT) + Wise (cash & runway) hyperlinked cards + a Net card** (MRR real, cost stack an estimate). *Needs Jacques: connect Xero + Wise for live P&L / cash / runway.*
+- **Slice 4 — Finance cards (#272): SHIPPED 🩷** (1 Jul) — Finance section (`revenue/page.tsx`) now leads with **Xero (P&L/VAT) + Wise (cash & runway) hyperlinked cards + a Net card** (per-lead revenue real, cost stack an estimate). *Needs Jacques: connect Xero + Wise for live P&L / cash / runway.*
 - **Slice 5 — Engine / Deliverability (#272): SHIPPED 🩷** (1 Jul) — `health/page.tsx` renamed to Engine + a **Deliverability readiness** checklist (the silent-fail keys: RESEND/ADMIN, cron, bounce events #267, PDL #243). *Needs Jacques: enable Resend bounce events + set PDL_API_KEY (flagged in-page).*
 - **Still to build (blocked on founder creds/design):** **triggers #270/#271** (real inbox provision/switch needs Smartlead API access) · **per-staff logins #276** (real multi-user auth — needs a design call; not safe to ship blind to a live admin). Cockpit Action Queue already surfaces these as "soon".
 
@@ -47,9 +47,9 @@ The ad-hoc slices above shipped but the admin reads **inconsistent** (layout dri
 ### 📊 Admin build audit (updated 2 Jul PM — Fable regroup)
 - 🩷 **live, not verified (walk these):** Cockpit (#888) · **Clients rebuild (#897)** · Sales Channel (partners live, AE/overall sample) · **Finance → kit (#898)** · cohorts dedup (#896) · **docked-rail Nora (#893)** · design-system foundation (#887)
 - 🟢 **live + verified:** Sales Demo · Compliance · Terms
-- 🩷 **wired-in + deployed 3 Jul (via `railway up` — auto-deploy was down):** #279 Engine deliverability graph now LIVE (real bounce/complaint per day from `figsy_sent_emails` + `opt_out_blocklist`) · #291 GTM Funnel tab (visitor→signup→trial→paid) · #295/#296/#297 Billing ledger · #286 dunning + past-due Cockpit rows · #292 per-client usage trend · #288 real Sales-Channel analytics + #294 hardcoded-coverage lie removed · #282 single-homing complete · #299 dead imports removed
+- 🩷 **wired-in + deployed 3 Jul (via `railway up` — auto-deploy was down):** #279 Engine deliverability graph now LIVE (real bounce/complaint per day from `figsy_sent_emails` + `opt_out_blocklist`) · #291 GTM Funnel tab (visitor→signup→trial→paid) · #295/#296/#297 Billing ledger · #286 failed-payment follow-up (per-charge — no recurring dunning) Cockpit rows · #292 per-client usage trend · #288 real Sales-Channel analytics + #294 hardcoded-coverage lie removed · #282 single-homing complete · #299 dead imports removed
 - 🔴 **still shell / blocked:** #278 GTM Strategy/Results/plays/calendar tabs (sign-off · M1 live · feeds) · #274 per-person targets + contracts vault + winning plays (need AE data #276) · #280 Ops pool/onboarding (Smartlead) · #270/#271 Cockpit triggers (Smartlead) · #276 per-AE logins (auth design call)
-- ✅ **defects FIXED (were flagged 2 Jul, resolved by 3 Jul):** Finance MRR now uses `amount_usd` source-of-truth (`revenue/page.tsx:126-127`) · retired "$20 Lead Gen" ARPU tier cards removed (`revenue/page.tsx:294-296`) · 6 dead `AdminSidebar` icon imports removed (#299)
+- ✅ **defects FIXED (were flagged 2 Jul, resolved by 3 Jul):** Finance revenue (per-lead) now uses `amount_usd` source-of-truth (`revenue/page.tsx:126-127`) · retired "$20 Lead Gen" ARPU tier cards removed (`revenue/page.tsx:294-296`) · 6 dead `AdminSidebar` icon imports removed (#299)
 - ⏸ **blocked on founder:** Xero/Wise/Stripe connects · Smartlead (pool + triggers) · #276 auth decision · PDL key · Resend events
 - 🔌 **needs reporting endpoint (live data):** AE/Overall analytics · Engine graph · content calendar · winning plays
 

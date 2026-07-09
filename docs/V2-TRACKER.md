@@ -51,7 +51,7 @@ Researched 23 Jun (sourced). The whole funded AI-SDR market (Apollo, Outreach, A
 - **Alta** (competitor) = **connect-your-own-mailbox** ("a Rep" = the client's own identity) — confirms the big-account model. *(Inferred; their help-centre blocks crawlers.)*
 
 ## The two operational models (segmented by ACV — mirrors the data strategy §13/§14)
-- **A — MANAGED (SMB, low ACV):** K.I.N.D drives Smartlead **SmartSenders** → provisions + auto-warms mailboxes/domains per client (~$4–9/mailbox/mo, DNS auto-set, live 24–48h). **Bundled + marked up. Zero client setup.** *(Same spine as bundled-Apollo for SMB.)*
+- **A — MANAGED (SMB, low ACV):** K.I.N.D drives Smartlead **SmartSenders** → provisions + auto-warms mailboxes/domains per client (~$4–9/mailbox/mo, DNS auto-set, live 24–48h). **Bundled + marked up. Zero client setup.** *(Same spine as bundled PDL+Hunter for SMB.)*
 - **B — CONNECT-YOUR-OWN (mid-market/enterprise, high ACV):** attach the client's own Google/Outlook/SMTP via `POST /email-accounts/save`. **They bring infra + BYO Apollo key.** *(Same spine as BYO-Apollo for company/partner.)*
 - **FIGSY's AI sits on top of both.** Per-client isolation via white-label `client_id` (~$29/mo/client).
 
@@ -401,11 +401,11 @@ Upgrades existing items: **#38** A/B → contextual bandit · **#40** ICP auto-r
 **V2 portal redesign (the rest, on the per-rep foundation):**
 | # | What | Where it stands (status of record → PRODUCT-INVENTORY) |
 |---|------|--------|
-| V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | 🟡 started — `/v2/setup` runs a **live Casey chat** (`/casey/chat`, 13 Jun); the auto-config (ICP+sequences+knowledge from the conversation) is the remaining build, gated on founder voice/tone (item 121) |
-| V2-8 | **AI Notetaker → action items (Milla)** | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/notetaker` |
-| V2-10 | **Casey** onboarding agent | 🟡 backend ready — `/casey/chat` endpoint (`casey.ts`) + live panel on `/v2/setup` (13 Jun); persona/voice + full onboarding flow gated on founder input |
-| V2-11 | **Vida help bubble (bottom-right)** | 🟡 built → see PRODUCT-INVENTORY §2B — R3 `layout.tsx` |
-| V2-12 | Strong client dashboards + Goals | 🔨 Goals built on staging — R10 |
+| V2-3 | Conversational setup (chat w/ Casey) — **SPEC'D by Glean Auto Mode demo (10 Jun): client describes goal in a couple sentences → AI assistant configures the whole agent (ICP+sequences+knowledge+triggers), no forms. The activation unlock for Africa-SMB. Highest-value V2 build.** | started — `/v2/setup` runs a **live Casey chat** (`/casey/chat`, 13 Jun); the auto-config (ICP+sequences+knowledge from the conversation) is the remaining build, gated on founder voice/tone (item 121) |
+| V2-8 | **AI Notetaker → action items (Milla)** | built → see PRODUCT-INVENTORY §2B — `/dashboard/notetaker` |
+| V2-10 | **Casey** onboarding agent | backend ready — `/casey/chat` endpoint (`casey.ts`) + live panel on `/v2/setup` (13 Jun); persona/voice + full onboarding flow gated on founder input |
+| V2-11 | **Vida help bubble (bottom-right)** | built → see PRODUCT-INVENTORY §2B — R3 `layout.tsx` |
+| V2-12 | Strong client dashboards + Goals | Goals built on staging — R10 |
 | #83 | Embeddable lead-capture Forms | 🟡 built → see PRODUCT-INVENTORY §2B — R12 |
 | #84 | **Integrations Hub** (HubSpot/Pipedrive/Cal/WA/LinkedIn) | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/integrations` R24 |
 | #89 | **Sequence Builder** (visual branching tree, multi-channel) | 🟡 built → see PRODUCT-INVENTORY §2B — `/dashboard/figsy/sequence-builder` R23 |
@@ -446,9 +446,9 @@ Legal (D&O, ODPC/NDPR, AI Risk Register, pen test, trademarks, VAT) · Funding (
 **The 3 legs:**
 | Leg | What | State |
 |---|---|---|
-| **1 · Outbound** | FIGSY dogfood (cold email sells K.I.N.D) | ✅ running (warmup) |
-| **2 · Content / Inbound** | **video · product drops · brand LinkedIn (anonymous handle) · blog** | 🔴 **the missing leg — the focus** |
-| **3 · Partners** | the Demmy model (1 good partner ≈ 10 clients/mo) | ✅ started · research = highest-leverage for Africa |
+| **1 · Outbound** | FIGSY dogfood (cold email sells K.I.N.D) | running (warmup) |
+| **2 · Content / Inbound** | **video · product drops · brand LinkedIn (anonymous handle) · blog** | **the missing leg — the focus** |
+| **3 · Partners** | the Demmy model (1 good partner ≈ 10 clients/mo) | started · research = highest-leverage for Africa |
 
 **Why content isn't optional:** when FIGSY's cold email lands, the prospect **googles K.I.N.D** — if they find videos + drops + an active brand presence + a credible brand → trust → reply; if nothing → ignored. **Content de-risks every cold email.** African B2B is **trust-driven** (research-verified) → content builds trust at scale + generates **inbound** so we're not hostage to cold volume (which the warmup cap limits anyway). Cold email resets each send; **content compounds.**
 

@@ -240,33 +240,31 @@ Revenue scales with **qualified leads delivered**, not seats or months. The grow
 | Supabase Pro | $25.00 |
 | Railway Pro (+usage) | ~$20.00 |
 | Resend Pro | $15.46 |
-| Apollo Basic | $65.00 |
-| **Operating floor (live now)** | **~$125/mo** |
+| PDL Full API — sourcing (usage-based, ~$98/350 records ≈ $0.28/record) | usage |
+| Hunter — reveal/verify (starter tier now; Scale ~£175/mo at scale) | ~$49 → scale |
+| **Operating floor (live now)** | **~$114/mo + data usage** |
 | + Render standby $7 + Cloudflare LB $5 + domain $1.25 (failover, soon) | +$13 |
 | **Operating floor + failover** | **~$138/mo** |
 | Claude Code (build investment, separate) | $100–200 |
 | Stripe processing | NOT fixed — ~2.9% + $0.30 per transaction |
 
-### Contribution per client (flat pricing)
-At **$80 blended ARPU**: Stripe takes ~$2.62 (2.9% + 30¢) + ~$1 data (Apollo+Anthropic) → **net ~$76/client/mo**.
-At **$160 ARPU** (Growth profile): net ~$154/client/mo.
-At **$199 ARPU** (Growth+ w/ Denise): net ~$192/client/mo.
+### Contribution per fully-worked lead (per-lead model)
+Revenue **$4 per fully-worked lead** − variable **~$0.36** (PDL sourcing $0.28 + Hunter $0.009 + AI ~$0.05 + Resend ~$0.009) = **~$3.64 contribution (~91%)**. Stripe takes ~2.9% + 30¢ **per credit purchase** (a $100 pack ≈ $3.20), not per lead. The +$1 Milla / +$1 Denise layers each add ~95%+ margin → the $6 full stack sits at ~92%.
 
-### 🎯 SALES TARGET LADDER — the numbers to hit (flat pricing)
-*Clients needed to clear each milestone. Three columns: blended ARPU ($80, conservative), Growth ($160), Growth+ w/ Denise ($199).*
+### 🎯 SALES TARGET LADDER — the numbers to hit (per-lead model, $4/fully-worked lead)
+*Milestones are **monthly revenue run-rate**; the volume column is fully-worked leads/mo at $4 (layer adoption — $5/$6 stack — hits each rung with fewer leads).*
 
-| Milestone | What it means | @ $80 ARPU | @ $160 ARPU | @ $199 ARPU |
-|---|---|---|---|---|
-| **Break-even (infra only)** | Stack pays for itself | **2** | **1** | **1** |
-| **Break-even (infra + failover)** | Resilient + self-funding | **2** | **1** | **1** |
-| **Break-even (incl. Claude Code dev)** | Whole operation self-funding | **5** | **3** | **2** |
-| **$1,000 MRR** | Comfortable; reinvest | **13** | **7** | **5** |
-| **$5,000 MRR** | Founder salary begins | **63** | **31** | **25** |
-| **$10,000 MRR** | First hire possible | **125** | **63** | **51** |
-| **$25,000 MRR** | Series A conversations | **313** | **157** | **126** |
+| Milestone | What it means | Fully-worked leads/mo @ $4 |
+|---|---|---|
+| **Break-even (infra + failover, ~$138 fixed floor)** | Stack pays for itself | **~35** |
+| **Break-even (incl. Claude Code dev)** | Whole operation self-funding | **~70–110** |
+| **$1,000 revenue/mo** | Comfortable; reinvest | **≈ 250** |
+| **$5,000 revenue/mo** | Founder salary begins | **≈ 1,250** |
+| **$10,000 revenue/mo** | First hire possible | **≈ 2,500** |
+| **$25,000 revenue/mo** | Series A conversations | **≈ 6,250** |
 
 ### 🎯 Your funnel targets — REALISTIC (cold, 6-step sequence, 2–3% reply)
-*Base: **40% trial→paid → ~2.5 trials/client**. Reply→trial ~50%. So **prospects/client = 5 ÷ reply-rate.** ⚠️ The old "~60 touches @ 8%" assumed an **unvalidated 8% reply** (see `sales-playbook.md` — never measured). Plan on **2–3%** on a young cold domain. Sequence moves to **6 steps** (was 3) to capture slow responders — **requires a FIGSY product change (currently 3-step Day 0/4/9 — tracked as item 212).***
+*No trial step — the model is free to start, pay-per-lead: an interested reply goes to a demo, then a first paid credit pack. Base: **reply→paying client ~20%** (~5 interested replies per client). So **prospects/client = 5 ÷ reply-rate.** ⚠️ The old "~60 touches @ 8%" assumed an **unvalidated 8% reply** (see `sales-playbook.md` — never measured). Plan on **2–3%** on a young cold domain. Sequence moves to **6 steps** (was 3) to capture slow responders — **requires a FIGSY product change (currently 3-step Day 0/4/9 — tracked as item 212).***
 
 | Reply rate | Prospects / client | **5–6 clients/mo (goal)** | Sends/mo (6-step, ~5 ea) | ~Sends/day | Warmed mailboxes (~40/day) |
 |---|---|---|---|---|---|

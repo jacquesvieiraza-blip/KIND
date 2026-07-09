@@ -90,7 +90,7 @@ Provider-failure (Resend `{error}`→not sent; Anthropic fail→not `scored`; St
 
 ## P. NEXT ACTIONS — reordered 8 Jul (honest-first)
 **DECISION LOCKED: Scope A (FIGSY-only). 3 moves in strict order:**
-1. **MOVE 1 (do first) — 🤖 MAKE IT HONEST:** one copy/legal PR marking every not-real feature "coming soon" on website + portal + pricing (#348 guarantee · #360/#362 Vida+WhatsApp · #361 Calendar · #395 Milla · #396 Denise · #398 Wise · #399 integrations · #403 autonomous-replies · #404 Lena · #366 250M · #394 $1). Fastest, no deploy risk, protects legally today.
+1. **MOVE 1 (do first) — 🤖 MAKE IT HONEST:** one copy/legal PR marking every not-real feature "coming soon" on website + portal + pricing (#348 guarantee · #360/#362 Vida+WhatsApp · #361 Calendar · #395 Milla · #396 Denise · #398 Wise · #399 integrations · #403 autonomous-replies · #404 Lena · #366 250M). **Note (8 Jul):** #394 "$1" is NOT a claim to hide — the **$1 reveal tier is real/restored** (per-qualified-lead ladder); surface it, don't mark it coming-soon. Fastest, no deploy risk, protects legally today.
 2. **MOVE 2 — 🤖 MAKE FIGSY RELIABLE:** the Top-20 controls (§10) as small tested PRs, **#338 send-before-charge + #339 checked-alarm first**, then #346 knowledge-UI, #354 no-double-send, #366 pagination, honest reply/booking.
 3. **MOVE 3 — PROVE + SELL:** 🧍 run §D SQL + confirm replica count first → 🤝 runtime-prove each fix on staging (§K) → sell FIGSY to ONE client.
 *(No dot goes 🟢 without a regression test + staging proof.)*

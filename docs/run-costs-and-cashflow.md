@@ -152,7 +152,7 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | **Milla + Vida bundle** | **$69** | (save $9/mo) |
 | **Denise** (The Closer) | **$39** | Warm follow-ups, proposals, confirms meetings *(corrected 16 Jun from $99 display)* |
 
-**Phase 2 billing evolution:** Credit bundles → recurring monthly subscription model once value is proven.
+**Billing model (LOCKED 8 Jul):** **per qualified lead — no subscriptions, ever** (§0 ladder). *The "Phase 2 → recurring monthly subscription" plan is retired (#431); ignore any $/mo agent pricing in this legacy body.*
 
 ---
 

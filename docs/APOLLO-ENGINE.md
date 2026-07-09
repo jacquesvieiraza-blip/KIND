@@ -1,5 +1,7 @@
 # ⚙️ K.I.N.D — THE APOLLO ENGINE (outbound OS → FIGSY)
 
+> **⛔ BANNER — Apollo retired from the data path.** PDL Full (sourcing) + Hunter (reveal) is the **live stack**; Apollo is no longer a live vendor. This playbook is **vendor-agnostic and kept** — the 6-stage OS below is what makes FIGSY convert regardless of vendor. (Filename kept as "APOLLO-ENGINE" for history; the vendor is not.)
+
 > **What this is:** the playbook we learned from auditing Apollo's full platform (their API is the documentation), turned into the spec for how FIGSY should source, sequence, send, and optimise outbound. **Apollo the *vendor* is optional/BYOK; Apollo the *playbook* is free and is what makes FIGSY's sequences actually convert.**
 >
 > **Status of record → PRODUCT-INVENTORY** (epic **242** Apollo Outbound OS → FIGSY · **243** data-source router + BYOK · **244** PDL/Hunter lead-source test). This doc holds the detail; the dots live in the inventory.
@@ -8,9 +10,9 @@
 
 ---
 
-## 0. THE DECISION CONTEXT (24 Jun)
-- **Apollo reseller = APPROVED, under evaluation.** Entry tier = a **basic starter pack ~$7,500/yr** — being weighed, **not committed**.
-- **How we run NOW (no $7,500):** data via **PDL + Hunter** (untested → item 244 tests it); the Apollo **playbook below is adopted into FIGSY regardless**; Apollo stays **BYOK** (clients bring their own key) / a parked lever.
+## 0. THE DECISION CONTEXT (24 Jun · updated post-8-Jul)
+- **Apollo reseller = RETIRED from the data path.** The old ~$7,500/yr starter-pack path was dropped; Apollo is not a live vendor.
+- **How we run NOW:** data via **PDL Full** (sourcing) **+ Hunter** (reveal) — **live and working** (verified, item 244). The **playbook below is adopted into FIGSY regardless** of vendor.
 - **Source-labeling (Ali's reseller term):** *if* we activate the reseller, leads surfaced under a client must show their data source (PDL/Hunter/Apollo). **Disintermediation risk** (clients can go direct). **DECISION:** we are **not** required to expose source for PDL/Hunter (Apollo-only obligation) → **keep the source server-side, never shown to clients.** `enrichment.ts` already stamps a `source` field internally — we control its visibility. Revisit only if Apollo is activated (a reason to keep Apollo BYOK/optional, not our default surface).
 
 ---
@@ -36,7 +38,7 @@ Apollo's search is rich + **free** (no credit). The lesson: filter on **intent/t
 
 ### ③ SEQUENCE — *the proven blueprint (the biggest lesson)*
 Apollo's sequence engine ships their best practice as defaults:
-- **4–6 steps, multi-channel, escalating:** `auto_email → auto_email → LinkedIn view-profile → LinkedIn message → call`. Not email-only.
+- **Client-built, ≤10 steps, multi-channel, escalating:** `auto_email → auto_email → LinkedIn view-profile → LinkedIn message → call`. Not email-only.
 - **≤50-word emails** for cold — Apollo states **+23% reply rate** vs longer (range 25–85).
 - **Subject ≤9 words**, concrete, single CTA, dynamic vars (`{{first_name}}`, `{{company}}`).
 - **3-day spacing**; step 1 fires at wait 0.
@@ -47,7 +49,7 @@ Apollo's sequence engine ships their best practice as defaults:
 - **Tone** setting: Direct / Formal / Casual.
 - **Create inactive → review → activate** (human gate).
 - **K.I.N.D today:** FIGSY = **3-step, email-only**.
-- **→ build:** this IS the rewrite spec for **item 212 (3→6-step)**.
+- **→ build:** this IS the rewrite spec for **item 212 (3→ client-built ≤10-step)**.
 
 ### ④ SEND — *deliverability is operational, not magic*
 - **Multi-mailbox rotation** · **send-schedules** (business-hours/weekday windows, timezone) · **per-mailbox daily caps** (`email_daily_limit`) · verify-before-enroll.
@@ -79,19 +81,19 @@ Apollo exposes **55+ dimensions**: reply rate **by step, by A/B variant, by send
 | Analytics (sync-report) | 55+ dimensions of outbound performance | — |
 | Schedules · Email-Accounts · Tasks · Contacts · Accounts | sending windows · mailboxes · cadence tasks · CRM | — |
 
-**Sequences unlock:** for BYOK/enterprise, Apollo can be the **engine** (find→enrich→enroll→send on the client's key + mailboxes), shrinking what 211 must build for that tier.
+**Sequences unlock:** the sequence-engine *pattern* above (find→enrich→enroll→send) is what 211 (Smartlead) builds natively — this table is the **API contract we learned from**, not a live Apollo dependency.
 
 ---
 
-## 3. THE DATA ARCHITECTURE (three tiers)
-| Tier | Data | Sending engine |
+## 3. THE DATA ARCHITECTURE — live stack = PDL Full + Hunter
+| Layer | Data | Sending engine |
 |---|---|---|
-| **🪙 SMB (managed)** | **PDL + Hunter** (PDL returns email in-search, no per-reveal credit; Hunter backfills) | **Smartlead** (211, managed mailboxes) |
-| **🏢 Mid (BYOK data)** | client's **Apollo key** (search free + enrich on their credits) | Smartlead connect-your-own |
-| **🏆 Enterprise (full BYOK)** | client's Apollo key | **Apollo Sequences** — FIGSY drives their Apollo engine |
+| **Discovery (sourcing)** | **PDL Full** (`pdl-search.ts`; returns the person + company website) | **Smartlead** (211, managed mailboxes) |
+| **Reveal (email)** | **Hunter** (`email-finder`; needs name+domain — enrichment-only, cannot discover) | — |
+| **Widen (FUTURE / V2)** | aggregator waterfall — Cognism / Clay / BetterContact — see §3A/§3B | — |
 
-- **PDL** = the only non-Apollo **discovery** source (`pdl-search.ts`; returns `work_email`). **Hunter** = **enrichment-only** (`email-finder`; needs name+domain) — it cannot discover.
-- **Data-source router (item 243):** route SMB→PDL/Hunter, BYOK→client Apollo key. The router is what would let us actually "choose PDL/Hunter" — it does **not** exist yet.
+- **PDL Full** = the live **discovery** source. **Hunter** = the live **reveal** source. This is the whole live data path — no Apollo, no BYOK-Apollo tier.
+- **Data-source router (item 243, FUTURE):** would route across the wider waterfall once V2 sources are wired. Today the path is fixed: PDL Full → Hunter.
 
 ---
 
@@ -140,7 +142,7 @@ Africa is the **worst-covered region in sales intelligence** — single-provider
 **Africa is no longer partners-only.** Stacking **every** data source in a waterfall is the lever that lets us run **our OWN outbound into Africa** — partners then cover relationships + whatever data can't reach. So the data layer powers **direct outreach everywhere** (US/EMEA *and* Africa) and is specifically the **Africa-direct unlock.** Honest ceiling: most providers are US/EU-weighted, so even fully stacked Africa stays thinner than the US — **go as far as data takes us direct, partners pick up the residual.** (244 proved African data is real, not empty: 1,360 SA founders on PDL alone.)
 
 ### Where we are
-- **We have 3:** Apollo (BYOK) · **PDL** (discovery — verified working, 244) · **Hunter** (email enrichment).
+- **Live stack = 2, working:** **PDL Full** (discovery — verified working, 244) · **Hunter** (email reveal). *(Apollo is retired from the data path — see top banner.)*
 - **Coverage math (sourced):** a single source covers ~40–60% of a list; a **waterfall** of several pushes it to **80%+**. With 3 we leave a lot on the table — and risk drying up per-ICP, exactly the founder's worry.
 
 ### Use ALL — the source list + how each comes in
@@ -177,7 +179,7 @@ The 244 test proved **discovery works (PDL), email-reveal is the gap**. So the p
 > **Founder, flagged loud:** our current FIGSY sequences are weak. The Apollo doc's §1③ blueprint is the fix. **This is high-leverage — a better sequence lifts reply rate on every lead we already pay to source.** Status/action → PRODUCT-INVENTORY **212** (rewrite) + **242** (analytics/optimise); execution → LAUNCH-PAD.
 
 **What "good" looks like (the blueprint to rebuild 212 to):**
-- **4–6 multi-channel steps** (email + LinkedIn), not a couple of generic emails.
+- **Client-built ≤10 multi-channel steps** (email + LinkedIn), not a couple of generic emails.
 - **≤50-word emails** (short copy = measurably higher reply), **one clear ask** per email.
 - **In-thread follow-ups** (reply on the same thread, not new sends).
 - **A genuinely personalised opener line** (one researched detail > five polished paragraphs).
@@ -195,6 +197,6 @@ The 244 test proved **discovery works (PDL), email-reveal is the gap**. So the p
 4. **Fold into 211** = mailbox rotation + schedules + per-mailbox caps.
 5. **242 analytics layer** = reply-rate by step/variant/time/segment/domain (needs volume → after engine hot).
 6. **242 optimise loop** = recency-sort + A/B-winner promotion + job-change re-engagement.
-7. **243 data-source router + BYOK**; **244 PDL/Hunter test** (built — verify on Railway).
+7. **243 data-source router (FUTURE / V2 waterfall)**; **244 PDL Full/Hunter test** — done, live stack verified.
 
-**Pending from Apollo's deck/Zoom:** API **rate limits** + reseller **per-credit price** → tune tier-④ economics + the keep/narrow/drop call on the $7,500 starter pack. Does not block this product plan.
+*(The old Apollo reseller / $7,500 starter-pack decision is retired — Apollo is off the data path. PDL Full + Hunter is the live stack.)*

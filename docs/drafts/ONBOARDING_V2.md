@@ -22,7 +22,7 @@ The flow maps onto the real product surface that already exists (Portal routes p
 
 **How-to card (inline, top of screen):**
 > **Welcome to your AI revenue team.**
-> You're not setting up software — you're hiring three teammates: FIGSY finds the people, Milla runs the back office, Vida works the website. Let's get FIGSY her first list. Two minutes.
+> You're not setting up software — you're hiring a team. FIGSY finds the people today; Milla (back office) and Vida (website) are coming soon. Let's get FIGSY her first list. Two minutes.
 
 ### Step 2 — Tell us who you sell to (ICP build) — Portal `/onboard`
 **What the client sees:** the ICP builder (writes an `icps` row). They can type their target customer in plain language and use **AI ICP Suggest** / **ICP website scan** (both already built, Part 3) to auto-fill industries, job titles, seniority, company sizes, geographies.
@@ -46,7 +46,7 @@ The flow maps onto the real product surface that already exists (Portal routes p
 > Every lead is handled POPIA/NDPR-compliant — consent is tracked per contact, opt-outs are permanent. You don't have to think about it. Just pick who's worth a conversation.
 
 ### Step 5 — Start your first FIGSY campaign — Portal `/figsy`
-**What the client sees:** campaign creation (writes a `figsy_campaigns` row, `status='draft'`), a multi-step sequence FIGSY drafts for them (rebuilding to the 4–6-step Apollo blueprint — item 212), and enrollment of selected leads (`figsy_enrollments`). On activate, `status='active'` and FIGSY begins sending (`figsy_sent_emails`), classifying replies (`figsy_replies`), and following up.
+**What the client sees:** campaign creation (writes a `figsy_campaigns` row, `status='draft'`), a client-built multi-step sequence (up to 10 steps) FIGSY drafts for them (item 212), and enrollment of selected leads (`figsy_enrollments`). On activate, `status='active'` and FIGSY begins sending (`figsy_sent_emails`), classifying replies (`figsy_replies`), and following up.
 
 **How-to card:**
 > **Now hand it to FIGSY.**
@@ -79,7 +79,7 @@ Three Looms back the onboarding flow (ties to Part 1 item **#29 — Record 3 onb
 Embed at Step 1–3. Should cover: the signup landing, building/auto-suggesting your ICP, and watching the first scored leads appear. End on the score + reasoning so the viewer sees *why* a lead is good, not just that it exists. Tone: "here's the afternoon of work we just did for you."
 
 ### [LOOM PLACEHOLDER 2] — "Launching your first FIGSY campaign" (target 2 min)
-Embed at Step 5. Should cover: creating a campaign, reviewing FIGSY's multi-step sequence drafts (4–6-step Apollo blueprint — item 212), enrolling leads, and hitting activate. Show one real draft email so the viewer sees the quality and personalisation. Make the human/AI split explicit: FIGSY writes and sends; you approve and book.
+Embed at Step 5. Should cover: creating a campaign, reviewing FIGSY's multi-step sequence drafts (client-built, up to 10 steps — item 212), enrolling leads, and hitting activate. Show one real draft email so the viewer sees the quality and personalisation. Make the human/AI split explicit: FIGSY writes and sends; you approve and book.
 
 ### [LOOM PLACEHOLDER 3] — "Where your replies land + what to do next" (target 90s)
 Embed at Step 6 and link from the day-7 email. Should cover: the Unibox two-way inbox, reply classification (interested / not interested / opt-out), and the exact moment to step in and book the meeting. End on the booking link / Calendly handoff so the client knows the one action they own.
@@ -122,7 +122,7 @@ Embed at Step 6 and link from the day-7 email. Should cover: the Unibox two-way 
 > Here's exactly what I do once you start a campaign:
 >
 > - **I write the email.** Personalised to each person, not a blast.
-> - **I send it, then follow up.** Three steps, spaced properly, so nothing falls through the cracks.
+> - **I send it, then follow up.** A full sequence, spaced properly, so nothing falls through the cracks.
 > - **I read every reply and classify it.** Interested, not interested, opt-out — sorted for you.
 > - **The interested ones land in your inbox.** You step in to book the meeting.
 >

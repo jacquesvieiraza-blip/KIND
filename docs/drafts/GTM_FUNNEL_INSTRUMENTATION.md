@@ -3,7 +3,7 @@
 > 🚧 **DRAFT / SCAFFOLD — NEEDS FOUNDER ANALYTICS DECISIONS.**
 > This is the scaffold for Part 1 item **#25** (*Instrument GTM funnel (channel→reply→demo→close, CAC, trial→paid)*, owner 🤝 Both, Week 1 post-launch). It is **blocked on founder analytics decisions** (see §4 Open Decisions). Nothing here should be wired until the founder picks an analytics approach and an attribution model. The stage/event mapping below is grounded in the real schema and routes in `apps/api/src` — but the "where to send the event" half is deliberately left open.
 
-Brand/product context: `apps/api/src/lib/cmo.ts`. Pricing for CAC/LTV math: Lead Gen $1/credit (20/40/100), FIGSY $3/credit (20/40/100), Milla $49/mo, Vida $29/mo, Bundle $69/mo (canonical per EVERYTHING.md). Trial = 14 days + 20 free credits (`auth.ts /onboard`).
+Brand/product context: `apps/api/src/lib/cmo.ts`. Pricing for CAC/LTV math (per qualified lead, no subscriptions): $1 reveal → +$3 FIGSY ($4) → +$1 Milla ($5) → +$1 Denise ($6); Vida $3/qualified inbound (canonical). Trial = 14 days + 20 free credits (`auth.ts /onboard`).
 
 ---
 
@@ -39,7 +39,7 @@ For each stage: the **metric definition**, the **real place in the system the ev
 
 ### Stage 3 — First campaign (activation)
 - **Metric:** % of signups that get a FIGSY campaign **live and sending**; time-to-first-campaign.
-- **Where it fires:** `figsy.ts` campaign create/activate. Durable signal in `figsy_campaigns` (`status='active'` and `emails_sent > 0`). Leads must exist first (`leads` populated via the Apollo + scoring pipeline; `leads.status` moves `pending → scored`).
+- **Where it fires:** `figsy.ts` campaign create/activate. Durable signal in `figsy_campaigns` (`status='active'` and `emails_sent > 0`). Leads must exist first (`leads` populated via the PDL + Hunter + scoring pipeline; `leads.status` moves `pending → scored`).
 - **Capturable today:** YES — `figsy_campaigns` by `client_id` + `status` + `emails_sent`; `leads` count per client. This is the cleanest activation metric we have.
 - **Needs new instrumentation:** an "activated" event timestamp for cohort/time-to-value analysis (derivable from `figsy_campaigns.created_at` / first `figsy_sent_emails.sent_at`, but not currently emitted as a funnel event).
 
@@ -58,7 +58,7 @@ For each stage: the **metric definition**, the **real place in the system the ev
 - **Needs new instrumentation:** (a) persist `demo-request` submissions to a table instead of email-only; (b) capture K.I.N.D's own Calendly bookings (Calendly webhook → a `gtm_events` / demo table) — today they live only in Calendly. Decide whether "demo booked" in this funnel means *the client's* demos (product value) or *K.I.N.D's* sales demos (GTM). They are different funnels and should be labelled separately.
 
 ### Stage 6 — Close (paid)
-- **Metric:** first paid event — either a paid subscription (Milla $49 / Vida $29 / Bundle $69) or a credit purchase (Lead Gen / FIGSY top-up).
+- **Metric:** first paid event — a paid qualified-lead charge ($1 reveal, +$3 FIGSY, +$1 Milla, +$1 Denise, $3 Vida inbound) or a credit purchase (Lead Gen / FIGSY top-up).
 - **Where it fires:** `stripe.ts` webhook — `checkout.session.completed` / subscription events write/update `subscriptions` (`status='active'`) and credit purchases write `credit_transactions` + update `clients.credit_balance` / `figsy_credits_remaining`. Partner commissions fire here too (`partner_commissions`).
 - **Capturable today:** YES — Stripe webhook → `subscriptions` and `credit_transactions` are the source of truth for revenue. First non-trial paid row = "close".
 - **Needs new instrumentation:** a clean "first paid" / "converted" derived event (first `subscriptions` row going `trialing → active`, or first `credit_transactions` of type purchase). Flutterwave (Phase 2) will need the same event emitted from its webhook (`flutterwave.ts`) for parity once activated.

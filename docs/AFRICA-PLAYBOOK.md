@@ -25,10 +25,10 @@ PDL has **1,360 South African** founders/owners (11–50) vs **71,123 US** for t
 
 ## 🅐 ROUTE A — DIRECT (data-powered outbound)
 **How we get African leads (the engine — detail `APOLLO-ENGINE.md §3B`, status item 243):**
-1. **Discover** the person — **PDL** (verified working: returns the person + company website). + Apollo BYOK / Proxycurl later.
+1. **Discover** the person — **PDL Full** (verified working: returns the person + company website). + Proxycurl later.
 2. **Reveal the email** — `resolveDomain` (PDL website / Clearbit autocomplete) → **Hunter** reveals the real address. ✅ **working live** (verified end-to-end). *(Africa reveal-rate < US — coverage, not code.)*
 3. **Verify + gate** — bounce-check before the warmed domain; only campaign verified leads.
-4. **Widen coverage (243, in progress):** add Cognism / Clearbit / Lusha / RocketReach + BetterContact (one integration = 20+) → push coverage up where Africa is thin.
+4. **Widen coverage (243, FUTURE / V2):** add Cognism / Clearbit / Lusha / RocketReach + BetterContact (one integration = 20+) → push coverage up where Africa is thin. *(Live stack today = PDL Full + Hunter; the wider waterfall is a future lever.)*
 
 **Then:** FIGSY sequences (item 212, being rebuilt) → send via the warmed domain → replies → meetings.
 

@@ -44,6 +44,7 @@ create table if not exists public.subscriptions (
   paystack_plan_code         text,
   stripe_subscription_id     text,
   trial_ends_at              timestamptz,
+  trial_expiry_notified_at   timestamptz,   -- #353: one-shot marker so "trial ended" sends once
   current_period_start       timestamptz not null default now(),
   current_period_end         timestamptz not null default now() + interval '30 days',
   cancelled_at               timestamptz,
@@ -1441,6 +1442,16 @@ $$;
 create unique index if not exists figsy_sent_emails_enrollment_step_uniq
   on public.figsy_sent_emails (enrollment_id, step)
   where enrollment_id is not null;
+
+-- #383 (AR-45) — atomic send-counter bump (mirrors 20260710_increment_emails_sent);
+-- was called by the send path but defined in no schema, forcing the racy fallback.
+create or replace function public.increment_figsy_emails_sent(campaign_id uuid)
+returns integer language sql as $$
+  update public.figsy_campaigns
+     set emails_sent = coalesce(emails_sent, 0) + 1
+   where id = campaign_id
+  returning emails_sent;
+$$;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- END OF SCHEMA

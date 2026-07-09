@@ -356,7 +356,7 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
   try {
     const now = new Date()
     const { data: trials } = await db.from('subscriptions')
-      .select('client_id, trial_ends_at, clients(company_name, user_id)')
+      .select('id, client_id, trial_ends_at, trial_expiry_notified_at, clients(company_name, user_id)')
       .eq('status', 'trialing')
       .not('trial_ends_at', 'is', null)
 
@@ -396,6 +396,10 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
           <p>Your leads, ICP, and pipeline data are all saved. Subscribing now takes 2 minutes and keeps everything running.</p>
           <p>Any questions about pricing or what's included? Reply to this email — I'm here.</p>`
       } else if (daysLeft <= 0) { // day 14+
+        // #353 (AR-15) — the "trial ended" branch is open-ended (fires every day the sub
+        // stays 'trialing' with a past end date). Send it ONCE: skip if we've already
+        // stamped trial_expiry_notified_at.
+        if (sub.trial_expiry_notified_at) continue
         subject = `Your K.I.N.D trial has ended`
         body = `
           <p>Hi there,</p>
@@ -404,6 +408,9 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
       }
 
       if (!subject) continue
+
+      // #353 — demo guard: never email synthetic/demo recipients (hard bounces).
+      if (!isRealRecipient(email)) continue
 
       if (resend) {
         await resend.emails.send({
@@ -423,6 +430,14 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
             </div>`,
         })
         sent++
+        // #353 — stamp the one-shot marker after the terminal (ended) email so it never
+        // repeats. Day-10/12 sends fire on an exact daysLeft match, so they're naturally
+        // once; only the open-ended <=0 branch needs the marker.
+        if (daysLeft <= 0) {
+          await db.from('subscriptions')
+            .update({ trial_expiry_notified_at: new Date().toISOString() })
+            .eq('id', sub.id)
+        }
       }
     }
 

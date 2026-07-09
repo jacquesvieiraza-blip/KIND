@@ -851,7 +851,7 @@ Rules:
 - No buzzwords: no "synergy", "leverage", "touch base", "game-changer", "revolutionary", "Hope this finds you well", "I wanted to reach out"
 - Don't mention AI or automation
 - Subject: 4–6 words, lowercase, no punctuation
-${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign off with a real first name (South African-sounding, fits the industry)'}
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign off with a real first name that fits the sender\'s region and industry'}
 - End with: "Reply STOP to opt out."
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`
@@ -1110,7 +1110,7 @@ Hard rules:
 - Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above; if it's empty or silent on something, stay generic about the sender — never fabricate.
 - Subject: 4–6 words, lowercase, no punctuation
 - End every email: "Reply STOP to opt out."
-${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a South African-sounding first name'}
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a real first name that fits the sender\'s region and industry'}
 
 Return ONLY valid JSON:
 {"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."}}`

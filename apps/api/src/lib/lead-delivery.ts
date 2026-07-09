@@ -2,6 +2,7 @@ import { db } from '@kind/db'
 import { bulkMatchEmails } from './apollo'
 import { waterfallEnrich } from './enrichment'
 import { deliveryCharge, normalizePlan } from './billing-rules'
+import { sendFounderAlert } from './alerts'
 
 // Enrich + deliver + charge — the single delivery path for BOTH the on-run
 // immediate delivery (icps.ts) and the daily drip (internal.ts).
@@ -82,7 +83,22 @@ export async function enrichAndDeliverLeads(
     .is('delivered_at', null)
     .not('email', 'is', null)
   const deliverIds = (deliverable ?? []).map((r: { id: string }) => r.id)
-  if (deliverIds.length === 0) return 0
+  if (deliverIds.length === 0) {
+    // #367 (AR-30) — we HAD candidates but none became deliverable: every email reveal
+    // failed (Apollo bulk_match + the Hunter waterfall both dry — quota, key, or outage).
+    // Silently returning 0 makes "your first leads in 24h" quietly false. Alert so the
+    // founder sees the reveal pipeline is down instead of a mystery zero-delivery.
+    const neededEmail = needEmail.length
+    if (neededEmail > 0) {
+      void sendFounderAlert('source_down', 'Lead reveal is down — candidates found but 0 delivered', [
+        `Client: ${clientId}`,
+        `${candidateIds.length} candidate lead(s), ${neededEmail} needed an email reveal — but NONE could be emailed.`,
+        `Likely Apollo bulk_match + Hunter waterfall both failed (quota / key / outage). No leads delivered, none charged.`,
+        `Check HUNTER_API_KEY / Apollo credits.`,
+      ])
+    }
+    return 0
+  }
 
   // 3. Claim atomically, then charge 1 credit per delivered lead.
   const now = new Date().toISOString()

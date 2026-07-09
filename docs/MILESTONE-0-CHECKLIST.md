@@ -47,6 +47,24 @@
 - [ ] **#430** — **Pricing page "two engines, two layers" redesign (R1)** — client-facing, **preview-first**; supersedes the #419 rework note. 🤖
 - [ ] **#431** — **Retire agent-subscription billing** — reframes #340/#341/#342/#357/#386 to "delete the machinery"; ties #26. 🤝
 
+### 🧩 Agent layer feature specs (#427 Milla · #428 Denise · #429 Vida) — founder-locked 8 Jul
+> These feature sets are the **build spec** for the per-lead layers/engine AND the **content to surface** on product pages (#405), pricing + comparison (#430) and portal agent screens (#406), **website + portal**. **Honesty rule:** Milla/Vida/Denise are coming-soon (M4) → shown as **"coming soon" capabilities + intended +$1 / $3 pricing** (greyed layer/engine cards), NOT dressed as live until #427–#429 ship.
+
+**Milla — lead intelligence layer · +$1/qualified lead** — *positioning: "turns a qualified lead into an **understood** lead" (not "AI that answers questions").*
+- Explains why this lead is a fit · matches lead to the right product/service · identifies likely pain points · suggests the best outreach angle · pulls company context into the lead card · source-backed reasoning · "what to say to this lead" notes · highlights similar past wins / converting patterns · flags weak-fit / risky leads before outreach · suggests which offer/message to use.
+- ⚙️ **Guardrail:** reasons over the **already-paid PDL record — no new per-lead data buys** (protects the +$1 margin). Activates on FIGSY **or** Vida qualified leads.
+- 🔀 **Milla split:** the account-level VA (doc recall · ask-anything · weekly brief) is a **separate product, unpriced, parked M4** — never billed per-lead. These per-lead features are the layer.
+
+**Denise — sales action layer · +$1/qualified lead** — *positioning: "turns a qualified lead into a **ready-to-send sales motion**" (not "AI that writes emails").*
+- Suggests next best action · generates objection replies · prepares call notes · writes proposal intro/context · creates post-call follow-up drafts · summarises buyer intent · recommends urgency level · flags deals that need chasing · suggests when to stop following up · turns Milla's insights into actual sales copy.
+- 🔀 **R2 boundary:** the founder's list also had "writes the first outreach message" + "3-step follow-up pack" — those are **FIGSY's** job (cold → first reply). **Denise = reply → close only.** Don't duplicate FIGSY's outreach in Denise.
+
+**Vida — inbound qualification engine · $3/qualified inbound lead (+$1 Milla / +$1 Denise → $4/$5)** — *positioning: "turns website & WhatsApp visitors into **qualified leads**" (not "AI chatbot").*
+- Website chat widget (live-capable) · **WhatsApp inbound (coming-soon, #360 — per-client number not built)** · qualifies inbound against the same ICP rules · captures name/company/email/phone/need · scores 0–100 · detects urgency & buyer intent · **filters spam / bad-fit (never billed)** · summarises the conversation · suggests the next best reply · routes hot leads for immediate follow-up · adds booking link when appropriate · pushes qualified inbound to CRM/export · hands off to Denise (action) + Milla (context).
+- ⚙️ **Guardrail:** billed only on **qualified** inbound (spam-guard + the "qualified" definition R3); LLM cost lands on all traffic → qualify-rate is the margin lever.
+
+**Where it must appear (client-visible, both surfaces):** product pages `virtual-assistant.html` (Milla) · `denise.html` · `chatbot-agent.html` (Vida) + `figsy.html` (#405) · pricing "two engines, two layers" + comparison FIGSY·Vida·+Milla·+Denise (#430) · portal agent screens (#406). All preview-first (§11).
+
 **Also wire the wording to match (client-facing → preview first, §11):** un-retire the $1 tier on website + portal billing (#394) · Terms §5 rewritten to the two-charge reveal+work model, no-reply refund residue deleted (#413) · usage "$1/lead overage" panel becomes the REAL reveal charge, not a fake (#385).
 
 **Portal — confirmed:** the non-FIGSY agents (Milla/Vida/Denise/Tony) are disabled with the **same "coming soon" + grey principle as the website** — see Move 1b (🟠 COMING-SOON block) / inventory #406. No new decision needed; it's already scoped, just not yet built in code.

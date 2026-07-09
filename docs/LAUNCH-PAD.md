@@ -73,6 +73,18 @@ Shipped + founder-walked live → **13 items 🟢** in PRODUCT-INVENTORY: **#405
 | #429 | Vida inbound engine $3/qualified inbound + add-ons ($4/$5); spam-guard + "qualified" definition (R3) | 🤖 |
 | #431 | Retire agent-subscription billing (reframes #340/#341/#342/#357/#386; ties #26) | 🤝 |
 
+### 🎯 M/V/D LAYER FEATURE SCOPE (founder-locked 9 Jul · features only, pricing = #420) — the full build list behind #427/#428/#429
+> Build one at a time, phase by phase — not in one go. Status of record = inventory #427/#428/#429 (🔴). Full spec + FIGSY current-features → V2-TRACKER AGENT CAPABILITY SPECS.
+
+**#427 · Milla — lead intelligence layer** *(qualified lead → **understood** lead)* · owner 🤖
+1. Explains why this lead is a fit · 2. Matches the lead to the right product/service · 3. Identifies likely pain points · 4. Suggests the best outreach angle · 5. Pulls relevant company context into the lead card · 6. Adds source-backed reasoning where possible · 7. Creates "what to say to this lead" notes · 8. Highlights similar past wins / converting patterns · 9. Flags weak-fit or risky leads before outreach · 10. Suggests which offer/message to use.
+
+**#428 · Denise — sales action layer** *(qualified lead → **ready-to-send sales motion**; R2: FIGSY owns cold→first-reply, Denise owns reply→close)* · owner 🤖
+1. Writes the first outreach message · 2. Creates a 3-step follow-up pack · 3. Suggests the next best action · 4. Generates objection replies · 5. Prepares call notes · 6. Writes proposal intro/context · 7. Creates post-call follow-up drafts · 8. Summarises buyer intent · 9. Recommends urgency level · 10. Flags deals that need chasing · 11. Suggests when to stop following up · 12. Turns Milla's insights into actual sales copy.
+
+**#429 · Vida — inbound qualification layer** *(website + WhatsApp visitors → **qualified leads**)* · owner 🤖
+1. Qualifies inbound visitors against the same ICP rules · 2. Captures name/company/email/phone/need · 3. Scores inbound leads 0–100 · 4. Detects urgency + buyer intent · 5. Filters out spam + bad-fit enquiries · 6. Summarises the conversation · 7. Suggests the next best reply · 8. Routes hot leads for immediate follow-up · 9. Adds booking link when appropriate · 10. Pushes qualified inbound into CRM/export · 11. Hands off to Denise for follow-up copy · 12. Hands off to Milla for company-specific context.
+
 ## PHASE 3 · RELIABLE — fix FIGSY's own faults so it *works fully*. Each a small **tested** PR. **Do #338 + #339 first.**
 | Item | What it is | Owner |
 |---|---|:---:|

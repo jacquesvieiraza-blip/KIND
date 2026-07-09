@@ -1,5 +1,6 @@
 import { Resend } from 'resend'
 import { htmlToText } from './deliverability'
+import { interpretSend } from './resend-checked'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
@@ -43,13 +44,21 @@ async function sendTx(opts: {
     console.log(`[email] skipped non-deliverable recipient: ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to}`)
     return
   }
-  return resend.emails.send({
+  const result = await resend.emails.send({
     from:    opts.from ?? FROM,
     to:      opts.to,
     subject: opts.subject,
     html:    opts.html,
     text:    opts.text ?? htmlToText(opts.html),
   } as Parameters<typeof resend.emails.send>[0])
+  // #338 (AR-01) — Resend returns { error } instead of throwing. These transactional
+  // mails are best-effort (a failure must not break the signup/billing path they ride
+  // on), but the failure must at least be VISIBLE — the old code swallowed it entirely.
+  const checked = interpretSend(result)
+  if (!checked.ok) {
+    console.error(`[email] transactional send failed to ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to} — "${opts.subject}"`, checked.error)
+  }
+  return checked.ok
 }
 
 function scoreBar(score: number): string {

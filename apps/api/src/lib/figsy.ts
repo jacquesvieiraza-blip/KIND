@@ -5,6 +5,7 @@ import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
 import { canEnroll } from './billing-rules'
 import { sendFounderAlert } from './alerts'
+import { interpretSend } from './resend-checked'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
@@ -555,7 +556,26 @@ export async function sendSequenceEmail(
       text:     body,
       html:     coldEmailHtml(body, emailId),
     })
-    messageId = (result as any).data?.id ?? undefined
+
+    // #338 (AR-01) — Resend RETURNS { error } instead of throwing. A failed send must
+    // NOT advance the enrollment or leave a phantom "sent" row: delete the row we
+    // inserted for the pixel, leave the enrollment DUE (so the cron retries once the
+    // cause clears), alert the founder, and bail. This is the exact defer-on-failure
+    // shape as the RESEND-unset guard above — a failure is retryable, never a phantom.
+    const checked = interpretSend(result)
+    if (!checked.ok) {
+      console.error(`[figsy] sendSequenceEmail: send FAILED for ${lead.email} step ${step} — not advancing enrollment`, checked.error)
+      if (emailId) await db.from('figsy_sent_emails').delete().eq('id', emailId)
+      void sendFounderAlert('sends_stalled', 'FIGSY send failed — email did not leave', [
+        `Lead: ${lead.email}`,
+        `Enrollment: ${enrollmentId} (step ${step})`,
+        `Campaign: ${campaignId}`,
+        `Resend error: ${checked.error instanceof Error ? checked.error.message : JSON.stringify(checked.error)}`,
+        `The enrollment stays due and will retry on the next send run.`,
+      ])
+      return
+    }
+    messageId = checked.id ?? undefined
 
     // Update resend_id now that we have it
     if (emailId && messageId) {
@@ -880,7 +900,7 @@ export async function sendDay1OutreachBatch(
         continue
       }
 
-      await resend.emails.send({
+      const day1Result = await resend.emails.send({
         from: FROM,
         reply_to: REPLY_TO,
         to: lead.email,
@@ -891,6 +911,18 @@ export async function sendDay1OutreachBatch(
         html: coldEmailHtml(draft.body),
       })
 
+      // #338 (AR-01) — a failed send must not leave a phantom "sent" row or flip the
+      // lead to 'contacted'. Skip the lead (stays 'scored' → retried next run) + alert.
+      const day1Checked = interpretSend(day1Result)
+      if (!day1Checked.ok) {
+        console.error(`[day1-outreach] send FAILED for ${lead.email} — no row, lead stays scored`, day1Checked.error)
+        void sendFounderAlert('sends_stalled', 'FIGSY day-1 send failed — email did not leave', [
+          `Lead: ${lead.email} (${lead.id})`,
+          `Resend error: ${day1Checked.error instanceof Error ? day1Checked.error.message : JSON.stringify(day1Checked.error)}`,
+        ])
+        continue
+      }
+
       await db.from('figsy_sent_emails').insert({
         enrollment_id: null,
         campaign_id:   null,
@@ -898,6 +930,7 @@ export async function sendDay1OutreachBatch(
         step:          1,
         subject:       draft.subject,
         body:          draft.body,
+        resend_id:     day1Checked.id,
       })
 
       // THE DATA FLOOR (#17b) — record the day-1 send in the canonical log too, so

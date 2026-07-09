@@ -1411,6 +1411,21 @@ create policy "companies_service"    on public.companies for all to service_role
 create policy "scr_service"          on public.seat_credit_requests for all to service_role using (true) with check (true);
 create policy "wp_service"           on public.winning_plays for all to service_role using (true) with check (true);
 
+-- #339 (AR-02) — durable founder-alert store. sendFounderAlert() writes every alert
+-- here regardless of push outcome, so a money-failure signal survives even if both
+-- email + Slack fail (mirrors migration 20260710_founder_alerts).
+create table if not exists public.founder_alerts (
+  id          uuid primary key default gen_random_uuid(),
+  kind        text not null,
+  subject     text not null,
+  body        text,
+  email_ok    boolean not null default false,
+  slack_ok    boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+create index if not exists founder_alerts_created_idx on public.founder_alerts (created_at desc);
+create index if not exists founder_alerts_kind_idx    on public.founder_alerts (kind, created_at desc);
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- END OF SCHEMA
 -- ════════════════════════════════════════════════════════════════════════════

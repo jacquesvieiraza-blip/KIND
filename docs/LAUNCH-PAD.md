@@ -5,7 +5,9 @@
 
 **THE PLAN (locked 8 Jul):** **one price logic across the whole family — per qualified lead. No subscriptions, no contracts, no order-forms.** Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; **Vida inbound $3** + same add-ons → $4/$5. Sell **FIGSY + Lead-Gen** now; **Milla · Vida · Denise · Tony STAY on site + portal marked "coming soon" + greyed** (built in **M4**, never deleted). **Milestone 0 is the gate** — make FIGSY + Lead-Gen *honest → work fully → proven* before one real client.
 
-**Board:** 🟢98 · 🩷85 · 🟣3 · 🟡28 · 🔴221 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
+**Board:** 🟢111 · 🩷85 · 🟣3 · 🟡23 · 🔴213 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
+
+**VERIFIED STATE (9 Jul):** ✅ **Phase 1 website truth sweep — LIVE + founder-walked → 13 items 🟢** (#405 #394 #408 #419 #430 #417 #418 #348 #403 #409 #366 #411 #416). Site now shows the honest per-qualified-lead model: **Lead-Gen $1 · FIGSY $4 ($1 reveal + $3 work) · no subs/trials/contracts**; Milla/Vida/Denise coming-soon; FIGSY calendar booking = "Launching". **⚠️ The site is ahead of the code** — `constants/index.ts` still encodes the old subscription model → **Phase 2 (money path #420–#431) builds what the site now sells.**
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -18,10 +20,11 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 ### ▶ DO NOW — in order (only the true next actions)
 | # | Task | Owner | Status |
 |---|------|:---:|:---:|
-| 1 | Deploy `railway up "KIND"` → walk live site → flip **#417 · #418 · #419 · #408 · #348** 🟡→🩷 | 🧍 | ⏳ |
-| 2 | Stale-docs fix **Batch B — LEGAL** (ledger `AUDIT-8JUL-STALE-SWEEP.md`: DPA sub-processor list Apollo→PDL+Hunter+Flutterwave first) | 🤖 | 🔴 |
-| 3 | Run §D prod-DB SQL → turns ~10 findings into facts (5 min) | 🧍 | 🔴 |
-| 4 | FIGSY reliability — start **#338 + #339** (Phase 3) | 🤖 | 🔴 |
+| 1 | ✅ **DONE — Phase 1 website sweep LIVE + verified** (13 items 🟢, 9 Jul) | 🧍 | 🟢 |
+| 2 | **Phase 2 — build the money path #420–#431** — the site now sells $1 reveal + $4 ladder + Lead-Gen + booking; `constants/index.ts` still on the old subscription model. Build what the site advertises. | 🤖 | 🔴 |
+| 3 | **Finish held Phase-1 items** — `small-business-playbook.html` per-lead totals (your packaging) · legal pages #410/#413/#414/#407 (lawyer track) | 🤝 | ⏸ |
+| 4 | **Phase 1 Step 2 — portal truth sweep** (Move 1b, 34-screen sweep) | 🤖 | 🔴 |
+| 5 | FIGSY reliability — start **#338 + #339** (Phase 3) | 🤖 | 🔴 |
 
 ---
 

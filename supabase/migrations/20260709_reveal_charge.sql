@@ -33,3 +33,17 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION try_charge_reveal_credit FROM PUBLIC;
 GRANT  EXECUTE ON FUNCTION try_charge_reveal_credit TO service_role;
+
+-- ── reveal state on leads (#422 — mask until the client spends the $1) ────────
+-- revealed_at NULL  = masked: the lead is browsable (name / company / title /
+--   score) but its email + phone are hidden in the API. No reveal cost incurred.
+-- revealed_at SET   = the client spent $1; email/phone are exposed and the
+--   Hunter enrich (if needed) has run. Idempotent: a second reveal is a no-op.
+-- Charge-once-per-lead (#424) is enforced by (a) this timestamp gating the charge
+-- and (b) the unique credit_transactions.reference = 'reveal:'+lead_id row.
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS revealed_at timestamptz;
+
+-- Fast "how many revealed" / masked-list filters.
+CREATE INDEX IF NOT EXISTS leads_client_revealed_idx
+  ON public.leads (client_id, revealed_at);

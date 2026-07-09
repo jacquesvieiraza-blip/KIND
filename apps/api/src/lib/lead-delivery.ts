@@ -89,33 +89,20 @@ export async function enrichAndDeliverLeads(
   const { data: claimed } = await db.from('leads')
     .update({ delivered_at: now })
     .in('id', deliverIds)
+    .eq('client_id', clientId)
     .is('delivered_at', null)
     .select('id')
 
   const n = claimed?.length ?? 0
-  if (n > 0) {
-    // Charge the wallet that matches the client's plan — one lead = one charge =
-    // one wallet (item 166). FIGSY-plan clients are NOT charged here: their single
-    // FIGSY credit is taken at enrollment (figsy.ts), so delivery only makes the
-    // lead visible. Lead-gen-plan clients are charged $1/lead from the lead-gen pool.
-    const { data: planRow } = await db.from('clients').select('plan').eq('id', clientId).single()
-
-    if (deliveryCharge(normalizePlan(planRow?.plan)).charge) {
-      const { error: rpcErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: -n })
-      if (rpcErr) {
-        console.error(`[lead-delivery] credit deduction FAILED for client ${clientId} after delivering ${n} leads:`, rpcErr)
-      } else {
-        await db.from('credit_transactions').insert({
-          client_id: clientId,
-          amount:    -n,
-          type:      'usage',
-          plan:      'lead_gen',
-          note:      `${n} lead${n === 1 ? '' : 's'} delivered`,
-          created_at: now,
-        }).then(() => {}, () => {})
-      }
-    }
-    // plan === 'figsy': no charge at delivery — the single FIGSY credit is taken at enrollment.
+  // Per-qualified-lead model (#420): delivery is FREE and does NOT charge. The
+  // lead lands MASKED (revealed_at stays NULL — its email/phone are hidden in the
+  // API until the client spends $1 to reveal it, POST /leads/:id/reveal). This
+  // lets the client dedup against their own CRM before paying for anything.
+  // deliveryCharge() is now always {charge:false}; the guard below documents the
+  // invariant and will never fire — kept so a regression to charge-at-delivery
+  // shows up loudly here.
+  if (n > 0 && deliveryCharge(normalizePlan(null)).charge) {
+    throw new Error('[lead-delivery] INVARIANT VIOLATED: delivery must not charge in the per-qualified-lead model (#420)')
   }
   return n
 }

@@ -146,6 +146,7 @@ create table if not exists public.leads (
   exported_at              timestamptz,
   estimated_deal_value_usd integer,
   delivered_at             timestamptz default null,
+  revealed_at              timestamptz default null, -- #422: masked until the client spends $1 (mirrors 20260709_reveal_charge)
   research_summary         jsonb,
   created_at               timestamptz not null default now(),
   updated_at               timestamptz not null default now()

@@ -44,6 +44,16 @@ GRANT  EXECUTE ON FUNCTION try_charge_reveal_credit TO service_role;
 ALTER TABLE public.leads
   ADD COLUMN IF NOT EXISTS revealed_at timestamptz;
 
+-- CUTOVER BACKFILL — leads delivered BEFORE this migration were visible (and,
+-- for lead_gen clients, already charged $1 at delivery under the old model).
+-- Without this they would all retro-mask on deploy and hide emails clients
+-- already paid for / were already shown. Old = revealed; only NEW deliveries
+-- arrive masked.
+UPDATE public.leads
+  SET revealed_at = delivered_at
+WHERE delivered_at IS NOT NULL
+  AND revealed_at IS NULL;
+
 -- Fast "how many revealed" / masked-list filters.
 CREATE INDEX IF NOT EXISTS leads_client_revealed_idx
   ON public.leads (client_id, revealed_at);

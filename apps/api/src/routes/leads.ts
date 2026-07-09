@@ -731,9 +731,17 @@ leadRouter.post('/:id/waterfall-enrich', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: lead, error: leadErr } = await db.from('leads')
-      .select('id, first_name, last_name, email, phone, company, linkedin_url, company_size, industry, tech_stack')
+      .select('id, first_name, last_name, email, phone, company, linkedin_url, company_size, industry, tech_stack, revealed_at')
       .eq('id', req.params.id).eq('client_id', clientId).single()
     if (leadErr || !lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    // #422 — enrichment must not become a free unmask: waterfall-enrich finds and
+    // writes the EMAIL, so it requires the $1 reveal first. POST /leads/:id/reveal
+    // already runs the waterfall as part of the paid reveal.
+    if (!(lead as { revealed_at?: string | null }).revealed_at) {
+      res.status(402).json({ success: false, error: 'reveal_required', message: 'Reveal this lead first ($1) — the reveal includes email enrichment.' })
+      return
+    }
 
     const result = await waterfallEnrich({
       first_name:   lead.first_name,
@@ -863,7 +871,7 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
     // Only export DELIVERED leads — clients can't export leads they haven't
     // been charged for / can't see.
     let query = db.from('leads')
-      .select('first_name,last_name,email,phone,job_title,company,industry,country,score,status,created_at')
+      .select('first_name,last_name,email,phone,job_title,company,industry,country,score,status,created_at,revealed_at')
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
       .order('score', { ascending: false, nullsFirst: false })
@@ -882,8 +890,10 @@ leadRouter.post('/bulk-export', async (req: AuthRequest, res) => {
       res.setHeader('X-Export-Limit', String(EXPORT_LIMIT))
     }
     const headers = ['first_name', 'last_name', 'email', 'phone', 'job_title', 'company', 'industry', 'country', 'score', 'status', 'created_at']
+    // #422 — masked leads export WITHOUT contact details: email/phone are only
+    // included once the $1 reveal has been paid (revealed_at set).
     const rows = (data || []).map((l: any) => [
-      l.first_name, l.last_name, l.email || '', l.phone || '',
+      l.first_name, l.last_name, l.revealed_at ? (l.email || '') : '', l.revealed_at ? (l.phone || '') : '',
       l.job_title || '', l.company || '', l.industry || '',
       l.country || '', l.score ?? '', l.status,
       l.created_at ? new Date(l.created_at).toLocaleDateString() : '',

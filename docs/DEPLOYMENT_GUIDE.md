@@ -11,7 +11,7 @@
 
 **Version:** 2.1 · **Date:** June 2026  
 **Time required:** ~90 minutes end-to-end (first time)  
-**Prerequisites:** Accounts on Supabase, Railway, Stripe, Anthropic, Apollo, Resend
+**Prerequisites:** Accounts on Supabase, Railway, Stripe, Anthropic, PDL, Hunter, Resend
 
 > ⚠️ **HOSTING: Railway ONLY.** Portal, Admin, API, and Website are all deployed as separate Railway services from the same monorepo (each with its own Root Directory). There is NO Vercel. If any older copy of this guide mentions Vercel, it is stale — follow the Railway steps below.
 
@@ -29,7 +29,8 @@ Open a temporary notepad. Collect all keys before starting, then follow the step
 | Stripe Secret Key | Stripe dashboard → Developers → API Keys → Secret key | `STRIPE_SECRET_KEY` |
 | Stripe Webhook Secret | Stripe dashboard → Developers → Webhooks → signing secret | `STRIPE_WEBHOOK_SECRET` |
 | Anthropic API Key | console.anthropic.com → API Keys | `ANTHROPIC_API_KEY` |
-| Apollo API Key | apollo.io → Settings → Integrations → API | `APOLLO_API_KEY` |
+| PDL API Key | peopledatalabs.com → Settings → API | `PDL_API_KEY` |
+| Hunter API Key | hunter.io → API → API Keys | `HUNTER_API_KEY` |
 | Resend API Key | resend.com → API Keys | `RESEND_API_KEY` |
 | Admin Secret Key | Generate a random string (use `openssl rand -hex 32`) | `ADMIN_SECRET_KEY` |
 | Railway API URL | After deploying API — Railway → service → Settings → Domain | `NEXT_PUBLIC_API_URL` |
@@ -138,9 +139,7 @@ STRIPE_PRICE_LEADGEN_100=price_xxxxx
 STRIPE_PRICE_FIGSY_20=price_xxxxx
 STRIPE_PRICE_FIGSY_40=price_xxxxx
 STRIPE_PRICE_FIGSY_100=price_xxxxx
-STRIPE_PRICE_MILLA_MONTHLY=price_xxxxx
-STRIPE_PRICE_VIDA_MONTHLY=price_xxxxx
-STRIPE_PRICE_DENISE_MONTHLY=price_xxxxx
+# Pricing is per qualified lead (no subscriptions) — there are NO monthly agent price IDs.
 ```
 
 > **⚠️ Silent-failure warning (hard-code audit 28 Jun):** the app boots fine even when the Stripe price IDs, `STRIPE_WEBHOOK_SECRET`, `ADMIN_SECRET_KEY`, or `FIGSY_COLD_FROM` are missing — it just quietly doesn't charge / doesn't send / poisons the domain. Confirm every var above on the live deploy; cross-check the **🔑 GO-LIVE CONFIG** section in LAUNCH-PAD.
@@ -266,15 +265,11 @@ Go to `https://get-kind.com` → you should see the marketing homepage.
 
 ### 6a. Create products in Stripe
 
-1. Stripe → **Products** → **Add product** — create the agent subscription products:
-   - **Milla** — $49/month recurring
-   - **Vida** — $29/month recurring
-   - **Denise** — $39/month recurring
-2. After creating each product, copy the **Price ID** (`price_xxx...`)
-3. Add price IDs as Railway env vars (never in code):
-   - `STRIPE_PRICE_MILLA_MONTHLY=price_xxxxx`
-   - `STRIPE_PRICE_VIDA_MONTHLY=price_xxxxx`
-   - `STRIPE_PRICE_DENISE_MONTHLY=price_xxxxx`
+Pricing is **per qualified lead — no subscriptions.** Create the pay-per-lead / credit products only, not monthly agent plans:
+
+1. Stripe → **Products** → **Add product** — create the **Lead-gen** (reveal) and **FIGSY** credit bundles (20 / 40 / 100).
+2. After creating each product, copy the **Price ID** (`price_xxx...`).
+3. Add the price IDs as Railway env vars (never in code) — the `STRIPE_PRICE_LEADGEN_*` / `STRIPE_PRICE_FIGSY_*` set (see Step 2b / 3b). Milla, Vida and Denise bill per qualified lead when they ship — there are **no `_MONTHLY` recurring products.**
 
 ### 6b. Set the webhook URL
 
@@ -362,7 +357,7 @@ Run through this checklist before going live with a real client.
 - [ ] Manually adjust if needed → Save ICP
 
 ### Lead Generation
-- [ ] Build ICP → Save → Apollo search fires automatically
+- [ ] Build ICP → Save → PDL + Hunter search fires automatically
 - [ ] Leads appear within minutes to 2 hours
 - [ ] All leads have AI scores (0–100) with reasoning
 
@@ -380,7 +375,7 @@ Run through this checklist before going live with a real client.
 ### Demo Environments
 - [ ] Admin → Demo Environments → create new demo
 - [ ] Fill in prospect name, company, industry, AE name, expiry
-- [ ] System creates user + runs Apollo ICP → leads appear
+- [ ] System creates user + runs the PDL + Hunter ICP → leads appear
 - [ ] "Open Demo" → portal opens in new tab as demo client
 
 ### Settings
@@ -403,7 +398,7 @@ Run through this checklist before going live with a real client.
 | Webhook not arriving | Wrong URL, no events, or missing signing secret | Re-check Stripe → Webhooks URL, event list, and STRIPE_WEBHOOK_SECRET value |
 | Admin proxy 403 | ADMIN_SECRET_KEY mismatch | Confirm same value in the API service and Admin service (both on Railway) |
 | AI ICP Suggest returns error | Missing Anthropic key | Check `ANTHROPIC_API_KEY` is set in Railway |
-| Demo leads not appearing | Apollo rate limit or quota | Check Railway logs for Apollo errors |
+| Demo leads not appearing | PDL / Hunter rate limit or quota | Check Railway logs for PDL / Hunter errors |
 | Terms Library shows upload errors | Bucket missing or not public | Create `agreement-templates` bucket in Supabase Storage (public) |
 
 ---
@@ -418,11 +413,11 @@ PORTAL_URL=https://app.get-kind.com
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-APOLLO_API_KEY=your-apollo-key
+PDL_API_KEY=your-pdl-key
+HUNTER_API_KEY=your-hunter-key
+APOLLO_API_KEY=                                      # optional / BYO — not used day-to-day
 STRIPE_SECRET_KEY=sk_live_xxxxx
 STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-STRIPE_PRICE_MILLA_MONTHLY=price_xxxxx
-STRIPE_PRICE_VIDA_MONTHLY=price_xxxxx
 ANTHROPIC_API_KEY=sk-ant-xxxxx
 RESEND_API_KEY=re_xxxxx
 ADMIN_SECRET_KEY=your-random-secret-string

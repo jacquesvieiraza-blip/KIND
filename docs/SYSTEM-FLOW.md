@@ -10,11 +10,11 @@
 
 ```
    ┌── DATA (the leads) ──────┐     ┌── BRAIN (FIGSY) ──────┐     ┌── SENDING (two engines) ──────────┐
-   │  Apollo  (BYO / optional)│     │                       │     │                                    │
-   │  PDL     (discovery ✅)  │────►│  find → reveal email  │────►│  Instantly  = OUR outreach          │
-   │  Hunter  (email reveal)  │     │  → score → write      │     │             (win clients)           │
-   │  + Cognism/Clearbit/…    │     │  → sequence (212)     │     │  Smartlead  = CLIENTS' sending      │
-   │   (item 243 = the stack) │     │                       │     │             (inside the product)    │
+   │  PDL Full (discovery ✅) │     │                       │     │                                    │
+   │  Hunter  (reveal ✅)     │────►│  find → reveal email  │────►│  Instantly  = OUR outreach          │
+   │  = the LIVE stack        │     │  → score → write      │     │             (win clients)           │
+   │  Apollo/Cognism/Clearbit │     │  → sequence (212)     │     │  Smartlead  = CLIENTS' sending      │
+   │  = V2 waterfall (243)    │     │                       │     │             (inside the product)    │
    └──────────────────────────┘     └───────────────────────┘     └──────────────┬─────────────────────┘
                                                                                   │
                                                               replies → meetings booked → close
@@ -39,21 +39,21 @@
 
 ---
 
-## 3. THE DATA LAYER (item 243 = THE FOCUS)
+## 3. THE DATA LAYER — PDL Full + Hunter is the LIVE stack (item 243)
 
-**The job has 3 steps — and the gap is step 2:**
+**The job has 3 steps — all three work today; the waterfall of extra sources is V2:**
 
 ```
 ①  DISCOVER ──────────►  ②  REVEAL EMAIL ──────►  ③  VERIFY + GATE
    "who matches the ICP"    "get their address"      "deliverable? then send"
-   PDL ✅ works             ⚠️ THE GAP — free PDL    bounce-check before the
-   (SA 1,360 / US 71,123)   gates the email →        warmed domain; only
-   Apollo (BYO), Proxycurl   reveal via Hunter /      campaign verified leads
-                             BetterContact / PDL-Enrich
+   PDL Full ✅ live         Hunter ✅ live           bounce-check before the
+   (SA 1,360 / US 71,123)   reveals the real email   warmed domain; only
+   Apollo = BYO/optional    (extra sources =         campaign verified leads
+   Cognism/Clearbit = V2     V2 waterfall, 243)
 ```
 
-- **Apollo = BYO / optional** (reseller under evaluation, ~$7.5k/yr) → day-to-day we run on **PDL + Hunter + the stack**, not Apollo.
-- **"Use ALL sources"** = a waterfall: try one, fall through to the next → coverage goes from ~40–60% (one source) to **80%+**. Add: Cognism (EMEA) · Clearbit · Lusha · RocketReach · Proxycurl · **BetterContact** (one integration = 20+).
+- **Apollo = BYO / optional** (reseller under evaluation, ~$7.5k/yr) → day-to-day we run on **PDL Full + Hunter** (the live stack), not Apollo.
+- **"Use ALL sources"** = a **V2/future** waterfall: try one, fall through to the next → coverage goes from ~40–60% (one source) to **80%+**. Future adds (not live): Cognism (EMEA) · Clearbit · Lusha · RocketReach · Proxycurl · **BetterContact** (one integration = 20+).
 - **ZoomInfo** = best coverage but enterprise cost (~$15–40k/yr) → later. **Clay** = no embeddable API → our **internal list-builder**, not in-product.
 - **Africa reality:** data is real but thinner than the US → go direct as far as data reaches, **partners cover the rest.**
 
@@ -82,7 +82,7 @@
 | PDL discovery | 244 | 🟢 verified working |
 | Email-reveal — boolean-bug fix | 243 | 🟡 SHIPPED + verified live (#740, 8/8 tests) — `email:true` killed |
 | Email-reveal — DEPTH (real domain→Hunter) | 243 | 🟢 WORKING LIVE — PDL→domain→Hunter reveals real emails (verified: samantha@samsalesconsulting.com, score 96). Was gated on a bad HUNTER_API_KEY (now fixed). |
-| More data sources (waterfall) | 243 | 🔴 the focus |
+| More data sources (waterfall) | 243 | 🔴 V2 / future (not live) |
 | FIGSY sequences (weak → rebuild) | 212 | 🔴 vital |
 | Instantly (our warmup) | 198 | 🟡 warming |
 | Smartlead (client engine) | 211 | 🔴 Phase 1 done, 2–6 to build |
@@ -93,7 +93,7 @@
 
 ## 6. THE BUILD ORDER (so it's never "where do I start?")
 1. **Email-reveal fix** (243 step ②) — cheap, unblocks usable leads everywhere.
-2. **Stack more sources** (243) — coverage up, Africa-direct viable.
+2. **Stack more sources** (243, **V2/future**) — coverage up; PDL Full + Hunter carry launch.
 3. **Rebuild sequences** (212) — replies up on every lead.
 4. **Engine Phases 2–6** (211) + warmup (198) — the entry ticket to send at scale.
 5. **Fire outreach** — US/UK first (data-rich), Africa-direct + partners in parallel.

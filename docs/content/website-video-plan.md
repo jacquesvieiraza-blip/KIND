@@ -34,7 +34,7 @@ A **Video Hub** on the website (`apps/landing/videos.html`) — a clean, on-bran
 |---|-------|--------|--------|----------|
 | V1 | 90-sec product loop (the hero video) | 90s | Screen rec + voiceover | 🔴 highest — blocks homepage hero update (#24) |
 | V2 | FIGSY live demo — real account walkthrough | 12–15 min | Screen rec | 🔴 needed for YouTube Video 4 |
-| V3 | "Why I built KIND from Cape Town" founder story | 12–18 min | Talking head | 🟡 high — trust builder |
+| V3 | "Why we built KIND" founder story | 12–18 min | Talking head | 🟡 high — trust builder |
 | V4 | Milla walkthrough — AI assistant / drafting & business Q&A | 10–12 min | Screen rec | 🟡 high |
 | V5 | Vida demo — live chat qualification | 8–10 min | Screen rec | 🟡 medium |
 | V6 | Cold email masterclass (Africa B2B) | 18–22 min | Slides + talking head | 🟢 SEO anchor |

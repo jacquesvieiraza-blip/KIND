@@ -14,7 +14,7 @@ K.I.N.D has **no customer traction yet** and pricing is in flux. So:
 **❌ LEAVE OUT entirely (for now):** all pricing · "conversations handled" · "leads delivered/generated" · "meetings booked" · customers/users/"happy clients" · revenue · **any number implying our own traction.**
 
 **✅ SAFE to use — true regardless of customers, price-free:**
-- 250M+ verified B2B contacts (the data source exists)
+- Targeted, verified B2B contacts via PDL + Hunter (the data source exists)
 - 0–100 lead scoring (how the product works)
 - 5 business days to first campaign live · 24 hours to first leads after ICP (our process/guarantee)
 - 90-day pipeline guarantee (our offer — no price attached)
@@ -40,13 +40,13 @@ The K.I.N.D Agent Village is open. 🏘
 
 Meet the family:
 
-**FIGSY — The Opener.** Finds, scores, writes, sends, follows up, and books. Autonomously. Every day.
+**FIGSY — The Opener.** Finds, scores, drafts, and follows up — you approve and send. Every day.
 
-**Milla — The Brain.** Reads your numbers, learns your documents, surfaces the intelligence you didn't know you needed.
+**Milla — The Brain (coming soon).** Reads your numbers, learns your documents, surfaces the intelligence you didn't know you needed.
 
-**Vida — The Connector.** On your website and WhatsApp 24/7. No lead goes cold on her watch.
+**Vida — The Connector (coming soon).** On your website and WhatsApp 24/7. No lead goes cold on her watch.
 
-**Denise — The Closer.** Picks up where FIGSY leaves off — handles objections, drafts the proposal, follows up until it's signed.
+**Denise — The Closer (coming soon).** Picks up where FIGSY leaves off — handles objections, drafts the proposal, follows up until it's signed.
 
 Four agents. One shared memory. One mission: unlimited pipeline.
 
@@ -99,7 +99,7 @@ Personalities with a job to do. That's the K.I.N.D village. 🏘
 # PART 2 — AGENT SPOTLIGHTS (one each — pain → impact → solution)
 
 ## FIGSY — The Opener
-> IMAGE: FIGSY portrait card · overlay "250M+ contacts scored for your ICP" · CTA → get-kind.com
+> IMAGE: FIGSY portrait card · overlay "Verified contacts scored for your ICP" · CTA → get-kind.com
 
 Your sales rep started Monday with a blank spreadsheet and 200 names to research.
 
@@ -109,7 +109,7 @@ Five days of their best hours for one conversation. And next Monday, they start 
 
 FIGSY, The Opener, doesn't work like that.
 
-She searches 250M+ verified contacts against your ICP. Scores every match 0–100. Writes a unique personalised email per lead — no template, every message sounds like a human did their homework. Sends it. Reads every reply. Handles the objections. Books the meeting.
+She searches targeted, verified contacts (PDL + Hunter) against your ICP. Scores every match 0–100. Drafts a unique personalised email per lead — no template, every message sounds like a human did their homework. You approve and send. She reads every reply, flags the interested ones, and drops a booking link in front of them.
 
 Without being told to.
 

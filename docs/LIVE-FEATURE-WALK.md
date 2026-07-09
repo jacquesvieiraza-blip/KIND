@@ -134,7 +134,7 @@
 - ⬜ **Casey** (onboarding) — conversational setup (`/v2/setup`)
 
 ## 🎯 Lead gen & data
-- ⬜ 5 ICP builder 🟢 · ⬜ 6 Apollo sourcing (3-pass) 🟢 · ⬜ 7 AI scoring 0–100 🟢
+- ⬜ 5 ICP builder 🟢 · ⬜ 6 PDL + Hunter sourcing 🟢 · ⬜ 7 AI scoring 0–100 🟢
 - ⬜ 8 delivery + charge-on-delivery 🟢 · ⬜ 9 POPIA opt-out (6 paths) 🟢 · ⬜ 10 enrichment 🟢
 - ⬜ 11 LinkedIn CSV 🟢 · ⬜ 12 lookalike 🟢 · ⬜ 13 cross-links + stats 🟢
 - ⬜ 67 saved views (R8) 🩷 · ⬜ 79 job-change alerts (R20) 🩷 · ⬜ 71 lead-capture forms (R12) 🩷
@@ -151,9 +151,9 @@
 - ⬜ 112 NEW Unibox 🩷 · ⬜ 66 "Help me reply" (R7) 🩷 · ⬜ 72 Cmd+K (R13) 🩷 · ⬜ 89 Notification centre 🩷 · ⬜ 50 push notifications 🟢
 
 ## 💳 Billing & payments
-- ⬜ 23 Stripe checkout + webhooks 🟢 · ⬜ 24 Flutterwave wired 🟢 · ⬜ 26 agent subs (Vida $29/Milla $49/Denise $39) 🟢 · ⬜ 28 usage tracking 🟢
+- ⬜ 23 Stripe checkout + webhooks 🟢 · ⬜ 24 Flutterwave wired 🟢 · ⬜ 26 agent per-lead layers (Vida $3 inbound · Milla +$1 · Denise +$1) 🟢 · ⬜ 28 usage tracking 🟢
 - ⬜ 166 double-charge killed 🩷 · ⬜ 167 FIGSY-only delivers 🩷 · ⬜ 168 price tables reconciled 🩷 · ⬜ 169 plan flag 🩷 · ⬜ 170 atomic credits 🩷 · ⬜ 171 credits-panel honesty 🩷
-- ⬜ 58 Denise $39 price 🩷 · ⬜ 136a Invoices 🩷 · ⬜ 190 pause / win-back 🩷
+- ⬜ 58 Denise +$1/qualified-lead layer 🩷 · ⬜ 136a Invoices 🩷 · ⬜ 190 pause / win-back 🩷
 
 ## 🏢 Company Engine / teams
 - ⬜ 55 Command Centre 🟢 · ⬜ 56 per-rep agent unlock 🟢 · ⬜ 80 Teams Hub 🩷

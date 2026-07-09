@@ -3,13 +3,27 @@
 > The **one** day-to-day page: what to do now · who owns it · where it stands. One line per item.
 > Status of record → **PRODUCT-INVENTORY** · why/history → **KIND-MASTER** · future detail → **V2-TRACKER** · deep audits → **AUDIT-8JUL-DEEP.md** (code) + **AUDIT-8JUL-STALE-SWEEP.md** (docs) · M0 punch-list → **MILESTONE-0-CHECKLIST.md**.
 
-**THE PLAN (locked 8 Jul):** **one price logic across the whole family — per qualified lead. No subscriptions, no contracts, no order-forms.** Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; **Vida inbound $3** + same add-ons → $4/$5. Sell **FIGSY + Lead-Gen** now; **Milla · Vida · Denise · Tony STAY on site + portal marked "coming soon" + greyed** (built in **M4**, never deleted). **Milestone 0 is the gate** — make FIGSY + Lead-Gen *honest → work fully → proven* before one real client.
+**THE PLAN (reset 9 Jul PM, founder-locked):** **Sell FIGSY. Only FIGSY. Now.** One offer: **$1 the lead (reveal) + $3 FIGSY works it = $4 per qualified lead. No subscriptions, no contracts.** Website + portal are CUT to FIGSY-only — the agent family (Milla · Vida · Denise · Tony) comes **down** (not masked, not "coming soon"); it returns only after **3 months of paid, verified clients**. The UI look & feel does NOT change — we remove surfaces and fix words, no redesign.
 
-**Board:** 🟢91 · 🩷116 · 🟣1 · 🟡12 · 🔴215 · ⏸5 · **Σ440**  ·  live count: `scripts/count-inventory.sh`
+# 🎯 SPRINT — first paying client in 30 days (started 9 Jul)
+**Rule: a line gets on this list ONLY if it blocks the first paying client. A box is done or it isn't — no colours, no percentages. Every PR names its line. Ticking the box IS the doc update.**
 
-> **📍 STATUS OF RECORD = PRODUCT-INVENTORY (the script-counted board).** LAUNCH-PAD lists **what's next + who owns it**; each `#id` row is auto-stamped with the inventory's current dot by `scripts/mirror-launchpad.sh` (chained in `update-board.sh`, enforced by `doc-lint.sh`) — **never hand-type a dot here.** The status of record still lives ONLY in the inventory; this doc mirrors it so the two can't drift.
+| ✓ | # | Line | Owner |
+|---|---|------|:---:|
+| ⬜ | 1 | **Website cut to FIGSY-only** (~6 pages survive; agent/marketing sprawl comes down; same design, honest words, one offer) | 🤖 build · 🧍 deploy |
+| ⬜ | 2 | **Portal cut to FIGSY-only** (same skin; agent switcher/cards/pages + marketplace + What's New + mock Templates OUT of nav) | 🤖 build · 🧍 deploy |
+| ⬜ | 3 | **Billing sells $1 reveal top-ups** (needs 2–3 Stripe price IDs from 🧍) | 🤖 + 🧍 |
+| ⬜ | 4 | **Credit counter shows BOTH wallets** (reveal + FIGSY) | 🤖 |
+| ⬜ | 5 | **Revenue-report bug fixed** (paid Stripe subs count as $0 — `amount_usd` never written) | 🤖 |
+| ⬜ | 6 | **Merge PR #1019 + run its migrations** (17 reliability fixes: phantom sends, double-sends, alarms, 10-step sequences) | 🧍 (10 min) |
+| ⬜ | 7 | **3 pricing rules ruled** — charge-once (per-lead-EVER vs per-campaign) · trial mix (20 reveal + 5 work?) · kill subscription machinery now | 🧍 (3 lines) |
+| ⬜ | 8 | **One real end-to-end run on staging** — ICP → source → reveal ($1) → sequence sends → reply → charges right — founder walks it once | 🤝 |
+| ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study) | 🤝 |
+| ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |
 
-**VERIFIED STATE (9 Jul, reconciled):** ✅ **Phase 1 website truth sweep — LIVE**; site shows the honest per-qualified-lead model: **Lead-Gen $1 · FIGSY $4 ($1 reveal + $3 work) · no subs/trials/contracts**; Milla/Vida/Denise coming-soon; FIGSY calendar = "Launching". ⚠️ **The board was audited + reconciled this session** (dots verified against code across all colours): 🟢 111→91 · 🩷 92→116 · 🟣 3→1 · 🟡 23→12 · 🔴 206→215. **Portal Step 2 UNDER-DELIVERED** — #406 back to 🔴 (agents still enterable by subscribed accounts). **Held for founder rulings:** #283 #284 #301 #93, legal #432–436, and 8 prod-walk greens (#48 #51 #52 #54 #104 #244 #261 #262). **⚠️ Site is ahead of the code** — `constants/index.ts` still encodes the old model → Phase 2 (#420–#431) builds what the site sells.
+**Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work, admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel.
+
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡12 · 🔴215 · ⏸5 · **Σ440** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -19,16 +33,8 @@
 GitHub is flagged → auto-deploy is off. Each change ships **by hand**: **🧍** merge PR → **🧍** `git pull` → **🧍** `railway up --detach --service "<svc>"`.
 Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admin` · api = `@kind/api`. *(Claude can't deploy — no Railway access.)*
 
-### ▶ DO NOW — in order (only the true next actions) · *updated 9 Jul PM — hand-off-ready*
-| # | Task | Owner |
-|---|------|:---:|
-| 1 | **RULE on the 3 Phase-2 money calls** — #424 charge-once ($1+$3 once-per-lead-EVER vs per-campaign) · #425 trial credit mix (20 reveal + 5 work?) · #431 retire subscription billing (now vs later). Unblocks the Phase-2 build. | 🧍 |
-| 2 | **RULE on the reconciliation held-items** — #283 #284 #301 #93 · legal #432–436 (keep 🟡 vs mark 🩷) · keep/remove the portal mocks Templates (#70) + What's New (#78) · walk the 8 prod-only greens (#48 #51 #52 #54 #104 #244 #261 #262). | 🧍 |
-| 3 | **Rebuild #406 properly** — Milla/Vida/Denise/notetaker UNCONDITIONALLY coming-soon (one `LIVE_AGENTS` constant) so subscribed accounts can't enter; agents landing page + dashboard cards + sidebar switcher. | 🤖 |
-| 4 | **Fix the money-truth gaps found in the audit** — reveal top-up packs buyable in billing (#284) · header shows BOTH wallets (reveal + FIGSY) · MRR $0 bug (Stripe subs never write `amount_usd`, #238) · website "Join the waitlist" → real form + notification. | 🤖 |
-| 5 | **Merge PR #1019** (M0 code batch — sequence depth #212 + send-path integrity, 17 items) once Fable re-audits; then **Phase-2 money build** (after row 1 rulings). | 🤝 |
-| 6 | FIGSY reliability — the Phase-3 list (#391/#392/#375/#377/#378 + remainder). | 🤖 |
-| 7 | Held: `small-business-playbook.html` per-lead totals (your packaging) · legal #410/#413/#414/#407 (lawyer track). | 🤝 |
+### ▶ DO NOW = the SPRINT table at the top of this doc. Nothing else.
+*(The founder rulings folded into it: line 7 = the 3 pricing rules · Templates ruled a FIGSY M0-build, parked behind line 10 · What's New ruled REMOVED (ships inside line 2) · the old DO-NOW's #406 rebuild is superseded by line 2's harder cut — agents come OUT, not "coming soon".)*
 
 ---
 

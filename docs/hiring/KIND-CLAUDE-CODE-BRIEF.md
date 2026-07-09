@@ -13,7 +13,7 @@ Read this file first. It is the authoritative spec for turning the attached desi
 - Build in the phases in §6. **Confirm the plan with the founder before writing code.**
 
 ## 1. What KIND is
-AI-SDR SaaS for B2B SMBs (LIVE since 18 Jun). **GTM = two tracks (25 Jun):** US/UK/EMEA via our own direct outreach + Africa via direct (data, item 243) + partners. Solo, stealth, faceless brand. UK-registered limited company. **All money in USD** (the original brief said £/GBP — superseded by the 22-Jun USD lock; see the §3 footer). ~93% gross margin. Payments on Stripe. The artifacts model sales compensation + company P&L; the job is to make them **live**.
+AI-SDR SaaS for B2B SMBs (LIVE since 18 Jun). **GTM = two tracks (25 Jun):** US/UK/EMEA via our own direct outreach + Africa via direct (data, item 243) + partners. Solo, stealth, faceless brand. UK-registered limited company. **All money in USD** (the original brief said £/GBP — superseded by the 22-Jun USD lock; see the §3 footer). ~91–92% gross margin. Payments on Stripe. The artifacts model sales compensation + company P&L; the job is to make them **live**.
 
 ## 2. The system (one paragraph)
 Stripe webhooks in → **attribute** each customer (partner code / AE tag / no code → agent) → **one commission engine** applies the comp rules → write to **one database** → **three read-only-ish portals** (AE, partner, admin) → owner approves payouts → Stripe/payroll pays out. (See `KIND-Live-System-Blueprint.html`.)
@@ -45,7 +45,7 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 
 **KIND Agent (self-serve / direct / house):** no partner code & no AE tag → credited to the house. **Revenue only — no base, no commission, no payout.** Modelled avg deal ~$120 MRR, churn ~6%/mo (editable).
 
-**Margin & P&L:** Gross margin 93%. Net@margin = gross book × 0.93. Net after sales pay = Net@margin − sales payout. Net after ALL costs = Net after sales pay − operating-team costs.
+**Margin & P&L:** Gross margin ~91–92%. Net@margin = gross book × ~0.915. Net after sales pay = Net@margin − sales payout. Net after ALL costs = Net after sales pay − operating-team costs.
 
 **Operating team (cost only, non-sales):** flat monthly = annual/12 from each role's start month. Defaults (editable): Customer Success $40k, Tech Eng $60k, Payroll & Accounts $35k, HR (outsourced) $12k, Partner Manager $40k.
 
@@ -54,7 +54,7 @@ Stripe webhooks in → **attribute** each customer (partner code / AE tag / no c
 ## 4. The portals
 - **AE portal** (one login per AE, read-only): live book, deals, commission, base, guarantee, total pay. Mirror `KIND-commission-statement.html`.
 - **Partner portal** (one login per partner, read-only): referral code, clients, retention, earnings (20% + 5%).
-- **Admin portal** (founder) = the **live company P&L** (the Master view, live): total sales/new MRR · gross sales (book) · net @ 93% · sales payout (commission + base + guarantee) · operating expenses · net after everything · exit book / run-rate. Plus controls: who's hired, start dates, salaries, **approve-payouts** button.
+- **Admin portal** (founder) = the **live company P&L** (the Master view, live): total sales/new MRR · gross sales (book) · net @ ~91–92% · sales payout (commission + base + guarantee) · operating expenses · net after everything · exit book / run-rate. Plus controls: who's hired, start dates, salaries, **approve-payouts** button.
 - **Payouts:** engine calculates → **founder approves (human gate)** → Stripe/payroll pays. **Never auto-pay.**
 
 ## 5. Target roster (admin must hold each as an individual record, own login/actuals)
@@ -81,7 +81,7 @@ All currency USD. One repo. Clean small commits. One commission engine, one sour
 Auth provider, hosting, visual design system — founder's call (propose options). Per-rep/partner login is expected; build the app it plugs into.
 
 ---
-*Model: Land 20% / Retain 5% / Expand 5% · ramp guarantee 100/100/75/75 · 93% gross margin · **all USD (founder decision 22 Jun)**. © the founder. Current as of June 2026.*
+*Model: Land 20% / Retain 5% / Expand 5% · ramp guarantee 100/100/75/75 · ~91–92% gross margin · **all USD (founder decision 22 Jun)**. © the founder. Current as of June 2026.*
 
 ---
 ## 🎯 Founder build priority (19 Jun — overrides §6 portal order)
@@ -92,7 +92,7 @@ Build the **portals in this order**, account/auth systems done right from the st
 *(The data model + Stripe wiring + the single commission engine are the shared foundation under all three — built before/with the admin portal. "All account systems" = the per-rep/partner login + roles done properly from day one, not bolted on later.)*
 
 ## ⚠️ Reconcile notes (for when this is picked up — Claude, 19 Jun)
-- **Currency = USD — RESOLVED 22 Jun (founder: "we are USD").** The brief's earlier "all £ GBP" is overridden. The calculators + comp plans already filed in `docs/hiring/` are in **USD (correct, locked 22 Jun)** — consistent with the live product's locked pricing constants (Lead Gen $1, FIGSY $3, Denise $39…).
+- **Currency = USD — RESOLVED 22 Jun (founder: "we are USD").** The brief's earlier "all £ GBP" is overridden. The calculators + comp plans already filed in `docs/hiring/` are in **USD (correct, locked 22 Jun)** — consistent with the live product's locked pricing: per qualified lead, no subscriptions — $1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6.
 - **Partner rate = 20% + 5%** (this brief is authoritative) → item 197's "25% + 5%" is superseded.
 - **This brief operationalizes** items 196 (Stripe = money source-of-truth ledger), 197 (partner comp), 200 (the 3 portals), 201 (AE hire), 202 (HR/legal pack) — it's the concrete build spec for the whole seller engine.
 - **Repo question:** the brief says "fresh git repo." Decide: a new repo (like `kind-ops`) vs a module in the KIND product. The Stripe/attribution wiring overlaps the live product, so likely the KIND product (or a tightly-linked service), not fully standalone.

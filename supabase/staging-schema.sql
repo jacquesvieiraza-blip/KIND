@@ -594,6 +594,28 @@ $$;
 REVOKE EXECUTE ON FUNCTION try_charge_figsy_credit FROM PUBLIC;
 GRANT  EXECUTE ON FUNCTION try_charge_figsy_credit TO service_role;
 
+-- The $1 REVEAL twin (mirrors 20260709_reveal_charge). Decrements the reveal
+-- wallet (credit_balance) atomically; the decrement IS the gate. No credit → no
+-- charge → caller must abort the reveal (no Hunter call, email stays masked).
+CREATE OR REPLACE FUNCTION try_charge_reveal_credit(
+  p_client_id uuid
+) RETURNS boolean
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  UPDATE public.clients
+    SET credit_balance = COALESCE(credit_balance, 0) - 1
+  WHERE id = p_client_id
+    AND COALESCE(credit_balance, 0) >= 1;
+
+  RETURN FOUND;
+END;
+$$;
+
+REVOKE EXECUTE ON FUNCTION try_charge_reveal_credit FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION try_charge_reveal_credit TO service_role;
+
 -- ════════════════════════════════════════════════════════════════════════════
 -- CLIENTS EXTRA COLUMNS (from migrations)
 -- ════════════════════════════════════════════════════════════════════════════

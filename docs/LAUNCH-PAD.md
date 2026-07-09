@@ -51,7 +51,7 @@ Shipped + founder-walked live → **13 items 🟢** in PRODUCT-INVENTORY: **#405
 ### STEP 2 — PORTAL up to date (same principle)
 | Item | What it is | Owner |
 |---|---|:---:|
-| #406 | Portal sweep — every screen: not-real → "coming soon" + grey. **Milla/Vida/Denise/Tony + notetaker greyed; agent subs (#26) unbuyable; billing shows only the two real wallets ($1 reveal · $3 FIGSY).** | 🤖 |
+| #406 | Portal sweep — every screen: not-real → "coming soon" + grey. **Milla/Vida/Denise/Tony + notetaker greyed; agent subs (#26) unbuyable; billing shows only the two real wallets ($1 reveal · $3 FIGSY) + sells the REVEAL top-up packs ($20/$40/$100 — #420 un-retire). Named sub-rocks: #395 Milla mock "synced" UI · #396 Denise false claims · #399 integrations shell.** | 🤖 |
 | #385 | Usage page "$1/lead overage" panel → wire it to the **REAL $1 reveal ledger** (was a fake panel) | 🤖 |
 | #384 | Dead portal buttons (Export CSV, etc.) → wire or coming-soon | 🤖 |
 | #412 | `proposals` portal screen missing from the sweep checklist → add it | 🤖 |
@@ -102,14 +102,21 @@ Shipped + founder-walked live → **13 items 🟢** in PRODUCT-INVENTORY: **#405
 | #400 | "South-African-sounding name" prompt residue → make it global | 🤖 |
 | #401 | A few inventory dots were lying → corrected | 🤖 |
 | #402 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 |
-| #361 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link coming-soon* | 🤝 |
+| #361 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
 | #368 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
+| #391 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |
+| #392 | ⛰️ *pulled in 9 Jul* — A/B "winner" resolves on ZERO data if tracking unset → wrong copy auto-wins the send path | 🤖 |
+| #375 | ⛰️ *pulled in 9 Jul* — self-outreach charges + cold-emails **placeholder addresses** → phantom charges + spam-trap risk to OUR sending reputation | 🤖 |
+| #377 | ⛰️ *pulled in 9 Jul* — support black hole: client emails support → auto-reply phantom-sends, founder-forward suppressed. With ONE client, unacceptable | 🤖 |
+| #378 | ⛰️ *pulled in 9 Jul* — demo-request auto-sends **invented availability times** to prospects (outward-facing honesty) | 🤖 |
 
 ## PHASE 4 · PROVE + SELL — prove on staging, then sell to ONE client · 🤝
 🔴 a credit actually spent · an email that actually landed · knowledge visibly changes the copy · a real lead sources + reveals ($1) + sends ($3) · the alarm fires on a money failure.
 | Item | What it is | Owner |
 |---|---|:---:|
 | #415 | **Do we make money?** — RESOLVED 8 Jul: ~$0.36/worked lead → ~91% margin at $4 (`run-costs-and-cashflow.md` §0). *Remaining = prove it live.* | 🧍 |
+| #364 | ⛰️ *pulled in 9 Jul (scope verify)* — **demo/seed data pollutes the founder metrics** the proof reads from (CRO dashboard, active-paying counts). The Phase-4 "prove it" numbers must be demo-clean or the proof lies | 🤖 |
+| — | **Walk the M0-original pinks** (#330–#334 + #337 are 🩷 live-not-verified) — the "fixed + tested" gate includes walking them; do it during the staging proof | 🧍 |
 
 ### M0 originals (#330–#337) — already shipped
 | Item | What it is |

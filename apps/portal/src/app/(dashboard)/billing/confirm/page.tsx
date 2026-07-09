@@ -11,7 +11,6 @@ import { Suspense } from 'react'
 function ConfirmContent() {
   const params    = useSearchParams()
   const reference = params.get('reference') || params.get('trxref')
-  const type      = params.get('type')
   const supabase  = createClient()
   const [status, setStatus]   = useState<'loading' | 'success' | 'error'>('loading')
   const [message, setMessage] = useState('')
@@ -23,24 +22,22 @@ function ConfirmContent() {
       if (!session) { setStatus('error'); setMessage('Session expired. Please log in again.'); return }
 
       try {
-        if (type === 'credit') {
-          const res = await api.post<{ data: { credits_added: number; new_balance: number } }>(
-            '/credits/verify', { reference }, session.access_token
-          )
-          setStatus('success')
-          setMessage(`${res.data.credits_added} credits added. Your balance is now ${res.data.new_balance}.`)
-        } else {
-          await api.post('/subscriptions/verify', { reference }, session.access_token)
-          setStatus('success')
-          setMessage('Your subscription is now active. Welcome aboard!')
-        }
+        // #384/#431 — the only live purchase is FIGSY credit bundles; subscription
+        // checkout is retired, so always verify as a credit top-up (the old code fell
+        // through to a dead /subscriptions/verify when `type` wasn't 'credit', which is
+        // what surfaced "Payment verification failed" on this orphaned return page).
+        const res = await api.post<{ data: { credits_added: number; new_balance: number } }>(
+          '/credits/verify', { reference }, session.access_token
+        )
+        setStatus('success')
+        setMessage(`${res.data.credits_added} credits added. Your balance is now ${res.data.new_balance}.`)
       } catch (err: unknown) {
         setStatus('error')
         setMessage(err instanceof Error ? err.message : 'Payment verification failed. Please contact hello@get-kind.com.')
       }
     }
     verify()
-  }, [reference, type])
+  }, [reference])
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
@@ -57,13 +54,11 @@ function ConfirmContent() {
             <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-8 h-8 text-green-500" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {type === 'credit' ? 'Credits added!' : 'Payment confirmed!'}
-            </h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Credits added!</h2>
             <p className="text-[#7B6FA0] text-sm mb-6">{message}</p>
             <Link href="/dashboard/billing"
               className="inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold px-6 py-3 rounded-xl text-sm transition-colors">
-              {type === 'credit' ? 'View balance →' : 'Go to billing →'}
+              View balance →
             </Link>
           </>
         )}

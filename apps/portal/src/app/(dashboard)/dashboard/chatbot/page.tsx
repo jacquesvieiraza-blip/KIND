@@ -153,15 +153,15 @@ export default function ChatbotPage() {
             </li>
           ))}
         </ul>
+        {/* #406/#431 — subscriptions retired; Vida returns as the inbound engine (#429).
+            No $X/month sell, no checkout — honest coming-soon. */}
         <div className="text-center mb-4">
-          <span className="text-3xl font-bold text-gray-900">${PRODUCTS.chatbot.price_usd}</span>
-          <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
+          <span className="text-sm font-semibold text-gray-400">Coming soon</span>
         </div>
         <div className="flex flex-col gap-3">
-          <a href="/dashboard/billing" className="inline-block w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center">Unlock Vida — ${PRODUCTS.chatbot.price_usd}/month →</a>
+          <span className="inline-block w-full bg-gray-100 text-gray-400 font-semibold rounded-xl px-6 py-3 text-sm text-center border border-gray-200 cursor-not-allowed select-none">Coming soon</span>
           <a href="https://cal.com/get-kind/demo" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-xl px-6 py-3 text-sm transition-colors text-center border border-purple-100/80">Request a demo instead</a>
         </div>
-        <p className="text-xs text-[#9B8EC4] mt-3">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
       </div>
     </div>
   )

@@ -375,10 +375,7 @@ export function Sidebar({
                 })}
                 <div className="mx-3 my-2 border-t border-purple-100" />
                 <p className="text-[10px] text-[#9CA3AF] px-3 pb-3 leading-relaxed">
-                  Unlock agents from{' '}
-                  <Link href="/dashboard/billing" className="text-[#7C3AED]/70 font-medium hover:text-[#7C3AED] transition-colors" onClick={() => setOpen(false)}>
-                    Billing →
-                  </Link>
+                  Milla, Vida &amp; Denise are coming soon.
                 </p>
               </div>
             )}

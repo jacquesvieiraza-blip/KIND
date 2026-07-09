@@ -294,17 +294,18 @@ export default function AssistantPage() {
             </div>
           ))}
         </div>
+        {/* #406/#431 — subscriptions retired; Milla returns as a per-lead layer (#427).
+            No $X/month sell, no checkout — honest coming-soon. */}
         <div className="text-center mb-5">
-          <span className="text-3xl font-bold text-gray-900">${PRODUCTS.virtual_assistant.price_usd}</span>
-          <span className="text-[#9B8EC4] text-sm ml-1">/month</span>
+          <span className="text-sm font-semibold text-gray-400">Coming soon</span>
         </div>
         <div className="space-y-3">
-          <a href="/dashboard/billing" className="flex items-center justify-center gap-2 w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors">
-            Unlock Milla — ${PRODUCTS.virtual_assistant.price_usd}/month →
-          </a>
+          <span className="flex items-center justify-center gap-2 w-full bg-gray-100 text-gray-400 font-semibold rounded-xl px-6 py-3 text-sm border border-gray-200 cursor-not-allowed select-none">
+            Coming soon
+          </span>
           <DemoRequestButton product="milla" />
         </div>
-        <p className="text-xs text-[#9B8EC4] text-center mt-4">Cancel anytime · Billed monthly via Stripe · Activates instantly</p>
+        <p className="text-xs text-[#9B8EC4] text-center mt-4">We'll let you know the moment Milla is ready.</p>
       </div>
     </div>
   )

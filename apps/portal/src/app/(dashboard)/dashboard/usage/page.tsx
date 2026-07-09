@@ -64,6 +64,8 @@ interface UsageData {
   period_end: string
   overage_leads: number
   overage_cost_usd: number
+  reveals_this_month?: number
+  figsy_this_month?: number
 }
 
 // Keys must match the transaction `type` values the API actually writes:
@@ -142,18 +144,12 @@ export default function UsagePage() {
   const totalPurchased = totals.purchased ?? transactions.filter(t => t.type === 'purchase').reduce((s, t) => s + t.amount, 0)
 
 
-  // #385 — the old "100 included + $1/lead overage" panel was the retired subscription
-  // model (fake — there is no bundle). Under per-qualified-lead, every reveal is a REAL
-  // $1 charge on the reveal wallet. Compute reveals from the REAL ledger: reveal-wallet
-  // spends (plan 'lead_gen') this month. 1 reveal credit = $1.
-  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0)
-  const revealTxns = transactions.filter(t =>
-    t.plan === 'lead_gen' && t.amount < 0 && new Date(t.created_at) >= monthStart)
-  const revealsThisMonth = revealTxns.reduce((n, t) => n + Math.abs(t.amount), 0)
+  // #385 — real month-to-date per-lead spend from the server (FULL ledger, not the
+  // 50-row /credits slice which under-reports high-volume clients). $1 per reveal, $3
+  // per FIGSY-worked lead.
+  const revealsThisMonth = usage?.reveals_this_month ?? 0
   const revealSpendUsd   = revealsThisMonth * OVERAGE_RATE_USD  // $1 per reveal
-  const figsyTxns = transactions.filter(t =>
-    t.plan === 'figsy' && t.amount < 0 && new Date(t.created_at) >= monthStart)
-  const figsyThisMonth = figsyTxns.reduce((n, t) => n + Math.abs(t.amount), 0)
+  const figsyThisMonth   = usage?.figsy_this_month ?? 0
 
 
   return (

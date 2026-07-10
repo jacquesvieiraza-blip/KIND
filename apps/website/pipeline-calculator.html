@@ -15,82 +15,28 @@
   <meta name="description" content="Put in your own numbers and see an honest estimate of the meetings and revenue FIGSY could add to your pipeline. Every assumption is yours to adjust." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root { --blue: #7c3aed; --dark: #0a0a0a; --mid: #444; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
+    :root { --blue: #7C3AED; --ink: #1E1152; --deep: #0F0929; --dark: #0a0a0a; --light: #f5f5f7; --border: rgba(0,0,0,0.08); }
     html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: clip; }
+
+    /* ── NAV (shared chrome) ── */
     nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
     .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
     .logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
     .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
     .nav-links { display: flex; align-items: center; gap: 2px; }
-    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
     .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
     .nav-right { display: flex; align-items: center; gap: 10px; }
-    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; background: none; }
+    .btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; background: none; cursor: pointer; }
     .btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
-    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; transition: opacity .2s; border: none; cursor: pointer; }
     .btn-nav-primary:hover { opacity: 0.8; }
-    .page-hero { max-width: 1080px; margin: 0 auto; padding: 80px 48px 40px; text-align: center; }
-    .hero-label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 24px; background: rgba(124,58,237,0.06); border: 1px solid rgba(124,58,237,0.15); padding: 6px 14px; border-radius: 100px; }
-    .page-hero h1 { font-size: clamp(2.2rem, 4.5vw, 3.6rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; }
-    .page-hero p { font-size: 1.05rem; color: rgba(0,0,0,0.45); max-width: 600px; margin: 0 auto; line-height: 1.7; }
-
-    .calc-wrap { max-width: 1000px; margin: 0 auto 40px; padding: 0 48px; }
-    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
-    .calc-card { border: 1px solid var(--border); border-radius: 24px; padding: 36px; background: #fff; }
-    .calc-card.inputs { box-shadow: 0 4px 24px rgba(0,0,0,0.04); }
-    .calc-card.results { background: var(--dark); color: #fff; position: sticky; top: 88px; }
-    .calc-card h2 { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 28px; }
-    .calc-card.results h2 { color: #a78bfa; }
-    .field { margin-bottom: 26px; }
-    .field label { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; font-weight: 600; color: rgba(0,0,0,0.7); margin-bottom: 10px; }
-    .field .val { font-weight: 800; color: var(--blue); font-size: 0.95rem; }
-    .field input[type=number] { width: 100%; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; font-size: 1rem; font-weight: 600; color: var(--dark); font-family: inherit; }
-    .field input[type=number]:focus { outline: none; border-color: var(--blue); }
-    .field input[type=range] { width: 100%; accent-color: var(--blue); height: 4px; cursor: pointer; }
-    .field .hint { font-size: 0.74rem; color: rgba(0,0,0,0.38); margin-top: 8px; line-height: 1.5; }
-    .assume-head { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.35); margin: 8px 0 20px; padding-top: 24px; border-top: 1px dashed var(--border); }
-
-    .result-row { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-    .result-row:last-of-type { border-bottom: none; }
-    .result-row .label { font-size: 0.88rem; color: rgba(255,255,255,0.55); }
-    .result-row .num { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
-    .result-hero { text-align: center; padding: 24px 0 8px; }
-    .result-hero .label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a78bfa; margin-bottom: 8px; }
-    .result-hero .num { font-size: 2.6rem; font-weight: 900; letter-spacing: -0.03em; background: linear-gradient(120deg,#c4b5fd,#fff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .result-hero .sub { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
-    .btn-cta { display: block; text-align: center; background: #fff; color: var(--dark); font-size: 0.9rem; font-weight: 700; padding: 14px; border-radius: 100px; text-decoration: none; margin-top: 28px; transition: opacity .2s; }
-    .btn-cta:hover { opacity: 0.88; }
-
-    .disclaimer { max-width: 1000px; margin: 0 auto 90px; padding: 0 48px; }
-    .disclaimer-box { background: var(--light); border-radius: 16px; padding: 24px 28px; display: flex; gap: 16px; align-items: flex-start; }
-    .disclaimer-box .icon { font-size: 1.2rem; flex-shrink: 0; }
-    .disclaimer-box p { font-size: 0.82rem; color: rgba(0,0,0,0.5); line-height: 1.7; }
-    .disclaimer-box strong { color: rgba(0,0,0,0.7); }
-
-    footer { border-top: 1px solid var(--border); padding: 48px; text-align: center; }
-    footer p { font-size: 0.78rem; color: rgba(0,0,0,0.3); }
-    footer a { color: rgba(0,0,0,0.5); text-decoration: none; }
-    footer a:hover { color: var(--dark); }
-
-    @media (max-width: 768px) {
-      nav { padding: 0 24px; } .nav-links { display: none; }
-      .page-hero { padding: 48px 24px 32px; } .calc-wrap, .disclaimer { padding: 0 24px; }
-      .calc-grid { grid-template-columns: 1fr; } .calc-card.results { position: static; }
-    }
-  
-    /* canonical nav dropdowns */
     .nav-item { position: relative; }
     .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
     .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
     .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
-    .nav-dropdown {
-      opacity: 0; visibility: hidden; pointer-events: none;
-      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
-      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
-      z-index: 300; transition: opacity .15s, visibility .15s;
-    }
+    .nav-dropdown { opacity: 0; visibility: hidden; pointer-events: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px; padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12); z-index: 300; transition: opacity .15s, visibility .15s; }
     .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
     .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
     .dd-link:hover { background: rgba(0,0,0,0.04); }
@@ -100,7 +46,56 @@
     .dd-link:hover .dd-title { color: var(--dark); }
     .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
 
-  
+    /* ── HERO (light lavender) ── */
+    .page-hero { background: linear-gradient(180deg, #F5F0FF 0%, #FBFAFF 100%); padding: 80px 48px 56px; text-align: center; border-bottom: 1px solid rgba(124,58,237,0.08); }
+    .page-hero-inner { max-width: 720px; margin: 0 auto; }
+    .hero-label { display: inline-flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); margin-bottom: 22px; background: rgba(124,58,237,0.07); border: 1px solid rgba(124,58,237,0.18); padding: 6px 14px; border-radius: 100px; }
+    .page-hero h1 { font-size: clamp(2.2rem, 4.6vw, 3.6rem); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 18px; color: var(--ink); }
+    .page-hero h1 span { color: var(--blue); }
+    .page-hero p { font-size: 1.02rem; color: rgba(30,17,71,0.55); max-width: 600px; margin: 0 auto; line-height: 1.7; }
+
+    /* ── CALCULATOR ── */
+    .calc-wrap { max-width: 1040px; margin: -32px auto 40px; padding: 0 48px; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+    .calc-card { border-radius: 24px; padding: 36px; }
+    .calc-card.inputs { background: #fff; border: 1px solid rgba(20,18,45,0.08); box-shadow: 0 30px 60px -30px rgba(70,30,130,0.4); }
+    .calc-card.results { background: var(--deep); color: #fff; position: sticky; top: 88px; overflow: hidden; }
+    .calc-card.results::before { content: ''; position: absolute; inset: 0; background: radial-gradient(520px 300px at 50% -10%, rgba(124,58,237,0.28) 0%, transparent 65%); pointer-events: none; }
+    .calc-card.results > * { position: relative; z-index: 1; }
+    .calc-card h2 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 28px; }
+    .calc-card.results h2 { color: #a78bfa; }
+    .field { margin-bottom: 26px; }
+    .field label { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; font-weight: 600; color: rgba(30,17,71,0.7); margin-bottom: 10px; }
+    .field .val { font-weight: 800; color: var(--blue); font-size: 0.95rem; }
+    .field input[type=number] { width: 100%; padding: 12px 14px; border: 1.5px solid rgba(20,18,45,0.12); border-radius: 12px; font-size: 1rem; font-weight: 600; color: var(--ink); font-family: inherit; background: #fff; transition: border-color .2s; }
+    .field input[type=number]:focus { outline: none; border-color: var(--blue); }
+    .field input[type=range] { width: 100%; accent-color: var(--blue); height: 4px; cursor: pointer; }
+    .field .hint { font-size: 0.74rem; color: rgba(30,17,71,0.42); margin-top: 8px; line-height: 1.5; }
+    .assume-head { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(30,17,71,0.4); margin: 8px 0 20px; padding-top: 24px; border-top: 1px dashed rgba(20,18,45,0.14); }
+
+    .result-row { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .result-row:last-of-type { border-bottom: none; }
+    .result-row .label { font-size: 0.88rem; color: rgba(255,255,255,0.55); }
+    .result-row .num { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+    .result-hero { text-align: center; padding: 26px 0 8px; }
+    .result-hero .label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a78bfa; margin-bottom: 8px; }
+    .result-hero .num { font-size: 2.7rem; font-weight: 900; letter-spacing: -0.03em; background: linear-gradient(120deg,#c4b5fd,#fff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .result-hero .sub { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
+    .btn-cta { display: block; text-align: center; background: #fff; color: var(--dark); font-size: 0.9rem; font-weight: 700; padding: 14px; border-radius: 100px; text-decoration: none; margin-top: 28px; transition: opacity .2s, transform .2s; }
+    .btn-cta:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .disclaimer { max-width: 1040px; margin: 0 auto 90px; padding: 0 48px; }
+    .disclaimer-box { background: linear-gradient(180deg, #F5F0FF 0%, #FBFAFF 100%); border: 1px solid rgba(124,58,237,0.12); border-radius: 18px; padding: 24px 28px; display: flex; gap: 16px; align-items: flex-start; }
+    .disclaimer-box .icon { font-size: 1.2rem; flex-shrink: 0; }
+    .disclaimer-box p { font-size: 0.84rem; color: rgba(30,17,71,0.6); line-height: 1.75; }
+    .disclaimer-box strong { color: var(--ink); }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 24px; } .nav-links { display: none; }
+      .page-hero { padding: 48px 24px 44px; } .calc-wrap, .disclaimer { padding: 0 24px; }
+      .calc-grid { grid-template-columns: 1fr; } .calc-card.results { position: static; }
+    }
+
     /* canonical footer */
     footer { border-top: 1px solid rgba(0,0,0,0.08); padding: 64px 48px 40px; background:#fff; }
     .footer-inner { max-width: 1080px; margin: 0 auto; }
@@ -111,26 +106,19 @@
     .footer-col a:hover { color: var(--dark); }
     .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
     .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-legal { display: flex; gap: 20px; }
+    .footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
+    .footer-legal a:hover { color: var(--dark); }
 
-  
     /* canonical nav promo */
-    .dd-promo {
-      background: var(--dark); border-radius: 12px;
-      padding: 14px 16px; margin: 4px;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    }
+    .dd-promo { background: var(--dark); border-radius: 12px; padding: 14px 16px; margin: 4px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
     .dd-promo-text strong { color: #fff; display: block; }
-    .dd-promo-cta {
-      font-size: 0.72rem; font-weight: 700; color: #fff;
-      background: rgba(255,255,255,0.12); padding: 7px 13px;
-      border-radius: 8px; text-decoration: none; white-space: nowrap;
-      transition: background .2s; flex-shrink: 0;
-    }
+    .dd-promo-cta { font-size: 0.72rem; font-weight: 700; color: #fff; background: rgba(255,255,255,0.12); padding: 7px 13px; border-radius: 8px; text-decoration: none; white-space: nowrap; transition: background .2s; flex-shrink: 0; }
     .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
-
-
   </style>
+  <!-- Shared K.I.N.D design system (loaded last so it wins) -->
+  <link rel="stylesheet" href="kind.css" />
 </head>
 <body>
 
@@ -174,11 +162,13 @@
 </nav>
 
 <!-- HERO -->
-<div class="page-hero">
-  <div class="hero-label">Pipeline Calculator</div>
-  <h1>Your numbers. An honest estimate.</h1>
-  <p>Put in what your pipeline looks like today and see what FIGSY could add. Every assumption below is yours to move — we'd rather show you a conservative number you trust than a flashy one you don't.</p>
-</div>
+<section class="page-hero">
+  <div class="page-hero-inner">
+    <div class="hero-label">Pipeline Calculator</div>
+    <h1>Your numbers. <span>An honest estimate.</span></h1>
+    <p>Put in what your pipeline looks like today and see what FIGSY could add. Every assumption below is yours to move — we'd rather show you a conservative number you trust than a flashy one you don't.</p>
+  </div>
+</section>
 
 <!-- CALCULATOR -->
 <div class="calc-wrap">

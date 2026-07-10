@@ -132,3 +132,68 @@ body{ font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI
 .grad-dark-grey{ background:linear-gradient(to bottom,#080812 0%,#f9fafb 100%); }
 .grad-grey-dark{ background:linear-gradient(to bottom,#f9fafb 0%,#080812 100%); }
 .grad-dark-wht{ background:linear-gradient(to bottom,#080812 0%,#fff 100%); }
+
+
+/* ===== SHARED CHROME (header/footer/tokens) — extracted from approved homepage, loaded last so it wins ===== */
+:root {
+      --blue: #7C3AED;
+      --dark: #0a0a0a;
+      --mid: #444;
+      --light: #f5f5f7;
+      --border: rgba(0,0,0,0.08);
+    }
+/* NAV */
+    nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 64px;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0;
+      background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200;
+    }
+.logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.logo-icon { width: 30px; height: 30px; background: var(--blue); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+.nav-links { display: flex; align-items: center; gap: 2px; }
+.nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; display: flex; align-items: center; gap: 4px; }
+.nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.btn-nav-ghost { color: rgba(0,0,0,0.6); font-size: 0.85rem; text-decoration: none; padding: 7px 16px; border-radius: 20px; border: 1px solid rgba(0,0,0,0.15); transition: all .2s; cursor: pointer; background: none; }
+.btn-nav-ghost:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
+/* NAV DROPDOWNS */
+    .nav-item { position: relative; }
+.chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+.nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+.nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+.nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+.nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+.dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+.dd-link:hover { background: rgba(0,0,0,0.04); }
+.dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+.dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+.dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+.dd-link:hover .dd-title { color: var(--dark); }
+.dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+footer { padding: 64px 48px 40px; }
+.footer-inner { max-width: 1080px; margin: 0 auto; }
+.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
+.footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+.footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+.footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
+.footer-col a:hover { color: var(--dark); }
+.footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+.footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+.footer-legal { display: flex; gap: 20px; }
+.footer-legal a { font-size: 0.75rem; color: rgba(0,0,0,0.28); text-decoration: none; }
+.footer-legal a:hover { color: var(--dark); }
+/* TASK 7 — NAV DROPDOWN PROMO BLOCK */
+    .dd-promo {
+      background: var(--dark); border-radius: 12px;
+      padding: 14px 16px; margin: 4px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }

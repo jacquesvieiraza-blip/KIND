@@ -23,6 +23,7 @@
 | 🟡 | 8a·③ | **PR3 — admin Money Path** #448 **+ lead_pool & per-record P&L** (#449 parts 1–2) — **BUILT, in PR #1057** → Fable-verify → merge → migration → `railway up @kind/api`+`@kind/admin` | 🤖 · 🧍 ship |
 | 🟡 | 8a·④ | **PR4 — pool-first sourcing = cross-client reuse** (#449 part 3) — **BUILT, in PR #1057** (needs the #448 `lead_pool` migration first) → Fable-verify → merge → `railway up @kind/api` | 🤖 · 🧍 ship |
 | ⬜ | 8b | **THEN one real end-to-end walkthrough** — ICP → source (pool-first) → reveal $1 (+2 drip) → enroll $3 → sequence sends → reply → every wallet + ledger moves right — founder walks it once, top to bottom. *Carried from 10 Jul: signup fixed #1047 · sourcing zero root-caused #444 · **money fences #445/#446 LIVE + battle-proven** (granted 10 → PDL empty → auto-refunded $0 lost, first live run)* | 🤝 |
+| ⬜ | 8c | **GUIDED ONBOARDING TOUR** #454 (founder-ruled INTO the sprint 10 Jul: "a client needs this before we onboard anyone or demo — self-serve product") — a real next→next→next popup tour that FOLLOWS the client across screens: Welcome → Create ICP → Run → Review leads → **Reveal $1 (honest, balance shown)** → Select → Enrol $3 → Review sequence → Launch; + "keep FIGSY funded → billing" triggered prompt; + first-login video & permanent "Learn with FIGSY" section. Replaces the 3 dead legacy widgets. Spec = `docs/onboarding-tour-buildplan.md`. **Core (Phases 0–4) is the sprint scope; video/analytics/a11y (6–8) queue post-line-10.** Preview-first. | 🤖 build · 🧍 walk+ship |
 | ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study); this IS acquisition channel ① (CAC ~$56–79/client, cashflow §5e) | 🤝 |
 | ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |
 | ⬜ | 11 | **DATA-ENGINE WIDENING — queued, fires the moment line 10 ticks** (founder-ruled 10 Jul: critical, first-after-sprint — not sprint-blocking, so it queues here rather than jumping the line-10 gate) — **#452 more discovery engines** beyond PDL (Apollo free/BYOK · Cognism · aggregator per item-243 research) · **#451 Clearbit executed + reveal waterfall ENFORCED end-to-end** (PDL→Hunter→Clearbit) · **#450 free-Apollo-key merge** switched on | 🤖 build · 🧍 keys |
@@ -33,7 +34,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡19 · 🔴225 · ⏸5 · **Σ457** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡19 · 🔴226 · ⏸5 · **Σ458** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

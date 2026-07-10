@@ -531,6 +531,13 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
       }).then(() => {}, () => {}) // unique-reference conflict = already booked; ignore
     }
 
+    // #445 — TRIAL sourcing drip: a successful reveal unlocks +2 more sourced records,
+    // so a trial client learns the loop by playing it (reveal → more leads appear). The
+    // RPC caps lifetime trial grants at 20 records, so this is self-limiting and a no-op
+    // once the client is out of trial pool — safe to call on every reveal. Fire-and-forget.
+    void db.rpc('add_sourcing_allowance', { p_client_id: clientId, p_records: 2, p_trial: true })
+      .then(() => {}, (e: unknown) => console.error('[reveal] trial sourcing drip failed (non-fatal):', e))
+
     res.json({ success: true, revealed: true, email, charged: chargedNet })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })

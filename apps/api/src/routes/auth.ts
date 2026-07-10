@@ -178,8 +178,12 @@ authRouter.post('/onboard', async (req, res) => {
       // ledger rows below still insert, the ledger says "25 credits granted" while the
       // wallet holds 0 — a drift that reads as free credits the client can't spend.
       // Only write the ledger when the balance actually changed; alert on failure.
+      // #445 — seed the TRIAL sourcing pool alongside the welcome credits: 10 records
+      // at signup (trial_sourcing_granted tracks the 20-record lifetime cap; reveals
+      // drip +2 up to it). This is the ONLY non-purchase allowance grant — a never-paid
+      // client can source at most 20 records EVER (~$5.60 max exposure per free signup).
       const { error: grantErr } = await db.from('clients')
-        .update({ credit_balance: 20, figsy_credits_remaining: 5 }).eq('id', clientId)
+        .update({ credit_balance: 20, figsy_credits_remaining: 5, sourcing_allowance: 10, trial_sourcing_granted: 10 }).eq('id', clientId)
       if (grantErr) {
         console.error('[auth/signup] welcome-credit grant failed for', clientId, grantErr)
         void sendFounderAlert('charge_failed', 'Welcome credits NOT granted at signup', [

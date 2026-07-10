@@ -41,6 +41,15 @@
 >
 > ⚠️ **The one real leak to police — PDL is spent at SOURCING, before any charge.** Every record we pull costs ~$0.28 whether the client ever reveals it or not, so unrevealed sourced records are sunk cost. This is why sourcing needs **per-client/day quotas + a regen cap** (#423), NOT just the reveal gate. Reveal ($1) and work ($3) are self-funding; **sourcing is the cost to control.**
 >
+> ### 🔒 THE MONEY FENCES — sourcing is pre-funded by collected cash (built 10 Jul, #445/#446)
+> The leak above is now structurally closed: **every PDL dollar must be pre-funded by a customer dollar already collected.** No client mix — free, paid, malicious, 1 or 1,000 — can make us net-negative on data.
+> - **Coverage k=2** — a paid client's sourcing allowance grows by **2 records per $1 collected**, accrued ONLY at the payment webhook (never at reveal/work spend → no double-count). Worst-case paid client (sources + reveals everything, never returns) still leaves ~30–39% margin.
+> - **Trial pool** — a never-paid client is seeded **10 records at signup + 2 per reveal, HARD-CAPPED at 20 lifetime** → **≤ $5.60 max exposure per free signup, once, ever.** 100 ghost signups who run an ICP = **$280 ceiling**, vs unbounded before.
+> - **Global ceiling** — an admin-editable **$300/mo** platform-wide PDL budget (`money_settings`); alert at 80%, hard pause + honest client banner at 100%. The company's maximum possible data loss is a number the founder sets.
+> - **Daily cap** — the existing 100 records/client/day stays as a second fence.
+> - **Ask-size = keep-size** — sourcing now asks PDL for exactly the granted batch (was buy-50-keep-20 → ~60% of per-run PDL spend was binned); **+ preview cache** so form-fiddling no longer fires paid PDL calls.
+> - Enforced by the atomic fail-closed `try_spend_sourcing` RPC (`20260711_sourcing_fences.sql`); admin **Money Path** page surfaces per-client contribution + the global budget. **FIGSY's $3 is unaffected — it only enrols already-revealed leads, so work can never precede the $1 and carries no data cost.**
+>
 > **On the body below:** §1 (fixed infra) is still broadly right. §2–§5 and §12 were written on the retired single-$3 / Apollo model — where a section says "Apollo ~$0.008/lead," "$3 all-in," or "double-charge bug," the LOCKED block above supersedes it. Blended-ARPU/scenario tables (§5a–§8) are directional: a fully-worked lead is now **$4**, so per-client ARPU rises accordingly.
 
 > ### 🟢 STATUS NOTES (framing corrections — carried forward)

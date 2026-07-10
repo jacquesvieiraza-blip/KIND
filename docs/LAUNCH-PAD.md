@@ -17,12 +17,18 @@
 | ✅ | 5 | **Revenue-report bug fixed** (`amount_usd` written on the Stripe sub webhook #1040 · deployed 10 Jul) | 🤖 |
 | ✅ | 6 | **Merge PR #1019 + run its migrations** (merged · founder ran all 9 prod migrations · api+portal deployed 10 Jul) | 🧍 (10 min) |
 | ✅ | 7 | **3 pricing rules ruled** (10 Jul) — reveal $1 charged **once per lead EVER** · work $3 charged **per campaign enrollment** · trial mix **20 reveal + 5 work** · **kill subscription machinery** (keep FIGSY entitlement rows) → builds #424/#425/#431 | 🧍 (3 lines) |
-| ⬜ | 8a | **BUILD the money machine COMPLETE** (founder-ruled 10 Jul: all of it ships BEFORE the walkthrough) — ① 🧍 buy PDL credits ($280/1,000) · ② PR2 portal onboarding + reveal push #447 (preview-first) · ③ PR3 admin Money Path #448 **+ lead_pool & per-record P&L** (#449 parts 1–2) · ④ PR4 **pool-first sourcing = cross-client reuse** (#449 part 3 — **founder ruling: build NOW, PDL-licence check deferred until revenue**; lawyers cost money we haven't made) | 🤖 build · 🧍 buy+merge+deploy |
+| ⬜ | 8a | **BUILD the money machine COMPLETE** (founder-ruled 10 Jul: all of it ships BEFORE the walkthrough) — 4 sub-steps below, tick each as it lands | 🤖 build · 🧍 buy+merge+deploy |
+| ⬜ | 8a·① | 🧍 **Buy PDL credits** ($280 / 1,000 records) — the ONE thing money can't route around; everything else queues behind it | 🧍 |
+| ⬜ | 8a·② | **PR2 — portal onboarding + reveal push** #447 (first-run checklist · two-wallet explainer · FIGSY nudge · score-forward masked cards · "reveal 1 → unlock 2" · day-0 email CTA · kill Apollo copy) — **PREVIEW FIRST → founder walks → merge → `railway up @kind/portal`** | 🤖 build · 🧍 walk+ship |
+| ⬜ | 8a·③ | **PR3 — admin Money Path** #448 **+ lead_pool & per-record P&L** (#449 parts 1–2: per-client contribution table + 4 tiles + editable $300 cap · the `lead_pool` store · each $0.28 record vs every $1/$3 it earns) — Fable-verify → merge → `railway up @kind/api`+`@kind/admin` | 🤖 · 🧍 ship |
+| ⬜ | 8a·④ | **PR4 — pool-first sourcing = cross-client reuse** (#449 part 3: ICP runs serve pool matches at $0, buy only the remainder) — **founder ruling: build NOW, PDL-licence check deferred until revenue** (Apollo precedent: reseller tier existed for this model) — Fable-verify → merge → `railway up @kind/api` | 🤖 · 🧍 ship |
 | ⬜ | 8b | **THEN one real end-to-end walkthrough** — ICP → source (pool-first) → reveal $1 (+2 drip) → enroll $3 → sequence sends → reply → every wallet + ledger moves right — founder walks it once, top to bottom. *Carried from 10 Jul: signup fixed #1047 · sourcing zero root-caused #444 · **money fences #445/#446 LIVE + battle-proven** (granted 10 → PDL empty → auto-refunded $0 lost, first live run)* | 🤝 |
-| ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study) | 🤝 |
+| ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study); this IS acquisition channel ① (CAC ~$56–79/client, cashflow §5e) | 🤝 |
 | ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |
 
-**Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work, admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel.
+> **📐 The money machine spec (8a) — full flow, fences, onboarding + admin Money Path, and the locked numbers (k=2 · $300 cap · trial 10+2/reveal):** [money-path flowchart artifact](https://claude.ai/code/artifact/d7d22dab-d9ac-43e0-8ac3-c7a1ae08e65e). Unit economics + CAC = `run-costs-and-cashflow.md` §0 + §5e.
+
+**Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work, admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel. **Post-sprint data-cost levers (founder-ruled "not a stopper"): #450 free-Apollo-key merge · #451 Clearbit + waterfall enforcement.**
 
 **Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡15 · 🔴227 · ⏸5 · **Σ455** · live count: `scripts/count-inventory.sh`
 

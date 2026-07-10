@@ -150,11 +150,16 @@ authRouter.post('/onboard', async (req, res) => {
 
     const trialEnd = new Date()
     trialEnd.setDate(trialEnd.getDate() + 14)
+    // The subscriptions.product column is the product_type ENUM — its FIGSY value is
+    // 'lead_gen_figsy' (NOT 'figsy', which isn't in the enum → 22P02 on insert). This
+    // is also the value hasFigsy reads (isLive('lead_gen_figsy')), so the trialing row
+    // grants access. (clients.plan + credit_transactions.plan are separate TEXT fields
+    // where 'figsy' is correct — only this enum column uses 'lead_gen_figsy'.)
     const { data: existingSub } = await db.from('subscriptions')
-      .select('id').eq('client_id', clientId).eq('product', 'figsy').maybeSingle()
+      .select('id').eq('client_id', clientId).eq('product', 'lead_gen_figsy').maybeSingle()
     if (!existingSub) {
       const { error: subErr } = await db.from('subscriptions').insert({
-        client_id: clientId, product: 'figsy', tier: 'starter', status: 'trialing',
+        client_id: clientId, product: 'lead_gen_figsy', tier: 'starter', status: 'trialing',
         billing_interval: 'monthly',
         amount_usd: 0,
         amount_zar: 0,

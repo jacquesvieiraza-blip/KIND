@@ -358,6 +358,23 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
+## 5e. CAC — what it costs US to get a client (LOCKED 10 Jul; closes the cashflow loop)
+
+*The founder's question: "cost of myself getting clients." Three acquisition motions, costed against the real funnel numbers (§5b: 2–3% cold reply · ~5 interested replies ≈ 1 client) and the real data rates (§0). Channels are alternatives per client — don't sum them.*
+
+| Channel | Cash CAC / client | Founder time / client | How it's made of |
+|---|---|---|---|
+| **① FIGSY cold outbound** (dogfood — SPRINT line 9) | **~$56–79** | ~3–4 h (≈5 demos) | sourcing 167–250 prospects × $0.28 = $47–70 · sends+Haiku ≈ $3 · + their own trial ≤ $6 (fence-capped) |
+| **② Inbound self-serve trial** | **~$18** | ~0 h | trial COGS ≤ ~$6/engaged trial (fences) × ~3 trials per conversion |
+| **③ Agency partner** | **~$0 upfront** | relationship time only | paid as revenue-share commission on collected revenue; **1 partner ≈ 10 clients/mo** — the cheapest channel at scale |
+
+**Payback — CAC is self-funding on every channel:** an average client (~20 fully-worked leads/mo = $80/mo at ~87% margin) pays back the worst-case outbound CAC ($79) **inside the first month**; inbound ($18) inside the first week's spend; partner CAC is deducted from revenue as it's collected (never cash-ahead).
+- **The pool (#449) halves ①:** once pool-first sourcing is live, most outbound prospects are served from owned records → outbound cash CAC → **~$25–40**.
+- **The REAL constraint is founder hours, not cash:** at the §5b goal of 5–6 clients/mo via cold, that's ~20 h/mo of founder selling. The partner channel is the lever that buys those hours back — one relationship replaces ~1,000 cold prospects.
+- **Rule of the lock:** no acquisition channel may exceed ~1 month payback, and cash CAC must never exceed a client's first-month revenue. Anything that breaks this (paid ads pre-revenue, conferences, tooling) waits until clients fund it.
+
+---
+
 ## 6. Three Scenarios — Month by Month (directional, use §5b for current numbers)
 *Note: net-profit columns below use the OLD $203 fixed stack — directional only. **Use §5b/§7 for current break-even ($138 fixed)**. Client-growth assumptions still hold.*
 *Revenue/mo = clients × avg leads/mo × $4 — no subscriptions; figures directional.*

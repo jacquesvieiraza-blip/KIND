@@ -48,6 +48,7 @@ import { linkedinRouter } from './routes/linkedin'
 import { integrationsRouter } from './routes/integrations'
 import { engineRouter } from './routes/engine'
 import { onboardingRouter } from './routes/onboarding'
+import { moneyPathRouter } from './routes/money-path'
 import { startCrons } from './cron'
 import { createClient } from '@supabase/supabase-js'
 
@@ -186,6 +187,7 @@ app.use('/api/linkedin', linkedinRouter)
 app.use('/integrations', integrationsRouter)
 app.use('/engine',        engineRouter)
 app.use('/onboarding',    onboardingRouter)
+app.use('/money-path',    moneyPathRouter)
 
 // MCP discovery endpoint for Claude Desktop / Cursor
 app.get('/.well-known/mcp.json', (_req, res) => {

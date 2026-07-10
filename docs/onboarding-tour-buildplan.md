@@ -149,9 +149,16 @@ Each client-facing phase (2–5) follows the standing rule: **preview → founde
 
 ## 10. Where this sits in the SPRINT — a call for the founder, not a decision I've made
 
-The SPRINT rule is "a line only belongs if it blocks the first paying client." The founder's own framing this session — *"a client needs this before we onboard anyone or demo... critical to a new client... self-serving product"* — reads like this **does** meet that bar: a self-serve product without a guided first-run genuinely cannot onboard a client alone. Recommendation: **Phases 0–4 (the required 9-step core, no video/analytics) become a new SPRINT line, sequenced before line 10** — the same way data-engine-widening became line 11 after a founder ruling. Phases 6–8 (video, analytics, a11y polish) stay post-sprint, queued like line 11, since they don't block a client completing the flow.
+**FOUNDER RULING 10 Jul: this is SPRINT line 8c** (before line 9), and the **video / Learning-Centre (Phase 6) is IN the sprint scope** — the founder wants to record an onboarding video and drop it into the "Learn with FIGSY" section as part of this build, not later. So the sprint scope is **Phases 0–4 (core tour) + Phase 6 (video + Learning Centre)**. Only Phases 7–8 (analytics events, full a11y/mobile polish) stay post-sprint.
 
-**This needs your explicit ruling before LAUNCH-PAD is touched** — nothing has been inserted into the sprint table yet.
+**Phase 6 build contract (so the founder gets exactly what was asked):**
+- **First-login video card** on `/dashboard` — shown the first time a client signs in, skippable, resumable (persists watch-progress; localStorage is fine for progress, the "seen" flag rides on the onboarding state).
+- **Permanent "Learn with FIGSY" section** below the dashboard — the 6-card grid from the reference image (thumbnail · title · one-line description · duration · Watch button · optional New badge).
+- **One config file** (`apps/portal/src/lib/onboarding-videos.ts` or similar) — a typed array; each entry `{ id, title, description, url, duration, category, isNew, publishedAt }`. Adding a video = adding one array entry (newest first). NO CMS, NO DB table — hard-coded config, per §8 (correct for this stage).
+- **A video player component** — play/pause/skip/restart, shows duration, resume-where-left-off. Accepts the `url` from config (works with an unlisted YouTube/Vimeo embed URL or a direct file URL — the founder provides the link; the build does not pick a host).
+- **CSP allowance** — add the founder's chosen video host to the portal's Content-Security-Policy so the player isn't silently blocked. If the host isn't decided at build time, the player is built host-agnostic and the CSP entry is a one-line follow-up when the first real URL lands.
+
+**The only founder input Phase 6 needs (not a build blocker):** record the videos and host them somewhere with a link (unlisted YouTube / Vimeo / file host). The 6 topics = the reference-image categories. Everything else is built and waiting for those URLs.
 
 ## 11. Acceptance criteria (Phases 0–4, the sprint-candidate core)
 

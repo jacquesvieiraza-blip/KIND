@@ -98,9 +98,9 @@ export default function NotetakerPage() {
             <Mic className="w-5 h-5" style={{ color: BRAND }} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-[#1E1152]">AI Notetaker <span className="text-xs font-semibold text-gray-400 align-middle ml-1">· Coming soon</span></h1>
-            {/* #406 — Notetaker is a Milla feature; Milla is coming soon. */}
-            <p className="text-sm text-[#7C3AED]/60">Drop in a meeting transcript and Milla extracts action items, owners, and deadlines. Part of Milla — coming soon.</p>
+            <h1 className="text-2xl font-bold text-[#1E1152]">AI Notetaker</h1>
+            {/* Moved into the FIGSY bundle 10 Jul — included with any FIGSY plan. */}
+            <p className="text-sm text-[#7C3AED]/60">Drop in a meeting transcript and get action items, owners, and deadlines. Included with your FIGSY plan.</p>
           </div>
         </div>
       </div>
@@ -158,14 +158,14 @@ export default function NotetakerPage() {
             {/* Upgrade prompt */}
             {error === 'upgrade' && (
               <div className="rounded-xl border border-purple-200 bg-purple-50 px-4 py-4 text-center">
-                <p className="text-sm font-semibold text-[#7C3AED] mb-1">Milla subscription required</p>
-                <p className="text-xs text-[#7C3AED]/70 mb-3">The AI Notetaker is part of the Milla Virtual Assistant plan.</p>
+                <p className="text-sm font-semibold text-[#7C3AED] mb-1">FIGSY plan required</p>
+                <p className="text-xs text-[#7C3AED]/70 mb-3">The AI Notetaker is included with any active FIGSY plan.</p>
                 <a
                   href="/dashboard/billing"
                   className="inline-block px-4 py-2 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90"
                   style={{ background: BRAND }}
                 >
-                  Upgrade to Milla →
+                  Get FIGSY →
                 </a>
               </div>
             )}
@@ -198,7 +198,7 @@ export default function NotetakerPage() {
         <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-purple-50 flex items-center justify-between">
             <h2 className="text-[13px] font-bold text-[#7C3AED]/60 uppercase tracking-wider">
-              Action Items — Extracted by Milla
+              Action Items
             </h2>
             {items.length > 0 && (
               <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style={{ background: BRAND }}>
@@ -221,7 +221,7 @@ export default function NotetakerPage() {
             {loading && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Loader2 className="w-8 h-8 animate-spin mb-3" style={{ color: BRAND }} />
-                <p className="text-sm font-semibold text-[#1E1152]/60">Milla is reading your transcript…</p>
+                <p className="text-sm font-semibold text-[#1E1152]/60">Reading your transcript…</p>
               </div>
             )}
 
@@ -257,7 +257,7 @@ export default function NotetakerPage() {
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold border border-purple-200 text-[#7C3AED] hover:bg-purple-50 transition-all active:scale-[0.98]"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
-                    Add to Milla&apos;s tasks
+                    Add to tasks
                   </button>
                   <button
                     onClick={() => showToast('Slack not connected yet')}
@@ -276,7 +276,7 @@ export default function NotetakerPage() {
 
       {/* Footer note */}
       <p className="mt-6 text-center text-[11px] text-[#9CA3AF]">
-        Milla owns this feature. Input: Zoom/Teams transcript paste or upload. Output: structured action items with owner + deadline, pushable to tasks or Slack.
+        Included with your FIGSY plan. Input: Zoom/Teams transcript paste or upload. Output: structured action items with owner + deadline, pushable to tasks or Slack.
       </p>
     </div>
   )

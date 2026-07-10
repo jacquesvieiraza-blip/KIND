@@ -74,6 +74,40 @@ async function requireMillaAccess(
   }
 }
 
+// ── FIGSY access gate ─────────────────────────────────────────────────────────
+// The Notetaker was moved into the FIGSY bundle (10 Jul): any client with an active
+// FIGSY plan can use it. Mirrors requireMillaAccess (fail-open on lookup error so a
+// paying client is never wrongly blocked). The other Milla routes stay Milla-gated.
+async function requireFigsyAccess(
+  userId: string,
+): Promise<{ clientId: string } | { error: string; status: number }> {
+  const clientId = await getClientId(userId)
+  if (!clientId) return { error: 'Client not found', status: 404 }
+
+  try {
+    const { data, error } = await db.from('subscriptions')
+      .select('product, status')
+      .eq('client_id', clientId)
+      .in('product', ['lead_gen_figsy', 'figsy_addon'])
+      .eq('status', 'active')
+      .limit(1)
+
+    if (error) {
+      console.error('[milla/requireFigsyAccess] subscription lookup error (failing open):', error)
+      return { clientId }
+    }
+
+    if ((data ?? []).length === 0) {
+      return { error: 'An active FIGSY plan is required to use the Notetaker.', status: 403 }
+    }
+
+    return { clientId }
+  } catch (err) {
+    console.error('[milla/requireFigsyAccess] subscription lookup threw (failing open):', err)
+    return { clientId }
+  }
+}
+
 // ── STATUS ────────────────────────────────────────────────────────────────────
 
 millaRouter.get('/status', async (req: AuthRequest, res) => {
@@ -368,7 +402,8 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
       transcript: z.string().min(1).max(20000),
     }).parse(req.body)
 
-    const access = await requireMillaAccess(req.userId!)
+    // Notetaker is part of the FIGSY bundle (10 Jul) — gate on FIGSY access, not Milla.
+    const access = await requireFigsyAccess(req.userId!)
     if ('error' in access) { res.status(access.status).json({ success: false, error: access.error }); return }
 
     if (!process.env.ANTHROPIC_API_KEY) {
@@ -382,7 +417,7 @@ millaRouter.post('/notetaker', async (req: AuthRequest, res) => {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const systemPrompt =
-      'You are Milla, an AI assistant. Extract all action items from this meeting transcript. ' +
+      'Extract all action items from this meeting transcript. ' +
       'Return a JSON array: [{task: string, owner: string, due: string}]. ' +
       'Owner should be a first name from the transcript. ' +
       "Due should be a natural date like 'Mon 8 Jun'. " +

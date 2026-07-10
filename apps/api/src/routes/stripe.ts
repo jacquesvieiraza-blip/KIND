@@ -413,6 +413,10 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       const dbProduct          = STRIPE_SUBSCRIPTIONS[product].product
       const currentPeriodEnd   = new Date(sub.current_period_end * 1000).toISOString()
       const status             = sub.status === 'active' || sub.status === 'trialing' ? sub.status : 'active'
+      // SPRINT line 5 / #238 — the subscription row MUST carry its monthly USD price,
+      // else the revenue report (MRR = sum(amount_usd) of active subs) counts every
+      // paid subscriber as $0. Sourced from the locked STRIPE_SUBSCRIPTIONS table.
+      const amountUsd          = STRIPE_SUBSCRIPTIONS[product].priceUsd
 
       // Upsert subscription record
       const { data: existing } = await db.from('subscriptions')
@@ -421,6 +425,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       if (existing) {
         await db.from('subscriptions').update({
           status,
+          amount_usd:               amountUsd,
           current_period_end:       currentPeriodEnd,
           stripe_subscription_id:   sub.id,
         }).eq('id', existing.id)
@@ -429,6 +434,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           client_id:                clientId,
           product:                  dbProduct,
           status,
+          amount_usd:               amountUsd,
           current_period_end:       currentPeriodEnd,
           stripe_subscription_id:   sub.id,
         })

@@ -1,6 +1,6 @@
 export const dynamic = 'force-dynamic'
 
-import { DollarSign, Database, Coins, Sprout, AlertTriangle } from 'lucide-react'
+import { DollarSign, Database, Coins, Sprout, AlertTriangle, Boxes, TrendingUp } from 'lucide-react'
 import { Page, SectionLabel, Card, TileGrid, Tile, Table, TR, TD, Pill } from '@/components/ui'
 import CapEditor from './CapEditor'
 
@@ -34,6 +34,29 @@ interface ClientRow {
   net_contribution: number
 }
 
+interface Pool {
+  summary: {
+    total_records: number
+    earning_records: number
+    total_acquisition_cost: number
+    total_revenue_usd: number
+    net_usd: number
+    blended_roi: number
+    total_reveals: number
+    total_works: number
+  }
+  leaderboard: Array<{
+    email_norm: string
+    company: string | null
+    title: string | null
+    acquisition_cost: number
+    reveals: number
+    works: number
+    revenue_usd: number
+    roi: number
+  }>
+}
+
 async function apiGet<T>(path: string): Promise<T | null> {
   const key = process.env.ADMIN_SECRET_KEY
   if (!key) return null
@@ -50,9 +73,10 @@ async function apiGet<T>(path: string): Promise<T | null> {
 const usd = (n: number) => `$${(Math.round(n * 100) / 100).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
 
 export default async function MoneyPathPage() {
-  const [tiles, clients] = await Promise.all([
+  const [tiles, clients, pool] = await Promise.all([
     apiGet<Tiles>('/money-path/tiles'),
     apiGet<ClientRow[]>('/money-path/clients'),
+    apiGet<Pool>('/money-path/pool'),
   ])
 
   if (!tiles) {
@@ -156,6 +180,69 @@ export default async function MoneyPathPage() {
             )
           })}
         </Table>
+      )}
+
+      {/* ── THE LEAD POOL — records as inventory (#449) ──────────────────────── */}
+      <SectionLabel>The lead pool · records as inventory</SectionLabel>
+      {!pool ? (
+        <Card><p className="text-sm text-gray-400">Pool data unavailable (run the 20260712_lead_pool migration + deploy).</p></Card>
+      ) : (
+        <>
+          <TileGrid cols={4}>
+            <Tile
+              label="Pooled records"
+              icon={<Boxes className="w-5 h-5 inline -mt-1 mr-0.5 text-gray-400" />}
+              value={pool.summary.total_records.toLocaleString()}
+              note={`${pool.summary.earning_records.toLocaleString()} have earned ≥ $1`}
+            />
+            <Tile
+              label="Data owned (cost)"
+              icon={<Database className="w-5 h-5 inline -mt-1 mr-0.5 text-gray-400" />}
+              value={usd(pool.summary.total_acquisition_cost)}
+              note={`${pool.summary.total_records.toLocaleString()} records × acquisition cost`}
+            />
+            <Tile
+              label="Revenue off the pool"
+              icon={<Coins className="w-5 h-5 inline -mt-1 mr-0.5 text-gray-400" />}
+              value={usd(pool.summary.total_revenue_usd)}
+              note={`${pool.summary.total_reveals.toLocaleString()} reveals · ${pool.summary.total_works.toLocaleString()} works`}
+              tone={pool.summary.net_usd >= 0 ? 'up' : undefined}
+            />
+            <Tile
+              label="Blended pool ROI"
+              icon={<TrendingUp className="w-5 h-5 inline -mt-1 mr-0.5 text-gray-400" />}
+              value={`${pool.summary.blended_roi.toLocaleString()}×`}
+              note={`net ${usd(pool.summary.net_usd)} vs data cost`}
+              tone={pool.summary.blended_roi >= 1 ? 'up' : undefined}
+            />
+          </TileGrid>
+
+          <SectionLabel>Top-earning records · the reuse engine&rsquo;s winners</SectionLabel>
+          {pool.leaderboard.length === 0 || pool.summary.total_revenue_usd === 0 ? (
+            <Card>
+              <p className="text-sm text-gray-500">
+                No record has earned yet — the pool holds <strong>{pool.summary.total_records.toLocaleString()}</strong> records
+                ({usd(pool.summary.total_acquisition_cost)} of owned data) waiting to be revealed. Each earns $1 per client who
+                reveals it + $3 per FIGSY work, forever.
+              </p>
+            </Card>
+          ) : (
+            <Table head={['Record', 'Company', 'Title', 'Cost', 'Reveals', 'Works', 'Revenue', 'ROI']}>
+              {pool.leaderboard.map((r) => (
+                <TR key={r.email_norm}>
+                  <TD className="font-mono text-xs text-gray-600">{r.email_norm}</TD>
+                  <TD className="text-gray-900">{r.company || <span className="text-gray-400">—</span>}</TD>
+                  <TD className="text-gray-500">{r.title || <span className="text-gray-400">—</span>}</TD>
+                  <TD>{usd(r.acquisition_cost)}</TD>
+                  <TD>{r.reveals.toLocaleString()}</TD>
+                  <TD>{r.works.toLocaleString()}</TD>
+                  <TD className="font-semibold text-emerald-600">{usd(r.revenue_usd)}</TD>
+                  <TD className={`font-semibold ${r.roi >= 1 ? 'text-emerald-600' : 'text-gray-500'}`}>{r.roi.toLocaleString()}×</TD>
+                </TR>
+              ))}
+            </Table>
+          )}
+        </>
       )}
     </Page>
   )

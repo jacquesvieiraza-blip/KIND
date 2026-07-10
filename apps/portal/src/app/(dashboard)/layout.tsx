@@ -13,7 +13,7 @@ import { AgentColumn } from './AgentColumn'
 import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
 import { NotificationBell } from '@/components/ui/NotificationBell'
-import { Coins, FlaskConical } from 'lucide-react'
+import { Coins, Zap, FlaskConical } from 'lucide-react'
 
 const IS_STAGING = process.env.NEXT_PUBLIC_IS_STAGING === 'true'
 
@@ -24,6 +24,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   let trialExpired      = false
   let creditBalance     = 0
+  let figsyCredits      = 0
   let hasFigsy          = false
   let hasMilla          = false
   let hasVida           = false
@@ -60,7 +61,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   try {
     const { data: clientRow, error: clientErr } = await supabase
       .from('clients')
-      .select('id, credit_balance, company_name, company_id, seat_role, enabled_agents, subscriptions(*)')
+      .select('id, credit_balance, figsy_credits_remaining, company_name, company_id, seat_role, enabled_agents, subscriptions(*)')
       .eq('user_id', user.id)
       .maybeSingle()
 
@@ -77,6 +78,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     if (clientRow) {
       clientRowExists = true
       creditBalance = clientRow.credit_balance ?? 0
+      figsyCredits = (clientRow as { figsy_credits_remaining?: number }).figsy_credits_remaining ?? 0
       companyName = (clientRow as { company_name?: string }).company_name ?? ''
       const subs = (clientRow.subscriptions as { status: string; product?: string; trial_ends_at?: string }[]) ?? []
 
@@ -170,8 +172,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex-1 flex flex-col overflow-hidden">
           {stagingBanner}
           <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end gap-3 px-6 shrink-0">
-            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50">
-              <Coins className="w-3.5 h-3.5" /> {creditBalance.toLocaleString()}
+            {/* Both wallets — reveal ($1) + FIGSY work ($3) */}
+            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50" title="Reveal credits — $1 unmasks a lead">
+              <Coins className="w-3.5 h-3.5" /> {creditBalance.toLocaleString()} <span className="font-semibold text-amber-600/70">reveal</span>
+            </span>
+            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-[#7C3AED] bg-purple-50" title="FIGSY work credits — $3 per lead">
+              <Zap className="w-3.5 h-3.5" /> {figsyCredits.toLocaleString()} <span className="font-semibold text-[#7C3AED]/70">FIGSY</span>
             </span>
             <NotificationBell />
             <ProfileMenu name={companyName} email={user.email || ''} />
@@ -192,6 +198,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <Sidebar
           userEmail={user.email || ''}
           creditBalance={creditBalance}
+          figsyCredits={figsyCredits}
           hasFigsy={hasFigsy}
           hasMilla={hasMilla}
           hasVida={hasVida}

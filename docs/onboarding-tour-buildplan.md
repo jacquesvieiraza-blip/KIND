@@ -158,7 +158,11 @@ Each client-facing phase (2–5) follows the standing rule: **preview → founde
 - **A video player component** — play/pause/skip/restart, shows duration, resume-where-left-off. Accepts the `url` from config (works with an unlisted YouTube/Vimeo embed URL or a direct file URL — the founder provides the link; the build does not pick a host).
 - **CSP allowance** — add the founder's chosen video host to the portal's Content-Security-Policy so the player isn't silently blocked. If the host isn't decided at build time, the player is built host-agnostic and the CSP entry is a one-line follow-up when the first real URL lands.
 
-**The only founder input Phase 6 needs (not a build blocker):** record the videos and host them somewhere with a link (unlisted YouTube / Vimeo / file host). The 6 topics = the reference-image categories. Everything else is built and waiting for those URLs.
+**Host = YouTube (founder ruling 10 Jul — K.I.N.D's own YouTube channel).** This resolves the last open question and simplifies Phase 6:
+- Videos are **unlisted YouTube uploads** on the K.I.N.D channel. Config `url` = the YouTube video id or watch URL. No file hosting, no storage, no signed URLs — YouTube serves playback, bandwidth, captions.
+- Player = the **YouTube iframe embed** (`https://www.youtube-nocookie.com/embed/<id>`) — use `youtube-nocookie.com` (privacy-enhanced, no cookie until play). Resume-where-left-off via the YouTube iframe player API `getCurrentTime`/`seekTo` (or accept it as a v2 nicety if the API wiring is heavy — play/pause/skip/restart + duration are the must-haves).
+- **CSP is exact, not a TODO:** add `https://www.youtube-nocookie.com` (and `https://www.youtube.com`) to `frame-src`/`child-src` in the portal Content-Security-Policy so the embed isn't blocked. Thumbnails come from `https://i.ytimg.com` — add to `img-src`.
+- **The only founder input:** record the 6 videos, upload them unlisted to the K.I.N.D YouTube channel, paste each video id into the config array. Everything else is built and waiting.
 
 ## 11. Acceptance criteria (Phases 0–4, the sprint-candidate core)
 

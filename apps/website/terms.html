@@ -420,5 +420,11 @@
 <script>
 (function(){document.querySelectorAll(".nav-item").forEach(function(item){var t;item.addEventListener("mouseenter",function(){clearTimeout(t);item.classList.add("is-open")});item.addEventListener("mouseleave",function(){t=setTimeout(function(){item.classList.remove("is-open")},200)})})})();
 </script>
+<script>
+/* Auth buttons redirect to the portal login (the auth modal on index/about/
+   pricing/support ends here too). Fixes dead Log in / Get started free
+   buttons on pages without the modal. */
+function openAuth(){location.href='https://app.get-kind.com/login'}
+</script>
 </body>
 </html>

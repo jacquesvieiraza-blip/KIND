@@ -394,5 +394,11 @@
   }).catch(function(){})
 })()
 </script>
+<script>
+/* Auth buttons redirect to the portal login (the auth modal on index/about/
+   pricing/support ends here too). Fixes dead Log in / Get started free
+   buttons on pages without the modal. */
+function openAuth(){location.href='https://app.get-kind.com/login'}
+</script>
 </body>
 </html>

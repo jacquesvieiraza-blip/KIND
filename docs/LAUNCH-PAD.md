@@ -25,12 +25,13 @@
 | ⬜ | 8b | **THEN one real end-to-end walkthrough** — ICP → source (pool-first) → reveal $1 (+2 drip) → enroll $3 → sequence sends → reply → every wallet + ledger moves right — founder walks it once, top to bottom. *Carried from 10 Jul: signup fixed #1047 · sourcing zero root-caused #444 · **money fences #445/#446 LIVE + battle-proven** (granted 10 → PDL empty → auto-refunded $0 lost, first live run)* | 🤝 |
 | ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study); this IS acquisition channel ① (CAC ~$56–79/client, cashflow §5e) | 🤝 |
 | ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |
+| ⬜ | 11 | **DATA-ENGINE WIDENING — queued, fires the moment line 10 ticks** (founder-ruled 10 Jul: critical, first-after-sprint — not sprint-blocking, so it queues here rather than jumping the line-10 gate) — **#452 more discovery engines** beyond PDL (Apollo free/BYOK · Cognism · aggregator per item-243 research) · **#451 Clearbit executed + reveal waterfall ENFORCED end-to-end** (PDL→Hunter→Clearbit) · **#450 free-Apollo-key merge** switched on | 🤖 build · 🧍 keys |
 
 > **📐 The money machine spec (8a) — full flow, fences, onboarding + admin Money Path, and the locked numbers (k=2 · $300 cap · trial 10+2/reveal):** [money-path flowchart artifact](https://claude.ai/code/artifact/d7d22dab-d9ac-43e0-8ac3-c7a1ae08e65e). Unit economics + CAC = `run-costs-and-cashflow.md` §0 + §5e.
 
-**Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work, admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel. **Post-sprint data-cost levers (founder-ruled "not a stopper"): #450 free-Apollo-key merge · #451 Clearbit + waterfall enforcement.**
+**Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work (3–5 strong partners → V2-TRACKER PARTNER GTM), admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel. *(Data-engine widening #450/#451/#452 is NOT on this shelf — it's line 11 above, first out of the gate after line 10.)*
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡15 · 🔴227 · ⏸5 · **Σ455** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡15 · 🔴228 · ⏸5 · **Σ456** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

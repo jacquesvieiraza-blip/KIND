@@ -16,7 +16,7 @@
 | ⬜ | 4 | **Credit counter shows BOTH wallets** (reveal + FIGSY) | 🤖 |
 | ⬜ | 5 | **Revenue-report bug fixed** (paid Stripe subs count as $0 — `amount_usd` never written) | 🤖 |
 | ⬜ | 6 | **Merge PR #1019 + run its migrations** (17 reliability fixes: phantom sends, double-sends, alarms, 10-step sequences) | 🧍 (10 min) |
-| ⬜ | 7 | **3 pricing rules ruled** — charge-once (per-lead-EVER vs per-campaign) · trial mix (20 reveal + 5 work?) · kill subscription machinery now | 🧍 (3 lines) |
+| ✅ | 7 | **3 pricing rules ruled** (10 Jul) — reveal $1 charged **once per lead EVER** · work $3 charged **per campaign enrollment** · trial mix **20 reveal + 5 work** · **kill subscription machinery** (keep FIGSY entitlement rows) → builds #424/#425/#431 | 🧍 (3 lines) |
 | ⬜ | 8 | **One real end-to-end run on staging** — ICP → source → reveal ($1) → sequence sends → reply → charges right — founder walks it once | 🤝 |
 | ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study) | 🤝 |
 | ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |

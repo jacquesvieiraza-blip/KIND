@@ -1,5 +1,5 @@
 # K.I.N.D — Run Costs & Cashflow Model
-`Last-checked: 8 Jul 2026`
+`Last-checked: 10 Jul 2026 — costs re-verified against the LIVE provider dashboards + code (first funded run)`
 
 > ## 💰 THE MONEY MODEL — LOCKED 8 Jul 2026 (read this first; the doc is being re-modelled onto it)
 > **$1 to REVEAL a lead + $3 for FIGSY to WORK it = $4 per fully-worked lead.** Two charges, two wallets, two entry points:
@@ -9,19 +9,24 @@
 >
 > **Why this replaces the single-$3 model:** we pay to *source* every lead (PDL, at sourcing) and to *reveal* every email (Hunter, at reveal). The old "free browsing, $3 only at enrolment" gave the data away and only charged if the client happened to enrol — so a browsing-only client cost us data for $0 revenue. The $1 reveal charge puts a paid gate in front of the Hunter+visibility cost; PDL (spent earlier, at sourcing) is policed by **quotas**, not the charge (#423).
 >
-> ### Verified costs (Fable-checked 8 Jul, against the real contracts)
-> | Cost line | When incurred | Rate | Basis |
+> ### ✅ Verified costs — RE-CHECKED LIVE 10 Jul (real dashboards + code, first funded run; supersedes the 8-Jul estimates where they differ)
+> | Cost line | When incurred | Rate | Basis (10-Jul verified) |
 > |---|---|---|---|
-> | **PDL Full API** | at **SOURCING** (per record pulled) | **~$0.28/record** | $98 ÷ 350 records |
-> | **Hunter (Scale)** | at **REVEAL** (per email verified) | **~$0.009/reveal** | £175/mo ≈ 300k/yr |
-> | **AI (Claude Haiku)** — scoring + up-to-10 emails | at **WORK** | **~$0.05/lead** | ~$0.005/email |
+> | **PDL Person Search** | at **SOURCING** (per record pulled) | **$0.28/record — CONFIRMED exactly** | self-serve sub **$280/mo ÷ 1,000 credits** (dashboard screen). ⚠️ Currently on the **FREE tier (100 recs/mo)** — the paid plan is NOT bought yet (founder call, pending); the free tier died mid-walk on 10 Jul |
+> | **Hunter (Growth — the plan we're ON)** | at **REVEAL — FALLBACK ONLY** (code-verified waterfall: PDL search carries `work_email` directly; Hunter fires only when it's missing, ~30% of reveals) | **~$0.011/find → ~$0.003/lead effective** | **£87/mo ÷ 10,000 finds/mo** (120k/yr). 8-Jul doc modelled Scale £175 — **wrong tier; ruling 10 Jul: STAY on Growth** — Scale's extra (email accounts, AI writer, campaigns) is Hunter's sending product, which we don't use; 10k finds ≈ 30k+ reveals/mo of headroom |
+> | **AI (Claude Haiku 4.5)** — scoring + up-to-10 emails | at **WORK** | **~$0.05/lead** | **code-verified 10 Jul**: all FIGSY writing + scoring runs Haiku (`figsy.ts`, `scoring.ts`) — never Opus/Sonnet |
 > | **Resend** — email sends | at **WORK** | **~$0.009/lead** | ~$0.0009/email |
 > | **Google Calendar** (booking) | at **WORK** | **$0 (free API)** | — |
-> | **TOTAL per fully-worked lead** | | **~$0.36** | |
+> | **Stripe (bundle-amortised)** | at **CHARGE** | **~$0.17/fully-worked lead** | 2.9% + 30¢ over a **$20 pack** = 4.4% → ~$0.04/reveal + ~$0.13/work. **Bundle pre-purchase is LOAD-BEARING**: a per-lead $1 card charge would lose 33¢/dollar to Stripe — never "simplify" to per-lead billing |
+> | **TOTAL per fully-worked lead** | | **~$0.35 pre-fees · ~$0.52 all-in (incl. Stripe)** | |
 >
-> **Margin: $4 revenue − ~$0.36 cost = ~91% gross margin per fully-worked lead.** Even if AI generation runs **4× my estimate**, cost ≈ $0.53 → still **~87%**. The model is sound at $1+$3.
-> - **$1 reveal alone:** $1 revenue − ~$0.009 Hunter = ~99% on the reveal charge itself (PDL sourcing is the separate leak below).
+> **Margin: $4 revenue − ~$0.35 = ~91% gross; ~87% all-in with amortised Stripe.** Even at AI 4× estimate it holds ~87%/~83%. The model is sound at $1+$3.
+> - **$1 reveal alone:** $1 revenue − ~$0.003 Hunter-fallback = ~99% on the reveal charge itself (PDL sourcing is the separate leak below).
 > - **+$3 work alone:** $3 revenue − ~$0.06 AI+Resend = ~98% on the work charge.
+>
+> **The sourcing-multiplier break-even (the ONE ratio to watch):** real PDL cost per paid lead = $0.28 × (records sourced ÷ leads the client pays for). A client must **reveal ≥ 1-in-~3.5** sourced records for the $1 reveals alone to cover their PDL, or **work ≥ 1-in-14** for the $4 to cover it. Below that, ghost records bleed $0.28 each — which is exactly what the #423 quota (100 recs/client/day ≈ $28/day max exposure) and the #422 mask-until-reveal design cap. Watch metric for admin: per-client sourced-vs-revealed ratio.
+>
+> **10-Jul live-run findings baked into code (#444):** PDL **402-refuses any batch bigger than the credits remaining** (32 left vs size-50 ask = zero leads, every run) → fixed with a 50→25→10→5→1 size ladder; portal industry labels weren't PDL vocab (ticked industry = guaranteed zero, burned credits on impossible queries) → mapped; out-of-credits now fires a founder alert instead of failing silently.
 >
 > ### The full ladder (LOCKED 8 Jul ~10pm — one price logic, no subscriptions)
 > | Rung | Price | Add'l cost | Margin on the rung |
@@ -41,7 +46,7 @@
 > ### 🟢 STATUS NOTES (framing corrections — carried forward)
 > - **🚀 LAUNCHED 18 Jun.** Pre-launch language in the body ("gate Fri-19" etc.) is historical.
 > - **💵 Currency = USD (locked 22 Jun).** ZAR/£ columns are illustrative; we **bill USD**. UK Ltd files GBP to HMRC (accounting = item 196, open).
-> - **Data source = PDL + Hunter (NOT Apollo).** Every "Apollo" cost/plan line in the body is stale — the live stack is **PDL Full API (sourcing) + Hunter Scale (reveal)**; Apollo is retired from the data path. (Apollo strategy in §13 is kept as history only.)
+> - **Data source = PDL + Hunter (NOT Apollo).** Every "Apollo" cost/plan line in the body is stale — the live stack is **PDL Person Search (sourcing) + Hunter Growth (reveal fallback)**; Apollo is retired from the data path (its 403 payment error on 10 Jul is irrelevant — fail-over worked as designed). (Apollo strategy in §13 is kept as history only. Body mentions of "Hunter Scale" are the 8-Jul model — superseded by the 10-Jul verified block above: we're on Growth and staying.)
 > - **Cross-refs:** finance *system* (ledger, accounting, VAT) = item **196**; salary/hiring = `SALARY-BREAKEVEN-PLAN.md` + `docs/hiring/`.
 > **The biggest GROWTH lever is the per-rep company engine (#88):** a 10-seat company is ~10× a single-seat client at almost the same cost-to-serve. **Stale-figure note:** older sections (§7/§10/§11) still say "Paystack" — actual processors are **Stripe (global) + Flutterwave (Africa)**; and the "$80 ARPU" is *single-seat* — the per-rep model multiplies it.
 
@@ -57,7 +62,7 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | Supabase | Database, auth, file storage **+ daily backups** (Free plan has NO backups) | Pro (af-south-1 Cape Town / POPIA) | $25 |
 | Railway | Hosts API + portal + admin + website (all 4 services) | Pro + usage | ~$20 |
 | Resend | FIGSY + transactional email — Free caps at 100/day, hits day 1 | Pro | $20 |
-| **PDL + Hunter** | Lead data source (Apollo retired). **PDL Full API** = sourcing (usage-based, ~$98/350 records); **Hunter** = email reveal/verify | Starter tiers NOW; PDL Full / Hunter Scale modelled at scale (§0). Upgrade when we land a client — founder-locked. | ~$49–220 |
+| **PDL + Hunter** | Lead data source (Apollo retired). **PDL Person Search** = sourcing ($0.28/record); **Hunter Growth** = email-finder fallback at reveal | **Verified 10 Jul:** Hunter Growth £87/mo (~$110) — on it, staying (Scale unnecessary). PDL: FREE tier now (100 recs/mo — can't run the product); **$280/mo (1,000 recs) pending founder purchase** | ~$110 now → ~$390 with paid PDL |
 | **Group A subtotal** | | | **~$114–164/mo** |
 
 ### Group B — Soon (first weeks / before real volume)
@@ -86,7 +91,7 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 > - **Connect-your-own (mid/enterprise):** the **client carries their own mailbox cost → near-zero to K.I.N.D.**
 > Net: the engine adds a low-hundreds/mo base + a small per-client variable that's largely **passed through / marked up**. Full spec: V2-TRACKER "⚙️ THE ENGINE".
 
-> ⚠️ **Data source = PDL Full (sourcing) + Hunter (reveal), NOT Apollo** (§0). PDL is usage-based (~$98/350 records); Hunter Scale ~£175/mo at scale. The Apollo plan guide below is **STALE/history** — Apollo is retired from the data path.
+> ⚠️ **Data source = PDL Person Search (sourcing) + Hunter Growth (reveal fallback), NOT Apollo** (§0, 10-Jul verified). PDL $0.28/record ($280/mo ÷ 1,000, purchase pending); Hunter Growth £87/mo (on it, staying). The Apollo plan guide below is **STALE/history** — Apollo is retired from the data path.
 > ⚠️ **Supabase Free plan has NO database backups** (confirmed 3 June). One bad query = total data loss. Pro is non-negotiable before onboarding paying clients.
 > ℹ️ **Stripe has no fixed monthly cost** — it charges per transaction (~2.9% + 30¢). "Going live" = switch from test to live keys + add price IDs. See §2.
 
@@ -106,15 +111,15 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 
 | Cost | When | Rate | Notes |
 |---|---|---|---|
-| **PDL Full API** — sourcing | at SOURCING (per record pulled) | **~$0.28/record** | $98 ÷ 350 records. The one cost incurred *before* revenue — police with quotas (#423). |
-| **Hunter (Scale)** — email reveal/verify | at REVEAL ($1 charge) | **~$0.009/reveal** | £175/mo ≈ 300k lookups/yr. |
+| **PDL Person Search** — sourcing | at SOURCING (per record pulled) | **$0.28/record** (10-Jul verified: $280/mo ÷ 1,000) | The one cost incurred *before* revenue — police with quotas (#423) + the #444 size ladder. |
+| **Hunter (Growth)** — email-finder fallback | at REVEAL ($1 charge), only when PDL missed the email (~30%) | **~$0.011/find → ~$0.003/lead** (10-Jul verified: £87/mo ÷ 10k finds) | Waterfall (code-verified): PDL search carries `work_email` → Hunter is fallback, not per-reveal. |
 | **Claude Haiku** — lead scoring | at WORK | ~$0.0004/lead | |
 | **Claude Haiku** — FIGSY email generation | at WORK | ~$0.005/email (~$0.05 across a 10-step cap) | |
 | **Resend** — email send | at WORK | ~$0.0009/email (~$0.009 across 10 steps) | |
 | **Google Calendar** — booking | at WORK | **$0** | Free API — booking adds no running cost (#361). |
 | **Stripe** — payment processing | at CHARGE | ~2.9% + 30¢ per transaction | Cost of revenue, not a fixed fee. Free until money flows. |
 
-**Total variable cost per fully-worked lead: ~$0.36** (PDL $0.28 + Hunter $0.009 + AI ~$0.05 + Resend ~$0.009). Data-only ($1) lead = ~$0.29 (PDL sourcing + Hunter reveal).
+**Total variable cost per fully-worked lead: ~$0.35** (PDL $0.28 + Hunter ~$0.003 + AI ~$0.05 + Resend ~$0.009); **~$0.52 all-in** with bundle-amortised Stripe (~$0.17, §0). Data-only ($1) lead = ~$0.28 (PDL sourcing + Hunter fallback).
 
 ---
 
@@ -160,12 +165,12 @@ These run whether you have zero clients or one hundred. **Hosting is Railway onl
 | | Amount |
 |---|---|
 | You charge to reveal (flat, all bundles) | **$1.00** |
-| Hunter reveal/verify (at the $1 charge) | ~$0.009 |
-| PDL sourcing (spent EARLIER, at sourcing) | ~$0.28/record sourced |
+| Hunter email-finder fallback (at the $1 charge; fires ~30% of reveals) | ~$0.003 effective |
+| PDL sourcing (spent EARLIER, at sourcing) | $0.28/record sourced |
 | **Gross margin on the reveal charge itself** | **~$0.99 (99%)** |
 | **…but net of PDL sourcing (if every sourced lead is revealed)** | **~$0.71 (71%)** |
 
-> ⚠️ **The reveal charge nets 99% against Hunter — the PDL sourcing cost is the variable to watch.** If 100% of sourced records get revealed, each $1 reveal carries ~$0.28 PDL → ~71% net. If only 50% are ever revealed, the unrevealed PDL doubles onto the revealed ones (~$0.56) → ~44% net on the $1 tier alone. **This is why sourcing quotas (#423) matter more than the reveal gate.** The $3 work charge more than absorbs it (below).
+> ⚠️ **The reveal charge nets 99% against Hunter — the PDL sourcing cost is the variable to watch.** If 100% of sourced records get revealed, each $1 reveal carries ~$0.28 PDL → ~71% net. If only 50% are ever revealed, the unrevealed PDL doubles onto the revealed ones (~$0.56) → ~44% net on the $1 tier alone. **Break-even ratio (10 Jul): a client must reveal ≥ 1-in-~3.5 sourced records for their $1 reveals to cover their PDL; 1-in-14 worked covers it on the $4.** **This is why sourcing quotas (#423) matter more than the reveal gate.** The $3 work charge more than absorbs it (below).
 
 ### 4b. Work (+$3) — FIGSY on a revealed lead
 | | Amount |
@@ -240,8 +245,8 @@ Revenue scales with **qualified leads delivered**, not seats or months. The grow
 | Supabase Pro | $25.00 |
 | Railway Pro (+usage) | ~$20.00 |
 | Resend Pro | $15.46 |
-| PDL Full API — sourcing (usage-based, ~$98/350 records ≈ $0.28/record) | usage |
-| Hunter — reveal/verify (starter tier now; Scale ~£175/mo at scale) | ~$49 → scale |
+| PDL Person Search — sourcing ($0.28/record; free tier now, **$280/mo (1,000 recs) pending purchase**) | usage |
+| Hunter Growth — email-finder fallback (**verified 10 Jul: £87/mo ≈ $110, on it, staying** — Scale unnecessary) | ~$110 |
 | **Operating floor (live now)** | **~$114/mo + data usage** |
 | + Render standby $7 + Cloudflare LB $5 + domain $1.25 (failover, soon) | +$13 |
 | **Operating floor + failover** | **~$138/mo** |

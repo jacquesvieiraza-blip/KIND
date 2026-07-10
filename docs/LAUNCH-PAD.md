@@ -10,12 +10,12 @@
 
 | ✓ | # | Line | Owner |
 |---|---|------|:---:|
-| ⬜ | 1 | **Website cut to FIGSY-only** (~6 pages survive; agent/marketing sprawl comes down; same design, honest words, one offer) | 🤖 build · 🧍 deploy |
-| ⬜ | 2 | **Portal cut to FIGSY-only** (same skin; agent switcher/cards/pages + marketplace + What's New + mock Templates OUT of nav) | 🤖 build · 🧍 deploy |
+| ✅ | 1 | **Website cut to FIGSY-only** (homepage redesign + all pages rendered #1030/#1031 · auth buttons fixed #1036 · founder walked live 10 Jul) | 🤖 build · 🧍 deploy |
+| ✅ | 2 | **Portal cut to FIGSY-only** (switcher/cards/pages+marketplace+What's New+Templates out #1033/#1034 · click-through sweep #1035 · founder walked live 10 Jul) | 🤖 build · 🧍 deploy |
 | ✅ | 3 | **Billing sells $1 reveal top-ups** (Stripe price IDs wired · reveal + FIGSY cards live · founder walked both 10 Jul) | 🤖 + 🧍 |
-| ⬜ | 4 | **Credit counter shows BOTH wallets** (reveal + FIGSY) | 🤖 |
-| ⬜ | 5 | **Revenue-report bug fixed** (paid Stripe subs count as $0 — `amount_usd` never written) | 🤖 |
-| ⬜ | 6 | **Merge PR #1019 + run its migrations** (17 reliability fixes: phantom sends, double-sends, alarms, 10-step sequences) | 🧍 (10 min) |
+| ✅ | 4 | **Credit counter shows BOTH wallets** (reveal + FIGSY pills, header + sidebar #1041 · founder walked live 10 Jul) | 🤖 |
+| ✅ | 5 | **Revenue-report bug fixed** (`amount_usd` written on the Stripe sub webhook #1040 · deployed 10 Jul) | 🤖 |
+| ✅ | 6 | **Merge PR #1019 + run its migrations** (merged · founder ran all 9 prod migrations · api+portal deployed 10 Jul) | 🧍 (10 min) |
 | ✅ | 7 | **3 pricing rules ruled** (10 Jul) — reveal $1 charged **once per lead EVER** · work $3 charged **per campaign enrollment** · trial mix **20 reveal + 5 work** · **kill subscription machinery** (keep FIGSY entitlement rows) → builds #424/#425/#431 | 🧍 (3 lines) |
 | ⬜ | 8 | **One real end-to-end run on staging** — ICP → source → reveal ($1) → sequence sends → reply → charges right — founder walks it once | 🤝 |
 | ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study) | 🤝 |

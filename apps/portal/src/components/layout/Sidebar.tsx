@@ -7,15 +7,17 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
-  LogOut, Zap, FileText, Coins, Bot, MessageSquare,
-  BarChart2, Brain, Search, TrendingUp, Lock, ChevronDown, ShieldCheck, LineChart,
-  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, LayoutTemplate, Sparkles, Mic, GitBranch, Library,
+  LogOut, FileText, Coins, MessageSquare,
+  BarChart2, Brain, Search, TrendingUp, Lock, LineChart,
+  Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, Sparkles, Mic, Library,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/ui/NotificationBell'
 import { StatusBar } from '@/components/layout/StatusBar'
-import { PRODUCTS } from '@kind/shared'
 
-type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
+// Portal cut to FIGSY-only (SPRINT line 2, 10 Jul): Milla/Vida/Denise + the agent
+// switcher are removed. The other agents return after 3 months of paid, verified
+// clients — restore from the pinned pre-cut SHA in docs/DESIGN-REFERENCE.md.
+type AgentId = 'figsy'
 
 interface AgentDef {
   id: AgentId
@@ -24,81 +26,34 @@ interface AgentDef {
   role: string
   accent: string
   ring: string
-  price?: string
   nav: { href: string; label: string; icon: React.ElementType; badge?: 'unread'; exact?: boolean }[]
 }
 
-const AGENTS: AgentDef[] = [
-  {
-    id: 'figsy',
-    name: 'FIGSY',
-    subtitle: 'The Opener',
-    role: 'AI SDR · Outbound Sales Specialist',
-    accent: '#7C3AED',
-    ring: 'ring-[#7C3AED]/20',
-    nav: [
-      { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
-      { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
-      { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
-      { href: '/dashboard/figsy/sequences',        label: 'Sequences',        icon: Library },
-      // Sequence Builder (82) hidden from nav 26 Jun — still a "coming soon" shell (#89). Re-add when real.
-      { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox, badge: 'unread' },
-      { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
-      { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },
-      { href: '/dashboard/roi',                    label: 'Your ROI',         icon: Sparkles },
-      { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
-      // Webhooks (250) hidden from nav 26 Jun — shell: the documented
-      // /figsy/webhook/enrol endpoint was never built and "Send test" 404s.
-      // Re-add when the inbound enrolment webhook is real (per-client secret).
-    ],
-  },
-  {
-    id: 'milla',
-    name: 'Milla',
-    subtitle: 'The Brain',
-    role: 'Virtual Assistant · Business Operations',
-    accent: '#F472B6',
-    ring: 'ring-pink-300/30',
-    price: `$${PRODUCTS.virtual_assistant.price_usd}/mo`,
-    nav: [
-      { href: '/dashboard/assistant',  label: 'Assistant',  icon: Bot },
-      // Documents (251) moved to ACCOUNT_NAV 26 Jun — it's the trust vault (T&C/DPA/
-      // invoices), not a Milla feature; it was buried under the Milla agent.
-      { href: '/dashboard/notetaker',  label: 'Notetaker',  icon: Mic },
-    ],
-  },
-  {
-    id: 'vida',
-    name: 'Vida',
-    subtitle: 'The Connector',
-    role: 'Chatbot Agent · Inbound Specialist',
-    accent: '#14B8A6',
-    ring: 'ring-teal-300/30',
-    price: `$${PRODUCTS.chatbot.price_usd}/mo`,
-    nav: [
-      { href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare },
-    ],
-  },
-  {
-    id: 'denise',
-    name: 'Denise',
-    subtitle: 'The Closer',
-    role: 'AI Account Executive · Closing',
-    accent: '#D97706',
-    ring: 'ring-amber-300/30',
-    price: `$${PRODUCTS.denise.price_usd}/mo`,
-    nav: [
-      { href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake },
-    ],
-  },
-]
-
-const AGENT_HREFS: Record<AgentId, string> = {
-  figsy:   '/dashboard/figsy',
-  milla:   '/dashboard/assistant',
-  vida:    '/dashboard/chatbot',
-  denise:  '/dashboard/denise',
+const FIGSY: AgentDef = {
+  id: 'figsy',
+  name: 'FIGSY',
+  subtitle: 'The Opener',
+  role: 'AI SDR · Outbound Sales Specialist',
+  accent: '#7C3AED',
+  ring: 'ring-[#7C3AED]/20',
+  nav: [
+    { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
+    { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
+    // Templates hidden from nav 10 Jul (mock shell) — re-add when real.
+    { href: '/dashboard/figsy/sequences',        label: 'Sequences',        icon: Library },
+    // Sequence Builder (82) hidden from nav 26 Jun — still a "coming soon" shell (#89). Re-add when real.
+    { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox, badge: 'unread' },
+    { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
+    { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },
+    { href: '/dashboard/roi',                    label: 'Your ROI',         icon: Sparkles },
+    { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
+    // Webhooks (250) hidden from nav 26 Jun — shell: the documented
+    // /figsy/webhook/enrol endpoint was never built and "Send test" 404s.
+    // Re-add when the inbound enrolment webhook is real (per-client secret).
+  ],
 }
+
+const AGENT_HREF = '/dashboard/figsy'
 
 const LEAD_GEN_NAV = [
   { href: '/dashboard',                label: 'Home',            icon: Home,        exact: true },
@@ -108,7 +63,7 @@ const LEAD_GEN_NAV = [
 ]
 
 const ACCOUNT_NAV = [
-  { href: '/dashboard/whats-new',  label: "What's New",   icon: Sparkles },
+  // What's New hidden from nav 10 Jul (FIGSY-only cut).
   { href: '/dashboard/usage',      label: 'Usage',        icon: BarChart2 },
   { href: '/dashboard/partner',       label: 'Partner Hub',   icon: Handshake },
   { href: '/dashboard/integrations',  label: 'Integrations',  icon: Plug },
@@ -117,6 +72,9 @@ const ACCOUNT_NAV = [
   { href: '/dashboard/developer',  label: 'Developer API', icon: Code2 },
   { href: '/dashboard/billing',    label: 'Billing',      icon: CreditCard },
   { href: '/dashboard/documents',  label: 'Documents',    icon: FileText },
+  // Notetaker re-homed here 10 Jul — standalone utility (records real meetings →
+  // feeds invoices); it was buried under the removed Milla agent.
+  { href: '/dashboard/notetaker',  label: 'Notetaker',    icon: Mic },
   { href: '/dashboard/team',       label: 'Team',         icon: UserCheck },
   { href: '/dashboard/messages',   label: 'Messages',     icon: MessageCircle },
   { href: '/dashboard/settings',   label: 'Settings',     icon: Settings },
@@ -126,15 +84,13 @@ export function Sidebar({
   userEmail,
   creditBalance = 0,
   hasFigsy = false,
-  hasMilla = false,
-  hasVida  = false,
-  hasDenise = false,
-  isNewUser = false,
   isPartner = false,
 }: {
   userEmail: string
   creditBalance?: number
   hasFigsy?: boolean
+  // Milla/Vida/Denise entitlement props removed with the FIGSY-only cut (10 Jul);
+  // layout.tsx still passes them but they're ignored — kept optional so it compiles.
   hasMilla?: boolean
   hasVida?: boolean
   hasDenise?: boolean
@@ -145,8 +101,6 @@ export function Sidebar({
   const router   = useRouter()
   const supabase = createClient()
 
-  const [activeId, setActiveId] = useState<AgentId>('figsy')
-  const [open, setOpen]         = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [unreadCount] = React.useState(0)
 
@@ -158,10 +112,8 @@ export function Sidebar({
     return () => { document.body.style.overflow = '' }
   }, [mobileOpen])
 
-  const isUnlocked = (id: AgentId) =>
-    id === 'figsy' ? hasFigsy : id === 'milla' ? hasMilla : id === 'vida' ? hasVida : hasDenise
-  const agent = AGENTS.find(a => a.id === activeId)!
-  const unlocked = isUnlocked(activeId)
+  const agent = FIGSY
+  const unlocked = hasFigsy
 
   async function handleSignOut() {
     await supabase.auth.signOut()
@@ -261,16 +213,14 @@ export function Sidebar({
           </p>
           {LEAD_GEN_NAV.map(item => <NavLink key={item.href} {...item} />)}
 
-          {/* ── AI Agents ─────────────────────────────────────────── */}
+          {/* ── FIGSY ─────────────────────────────────────────────── */}
+          {/* Portal cut to FIGSY-only 10 Jul — agent switcher + dropdown removed. */}
           <div className="!mt-5">
-            <Link href="/dashboard/agents" className="flex items-center justify-between px-3 pb-2 group">
-              <p className="text-[10px] text-[#7C3AED]/40 group-hover:text-[#7C3AED] font-semibold uppercase tracking-wider transition-colors">
-                KIND AI
-              </p>
-              <span className="text-[9px] text-[#7C3AED]/30 group-hover:text-[#7C3AED]/60 transition-colors">View all →</span>
-            </Link>
+            <p className="text-[10px] text-[#7C3AED]/40 px-3 pb-2 font-semibold uppercase tracking-wider">
+              KIND AI
+            </p>
 
-            {/* Active agent card */}
+            {/* Agent card */}
             <div
               className="rounded-xl border border-purple-100 overflow-hidden shadow-sm"
               style={{
@@ -279,7 +229,7 @@ export function Sidebar({
               }}
             >
               <Link
-                href={AGENT_HREFS[activeId]}
+                href={AGENT_HREF}
                 className="flex items-center gap-3 px-3 py-3"
               >
                 <div className={`w-12 h-12 rounded-xl overflow-hidden shrink-0 ring-2 ${agent.ring} shadow-sm`}>
@@ -299,95 +249,18 @@ export function Sidebar({
                     }
                   </div>
                   <p className="text-[10px] font-semibold truncate" style={{ color: agent.accent }}>{agent.subtitle}</p>
-                  {!unlocked && agent.price && (
-                    <p className="text-[10px] text-[#6B7280] mt-0.5">Coming soon</p>
-                  )}
                 </div>
               </Link>
-              {/* Clear, full-width agent switcher */}
-              <button
-                onClick={() => setOpen(o => !o)}
-                className="w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold border-t transition-colors hover:bg-white/70"
-                style={{ color: agent.accent, background: `${agent.accent}0c`, borderColor: `${agent.accent}1f` }}
-                aria-label="Switch agent"
-              >
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-                {open ? 'Hide agents' : 'Switch agent'}
-              </button>
             </div>
-            {!open && (
-              <p className="px-3 pt-1.5 text-[10px] text-[#7C3AED]/40">
-                FIGSY live · 3 more coming soon · <button onClick={() => setOpen(true)} className="font-semibold text-[#7C3AED]/70 hover:text-[#7C3AED] transition-colors">view →</button>
-              </p>
-            )}
 
-            {/* Dropdown */}
-            {open && (
-              <div className="mt-1.5 rounded-xl bg-white border border-purple-100 overflow-hidden shadow-lg shadow-purple-100/50 z-50">
-                <p className="text-[10px] text-[#7C3AED]/40 px-3 pt-3 pb-1.5 font-semibold uppercase tracking-wider">
-                  Switch agent
-                </p>
-                {/* The current agent already shows in the header above — list only the others to switch to. */}
-                {AGENTS.filter(a => a.id !== activeId).map(a => {
-                  const locked = !isUnlocked(a.id)
-                  return (
-                    <button
-                      key={a.id}
-                      onClick={() => {
-                        setActiveId(a.id)
-                        setOpen(false)
-                        router.push(AGENT_HREFS[a.id])
-                      }}
-                      className={`w-full flex items-center gap-3 px-3 py-3 hover:bg-purple-50 transition-colors ${
-                        a.id === activeId ? 'bg-purple-50' : ''
-                      }`}
-                    >
-                      <div className={`w-9 h-9 rounded-xl overflow-hidden shrink-0 ring-2 ${locked ? 'ring-purple-100 opacity-50' : a.ring}`}>
-                        <img
-                          src={`/agents/${a.id}.png`}
-                          alt={a.name}
-                          className="w-full h-full object-cover object-top"
-                          onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
-                        />
-                      </div>
-                      <div className="flex-1 text-left min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className={`text-xs font-semibold leading-tight ${locked ? 'text-[#7C3AED]/30' : 'text-[#1E1152]'}`}>
-                            {a.name}
-                          </p>
-                          <span
-                            className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                            style={{ color: a.accent, background: `${a.accent}18` }}
-                          >
-                            {a.role}
-                          </span>
-                        </div>
-                        <p className="text-[#6B7280] text-[10px] mt-0.5">
-                          {locked ? 'Coming soon' : 'Active'}
-                        </p>
-                      </div>
-                      {locked
-                        ? <Lock className="w-3 h-3 text-[#7C3AED]/20 shrink-0" />
-                        : a.id === activeId && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: a.accent }} />
-                      }
-                    </button>
-                  )
-                })}
-                <div className="mx-3 my-2 border-t border-purple-100" />
-                <p className="text-[10px] text-[#9CA3AF] px-3 pb-3 leading-relaxed">
-                  Milla, Vida &amp; Denise are coming soon.
-                </p>
-              </div>
-            )}
-
-            {/* Active agent nav */}
+            {/* Agent nav */}
             {unlocked ? (
               <div className="mt-1.5 space-y-0.5">
                 {agent.nav.map(item => <NavLink key={item.href} {...item} />)}
               </div>
             ) : (
               <Link
-                href={AGENT_HREFS[activeId]}
+                href={AGENT_HREF}
                 className="mt-2 flex items-center justify-center gap-1.5 w-full py-2 rounded-lg border border-purple-100 text-xs text-[#7C3AED]/40 hover:text-[#7C3AED] hover:border-purple-200 transition-all"
               >
                 <Lock className="w-3 h-3" />

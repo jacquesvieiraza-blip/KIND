@@ -1,69 +1,49 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { v2Enabled } from '@/lib/flags'
 import {
   Home, Users, TrendingUp, Search, MessageSquare, Target, Inbox, BarChart,
-  Brain, Bot, Handshake, LogOut, Pin, ChevronDown, Lock,
-  LayoutTemplate, Library, ShieldCheck, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
+  Brain, LogOut, Pin, Lock,
+  Library, Mic, Building2, Activity, UserCheck, LineChart, Sparkles,
 } from 'lucide-react'
-import { PRODUCTS } from '@kind/shared'
 
 type Item = { href: string; label: string; icon: React.ElementType; exact?: boolean }
-type AgentId = 'figsy' | 'milla' | 'vida' | 'denise'
+
+// Portal cut to FIGSY-only (SPRINT line 2, 10 Jul): Milla/Vida/Denise + the agent
+// switcher are removed here too (this slim rail is flag-gated OFF, cut to prevent
+// drift). Restore from the pinned pre-cut SHA in docs/DESIGN-REFERENCE.md.
+type AgentId = 'figsy'
 
 interface AgentDef {
   id: AgentId
   name: string
   role: string
   accent: string
-  price?: string
   nav: Item[]
 }
 
-const AGENTS: AgentDef[] = [
-  {
-    id: 'figsy', name: 'FIGSY', role: 'The Opener', accent: '#7C3AED',
-    nav: [
-      { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
-      { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
-      { href: '/dashboard/templates',              label: 'Templates',        icon: LayoutTemplate },
-      { href: '/dashboard/figsy/sequences',        label: 'Sequences',        icon: Library },
-      // Sequence Builder (82) hidden from nav 26 Jun — shell ("coming soon" #89).
-      // Was already removed from the full Sidebar; this completes the hide here too.
-      { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox },
-      { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
-      { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },
-      { href: '/dashboard/roi',                    label: 'Your ROI',         icon: Sparkles },
-      { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
-      // Webhooks (250) hidden from nav 26 Jun — shell (endpoint never built). Re-add when real.
-    ],
-  },
-  {
-    id: 'milla', name: 'Milla', role: 'The Brain', accent: '#F472B6', price: `$${PRODUCTS.virtual_assistant.price_usd}/mo`,
-    nav: [
-      { href: '/dashboard/assistant', label: 'Assistant', icon: Bot },
-      // Documents (251) moved to the account hub (ProfileMenu) 26 Jun — trust vault
-      // (T&C/DPA/invoices), not a Milla feature; was buried under the Milla agent.
-      { href: '/dashboard/notetaker', label: 'Notetaker', icon: Mic },
-    ],
-  },
-  {
-    id: 'vida', name: 'Vida', role: 'The Connector', accent: '#14B8A6', price: `$${PRODUCTS.chatbot.price_usd}/mo`,
-    nav: [{ href: '/dashboard/chatbot', label: 'Chatbot', icon: MessageSquare }],
-  },
-  {
-    id: 'denise', name: 'Denise', role: 'The Closer', accent: '#D97706', price: `$${PRODUCTS.denise.price_usd}/mo`,
-    nav: [{ href: '/dashboard/denise', label: 'Close with Denise', icon: Handshake }],
-  },
-]
-
-const AGENT_HREFS: Record<AgentId, string> = {
-  figsy: '/dashboard/figsy', milla: '/dashboard/assistant', vida: '/dashboard/chatbot', denise: '/dashboard/denise',
+const FIGSY: AgentDef = {
+  id: 'figsy', name: 'FIGSY', role: 'The Opener', accent: '#7C3AED',
+  nav: [
+    { href: '/dashboard/figsy-chat',             label: 'Chat with FIGSY',  icon: MessageSquare },
+    { href: '/dashboard/figsy',                  label: 'Campaigns',        icon: Target },
+    // Templates hidden from nav 10 Jul (mock shell) — re-add when real.
+    { href: '/dashboard/figsy/sequences',        label: 'Sequences',        icon: Library },
+    // Sequence Builder (82) hidden from nav 26 Jun — shell ("coming soon" #89).
+    { href: '/dashboard/inbox',                  label: 'Inbox',            icon: Inbox },
+    { href: '/dashboard/kpis',                   label: 'Performance',      icon: BarChart },
+    { href: '/dashboard/analytics',              label: 'Analytics',        icon: LineChart },
+    { href: '/dashboard/roi',                    label: 'Your ROI',         icon: Sparkles },
+    { href: '/dashboard/knowledge',              label: 'Knowledge',        icon: Brain },
+    // Notetaker re-homed to the account hub (ProfileMenu) with the FIGSY-only cut.
+    // Webhooks (250) hidden from nav 26 Jun — shell (endpoint never built). Re-add when real.
+  ],
 }
+
+const AGENT_HREF = '/dashboard/figsy'
 
 interface Props {
   userEmail: string
@@ -74,26 +54,14 @@ interface Props {
   isPartner?: boolean
 }
 
-export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise, isPartner }: Props) {
+export function SidebarSlim({ userEmail, hasFigsy, isPartner }: Props) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
   const [pinned, setPinned] = useState(false)
-  const [open, setOpen] = useState(false)
 
-  const isUnlocked = (id: AgentId) =>
-    id === 'figsy' ? !!hasFigsy : id === 'milla' ? !!hasMilla : id === 'vida' ? !!hasVida : !!hasDenise
-
-  // Active agent follows the route you're on; defaults to FIGSY.
-  const deriveActive = (): AgentId => {
-    const hit = AGENTS.find(a => a.nav.some(n => pathname === n.href || pathname.startsWith(n.href + '/')))
-    return hit?.id ?? 'figsy'
-  }
-  const [activeId, setActiveId] = useState<AgentId>('figsy')
-  useEffect(() => { setActiveId(deriveActive()) }, [pathname]) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const agent = AGENTS.find(a => a.id === activeId)!
-  const unlocked = isUnlocked(activeId)
+  const agent = FIGSY
+  const unlocked = !!hasFigsy
 
   async function signOut() {
     await supabase.auth.signOut()
@@ -153,14 +121,15 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
 
         <div className="h-px bg-white/[0.08] my-1.5 mx-4" />
 
-        {/* ── Agent switcher ─────────────────────────────────────────── */}
+        {/* ── FIGSY ─────────────────────────────────────────────────── */}
+        {/* Portal cut to FIGSY-only 10 Jul — agent switcher + dropdown removed. */}
         <p className={`px-5 pt-1 pb-1.5 text-[10px] font-semibold uppercase tracking-wider text-purple-300/35 transition-opacity ${labelCls}`}>
-          Your AI Family
+          KIND AI
         </p>
 
-        {/* Active agent card */}
+        {/* Agent card */}
         <div className="mx-2 rounded-xl overflow-hidden" style={{ background: `${agent.accent}1f`, borderLeft: `3px solid ${agent.accent}` }}>
-          <Link href={AGENT_HREFS[activeId]} className="flex items-center gap-2.5 px-2.5 py-2.5">
+          <Link href={AGENT_HREF} className="flex items-center gap-2.5 px-2.5 py-2.5">
             <div className="w-9 h-9 rounded-lg overflow-hidden shrink-0 ring-2 ring-white/20">
               <img src={`/agents/${agent.id}.png`} alt={agent.name} className="w-full h-full object-cover object-top"
                 onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
@@ -175,52 +144,10 @@ export function SidebarSlim({ userEmail, hasFigsy, hasMilla, hasVida, hasDenise,
               <p className="text-[10px] font-semibold truncate" style={{ color: agent.accent }}>{agent.role}</p>
             </div>
           </Link>
-          {/* Switch agent toggle — solid high-contrast strip so it's visible on
-              ANY agent card colour (the card bg is per-agent `${agent.accent}`;
-              on FIGSY's purple it blended into the rail and vanished). */}
-          <button onClick={() => setOpen(o => !o)}
-            className={`w-full flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold text-white bg-black/30 border-t border-white/15 hover:bg-black/45 transition-colors ${labelCls}`}
-            aria-label="Switch agent">
-            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
-            {open ? 'Hide agents' : 'Switch agent'}
-          </button>
         </div>
 
-        {/* Dropdown — agent list with little photos */}
-        {open && (
-          <div className={`mx-2 mt-1.5 rounded-xl bg-[#1a0f3d] border border-white/10 overflow-hidden shadow-xl transition-opacity ${labelCls}`}>
-            {/* The current agent already shows in the card above — list only the others to switch to. */}
-            {AGENTS.filter(a => a.id !== activeId).map(a => {
-              const locked = !isUnlocked(a.id)
-              return (
-                <button key={a.id}
-                  onClick={() => { setActiveId(a.id); setOpen(false); router.push(AGENT_HREFS[a.id]) }}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2.5 hover:bg-white/[0.06] transition-colors ${a.id === activeId ? 'bg-white/[0.05]' : ''}`}>
-                  <div className={`w-8 h-8 rounded-lg overflow-hidden shrink-0 ring-2 ${locked ? 'ring-white/10 opacity-50' : 'ring-white/20'}`}>
-                    <img src={`/agents/${a.id}.png`} alt={a.name} className="w-full h-full object-cover object-top"
-                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-                  </div>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className={`text-[12px] font-semibold leading-tight truncate ${locked ? 'text-white/40' : 'text-white'}`}>{a.name}</p>
-                    <p className="text-[10px] mt-0.5" style={{ color: a.accent }}>{a.role}</p>
-                  </div>
-                  {locked
-                    ? <span className="text-[9px] text-white/35 shrink-0">Coming soon</span>
-                    : a.id === activeId && <span className="w-2 h-2 rounded-full shrink-0" style={{ background: a.accent }} />}
-                </button>
-              )
-            })}
-            <Link href={v2Enabled('marketplace') ? '/dashboard/marketplace' : '/dashboard/billing'} onClick={() => setOpen(false)}
-              className="block text-[10px] text-purple-300/50 hover:text-purple-200 px-3 py-2 border-t border-white/10 transition-colors">
-              {v2Enabled('marketplace') ? 'Browse all agents →' : 'More agents coming soon →'}
-            </Link>
-          </div>
-        )}
-
-        {/* Active agent nav — hidden while the switcher is open so the full
-            agent list (incl. the last entry, Denise) is never pushed/clipped
-            by a long nav like FIGSY's. */}
-        <div className={`mt-1 space-y-0.5 ${open ? 'hidden' : ''}`}>
+        {/* Agent nav */}
+        <div className="mt-1 space-y-0.5">
           {unlocked
             ? agent.nav.map(item => <Row key={item.href} {...item} />)
             : (

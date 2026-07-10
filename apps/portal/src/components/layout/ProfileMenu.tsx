@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Settings, LogOut, User, BarChart2, CreditCard, Code2,
-  Plug, Network, FileText, MessageCircle, Handshake, Gift, Store, Sparkles,
+  Plug, Network, FileText, MessageCircle, Handshake, Gift, Mic,
 } from 'lucide-react'
 
 type MenuLink = { href: string; label: string; icon: React.ElementType }
@@ -24,6 +24,9 @@ const GROUPS: Group[] = [
       { href: '/dashboard/billing',   label: 'Billing',    icon: CreditCard },
       { href: '/dashboard/usage',     label: 'Usage',      icon: BarChart2 },
       { href: '/dashboard/documents', label: 'Documents',  icon: FileText },
+      // Notetaker re-homed here 10 Jul (FIGSY-only cut) — standalone utility that
+      // was buried under the removed Milla agent.
+      { href: '/dashboard/notetaker', label: 'Notetaker',  icon: Mic },
     ],
   },
   {
@@ -41,13 +44,7 @@ const GROUPS: Group[] = [
       { href: '/dashboard/messages',   label: 'Messages',    icon: MessageCircle },
       { href: '/dashboard/partner',    label: 'Partner Hub', icon: Handshake },
       { href: '/dashboard/referral',   label: 'Referral',    icon: Gift },
-      { href: '/dashboard/marketplace',label: 'Marketplace', icon: Store },
-    ],
-  },
-  {
-    heading: 'Product',
-    links: [
-      { href: '/dashboard/whats-new', label: "What's New", icon: Sparkles },
+      // Marketplace + What's New hidden from nav 10 Jul (FIGSY-only cut).
     ],
   },
 ]

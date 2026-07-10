@@ -201,6 +201,64 @@ moneyPathRouter.get('/tiles', async (_req: Request, res: Response) => {
   }
 })
 
+// GET /money-path/pool — THE POOL P&L. Records are inventory: every pooled record cost
+// us ~$0.28 once and earns $1 per client who reveals it + $3 per FIGSY work, forever.
+// Returns a portfolio summary + the ROI leaderboard (which bought records paid off).
+moneyPathRouter.get('/pool', async (_req: Request, res: Response) => {
+  try {
+    // The lead_pool_pnl view already joins reveals + works per record. Bounded pull
+    // (one row per pooled email); compute the portfolio in JS like the other endpoints.
+    const rows = await fetchAll<{
+      email_norm: string; company: string | null; title: string | null
+      acquisition_cost: number; reveals: number; works: number; revenue_usd: number; roi: number | null
+    }>('lead_pool_pnl', 'email_norm, company, title, acquisition_cost, reveals, works, revenue_usd, roi')
+
+    const total_records = rows.length
+    const total_acquisition_cost = round2(rows.reduce((s, r) => s + Number(r.acquisition_cost || 0), 0))
+    const total_revenue_usd = round2(rows.reduce((s, r) => s + Number(r.revenue_usd || 0), 0))
+    const earning_records = rows.filter((r) => Number(r.revenue_usd || 0) > 0).length
+    const total_reveals = rows.reduce((s, r) => s + Number(r.reveals || 0), 0)
+    const total_works = rows.reduce((s, r) => s + Number(r.works || 0), 0)
+    // Blended pool ROI = every dollar earned ÷ every dollar the pool cost to acquire.
+    const blended_roi = total_acquisition_cost > 0 ? round2(total_revenue_usd / total_acquisition_cost) : 0
+
+    // Leaderboard — the 50 records that earned the most (the reuse engine's winners).
+    const leaderboard = [...rows]
+      .sort((a, b) => Number(b.revenue_usd || 0) - Number(a.revenue_usd || 0))
+      .slice(0, 50)
+      .map((r) => ({
+        email_norm: r.email_norm,
+        company: r.company,
+        title: r.title,
+        acquisition_cost: round2(Number(r.acquisition_cost || 0)),
+        reveals: Number(r.reveals || 0),
+        works: Number(r.works || 0),
+        revenue_usd: round2(Number(r.revenue_usd || 0)),
+        roi: r.roi == null ? 0 : round2(Number(r.roi)),
+      }))
+
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          total_records,
+          earning_records,
+          total_acquisition_cost,
+          total_revenue_usd,
+          net_usd: round2(total_revenue_usd - total_acquisition_cost),
+          blended_roi,
+          total_reveals,
+          total_works,
+        },
+        leaderboard,
+      },
+    })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    res.status(500).json({ success: false, error: msg })
+  }
+})
+
 // PATCH /money-path/cap — founder action: set the global monthly PDL budget.
 const capSchema = z.object({
   pdl_monthly_cap_usd: z.number().positive().finite(),

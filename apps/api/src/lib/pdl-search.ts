@@ -13,11 +13,11 @@
 // email through and skip the Apollo reveal step downstream. Results are normalised
 // into the shared `ApolloContact` shape so the rest of the pipeline is unchanged.
 //
-// NOTE: the field/vocab mapping below is built to PDL's documented schema; tune it
-// against live responses once a key is configured (it's untestable while dormant).
-// Ref: https://docs.peopledatalabs.com/docs/person-search-api
+// Vocab mapping tuned against live responses on the first funded run (10 Jul) —
+// see PDL_INDUSTRY_MAP below. Ref: https://docs.peopledatalabs.com/docs/person-search-api
 // ─────────────────────────────────────────────────────────────────────────────
 import type { ApolloContact } from './apollo'
+import { sendFounderAlert } from './alerts'
 
 const PDL_SEARCH_URL = 'https://api.peopledatalabs.com/v5/person/search'
 
@@ -25,6 +25,34 @@ const PDL_SEARCH_URL = 'https://api.peopledatalabs.com/v5/person/search'
 const PDL_SIZE_MAP: Record<string, string> = {
   '1–10': '1-10', '11–50': '11-50', '51–200': '51-200',
   '201–500': '201-500', '501–1,000': '501-1000', '1,000+': '1001-5000',
+}
+
+// ICP industry label → PDL `job_company_industry` vocab (the LinkedIn industry
+// taxonomy, lowercase). The portal's 18 checkbox labels ('SaaS', 'Fintech'…) are
+// NOT PDL values — sent raw they exact-match nothing, so any ticked industry used
+// to hard-zero the whole query (first live run, 10 Jul: every search with an
+// industry returned 404 no-records). `terms` is OR semantics, so mapping a label
+// to several candidate values is safe — extra values that match nobody just
+// don't match; they can't narrow the result.
+const PDL_INDUSTRY_MAP: Record<string, string[]> = {
+  'Fintech':          ['financial services'],
+  'Healthtech':       ['hospital & health care', 'medical devices', 'health, wellness and fitness'],
+  'E-commerce':       ['internet', 'retail'],
+  'SaaS':             ['computer software', 'information technology and services', 'internet'],
+  'Logistics':        ['logistics and supply chain', 'transportation/trucking/railroad', 'package/freight delivery'],
+  'Agriculture':      ['farming', 'dairy', 'ranching'],
+  'Education':        ['education management', 'higher education', 'e-learning', 'primary/secondary education'],
+  'Manufacturing':    ['machinery', 'mechanical or industrial engineering', 'electrical/electronic manufacturing', 'industrial automation'],
+  'Real Estate':      ['real estate', 'commercial real estate'],
+  'Media':            ['media production', 'online media', 'broadcast media', 'publishing', 'marketing and advertising'],
+  'Consulting':       ['management consulting'],
+  'Retail':           ['retail'],
+  'Banking':          ['banking', 'financial services'],
+  'Insurance':        ['insurance'],
+  'Telecoms':         ['telecommunications'],
+  'Energy':           ['oil & energy', 'renewables & environment', 'utilities'],
+  'NGO / Non-profit': ['non-profit organization management', 'nonprofit organization management', 'civic & social organization'],
+  'Government':       ['government administration', 'government relations'],
 }
 
 // ICP seniority label → PDL `job_title_levels` vocab.
@@ -69,7 +97,14 @@ function buildPdlBody(icp: IcpQuery, size: number) {
   const levels = icp.seniority_levels.flatMap(s => PDL_LEVEL_MAP[s] ?? [])
   if (levels.length) must.push({ terms: { job_title_levels: levels } })
   if (icp.industries.length) {
-    must.push({ terms: { job_company_industry: icp.industries.map(i => i.toLowerCase()) } })
+    // Map labels → PDL vocab; keep the raw lowercase alongside for any label that
+    // already IS a PDL value. If nothing maps at all, drop the filter entirely —
+    // a broader search beats a guaranteed zero.
+    const industryTerms = [...new Set(icp.industries.flatMap(i => [
+      ...(PDL_INDUSTRY_MAP[i] ?? []),
+      i.toLowerCase(),
+    ]))]
+    if (industryTerms.length) must.push({ terms: { job_company_industry: industryTerms } })
   }
   if (icp.geographies.length) {
     must.push({ terms: { location_country: icp.geographies.map(g => g.toLowerCase()) } })
@@ -126,35 +161,98 @@ export async function pdlSearchDiagnostic(
   }
 }
 
+// One raw PDL search call. Distinguishes outcomes so the caller can react:
+// PDL returns 402 when the account has fewer credits REMAINING than the `size`
+// requested — it refuses the whole batch rather than part-filling it (live
+// finding, 10 Jul: 32 credits left + size 50 → 402 "all matches used" on every
+// run, i.e. zero leads while credits sat unspent). 404 = query matched nobody.
+type PdlOutcome =
+  | { kind: 'ok'; contacts: ApolloContact[] }
+  | { kind: 'no_credit' }      // 402 — batch too big for remaining credits (or truly empty)
+  | { kind: 'rate_limited' }   // 429
+  | { kind: 'error' }          // anything else (incl. 404 no-match)
+
+async function pdlSearchOnce(icp: IcpQuery, size: number, key: string): Promise<PdlOutcome> {
+  try {
+    const res = await fetch(PDL_SEARCH_URL, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
+      body:    JSON.stringify(buildPdlBody(icp, size)),
+      signal:  AbortSignal.timeout(15000),
+    })
+    if (res.status === 402) {
+      console.warn(`[pdl] search 402 at size ${size} — batch exceeds remaining credits, will retry smaller`)
+      return { kind: 'no_credit' }
+    }
+    if (res.status === 429) return { kind: 'rate_limited' }
+    if (!res.ok) {
+      console.error(`[pdl] search ${res.status}: ${(await res.text().catch(() => '')).slice(0, 240)}`)
+      return { kind: 'error' }
+    }
+    const json = await res.json() as { data?: PdlPerson[] }
+    return {
+      kind: 'ok',
+      contacts: (json.data ?? []).map(mapPdlToContact).filter((c): c is ApolloContact => c !== null),
+    }
+  } catch (err) {
+    console.error('[pdl] search failed:', err instanceof Error ? err.message : err)
+    return { kind: 'error' }
+  }
+}
+
+// Out-of-credits founder alert, deduped to once per 6h (same pattern as the
+// source_down alert in lib/apollo.ts) — a busy day must not send 40 emails.
+let lastPdlCreditAlertAt = 0
+const PDL_CREDIT_ALERT_INTERVAL_MS = 6 * 60 * 60 * 1000
+function alertPdlOutOfCredits(): void {
+  const now = Date.now()
+  if (now - lastPdlCreditAlertAt < PDL_CREDIT_ALERT_INTERVAL_MS) return
+  lastPdlCreditAlertAt = now
+  void sendFounderAlert('source_down', 'PDL is out of search credits — lead sourcing is returning zero', [
+    'Every ICP run is failing with PDL 402 "account maximum for search (all matches used)" — even a batch of 1.',
+    'Fix: top up / upgrade the Person Search plan at dashboard.peopledatalabs.com → Plans & Billing.',
+    'Until then clients get zero leads from every run.',
+  ])
+}
+
 /**
  * Search PDL for people matching an ICP. Returns [] when no PDL_API_KEY is set
  * (dormant), on error, or on no matches — never throws, so it's a safe fallback.
+ *
+ * 402 handling: PDL rejects any batch larger than the credits remaining, so on
+ * 402 we retry down a size ladder (50 → 25 → 10 → 5 → 1) and take whatever the
+ * remaining balance allows instead of returning nothing. A 402 at size 1 means
+ * the account is truly dry → throttled founder alert. Failed calls (402/404/429)
+ * consume no PDL credits, so the ladder costs nothing extra.
  */
 export async function pdlSearchPeople(icp: IcpQuery, _page = 1, size = 50): Promise<ApolloContact[]> {
   const key = process.env.PDL_API_KEY
   if (!key) return [] // dormant until a key is configured — identical to today
 
-  const body = buildPdlBody(icp, size)
+  const ladder = [size, 25, 10, 5, 1].filter((s, i, a) => s >= 1 && s <= size && a.indexOf(s) === i)
+  let retriedRateLimit = false
 
-  try {
-    const res = await fetch(PDL_SEARCH_URL, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
-      body:    JSON.stringify(body),
-      signal:  AbortSignal.timeout(15000),
-    })
-    if (!res.ok) {
-      console.error(`[pdl] search ${res.status}: ${(await res.text().catch(() => '')).slice(0, 240)}`)
-      return []
+  for (let i = 0; i < ladder.length; i++) {
+    const outcome = await pdlSearchOnce(icp, ladder[i], key)
+    if (outcome.kind === 'ok') {
+      if (i > 0) console.log(`[pdl] size ladder recovered: got ${outcome.contacts.length} at size ${ladder[i]} (asked ${size})`)
+      return outcome.contacts
     }
-    const json = await res.json() as { data?: PdlPerson[] }
-    return (json.data ?? [])
-      .map(mapPdlToContact)
-      .filter((c): c is ApolloContact => c !== null)
-  } catch (err) {
-    console.error('[pdl] search failed:', err instanceof Error ? err.message : err)
-    return []
+    if (outcome.kind === 'no_credit') continue // step down the ladder
+    if (outcome.kind === 'rate_limited' && !retriedRateLimit) {
+      // Free-tier rate limits are per-minute and tight; one paced retry at the
+      // same size, then give up (the caller treats [] as "source found nothing").
+      retriedRateLimit = true
+      await new Promise(r => setTimeout(r, 2500))
+      i-- // retry the same rung
+      continue
+    }
+    return [] // hard error (or second 429) — logged inside pdlSearchOnce
   }
+
+  // 402 all the way down to size 1 — the account has zero search credits left.
+  alertPdlOutOfCredits()
+  return []
 }
 
 // Normalise a PDL person into the shared ApolloContact shape the pipeline expects.

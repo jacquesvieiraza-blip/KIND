@@ -12,7 +12,7 @@
 |---|---|------|:---:|
 | ⬜ | 1 | **Website cut to FIGSY-only** (~6 pages survive; agent/marketing sprawl comes down; same design, honest words, one offer) | 🤖 build · 🧍 deploy |
 | ⬜ | 2 | **Portal cut to FIGSY-only** (same skin; agent switcher/cards/pages + marketplace + What's New + mock Templates OUT of nav) | 🤖 build · 🧍 deploy |
-| ⬜ | 3 | **Billing sells $1 reveal top-ups** (needs 2–3 Stripe price IDs from 🧍) | 🤖 + 🧍 |
+| ✅ | 3 | **Billing sells $1 reveal top-ups** (Stripe price IDs wired · reveal + FIGSY cards live · founder walked both 10 Jul) | 🤖 + 🧍 |
 | ⬜ | 4 | **Credit counter shows BOTH wallets** (reveal + FIGSY) | 🤖 |
 | ⬜ | 5 | **Revenue-report bug fixed** (paid Stripe subs count as $0 — `amount_usd` never written) | 🤖 |
 | ⬜ | 6 | **Merge PR #1019 + run its migrations** (17 reliability fixes: phantom sends, double-sends, alarms, 10-step sequences) | 🧍 (10 min) |

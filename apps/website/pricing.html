@@ -18,6 +18,8 @@
     :root {
       --blue: #7c3aed;
       --dark: #0a0a0a;
+      --deep: #0F0929;
+      --ink: #1E1152;
       --mid: #444;
       --light: #f5f5f7;
       --border: rgba(0,0,0,0.08);
@@ -87,80 +89,103 @@
     }
     .hero-visual canvas { width: 100%; height: 100%; display: block; }
 
-    /* ── BILLING TOGGLE ── */
-    .toggle-wrap { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 36px 0 56px; }
-    .toggle-label { font-size: 0.875rem; color: rgba(0,0,0,0.35); }
-    .toggle-label.active { color: var(--dark); font-weight: 600; }
-    .toggle-switch { width: 44px; height: 24px; background: rgba(0,0,0,0.1); border-radius: 100px; position: relative; cursor: pointer; border: 1px solid rgba(0,0,0,0.12); transition: background .2s; }
-    .toggle-switch.yearly { background: var(--blue); border-color: var(--blue); }
-    .toggle-knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; background: #fff; border-radius: 100px; transition: transform .2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2); }
-    .toggle-switch.yearly .toggle-knob { transform: translateX(20px); }
-    .save-badge { font-size: 0.7rem; font-weight: 700; background: rgba(16,185,129,0.08); color: #059669; padding: 3px 10px; border-radius: 100px; border: 1px solid rgba(16,185,129,0.2); }
-
-    /* ── PRICING GRID ── */
-    .pricing-wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
-    .pricing-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
-    .p-card {
-      background: var(--light);
-      border: 1px solid var(--border);
-      border-radius: 20px; padding: 36px 28px;
-      display: flex; flex-direction: column; position: relative;
-    }
-    .p-card.pop {
-      border-color: var(--dark);
-      background: var(--dark);
-      color: #fff;
-    }
-    .pop-pill { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--blue); color: #fff; font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 14px; border-radius: 100px; white-space: nowrap; }
-    .p-plan { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.35); margin-bottom: 8px; }
-    .p-card.pop .p-plan { color: rgba(255,255,255,0.35); }
-    .p-card h3 { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; margin-bottom: 8px; color: var(--dark); }
-    .p-card.pop h3 { color: #fff; }
-    .p-desc { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.6; margin-bottom: 28px; flex: 1; }
-    .p-card.pop .p-desc { color: rgba(255,255,255,0.45); }
-    .p-price { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 4px; color: var(--dark); transition: all .2s; }
-    .p-card.pop .p-price { color: #fff; }
-    .p-note { font-size: 0.75rem; color: rgba(0,0,0,0.35); margin-bottom: 28px; }
-    .p-card.pop .p-note { color: rgba(255,255,255,0.3); }
-    .p-card ul { list-style: none; margin-bottom: 28px; }
-    .p-card ul li { display: flex; align-items: flex-start; gap: 8px; font-size: 0.8rem; color: rgba(0,0,0,0.55); padding: 5px 0; border-bottom: 1px solid var(--border); }
-    .p-card ul li:last-child { border-bottom: none; }
-    .p-card.pop ul li { color: rgba(255,255,255,0.6); border-bottom-color: rgba(255,255,255,0.07); }
-    .p-card ul li::before { content: "✓"; color: #059669; font-weight: 800; flex-shrink: 0; }
-    .p-card ul li.b::before { color: var(--blue); }
-    .p-card.pop ul li::before { color: #34d399; }
-    .p-card.pop ul li.b::before { color: #a78bfa; }
-    .p-card ul li.dim { color: rgba(0,0,0,0.25); }
-    .p-card ul li.dim::before { color: rgba(0,0,0,0.15); }
-    .p-btn { display: block; text-align: center; padding: 12px; border-radius: 100px; font-size: 0.875rem; font-weight: 700; text-decoration: none; transition: all .2s; border: none; cursor: pointer; margin-top: auto; }
-    .p-btn-dark { background: var(--dark); color: #fff; }
-    .p-btn-dark:hover { opacity: 0.8; }
-    .p-btn-white { background: #fff; color: var(--dark); }
-    .p-btn-white:hover { opacity: 0.85; }
-    .p-btn-out { background: transparent; color: rgba(0,0,0,0.6); border: 1.5px solid var(--border); }
-    .p-btn-out:hover { color: var(--dark); border-color: rgba(0,0,0,0.3); }
-    .p-vol-note { text-align: center; font-size: 0.78rem; color: rgba(0,0,0,0.35); margin-top: 22px; padding-bottom: 8px; }
-
     /* ── S-LABEL ── */
     .s-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em; color: var(--blue); margin-bottom: 12px; }
 
-    /* ── ADD-ONS ── */
-    .addon-section { max-width: 1080px; margin: 80px auto 0; padding: 0 24px; }
-    .addon-header { margin-bottom: 32px; }
-    .addon-header h2 { font-size: clamp(1.6rem,3vw,2.2rem); font-weight: 900; letter-spacing: -0.03em; color: var(--dark); }
-    .addon-header p { font-size: 0.9rem; color: rgba(0,0,0,0.45); margin-top: 8px; }
-    .addon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    .a-card { background: var(--light); border: 1px solid var(--border); border-radius: 18px; padding: 28px 24px; }
-    .a-icon { font-size: 1.4rem; margin-bottom: 16px; }
-    .a-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 6px; color: var(--dark); }
-    .a-card > p { font-size: 0.82rem; color: rgba(0,0,0,0.45); line-height: 1.65; margin-top: 6px; }
-    .a-tiers { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
-    .a-tier { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #fff; border: 1px solid var(--border); border-radius: 10px; font-size: 0.82rem; }
-    .a-tier-name { color: rgba(0,0,0,0.55); }
-    .a-tier-price { font-weight: 700; color: var(--dark); }
-    .a-tier-price .y-price { display: none; }
-    .a-demo-btn { display: inline-block; margin-top: 16px; padding: 10px 20px; background: var(--dark); color: #fff; border-radius: 10px; font-size: 0.82rem; font-weight: 700; text-decoration: none; transition: opacity .2s; }
-    .a-demo-btn:hover { opacity: 0.75; }
+    /* ── PLAN CARDS ── */
+    .plans-wrap { max-width: 1080px; margin: 8px auto 0; padding: 0 24px; }
+    .plans-head { text-align: center; margin: 8px 0 30px; }
+    .plans-head .s-label { display: inline-block; }
+    .plans-head h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 900; letter-spacing: -0.03em; color: var(--dark); line-height: 1.1; }
+    .plans-head > p { font-size: 0.95rem; color: rgba(0,0,0,0.5); margin: 8px auto 0; max-width: 580px; }
+    .plans-head > p strong { color: var(--dark); }
+    .plans-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; align-items: stretch; }
+    .plan { position: relative; display: flex; flex-direction: column; background: #fff; border: 1px solid var(--border); border-radius: 22px; padding: 34px 26px; }
+    .plan.pop { border: 1.5px solid var(--blue); box-shadow: 0 24px 60px rgba(124,58,237,0.18); }
+    .plan-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: linear-gradient(120deg,#7c3aed,#a855f7); color: #fff; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 14px; border-radius: 100px; white-space: nowrap; }
+    .plan-name { font-size: 1.1rem; font-weight: 800; letter-spacing: -0.01em; color: var(--dark); margin-bottom: 4px; }
+    .plan-role { font-size: 0.67rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--blue); margin-bottom: 18px; }
+    .plan-price { font-size: 2.7rem; font-weight: 900; letter-spacing: -0.04em; line-height: 1; color: var(--dark); }
+    .plan-price span { font-size: 0.8rem; font-weight: 400; color: rgba(0,0,0,0.4); }
+    .plan-note { font-size: 0.74rem; color: rgba(0,0,0,0.45); margin: 10px 0 18px; line-height: 1.55; }
+    .plan ul { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+    .plan li { display: flex; gap: 8px; font-size: 0.8rem; color: rgba(0,0,0,0.6); line-height: 1.45; }
+    .plan li svg { flex-shrink: 0; margin-top: 2px; }
+    .plan-btn { display: block; text-align: center; padding: 12px; border-radius: 100px; font-size: 0.85rem; font-weight: 700; text-decoration: none; margin-top: auto; transition: opacity .2s, transform .2s; }
+    .plan-btn.grad { background: linear-gradient(120deg,#7c3aed,#a855f7); color: #fff; }
+    .plan-btn.grad:hover { opacity: 0.9; transform: translateY(-1px); }
+    .plan-btn.out { background: transparent; color: var(--dark); border: 1.5px solid var(--border); }
+    .plan-btn.out:hover { border-color: rgba(0,0,0,0.3); }
+    .plans-fine { text-align: center; font-size: 0.78rem; color: rgba(0,0,0,0.4); margin-top: 24px; }
+    .bundles-strip { max-width: 760px; margin: 20px auto 0; background: var(--light); border: 1px solid var(--border); border-radius: 16px; padding: 20px 26px; text-align: center; }
+    .bundles-strip .bt-head { font-size: 0.9rem; font-weight: 700; color: var(--dark); margin-bottom: 12px; }
+    .bundles-strip .bt-tiers { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+    .bundles-strip .bt-tier { background: #fff; border: 1px solid var(--border); border-radius: 100px; padding: 7px 16px; font-size: 0.8rem; color: rgba(0,0,0,0.6); }
+    .bundles-strip .bt-tier strong { color: var(--blue); }
+    .bundles-strip .bt-note { font-size: 0.76rem; color: rgba(0,0,0,0.4); }
+
+    /* ── COMPARE DETAILS (native dropdown) ── */
+    .cmp-details { max-width: 1080px; margin: 40px auto 0; padding: 0 24px; }
+    .cmp-summary { list-style: none; cursor: pointer; display: block; width: max-content; max-width: 100%; margin: 0 auto; background: linear-gradient(120deg,#7c3aed,#a855f7); color: #fff; font-size: 0.88rem; font-weight: 700; padding: 13px 30px; border-radius: 100px; user-select: none; transition: opacity .2s; }
+    .cmp-summary:hover { opacity: 0.92; }
+    .cmp-summary::-webkit-details-marker { display: none; }
+    .cmp-summary .caret { display: inline-block; transition: transform .2s; }
+    .cmp-details[open] .cmp-summary .caret { transform: rotate(180deg); }
+    .cmp-details[open] .cmp-summary { margin-bottom: 24px; }
+    .cmp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: 20px; background: #fff; }
+    .cmp-table { width: 100%; border-collapse: collapse; min-width: 680px; }
+    .cmp-table th, .cmp-table td { padding: 14px 20px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
+    .cmp-table thead th { background: #fff; vertical-align: bottom; }
+    .cmp-table th:first-child, .cmp-table td:first-child { text-align: left; color: rgba(0,0,0,0.7); font-weight: 600; width: 40%; }
+    .cmp-plan-name { font-size: 0.78rem; font-weight: 900; letter-spacing: -0.01em; color: var(--dark); }
+    .cmp-plan-price { font-size: 0.72rem; font-weight: 400; color: rgba(0,0,0,0.4); margin-top: 3px; }
+    .cmp-col-pop { background: linear-gradient(180deg, rgba(124,58,237,0.05), rgba(124,58,237,0.02)); }
+    .cmp-col-pop .cmp-plan-name { color: var(--blue); }
+    .cmp-grouprow td { background: var(--light); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.68rem; color: rgba(0,0,0,0.5); text-align: left; }
+    .cmp-yes { color: #059669; font-weight: 800; }
+    .cmp-no { color: rgba(0,0,0,0.2); }
+    .cmp-val { color: var(--blue); font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    .cmp-table tbody tr:last-child td { border-bottom: none; }
+    @media (max-width: 600px) { .cmp-table th, .cmp-table td { padding: 12px 14px; font-size: 0.8rem; } }
+
+    /* ── CALCULATOR (embedded from Pipeline Calculator) ── */
+    .calc-band { background: linear-gradient(180deg, #F5F0FF 0%, #FBFAFF 100%); border-top: 1px solid rgba(124,58,237,0.08); border-bottom: 1px solid rgba(124,58,237,0.08); padding: 72px 0 8px; margin-top: 80px; }
+    .calc-head { text-align: center; max-width: 640px; margin: 0 auto; padding: 0 24px; }
+    .calc-head .s-label { display: inline-block; }
+    .calc-head h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); font-weight: 900; letter-spacing: -0.03em; color: var(--ink); line-height: 1.1; }
+    .calc-head p { font-size: 0.95rem; color: rgba(30,17,71,0.55); margin-top: 10px; line-height: 1.7; }
+    .calc-wrap { max-width: 1040px; margin: 32px auto 40px; padding: 0 48px; }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+    .calc-card { border-radius: 24px; padding: 36px; }
+    .calc-card.inputs { background: #fff; border: 1px solid rgba(20,18,45,0.08); box-shadow: 0 30px 60px -30px rgba(70,30,130,0.4); }
+    .calc-card.results { background: var(--deep); color: #fff; position: sticky; top: 88px; overflow: hidden; }
+    .calc-card.results::before { content: ''; position: absolute; inset: 0; background: radial-gradient(520px 300px at 50% -10%, rgba(124,58,237,0.28) 0%, transparent 65%); pointer-events: none; }
+    .calc-card.results > * { position: relative; z-index: 1; }
+    .calc-card h2 { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 28px; }
+    .calc-card.results h2 { color: #a78bfa; }
+    .field { margin-bottom: 26px; }
+    .field label { display: flex; justify-content: space-between; align-items: baseline; font-size: 0.85rem; font-weight: 600; color: rgba(30,17,71,0.7); margin-bottom: 10px; }
+    .field .val { font-weight: 800; color: var(--blue); font-size: 0.95rem; }
+    .field input[type=number] { width: 100%; padding: 12px 14px; border: 1.5px solid rgba(20,18,45,0.12); border-radius: 12px; font-size: 1rem; font-weight: 600; color: var(--ink); font-family: inherit; background: #fff; transition: border-color .2s; }
+    .field input[type=number]:focus { outline: none; border-color: var(--blue); }
+    .field input[type=range] { width: 100%; accent-color: var(--blue); height: 4px; cursor: pointer; }
+    .field .hint { font-size: 0.74rem; color: rgba(30,17,71,0.42); margin-top: 8px; line-height: 1.5; }
+    .assume-head { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(30,17,71,0.4); margin: 8px 0 20px; padding-top: 24px; border-top: 1px dashed rgba(20,18,45,0.14); }
+    .result-row { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .result-row:last-of-type { border-bottom: none; }
+    .result-row .label { font-size: 0.88rem; color: rgba(255,255,255,0.55); }
+    .result-row .num { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; }
+    .result-hero { text-align: center; padding: 26px 0 8px; }
+    .result-hero .label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: #a78bfa; margin-bottom: 8px; }
+    .result-hero .num { font-size: 2.7rem; font-weight: 900; letter-spacing: -0.03em; background: linear-gradient(120deg,#c4b5fd,#fff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .result-hero .sub { font-size: 0.8rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
+    .btn-cta { display: block; text-align: center; background: #fff; color: var(--dark); font-size: 0.9rem; font-weight: 700; padding: 14px; border-radius: 100px; text-decoration: none; margin-top: 28px; transition: opacity .2s, transform .2s; }
+    .btn-cta:hover { opacity: 0.9; transform: translateY(-1px); }
+    .disclaimer { max-width: 1040px; margin: 0 auto; padding: 0 48px 8px; }
+    .disclaimer-box { background: #fff; border: 1px solid rgba(124,58,237,0.12); border-radius: 18px; padding: 24px 28px; display: flex; gap: 16px; align-items: flex-start; }
+    .disclaimer-box .icon { font-size: 1.2rem; flex-shrink: 0; }
+    .disclaimer-box p { font-size: 0.84rem; color: rgba(30,17,71,0.6); line-height: 1.75; }
+    .disclaimer-box strong { color: var(--ink); }
 
     /* ── FAQ ── */
     .faq-section { max-width: 720px; margin: 100px auto 0; padding: 0 24px 120px; }
@@ -171,7 +196,7 @@
     .faq-q .fq-icon { font-size: 0.75rem; color: rgba(0,0,0,0.3); transition: transform .2s; flex-shrink: 0; }
     .faq-item.open .fq-icon { transform: rotate(180deg); }
     .faq-a { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
-    .faq-item.open .faq-a { max-height: 300px; }
+    .faq-item.open .faq-a { max-height: 400px; }
     .faq-a p { font-size: 0.85rem; color: rgba(0,0,0,0.5); line-height: 1.75; padding-bottom: 20px; }
     .faq-a a { color: var(--blue); text-decoration: none; }
 
@@ -247,13 +272,6 @@
     .modal-footer { text-align: center; margin-top: 20px; font-size: 0.8rem; color: rgba(0,0,0,0.35); }
     .modal-footer a { color: var(--blue); text-decoration: none; }
 
-    /* ── COMPARE STRIP ── */
-    .compare-strip { display:flex; align-items:center; gap:16px; background:var(--light); border-radius:16px; padding:16px 24px; margin-bottom:40px; flex-wrap:wrap; }
-    .aa-item { font-size:0.78rem; line-height:1.5; flex:1; min-width:200px; }
-    .aa-bad { color:rgba(0,0,0,0.35); text-decoration:line-through; }
-    .aa-good { color:var(--dark); font-weight:600; }
-    .aa-vs { font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:rgba(0,0,0,0.2); flex-shrink:0; }
-
     /* ── RESPONSIVE ── */
     @media (max-width: 1024px) {
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
@@ -261,53 +279,19 @@
     @media (max-width: 900px) {
       nav { padding: 0 24px; }
       .nav-links { display: none; }
-      .pricing-grid, .addon-grid { grid-template-columns: 1fr; }
+      .plans-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 768px) {
       .footer-grid { grid-template-columns: 1fr; }
       .cta-banner { padding: 48px 28px; }
-      .human-strip { padding: 32px 24px; }
-      .human-strip-btn { width: 100%; text-align: center; }
+      .page-hero { padding: 56px 24px 0; }
+      .calc-wrap, .disclaimer { padding: 0 24px; }
+      .calc-grid { grid-template-columns: 1fr; }
+      .calc-card.results { position: static; }
     }
     @media (max-width: 600px) {
       .cta-banner { padding: 44px 24px; }
     }
-
-    /* HUMAN STRIP */
-    .human-strip { border-top: 1px solid rgba(124,58,237,0.1); border-bottom: 1px solid rgba(124,58,237,0.1); padding: 44px 48px; background: #faf5ff; }
-    .human-strip-inner { max-width: 1080px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 40px; flex-wrap: wrap; }
-    .human-strip-hed { font-size: 1.15rem; font-weight: 800; color: #0a0a0a; letter-spacing: -0.02em; margin-bottom: 6px; }
-    .human-strip-sub { font-size: 0.88rem; color: rgba(0,0,0,0.45); line-height: 1.6; max-width: 520px; }
-    .human-strip-btn { display: inline-block; background: #0a0a0a; color: #fff; font-size: 0.88rem; font-weight: 700; padding: 13px 26px; border-radius: 100px; text-decoration: none; white-space: nowrap; transition: opacity .2s, transform .2s; flex-shrink: 0; }
-    .human-strip-btn:hover { opacity: 0.8; transform: translateY(-1px); }
-
-    /* COMPARE ALL PLANS — feature matrix (item 255) */
-    .cmp-wrap { max-width: 1080px; margin: 0 auto 8px; padding: 0 24px; }
-    .cmp-head { text-align: center; margin: 16px 0 28px; }
-    .cmp-head h2 { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; letter-spacing: -0.03em; color: var(--dark); }
-    .cmp-head p { font-size: 0.92rem; color: rgba(0,0,0,0.45); margin-top: 8px; }
-    .cmp-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: 20px; background: #fff; }
-    .cmp-table { width: 100%; border-collapse: collapse; min-width: 640px; }
-    .cmp-table th, .cmp-table td { padding: 15px 20px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.88rem; }
-    .cmp-table thead th { position: sticky; top: 0; background: #fff; z-index: 2; }
-    .cmp-table th:first-child, .cmp-table td:first-child { text-align: left; color: rgba(0,0,0,0.7); font-weight: 600; width: 38%; }
-    .cmp-plan-name { font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.4); }
-    .cmp-plan-price { font-size: 1.5rem; font-weight: 900; letter-spacing: -0.03em; color: var(--dark); line-height: 1.1; margin-top: 2px; }
-    .cmp-plan-price small { font-size: 0.78rem; font-weight: 400; color: rgba(0,0,0,0.35); }
-    .cmp-col-pop { background: linear-gradient(180deg, rgba(124,58,237,0.05), rgba(124,58,237,0.02)); }
-    .cmp-col-pop .cmp-plan-name { color: var(--blue); }
-    .cmp-grouprow td { background: var(--light); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.7rem; color: rgba(0,0,0,0.5); text-align: left; }
-    .cmp-yes { color: #059669; font-weight: 800; }
-    .cmp-no { color: rgba(0,0,0,0.2); }
-    .cmp-val { color: var(--dark); font-weight: 700; }
-    .cmp-table tbody tr:last-child td { border-bottom: none; }
-    .cmp-cta-row td { padding-top: 20px; padding-bottom: 22px; }
-    .cmp-cta { display: inline-block; font-size: 0.82rem; font-weight: 700; padding: 10px 20px; border-radius: 100px; text-decoration: none; }
-    .cmp-cta-out { border: 1px solid rgba(0,0,0,0.18); color: var(--dark); }
-    .cmp-cta-pop { background: var(--blue); color: #fff; }
-    .cmp-cta-out:hover { border-color: rgba(0,0,0,0.4); }
-    .cmp-cta-pop:hover { opacity: 0.9; }
-    @media (max-width: 600px) { .cmp-table th, .cmp-table td { padding: 12px 14px; font-size: 0.8rem; } }
   </style>
   <!-- Shared K.I.N.D design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
@@ -374,7 +358,7 @@
   </div>
 </nav>
 
-<!-- HERO -->
+<!-- ══ 1. HERO ══ -->
 <div class="page-hero">
   <div class="eyebrow">Pricing</div>
   <h1>Pay for results, not promises.</h1>
@@ -387,155 +371,204 @@
   <canvas id="node-canvas"></canvas>
 </div>
 
-<!-- BILLING TOGGLE removed — credit-bundle product has no monthly/yearly billing -->
-
-
-<!-- POPIA TRUST STRIP -->
-<div style="max-width:860px;margin:0 auto 40px;padding:0 24px">
-  <div style="display:flex;align-items:flex-start;gap:14px;background:linear-gradient(135deg,rgba(16,185,129,0.06) 0%,rgba(5,150,105,0.08) 100%);border:1px solid rgba(16,185,129,0.22);border-radius:16px;padding:20px 24px">
-    <span style="font-size:1.4rem;flex-shrink:0;margin-top:1px">🛡️</span>
-    <p style="font-size:0.875rem;color:rgba(0,0,0,0.65);line-height:1.7;margin:0">Every campaign that runs on K.I.N.D is <strong style="color:#059669">GDPR &amp; POPIA compliant by default</strong>. Opt-outs suppressed permanently. Consent logged automatically. <strong style="color:rgba(0,0,0,0.75)">You are protected.</strong></p>
-  </div>
-</div>
-
-<!-- PRICING CARDS -->
-<div class="pricing-wrap">
-  <div class="compare-strip">
-    <div class="aa-item aa-bad">Most AI SDR tools — high flat monthly fees · long lock-in contracts · pay whether it works or not</div>
-    <div class="aa-vs">vs</div>
-    <div class="aa-item aa-good">K.I.N.D — $1 to reveal · $4 per qualified lead · no monthly fee · no contract · pay only for results</div>
-  </div>
-  <!-- #419 v2 · The family — 4 agent cards side by side (premium style). FIGSY live/buyable; rest coming-soon greyed. -->
-  <style>
-    .fam-head{text-align:center;margin:8px 0 26px}
-    .fam-head .s-label{display:inline-block;font-size:.7rem;font-weight:800;letter-spacing:.16em;text-transform:uppercase;color:#7c3aed;margin-bottom:10px}
-    .fam-head h2{font-size:clamp(1.6rem,3vw,2.3rem);font-weight:900;letter-spacing:-.03em;color:var(--dark);line-height:1.1}
-    .fam-head > p{font-size:.95rem;color:rgba(0,0,0,.5);margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto}
-    .fam-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:stretch}
-    .fam-card{position:relative;display:flex;flex-direction:column;background:linear-gradient(165deg,#1a1330,#0a0a0a);border:1px solid rgba(167,139,250,.22);border-radius:22px;padding:26px 22px;color:#fff}
-    .fam-card.live{border-color:rgba(167,139,250,.55);box-shadow:0 24px 60px rgba(124,58,237,.22)}
-    .fam-card.soon{opacity:.62}
-    .fam-pill{align-self:flex-start;font-size:.58rem;font-weight:800;text-transform:uppercase;letter-spacing:.1em;padding:5px 12px;border-radius:100px;margin-bottom:14px}
-    .fam-pill.live{background:#7c3aed;color:#fff}
-    .fam-pill.soon{background:rgba(255,255,255,.12);color:rgba(255,255,255,.75)}
-    .fam-card h3{font-size:1.1rem;font-weight:800;letter-spacing:-.01em;margin-bottom:5px;color:#fff}
-    .fam-role{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(167,139,250,.9);margin-bottom:14px}
-    .fam-card .fam-price{font-size:2rem;font-weight:900;letter-spacing:-.03em;line-height:1;color:#fff}
-    .fam-card .fam-price span{font-size:.82rem;font-weight:400;color:rgba(255,255,255,.4)}
-    .fam-note{font-size:.7rem;color:rgba(255,255,255,.4);margin:8px 0 16px;line-height:1.5}
-    .fam-card ul{list-style:none;margin:0 0 20px;padding:0;display:flex;flex-direction:column;gap:9px;flex:1}
-    .fam-card li{display:flex;gap:7px;font-size:.78rem;color:rgba(255,255,255,.66);line-height:1.45}
-    .fam-card li svg{flex-shrink:0;margin-top:2px}
-    .fam-btn{display:block;text-align:center;padding:11px;border-radius:100px;font-size:.84rem;font-weight:700;text-decoration:none;margin-top:auto}
-    .fam-btn.live{background:#fff;color:#0a0a0a}
-    .fam-btn.soon{background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);cursor:default;pointer-events:none}
-    @media(max-width:1180px){.fam-cards{grid-template-columns:repeat(3,1fr)}}
-    @media(max-width:820px){.fam-cards{grid-template-columns:repeat(2,1fr)}}
-    @media(max-width:520px){.fam-cards{grid-template-columns:1fr}}
-  </style>
-  <div class="fam-head">
-    <div class="s-label">The family</div>
+<!-- ══ 2. PLAN CARDS ══ -->
+<div class="plans-wrap">
+  <div class="plans-head">
+    <div class="s-label">Simple pricing</div>
     <h2>One price — per qualified lead.</h2>
-    <p><strong>$1</strong> to reveal a lead → <strong>+$3</strong> FIGSY works it = <strong>$4</strong> per qualified lead. Buy reveal &amp; FIGSY credits in bundles — no subscriptions, no contracts.</p>
+    <p><strong>$1</strong> to reveal a lead → <strong>+$3</strong> for FIGSY to work it = <strong>$4</strong> per qualified lead. Buy reveal &amp; FIGSY credits in bundles — no subscriptions, no contracts.</p>
   </div>
-  <div class="fam-cards">
-    <div class="fam-card live">
-      <span class="fam-pill live">Live · buy now</span>
-      <h3>Lead-Gen</h3><div class="fam-role">The Database · Data-only</div>
-      <div class="fam-price">$1<span>/qualified lead</span></div>
-      <div class="fam-note">Reveal a net-new, ICP-matched, verified contact — the database. No outreach; add FIGSY (+$3) for the full $4.</div>
+
+  <div class="plans-grid">
+    <!-- Lead-Gen -->
+    <div class="plan">
+      <div class="plan-name">Lead-Gen</div>
+      <div class="plan-role">The database · Data-only</div>
+      <div class="plan-price">$1<span>/qualified lead</span></div>
+      <div class="plan-note">Reveal a net-new, ICP-matched, verified contact — the database. No outreach; add FIGSY (+$3) for the full $4.</div>
       <ul>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ICP-matched B2B lead sourcing</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Verified contact (PDL + Hunter)</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>AI lead score 0–100</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Suppression-checked · CRM dedup</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>CSV export · GDPR-compliant delivery</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ICP-matched B2B lead sourcing</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Verified contact (PDL + Hunter)</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>AI lead score 0–100</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Suppression-checked · CRM dedup</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>CSV export · GDPR-compliant delivery</li>
       </ul>
-      <a href="https://app.get-kind.com/login" class="fam-btn live">Get started free &rarr;</a>
+      <a href="https://app.get-kind.com/login" class="plan-btn out">Get started free &rarr;</a>
     </div>
-    <div class="fam-card live">
-      <span class="fam-pill live">Live · buy now</span>
-      <h3>FIGSY</h3><div class="fam-role">The Opener · Outbound engine</div>
-      <div class="fam-price">$4<span>/qualified lead</span></div>
-      <div class="fam-note">$1 to reveal the lead (the database) + $3 for FIGSY to work it. Buy reveal &amp; FIGSY credits in bundles — credits never expire.</div>
+
+    <!-- FIGSY (popular) -->
+    <div class="plan pop">
+      <div class="plan-badge">Most popular</div>
+      <div class="plan-name">FIGSY</div>
+      <div class="plan-role">The AI SDR · Outbound engine</div>
+      <div class="plan-price">$4<span>/qualified lead</span></div>
+      <div class="plan-note">$1 to reveal the lead (the database) + $3 for FIGSY to work it. Buy reveal &amp; FIGSY credits in bundles — credits never expire.</div>
       <ul>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ICP-matched lead sourcing, scored 0–100</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Personalised outreach (unique per lead)</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Client-built follow-up sequence (up to 10 steps)</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Booking link in every email &middot; calendar booking launching</li>
-        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>GDPR-compliant workflow · CRM dedup · CSV export</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>ICP-matched lead sourcing, scored 0–100</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Personalised outreach (unique per lead)</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Client-built follow-up sequence (up to 10 steps)</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Booking link in every email &middot; calendar booking launching</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>GDPR-compliant workflow · CRM dedup · CSV export</li>
       </ul>
-      <a href="https://app.get-kind.com/login" class="fam-btn live">Get started free &rarr;</a>
+      <a href="https://app.get-kind.com/login" class="plan-btn grad">Get started free &rarr;</a>
+    </div>
+
+    <!-- Volume / Enterprise -->
+    <div class="plan">
+      <div class="plan-name">Volume / Enterprise</div>
+      <div class="plan-role">High volume · Custom onboarding</div>
+      <div class="plan-price">Custom</div>
+      <div class="plan-note">For teams running high lead volumes who want a tailored rollout and account support. Priced to your volume.</div>
+      <ul>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Dedicated onboarding</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Volume pricing</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Priority support</li>
+        <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>SSO / DPA on request</li>
+      </ul>
+      <a href="mailto:hello@get-kind.com?subject=FIGSY%20volume%20enquiry" class="plan-btn out">Let&rsquo;s talk &rarr;</a>
     </div>
   </div>
-  <p style="text-align:center;margin-top:24px;font-size:0.9rem;color:rgba(0,0,0,0.5)">Need higher volume or custom onboarding? <a href="mailto:hello@get-kind.com?subject=FIGSY%20volume%20enquiry" style="color:var(--blue);text-decoration:none;font-weight:600">Let&rsquo;s talk &rarr;</a></p>
-  <p class="p-vol-note">💳 Billed in USD · Stripe-secured · No subscription · No contracts · <a href="mailto:hello@get-kind.com" style="color:rgba(0,0,0,0.35);text-decoration:none">hello@get-kind.com</a></p>
+
+  <p class="plans-fine">💳 Billed in USD · Stripe-secured · No subscription · No contracts</p>
+
+  <div class="bundles-strip">
+    <div class="bt-head">Reveal &amp; FIGSY credits — buy in bundles</div>
+    <div class="bt-tiers">
+      <div class="bt-tier">20 credits · <strong>$60</strong></div>
+      <div class="bt-tier">40 credits · <strong>$120</strong></div>
+      <div class="bt-tier">100 credits · <strong>$300</strong></div>
+    </div>
+    <div class="bt-note">Credits never expire. Use them for reveals ($1) or full FIGSY leads ($4) — your call.</div>
+  </div>
+
+  <!-- ══ 3. COMPARE — EXPANDABLE DROPDOWN (native, no JS) ══ -->
+  <details class="cmp-details">
+    <summary class="cmp-summary">Compare the full feature list <span class="caret">▾</span></summary>
+    <div class="cmp-scroll">
+      <table class="cmp-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th><span class="cmp-plan-name">Lead-Gen</span><div class="cmp-plan-price">$1 / lead</div></th>
+            <th class="cmp-col-pop"><span class="cmp-plan-name">FIGSY</span><div class="cmp-plan-price">$4 / lead</div></th>
+            <th><span class="cmp-plan-name">Enterprise</span><div class="cmp-plan-price">Custom</div></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="cmp-grouprow"><td colspan="4">Data</td></tr>
+          <tr><td>ICP-matched lead sourcing</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Verified contact (PDL + Hunter)</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>AI lead score 0–100</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>CRM dedup</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>CSV export</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+
+          <tr class="cmp-grouprow"><td colspan="4">Outbound work</td></tr>
+          <tr><td>Personalised outreach</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Follow-up sequence (≤10 steps)</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Reply tracking</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Booking link in every email</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Calendar booking</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-val">Launching</td><td class="cmp-val">Launching</td></tr>
+
+          <tr class="cmp-grouprow"><td colspan="4">Delivery &amp; compliance</td></tr>
+          <tr><td>GDPR / POPIA compliant</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Suppression / opt-out handling</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>SSO / DPA on request</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
+
+          <tr class="cmp-grouprow"><td colspan="4">Support</td></tr>
+          <tr><td>Email support</td><td class="cmp-yes">✓</td><td class="cmp-col-pop cmp-yes">✓</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Dedicated onboarding</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
+          <tr><td>Priority support</td><td class="cmp-no">—</td><td class="cmp-col-pop cmp-no">—</td><td class="cmp-yes">✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
 </div>
 
-
-<!-- COMPLIANCE BADGES + CALCULATOR CTA -->
-<div style="max-width:1080px;margin:0 auto;padding:0 24px 8px">
-  <div style="display:flex;align-items:center;justify-content:center;gap:18px;flex-wrap:wrap;background:#fff;border:1px solid rgba(0,0,0,0.07);border-radius:16px;padding:16px 20px;margin-bottom:18px">
-    <span style="font-size:0.8rem;font-weight:700;color:rgba(0,0,0,0.6);display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#059669"></span>GDPR &amp; UK GDPR</span>
-    <span style="font-size:0.8rem;font-weight:700;color:rgba(0,0,0,0.6);display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#059669"></span>POPIA compliant</span>
-    <span style="font-size:0.8rem;font-weight:700;color:rgba(0,0,0,0.6);display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#059669"></span>CCPA</span>
-    <span style="font-size:0.8rem;font-weight:700;color:rgba(0,0,0,0.6);display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#059669"></span>Full audit trail</span>
-    <span style="font-size:0.8rem;font-weight:700;color:rgba(0,0,0,0.6);display:flex;align-items:center;gap:7px"><span style="width:9px;height:9px;border-radius:50%;background:#059669"></span>SOC 2-audited hosting</span>
+<!-- ══ 4. CALCULATOR (embedded — real Pipeline Calculator) ══ -->
+<section class="calc-band">
+  <div class="calc-head">
+    <div class="s-label">The calculator</div>
+    <h2>See what FIGSY could add.</h2>
+    <p>Put in your own numbers — every assumption below is yours to move. We'd rather show you a conservative estimate you trust than a flashy one you don't.</p>
   </div>
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;background:#0a0a0a;color:#fff;border-radius:18px;padding:20px 26px;flex-wrap:wrap;margin-bottom:24px">
-    <div><div style="font-weight:700;font-size:1.05rem">Not sure what you'll spend?</div><div style="font-size:0.85rem;color:rgba(255,255,255,0.55);margin-top:2px">Estimate your cost per booked meeting in 30 seconds.</div></div>
-    <a href="pipeline-calculator.html" style="background:#fff;color:#0a0a0a;font-weight:700;font-size:0.85rem;padding:11px 20px;border-radius:100px;text-decoration:none;white-space:nowrap">Open the Pipeline Calculator &rarr;</a>
-  </div>
-</div>
 
-<!-- TRUST SIGNALS (replaced the removed 90-day performance guarantee — true, measurable commitments only, #348) -->
-<div style="max-width:1080px;margin:0 auto 24px;padding:0 24px">
-  <div style="position:relative;overflow:hidden;border-radius:28px;background:linear-gradient(160deg,#0a0a0a,#1a1340);padding:56px 48px;text-align:center">
-    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,0.22) 0%,transparent 60%);pointer-events:none"></div>
-    <div style="position:relative">
-      <div style="font-size:2.2rem;margin-bottom:14px">🛡️</div>
-      <div style="font-size:0.7rem;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:#a78bfa;margin-bottom:14px">Pay for results, not promises</div>
-      <h2 style="font-size:clamp(1.6rem,3vw,2.4rem);font-weight:900;letter-spacing:-0.03em;color:#fff;margin-bottom:22px;line-height:1.15;max-width:680px;margin-left:auto;margin-right:auto">You only pay for qualified leads &mdash; on your terms.</h2>
-      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:14px 30px;max-width:760px;margin:0 auto">
-        <span style="color:rgba(255,255,255,0.85);font-size:0.98rem;font-weight:600;display:flex;align-items:center;gap:9px"><span style="color:#34d399;font-weight:800">✓</span> No lock-in</span>
-        <span style="color:rgba(255,255,255,0.85);font-size:0.98rem;font-weight:600;display:flex;align-items:center;gap:9px"><span style="color:#34d399;font-weight:800">✓</span> No subscription</span>
-        <span style="color:rgba(255,255,255,0.85);font-size:0.98rem;font-weight:600;display:flex;align-items:center;gap:9px"><span style="color:#34d399;font-weight:800">✓</span> Credits never expire</span>
-        <span style="color:rgba(255,255,255,0.85);font-size:0.98rem;font-weight:600;display:flex;align-items:center;gap:9px"><span style="color:#34d399;font-weight:800">✓</span> Pay only for qualified leads</span>
+  <div class="calc-wrap">
+    <div class="calc-grid">
+      <!-- INPUTS -->
+      <div class="calc-card inputs">
+        <h2>Your pipeline today</h2>
+
+        <div class="field">
+          <label for="leads">Leads FIGSY works each month <span class="val" id="leads-val">300</span></label>
+          <input type="number" id="leads" min="0" step="10" value="300" />
+          <p class="hint">New enquiries plus any dormant list you'd put back into play.</p>
+        </div>
+
+        <div class="field">
+          <label for="deal">Average value of one client <span class="val" id="deal-val">$25,000</span></label>
+          <input type="number" id="deal" min="0" step="1000" value="25000" />
+          <p class="hint">Use whatever a single closed client is worth to you — first deal or lifetime, your call.</p>
+        </div>
+
+        <div class="assume-head">Assumptions — drag to match your reality</div>
+
+        <div class="field">
+          <label for="reply">Share of leads that reply <span class="val" id="reply-val">8%</span></label>
+          <input type="range" id="reply" min="1" max="30" step="1" value="8" />
+          <p class="hint">Set conservatively by default. Move it to whatever your own outreach actually achieves.</p>
+        </div>
+
+        <div class="field">
+          <label for="meeting">Replies that turn into a meeting <span class="val" id="meeting-val">40%</span></label>
+          <input type="range" id="meeting" min="5" max="80" step="5" value="40" />
+        </div>
+
+        <div class="field">
+          <label for="close">Meetings that become clients <span class="val" id="close-val">25%</span></label>
+          <input type="range" id="close" min="5" max="80" step="5" value="25" />
+          <p class="hint">This is your close rate — the part only you can do. FIGSY gets them to the table; you win them.</p>
+        </div>
+      </div>
+
+      <!-- RESULTS -->
+      <div class="calc-card results">
+        <h2>What that could look like</h2>
+        <div class="result-row">
+          <span class="label">Replies / month</span>
+          <span class="num" id="out-replies">24</span>
+        </div>
+        <div class="result-row">
+          <span class="label">Meetings booked / month</span>
+          <span class="num" id="out-meetings">10</span>
+        </div>
+        <div class="result-row">
+          <span class="label">New clients / month</span>
+          <span class="num" id="out-clients">2</span>
+        </div>
+        <div class="result-hero">
+          <div class="label">Estimated revenue added / year</div>
+          <div class="num" id="out-revenue">$720,000</div>
+          <div class="sub">based entirely on the numbers you entered above</div>
+        </div>
+        <a href="https://app.get-kind.com/login" class="btn-cta">Get started free →</a>
       </div>
     </div>
   </div>
-</div>
 
-<!-- #419 · FEATURE COMPARISON — what each agent adds -->
-<style>
-  .fam-cmp { max-width: 1080px; margin: 72px auto 0; padding: 0 24px; }
-  .fam-cmp-head { text-align: center; margin-bottom: 28px; }
-  .fam-cmp-head h2 { font-size: clamp(1.6rem,3vw,2.2rem); font-weight: 900; letter-spacing: -0.03em; color: var(--dark); }
-  .fam-cmp-head p { font-size: 0.92rem; color: rgba(0,0,0,0.45); margin-top: 8px; }
-  .fam-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border); border-radius: 20px; background: #fff; }
-  .fam-table { width: 100%; border-collapse: collapse; min-width: 720px; }
-  .fam-table th, .fam-table td { padding: 14px 18px; text-align: center; border-bottom: 1px solid var(--border); font-size: 0.86rem; }
-  .fam-table th:first-child, .fam-table td:first-child { text-align: left; color: rgba(0,0,0,0.7); font-weight: 600; width: 34%; }
-  .fam-table thead th { position: sticky; top: 0; background: #fff; z-index: 2; vertical-align: bottom; }
-  .fam-agent { font-size: 0.95rem; font-weight: 900; letter-spacing: -0.02em; color: var(--dark); }
-  .fam-price { font-size: 0.72rem; font-weight: 700; color: rgba(0,0,0,0.4); margin-top: 3px; }
-  .fam-live { display: inline-block; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #059669; background: rgba(5,150,105,0.1); padding: 2px 8px; border-radius: 100px; margin-bottom: 5px; }
-  .fam-soon { display: inline-block; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: #7c3aed; background: rgba(124,58,237,0.1); padding: 2px 8px; border-radius: 100px; margin-bottom: 5px; }
-  .fam-col-soon { background: rgba(0,0,0,0.015); color: rgba(0,0,0,0.4); }
-  .fam-grouprow td { background: var(--light); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.68rem; color: rgba(0,0,0,0.5); text-align: left; }
-  .fam-yes { color: #059669; font-weight: 800; }
-  .fam-yes-soon { color: #7c3aed; font-weight: 800; }
-  .fam-cs { font-size: 0.66rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed; }
-  .fam-launch { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #059669; background: rgba(5,150,105,0.12); padding: 3px 9px; border-radius: 100px; white-space: nowrap; }
-  .fam-no { color: rgba(0,0,0,0.18); }
-  .fam-table tbody tr:last-child td { border-bottom: none; }
-  @media (max-width: 600px) { .fam-table th, .fam-table td { padding: 11px 12px; font-size: 0.78rem; } }
-</style>
-<!-- FAQ -->
+  <!-- DISCLAIMER -->
+  <div class="disclaimer">
+    <div class="disclaimer-box">
+      <div class="icon">ℹ️</div>
+      <p><strong>This is an estimate, not a promise.</strong> Every figure is calculated live from the numbers and assumptions you set — we don't pre-load inflated rates or quote results we can't stand behind. Real outcomes depend on your market, your offer, and your list. We'd rather you start from a number you believe.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 5. PRICING FAQ ══ -->
 <div class="faq-section" id="faq">
   <div class="faq-header reveal">
     <div class="s-label">FAQ</div>
-    <h2>Common questions</h2>
+    <h2>Pricing questions</h2>
   </div>
 
   <div class="faq-item">
@@ -551,7 +584,7 @@
       What does "$4/qualified lead" mean?
       <span class="fq-icon">▾</span>
     </button>
-    <div class="faq-a"><p>Two charges, one flat price: <strong>$1 to reveal a lead</strong> (a net-new, verified contact matched to your ICP, suppression-checked, not already in your CRM — that's your database), then <strong>+$3 for FIGSY to work it</strong> (personalised outreach, follow-up sequence and a booking link) — <strong>$4 for a fully-worked lead</strong>. You can stop at $1 (data only) or add FIGSY for the full $4. Buy reveal and FIGSY credits in bundles — no monthly minimum, no subscription. No lead, no charge.</p></div>
+    <div class="faq-a"><p>Two charges, one flat price: <strong>$1 to reveal a lead</strong> (a net-new, verified contact matched to your ICP, suppression-checked, not already in your CRM — that's your database), then <strong>+$3 for FIGSY to work it</strong> (personalised outreach, follow-up sequence and a booking link) — <strong>$4 for a fully-worked lead</strong>. You can stop at $1 (data only) or add FIGSY for the full $4. No subscription, no minimums. No lead, no charge.</p></div>
   </div>
 
   <div class="faq-item">
@@ -559,39 +592,28 @@
       Can I cancel anytime?
       <span class="fq-icon">▾</span>
     </button>
-    <div class="faq-a"><p>There's nothing to cancel — K.I.N.D is pay-per-qualified-lead, not a subscription. You buy credits when you need them, they never expire, and there's no contract or monthly fee.</p></div>
+    <div class="faq-a"><p>There's nothing to cancel — K.I.N.D is pay-per-qualified-lead, not a subscription. You buy credits when you need them, they never expire, and there's no contract or recurring fee.</p></div>
   </div>
 
   <div class="faq-item">
     <button class="faq-q" onclick="toggleFaq(this)">
-      Is K.I.N.D POPIA / GDPR compliant?
+      How do bundles work — do credits expire?
       <span class="fq-icon">▾</span>
     </button>
-    <div class="faq-a"><p>Yes. Every lead is checked against consent/suppression rules before delivery, and opt-outs are applied immediately and shared across all K.I.N.D clients. We are GDPR-compliant for European contacts, POPIA-aware for South African contacts, and CAN-SPAM compliant for US contacts. Data can be hosted in your region on request.</p></div>
+    <div class="faq-a"><p>You top up reveal and FIGSY credits in bundles — <strong>20 for $60</strong>, <strong>40 for $120</strong>, or <strong>100 for $300</strong> — and spend them whenever you like. A reveal costs $1, a fully-worked FIGSY lead costs $4. <strong>Credits never expire</strong>, so there's no pressure to burn them by a deadline. Need higher volume? <a href="mailto:hello@get-kind.com?subject=FIGSY%20volume%20enquiry">Let's talk</a>.</p></div>
   </div>
 
   <div class="faq-item">
     <button class="faq-q" onclick="toggleFaq(this)">
-      Do you offer enterprise / volume pricing?
+      What happens if a lead has no email?
       <span class="fq-icon">▾</span>
     </button>
-    <div class="faq-a"><p>Yes. Custom volume pricing is available for high-lead-count clients. Enterprise includes dedicated account management, custom SLAs, and bespoke ICP configuration. Email <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> to discuss.</p></div>
+    <div class="faq-a"><p>Nothing to pay. You're only charged when we actually reveal a verified contact. If we can't reveal one — no email, fails suppression, or already in your CRM — there's no reveal and <strong>no charge</strong>. You only ever pay for a real, usable qualified lead.</p></div>
   </div>
 
 </div>
 
-<!-- HUMAN STRIP -->
-<div class="human-strip">
-  <div class="human-strip-inner">
-    <div>
-      <div class="human-strip-hed">Not sure which plan fits?</div>
-      <p class="human-strip-sub">We&rsquo;ll help you figure it out in 15 minutes &mdash; no sales pitch, no pressure. Just an honest conversation about what you need.</p>
-    </div>
-    <a href="https://calendly.com/kind-ai-demo/new-meeting" class="human-strip-btn" target="_blank" rel="noopener noreferrer">Book a free 15-min call &rarr;</a>
-  </div>
-</div>
-
-<!-- CTA -->
+<!-- ══ 6. CTA ══ -->
 <div class="cta-wrap">
   <div class="cta-banner reveal">
     <h2>Get started free today.</h2>
@@ -718,8 +740,6 @@
     item.addEventListener('mouseleave', function() { timer = setTimeout(function() { item.classList.remove('is-open') }, 200) })
   })
 
-  // Billing toggle removed — one credit-bundle product, no monthly/yearly billing.
-
   // FAQ accordion
   function toggleFaq(btn) {
     const item = btn.closest('.faq-item')
@@ -728,6 +748,49 @@
     if (!isOpen) item.classList.add('open')
   }
 </script>
+
+<!-- ── PIPELINE CALCULATOR (embedded, live compute) ── -->
+<script>
+  var DEFAULTS = { leads: 300, deal: 25000, reply: 8, meeting: 40, close: 25 }
+  var CURRENCY = '$'
+
+  function fmtMoney(n) {
+    return CURRENCY + Math.round(n).toLocaleString('en-US')
+  }
+
+  var el = function(id) { return document.getElementById(id) }
+  var inputs = ['leads','deal','reply','meeting','close']
+
+  function recalc() {
+    var leads   = Math.max(0, +el('leads').value || 0)
+    var deal    = Math.max(0, +el('deal').value || 0)
+    var replyPc = +el('reply').value
+    var meetPc  = +el('meeting').value
+    var closePc = +el('close').value
+
+    var replies  = leads * (replyPc / 100)
+    var meetings = replies * (meetPc / 100)
+    var clients  = meetings * (closePc / 100)
+    var revenue  = clients * deal * 12
+
+    el('leads-val').textContent   = leads.toLocaleString('en-US')
+    el('deal-val').textContent    = fmtMoney(deal)
+    el('reply-val').textContent   = replyPc + '%'
+    el('meeting-val').textContent = meetPc + '%'
+    el('close-val').textContent   = closePc + '%'
+
+    el('out-replies').textContent  = Math.round(replies).toLocaleString('en-US')
+    el('out-meetings').textContent = Math.round(meetings).toLocaleString('en-US')
+    el('out-clients').textContent  = Math.round(clients).toLocaleString('en-US')
+    el('out-revenue').textContent  = fmtMoney(revenue)
+  }
+
+  inputs.forEach(function(id) {
+    el(id).addEventListener('input', recalc)
+  })
+  recalc()
+</script>
+
 <script>
 (function(){
   fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {

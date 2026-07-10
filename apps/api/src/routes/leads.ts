@@ -10,6 +10,7 @@ import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
+import { normalizeRevealEmail, revealCharged } from '../lib/billing-rules'
 import { waterfallEnrich } from '../lib/enrichment'
 
 export const leadRouter = Router()
@@ -457,6 +458,19 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
       return
     }
 
+    // 2b. #424 charge-once — if the email is already known (PDL leads carry it) and
+    // this client has ALREADY paid to reveal that person (any earlier lead/campaign),
+    // it's free: expose it without charging, at any balance. Hunter-only leads (no
+    // email yet) can't be checked here — they reconcile after resolution in step 6.
+    const knownEmail = normalizeRevealEmail(claim.email)
+    if (knownEmail) {
+      const { data: owned } = await db.rpc('reveal_is_owned', { p_client_id: clientId, p_email_norm: knownEmail })
+      if (owned === true) {
+        res.json({ success: true, revealed: true, email: claim.email, phone: claim.phone ?? null, charged: false })
+        return
+      }
+    }
+
     // 3. Charge $1 (atomic decrement IS the gate).
     const { data: charged, error: chargeErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
     if (chargeErr) { console.error('[reveal] charge rpc error', chargeErr); await unclaim(); res.status(500).json({ success: false, error: 'Failed to reveal lead' }); return }
@@ -490,19 +504,34 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
       return
     }
 
-    // 6. Persist + ledger (unique reference backstops charge-once-per-lead #424).
+    // 6. Persist the email, then the #424 charge-once reconcile: record ownership of
+    // this email for the client. If they already owned it (a re-sourced duplicate of
+    // the same person on a different lead row), record_reveal_or_refund returns the
+    // $1 — net once-per-email-EVER. Only log the usage ledger row when the charge nets.
     await db.from('leads').update({ email, apollo_consented: true }).eq('id', claim.id).then(() => {}, () => {})
-    await db.from('credit_transactions').insert({
-      client_id: clientId,
-      amount:    -1,
-      type:      'usage',
-      plan:      'lead_gen',
-      reference: `reveal:${claim.id}`,
-      note:      'Lead revealed ($1)',
-      created_at: now,
-    }).then(() => {}, () => {}) // unique-reference conflict = already booked; ignore
 
-    res.json({ success: true, revealed: true, email, charged: true })
+    const emailNorm = normalizeRevealEmail(email)
+    let chargedNet = true
+    if (emailNorm) {
+      const { data: revealOutcome } = await db.rpc('record_reveal_or_refund', {
+        p_client_id: clientId, p_email_norm: emailNorm, p_lead_id: claim.id,
+      })
+      chargedNet = revealCharged(revealOutcome)
+    }
+
+    if (chargedNet) {
+      await db.from('credit_transactions').insert({
+        client_id: clientId,
+        amount:    -1,
+        type:      'usage',
+        plan:      'lead_gen',
+        reference: `reveal:${claim.id}`,
+        note:      'Lead revealed ($1)',
+        created_at: now,
+      }).then(() => {}, () => {}) // unique-reference conflict = already booked; ignore
+    }
+
+    res.json({ success: true, revealed: true, email, charged: chargedNet })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })
 

@@ -3,7 +3,7 @@ import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
-import { canEnroll } from './billing-rules'
+import { canEnroll, normalizeRevealEmail, revealCharged } from './billing-rules'
 import { sendFounderAlert } from './alerts'
 import { interpretSend } from './resend-checked'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
@@ -708,10 +708,10 @@ export async function chargeFigsyEnroll(
   // reply would expose the contact anyway). Without this, any enroll path would
   // deliver full outreach for $3 and bypass the reveal charge.
   if (lead.id) {
-    const { data: row } = await db.from('leads').select('revealed_at').eq('id', lead.id).maybeSingle()
+    const { data: row } = await db.from('leads').select('revealed_at, email').eq('id', lead.id).maybeSingle()
     if (row && !row.revealed_at) {
-      const { data: revealCharged, error: revealErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
-      if (revealErr || revealCharged !== true) {
+      const { data: revealOk, error: revealErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
+      if (revealErr || revealOk !== true) {
         console.error('[figsy] chargeFigsyEnroll: reveal charge failed for unrevealed lead', lead.id, revealErr?.message ?? 'insufficient reveal credits', 'client', clientId)
         return false // fail closed — no reveal credit → no enrollment
       }
@@ -723,15 +723,28 @@ export async function chargeFigsyEnroll(
       if ((claimed ?? []).length === 0) {
         await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: 1 }).then(() => {}, () => {})
       } else {
-        await db.from('credit_transactions').insert({
-          client_id: clientId,
-          amount: -1,
-          type: 'usage',
-          plan: 'lead_gen',
-          reference: `reveal:${lead.id}`,
-          note: `Lead revealed at enrollment ($1): ${leadName}`,
-          created_at: new Date().toISOString(),
-        }).then(() => {}, () => {})
+        // #424 charge-once — record ownership by email; if the client already owned
+        // this person (re-sourced duplicate), record_reveal_or_refund returns the $1.
+        // Net once-per-email-EVER. Only log the usage row when the charge nets.
+        const emailNorm = normalizeRevealEmail(row.email)
+        let chargedNet = true
+        if (emailNorm) {
+          const { data: outcome } = await db.rpc('record_reveal_or_refund', {
+            p_client_id: clientId, p_email_norm: emailNorm, p_lead_id: lead.id,
+          })
+          chargedNet = revealCharged(outcome)
+        }
+        if (chargedNet) {
+          await db.from('credit_transactions').insert({
+            client_id: clientId,
+            amount: -1,
+            type: 'usage',
+            plan: 'lead_gen',
+            reference: `reveal:${lead.id}`,
+            note: `Lead revealed at enrollment ($1): ${leadName}`,
+            created_at: new Date().toISOString(),
+          }).then(() => {}, () => {})
+        }
       }
     }
   }

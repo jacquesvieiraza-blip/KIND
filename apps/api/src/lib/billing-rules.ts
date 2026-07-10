@@ -71,3 +71,25 @@ export function deliveryCapBalance(
 export function canEnroll(figsyCredits: number | null | undefined): boolean {
   return (figsyCredits ?? 0) >= 1
 }
+
+// ── #424 charge-once — reveal is charged ONCE PER (client, email) EVER ─────────
+// The per-email idempotency is enforced in Postgres (client_reveals PK +
+// record_reveal_or_refund / reveal_is_owned RPCs). These two pure helpers are the
+// TS side of that contract — the ledger key, and how the RPC outcome maps to
+// "did the client net a charge" — shared by every reveal call site so the key is
+// normalised identically everywhere (a mismatch would silently double-charge).
+
+// The reveal-ledger key: lowercased, trimmed email. Null/blank → no key (can't
+// dedupe — treated as a fresh reveal, charge stands).
+export function normalizeRevealEmail(email: string | null | undefined): string | null {
+  if (!email) return null
+  const e = String(email).trim().toLowerCase()
+  return e.length > 0 ? e : null
+}
+
+// record_reveal_or_refund returns 'charged' (first time — the $1 stands) or
+// 'refunded' (already owned — the $1 was returned). The client nets a charge only
+// when the outcome is NOT a refund.
+export function revealCharged(outcome: string | null | undefined): boolean {
+  return outcome !== 'refunded'
+}

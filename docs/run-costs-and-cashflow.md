@@ -375,6 +375,45 @@ Verified 10 Jun: reselling Apollo data off one account violates ToS **from clien
 
 ---
 
+## 5f. THE DOGFOOD UNIT MODEL + THE FIRST 10 CLIENTS (depth-first — founder-locked 10 Jul)
+
+*The founder's operating model: "I'd rather have and retain 5–10 GOOD clients than volume." Costed at INTERNAL cost (what it costs us, not what we sell for).*
+
+### The funnel to 1 client via our own product (FIGSY dogfood)
+| Stage | Rate | Count |
+|---|---|---|
+| Leads sourced (PDL) | — | **200** |
+| → emailable | ~92% | ~185 |
+| → reply (cold 6-step, young domain) | **2–3%** | ~4–6 |
+| → demo/conversation | most replies | ~5 |
+| → **paying client** | **~20% of replies** | **1** |
+
+**Win rate: ~0.4–0.6% of sourced leads → 1 client per ~170–250 leads.** Internal cost of the run: PDL 200×$0.28 = $56 · Hunter fallback ~$0.66 · Haiku (scoring+sequences) ~$10 · Resend ~1,200 sends ~$1.08 · reply handling ~$0.50 → **≈ $68/client** (range $57–85) **+ ~3–4 founder hours** (~5 demos). FIGSY itself is only ~$11 of it — data is 85% of CAC; the pool (#449) drops the run toward ~$30. ⚠️ *2–3% reply is a PLANNING number — line 9 (FIGSY sells K.I.N.D) is the calibration run that makes it measured.*
+
+### What 1 conservative client returns (~20 worked leads/mo = $80/mo · ~87% margin)
+| Timeline | Revenue | Profit | vs $68 CAC |
+|---|---|---|---|
+| Month 1 | $80 | ~$70 | **paid back** |
+| 6 months (conservative lifetime — a GUESS until real retention data) | $480 | ~$418 | **~6×** |
+| 12 months | $960 | ~$835 | ~12× |
+
+**LTV:CAC ≈ 6:1 conservative** (3:1 is the healthy benchmark). ⚠️ Floor case is honest: a one-$20-pack-and-vanish client = −$51 vs CAC — there is no contract; **usage IS retention**, which is why onboarding (#447) + FIGSY delivering replies are the retention mechanism, not a nice-to-have.
+
+### The 5–10 client business (each ~$80/mo conservative)
+| | 5 clients | 10 clients |
+|---|---|---|
+| Revenue /mo | $400 | $800 |
+| Lead COGS (~13%) | −$52 | −$104 |
+| Infra + Hunter | −$190 | −$190 |
+| PDL (right-sized: $98/350 recs at 5 · $280/1,000 at 10) | −$98 | −$280 |
+| **Net /mo** | **≈ +$60** | **≈ +$225** |
+
+**5–10 conservative clients = the machine pays for itself, not the founder.** What they actually buy: proof (real reply/retention numbers, case studies for partners) · calibration (true LTV) · pool seeds. **The lever is spend-per-client, not logo count:** the same 10 clients at $160/mo (Growth blend) ≈ **+$930/mo net**; at $400/mo ≈ +$3,020. Fixed costs barely move 5→50 clients, so growing a retained client is ~87%-margin revenue with zero CAC.
+
+> **The depth-first plan in one line:** land 5–10 clients (~$340–680 + partner intros) → retain by making FIGSY perform → grow them $80 → $160+ → ~$1k/mo net on ten logos + proof in hand → then 3–5 strong partners scale it (V2-TRACKER PARTNER GTM) without touching the cost base.
+
+---
+
 ## 6. Three Scenarios — Month by Month (directional, use §5b for current numbers)
 *Note: net-profit columns below use the OLD $203 fixed stack — directional only. **Use §5b/§7 for current break-even ($138 fixed)**. Client-growth assumptions still hold.*
 *Revenue/mo = clients × avg leads/mo × $4 — no subscriptions; figures directional.*

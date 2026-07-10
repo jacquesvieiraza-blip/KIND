@@ -229,8 +229,22 @@ A competitor teardown of **Qualified.com** (enterprise, Salesforce-native, *inbo
 
 ---
 
-# ░ 🤝 PARTNER GTM — recruiting 10 partners (logged 23 Jun) ░
-> **Future-detail home for partner recruitment. Execution → LAUNCH-PAD; status → PRODUCT-INVENTORY (197/200).** Goal: **10 activated agency partners in year 1** (~1/mo). At ~10 clients/partner/mo that's the unicorn lever — ~100 clients without ~1,000 cold prospects (*"1 agency partner ≈ 10 clients/month, fastest lever, nearly free"*). **Founder-led + warm → runnable NOW, before the cold domain warms.**
+# ░ 🤝 PARTNER GTM — 3–5 STRONG partners (founder-ruled 10 Jul; supersedes "10 in year 1") ░
+> **Future-detail home for partner recruitment. Execution → LAUNCH-PAD; status → PRODUCT-INVENTORY (197/200).**
+
+**⚖️ FOUNDER RULING 10 Jul — depth over volume, same as the client strategy: target 3–5 partners but STRONG, not 10 thin ones.** Sequencing: partner recruiting **starts AFTER the SPRINT finishes** (line 10 — the founder works partners personally once the machine is proven); during the sprint the only partner work is the founder quietly listing warm candidates.
+
+**The "strong" bar (a partner must clear ALL of these — otherwise pass):**
+1. **≥10 active B2B SMB clients** on retainers today (real book, not a promise)
+2. **Sells outcomes** (retainers ≥~$500/mo) — used to charging for results, so $4/qualified-lead is an easy story
+3. **Commits to 1 pilot client in their first 30 days** — activation is the test; signups without a pilot don't count
+4. **Weekly working cadence** with the founder for the first month
+
+**What 3–5 strong partners are worth (per §5f economics):** each ≈ ~10 clients over 1–2 quarters → **30–50 retained clients ≈ $2.4k–4k/mo at $80 conservative, $4.8k–8k/mo at the $160 Growth blend — at ~$0 cash CAC** (comp = 20% + 5% revenue-share on collected, comp-engine already built). One strong partner outperforms ~1,000 cold prospects.
+
+**The sell to the partner:** *"Add a recurring revenue line, zero build. Your clients already trust you — FIGSY does the work, you keep 20%+5% of everything they spend, and your dashboard shows it accruing live."* Proof pack = line-9's own campaign results (K.I.N.D landed via FIGSY) + the client case studies from the first 5–10 (§5f).
+
+**Motion (founder-led, in order):** ① list ~15–20 warm candidates (Demmy chain + own network — private intros only, stealth constraint below) → ② 15-min demo (portal + partner hub + FIGSY's own results) → ③ pilot: partner puts ONE of their clients through the product → ④ sign (partner agreement #435 — ⚠️ needs its legal sign-off before external signing) → ⑤ activate (referral code + commission tracking live in product) → ⑥ weekly cadence for month 1. **Count ACTIVATED partners (pilot client landed), not signups.**
 
 **Partner ICP:** agencies/operators who already own SMB trust + want recurring income without building product — marketing/lead-gen/web/digital agencies · consultants · BPOs · vertical specialists (trade playbooks = their wedge) — across SA → NG → KE → GH.
 **The pitch:** *"Add a recurring revenue line, zero build. Sell our AI sales team to the SMB clients you already have — 20% upfront + 5% every month they stay. We give you the demo, dashboard, playbooks — and you can use our tool to find clients."*

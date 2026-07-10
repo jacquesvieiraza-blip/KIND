@@ -19,6 +19,27 @@ git checkout 8eb5ddc3bb7855d87bfbb67458061f263b6f8ccf -- apps/website/virtual-as
 git checkout 8eb5ddc3bb7855d87bfbb67458061f263b6f8ccf -- "apps/portal/src/app/(dashboard)/dashboard/assistant/"
 ```
 
+## 🏛 Portal pre-cut restore point (pinned 10 Jul, before the FIGSY-only portal cut)
+The website museum SHA above predates the homepage redesign. **For the PORTAL, use this newer
+pin** — it is the last `main` before the portal FIGSY-only cut (SPRINT line 2), taken AFTER the
+website render work (#1030/#1031), with the full 4-agent portal intact: agent switcher + cards
+(`Sidebar.tsx` / `SidebarSlim.tsx`), assistant (Milla), chatbot (Vida), denise, marketplace,
+whats-new, templates, notetaker — all 39 dashboard surfaces verified present at this commit.
+
+```
+PORTAL PRE-CUT SHA: ffa5f59582fdc728bdb26342a3e59bcd7cf002a6   (origin/main, 10 Jul 2026)
+```
+
+Default any portal surface back exactly as it was:
+```bash
+# one page
+git checkout ffa5f59582fdc728bdb26342a3e59bcd7cf002a6 -- "apps/portal/src/app/(dashboard)/dashboard/assistant/"
+# the whole pre-cut sidebar (agent switcher + cards)
+git checkout ffa5f59582fdc728bdb26342a3e59bcd7cf002a6 -- apps/portal/src/components/layout/Sidebar.tsx apps/portal/src/components/layout/SidebarSlim.tsx
+# the entire pre-cut portal
+git checkout ffa5f59582fdc728bdb26342a3e59bcd7cf002a6 -- apps/portal/
+```
+
 ## 📸 Screenshots (in `docs/design-reference/`, 1280px, captured 9 Jul pre-cut)
 `website-index` · `website-pricing` · `website-figsy` · `website-virtual-assistant` (Milla) ·
 `website-chatbot-agent` (Vida) · `website-denise` · `website-story` · `website-solutions` ·

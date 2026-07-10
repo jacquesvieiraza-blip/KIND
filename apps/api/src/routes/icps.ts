@@ -11,10 +11,11 @@ import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
-import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
+import { deliveryCapBalance, normalizePlan, normalizeRevealEmail } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
+import { splitPoolAndRemainder } from '../lib/pool-sourcing'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -117,6 +118,133 @@ async function maybeAlertPdlBudget(): Promise<void> {
   }
 }
 
+// ── #449p3 — POOL-FIRST SERVE (cross-client reuse) ────────────────────────────
+// Before spending a fresh PDL dollar, serve matching records we ALREADY OWN in
+// `lead_pool` at $0 marginal cost. Returns the leads it inserted for this client
+// (delivered + scored downstream exactly like PDL leads). Fail-SAFE: on any error
+// (incl. the lead_pool table not existing yet — PR #448 owns it) it returns 0, so
+// the run falls straight through to the existing fenced PDL path unchanged.
+//
+// It NEVER spends try_spend_sourcing and NEVER books positive sourcing_ledger cost.
+// It optionally books a `records: N, cost_usd: 0` ledger row so the daily-volume
+// fence (which sums sourcing_ledger.records) counts pool serves too — that means a
+// pool serve is subtracted from the PDL remainder's daily room, never adds to spend.
+type PoolServeIcp = {
+  id:                string
+  job_titles?:       string[] | null
+  industries?:       string[] | null
+  geographies?:      string[] | null
+  seniority_levels?: string[] | null
+}
+async function servePoolLeads(
+  icp: PoolServeIcp, clientId: string, cap: number,
+): Promise<{ insertedIds: string[]; served: number }> {
+  if (cap <= 0) return { insertedIds: [], served: 0 }
+  try {
+    // PostgREST .or() splits on commas and treats *,(,) specially — strip them so a
+    // value can't break the filter (OR-generous, so a coarser term is harmless).
+    const clean = (v: string) => v.replace(/[,()*%]/g, ' ').trim()
+    const geos   = (icp.geographies      ?? []).map(clean).filter(Boolean)
+    const titles = (icp.job_titles       ?? []).map(clean).filter(Boolean)
+    const inds   = (icp.industries       ?? []).map(clean).filter(Boolean)
+    const sens   = (icp.seniority_levels ?? []).map(clean).filter(Boolean)
+
+    // Structured, OR-generous candidate query (mirrors poolRecordMatchesIcp):
+    //   (country ILIKE any geo) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
+    // Chained .or() calls are ANDed; terms inside one .or() are ORed. `*` is the
+    // PostgREST ILIKE wildcard (→ SQL %). Empty filters are simply not applied.
+    let q = db.from('lead_pool').select('*')
+    if (geos.length) q = q.or(geos.map(g => `country.ilike.*${g}*`).join(','))
+    const roleOr = [
+      ...titles.map(t => `title.ilike.*${t}*`),
+      ...inds.map(i => `industry.ilike.*${i}*`),
+      ...sens.map(s => `seniority.ilike.*${s}*`),
+    ]
+    if (roleOr.length) q = q.or(roleOr.join(','))
+
+    // Pull a candidate buffer (we still dedup / blocklist / suppress below), then
+    // cap the actual serve at `cap`. Empty pool → [] → served 0 → identical to today.
+    const { data: candidates, error } = await q.limit(Math.max(cap * 5, 50))
+    if (error) { console.error('[icp] lead_pool query failed (non-fatal, falling through to PDL):', error); return { insertedIds: [], served: 0 } }
+    if (!candidates || candidates.length === 0) return { insertedIds: [], served: 0 }
+
+    const norm = (e: string | null | undefined) => normalizeRevealEmail(e)
+    const candEmails = candidates
+      .map((c: { email_norm?: string | null }) => c.email_norm)
+      .filter((e): e is string => !!e)
+    if (candEmails.length === 0) return { insertedIds: [], served: 0 }
+
+    // Anti-dup — exclude any email this client already has in leads (normalise both
+    // sides; leads.email is stored raw). Bounded: only this client's leads.
+    const { data: ownedRows } = await db.from('leads')
+      .select('email').eq('client_id', clientId).not('email', 'is', null)
+    const owned = new Set((ownedRows ?? []).map(r => norm(r.email)).filter(Boolean) as string[])
+
+    // Blocklist — never serve an opted-out email (unless they opted back in).
+    const { data: blockedRows } = await db.from('opt_out_blocklist')
+      .select('email').is('opted_back_in_at', null).in('email', candEmails)
+    const blocked = new Set((blockedRows ?? []).map(r => norm(r.email)).filter(Boolean) as string[])
+
+    type Cand = {
+      email_norm: string; first_name?: string | null; last_name?: string | null
+      title?: string | null; seniority?: string | null; company?: string | null
+      industry?: string | null; company_size?: string | null; country?: string | null
+      linkedin_url?: string | null
+    }
+    const eligible = (candidates as Cand[]).filter(c => {
+      const e = norm(c.email_norm)
+      if (!e) return false
+      if (owned.has(e)) return false
+      if (blocked.has(e)) return false
+      // DO-NOT-CONTACT floor (founder's employer) — same guard as the PDL path.
+      if (isSuppressed({ email: e, company: c.company, linkedin: c.linkedin_url })) return false
+      return true
+    }).slice(0, cap)
+
+    if (eligible.length === 0) return { insertedIds: [], served: 0 }
+
+    // Insert the pool matches as THIS client's leads — same shape the PDL path sets,
+    // so delivery/reveal/scoring is unchanged. $0 marginal: no allowance, no positive
+    // ledger cost. Pool emails are PDL-verified-equivalent → apollo_consented true.
+    const rows = eligible.map(c => ({
+      client_id:        clientId,
+      icp_id:           icp.id,
+      first_name:       c.first_name || '',
+      last_name:        c.last_name  || '',
+      email:            norm(c.email_norm),
+      job_title:        c.title        || null,
+      company:          c.company      || null,
+      linkedin_url:     c.linkedin_url || null,
+      country:          c.country      || null,
+      industry:         c.industry     || null,
+      company_size:     c.company_size || null,
+      seniority:        c.seniority    || null,
+      tech_stack:       [] as string[],
+      apollo_id:        null,
+      apollo_consented: true,
+      status:           'pending',
+      delivered_at:     null,
+    }))
+    const { data: insertedRows, error: insErr } = await db.from('leads').insert(rows).select('id')
+    if (insErr || !insertedRows) { console.error('[icp] pool-serve insert failed (non-fatal):', insErr); return { insertedIds: [], served: 0 } }
+
+    const insertedIds = insertedRows.map(r => r.id)
+    // Book a ZERO-COST ledger row so the daily-volume fence sees these records too
+    // (records counted, cost_usd 0 → no monthly-budget or allowance impact).
+    if (insertedIds.length > 0) {
+      const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
+        client_id: clientId, records: insertedIds.length, cost_usd: 0,
+      })
+      if (ledgerErr) console.error('[icp] pool-serve ledger row failed (non-fatal):', ledgerErr)
+    }
+    console.log(`[icp] pool-first serve: ${insertedIds.length} leads served at $0 for client ${clientId} (cap ${cap})`)
+    return { insertedIds, served: insertedIds.length }
+  } catch (err) {
+    console.error('[icp] servePoolLeads failed (non-fatal, falling through to PDL):', err)
+    return { insertedIds: [], served: 0 }
+  }
+}
+
 export async function runIcpJob(
   icpId: string,
   clientId: string,
@@ -133,107 +261,162 @@ export async function runIcpJob(
   const leadsPerRun = clientSettings?.leads_per_run ?? 20
   const effectiveCap = maxLeads !== undefined ? Math.min(maxLeads, leadsPerRun) : leadsPerRun
 
-  // #445 — THE SOURCING FENCE. PDL is spent HERE, before any client charge, so we
-  // must not pull a single record we haven't pre-funded. try_spend_sourcing atomically
-  // decrements the client's sourcing allowance (2×collected, or trial pool) against
-  // the global monthly ceiling and the daily cap, returning the GRANTED batch size.
-  // We then ask PDL for EXACTLY that many (kills the old buy-50-keep-20 waste). granted
-  // 0 = the client is out of pre-funded budget → source nothing, log honestly, no PDL spend.
-  const { data: granted } = await db.rpc('try_spend_sourcing', {
-    p_client_id: clientId, p_requested: effectiveCap,
-  })
-  const grantedSize = typeof granted === 'number' ? granted : 0
-  if (grantedSize <= 0) {
-    console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
-    // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
-    // cap every grant is 0, so this is the only path that can raise "budget REACHED".
-    void maybeAlertPdlBudget()
-    await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
-    return { inserted: 0, skipped: 0, relaxed: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
-  }
-  void maybeAlertPdlBudget()
-
-  const { contacts, relaxed } = await searchPeopleWithFallback(icp, 1, grantedSize)
-
-  // (Fable F1) RECONCILE — PDL bills per record RETURNED, not per record granted. A
-  // thin/empty search (404, narrow ICP) must not drain the client's allowance or book
-  // ledger cost for money never spent — a trial with a too-narrow ICP would otherwise
-  // burn its whole 20-record lifetime pool on zero leads, permanently. Refund the
-  // unused grant (p_trial=false: it goes back to spendable allowance WITHOUT touching
-  // the trial-granted counter, so retries stay possible) and book a negative ledger
-  // correction so the monthly/daily sums reflect real spend.
-  const returnedCount = Math.min(contacts.length, grantedSize)
-  const unusedGrant = grantedSize - returnedCount
-  if (unusedGrant > 0) {
-    const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
-      p_client_id: clientId, p_records: unusedGrant, p_trial: false,
-    })
-    if (refundErr) {
-      console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
-    } else {
-      const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
-        client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
-      })
-      if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
-    }
-  }
-
   let inserted = 0
   let skipped  = 0
+  let relaxed: string | null = null
   const insertedIds: string[] = []
 
-  for (const contact of contacts) {
-    // Cap insertions at the GRANTED budget (#445) — never keep more than we pre-funded.
-    // grantedSize ≤ effectiveCap by construction, so this is the binding cap.
-    if (inserted >= grantedSize) {
-      skipped++
-      continue
-    }
+  // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
+  // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
+  // below runs exactly as it did pre-pool. Pool leads are inserted here and flow into
+  // the same delivery/scoring/consent as PDL leads.
+  const pool = await servePoolLeads(icp, clientId, effectiveCap)
+  inserted += pool.served
+  insertedIds.push(...pool.insertedIds)
 
-    // DO-NOT-CONTACT: never even source anyone connected to the founder's employer.
-    if (isSuppressed({ email: contact.email, company: contact.organization?.name ?? contact.organization_name, linkedin: contact.linkedin_url })) {
-      skipped++; continue
-    }
+  // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
+  // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
+  const { pdlRemainder } = splitPoolAndRemainder(effectiveCap, pool.served)
 
-    if (contact.email) {
-      const { data: blocked } = await db.from('opt_out_blocklist')
-        .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
-      if (blocked) { skipped++; continue }
-    }
-
-    if (contact.id) {
-      const { data: existing } = await db.from('leads')
-        .select('id').eq('client_id', clientId).eq('apollo_id', contact.id).maybeSingle()
-      if (existing) { skipped++; continue }
-    }
-
-    const { data: newLead, error: insertErr } = await db.from('leads').insert({
-      client_id:        clientId,
-      icp_id:           icp.id,
-      first_name:       contact.first_name || '',
-      last_name:        contact.last_name  || '',
-      email:            contact.email      || null,
-      job_title:        contact.title      || null,
-      company:          contact.organization?.name ?? contact.organization_name ?? null,
-      linkedin_url:     contact.linkedin_url || null,
-      country:          contact.country    || null,
-      industry:         contact.organization?.industry || null,
-      company_size:     contact.organization?.num_employees
-                          ? String(contact.organization.num_employees) : null,
-      seniority:        contact.seniority  || null,
-      tech_stack:       contact.organization?.technology_names ?? [],
-      apollo_id:        contact.id,
-      apollo_consented: contact.email_status === 'verified' ||
-                        contact.email_status === 'likely_to_engage',
-      status:           'pending',
-      delivered_at:     null,   // drip gate — daily cron delivers up to daily_drip_rate per day
-    }).select('id').single()
-
-    if (insertErr || !newLead) {
-      skipped++
+  if (pdlRemainder > 0) {
+    // #445 — THE SOURCING FENCE. PDL is spent HERE, before any client charge, so we
+    // must not pull a single record we haven't pre-funded. try_spend_sourcing atomically
+    // decrements the client's sourcing allowance (2×collected, or trial pool) against
+    // the global monthly ceiling and the daily cap, returning the GRANTED batch size.
+    // We then ask PDL for EXACTLY that many (kills the old buy-50-keep-20 waste). granted
+    // 0 = the client is out of pre-funded budget → source nothing, log honestly, no PDL spend.
+    const { data: granted } = await db.rpc('try_spend_sourcing', {
+      p_client_id: clientId, p_requested: pdlRemainder,
+    })
+    const grantedSize = typeof granted === 'number' ? granted : 0
+    if (grantedSize <= 0) {
+      // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
+      // cap every grant is 0, so this is the only path that can raise "budget REACHED".
+      void maybeAlertPdlBudget()
+      if (pool.served === 0) {
+        // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
+        console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
+        await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
+        return { inserted: 0, skipped: 0, relaxed: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
+      }
+      // Pool already served leads — deliver those; just skip the PDL top-up.
+      console.log(`[icp] PDL top-up refused for client ${clientId} (no budget) — delivering ${pool.served} pool-served leads only.`)
     } else {
-      inserted++
-      insertedIds.push(newLead.id)
+      void maybeAlertPdlBudget()
+
+      const { contacts, relaxed: pdlRelaxed } = await searchPeopleWithFallback(icp, 1, grantedSize)
+      relaxed = pdlRelaxed
+
+      // (Fable F1) RECONCILE — PDL bills per record RETURNED, not per record granted. A
+      // thin/empty search (404, narrow ICP) must not drain the client's allowance or book
+      // ledger cost for money never spent — a trial with a too-narrow ICP would otherwise
+      // burn its whole 20-record lifetime pool on zero leads, permanently. Refund the
+      // unused grant (p_trial=false: it goes back to spendable allowance WITHOUT touching
+      // the trial-granted counter, so retries stay possible) and book a negative ledger
+      // correction so the monthly/daily sums reflect real spend.
+      const returnedCount = Math.min(contacts.length, grantedSize)
+      const unusedGrant = grantedSize - returnedCount
+      if (unusedGrant > 0) {
+        const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
+          p_client_id: clientId, p_records: unusedGrant, p_trial: false,
+        })
+        if (refundErr) {
+          console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
+        } else {
+          const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
+            client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+          })
+          if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+        }
+      }
+
+      // #449p3 PIECE 1 — every fresh PDL record we keep also becomes reusable pool
+      // inventory (upsert keyed by normalised email, ON CONFLICT DO NOTHING so the
+      // earliest acquisition wins and we never overwrite acquisition_cost).
+      const poolUpserts: Array<Record<string, unknown>> = []
+      let pdlKept = 0
+
+      for (const contact of contacts) {
+        // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we
+        // pre-funded. grantedSize ≤ pdlRemainder ≤ effectiveCap, so this binds. (Counts
+        // only PDL keeps, NOT pool serves, so the pool never eats the PDL budget.)
+        if (pdlKept >= grantedSize) {
+          skipped++
+          continue
+        }
+
+        // DO-NOT-CONTACT: never even source anyone connected to the founder's employer.
+        if (isSuppressed({ email: contact.email, company: contact.organization?.name ?? contact.organization_name, linkedin: contact.linkedin_url })) {
+          skipped++; continue
+        }
+
+        if (contact.email) {
+          const { data: blocked } = await db.from('opt_out_blocklist')
+            .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
+          if (blocked) { skipped++; continue }
+        }
+
+        if (contact.id) {
+          const { data: existing } = await db.from('leads')
+            .select('id').eq('client_id', clientId).eq('apollo_id', contact.id).maybeSingle()
+          if (existing) { skipped++; continue }
+        }
+
+        const { data: newLead, error: insertErr } = await db.from('leads').insert({
+          client_id:        clientId,
+          icp_id:           icp.id,
+          first_name:       contact.first_name || '',
+          last_name:        contact.last_name  || '',
+          email:            contact.email      || null,
+          job_title:        contact.title      || null,
+          company:          contact.organization?.name ?? contact.organization_name ?? null,
+          linkedin_url:     contact.linkedin_url || null,
+          country:          contact.country    || null,
+          industry:         contact.organization?.industry || null,
+          company_size:     contact.organization?.num_employees
+                              ? String(contact.organization.num_employees) : null,
+          seniority:        contact.seniority  || null,
+          tech_stack:       contact.organization?.technology_names ?? [],
+          apollo_id:        contact.id,
+          apollo_consented: contact.email_status === 'verified' ||
+                            contact.email_status === 'likely_to_engage',
+          status:           'pending',
+          delivered_at:     null,   // drip gate — daily cron delivers up to daily_drip_rate per day
+        }).select('id').single()
+
+        if (insertErr || !newLead) {
+          skipped++
+        } else {
+          pdlKept++
+          inserted++
+          insertedIds.push(newLead.id)
+          const en = normalizeRevealEmail(contact.email)
+          if (en) poolUpserts.push({
+            email_norm:       en,
+            first_name:       contact.first_name || null,
+            last_name:        contact.last_name  || null,
+            title:            contact.title      || null,
+            seniority:        contact.seniority  || null,
+            company:          contact.organization?.name ?? contact.organization_name ?? null,
+            industry:         contact.organization?.industry ?? null,
+            company_size:     contact.organization?.num_employees
+                                ? String(contact.organization.num_employees) : null,
+            country:          contact.country    || null,
+            linkedin_url:     contact.linkedin_url || null,
+            source:           'pdl',
+            acquisition_cost: PDL_RATE_USD,
+            sourced_at:       new Date().toISOString(),
+          })
+        }
+      }
+
+      // Batch the pool upserts (one statement). ignoreDuplicates → ON CONFLICT DO
+      // NOTHING: a record bought once for any client is reused, cost never rewritten.
+      if (poolUpserts.length > 0) {
+        const { error: poolErr } = await db.from('lead_pool')
+          .upsert(poolUpserts, { onConflict: 'email_norm', ignoreDuplicates: true })
+        if (poolErr) console.error('[icp] lead_pool upsert failed (non-fatal):', poolErr)
+      }
     }
   }
 

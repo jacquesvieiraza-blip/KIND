@@ -70,6 +70,15 @@ const STRIPE_FIGSY_BUNDLES = [
   { credits: 100, priceUsd: 300, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '', creditType: 'figsy' as const },
 ]
 
+// $1 reveal top-ups (SPRINT line 3) — the reveal wallet of the per-qualified-lead
+// model: $1 unmasks a lead, +$3 FIGSY work = $4. Un-retired (#420/#394). Price IDs
+// live in Stripe as the "KIND Lead Gen" one-time prices; wired via Railway env.
+const STRIPE_LEADGEN_BUNDLES = [
+  { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '', creditType: 'lead_gen' as const },
+  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '', creditType: 'lead_gen' as const },
+  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '', creditType: 'lead_gen' as const },
+]
+
 
 function printReceipt(tx: CreditTransaction) {
   const html = `<!DOCTYPE html><html><head><title>K.I.N.D Receipt</title><style>body{font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto}h1{font-size:20px;font-weight:bold;margin-bottom:4px}.logo{color:#7C3AED;font-weight:bold;font-size:18px;margin-bottom:24px}table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 0;border-bottom:1px solid #eee;font-size:14px}td:last-child{text-align:right;font-weight:500}.footer{font-size:12px;color:#888;margin-top:32px}@media print{button{display:none}}</style></head><body>
@@ -102,6 +111,7 @@ export default function BillingPage() {
 
   // Credit purchases
   const [selectedFigsy, setSelectedFigsy]     = useState(STRIPE_FIGSY_BUNDLES[0].credits)
+  const [selectedLeadGen, setSelectedLeadGen] = useState(STRIPE_LEADGEN_BUNDLES[0].credits)
   const [creditInitiating, setCreditInitiating] = useState<string | null>(null)
 
   // Subscriptions
@@ -241,7 +251,9 @@ export default function BillingPage() {
   )
 
   const figsyBundle     = STRIPE_FIGSY_BUNDLES.find(b => b.credits === selectedFigsy)!
-  const stripeReady     = STRIPE_FIGSY_BUNDLES.some(b => b.priceId)
+  const leadGenBundle   = STRIPE_LEADGEN_BUNDLES.find(b => b.credits === selectedLeadGen)!
+  const leadGenReady    = STRIPE_LEADGEN_BUNDLES.some(b => b.priceId)
+  const stripeReady     = STRIPE_FIGSY_BUNDLES.some(b => b.priceId) || leadGenReady
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -326,8 +338,38 @@ export default function BillingPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-5 max-w-md">
-          {/* FIGSY — the single live product (#284; the $1 Lead-Gen tier is retired) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl">
+          {/* Reveal top-ups — $1 unmasks a lead (SPRINT line 3). Shown once its
+              Stripe price IDs are wired (NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_*). */}
+          {leadGenReady && (
+            <div className="rounded-xl overflow-hidden border border-purple-100/60">
+              <div className="bg-[#7C3AED] px-5 py-4 text-white">
+                <p className="font-semibold">Reveal credits</p>
+                <p className="text-white/70 text-xs mt-0.5">$1 unmasks a verified lead</p>
+              </div>
+              <div className="bg-white px-5 py-5 space-y-4">
+                <div className="relative">
+                  <select value={selectedLeadGen} onChange={e => setSelectedLeadGen(Number(e.target.value))}
+                    className="w-full appearance-none border border-purple-100/80 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
+                    {STRIPE_LEADGEN_BUNDLES.map(b => (
+                      <option key={b.credits} value={b.credits}>{b.credits} reveals — ${b.priceUsd}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-[#9B8EC4] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+                <button
+                  onClick={() => handleCreditBuy(leadGenBundle.priceId, leadGenBundle.credits, 'lead_gen')}
+                  disabled={!!creditInitiating || !termsAccepted || !leadGenBundle.priceId}
+                  className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  {creditInitiating === `lead_gen_${selectedLeadGen}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                  Buy {selectedLeadGen} reveals — ${leadGenBundle.priceUsd}
+                </button>
+                <p className="text-xs text-[#9B8EC4] text-center">Credits never expire</p>
+              </div>
+            </div>
+          )}
+
+          {/* FIGSY work credits — $3/lead, the outreach layer on top of a reveal. */}
           <div className="rounded-xl overflow-hidden border border-purple-100/60">
             <div className="bg-[#0F0929] px-5 py-4 text-white">
               <p className="font-semibold">FIGSY Advanced</p>

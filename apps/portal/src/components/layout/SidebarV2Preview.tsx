@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   LogOut, Settings, Inbox, Zap, MessageSquare, FileText,
   LayoutDashboard, GitBranch, Plug, GraduationCap, Building2,
-  LayoutGrid, Activity, UserPlus, Store, Sliders, PanelLeft, Rocket,
+  LayoutGrid, Activity, UserPlus, Store, Sliders, PanelLeft,
   Pin,
 } from 'lucide-react'
 
@@ -23,7 +23,6 @@ const ITEMS: (Item | null)[] = [
   { href: '/v2/integrations', label: 'Integrations',     icon: Plug },
   { href: '/v2/train',        label: 'Train FIGSY',      icon: GraduationCap },
   null,
-  { href: '/v2/onboarding',   label: 'Setup / Onboarding', icon: Rocket },
   { href: '/v2/agents',       label: 'Agent Grid',       icon: LayoutGrid },
   { href: '/v2/thinking',     label: 'Thinking State',   icon: Activity },
   { href: '/v2/setup',        label: 'Conversational',   icon: MessageSquare },

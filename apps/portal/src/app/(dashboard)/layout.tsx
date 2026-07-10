@@ -6,6 +6,9 @@ import { Sidebar } from '@/components/layout/Sidebar'
 import { SidebarSlim } from '@/components/layout/SidebarSlim'
 import { TrialExpiredOverlay } from '@/components/ui/TrialExpiredOverlay'
 import { LowCreditsNotice } from '@/components/ui/LowCreditsNotice'
+import { OnboardingProvider } from '@/components/onboarding/OnboardingProvider'
+import { OnboardingOrchestrator } from '@/components/onboarding/OnboardingOrchestrator'
+import { KeepFigsyFundedNudge } from '@/components/onboarding/KeepFigsyFundedNudge'
 import { CommandPalette } from '@/components/ui/CommandPalette'
 import { VidaHelpBubble } from '@/components/ui/VidaHelpBubble'
 import { MilestoneCelebration } from '@/components/ui/MilestoneCelebration'
@@ -125,8 +128,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const isNewUser = leadCount === 0
 
   // Shared content (same for both layouts) — avoids duplication.
+  // The OnboardingProvider wraps the dashboard so the guided tour (#454) + the
+  // "keep FIGSY funded" nudge can read /onboarding/progress and follow the client
+  // across routes. Partners have no client row → the tour simply never starts.
   const mainContent = (
-    <>
+    <OnboardingProvider>
       <TrialExpiredOverlay expired={trialExpired} />
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 items-stretch lg:items-start max-w-7xl mx-auto w-full">
         <div className="flex-1 min-w-0 space-y-4">
@@ -146,7 +152,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           partnerDealCount={partnerDealCount}
         />
       </div>
-    </>
+      {!isPartner && <OnboardingOrchestrator />}
+      {!isPartner && <KeepFigsyFundedNudge />}
+    </OnboardingProvider>
   )
 
   const stagingBanner = IS_STAGING ? (

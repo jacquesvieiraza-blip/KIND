@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { notifyCreditNudge } from '@/lib/onboarding-nudge'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Zap, Mail, Clock, ChevronRight, Edit3,
@@ -523,9 +524,11 @@ export default function CampaignDetailPage() {
     if (!token) return
     setEnrolling(true)
     try {
-      const res = await api.post<{ data: { enrolled: number; skipped: number } }>(
+      const res = await api.post<{ data: { enrolled: number; skipped: number; insufficient_credits?: boolean } }>(
         `/figsy/campaigns/${id}/enroll-consented`, {}, token
       )
+      // #454 — real out-of-FIGSY-credits event → friendly "keep FIGSY funded" nudge.
+      if (res.data.insufficient_credits) notifyCreditNudge('figsy-empty')
       showToast(`Enrolled ${res.data.enrolled} leads — sequences generating now`)
       const updated = await api.get<{ data: Campaign }>(`/figsy/campaigns/${id}`, token)
       setCampaign(updated.data)

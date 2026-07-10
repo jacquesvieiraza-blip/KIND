@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { v2Enabled } from '@/lib/flags'
+import { notifyCreditNudge } from '@/lib/onboarding-nudge'
 import { FigsyThinking } from '@/components/ui/FigsyThinking'
 import type { Lead, LeadStats, ICP, LeadStatus } from '@kind/shared'
 import { SCORE_THRESHOLDS } from '@kind/shared'
@@ -635,6 +636,7 @@ export default function LeadsPage() {
       const msg = err instanceof Error ? err.message : 'Reveal failed'
       if (/insufficient_reveal_credits|402/.test(msg)) {
         showToast('No reveal credits — top up to unmask leads ($1 each)', 'error')
+        notifyCreditNudge('reveal-empty') // #454 — friendly "add reveal credits" nudge
       } else if (/no_email_found|422/.test(msg)) {
         showToast('No verified email found for this lead — you were not charged', 'error')
       } else if (/already_in_crm|409/.test(msg)) {
@@ -1139,7 +1141,8 @@ export default function LeadsPage() {
           <EmptyState tab={activeTab} hasIcps={icps.length > 0} />
         ) : (
           <>
-            <div className="overflow-x-auto">
+            {/* tour anchor: step 4 "Review leads" points at the list (#454). */}
+            <div className="overflow-x-auto" data-tour="lead-list">
               <table className="w-full text-sm min-w-[960px]">
                 <thead>
                   <tr className="border-b border-purple-100/60">
@@ -1171,6 +1174,7 @@ export default function LeadsPage() {
                       <td className="px-4 py-3">
                         {lead.status !== 'opted_out' && lead.email && (
                           <input
+                            data-tour="lead-checkbox"
                             type="checkbox"
                             checked={selectedIds.has(lead.id)}
                             onChange={e => setSelectedIds(prev => {
@@ -1195,6 +1199,7 @@ export default function LeadsPage() {
                         ) : lead.status !== 'opted_out' && !(lead as { revealed?: boolean }).revealed ? (
                           /* #422 — masked until the client spends the $1 reveal */
                           <button
+                            data-tour="reveal-btn"
                             onClick={() => revealLead(lead.id)}
                             disabled={actionLoading === `reveal-${lead.id}`}
                             className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200 hover:bg-violet-100 disabled:opacity-50 transition-colors"

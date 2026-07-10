@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { DollarSign, Database, Coins, Sprout, AlertTriangle, Boxes, TrendingUp } from 'lucide-react'
 import { Page, SectionLabel, Card, TileGrid, Tile, Table, TR, TD, Pill } from '@/components/ui'
 import CapEditor from './CapEditor'
+import DemoToggle from './DemoToggle'
 
 // THE MONEY PATH (#448 / #449 p1-2) — admin view over the sourcing economy. Reads the
 // API (/money-path/*) server-side with the admin key (same pattern as revenue/clients
@@ -24,6 +25,7 @@ interface Tiles {
 interface ClientRow {
   id: string
   company_name: string | null
+  is_demo: boolean
   collected_usd: number
   records_sourced: number
   sourcing_cost_usd: number
@@ -96,7 +98,11 @@ export default async function MoneyPathPage() {
   const overCap = spent > cap
   const near = pctOfCap >= 80
 
-  const rows = (clients ?? []).slice().sort((a, b) => a.net_contribution - b.net_contribution)
+  // #453 — split real vs demo. Real clients drive the sort + any totals; demo/test
+  // accounts go to a secondary section so they never pollute the real economics.
+  const allClients = clients ?? []
+  const rows = allClients.filter((c) => !c.is_demo).slice().sort((a, b) => a.net_contribution - b.net_contribution)
+  const demoRows = allClients.filter((c) => c.is_demo).slice().sort((a, b) => (a.company_name ?? '').localeCompare(b.company_name ?? ''))
 
   return (
     <Page
@@ -154,12 +160,12 @@ export default async function MoneyPathPage() {
         <p className="text-[11px] text-gray-400 mt-1">The dashed line marks 80% of the cap — the guardrail before sourcing pauses platform-wide.</p>
       </Card>
 
-      {/* ── Per-client table ────────────────────────────────────────────────── */}
-      <SectionLabel>Per-client economics · sorted by net contribution</SectionLabel>
+      {/* ── Real clients table (#453 — demo excluded) ───────────────────────── */}
+      <SectionLabel>Real clients · sorted by net contribution</SectionLabel>
       {rows.length === 0 ? (
-        <Card><p className="text-sm text-gray-400">No client activity yet.</p></Card>
+        <Card><p className="text-sm text-gray-400">No real-client activity yet.</p></Card>
       ) : (
-        <Table head={['Client', 'Collected', 'Records', 'Sourcing $', 'Allowance', 'Reveals', 'Works', 'Src/Reveal', 'Net contribution']}>
+        <Table head={['Client', 'Collected', 'Records', 'Sourcing $', 'Allowance', 'Reveals', 'Works', 'Src/Reveal', 'Net contribution', '']}>
           {rows.map((c) => {
             const green = c.net_contribution >= 0
             return (
@@ -176,10 +182,37 @@ export default async function MoneyPathPage() {
                   {!green && <AlertTriangle className="w-3.5 h-3.5 inline -mt-0.5 mr-1" />}
                   {usd(c.net_contribution)}
                 </TD>
+                <TD><DemoToggle clientId={c.id} companyName={c.company_name} isDemo={c.is_demo} /></TD>
               </TR>
             )
           })}
         </Table>
+      )}
+
+      {/* ── Demo & test accounts (#453 — excluded from real economics) ───────── */}
+      {demoRows.length > 0 && (
+        <>
+          <SectionLabel>Demo &amp; test accounts · excluded from the roll-ups above</SectionLabel>
+          <Table head={['Client', 'Collected', 'Records', 'Sourcing $', 'Allowance', 'Reveals', 'Works', 'Src/Reveal', 'Net contribution', '']}>
+            {demoRows.map((c) => (
+              <TR key={c.id}>
+                <TD className="font-medium text-gray-900">
+                  {c.company_name || <span className="text-gray-400">—</span>}
+                  <span className="ml-2"><Pill tone="gray">demo</Pill></span>
+                </TD>
+                <TD>{usd(c.collected_usd)}</TD>
+                <TD>{c.records_sourced.toLocaleString()}</TD>
+                <TD>{usd(c.sourcing_cost_usd)}</TD>
+                <TD>{c.allowance.toLocaleString()}</TD>
+                <TD>{c.reveals.toLocaleString()}</TD>
+                <TD>{c.works.toLocaleString()}</TD>
+                <TD>{c.source_reveal_ratio === null ? <span className="text-gray-400">—</span> : `${(Math.round(c.source_reveal_ratio * 10) / 10).toLocaleString()}×`}</TD>
+                <TD className="text-gray-400">{usd(c.net_contribution)}</TD>
+                <TD><DemoToggle clientId={c.id} companyName={c.company_name} isDemo={c.is_demo} /></TD>
+              </TR>
+            ))}
+          </Table>
+        </>
       )}
 
       {/* ── THE LEAD POOL — records as inventory (#449) ──────────────────────── */}

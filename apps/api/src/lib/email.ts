@@ -1,6 +1,7 @@
 import { Resend } from 'resend'
 import { htmlToText } from './deliverability'
 import { interpretSend } from './resend-checked'
+import { isDemoClient } from './demo'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
@@ -290,8 +291,16 @@ export async function sendConsentEmail(
   firstName: string,
   senderCompanyName: string,
   optOutUrl: string,
+  clientId?: string | null,
 ) {
   if (!resend) return
+  // #453 — DEMO MODE: a consent email is an OUTBOUND prospect send. A demo client must
+  // never email a real person, so suppress it when the sending client is is_demo. (The
+  // clientId is passed by every caller; if omitted this behaves exactly as before.)
+  if (clientId && await isDemoClient(clientId)) {
+    console.log(`[demo] prospect send suppressed for client ${clientId} — consent email to ${to} NOT sent (demo).`)
+    return
+  }
   const consentUrl = `${optOutUrl}?consent=true`
   const declineUrl = `${optOutUrl}?consent=false`
   await sendTx({

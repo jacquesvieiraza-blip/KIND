@@ -47,6 +47,7 @@ async function fetchAll<T = Record<string, unknown>>(
   columns: string,
   gteCol?: string,
   gteVal?: string,
+  orderCol?: string,
 ): Promise<T[]> {
   const page = 1000
   let from = 0
@@ -54,6 +55,11 @@ async function fetchAll<T = Record<string, unknown>>(
   for (;;) {
     let q = db.from(table).select(columns).range(from, from + page - 1)
     if (gteCol && gteVal) q = q.gte(gteCol, gteVal)
+    // #453 — a STABLE sort key makes paging deterministic. Without it, paging a grouped
+    // VIEW (e.g. lead_pool_pnl) across 1000-row windows can skip or duplicate rows since
+    // the DB is free to return an arbitrary order per page. Default undefined = previous
+    // (unordered) behaviour, so existing callers are unchanged.
+    if (orderCol) q = q.order(orderCol, { ascending: true })
     const { data, error } = await q
     if (error) throw error
     const rows = (data ?? []) as T[]
@@ -76,17 +82,19 @@ function monthStartISO(): string {
 moneyPathRouter.get('/clients', async (_req: Request, res: Response) => {
   try {
     const [clients, purchases, ledger, reveals, works] = await Promise.all([
-      fetchAll<{ id: string; company_name: string | null; sourcing_allowance: number | null }>(
-        'clients', 'id, company_name, sourcing_allowance',
+      // #453 — carry is_demo per client so the admin table can split real vs demo, and
+      // stable-order by id so paging is deterministic.
+      fetchAll<{ id: string; company_name: string | null; sourcing_allowance: number | null; is_demo: boolean | null }>(
+        'clients', 'id, company_name, sourcing_allowance, is_demo', undefined, undefined, 'id',
       ),
       fetchAll<{ client_id: string; plan: string | null; amount: number; type: string }>(
-        'credit_transactions', 'client_id, plan, amount, type',
+        'credit_transactions', 'client_id, plan, amount, type', undefined, undefined, 'id',
       ),
       fetchAll<{ client_id: string; records: number; cost_usd: number }>(
-        'sourcing_ledger', 'client_id, records, cost_usd',
+        'sourcing_ledger', 'client_id, records, cost_usd', undefined, undefined, 'id',
       ),
-      fetchAll<{ client_id: string }>('client_reveals', 'client_id'),
-      fetchAll<{ client_id: string }>('figsy_enrollments', 'client_id'),
+      fetchAll<{ client_id: string }>('client_reveals', 'client_id', undefined, undefined, 'id'),
+      fetchAll<{ client_id: string }>('figsy_enrollments', 'client_id', undefined, undefined, 'id'),
     ])
 
     // Collected = ONLY 'purchase' rows (referral / manual_grant / refund are not money
@@ -116,6 +124,7 @@ moneyPathRouter.get('/clients', async (_req: Request, res: Response) => {
       return {
         id: c.id,
         company_name: c.company_name,
+        is_demo: c.is_demo === true,
         collected_usd,
         records_sourced,
         sourcing_cost_usd,
@@ -144,23 +153,31 @@ moneyPathRouter.get('/tiles', async (_req: Request, res: Response) => {
       await Promise.all([
         fetchAll<{ cost_usd: number; records: number }>('sourcing_ledger', 'cost_usd, records', 'created_at', monthStart),
         fetchAll<{ cost_usd: number; records: number }>('sourcing_ledger', 'cost_usd, records'),
-        fetchAll<{ plan: string | null; amount: number; type: string }>(
-          'credit_transactions', 'plan, amount, type', 'created_at', monthStart,
+        // #453 — carry client_id so collected can EXCLUDE demo accounts.
+        fetchAll<{ client_id: string; plan: string | null; amount: number; type: string }>(
+          'credit_transactions', 'client_id, plan, amount, type', 'created_at', monthStart, 'id',
         ),
         db.from('money_settings').select('pdl_monthly_cap_usd').eq('id', 1).maybeSingle(),
-        fetchAll<{ id: string; trial_sourcing_granted: number | null }>('clients', 'id, trial_sourcing_granted'),
-        fetchAll<{ client_id: string; type: string }>('credit_transactions', 'client_id, type'),
-        fetchAll<{ client_id: string; cost_usd: number }>('sourcing_ledger', 'client_id, cost_usd'),
+        // #453 — carry is_demo so per-client roll-ups (collected / trial cohort) EXCLUDE
+        // demo accounts. The global sourcing_ledger spend stays global (real cash).
+        fetchAll<{ id: string; trial_sourcing_granted: number | null; is_demo: boolean | null }>('clients', 'id, trial_sourcing_granted, is_demo', undefined, undefined, 'id'),
+        fetchAll<{ client_id: string; type: string }>('credit_transactions', 'client_id, type', undefined, undefined, 'id'),
+        fetchAll<{ client_id: string; cost_usd: number }>('sourcing_ledger', 'client_id, cost_usd', undefined, undefined, 'id'),
       ])
+
+    // #453 — demo client ids: excluded from every per-client roll-up below.
+    const demoIds = new Set(clients.filter((c) => c.is_demo === true).map((c) => c.id))
 
     const pdl_month_spent_usd = round2(ledgerMonth.reduce((s, r) => s + Number(r.cost_usd || 0), 0))
     const pdl_month_cap_usd = Number(settingsRes.data?.pdl_monthly_cap_usd ?? 300)
+    // Collected this month EXCLUDES demo accounts (their purchases aren't real revenue).
     const collected_month_usd = round2(
       purchasesMonth
-        .filter((p) => p.type === 'purchase')
+        .filter((p) => p.type === 'purchase' && !demoIds.has(p.client_id))
         .reduce((s, p) => s + creditTxUsd(p.plan, p.amount), 0),
     )
-    // Data COGS this month = what PDL billed us this month (the sourcing spend).
+    // Data COGS this month = what PDL billed us this month (the sourcing spend). Global —
+    // real cash regardless of which client triggered it (demo sourcing is $0 anyway).
     const data_cogs_month_usd = pdl_month_spent_usd
 
     const totalRecords = ledgerAll.reduce((s, r) => s + Number(r.records || 0), 0)
@@ -173,7 +190,8 @@ moneyPathRouter.get('/tiles', async (_req: Request, res: Response) => {
     const paidClientIds = new Set(
       purchasesAll.filter((p) => p.type === 'purchase').map((p) => p.client_id),
     )
-    const trialClients = clients.filter((c) => Number(c.trial_sourcing_granted ?? 0) > 0)
+    // #453 — trial cohort EXCLUDES demo accounts (seeded demos would inflate the count + burn).
+    const trialClients = clients.filter((c) => Number(c.trial_sourcing_granted ?? 0) > 0 && !demoIds.has(c.id))
     const stillTrial = trialClients.filter((c) => !paidClientIds.has(c.id))
     const converted = trialClients.filter((c) => paidClientIds.has(c.id)).length
     const stillTrialIds = new Set(stillTrial.map((c) => c.id))
@@ -211,7 +229,7 @@ moneyPathRouter.get('/pool', async (_req: Request, res: Response) => {
     const rows = await fetchAll<{
       email_norm: string; company: string | null; title: string | null
       acquisition_cost: number; reveals: number; works: number; revenue_usd: number; roi: number | null
-    }>('lead_pool_pnl', 'email_norm, company, title, acquisition_cost, reveals, works, revenue_usd, roi')
+    }>('lead_pool_pnl', 'email_norm, company, title, acquisition_cost, reveals, works, revenue_usd, roi', undefined, undefined, 'email_norm')
 
     const total_records = rows.length
     const total_acquisition_cost = round2(rows.reduce((s, r) => s + Number(r.acquisition_cost || 0), 0))
@@ -278,6 +296,37 @@ moneyPathRouter.patch('/cap', async (req: Request, res: Response) => {
       .select('pdl_monthly_cap_usd, updated_at')
       .maybeSingle()
     if (error) throw error
+    res.json({ success: true, data })
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err)
+    res.status(500).json({ success: false, error: msg })
+  }
+})
+
+// PATCH /money-path/client/:id/demo — #453 founder action: flag/unflag a client as a
+// demo account. Admin-key gated (router-level middleware above). A demo client costs us
+// $0 (pool-only sourcing, free reveals, sandboxed FIGSY) and can never email a real
+// prospect, and is excluded from the real-economics roll-ups. This is how the founder
+// tags his seeded demo accounts himself — no SQL.
+const demoSchema = z.object({
+  is_demo: z.boolean(),
+})
+
+moneyPathRouter.patch('/client/:id/demo', async (req: Request, res: Response) => {
+  try {
+    const parsed = demoSchema.safeParse(req.body)
+    if (!parsed.success) {
+      res.status(400).json({ success: false, error: parsed.error.issues[0]?.message ?? 'Invalid payload' })
+      return
+    }
+    const { error, data } = await db
+      .from('clients')
+      .update({ is_demo: parsed.data.is_demo })
+      .eq('id', req.params.id)
+      .select('id, company_name, is_demo')
+      .maybeSingle()
+    if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     res.json({ success: true, data })
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)

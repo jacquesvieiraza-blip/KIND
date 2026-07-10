@@ -5,6 +5,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
+import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
@@ -512,6 +513,10 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
     const { data: balRow } = await db.from('clients')
       .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
     let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
+    // #453 — DEMO MODE: demo enrolls are free + drafted-only (no send). Bypass the
+    // credit gate and the balance decrement below; chargeFigsyEnroll returns true
+    // (off-ledger) for demo and the drafted enrollment is stored inert (no next_send_at).
+    const isDemo = await isDemoClient(clientId)
 
     // #335 — fetch the client's business-knowledge digest ONCE (bounded), reused
     // for every lead's generated sequence so the solution half is grounded.
@@ -525,8 +530,9 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
       if (!lead.email) { skipped++; continue }
       if (blocked.has(lead.email)) { skipped++; continue }
 
-      // Out of FIGSY credits — stop; never give away free outreach.
-      if (!canEnroll(figsyRemaining)) { insufficientCredits = true; break }
+      // Out of FIGSY credits — stop; never give away free outreach. (Demo bypasses
+      // the credit gate — #453 demo enrolls are free + drafted-only.)
+      if (!isDemo && !canEnroll(figsyRemaining)) { insufficientCredits = true; break }
 
       // Idempotency guard (mirrors the authed path): skip if already enrolled in
       // this campaign — a retried webhook is a safe no-op, never a double-enrol.
@@ -555,7 +561,9 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           client_id:      clientId,
           status:         'enrolled',
           current_step:   0,
-          next_send_at:   new Date().toISOString(),
+          // #453 — demo enrollments never send; leave next_send_at null so the cron
+          // never fires them (drafted-only for the portal).
+          next_send_at:   isDemo ? null : new Date().toISOString(),
           steps:          fullSteps.length > 0 ? fullSteps : null,
           total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
           step1_subject:  draft.step1.subject,
@@ -566,7 +574,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           step3_body:     draft.step3.body,
         })
         if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
-        figsyRemaining -= 1
+        if (!isDemo) figsyRemaining -= 1
         enrolled++
       } catch {
         // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
@@ -1500,6 +1508,9 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
     const { data: balRow } = await db.from('clients')
       .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
     let figsyRemaining = (balRow?.figsy_credits_remaining as number | null) ?? 0
+    // #453 — DEMO MODE: demo enrolls are free + drafted-only (no send). Bypass the
+    // credit gate + balance decrement below; chargeFigsyEnroll returns true off-ledger.
+    const isDemo = await isDemoClient(clientId)
 
     // #335 — fetch the client's business-knowledge digest ONCE (bounded), reused
     // for every lead's generated sequence so the solution half is grounded.
@@ -1513,8 +1524,9 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
       if (!lead.email) { skipped++; continue }
       if (blocked.has(lead.email)) { skipped++; continue }   // opted out — never email
 
-      // Out of FIGSY credits — stop; never give away free outreach.
-      if (!canEnroll(figsyRemaining)) { insufficientCredits = true; break }
+      // Out of FIGSY credits — stop; never give away free outreach. (Demo bypasses
+      // the credit gate — #453 demo enrolls are free + drafted-only.)
+      if (!isDemo && !canEnroll(figsyRemaining)) { insufficientCredits = true; break }
 
       // Skip if already enrolled (idempotent — no charge)
       const { data: existing } = await db.from('figsy_enrollments')
@@ -1543,7 +1555,9 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           client_id:      clientId,
           status:         'enrolled',
           current_step:   0,
-          next_send_at:   new Date().toISOString(),
+          // #453 — demo enrollments never send; leave next_send_at null so the cron
+          // never fires them (drafted-only for the portal).
+          next_send_at:   isDemo ? null : new Date().toISOString(),
           steps:          fullSteps.length > 0 ? fullSteps : null,
           total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
           step1_subject:  draft.step1.subject,
@@ -1554,7 +1568,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           step3_body:     draft.step3.body,
         })
         if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
-        figsyRemaining -= 1
+        if (!isDemo) figsyRemaining -= 1
         enrolled++
       } catch {
         // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
@@ -1946,6 +1960,15 @@ figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
 
     if (!resendInst) {
       res.status(503).json({ success: false, error: 'Email sending not configured' })
+      return
+    }
+
+    // #453 — DEMO MODE: a manual reply from the unibox is an OUTBOUND prospect send. A
+    // demo client must never email a real person, so suppress the send and return a
+    // success-shaped result marked demo (the UI doesn't error), booking no sent-reply row.
+    if (await isDemoClient(clientId)) {
+      console.log(`[demo] prospect send suppressed for client ${clientId} — manual reply to ${reply.from_email} NOT sent (demo).`)
+      res.json({ success: true, data: { sent: false, demo: true } })
       return
     }
 

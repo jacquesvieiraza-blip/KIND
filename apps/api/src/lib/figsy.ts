@@ -6,6 +6,7 @@ import { isSuppressed } from './suppression'
 import { canEnroll, normalizeRevealEmail, revealCharged } from './billing-rules'
 import { sendFounderAlert } from './alerts'
 import { interpretSend } from './resend-checked'
+import { isDemoClient } from './demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
@@ -499,6 +500,32 @@ export async function sendSequenceEmail(
     return
   }
 
+  // #453 — DEMO BACKSTOP (safety-critical). This is the single chokepoint every real
+  // sequence-step send funnels through (the three cron paths call it directly), so an
+  // is_demo client can NEVER email a real prospect from here — even if a higher-level
+  // call site is ever missed. Resolve the lead's client; if demo, DO NOT send. Unlike
+  // the kill-switch (which DEFERS so it resumes later), demo suppression is permanent:
+  // NULL out next_send_at so the cron never re-picks this enrollment and burns cycles.
+  // The founder's own preview/test send (isPreview → own inbox) is not a prospect send,
+  // so it is exempt.
+  if (!opts?.isPreview) {
+    // Resolve the client. Prefer the lead's own client_id; if a caller passed a
+    // client-less lead, fall back to the enrollment's client_id so the backstop still
+    // fires (defence-in-depth for a missed call site).
+    let demoClientId: string | null | undefined = lead.client_id
+    if (!demoClientId && enrollmentId) {
+      const { data: enr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+      demoClientId = (enr?.client_id as string | null | undefined) ?? null
+    }
+    if (await isDemoClient(demoClientId)) {
+      console.log(`[demo] prospect send suppressed for client ${demoClientId ?? 'unknown'} — sequence step ${step} to ${lead.email} NOT sent (demo).`)
+      if (enrollmentId) {
+        await db.from('figsy_enrollments').update({ next_send_at: null }).eq('id', enrollmentId).then(() => {}, () => {})
+      }
+      return
+    }
+  }
+
   // DO-NOT-CONTACT: hard stop — never email anyone connected to the founder's
   // employer, no matter how this lead got enrolled.
   if (isSuppressed({ email: lead.email, company: lead.company })) {
@@ -702,6 +729,17 @@ export async function chargeFigsyEnroll(
   lead: { id?: string; first_name?: string | null; last_name?: string | null; company?: string | null },
 ): Promise<boolean> {
   const leadName = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || '(unknown lead)'
+
+  // #453 — DEMO MODE: enrolling for a demo client is FREE and OFF-LEDGER. Skip the $1
+  // reveal charge, the $3 FIGSY charge and every credit_transactions/usage row — but
+  // return true so the caller still WRITES the enrollment + drafted sequence (the demo
+  // must showcase drafts in the portal). Nothing sends: the sendSequenceEmail backstop
+  // suppresses the actual outreach. This single gate covers all three enroll paths
+  // (autoEnrollLead + the two manual /figsy enroll loops) so demo work never bills.
+  if (await isDemoClient(clientId)) {
+    console.log(`[demo] FIGSY enroll free (no reveal/work charge, off-ledger) for client ${clientId} — ${leadName}`)
+    return true
+  }
 
   // #420/#422 — the $4 ladder holds at the choke point: enrolling an UNREVEALED
   // lead auto-charges the $1 reveal first (enrollment implies the reveal — the
@@ -927,6 +965,13 @@ export async function sendDay1OutreachBatch(
   clientId: string,
   clientCompanyName: string,
 ): Promise<void> {
+  // #453 — DEMO MODE: day-1 cold outreach is a prospect send. A demo client must never
+  // email a real person, so suppress the entire batch (the backstop in resend never runs).
+  if (await isDemoClient(clientId)) {
+    console.log(`[demo] prospect send suppressed for client ${clientId} — ${leadIds.length} day-1 outreach emails NOT sent (demo).`)
+    return
+  }
+
   // #344 (AR-07) — KILL-SWITCH. Day-1 cold outreach is a send path; honour the switch.
   if (!outreachEnabled()) {
     console.warn(`[figsy] sendDay1OutreachBatch: AUTO_OUTREACH_ENABLED != true — ${leadIds.length} leads NOT day-1 emailed (kill-switch off).`)
@@ -1240,7 +1285,13 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key, figsy_credits_remaining').eq('id', clientId).single()
+      .select('company_name, industry, crm_dedup_enabled, crm_type, crm_api_key, figsy_credits_remaining, is_demo').eq('id', clientId).single()
+
+    // #453 — DEMO MODE: enroll for FREE (no FIGSY credit, no reveal charge), still
+    // DRAFT + persist the sequence so the portal showcases it, but send NOTHING. The
+    // credit/send gates below are bypassed for demo; the send call at the end is skipped
+    // and the enrollment is inserted with next_send_at = null so the cron never fires it.
+    const isDemo = client?.is_demo === true
 
     // ── CRM DEDUP GATE ─────────────────────────────────────────────────────────
     // Never cold-email a client's existing customers / known contacts. If the
@@ -1272,7 +1323,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =
     // one lead enrolled. Don't enroll (or spend a Claude draft) when the FIGSY pool
     // is empty; upstream delivery is already capped by this pool — this is the backstop.
-    if (!canEnroll(client?.figsy_credits_remaining)) {
+    if (!isDemo && !canEnroll(client?.figsy_credits_remaining)) {
       console.warn(`[figsy] autoEnrollLead: client ${clientId} has no FIGSY credits — skipping enrollment for lead ${leadId}.`)
       return
     }
@@ -1284,7 +1335,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     // misconfiguration must never bill a client for outreach that didn't go out.
     // (Note: blocklist / daily-cap skips inside sendSequenceEmail are by-design deferrals,
     // NOT this bug — this guard targets only the no-send-capability case.)
-    if (!resend) {
+    if (!isDemo && !resend) {
       console.error(`[figsy] autoEnrollLead: RESEND_API_KEY unset — refusing to enroll/charge lead ${leadId} (would deduct a FIGSY credit with no send).`)
       return
     }
@@ -1353,7 +1404,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     // so a lead already enrolled is never charged. If the charge fails (RPC error or
     // no credit), abort WITHOUT inserting or sending — chargeFigsyEnroll already
     // alerted the founder.
-    const charged = await chargeFigsyEnroll(clientId, lead)
+    const charged = isDemo ? true : await chargeFigsyEnroll(clientId, lead)
     if (!charged) {
       console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling.`)
       return
@@ -1371,7 +1422,9 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
         client_id:      clientId,
         status:         'enrolled',
         current_step:   0,
-        next_send_at:   new Date().toISOString(), // send step 1 immediately
+        // #453 — demo enrollments never send, so leave next_send_at null (the cron
+        // gates on next_send_at) so a demo enrollment is drafted-only and inert.
+        next_send_at:   isDemo ? null : new Date().toISOString(), // send step 1 immediately
         // #212 — full ≤10-step sequence walked by the send engine.
         steps:          fullSteps.length > 0 ? fullSteps : null,
         total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
@@ -1406,16 +1459,23 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
         .eq('id', campaign.id)
     }
 
-    // Send step 1 immediately (using the selected variant subject)
-    await sendSequenceEmail(
-      enrollment.id,
-      lead as Lead,
-      1,
-      step1Subject,
-      draft.step1.body,
-      campaign.id,
-      { totalSteps, waitDaysNext: fullSteps[0]?.wait_days },
-    )
+    // Send step 1 immediately (using the selected variant subject) — EXCEPT for demo:
+    // #453 the sequence is drafted + stored above for the portal, but a demo client must
+    // never email a real prospect, so no send fires (the sendSequenceEmail backstop would
+    // also suppress it, but skipping avoids the wasted call).
+    if (isDemo) {
+      console.log(`[demo] enrollment ${enrollment.id} drafted for client ${clientId} lead ${leadId} — no prospect send (demo).`)
+    } else {
+      await sendSequenceEmail(
+        enrollment.id,
+        lead as Lead,
+        1,
+        step1Subject,
+        draft.step1.body,
+        campaign.id,
+        { totalSteps, waitDaysNext: fullSteps[0]?.wait_days },
+      )
+    }
   } catch (err) {
     console.error('[figsy] autoEnrollLead failed for lead', leadId, ':', err instanceof Error ? err.message : err)
   }

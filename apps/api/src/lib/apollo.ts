@@ -1,6 +1,11 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPeople, pdlSearchDiagnostic } from './pdl-search'
 import { sendFounderAlert } from './alerts'
+import { isPlaceholderEmail } from './email-hygiene'
+
+// #375 (AR-38) — re-exported so existing importers of apollo.ts keep working; the
+// implementation lives in the dependency-free email-hygiene module (unit-testable).
+export { isPlaceholderEmail }
 
 // #337④ — dedup the "lead discovery is down" founder alert to at most once per 6h.
 // Only fires when a REAL source error left us with zero contacts (Apollo threw and
@@ -441,7 +446,7 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
       ;(data.matches ?? []).forEach((m, idx) => {
         const apolloId = m?.id ?? batch[idx]
         const email    = m?.email
-        if (apolloId && email && email.includes('@') && !email.includes('email_not_unlocked')) {
+        if (apolloId && email && !isPlaceholderEmail(email)) {
           out.set(apolloId, email)
         }
       })

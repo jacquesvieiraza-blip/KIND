@@ -14,7 +14,8 @@ import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { computeChurnRisk } from './internal'
-import { suggestWinBack } from './admin'
+import { suggestWinBack, adminKeyValid } from './admin'
+import { interpretSend } from '../lib/resend-checked'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend    = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -24,7 +25,8 @@ const FOUNDER   = process.env.FOUNDER_EMAIL || 'hello@get-kind.com'
 export const founderRouter = Router()
 
 function requireAdminKey(req: Request, res: Response, next: () => void) {
-  if (!process.env.ADMIN_SECRET_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_SECRET_KEY) {
+  // #402 (AR-65) — constant-time compare (avoids the char-by-char timing side-channel).
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
     return
   }
@@ -90,15 +92,22 @@ Write a helpful reply. Do not include the subject line.`,
       const replyText = (replyRes.content[0] as { type: string; text: string }).text
 
       if (resend) {
-        await resend.emails.send({
+        // #377 (AR-40) — only treat this as auto-replied when the send ACTUALLY left.
+        // Resend returns { error } instead of throwing; the old code set autoReplied=true
+        // unconditionally, so a failed auto-reply then SUPPRESSED the founder-forward
+        // below → the support email was answered by nobody and seen by nobody.
+        const replyResult = await resend.emails.send({
           from: FROM, to: [from], subject: `Re: ${subject}`,
           text: replyText,
         })
-        autoReplied = true
+        const replyChecked = interpretSend(replyResult)
+        if (replyChecked.ok) autoReplied = true
+        else console.error('[founder/support] auto-reply send FAILED — forwarding to founder instead', replyChecked.error)
       }
     }
 
-    // Always forward to founder for awareness (non-auto or high urgency)
+    // Always forward to founder for awareness (non-auto or high urgency). Because
+    // autoReplied is now only true on a real send, a failed auto-reply falls through here.
     if (!autoReplied || classification.urgency === 'high') {
       if (resend) {
         await resend.emails.send({
@@ -211,9 +220,11 @@ Source: ${source || 'website'}
 
 The email should:
 1. Thank them for their interest
-2. Give 2-3 specific meeting time options (Mon/Wed/Fri next week, 10am or 2pm GMT+2)
+2. Invite them to pick a time that suits them using the booking link — do NOT state any
+   specific dates or times (you do NOT have access to the calendar; inventing "Mon 10am"
+   slots that may not be free is dishonest and double-books).
 3. Mention a relevant benefit of K.I.N.D based on their context
-4. Include a Calendly fallback: calendly.com/kind-ai-demo/new-meeting
+4. Point to the booking link: calendly.com/kind-ai-demo/new-meeting
 5. Be warm, confident, and under 100 words
 
 Output: SUBJECT: ...\nBODY: ...`,

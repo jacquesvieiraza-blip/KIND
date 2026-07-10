@@ -18,6 +18,7 @@ import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { runIcpJob } from './icps'
+import { adminKeyValid } from './admin'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM   = 'K.I.N.D <hello@get-kind.com>'
@@ -27,7 +28,8 @@ export const partnersRouter = Router()
 // ── Admin key guard ───────────────────────────────────────────────────────────
 
 function requireAdminKey(req: Request, res: Response, next: () => void) {
-  if (!process.env.ADMIN_SECRET_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_SECRET_KEY) {
+  // #402 (AR-65) — constant-time compare (no char-by-char timing side-channel).
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
     res.status(401).json({ success: false, error: 'Unauthorized' })
     return
   }

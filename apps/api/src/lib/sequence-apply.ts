@@ -22,6 +22,12 @@ export interface SequenceDraft {
   step3: DraftStep
 }
 
+/** #212/#426 — the max email steps a single sequence may run. */
+export const MAX_SEQUENCE_STEPS = 10
+
+/** A ready-to-send step: tokenised copy + the wait before the NEXT step fires. */
+export interface DraftStepFull { subject: string; body: string; wait_days: number }
+
 /** Lead fields available as merge tokens. */
 export interface TokenLead {
   first_name?: string | null
@@ -94,4 +100,38 @@ export function buildDraftFromSequence(
 /** The wait-days for each email step (used to set the campaign's send cadence). */
 export function emailWaitDays(steps: SequenceStep[]): number[] {
   return emailSteps(steps).slice(0, 3).map(s => Math.max(0, Math.round(s.wait_days ?? 0)))
+}
+
+/**
+ * #212 — builds the FULL ordered step array (up to MAX_SEQUENCE_STEPS = 10) from a
+ * client-built sequence's email steps, tokens substituted. `wait_days` is the delay
+ * before the NEXT step (default 4 if unset). Returns [] if no usable email step.
+ * This is what an enrollment stores in its `steps` jsonb — the send engine walks it.
+ */
+export function buildDraftStepsFromSequence(
+  steps: SequenceStep[],
+  lead: TokenLead,
+  senderCompany?: string | null,
+): DraftStepFull[] {
+  return emailSteps(steps)
+    .filter(s => (s.subject || '').trim() && (s.body || '').trim())
+    .slice(0, MAX_SEQUENCE_STEPS)
+    .map(s => ({
+      subject:   applyTokens(s.subject || '', lead, senderCompany),
+      body:      applyTokens(s.body || '', lead, senderCompany),
+      wait_days: Math.max(0, Math.round(s.wait_days ?? 4)),
+    }))
+}
+
+/** Turn a 3-step AI draft into the same full-step array shape (default cadence 4/5). */
+export function draftToSteps(draft: SequenceDraft): DraftStepFull[] {
+  const out: DraftStepFull[] = []
+  const defaults = [4, 5, 0]
+  for (const [i, key] of (['step1', 'step2', 'step3'] as const).entries()) {
+    const s = draft[key]
+    if (s && (s.subject || '').trim() && (s.body || '').trim()) {
+      out.push({ subject: s.subject, body: s.body, wait_days: defaults[i] ?? 4 })
+    }
+  }
+  return out
 }

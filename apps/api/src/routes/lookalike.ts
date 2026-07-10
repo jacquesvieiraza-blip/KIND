@@ -1,13 +1,26 @@
-import { Router } from 'express'
+import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
-import { requireAuth, AuthRequest } from '../middleware/auth'
+import { adminKeyValid } from './admin'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 
 const router = Router()
-router.use(requireAuth)
+
+// #345 (AR-08) — lookalike is an ADMIN-ONLY growth tool (the admin "Clone my best
+// client" button): /best-client ranks ALL clients and returns the top one's contact
+// name/email, and /generate seeds leads into an ARBITRARY client_id's pipeline. It was
+// gated only by requireAuth (any signed-in CLIENT), so a client's own JWT could read a
+// rival client's PII and write into any pipeline — a cross-tenant IDOR. Gate on the
+// admin key instead (the admin app's proxy already injects x-admin-key on every call).
+router.use((req: Request, res: Response, next: () => void) => {
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
+    res.status(403).json({ error: 'Forbidden — admin only' })
+    return
+  }
+  next()
+})
 
 // GET /lookalike/best-client — find the client with the highest score (meetings * 3 + reply_rate * 100)
-router.get('/best-client', async (_req: AuthRequest, res) => {
+router.get('/best-client', async (_req: Request, res: Response) => {
   try {
     const { data: clients, error } = await db
       .from('clients')
@@ -43,7 +56,7 @@ router.get('/best-client', async (_req: AuthRequest, res) => {
 })
 
 // POST /lookalike/generate — given a client_id, find their ICP and search Apollo for 50 lookalikes
-router.post('/generate', async (req: AuthRequest, res) => {
+router.post('/generate', async (req: Request, res: Response) => {
   try {
     const { client_id } = req.body
     if (!client_id) return res.status(400).json({ error: 'client_id required' })

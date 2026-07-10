@@ -164,15 +164,21 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
       calendars_connected: repOut.filter(s => s.calendar_connected || s.booking_url).length,
     }
 
+    // #402 (AR-65) — only owner/manager may see the whole roster. A rep calling this
+    // could otherwise enumerate every colleague's seat: email, credit balance, calendar
+    // address. A rep sees only their OWN seat + no company-wide totals / pending requests.
+    const isManager = canManage(ctx.role)
+    const visibleSeats = isManager ? seatsOut : seatsOut.filter(s => s.id === ctx.clientId)
+
     res.json({
       success: true,
       data: {
         company: { id: ctx.companyId, name: (company as any)?.name ?? '' },
         role: ctx.role,
-        can_manage: canManage(ctx.role),
-        seats: seatsOut,
-        pending_requests: requests ?? [],
-        totals,
+        can_manage: isManager,
+        seats: visibleSeats,
+        pending_requests: isManager ? (requests ?? []) : [],
+        totals: isManager ? totals : null,
       },
     })
   } catch (err) {

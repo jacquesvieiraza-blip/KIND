@@ -24,9 +24,31 @@ async function recordCronRun(job: string, startedAt: string, ok: boolean, note: 
   }
 }
 
+// #390 (AR-60) — record a failed background job durably (dead-letter) so it doesn't just
+// vanish after a console.error. Best-effort; never throws into the cron.
+async function recordDeadLetter(source: string, error: string, payload?: unknown): Promise<void> {
+  try {
+    await db.from('dead_letter').insert({ source, error: error.slice(0, 1000), payload: payload ?? null })
+  } catch (err) {
+    console.error(`[cron] failed to record dead_letter for ${source}:`, err instanceof Error ? err.message : err)
+  }
+}
+
+// #390 (AR-60) — alert the founder ONCE if the admin key is unset: previously every cron
+// silently skipped (console.warn only, no cron_runs row, no signal) → all automation
+// dead and nobody knew. Deduped to one alert per process.
+let alertedMissingAdminKey = false
+
 async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Promise<void> {
   if (!ADMIN_KEY) {
     console.warn(`[cron] ADMIN_SECRET_KEY not set — skipping ${path}`)
+    if (!alertedMissingAdminKey) {
+      alertedMissingAdminKey = true
+      void sendFounderAlert('api_down', 'ALL crons are disabled — ADMIN_SECRET_KEY is not set', [
+        `The scheduled jobs (FIGSY sends, digests, credit checks, alerts) cannot run without ADMIN_SECRET_KEY.`,
+        `No sends, no digests, no watchdogs are firing. Set ADMIN_SECRET_KEY on the API service.`,
+      ])
+    }
     return
   }
   const startedAt = new Date().toISOString()
@@ -47,6 +69,8 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
     console.error(`[cron] ${path} failed:`, err)
   } finally {
     await recordCronRun(path, startedAt, ok, note)
+    // #390 — a failed run is dead-lettered so it's visible/retryable, not just logged.
+    if (!ok) await recordDeadLetter(`cron:${path}`, note)
   }
 }
 
@@ -105,6 +129,9 @@ export function startCrons(): void {
 
   // Every 2 hours — FIGSY send due emails across all clients
   cron.schedule('0 */2 * * *', () => callInternal('/figsy/send-due-all'), { timezone: 'UTC' })
+
+  // Hourly — #358 (F4): re-score leads left UNSCORED by a transient AI-scoring failure
+  cron.schedule('20 * * * *', () => callInternal('/figsy/rescore-stranded'), { timezone: 'UTC' })
 
   // Monday 07:00 UTC — weekly client leads digest
   cron.schedule('0 7 * * 1', () => callInternal('/digest/weekly'), { timezone: 'UTC' })

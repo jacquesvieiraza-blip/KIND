@@ -44,6 +44,7 @@ create table if not exists public.subscriptions (
   paystack_plan_code         text,
   stripe_subscription_id     text,
   trial_ends_at              timestamptz,
+  trial_expiry_notified_at   timestamptz,   -- #353: one-shot marker so "trial ended" sends once
   current_period_start       timestamptz not null default now(),
   current_period_end         timestamptz not null default now() + interval '30 days',
   cancelled_at               timestamptz,
@@ -362,6 +363,8 @@ create table if not exists public.figsy_enrollments (
   step2_body          text,
   step3_subject       text,
   step3_body          text,
+  steps               jsonb,    -- #212: full ≤10-step sequence [{subject,body,wait_days}] (mirrors 20260710_sequence_depth); step1-3 above kept back-filled for legacy readers
+  total_steps         integer,  -- #212: cached jsonb_array_length(steps)
   crm_deal_id         text,
   crm_pushed_at       timestamptz,
   reply_branch_handled_at timestamptz,
@@ -1408,6 +1411,75 @@ create policy "companies_owner_read" on public.companies for select using (owner
 create policy "companies_service"    on public.companies for all to service_role using (true) with check (true);
 create policy "scr_service"          on public.seat_credit_requests for all to service_role using (true) with check (true);
 create policy "wp_service"           on public.winning_plays for all to service_role using (true) with check (true);
+
+-- #339 (AR-02) — durable founder-alert store. sendFounderAlert() writes every alert
+-- here regardless of push outcome, so a money-failure signal survives even if both
+-- email + Slack fail (mirrors migration 20260710_founder_alerts).
+create table if not exists public.founder_alerts (
+  id          uuid primary key default gen_random_uuid(),
+  kind        text not null,
+  subject     text not null,
+  body        text,
+  email_ok    boolean not null default false,
+  slack_ok    boolean not null default false,
+  created_at  timestamptz not null default now()
+);
+create index if not exists founder_alerts_created_idx on public.founder_alerts (created_at desc);
+create index if not exists founder_alerts_kind_idx    on public.founder_alerts (kind, created_at desc);
+
+-- #391 (AR-61) — atomic settings-key merge so the adaptive-send / A/B crons stop
+-- clobbering concurrent UI saves with a stale wholesale write (mirrors migration
+-- 20260710_figsy_merge_settings).
+create or replace function public.figsy_merge_settings(p_campaign_id uuid, p_patch jsonb)
+returns void language sql as $$
+  update public.figsy_campaigns
+     set settings = coalesce(settings, '{}'::jsonb) || p_patch
+   where id = p_campaign_id;
+$$;
+
+-- #354 (AR-16) — double-send backstop: one figsy_sent_emails row per (enrollment, step)
+-- (mirrors migration 20260710_double_send_guard). enrollment_id is null for day-1 sends.
+create unique index if not exists figsy_sent_emails_enrollment_step_uniq
+  on public.figsy_sent_emails (enrollment_id, step)
+  where enrollment_id is not null;
+
+-- #383 (AR-45) — atomic send-counter bump (mirrors 20260710_increment_emails_sent);
+-- was called by the send path but defined in no schema, forcing the racy fallback.
+create or replace function public.increment_figsy_emails_sent(campaign_id uuid)
+returns integer language sql as $$
+  update public.figsy_campaigns
+     set emails_sent = coalesce(emails_sent, 0) + 1
+   where id = campaign_id
+  returning emails_sent;
+$$;
+
+-- #371 (AR-34) — atomic first-run credit grant (mirrors 20260710_grant_first_run_credits):
+-- conditional additive grant, claims first_icp_run_at once, returns whether it granted.
+create or replace function public.grant_first_run_credits(
+  p_client_id uuid, p_amount integer, p_max_balance integer, p_claim_first_run boolean
+) returns boolean language plpgsql as $$
+begin
+  update public.clients
+     set credit_balance   = coalesce(credit_balance, 0) + p_amount,
+         first_icp_run_at = case when p_claim_first_run then coalesce(first_icp_run_at, now()) else first_icp_run_at end
+   where id = p_client_id
+     and first_icp_run_at is null
+     and coalesce(credit_balance, 0) < p_max_balance;
+  return found;
+end $$;
+
+-- #390 (AR-60) — dead-letter store for failed background jobs (mirrors 20260710_dead_letter).
+create table if not exists public.dead_letter (
+  id              uuid primary key default gen_random_uuid(),
+  source          text not null,
+  payload         jsonb,
+  error           text,
+  attempts        integer not null default 1,
+  created_at      timestamptz not null default now(),
+  last_attempt_at timestamptz not null default now(),
+  resolved_at     timestamptz
+);
+create index if not exists dead_letter_unresolved_idx on public.dead_letter (created_at desc) where resolved_at is null;
 
 -- ════════════════════════════════════════════════════════════════════════════
 -- END OF SCHEMA

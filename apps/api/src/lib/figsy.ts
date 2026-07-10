@@ -5,7 +5,8 @@ import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
 import { canEnroll } from './billing-rules'
 import { sendFounderAlert } from './alerts'
-import { buildDraftFromSequence, type SequenceStep } from './sequence-apply'
+import { interpretSend } from './resend-checked'
+import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
 import {
   COLD_FROM,
   COLD_REPLY_TO,
@@ -44,6 +45,14 @@ function coldDailyCap(): number | null {
   if (Number.isFinite(explicit) && explicit > 0) return explicit
   const start = process.env.FIGSY_WARMUP_START
   return start ? warmupRampCap(start) : null
+}
+
+// #344 (AR-07) — THE KILL-SWITCH. `AUTO_OUTREACH_ENABLED` was read only on the on-run
+// path (icps.ts); the three cron send paths call sendSequenceEmail directly, so "off"
+// never stopped follow-up steps to already-enrolled leads. This is the single chokepoint
+// every real send funnels through, so checking it here makes the switch actually global.
+export function outreachEnabled(): boolean {
+  return process.env.AUTO_OUTREACH_ENABLED === 'true'
 }
 
 async function coldCapReached(): Promise<boolean> {
@@ -445,15 +454,50 @@ export async function applyReplyBranching(
   return 'skip'
 }
 
+// #212 — a stored enrollment step + the total length of its sequence. Reads the
+// jsonb `steps` array when present, else falls back to the legacy step1-3 columns
+// (3-step behaviour, unchanged for pre-#212 enrollments). One source of truth so
+// the three send loops (internal.ts + routes/figsy.ts ×2) never diverge.
+export interface EnrollmentStepView { subject: string; body: string; wait_days: number; total: number }
+export function enrollmentStep(
+  enrollment: Record<string, any>,
+  stepNum: number,
+): EnrollmentStepView | null {
+  const arr = Array.isArray(enrollment.steps) ? (enrollment.steps as Array<{ subject?: string; body?: string; wait_days?: number }>) : null
+  if (arr && arr.length > 0) {
+    const total = arr.length
+    if (stepNum < 1 || stepNum > total) return null
+    const s = arr[stepNum - 1]
+    if (!s?.subject || !s?.body) return null
+    return { subject: s.subject, body: s.body, wait_days: Math.max(0, Math.round(s.wait_days ?? 4)), total }
+  }
+  // Legacy: step1-3 columns, 3-step cadence.
+  if (stepNum < 1 || stepNum > 3) return null
+  const subject = enrollment[`step${stepNum}_subject`] as string | undefined
+  const body    = enrollment[`step${stepNum}_body`] as string | undefined
+  if (!subject || !body) return null
+  return { subject, body, wait_days: STEP_FOLLOWUP_DELAYS[stepNum] ?? 4, total: 3 }
+}
+
 export async function sendSequenceEmail(
   enrollmentId: string,
   lead: Lead,
-  step: 1 | 2 | 3,
+  step: number,
   subject: string,
   body: string,
   campaignId: string,
+  opts?: { totalSteps?: number; waitDaysNext?: number; isPreview?: boolean },
 ): Promise<void> {
   if (!lead.email) throw new Error('Lead has no email')
+
+  // #344 (AR-07) — KILL-SWITCH. If auto-outreach is off, DEFER (no send, no state
+  // change → the enrollment stays due and resumes when the switch is turned back on).
+  // The founder's test-email path (isPreview) is a deliberate 1:1 send to their own
+  // inbox, so it bypasses the switch.
+  if (!opts?.isPreview && !outreachEnabled()) {
+    console.warn(`[figsy] sendSequenceEmail: AUTO_OUTREACH_ENABLED != true — step ${step} to ${lead.email} DEFERRED (kill-switch off).`)
+    return
+  }
 
   // DO-NOT-CONTACT: hard stop — never email anyone connected to the founder's
   // employer, no matter how this lead got enrolled.
@@ -500,6 +544,25 @@ export async function sendSequenceEmail(
     return
   }
 
+  // #354 (AR-16) — ATOMIC STEP CLAIM. Before sending, move the enrollment from step-1
+  // to `step` conditioned on it STILL being at step-1. If the UPDATE claims no row, a
+  // concurrent runner (overlapping cron / manual send-now) already took this step —
+  // bail so the same prospect is never emailed twice. Skipped for the preview/test path
+  // (no real enrollment row). Runs AFTER the defer guards above so a deferred send never
+  // advances the step without sending. On send failure (#338) the claim is rolled back.
+  if (!opts?.isPreview) {
+    const { data: claimed } = await db.from('figsy_enrollments')
+      .update({ current_step: step })
+      .eq('id', enrollmentId)
+      .eq('current_step', step - 1)
+      .select('id')
+      .maybeSingle()
+    if (!claimed) {
+      console.warn(`[figsy] sendSequenceEmail: step ${step} for enrollment ${enrollmentId} already claimed/advanced — skipping (no double-send)`)
+      return
+    }
+  }
+
   let messageId: string | undefined
 
   // Insert the DB record first so we have the emailId for the tracking pixel
@@ -520,16 +583,50 @@ export async function sendSequenceEmail(
     // Cold email = a personal 1:1 message → Primary, not Promotions. NO pixel, image
     // banner, visible unsubscribe footer, or templated shell (see coldEmailHtml). The
     // one-click List-Unsubscribe header + the body's "Reply STOP" line cover compliance.
-    const result = await resend.emails.send({
-      from:     FROM,
-      reply_to: REPLY_TO,
-      to:       lead.email,
-      subject,
-      headers:  unsubscribeHeaders(lead.email),
-      text:     body,
-      html:     coldEmailHtml(body, emailId),
-    })
-    messageId = (result as any).data?.id ?? undefined
+    // #338 (AR-01) — Resend RETURNS { error } instead of throwing. A failed send must
+    // NOT advance the enrollment or leave a phantom "sent" row: delete the row we
+    // inserted for the pixel, leave the enrollment DUE (so the cron retries once the
+    // cause clears), alert the founder, and bail. This is the exact defer-on-failure
+    // shape as the RESEND-unset guard above — a failure is retryable, never a phantom.
+    // F1 (Fable audit) — a network THROW mid-send (socket drop) must hit the SAME
+    // rollback as a returned { error }; otherwise the claimed step + inserted row strand
+    // as a phantom and the next cron fires step N+1 while step N never left. Catch it
+    // and synthesise a failed verdict so the one rollback below covers both cases.
+    let checked: ReturnType<typeof interpretSend>
+    try {
+      const result = await resend.emails.send({
+        from:     FROM,
+        reply_to: REPLY_TO,
+        to:       lead.email,
+        subject,
+        headers:  unsubscribeHeaders(lead.email),
+        text:     body,
+        html:     coldEmailHtml(body, emailId),
+      })
+      checked = interpretSend(result)
+    } catch (thrown) {
+      checked = { ok: false, id: null, error: thrown }
+    }
+    if (!checked.ok) {
+      console.error(`[figsy] sendSequenceEmail: send FAILED for ${lead.email} step ${step} — not advancing enrollment`, checked.error)
+      if (emailId) await db.from('figsy_sent_emails').delete().eq('id', emailId)
+      // #354 — roll the atomic claim back to step-1 so the step stays DUE and a later
+      // run retries it (the claim above tentatively moved current_step to `step`).
+      if (!opts?.isPreview) {
+        await db.from('figsy_enrollments')
+          .update({ current_step: step - 1, next_send_at: new Date().toISOString() })
+          .eq('id', enrollmentId)
+      }
+      void sendFounderAlert('sends_stalled', 'FIGSY send failed — email did not leave', [
+        `Lead: ${lead.email}`,
+        `Enrollment: ${enrollmentId} (step ${step})`,
+        `Campaign: ${campaignId}`,
+        `Resend error: ${checked.error instanceof Error ? checked.error.message : JSON.stringify(checked.error)}`,
+        `The enrollment stays due and will retry on the next send run.`,
+      ])
+      return
+    }
+    messageId = checked.id ?? undefined
 
     // Update resend_id now that we have it
     if (emailId && messageId) {
@@ -537,16 +634,21 @@ export async function sendSequenceEmail(
     }
   }
 
-  // Advance enrollment state
-  const nextSendAt = step < 3
-    ? new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[step] ?? 4) * 86400000).toISOString()
-    : null
+  // Advance enrollment state. #212 — total-steps aware: a sequence completes at its
+  // OWN last step (opts.totalSteps, default 3 for legacy callers), and the delay to
+  // the next step comes from that step's wait_days (opts.waitDaysNext).
+  const totalSteps = opts?.totalSteps ?? 3
+  const isLast = step >= totalSteps
+  const waitDays = opts?.waitDaysNext ?? STEP_FOLLOWUP_DELAYS[step] ?? 4
+  const nextSendAt = isLast
+    ? null
+    : new Date(Date.now() + waitDays * 86400000).toISOString()
 
   await db.from('figsy_enrollments').update({
     current_step: step,
-    status:       step === 3 ? 'completed' : 'in_progress',
+    status:       isLast ? 'completed' : 'in_progress',
     next_send_at: nextSendAt,
-    ...(step === 3 ? { completed_at: new Date().toISOString() } : {}),
+    ...(isLast ? { completed_at: new Date().toISOString() } : {}),
   }).eq('id', enrollmentId)
 
   // THE DATA FLOOR (#17b) — log the send (the credit-spend denominator). Fire-and-forget.
@@ -569,7 +671,12 @@ export async function sendSequenceEmail(
   // NOTE: supabase-js RPCs/queries RETURN errors, they don't THROW — so a try/catch
   // never sees an RPC failure. Check the returned error and run the direct-update fallback.
   if (emailId) {
-    const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId }).maybeSingle()
+    // F2 (Fable audit / #383) — do NOT chain .maybeSingle() here: the RPC returns a
+    // scalar, and if PostgREST rejects that response shape the UPDATE has ALREADY
+    // committed server-side — then the fallback below would bump the counter a SECOND
+    // time, drifting it UP (the exact bug #383 exists to kill). Read the plain { error }
+    // so the fallback only runs on a genuine RPC failure.
+    const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId })
     if (rpcErr) {
       const { data } = await db.from('figsy_campaigns')
         .select('emails_sent').eq('id', campaignId).single()
@@ -774,7 +881,7 @@ Rules:
 - No buzzwords: no "synergy", "leverage", "touch base", "game-changer", "revolutionary", "Hope this finds you well", "I wanted to reach out"
 - Don't mention AI or automation
 - Subject: 4–6 words, lowercase, no punctuation
-${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign off with a real first name (South African-sounding, fits the industry)'}
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign off with a real first name that fits the sender\'s region and industry'}
 - End with: "Reply STOP to opt out."
 
 Return ONLY valid JSON: {"subject": "...", "body": "..."}`
@@ -807,6 +914,12 @@ export async function sendDay1OutreachBatch(
   clientId: string,
   clientCompanyName: string,
 ): Promise<void> {
+  // #344 (AR-07) — KILL-SWITCH. Day-1 cold outreach is a send path; honour the switch.
+  if (!outreachEnabled()) {
+    console.warn(`[figsy] sendDay1OutreachBatch: AUTO_OUTREACH_ENABLED != true — ${leadIds.length} leads NOT day-1 emailed (kill-switch off).`)
+    return
+  }
+
   const { data: client } = await db.from('clients')
     .select('company_name, industry').eq('id', clientId).single()
   // P-a: configurable sign-off name (guarded — null if column missing pre-migration).
@@ -849,7 +962,7 @@ export async function sendDay1OutreachBatch(
         continue
       }
 
-      await resend.emails.send({
+      const day1Result = await resend.emails.send({
         from: FROM,
         reply_to: REPLY_TO,
         to: lead.email,
@@ -860,6 +973,18 @@ export async function sendDay1OutreachBatch(
         html: coldEmailHtml(draft.body),
       })
 
+      // #338 (AR-01) — a failed send must not leave a phantom "sent" row or flip the
+      // lead to 'contacted'. Skip the lead (stays 'scored' → retried next run) + alert.
+      const day1Checked = interpretSend(day1Result)
+      if (!day1Checked.ok) {
+        console.error(`[day1-outreach] send FAILED for ${lead.email} — no row, lead stays scored`, day1Checked.error)
+        void sendFounderAlert('sends_stalled', 'FIGSY day-1 send failed — email did not leave', [
+          `Lead: ${lead.email} (${lead.id})`,
+          `Resend error: ${day1Checked.error instanceof Error ? day1Checked.error.message : JSON.stringify(day1Checked.error)}`,
+        ])
+        continue
+      }
+
       await db.from('figsy_sent_emails').insert({
         enrollment_id: null,
         campaign_id:   null,
@@ -867,6 +992,7 @@ export async function sendDay1OutreachBatch(
         step:          1,
         subject:       draft.subject,
         body:          draft.body,
+        resend_id:     day1Checked.id,
       })
 
       // THE DATA FLOOR (#17b) — record the day-1 send in the canonical log too, so
@@ -1020,7 +1146,7 @@ Hard rules:
 - Only describe the sender's product, results, metrics, or customers using facts from the "What the sender offers (grounding)" block above; if it's empty or silent on something, stay generic about the sender — never fabricate.
 - Subject: 4–6 words, lowercase, no punctuation
 - End every email: "Reply STOP to opt out."
-${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a South African-sounding first name'}
+${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a real first name that fits the sender\'s region and industry'}
 
 Return ONLY valid JSON:
 {"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."}}`
@@ -1071,6 +1197,14 @@ export async function campaignReadyLeadIds(clientId: string): Promise<string[]> 
 
 export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
   try {
+    // #344 (AR-07) — KILL-SWITCH, checked BEFORE the charge. autoEnrollLead charges a
+    // FIGSY credit then sends step 1; if the switch is off, sendSequenceEmail would defer
+    // the send but the charge would already be taken. Bail here so "off" never charges.
+    if (!outreachEnabled()) {
+      console.warn(`[figsy] autoEnrollLead: AUTO_OUTREACH_ENABLED != true — not enrolling/charging lead ${leadId} (kill-switch off).`)
+      return
+    }
+
     const { data: campaign } = await db.from('figsy_campaigns')
       .select('id, name, campaign_intent, settings')
       .eq('client_id', clientId)
@@ -1176,6 +1310,16 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
     }
     const step1Subject = allVariants[Math.floor(Math.random() * allVariants.length)]
 
+    // #212 — build the FULL ordered step array (≤10). A client-built sequence carries
+    // its own copy + per-step cadence; the AI path is the 3-step draft. The first step's
+    // subject is overwritten with the A/B-selected variant so what we STORE equals what
+    // we SEND. The step1-3 columns below are still written (first 3) for legacy readers.
+    const fullSteps = (usingSequence && appliedSequence)
+      ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
+      : draftToSteps(draft)
+    if (fullSteps.length > 0) fullSteps[0] = { ...fullSteps[0], subject: step1Subject }
+    const totalSteps = fullSteps.length > 0 ? fullSteps.length : 3
+
     // #302 — idempotency guard. Without it a retried autoEnrollLead (webhook re-fire,
     // cron overlap, manual re-run) inserts a SECOND enrollment for the same lead AND
     // deducts a SECOND FIGSY credit — a real double-charge. Refuse to re-enrol a lead
@@ -1215,6 +1359,10 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
         status:         'enrolled',
         current_step:   0,
         next_send_at:   new Date().toISOString(), // send step 1 immediately
+        // #212 — full ≤10-step sequence walked by the send engine.
+        steps:          fullSteps.length > 0 ? fullSteps : null,
+        total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
+        // Back-compat: first 3 steps mirrored to the legacy columns (voice.ts, A/B view).
         step1_subject:  step1Subject,
         step1_body:     draft.step1.body,
         step2_subject:  draft.step2.subject,
@@ -1253,6 +1401,7 @@ export async function autoEnrollLead(leadId: string, clientId: string): Promise<
       step1Subject,
       draft.step1.body,
       campaign.id,
+      { totalSteps, waitDaysNext: fullSteps[0]?.wait_days },
     )
   } catch (err) {
     console.error('[figsy] autoEnrollLead failed for lead', leadId, ':', err instanceof Error ? err.message : err)

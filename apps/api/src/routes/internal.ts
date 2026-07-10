@@ -19,6 +19,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
+import { isPlaceholderEmail } from '../lib/email-hygiene'
+import { scoreLeadsForIcp } from '../lib/scoring'
 import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
@@ -355,7 +357,7 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
   try {
     const now = new Date()
     const { data: trials } = await db.from('subscriptions')
-      .select('client_id, trial_ends_at, clients(company_name, user_id)')
+      .select('id, client_id, trial_ends_at, trial_expiry_notified_at, clients(company_name, user_id)')
       .eq('status', 'trialing')
       .not('trial_ends_at', 'is', null)
 
@@ -395,6 +397,10 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
           <p>Your leads, ICP, and pipeline data are all saved. Subscribing now takes 2 minutes and keeps everything running.</p>
           <p>Any questions about pricing or what's included? Reply to this email — I'm here.</p>`
       } else if (daysLeft <= 0) { // day 14+
+        // #353 (AR-15) — the "trial ended" branch is open-ended (fires every day the sub
+        // stays 'trialing' with a past end date). Send it ONCE: skip if we've already
+        // stamped trial_expiry_notified_at.
+        if (sub.trial_expiry_notified_at) continue
         subject = `Your K.I.N.D trial has ended`
         body = `
           <p>Hi there,</p>
@@ -403,6 +409,9 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
       }
 
       if (!subject) continue
+
+      // #353 — demo guard: never email synthetic/demo recipients (hard bounces).
+      if (!isRealRecipient(email)) continue
 
       if (resend) {
         await resend.emails.send({
@@ -422,6 +431,14 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
             </div>`,
         })
         sent++
+        // #353 — stamp the one-shot marker after the terminal (ended) email so it never
+        // repeats. Day-10/12 sends fire on an exact daysLeft match, so they're naturally
+        // once; only the open-ended <=0 branch needs the marker.
+        if (daysLeft <= 0) {
+          await db.from('subscriptions')
+            .update({ trial_expiry_notified_at: new Date().toISOString() })
+            .eq('id', sub.id)
+        }
       }
     }
 
@@ -447,10 +464,13 @@ internalRouter.get('/cro/dashboard', async (_req: Request, res: Response) => {
       { count: totalLeads },
       { count: leadsThisMonth },
     ] = await Promise.all([
-      db.from('subscriptions').select('amount_zar, created_at').eq('status', 'active'),
-      db.from('subscriptions').select('id, trial_ends_at').eq('status', 'trialing'),
-      db.from('subscriptions').select('id, cancelled_at').eq('status', 'cancelled').gte('cancelled_at', monthStart),
-      db.from('clients').select('id', { count: 'exact', head: true }),
+      // #364 (AR-26) — exclude demo/sandbox from founder revenue metrics. subscriptions
+      // has no is_demo, so filter via an inner join on the owning client (clients.is_demo
+      // = false); client count filters directly.
+      db.from('subscriptions').select('amount_zar, created_at, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
+      db.from('subscriptions').select('id, trial_ends_at, clients!inner(is_demo)').eq('status', 'trialing').eq('clients.is_demo', false),
+      db.from('subscriptions').select('id, cancelled_at, clients!inner(is_demo)').eq('status', 'cancelled').eq('clients.is_demo', false).gte('cancelled_at', monthStart),
+      db.from('clients').select('id', { count: 'exact', head: true }).eq('is_demo', false),
       db.from('leads').select('id', { count: 'exact', head: true }),
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
     ])
@@ -513,13 +533,14 @@ internalRouter.post('/cro/weekly-digest', async (_req: Request, res: Response) =
       { count: consentedTotal },
       { data: atRiskClients },
     ] = await Promise.all([
-      db.from('subscriptions').select('amount_zar').eq('status', 'active'),
-      db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
-      db.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', weekStart),
+      // #364 (AR-26) — exclude demo/sandbox from the founder digest revenue + client counts.
+      db.from('subscriptions').select('amount_zar, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
+      db.from('subscriptions').select('id, clients!inner(is_demo)', { count: 'exact', head: true }).eq('status', 'trialing').eq('clients.is_demo', false),
+      db.from('clients').select('id', { count: 'exact', head: true }).eq('is_demo', false).gte('created_at', weekStart),
       db.from('leads').select('id', { count: 'exact', head: true }),
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', weekStart),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('status', 'consent_given'),
-      db.from('clients').select('company_name, first_icp_run_at, created_at').lte('created_at', weekStart),
+      db.from('clients').select('company_name, first_icp_run_at, created_at').eq('is_demo', false).lte('created_at', weekStart),
     ])
 
     const mrrUsd = Math.round((activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0) / 19)
@@ -987,7 +1008,7 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       }
     }
 
-    const { sendSequenceEmail, applyReplyBranching } = await import('../lib/figsy')
+    const { sendSequenceEmail, applyReplyBranching, enrollmentStep } = await import('../lib/figsy')
 
     const stepsCache = new Map<string, { step: number; on_reply?: 'stop' | 'skip_next' | 'continue' }[] | null>()
     let sent = 0
@@ -996,8 +1017,11 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       if (sent >= remaining) break   // shared daily budget spent
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
-      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
-      if (nextStep > 3) continue
+      // #212 — walk the full ≤10-step sequence via enrollmentStep (jsonb `steps`,
+      // else legacy step1-3 columns). null = past the last usable step (skip).
+      const nextStep = enrollment.current_step + 1
+      const stepView = enrollmentStep(enrollment, nextStep)
+      if (!stepView) continue
 
       // Per-campaign daily cap — skip if this campaign hit its own limit today.
       const campId = enrollment.campaign_id as string
@@ -1014,11 +1038,8 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
         console.error('[figsy/send-due-all] branching', enrollment.id, ':', err)
       }
 
-      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
-      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
-      if (!subject || !body) continue
       try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
+        await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
         sent++
         sentByCampaign.set(campId, (sentByCampaign.get(campId) ?? 0) + 1)
       } catch (err) {
@@ -1569,6 +1590,8 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
 
     for (const contact of contacts.slice(0, 20)) {
       if (!contact.email) { skipped++; continue }
+      // #375 (AR-38) — never insert/charge/cold-email an Apollo placeholder address.
+      if (isPlaceholderEmail(contact.email)) { skipped++; continue }
 
       // Skip if already in pipeline
       const { count: existing } = await db.from('leads')
@@ -2128,10 +2151,20 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
       }
 
       if (newLimit !== currentLimit) {
-        await db
-          .from('figsy_campaigns')
-          .update({ settings: { ...existing, daily_send_limit: newLimit } })
-          .eq('id', campaign.id)
+        // #391 (AR-61) — merge ONLY daily_send_limit at the DB (atomic, against the
+        // current row) instead of writing the whole settings blob back from a stale
+        // read, which could clobber a concurrent UI save / resurrect a founder pause.
+        // F3 (Fable audit) — check the returned { error }: supabase-js RPCs return their
+        // error, they don't throw. If the RPC fails (or the migration isn't applied) we
+        // must NOT report "adjusted" as though the write landed.
+        const { error: mergeErr } = await db.rpc('figsy_merge_settings', {
+          p_campaign_id: campaign.id,
+          p_patch: { daily_send_limit: newLimit },
+        })
+        if (mergeErr) {
+          console.error('[figsy/adaptive-send-check] figsy_merge_settings failed for', campaign.id, mergeErr)
+          continue
+        }
 
         changes.push({ campaignId: campaign.id, oldLimit: currentLimit, newLimit, reason })
         adjusted++
@@ -2203,6 +2236,17 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
       const activeVariants = Object.entries(variantGroups).filter(([, emails]) => emails.length >= 5)
       if (activeVariants.length < 2) continue
 
+      // #392 (AR-62) — never resolve on ZERO data. If open-tracking is unset (no
+      // TRACKING_URL / pixel), every variant's open rate is 0 and the first one would
+      // "win" at rate 0 > -1 — irreversibly (ab_test_resolved:true). Require a minimum
+      // of real opens across the active variants before crowning a winner; otherwise
+      // leave the test open so it resolves once tracking data actually accrues.
+      const MIN_OPENS_TO_RESOLVE = 5
+      const totalOpens = activeVariants.reduce(
+        (sum, [, emails]) => sum + emails.filter(e => e.opened_at).length, 0,
+      )
+      if (totalOpens < MIN_OPENS_TO_RESOLVE) continue
+
       // Find winner by open rate
       let bestLabel = 'a'
       let bestRate = -1
@@ -2211,15 +2255,18 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
         if (rate > bestRate) { bestRate = rate; bestLabel = label }
       }
 
-      await db.from('figsy_campaigns')
-        .update({
-          settings: {
-            ...settings,
-            ab_test_resolved: true,
-            ab_test_winner: bestLabel,
-          }
-        })
-        .eq('id', campaign.id)
+      // #391 (AR-61) — merge only the A/B result keys atomically (see adaptive-send
+      // above) instead of writing the whole settings blob back from a stale read.
+      // F3 (Fable audit) — check the returned { error } so a failed merge isn't counted
+      // as "resolved" (and the test stays open to resolve on a later run).
+      const { error: abMergeErr } = await db.rpc('figsy_merge_settings', {
+        p_campaign_id: campaign.id,
+        p_patch: { ab_test_resolved: true, ab_test_winner: bestLabel },
+      })
+      if (abMergeErr) {
+        console.error('[figsy/ab-winner-check] figsy_merge_settings failed for', campaign.id, abMergeErr)
+        continue
+      }
 
       resolved++
     }
@@ -2228,6 +2275,50 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
   } catch (err) {
     console.error('[figsy/ab-winner-check]', err)
     res.status(500).json({ success: false, error: 'AB winner check failed' })
+  }
+})
+
+// ── #358 (F4) — RE-SCORE STRANDED LEADS ───────────────────────────────────────
+// When AI scoring returns no usable result, that batch is left UNSCORED (score null,
+// score_reasoning 'SCORING_FAILED…') rather than faked as a real 50/$5000. But scoring
+// only runs at sourcing time, so nothing re-scored them — "will retry" was aspirational.
+// This sweep makes it true: find stranded leads, group by ICP, re-score each group
+// (scoreLeadsForIcp re-marks them stranded + alerts again if the AI is still down, so
+// it is safe to run repeatedly). Called hourly by cron.
+internalRouter.post('/figsy/rescore-stranded', async (_req: Request, res: Response) => {
+  try {
+    const { data: stranded } = await db.from('leads')
+      .select('id, icp_id')
+      .is('score', null)
+      .like('score_reasoning', 'SCORING_FAILED%')
+      .not('icp_id', 'is', null)
+      .limit(500)
+    if (!stranded || stranded.length === 0) {
+      res.json({ success: true, data: { rescored: 0, groups: 0 } }); return
+    }
+
+    const byIcp = new Map<string, string[]>()
+    for (const l of stranded) {
+      const icpId = (l as { icp_id: string }).icp_id
+      if (!byIcp.has(icpId)) byIcp.set(icpId, [])
+      byIcp.get(icpId)!.push((l as { id: string }).id)
+    }
+
+    let rescored = 0
+    for (const [icpId, leadIds] of byIcp) {
+      const { data: icp } = await db.from('icps')
+        .select('client_id, job_titles, seniority_levels, industries, company_sizes, geographies, keywords')
+        .eq('id', icpId).maybeSingle()
+      if (!icp) continue
+      const { data: client } = await db.from('clients')
+        .select('company_name').eq('id', (icp as { client_id: string }).client_id).maybeSingle()
+      await scoreLeadsForIcp(leadIds, icp as any, (client as { company_name?: string } | null)?.company_name ?? '')
+      rescored += leadIds.length
+    }
+    res.json({ success: true, data: { rescored, groups: byIcp.size } })
+  } catch (err) {
+    console.error('[figsy/rescore-stranded]', err)
+    res.status(500).json({ success: false, error: 'Re-score sweep failed' })
   }
 })
 
@@ -2265,12 +2356,23 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
     if (!campaigns?.length) { res.json({ success: true, data: { enrolled: 0 } }); return }
 
     let enrolled = 0
+    let capped = 0
+
+    // #374 (AR-37) — the triggers below are STATIC attributes (senior title, company
+    // size), not real deltas, so a client's ENTIRE qualifying book would auto-enrol +
+    // charge in a single run — an unbounded wallet drain + a mass cold-send. Bound each
+    // run: at most INTENT_ENROLL_CAP_PER_CAMPAIGN new enrolments per campaign per run
+    // (env-overridable). True delta detection needs a signal-source feed (follow-up).
+    const INTENT_ENROLL_CAP_PER_CAMPAIGN = Math.max(
+      1, parseInt(process.env.INTENT_ENROLL_CAP_PER_CAMPAIGN || '10', 10) || 10,
+    )
 
     for (const campaign of campaigns) {
       const settings = campaign.settings as Record<string, unknown> ?? {}
       if (!settings.intent_signal_enroll) continue
 
       const signalTypes = (settings.intent_signal_types as string[] | undefined) ?? ['job_change', 'funding']
+      let enrolledThisCampaign = 0
 
       // Find leads for this client/ICP that are scored but not yet enrolled
       // and were updated in the last 7 days (recently changed)
@@ -2310,6 +2412,10 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
 
         if (!triggered) continue
 
+        // #374 — stop this campaign once the per-run cap is hit (the rest wait for the
+        // next run, so no single run can drain the wallet / cold-send the whole book).
+        if (enrolledThisCampaign >= INTENT_ENROLL_CAP_PER_CAMPAIGN) { capped++; break }
+
         // Check not already enrolled in this campaign
         const { data: existing } = await db.from('figsy_enrollments')
           .select('id').eq('lead_id', lead.id).eq('campaign_id', campaign.id).maybeSingle()
@@ -2324,10 +2430,11 @@ internalRouter.post('/figsy/check-intent-signals', async (_req: Request, res: Re
         const { autoEnrollLead } = await import('../lib/figsy')
         await autoEnrollLead(lead.id, campaign.client_id)
         enrolled++
+        enrolledThisCampaign++
       }
     }
 
-    res.json({ success: true, data: { enrolled } })
+    res.json({ success: true, data: { enrolled, campaigns_capped: capped } })
   } catch (err) {
     console.error('[figsy/check-intent-signals]', err)
     res.status(500).json({ success: false, error: 'Intent signal check failed' })

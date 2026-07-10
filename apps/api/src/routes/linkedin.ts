@@ -22,7 +22,7 @@ linkedinRouter.get('/queue', async (req: AuthRequest, res) => {
       .from('figsy_linkedin_queue')
       .select(`
         id, linkedin_url, connection_note, status, created_at,
-        figsy_leads ( first_name, last_name, job_title, company )
+        leads ( first_name, last_name, job_title, company )
       `)
       .eq('client_id', clientId)
       .in('status', ['pending', 'approved'])
@@ -52,7 +52,7 @@ linkedinRouter.post('/enqueue', async (req: AuthRequest, res) => {
     const { lead_id, campaign_id, icp_context } = parsed.data
 
     const { data: lead, error: leadErr } = await db
-      .from('figsy_leads')
+      .from('leads')
       .select('first_name, last_name, job_title, company, industry, linkedin_url')
       .eq('id', lead_id)
       .eq('client_id', clientId)

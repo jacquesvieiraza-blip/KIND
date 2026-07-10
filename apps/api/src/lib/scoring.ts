@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
+import { sendFounderAlert } from './alerts'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -59,6 +60,7 @@ export async function scoreLeadsForIcp(
   }
 
   const BATCH_SIZE = 10
+  let alertedScoringFailure = false   // #358 — alert at most once per call, not per batch
 
   for (let i = 0; i < leadIds.length; i += BATCH_SIZE) {
     const batchIds = leadIds.slice(i, i + BATCH_SIZE)
@@ -115,19 +117,30 @@ Return ONLY a JSON array with no markdown, no code fences, no explanation:
 
       if (!results.length) {
         console.error('[scoring] no valid results from Claude for batch', Math.floor(i / BATCH_SIZE) + 1)
-        // Mark leads as scored with score=50 so they don't stay pending forever
-        const now = new Date().toISOString()
+        // #358 (AR-20) — DO NOT fake a 50/$5000 "scored" lead. A fabricated score is
+        // indistinguishable from a real one, so the lead would be delivered + charged as
+        // if genuinely qualified. Mark the batch DISTINCTLY instead: null score, no fake
+        // value, scored_at null, and DON'T flip status to 'scored' — so the lead is not
+        // delivered/charged and is re-scored on the next run. Alert once per call so a
+        // persistent scoring outage is visible (the alarm is durable now, #339).
         await Promise.all(
           batchIds.map(id =>
             db.from('leads').update({
-              score:              50,
-              score_reasoning:    'Auto-scored: AI scoring unavailable for this batch',
-              scored_at:          now,
-              status:             'scored',
-              estimated_deal_value_usd: 5000,
+              score:                    null,
+              score_reasoning:          'SCORING_FAILED: AI scoring unavailable — not a real score (retried hourly by /figsy/rescore-stranded)',
+              scored_at:                null,
+              estimated_deal_value_usd: null,
             }).eq('id', id)
           )
         )
+        if (!alertedScoringFailure) {
+          alertedScoringFailure = true
+          void sendFounderAlert('api_down', 'FIGSY lead scoring failed — AI returned no usable scores', [
+            `Client: ${clientName}`,
+            `At least one batch of ${batchIds.length} leads could not be scored and was left UNSCORED (not delivered, not charged).`,
+            `They will be re-scored on the next run. If this persists, check ANTHROPIC_API_KEY / the model endpoint.`,
+          ])
+        }
         continue
       }
 

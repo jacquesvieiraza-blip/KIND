@@ -8,11 +8,12 @@
 
 import { Router } from 'express'
 import { db } from '@kind/db'
+import { adminKeyValid } from './admin'
 export const statusRouter = Router()
 
-// Admin key guard
+// Admin key guard — #402 (AR-65): constant-time compare (no timing side-channel).
 statusRouter.use((req, res, next) => {
-  if (!process.env.ADMIN_SECRET_KEY || req.headers['x-admin-key'] !== process.env.ADMIN_SECRET_KEY) {
+  if (!adminKeyValid(req.headers['x-admin-key'])) {
     res.status(401).json({ success: false, error: 'Unauthorized' }); return
   }
   next()

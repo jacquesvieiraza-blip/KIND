@@ -3,9 +3,9 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
-import { buildDraftFromSequence, emailSteps, type SequenceStep } from '../lib/sequence-apply'
+import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, warmupRampCap, spamScore } from '../lib/deliverability'
@@ -539,6 +539,11 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
           || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
 
+        // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
+        const fullSteps = appliedSequence
+          ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
+          : draftToSteps(draft)
+
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
         // failure means the balance is gone — stop enrolling further leads.
         didCharge = await chargeFigsyEnroll(clientId, lead)
@@ -551,6 +556,8 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           status:         'enrolled',
           current_step:   0,
           next_send_at:   new Date().toISOString(),
+          steps:          fullSteps.length > 0 ? fullSteps : null,
+          total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
           step1_subject:  draft.step1.subject,
           step1_body:     draft.step1.body,
           step2_subject:  draft.step2.subject,
@@ -1105,26 +1112,24 @@ figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
       .lte('next_send_at', now)
       .limit(50)
 
-    const { sendSequenceEmail } = await import('../lib/figsy')
+    const { sendSequenceEmail, enrollmentStep } = await import('../lib/figsy')
     let sent = 0
     for (const enrollment of due ?? []) {
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
-      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
-      if (nextStep > 3) continue
-      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
-      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
-      if (!subject || !body) {
-        // End of a shorter (applied-sequence) sequence — complete it so it doesn't stay
-        // perpetually due. AI sequences fill all 3 steps, so this only fires for applied
-        // sequences with fewer than 3 email steps.
+      // #212 — walk the full ≤10-step sequence via enrollmentStep (jsonb `steps`,
+      // else legacy step1-3 columns). null = past the last usable step.
+      const nextStep = enrollment.current_step + 1
+      const stepView = enrollmentStep(enrollment, nextStep)
+      if (!stepView) {
+        // End of the sequence — complete it so it doesn't stay perpetually due.
         await db.from('figsy_enrollments').update({
           status: 'completed', completed_at: new Date().toISOString(), next_send_at: null,
         }).eq('id', enrollment.id)
         continue
       }
       try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, req.params.id)
+        await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, req.params.id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
         sent++
       } catch (err) { console.error('[send-now] enrollment', enrollment.id, ':', err) }
     }
@@ -1191,8 +1196,14 @@ figsyRouter.post('/sequences', async (req: AuthRequest, res) => {
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    if (emailSteps(steps as SequenceStep[]).length === 0) {
+    const emailCount = emailSteps(steps as SequenceStep[]).length
+    if (emailCount === 0) {
       res.status(400).json({ success: false, error: 'A sequence needs at least one email step (email-first).' }); return
+    }
+    // #426 — the send engine walks up to MAX_SEQUENCE_STEPS email steps. Reject a
+    // longer sequence at save time (honest hard cap, not a silent truncation).
+    if (emailCount > MAX_SEQUENCE_STEPS) {
+      res.status(400).json({ success: false, error: `A sequence can have at most ${MAX_SEQUENCE_STEPS} email steps.` }); return
     }
     const { data, error } = await db.from('figsy_sequences')
       .insert({ client_id: clientId, name, steps }).select('id, name, steps, created_at, updated_at').single()
@@ -1213,8 +1224,14 @@ figsyRouter.put('/sequences/:id', async (req: AuthRequest, res) => {
     }).parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    if (steps && emailSteps(steps as SequenceStep[]).length === 0) {
-      res.status(400).json({ success: false, error: 'A sequence needs at least one email step (email-first).' }); return
+    if (steps) {
+      const emailCount = emailSteps(steps as SequenceStep[]).length
+      if (emailCount === 0) {
+        res.status(400).json({ success: false, error: 'A sequence needs at least one email step (email-first).' }); return
+      }
+      if (emailCount > MAX_SEQUENCE_STEPS) {
+        res.status(400).json({ success: false, error: `A sequence can have at most ${MAX_SEQUENCE_STEPS} email steps.` }); return
+      }
     }
     const update: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (name !== undefined)  update.name = name
@@ -1269,8 +1286,14 @@ figsyRouter.post('/sequences/:id/apply', async (req: AuthRequest, res) => {
     if (emails.length === 0) {
       res.status(400).json({ success: false, error: 'This sequence has no email steps to send.' }); return
     }
-    // Reply-branching rules, one per email step (the send engine reads settings.steps).
-    const branchingSteps = emails.slice(0, 3).map((s, i) => ({ step: i + 1, on_reply: s.on_reply ?? 'stop' }))
+    // #426 — cap at MAX_SEQUENCE_STEPS email steps (a library sequence saved before the
+    // cap could still carry more). Reject rather than silently truncate the send.
+    if (emails.length > MAX_SEQUENCE_STEPS) {
+      res.status(400).json({ success: false, error: `A sequence can have at most ${MAX_SEQUENCE_STEPS} email steps.` }); return
+    }
+    // #212 — reply-branching rules, one per email step, across the FULL depth (was
+    // capped at 3). The send engine reads settings.steps for on_reply handling.
+    const branchingSteps = emails.slice(0, MAX_SEQUENCE_STEPS).map((s, i) => ({ step: i + 1, on_reply: s.on_reply ?? 'stop' }))
 
     let campaignId: string
     let created = false
@@ -1280,7 +1303,7 @@ figsyRouter.post('/sequences/:id/apply', async (req: AuthRequest, res) => {
       if (!existing) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
       const { error } = await db.from('figsy_campaigns').update({
         settings: { ...(existing.settings ?? {}), sequence: steps, steps: branchingSteps, applied_sequence_id: sequence.id },
-        steps_count: Math.min(3, emails.length),
+        steps_count: Math.min(MAX_SEQUENCE_STEPS, emails.length),
       }).eq('id', body.campaign_id).eq('client_id', clientId)
       if (error) throw error
       campaignId = body.campaign_id
@@ -1290,7 +1313,7 @@ figsyRouter.post('/sequences/:id/apply', async (req: AuthRequest, res) => {
         name:      body.new_campaign_name!,
         ...(body.icp_id ? { icp_id: body.icp_id } : {}),
         status:    'draft',
-        steps_count: Math.min(3, emails.length),
+        steps_count: Math.min(MAX_SEQUENCE_STEPS, emails.length),
         settings:  { sequence: steps, steps: branchingSteps, applied_sequence_id: sequence.id },
       }).select('id').single()
       if (error) throw error
@@ -1504,6 +1527,11 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
           || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
 
+        // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
+        const fullSteps = appliedSequence
+          ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
+          : draftToSteps(draft)
+
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
         // failure means the balance is gone — stop enrolling further leads.
         didCharge = await chargeFigsyEnroll(clientId, lead)
@@ -1516,6 +1544,8 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           status:         'enrolled',
           current_step:   0,
           next_send_at:   new Date().toISOString(),
+          steps:          fullSteps.length > 0 ? fullSteps : null,
+          total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
           step1_subject:  draft.step1.subject,
           step1_body:     draft.step1.body,
           step2_subject:  draft.step2.subject,
@@ -1614,7 +1644,7 @@ figsyRouter.post('/campaigns/:id/test-email', async (req: AuthRequest, res) => {
       res.status(500).json({ success: false, error: 'Failed to generate email preview' }); return
     }
 
-    await sendSequenceEmail('test-preview', fakeLead as any, 1, step1.subject, step1.body, req.params.id)
+    await sendSequenceEmail('test-preview', fakeLead as any, 1, step1.subject, step1.body, req.params.id, { isPreview: true })
     res.json({ success: true, message: `Test email sent to ${toEmail}` })
   } catch (err) {
     console.error(err); res.status(500).json({ success: false, error: 'Failed to send test email' })
@@ -1667,8 +1697,17 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
     for (const enrollment of due ?? []) {
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
-      const nextStep = (enrollment.current_step + 1) as 1 | 2 | 3
-      if (nextStep > 3) continue
+      // #212 — walk the full ≤10-step sequence via enrollmentStep (jsonb `steps`,
+      // else legacy step1-3 columns). null = past the last usable step.
+      const nextStep = enrollment.current_step + 1
+      const stepView = enrollmentStep(enrollment, nextStep)
+      if (!stepView) {
+        // End of the sequence — complete it so it doesn't stay perpetually due.
+        await db.from('figsy_enrollments').update({
+          status: 'completed', completed_at: new Date().toISOString(), next_send_at: null,
+        }).eq('id', enrollment.id)
+        continue
+      }
 
       // Honour the step's on_reply setting if the lead has replied since last send
       try {
@@ -1677,19 +1716,8 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
         console.error('[figsy/send-due] branching', enrollment.id, ':', err)
       }
 
-      const subject = enrollment[`step${nextStep}_subject` as keyof typeof enrollment] as string
-      const body    = enrollment[`step${nextStep}_body`    as keyof typeof enrollment] as string
-      if (!subject || !body) {
-        // End of a shorter (applied-sequence) sequence — complete it so it doesn't stay
-        // perpetually due. AI sequences fill all 3 steps, so this only fires for applied
-        // sequences with fewer than 3 email steps.
-        await db.from('figsy_enrollments').update({
-          status: 'completed', completed_at: new Date().toISOString(), next_send_at: null,
-        }).eq('id', enrollment.id)
-        continue
-      }
       try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, subject, body, enrollment.campaign_id)
+        await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
         sent++
       } catch (err) {
         console.error('[figsy/send-due]', err)
@@ -2022,6 +2050,16 @@ figsyRouter.post('/replies/seed-demo', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // #365 (AR-27) — this endpoint fabricates a 'hot' reply + meeting into REAL stats.
+    // Guarded only by requireAuth, any client could inject fake KPIs into their own
+    // dashboard in production. Allow only outside production, or for a demo client.
+    if (process.env.NODE_ENV === 'production') {
+      const { data: c } = await db.from('clients').select('is_demo').eq('id', clientId).maybeSingle()
+      if (!(c as { is_demo?: boolean } | null)?.is_demo) {
+        res.status(403).json({ success: false, error: 'Demo seeding is disabled for live accounts.' }); return
+      }
+    }
 
     // Pick the most recent active campaign
     const { data: campaign } = await db.from('figsy_campaigns')
@@ -2945,7 +2983,7 @@ figsyRouter.get('/approval-queue', requireAuth, async (req: AuthRequest, res) =>
     const { data, error } = await db
       .from('figsy_approval_queue')
       .select(`id, sequence_step, to_email, subject, body, status, created_at, expires_at,
-        figsy_leads ( first_name, last_name, company, job_title ),
+        leads ( first_name, last_name, company, job_title ),
         figsy_campaigns ( name )`)
       .eq('client_id', clientId)
       .eq('status', 'pending')

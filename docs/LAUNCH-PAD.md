@@ -19,9 +19,9 @@
 | ✅ | 7 | **3 pricing rules ruled** (10 Jul) — reveal $1 charged **once per lead EVER** · work $3 charged **per campaign enrollment** · trial mix **20 reveal + 5 work** · **kill subscription machinery** (keep FIGSY entitlement rows) → builds #424/#425/#431 | 🧍 (3 lines) |
 | ⬜ | 8a | **BUILD the money machine COMPLETE** (founder-ruled 10 Jul: all of it ships BEFORE the walkthrough) — 4 sub-steps below, tick each as it lands | 🤖 build · 🧍 buy+merge+deploy |
 | ⬜ | 8a·① | 🧍 **Buy PDL credits** ($280 / 1,000 records) — the ONE thing money can't route around; everything else queues behind it | 🧍 |
-| ⬜ | 8a·② | **PR2 — portal onboarding + reveal push** #447 (first-run checklist · two-wallet explainer · FIGSY nudge · score-forward masked cards · "reveal 1 → unlock 2" · day-0 email CTA · kill Apollo copy) — **PREVIEW FIRST → founder walks → merge → `railway up @kind/portal`** | 🤖 build · 🧍 walk+ship |
-| ⬜ | 8a·③ | **PR3 — admin Money Path** #448 **+ lead_pool & per-record P&L** (#449 parts 1–2: per-client contribution table + 4 tiles + editable $300 cap · the `lead_pool` store · each $0.28 record vs every $1/$3 it earns) — Fable-verify → merge → `railway up @kind/api`+`@kind/admin` | 🤖 · 🧍 ship |
-| ⬜ | 8a·④ | **PR4 — pool-first sourcing = cross-client reuse** (#449 part 3: ICP runs serve pool matches at $0, buy only the remainder) — **founder ruling: build NOW, PDL-licence check deferred until revenue** (Apollo precedent: reseller tier existed for this model) — Fable-verify → merge → `railway up @kind/api` | 🤖 · 🧍 ship |
+| 🟡 | 8a·② | **PR2 — portal onboarding + reveal push** #447 (first-run checklist · two-wallet explainer · FIGSY nudge · score-forward masked cards · "reveal 1 → unlock 2" · day-0 email CTA · kill Apollo copy) — **BUILT, in PR #1057 (integrated), gates green → Fable-verify → PREVIEW → founder walks → merge → `railway up @kind/portal`** | 🤖 build · 🧍 walk+ship |
+| 🟡 | 8a·③ | **PR3 — admin Money Path** #448 **+ lead_pool & per-record P&L** (#449 parts 1–2) — **BUILT, in PR #1057** → Fable-verify → merge → migration → `railway up @kind/api`+`@kind/admin` | 🤖 · 🧍 ship |
+| 🟡 | 8a·④ | **PR4 — pool-first sourcing = cross-client reuse** (#449 part 3) — **BUILT, in PR #1057** (needs the #448 `lead_pool` migration first) → Fable-verify → merge → `railway up @kind/api` | 🤖 · 🧍 ship |
 | ⬜ | 8b | **THEN one real end-to-end walkthrough** — ICP → source (pool-first) → reveal $1 (+2 drip) → enroll $3 → sequence sends → reply → every wallet + ledger moves right — founder walks it once, top to bottom. *Carried from 10 Jul: signup fixed #1047 · sourcing zero root-caused #444 · **money fences #445/#446 LIVE + battle-proven** (granted 10 → PDL empty → auto-refunded $0 lost, first live run)* | 🤝 |
 | ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study); this IS acquisition channel ① (CAC ~$56–79/client, cashflow §5e) | 🤝 |
 | ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |
@@ -31,7 +31,7 @@
 
 **Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work (3–5 strong partners → V2-TRACKER PARTNER GTM), admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel. *(Data-engine widening #450/#451/#452 is NOT on this shelf — it's line 11 above, first out of the gate after line 10.)*
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡15 · 🔴228 · ⏸5 · **Σ456** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡18 · 🔴225 · ⏸5 · **Σ456** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

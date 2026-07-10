@@ -499,10 +499,28 @@ export default function LeadsPage() {
   // Campaign cross-link: when arriving from a campaign ("View enrolled leads"),
   // the URL carries ?campaign_id= and we constrain the list to that campaign.
   const [campaignId, setCampaignId] = useState<string | null>(null)
+  // #447 — deep-link highlight: the day-0 email / onboarding checklist / post-
+  // sourcing nudge all land here with ?highlight=<leadId> to scroll + ring the
+  // top masked lead and push the client toward their first $1 reveal.
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
 
   useEffect(() => {
-    setCampaignId(new URLSearchParams(window.location.search).get('campaign_id'))
+    const params = new URLSearchParams(window.location.search)
+    setCampaignId(params.get('campaign_id'))
+    const h = params.get('highlight')
+    if (h) setHighlightedId(h)
   }, [])
+
+  // Once leads are loaded, scroll the highlighted row into view and let its ring
+  // fade after a few seconds.
+  useEffect(() => {
+    if (!highlightedId || loading) return
+    const el = document.getElementById(`lead-row-${highlightedId}`)
+    if (!el) return
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const t = setTimeout(() => setHighlightedId(null), 4500)
+    return () => clearTimeout(t)
+  }, [highlightedId, loading, leads])
 
   // R8 (Alta) — Saved views: capture the full filter combo as a named, reusable
   // view (localStorage). Lets clients flip between "Hot SaaS leads", "Score 80+
@@ -854,6 +872,14 @@ export default function LeadsPage() {
     ? pendingReviewLeads
     : filteredLeads
 
+  // #447 — a lead is "masked" until the client spends the $1 reveal: no email, not
+  // yet revealed, not opted out. These lead with the SCORE and hide name/email.
+  const isMasked = (l: Lead) => !l.email && !(l as { revealed?: boolean }).revealed && l.status !== 'opted_out'
+  // Top masked lead across everything loaded — powers the post-sourcing nudge.
+  const topMasked = leads.filter(isMasked).reduce<Lead | null>(
+    (best, l) => (best === null || (l.score ?? 0) > (best.score ?? 0)) ? l : best, null,
+  )
+
   return (
     <div className="space-y-6">
       {/* Toast */}
@@ -925,6 +951,28 @@ export default function LeadsPage() {
           </div>
         ))}
       </div>
+
+      {/* #447 — post-sourcing FIGSY nudge: leads exist but none revealed yet.
+          Surfaces FIGSY's voice + one button to the top masked lead's $1 reveal. */}
+      {topMasked && !loading && (
+        <div className="flex items-start gap-4 rounded-2xl border border-purple-100 p-5" style={{ background: 'linear-gradient(135deg,#faf7ff,#f3eeff)' }}>
+          <img src="/agents/figsy.png" className="w-11 h-11 rounded-xl object-cover object-top ring-2 ring-white shrink-0" alt="FIGSY" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-800">
+              I found <span className="font-bold">{(stats?.total ?? total).toLocaleString()}</span> people who match. My top pick scores{' '}
+              <span className="font-bold text-[#7C3AED]">{topMasked.score ?? 0}</span> — reveal them and I&apos;ll tell you why they fit.
+            </p>
+            {/* Trial drip: revealing feeds the sourcing loop (+2 records per reveal). */}
+            <p className="text-xs text-[#9B8EC4] mt-1">Reveal 1 lead → unlock 2 more</p>
+          </div>
+          <button
+            onClick={() => setHighlightedId(topMasked.id)}
+            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#7C3AED] text-white text-sm font-semibold hover:bg-[#6D28D9] transition-colors"
+          >
+            Reveal top pick →
+          </button>
+        </div>
+      )}
 
       {/* Compliance notice */}
       <div className="bg-[#F5F0FF] border border-purple-100 rounded-xl px-4 py-3 flex items-start gap-3">
@@ -1114,7 +1162,12 @@ export default function LeadsPage() {
                 <tbody className="divide-y divide-gray-50">
                   {tableLeads.map(lead => (
                     <React.Fragment key={lead.id}>
-                    <tr className={`hover:bg-gray-50 transition-colors ${lead.status === 'opted_out' ? 'opacity-50' : ''}`}>
+                    <tr
+                      id={`lead-row-${lead.id}`}
+                      className={`hover:bg-gray-50 transition-colors ${lead.status === 'opted_out' ? 'opacity-50' : ''} ${
+                        highlightedId === lead.id ? 'ring-2 ring-inset ring-[#7C3AED] bg-purple-50/60' : ''
+                      }`}
+                    >
                       <td className="px-4 py-3">
                         {lead.status !== 'opted_out' && lead.email && (
                           <input
@@ -1130,7 +1183,12 @@ export default function LeadsPage() {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
+                        {/* #447 — mask the name until the $1 reveal; score leads instead. */}
+                        {isMasked(lead) ? (
+                          <p className="font-medium text-gray-400 italic">🔒 Hidden until reveal</p>
+                        ) : (
+                          <p className="font-medium text-gray-900">{lead.first_name} {lead.last_name}</p>
+                        )}
                         <p className="text-xs text-[#9B8EC4]">{lead.job_title || '—'}</p>
                         {lead.email ? (
                           <p className="text-xs text-[#9B8EC4]">{lead.email}</p>
@@ -1156,7 +1214,12 @@ export default function LeadsPage() {
                         <p className="text-gray-700">{lead.company || '—'}</p>
                         <p className="text-xs text-[#9B8EC4]">{lead.country || ''}</p>
                       </td>
-                      <td className="px-4 py-3"><ScoreBadge score={lead.score} /></td>
+                      <td className="px-4 py-3">
+                        {/* #447 — masked rows lead with a big, prominent score. */}
+                        {isMasked(lead)
+                          ? <span className="text-2xl font-extrabold text-[#7C3AED] leading-none">{lead.score ?? '—'}</span>
+                          : <ScoreBadge score={lead.score} />}
+                      </td>
                       <td className="px-4 py-3">
                         <PipelineStageChip status={lead.status} />
                         <CampaignMicroBar lead={lead} />

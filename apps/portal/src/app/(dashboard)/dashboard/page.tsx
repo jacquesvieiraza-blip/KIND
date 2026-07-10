@@ -3,7 +3,8 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
-import { OnboardingChecklist } from '@/components/ui/OnboardingChecklist'
+import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
+import { TwoWalletExplainer } from '@/components/ui/TwoWalletExplainer'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import { Target, Inbox, ArrowRight, Zap, ChevronRight, Flame, ThermometerSun } from 'lucide-react'
 import Link from 'next/link'
@@ -59,6 +60,8 @@ export default async function DashboardPage() {
   // with Performance/Deliverability/Analytics) — NOT the figsy_campaigns counters,
   // which drift. Counter sums remain only as a fallback if /figsy/kpis fails.
   let figsyKpis: FigsyKpis | null = null
+  type OnboardingProgress = { hasIcp: boolean; hasLeads: boolean; hasReveal: boolean; hasEnrollment: boolean; hasPurchase: boolean }
+  let onboarding: OnboardingProgress | null = null
 
   if (user) {
     const { data: clientRow } = await supabase
@@ -97,13 +100,14 @@ export default async function DashboardPage() {
       } catch { /* keep default zeros */ }
     }
     if (session) {
-      const [statsRes, figsyRes, repliesRes, leadsRes, activityRes, kpisRes] = await Promise.allSettled([
+      const [statsRes, figsyRes, repliesRes, leadsRes, activityRes, kpisRes, onboardingRes] = await Promise.allSettled([
         api.get<{ data: LeadStats }>('/leads/stats', session.access_token),
         api.get<{ data: typeof figsyCampaigns }>('/figsy/campaigns', session.access_token),
         api.get<{ data: typeof hotReplies }>('/figsy/replies/all?limit=5', session.access_token),
         api.get<{ data: TopLead[] }>('/leads?limit=5&sort=score&order=desc', session.access_token),
         api.get<{ data: ActivityEvent[] }>('/figsy/activity?limit=20', session.access_token),
         api.get<{ data: FigsyKpis }>('/figsy/kpis', session.access_token),
+        api.get<{ data: OnboardingProgress }>('/onboarding/progress', session.access_token),
       ])
       if (statsRes.status === 'fulfilled')    leadStats       = statsRes.value.data
       if (figsyRes.status === 'fulfilled')    figsyCampaigns  = figsyRes.value.data ?? []
@@ -111,6 +115,7 @@ export default async function DashboardPage() {
       if (leadsRes.status === 'fulfilled')    topLeads        = leadsRes.value.data ?? []
       if (activityRes.status === 'fulfilled') activityEvents  = activityRes.value.data ?? []
       if (kpisRes.status === 'fulfilled')     figsyKpis       = kpisRes.value.data ?? null
+      if (onboardingRes.status === 'fulfilled') onboarding    = onboardingRes.value.data ?? null
     }
   }
 
@@ -156,6 +161,13 @@ export default async function DashboardPage() {
         hasMilla={isLive('virtual_assistant')}
         hasVida={isLive('chatbot')}
         hasDenise={isLive('denise') || isLive('denise_addon')}
+        clientId={clientId}
+        topLeadId={topLeads[0]?.id ?? null}
+        hasIcp={onboarding?.hasIcp ?? false}
+        hasLeadsOnb={onboarding?.hasLeads ?? (leadCount > 0)}
+        hasReveal={onboarding?.hasReveal ?? false}
+        hasEnrollment={onboarding?.hasEnrollment ?? (figsyCampaigns.length > 0)}
+        hasPurchase={onboarding?.hasPurchase ?? false}
       />
     )
   }
@@ -172,13 +184,23 @@ export default async function DashboardPage() {
 
       <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
 
-      {/* Onboarding checklist — only visible until all steps complete */}
-      <OnboardingChecklist
-        hasCompanyName={!!companyName}
-        hasIcps={leadCount > 0}
-        hasLeads={leadCount > 0}
-        hasFigsyCampaigns={figsyCampaigns.length > 0}
-      />
+      {/* First-run checklist (#447) — the four money-model steps, lit from real
+          data (/onboarding/progress). Hides permanently once all four are done. */}
+      {clientId && (
+        <FirstRunChecklist
+          clientId={clientId}
+          hasIcp={onboarding?.hasIcp ?? false}
+          hasLeads={onboarding?.hasLeads ?? (leadCount > 0)}
+          hasReveal={onboarding?.hasReveal ?? false}
+          hasEnrollment={onboarding?.hasEnrollment ?? (figsyCampaigns.length > 0)}
+          topLeadId={topLeads[0]?.id ?? null}
+        />
+      )}
+
+      {/* Two-wallet explainer (#447) — shows until the first credit purchase. */}
+      {clientId && (
+        <TwoWalletExplainer clientId={clientId} hasPurchase={onboarding?.hasPurchase ?? false} />
+      )}
 
       {/* FIGSY conversation */}
       <FigsyConversation

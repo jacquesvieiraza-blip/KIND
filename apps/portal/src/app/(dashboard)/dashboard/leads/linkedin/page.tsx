@@ -633,7 +633,7 @@ export default function LinkedInImportPage() {
       {step === 'finding' && (
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-purple-100/60 p-12 text-center">
           <Loader2 className="w-10 h-10 text-[#7C3AED] animate-spin mx-auto mb-4" />
-          <p className="text-base font-semibold text-gray-900 mb-1">Searching Apollo for contacts…</p>
+          <p className="text-base font-semibold text-gray-900 mb-1">Searching for contacts…</p>
           <p className="text-sm text-[#7B6FA0]">Finding decision-makers at your target companies. This takes a few seconds.</p>
         </div>
       )}

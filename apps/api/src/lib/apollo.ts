@@ -281,6 +281,8 @@ function mergeContacts(primary: ApolloContact[], extra: ApolloContact[]): Apollo
 export async function searchPeopleWithFallback(
   icp: Parameters<typeof buildSearchBody>[0],
   page = 1,
+  size = 50,   // #445 — ask each source for exactly what we may KEEP (the granted
+               // sourcing-budget batch), not a fixed 50. Kills the buy-50-keep-20 waste.
 ): Promise<{ contacts: ApolloContact[]; relaxed: string | null }> {
   // SECOND SOURCE (dormant unless PDL_API_KEY is set): when configured, PDL is used
   // two ways — (1) as a PARALLEL SUPPLEMENT that is MERGED (deduped) with a successful
@@ -297,12 +299,15 @@ export async function searchPeopleWithFallback(
   // carry a real work_email directly, so merging widens reach on every run. Cost is
   // bounded — one extra PDL search per run, deduped against Apollo before use.
   const pdlSupplement: Promise<ApolloContact[]> = pdlConfigured
-    ? pdlSearchPeople(icp, page).catch(() => [])
+    ? pdlSearchPeople(icp, page, size).catch(() => [])
     : Promise.resolve([])
+
+  // Ask Apollo for exactly `size` too (per_page), so no source over-pulls what we keep.
+  const sized = (b: ApolloSearchBody): ApolloSearchBody => { b.per_page = size; return b }
 
   try {
     // Pass 1 — full query
-    const full = buildSearchBody(icp, page)
+    const full = sized(buildSearchBody(icp, page))
     const contacts1 = await searchPeople(full)
     if (contacts1.length > 0) {
       const pdl = await pdlSupplement
@@ -317,7 +322,7 @@ export async function searchPeopleWithFallback(
 
     // Pass 2 — remove consent filter (consent gate was cutting the pool)
     if (icp.apollo_only_consented) {
-      const relaxed2 = { ...buildSearchBody(icp, page) }
+      const relaxed2 = sized({ ...buildSearchBody(icp, page) })
       delete relaxed2.contact_email_status
       const contacts2 = await searchPeople(relaxed2)
       if (contacts2.length > 0) {
@@ -327,7 +332,7 @@ export async function searchPeopleWithFallback(
     }
 
     // Pass 3 — remove employee ranges (geo + titles only)
-    const relaxed3 = { ...buildSearchBody(icp, page) }
+    const relaxed3 = sized({ ...buildSearchBody(icp, page) })
     delete relaxed3.contact_email_status
     delete relaxed3.organization_num_employees_ranges
     const contacts3 = await searchPeople(relaxed3)

@@ -17,13 +17,13 @@
 | ✅ | 5 | **Revenue-report bug fixed** (`amount_usd` written on the Stripe sub webhook #1040 · deployed 10 Jul) | 🤖 |
 | ✅ | 6 | **Merge PR #1019 + run its migrations** (merged · founder ran all 9 prod migrations · api+portal deployed 10 Jul) | 🧍 (10 min) |
 | ✅ | 7 | **3 pricing rules ruled** (10 Jul) — reveal $1 charged **once per lead EVER** · work $3 charged **per campaign enrollment** · trial mix **20 reveal + 5 work** · **kill subscription machinery** (keep FIGSY entitlement rows) → builds #424/#425/#431 | 🧍 (3 lines) |
-| ⬜ | 8 | **One real end-to-end run on staging** — ICP → source → reveal ($1) → sequence sends → reply → charges right — founder walks it once. *In progress 10 Jul: signup fixed (#1047) · founder in with 20+5 credits · sourcing returned ZERO → root-caused to PDL (free plan, 402 on batches > remaining credits + industry-vocab hard-zero) → fix #444 · ⚠️ real unlock = paid PDL plan (founder money call, pending)* | 🤝 |
+| ⬜ | 8 | **One real end-to-end run on staging** — ICP → source → reveal ($1) → sequence sends → reply → charges right — founder walks it once. *In progress 10 Jul: signup fixed (#1047) · founder in with 20+5 credits · sourcing returned ZERO → PDL free-plan/vocab fix #444 · then the walk exposed the PDL-exposure risk (we pay to source before any charge) → **MONEY FENCES built #445/#446** (allowance = 2×collected, trial 10+2/reveal cap 20, global $300 cap, ask-size=keep-size) · ⚠️ real unlock still = paid PDL plan (founder money call, pending)* | 🤝 |
 | ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study) | 🤝 |
 | ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |
 
 **Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work, admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel.
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡13 · 🔴222 · ⏸5 · **Σ448** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡15 · 🔴222 · ⏸5 · **Σ450** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

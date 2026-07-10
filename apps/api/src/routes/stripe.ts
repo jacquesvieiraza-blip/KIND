@@ -386,6 +386,26 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         const amountUsd = bundle?.price ?? 0
         if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
 
+        // #445 — sourcing-allowance accrual. THIS is the ONLY place a paid client's
+        // PDL budget grows: coverage k=2 → +2 records of sourcing allowance per $1
+        // collected. Accrue ONLY on real money in (here), never at reveal/work spend —
+        // those dollars were already counted when the pack was bought (double-count).
+        // Guarded write (#349): a failure must not break the paid webhook, but is logged
+        // + alerted so a client can't silently end up unable to source what they funded.
+        if (amountUsd > 0) {
+          const { error: allowErr } = await db.rpc('add_sourcing_allowance', {
+            p_client_id: clientId, p_records: Math.round(amountUsd * 2), p_trial: false,
+          })
+          if (allowErr) {
+            console.error('[Stripe] sourcing-allowance accrual failed for', clientId, allowErr)
+            void sendFounderAlert('charge_failed', 'Sourcing allowance NOT accrued after payment', [
+              `Client: ${clientId} paid $${amountUsd} (${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits).`,
+              `Their sourcing allowance (+${Math.round(amountUsd * 2)} records) failed to accrue: ${allowErr.message}`,
+              'Credits WERE granted; only the sourcing budget bump failed. Add it manually (admin → Money Path) if needed.',
+            ])
+          }
+        }
+
         // #336 — pay the referrer on this client's FIRST purchase (see helper).
         // Fire-and-forget: a payout failure must never break the paid webhook.
         void payReferrerOnFirstPurchase(clientId).catch(err =>

@@ -13,8 +13,28 @@ import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
+import { sendFounderAlert } from '../lib/alerts'
+import { PDL_RATE_USD } from '../lib/sourcing-fences'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+
+// #446 — ICP preview cache. /preview-count runs PDL calls (count + samples) that bill
+// per record; a client tweaking filters fires one per keystroke-pause. Cache the result
+// by a stable hash of the ICP shape for 60 min so repeated identical previews cost $0.
+// Bounded map (drop oldest past 500 entries) — a form-fiddling session cannot grow it.
+type PreviewResult = { count: number; samples: unknown[]; error: string | null; debug: unknown }
+const previewCache = new Map<string, { at: number; result: PreviewResult }>()
+const PREVIEW_TTL_MS = 60 * 60 * 1000
+function previewCacheGet(key: string): PreviewResult | null {
+  const hit = previewCache.get(key)
+  if (!hit) return null
+  if (Date.now() - hit.at > PREVIEW_TTL_MS) { previewCache.delete(key); return null }
+  return hit.result
+}
+function previewCacheSet(key: string, result: PreviewResult): void {
+  if (previewCache.size >= 500) { const oldest = previewCache.keys().next().value; if (oldest) previewCache.delete(oldest) }
+  previewCache.set(key, { at: Date.now(), result })
+}
 
 export const icpRouter = Router()
 icpRouter.use(requireAuth)
@@ -64,6 +84,39 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
+// #445 — global PDL-budget alarm. Reads this month's sourcing spend vs the (admin-
+// editable) monthly cap; alerts the founder ONCE per day when spend crosses 80%, and
+// again at 100%. Throttled at module level (same pattern as alertSourceDown in
+// lib/apollo.ts) so a busy hour can't send a flood. Best-effort; never throws.
+let lastBudgetAlertDay = ''
+async function maybeAlertPdlBudget(): Promise<void> {
+  try {
+    const { data: settings } = await db.from('money_settings').select('pdl_monthly_cap_usd').eq('id', 1).maybeSingle()
+    const cap = Number(settings?.pdl_monthly_cap_usd ?? 300)
+    if (!(cap > 0)) return
+    const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
+    const { data: rows } = await db.from('sourcing_ledger')
+      .select('cost_usd').gte('created_at', monthStart.toISOString())
+    const spent = (rows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
+    const pct = spent / cap
+    if (pct < 0.8) return
+    const today = new Date().toISOString().slice(0, 10)
+    if (today === lastBudgetAlertDay) return   // one alert/day max
+    lastBudgetAlertDay = today
+    const atCap = pct >= 1
+    void sendFounderAlert('source_down',
+      atCap ? 'PDL monthly budget REACHED — sourcing paused platform-wide'
+            : 'PDL monthly budget at 80% — sourcing will pause soon', [
+      `This month's PDL sourcing spend is $${spent.toFixed(2)} of the $${cap.toFixed(0)} cap (${Math.round(pct * 100)}%).`,
+      atCap ? 'Every client ICP run now sources ZERO until the cap is raised or the month resets.'
+            : 'At 100% all sourcing pauses until you raise the cap (admin → Money Path) or the month resets.',
+      `Rate: $${PDL_RATE_USD}/record. Raise the cap in the admin Money Path page if this is expected volume.`,
+    ])
+  } catch (err) {
+    console.error('[icp] maybeAlertPdlBudget failed (non-fatal):', err)
+  }
+}
+
 export async function runIcpJob(
   icpId: string,
   clientId: string,
@@ -80,15 +133,59 @@ export async function runIcpJob(
   const leadsPerRun = clientSettings?.leads_per_run ?? 20
   const effectiveCap = maxLeads !== undefined ? Math.min(maxLeads, leadsPerRun) : leadsPerRun
 
-  const { contacts, relaxed } = await searchPeopleWithFallback(icp)
+  // #445 — THE SOURCING FENCE. PDL is spent HERE, before any client charge, so we
+  // must not pull a single record we haven't pre-funded. try_spend_sourcing atomically
+  // decrements the client's sourcing allowance (2×collected, or trial pool) against
+  // the global monthly ceiling and the daily cap, returning the GRANTED batch size.
+  // We then ask PDL for EXACTLY that many (kills the old buy-50-keep-20 waste). granted
+  // 0 = the client is out of pre-funded budget → source nothing, log honestly, no PDL spend.
+  const { data: granted } = await db.rpc('try_spend_sourcing', {
+    p_client_id: clientId, p_requested: effectiveCap,
+  })
+  const grantedSize = typeof granted === 'number' ? granted : 0
+  if (grantedSize <= 0) {
+    console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
+    // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
+    // cap every grant is 0, so this is the only path that can raise "budget REACHED".
+    void maybeAlertPdlBudget()
+    await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
+    return { inserted: 0, skipped: 0, relaxed: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
+  }
+  void maybeAlertPdlBudget()
+
+  const { contacts, relaxed } = await searchPeopleWithFallback(icp, 1, grantedSize)
+
+  // (Fable F1) RECONCILE — PDL bills per record RETURNED, not per record granted. A
+  // thin/empty search (404, narrow ICP) must not drain the client's allowance or book
+  // ledger cost for money never spent — a trial with a too-narrow ICP would otherwise
+  // burn its whole 20-record lifetime pool on zero leads, permanently. Refund the
+  // unused grant (p_trial=false: it goes back to spendable allowance WITHOUT touching
+  // the trial-granted counter, so retries stay possible) and book a negative ledger
+  // correction so the monthly/daily sums reflect real spend.
+  const returnedCount = Math.min(contacts.length, grantedSize)
+  const unusedGrant = grantedSize - returnedCount
+  if (unusedGrant > 0) {
+    const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
+      p_client_id: clientId, p_records: unusedGrant, p_trial: false,
+    })
+    if (refundErr) {
+      console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
+    } else {
+      const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
+        client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+      })
+      if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+    }
+  }
 
   let inserted = 0
   let skipped  = 0
   const insertedIds: string[] = []
 
   for (const contact of contacts) {
-    // Cap insertions at effectiveCap (lower of credit balance and leads_per_run setting)
-    if (inserted >= effectiveCap) {
+    // Cap insertions at the GRANTED budget (#445) — never keep more than we pre-funded.
+    // grantedSize ≤ effectiveCap by construction, so this is the binding cap.
+    if (inserted >= grantedSize) {
       skipped++
       continue
     }
@@ -273,6 +370,11 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
       organization_names:    body.organization_names ?? [],
     }
 
+    // #446 — serve an identical recent preview from cache (no paid PDL call).
+    const cacheKey = JSON.stringify(icpArg)
+    const cached = previewCacheGet(cacheKey)
+    if (cached) { res.json({ success: true, data: cached }); return }
+
     // Run count + sample contacts in parallel (per_page:1 for count, per_page:3 for samples)
     const [countResult, sampleResult] = await Promise.all([
       previewCount(icpArg),
@@ -302,17 +404,18 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
       })(),
     ])
 
-    res.json({
-      success: true,
-      data: {
-        count:   countResult.count,
-        samples: sampleResult.samples,
-        // Diagnostics — surfaced so a silent 0 (bad key, 401, throttle, response-shape
-        // drift) is visible instead of masquerading as "no matches".
-        error:   countResult.error ?? sampleResult.sampleError ?? null,
-        debug:   countResult.debug,
-      },
-    })
+    const result: PreviewResult = {
+      count:   countResult.count,
+      samples: sampleResult.samples,
+      // Diagnostics — surfaced so a silent 0 (bad key, 401, throttle, response-shape
+      // drift) is visible instead of masquerading as "no matches".
+      error:   countResult.error ?? sampleResult.sampleError ?? null,
+      debug:   countResult.debug,
+    }
+    // Only cache clean results — never cache an errored preview (would pin a transient
+    // 401/throttle for an hour).
+    if (!result.error) previewCacheSet(cacheKey, result)
+    res.json({ success: true, data: result })
   } catch (err) {
     res.json({ success: true, data: { count: 0, samples: [], error: err instanceof Error ? err.message : 'preview failed', debug: null } })
   }
@@ -560,6 +663,31 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
       .gte('created_at', dayStart.toISOString())
     if ((sourcedToday ?? 0) >= SOURCING_DAILY_CAP) {
       res.status(429).json({ success: false, error: `Daily sourcing limit reached (${SOURCING_DAILY_CAP} leads/day) — runs again tomorrow.` })
+      return
+    }
+
+    // #445 — global ceiling pre-check: if the platform-wide monthly PDL budget is
+    // spent, tell the client honestly instead of firing a job that would source zero.
+    // (The try_spend_sourcing RPC is the hard atomic gate inside the job; this is just
+    // the synchronous, human-readable banner.)
+    const { data: money } = await db.from('money_settings').select('pdl_monthly_cap_usd').eq('id', 1).maybeSingle()
+    const monthlyCap = Number(money?.pdl_monthly_cap_usd ?? 300)
+    const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
+    const { data: monthRows } = await db.from('sourcing_ledger')
+      .select('cost_usd').gte('created_at', monthStart.toISOString())
+    const monthSpent = (monthRows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
+    if (monthlyCap > 0 && monthSpent >= monthlyCap) {
+      res.status(429).json({ success: false, error: 'Sourcing paused — the monthly data budget has been reached. It resumes when the budget resets.' })
+      return
+    }
+
+    // (Fable F2) #445 — synchronous allowance check so an out-of-budget client gets an
+    // honest banner instead of a silent empty run. Read-only; the atomic spend happens
+    // inside the job (try_spend_sourcing) — this is UX, not the gate.
+    const { data: allowRow } = await db.from('clients')
+      .select('sourcing_allowance').eq('id', clientId).maybeSingle()
+    if ((allowRow?.sourcing_allowance ?? 0) <= 0) {
+      res.status(402).json({ success: false, error: 'You’re out of sourcing allowance — add reveal credits to source more leads ($1 each unlocks 2 more).' })
       return
     }
 

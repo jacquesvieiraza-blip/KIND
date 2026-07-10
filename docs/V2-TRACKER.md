@@ -39,6 +39,23 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 ---
 
+# ░ 🥷 JACK & JILL STEAL — FIGSY: from workflow-executor to commercial judgment (captured 10 Jul · items #437–#443 · parked behind SPRINT line 10) ░
+
+> **The one lesson:** separate *understanding* from *execution* — understand the seller → the market → each buyer → decide → act → observe → learn. Full founder brief in chat 10 Jul; Fable audited every claim against code the same day.
+>
+> **What the audit found:** FIGSY is NOT the dumb executor the brief assumes — he already holds early foundations: per-lead `score_reasoning` written at sourcing (shown to no one) · client-level `figsy_memory` (best subjects, winning angle, episodic/longterm/preference — read by `generateSequenceWithMemory`) · reply classification WITH reasoning + sequence branching on replies + human-approved AI drafts · Monday digest/auto-pause/suggest-campaign coaching primitives. The gap is *deepening to per-prospect and surfacing it*, not "add judgment."
+
+**Build order (Fable-ruled — cheapest-to-real first, NOT the brief's order):**
+1. **#437 why-now surfaced** (S–M — reasoning already stored; show it + event signals; AFTER quotas #423)
+2. **#438 ICP interview → living customer model** (M — conversational intake over existing chat + `icps`)
+3. **#439 widen the learning loop** (M — more writers into `figsy_memory`: objections, persona win-rates, angle-vs-meeting-quality)
+4. **#440 per-prospect buyer memory** (L — ⚠️ cost-model first: per-interaction LLM calls vs $4/lead margin)
+5. **#442 autonomous reply conversations** (XL — ⚠️ highest-risk surface; approval-queue-first, autonomy earned)
+6. **#443 two-sided seller×buyer intelligence** (V2 architecture; depends on #440)
+- **#441 coaching mode** (S–M) slots anywhere post-line-10; boundary note: brief assigns coaching to Milla — Milla is down 3 months, so it lives inside FIGSY or waits.
+
+**Load-bearing risks (why parked):** sprint bleed (lines 8–10 open — the 9-Jul reset exists because scope-before-revenue killed momentum) · unit economics (#440/#442 multiply LLM calls per prospect) · autonomous replies = the send-integrity class just hardened (phantom sends/kill-switch/consent) · why-now signals ride PDL spend with quotas #423 still 🔴 · Milla-boundary contradiction.
+
 # ░ WHAT'S BUILT — MOVED ░
 > **🚨 15 Jun — THE WHOLE PRODUCT IS LIVE.** #502 (merged via #564) was a superset of its dev branch — it shipped the Company Engine + design screens 80–91 + **all 20 R-wave features R1–R20** to prod. **PRs #506–#525 are redundant → close, don't merge.** 3 owed prod migrations: R2 `daily_brief_enabled` · R15 `figsy_knowledge` · R20 `job_changed_at`. **Active focus = the FEATURE-VERIFICATION WALK** (LAUNCH-PAD §13) — confirm every live feature works with real data **by THU 18 (founder away Fri 19)**; anything broken drops 🟢→🔴 and gets fixed same-day. **MON 15 closed out:** Company Engine + R1–R20 live · 3 R-train migrations run · Hunter+PDL keys set · 21 redundant PRs closed · Denise $39 · terms docs uploaded.
 > The full Wave 1/2/Tier-3 release tables + Company Engine + shell/staging status live ONLY in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)**.

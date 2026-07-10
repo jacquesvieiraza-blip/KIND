@@ -189,3 +189,17 @@ UPDATE public.clients c
       ), 0))
   FROM paid
   WHERE c.id = paid.client_id;
+
+-- ── 7. Backfill — existing NEVER-PAID (trial) clients get the trial seed ───────
+-- (Fable F6) Without this, every pre-fences trial client lands at allowance 0 and
+-- sources ZERO forever (no purchase → no accrual, and the signup seed only runs for
+-- NEW signups). Seed them exactly like a fresh signup: 10 records now, reveals drip
+-- +2 up to the 20-lifetime cap. Guarded so a re-run never double-seeds.
+UPDATE public.clients c
+  SET sourcing_allowance     = 10,
+      trial_sourcing_granted = 10
+  WHERE COALESCE(c.trial_sourcing_granted, 0) = 0
+    AND NOT EXISTS (
+      SELECT 1 FROM public.credit_transactions t
+      WHERE t.client_id = c.id AND t.type = 'purchase' AND t.amount > 0
+    );

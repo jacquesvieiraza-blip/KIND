@@ -145,12 +145,38 @@ export async function runIcpJob(
   const grantedSize = typeof granted === 'number' ? granted : 0
   if (grantedSize <= 0) {
     console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
+    // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
+    // cap every grant is 0, so this is the only path that can raise "budget REACHED".
+    void maybeAlertPdlBudget()
     await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
     return { inserted: 0, skipped: 0, relaxed: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
   }
   void maybeAlertPdlBudget()
 
   const { contacts, relaxed } = await searchPeopleWithFallback(icp, 1, grantedSize)
+
+  // (Fable F1) RECONCILE — PDL bills per record RETURNED, not per record granted. A
+  // thin/empty search (404, narrow ICP) must not drain the client's allowance or book
+  // ledger cost for money never spent — a trial with a too-narrow ICP would otherwise
+  // burn its whole 20-record lifetime pool on zero leads, permanently. Refund the
+  // unused grant (p_trial=false: it goes back to spendable allowance WITHOUT touching
+  // the trial-granted counter, so retries stay possible) and book a negative ledger
+  // correction so the monthly/daily sums reflect real spend.
+  const returnedCount = Math.min(contacts.length, grantedSize)
+  const unusedGrant = grantedSize - returnedCount
+  if (unusedGrant > 0) {
+    const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
+      p_client_id: clientId, p_records: unusedGrant, p_trial: false,
+    })
+    if (refundErr) {
+      console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
+    } else {
+      const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
+        client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+      })
+      if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+    }
+  }
 
   let inserted = 0
   let skipped  = 0
@@ -652,6 +678,16 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
     const monthSpent = (monthRows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
     if (monthlyCap > 0 && monthSpent >= monthlyCap) {
       res.status(429).json({ success: false, error: 'Sourcing paused — the monthly data budget has been reached. It resumes when the budget resets.' })
+      return
+    }
+
+    // (Fable F2) #445 — synchronous allowance check so an out-of-budget client gets an
+    // honest banner instead of a silent empty run. Read-only; the atomic spend happens
+    // inside the job (try_spend_sourcing) — this is UX, not the gate.
+    const { data: allowRow } = await db.from('clients')
+      .select('sourcing_allowance').eq('id', clientId).maybeSingle()
+    if ((allowRow?.sourcing_allowance ?? 0) <= 0) {
+      res.status(402).json({ success: false, error: 'You’re out of sourcing allowance — add reveal credits to source more leads ($1 each unlocks 2 more).' })
       return
     }
 

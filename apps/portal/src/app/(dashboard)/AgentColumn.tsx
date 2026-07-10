@@ -63,7 +63,9 @@ export function AgentColumn({ hasFigsy, hasMilla, hasVida, hasDenise, leadCount,
   if (pathname.startsWith('/dashboard/agents')) return null
 
   const agentId: 'figsy' | 'milla' | 'vida' | 'denise' =
-    pathname.startsWith('/dashboard/assistant') || pathname.startsWith('/dashboard/documents') ? 'milla' :
+    // Documents falls through to FIGSY (10 Jul FIGSY-only cut) — it's the trust
+    // vault, not a Milla surface; Milla is hidden.
+    pathname.startsWith('/dashboard/assistant') ? 'milla' :
     pathname.startsWith('/dashboard/chatbot') ? 'vida' :
     pathname.startsWith('/dashboard/denise') ? 'denise' : 'figsy'
 

@@ -53,11 +53,9 @@ const AVATAR_COLORS = [
   'bg-rose-500',
 ]
 
+// FIGSY-only cut 10 Jul — Milla/Vida/Denise seat rows removed until the agents return.
 const AGENTS: AgentDef[] = [
   { name: 'FIGSY',  color: '#7C3AED', productKey: 'lead_gen_figsy' },
-  { name: 'Milla',  color: '#F472B6', productKey: 'virtual_assistant' },
-  { name: 'Vida',   color: '#14B8A6', productKey: 'chatbot' },
-  { name: 'Denise', color: '#D97706', productKey: 'denise' },
 ]
 
 const TABS = [

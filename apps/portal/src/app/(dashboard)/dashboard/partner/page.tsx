@@ -253,7 +253,7 @@ export default function PartnerPage() {
           and get access to a dedicated demo sandbox.
         </p>
         <a
-          href="https://www.get-kind.com/partners.html"
+          href="mailto:hello@get-kind.com?subject=Partner%20enquiry"
           className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
         >
           Apply to become a partner

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
-  Copy, Check, Plug, Zap, Bot, Search, BarChart2,
+  Copy, Check, Plug, Zap, Search, BarChart2,
   ChevronRight, Send, Loader2, Sparkles, ExternalLink,
 } from 'lucide-react'
 
@@ -41,15 +41,7 @@ const MCP_TOOLS = [
     color: 'text-emerald-600',
     bg: 'bg-emerald-50',
   },
-  {
-    icon: Bot,
-    name: 'milla_ask',
-    label: 'Ask Milla',
-    description: 'Your Business Operations AI — draft proposals, summarise docs, answer business questions from any MCP-enabled tool.',
-    example: '"Ask Milla to draft an investor update for this month"',
-    color: 'text-pink-600',
-    bg: 'bg-pink-50',
-  },
+  // milla_ask tool hidden 10 Jul (FIGSY-only cut) — returns when Milla does.
 ]
 
 const SETUP_GUIDES = [
@@ -335,7 +327,7 @@ Content-Type: application/json
             </div>
             <div>
               <p className="text-sm font-semibold text-white leading-tight">KIND MCP Guide</p>
-              <p className="text-[10px] text-white/50">Powered by Milla · Ask anything about MCP setup</p>
+              <p className="text-[10px] text-white/50">Powered by K.I.N.D · Ask anything about MCP setup</p>
             </div>
             <span className="ml-auto flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Online

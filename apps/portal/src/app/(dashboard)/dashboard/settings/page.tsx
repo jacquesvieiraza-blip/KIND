@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { SUPPORTED_COUNTRIES } from '@kind/shared'
-import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, MessageCircle, Phone, Pencil, Eye, EyeOff, AlertTriangle, Bell, Users } from 'lucide-react'
+import { Loader2, Save, CheckCircle, XCircle, Link2, Calendar, Phone, Pencil, Eye, EyeOff, AlertTriangle, Bell, Users } from 'lucide-react'
 
 const NOTIF_STORAGE_KEY = 'kind_notification_prefs_v1'
 const DEFAULT_NOTIF_PREFS = {
@@ -883,22 +883,8 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* WhatsApp — only show when active */}
-      {whatsappStatus?.configured && (
-        <div className="border-t border-gray-100 pt-6">
-          <div className="flex items-center gap-2 mb-1">
-            <MessageCircle className="w-4 h-4 text-[#9B8EC4]" />
-            <h2 className="font-semibold">WhatsApp Business</h2>
-            <span className="ml-2 flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-              <CheckCircle className="w-3 h-3" /> Active
-            </span>
-          </div>
-          <p className="text-sm text-[#9B8EC4] mb-3">
-            Vida handles inbound WhatsApp messages — qualifying leads, answering questions, and handing warm prospects to your team.
-          </p>
-          <p className="text-sm text-green-600">WhatsApp Business API is active. Vida is live on WhatsApp.</p>
-        </div>
-      )}
+      {/* WhatsApp (Vida) section removed 10 Jul (FIGSY-only cut) — it configured the
+          Vida chatbot product, which isn't purchasable. Returns when Vida does. */}
 
       {/* Voice (Vapi) — only show when active */}
       {vapiStatus?.configured && (

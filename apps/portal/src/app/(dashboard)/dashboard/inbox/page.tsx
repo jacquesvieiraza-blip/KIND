@@ -289,13 +289,9 @@ function ThreadView({ reply, token }: { reply: Reply; token: string }) {
   const [sendError, setSendError] = useState('')
   const [booked, setBooked]       = useState(false)
   const [booking, setBooking]     = useState(false)
-  const [prep, setPrep]           = useState<string | null>(null)   // R14 meeting-prep brief
-  const [prepping, setPrepping]   = useState(false)
-  const [prepErr, setPrepErr]     = useState('')
 
   // Reset state whenever the selected reply changes
   useEffect(() => {
-    setPrep(null); setPrepping(false); setPrepErr('')
     setDraft(null); setDrafting(false)
     setSending(false); setSentOk(false); setSendError('')
     setBooked(false); setBooking(false)
@@ -326,18 +322,6 @@ function ThreadView({ reply, token }: { reply: Reply; token: string }) {
       setSendError(err instanceof Error ? err.message : 'Failed to send reply — please try again.')
     }
     setSending(false)
-  }
-
-  // R14 (#54) — Denise preps the human for the booked meeting.
-  async function handleMeetingPrep() {
-    setPrepping(true); setPrepErr('')
-    try {
-      const res = await api.post<{ brief: string }>(`/denise/meeting-prep`, { reply_id: reply.id }, token)
-      setPrep(res.brief)
-    } catch (err) {
-      setPrepErr(err instanceof Error ? err.message : 'Could not prepare the brief — Denise may not be active on your plan.')
-    }
-    setPrepping(false)
   }
 
   async function handleMarkBooked() {
@@ -459,16 +443,6 @@ function ThreadView({ reply, token }: { reply: Reply; token: string }) {
           </div>
         )}
 
-        {/* R14 — Denise meeting-prep brief */}
-        {prep && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 max-w-2xl">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <h3 className="text-sm font-bold text-amber-900">Denise prepped you for this meeting</h3>
-            </div>
-            <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{prep}</div>
-          </div>
-        )}
       </div>
 
       {/* ── composer ──────────────────────────────────────────────── */}
@@ -503,23 +477,13 @@ function ThreadView({ reply, token }: { reply: Reply; token: string }) {
               )
             )}
 
-            {isHot && !prep && (
-              <button
-                onClick={handleMeetingPrep}
-                disabled={prepping}
-                className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-[20px] text-[12.5px] font-medium bg-white border border-purple-100 text-[#3c4043] hover:bg-purple-50 disabled:opacity-50 transition-colors"
-              >
-                {prepping ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-[#9B8EC4]" />}
-                Prep me for the meeting
-              </button>
-            )}
+            {/* Denise meeting-prep button removed 10 Jul (FIGSY-only cut). */}
 
             <span className="ml-auto text-[11.5px] text-[#9B8EC4] flex items-center gap-1.5">
               FIGSY drafts in your voice
             </span>
           </div>
 
-          {prepErr && <p className="text-xs text-rose-500 mb-2">{prepErr}</p>}
 
           {/* input wrap */}
           <div className="border border-purple-100 rounded-[14px] px-3.5 py-3 flex flex-col gap-2.5 focus-within:border-[#7C3AED] focus-within:ring-2 focus-within:ring-purple-100 transition-all bg-white">

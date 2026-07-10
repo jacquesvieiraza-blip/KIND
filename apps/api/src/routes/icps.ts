@@ -41,7 +41,7 @@ export const icpRouter = Router()
 icpRouter.use(requireAuth)
 
 // After scoring completes, auto-send consent to leads scored >= 60 that have email + haven't been contacted
-async function autoConsentScoredLeads(leadIds: string[], companyName: string): Promise<void> {
+async function autoConsentScoredLeads(leadIds: string[], companyName: string, clientId?: string): Promise<void> {
   try {
     const { data: leads } = await db.from('leads')
       .select('id, first_name, email, status, score, consent_token')
@@ -55,7 +55,8 @@ async function autoConsentScoredLeads(leadIds: string[], companyName: string): P
     await Promise.allSettled(
       leads.map(async (lead) => {
         const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-        await sendConsentEmail(lead.email!, lead.first_name, companyName, optOutUrl)
+        // #453 — clientId lets sendConsentEmail suppress the send for a demo client.
+        await sendConsentEmail(lead.email!, lead.first_name, companyName, optOutUrl, clientId)
         await db.from('leads').update({
           status: 'consent_sent',
           consent_sent_at: new Date().toISOString(),
@@ -257,9 +258,12 @@ export async function runIcpJob(
 
   // Respect client's leads_per_run setting — cap at whichever is lower: credit balance or per-run limit
   const { data: clientSettings } = await db.from('clients')
-    .select('leads_per_run').eq('id', clientId).single()
+    .select('leads_per_run, is_demo').eq('id', clientId).single()
   const leadsPerRun = clientSettings?.leads_per_run ?? 20
   const effectiveCap = maxLeads !== undefined ? Math.min(maxLeads, leadsPerRun) : leadsPerRun
+  // #453 — DEMO MODE: sourcing is POOL-ONLY at $0. servePoolLeads runs as normal, but
+  // the entire PDL remainder (spend, search, ledger, allowance) is skipped for demo.
+  const isDemo = clientSettings?.is_demo === true
 
   let inserted = 0
   let skipped  = 0
@@ -278,7 +282,13 @@ export async function runIcpJob(
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
   const { pdlRemainder } = splitPoolAndRemainder(effectiveCap, pool.served)
 
-  if (pdlRemainder > 0) {
+  if (isDemo) {
+    // #453 — DEMO: pool-only. Skip the ENTIRE PDL remainder — no try_spend_sourcing, no
+    // searchPeopleWithFallback, no ledger rows beyond the pool's $0 row, no allowance
+    // touch. A demo run costs us exactly $0.
+    relaxed = 'Demo run — leads served from the shared pool at no cost.'
+    console.log(`[icp] demo run for client ${clientId} — ${pool.served} pool leads served at $0, PDL skipped.`)
+  } else if (pdlRemainder > 0) {
     // #445 — THE SOURCING FENCE. PDL is spent HERE, before any client charge, so we
     // must not pull a single record we haven't pre-funded. try_spend_sourcing atomically
     // decrements the client's sourcing allowance (2×collected, or trial pool) against
@@ -452,7 +462,7 @@ export async function runIcpJob(
     scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '')
       .then(() => {
         if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
-          return autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? '')
+          return autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? '', clientId)
         }
         console.log(`[icp] auto-consent SKIPPED (AUTO_OUTREACH_ENABLED != true) — ${insertedIds.length} leads scored, no consent emails sent`)
         return undefined

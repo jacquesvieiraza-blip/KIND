@@ -31,7 +31,9 @@
 
 **Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work (3–5 strong partners → V2-TRACKER PARTNER GTM), admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel. *(Data-engine widening #450/#451/#452 is NOT on this shelf — it's line 11 above, first out of the gate after line 10.)*
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡18 · 🔴225 · ⏸5 · **Σ456** · live count: `scripts/count-inventory.sh`
+**Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
+
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡19 · 🔴225 · ⏸5 · **Σ457** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

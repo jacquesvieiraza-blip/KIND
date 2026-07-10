@@ -12,6 +12,7 @@ import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { normalizeRevealEmail, revealCharged } from '../lib/billing-rules'
 import { waterfallEnrich } from '../lib/enrichment'
+import { isDemoClient } from '../lib/demo'
 
 export const leadRouter = Router()
 
@@ -362,7 +363,7 @@ leadRouter.patch('/:id/status', async (req: AuthRequest, res) => {
           if (!freshLead || freshLead.consent_sent_at || freshLead.status === 'opted_out') return
           const token = await getOrCreateConsentToken(freshLead)
           const consentUrl = buildConsentUrl(freshLead.id, token)
-          await sendConsentEmail(freshLead.email!, freshLead.first_name, clientForConsent?.company_name ?? '', consentUrl)
+          await sendConsentEmail(freshLead.email!, freshLead.first_name, clientForConsent?.company_name ?? '', consentUrl, clientId)
           await db.from('leads').update({
             status: 'consent_sent',
             consent_sent_at: new Date().toISOString(),
@@ -450,6 +451,25 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     }
 
     const unclaim = () => db.from('leads').update({ revealed_at: null }).eq('id', claim.id).then(() => {}, () => {})
+
+    // #453 — DEMO MODE: reveals are FREE and OFF-LEDGER. Resolve the client early; a
+    // demo reveal must leave ZERO rows in the money books — NO try_charge_reveal_credit,
+    // NO Hunter/waterfall, NO client_reveals, NO credit_transactions usage row, NO trial
+    // +2 drip. Pool-served demo leads already carry the email on the row, so just expose
+    // it (the atomic claim above already stamped revealed_at). If a demo lead somehow has
+    // no email, return the normal no-email response, uncharged (and un-claim so it can be
+    // retried once a pool lead with an email is served).
+    if (await isDemoClient(clientId)) {
+      const demoEmail = (claim.email as string | null) ?? null
+      if (!demoEmail) {
+        await unclaim()
+        res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' })
+        return
+      }
+      console.log(`[demo] free off-ledger reveal for client ${clientId} lead ${claim.id} — no charge, no money-book rows.`)
+      res.json({ success: true, revealed: true, email: demoEmail, phone: claim.phone ?? null, charged: false })
+      return
+    }
 
     // 2. Already in the client's own CRM → they own it → no charge.
     if (claim.crm_existing) {
@@ -567,7 +587,7 @@ leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).single()
 
     const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-    await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
+    await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
 
     await db.from('leads')
       .update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() })
@@ -590,7 +610,7 @@ leadRouter.post('/:id/resend-consent', async (req: AuthRequest, res) => {
     if (lead.status === 'opted_out') { res.status(409).json({ success: false, error: 'Lead has opted out' }); return }
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
     const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-    await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
+    await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
     await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', req.params.id)
     res.json({ success: true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to resend consent email' }) }
@@ -626,7 +646,7 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
 
       try {
         const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-        await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
+        await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
         await db.from('leads')
           .update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() })
           .eq('id', lead.id)
@@ -880,7 +900,7 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
       }
       try {
         const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-        await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl)
+        await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
         await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', lead.id)
         sent++
       } catch { skipped++ }

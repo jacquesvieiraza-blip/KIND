@@ -24,7 +24,7 @@
 
 **Parked until a client pays (one line, no detail):** everything else — the agent family, marketplace, partner/referral growth work, admin nice-to-haves, the 440-item inventory (FROZEN, archive only), legal sign-offs ride the lawyer track in parallel.
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡15 · 🔴225 · ⏸5 · **Σ453** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡15 · 🔴227 · ⏸5 · **Σ455** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

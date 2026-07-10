@@ -49,6 +49,7 @@
 > - **Daily cap** — the existing 100 records/client/day stays as a second fence.
 > - **Ask-size = keep-size** — sourcing now asks PDL for exactly the granted batch (was buy-50-keep-20 → ~60% of per-run PDL spend was binned); **+ preview cache** so form-fiddling no longer fires paid PDL calls.
 > - Enforced by the atomic fail-closed `try_spend_sourcing` RPC (`20260711_sourcing_fences.sql`); admin **Money Path** page surfaces per-client contribution + the global budget. **FIGSY's $3 is unaffected — it only enrols already-revealed leads, so work can never precede the $1 and carries no data cost.**
+> - **THE POOL (#449, founder-ruled 10 Jul: build now, licence review deferred until revenue):** every purchased record lands in a shared `lead_pool`; ICP runs serve pool matches at **$0 marginal** and buy only the remainder. Charge-once is per-(client,email), so ONE $0.28 record earns $1 from EVERY client who reveals it — at scale, effective $/record collapses toward pennies and sourced data becomes owned inventory with a per-record P&L (revenue ÷ $0.28 = record ROI). ⚖️ PDL-licence check consciously deferred — revisit at first paid client.
 >
 > **On the body below:** §1 (fixed infra) is still broadly right. §2–§5 and §12 were written on the retired single-$3 / Apollo model — where a section says "Apollo ~$0.008/lead," "$3 all-in," or "double-charge bug," the LOCKED block above supersedes it. Blended-ARPU/scenario tables (§5a–§8) are directional: a fully-worked lead is now **$4**, so per-client ARPU rises accordingly.
 

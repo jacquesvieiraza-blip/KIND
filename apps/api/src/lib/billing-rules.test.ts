@@ -7,7 +7,35 @@ import {
   deliveryCapBalance,
   DAILY_BROWSE_CAP,
   canEnroll,
+  normalizeRevealEmail,
+  revealCharged,
 } from './billing-rules'
+
+describe('#424 charge-once — reveal ledger key + outcome mapping', () => {
+  it('normalises the same person to ONE ledger key (so a re-sourced dup cannot double-charge)', () => {
+    // Different casing/whitespace of the same email must collapse to one key — that
+    // key IS the once-per-lead-EVER guarantee at the (client_id, email) PK.
+    expect(normalizeRevealEmail('Sarah@Acme.com')).toBe('sarah@acme.com')
+    expect(normalizeRevealEmail('  sarah@acme.com  ')).toBe('sarah@acme.com')
+    expect(normalizeRevealEmail('SARAH@ACME.COM')).toBe('sarah@acme.com')
+  })
+  it('returns null for missing/blank email (no key → treated as a fresh reveal, charge stands)', () => {
+    expect(normalizeRevealEmail(null)).toBeNull()
+    expect(normalizeRevealEmail(undefined)).toBeNull()
+    expect(normalizeRevealEmail('')).toBeNull()
+    expect(normalizeRevealEmail('   ')).toBeNull()
+  })
+  it('maps the RPC outcome to whether the client NET a charge', () => {
+    // First reveal of an email → 'charged' → the $1 stands.
+    expect(revealCharged('charged')).toBe(true)
+    // Already owned → 'refunded' → the $1 was returned → NOT a net charge.
+    expect(revealCharged('refunded')).toBe(false)
+    // Defensive: an unexpected/absent outcome must NOT be read as a refund (never
+    // hand the client a free reveal on a garbled RPC response).
+    expect(revealCharged(null)).toBe(true)
+    expect(revealCharged(undefined)).toBe(true)
+  })
+})
 
 describe('normalizePlan', () => {
   it('keeps a valid figsy plan', () => {

@@ -74,6 +74,7 @@ function scoreColor(score: number): string {
 }
 
 interface LeadRow {
+  id?:        string
   first_name: string
   last_name:  string
   job_title:  string | null
@@ -358,9 +359,20 @@ export async function sendFirstLeadsReadyEmail(
             ${topLeads.length ? `Here are your top ${Math.min(topLeads.length, 5)}:` : ''}
           </p>
           ${leadsHtml}
+          ${(() => {
+            // #447 — reveal-push CTA: deep-link straight to the top lead so the
+            // client's first action is the $1 reveal (the money-model entry point).
+            const topId = topLeads[0]?.id
+            const revealHref = topId ? `${DASH}/leads?highlight=${topId}` : `${DASH}/leads`
+            return `
+          <a href="${revealHref}"
+             style="display:inline-block;margin-top:24px;margin-right:12px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">
+            Reveal your top lead →
+          </a>`
+          })()}
           <a href="${DASH}/leads"
-             style="display:inline-block;margin-top:24px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600;font-size:0.9rem">
-            View all ${leadCount} leads →
+             style="display:inline-block;margin-top:24px;color:#7C3AED;text-decoration:none;padding:12px 8px;font-weight:600;font-size:0.9rem">
+            View all ${leadCount} leads
           </a>
           <p style="color:#999;font-size:0.8rem;margin-top:32px;border-top:1px solid #f5f5f5;padding-top:16px">
             Questions? Reply to this email — we're here to help.

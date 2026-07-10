@@ -1026,7 +1026,7 @@ export default function ICPPage() {
                 {previewLoading ? (
                   <div className="flex items-center gap-3">
                     <Loader2 className="w-4 h-4 text-[#9B8EC4] animate-spin shrink-0" />
-                    <p className="text-sm text-[#9B8EC4]">Searching Apollo database…</p>
+                    <p className="text-sm text-[#9B8EC4]">Searching our database…</p>
                   </div>
                 ) : previewCount === 0 && previewError ? (
                   <div className="flex items-center gap-3">

@@ -10,7 +10,7 @@ import { CheckCircle2, Circle, Loader2 } from 'lucide-react'
 const BRAND = '#7C3AED'
 
 const STEPS = [
-  'Sourcing leads from Apollo',
+  'Sourcing your leads',
   'Scoring every lead against your ICP',
   'Deduping against your CRM',
   'Writing personalised first emails',

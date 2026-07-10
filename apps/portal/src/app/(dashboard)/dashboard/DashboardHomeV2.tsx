@@ -7,6 +7,8 @@
 import Link from 'next/link'
 import { ArrowRight, BadgeCheck, Target, Inbox, LineChart, Search } from 'lucide-react'
 import { CopyShareLink } from '@/components/ui/CopyShareLink'
+import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
+import { TwoWalletExplainer } from '@/components/ui/TwoWalletExplainer'
 
 const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
@@ -23,6 +25,14 @@ interface Props {
   hasMilla?: boolean
   hasVida?: boolean
   hasDenise?: boolean
+  // #447 — onboarding / reveal-push (lit from /onboarding/progress)
+  clientId?: string
+  topLeadId?: string | null
+  hasIcp?: boolean
+  hasLeadsOnb?: boolean
+  hasReveal?: boolean
+  hasEnrollment?: boolean
+  hasPurchase?: boolean
 }
 
 const QUICK_ACTIONS = [
@@ -39,7 +49,10 @@ const DOES = [
   'Books the meeting for you',
 ]
 
-export function DashboardHomeV2({ firstName, timeOfDay, sent, replied, hot, shareToken, hasFigsy }: Props) {
+export function DashboardHomeV2({
+  firstName, timeOfDay, sent, replied, hot, shareToken, hasFigsy,
+  clientId, topLeadId, hasIcp, hasLeadsOnb, hasReveal, hasEnrollment, hasPurchase,
+}: Props) {
   const replyRate = sent > 0 ? Math.round((replied / sent) * 100) : 0
   const stats: [string, string][] = [
     ['Sent', sent.toLocaleString()],
@@ -57,6 +70,19 @@ export function DashboardHomeV2({ firstName, timeOfDay, sent, replied, hot, shar
         </div>
         {sent > 0 && shareToken && <CopyShareLink token={shareToken} />}
       </div>
+
+      {/* #447 — first-run checklist + two-wallet explainer (reveal push) */}
+      {clientId && (
+        <FirstRunChecklist
+          clientId={clientId}
+          hasIcp={!!hasIcp}
+          hasLeads={!!hasLeadsOnb}
+          hasReveal={!!hasReveal}
+          hasEnrollment={!!hasEnrollment}
+          topLeadId={topLeadId}
+        />
+      )}
+      {clientId && <TwoWalletExplainer clientId={clientId} hasPurchase={!!hasPurchase} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

@@ -325,7 +325,7 @@ export async function runIcpJob(
         if (userEmail) {
           // D4 — include top 5 scored leads inline in the email
           const { data: topLeads } = await db.from('leads')
-            .select('first_name, last_name, job_title, company, score, linkedin_url')
+            .select('id, first_name, last_name, job_title, company, score, linkedin_url')
             .in('id', insertedIds)
             .not('score', 'is', null)
             .order('score', { ascending: false })

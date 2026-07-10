@@ -13,7 +13,7 @@ const STEPS = [
     color: 'text-[#7C3AED]',
     bg: 'bg-[#7C3AED]/10',
     title: 'Submit Application',
-    desc: 'Fill out the partner application form on get-kind.com/partners.html. Takes 5 minutes.',
+    desc: 'Email hello@get-kind.com to apply. Takes 5 minutes.',
     detail: 'You\'ll need: name, company, country, partner type (Referral / Agency / White-label), and how you plan to bring clients.',
   },
   {

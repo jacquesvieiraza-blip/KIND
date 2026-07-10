@@ -17,7 +17,6 @@ import {
   Command,
   ArrowRight,
   Zap,
-  LayoutTemplate,
   Flame,
   FileText,
   Handshake,
@@ -34,7 +33,6 @@ const NAV_ITEMS: NavItem[] = [
   // R13 — Quick actions surface the most common next steps at the top of Cmd+K.
   { label: 'Build an ICP',        href: '/dashboard/leads/icp',      icon: Zap,            group: 'Quick actions' },
   { label: 'New campaign',        href: '/dashboard/figsy',          icon: Target,         group: 'Quick actions' },
-  { label: 'Browse templates',    href: '/dashboard/templates',      icon: LayoutTemplate, group: 'Quick actions' },
   { label: 'View hot replies',    href: '/dashboard/inbox',          icon: Flame,          group: 'Quick actions' },
   { label: 'Set my goals',        href: '/dashboard/kpis',           icon: BarChart,       group: 'Quick actions' },
 
@@ -43,7 +41,6 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'ICP Builder',     href: '/dashboard/leads/icp',      icon: TrendingUp,  group: 'Navigate' },
   { label: 'LinkedIn Import', href: '/dashboard/leads/linkedin', icon: Search,      group: 'Navigate' },
   { label: 'Campaigns',       href: '/dashboard/figsy',          icon: Target,      group: 'FIGSY' },
-  { label: 'Templates',       href: '/dashboard/templates',      icon: LayoutTemplate, group: 'FIGSY' },
   { label: 'Inbox',           href: '/dashboard/inbox',          icon: Inbox,       group: 'FIGSY' },
   { label: 'Performance',     href: '/dashboard/kpis',           icon: BarChart,    group: 'FIGSY' },
   { label: 'Knowledge',       href: '/dashboard/knowledge',      icon: Brain,       group: 'FIGSY' },

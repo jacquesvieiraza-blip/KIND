@@ -5,9 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
   Coins, Zap, TrendingUp, Loader2, Check, ChevronDown,
-  Shield, CreditCard, Bot, MessageSquare, CheckCircle, Handshake,
+  Shield, CreditCard,
 } from 'lucide-react'
-import { PRODUCTS } from '@kind/shared'
 
 // ── Sparkline chart (pure SVG, no library) ───────────────────────────────────
 function SparklineChart({
@@ -71,36 +70,6 @@ const STRIPE_FIGSY_BUNDLES = [
   { credits: 100, priceUsd: 300, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '', creditType: 'figsy' as const },
 ]
 
-// ── Agent subscription products ───────────────────────────────────────────────
-const AGENT_PRODUCTS = [
-  {
-    key:      'milla' as const,
-    label:    'Milla',
-    subtitle: 'AI Virtual Assistant',
-    price:    PRODUCTS.virtual_assistant.price_usd,
-    icon:     Bot,
-    color:    'bg-[#7C3AED]',
-    features: ['Trained on your documents & SOPs', 'Answers questions about your business instantly', 'Drafts emails in your tone & voice', 'Available 24/7 — never misses a question'],
-  },
-  {
-    key:      'vida' as const,
-    label:    'Vida',
-    subtitle: 'AI Chatbot Agent',
-    price:    PRODUCTS.chatbot.price_usd,
-    icon:     MessageSquare,
-    color:    'bg-indigo-600',
-    features: ['Answers product questions instantly', 'Captures and qualifies leads 24/7', 'Hands off to your team when needed', 'One-line embed — any website'],
-  },
-  {
-    key:      'denise' as const,
-    label:    'Denise',
-    subtitle: 'AI Account Executive',
-    price:    PRODUCTS.denise.price_usd,
-    icon:     Handshake,
-    color:    'bg-amber-600',
-    features: ['Drafts warm follow-ups to quiet prospects', 'Turns call notes into a proposal in minutes', 'Surfaces objections before they kill the deal', 'Closes what FIGSY opens — in your voice'],
-  },
-]
 
 function printReceipt(tx: CreditTransaction) {
   const html = `<!DOCTYPE html><html><head><title>K.I.N.D Receipt</title><style>body{font-family:sans-serif;padding:40px;max-width:500px;margin:0 auto}h1{font-size:20px;font-weight:bold;margin-bottom:4px}.logo{color:#7C3AED;font-weight:bold;font-size:18px;margin-bottom:24px}table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 0;border-bottom:1px solid #eee;font-size:14px}td:last-child{text-align:right;font-weight:500}.footer{font-size:12px;color:#888;margin-top:32px}@media print{button{display:none}}</style></head><body>
@@ -387,96 +356,8 @@ export default function BillingPage() {
         </div>
       </div>
 
-      {/* ── AGENT SUBSCRIPTIONS ─────────────────────────────────────────────── */}
-      <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">AI Agents <span className="text-xs font-semibold text-gray-400 align-middle ml-1">· Coming soon</span></h2>
-        <p className="text-sm text-[#9B8EC4] mb-4">FIGSY + Lead-Gen are live today. Milla, Vida and Denise are coming soon — not yet purchasable.</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {AGENT_PRODUCTS.map(agent => {
-            const dbProduct     = agent.key === 'milla' ? 'virtual_assistant' : agent.key === 'denise' ? 'denise' : 'chatbot'
-            const isActive      = activeProducts.includes(dbProduct)
-            const isPaused      = subRecords.some(s => s.product === dbProduct && s.status === 'paused')
-            const isPausingThis = pausing === dbProduct
-            const isLoading     = subInitiating === agent.key
-            const Icon          = agent.icon
-
-            return (
-              <div key={agent.key} className="rounded-xl overflow-hidden border border-purple-100/60">
-                <div className={`${agent.color} px-5 py-4 text-white`}>
-                  <div className="flex items-center gap-2">
-                    <Icon className="w-4 h-4" />
-                    <p className="font-semibold">{agent.label}</p>
-                    {isActive && (
-                      <span className="ml-auto text-xs bg-white/20 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Active
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-white/60 text-xs mt-0.5">{agent.subtitle}</p>
-                </div>
-                <div className="bg-white px-5 py-5">
-                  <ul className="space-y-2 mb-5">
-                    {agent.features.map(f => (
-                      <li key={f} className="flex items-start gap-2.5 text-sm text-gray-700">
-                        <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full bg-green-100 flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-green-600" />
-                        </span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* #406/#431 — monthly subscription pricing is retired; the agents
-                      return as per-lead add-on layers (money model #420). Don't show a
-                      stale "$X/month". */}
-                  <div className="text-center mb-4">
-                    <span className="text-sm font-semibold text-gray-400">Pricing at launch</span>
-                  </div>
-
-                  {isPaused ? (
-                    <div className="flex items-center justify-center gap-2 w-full bg-amber-50 text-amber-700 font-semibold rounded-xl px-6 py-3 text-sm border border-amber-200">
-                      Paused — billing stopped, your data is kept safe. Contact us to resume.
-                    </div>
-                  ) : isActive ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-center gap-2 w-full bg-green-50 text-green-700 font-semibold rounded-xl px-6 py-3 text-sm border border-green-200">
-                        <CheckCircle className="w-4 h-4" /> Subscribed — go to{' '}
-                        <a href={`/dashboard/${agent.key === 'milla' ? 'assistant' : agent.key === 'denise' ? 'denise' : 'chatbot'}`} className="underline">
-                          {agent.label}
-                        </a>
-                      </div>
-                      {/* Item 190 — graceful pause instead of cancel (save offer) */}
-                      <button
-                        onClick={() => handlePause(dbProduct, 1)}
-                        disabled={isPausingThis}
-                        className="w-full flex items-center justify-center gap-2 text-xs text-[#7B6FA0] hover:text-gray-800 border border-purple-100/80 hover:border-gray-300 rounded-xl px-4 py-2 transition-colors disabled:opacity-50">
-                        {isPausingThis ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                        Need a break? Pause for a month instead
-                      </button>
-                    </div>
-                  ) : (
-                    // #406/#26 — agents are NOT purchasable yet. FIGSY + Lead-Gen are the
-                    // only live products; Milla/Vida/Denise return as per-lead layers (M0
-                    // #427/#428/#429) — until then the CTA is a disabled "Coming soon", not
-                    // a live subscription checkout.
-                    <div className="space-y-2">
-                      <div className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-3 rounded-xl bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed select-none">
-                        Coming soon
-                      </div>
-                      <button
-                        onClick={() => handleDemoRequest(agent.key)}
-                        className="w-full flex items-center justify-center gap-2 text-sm text-[#7B6FA0] hover:text-gray-800 border border-purple-100/80 hover:border-gray-300 rounded-xl px-4 py-2.5 transition-colors">
-                        Notify me when it's ready
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </div>
+      {/* AGENT SUBSCRIPTIONS block removed 10 Jul (FIGSY-only cut) — Milla/Vida/Denise
+          are not purchasable; the upsell cards return when the agents do. */}
 
       {/* ── AUTO TOP-UP ─────────────────────────────────────────────────────── */}
       {/* #334 — the backend gate (apps/api figsy route) requires a saved Paystack

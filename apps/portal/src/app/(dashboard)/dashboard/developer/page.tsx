@@ -386,7 +386,6 @@ export default function DeveloperPage() {
                 { name: 'figsy_find_leads', desc: 'Search B2B leads matching your ICP (Apollo, 250M+ contacts)' },
                 { name: 'figsy_get_campaign_stats', desc: 'Emails sent, open rate, reply rate, meetings booked' },
                 { name: 'figsy_suggest_campaign', desc: 'Suggest a campaign strategy from your ICP & pipeline' },
-                { name: 'milla_ask', desc: 'Ask Milla a question or query your knowledge base' },
               ].map(tool => (
                 <div key={tool.name} className="bg-purple-50 rounded-xl p-3">
                   <code className="text-[#7C3AED] font-mono font-semibold text-xs">{tool.name}</code>

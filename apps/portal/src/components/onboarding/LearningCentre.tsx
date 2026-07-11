@@ -10,56 +10,10 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Play, GraduationCap, Check, RotateCcw, Sparkles, Rocket, Target, Search, Send, Coins, type LucideIcon } from 'lucide-react'
-import { ONBOARDING_VIDEOS, youtubeThumbnail, type OnboardingVideo, type VideoCategory } from '@/lib/onboarding-videos'
+import { Play, GraduationCap, Check, RotateCcw } from 'lucide-react'
+import { ONBOARDING_VIDEOS, videoThumbnail, type OnboardingVideo } from '@/lib/onboarding-videos'
 import { VideoPlayerModal } from './VideoPlayerModal'
 import { useOnboarding } from './OnboardingProvider'
-
-// Placeholder art per category — a card with no youtube_id yet renders a designed
-// brand tile (gradient + dot grid + icon + FIGSY avatar) instead of a blank box, so
-// the section always looks finished on screen/recordings. Brand tokens only.
-const CATEGORY_ICON: Record<VideoCategory, LucideIcon> = {
-  'whats-new': Sparkles,
-  'getting-started': Rocket,
-  'icp': Target,
-  'leads': Search,
-  'campaigns': Send,
-  'billing': Coins,
-}
-
-function PlaceholderArt({ category }: { category: VideoCategory }) {
-  const Icon = CATEGORY_ICON[category] ?? Sparkles
-  return (
-    <div
-      className="absolute inset-0"
-      style={{
-        background: 'linear-gradient(135deg,#F5F0FF,#EDE9FE)',
-        backgroundImage: 'radial-gradient(#E4DCFB 1.5px, transparent 1.5px), linear-gradient(135deg,#F5F0FF,#EDE9FE)',
-        backgroundSize: '16px 16px, cover',
-      }}
-    >
-      {/* big soft watermark icon */}
-      <Icon className="absolute -bottom-3 -right-2 w-20 h-20 text-[#7C3AED] opacity-[0.08]" />
-      {/* centred icon medallion */}
-      <span className="absolute inset-0 flex items-center justify-center">
-        <span className="w-12 h-12 rounded-2xl bg-white shadow-sm border border-[#EDE9FE] flex items-center justify-center">
-          <Icon className="w-5 h-5" style={{ color: BRAND }} />
-        </span>
-      </span>
-      {/* FIGSY avatar chip — it's his course */}
-      <span className="absolute bottom-2 left-2 flex items-center gap-1.5 bg-white/90 rounded-full pl-0.5 pr-2 py-0.5 border border-[#EDE9FE]">
-        <span className="w-5 h-5 rounded-full overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/agents/figsy.png" alt="" className="w-full h-full object-cover object-top" />
-        </span>
-        <span className="text-[9px] font-bold text-[#7C3AED]">FIGSY</span>
-      </span>
-      <span className="absolute bottom-2 right-2 text-[9px] font-bold text-[#9B8EC4] bg-white/90 border border-[#EDE9FE] px-1.5 py-0.5 rounded-full">
-        Coming soon
-      </span>
-    </div>
-  )
-}
 
 const BRAND = '#7C3AED'
 const WATCHED_KEY = 'kind_videos_watched'
@@ -123,18 +77,20 @@ export function LearningCentre() {
                 className="relative block w-full aspect-video bg-[#F5F0FF] group disabled:cursor-default"
                 aria-label={comingSoon ? `${v.title} — coming soon` : `Watch ${v.title}`}
               >
+                {/* Pre-rendered product-mockup PNG until a youtube_id is pasted,
+                    then the real YouTube thumbnail — never a blank tile. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={videoThumbnail(v)} alt="" className="absolute inset-0 w-full h-full object-cover" />
                 {comingSoon ? (
-                  <PlaceholderArt category={v.category} />
+                  <span className="absolute bottom-2 right-2 text-[9px] font-bold text-[#7C3AED] bg-white/90 border border-[#EDE9FE] px-2 py-0.5 rounded-full">
+                    Coming soon
+                  </span>
                 ) : (
-                  <>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={youtubeThumbnail(v.youtube_id)} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    <span className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
-                      <span className="w-11 h-11 rounded-full bg-white/95 flex items-center justify-center shadow">
-                        <Play className="w-5 h-5 translate-x-0.5" style={{ color: BRAND }} />
-                      </span>
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/30 transition-colors">
+                    <span className="w-11 h-11 rounded-full bg-white/95 flex items-center justify-center shadow">
+                      <Play className="w-5 h-5 translate-x-0.5" style={{ color: BRAND }} />
                     </span>
-                  </>
+                  </span>
                 )}
                 {v.isNew && (
                   <span className="absolute top-2 left-2 text-[10px] font-bold text-white px-2 py-0.5 rounded-full" style={{ background: BRAND }}>New</span>

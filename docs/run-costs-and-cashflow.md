@@ -122,6 +122,24 @@ Contribution per conservative client (~$80/mo = ~20 fully-worked leads) ≈ **~$
 
 ---
 
+## 7B. THE FOUNDER FUNNEL — 1 paid client a week, by hand
+
+*You selling, not FIGSY. Rates: 20–25% of demos close · ~25% of booked demos no-show · cold-email reply 2–3% (§8). ⚠️ All planning numbers — this funnel IS how they get measured.*
+
+**The chain:** 1 client ← **5 demos held** ← 7 booked ← the outreach below. **The weekly quota is 5 demos held. That's the whole game.**
+
+| If you ONLY used this channel | Rate | For 5 demos/week |
+|---|---|---|
+| **Warm intros / network** | ~half of asks take a demo | **~10 asks** |
+| **LinkedIn DMs** | ~1 demo per 20–25 sent | **~100–125 DMs** |
+| **Cold email** (manual, ≤30/day off the main domain) | 2–3% reply → demo | **~200–300 emails** |
+
+**The blended week (~15 h):** 6 warm asks + 75 LinkedIn DMs + 150 cold emails → **~6–7 demos → ~1.2 clients/week.**
+
+**Scoreboard — track only these 4, weekly:** outreach sent · positive replies · demos held · closes. After 2–3 weeks the real rates replace the guesses. If demos aren't closing, fix the demo or the offer — not the volume.
+
+---
+
 ## 8. THE DOGFOOD UNIT MODEL (what 1 client via our own product actually is)
 
 | Funnel stage | Rate | Count |

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { Fragment, useMemo, useRef, useState } from 'react'
 import { Card, SectionLabel, Pill } from '@/components/ui'
 
 // The editable weekly grid + the "what's working" verdict (cashflow §7B). Each cell
@@ -42,9 +42,15 @@ export default function OutreachBoard({ initialWeeks }: { initialWeeks: WeekRow[
     timers.current[week] = setTimeout(async () => {
       setSavingWeek(week)
       setError(null)
-      const { week_start, ...nums } = row
+      // Whitelist EXACTLY the numeric fields — rows loaded from the DB also carry
+      // updated_at etc., and the API's strict validator rejects unknown keys.
+      const nums: Record<string, number> = { closes: Number(row.closes) || 0 }
+      for (const c of CHANNELS) {
+        nums[`${c.k}_sent`] = Number(row[`${c.k}_sent` as Field]) || 0
+        nums[`${c.k}_demos`] = Number(row[`${c.k}_demos` as Field]) || 0
+      }
       try {
-        const res = await fetch(`/api/proxy/outreach/${week_start}`, {
+        const res = await fetch(`/api/proxy/outreach/${row.week_start}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(nums),
@@ -113,10 +119,10 @@ export default function OutreachBoard({ initialWeeks }: { initialWeeks: WeekRow[
               <tr className="text-[10px] font-semibold uppercase text-gray-400">
                 <th></th>
                 {CHANNELS.map((c) => (
-                  <>
-                    <th key={c.k + 's'} className="px-1 pb-2 text-center border-l border-purple-50">sent</th>
-                    <th key={c.k + 'd'} className="px-1 pb-2 text-center">demos</th>
-                  </>
+                  <Fragment key={c.k}>
+                    <th className="px-1 pb-2 text-center border-l border-purple-50">sent</th>
+                    <th className="px-1 pb-2 text-center">demos</th>
+                  </Fragment>
                 ))}
                 <th className="px-1 pb-2 text-center border-l border-purple-50">won</th>
               </tr>
@@ -126,16 +132,16 @@ export default function OutreachBoard({ initialWeeks }: { initialWeeks: WeekRow[
                 <tr key={w.week_start} className="border-t border-purple-50">
                   <td className="px-2 py-2 font-bold text-gray-700 whitespace-nowrap">{fmtWeek(w.week_start)}</td>
                   {CHANNELS.map((c) => (
-                    <>
-                      <td key={c.k + 's'} className="px-1 py-1.5 text-center border-l border-purple-50">
+                    <Fragment key={c.k}>
+                      <td className="px-1 py-1.5 text-center border-l border-purple-50">
                         <input inputMode="numeric" className={inputCls} value={w[`${c.k}_sent` as Field] || ''} placeholder="0"
                           onChange={(e) => edit(w.week_start, `${c.k}_sent` as Field, e.target.value)} />
                       </td>
-                      <td key={c.k + 'd'} className="px-1 py-1.5 text-center">
+                      <td className="px-1 py-1.5 text-center">
                         <input inputMode="numeric" className={inputCls} value={w[`${c.k}_demos` as Field] || ''} placeholder="0"
                           onChange={(e) => edit(w.week_start, `${c.k}_demos` as Field, e.target.value)} />
                       </td>
-                    </>
+                    </Fragment>
                   ))}
                   <td className="px-1 py-1.5 text-center border-l border-purple-50">
                     <input inputMode="numeric" className={inputCls} value={w.closes || ''} placeholder="0"
@@ -146,10 +152,10 @@ export default function OutreachBoard({ initialWeeks }: { initialWeeks: WeekRow[
               <tr className="border-t-2 border-purple-100 font-bold text-gray-800">
                 <td className="px-2 py-2.5">Total</td>
                 {CHANNELS.map((c) => (
-                  <>
-                    <td key={c.k + 's'} className="px-1 py-2.5 text-center tabular-nums border-l border-purple-50">{totals[`${c.k}_sent` as Field]}</td>
-                    <td key={c.k + 'd'} className="px-1 py-2.5 text-center tabular-nums">{totals[`${c.k}_demos` as Field]}</td>
-                  </>
+                  <Fragment key={c.k}>
+                    <td className="px-1 py-2.5 text-center tabular-nums border-l border-purple-50">{totals[`${c.k}_sent` as Field]}</td>
+                    <td className="px-1 py-2.5 text-center tabular-nums">{totals[`${c.k}_demos` as Field]}</td>
+                  </Fragment>
                 ))}
                 <td className="px-1 py-2.5 text-center tabular-nums border-l border-purple-50">{totals.closes}</td>
               </tr>

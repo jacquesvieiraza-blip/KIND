@@ -1,6 +1,5 @@
 export const dynamic = 'force-dynamic'
 
-import { Target } from 'lucide-react'
 import { Page, Card } from '@/components/ui'
 import OutreachBoard, { type WeekRow } from './OutreachBoard'
 

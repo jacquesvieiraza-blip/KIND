@@ -49,6 +49,10 @@ export async function POST(req: NextRequest, { params }: { params: { path: strin
   return proxy(req, params.path)
 }
 
+export async function PUT(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return proxy(req, params.path)
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: { path: string[] } }) {
   return proxy(req, params.path)
 }

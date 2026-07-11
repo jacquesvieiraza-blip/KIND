@@ -86,6 +86,17 @@ export function splitPoolAndRemainder(target: number, poolAvailable: number): {
   return { poolServe, pdlRemainder: Math.max(0, t - poolServe) }
 }
 
+/**
+ * POOL-WRITE GATE — the pool holds ONLY genuinely bought records. A demo client's
+ * ICP run is pool-READ-only ($0, pool-serve), so it must never write a record back
+ * into the pool (that's how test/showcase junk got in before). This is the belt on
+ * top of the structural guard in icps.ts (the PDL upsert already lives in the
+ * non-demo branch). Never let a demo run pool-write; also skip when there's nothing.
+ */
+export function poolWriteAllowed(isDemo: boolean, recordCount: number): boolean {
+  return isDemo !== true && recordCount > 0
+}
+
 /** Six months in ms — the freshness horizon for a pooled email. */
 export const POOL_FRESHNESS_MS = 6 * 30 * 24 * 60 * 60 * 1000
 

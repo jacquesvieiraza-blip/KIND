@@ -33,6 +33,7 @@ async function getNps(): Promise<NpsData | null> {
   } catch { return null }
 }
 import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
+import { getRevenueExclusions } from '../../lib/revenue-exclusions'
 import MrrOverTime from './MrrOverTime'
 
 const MONTHLY_TARGETS = [
@@ -125,15 +126,23 @@ async function getRevStats() {
     { auth: { persistSession: false } }
   )
 
+  // Revenue-honesty: MRR / ARPU / forecast count real paying clients only — exclude
+  // demo + house (founder testing). subscriptions carry client_id; filter in JS.
+  const exclusions = await getRevenueExclusions(supabase)
   const [
-    { data: activeSubs },
-    { data: trialSubs },
-    { count: totalClients },
+    { data: activeSubsRaw },
+    { data: trialSubsRaw },
+    { data: allClientRows },
   ] = await Promise.all([
     supabase.from('subscriptions').select('*').eq('status', 'active'),
     supabase.from('subscriptions').select('*').eq('status', 'trialing'),
-    supabase.from('clients').select('id', { count: 'exact', head: true }),
+    supabase.from('clients').select('id'),
   ])
+
+  const notExcluded = (s: { client_id: string }) => !exclusions.excludedClientIds.has(s.client_id)
+  const activeSubs = (activeSubsRaw || []).filter(notExcluded)
+  const trialSubs = (trialSubsRaw || []).filter(notExcluded)
+  const totalClients = (allClientRows || []).filter((c: { id: string }) => !exclusions.excludedClientIds.has(c.id)).length
 
   const mrrZar = (activeSubs || []).reduce((sum, sub) => sum + (sub.amount_zar || 0), 0)
   const fx = await getZarPerUsd()

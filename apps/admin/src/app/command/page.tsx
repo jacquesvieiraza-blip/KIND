@@ -229,9 +229,9 @@ function View_({ ent, view }: { ent: Ent; view: View }) {
         <div className="bg-white border border-purple-100 rounded-2xl p-5"><p className="text-[11px] uppercase tracking-wide text-gray-400">Meetings booked</p><p className="text-2xl font-bold mt-1">{ent.meetings ?? 0}</p></div>
       </div>
       <Tiles items={[['Replies earned', ent.replies ?? '—'], ['Positive', ent.positive ?? '—'], ['Outreach sent', (ent.emails ?? 0).toLocaleString()], ['Contacted', ent.contacted ?? ent.clients ?? 0]]} />
-      {ent.sample
-        ? <div className="bg-white border border-purple-100 rounded-2xl p-4"><p className="text-sm font-semibold text-gray-900 mb-2">Return — last 6 months <span className="ml-1 text-[9px] font-bold text-amber-600 bg-amber-50 rounded-full px-1.5 py-0.5">sample</span></p><Bars data={[['Feb', 0], ['Mar', 0], ['Apr', 0], ['May', 159], ['Jun', 441], ['Jul', 0]]} max={441} /></div>
-        : <div className="bg-white border border-dashed border-purple-200 rounded-2xl p-5 text-sm text-gray-500">📊 Return-over-time wires in with the per-entity reporting endpoint — commissions above are live.</div>}
+      {/* Revenue-honesty: "Return" is a money chart — never show fabricated dollar bars,
+          even on a sample-tagged entity. Real per-entity return wires in with #276. */}
+      <div className="bg-white border border-dashed border-purple-200 rounded-2xl p-5 text-sm text-gray-500">📊 Return-over-time wires in with the per-entity reporting endpoint — commissions above are live.</div>
     </div>
   }
   if (view === 'pipeline') {

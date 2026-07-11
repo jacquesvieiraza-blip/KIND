@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Users, ShieldCheck, AlertTriangle } from 'lucide-react'
 import CloneBestClientButton from './CloneBestClientButton'
 import { ClientsTabs } from '@/components/ClientsTabs'
+import { HOUSE_ACCOUNT_EMAIL } from '@/lib/revenue-exclusions'
 
 interface ChurnRiskEntry {
   client_id: string
@@ -34,6 +35,7 @@ interface EnrichedClient extends Client {
   figsy_sent_7d: number
   health: 'green' | 'amber' | 'red'
   mrr_this_month: number
+  is_house: boolean
 }
 
 // P1-9: A client is "at risk" if:
@@ -118,7 +120,7 @@ async function getEnrichedClients(): Promise<EnrichedClient[]> {
     db.from('leads').select('client_id, id').gte('created_at', ago14),
     db.from('figsy_campaigns').select('client_id, status').eq('status', 'active'),
     db.from('figsy_sent_emails').select('client_id, id').gte('sent_at', ago7),
-    db.from('credit_transactions').select('client_id, amount').gte('created_at', monthStart).gt('amount', 0),
+    db.from('credit_transactions').select('client_id, amount').eq('type', 'purchase').gte('created_at', monthStart).gt('amount', 0),
   ])
 
   const clients = (clientsRaw || []) as Client[]
@@ -147,8 +149,10 @@ async function getEnrichedClients(): Promise<EnrichedClient[]> {
     mrrPerClient[tx.client_id] = (mrrPerClient[tx.client_id] || 0) + (tx.amount || 0)
   }
 
-  // Try to get last login per client via admin API
+  // Try to get last login per client via admin API. Same pass identifies the house
+  // account (founder's own testing login) so revenue roll-ups can exclude it.
   const lastLoginMap: Record<string, number | null> = {}
+  const houseClientIds = new Set<string>()
   try {
     const { data: { users } } = await db.auth.admin.listUsers({ perPage: 1000 })
     const userIdToClient: Record<string, string> = {}
@@ -158,6 +162,7 @@ async function getEnrichedClients(): Promise<EnrichedClient[]> {
     for (const u of (users || [])) {
       const clientId = userIdToClient[u.id]
       if (clientId) {
+        if ((u.email ?? '').trim().toLowerCase() === HOUSE_ACCOUNT_EMAIL) houseClientIds.add(clientId)
         if (u.last_sign_in_at) {
           const diffDays = Math.floor((now.getTime() - new Date(u.last_sign_in_at).getTime()) / 86400000)
           lastLoginMap[clientId] = diffDays
@@ -182,7 +187,7 @@ async function getEnrichedClients(): Promise<EnrichedClient[]> {
       figsy_active,
       credit_balance: c.credit_balance || 0,
     })
-    return { ...c, last_login_days, leads_14d, figsy_active, figsy_sent_7d, mrr_this_month, health }
+    return { ...c, last_login_days, leads_14d, figsy_active, figsy_sent_7d, mrr_this_month, health, is_house: houseClientIds.has(c.id) }
   })
 }
 
@@ -223,7 +228,9 @@ export default async function ClientsPage({
     churnRiskMap[entry.client_id] = entry
   }
   // Split real vs demo/test so every headline number is REAL by construction.
-  const realAll = allClients.filter(c => c.is_demo !== true)
+  // Revenue-honesty: a "real client" is neither a demo account nor the house account
+  // (founder's own testing login) — the house is dropped from every real-client roll-up.
+  const realAll = allClients.filter(c => c.is_demo !== true && !c.is_house)
   const demoAll = allClients.filter(c => c.is_demo === true)
   const clients = atRiskOnly ? realAll.filter(c => c.health === 'red') : realAll
 

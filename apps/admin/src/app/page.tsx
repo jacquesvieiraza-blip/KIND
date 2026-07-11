@@ -6,6 +6,7 @@ import { Users, DollarSign, AlertCircle, Target, CheckCircle2,
   Zap, Wallet, Package, HeartPulse, ArrowUpRight, CreditCard, Repeat } from 'lucide-react'
 import Link from 'next/link'
 import { getZarPerUsd, zarToUsd, fxLabel, type FxRate } from '../lib/fx'
+import { getRevenueExclusions } from '../lib/revenue-exclusions'
 
 // ── Action Queue: at-risk clients are REAL (from /admin/churn-risk); the trigger
 // rows (signup→assign · payment→provision · day-29 switch · pool-low) are wired
@@ -92,10 +93,13 @@ async function getAdminStats() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
   const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
 
+  // Revenue-honesty: cockpit MRR / unit economics count real paying clients only —
+  // exclude demo + house (founder testing). subscriptions carry client_id; filter in JS.
+  const exclusions = await getRevenueExclusions(supabase)
   const [
-    { count: totalClients },
-    { data: activeSubs },
-    { data: trialSubs },
+    { data: allClientIds },
+    { data: activeSubsRaw },
+    { data: trialSubsRaw },
     { count: pastDue },
     { count: totalLeads },
     { data: clients },
@@ -103,7 +107,7 @@ async function getAdminStats() {
     { data: monthLeads },
     { count: signupsThisWeek },
   ] = await Promise.all([
-    supabase.from('clients').select('id', { count: 'exact', head: true }),
+    supabase.from('clients').select('id'),
     supabase.from('subscriptions').select('*').eq('status', 'active'),
     supabase.from('subscriptions').select('*').eq('status', 'trialing'),
     supabase.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'past_due'),
@@ -113,6 +117,10 @@ async function getAdminStats() {
     supabase.from('leads').select('client_id').gte('created_at', startOfMonth),
     supabase.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', sevenDaysAgo),
   ])
+
+  const activeSubs = (activeSubsRaw || []).filter((s: { client_id: string }) => !exclusions.excludedClientIds.has(s.client_id))
+  const trialSubs = (trialSubsRaw || []).filter((s: { client_id: string }) => !exclusions.excludedClientIds.has(s.client_id))
+  const totalClients = (allClientIds || []).filter((c: { id: string }) => !exclusions.excludedClientIds.has(c.id)).length
 
   const leadCounts = (() => {
     const counts: Record<string, number> = {}

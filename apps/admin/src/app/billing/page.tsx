@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
 import { Receipt, RotateCcw, CalendarClock, AlertTriangle } from 'lucide-react'
+import { getRevenueExclusions } from '../../lib/revenue-exclusions'
 
 /**
  * BILLING LEDGER (#295 invoices/receipts · #296 refunds · #297 renewals).
@@ -23,7 +24,10 @@ async function getBilling() {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return null
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } })
 
-  const [{ data: purchases }, { data: refunds }, { data: subs }, { data: clients }] = await Promise.all([
+  // Revenue-honesty: receipts / refunds / renewals count real paying clients only —
+  // exclude demo + house (founder testing) before any money is summed or listed.
+  const exclusions = await getRevenueExclusions(supabase)
+  const [{ data: purchasesRaw }, { data: refundsRaw }, { data: subsRaw }, { data: clients }] = await Promise.all([
     supabase.from('credit_transactions').select('client_id, amount, type, plan, note, created_at').eq('type', 'purchase').order('created_at', { ascending: false }).limit(100),
     supabase.from('credit_transactions').select('client_id, amount, type, plan, note, created_at').eq('type', 'refund').order('created_at', { ascending: false }).limit(100),
     supabase.from('subscriptions').select('client_id, product, status, current_period_end, trial_ends_at, amount_usd').in('status', ['active', 'trialing', 'past_due']),
@@ -33,8 +37,10 @@ async function getBilling() {
   const name = new Map((clients ?? []).map((c: { id: string; company_name: string | null }) => [c.id, c.company_name || '—']))
   const nameOf = (id: string) => name.get(id) || id.slice(0, 8)
 
-  const receipts = (purchases ?? []) as Txn[]
-  const refundRows = (refunds ?? []) as Txn[]
+  const isReal = (r: { client_id: string }) => !exclusions.excludedClientIds.has(r.client_id)
+  const receipts = ((purchasesRaw ?? []) as Txn[]).filter(isReal)
+  const refundRows = ((refundsRaw ?? []) as Txn[]).filter(isReal)
+  const subs = ((subsRaw ?? []) as Sub[]).filter(isReal)
   const receiptsUsd = receipts.reduce((s, t) => s + t.amount * rate(t.plan), 0)
   const refundsUsd = refundRows.reduce((s, t) => s + Math.abs(t.amount) * rate(t.plan), 0)
 

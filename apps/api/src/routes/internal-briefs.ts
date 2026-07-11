@@ -12,6 +12,7 @@ import crypto from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { fetchDeniseData, deniseSystemPrompt } from '../lib/denise'
+import { getClientExclusions } from '../lib/real-clients'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -59,15 +60,18 @@ async function fetchOttoData() {
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
 
-  const [{ data: clients }, { data: subs }, { data: newClients }, { data: figsyCampaigns }] = await Promise.all([
+  const [exclusions, { data: clients }, { data: subs }, { data: newClients }, { data: figsyCampaigns }] = await Promise.all([
+    getClientExclusions(),
     db.from('clients').select('id, company_name, created_at'),
     db.from('subscriptions').select('client_id, status, amount_zar, product'),
     db.from('clients').select('id, company_name').gte('created_at', weekAgo),
     db.from('figsy_campaigns').select('client_id, status, reply_count, enrolled_count'),
   ])
 
-  const activeSubs = (subs || []).filter(s => s.status === 'active')
-  const pastDueSubs = (subs || []).filter(s => s.status === 'past_due')
+  // Revenue-honesty: exclude demo + house (founder testing) from MRR + client counts.
+  const isReal = (id: string) => !exclusions.excludedClientIds.has(id)
+  const activeSubs = (subs || []).filter(s => s.status === 'active' && isReal(s.client_id))
+  const pastDueSubs = (subs || []).filter(s => s.status === 'past_due' && isReal(s.client_id))
   const mrr = activeSubs.reduce((sum, s) => sum + (Number(s.amount_zar) || 0), 0)
 
   const totalEnrolled = (figsyCampaigns || []).reduce((s, c) => s + (Number(c.enrolled_count) || 0), 0)
@@ -75,9 +79,9 @@ async function fetchOttoData() {
   const replyRate = totalEnrolled > 0 ? ((totalReplies / totalEnrolled) * 100).toFixed(1) : '0'
 
   return {
-    total_clients: (clients || []).length,
+    total_clients: (clients || []).filter(c => isReal(c.id)).length,
     mrr_usd: mrr,
-    new_clients_this_week: (newClients || []).length,
+    new_clients_this_week: (newClients || []).filter(c => isReal(c.id)).length,
     active_subscriptions: activeSubs.length,
     past_due_subscriptions: pastDueSubs.length,
     figsy_reply_rate_pct: replyRate,
@@ -124,11 +128,15 @@ async function fetchCmoData() {
   const now = new Date()
   const weekAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
 
-  const [{ data: newSignups }, { data: creditPurchases }, { data: icps }] = await Promise.all([
+  const [exclusions, { data: newSignups }, { data: creditPurchases }, { data: icps }] = await Promise.all([
+    getClientExclusions(),
     db.from('clients').select('id, company_name, industry, country, created_at').gte('created_at', weekAgo),
     db.from('credit_transactions').select('client_id, amount, created_at').eq('type', 'purchase').gte('created_at', weekAgo),
     db.from('icps').select('client_id, job_titles, industries, locations, created_at'),
   ])
+
+  // Revenue-honesty: purchase count excludes demo + house (founder testing) accounts.
+  const realPurchases = (creditPurchases || []).filter(p => !exclusions.excludedClientIds.has(p.client_id))
 
   // Group industries
   const industryCount: Record<string, number> = {}
@@ -147,7 +155,7 @@ async function fetchCmoData() {
 
   return {
     new_signups_this_week: (newSignups || []).length,
-    credit_purchases_this_week: (creditPurchases || []).length,
+    credit_purchases_this_week: realPurchases.length,
     top_industries: topIndustries.map(([name, count]) => ({ name, count })),
     top_icp_locations: topLocations.map(([loc, count]) => ({ loc, count })),
     total_icps: (icps || []).length,
@@ -181,16 +189,19 @@ async function fetchCfoData() {
   const now = new Date()
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
-  const [{ data: subs }, { data: creditTxMonth }, { data: leads30d }] = await Promise.all([
+  const [exclusions, { data: subs }, { data: creditTxMonth }, { data: leads30d }] = await Promise.all([
+    getClientExclusions(),
     db.from('subscriptions').select('client_id, status, amount_zar, product'),
     db.from('credit_transactions').select('client_id, amount, type, created_at').gte('created_at', monthStart),
     db.from('leads').select('id').gte('created_at', new Date(now.getTime() - 30 * 86400000).toISOString()),
   ])
 
-  const activeSubs = (subs || []).filter(s => s.status === 'active')
+  // Revenue-honesty: exclude demo + house (founder testing) from MRR + credit revenue.
+  const isReal = (id: string) => !exclusions.excludedClientIds.has(id)
+  const activeSubs = (subs || []).filter(s => s.status === 'active' && isReal(s.client_id))
   const mrr = activeSubs.reduce((sum, s) => sum + (Number(s.amount_zar) || 0), 0)
   const creditRevenue = (creditTxMonth || [])
-    .filter(tx => tx.type === 'purchase')
+    .filter(tx => tx.type === 'purchase' && isReal(tx.client_id))
     .reduce((s, tx) => s + (Number(tx.amount) || 0), 0)
 
   const leadCount = (leads30d || []).length

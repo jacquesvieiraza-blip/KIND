@@ -250,7 +250,7 @@ export default async function MoneyPathPage() {
             />
           </TileGrid>
 
-          <SectionLabel>Top-earning records · the reuse engine&rsquo;s winners</SectionLabel>
+          <SectionLabel>Top 50 earners — of {pool.summary.total_records.toLocaleString()} pooled records total (table capped at 50; the tile above is the real count)</SectionLabel>
           {pool.leaderboard.length === 0 || pool.summary.total_revenue_usd === 0 ? (
             <Card>
               <p className="text-sm text-gray-500">

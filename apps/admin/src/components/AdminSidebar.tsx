@@ -8,7 +8,7 @@ import {
   Rocket, MonitorPlay, Inbox,
   ShieldCheck, DollarSign, Activity, FlaskConical,
   UserSquare2, Layers, Eye,
-  Handshake, Pin, Gauge, HeartPulse, Sprout, Boxes, Receipt, Coins,
+  Handshake, Pin, Gauge, HeartPulse, Sprout, Boxes, Receipt, Coins, Target,
 } from 'lucide-react'
 
 // NOTE: do not name this `ref` — React reserves `ref`, and since the items are
@@ -55,6 +55,7 @@ const SECTIONS: Section[] = [
     label: 'GTM / Pipeline',
     items: [
       { href: '/gtm',        label: 'GTM Hub',     icon: Rocket },
+      { href: '/outreach',   label: 'Outreach',    icon: Target },
       { href: '/cmo',        label: 'CMO Tools',   icon: Megaphone },
       { href: '/unibox',     label: 'Unibox',      icon: Inbox },
       { href: '/visitors',   label: 'Visitors',    icon: Eye },

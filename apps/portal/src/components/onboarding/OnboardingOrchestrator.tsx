@@ -60,13 +60,22 @@ export function OnboardingOrchestrator() {
     })
   }, [patchProgress])
 
-  // Auto-RESUME an in-progress tour once, after progress has loaded.
+  // Auto-START for a brand-new client (founder-ruled: a new signup gets walked
+  // next→next→next immediately, no button hunt) and auto-RESUME an in-progress
+  // tour — once, after progress has loaded. Skipped/completed never auto-launch;
+  // the Learning Centre "Restart" button is their re-entry.
   useEffect(() => {
     if (!ready || startedRef.current) return
-    if (saved.status === 'in_progress') {
-      startedRef.current = true
-      setMachine(startState(steps, flags, saved.step))
+    if (saved.status !== 'in_progress' && saved.status !== 'not_started') return
+    startedRef.current = true
+    const next = startState(steps, flags, saved.step)
+    setMachine(next)
+    if (saved.status === 'not_started') {
+      patchProgress({ step: currentStepId(next, steps), status: 'in_progress', completed: next.completed })
+      const target = next.index >= 0 && next.index < steps.length ? steps[next.index].route : null
+      if (target && pathname !== target) router.push(target)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, saved.status, saved.step, flags])
 
   // Manual launch (WelcomeVideoCard / Learning Centre "Restart" → startTour()).

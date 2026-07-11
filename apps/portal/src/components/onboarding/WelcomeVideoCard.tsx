@@ -17,25 +17,39 @@ import { welcomeVideo, WELCOME_PANE_IMAGE } from '@/lib/onboarding-videos'
 import { VideoPlayerModal } from './VideoPlayerModal'
 
 const BRAND = '#7C3AED'
-const SEEN_KEY = 'kind_welcome_seen'
+// Per-USER seen key. The old global 'kind_welcome_seen' hid the card from every
+// NEW account signed up in the same browser (founder hit this creating his demo
+// account — brand-new client, no welcome card). Key by user id so each account
+// gets its own first-run experience.
+const seenKey = (uid: string) => `kind_welcome_seen_${uid}`
 
 export function WelcomeVideoCard() {
   const { ready, saved, startTour } = useOnboarding()
   const [dismissed, setDismissed] = useState(true) // default hidden until we know state
+  const [uid, setUid] = useState<string | null>(null)
   const [playing, setPlaying] = useState(false)
   const video = welcomeVideo()
 
   useEffect(() => {
     if (!ready) return
-    let seen = false
-    try { seen = localStorage.getItem(SEEN_KEY) === '1' } catch { /* ignore */ }
-    // "Seen" rides on onboarding state: anything past not_started means they've engaged.
-    const engaged = saved.status !== 'not_started'
-    setDismissed(seen || engaged)
+    let cancelled = false
+    import('@/lib/supabase/client').then(({ createClient }) =>
+      createClient().auth.getSession().then(({ data: { session } }) => {
+        if (cancelled) return
+        const id = session?.user?.id ?? 'anon'
+        setUid(id)
+        let seen = false
+        try { seen = localStorage.getItem(seenKey(id)) === '1' } catch { /* ignore */ }
+        // "Seen" rides on onboarding state: anything past not_started means engaged.
+        const engaged = saved.status !== 'not_started'
+        setDismissed(seen || engaged)
+      }),
+    )
+    return () => { cancelled = true }
   }, [ready, saved.status])
 
   function markSeen() {
-    try { localStorage.setItem(SEEN_KEY, '1') } catch { /* ignore */ }
+    try { if (uid) localStorage.setItem(seenKey(uid), '1') } catch { /* ignore */ }
     setDismissed(true)
   }
 

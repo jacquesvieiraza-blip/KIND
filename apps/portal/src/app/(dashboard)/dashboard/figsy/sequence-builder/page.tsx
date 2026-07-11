@@ -481,8 +481,9 @@ export default function SequenceBuilderPage() {
           </p>
 
           <div className="flex gap-5">
-            {/* ── Tree canvas ──────────────────────────────────────── */}
+            {/* ── Tree canvas ──── tour anchor: step 8 "Review sequence" (#454). ── */}
             <div
+              data-tour="sequence-preview"
               className="flex-1 bg-white rounded-2xl border border-[#E4DCFB] shadow-sm p-6 min-h-[500px] overflow-auto"
               style={{
                 backgroundImage: 'radial-gradient(#EDE9FE 1px, transparent 1px)',

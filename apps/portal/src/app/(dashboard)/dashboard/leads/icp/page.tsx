@@ -811,6 +811,7 @@ export default function ICPPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
+                  data-tour="run-icp-btn"
                   onClick={() => runIcp(icp.id)}
                   disabled={runningId === icp.id}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-60 transition-colors"
@@ -919,8 +920,8 @@ export default function ICPPage() {
               </button>
             </div>
 
-            {/* P3-2: FIGSY Vertical Mode picker */}
-            <div>
+            {/* P3-2: FIGSY Vertical Mode picker — tour anchor: step 2 "Create ICP" (#454). */}
+            <div data-tour="icp-template-picker">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Start with a vertical template</p>
               <div className="flex flex-wrap gap-2">
                 {VERTICAL_TEMPLATES.map(vt => (

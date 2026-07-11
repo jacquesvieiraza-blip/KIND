@@ -2,10 +2,11 @@ export const dynamic = 'force-dynamic'
 
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
-import { OnboardingBanner } from '@/components/ui/OnboardingBanner'
 import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
 import { TwoWalletExplainer } from '@/components/ui/TwoWalletExplainer'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
+import { WelcomeVideoCard } from '@/components/onboarding/WelcomeVideoCard'
+import { LearningCentre } from '@/components/onboarding/LearningCentre'
 import { Target, Inbox, ArrowRight, Zap, ChevronRight, Flame, ThermometerSun } from 'lucide-react'
 import Link from 'next/link'
 import { FigsyConversation } from './FigsyConversation'
@@ -13,21 +14,6 @@ import { CopyShareLink } from '@/components/ui/CopyShareLink'
 import { v2Enabled } from '@/lib/flags'
 import { DashboardHomeV2 } from './DashboardHomeV2'
 import { DashboardLive } from './DashboardLive'
-
-type BannerState = 'awaiting_payment' | 'trial' | 'none'
-
-function getBannerState(subscriptions: Record<string, unknown>[]): { state: BannerState; trialDaysLeft?: number } {
-  const active   = subscriptions.some(s => s.status === 'active')
-  const trialing = subscriptions.find(s => s.status === 'trialing')
-  if (active) return { state: 'none' }
-  if (trialing && trialing.trial_ends_at) {
-    const daysLeft = Math.ceil((new Date(trialing.trial_ends_at as string).getTime() - Date.now()) / 86400000)
-    if (daysLeft <= 0) return { state: 'awaiting_payment' }
-    return { state: 'trial', trialDaysLeft: Math.max(0, daysLeft) }
-  }
-  if (subscriptions.length === 0) return { state: 'none' }
-  return { state: 'awaiting_payment' }
-}
 
 type TopLead = { id: string; first_name: string; last_name: string; company: string; job_title: string; score: number }
 type FigsyKpis = { totalSent: number; totalReplied: number; interested: number; meetingsBooked: number }
@@ -119,8 +105,6 @@ export default async function DashboardPage() {
     }
   }
 
-  const { state, trialDaysLeft } = getBannerState(subs)
-
   // Real send-log numbers (one source of truth); counter sums are the fallback only.
   const totalSent       = figsyKpis?.totalSent     ?? figsyCampaigns.reduce((s, c) => s + (c.emails_sent ?? 0), 0)
   const totalReplies    = figsyKpis?.totalReplied  ?? figsyCampaigns.reduce((s, c) => s + (c.replies_total ?? 0), 0)
@@ -182,7 +166,8 @@ export default async function DashboardPage() {
         <p className="text-sm text-[#7C3AED]/60 mt-0.5">{greetingSubtitle}</p>
       </div>
 
-      <OnboardingBanner state={state} trialDaysLeft={trialDaysLeft} />
+      {/* Welcome video + guided-tour launcher (#454) — first login only. */}
+      <WelcomeVideoCard />
 
       {/* First-run checklist (#447) — the four money-model steps, lit from real
           data (/onboarding/progress). Hides permanently once all four are done. */}
@@ -202,7 +187,8 @@ export default async function DashboardPage() {
         <TwoWalletExplainer clientId={clientId} hasPurchase={onboarding?.hasPurchase ?? false} />
       )}
 
-      {/* FIGSY conversation */}
+      {/* FIGSY conversation — tour anchor: step 1 "Welcome" points here (#454). */}
+      <div data-tour="figsy-card">
       <FigsyConversation
         leadCount={leadCount}
         campaignCount={figsyCampaigns.length}
@@ -214,6 +200,7 @@ export default async function DashboardPage() {
         activeCampaigns={activeCampaigns}
         companyName={companyName}
       />
+      </div>
 
       {/* Stats — only when there's real activity; realtime updates via DashboardLive */}
       {totalSent > 0 && shareToken && (
@@ -359,6 +346,9 @@ export default async function DashboardPage() {
 
       {/* Activity feed — real data */}
       <ActivityFeed events={activityEvents} />
+
+      {/* Learning Centre (#454, Phase 6) — permanent "Learn with FIGSY" grid. */}
+      <LearningCentre />
     </div>
   )
 }

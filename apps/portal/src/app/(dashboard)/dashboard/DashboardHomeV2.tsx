@@ -9,6 +9,8 @@ import { ArrowRight, BadgeCheck, Target, Inbox, LineChart, Search } from 'lucide
 import { CopyShareLink } from '@/components/ui/CopyShareLink'
 import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
 import { TwoWalletExplainer } from '@/components/ui/TwoWalletExplainer'
+import { WelcomeVideoCard } from '@/components/onboarding/WelcomeVideoCard'
+import { LearningCentre } from '@/components/onboarding/LearningCentre'
 
 const BRAND = '#7C3AED'
 const card = 'bg-white rounded-2xl border border-gray-200 shadow-sm'
@@ -71,6 +73,10 @@ export function DashboardHomeV2({
         {sent > 0 && shareToken && <CopyShareLink token={shareToken} />}
       </div>
 
+      {/* #454 — welcome video + guided-tour launcher (first login only). Was missing
+          on the V2 home (the tour's entry point only rendered on the V1 path). */}
+      <WelcomeVideoCard />
+
       {/* #447 — first-run checklist + two-wallet explainer (reveal push) */}
       {clientId && (
         <FirstRunChecklist
@@ -86,8 +92,8 @@ export function DashboardHomeV2({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        {/* ── FIGSY command card ─────────────────────────────────────── */}
-        <div className={`lg:col-span-2 ${card} overflow-hidden flex flex-col`}>
+        {/* ── FIGSY command card — tour anchor: step 1 "Welcome" (#454) ── */}
+        <div data-tour="figsy-card" className={`lg:col-span-2 ${card} overflow-hidden flex flex-col`}>
           <div className="relative bg-gradient-to-br from-[#7C3AED] to-[#6025c0] px-6 py-6 flex items-center gap-5">
             <span className="absolute top-4 right-4 inline-flex items-center gap-1 text-[10px] font-bold text-white bg-white/20 px-2 py-0.5 rounded-full">
               <BadgeCheck className="w-3 h-3" /> Certified
@@ -157,6 +163,9 @@ export function DashboardHomeV2({
         </div>
 
       </div>
+
+      {/* #454 — permanent "Learn with FIGSY" video grid (was V1-only, same gap). */}
+      <LearningCentre />
     </div>
   )
 }

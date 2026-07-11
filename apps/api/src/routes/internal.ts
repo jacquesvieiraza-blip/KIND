@@ -25,6 +25,7 @@ import { getHubspotPipelineView } from '../lib/hubspot'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
 import { recomputeCampaignCounters } from '../lib/figsy'
+import { getClientExclusions } from '../lib/real-clients'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -457,33 +458,43 @@ internalRouter.get('/cro/dashboard', async (_req: Request, res: Response) => {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
 
     const [
-      { data: activeSubs },
-      { data: trialSubs },
-      { data: cancelledSubs },
-      { count: totalClients },
+      exclusions,
+      { data: activeSubsRaw },
+      { data: trialSubsRaw },
+      { data: cancelledSubsRaw },
+      { count: totalClientsDemoFiltered },
       { count: totalLeads },
       { count: leadsThisMonth },
     ] = await Promise.all([
-      // #364 (AR-26) — exclude demo/sandbox from founder revenue metrics. subscriptions
-      // has no is_demo, so filter via an inner join on the owning client (clients.is_demo
-      // = false); client count filters directly.
-      db.from('subscriptions').select('amount_zar, created_at, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
-      db.from('subscriptions').select('id, trial_ends_at, clients!inner(is_demo)').eq('status', 'trialing').eq('clients.is_demo', false),
-      db.from('subscriptions').select('id, cancelled_at, clients!inner(is_demo)').eq('status', 'cancelled').eq('clients.is_demo', false).gte('cancelled_at', monthStart),
+      // Revenue-honesty: exclude demo (#364) AND the house account (founder testing).
+      // subscriptions has no is_demo/email, so we carry client_id and filter in JS
+      // against the excluded set (demo ∪ house).
+      getClientExclusions(),
+      db.from('subscriptions').select('client_id, amount_zar, created_at, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
+      db.from('subscriptions').select('client_id, trial_ends_at, clients!inner(is_demo)').eq('status', 'trialing').eq('clients.is_demo', false),
+      db.from('subscriptions').select('client_id, cancelled_at, clients!inner(is_demo)').eq('status', 'cancelled').eq('clients.is_demo', false).gte('cancelled_at', monthStart),
       db.from('clients').select('id', { count: 'exact', head: true }).eq('is_demo', false),
       db.from('leads').select('id', { count: 'exact', head: true }),
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', monthStart),
     ])
 
-    const mrrZar     = (activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0)
+    const notExcluded = (s: any) => !exclusions.excludedClientIds.has(s.client_id)
+    const activeSubs    = (activeSubsRaw    ?? []).filter(notExcluded)
+    const trialSubs     = (trialSubsRaw     ?? []).filter(notExcluded)
+    const cancelledSubs = (cancelledSubsRaw ?? []).filter(notExcluded)
+    // total non-demo clients minus any house clients caught in that count.
+    const houseNonDemo  = [...exclusions.houseClientIds].filter((id) => !exclusions.demoClientIds.has(id)).length
+    const totalClients  = Math.max(0, (totalClientsDemoFiltered ?? 0) - houseNonDemo)
+
+    const mrrZar     = activeSubs.reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0)
     const mrrUsd     = Math.round(mrrZar / 19)
-    const lastMrrZar = (activeSubs ?? []).filter((s: any) => s.created_at < monthStart)
+    const lastMrrZar = activeSubs.filter((s: any) => s.created_at < monthStart)
       .reduce((sum: number, sub: any) => sum + (sub.amount_zar ?? 0), 0)
     const lastMrrUsd = Math.round(lastMrrZar / 19)
     const mrrGrowth  = lastMrrUsd > 0 ? Math.round(((mrrUsd - lastMrrUsd) / lastMrrUsd) * 100) : null
 
     // Trials expiring in next 7 days
-    const expiringTrials = (trialSubs ?? []).filter((s: any) => {
+    const expiringTrials = trialSubs.filter((s: any) => {
       if (!s.trial_ends_at) return false
       const daysLeft = (new Date(s.trial_ends_at).getTime() - now.getTime()) / 86400000
       return daysLeft >= 0 && daysLeft <= 7
@@ -525,7 +536,8 @@ internalRouter.post('/cro/weekly-digest', async (_req: Request, res: Response) =
     const weekStart  = new Date(now.getTime() - 7 * 86400000).toISOString()
 
     const [
-      { data: activeSubs },
+      exclusions,
+      { data: activeSubsRaw },
       { count: trialing },
       { count: newThisWeek },
       { count: totalLeads },
@@ -533,8 +545,9 @@ internalRouter.post('/cro/weekly-digest', async (_req: Request, res: Response) =
       { count: consentedTotal },
       { data: atRiskClients },
     ] = await Promise.all([
-      // #364 (AR-26) — exclude demo/sandbox from the founder digest revenue + client counts.
-      db.from('subscriptions').select('amount_zar, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
+      // Revenue-honesty: exclude demo (#364) AND the house account from digest MRR.
+      getClientExclusions(),
+      db.from('subscriptions').select('client_id, amount_zar, clients!inner(is_demo)').eq('status', 'active').eq('clients.is_demo', false),
       db.from('subscriptions').select('id, clients!inner(is_demo)', { count: 'exact', head: true }).eq('status', 'trialing').eq('clients.is_demo', false),
       db.from('clients').select('id', { count: 'exact', head: true }).eq('is_demo', false).gte('created_at', weekStart),
       db.from('leads').select('id', { count: 'exact', head: true }),
@@ -543,7 +556,8 @@ internalRouter.post('/cro/weekly-digest', async (_req: Request, res: Response) =
       db.from('clients').select('company_name, first_icp_run_at, created_at').eq('is_demo', false).lte('created_at', weekStart),
     ])
 
-    const mrrUsd = Math.round((activeSubs ?? []).reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0) / 19)
+    const activeSubs = (activeSubsRaw ?? []).filter((s: any) => !exclusions.excludedClientIds.has(s.client_id))
+    const mrrUsd = Math.round(activeSubs.reduce((s: number, sub: any) => s + (sub.amount_zar ?? 0), 0) / 19)
     const atRisk = (atRiskClients ?? []).filter((c: any) => !c.first_icp_run_at).length
 
     const prompt = `You are the AI chief of staff for K.I.N.D, an African B2B AI platform. Write a brief weekly digest for the founder.
@@ -1861,7 +1875,7 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).in('classification', ['hot', 'interested']).gte('received_at', ago24h),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('classification', 'opt_out').gte('received_at', ago24h),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      db.from('credit_transactions').select('amount').eq('type', 'purchase').gte('created_at', ago24h),
+      db.from('credit_transactions').select('client_id, amount').eq('type', 'purchase').gte('created_at', ago24h),
       db.from('clients').select('id, company_name, credit_balance').lt('credit_balance', 5).not('first_icp_run_at', 'is', null),
       db.from('subscriptions').select('id, client_id, product, clients(company_name)').eq('status', 'lapsed').gte('updated_at', ago24h),
     ])
@@ -1882,7 +1896,12 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
     const lowCreditClients = val(lowCreditClientsRes, { data: [] } as any).data ?? []
     const expiredSubs      = val(expiredSubsRes, { data: [] } as any).data ?? []
 
-    const revenueToday = (purchaseTxns as { amount: number }[]).reduce((s, t) => s + (t.amount ?? 0), 0)
+    // Revenue-honesty: "Revenue (last 24h)" counts only real paying clients — drop
+    // purchases from demo + house (founder testing) accounts.
+    const digestExclusions = await getClientExclusions()
+    const revenueToday = (purchaseTxns as { client_id: string; amount: number }[])
+      .filter((t) => !digestExclusions.excludedClientIds.has(t.client_id))
+      .reduce((s, t) => s + (t.amount ?? 0), 0)
     const replyRatePct = figsySent > 0 ? ((figsyReplies / figsySent) * 100).toFixed(1) : '—'
 
     // ── Low-credit clients list ──────────────────────────────────────────────
@@ -2637,15 +2656,23 @@ internalRouter.post('/ae/churn-risk-check', async (_req: Request, res: Response)
 // today's date → re-running the same day is a safe overwrite, never a duplicate.
 internalRouter.post('/metrics/snapshot', async (_req: Request, res: Response) => {
   try {
-    const [{ data: activeSubs }, { count: trialCount }] = await Promise.all([
+    const [exclusions, { data: activeSubs }, { data: trialSubsRaw }] = await Promise.all([
+      // Revenue-honesty: the nightly MRR snapshot feeds the historical trend chart, so it
+      // must exclude demo + house (founder testing) subs — otherwise every night bakes a
+      // poisoned data point into metrics_daily.
+      getClientExclusions(),
       db.from('subscriptions').select('client_id, amount_usd').eq('status', 'active'),
-      db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
+      db.from('subscriptions').select('client_id').eq('status', 'trialing'),
     ])
 
-    const subsJson = (activeSubs ?? []).map((s: { client_id: string; amount_usd: number | null }) => ({
-      client_id:  s.client_id,
-      amount_usd: s.amount_usd ?? 0,
-    }))
+    const subsJson = (activeSubs ?? [])
+      .filter((s: { client_id: string }) => !exclusions.excludedClientIds.has(s.client_id))
+      .map((s: { client_id: string; amount_usd: number | null }) => ({
+        client_id:  s.client_id,
+        amount_usd: s.amount_usd ?? 0,
+      }))
+    const trialCount = (trialSubsRaw ?? [])
+      .filter((s: { client_id: string }) => !exclusions.excludedClientIds.has(s.client_id)).length
     const mrrUsd = subsJson.reduce((sum, s) => sum + (s.amount_usd || 0), 0)
     const today  = new Date().toISOString().slice(0, 10) // YYYY-MM-DD (UTC)
 

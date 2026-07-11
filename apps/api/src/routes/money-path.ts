@@ -19,6 +19,7 @@ import {
   round2,
   PDL_RATE_USD,
 } from '../lib/money-path-math'
+import { getClientExclusions } from '../lib/real-clients'
 
 export const moneyPathRouter = Router()
 
@@ -115,7 +116,12 @@ moneyPathRouter.get('/clients', async (_req: Request, res: Response) => {
     const workCount: Record<string, number> = {}
     for (const w of works) workCount[w.client_id] = (workCount[w.client_id] ?? 0) + 1
 
-    const rows = clients.map((c) => {
+    // Revenue-honesty: the house account (founder's own testing login) is NOT a real
+    // client — drop it entirely so it never shows in the client economics list. Demo
+    // rows stay (the admin page splits real vs demo via the is_demo flag below).
+    const { houseClientIds } = await getClientExclusions()
+
+    const rows = clients.filter((c) => !houseClientIds.has(c.id)).map((c) => {
       const collected_usd = round2(collected[c.id] ?? 0)
       const records_sourced = recordsSourced[c.id] ?? 0
       const sourcing_cost_usd = round2(sourcingCost[c.id] ?? 0)
@@ -165,15 +171,17 @@ moneyPathRouter.get('/tiles', async (_req: Request, res: Response) => {
         fetchAll<{ client_id: string; cost_usd: number }>('sourcing_ledger', 'client_id, cost_usd', undefined, undefined, 'id'),
       ])
 
-    // #453 — demo client ids: excluded from every per-client roll-up below.
-    const demoIds = new Set(clients.filter((c) => c.is_demo === true).map((c) => c.id))
+    // Revenue-honesty: exclude BOTH demo accounts (#453) AND the house account
+    // (founder's own testing login) from every per-client roll-up below. Real
+    // revenue = real paying external clients only.
+    const { excludedClientIds } = await getClientExclusions()
 
     const pdl_month_spent_usd = round2(ledgerMonth.reduce((s, r) => s + Number(r.cost_usd || 0), 0))
     const pdl_month_cap_usd = Number(settingsRes.data?.pdl_monthly_cap_usd ?? 300)
-    // Collected this month EXCLUDES demo accounts (their purchases aren't real revenue).
+    // Collected this month EXCLUDES demo + house accounts (their purchases aren't real revenue).
     const collected_month_usd = round2(
       purchasesMonth
-        .filter((p) => p.type === 'purchase' && !demoIds.has(p.client_id))
+        .filter((p) => p.type === 'purchase' && !excludedClientIds.has(p.client_id))
         .reduce((s, p) => s + creditTxUsd(p.plan, p.amount), 0),
     )
     // Data COGS this month = what PDL billed us this month (the sourcing spend). Global —
@@ -190,8 +198,8 @@ moneyPathRouter.get('/tiles', async (_req: Request, res: Response) => {
     const paidClientIds = new Set(
       purchasesAll.filter((p) => p.type === 'purchase').map((p) => p.client_id),
     )
-    // #453 — trial cohort EXCLUDES demo accounts (seeded demos would inflate the count + burn).
-    const trialClients = clients.filter((c) => Number(c.trial_sourcing_granted ?? 0) > 0 && !demoIds.has(c.id))
+    // Trial cohort EXCLUDES demo + house accounts (seeded demos / founder testing would inflate count + burn).
+    const trialClients = clients.filter((c) => Number(c.trial_sourcing_granted ?? 0) > 0 && !excludedClientIds.has(c.id))
     const stillTrial = trialClients.filter((c) => !paidClientIds.has(c.id))
     const converted = trialClients.filter((c) => paidClientIds.has(c.id)).length
     const stillTrialIds = new Set(stillTrial.map((c) => c.id))

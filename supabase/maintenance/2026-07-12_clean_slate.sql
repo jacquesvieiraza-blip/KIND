@@ -83,10 +83,17 @@ begin;
     end if;
   end $$;
 
-  -- Defensive: null the ONE non-cascading reference before deleting clients.
+  -- Defensive: null the non-cascading references before deleting.
   update public.opt_out_blocklist
      set blocked_by_client_id = null
    where blocked_by_client_id in (select client_id from _doomed);
+
+  -- client_members.invited_by references auth.users with NO cascade — if a
+  -- surviving member row was invited by a doomed user, the auth delete would
+  -- fail and roll everything back. Null it first.
+  update public.client_members
+     set invited_by = null
+   where invited_by in (select user_id from _doomed where user_id is not null);
 
   -- Delete the doomed clients → cascades to their entire data tree.
   delete from public.clients where id in (select client_id from _doomed);

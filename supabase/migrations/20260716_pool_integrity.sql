@@ -10,7 +10,9 @@
 -- Unknown-provenance rows → 'manual' (NOT 'pdl' — never mislabel unknown as bought).
 UPDATE public.lead_pool SET source = 'manual' WHERE source IS NULL;
 
-ALTER TABLE public.lead_pool ALTER COLUMN source SET DEFAULT 'pdl';
+-- NO default: every writer must state provenance explicitly. A missing source
+-- now errors loudly instead of being silently mislabeled as bought.
+ALTER TABLE public.lead_pool ALTER COLUMN source DROP DEFAULT;
 ALTER TABLE public.lead_pool ALTER COLUMN source SET NOT NULL;
 
 -- Only these three provenances may EVER be written. NOT VALID = enforced on new

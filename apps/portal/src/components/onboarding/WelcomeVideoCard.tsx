@@ -13,7 +13,7 @@
 import { useEffect, useState } from 'react'
 import { Play, X, Sparkles } from 'lucide-react'
 import { useOnboarding } from './OnboardingProvider'
-import { welcomeVideo } from '@/lib/onboarding-videos'
+import { welcomeVideo, WELCOME_PANE_IMAGE } from '@/lib/onboarding-videos'
 import { VideoPlayerModal } from './VideoPlayerModal'
 
 const BRAND = '#7C3AED'
@@ -65,21 +65,10 @@ export function WelcomeVideoCard() {
               <Play className="w-6 h-6 translate-x-0.5" style={{ color: BRAND }} />
             </span>
           ) : (
-            /* No video id yet → designed FIGSY tile, never a blank pane. */
-            <div
-              className="absolute inset-0"
-              style={{
-                background: 'linear-gradient(135deg,#F5F0FF,#EDE9FE)',
-                backgroundImage: 'radial-gradient(#E4DCFB 1.5px, transparent 1.5px), linear-gradient(135deg,#F5F0FF,#EDE9FE)',
-                backgroundSize: '16px 16px, cover',
-              }}
-            >
-              <span className="absolute inset-0 flex items-center justify-center">
-                <span className="w-20 h-20 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
-                </span>
-              </span>
+            /* No video id yet → pre-rendered dashboard mockup, never a blank pane. */
+            <div className="absolute inset-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={WELCOME_PANE_IMAGE} alt="" className="absolute inset-0 w-full h-full object-cover object-left-top" />
               <span className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 text-[9px] font-bold text-[#7C3AED] bg-white/90 border border-[#EDE9FE] px-2 py-0.5 rounded-full whitespace-nowrap">
                 <Sparkles className="w-2.5 h-2.5" /> Welcome video coming soon
               </span>

@@ -36,7 +36,22 @@ export type OnboardingVideo = {
   isNew: boolean
   /** ISO date; used only for ordering / "what's new". */
   publishedAt: string
+  /** Optional custom thumbnail path (under /public). Defaults to /videos/<id>.png. */
+  thumbnail?: string
 }
+
+/**
+ * The card's thumbnail. Once a youtube_id is pasted the REAL YouTube thumbnail wins;
+ * until then we show the pre-rendered product-mockup PNG shipped in /public/videos
+ * (so a recording never shows a blank tile). `thumbnail` overrides the default path.
+ */
+export function videoThumbnail(v: OnboardingVideo): string {
+  if (v.youtube_id) return youtubeThumbnail(v.youtube_id)
+  return v.thumbnail ?? `/videos/${v.id}.png`
+}
+
+/** The welcome card's pane image (pre-rendered dashboard mockup). */
+export const WELCOME_PANE_IMAGE = '/videos/welcome.png'
 
 // Newest first. Seeded with the 6 reference cards; youtube_ids are placeholders —
 // founder pastes the unlisted YouTube video id here (see header).

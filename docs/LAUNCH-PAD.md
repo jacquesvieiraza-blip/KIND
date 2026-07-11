@@ -34,7 +34,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡22 · 🔴225 · ⏸5 · **Σ460** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡22 · 🔴234 · ⏸5 · **Σ469** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -258,6 +258,13 @@ In M0 these are made *honest* (kept, "coming soon"); **here** they're made *real
 | #393 🔴 | Data-moat table gets duplicate rows (no dedup key) | 🤖 |
 
 **✅ M4 done when:** each item is rebuilt (state machine + provider-confirmed + tests) and its "coming soon" is lifted — one at a time.
+
+---
+
+# ✕ MILESTONE X — Milla &amp; Vida (two-sided) · spec-only · build after 1st paying client · 🤝
+> **The "X" is the SpaceX-style big swing — the next chapter, parked behind the sprint.** REFRAME of Milla/Vida into a two-sided marketplace: **Milla = the business portal** (current portal + FIGSY, two lead sources: FIGSY outbound *current* + Vida-matched inbound *new*) · **Vida = a free demand portal** where *anyone with a problem* (dentist · photographer · "cut my grass") is matched to a business that solves it. Broadens the customer base from B2B-only to any problem-holder; a Vida user is a free, consented, in-market lead. **Founder go/no-go pending.**
+> **Decisions (11 Jul):** layer onto the existing portal (NO rewrite) · spec now, build Vida after the 1st paying Milla client · Vida free / Milla pays per **accepted** match on the existing reveal rails · deep in ONE vertical first · never claim a "database of problems" until counted live.
+> **Tracked:** inventory **#457–#465** (🔴) · full four-spec detail → **V2-TRACKER** "MILLA &amp; VIDA — TWO-SIDED". **Nothing here starts until the SPRINT (first paying client) lands** — this is the destination, not the next sprint.
 
 ---
 

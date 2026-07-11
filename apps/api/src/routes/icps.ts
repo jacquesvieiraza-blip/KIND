@@ -15,7 +15,7 @@ import { deliveryCapBalance, normalizePlan, normalizeRevealEmail } from '../lib/
 import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
-import { splitPoolAndRemainder } from '../lib/pool-sourcing'
+import { splitPoolAndRemainder , poolWriteAllowed} from '../lib/pool-sourcing'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -422,7 +422,9 @@ export async function runIcpJob(
 
       // Batch the pool upserts (one statement). ignoreDuplicates → ON CONFLICT DO
       // NOTHING: a record bought once for any client is reused, cost never rewritten.
-      if (poolUpserts.length > 0) {
+      // Belt over the structural guard (this block only runs in the non-demo branch):
+      // the pool holds ONLY bought records — a demo run must never write to it.
+      if (poolWriteAllowed(isDemo, poolUpserts.length)) {
         const { error: poolErr } = await db.from('lead_pool')
           .upsert(poolUpserts, { onConflict: 'email_norm', ignoreDuplicates: true })
         if (poolErr) console.error('[icp] lead_pool upsert failed (non-fatal):', poolErr)

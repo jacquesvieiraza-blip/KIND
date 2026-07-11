@@ -23,6 +23,7 @@ interface Client {
   terms_accepted_at: string | null
   user_id: string | null
   credit_balance: number
+  is_demo: boolean | null
   subscriptions: Subscription[]
 }
 
@@ -221,14 +222,17 @@ export default async function ClientsPage({
   for (const entry of churnRiskData) {
     churnRiskMap[entry.client_id] = entry
   }
-  const clients = atRiskOnly ? allClients.filter(c => c.health === 'red') : allClients
+  // Split real vs demo/test so every headline number is REAL by construction.
+  const realAll = allClients.filter(c => c.is_demo !== true)
+  const demoAll = allClients.filter(c => c.is_demo === true)
+  const clients = atRiskOnly ? realAll.filter(c => c.health === 'red') : realAll
 
   const counts = {
-    active:  allClients.filter(c => c.subscriptions?.some(s => s.status === 'active')).length,
-    trial:   allClients.filter(c => c.subscriptions?.some(s => s.status === 'trialing')).length,
-    atRisk:  allClients.filter(c => c.health === 'red').length,
-    noCredits:     allClients.filter(c => (c.credit_balance || 0) < 1).length,
-    termsAccepted: allClients.filter(c => c.terms_accepted_at !== null).length,
+    active:  realAll.filter(c => c.subscriptions?.some(s => s.status === 'active')).length,
+    trial:   realAll.filter(c => c.subscriptions?.some(s => s.status === 'trialing')).length,
+    atRisk:  realAll.filter(c => c.health === 'red').length,
+    noCredits:     realAll.filter(c => (c.credit_balance || 0) < 1).length,
+    termsAccepted: realAll.filter(c => c.terms_accepted_at !== null).length,
   }
 
   return (
@@ -238,8 +242,11 @@ export default async function ClientsPage({
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Clients</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{clients.length} client{clients.length !== 1 ? 's' : ''} total</p>
+          <h1 className="text-2xl font-bold text-gray-900">Real Clients</h1>
+          <p className="text-gray-500 text-sm mt-0.5">
+            {realAll.length} real client{realAll.length !== 1 ? 's' : ''}
+            {demoAll.length > 0 && <span className="text-gray-400"> · {demoAll.length} demo/test (excluded from all counts below)</span>}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <CloneBestClientButton />
@@ -378,6 +385,31 @@ export default async function ClientsPage({
           </table>
         )}
       </div>
+
+      {/* Demo & test accounts — kept OUT of every real count above. Collapsed. */}
+      {demoAll.length > 0 && (
+        <details className="bg-white/60 backdrop-blur-sm rounded-2xl border border-gray-200/60 overflow-hidden">
+          <summary className="px-5 py-3 text-sm font-semibold text-gray-500 cursor-pointer select-none">
+            Demo &amp; test accounts ({demoAll.length}) — excluded from real metrics
+          </summary>
+          <table className="w-full text-sm border-t border-gray-100">
+            <tbody className="divide-y divide-gray-50">
+              {demoAll.map(client => (
+                <tr key={client.id}>
+                  <td className="px-5 py-2.5 font-medium text-gray-700">
+                    {client.company_name || '—'}
+                    <span className="ml-2 text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">DEMO</span>
+                  </td>
+                  <td className="px-5 py-2.5 text-gray-400">{client.country || '—'}</td>
+                  <td className="px-5 py-2.5">
+                    <Link href={`/clients/${client.id}`} className="text-xs text-[#7C3AED] hover:text-purple-800 font-semibold">Manage →</Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
     </div>
   )
 }

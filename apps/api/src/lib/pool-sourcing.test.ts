@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   poolRecordMatchesIcp, splitPoolAndRemainder, isPoolRecordStale,
-  POOL_FRESHNESS_MS, type PoolRecord,
+  POOL_FRESHNESS_MS, poolWriteAllowed, type PoolRecord,
 } from './pool-sourcing'
 
 const rec = (over: Partial<PoolRecord>): PoolRecord => ({ email_norm: 'a@b.com', ...over })
@@ -122,5 +122,18 @@ describe('isPoolRecordStale — 6-month freshness horizon', () => {
   it('uses the exported 6-month horizon by default', () => {
     const justOver = now - POOL_FRESHNESS_MS - 1000
     expect(isPoolRecordStale(rec({ last_verified_at: new Date(justOver).toISOString() }), now)).toBe(true)
+  })
+})
+
+describe('poolWriteAllowed — the pool holds only bought records', () => {
+  it('BLOCKS a demo run from ever writing to the pool', () => {
+    expect(poolWriteAllowed(true, 50)).toBe(false)
+    expect(poolWriteAllowed(true, 0)).toBe(false)
+  })
+  it('allows a real (non-demo) run with records', () => {
+    expect(poolWriteAllowed(false, 50)).toBe(true)
+  })
+  it('skips when there is nothing to write', () => {
+    expect(poolWriteAllowed(false, 0)).toBe(false)
   })
 })

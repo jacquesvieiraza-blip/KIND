@@ -78,10 +78,29 @@ describe('onboarding step machine', () => {
 
   it('back steps one position earlier and never goes below zero', () => {
     let st = advance(startState(steps, none), steps, none) // on b (index 1)
-    st = back(st, steps)
+    st = back(st, steps, none)
     expect(currentStepId(st, steps)).toBe('a')
-    st = back(st, steps) // already at 0
+    st = back(st, steps, none) // already at 0
     expect(st.index).toBe(0)
+  })
+
+  it('back skips one earlier step already satisfied by real data', () => {
+    // On d (index 3); c (hasLeads) is satisfied, b (hasIcp) is not → land on b.
+    const st = back({ index: 3, status: 'in_progress', completed: [] }, steps, { hasLeads: true })
+    expect(currentStepId(st, steps)).toBe('b')
+  })
+
+  it('back skips consecutive earlier satisfied steps and floors at 0', () => {
+    // On d (index 3); b (hasIcp) + c (hasLeads) both satisfied → walk past both to a.
+    const st = back({ index: 3, status: 'in_progress', completed: [] }, steps, { hasIcp: true, hasLeads: true })
+    expect(currentStepId(st, steps)).toBe('a')
+    expect(st.index).toBe(0)
+  })
+
+  it('back at the first step stays at 0', () => {
+    const st = back({ index: 0, status: 'in_progress', completed: [] }, steps, none)
+    expect(st.index).toBe(0)
+    expect(st.status).toBe('in_progress')
   })
 
   it('skipTour exits cleanly without blocking (status skipped, index -1)', () => {

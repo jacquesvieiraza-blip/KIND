@@ -78,11 +78,18 @@ export function advance(state: MachineState, steps: OnboardingStep[], flags: Pro
   return { index, status: 'in_progress', completed }
 }
 
-/** Back: step one position earlier (never before the first step). */
-export function back(state: MachineState, steps: OnboardingStep[]): MachineState {
+/**
+ * Back: step to the nearest EARLIER step the client can act on, walking BACKWARD
+ * past any steps already satisfied by real data (the mirror of nextActionableIndex).
+ * Without this, Back could land on a data-check step whose flag is already true and
+ * the orchestrator's auto-advance would instantly bounce forward again — Back would
+ * look dead. Floors at index 0 so it never goes before the first step.
+ */
+export function back(state: MachineState, steps: OnboardingStep[], flags: ProgressFlags): MachineState {
   if (state.index <= 0) return { ...state, index: 0, status: 'in_progress' }
-  const index = Math.min(state.index - 1, steps.length - 1)
-  return { ...state, index, status: 'in_progress' }
+  let i = Math.min(state.index, steps.length) - 1
+  while (i > 0 && isStepSatisfied(steps[i], flags)) i--
+  return { ...state, index: i, status: 'in_progress' }
 }
 
 /** Skip: exit the tour cleanly. It never blocks the app — status becomes 'skipped'

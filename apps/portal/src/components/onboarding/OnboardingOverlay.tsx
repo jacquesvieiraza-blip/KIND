@@ -15,15 +15,14 @@ export type Rect = { top: number; left: number; width: number; height: number }
 const PAD = 8 // breathing room around the spotlighted element
 const SCRIM = 'rgba(15, 9, 41, 0.62)' // #0F0929 @ ~62% — matches the brand dark
 
-export function OnboardingOverlay({ rect, onSkip }: { rect: Rect | null; onSkip?: () => void }) {
+// The scrim never dismisses on click — an accidental backdrop click killing the
+// tour is worse than making the client use the explicit "Skip tour" button.
+export function OnboardingOverlay({ rect }: { rect: Rect | null }) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
   if (!mounted) return null
 
   const scrimStyle: React.CSSProperties = { position: 'fixed', background: SCRIM, zIndex: 9998 }
-
-  // Clicking the dark scrim (not the hole) is a soft exit — never traps the client.
-  const backdropClick = onSkip ? { onClick: onSkip } : {}
 
   const content = rect
     ? (() => {
@@ -36,17 +35,17 @@ export function OnboardingOverlay({ rect, onSkip }: { rect: Rect | null; onSkip?
         return (
           <>
             {/* top */}
-            <div {...backdropClick} style={{ ...scrimStyle, top: 0, left: 0, right: 0, height: hole.top }} />
+            <div style={{ ...scrimStyle, top: 0, left: 0, right: 0, height: hole.top }} />
             {/* bottom */}
-            <div {...backdropClick} style={{ ...scrimStyle, top: hole.top + hole.height, left: 0, right: 0, bottom: 0 }} />
+            <div style={{ ...scrimStyle, top: hole.top + hole.height, left: 0, right: 0, bottom: 0 }} />
             {/* left */}
-            <div {...backdropClick} style={{ ...scrimStyle, top: hole.top, left: 0, width: hole.left, height: hole.height }} />
+            <div style={{ ...scrimStyle, top: hole.top, left: 0, width: hole.left, height: hole.height }} />
             {/* right */}
-            <div {...backdropClick} style={{ ...scrimStyle, top: hole.top, left: hole.left + hole.width, right: 0, height: hole.height }} />
+            <div style={{ ...scrimStyle, top: hole.top, left: hole.left + hole.width, right: 0, height: hole.height }} />
           </>
         )
       })()
-    : <div {...backdropClick} style={{ ...scrimStyle, inset: 0 }} />
+    : <div style={{ ...scrimStyle, inset: 0 }} />
 
   return createPortal(content, document.body)
 }

@@ -65,9 +65,24 @@ export function WelcomeVideoCard() {
               <Play className="w-6 h-6 translate-x-0.5" style={{ color: BRAND }} />
             </span>
           ) : (
-            <div className="flex flex-col items-center gap-1 text-[#7C3AED]/70 px-6 py-8">
-              <Sparkles className="w-7 h-7" />
-              <span className="text-xs font-medium text-center">Welcome video coming soon</span>
+            /* No video id yet → designed FIGSY tile, never a blank pane. */
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(135deg,#F5F0FF,#EDE9FE)',
+                backgroundImage: 'radial-gradient(#E4DCFB 1.5px, transparent 1.5px), linear-gradient(135deg,#F5F0FF,#EDE9FE)',
+                backgroundSize: '16px 16px, cover',
+              }}
+            >
+              <span className="absolute inset-0 flex items-center justify-center">
+                <span className="w-20 h-20 rounded-full overflow-hidden ring-4 ring-white shadow-lg">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/agents/figsy.png" alt="FIGSY" className="w-full h-full object-cover object-top" />
+                </span>
+              </span>
+              <span className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 text-[9px] font-bold text-[#7C3AED] bg-white/90 border border-[#EDE9FE] px-2 py-0.5 rounded-full whitespace-nowrap">
+                <Sparkles className="w-2.5 h-2.5" /> Welcome video coming soon
+              </span>
             </div>
           )}
         </button>

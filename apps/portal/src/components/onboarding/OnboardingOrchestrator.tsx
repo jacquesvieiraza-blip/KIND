@@ -24,6 +24,7 @@ import { useOnboarding } from './OnboardingProvider'
 import { OnboardingOverlay, type Rect } from './OnboardingOverlay'
 import { OnboardingSpotlight } from './OnboardingSpotlight'
 import { OnboardingPopover } from './OnboardingPopover'
+import { OnboardingResumePill } from './OnboardingResumePill'
 
 const steps = ONBOARDING_STEPS
 const TOTAL = REQUIRED_STEPS.length
@@ -68,7 +69,9 @@ export function OnboardingOrchestrator() {
     }
   }, [ready, saved.status, saved.step, flags])
 
-  // Manual launch (WelcomeVideoCard → startTour()).
+  // Manual launch (WelcomeVideoCard / Learning Centre "Restart" → startTour()).
+  // Navigates to the resumed step's route explicitly — the route-watch below only
+  // fires on step CHANGE, and a restart can resume the very same step.
   useEffect(() => {
     if (launchNonce === 0 || launchNonce === lastLaunchRef.current) return
     lastLaunchRef.current = launchNonce
@@ -76,14 +79,28 @@ export function OnboardingOrchestrator() {
     const next = startState(steps, flags, saved.step)
     setMachine(next)
     patchProgress({ step: currentStepId(next, steps), status: 'in_progress', completed: next.completed })
+    const target = next.index >= 0 && next.index < steps.length ? steps[next.index].route : null
+    if (target && pathname !== target) router.push(target)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [launchNonce, flags, saved.step, patchProgress])
 
-  // Route-watch: navigate to the current step's route if we're not already there.
+  // Route-watch: navigate to a step's route ONCE, when the STEP changes — NOT on
+  // every pathname change. This is the F1 fix: the old version re-pushed whenever
+  // pathname !== route, so any manual navigation (e.g. the low-credit nudge's "Go to
+  // billing") was instantly yanked back. Now the client can walk away; the tour goes
+  // dormant (see the resume pill below) instead of trapping them on the step page.
+  // While DORMANT, even a step change must not navigate (leads landing in the
+  // background auto-advance step 4 → without this guard the client browsing billing
+  // would still get yanked). We only auto-navigate when the client was following the
+  // tour — i.e. they were on the previous step's route (or the tour just launched).
+  const prevRouteRef = useRef<string | null>(null)
   useEffect(() => {
-    if (!current) return
-    if (pathname !== current.route) router.push(current.route)
+    if (!current) { prevRouteRef.current = null; return }
+    const wasFollowing = prevRouteRef.current === null || pathname === prevRouteRef.current || pathname === current.route
+    prevRouteRef.current = current.route
+    if (wasFollowing && pathname !== current.route) router.push(current.route)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current?.id, pathname])
+  }, [current?.id])
 
   // Step 2 anti-empty-form: drop an example ICP into the EXISTING kind_icp_prefill
   // key so "New ICP" opens pre-filled. Only when the client has no ICP yet.
@@ -139,11 +156,27 @@ export function OnboardingOrchestrator() {
   if (!active || !current) return null
 
   const handleNext = () => commit(advance(machine!, steps, flags))
-  const handleBack = () => commit(back(machine!, steps))
+  const handleBack = () => commit(back(machine!, steps, flags))
   const handleSkip = () => {
     const next = skipTour(machine!)
     setMachine(next)
     patchProgress({ step: current.id, status: 'skipped', completed: next.completed })
+  }
+
+  // DORMANT (F1): the client has navigated away from this step's page. Don't drag
+  // them back and don't show the scrim/spotlight/popover — show a quiet pill they
+  // can tap to resume (or ✕ to skip). rect is already cleared off-route by the
+  // measure effect, so no stale spotlight lingers on the wrong page.
+  const onRoute = pathname === current.route
+  if (!onRoute) {
+    return (
+      <OnboardingResumePill
+        stepNumber={machine!.index + 1}
+        totalSteps={TOTAL}
+        onResume={() => router.push(current.route)}
+        onSkip={handleSkip}
+      />
+    )
   }
 
   // No rect + fallback 'center'/'wait' → centered popover, full scrim, no spotlight.

@@ -10,9 +10,10 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Play, GraduationCap, Check } from 'lucide-react'
+import { Play, GraduationCap, Check, RotateCcw } from 'lucide-react'
 import { ONBOARDING_VIDEOS, youtubeThumbnail, type OnboardingVideo } from '@/lib/onboarding-videos'
 import { VideoPlayerModal } from './VideoPlayerModal'
+import { useOnboarding } from './OnboardingProvider'
 
 const BRAND = '#7C3AED'
 const WATCHED_KEY = 'kind_videos_watched'
@@ -25,6 +26,10 @@ function readWatched(): Set<string> {
 export function LearningCentre() {
   const [playing, setPlaying] = useState<OnboardingVideo | null>(null)
   const [watched, setWatched] = useState<Set<string>>(new Set())
+  // F2 — the tour's only permanent re-entry point. startTour() resumes a skipped /
+  // completed tour from its remembered step (see OnboardingProvider), so a client who
+  // hit "Skip tour" is never locked out. Always present, regardless of tour status.
+  const { startTour } = useOnboarding()
 
   useEffect(() => { setWatched(readWatched()) }, [])
 
@@ -47,9 +52,17 @@ export function LearningCentre() {
           </div>
           <h2 className="font-semibold text-[#1E0A5C] text-sm">Learn with FIGSY</h2>
         </div>
-        {/* View all → for now the Learning Centre IS the full list; anchor kept for a
-            future dedicated page (mobile/full index is Phase 8, out of scope). */}
-        <a href="#learn-with-figsy" className="text-xs text-[#7C3AED] hover:underline">View all videos</a>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={startTour}
+            className="flex items-center gap-1 text-xs font-semibold text-[#7C3AED] hover:underline"
+          >
+            <RotateCcw className="w-3 h-3" /> Restart the guided tour
+          </button>
+          {/* View all → for now the Learning Centre IS the full list; anchor kept for a
+              future dedicated page (mobile/full index is Phase 8, out of scope). */}
+          <a href="#learn-with-figsy" className="text-xs text-[#7C3AED] hover:underline">View all videos</a>
+        </div>
       </div>
 
       <div id="learn-with-figsy" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

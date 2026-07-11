@@ -56,6 +56,34 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 **Load-bearing risks (why parked):** sprint bleed (lines 8–10 open — the 9-Jul reset exists because scope-before-revenue killed momentum) · unit economics (#440/#442 multiply LLM calls per prospect) · autonomous replies = the send-integrity class just hardened (phantom sends/kill-switch/consent) · why-now signals ride PDL spend with quotas #423 still 🔴 · Milla-boundary contradiction.
 
+# ░ 🔀 MILLA &amp; VIDA — TWO-SIDED (spec 2026-07-11 · Milestone X · items #457–#465 · founder go/no-go pending) ░
+> **REFRAME, not additive.** This evolves what "Milla" and "Vida" mean vs the account-level agent definitions above (#2/#3) and touches the locked money model (#420–#431). Recorded here + flagged in KIND-MASTER (which governs strategy conflicts); **awaits founder's go — "we can always say no go."**
+
+## The model
+- **Milla** = the **business side** — the *current* portal, powered by **FIGSY**, with **two lead sources** feeding one pipeline.
+- **Vida** = the **demand side** — a new, free front door where a person/company **states a problem** and gets matched to a business that solves it.
+- **FIGSY** = the shared engine (sourcing, matching, outreach, reasoning).
+- **Why it's powerful:** the demand side is *anyone with a problem* — dentist, photographer, "cut my grass" — so the customer base broadens from B2B-only to any problem-holder. A Vida user is a **free, consented, in-market lead** (the antidote to cold/scraped lists). **Discipline: go deep in ONE vertical before serving all — a matcher that matches everything matches nothing.**
+
+## Decisions (2026-07-11)
+- **Layer onto the existing 50-page portal — no conversation-first rewrite.**
+- **Spec now; build Vida after the first paying Milla client** (no supply to match against before then). Don't stall the sprint.
+- **Billing:** Vida side free always. Milla pays per **accepted** Vida match (premium reveal, existing credit rails, charge-on-accept — a bad match must never auto-charge). FIGSY outbound unchanged ($1 reveal / $3 work). No success-based billing yet.
+- **Honesty guardrail (the 3,341 lesson):** never claim "a database of X problems" until counted live; sell FIGSY (real today), pitch Vida matches as *filling*, not full.
+- **Success metric:** time-to-first-good-match.
+
+## SPEC 1 — Milla (business portal · items #457–#459, #460–#462)
+Three additive, preview-first changes: (1) rename FIGSY surface → "Milla, powered by FIGSY"; (2) new **Overview** home = two engines (FIGSY outbound *current* / Vida inbound *new*) → one pipeline; (3) new **"Vida matches"** bucket in the existing inbox (`leads.source='vida'`, prioritised over cold). Matcher reuses `figsy_knowledge` "pain points solved" as the match key. Vida matches never enter `lead_pool`.
+
+## SPEC 2 — Vida (demand portal · item #463)
+New, free, lightweight front door. **Look &amp; feel locked: Jack &amp; Jill's exact layout in K.I.N.D colours (`#7C3AED`/`#1E0A5C`/`#F5F0FF`), simple, not overworked.** Flow: conversational problem intake → structured brief → small **ranked** set of matches → **consent-gated** connect (intro/quote/call). Housed as a route-group in the existing app (shared auth), not a new app. Cost centre funded by Milla — LLM matching only, no PDL/Hunter enrichment on this side.
+
+## SPEC 3 — Website (item #464)
+Two doors: "Find help — free" (Vida) · "Get matched demand + FIGSY" (business). One-line model: problems meet the right people; matched, consented, **no scraping / no cold-blast** (the differentiator). Business pitch **leads with FIGSY (real today)**, Vida framed as *filling* not full. Vida per-vertical SEO landing pages ("describe your [X] problem") for later demand acquisition. Pricing honest; no fabricated proof.
+
+## SPEC 4 — Admin (item #465)
+Read-only: Vida demand pool by category · match/accept rate · **time-to-first-good-match** (health metric) · "problems we solve" audit per business · Vida→Milla conversion + revenue (real-paying-only, #1073) · consent/audit trail (POPIA/GDPR) · matcher kill-switch.
+
 # ░ WHAT'S BUILT — MOVED ░
 > **🚨 15 Jun — THE WHOLE PRODUCT IS LIVE.** #502 (merged via #564) was a superset of its dev branch — it shipped the Company Engine + design screens 80–91 + **all 20 R-wave features R1–R20** to prod. **PRs #506–#525 are redundant → close, don't merge.** 3 owed prod migrations: R2 `daily_brief_enabled` · R15 `figsy_knowledge` · R20 `job_changed_at`. **Active focus = the FEATURE-VERIFICATION WALK** (LAUNCH-PAD §13) — confirm every live feature works with real data **by THU 18 (founder away Fri 19)**; anything broken drops 🟢→🔴 and gets fixed same-day. **MON 15 closed out:** Company Engine + R1–R20 live · 3 R-train migrations run · Hunter+PDL keys set · 21 redundant PRs closed · Denise $39 · terms docs uploaded.
 > The full Wave 1/2/Tier-3 release tables + Company Engine + shell/staging status live ONLY in **[`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md)**.

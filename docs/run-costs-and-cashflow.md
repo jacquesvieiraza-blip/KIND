@@ -1,7 +1,7 @@
 # K.I.N.D — Run Costs & Cashflow Model
 `Rebuilt clean 10 Jul 2026 — every number ties to code (packages/shared pricing · sourcing-fences rate · stripe bundles) or a verified live provider dashboard. One truth per figure; no stale layers.`
 
-> **HONEST STATUS (10 Jul 2026):** pre-revenue. **0 paying clients.** We are at the **SPRINT** (first paying client). The old May–Jul launch dates were the *anticipated* timeline; the real build ran long, so all forecasts below are **re-based to Month-0 = first paying client**, not calendar months. This doc is the single home for money math — pricing, costs, unit economics, CAC, break-even, growth shape. Strategy → KIND-MASTER · execution → LAUNCH-PAD · future detail → V2-TRACKER.
+> **HONEST STATUS (10 Jul 2026):** pre-revenue. **0 paying clients.** We are at the **SPRINT** (first paying client). The old May–Jul launch dates were the *anticipated* timeline; the real build ran long, so all forecasts below are **re-based to Month-0 = first paying client**, not calendar months. This doc is the single home for money math — pricing, costs, unit economics, CAC, break-even, the **three-scenario cashflow envelope (§8B)**, growth shape. Strategy → KIND-MASTER · execution → LAUNCH-PAD · future detail → V2-TRACKER.
 
 ---
 
@@ -177,6 +177,63 @@ Contribution per conservative client (~$80/mo = ~20 fully-worked leads) ≈ **~$
 **5–10 conservative clients = the machine pays for itself, not yet the founder.** What they really buy: **proof** (real reply/retention numbers + case studies for partners), **calibration** (true LTV), and **pool seeds**. The lever is **spend-per-client, not logo count** — the same 10 clients at the **$160 Growth blend ≈ +$930/mo net**; at $400/mo ≈ +$3,000. Growing a retained client is ~87%-margin revenue at ~$0 CAC.
 
 > **The plan in one line:** land 5–10 GOOD clients (~$340–680 + partner intros) → retain by making FIGSY perform → grow them $80 → $160+ → ~$1k/mo net on ten logos + proof in hand → then 3–5 STRONG partners scale it without touching the cost base.
+
+---
+
+## 8B. THREE-SCENARIO CASHFLOW ENVELOPE — Conservative · Middle · Higher
+
+The rest of this doc uses **one** client shape (~$80/mo). Reality is a **range**. Here's the same business run three ways — cautious · expected · optimistic — all on **one blended product**, so you see the floor and the ceiling, not a single guess. **Same 10 logos, same fixed stack — only client behaviour changes.**
+
+### What "blended product" means
+No client buys pure $1 reveals *or* pure $4 fully-worked leads — they buy a **MIX**. Two dials set it:
+- **Volume** — how many leads they reveal per month (each costs them **$1**).
+- **Work-attach** — of those revealed, what % they let FIGSY work (**+$3 → $4** all-in).
+
+> **Blended $/lead = $1 + ($3 × attach%)** · **Blended $/client = revealed leads × blended $/lead.** That single blended number is what flows through the cashflow below.
+
+### The three blends (the dials → the product)
+| Dial | 🟦 Conservative | 🟩 Middle *(expected)* | 🟪 Higher |
+|---|---|---|---|
+| Revealed leads / client / mo | 20 | 45 | 100 |
+| Work-attach (reveal → $3) | 60% | 78% | 90% |
+| → worked leads ($4 each) | 12 | 35 | 90 |
+| → reveal-only ($1 each) | 8 | 10 | 10 |
+| **Blended $/lead** | **$2.80** | **$3.34** | **$3.70** |
+| **Blended $/client / mo** | **~$56** | **~$150** | **~$370** |
+
+### The cashflow envelope — at the 10-client depth point (§8's anchor)
+*PDL counted as the bought tier (no double-count); variable ex-PDL ≈ $0.23/worked lead + ~$0.05/reveal-only (Hunter + Stripe, amortised on packs).*
+
+| /mo, 10 clients | 🟦 Conservative | 🟩 Middle *(expected)* | 🟪 Higher |
+|---|---|---|---|
+| Revenue | $560 | $1,500 | $3,700 |
+| − Variable COGS (ex-PDL) | −$32 | −$86 | −$212 |
+| − Core fixed + failover (§5) | −$190 | −$190 | −$190 |
+| − PDL tier (§5) | −$98 | −$280 | −$560 |
+| **NET / mo** | **≈ +$240** | **≈ +$945** | **≈ +$2,740** |
+| Margin on revenue | ~43% | ~63% | ~74% |
+
+**Every scenario is net-positive at 10 clients.** The floor (Conservative) still clears **~$240/mo**; the expected case (Middle) clears **~$945**; a power-user book (Higher) clears **~$2,740** — on the *same ten logos and the same fixed stack.* The only thing that moved is how hard each client used FIGSY.
+
+### LTV per scenario (per single retained client)
+*⚠️ 6-month lifetime is a PLANNING guess until line-9 calibration — see §8. CAC ≈ $68 (§7).*
+
+| Per retained client | 🟦 Conservative | 🟩 Middle | 🟪 Higher |
+|---|---|---|---|
+| Contribution / mo (rev − variable) | ~$51 | ~$138 | ~$345 |
+| Payback vs $68 CAC | ~1.3 mo | <1 mo | immediate |
+| 6-mo LTV | ~$306 | ~$828 | ~$2,070 |
+| **LTV : CAC** | **~4.5 : 1** | **~12 : 1** | **~30 : 1** |
+
+All three beat the healthy **3:1** benchmark — even the cautious floor.
+
+### How to read this
+- **🟩 Middle (~$150/client, +$945/mo at ten) is the new expected planning case.** The lone **"$80 conservative client"** used in §6/§8 sits **between Conservative and Middle** — treat those $80-based figures as a **cautious-mid floor**, and Middle as the number to plan against going forward.
+- **🟦 Conservative is the safety net** — if attach and volume both stay low, the machine *still* pays for itself at 10 clients (+$240/mo). It structurally can't go negative once the fences (§10) hold.
+- **🟪 Higher is the shape once retained clients grow.** You won't land many power-users on day 1 — you *grow into* this by making FIGSY perform so clients push the $3 button more often. Moving the book from Middle → Higher is **~$0-CAC, ~74%-margin** revenue.
+- **The three levers that decide which line you land on are unchanged (§11):** ① FIGSY reply-rate (line 9) · ② spend-per-client — *which is exactly the Conservative→Higher axis* · ③ partners. **The pool (§10) lifts all three nets over time** as PDL cost/record collapses toward pennies.
+
+> **One line:** the floor is profitable, the expected case funds the founder conversation at ten logos, and the ceiling is a ~74%-margin machine — all on the same cost base. The work is moving clients *up the blend*, not adding logos.
 
 ---
 

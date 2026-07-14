@@ -8,6 +8,12 @@
 # 🎯 SPRINT — first paying client in 30 days (started 9 Jul)
 **Rule: a line gets on this list ONLY if it blocks the first paying client. A box is done or it isn't — no colours, no percentages. Every PR names its line. Ticking the box IS the doc update.**
 
+> **📍 14 JUL RECONCILED STATE (founder back from sick — full audit run, doc-lint green, 1,318 API tests green).**
+> **Merged while away:** #1070 tour auto-start · #1071 clean slate · #1072 pool move + P&L view fix · #1073 admin revenue honesty · #1074 Milestone X spec. **Open:** #1075 (docs, LinkedIn-login refinement — merge when ready).
+> **Prod facts (counted, not remembered):** clients = **1** (hello@ only) · `lead_pool` = **85 owned Apollo records** (source='apollo', deduped from the 159 lead rows) · FIGSY has really sent **400 emails to 84 UK recipients** (Warmup 255 + SaaS Trial Push 145, all flagged consented, counters honest ±2). ⚠️ **Kill-switch state UNVERIFIED:** the 7-Jul sends imply `AUTO_OUTREACH_ENABLED` was 'true' then (the chokepoint defers without it), which contradicts the 11-Jul "no variable" Railway read — if it IS set and any enrollment is still due, sends can resume on their own. Check it (DO-FIRST ⓪).
+> **🧍 DO FIRST (≈15 min, in order):** ⓪ Railway → @kind/api → Variables → read `AUTO_OUTREACH_ENABLED`; decide ON/OFF **on purpose** (OFF until line 9 is deliberate) · ① run `supabase/migrations/20260717_pool_pnl_exclude_house_demo.sql` in the Supabase editor — kills the phantom **$874** pool revenue · ② `railway up --detach --service "@kind/api"` + `"@kind/admin"` + `"@kind/portal"` (covers #1070/#1071/#1073 — idempotent, safe if some already shipped) · ③ verify: admin Clients reads **"Real Clients — 1"** · Money Path REVENUE OFF THE POOL = **$0** · incognito signup → tour auto-starts · ④ merge #1075.
+> **THEN the week = lines 8a·① → 8b → 8c walk → 9 → 10 below. Nothing else.**
+
 | ✓ | # | Line | Owner |
 |---|---|------|:---:|
 | ✅ | 1 | **Website cut to FIGSY-only** (homepage redesign + all pages rendered #1030/#1031 · auth buttons fixed #1036 · founder walked live 10 Jul) | 🤖 build · 🧍 deploy |
@@ -19,11 +25,11 @@
 | ✅ | 7 | **3 pricing rules ruled** (10 Jul) — reveal $1 charged **once per lead EVER** · work $3 charged **per campaign enrollment** · trial mix **20 reveal + 5 work** · **kill subscription machinery** (keep FIGSY entitlement rows) → builds #424/#425/#431 | 🧍 (3 lines) |
 | ⬜ | 8a | **BUILD the money machine COMPLETE** (founder-ruled 10 Jul: all of it ships BEFORE the walkthrough) — 4 sub-steps below, tick each as it lands | 🤖 build · 🧍 buy+merge+deploy |
 | ⬜ | 8a·① | 🧍 **Buy PDL credits** ($280 / 1,000 records) — the ONE thing money can't route around; everything else queues behind it | 🧍 |
-| 🟡 | 8a·② | **PR2 — portal onboarding + reveal push** #447 (first-run checklist · two-wallet explainer · FIGSY nudge · score-forward masked cards · "reveal 1 → unlock 2" · day-0 email CTA · kill Apollo copy) — **BUILT, in PR #1057 (integrated), gates green → Fable-verify → PREVIEW → founder walks → merge → `railway up @kind/portal`** | 🤖 build · 🧍 walk+ship |
-| 🟡 | 8a·③ | **PR3 — admin Money Path** #448 **+ lead_pool & per-record P&L** (#449 parts 1–2) — **BUILT, in PR #1057** → Fable-verify → merge → migration → `railway up @kind/api`+`@kind/admin` | 🤖 · 🧍 ship |
-| 🟡 | 8a·④ | **PR4 — pool-first sourcing = cross-client reuse** (#449 part 3) — **BUILT, in PR #1057** (needs the #448 `lead_pool` migration first) → Fable-verify → merge → `railway up @kind/api` | 🤖 · 🧍 ship |
+| ✅ | 8a·② | **PR2 — portal onboarding + reveal push** #447 — **MERGED (#1057) + live**; founder walk happens inside line 8b | 🤖 done · 🧍 walk in 8b |
+| ✅ | 8a·③ | **PR3 — admin Money Path** #448 **+ lead_pool & per-record P&L** (#449 parts 1–2) — **MERGED (#1057) + live** (founder used the page 11 Jul; pool = 85 owned Apollo). One owed SQL: the `20260717` P&L view fix (14-Jul DO-FIRST ①) | 🤖 done |
+| ✅ | 8a·④ | **PR4 — pool-first sourcing = cross-client reuse** (#449 part 3) — **MERGED (#1057) + live**; pool-serve proven when the 85 Apollo records serve a matching ICP at $0 (part of 8b) | 🤖 done |
 | ⬜ | 8b | **THEN one real end-to-end walkthrough** — ICP → source (pool-first) → reveal $1 (+2 drip) → enroll $3 → sequence sends → reply → every wallet + ledger moves right — founder walks it once, top to bottom. *Carried from 10 Jul: signup fixed #1047 · sourcing zero root-caused #444 · **money fences #445/#446 LIVE + battle-proven** (granted 10 → PDL empty → auto-refunded $0 lost, first live run)* | 🤝 |
-| ⬜ | 8c | **GUIDED ONBOARDING TOUR** #454 (founder-ruled INTO the sprint 10 Jul: "a client needs this before we onboard anyone or demo — self-serve product") — a real next→next→next popup tour that FOLLOWS the client across screens: Welcome → Create ICP → Run → Review leads → **Reveal $1 (honest, balance shown)** → Select → Enrol $3 → Review sequence → Launch; + "keep FIGSY funded → billing" triggered prompt; + first-login video & permanent "Learn with FIGSY" section. Replaces the 3 dead legacy widgets. Spec = `docs/onboarding-tour-buildplan.md`. **Core (Phases 0–4) is the sprint scope; video/analytics/a11y (6–8) queue post-line-10.** Preview-first. | 🤖 build · 🧍 walk+ship |
+| ⬜ | 8c | **GUIDED ONBOARDING TOUR** #454 — **CORE MERGED** (#1062 tour · #1063 F1–F4 fixes · #1064 V2-home · #1065/#1066 video thumbnails · #1070 auto-start); box ticks when the founder deploys portal (14-Jul DO-FIRST ②) + walks it as a fresh signup. (founder-ruled INTO the sprint 10 Jul: "a client needs this before we onboard anyone or demo — self-serve product") — a real next→next→next popup tour that FOLLOWS the client across screens: Welcome → Create ICP → Run → Review leads → **Reveal $1 (honest, balance shown)** → Select → Enrol $3 → Review sequence → Launch; + "keep FIGSY funded → billing" triggered prompt; + first-login video & permanent "Learn with FIGSY" section. Replaces the 3 dead legacy widgets. Spec = `docs/onboarding-tour-buildplan.md`. **Core (Phases 0–4) is the sprint scope; video/analytics/a11y (6–8) queue post-line-10.** Preview-first. | 🤖 build · 🧍 walk+ship |
 | ⬜ | 9 | **FIGSY runs OUR outreach** — its own first campaign (it is its own case study); this IS acquisition channel ① (CAC ~$56–79/client, cashflow §5e) | 🤝 |
 | ⬜ | 10 | **First paying client** | 🧍 sells · FIGSY works |
 | ⬜ | 11 | **DATA-ENGINE WIDENING — queued, fires the moment line 10 ticks** (founder-ruled 10 Jul: critical, first-after-sprint — not sprint-blocking, so it queues here rather than jumping the line-10 gate) — **#452 more discovery engines** beyond PDL (Apollo free/BYOK · Cognism · aggregator per item-243 research) · **#451 Clearbit executed + reveal waterfall ENFORCED end-to-end** (PDL→Hunter→Clearbit) · **#450 free-Apollo-key merge** switched on | 🤖 build · 🧍 keys |
@@ -34,7 +40,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢91 · 🩷116 · 🟣1 · 🟡22 · 🔴234 · ⏸5 · **Σ469** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷120 · 🟣1 · 🟡18 · 🔴235 · ⏸5 · **Σ469** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

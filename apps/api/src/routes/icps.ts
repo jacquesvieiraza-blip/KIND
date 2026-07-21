@@ -16,6 +16,33 @@ import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { splitPoolAndRemainder , poolWriteAllowed} from '../lib/pool-sourcing'
+import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
+
+// PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
+// produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
+// must never break the run itself, so it swallows errors (the run already happened).
+async function recordRunOutcome(
+  icpId: string,
+  clientId: string,
+  status: RunStatus,
+  recordsRequested: number,
+  poolServed: number,
+  totalInserted: number,
+): Promise<void> {
+  try {
+    await db.from('icp_run_outcomes').insert({
+      icp_id: icpId,
+      client_id: clientId,
+      status,
+      records_requested: Math.max(0, Math.round(recordsRequested)),
+      pool_served: Math.max(0, Math.round(poolServed)),
+      total_inserted: Math.max(0, Math.round(totalInserted)),
+      message: runOutcomeMessage(status, totalInserted),
+    })
+  } catch (err) {
+    console.error('[icp] recordRunOutcome failed (non-fatal):', err)
+  }
+}
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -307,6 +334,7 @@ export async function runIcpJob(
         // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
         console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
         await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
+        await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
         return { inserted: 0, skipped: 0, relaxed: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).' }
       }
       // Pool already served leads — deliver those; just skip the PDL top-up.
@@ -533,6 +561,14 @@ export async function runIcpJob(
     }
   }
 
+  await recordRunOutcome(
+    icpId,
+    clientId,
+    deriveRunStatus(!!clientSettings?.is_demo, inserted, false),
+    effectiveCap,
+    pool.served,
+    inserted,
+  )
   return { inserted, skipped, relaxed }
 }
 
@@ -910,6 +946,25 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
       success: false,
       error: err instanceof Error ? err.message : 'Failed to start ICP run',
     })
+  }
+})
+
+// ── PR-A: LAST-RUN OUTCOME ─────────────────────────────────────────────────────
+// The client polls this after a run so an empty leads list can show WHY — a temporary
+// sourcing-quota outage (credits untouched) vs a genuinely narrow ICP (widen it) — instead
+// of an indistinguishable spinner-then-nothing. Returns null if the ICP never ran.
+icpRouter.get('/:id/last-run', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data } = await db.from('icp_run_outcomes')
+      .select('status, records_requested, pool_served, total_inserted, message, created_at')
+      .eq('icp_id', req.params.id).eq('client_id', clientId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    res.json({ success: true, data: data ?? null })
+  } catch (err) {
+    console.error('[icps/last-run]', err)
+    res.status(500).json({ success: false, error: 'Failed to load run outcome' })
   }
 })
 

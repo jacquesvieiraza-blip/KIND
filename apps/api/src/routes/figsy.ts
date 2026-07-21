@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, outreachEnabled } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
@@ -1969,6 +1969,22 @@ figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
     if (await isDemoClient(clientId)) {
       console.log(`[demo] prospect send suppressed for client ${clientId} — manual reply to ${reply.from_email} NOT sent (demo).`)
       res.json({ success: true, data: { sent: false, demo: true } })
+      return
+    }
+
+    // #468 — the manual unibox reply is a real prospect send but historically bypassed
+    // BOTH the opt-out blocklist and the kill-switch. Enforce them here so a human click
+    // can't do what the automation is forbidden from doing.
+    // (1) Never email someone who opted out.
+    const { data: blocked } = await db.from('opt_out_blocklist')
+      .select('email').eq('email', reply.from_email).maybeSingle()
+    if (blocked) {
+      res.status(409).json({ success: false, error: 'This contact opted out — you can’t reply to them.' })
+      return
+    }
+    // (2) A founder-deliberate kill-switch OFF must mean OFF, even for a manual reply.
+    if (!outreachEnabled()) {
+      res.status(409).json({ success: false, error: 'Outreach is paused — the kill-switch (AUTO_OUTREACH_ENABLED) is off. Turn it on to send replies.' })
       return
     }
 

@@ -39,6 +39,20 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 ---
 
+# ░ 🆚 ALTA PARITY — the two gaps to a COMPLETE product (21 Jul competitive teardown) ░
+
+> **Context (founder-driven, 21 Jul):** compared K.I.N.D's agents to **Alta** (altahq.com — $25M Series A, ~$15M ARR, Snowflake/Deel/Atlassian). Alta = three coordinated agents on a **unified data layer**: **Katie** (outbound: email + LinkedIn + **phone**, signal-based targeting), **Alex** (inbound qualify **+ AI voice calls** + calendar booking + routing), **Luna** (analytics/ops layer — A/B, pattern detection, **self-optimises** messaging/timing/targeting, connects HubSpot/Salesforce + 50 tools). **The question was not pricing — it was capability completeness.** Verdict: on raw capability Alta wins outright today; our answer is not to out-feature on breadth but to reach *completeness* on our three roles + the shared brain.
+>
+> **Most of parity is already documented** — FIGSY multi-channel (LinkedIn #388) + calendar auto-book (#361, ~90% coded) + signal/why-now (#437) · Vida inbound engine (#429) + knowledge layer (#362) · Milla intelligence (#427) + pgvector (#120) + the Jack&Jill deepening (#437–443). FIGSY even holds Luna-style primitives already (`figsy_memory` learns the winning angle/subject · A/B · auto-pause · Monday digest). **Two capabilities are net-new and NON-OPTIONAL for parity — logged 🔴 in the inventory:**
+
+## #475 — VOICE / AI calling *(the missing channel)*
+Alta's Katie cold-calls and Alex qualifies inbound **by voice**; K.I.N.D has **zero** — Vapi is a stub (#369 webhook fails open, never wired). **Scope:** (a) FIGSY outbound AI voice call as a sequence step/channel; (b) Vida inbound voice qualification. **Needs:** a real Vapi (or equivalent) integration · consent + call-recording compliance (GDPR/POPIA) · a per-minute cost model vs the $4/lead margin (voice minutes can blow the unit economics — model first). A complete 2026 GTM product has a voice channel; ours doesn't.
+
+## #476 — UNIFIED DATA LAYER / shared agent brain *(THE moat)*
+Alta's real strength isn't three agents — it's **one shared data layer**: every signal from Katie/Alex feeds Luna, and Luna re-tunes them automatically. K.I.N.D's FIGSY/Milla/Vida/Denise are **islands** — handoffs are *referenced* (#429) but the shared layer was never designed. **Scope:** one signal/event store every agent reads + writes (leads · replies · calls · intent · outcomes) · **Milla reasons across it** (cross-agent memory, not just uploaded docs — ties #120 pgvector + the #2 "cross-agent memory" gap) · FIGSY/Vida **act** on Milla's signals · a self-optimise loop (angle/timing/targeting) across the whole motion (ties the Jack&Jill #439/#440 learning loop). **This is the single thing that turns three tools into one complete product.** Biggest hole in the docs — design it before claiming "integrated family."
+
+> **Both queue behind the SPRINT (first paying client).** Logged now so completeness is a build path, not a blind spot. Full agent-vs-agent matchup in KIND-MASTER 21-Jul session log.
+
 # ░ 🥷 JACK & JILL STEAL — FIGSY: from workflow-executor to commercial judgment (captured 10 Jul · items #437–#443 · parked behind SPRINT line 10) ░
 
 > **The one lesson:** separate *understanding* from *execution* — understand the seller → the market → each buyer → decide → act → observe → learn. Full founder brief in chat 10 Jul; Fable audited every claim against code the same day.

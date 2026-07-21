@@ -25,7 +25,7 @@ const FROM    = 'K.I.N.D Alerts <hello@get-kind.com>'
 const FOUNDER = process.env.FOUNDER_EMAIL || 'hello@get-kind.com'
 const SLACK   = process.env.SLACK_WEBHOOK_URL || ''
 
-export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api_down' | 'churn_risk' | 'charge_failed' | 'source_down'
+export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api_down' | 'churn_risk' | 'charge_failed' | 'source_down' | 'support_escalation'
 
 export async function sendFounderAlert(kind: AlertKind, subject: string, lines: string[]): Promise<void> {
   const body = lines.filter(Boolean).join('\n')

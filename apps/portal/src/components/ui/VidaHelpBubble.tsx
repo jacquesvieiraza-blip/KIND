@@ -23,8 +23,26 @@ export function VidaHelpBubble() {
   const [open, setOpen]       = useState(false)
   const [input, setInput]     = useState('')
   const [sending, setSending] = useState(false)
+  const [escalating, setEscalating] = useState(false)
   const [msgs, setMsgs]       = useState<Msg[]>([GREETING])
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // PR-D (#377) — escalate to a human. Routes the conversation so far to the founder
+  // (durable founder_alerts row + email/Slack) so a stuck client is never a black hole.
+  async function escalateToHuman() {
+    if (escalating) return
+    setEscalating(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const convo = msgs.filter(m => m.role === 'user').map(m => m.content).join('\n\n')
+        || 'A client asked to speak to a human from the help panel.'
+      await api.post('/support/escalate', { message: convo }, session?.access_token)
+      setMsgs(m => [...m, { role: 'assistant', content: "Done — the founder has been notified and will get back to you by email. You can keep asking me here in the meantime." }])
+    } catch {
+      setMsgs(m => [...m, { role: 'assistant', content: "I couldn't reach the team just now — please email hello@get-kind.com directly and we'll come straight back to you." }])
+    }
+    setEscalating(false)
+  }
 
   useEffect(() => {
     if (open) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
@@ -107,6 +125,15 @@ export function VidaHelpBubble() {
           </div>
 
           <div className="p-2.5 border-t border-purple-100 bg-white shrink-0">
+            {/* PR-D (#377) — escalate to a human when the AI isn't enough */}
+            <button
+              onClick={escalateToHuman}
+              disabled={escalating}
+              className="w-full mb-2 flex items-center justify-center gap-1.5 text-[11px] font-medium text-[#7C3AED] hover:text-[#6D28D9] disabled:opacity-50"
+            >
+              {escalating ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              {escalating ? 'Notifying the team…' : 'Talk to a human →'}
+            </button>
             {/* Voice ("speak") affordance — SHELL; text below stays the fallback (#178) */}
             <div className="mb-2">
               <VoiceControls onUnavailable={handleVoiceUnavailable} />

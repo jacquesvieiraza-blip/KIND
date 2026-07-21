@@ -56,8 +56,8 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 **Load-bearing risks (why parked):** sprint bleed (lines 8–10 open — the 9-Jul reset exists because scope-before-revenue killed momentum) · unit economics (#440/#442 multiply LLM calls per prospect) · autonomous replies = the send-integrity class just hardened (phantom sends/kill-switch/consent) · why-now signals ride PDL spend with quotas #423 still 🔴 · Milla-boundary contradiction.
 
-# ░ 🔀 MILLA &amp; VIDA — TWO-SIDED (spec 2026-07-11 · Milestone X · items #457–#465 · founder go/no-go pending) ░
-> **REFRAME, not additive.** This evolves what "Milla" and "Vida" mean vs the account-level agent definitions above (#2/#3) and touches the locked money model (#420–#431). Recorded here + flagged in KIND-MASTER (which governs strategy conflicts); **awaits founder's go — "we can always say no go."**
+# ░ 🅧 MILLA &amp; VIDA — TWO-SIDED · PARKED / SUPERSEDED (14 Jul) — kept for history ░
+> **🛑 FOUNDER DECIDED AGAINST (14 Jul).** The two-sided "problem marketplace" is **PARKED** — it risked a Checkatrade-style liquidity game + a site rename, off-strategy for a hyper-focused lead product. **Verdict: one product (FIGSY — qualified leads in/out, with a brain); borrow Jack &amp; Jill *ideas* as FIGSY features, not its marketplace *shape*.** Milla → the **Brain add-on** (#427); Vida → the **Inbound-Qualification add-on** (#429, NOT a marketplace); Denise → the **Sales-Action add-on** (#428). Build path → LAUNCH-PAD "THE BUILD PATH". The original two-sided spec is preserved below as history — **do not build.**
 
 ## The model
 - **Milla** = the **business side** — the *current* portal, powered by **FIGSY**, with **two lead sources** feeding one pipeline.
@@ -77,6 +77,14 @@ Three additive, preview-first changes: (1) rename FIGSY surface → "Milla, powe
 
 ## SPEC 2 — Vida (demand portal · item #463)
 New, free, lightweight front door. **Look &amp; feel locked: Jack &amp; Jill's exact layout in K.I.N.D colours (`#7C3AED`/`#1E0A5C`/`#F5F0FF`), simple, not overworked.** Flow: conversational problem intake → structured brief → small **ranked** set of matches → **consent-gated** connect (intro/quote/call). Housed as a route-group in the existing app (shared auth), not a new app. Cost centre funded by Milla — LLM matching only, no PDL/Hunter enrichment on this side.
+
+### Login &amp; profile capture (items #466–#467 · added 12 Jul, fact-checked)
+Founder ask: log in via LinkedIn, capture current company as the onboarding foundation (mirrors Jack &amp; Jill's candidate flow).
+
+- **What's real:** LinkedIn's self-serve login is **"Sign In with LinkedIn using OpenID Connect."** Verified 12 Jul — its scopes (`openid`, `profile`, `email`) return **name, email, profile photo only.** It does **not** return current employer, job title, or work history. That data sits behind LinkedIn's full Profile API, gated by their **Partner Program** — an approval relationship (mostly granted to ATS/HR platforms), not a self-serve integration. **This is a feasibility constraint, not a build task** — there is no guarantee K.I.N.D gets approved, or on what timeline.
+- **What Jack &amp; Jill likely actually does:** LinkedIn login for identity/auth; the company/role detail candidates see in the inbox almost certainly comes from **Jack's own intake conversation** (candidates self-report), not a scrape of the OAuth response.
+- **The persona conflict:** a mandatory LinkedIn-only gate fits the B2B/professional-services slice of Vida (a facilities manager) but works against the **consumer broadening** that's the whole point of Vida (a homeowner who wants their lawn cut has no reason to have a usable LinkedIn profile). Flagged as a genuine contradiction between two ideas from the same session, not resolved by picking one — resolved by scoping LinkedIn correctly (below).
+- **Decision:** **#466** LinkedIn is **one optional login method** (alongside email/Google) for identity/trust — never mandatory, never the only door. **#467** Company/context ("who do you work for / is this for you or your business") is captured **inside the intake conversation** (#463), self-reported — works identically for a business user and a consumer, no external API dependency. **LinkedIn Partner Program access for real company-lookup enrichment stays a separate, PARKED, low-confidence line** — worth applying for, not worth planning around until approved.
 
 ## SPEC 3 — Website (item #464)
 Two doors: "Find help — free" (Vida) · "Get matched demand + FIGSY" (business). One-line model: problems meet the right people; matched, consented, **no scraping / no cold-blast** (the differentiator). Business pitch **leads with FIGSY (real today)**, Vida framed as *filling* not full. Vida per-vertical SEO landing pages ("describe your [X] problem") for later demand acquisition. Pricing honest; no fabricated proof.

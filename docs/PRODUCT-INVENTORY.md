@@ -277,8 +277,9 @@
 # ░ 🔴 NOT BUILT (236) ░
 *Future, in rough build order. Some carry locked designs to build to.*
 
-### ✕ MILESTONE X — Milla &amp; Vida (two-sided) · spec 2026-07-11 · build after 1st paying client · 🤝
-> **REFRAME (founder go/no-go pending — KIND-MASTER 11 Jul).** Evolves the account-level Milla #2 / Vida #3 into a **two-sided model**: **Milla = the business portal** (the *current* portal, powered by FIGSY, two lead sources) · **Vida = a free demand portal** (a person/company states a problem → matched to a business that solves it). Broadens the customer base from B2B-only to **anyone with a problem** (dentist · photographer · "cut my grass"). Touches the locked money model (#420–#431) → not silent; awaits the founder's go. Full spec → V2-TRACKER "MILLA &amp; VIDA — TWO-SIDED". Decision: **layer onto the existing portal (no rewrite); spec now, build Vida after the 1st paying Milla client.**
+### 🅧 PARKED / SUPERSEDED (14 Jul) — Milla &amp; Vida two-sided marketplace · #457–#467
+> **🛑 FOUNDER DECIDED AGAINST (14 Jul, KIND-MASTER).** The two-sided "problem marketplace" model is **PARKED** — Checkatrade-style liquidity risk + would force a site rename, off-strategy for a hyper-focused lead product. Items #457–#467 stay 🔴 as a record; **do not build.** The genuinely-good Jack &amp; Jill *ideas* (agent-advocate voice · "why FIGSY picked this" reasoning · clean inbox) are absorbed into **FIGSY** as features (LAUNCH-PAD BUILD PATH ②). Vida survives only as the **inbound-qualification add-on** (#429), NOT a marketplace. *Original spec below kept for history:*
+> **REFRAME (superseded).** Evolved the account-level Milla #2 / Vida #3 into a **two-sided model**: **Milla = the business portal** (the *current* portal, powered by FIGSY, two lead sources) · **Vida = a free demand portal** (a person/company states a problem → matched to a business that solves it). Broadens the customer base from B2B-only to **anyone with a problem** (dentist · photographer · "cut my grass"). Touches the locked money model (#420–#431) → not silent; awaits the founder's go. Full spec → V2-TRACKER "MILLA &amp; VIDA — TWO-SIDED". Decision: **layer onto the existing portal (no rewrite); spec now, build Vida after the 1st paying Milla client.**
 
 | # | ● | Item | Owner |
 |---|---|------|-------|

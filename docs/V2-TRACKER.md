@@ -56,8 +56,8 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 **Load-bearing risks (why parked):** sprint bleed (lines 8–10 open — the 9-Jul reset exists because scope-before-revenue killed momentum) · unit economics (#440/#442 multiply LLM calls per prospect) · autonomous replies = the send-integrity class just hardened (phantom sends/kill-switch/consent) · why-now signals ride PDL spend with quotas #423 still 🔴 · Milla-boundary contradiction.
 
-# ░ 🔀 MILLA &amp; VIDA — TWO-SIDED (spec 2026-07-11 · Milestone X · items #457–#465 · founder go/no-go pending) ░
-> **REFRAME, not additive.** This evolves what "Milla" and "Vida" mean vs the account-level agent definitions above (#2/#3) and touches the locked money model (#420–#431). Recorded here + flagged in KIND-MASTER (which governs strategy conflicts); **awaits founder's go — "we can always say no go."**
+# ░ 🅧 MILLA &amp; VIDA — TWO-SIDED · PARKED / SUPERSEDED (14 Jul) — kept for history ░
+> **🛑 FOUNDER DECIDED AGAINST (14 Jul).** The two-sided "problem marketplace" is **PARKED** — it risked a Checkatrade-style liquidity game + a site rename, off-strategy for a hyper-focused lead product. **Verdict: one product (FIGSY — qualified leads in/out, with a brain); borrow Jack &amp; Jill *ideas* as FIGSY features, not its marketplace *shape*.** Milla → the **Brain add-on** (#427); Vida → the **Inbound-Qualification add-on** (#429, NOT a marketplace); Denise → the **Sales-Action add-on** (#428). Build path → LAUNCH-PAD "THE BUILD PATH". The original two-sided spec is preserved below as history — **do not build.**
 
 ## The model
 - **Milla** = the **business side** — the *current* portal, powered by **FIGSY**, with **two lead sources** feeding one pipeline.

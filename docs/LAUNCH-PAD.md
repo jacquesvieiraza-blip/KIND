@@ -55,7 +55,34 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 
 ---
 
-# ⓪ MILESTONE 0 — make FIGSY + Lead-Gen *honest → work fully → proven* · the gate to selling · owner 🤖 (you merge+deploy)
+# 🧭 THE BUILD PATH — milestones retired (14 Jul, founder-locked)
+> **One product, one path.** Milestones 0–4 + X are retired as the organizing frame — replaced by this map. Status of record = **PRODUCT-INVENTORY**. The detailed tables further down are kept as **backlog reference**, re-grouped under the buckets here. Strategy for the retirement + the parked marketplace → **KIND-MASTER 14 Jul**.
+
+## ① NOW — THE SPRINT = the MVP *(the only active work)*
+The **SPRINT table at the very top IS the MVP.** Three gates, in order — nothing below starts until they're through:
+- **Money paths proven** (built ✅ — remaining = deploy + walk end-to-end, line 8b) → **② our own outreach** (line 9) → **③ a paying client** (line 10).
+
+## ② THEN — FIGSY = the product *(what we sell: outbound qualified leads, with a brain)*
+Everything here makes the thing we sell better. Build after the first paying client, one at a time:
+- **Reliability hardening** — the Phase-3 fix list below (send-integrity, ledger safety, tenant guards).
+- **Data-engine widening** — more sources beyond PDL (line 11: #452/#451/#450).
+- **Calendar auto-booking** (#361/#368) · **LinkedIn channel** (#388) · **A/B + adaptive send** (#391/#392/#393) · **unibox kill-switch gate** (#468).
+- **The Jack & Jill polish** — agent-advocate voice, "why FIGSY picked this" reasoning per lead, the clean 3-column inbox. *(These are the J&J ideas we keep — as FIGSY features, not a rebrand.)*
+
+## ③ LATER — the paid ADD-ON layers *(a toggle ON a lead — NOT separate products/portals)*
+- **🧠 MILLA — the Brain (+$1/lead)** — turns a qualified lead into an *understood* one (#427).
+- **💼 DENISE — Sales Action (+$1/lead)** — the reply→close motion; FIGSY owns cold→first-reply (#428).
+- **📥 VIDA — Inbound Qualification (+$3/qualified inbound)** — captures + qualifies inbound website/form leads through the same brain (#429). **This is the honest Vida: inbound lead *qualification*, NOT a problem-connector marketplace.**
+
+## 🅧 PARKED — the two-sided marketplace *(decided against 14 Jul)*
+The Milla/Vida two-sided "problem marketplace" (old Milestone X · inventory #457–#467) is **PARKED** — it risked becoming a Checkatrade-style liquidity game and forcing a site rename, off-strategy for a hyper-focused lead product. The 2–3 good Jack & Jill *ideas* live on in FIGSY (②). Not deleted — superseded; revisit only after paid clients prove the core.
+
+## ⚖️ PARALLEL — legal track *(always on, not sprint-blocking)*
+Lawyer/accountant sign-offs (#432–#436 · #410/#413/#414) ride their own track — required before external use, never blocking the build.
+
+---
+
+# 📦 BACKLOG DETAIL — FIGSY honesty + the money machine *(mostly DONE — see BUILD PATH ① · money machine #420–#426 shipped in #1057; Phase-3 fixes → BUILD PATH ②)*
 
 ### 🟡 CRITICAL — LEGAL DOCS (factual fixes done 8 Jul · ⚖️ **still owe your + lawyer/accountant sign-off before external use** · legal is always critical)
 Factual staleness (Apollo→PDL+Hunter, subscriptions→per-lead, REEVE/LENA/OTTO→Denise/Tony) **corrected in-doc**. The judgment calls (new data-rights position, HMRC/DPA/partner-contract wording) were **NOT auto-authored** — they carry review flags in each doc. **Do not use externally until signed off.**
@@ -173,7 +200,7 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 
 ---
 
-# ① MILESTONE 1 — Send OUR OWN outreach · owner 🧍 (build done, only the warm-up clock)
+# 📦 (folded into SPRINT line 9) — our own outreach *(warm-up checklist kept for reference)*
 | Step | Action | Done when |
 |---|---|---|
 | 🛑 GATE | Instantly warm-up ≥90% (#198) — check weekly | ≥90% inbox |
@@ -186,7 +213,7 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 
 ---
 
-# ② MILESTONE 2 — A paying CLIENT runs it · ⏸ BLOCKED on M0
+# 📦 (folded into SPRINT line 10) — a paying client runs it *(dependencies kept for reference)*
 | Item | What it is | Owner |
 |---|---|:---:|
 | #211 🔴 | Smartlead — per-client sending isolation (all clients share one identity today) | 🧍→🤖 |
@@ -197,7 +224,7 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 
 ---
 
-# ③ MILESTONE 3 — Admin cockpit · 🤝 mostly done (13 screens walked 🟢 on 7 Jul)
+# 📦 BACKLOG DETAIL — admin cockpit *(mostly done, 13 screens walked; remainder is post-client polish)*
 | Item | What it is | Owner |
 |---|---|:---:|
 | #291 🩷 | GTM funnel showed 367% — bug fixed (PR #978), re-walk after deploy | 🤝 |
@@ -209,7 +236,7 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 
 ---
 
-# ④ MILESTONE 4 — EVERYTHING ELSE · all non-FIGSY findings · FROZEN until FIGSY ships · owner 🤖 (later)
+# 📦 PARKED BACKLOG — everything non-FIGSY *(frozen until paid clients; account-level agents, subscriptions-to-delete, partner/referral, WhatsApp/voice, integrations, infra)*
 In M0 these are made *honest* (kept, "coming soon"); **here** they're made *real* — one at a time, each proven before the next. Future build detail → V2-TRACKER. **The agents flipped 🔴 OUT OF PLAY in the inventory (Milla #2 · Vida #3 · Denise #4 · agent subs #26 · per-rep unlock #56 · family hub #125 · side-panel #113a · voice #96/#229 · notetaker #81 · Milla-render #248 · Denise seeds #58/#63/#73/#188) live here — code parked, portal-disabled via #406.**
 
 > **🎯 Agent capability specs (founder-locked 9 Jul) — the M/V/D per-lead layer features are 🔴 MILESTONE 0, not here:** #427 (Milla) · #428 (Denise) · #429 (Vida) live in **M0 Phase 2 above** (see the M/V/D LAYER FEATURE SCOPE block); full spec → `V2-TRACKER` → AGENT CAPABILITY SPECS. Only the **account-level agent products** (Milla #2 · Vida #3 · Denise #4 and their listed sub-items) stay parked in this M4 section; the website shows all of it "coming soon" until built.
@@ -267,7 +294,7 @@ In M0 these are made *honest* (kept, "coming soon"); **here** they're made *real
 
 ---
 
-# ✕ MILESTONE X — Milla &amp; Vida (two-sided) · spec-only · build after 1st paying client · 🤝
+# 🅧 PARKED / SUPERSEDED (14 Jul) — Milla &amp; Vida two-sided marketplace *(founder decided against — Checkatrade risk + rename; ideas absorbed into FIGSY per BUILD PATH ②)*
 > **The "X" is the SpaceX-style big swing — the next chapter, parked behind the sprint.** REFRAME of Milla/Vida into a two-sided marketplace: **Milla = the business portal** (current portal + FIGSY, two lead sources: FIGSY outbound *current* + Vida-matched inbound *new*) · **Vida = a free demand portal** where *anyone with a problem* (dentist · photographer · "cut my grass") is matched to a business that solves it. Broadens the customer base from B2B-only to any problem-holder; a Vida user is a free, consented, in-market lead. **Founder go/no-go pending.**
 > **Decisions (11 Jul):** layer onto the existing portal (NO rewrite) · spec now, build Vida after the 1st paying Milla client · Vida free / Milla pays per **accepted** match on the existing reveal rails · deep in ONE vertical first · never claim a "database of problems" until counted live.
 > **Tracked:** inventory **#457–#465** (🔴) · full four-spec detail → **V2-TRACKER** "MILLA &amp; VIDA — TWO-SIDED". **Nothing here starts until the SPRINT (first paying client) lands** — this is the destination, not the next sprint.

@@ -200,27 +200,31 @@ Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: 
 
 ---
 
-# 📦 (folded into SPRINT line 9) — our own outreach *(warm-up checklist kept for reference)*
+# 📦 (folded into SPRINT line 9) — our own outreach = FIGSY RUNS IT (the product IS the channel)
+> **Line 9 means dogfooding: K.I.N.D is a client of its own product.** The checklist to CONFIRM before firing — all inside FIGSY, not Instantly:
 | Step | Action | Done when |
 |---|---|---|
-| 🛑 GATE | Instantly warm-up ≥90% (#198) — check weekly | ≥90% inbox |
-| 1 | Upgrade Instantly plan (≥1,500 send) | plan active |
-| 2 | Import the 1,461 verified list | 0 errors |
-| 3 | Paste 4 emails + footer (`content/our-outreach-us-uk.md`) | Day 0/3/8/10 built |
-| 4 | mail-tester.com (#101) | 10/10 aligned |
-| 5 | Test-send 10–20 | Primary · bounce <2% |
-| 6 | 🚀 FIRE (#127) | running · reply ≥5% d3 |
+| 🛑 GATE | Money-machine walk (8b) proven + `AUTO_OUTREACH_ENABLED` flipped ON **deliberately** | walk done · switch ON |
+| 1 | PDL credits bought (8a·①) + ICP for OUR target market (IT/SaaS per the locked GTM) | credits live · ICP saved |
+| 2 | Domain state honest: gettingkind.com already carried the 400-send warm-up (7 Jul, 0 spam flags known) — set `FIGSY_WARMUP_START`/daily cap so ramp stays gentle | cap set |
+| 3 | Sequence reviewed by you in the portal (FIGSY drafts, you approve the copy once) | copy approved |
+| 4 | mail-tester.com on a test send (#101) | ≥9/10 |
+| 5 | 🚀 Enrol the first batch — FIGSY sources → reveals → works, our own wallets pay the $1/$3 like any client (the case study IS the pitch) | running · watch replies + Outreach Scoreboard (#455/#1069) |
+
+*(Legacy alternative kept for history: the old Instantly manual path — #198 warm-up ≥90%, 1,461-list import, `content/our-outreach-us-uk.md` sequences, #127. Superseded by dogfooding: if FIGSY can't run our outreach, it isn't sellable.)*
 
 ---
 
-# 📦 (folded into SPRINT line 10) — a paying client runs it *(dependencies kept for reference)*
-| Item | What it is | Owner |
-|---|---|:---:|
-| #211 🔴 | Smartlead — per-client sending isolation (all clients share one identity today) | 🧍→🤖 |
-| #28b 🔴 | $60 live money walk — real money through the whole loop, counters reconcile | 🧍 |
-| #212 🔴 | Sequence depth (not client-blocking) | 🤖 |
-| #199 🔴 | Sending monitoring (not client-blocking) | 🤖 |
-*Security + honesty for M2 already shipped 6 Jul (🩷).*
+# 📦 (folded into SPRINT line 10) — a paying client runs it: what to CONFIRM before onboarding client #1
+> The confirm-list for taking real money from a real client:
+| ✓ | Confirm | Why |
+|---|---|---|
+| ⬜ | **#28b — the $60 live money walk**: real card → credits land → reveal $1 → work $3 → counters + ledger reconcile to the cent | the client's money must move exactly like the walk proved |
+| ⬜ | **Demo ready**: a seeded `is_demo` account (#453) walks the full loop at $0 — your pitch environment (showcase re-seed = item 32) | you sell by showing, safely |
+| ⬜ | **Tour walked** (8c): a fresh signup self-onboards without you in the room | self-serve product claim is true |
+| ⬜ | **🧍 DECIDE — #211 Smartlead per-client sending isolation**: today ALL clients send through OUR shared identity. **Acceptable for client #1 or not — your explicit call**: their outreach reputation and ours are shared until #211 ships | the one real risk-acceptance for n=1; ship #211 before client #3+ regardless |
+| — | ~~#212 sequence depth~~ (shipped ≤10 steps) · #199 sending monitoring (not client-blocking, queue post-client) | reference |
+*Security + honesty gates already shipped 6 Jul (🩷).*
 
 ---
 

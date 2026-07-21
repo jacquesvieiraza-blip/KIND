@@ -4,6 +4,7 @@
 > Status of record → **PRODUCT-INVENTORY** · why/history → **KIND-MASTER** · future detail → **V2-TRACKER** · deep audits → **AUDIT-8JUL-DEEP.md** (code) + **AUDIT-8JUL-STALE-SWEEP.md** (docs) · M0 punch-list → **MILESTONE-0-CHECKLIST.md**.
 
 **THE PLAN (reset 9 Jul PM, founder-locked):** **Sell FIGSY. Only FIGSY. Now.** One offer: **$1 the lead (reveal) + $3 FIGSY works it = $4 per qualified lead. No subscriptions, no contracts.** Website + portal are CUT to FIGSY-only — the agent family (Milla · Vida · Denise · Tony) comes **down** (not masked, not "coming soon"); it returns only after **3 months of paid, verified clients**. The UI look & feel does NOT change — we remove surfaces and fix words, no redesign.
+> **↳ 21-Jul amendment (founder-approved):** the **homepage** (only) now carries an honest **K.I.N.D family** section — FIGSY *live* + Vida/Milla *"coming soon"* (real, planned add-ons per THE BUILD PATH). This supersedes the "agents come down" cut **for the homepage family section**; the portal + purchasable surfaces stay FIGSY-only. Homepage rebuilt to the new design (inventory #469, 🟡 → preview → ship).
 
 # 🎯 SPRINT — first paying client in 30 days (started 9 Jul)
 **Rule: a line gets on this list ONLY if it blocks the first paying client. A box is done or it isn't — no colours, no percentages. Every PR names its line. Ticking the box IS the doc update.**
@@ -40,7 +41,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷120 · 🟣1 · 🟡18 · 🔴238 · ⏸5 · **Σ472** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷120 · 🟣1 · 🟡19 · 🔴238 · ⏸5 · **Σ473** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

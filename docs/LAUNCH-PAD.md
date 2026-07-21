@@ -4,7 +4,7 @@
 > Status of record → **PRODUCT-INVENTORY** · why/history → **KIND-MASTER** · future detail → **V2-TRACKER** · deep audits → **AUDIT-8JUL-DEEP.md** (code) + **AUDIT-8JUL-STALE-SWEEP.md** (docs) · M0 punch-list → **MILESTONE-0-CHECKLIST.md**.
 
 **THE PLAN (reset 9 Jul PM, founder-locked):** **Sell FIGSY. Only FIGSY. Now.** One offer: **$1 the lead (reveal) + $3 FIGSY works it = $4 per qualified lead. No subscriptions, no contracts.** Website + portal are CUT to FIGSY-only — the agent family (Milla · Vida · Denise · Tony) comes **down** (not masked, not "coming soon"); it returns only after **3 months of paid, verified clients**. The UI look & feel does NOT change — we remove surfaces and fix words, no redesign.
-> **↳ 21-Jul UPDATE (founder-locked) — this supersedes THE PLAN's "family comes down" framing:** the **freeze is lifted** and the product is now **three agents — FIGSY (priority 1, live) · MILLA (Brain, coming soon) · VIDA (Host/inbound, coming soon)**; Denise + Tony fold into Milla. Docs (PRODUCT-INVENTORY + this doc) **re-grouped by agent** (see THE BUILD PATH below). The **homepage is LIVE** — the honest **K.I.N.D family** section (FIGSY live + Vida/Milla "coming soon", real agent images) shipped via **#1079 merged + `railway up "KIND"` deployed 21 Jul** (inventory #469 → 🩷 live). Portal + purchasable surfaces stay FIGSY-only for now; Milla/Vida return as real builds per the build path, not subscriptions.
+> **↳ 21-Jul UPDATE (founder-locked) — this supersedes THE PLAN's "family comes down" framing:** the **freeze is lifted** and the product is now **three agents — FIGSY (priority 1, live) · MILLA (Brain, coming soon) · VIDA (Host/inbound, coming soon)**; Denise + Tony fold into Milla. Docs (PRODUCT-INVENTORY + this doc) **re-grouped by agent** (see THE BUILD PATH below). The homepage redesign (#1079) went live 21 Jul but was **REVERTED same day** — the founder walked it and rejected it (dropped the Product/Resources/Company nav + full footer, orphaning every other page). **Old homepage restored; #469 back to 🔴** — the redo must keep the new design AND the full nav/footer, preview-first. Portal + purchasable surfaces stay FIGSY-only for now; Milla/Vida return as real builds per the build path, not subscriptions.
 
 # 🎯 SPRINT — first paying client in 30 days (started 9 Jul)
 **Rule: a line gets on this list ONLY if it blocks the first paying client. A box is done or it isn't — no colours, no percentages. Every PR names its line. Ticking the box IS the doc update.**
@@ -42,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷121 · 🟣1 · 🟡18 · 🔴238 · ⏸5 · **Σ473** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷120 · 🟣1 · 🟡18 · 🔴239 · ⏸5 · **Σ473** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked

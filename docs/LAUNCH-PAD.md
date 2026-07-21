@@ -4,12 +4,13 @@
 > Status of record → **PRODUCT-INVENTORY** · why/history → **KIND-MASTER** · future detail → **V2-TRACKER** · deep audits → **AUDIT-8JUL-DEEP.md** (code) + **AUDIT-8JUL-STALE-SWEEP.md** (docs) · M0 punch-list → **MILESTONE-0-CHECKLIST.md**.
 
 **THE PLAN (reset 9 Jul PM, founder-locked):** **Sell FIGSY. Only FIGSY. Now.** One offer: **$1 the lead (reveal) + $3 FIGSY works it = $4 per qualified lead. No subscriptions, no contracts.** Website + portal are CUT to FIGSY-only — the agent family (Milla · Vida · Denise · Tony) comes **down** (not masked, not "coming soon"); it returns only after **3 months of paid, verified clients**. The UI look & feel does NOT change — we remove surfaces and fix words, no redesign.
-> **↳ 21-Jul amendment (founder-approved):** the **homepage** (only) now carries an honest **K.I.N.D family** section — FIGSY *live* + Vida/Milla *"coming soon"* (real, planned add-ons per THE BUILD PATH). This supersedes the "agents come down" cut **for the homepage family section**; the portal + purchasable surfaces stay FIGSY-only. Homepage rebuilt to the new design (inventory #469, 🟡 → preview → ship).
+> **↳ 21-Jul UPDATE (founder-locked) — this supersedes THE PLAN's "family comes down" framing:** the **freeze is lifted** and the product is now **three agents — FIGSY (priority 1, live) · MILLA (Brain, coming soon) · VIDA (Host/inbound, coming soon)**; Denise + Tony fold into Milla. Docs (PRODUCT-INVENTORY + this doc) **re-grouped by agent** (see THE BUILD PATH below). The **homepage is LIVE** — the honest **K.I.N.D family** section (FIGSY live + Vida/Milla "coming soon", real agent images) shipped via **#1079 merged + `railway up "KIND"` deployed 21 Jul** (inventory #469 → 🩷 live). Portal + purchasable surfaces stay FIGSY-only for now; Milla/Vida return as real builds per the build path, not subscriptions.
 
 # 🎯 SPRINT — first paying client in 30 days (started 9 Jul)
 **Rule: a line gets on this list ONLY if it blocks the first paying client. A box is done or it isn't — no colours, no percentages. Every PR names its line. Ticking the box IS the doc update.**
 
-> **📍 14 JUL RECONCILED STATE (founder back from sick — full audit run, doc-lint green, 1,318 API tests green).**
+> **📍 21 JUL — freeze lifted · docs re-grouped by agent · homepage live (#1079).** Full docs-vs-code audit run (4 code-verified passes); doc-lint green. *(Prior 14-Jul snapshot below still stands for the sprint DO-FIRST items — verify they're done before ticking.)*
+> **📍 14 JUL RECONCILED STATE (founder back from sick — full audit run, doc-lint green; API + doc-lint suites green — exact test count unverified, don't quote a number).**
 > **Merged while away:** #1070 tour auto-start · #1071 clean slate · #1072 pool move + P&L view fix · #1073 admin revenue honesty · #1074 Milestone X spec. **Open:** #1075 (docs, LinkedIn-login refinement — merge when ready).
 > **Prod facts (counted, not remembered):** clients = **1** (hello@ only) · `lead_pool` = **85 owned Apollo records** (source='apollo', deduped from the 159 lead rows) · FIGSY has really sent **400 emails to 84 UK recipients** (Warmup 255 + SaaS Trial Push 145, all flagged consented, counters honest ±2). ⚠️ **Kill-switch state UNVERIFIED:** the 7-Jul sends imply `AUTO_OUTREACH_ENABLED` was 'true' then (the chokepoint defers without it), which contradicts the 11-Jul "no variable" Railway read — if it IS set and any enrollment is still due, sends can resume on their own. Check it (DO-FIRST ⓪).
 > **🧍 DO FIRST (≈15 min, in order):** ⓪ Railway → @kind/api → Variables → read `AUTO_OUTREACH_ENABLED`; decide ON/OFF **on purpose** (OFF until line 9 is deliberate) · ① run `supabase/migrations/20260717_pool_pnl_exclude_house_demo.sql` in the Supabase editor — kills the phantom **$874** pool revenue · ② `railway up --detach --service "@kind/api"` + `"@kind/admin"` + `"@kind/portal"` (covers #1070/#1071/#1073 — idempotent, safe if some already shipped) · ③ verify: admin Clients reads **"Real Clients — 1"** · Money Path REVENUE OFF THE POOL = **$0** · incognito signup → tour auto-starts · ④ merge #1075.
@@ -41,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷120 · 🟣1 · 🟡19 · 🔴238 · ⏸5 · **Σ473** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷121 · 🟣1 · 🟡18 · 🔴238 · ⏸5 · **Σ473** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -56,24 +57,41 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 
 ---
 
-# 🧭 THE BUILD PATH — milestones retired (14 Jul, founder-locked)
-> **One product, one path.** Milestones 0–4 + X are retired as the organizing frame — replaced by this map. Status of record = **PRODUCT-INVENTORY**. The detailed tables further down are kept as **backlog reference**, re-grouped under the buckets here. Strategy for the retirement + the parked marketplace → **KIND-MASTER 14 Jul**.
+# 🧭 THE BUILD PATH — by agent (21 Jul, founder-locked · freeze lifted)
+> **One product line, three agents.** Milestones retired 14 Jul; **re-grouped by agent 21 Jul** to match PRODUCT-INVENTORY. **FIGSY is priority 1 — the only thing we sell today.** Milla & Vida are real *coming-soon* agents (code substantially built, not sold). Each agent below = **BUILT vs NEEDED-to-complete**, ordered. Status of record = PRODUCT-INVENTORY (same three agents). Strategy → KIND-MASTER 21 Jul.
 
-## ① NOW — THE SPRINT = the MVP *(the only active work)*
-The **SPRINT table at the very top IS the MVP.** Three gates, in order — nothing below starts until they're through:
-- **Money paths proven** (built ✅ — remaining = deploy + walk end-to-end, line 8b) → **② our own outreach** (line 9) → **③ a paying client** (line 10).
+## ⓪ THE GATE — the SPRINT still comes first
+The **SPRINT table at the very top IS the immediate MVP** and it's all FIGSY: **money paths proven → our own outreach → a paying client** (lines 8b → 9 → 10). Nothing below jumps this gate — the per-agent builds run *after* the first paying client, FIGSY first.
 
-## ② THEN — FIGSY = the product *(what we sell: outbound qualified leads, with a brain)*
-Everything here makes the thing we sell better. Build after the first paying client, one at a time:
-- **Reliability hardening** — the Phase-3 fix list below (send-integrity, ledger safety, tenant guards).
-- **Data-engine widening** — more sources beyond PDL (line 11: #452/#451/#450).
-- **Calendar auto-booking** (#361/#368) · **LinkedIn channel** (#388) · **A/B + adaptive send** (#391/#392/#393) · **unibox kill-switch gate** (#468).
-- **The Jack & Jill polish** — agent-advocate voice, "why FIGSY picked this" reasoning per lead, the clean 3-column inbox. *(These are the J&J ideas we keep — as FIGSY features, not a rebrand.)*
+## ① FIGSY — outbound AI SDR · **priority 1, launch now** · ~75% → competitor-complete
+**BUILT (works end-to-end today):** sourcing (PDL + Hunter) · AI lead scoring · reveal $1 · AI 3-step sequences (grounded, no-fabrication) · sending + warmup ramp + deliverability suite · reply classification (hot/warm/opt-out) · booking **link** · the $1 + $3 = $4 money model.
+**NEEDED to make FIGSY the perfect machine (ordered — the 25% gap):**
+1. **Direct calendar auto-booking (#361/#368)** — *the headline gap.* The Google Calendar integration is **~90% already coded but dormant** (OAuth + Meet-event creation exist; needs the `googleapis` dep + `GOOGLE_*` env, then wire `/calendar/book` into the email CTA). **Replaces the booking link with a real "book straight into your calendar."** Highest leverage, lowest build.
+2. **Working human send-gate / approval queue (#15 · #347)** — currently broken (queries a non-existent table → 500; co-pilot "review" holds nothing back).
+3. **Sequence depth > 3 steps (#212)** — engine hardwired to 3; move to a jsonb step array, enforce the 10-step cap (#426).
+4. **Auto-draft replies on inbound (#403)** — today it's an on-demand *button*; competitor standard drafts automatically on every hot reply.
+5. **Send-integrity hardening (#338 · #354 · #358 · #383)** — phantom/double-send + fake-score guards.
+6. **Data-engine widening (#452/#451/#450)** · **A/B variant auto-generation (#113b)** · **LinkedIn channel (#388)** · **unibox kill-switch gate (#468)**.
+7. **Personalization/intent depth + two-way CRM (#397/#399)** · **Jack & Jill polish** (agent-advocate voice, "why FIGSY picked this" per lead, clean 3-column inbox — J&J *ideas* kept as FIGSY features, not a rebrand).
 
-## ③ LATER — the paid ADD-ON layers *(a toggle ON a lead — NOT separate products/portals)*
-- **🧠 MILLA — the Brain (+$1/lead)** — turns a qualified lead into an *understood* one (#427).
-- **💼 DENISE — Sales Action (+$1/lead)** — the reply→close motion; FIGSY owns cold→first-reply (#428).
-- **📥 VIDA — Inbound Qualification (+$3/qualified inbound)** — captures + qualifies inbound website/form leads through the same brain (#429). **This is the honest Vida: inbound lead *qualification*, NOT a problem-connector marketplace.**
+## ② MILLA — the Brain · **coming soon** · absorbs Denise + Tony
+**BUILT:** real per-client **document-RAG** assistant — mounted, DB-backed, `milla_ask` live (#45). Draft/knowledge endpoints exist.
+**NEEDED to complete v1:**
+1. **Restore the portal entry** (nav removed in the Jul FIGSY-only cut) — no UI door today.
+2. **Real file ingestion** — parse pdf/docx/url (today it only chunks raw pasted text).
+3. **Semantic retrieval** — replace keyword FTS with pgvector embeddings (#120).
+4. **Cross-agent memory** — let Milla read pipeline/lead/campaign data to actually "connect everything" (currently zero).
+5. **Real connectors or cut the claim** — the "HubSpot/Gmail connected" screen is a mock (#395).
+6. **Per-lead intelligence layer (#427)** — the +$1 "understood lead" add-on.
+- **↳ DENISE** (reply→close: objections, proposals, follow-ups) is **built** (mounted backend + AI drafts, #428) and **↳ TONY** (ops/pipeline-hygiene) is **not built** — both **fold into Milla** (founder 21 Jul).
+
+## ③ VIDA — the Host, inbound qualification · **coming soon**
+**BUILT:** functional inbound **website chatbot** — captures + scores visitors + speed-to-lead handoff (creates a scored pipeline lead + hot-lead alert).
+**NEEDED to complete v1:**
+1. **Knowledge layer (#362)** — *the biggest gap.* Wire Milla's RAG (or a client KB) into Vida's replies with a hard "only claim what the KB supports" rule, so it **stops inventing pricing** to a client's customers.
+2. **Real multi-channel** — deliver the claimed WhatsApp channel (today it's web-only) or drop the claim.
+3. **LLM-based intent scoring** — replace the naive keyword hot-lead detection.
+4. **Inbound engine pricing** — $3/qualified inbound + add-ons (#429). *(This is the honest Vida: inbound lead **qualification**, NOT a problem-connector marketplace.)*
 
 ## 🅧 PARKED — the two-sided marketplace *(decided against 14 Jul)*
 The Milla/Vida two-sided "problem marketplace" (old Milestone X · inventory #457–#467) is **PARKED** — it risked becoming a Checkatrade-style liquidity game and forcing a site rename, off-strategy for a hyper-focused lead product. The 2–3 good Jack & Jill *ideas* live on in FIGSY (②). Not deleted — superseded; revisit only after paid clients prove the core.
@@ -102,7 +120,7 @@ Shipped + founder-walked live → **13 items 🟢** in PRODUCT-INVENTORY: **#405
 ⏸ **Held — legal / lawyer track** (not shipped): **#410** (privacy/dpa/terms sub-processor Apollo→PDL+Hunter) · **#413** (Terms §5 rewrite to two-charge) · **#414** (Stripe checkout description) · **#407** (docs Apollo/250M cleanup ledger).
 
 ### STEP 2 — PORTAL up to date (same principle) — 🩷 SHIPPED, pending founder walk (PR #1021, Fable-audited 2 rounds)
-Portal truth sweep live-not-verified → **7 items 🩷** in PRODUCT-INVENTORY: **#406 #385 #384 #412 #395 #396 #399.** Merge order: **#1021 → `railway up @kind/api` + `@kind/portal` → walk → then 🟢.**
+Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: **#385 #384 #412 #395 #396 #399** (21-Jul audit fix: **#406 is still 🔴 — not built**, was wrongly grouped here). Merge order: **#1021 → `railway up @kind/api` + `@kind/portal` → walk → then 🟢.**
 | Item | What it is | Owner |
 |---|---|:---:|
 | #406 🔴 | Portal sweep — every screen: not-real → "coming soon" + grey. **Milla/Vida/Denise/Tony + notetaker greyed; agent subs (#26) unbuyable; billing shows only the two real wallets ($1 reveal · $3 FIGSY) + sells the REVEAL top-up packs ($20/$40/$100 — #420 un-retire). Named sub-rocks: #395 Milla mock "synced" UI · #396 Denise false claims · #399 integrations shell.** | 🤖 |

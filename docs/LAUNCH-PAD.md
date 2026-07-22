@@ -42,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷123 · 🟣1 · 🟡23 · 🔴238 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷134 · 🟣1 · 🟡18 · 🔴232 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -57,50 +57,67 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 
 ---
 
-# 🧭 THE BUILD PATH — by agent (21 Jul, founder-locked · freeze lifted)
-> **One product line, three agents.** Milestones retired 14 Jul; **re-grouped by agent 21 Jul** to match PRODUCT-INVENTORY. **FIGSY is priority 1 — the only thing we sell today.** Milla & Vida are real *coming-soon* agents (code substantially built, not sold). Each agent below = **BUILT vs NEEDED-to-complete**, ordered. Status of record = PRODUCT-INVENTORY (same three agents). Strategy → KIND-MASTER 21 Jul.
+# 🧭 THE ROADMAP — 5 BLOCKS (22 Jul, founder-locked)
+> **The runlist of record.** Tick a box the same session its PR merges (every PR names its block item, e.g. "Block 1.4 — calendar"). **Status of record stays in PRODUCT-INVENTORY** (IDs referenced per row) — these boxes track execution, not status. Per-agent capability detail → V2-TRACKER AGENT CAPABILITY SPECS. Blocks 1–2 = the 8 free days ($0, demo-mode provable); Blocks 3–5 = after payday, founder picks order.
 
 ## ⓪ THE GATE — the SPRINT still comes first
-The **SPRINT table at the very top IS the immediate MVP** and it's all FIGSY: **money paths proven → our own outreach → a paying client** (lines 8b → 9 → 10). Nothing below jumps this gate — the per-agent builds run *after* the first paying client, FIGSY first.
+The SPRINT table at the top IS the immediate MVP. Its money steps (PDL · inboxes · fire outreach) wait for **payday (day 8)**; Blocks 1–2 fill those 8 days with $0 build so payday is go-live, not debugging. **Payday order: ① PDL $98 → ② reactivate Instantly (our outreach inboxes, ~4 wks warm) → ③ buy Smartlead pre-warmed inboxes (clients send day 1, #270 SOP) → ④ money-machine walk to the cent → ⑤ kill-switch ON, cap 20/day.**
 
-## ① FIGSY — outbound AI SDR · **priority 1, launch now** · ~75% → competitor-complete
-**BUILT (works end-to-end today):** sourcing (PDL + Hunter) · AI lead scoring · reveal $1 · AI 3-step sequences (grounded, no-fabrication) · sending + warmup ramp + deliverability suite · reply classification (hot/warm/opt-out) · booking **link** · the $1 + $3 = $4 money model.
-**NEEDED to make FIGSY the perfect machine (ordered — the 25% gap):**
-1. **Direct calendar auto-booking (#361/#368)** — *the headline gap.* The Google Calendar integration is **~90% already coded but dormant** (OAuth + Meet-event creation exist; needs the `googleapis` dep + `GOOGLE_*` env, then wire `/calendar/book` into the email CTA). **Replaces the booking link with a real "book straight into your calendar."** Highest leverage, lowest build.
-2. **Working human send-gate / approval queue (#15 · #347)** — currently broken (queries a non-existent table → 500; co-pilot "review" holds nothing back).
-3. **Sequence depth > 3 steps (#212)** — engine hardwired to 3; move to a jsonb step array, enforce the 10-step cap (#426).
-4. **Auto-draft replies on inbound (#403)** — today it's an on-demand *button*; competitor standard drafts automatically on every hot reply.
-5. **Send-integrity hardening (#338 · #354 · #358 · #383)** — phantom/double-send + fake-score guards.
-6. **Data-engine widening (#452/#451/#450)** · **A/B variant auto-generation (#113b)** · **LinkedIn channel (#388)** · **unibox kill-switch gate (#468)**.
-7. **Personalization/intent depth + two-way CRM (#397/#399)** · **Jack & Jill polish** (agent-advocate voice, "why FIGSY picked this" per lead, clean 3-column inbox — J&J *ideas* kept as FIGSY features, not a rebrand).
+## BLOCK 1 — FIGSY 100% (basic) · days 1–4 + payday
+| ✔ | # | Item | Inventory IDs | Owner | Time |
+|---|---|------|---------------|-------|------|
+| ⬜ | 1.1 | Demo-mode walk — click-by-click full-loop test, free, finds bugs | #453 | 🤝 | Day 1 |
+| ✅ | 1.2 | Docs reconcile — roadmap stamped as runlist + 11 stale dots flipped to code truth | — | 🤖 | Day 1 |
+| ⬜ | 1.3 | Bug sweep (12 fixes) — security, double-sends, fake scores, alerts | #345 #354 #358 #365 #367 #375 #376 #383 #391 #392 #400 #15 | 🤖 | Days 1–2 |
+| ⬜ | 1.4 | Calendar booking — FIGSY books meetings into calendars (the differentiator) | #361 #368 | 🤖 | Days 2–3 |
+| ⬜ | 1.5 | Send engine — per-client Smartlead sending, code staging-proven, dormant till inboxes bought | #211 #270 #271 | 🤖 | Days 3–4 |
+| ⬜ | 1.6 | Discovery paging — kill the ~50-lead ceiling | #366 | 🤖 | Day 4 |
+| ⬜ | 1.7 | Truth docs — Terms §5 · Stripe description · unit economics | #413 #414 #415 | 🤝 | Day 4 |
+| ⬜ | 1.8 | PAYDAY switch-on — PDL + Smartlead pre-warmed + Instantly reactivated + fire outreach | #198 | 🧍 | Day 8 |
 
-**↳ CLIENT-READINESS A–F (21 Jul — 🟡 built + gated, pending Fable verify + merge)** — the block that flips "a client can use it self-serve" from NOT-READY → READY (inventory #470–#474):
-- **A** silent 0-lead sourcing → honest "quota out / widen ICP" banner (PR #1085, migration owed) · **B** out-of-credits on enrol made visible (#1086) · **C** hot replies email the founder (#1087) · **D** support escalation "talk to a human" #377 (#1088) · **E** unibox reply respects blocklist + kill-switch #468 (#1089). *Merge order any; PR-C + PR-D both touch the AlertKind line → the second to merge takes a 1-line keep-both conflict.*
+## BLOCK 2 — MILLA + VIDA 100% (basic) · days 4–8
+| ✔ | # | Item | Inventory IDs | Owner | Time |
+|---|---|------|---------------|-------|------|
+| ⬜ | 2.1 | Milla knowledge — pgvector semantic memory (free) | #120 | 🤖 | Day 4 |
+| ⬜ | 2.2 | Milla layer (+$1) — the locked 10-feature "understood lead" spec | #427 | 🤖 | Days 4–5 |
+| ⬜ | 2.3 | Denise absorbed (+$1) — the locked 12-feature reply→close spec | #428 | 🤖 | Days 5–6 |
+| ⬜ | 2.4 | Brain v1 — shared store all agents write, Milla reads (self-optimise = Block 4.4) | #476 | 🤖 | Day 6 |
+| ⬜ | 2.5 | Vida engine ($3) — the locked 12-feature inbound-qualification spec, live on website chat | #429 | 🤖 | Days 6–7 |
+| ⬜ | 2.6 | Vida knowledge — wired to Milla's memory (stops invented answers) | #362 | 🤖 | Day 7 |
+| ⬜ | 2.7 | WhatsApp code-ready — HMAC + multi-tenant built, waits on Meta | #359 #360 | 🤖 | Day 7 |
+| ⬜ | 2.8 | Meta application filed (free, starts their approval clock) | #128 | 🧍 | Day 7 |
+| ⬜ | 2.9 | Full 3-agent demo walk + Fable verification pass | — | 🤝 | Day 8 |
 
-## ② MILLA — the Brain · **coming soon** · absorbs Denise + Tony
-**BUILT:** real per-client **document-RAG** assistant — mounted, DB-backed, `milla_ask` live (#45). Draft/knowledge endpoints exist.
-**NEEDED to complete v1:**
-1. **Restore the portal entry** (nav removed in the Jul FIGSY-only cut) — no UI door today.
-2. **Real file ingestion** — parse pdf/docx/url (today it only chunks raw pasted text).
-3. **Semantic retrieval** — replace keyword FTS with pgvector embeddings (#120).
-4. **Cross-agent memory** — let Milla read pipeline/lead/campaign data to actually "connect everything" (currently zero).
-5. **Real connectors or cut the claim** — the "HubSpot/Gmail connected" screen is a mock (#395).
-6. **Per-lead intelligence layer (#427)** — the +$1 "understood lead" add-on.
-- **↳ DENISE** (reply→close: objections, proposals, follow-ups) is **built** (mounted backend + AI drafts, #428) and **↳ TONY** (ops/pipeline-hygiene) is **not built** — both **fold into Milla** (founder 21 Jul).
+## BLOCK 3 — FIGSY upgrades · ~2–3 wks after payday
+| ✔ | # | Item | Inventory IDs | Owner | Time |
+|---|---|------|---------------|-------|------|
+| ⬜ | 3.1 | Deliverability 10/10 — warm rig + reputation to inbox-not-spam | #101 #198 | 🤝 | 1 wk |
+| ⬜ | 3.2 | LinkedIn channel — daily touches via PhantomBuster, honest states | #127 #388 | 🤖 | 3 days |
+| ⬜ | 3.3 | Smart sending — adaptive volume, inbox rotation, CRM pull | #140 | 🤖 | 3 days |
+| ⬜ | 3.4 | Lead signals — job changes, hiring, tech stack on lead cards | #79 #247 | 🤖 | 3 days |
+| ⬜ | 3.5 | Self-learning ICP — "narrow your ICP?" suggestions | #156 | 🤖 | 2 days |
+| ⬜ | 3.6 | Visual sequence builder — drag-and-drop UI | #82 #155 | 🤖 | 3 days |
+| ⬜ | 3.7 | Views + fields — score heatmap, timeline, custom fields | #153 #154 | 🤖 | 2 days |
+| ⬜ | 3.8 | Voice calling — FIGSY calls prospects (Vapi $) | #475 #229 | 🤝 | 1 wk |
 
-## ③ VIDA — the Host, inbound qualification · **coming soon**
-**BUILT:** functional inbound **website chatbot** — captures + scores visitors + speed-to-lead handoff (creates a scored pipeline lead + hot-lead alert).
-**NEEDED to complete v1:**
-1. **Knowledge layer (#362)** — *the biggest gap.* Wire Milla's RAG (or a client KB) into Vida's replies with a hard "only claim what the KB supports" rule, so it **stops inventing pricing** to a client's customers.
-2. **Real multi-channel** — deliver the claimed WhatsApp channel (today it's web-only) or drop the claim.
-3. **LLM-based intent scoring** — replace the naive keyword hot-lead detection.
-4. **Inbound engine pricing** — $3/qualified inbound + add-ons (#429). *(This is the honest Vida: inbound lead **qualification**, NOT a problem-connector marketplace.)*
+## BLOCK 4 — MILLA upgrades · ~1–2 wks
+| ✔ | # | Item | Inventory IDs | Owner | Time |
+|---|---|------|---------------|-------|------|
+| ⬜ | 4.1 | Account VA — ask-anything on your docs + weekly brief (parked-M4 Milla, revived) | #2 | 🤖 | 3 days |
+| ⬜ | 4.2 | AI notetaker | #81 | 🤖 | 3 days |
+| ⬜ | 4.3 | Proposals + e-sign | #149 | 🤖 | 3 days |
+| ⬜ | 4.4 | Brain self-optimise — tunes angles/timing across agents (the moat, full) | #476 | 🤖 | 1 wk |
+| ⬜ | 4.5 | Real connectors — HubSpot/Gmail actually connected (kills the #395 mock) | #395 #399 | 🤝 | 1 wk |
 
-## ④ ALTA-PARITY — the two gaps to a COMPLETE product (21 Jul teardown · 🔴 net-new)
-> Competitive teardown vs **Alta** (Katie outbound · Alex inbound · Luna intelligence, on a *unified data layer*). Most of our roadmap already covers parity (calendar #361 · LinkedIn #388 · Milla #427 · Vida #429 · Jack&Jill #437–443). **Two capabilities that DEFINE Alta are absent from every doc and are not optional for parity:**
-- **🔴 #475 — VOICE / AI calling.** Two of Alta's three agents talk on the phone; we have zero (Vapi is a stub, #369). FIGSY outbound voice + Vida inbound voice. A complete 2026 GTM product has a voice channel.
-- **🔴 #476 — UNIFIED DATA LAYER (the moat).** Alta's edge is one shared brain where every agent's signal feeds Luna and Luna re-tunes them. Our four agents are islands. This is the single thing that turns three tools into one complete product — and the biggest hole in the docs.
-> *Full comparison + why "quality over pricing" → the completeness path is in KIND-MASTER 21 Jul + V2-TRACKER "ALTA PARITY". These queue behind the SPRINT (first paying client) — logged now so the gap is a build path, not a blind spot.*
+## BLOCK 5 — VIDA upgrades · ~1–2 wks
+| ✔ | # | Item | Inventory IDs | Owner | Time |
+|---|---|------|---------------|-------|------|
+| ⬜ | 5.1 | WhatsApp live — switch on when Meta approves | #128 #360 | 🤝 | Meta's clock |
+| ⬜ | 5.2 | Voice inbound — Vida answers + qualifies by voice (Vapi $) | #475 #96 | 🤝 | 1 wk |
+| ⬜ | 5.3 | Branching lead-capture forms | #205 | 🤖 | 2 days |
+| ⬜ | 5.4 | Visitor intelligence — de-anonymise site visitors | #165 | 🤖 | 3 days |
+
+> **Deferred by physics/money, not choice:** voice (Vapi $) · WhatsApp live (Meta's clock) · extra discovery engines needing paid keys (#450–#452 ride Block 3). Alta-parity detail → V2-TRACKER.
 
 ## 🅧 PARKED — the two-sided marketplace *(decided against 14 Jul)*
 The Milla/Vida two-sided "problem marketplace" (old Milestone X · inventory #457–#467) is **PARKED** — it risked becoming a Checkatrade-style liquidity game and forcing a site rename, off-strategy for a hyper-focused lead product. The 2–3 good Jack & Jill *ideas* live on in FIGSY (②). Not deleted — superseded; revisit only after paid clients prove the core.
@@ -167,7 +184,7 @@ Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: 
 ## PHASE 3 · RELIABLE — fix FIGSY's own faults so it *works fully*. Each a small **tested** PR. **Do #338 + #339 first.**
 | Item | What it is | Owner |
 |---|---|:---:|
-| #338 🔴 | FIGSY marks an email "sent" even if the send failed — charges $3 for nothing | 🤖 |
+| #338 🩷 | FIGSY marks an email "sent" even if the send failed — charges $3 for nothing | 🤖 |
 | #339 🩷 | The founder alarm can itself fail silently — you'd never know | 🤖 |
 | #346 🔴 | Client can't enter their business knowledge → generic copy (turn the UI on) | 🤖 |
 | #354 🔴 | No guard against sending the same email twice | 🤖 |
@@ -175,13 +192,13 @@ Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: 
 | #366 🔴 | Sourcing stops at ~50 leads (no pagination) *(wording half in Phase 1)* | 🤖 |
 | #358 🔴 | If the AI scorer errors, every lead gets a fake score of 50 | 🤖 |
 | #367 🔴 | If the email-reveal quota runs out, 0 leads deliver with no alert | 🤖 |
-| #347 🔴 | "Approve before send" queue points at the wrong table → dead | 🤖 |
+| #347 🩷 | "Approve before send" queue points at the wrong table → dead | 🤖 |
 | #343 🔴 | Crons run on every server copy → duplicate sends | 🤖 |
-| #344 🔴 | The kill-switch doesn't actually stop the cron sends | 🤖 |
+| #344 🩷 | The kill-switch doesn't actually stop the cron sends | 🤖 |
 | #345 🔴 | A client can pull another client's lookalike data (tenant leak) | 🤖 |
 | #350 🔴 | The `visitor_sessions` table is publicly readable (data leak) | 🤖 |
 | #353 🔴 | "Your trial has ended" email can send repeatedly | 🤖 |
-| #356 🔴 | Consent emails aren't inside the outreach gate | 🤖 |
+| #356 🩷 | Consent emails aren't inside the outreach gate | 🤖 |
 | #363 🔴 | `/admin/seed-leads` can overwrite real client leads | 🤖 |
 | #365 🔴 | A demo endpoint can inject fake KPIs into a client dashboard | 🤖 |
 | #371 🔴 | Welcome/trial credit grants aren't atomic (race → wrong balance) | 🤖 |
@@ -195,7 +212,7 @@ Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: 
 | #400 🔴 | "South-African-sounding name" prompt residue → make it global | 🤖 |
 | #401 🔴 | A few inventory dots were lying → corrected | 🤖 |
 | #402 🔴 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 |
-| #212 🔴 | **⬆ M2→M0 (founder-locked 9 Jul) · SEQUENCE DEPTH — engine sends 3 steps, site sells "up to 10"** — enrollment steps → jsonb array (≤10), stepper walks it + `wait_days`; enforce #426 cap in the builder API. **Full build spec in the #212 inventory row (code-verified file:line).** | 🤖 |
+| #212 🩷 | **⬆ M2→M0 (founder-locked 9 Jul) · SEQUENCE DEPTH — engine sends 3 steps, site sells "up to 10"** — enrollment steps → jsonb array (≤10), stepper walks it + `wait_days`; enforce #426 cap in the builder API. **Full build spec in the #212 inventory row (code-verified file:line).** | 🤖 |
 | #361 🔴 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
 | #368 🔴 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
 | #391 🔴 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |

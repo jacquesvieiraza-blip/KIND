@@ -294,6 +294,20 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         tag: 'hot-reply',
       }).catch(() => {})
 
+      // PR-C — the FOUNDER also needs to know. The client push above is a no-op without
+      // VAPID + a subscribed device, and at n=1 clients a hot reply is the whole game.
+      // Best-effort, fire-and-forget — never blocks or fails the inbound webhook.
+      void (async () => {
+        const { data: c } = await db.from('clients').select('company_name').eq('id', lead.client_id).maybeSingle()
+        const snippet = (body ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
+        await sendFounderAlert('hot_reply', `🔥 Hot reply — ${c?.company_name ?? 'a client'}`, [
+          `Client: ${c?.company_name ?? lead.client_id}`,
+          `From: ${fromEmail}`,
+          `Subject: ${(payload.subject as string) ?? '(none)'}`,
+          snippet ? `Reply: ${snippet}` : '',
+        ])
+      })().catch(() => {})
+
       if (enrollment.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
 
       // F2-2 — push deal/opportunity to client's CRM

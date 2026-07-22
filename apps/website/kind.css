@@ -197,3 +197,34 @@ footer { padding: 64px 48px 40px; }
       padding: 14px 16px; margin: 4px;
       display: flex; align-items: center; justify-content: space-between; gap: 12px;
     }
+
+/* ═══════════ MEGA-MENU DROPDOWNS (22 Jul) — shared by all pages ═══════════ */
+.nav-dropdown.mm { padding: 18px; }
+.mm-head { font-family:'JetBrains Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:#8f8aa0; font-weight:700; margin:0 4px 12px; display:flex; align-items:center; gap:10px; white-space:nowrap; }
+.mm-beta { font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; letter-spacing:.08em; color:#fff; background:#db2777; padding:3px 8px; border-radius:20px; text-transform:uppercase; display:inline-flex; align-items:center; gap:5px; }
+.mm-beta .d { width:5px; height:5px; border-radius:50%; background:#fff; }
+.mm-grid { display:grid; gap:4px; }
+.mm-grid.c2 { grid-template-columns:1fr 1fr; }
+.mm-grid.c2f { grid-template-columns:1fr 1fr 220px; gap:10px; }
+.mm-link { display:flex; align-items:flex-start; gap:11px; padding:10px 11px; border-radius:11px; text-decoration:none; transition:background .15s; }
+.mm-link:hover { background:#f6f3fd; }
+.mm-ic { width:34px; height:34px; border-radius:9px; background:#f6f3fd; display:flex; align-items:center; justify-content:center; flex-shrink:0; color:#7C3AED; }
+.mm-ic.pink { color:#db2777; } .mm-ic.blue { color:#2563eb; }
+.mm-ic svg { width:17px; height:17px; }
+.mm-tt { font-size:13.5px; font-weight:700; color:#0a0a0a; display:flex; align-items:center; gap:6px; line-height:1.3; }
+.mm-ss { font-size:11.5px; color:#6b6478; margin-top:2px; line-height:1.4; }
+.mm-tag { font-family:'JetBrains Mono',monospace; font-size:8.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; padding:2px 6px; border-radius:20px; }
+.mm-tag.live { background:#dcfce7; color:#16a34a; }
+.mm-tag.soon { background:#f3f0fb; color:#7C3AED; }
+.mm-feat { border-radius:13px; padding:16px; color:#fff; display:flex; flex-direction:column; justify-content:flex-end; min-height:170px; background:radial-gradient(120% 120% at 20% 0%, #2a1e48, #0a0a0a); text-decoration:none; }
+.mm-feat .fe { font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:#c4b5fd; font-weight:700; }
+.mm-feat h4 { margin:6px 0 4px; font-size:15px; font-weight:800; line-height:1.2; color:#fff; }
+.mm-feat p { margin:0; font-size:11.5px; color:#c9c3d8; line-height:1.45; }
+.mm-feat .go { margin-top:10px; font-size:12px; font-weight:700; color:#fff; }
+.mm-faces { display:flex; margin-bottom:10px; }
+.mm-faces .f { width:34px; height:34px; border-radius:50%; overflow:hidden; border:2px solid #1a1330; background:#0a0a0a; }
+.mm-faces .f + .f { margin-left:-9px; }
+.mm-faces .f img { width:100%; height:auto; display:block; transform:scale(1.3) translateY(8%); }
+.mm-foot { margin-top:12px; border-top:1px solid #ece7f9; padding-top:10px; display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:#6b6478; padding-left:4px; padding-right:4px; }
+.mm-foot a { color:#7C3AED; font-weight:700; text-decoration:none; }
+.nav-link .mm-new { font-family:'JetBrains Mono',monospace; font-size:8px; font-weight:700; letter-spacing:.06em; color:#fff; background:#db2777; padding:2px 6px; border-radius:20px; margin-left:4px; vertical-align:2px; }

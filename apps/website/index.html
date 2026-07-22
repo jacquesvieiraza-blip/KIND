@@ -1403,7 +1403,9 @@
 <!-- existing page CSS. Nav, footer, auth modal, scripts untouched. -->
 <!-- ============================================================= -->
 <style>
-  .nh{--nh-figsy:#db2777;--nh-purple:#7C3AED;--nh-vida:#2563eb;--nh-ink:#0a0a0a;--nh-muted:#6b6478;--nh-soft:#8f8aa0;--nh-line:#e9e3f7;--nh-mist:#f6f3fd}
+  .nh{--nh-figsy:#db2777;--nh-purple:#7C3AED;--nh-vida:#2563eb;--nh-ink:#0a0a0a;--nh-muted:#6b6478;--nh-soft:#8f8aa0;--nh-line:#e9e3f7;--nh-mist:#f6f3fd;position:relative}
+  .nh-atmo{position:absolute;top:0;left:0;right:0;height:660px;z-index:0;pointer-events:none;opacity:.5;overflow:hidden}
+  .nh-atmo canvas{width:100%;height:100%;display:block}
   .nh *{box-sizing:border-box}
   .nh h1,.nh h2,.nh h3{margin:0;line-height:1.08;letter-spacing:-.02em;text-wrap:balance;font-family:'Outfit',system-ui,sans-serif}
   .nh p{margin:0}
@@ -1414,7 +1416,7 @@
   .nh .nh-btn:hover{background:#6D28D9;transform:translateY(-1px)}
   .nh .nh-btn.ghost{background:transparent;color:var(--nh-ink);border:1.5px solid var(--nh-line)}
 
-  .nh .nh-hero{padding:52px 0 40px;text-align:center}
+  .nh .nh-hero{padding:52px 0 40px;text-align:center;position:relative;z-index:1}
   .nh .nh-hero h1{font-size:clamp(38px,6vw,64px);font-weight:900}
   .nh .nh-hero .nh-sub{max-width:620px;margin:22px auto 0;font-size:19px;color:var(--nh-muted);font-weight:500}
   .nh .nh-cta-row{display:flex;gap:14px;justify-content:center;margin-top:30px;flex-wrap:wrap}
@@ -1527,6 +1529,9 @@
 </style>
 
 <div class="nh">
+
+  <!-- Floating-dot atmosphere (node-canvas; JS already present below) -->
+  <div class="nh-atmo"><canvas id="node-canvas"></canvas></div>
 
   <!-- HERO -->
   <header class="nh-hero nh-wrap">

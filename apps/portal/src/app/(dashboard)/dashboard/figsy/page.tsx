@@ -233,6 +233,7 @@ export default function FigsyPage() {
   const [cloningId, setCloningId] = useState<string | null>(null)
   const [pausingAll, setPausingAll] = useState(false)
   const [mode, setMode] = useState<'autopilot' | 'copilot'>('autopilot')
+  const [switchingMode, setSwitchingMode] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<CampaignTemplate | null>(null)
   const [expandedSettings, setExpandedSettings] = useState<string | null>(null)
@@ -399,7 +400,11 @@ export default function FigsyPage() {
         api.get<{ data: { product: string; status: string }[] }>('/subscriptions', token),
         api.get<{ campaign_intent: boolean; icp_builder: boolean }>('/features'),
       ])
-      setCampaigns(campaignsRes.data ?? [])
+      const loaded = campaignsRes.data ?? []
+      setCampaigns(loaded)
+      // #15 — reflect the real Co-Pilot state: if any campaign holds sends for
+      // review (settings.review_required), the account is in Co-Pilot mode.
+      setMode(loaded.some(c => c.settings?.review_required) ? 'copilot' : 'autopilot')
       setCampaignIntentFlag(featuresRes.campaign_intent ?? false)
       const subs = subsRes.data ?? []
       // Treat a trialing sub as unlocked too — the sidebar gate (isLive) and the
@@ -418,6 +423,34 @@ export default function FigsyPage() {
   }, [supabase])
 
   useEffect(() => { loadCampaigns() }, [loadCampaigns])
+
+  // #15 — the global FIGSY-mode switch. Co-Pilot = hold every email for approval;
+  // Auto-Pilot = send automatically. Writes settings.review_required to ALL the
+  // client's campaigns (the send path reads it and queues drafts instead of sending).
+  async function applyMode(next: 'autopilot' | 'copilot') {
+    if (next === mode || switchingMode) return
+    const review = next === 'copilot'
+    setMode(next)
+    setSwitchingMode(true)
+    // Optimistic: reflect the new mode on the cards immediately.
+    setCampaigns(prev => prev.map(c => ({ ...c, settings: { ...(c.settings ?? {}), review_required: review } })))
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      await Promise.all(campaigns.map(c =>
+        api.patch(`/figsy/campaigns/${c.id}`, { review_required: review }, token)
+      ))
+      toast(review
+        ? 'Co-Pilot on — FIGSY drafts every email and holds it for your approval.'
+        : 'Auto-Pilot on — FIGSY writes and sends automatically.')
+    } catch {
+      // Revert on failure so the toggle never lies about what the server holds.
+      setMode(review ? 'autopilot' : 'copilot')
+      setCampaigns(prev => prev.map(c => ({ ...c, settings: { ...(c.settings ?? {}), review_required: !review } })))
+      toast('Could not switch mode — please try again.')
+    }
+    setSwitchingMode(false)
+  }
 
 
   async function loadReplies(campaignId: string) {
@@ -716,8 +749,10 @@ export default function FigsyPage() {
             <p className="text-xs font-semibold text-[#9B8EC4] uppercase tracking-wider mb-2">FIGSY Mode</p>
             <div className="flex gap-2 flex-wrap">
               <button
-                onClick={() => setMode('autopilot')}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                type="button"
+                onClick={() => applyMode('autopilot')}
+                disabled={switchingMode}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all disabled:opacity-60 ${
                   mode === 'autopilot'
                     ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-md shadow-purple-200'
                     : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
@@ -726,24 +761,31 @@ export default function FigsyPage() {
                 <Zap className="w-4 h-4" />
                 Auto-Pilot
               </button>
-              {/* Co-Pilot (draft-and-approve-before-send) is not wired yet — the
-                  send scheduler doesn't gate on it. Shown as an honest "coming
-                  soon" so we never promise an approval step that isn't enforced. */}
+              {/* #15 — Co-Pilot is now real: settings.review_required is enforced by
+                  the send path (drafts queue into figsy_approval_queue instead of
+                  sending). Toggling here writes it to every campaign. */}
               <button
                 type="button"
-                disabled
-                title="Co-Pilot (approve before send) is coming soon"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border bg-white text-gray-400 border-purple-100/60 cursor-not-allowed"
+                onClick={() => applyMode('copilot')}
+                disabled={switchingMode}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all disabled:opacity-60 ${
+                  mode === 'copilot'
+                    ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-md shadow-purple-200'
+                    : 'bg-white text-gray-600 border-purple-100/80 hover:border-gray-300'
+                }`}
               >
                 <Users className="w-4 h-4" />
                 Co-Pilot
-                <span className="ml-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
               </button>
             </div>
           </div>
           <div className="flex-1 text-sm text-[#7B6FA0] leading-relaxed">
-            <p>FIGSY runs fully on your behalf — writing emails, enrolling leads, and following up automatically. No approval needed.</p>
-            <p className="mt-1.5 text-xs text-[#9B8EC4]">Co-Pilot — draft every message for your approval before it sends — is coming soon.</p>
+            {mode === 'copilot' ? (
+              <p><b className="text-[#7C3AED]">Co-Pilot is on.</b> FIGSY drafts every email and holds it under <b>Pending Approvals</b> on each campaign — nothing sends until you click Approve.</p>
+            ) : (
+              <p>FIGSY runs fully on your behalf — writing emails, enrolling leads, and following up automatically. No approval needed.</p>
+            )}
+            <p className="mt-1.5 text-xs text-[#9B8EC4]">Switch to Co-Pilot to review and approve every message before it sends.</p>
           </div>
         </div>
       </div>
@@ -1140,13 +1182,30 @@ export default function FigsyPage() {
                         </div>
                       </div>
 
-                      {/* W12 — Co-pilot / review-before-send toggle HIDDEN (#268, 2 Jul).
-                         The gate was a FALSE PROMISE: no send/enroll path reads
-                         `review_required`, and `figsy_approval_queue` has approve/reject
-                         routes but ZERO producers — so nothing ever queued for review and
-                         mail auto-sent regardless. Hidden (state plumbing kept) until the
-                         approval queue is actually wired, so no client is told outreach
-                         holds for approval when it doesn't. */}
+                      {/* W12 — Co-Pilot / review-before-send, per campaign. #15 (Jul):
+                         the gate is now REAL — the send path queues drafts into
+                         figsy_approval_queue instead of sending when this is on. */}
+                      <div>
+                        <label className="flex items-center justify-between gap-3 cursor-pointer">
+                          <span>
+                            <span className="block text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+                              <Users className="w-3 h-3" /> Review before send (Co-Pilot)
+                            </span>
+                            <span className="block text-[11px] text-[#9B8EC4] mt-0.5">
+                              FIGSY drafts each email and holds it under Pending Approvals — nothing sends until you approve.
+                            </span>
+                          </span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={campaignSettings.review_required ?? false}
+                            onClick={() => setCampaignSettings(s => ({ ...s, review_required: !(s.review_required ?? false) }))}
+                            className={`relative shrink-0 w-11 h-6 rounded-full transition-colors ${campaignSettings.review_required ? 'bg-[#7C3AED]' : 'bg-gray-300'}`}
+                          >
+                            <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${campaignSettings.review_required ? 'translate-x-5' : ''}`} />
+                          </button>
+                        </label>
+                      </div>
 
                       {/* P0-14 — AI Model selector */}
                       <div>

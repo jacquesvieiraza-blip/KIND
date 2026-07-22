@@ -195,7 +195,12 @@ async function performBooking(params: {
 }
 
 // ── CONNECT ───────────────────────────────────────────────────────────────────
-// GET /calendar/connect — Auth required. Redirects to Google OAuth.
+// GET /calendar/connect — Auth required. Returns the Google OAuth consent URL as
+// JSON; the portal fetches this WITH the bearer token, then navigates the browser
+// to the returned URL. (It used to res.redirect() — dead on arrival, because the
+// portal linked here with a plain <a href>, and a top-level browser navigation
+// carries no Authorization header → requireAuth 401'd "Missing auth token" for
+// every client, so calendar connect never worked from the UI.)
 calendarRouter.get('/connect', requireAuth, async (req: AuthRequest, res) => {
   if (!isGoogleConfigured()) {
     res.status(503).json({ success: false, error: 'Google Calendar integration is not configured.' })
@@ -207,7 +212,7 @@ calendarRouter.get('/connect', requireAuth, async (req: AuthRequest, res) => {
 
     // #368 — signed, short-lived CSRF state (was raw base64(clientId)).
     const url = await getAuthUrl(signOAuthState(clientId))
-    res.redirect(url)
+    res.json({ success: true, url })
   } catch (err) {
     console.error('[calendar/connect]', err)
     res.status(500).json({ success: false, error: 'Failed to generate OAuth URL' })

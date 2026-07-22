@@ -358,6 +358,26 @@ export default function SettingsPage() {
   const [bookingSaving, setBookingSaving]           = useState(false)
   const [bookingSaved, setBookingSaved]             = useState(false)
   const [bookingError, setBookingError]             = useState<string | null>(null)
+  const [calConnecting, setCalConnecting]           = useState(false)
+  const [calConnectError, setCalConnectError]       = useState<string | null>(null)
+
+  // #361b — start the Google OAuth flow. The API endpoint requires the bearer
+  // token, so this MUST be an authenticated fetch that returns the consent URL,
+  // then a browser navigation to it. (A plain <a href> to the API can't carry
+  // the Authorization header — that shipped 401 "Missing auth token" for everyone.)
+  async function handleConnectCalendar() {
+    setCalConnecting(true)
+    setCalConnectError(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await api.get<{ success: boolean; url?: string; error?: string }>('/calendar/connect', session?.access_token)
+      if (res.url) { window.location.href = res.url; return }
+      setCalConnectError(res.error ?? 'Could not start Google connect — please try again.')
+    } catch (err) {
+      setCalConnectError(err instanceof Error ? err.message : 'Could not start Google connect — please try again.')
+    }
+    setCalConnecting(false)
+  }
   const [showCrmKey, setShowCrmKey]                 = useState(false)
   const [unsavedProfile, setUnsavedProfile]         = useState(false)
   const [unsavedCrm, setUnsavedCrm]                 = useState(false)
@@ -848,12 +868,17 @@ export default function SettingsPage() {
             Connected as <span className="font-medium">{calendarStatus.email}</span>
           </div>
         ) : (
-          <a
-            href={`${process.env.NEXT_PUBLIC_API_URL ?? 'https://kindapi-production-e64c.up.railway.app'}/calendar/connect`}
-            className="inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors"
-          >
-            <Calendar className="w-4 h-4" /> Connect Google Calendar
-          </a>
+          <div>
+            <button
+              type="button"
+              onClick={handleConnectCalendar}
+              disabled={calConnecting}
+              className="inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-medium rounded-lg px-5 py-2.5 text-sm transition-colors disabled:opacity-60"
+            >
+              <Calendar className="w-4 h-4" /> {calConnecting ? 'Opening Google…' : 'Connect Google Calendar'}
+            </button>
+            {calConnectError && <p className="mt-2 text-xs text-red-600">{calConnectError}</p>}
+          </div>
         )}
 
         {/* Booking link — for clients who don't use Google Calendar (Calendly, etc.) */}

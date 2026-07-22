@@ -94,7 +94,7 @@ function stripJson(text: string): string {
   return text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim()
 }
 
-interface Lead {
+export interface Lead {
   id: string
   client_id?: string | null
   first_name: string
@@ -480,6 +480,14 @@ export function enrollmentStep(
   return { subject, body, wait_days: STEP_FOLLOWUP_DELAYS[stepNum] ?? 4, total: 3 }
 }
 
+// #15 — the send path now reports its outcome so callers (the approval-queue producer,
+// especially) never have to GUESS whether mail actually left. 'sent' = it went out;
+// 'queued' = held for human review (co-pilot mode); 'deferred' = a retryable skip
+// (kill-switch off, cap reached, no Resend key, lost the atomic claim); 'suppressed' =
+// a permanent no-send (demo / do-not-contact / opted-out); 'failed' = Resend rejected.
+// Existing callers that ignore the return value keep compiling unchanged.
+export type SendOutcome = 'sent' | 'queued' | 'deferred' | 'suppressed' | 'failed'
+
 export async function sendSequenceEmail(
   enrollmentId: string,
   lead: Lead,
@@ -487,8 +495,8 @@ export async function sendSequenceEmail(
   subject: string,
   body: string,
   campaignId: string,
-  opts?: { totalSteps?: number; waitDaysNext?: number; isPreview?: boolean },
-): Promise<void> {
+  opts?: { totalSteps?: number; waitDaysNext?: number; isPreview?: boolean; skipReview?: boolean },
+): Promise<SendOutcome> {
   if (!lead.email) throw new Error('Lead has no email')
 
   // #344 (AR-07) — KILL-SWITCH. If auto-outreach is off, DEFER (no send, no state
@@ -497,7 +505,7 @@ export async function sendSequenceEmail(
   // inbox, so it bypasses the switch.
   if (!opts?.isPreview && !outreachEnabled()) {
     console.warn(`[figsy] sendSequenceEmail: AUTO_OUTREACH_ENABLED != true — step ${step} to ${lead.email} DEFERRED (kill-switch off).`)
-    return
+    return 'deferred'
   }
 
   // #453 — DEMO BACKSTOP (safety-critical). This is the single chokepoint every real
@@ -522,7 +530,7 @@ export async function sendSequenceEmail(
       if (enrollmentId) {
         await db.from('figsy_enrollments').update({ next_send_at: null }).eq('id', enrollmentId).then(() => {}, () => {})
       }
-      return
+      return 'suppressed'
     }
   }
 
@@ -530,7 +538,7 @@ export async function sendSequenceEmail(
   // employer, no matter how this lead got enrolled.
   if (isSuppressed({ email: lead.email, company: lead.company })) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the do-not-contact list — step ${step} NOT sent.`)
-    return
+    return 'suppressed'
   }
 
   // POPIA safety net — never send to an opted-out address, no matter which path
@@ -543,21 +551,73 @@ export async function sendSequenceEmail(
   if (blocked) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
     await db.from('figsy_enrollments').update({ status: 'opted_out' }).eq('id', enrollmentId)
-    return
+    return 'suppressed'
+  }
+
+  // #15 (AR / co-pilot) — HUMAN-IN-THE-LOOP REVIEW GATE. If the campaign is in co-pilot
+  // mode (settings.review_required = true) this step does NOT auto-send: it enqueues a
+  // pending draft into figsy_approval_queue and PAUSES the enrollment (next_send_at=null)
+  // so the cron stops re-picking it. The client approves in the portal, and the approve
+  // endpoint re-enters this function with opts.skipReview=true to run the SAME charged,
+  // logged, atomically-claimed send the auto path would have. Runs AFTER the permanent
+  // "never contact" gates (kill-switch / demo / do-not-contact / opt-out) so a suppressed
+  // lead is never queued, and BEFORE the caps + atomic claim (those are send-time concerns
+  // the approval re-entry re-checks). Skipped for the preview/test path and the re-entry.
+  if (!opts?.isPreview && !opts?.skipReview) {
+    const { data: camp } = await db.from('figsy_campaigns')
+      .select('settings').eq('id', campaignId).maybeSingle()
+    const reviewRequired = (camp?.settings as { review_required?: boolean } | null)?.review_required === true
+    if (reviewRequired) {
+      // Resolve client_id (approval_queue.client_id is NOT NULL). Prefer the lead's own;
+      // fall back to the enrollment's for a client-less caller (defence-in-depth).
+      let queueClientId: string | null | undefined = lead.client_id
+      if (!queueClientId && enrollmentId) {
+        const { data: enr } = await db.from('figsy_enrollments').select('client_id').eq('id', enrollmentId).maybeSingle()
+        queueClientId = (enr?.client_id as string | null | undefined) ?? null
+      }
+      // Don't pile up duplicate drafts if this enrollment-step is already pending review.
+      const { data: dupe } = await db.from('figsy_approval_queue')
+        .select('id').eq('enrollment_id', enrollmentId).eq('sequence_step', step).eq('status', 'pending').maybeSingle()
+      if (!dupe) {
+        const { error: qErr } = await db.from('figsy_approval_queue').insert({
+          client_id:      queueClientId,
+          campaign_id:    campaignId,
+          enrollment_id:  enrollmentId,
+          lead_id:        lead.id,
+          sequence_step:  step,
+          to_email:       lead.email,
+          subject,
+          body,
+          status:         'pending',
+          total_steps:    opts?.totalSteps ?? null,
+          wait_days_next: opts?.waitDaysNext ?? null,
+        })
+        if (qErr) {
+          // FAIL-CLOSED: could not queue → do NOT send and do NOT pause (leave the
+          // enrollment due so a later cron retries the queue). Never send unreviewed.
+          console.error(`[figsy] sendSequenceEmail: review-queue insert FAILED for enrollment ${enrollmentId} step ${step} — not sending (fail-closed)`, qErr.message)
+          return 'deferred'
+        }
+      }
+      // Pause the enrollment while it waits for the human. The approve path re-arms + sends.
+      await db.from('figsy_enrollments').update({ next_send_at: null }).eq('id', enrollmentId)
+      console.log(`[figsy] sendSequenceEmail: step ${step} for enrollment ${enrollmentId} QUEUED for human review (co-pilot) — not sent.`)
+      return 'queued'
+    }
   }
 
   // WARMUP cap — if today's cold quota is used up, DEFER (don't advance state, no
   // record inserted → enrollment stays due and retries on the next cron run).
   if (await coldCapReached()) {
     console.warn(`[figsy] sendSequenceEmail: daily cold-send cap reached — step ${step} to ${lead.email} deferred to next run.`)
-    return
+    return 'deferred'
   }
 
   // PER-CLIENT cap (T3) — defer if THIS client has hit their own daily limit, even if
   // the global cap has room (fairness). Same defer semantics: enrollment stays due.
   if (await perClientCapReached(lead.client_id)) {
     console.warn(`[figsy] sendSequenceEmail: per-client daily cap reached for client ${lead.client_id} — step ${step} to ${lead.email} deferred.`)
-    return
+    return 'deferred'
   }
 
   // #311 — if Resend isn't configured, DEFER: do not record a "sent" row and do not
@@ -568,7 +628,7 @@ export async function sendSequenceEmail(
   // Deferring leaves the enrollment due; the next cron retries once the key is restored.
   if (!resend) {
     console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} to ${lead.email} DEFERRED (no send, no row, no state change).`)
-    return
+    return 'deferred'
   }
 
   // #354 (AR-16) — ATOMIC STEP CLAIM. Before sending, move the enrollment from step-1
@@ -586,7 +646,7 @@ export async function sendSequenceEmail(
       .maybeSingle()
     if (!claimed) {
       console.warn(`[figsy] sendSequenceEmail: step ${step} for enrollment ${enrollmentId} already claimed/advanced — skipping (no double-send)`)
-      return
+      return 'deferred'
     }
   }
 
@@ -651,7 +711,7 @@ export async function sendSequenceEmail(
         `Resend error: ${checked.error instanceof Error ? checked.error.message : JSON.stringify(checked.error)}`,
         `The enrollment stays due and will retry on the next send run.`,
       ])
-      return
+      return 'failed'
     }
     messageId = checked.id ?? undefined
 
@@ -714,6 +774,8 @@ export async function sendSequenceEmail(
       }
     }
   }
+
+  return 'sent'
 }
 
 // #310/#332 — charge 1 FIGSY credit for one enrollment, FAIL-CLOSED. The

@@ -232,3 +232,7 @@ footer { padding: 64px 48px 40px; }
 /* face-image icon inside a mega-menu item (22 Jul — agents in Product) */
 .mm-ic.face { padding:0; overflow:hidden; background:#0a0a0a; }
 .mm-ic.face img { width:100%; height:auto; display:block; transform:scale(1.32) translateY(8%); }
+
+/* Nexus nav mark (N logo + wordmark, replaces the old "Brain" text link) */
+.nav-link.nav-nexus{display:inline-flex;align-items:center;gap:6px}
+.nexus-nav-logo{height:20px;width:auto;display:block;flex-shrink:0}

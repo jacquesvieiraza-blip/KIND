@@ -462,7 +462,8 @@ export default function LeadsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [runningIcp, setRunningIcp] = useState(false)
-  const [runResult, setRunResult] = useState<{ inserted: number; relaxed: string | null } | null>(null)
+  // PR-A — the honest outcome of the last run (why an empty list is empty).
+  const [runResult, setRunResult] = useState<{ status: string; message: string; total_inserted: number } | null>(null)
 
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkSending, setBulkSending] = useState(false)
@@ -727,6 +728,14 @@ export default function LeadsPage() {
       setTimeout(() => fetchData(tok), 8000)
       setTimeout(() => fetchData(tok), 20000)
       setTimeout(() => fetchData(tok), 40000)
+      // PR-A — after the run has had time to finish, read WHY it produced what it did so
+      // an empty list explains itself (quota outage vs narrow ICP) instead of a dead spinner.
+      setTimeout(async () => {
+        try {
+          const res = await api.get<{ success: boolean; data: { status: string; message: string; total_inserted: number } | null }>(`/icps/${activeIcp.id}/last-run`, tok)
+          if (res?.data) setRunResult(res.data)
+        } catch { /* non-fatal — the banner just won't show */ }
+      }, 42000)
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to start ICP run — please try again', 'error')
     }
@@ -937,6 +946,21 @@ export default function LeadsPage() {
 
       {/* Thinking panel — shows what FIGSY is doing while sourcing (V2, gated) */}
       {v2Enabled('thinking') && runningIcp && <FigsyThinking />}
+
+      {/* PR-A — honest last-run outcome. A run that produced no leads explains itself:
+          a temporary sourcing-quota outage (credits safe) vs a genuinely narrow ICP. */}
+      {runResult && (runResult.status === 'quota_exhausted' || runResult.status === 'no_match') && (
+        <div
+          role="status"
+          className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
+            runResult.status === 'quota_exhausted'
+              ? 'border-amber-200 bg-amber-50 text-amber-800'
+              : 'border-gray-200 bg-gray-50 text-gray-700'
+          }`}
+        >
+          {runResult.message}
+        </div>
+      )}
 
       {/* C1 + C3 — Active ICP surfaced above People (V2, gated) */}
       {v2Enabled('leads') && (icps.find(i => i.is_active) ?? icps[0]) && (

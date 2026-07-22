@@ -524,12 +524,17 @@ export default function CampaignDetailPage() {
     if (!token) return
     setEnrolling(true)
     try {
-      const res = await api.post<{ data: { enrolled: number; skipped: number; insufficient_credits?: boolean } }>(
+      const res = await api.post<{ data: { enrolled: number; requested?: number; skipped: number; insufficient_credits?: boolean } }>(
         `/figsy/campaigns/${id}/enroll-consented`, {}, token
       )
-      // #454 — real out-of-FIGSY-credits event → friendly "keep FIGSY funded" nudge.
-      if (res.data.insufficient_credits) notifyCreditNudge('figsy-empty')
-      showToast(`Enrolled ${res.data.enrolled} leads — sequences generating now`)
+      // PR-B/#454 — out-of-FIGSY-credits is now surfaced honestly, not silently 0.
+      if (res.data.insufficient_credits) {
+        notifyCreditNudge('figsy-empty')
+        const req = res.data.requested ?? res.data.enrolled
+        showToast(`Enrolled ${res.data.enrolled} of ${req} — FIGSY credits ran out. Top up to enrol the rest.`, 'error')
+      } else {
+        showToast(`Enrolled ${res.data.enrolled} leads — sequences generating now`)
+      }
       const updated = await api.get<{ data: Campaign }>(`/figsy/campaigns/${id}`, token)
       setCampaign(updated.data)
     } catch (err) {

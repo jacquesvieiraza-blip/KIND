@@ -5,6 +5,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, outreachEnabled } from '../lib/figsy'
 import type { Lead, SendOutcome } from '../lib/figsy'
+import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
@@ -506,7 +507,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
     const appliedSequence = ((campaign.settings as { sequence?: SequenceStep[] } | null)?.sequence) ?? undefined
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
+      .select('company_name, industry, booking_url, calendar_booking_enabled').eq('id', clientId).maybeSingle()
     const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
     const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
@@ -558,7 +559,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
       let didCharge = false
       try {
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrlForLead(client, lead.id, clientId), senderName, clientKnowledge)
 
         // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
         const fullSteps = appliedSequence
@@ -1522,7 +1523,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
     const appliedSequence = ((campaign.settings as { sequence?: SequenceStep[] } | null)?.sequence) ?? undefined
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
+      .select('company_name, industry, booking_url, calendar_booking_enabled').eq('id', clientId).maybeSingle()
     // P-a: configurable sign-off name (guarded — null if column missing pre-migration).
     const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
     const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
@@ -1576,7 +1577,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
       try {
         // Item 187 — applied sequence's literal copy if present, else AI-generated.
         const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrlForLead(client, lead.id, clientId), senderName, clientKnowledge)
 
         // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
         const fullSteps = appliedSequence
@@ -1646,12 +1647,12 @@ figsyRouter.post('/campaigns/:id/preview-sequence', async (req: AuthRequest, res
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
     const { data: client } = await db.from('clients')
-      .select('company_name, industry, booking_url').eq('id', clientId).maybeSingle()
+      .select('company_name, industry, booking_url, calendar_booking_enabled').eq('id', clientId).maybeSingle()
     const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()
     const senderName: string | null = (clientSigner?.signer_name as string | null) ?? null
 
     const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
-    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, client?.booking_url ?? null, senderName, clientKnowledge)
+    const draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrlForLead(client, lead.id, clientId), senderName, clientKnowledge)
     res.json({ success: true, data: draft })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

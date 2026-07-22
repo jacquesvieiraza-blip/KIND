@@ -24,10 +24,12 @@ function createOAuth2Client(google: any) {
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
 }
 
-export async function getAuthUrl(clientId: string): Promise<string> {
+// #368 — `state` is now an HMAC-signed token minted by the caller (booking-token.ts),
+// NOT raw base64(clientId). Google echoes it back verbatim to /callback where it is
+// verified. This function just threads it into the consent URL.
+export async function getAuthUrl(state: string): Promise<string> {
   const google = await loadGoogle()
   const oauth2Client = createOAuth2Client(google)
-  const state = Buffer.from(clientId).toString('base64')
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     prompt:      'consent',
@@ -70,6 +72,32 @@ export async function getCalendarClient(accessToken: string, refreshToken: strin
   return oauth2Client
 }
 
+// The weekday (0=Sun..6=Sat) and hour (0..23) of an absolute instant AS SEEN in a given
+// IANA timezone — via Intl, so no tz library is pulled in. This is how business hours are
+// computed in the CLIENT's calendar timezone instead of the server's UTC (a Railway box
+// in UTC would otherwise offer a Cape Town client 3am slots).
+function zonedWeekdayHour(date: Date, timeZone: string): { weekday: number; hour: number } {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone, weekday: 'short', hour: 'numeric', hour12: false,
+  }).formatToParts(date)
+  const wd = parts.find(p => p.type === 'weekday')?.value ?? 'Sun'
+  let hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10)
+  if (hour === 24) hour = 0 // Intl can emit "24" for midnight in some locales
+  const map: Record<string, number> = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }
+  return { weekday: map[wd] ?? 0, hour }
+}
+
+// The calendar's own configured timezone (falls back to UTC). Business hours are drawn
+// in this zone so slots land in the client's real working day.
+async function getPrimaryTimeZone(calendar: { calendars: { get: (a: unknown) => Promise<{ data?: { timeZone?: string | null } }> } }): Promise<string> {
+  try {
+    const { data } = await calendar.calendars.get({ calendarId: 'primary' })
+    return data?.timeZone ?? 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}
+
 export async function getAvailableSlots(
   accessToken: string,
   refreshToken: string,
@@ -78,6 +106,8 @@ export async function getAvailableSlots(
   const google = await loadGoogle()
   const auth     = await getCalendarClient(accessToken, refreshToken)
   const calendar = google.calendar({ version: 'v3', auth })
+
+  const timeZone = await getPrimaryTimeZone(calendar)
 
   const timeMin = new Date()
   timeMin.setMinutes(Math.ceil(timeMin.getMinutes() / 30) * 30, 0, 0)
@@ -102,9 +132,9 @@ export async function getAvailableSlots(
   const slots: Array<{ start: string; end: string }> = []
   const cursor = new Date(timeMin)
   while (cursor < timeMax) {
-    const day = cursor.getDay()
-    const hour = cursor.getHours()
-    if (day >= 1 && day <= 5 && hour >= 9 && hour < 17) {
+    // Weekday + hour AS SEEN in the calendar's timezone → 9–17 Mon–Fri, local.
+    const { weekday, hour } = zonedWeekdayHour(cursor, timeZone)
+    if (weekday >= 1 && weekday <= 5 && hour >= 9 && hour < 17) {
       const slotStart = cursor.getTime()
       const slotEnd   = slotStart + 30 * 60 * 1000
       if (!busyRanges.some(b => slotStart < b.end && slotEnd > b.start)) {
@@ -114,6 +144,38 @@ export async function getAvailableSlots(
     cursor.setTime(cursor.getTime() + 30 * 60 * 1000)
   }
   return slots
+}
+
+// Race guard for the public booking path: re-check that a chosen slot is still free
+// immediately before creating the event (the slot list a prospect sees can be seconds
+// stale). True = the [start,end) window has no busy overlap on the primary calendar.
+export async function isSlotFree(
+  accessToken:  string,
+  refreshToken: string,
+  start:        string,
+  end:          string,
+): Promise<boolean> {
+  const google = await loadGoogle()
+  const auth     = await getCalendarClient(accessToken, refreshToken)
+  const calendar = google.calendar({ version: 'v3', auth })
+  const { data } = await calendar.freebusy.query({
+    requestBody: { timeMin: start, timeMax: end, items: [{ id: 'primary' }] },
+  })
+  const busy = (data.calendars?.['primary']?.busy ?? []) as Array<{ start?: string | null; end?: string | null }>
+  const s = new Date(start).getTime()
+  const e = new Date(end).getTime()
+  return !busy.some(b => b.start && b.end && s < new Date(b.end).getTime() && e > new Date(b.start).getTime())
+}
+
+// Classify a thrown Google error as an AUTH failure (revoked/expired refresh token) vs a
+// transient one. Only an auth failure should flip calendar_booking_enabled off — a network
+// blip must not disconnect a working calendar.
+export function isGoogleAuthError(err: unknown): boolean {
+  const e = err as { response?: { status?: number }; code?: number | string; message?: string } | undefined
+  const status = e?.response?.status ?? (typeof e?.code === 'number' ? e.code : undefined)
+  if (status === 401 || status === 403) return true
+  const msg = (e?.message ?? '').toLowerCase()
+  return msg.includes('invalid_grant') || msg.includes('invalid credentials') || msg.includes('no refresh token')
 }
 
 export async function createMeeting(params: {

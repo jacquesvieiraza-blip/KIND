@@ -8,6 +8,7 @@ import { sendFounderAlert } from './alerts'
 import { interpretSend } from './resend-checked'
 import { isDemoClient } from './demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
+import { bookingUrlForLead } from './booking-token'
 import {
   COLD_FROM,
   COLD_REPLY_TO,
@@ -1169,9 +1170,12 @@ export async function generateSequenceWithMemory(
   }
   const { data: memory } = memoryResult
 
-  // Client booking link to offer leads (FIGSY's whole job is booking meetings).
-  const { data: clientBooking } = await db.from('clients').select('booking_url').eq('id', clientId).maybeSingle()
-  const bookingUrl: string | null = (clientBooking?.booking_url as string | null) ?? null
+  // Client booking link to offer leads (FIGSY's whole job is booking meetings). #361b —
+  // when the client has connected Google Calendar, this is the per-lead tokenised page
+  // (FIGSY books straight into their calendar); otherwise their static booking_url.
+  const { data: clientBooking } = await db.from('clients')
+    .select('booking_url, calendar_booking_enabled').eq('id', clientId).maybeSingle()
+  const bookingUrl: string | null = bookingUrlForLead(clientBooking as { booking_url?: string | null; calendar_booking_enabled?: boolean | null } | null, lead.id, clientId)
   // P-a: configurable sign-off name. Separate guarded select so a missing column
   // (pre-migration) returns null rather than breaking the booking_url read above.
   const { data: clientSigner } = await db.from('clients').select('signer_name').eq('id', clientId).maybeSingle()

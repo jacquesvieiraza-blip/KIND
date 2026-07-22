@@ -42,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷146 · 🟣1 · 🟡18 · 🔴220 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷148 · 🟣1 · 🟡18 · 🔴218 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -69,7 +69,7 @@ The SPRINT table at the top IS the immediate MVP. Its money steps (PDL · inboxe
 | ⬜ | 1.1 | Demo-mode walk — click-by-click full-loop test, free, finds bugs | #453 | 🤝 | Day 1 |
 | ✅ | 1.2 | Docs reconcile — roadmap stamped as runlist + 11 stale dots flipped to code truth | — | 🤖 | Day 1 |
 | ✅ | 1.3 | Bug sweep (12 fixes) — 11 were already fixed in code (verified line-by-line); #15 co-pilot review gate built + Fable-verified + shipped | #345 #354 #358 #365 #367 #375 #376 #383 #391 #392 #400 #15 | 🤖 | Days 1–2 |
-| ⬜ | 1.4 | Calendar booking — FIGSY books meetings into calendars (the differentiator) | #361 #368 | 🤖 | Days 2–3 |
+| ✅ | 1.4 | Calendar booking — prospect self-serve booking page + CSRF fix built + Fable-verified + merged (🧍 walk needs Google OAuth creds on @kind/api) | #361 #368 | 🤖 | Days 2–3 |
 | ⬜ | 1.5 | Send engine — per-client Smartlead sending, code staging-proven, dormant till inboxes bought | #211 #270 #271 | 🤖 | Days 3–4 |
 | ⬜ | 1.6 | Discovery paging — kill the ~50-lead ceiling | #366 | 🤖 | Day 4 |
 | ⬜ | 1.7 | Truth docs — Terms §5 · Stripe description · unit economics | #413 #414 #415 | 🤝 | Day 4 |
@@ -213,8 +213,8 @@ Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: 
 | #401 🔴 | A few inventory dots were lying → corrected | 🤖 |
 | #402 🔴 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 |
 | #212 🩷 | **⬆ M2→M0 (founder-locked 9 Jul) · SEQUENCE DEPTH — engine sends 3 steps, site sells "up to 10"** — enrollment steps → jsonb array (≤10), stepper walks it + `wait_days`; enforce #426 cap in the builder API. **Full build spec in the #212 inventory row (code-verified file:line).** | 🤖 |
-| #361 🔴 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
-| #368 🔴 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
+| #361 🩷 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
+| #368 🩷 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
 | #391 🩷 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |
 | #392 🩷 | ⛰️ *pulled in 9 Jul* — A/B "winner" resolves on ZERO data if tracking unset → wrong copy auto-wins the send path | 🤖 |
 | #375 🩷 | ⛰️ *pulled in 9 Jul* — self-outreach charges + cold-emails **placeholder addresses** → phantom charges + spam-trap risk to OUR sending reputation | 🤖 |

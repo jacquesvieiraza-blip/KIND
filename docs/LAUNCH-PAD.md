@@ -42,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷123 · 🟣1 · 🟡23 · 🔴236 · ⏸5 · **Σ478** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷123 · 🟣1 · 🟡23 · 🔴238 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -95,6 +95,12 @@ The **SPRINT table at the very top IS the immediate MVP** and it's all FIGSY: **
 2. **Real multi-channel** — deliver the claimed WhatsApp channel (today it's web-only) or drop the claim.
 3. **LLM-based intent scoring** — replace the naive keyword hot-lead detection.
 4. **Inbound engine pricing** — $3/qualified inbound + add-ons (#429). *(This is the honest Vida: inbound lead **qualification**, NOT a problem-connector marketplace.)*
+
+## ④ ALTA-PARITY — the two gaps to a COMPLETE product (21 Jul teardown · 🔴 net-new)
+> Competitive teardown vs **Alta** (Katie outbound · Alex inbound · Luna intelligence, on a *unified data layer*). Most of our roadmap already covers parity (calendar #361 · LinkedIn #388 · Milla #427 · Vida #429 · Jack&Jill #437–443). **Two capabilities that DEFINE Alta are absent from every doc and are not optional for parity:**
+- **🔴 #475 — VOICE / AI calling.** Two of Alta's three agents talk on the phone; we have zero (Vapi is a stub, #369). FIGSY outbound voice + Vida inbound voice. A complete 2026 GTM product has a voice channel.
+- **🔴 #476 — UNIFIED DATA LAYER (the moat).** Alta's edge is one shared brain where every agent's signal feeds Luna and Luna re-tunes them. Our four agents are islands. This is the single thing that turns three tools into one complete product — and the biggest hole in the docs.
+> *Full comparison + why "quality over pricing" → the completeness path is in KIND-MASTER 21 Jul + V2-TRACKER "ALTA PARITY". These queue behind the SPRINT (first paying client) — logged now so the gap is a build path, not a blind spot.*
 
 ## 🅧 PARKED — the two-sided marketplace *(decided against 14 Jul)*
 The Milla/Vida two-sided "problem marketplace" (old Milestone X · inventory #457–#467) is **PARKED** — it risked becoming a Checkatrade-style liquidity game and forcing a site rename, off-strategy for a hyper-focused lead product. The 2–3 good Jack & Jill *ideas* live on in FIGSY (②). Not deleted — superseded; revisit only after paid clients prove the core.

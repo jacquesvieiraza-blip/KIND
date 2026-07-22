@@ -42,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷134 · 🟣1 · 🟡18 · 🔴232 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷146 · 🟣1 · 🟡18 · 🔴220 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -68,7 +68,7 @@ The SPRINT table at the top IS the immediate MVP. Its money steps (PDL · inboxe
 |---|---|------|---------------|-------|------|
 | ⬜ | 1.1 | Demo-mode walk — click-by-click full-loop test, free, finds bugs | #453 | 🤝 | Day 1 |
 | ✅ | 1.2 | Docs reconcile — roadmap stamped as runlist + 11 stale dots flipped to code truth | — | 🤖 | Day 1 |
-| ⬜ | 1.3 | Bug sweep (12 fixes) — security, double-sends, fake scores, alerts | #345 #354 #358 #365 #367 #375 #376 #383 #391 #392 #400 #15 | 🤖 | Days 1–2 |
+| ✅ | 1.3 | Bug sweep (12 fixes) — 11 were already fixed in code (verified line-by-line); #15 co-pilot review gate built + Fable-verified + shipped | #345 #354 #358 #365 #367 #375 #376 #383 #391 #392 #400 #15 | 🤖 | Days 1–2 |
 | ⬜ | 1.4 | Calendar booking — FIGSY books meetings into calendars (the differentiator) | #361 #368 | 🤖 | Days 2–3 |
 | ⬜ | 1.5 | Send engine — per-client Smartlead sending, code staging-proven, dormant till inboxes bought | #211 #270 #271 | 🤖 | Days 3–4 |
 | ⬜ | 1.6 | Discovery paging — kill the ~50-lead ceiling | #366 | 🤖 | Day 4 |
@@ -187,37 +187,37 @@ Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: 
 | #338 🩷 | FIGSY marks an email "sent" even if the send failed — charges $3 for nothing | 🤖 |
 | #339 🩷 | The founder alarm can itself fail silently — you'd never know | 🤖 |
 | #346 🔴 | Client can't enter their business knowledge → generic copy (turn the UI on) | 🤖 |
-| #354 🔴 | No guard against sending the same email twice | 🤖 |
+| #354 🩷 | No guard against sending the same email twice | 🤖 |
 | #349 🔴 | ~140 money writes don't check for failure → the ledger can silently drift | 🤖 |
 | #366 🔴 | Sourcing stops at ~50 leads (no pagination) *(wording half in Phase 1)* | 🤖 |
-| #358 🔴 | If the AI scorer errors, every lead gets a fake score of 50 | 🤖 |
-| #367 🔴 | If the email-reveal quota runs out, 0 leads deliver with no alert | 🤖 |
+| #358 🩷 | If the AI scorer errors, every lead gets a fake score of 50 | 🤖 |
+| #367 🩷 | If the email-reveal quota runs out, 0 leads deliver with no alert | 🤖 |
 | #347 🩷 | "Approve before send" queue points at the wrong table → dead | 🤖 |
 | #343 🔴 | Crons run on every server copy → duplicate sends | 🤖 |
 | #344 🩷 | The kill-switch doesn't actually stop the cron sends | 🤖 |
-| #345 🔴 | A client can pull another client's lookalike data (tenant leak) | 🤖 |
+| #345 🩷 | A client can pull another client's lookalike data (tenant leak) | 🤖 |
 | #350 🔴 | The `visitor_sessions` table is publicly readable (data leak) | 🤖 |
 | #353 🔴 | "Your trial has ended" email can send repeatedly | 🤖 |
 | #356 🩷 | Consent emails aren't inside the outreach gate | 🤖 |
 | #363 🔴 | `/admin/seed-leads` can overwrite real client leads | 🤖 |
-| #365 🔴 | A demo endpoint can inject fake KPIs into a client dashboard | 🤖 |
+| #365 🩷 | A demo endpoint can inject fake KPIs into a client dashboard | 🤖 |
 | #371 🔴 | Welcome/trial credit grants aren't atomic (race → wrong balance) | 🤖 |
 | #373 🔴 | Missing uniqueness constraints on FIGSY tables in prod | 🤖 |
 | #374 🔴 | Intent-signal auto-enroll can drain the wallet unbounded *(ties #423)* | 🤖 |
-| #376 🔴 | Delivery can overdraw credits (decrement not checked) *(→ superseded by #421)* | 🤖 |
+| #376 🩷 | Delivery can overdraw credits (decrement not checked) *(→ superseded by #421)* | 🤖 |
 | #379 🩷 | A Stripe refund path returns 500 instead of clawing credits back | 🤖 |
-| #383 🔴 | Missing DB function to count FIGSY emails sent | 🤖 |
+| #383 🩷 | Missing DB function to count FIGSY emails sent | 🤖 |
 | #389 🔴 | No migration runner (prod schema is hand-pasted) — risky | 🤖 |
 | #390 🔴 | No dead-letter/retry table — failures just vanish | 🤖 |
-| #400 🔴 | "South-African-sounding name" prompt residue → make it global | 🤖 |
+| #400 🩷 | "South-African-sounding name" prompt residue → make it global | 🤖 |
 | #401 🔴 | A few inventory dots were lying → corrected | 🤖 |
 | #402 🔴 | Small auth nits (team role unvalidated, seat enumeration) | 🤖 |
 | #212 🩷 | **⬆ M2→M0 (founder-locked 9 Jul) · SEQUENCE DEPTH — engine sends 3 steps, site sells "up to 10"** — enrollment steps → jsonb array (≤10), stepper walks it + `wait_days`; enforce #426 cap in the builder API. **Full build spec in the #212 inventory row (code-verified file:line).** | 🤖 |
 | #361 🔴 | **DIFFERENTIATOR — FIGSY books the meeting into your calendar** (founder-locked M4→M0): install googleapis + prospect-facing booking page. *#361a interim = booking-link "Launching"* | 🤝 |
 | #368 🔴 | Calendar OAuth security (HMAC-sign state) — ships with #361 | 🤖 |
-| #391 🔴 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |
-| #392 🔴 | ⛰️ *pulled in 9 Jul* — A/B "winner" resolves on ZERO data if tracking unset → wrong copy auto-wins the send path | 🤖 |
-| #375 🔴 | ⛰️ *pulled in 9 Jul* — self-outreach charges + cold-emails **placeholder addresses** → phantom charges + spam-trap risk to OUR sending reputation | 🤖 |
+| #391 🩷 | ⛰️ *pulled in 9 Jul (scope verify)* — cron JSONB clobber can **resurrect a founder-set PAUSE** → sends resume unexpectedly (send-path integrity) | 🤖 |
+| #392 🩷 | ⛰️ *pulled in 9 Jul* — A/B "winner" resolves on ZERO data if tracking unset → wrong copy auto-wins the send path | 🤖 |
+| #375 🩷 | ⛰️ *pulled in 9 Jul* — self-outreach charges + cold-emails **placeholder addresses** → phantom charges + spam-trap risk to OUR sending reputation | 🤖 |
 | #377 🔴 | ⛰️ *pulled in 9 Jul* — support black hole: client emails support → auto-reply phantom-sends, founder-forward suppressed. With ONE client, unacceptable | 🤖 |
 | #378 🔴 | ⛰️ *pulled in 9 Jul* — demo-request auto-sends **invented availability times** to prospects (outward-facing honesty) | 🤖 |
 
@@ -329,14 +329,14 @@ In M0 these are made *honest* (kept, "coming soon"); **here** they're made *real
 | #352 🔴 | Auto top-up can double-charge a card | 🤖 |
 | #399 🩷 | Integrations hub — all 8 "Connect" tiles are dead | 🤖 |
 | #397 🔴 | HubSpot platform sync is dead code | 🤖 |
-| #375 🔴 | Our own self-outreach sends are dead | 🤖 |
+| #375 🩷 | Our own self-outreach sends are dead | 🤖 |
 | #377 🔴 | Support inbox auto-reply phantom-sends → black hole | 🤖 |
 | #378 🔴 | `/ae/demo-request` hallucinates availability | 🤖 |
 | #380 🔴 | Missing tables (`subscribers` / `whatsapp_messages`) | 🤖 |
 | #381 🔴 | Developer webhooks section is dead (no table) | 🤖 |
 | #382 🔴 | Churn scoring reads a column that's never written | 🤖 |
-| #391 🔴 | Cron JSONB writes clobber each other | 🤖 |
-| #392 🔴 | A/B test "wins" on zero data | 🤖 |
+| #391 🩷 | Cron JSONB writes clobber each other | 🤖 |
+| #392 🩷 | A/B test "wins" on zero data | 🤖 |
 | #393 🔴 | Data-moat table gets duplicate rows (no dedup key) | 🤖 |
 
 **✅ M4 done when:** each item is rebuilt (state machine + provider-confirmed + tests) and its "coming soon" is lifted — one at a time.

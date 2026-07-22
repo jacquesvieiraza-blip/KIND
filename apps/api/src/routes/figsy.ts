@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, outreachEnabled } from '../lib/figsy'
+import type { Lead, SendOutcome } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
@@ -1174,8 +1175,9 @@ figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
         continue
       }
       try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, req.params.id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
-        sent++
+        // #15 — only a real 'sent' counts; 'queued' means the draft went to review.
+        const outcome = await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, req.params.id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
+        if (outcome === 'sent') sent++
       } catch (err) { console.error('[send-now] enrollment', enrollment.id, ':', err) }
     }
     res.json({ success: true, data: { sent, due_count: (due ?? []).length } })
@@ -1768,8 +1770,9 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
       }
 
       try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
-        sent++
+        // #15 — only a real 'sent' counts; 'queued' means the draft went to review.
+        const outcome = await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
+        if (outcome === 'sent') sent++
       } catch (err) {
         console.error('[figsy/send-due]', err)
       }
@@ -2430,7 +2433,12 @@ figsyRouter.get('/leads/:leadId/why-email', async (req: AuthRequest, res) => {
 })
 
 // ── P2-9: PENDING DRAFTS ──────────────────────────────────────────────────────
-// GET /figsy/campaigns/:id/pending-drafts — returns draft emails awaiting approval
+// GET /figsy/campaigns/:id/pending-drafts — the portal's per-campaign Pending Approvals
+// panel. #15 (Fable fix) — this used to read figsy_sent_emails status='draft', a queue
+// NOTHING ever wrote to (the column defaults to 'sent'; no producer existed), so the
+// panel was permanently empty while its approve button pretend-approved phantom rows.
+// It now reads the REAL co-pilot queue (figsy_approval_queue, fed by sendSequenceEmail's
+// review gate), same response shape the portal already renders.
 figsyRouter.get('/campaigns/:id/pending-drafts', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
@@ -2438,10 +2446,11 @@ figsyRouter.get('/campaigns/:id/pending-drafts', async (req: AuthRequest, res) =
     const { data: campaign } = await db.from('figsy_campaigns')
       .select('id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-    const { data, error } = await db.from('figsy_sent_emails')
+    const { data, error } = await db.from('figsy_approval_queue')
       .select('id, lead_id, subject, body, created_at, leads(first_name, last_name, company)')
       .eq('campaign_id', req.params.id)
-      .eq('status', 'draft')
+      .eq('client_id', clientId)
+      .eq('status', 'pending')
       .order('created_at', { ascending: false })
     if (error) throw error
     const result = (data ?? []).map((row: any) => {
@@ -2461,44 +2470,34 @@ figsyRouter.get('/campaigns/:id/pending-drafts', async (req: AuthRequest, res) =
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch pending drafts' }) }
 })
 
-// POST /figsy/emails/:id/approve — approve a draft email for sending
+// POST /figsy/emails/:id/approve — the portal's Approve button. #15 (Fable fix) — this
+// used to flip a phantom figsy_sent_emails row to 'approved' WITHOUT sending (the exact
+// pretend-send #268 bans). It is now a second door onto the real approval-send.
 figsyRouter.post('/emails/:id/approve', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    // figsy_sent_emails has no client_id — scope via the email's campaign.
-    const { data: email } = await db.from('figsy_sent_emails')
-      .select('id, campaign_id').eq('id', req.params.id).maybeSingle()
-    if (!email) { res.status(404).json({ success: false, error: 'Email not found' }); return }
-    // Verify campaign belongs to client — this is the real ownership check
-    const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id').eq('id', email.campaign_id).eq('client_id', clientId).maybeSingle()
-    if (!campaign) { res.status(403).json({ success: false, error: 'Forbidden' }); return }
-    const { error } = await db.from('figsy_sent_emails')
-      .update({ status: 'approved', approved_at: new Date().toISOString() })
-      .eq('id', req.params.id)
-    if (error) throw error
-    res.json({ success: true })
+    const r = await approveQueuedDraft(clientId, req.params.id)
+    res.status(r.http).json(r.body)
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to approve email' }) }
 })
 
-// DELETE /figsy/emails/:id/draft — reject a draft email
+// DELETE /figsy/emails/:id/draft — the portal's Reject button. #15 (Fable fix) — now
+// rejects the real queue row. The enrollment stays paused (next_send_at null): a human
+// said "don't send this" — nothing further fires for it unless re-enrolled.
 figsyRouter.delete('/emails/:id/draft', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    // figsy_sent_emails has no client_id — scope via the email's campaign.
-    const { data: email } = await db.from('figsy_sent_emails')
-      .select('id, campaign_id').eq('id', req.params.id).maybeSingle()
-    if (!email) { res.status(404).json({ success: false, error: 'Email not found' }); return }
-    const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id').eq('id', email.campaign_id).eq('client_id', clientId).maybeSingle()
-    if (!campaign) { res.status(403).json({ success: false, error: 'Forbidden' }); return }
-    const rejection_reason = (req.body as { reason?: string })?.reason ?? null
-    const { error } = await db.from('figsy_sent_emails')
-      .update({ status: 'rejected', rejection_reason })
+    const { data, error } = await db.from('figsy_approval_queue')
+      .update({ status: 'rejected' })
       .eq('id', req.params.id)
+      .eq('client_id', clientId)
+      .eq('status', 'pending')
+      .select('id')
+      .maybeSingle()
     if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Not found or already processed' }); return }
     res.json({ success: true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reject draft' }) }
 })
@@ -3070,31 +3069,86 @@ figsyRouter.get('/approval-queue', requireAuth, async (req: AuthRequest, res) =>
   } catch (err: unknown) { res.status(500).json({ error: (err as Error).message }) }
 })
 
+// #15 / #268 — SHARED approval-send. Approving a co-pilot draft performs the REAL send,
+// and NEVER pretends. The producer (sendSequenceEmail's review gate) enqueues drafts with
+// their enrollment + sequence context. On approve we atomically claim the row
+// (pending→approved so a double-click can't double-send), reload the lead, then re-enter
+// sendSequenceEmail with skipReview=true — the SAME charged, logged, atomically-claimed
+// send the auto path runs. The row becomes 'sent' ONLY when that call actually reports
+// 'sent'. Every other outcome is reported honestly (#268 — never look delivered when
+// nothing left): retryable ones (deferred/failed) return the row to 'pending'; a
+// 'suppressed' lead (DNC / opted-out) is terminal → the row is 'rejected' so it can't be
+// re-approved forever. A THROW mid-send also restores 'pending' — otherwise the row
+// strands as approved-but-unsent, invisible to the queue and impossible to retry.
+// Used by BOTH approve doors: the portal's /emails/:id/approve and /approval-queue/:id/approve.
+async function approveQueuedDraft(clientId: string | null, queueId: string): Promise<{ http: number; body: Record<string, unknown> }> {
+  const { data: row, error } = await db
+    .from('figsy_approval_queue')
+    .update({ status: 'approved' })
+    .eq('id', queueId)
+    .eq('client_id', clientId)
+    .eq('status', 'pending')
+    .select('id, enrollment_id, campaign_id, lead_id, sequence_step, subject, body, total_steps, wait_days_next')
+    .single()
+  if (error || !row) return { http: 404, body: { success: false, error: 'Not found or already processed' } }
+
+  const restorePending = () => db.from('figsy_approval_queue').update({ status: 'pending' }).eq('id', row.id)
+
+  // Reload the lead for the send (the draft only stored to_email/subject/body).
+  const { data: lead } = await db.from('leads').select('*').eq('id', row.lead_id).maybeSingle()
+  if (!lead) {
+    await restorePending()
+    return { http: 404, body: { success: false, sent: false, error: 'Lead not found — cannot send. The draft stays pending.' } }
+  }
+
+  let outcome: SendOutcome
+  try {
+    outcome = await sendSequenceEmail(
+      row.enrollment_id as string,
+      lead as Lead,
+      row.sequence_step as number,
+      row.subject as string,
+      row.body as string,
+      row.campaign_id as string,
+      {
+        totalSteps:   (row.total_steps as number | null) ?? undefined,
+        waitDaysNext: (row.wait_days_next as number | null) ?? undefined,
+        skipReview:   true,
+      },
+    )
+  } catch (err) {
+    await restorePending()
+    return { http: 500, body: { success: false, sent: false, error: `Send failed: ${err instanceof Error ? err.message : 'unknown error'}. The draft stays pending.` } }
+  }
+
+  if (outcome === 'sent') {
+    await db.from('figsy_approval_queue').update({ status: 'sent', sent_at: new Date().toISOString() }).eq('id', row.id)
+    return { http: 200, body: { success: true, approved: true, sent: true } }
+  }
+
+  if (outcome === 'suppressed') {
+    // Terminal: DNC / opted-out / demo — this draft can never send. Reject it so it
+    // stops reappearing as approvable.
+    await db.from('figsy_approval_queue').update({ status: 'rejected' }).eq('id', row.id)
+    return { http: 200, body: { success: true, approved: true, sent: false, outcome, note: 'This lead is on a do-not-contact / opted-out list, so nothing was sent and the draft was closed.' } }
+  }
+
+  // Retryable (deferred / failed) — be honest and return the row to pending.
+  await restorePending()
+  const notes: Record<string, string> = {
+    deferred: 'Send deferred (daily cap reached, outreach switch off, or email service unset). The draft stays pending — approve again shortly.',
+    failed:   'The email service rejected the send. The draft stays pending — try again shortly.',
+    queued:   'Unexpected re-queue. The draft stays pending.',
+  }
+  return { http: 200, body: { success: true, approved: true, sent: false, outcome, note: notes[outcome] ?? 'Not sent — the draft stays pending.' } }
+}
+
 // POST /api/figsy/approval-queue/:id/approve
-// #268: records the human's approval — but must NEVER pretend an email was sent.
-// The old code silently set status='sent' WITHOUT calling sendSequenceEmail, so an
-// approved draft looked delivered while nothing left. This queue also has no producer
-// yet (nothing enqueues drafts) and real sends run on the standard enrollment/cron
-// path (which keys off `leads` + the enrollment step counter, not this table). So the
-// honest, fail-closed behaviour is: mark the row approved, report sent:false. Wiring
-// the charged send path here is a separate scoped build (producer + UI + validated send).
 figsyRouter.post('/approval-queue/:id/approve', requireAuth, async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
-    const { data, error } = await db
-      .from('figsy_approval_queue')
-      .update({ status: 'approved' })
-      .eq('id', req.params.id)
-      .eq('client_id', clientId)
-      .eq('status', 'pending')
-      .select('id')
-      .single()
-    if (error || !data) { res.status(404).json({ error: 'Not found or already processed' }); return }
-    res.json({
-      approved: true,
-      sent: false,
-      note: 'Approval recorded. Sending from the approval queue is not enabled — sequences send on the standard scheduler; this queue has no producer yet.',
-    })
+    const r = await approveQueuedDraft(clientId, req.params.id)
+    res.status(r.http).json(r.body)
   } catch (err: unknown) { res.status(500).json({ error: (err as Error).message }) }
 })
 

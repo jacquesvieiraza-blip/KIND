@@ -548,12 +548,25 @@ export default function FigsyPage() {
     setApprovingDraft(emailId)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      await api.post(`/figsy/emails/${emailId}/approve`, {}, session?.access_token)
-      setPendingDrafts(prev => ({
-        ...prev,
-        [campaignId]: (prev[campaignId] ?? []).filter(d => d.id !== emailId),
-      }))
-      toast('Email approved — FIGSY will send it shortly')
+      // #15 — the approve call performs the REAL send and reports honestly. Only drop
+      // the draft from the list when it actually sent (or was closed as unsendable);
+      // a deferred draft stays visible so it can be approved again.
+      const res = await api.post<{ sent?: boolean; outcome?: string; note?: string }>(`/figsy/emails/${emailId}/approve`, {}, session?.access_token)
+      if (res.sent) {
+        setPendingDrafts(prev => ({
+          ...prev,
+          [campaignId]: (prev[campaignId] ?? []).filter(d => d.id !== emailId),
+        }))
+        toast('Approved — email sent')
+      } else if (res.outcome === 'suppressed') {
+        setPendingDrafts(prev => ({
+          ...prev,
+          [campaignId]: (prev[campaignId] ?? []).filter(d => d.id !== emailId),
+        }))
+        toast(res.note ?? 'This lead can’t be contacted — draft closed, nothing sent')
+      } else {
+        toast(res.note ?? 'Approved, but not sent yet — the draft stays pending')
+      }
     } catch {
       toast('Failed to approve draft')
     }

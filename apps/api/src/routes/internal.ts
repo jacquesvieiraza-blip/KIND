@@ -1053,9 +1053,16 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       }
 
       try {
-        await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
-        sent++
-        sentByCampaign.set(campId, (sentByCampaign.get(campId) ?? 0) + 1)
+        // #15 — count ONLY a real 'sent' against the shared daily budget and the
+        // per-campaign tally. A co-pilot campaign's steps come back 'queued' (draft
+        // enqueued for review, nothing sent) — if those burned budget slots, one
+        // co-pilot campaign could eat the whole day's budget and starve every
+        // auto-pilot campaign. Deferred/suppressed/failed likewise sent nothing.
+        const outcome = await sendSequenceEmail(enrollment.id, lead, nextStep, stepView.subject, stepView.body, enrollment.campaign_id, { totalSteps: stepView.total, waitDaysNext: stepView.wait_days })
+        if (outcome === 'sent') {
+          sent++
+          sentByCampaign.set(campId, (sentByCampaign.get(campId) ?? 0) + 1)
+        }
       } catch (err) {
         console.error('[figsy/send-due-all] enrollment', enrollment.id, ':', err)
       }

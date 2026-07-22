@@ -56,10 +56,16 @@ describe('booking token (#361b)', () => {
     const t = signBookingToken({ leadId: LEAD, clientId: CLIENT })
     expect(verifyBookingToken(t)).toEqual({ leadId: LEAD, clientId: CLIENT, enrollmentId: null })
   })
-  it('an OAuth state is not accepted as a booking token (distinct payload shape)', () => {
+  it('an OAuth state is not accepted as a booking token (type claim)', () => {
     const state = signOAuthState(CLIENT)
-    // state has no `l` (leadId) claim → rejected as a booking token
     expect(verifyBookingToken(state)).toBeNull()
+  })
+  it('a booking token is NOT accepted as OAuth state (the #368 side-door)', () => {
+    // Booking tokens are emailed to cold prospects. If one passed state verification,
+    // any recipient could replay it as OAuth state and bind THEIR Google account to
+    // the client's row. The type claim must make this impossible.
+    const t = signBookingToken({ leadId: LEAD, clientId: CLIENT })
+    expect(verifyOAuthState(t)).toBeNull()
   })
   it('rejects a tampered booking token', () => {
     const t = signBookingToken({ leadId: LEAD, clientId: CLIENT })

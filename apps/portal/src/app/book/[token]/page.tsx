@@ -11,15 +11,17 @@
  * meeting link the API returned; it never claims "booked" otherwise.
  */
 
-import { useState, useEffect, useCallback, use } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
 
 interface Slot { start: string; end: string }
 type Phase = 'loading' | 'ready' | 'invalid' | 'disconnected' | 'empty' | 'booking' | 'booked' | 'error'
 
-export default function BookingPage({ params }: { params: Promise<{ token: string }> }) {
-  const { token } = use(params)
+// Next 14 client component — `params` is a plain object (React 18 has no `use()` hook;
+// the React-19 Promise-params pattern would crash at runtime here).
+export default function BookingPage({ params }: { params: { token: string } }) {
+  const { token } = params
   const [phase, setPhase]     = useState<Phase>('loading')
   const [slots, setSlots]     = useState<Slot[]>([])
   const [company, setCompany] = useState<string | null>(null)

@@ -436,6 +436,39 @@ calendarRouter.post('/public/:token/book', publicBookLimit, async (req, res) => 
       end:   z.string().datetime(),
     }).parse(req.body)
 
+    // ABUSE GUARD — this is a PUBLIC endpoint, so the requested time must be one the
+    // server actually OFFERS (business hours, 30 min, next 14 days, currently free).
+    // Without this, anyone holding a booking link could zod-validly create a 10-hour
+    // 3am event months out on the client's real calendar — isSlotFree alone would
+    // allow it (an empty calendar at 3am IS free). Membership in the freshly-computed
+    // slot list enforces duration, hours, and horizon in one check.
+    const { data: slotClient } = await db.from('clients')
+      .select('calendar_booking_enabled, google_calendar_access_token, google_calendar_refresh_token')
+      .eq('id', claims.clientId)
+      .single()
+    if (!slotClient?.calendar_booking_enabled || !slotClient?.google_calendar_access_token || !slotClient?.google_calendar_refresh_token) {
+      res.status(400).json({ success: false, error: 'Booking is not available right now.' })
+      return
+    }
+    let offered: Array<{ start: string; end: string }>
+    try {
+      offered = await getAvailableSlots(slotClient.google_calendar_access_token, slotClient.google_calendar_refresh_token, 14)
+    } catch (err) {
+      if (isGoogleAuthError(err)) {
+        await markDisconnected(claims.clientId)
+        res.status(400).json({ success: false, error: 'Booking is not available right now.' })
+        return
+      }
+      throw err
+    }
+    const reqStart = new Date(body.start).getTime()
+    const reqEnd   = new Date(body.end).getTime()
+    const isOffered = offered.some(s => new Date(s.start).getTime() === reqStart && new Date(s.end).getTime() === reqEnd)
+    if (!isOffered) {
+      res.status(409).json({ success: false, error: 'That time is not available — please pick another slot.' })
+      return
+    }
+
     const result = await performBooking({
       clientId:     claims.clientId,
       leadId:       claims.leadId,

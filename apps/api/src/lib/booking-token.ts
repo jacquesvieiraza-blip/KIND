@@ -59,24 +59,31 @@ const STATE_TTL = 10 * 60_000                 // 10 minutes — an OAuth round-t
 const BOOK_TTL  = 90 * 24 * 60 * 60 * 1_000   // 90 days — a cold-email link must outlive the sequence
 
 // ── OAuth CSRF state (#368) ────────────────────────────────────────────────────
+// Every token carries a TYPE claim (`t`) and each verifier REQUIRES its own type.
+// Without it, a booking token (which also carries a clientId and is EMAILED to cold
+// prospects) would pass state verification — letting anyone holding a booking link
+// replay it as OAuth state and bind their own Google account to the victim client's
+// row. Type confusion between the two token families must be impossible.
 export function signOAuthState(clientId: string): string {
-  return sign({ c: clientId, n: crypto.randomBytes(9).toString('hex') }, STATE_TTL)
+  return sign({ t: 's', c: clientId, n: crypto.randomBytes(9).toString('hex') }, STATE_TTL)
 }
 export function verifyOAuthState(state: string): { clientId: string } | null {
-  const p = verify<{ c?: unknown }>(state)
-  return p && typeof p.c === 'string' && p.c.length >= 10 ? { clientId: p.c } : null
+  const p = verify<{ t?: unknown; c?: unknown }>(state)
+  if (!p || p.t !== 's') return null
+  return typeof p.c === 'string' && p.c.length >= 10 ? { clientId: p.c } : null
 }
 
 // ── Prospect booking token (#361b) ─────────────────────────────────────────────
 export function signBookingToken(input: { leadId: string; clientId: string; enrollmentId?: string | null }): string {
   return sign(
-    { l: input.leadId, c: input.clientId, ...(input.enrollmentId ? { e: input.enrollmentId } : {}), n: crypto.randomBytes(6).toString('hex') },
+    { t: 'b', l: input.leadId, c: input.clientId, ...(input.enrollmentId ? { e: input.enrollmentId } : {}), n: crypto.randomBytes(6).toString('hex') },
     BOOK_TTL,
   )
 }
 export function verifyBookingToken(token: string): { leadId: string; clientId: string; enrollmentId: string | null } | null {
-  const p = verify<{ l?: unknown; c?: unknown; e?: unknown }>(token)
-  if (!p || typeof p.l !== 'string' || typeof p.c !== 'string') return null
+  const p = verify<{ t?: unknown; l?: unknown; c?: unknown; e?: unknown }>(token)
+  if (!p || p.t !== 'b') return null
+  if (typeof p.l !== 'string' || typeof p.c !== 'string') return null
   return { leadId: p.l, clientId: p.c, enrollmentId: typeof p.e === 'string' ? p.e : null }
 }
 

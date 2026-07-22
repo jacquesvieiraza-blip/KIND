@@ -1,8 +1,10 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
+import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
+import { sendFounderAlert } from '../lib/alerts'
 
 export const supportRouter = Router()
 supportRouter.use(requireAuth)
@@ -78,3 +80,44 @@ supportRouter.post('/chat', supportAiLimit, async (req: AuthRequest, res) => {
     res.status(500).json({ success: false, error: 'Failed to get response' })
   }
 })
+
+// ── PR-D (#377): SUPPORT ESCALATION — "Talk to a human" ─────────────────────────
+// The in-portal help is Claude-only; a stuck client had no way to reach a person. This
+// routes the client's message to the founder (sendFounderAlert also writes a durable
+// founder_alerts row, so it survives even if email + Slack both fail) and confirms.
+// No ticketing system, no new deps.
+supportRouter.post(
+  '/escalate',
+  rateLimit({ limit: 5, windowMs: 60_000, key: 'support-escalate', byUser: true }),
+  async (req: AuthRequest, res) => {
+    try {
+      const { message } = z.object({ message: z.string().min(1).max(4000) }).parse(req.body)
+
+      // Resolve who's asking + a reply-to email so the founder can respond.
+      const { data: client } = await db.from('clients')
+        .select('company_name').eq('user_id', req.userId!).maybeSingle()
+      let email = ''
+      try {
+        const { data: { user } } = await db.auth.admin.getUserById(req.userId!)
+        email = user?.email ?? ''
+      } catch { /* best-effort — the alert still goes, just without a reply-to */ }
+
+      await sendFounderAlert(
+        'support_escalation',
+        `🆘 Support request — ${client?.company_name ?? 'a client'}`,
+        [
+          `Client: ${client?.company_name ?? '(unknown)'}`,
+          `Reply to: ${email || '(no email on file)'}`,
+          '',
+          message.trim(),
+        ],
+      )
+
+      res.json({ success: true, data: { escalated: true } })
+    } catch (err) {
+      if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+      console.error('[support/escalate]', err)
+      res.status(500).json({ success: false, error: 'Failed to escalate to the team' })
+    }
+  },
+)

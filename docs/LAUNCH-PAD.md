@@ -42,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷121 · 🟣1 · 🟡18 · 🔴240 · ⏸5 · **Σ475** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷123 · 🟣1 · 🟡23 · 🔴238 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -73,6 +73,9 @@ The **SPRINT table at the very top IS the immediate MVP** and it's all FIGSY: **
 5. **Send-integrity hardening (#338 · #354 · #358 · #383)** — phantom/double-send + fake-score guards.
 6. **Data-engine widening (#452/#451/#450)** · **A/B variant auto-generation (#113b)** · **LinkedIn channel (#388)** · **unibox kill-switch gate (#468)**.
 7. **Personalization/intent depth + two-way CRM (#397/#399)** · **Jack & Jill polish** (agent-advocate voice, "why FIGSY picked this" per lead, clean 3-column inbox — J&J *ideas* kept as FIGSY features, not a rebrand).
+
+**↳ CLIENT-READINESS A–F (21 Jul — 🟡 built + gated, pending Fable verify + merge)** — the block that flips "a client can use it self-serve" from NOT-READY → READY (inventory #470–#474):
+- **A** silent 0-lead sourcing → honest "quota out / widen ICP" banner (PR #1085, migration owed) · **B** out-of-credits on enrol made visible (#1086) · **C** hot replies email the founder (#1087) · **D** support escalation "talk to a human" #377 (#1088) · **E** unibox reply respects blocklist + kill-switch #468 (#1089). *Merge order any; PR-C + PR-D both touch the AlertKind line → the second to merge takes a 1-line keep-both conflict.*
 
 ## ② MILLA — the Brain · **coming soon** · absorbs Denise + Tony
 **BUILT:** real per-client **document-RAG** assistant — mounted, DB-backed, `milla_ask` live (#45). Draft/knowledge endpoints exist.
@@ -165,7 +168,7 @@ Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: 
 | Item | What it is | Owner |
 |---|---|:---:|
 | #338 🔴 | FIGSY marks an email "sent" even if the send failed — charges $3 for nothing | 🤖 |
-| #339 🔴 | The founder alarm can itself fail silently — you'd never know | 🤖 |
+| #339 🩷 | The founder alarm can itself fail silently — you'd never know | 🤖 |
 | #346 🔴 | Client can't enter their business knowledge → generic copy (turn the UI on) | 🤖 |
 | #354 🔴 | No guard against sending the same email twice | 🤖 |
 | #349 🔴 | ~140 money writes don't check for failure → the ledger can silently drift | 🤖 |
@@ -185,7 +188,7 @@ Portal truth sweep live-not-verified → **6 items 🩷** in PRODUCT-INVENTORY: 
 | #373 🔴 | Missing uniqueness constraints on FIGSY tables in prod | 🤖 |
 | #374 🔴 | Intent-signal auto-enroll can drain the wallet unbounded *(ties #423)* | 🤖 |
 | #376 🔴 | Delivery can overdraw credits (decrement not checked) *(→ superseded by #421)* | 🤖 |
-| #379 🔴 | A Stripe refund path returns 500 instead of clawing credits back | 🤖 |
+| #379 🩷 | A Stripe refund path returns 500 instead of clawing credits back | 🤖 |
 | #383 🔴 | Missing DB function to count FIGSY emails sent | 🤖 |
 | #389 🔴 | No migration runner (prod schema is hand-pasted) — risky | 🤖 |
 | #390 🔴 | No dead-letter/retry table — failures just vanish | 🤖 |

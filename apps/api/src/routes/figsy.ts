@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, outreachEnabled } from '../lib/figsy'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
@@ -293,6 +293,20 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         url: '/dashboard/figsy',
         tag: 'hot-reply',
       }).catch(() => {})
+
+      // PR-C — the FOUNDER also needs to know. The client push above is a no-op without
+      // VAPID + a subscribed device, and at n=1 clients a hot reply is the whole game.
+      // Best-effort, fire-and-forget — never blocks or fails the inbound webhook.
+      void (async () => {
+        const { data: c } = await db.from('clients').select('company_name').eq('id', lead.client_id).maybeSingle()
+        const snippet = (body ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
+        await sendFounderAlert('hot_reply', `🔥 Hot reply — ${c?.company_name ?? 'a client'}`, [
+          `Client: ${c?.company_name ?? lead.client_id}`,
+          `From: ${fromEmail}`,
+          `Subject: ${(payload.subject as string) ?? '(none)'}`,
+          snippet ? `Reply: ${snippet}` : '',
+        ])
+      })().catch(() => {})
 
       if (enrollment.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
 
@@ -1056,18 +1070,41 @@ figsyRouter.post('/campaigns/:id/enroll-consented', rateLimit({ limit: 30, windo
     const alreadySet = new Set((already ?? []).map((e: { lead_id: string }) => e.lead_id))
     const toEnroll = leadIds.filter(id => !alreadySet.has(id))
 
+    // PR-B — report the TRUTH up front. Every enrollment charges one $3 FIGSY work
+    // credit (demo is free/off-ledger), so cap what we claim + attempt by the wallet.
+    // Without this the client saw "Enrolling N" then silently 0 enrolled when credits
+    // ran out. autoEnrollLead still fail-closes per lead, so this never over-charges;
+    // it just stops us over-promising. (Reveal credits for any unrevealed lead are a
+    // separate cheaper wallet handled fail-closed inside chargeFigsyEnroll.)
+    const isDemo = await isDemoClient(clientId)
+    let fundedCount = toEnroll.length
+    if (!isDemo && toEnroll.length) {
+      const { data: creditRow } = await db.from('clients')
+        .select('figsy_credits_remaining').eq('id', clientId).maybeSingle()
+      const credits = Math.max(0, creditRow?.figsy_credits_remaining ?? 0)
+      fundedCount = Math.min(toEnroll.length, credits)
+    }
+    const fundedLeads = toEnroll.slice(0, fundedCount)
+    const insufficient = fundedCount < toEnroll.length
+
     res.json({ success: true, data: {
-      enrolled: toEnroll.length,
+      enrolled: fundedCount,
+      requested: toEnroll.length,
       skipped: leadIds.length - toEnroll.length,
-      message: toEnroll.length ? 'Enrolling in background…' : 'All eligible leads are already enrolled.',
+      insufficient_credits: insufficient,
+      message: toEnroll.length === 0
+        ? 'All eligible leads are already enrolled.'
+        : insufficient
+          ? `Enrolling ${fundedCount} of ${toEnroll.length} — FIGSY credits ran out.`
+          : 'Enrolling in background…',
     } })
 
-    // Fire-and-forget — respond immediately, enroll async
+    // Fire-and-forget — respond immediately, enroll async. Only the FUNDED leads.
     ;(async () => {
-      for (const leadId of toEnroll) {
+      for (const leadId of fundedLeads) {
         try { await autoEnrollLead(leadId, clientId) } catch (e) { console.error('[figsy] enroll-consented', leadId, e) }
       }
-      console.log(`[figsy] enroll-consented: enrolled=${toEnroll.length} already=${alreadySet.size} campaign=${campaign.id}`)
+      console.log(`[figsy] enroll-consented: enrolled=${fundedLeads.length} requested=${toEnroll.length} already=${alreadySet.size} insufficient=${insufficient} campaign=${campaign.id}`)
     })()
   } catch (err) {
     console.error(err); res.status(500).json({ success: false, error: 'Failed to start enrollment' })
@@ -1969,6 +2006,22 @@ figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
     if (await isDemoClient(clientId)) {
       console.log(`[demo] prospect send suppressed for client ${clientId} — manual reply to ${reply.from_email} NOT sent (demo).`)
       res.json({ success: true, data: { sent: false, demo: true } })
+      return
+    }
+
+    // #468 — the manual unibox reply is a real prospect send but historically bypassed
+    // BOTH the opt-out blocklist and the kill-switch. Enforce them here so a human click
+    // can't do what the automation is forbidden from doing.
+    // (1) Never email someone who opted out.
+    const { data: blocked } = await db.from('opt_out_blocklist')
+      .select('email').eq('email', reply.from_email).maybeSingle()
+    if (blocked) {
+      res.status(409).json({ success: false, error: 'This contact opted out — you can’t reply to them.' })
+      return
+    }
+    // (2) A founder-deliberate kill-switch OFF must mean OFF, even for a manual reply.
+    if (!outreachEnabled()) {
+      res.status(409).json({ success: false, error: 'Outreach is paused — the kill-switch (AUTO_OUTREACH_ENABLED) is off. Turn it on to send replies.' })
       return
     }
 

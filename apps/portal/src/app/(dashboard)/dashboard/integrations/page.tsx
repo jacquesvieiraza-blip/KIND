@@ -52,7 +52,7 @@ function IntegrationCard({
   onConnect,
 }: {
   integration: Integration
-  onConnect: (name: string) => void
+  onConnect: (name: string, id?: string) => void
 }) {
   const meta = INTEGRATION_META[integration.id] ?? { emoji: '🔌', color: '#7C3AED', bg: '#F5F0FF' }
 
@@ -96,7 +96,7 @@ function IntegrationCard({
       ) : (
         <div className="px-5 pb-5">
           <button
-            onClick={() => onConnect(integration.name)}
+            onClick={() => onConnect(integration.name, integration.id)}
             className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl border border-[#7C3AED]/20 text-[#7C3AED] hover:bg-[#7C3AED] hover:text-white hover:border-[#7C3AED] transition-all duration-150"
           >
             Connect
@@ -141,7 +141,21 @@ export default function IntegrationsPage() {
     load()
   }, [supabase])
 
-  function handleConnect(name: string) {
+  // #361b — Google Calendar connect is REAL now: authenticated fetch returns the
+  // Google consent URL, then we navigate to it. Everything else stays an honest
+  // "coming soon" until its connector actually exists.
+  async function handleConnect(name: string, id?: string) {
+    if (id === 'google_calendar') {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const res = await api.get<{ success: boolean; url?: string; error?: string }>('/calendar/connect', session?.access_token)
+        if (res.url) { window.location.href = res.url; return }
+        setToast(res.error ?? 'Could not start Google connect — please try again.')
+      } catch (e) {
+        setToast(e instanceof Error ? e.message : 'Could not start Google connect — please try again.')
+      }
+      return
+    }
     setToast(`Coming soon — contact support to connect ${name}`)
   }
 
@@ -184,10 +198,10 @@ export default function IntegrationsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-[#1E1152]">Integrations Hub <span className="text-xs font-semibold text-gray-400 align-middle ml-1">· Coming soon</span></h1>
+          <h1 className="text-2xl font-bold text-[#1E1152]">Integrations Hub</h1>
           {/* #399 — the hub is a preview; no connectors are live yet. */}
           <p className="text-[#7B6FA0] text-sm mt-1">
-            Direct connectors are coming soon. FIGSY already dedups against your CRM on export.
+            Google Calendar is live — connect it below. Other connectors are coming soon; FIGSY already dedups against your CRM on export.
           </p>
         </div>
         {connectedCount > 0 && (

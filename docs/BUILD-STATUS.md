@@ -64,24 +64,24 @@
 | 513 | Conversational onboarding | ✅ | 🟢 (/milla/welcome loaded) |
 | 514 | Propose ICP + credit plan | ✅ | 🟢 |
 | 1125 | Onboarding wired into signup/login (no more orphan) | ✅ | ⏳ ships on ship.sh |
-| 512 | Client ICP approval gate | ❌ | ❌ |
-| 516 | Client report page (= native Reports) | ❌ | ❌ |
-| 515 | Magic-link + SMS approve | ❌ | ❌ |
+| 512 | Client ICP approval gate | ✅ | ⏳ ships on ship.sh |
+| 516 | Client report page (= native Reports) | ✅ | ⏳ ships on ship.sh |
+| 515 | Magic-link + SMS approve | 🚩 | **FLAGGED — needs SMS provider + no-login security decision** |
 
 ## MILLA — native rebuilds (kill the rail/account → old-portal exit)
 | # | Item | Main | Live |
 |---|---|:--:|---|
-| 508 | My campaign — Milla-native | ❌ | ❌ |
-| 520 | Insights · Performance — Milla-native | ❌ | ❌ |
-| 521 | Insights · Analytics — Milla-native | ❌ | ❌ |
-| 522 | Insights · Your ROI — Milla-native | ❌ | ❌ |
-| 523 | Company · Command Centre — Milla-native | ❌ | ❌ |
-| 524 | Company · Teams Hub — Milla-native | ❌ | ❌ |
-| 525 | Account · My profile / Settings — Milla-native | ❌ | ❌ |
-| 526 | Account · Billing — Milla-native | ❌ | ❌ |
-| 527 | Account · Usage — Milla-native | ❌ | ❌ |
-| 528 | Account · Documents — Milla-native | ❌ | ❌ |
-| 529 | Account · Referral — Milla-native | ❌ | ❌ |
+| 508 | My campaign — Milla-native | ✅ | ⏳ |
+| 520 | Insights · Performance — Milla-native | ✅ | ⏳ |
+| 521 | Insights · Analytics — Milla-native | ✅ | ⏳ |
+| 522 | Insights · Your ROI — Milla-native | ✅ | ⏳ |
+| 523 | Company · Command Centre — Milla-native | ✅ | ⏳ |
+| 524 | Company · Teams Hub — Milla-native | ✅ | ⏳ |
+| 525 | Account · My profile / Settings — Milla-native | ✅ | ⏳ |
+| 526 | Account · Billing — Milla-native | ✅ | ⏳ |
+| 527 | Account · Usage — Milla-native | ✅ | ⏳ |
+| 528 | Account · Documents — Milla-native | ✅ | ⏳ |
+| 529 | Account · Referral — Milla-native | ✅ | ⏳ |
 
 ## COMBINED — engine, money, gates, off-ramps, infra
 | # | Item | Main | Live for you |
@@ -118,8 +118,8 @@
 ---
 
 ## What's left (the ❌ list)
+- **Milla:** ✅ all reds built tonight **except 🚩 #515 magic-link + SMS** — flagged: no SMS provider configured, and no-login money approve needs a security decision. Everything else ships on `ship.sh`.
 - **Vida:** #494 Qualify gate · #499 Bookings + no-show · #498b 1-click sourcing · #511v Nexus view · **12 native pages** (#502, #530–#541)
-- **Milla:** #512 ICP-approval gate · #516 client report · #515 magic-link+SMS · **11 native pages** (#508, #520–#529)
 - **Combined:** #494 qualification gate · #511 Nexus loop · #517 unified record · off-ramps E5/E7 (+ finish E1/E9/E11)
 
-**Native-rebuild scope: 23 pages** (12 Vida + 11 Milla) — the fix that removes the old-portal clickthrough for good.
+**Milla old-portal exit: CLOSED** — all 11 rail/account links now point to `/milla/*` native routes (real pages inside the Milla shell). **Vida still has its 12.**

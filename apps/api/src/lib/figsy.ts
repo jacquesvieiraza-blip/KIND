@@ -9,6 +9,7 @@ import { interpretSend } from './resend-checked'
 import { isDemoClient } from './demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
 import { bookingUrlForLead } from './booking-token'
+import { releaseFigsyHold, releaseHoldForEnrollment } from './credit-holds'
 import {
   COLD_FROM,
   COLD_REPLY_TO,
@@ -446,6 +447,8 @@ export async function applyReplyBranching(
       status: 'completed', completed_at: now, next_send_at: null,
       current_step: skipped, reply_branch_handled_at: now,
     }).eq('id', enrollment.id)
+    // #492 — sequence finished with no booking → release the held $3 (idempotent).
+    void releaseHoldForEnrollment(enrollment.id, 'sequence_completed')
   } else {
     const nextSendAt = new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[skipped] ?? 4) * 86400000).toISOString()
     await db.from('figsy_enrollments').update({
@@ -552,6 +555,8 @@ export async function sendSequenceEmail(
   if (blocked) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
     await db.from('figsy_enrollments').update({ status: 'opted_out' }).eq('id', enrollmentId)
+    // #492 — opted out before booking → release the held $3 (idempotent).
+    void releaseHoldForEnrollment(enrollmentId, 'opted_out')
     return 'suppressed'
   }
 
@@ -738,6 +743,9 @@ export async function sendSequenceEmail(
     next_send_at: nextSendAt,
     ...(isLast ? { completed_at: new Date().toISOString() } : {}),
   }).eq('id', enrollmentId)
+  // #492 — last step sent, no booking → release the held $3 (idempotent; a booked lead's
+  // hold is already 'captured', so this is a safe no-op there).
+  if (isLast) void releaseHoldForEnrollment(enrollmentId, 'sequence_completed')
 
   // THE DATA FLOOR (#17b) — log the send (the credit-spend denominator). Fire-and-forget.
   void logOutcomeEvent({
@@ -1319,7 +1327,7 @@ export async function campaignReadyLeadIds(clientId: string): Promise<string[]> 
     .map((l: { id: string }) => l.id)
 }
 
-export async function autoEnrollLead(leadId: string, clientId: string, opts?: { force?: boolean }): Promise<void> {
+export async function autoEnrollLead(leadId: string, clientId: string, opts?: { force?: boolean; figsyHeld?: boolean }): Promise<void> {
   try {
     // #344 (AR-07) — KILL-SWITCH, checked BEFORE the charge. autoEnrollLead charges a
     // FIGSY credit then sends step 1; if the switch is off, sendSequenceEmail would defer
@@ -1478,7 +1486,9 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // so a lead already enrolled is never charged. If the charge fails (RPC error or
     // no credit), abort WITHOUT inserting or sending — chargeFigsyEnroll already
     // alerted the founder.
-    const charged = isDemo ? true : await chargeFigsyEnroll(clientId, lead)
+    // #492 — when the $3 is already HELD (client approve path), the FIGSY credit was
+    // taken at the hold, so we do NOT charge again here — enrollment proceeds on the hold.
+    const charged = isDemo || opts?.figsyHeld ? true : await chargeFigsyEnroll(clientId, lead)
     if (!charged) {
       console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling.`)
       return
@@ -1511,16 +1521,20 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
         step3_body:     draft.step3.body,
       }).select('id').single()
     } catch (insertThrow) {
-      console.error('[figsy] autoEnrollLead: enrollment insert threw after charge — refunding credit for lead', leadId, insertThrow)
-      await refundFigsyEnroll(clientId)
+      console.error('[figsy] autoEnrollLead: enrollment insert threw after charge — returning credit for lead', leadId, insertThrow)
+      // #492 — held path RELEASES the hold (increment + mark released); charged path refunds.
+      // Calling refund on a held credit would double-return it, so branch on figsyHeld.
+      if (opts?.figsyHeld) await releaseFigsyHold(clientId, leadId, 'enroll_insert_threw')
+      else await refundFigsyEnroll(clientId)
       return
     }
     const { data: enrollment, error } = insertRes
 
     if (error || !enrollment) {
-      // We already charged — return the credit so the wallet + ledger reconcile.
-      console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— refunding credit')
-      await refundFigsyEnroll(clientId)
+      // We already charged/held — return the credit so the wallet + ledger reconcile.
+      console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— returning credit')
+      if (opts?.figsyHeld) await releaseFigsyHold(clientId, leadId, 'enroll_insert_failed')
+      else await refundFigsyEnroll(clientId)
       return
     }
 

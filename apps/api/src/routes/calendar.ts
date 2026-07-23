@@ -191,6 +191,16 @@ async function performBooking(params: {
     console.error('[calendar/performBooking] KPI update failed (booking still saved):', kpiErr)
   }
 
+  // #492 — CAPTURE the $3 the client HELD at approval. This is the moment the second
+  // charge becomes real. Idempotent (only acts on a 'held' hold); a missing hold is
+  // logged loudly and never fabricates a charge.
+  try {
+    const { captureFigsyHold } = await import('../lib/credit-holds')
+    await captureFigsyHold(params.clientId, params.leadId)
+  } catch (capErr) {
+    console.error('[calendar/performBooking] $3 capture failed (booking still saved):', capErr)
+  }
+
   return { ok: true, meetLink, eventId }
 }
 

@@ -3,6 +3,7 @@ import { autoEnrollLead } from './figsy'
 import { waterfallEnrich } from './enrichment'
 import { normalizeRevealEmail, revealCharged } from './billing-rules'
 import { isDemoClient } from './demo'
+import { holdFigsyCredit, releaseFigsyHold } from './credit-holds'
 
 // #487 — APPROVE-GATED REVEAL: the $4 trigger.
 // This is the ONE place both charges fire, and only on an explicit approval (client 👍
@@ -21,10 +22,11 @@ import { isDemoClient } from './demo'
 // by autoEnrollLead's per-(campaign,lead) enrolment guard.
 
 export type ApproveOutcome =
-  | { status: 'approved'; revealed: true; email: string; workCharged: boolean; workReason?: string }
+  | { status: 'approved'; revealed: true; email: string; workHeld: boolean; workReason?: string }
   | { status: 'no_email'; revealed: false }        // dead email — $1 auto-refunded, nothing charged
   | { status: 'already_in_crm'; revealed: false }  // client owns it — no charge
   | { status: 'insufficient_reveal_credits'; revealed: false }
+  | { status: 'insufficient_work_credits'; revealed: false } // #492 — no $3 to hold; nothing moved
   | { status: 'not_found'; revealed: false }
 
 // Faithful re-use of the reveal money sequence (mirrors leads.ts POST /:id/reveal).
@@ -45,7 +47,7 @@ async function revealForApprove(clientId: string, leadId: string): Promise<Appro
     const { data: existing } = await db.from('leads')
       .select('email, phone, revealed_at, crm_existing').eq('id', leadId).eq('client_id', clientId).maybeSingle()
     if (!existing) return { status: 'not_found', revealed: false }
-    if (existing.email) return { status: 'approved', revealed: true, email: existing.email as string, workCharged: false, leadRow: existing }
+    if (existing.email) return { status: 'approved', revealed: true, email: existing.email as string, workHeld: false, leadRow: existing }
     return { status: 'no_email', revealed: false }
   }
 
@@ -55,7 +57,7 @@ async function revealForApprove(clientId: string, leadId: string): Promise<Appro
   if (await isDemoClient(clientId)) {
     const demoEmail = (claim.email as string | null) ?? null
     if (!demoEmail) { await unclaim(); return { status: 'no_email', revealed: false } }
-    return { status: 'approved', revealed: true, email: demoEmail, workCharged: false, leadRow: claim }
+    return { status: 'approved', revealed: true, email: demoEmail, workHeld: false, leadRow: claim }
   }
 
   // 2. Already in the client's own CRM → they own it → no charge.
@@ -65,7 +67,7 @@ async function revealForApprove(clientId: string, leadId: string): Promise<Appro
   const knownEmail = normalizeRevealEmail(claim.email)
   if (knownEmail) {
     const { data: owned } = await db.rpc('reveal_is_owned', { p_client_id: clientId, p_email_norm: knownEmail })
-    if (owned === true) return { status: 'approved', revealed: true, email: claim.email as string, workCharged: false, leadRow: claim }
+    if (owned === true) return { status: 'approved', revealed: true, email: claim.email as string, workHeld: false, leadRow: claim }
   }
 
   // 3. Charge $1 (atomic decrement IS the gate).
@@ -110,44 +112,62 @@ async function revealForApprove(clientId: string, leadId: string): Promise<Appro
     }).then(() => {}, () => {})
   }
 
-  return { status: 'approved', revealed: true, email, workCharged: false, leadRow: { ...claim, email } }
+  return { status: 'approved', revealed: true, email, workHeld: false, leadRow: { ...claim, email } }
 }
 
-// The full approve = reveal ($1) THEN work ($3, via autoEnrollLead force). Partial-failure
-// behaviour (documented): if the reveal succeeds but the $3 work can't run (no work credit,
-// no active campaign, dedup skip), the client KEEPS the revealed contact (real value, owned
-// forever per #424) and is NOT charged $3 — workCharged:false + a reason. They can add work
-// credits / an active campaign and the same approval completes the work later.
+// #492 — MONEY RE-TIME. The full approve = reveal ($1, spent now) + WORK ($3, HELD now,
+// captured only on a confirmed booking). All-or-nothing at the top: we HOLD the $3 FIRST,
+// so a client with no work credit can't even reveal — nothing moves (insufficient_work_credits).
+// Then reveal ($1); if the reveal can't complete (dead email, already owned, insufficient
+// reveal credit) the held $3 is RELEASED so nothing is stranded. Enrolment then starts the
+// work on the hold (charges nothing). If no work can start (no active campaign / dedup skip)
+// the hold is RELEASED — we never hold money for work that isn't running; the client keeps the
+// revealed contact (real value, #424) at workHeld:false. The held $3 is later CAPTURED at
+// booking (calendar.performBooking) or RELEASED at a terminal non-booked state (figsy.ts).
 export async function approveLead(leadId: string, clientId: string): Promise<ApproveOutcome> {
+  // HOLD the $3 before anything spends — gates the whole approve on work-credit availability.
+  const { data: label } = await db.from('leads')
+    .select('first_name, last_name, company').eq('id', leadId).eq('client_id', clientId).maybeSingle()
+  const hold = await holdFigsyCredit(clientId, leadId, (label as Record<string, string | null> | null) ?? undefined)
+  if (!hold.ok) return { status: 'insufficient_work_credits', revealed: false }
+
   const reveal = await revealForApprove(clientId, leadId)
   if (reveal.status !== 'approved') {
+    // Reveal didn't complete → return the held $3 so nothing is stranded.
+    await releaseFigsyHold(clientId, leadId, `reveal_${reveal.status}`)
     const { leadRow, ...outcome } = reveal as ApproveOutcome & { leadRow?: unknown }
     return outcome
   }
 
-  // Snapshot enrolment BEFORE the work charge so we can tell if it actually happened
-  // (autoEnrollLead is void; an enrolment row appearing ⟺ the $3 charged, since the charge
-  // is fail-closed before the insert and refunded on any post-charge failure).
+  // Snapshot enrolment BEFORE, so we can tell if the work actually started (an enrolment row
+  // appears ⟺ work began — and the $3 stays held against it). Enrol on the hold: figsyHeld
+  // skips the figsy charge (already held).
   const { count: before } = await db.from('figsy_enrollments')
     .select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('lead_id', leadId)
 
-  await autoEnrollLead(leadId, clientId, { force: true })
+  await autoEnrollLead(leadId, clientId, { force: true, figsyHeld: true })
 
   const { count: after } = await db.from('figsy_enrollments')
     .select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('lead_id', leadId)
 
-  const workCharged = (after ?? 0) > (before ?? 0)
+  const workHeld = (after ?? 0) > (before ?? 0)
+  if (!workHeld) {
+    // No work started (no active campaign / dedup) → don't hold money for absent work.
+    await releaseFigsyHold(clientId, leadId, 'no_work_started')
+  }
   return {
-    status: 'approved', revealed: true, email: reveal.email, workCharged,
-    ...(workCharged ? {} : { workReason: 'no_work_credit_or_active_campaign' }),
+    status: 'approved', revealed: true, email: reveal.email, workHeld,
+    ...(workHeld ? {} : { workReason: 'no_active_campaign_or_dedup_skip' }),
   }
 }
 
 // Pass = client says "not a fit". No charge, no reveal; mark the lead so it leaves the queue.
+// If the lead somehow carried a held $3 (approved then passed), release it (idempotent).
 export async function passLead(leadId: string, clientId: string): Promise<{ status: 'passed' | 'not_found' }> {
   const { data } = await db.from('leads')
     .update({ status: 'passed', passed_at: new Date().toISOString() })
     .eq('id', leadId).eq('client_id', clientId).is('revealed_at', null)
     .select('id').maybeSingle()
+  await releaseFigsyHold(clientId, leadId, 'passed')
   return { status: data ? 'passed' : 'not_found' }
 }

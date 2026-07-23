@@ -133,7 +133,7 @@ operatorRouter.post('/leads/:id/approve', async (req: Request, res: Response) =>
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: client.id, action: 'approve_lead',
       subjectType: 'lead', subjectId: req.params.id,
-      detail: { outcome: outcome.status, revealed: outcome.revealed, workCharged: (outcome as { workCharged?: boolean }).workCharged ?? false, on_behalf: true },
+      detail: { outcome: outcome.status, revealed: outcome.revealed, workHeld: (outcome as { workHeld?: boolean }).workHeld ?? false, on_behalf: true },
     })
 
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }

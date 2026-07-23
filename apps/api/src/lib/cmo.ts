@@ -1,4 +1,4 @@
-import { buildSearchBody, searchPeople, ApolloContact } from './apollo'
+import { searchPeopleWithFallback, ApolloContact } from './apollo'
 import { isPlaceholderEmail } from './email-hygiene'
 
 // K.I.N.D brand voice + messaging config — update this file to change how the CMO agent writes
@@ -66,20 +66,24 @@ export const KIND_BRAND = {
   },
 }
 
-// Apollo search with K.I.N.D's own ICP (for INT-10 outbound)
+// #481 — Client-Zero sourcing runs on the LIVE PDL+Hunter stack, not dead Apollo.
+// This used to call searchPeople() directly, which THROWS when APOLLO_API_KEY is unset
+// (it always is — Apollo is retired) → the whole self-outreach job died with zero spend
+// and zero prospects. searchPeopleWithFallback() is the same entry runIcpJob uses: with
+// Apollo dead it fails over to PDL (returns [] on any error, never throws). Size is capped
+// at the 20/day self-outreach limit so PDL is asked for at most what we can enrol.
 export async function findKindProspects(): Promise<ApolloContact[]> {
-  const icpBody = buildSearchBody({
+  const { contacts } = await searchPeopleWithFallback({
     industries:       KIND_BRAND.target_icp.industries,
     job_titles:       KIND_BRAND.target_icp.job_titles,
     seniority_levels: ['c_suite', 'owner', 'founder', 'director'],
     company_sizes:    ['1,10', '11,50'],
-    geographies:      ['South Africa', 'Nigeria', 'Kenya'],
+    geographies:      KIND_BRAND.target_icp.geographies,
     tech_stack:       [],
     keywords:         [],
     apollo_only_consented: false,
-  })
-  const people = await searchPeople(icpBody)
-  // #375 (AR-38) — drop Apollo placeholder addresses at the source so no caller can
+  }, 1, 20)
+  // #375 (AR-38) — drop placeholder addresses at the source so no caller can
   // insert/charge/cold-email a fake mailbox (reputation risk to our sending domain).
-  return people.filter(p => !isPlaceholderEmail(p.email))
+  return contacts.filter(p => !isPlaceholderEmail(p.email))
 }

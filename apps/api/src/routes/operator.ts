@@ -266,6 +266,69 @@ operatorRouter.get('/status', async (_req: Request, res: Response) => {
   } catch (err) { console.error('[operator/status]', err); res.status(500).json({ success: false, error: 'Failed to load status' }) }
 })
 
+// ── #498 VIDA COMMAND BAR — conversational operator control, client-scoped ─────────
+// Phase 1 is DETERMINISTIC and HONEST: it answers status/blockers questions from LIVE
+// board data, and for write-intents (source / build campaign / update sequence) it hands
+// off to the existing engine tools rather than pretending to run them. Nothing here spends
+// a client's credits (invariant #1). Every command writes an audit row.
+operatorRouter.post('/command', async (req: Request, res: Response) => {
+  try {
+    const { client_id, text } = (req.body ?? {}) as { client_id?: string; text?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const q = (typeof text === 'string' ? text : '').trim()
+    if (!q) { res.status(400).json({ success: false, error: 'Empty command' }); return }
+    const cid = client.id
+    const lc = q.toLowerCase()
+
+    // Live counts for this client (the honest denominator behind every answer).
+    const [sourced, needs, sending, replied, enrolled, booked] = await Promise.all([
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', cid).is('revealed_at', null).neq('status', 'passed').in('status', ['scored', 'pending']),
+      db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'pending'),
+      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'enrolled'),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', cid),
+      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', cid),
+      db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'confirmed'),
+    ])
+    const c = {
+      sourced: sourced.count ?? 0, needs: needs.count ?? 0, sending: sending.count ?? 0,
+      replied: replied.count ?? 0, enrolled: enrolled.count ?? 0, booked: booked.count ?? 0,
+    }
+    const surfaced = await db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', cid).not('surfaced_for_approval_at', 'is', null).is('revealed_at', null)
+
+    let reply: string
+    let kind: 'answer' | 'handoff' = 'answer'
+    let link: string | null = null
+
+    if (/(block|stuck|waiting|what.?s left|to.?do|next)/.test(lc)) {
+      reply = `Blockers for ${client.company_name ?? 'this client'}: `
+        + `${c.needs} draft${c.needs === 1 ? '' : 's'} at your Send gate · `
+        + `${surfaced.count ?? 0} lead${(surfaced.count ?? 0) === 1 ? '' : 's'} sent to the client, awaiting their 👍 (Money gate) · `
+        + `${c.sourced} sourced lead${c.sourced === 1 ? '' : 's'} you haven't sent yet.`
+    } else if (/(status|how.*(going|doing)|summary|overview|pipeline)/.test(lc)) {
+      reply = `${client.company_name ?? 'Client'} pipeline — sourced ${c.sourced} · needs approval ${c.needs} · sending ${c.sending} · replied ${c.replied} · worked ${c.enrolled} · booked ${c.booked}.`
+    } else if (/(source|find|new lead|prospect|pull)/.test(lc)) {
+      kind = 'handoff'; link = `/vida?client=${cid}`
+      reply = `Sourcing runs in the FIGSY engine against this client's ICP. Open the ICP & Campaigns tools to source a new batch — new leads land in the Sourced column here. (One-click sourcing from this bar is on the build list.)`
+    } else if (/(sequence|email|copy|draft|campaign)/.test(lc)) {
+      kind = 'handoff'; link = `/vida?client=${cid}`
+      reply = `Campaigns & sequences live in the FIGSY engine. Build or edit there; drafts come back to the Needs-approval column for your Send gate.`
+    } else if (/(icp|target|persona|who)/.test(lc)) {
+      kind = 'handoff'; link = `/vida?client=${cid}`
+      reply = `Redefine the ICP in the ICP builder — the next sourcing run uses the new definition.`
+    } else {
+      reply = `I can tell you this client's status or what's blocking, and point you to the ICP / campaign / sequence tools. Try "what's blocking?" or "status".`
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: cid, action: 'vida_command',
+      subjectType: 'client', subjectId: cid, detail: { text: q, kind },
+    })
+    res.json({ success: true, reply, kind, link, counts: c })
+  } catch (err) { console.error('[operator/command]', err); res.status(500).json({ success: false, error: 'Command failed' }) }
+})
+
 // ── LEAD QUEUE — every pending draft across ALL clients (the operator's inbox) ─────
 // So the operator never has to open each client to find what's waiting. Read-only; the
 // Approve & send / Reject actions reuse the per-draft /queue/:id endpoints above.

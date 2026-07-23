@@ -20,6 +20,7 @@ export type OperatorAction =
   | 'send_now'              // forced a due send
   | 'pause_campaign'        // paused/resumed a campaign
   | 'suppression_change'    // added/removed a suppression/opt-out
+  | 'vida_command'          // #498 — issued a Vida command-bar instruction (no spend)
 
 export interface OperatorAuditEntry {
   operatorEmail: string

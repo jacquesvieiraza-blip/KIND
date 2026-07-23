@@ -43,6 +43,12 @@ type Board = {
   }
 }
 
+type Status = { outreach_enabled: boolean; daily_cap: number | null }
+type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
+
+// #501 — the 8-step operating flow, shown as a status ribbon across the top of the console.
+const FLOW = ['Sign up', 'Build plan', 'Approve send', 'Qualify', 'Client approves', 'Follow-up', 'Book', 'Learn']
+
 function initials(name: string | null): string {
   if (!name) return '—'
   const parts = name.trim().split(/\s+/).filter(Boolean)
@@ -81,6 +87,33 @@ export default function VidaConsolePage() {
   const [acting, setActing] = useState<string | null>(null)
   const [openDrafts, setOpenDrafts] = useState<Set<string>>(new Set())
   const toggleDraft = (id: string) => setOpenDrafts(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+  const [status, setStatus] = useState<Status | null>(null)
+  const [cmd, setCmd] = useState('')
+  const [cmdLog, setCmdLog] = useState<CmdMsg[]>([])
+  const [cmdBusy, setCmdBusy] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
+  }, [])
+
+  async function runCommand(text: string) {
+    const t = text.trim()
+    if (!t || !selected || cmdBusy) return
+    setCmd(''); setCmdBusy(true)
+    setCmdLog(l => [...l, { role: 'operator', text: t }])
+    try {
+      const res = await fetch('/api/proxy/operator/command', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, text: t }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Command failed (${res.status})`)
+      setCmdLog(l => [...l, { role: 'vida', text: json.reply, link: json.link }])
+    } catch (e) {
+      setCmdLog(l => [...l, { role: 'vida', text: e instanceof Error ? e.message : 'Command failed' }])
+    } finally { setCmdBusy(false) }
+  }
 
   useEffect(() => {
     let alive = true
@@ -241,6 +274,71 @@ export default function VidaConsolePage() {
         )}
         {selected && (
           <>
+            {/* #501 FLOW ribbon */}
+            <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-[22px] py-2 border-b border-[#eee7f7] bg-white">
+              {FLOW.map((step, i) => (
+                <span key={step} className="flex items-center gap-1 shrink-0">
+                  <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#7c6f9b]">
+                    <span className="w-[18px] h-[18px] rounded-full bg-[#efeafc] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                    {step}
+                  </span>
+                  {i < FLOW.length - 1 && <span className="text-[#d9d0ee] px-0.5">›</span>}
+                </span>
+              ))}
+            </div>
+
+            {/* #500 KPI cards */}
+            <div className="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3 px-[22px] pt-3">
+              {(() => {
+                const kpi = (label: string, value: string, sub: string, tone = '#1f1235') => (
+                  <div className="bg-white border border-[#eee7f7] rounded-xl px-3.5 py-2.5">
+                    <div className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">{label}</div>
+                    <div className="text-[18px] font-extrabold leading-tight mt-0.5" style={{ color: tone }}>{value}</div>
+                    <div className="text-[10.5px] text-[#9b8ec4] mt-0.5">{sub}</div>
+                  </div>
+                )
+                const cap = status?.daily_cap
+                return <>
+                  {kpi('Active client', selectedClient?.company_name || '—', `${selectedClient?.figsy_credits_remaining ?? 0} work credits`)}
+                  {kpi('Daily send cap', cap == null ? 'No cap set' : `${status?.daily_cap}`, status?.outreach_enabled ? 'outreach ON' : 'outreach OFF', status?.outreach_enabled ? '#059669' : '#b45309')}
+                  {kpi('Needs approval', String(cols?.needs_approval.count ?? 0), 'your Send gate', '#b45309')}
+                  {kpi('Booked · $3 captured', String(cols?.booked.count ?? 0), 'confirmed meetings', '#059669')}
+                </>
+              })()}
+            </div>
+
+            {/* #498 Vida command bar */}
+            <div className="shrink-0 mx-[22px] mt-3 bg-white border border-[#eee7f7] rounded-xl overflow-hidden">
+              <div className="flex items-center gap-2 px-3.5 py-2 border-b border-[#f2ecfb]">
+                <span className="w-6 h-6 rounded-md bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[11px] font-bold flex items-center justify-center">V</span>
+                <b className="text-[13px]">Vida</b>
+                <span className="text-[11px] text-[#9b8ec4]">conversational · context: {selectedClient?.company_name || 'client'}</span>
+              </div>
+              {cmdLog.length > 0 && (
+                <div className="max-h-40 overflow-y-auto px-3.5 py-2 space-y-1.5">
+                  {cmdLog.map((m, i) => (
+                    <div key={i} className={m.role === 'operator' ? 'text-right' : ''}>
+                      <span className={`inline-block text-[12px] rounded-xl px-3 py-1.5 ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.text}</span>
+                      {m.link && <a href={m.link} className="block text-[11px] font-bold text-[#7C3AED] mt-0.5 hover:underline">Open →</a>}
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="px-3.5 py-2.5">
+                <form onSubmit={e => { e.preventDefault(); runCommand(cmd) }} className="flex gap-2">
+                  <input value={cmd} onChange={e => setCmd(e.target.value)} placeholder={`Command Vida in ${selectedClient?.company_name || 'client'} context…`}
+                    className="flex-1 text-[12.5px] rounded-lg border border-[#e4dcf7] bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+                  <button type="submit" disabled={cmdBusy || !cmd.trim()} className="text-[12px] font-bold text-white rounded-lg px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{cmdBusy ? '…' : 'Run'}</button>
+                </form>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {["What's blocking?", 'Status', 'Redefine the ICP', 'Build a campaign', 'Update the sequence'].map(chip => (
+                    <button key={chip} onClick={() => runCommand(chip)} disabled={cmdBusy}
+                      className="text-[11px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-2.5 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{chip}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div className="px-[22px] pt-4 pb-1">
               <b className="text-[15px]">{selectedClient?.company_name || board?.client.company_name || 'Client'} — campaign pipeline</b>
               <span className="block text-[11.5px] text-[#9b8ec4]">Every stage FIGSY moves a lead through · human gate before send</span>

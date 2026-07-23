@@ -125,10 +125,22 @@ async function revealForApprove(clientId: string, leadId: string): Promise<Appro
 // revealed contact (real value, #424) at workHeld:false. The held $3 is later CAPTURED at
 // booking (calendar.performBooking) or RELEASED at a terminal non-booked state (figsy.ts).
 export async function approveLead(leadId: string, clientId: string): Promise<ApproveOutcome> {
+  const { data: pre } = await db.from('leads')
+    .select('revealed_at, email, first_name, last_name, company').eq('id', leadId).eq('client_id', clientId).maybeSingle()
+  if (!pre) return { status: 'not_found', revealed: false }
+
+  // #492/F3 — IDEMPOTENT RE-APPROVE. A lead already revealed was already approved: the $3
+  // was held then (still held, or captured at booking). Taking a SECOND hold here would
+  // strand a credit with no future capture/release. So short-circuit — return the existing
+  // state, never a fresh hold.
+  if (pre.revealed_at && pre.email) {
+    const { count: enrolled } = await db.from('figsy_enrollments')
+      .select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('lead_id', leadId)
+    return { status: 'approved', revealed: true, email: pre.email as string, workHeld: (enrolled ?? 0) > 0 }
+  }
+
   // HOLD the $3 before anything spends — gates the whole approve on work-credit availability.
-  const { data: label } = await db.from('leads')
-    .select('first_name, last_name, company').eq('id', leadId).eq('client_id', clientId).maybeSingle()
-  const hold = await holdFigsyCredit(clientId, leadId, (label as Record<string, string | null> | null) ?? undefined)
+  const hold = await holdFigsyCredit(clientId, leadId, (pre as Record<string, string | null>) ?? undefined)
   if (!hold.ok) return { status: 'insufficient_work_credits', revealed: false }
 
   const reveal = await revealForApprove(clientId, leadId)

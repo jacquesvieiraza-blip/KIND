@@ -158,6 +158,43 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── #487 DRAFT-QUEUE RELEASE (operator releases a FIGSY-written draft) ──────────
+// The "Needs approval" column is the figsy_approval_queue (drafts FIGSY wrote, awaiting a
+// human gate). These are NOT the $4 lead-approve — the $4 already fired when the lead was
+// revealed+enrolled. Approving here RELEASES the draft (the real, charged, logged send)
+// via the SAME approveQueuedDraft path the portal uses; rejecting closes it.
+operatorRouter.post('/queue/:id/approve', async (req: Request, res: Response) => {
+  try {
+    const { client_id } = (req.body ?? {}) as { client_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { approveDraftOnBehalf } = await import('../lib/operator-queue')
+    const r = await approveDraftOnBehalf(client.id, req.params.id)
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'approve_draft',
+      subjectType: 'approval_queue', subjectId: req.params.id,
+      detail: { on_behalf: true, sent: r.body.sent === true, outcome: r.body.outcome ?? (r.body.sent === true ? 'sent' : null) },
+    })
+    res.status(r.http).json(r.body)
+  } catch (err) { console.error('[operator/queue/approve]', err); res.status(500).json({ success: false, error: 'Failed to approve draft' }) }
+})
+
+operatorRouter.post('/queue/:id/reject', async (req: Request, res: Response) => {
+  try {
+    const { client_id } = (req.body ?? {}) as { client_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { rejectDraftOnBehalf } = await import('../lib/operator-queue')
+    const { rejected } = await rejectDraftOnBehalf(client.id, req.params.id)
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'reject_draft',
+      subjectType: 'approval_queue', subjectId: req.params.id, detail: { on_behalf: true, found: rejected },
+    })
+    if (!rejected) { res.status(404).json({ success: false, error: 'Draft not found or already processed' }); return }
+    res.json({ success: true, rejected: true })
+  } catch (err) { console.error('[operator/queue/reject]', err); res.status(500).json({ success: false, error: 'Failed to reject draft' }) }
+})
+
 // ── #486 OPERATOR AUDIT LOG (read-only viewer) ────────────────────────────────
 operatorRouter.get('/audit', async (req: Request, res: Response) => {
   try {
@@ -169,6 +206,32 @@ operatorRouter.get('/audit', async (req: Request, res: Response) => {
     if (error) throw error
     res.json({ success: true, data: data ?? [] })
   } catch (err) { console.error('[operator/audit]', err); res.status(500).json({ success: false, error: 'Failed to load audit log' }) }
+})
+
+// ── #485 who am I — echoes the operator email the proxy injected (rail identity) ──
+operatorRouter.get('/whoami', (req: Request, res: Response) => {
+  res.json({ success: true, data: { email: operatorEmail(req) } })
+})
+
+// ── #485 engine-health card (rail) — REAL live numbers, never hardcoded ───────
+operatorRouter.get('/health', async (_req: Request, res: Response) => {
+  try {
+    const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
+    const iso = midnight.toISOString()
+    const [sent, replies, pending] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', iso),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', iso),
+      db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    ])
+    res.json({
+      success: true,
+      data: {
+        sent_today:        sent.count ?? 0,
+        replies_today:     replies.count ?? 0,
+        pending_approvals: pending.count ?? 0,
+      },
+    })
+  } catch (err) { console.error('[operator/health]', err); res.status(500).json({ success: false, error: 'Failed to load health' }) }
 })
 
 // ── #485 top-bar status chips (honest kill-switch + cap state) ────────────────

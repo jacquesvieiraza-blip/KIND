@@ -11,6 +11,14 @@ const ALLOWED = (process.env.ADMIN_ALLOWED_EMAILS || 'jacques.vieiraza@gmail.com
   .split(',').map(e => e.trim().toLowerCase()).filter(Boolean)
 
 export async function middleware(request: NextRequest) {
+  // DEV-ONLY preview bypass (never in production). Lets the screenshot harness load
+  // /vida with mocked data — no Supabase session — so we can capture the REAL app UI
+  // before merge. Double-guarded: NODE_ENV must not be 'production' AND the operator
+  // must opt in with VIDA_DEV_PREVIEW=1. Cannot fire on Railway (NODE_ENV=production).
+  if (process.env.NODE_ENV !== 'production' && process.env.VIDA_DEV_PREVIEW === '1') {
+    return NextResponse.next({ request })
+  }
+
   // Railway terminates TLS at the edge; keep redirects on https.
   const proto = request.headers.get('x-forwarded-proto')
   const host  = request.headers.get('x-forwarded-host') ?? request.headers.get('host')

@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
 
 // #486 — OPERATOR AUDIT VIEWER (read-only).
 // Renders operator_audit_log through the /api/proxy/operator/audit gate: every
@@ -80,17 +78,11 @@ export default function VidaAuditPage() {
   }, [clients])
 
   return (
-    <div className="px-6 py-6 max-w-5xl mx-auto space-y-4">
-      <div className="flex items-center gap-3">
-        <Link href="/vida" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#7C3AED] hover:bg-purple-50 rounded-lg px-2 py-1">
-          <ArrowLeft className="w-4 h-4" /> Vida console
-        </Link>
-      </div>
-
-      <div className="flex items-start justify-between gap-4">
+    <div className="h-full overflow-y-auto px-6 py-6 space-y-4">
+      <div className="flex items-start justify-between gap-4 max-w-5xl">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Operator audit log</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Every approve-on-behalf and pass, attributed to the operator who took it · newest first</p>
+          <h1 className="text-2xl font-bold text-[#1f1235]">Operator audit log</h1>
+          <p className="text-sm text-[#7c6f9b] mt-0.5">Every approve-on-behalf and pass, attributed to the operator who took it · newest first</p>
         </div>
         <select
           value={filter}

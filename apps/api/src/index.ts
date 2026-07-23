@@ -24,6 +24,7 @@ import { whatsappRouter } from './routes/whatsapp'
 import { calendarRouter } from './routes/calendar'
 import { millaRouter } from './routes/milla'
 import { vidaRouter } from './routes/vida'
+import { operatorRouter } from './routes/operator'
 import { formsRouter } from './routes/forms'
 import { companyRouter } from './routes/company'
 import { deniseRouter } from './routes/denise'
@@ -164,6 +165,7 @@ app.use('/whatsapp',      whatsappRouter)
 app.use('/calendar',      calendarRouter)
 app.use('/milla',         millaRouter)
 app.use('/vida',          vidaRouter)
+app.use('/operator',      operatorRouter)
 app.use('/forms',         formsRouter)
 app.use('/company',       companyRouter)
 app.use('/denise',        deniseRouter)

@@ -9,6 +9,7 @@ import {
   ShieldCheck, DollarSign, Activity, FlaskConical,
   UserSquare2, Layers, Eye,
   Handshake, Pin, Gauge, HeartPulse, Sprout, Boxes, Receipt, Coins, Target,
+  Zap,
 } from 'lucide-react'
 
 // NOTE: do not name this `ref` — React reserves `ref`, and since the items are
@@ -21,6 +22,15 @@ type Section = { label: string; items: Item[] }
 // M3 Admin Centre IA (docs/admin-centre-spec.md): Cockpit + 6 sections +
 // Command Centre + Ops; the 8 cut-from-daily pages moved to "Dev · not daily".
 const SECTIONS: Section[] = [
+  {
+    // #485 — Vida is the operator console: where WE run each client's outbound
+    // pipeline. It lands first so operators start here; the "nervous system" admin
+    // pages stay exactly where they are below.
+    label: 'Operate',
+    items: [
+      { href: '/vida',      label: 'Vida',          icon: Zap },
+    ],
+  },
   {
     label: 'Cockpit',
     items: [

@@ -66,7 +66,7 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
     // Sourced = scored, not yet revealed/approved, not passed. surfaced_for_approval_at
     // tells the card whether it's already been Sent to the client (awaiting their 👍).
     const sourced = await db.from('leads')
-      .select('id, first_name, last_name, company, job_title, score, status, surfaced_for_approval_at', { count: 'exact' })
+      .select('id, first_name, last_name, company, job_title, score, status, surfaced_for_approval_at, approval_expires_at', { count: 'exact' })
       .eq('client_id', cid).is('revealed_at', null).neq('status', 'passed')
       .in('status', ['scored', 'pending']).order('score', { ascending: false }).limit(SAMPLE)
 

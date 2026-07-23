@@ -19,7 +19,7 @@ type ClientRow = {
   house_or_demo: boolean
 }
 
-type SourcedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null; score: number | null; status: string | null; surfaced_for_approval_at: string | null }
+type SourcedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null; score: number | null; status: string | null; surfaced_for_approval_at: string | null; approval_expires_at: string | null }
 type LeadJoin = { first_name?: string | null; last_name?: string | null; company?: string | null } | null
 type NeedsApprovalCard = {
   id: string; lead_id: string; status: string | null; created_at: string | null
@@ -259,7 +259,7 @@ export default function VidaConsolePage() {
                         <span className="text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded px-1.5">{c.score ?? '—'}</span>
                         <span className="text-[10px] text-[#b3a9cc]">score</span>
                       </div>
-                      {sourcedBtns(c.id, !!c.surfaced_for_approval_at)}
+                      {sourcedBtns(c.id, !!c.surfaced_for_approval_at && !!c.approval_expires_at && new Date(c.approval_expires_at).getTime() > Date.now())}
                     </div>
                   ))}
                 </Col>

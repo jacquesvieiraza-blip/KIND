@@ -217,18 +217,31 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // first/last name are fetched SERVER-SIDE ONLY (never returned) so we can scrub any
+    // occurrence of them from score_reasoning before it becomes the masked "why_fits".
     const { data, error } = await db.from('leads')
-      .select('id, job_title, company, industry, country, score, score_reasoning, created_at')
+      .select('id, first_name, last_name, job_title, company, industry, country, score, score_reasoning, created_at')
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
-      .not('surfaced_for_approval_at', 'is', null)  // #493 — only leads the operator has Sent to the client
+      .not('surfaced_for_approval_at', 'is', null)      // #493 — only leads the operator has Sent to the client
+      .gt('approval_expires_at', new Date().toISOString()) // #492 — enforce the 72h TTL: an expired lead leaves the desk (no charge, no hold ever created)
       .is('revealed_at', null)
       .neq('status', 'passed')
       .order('score', { ascending: false, nullsFirst: false })
       .limit(50)
     if (error) throw error
-    // Belt-and-braces: the select above already excludes name/email/phone; map to a fixed
-    // masked shape so an accidental column widening can never leak PII from this route.
+    // #492/F2 — the masked card must NEVER leak the name the client hasn't paid $1 for. The
+    // scoring prompt is fed the lead's name, so score_reasoning often echoes it → scrub the
+    // first name, last name and full name out of why_fits before it leaves the server. Map
+    // to a fixed masked shape (name/email/phone are never in the output object).
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const scrub = (why: string | null, first: string | null, last: string | null): string | null => {
+      if (!why) return null
+      let out = why
+      const toks = [first && last ? `${first} ${last}` : null, first, last].filter((t): t is string => !!t && t.trim().length > 1)
+      for (const t of toks) out = out.replace(new RegExp(`\\b${esc(t.trim())}\\b`, 'gi'), 'this prospect')
+      return out
+    }
     const masked = (data ?? []).map((l: Record<string, any>) => ({
       id: l.id,
       role: l.job_title ?? 'Decision-maker',
@@ -236,7 +249,7 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       industry: l.industry ?? null,
       country: l.country ?? null,
       score: l.score ?? null,
-      why_fits: l.score_reasoning ?? null,
+      why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
       created_at: l.created_at ?? null,
     }))
     res.json({ success: true, data: masked })

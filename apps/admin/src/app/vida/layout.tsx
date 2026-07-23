@@ -19,24 +19,35 @@ type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type Health = { sent_today: number; replies_today: number; pending_approvals: number }
 
 // The nervous system — every existing admin page, reachable from the dropdown.
+// Order + labels MIRROR docs/mv-previews/vida2.html exactly (Cockpit·Clients /
+// Money Path·Billing / Revenue·GTM / Unibox·Health / Ops·Founder). Outreach +
+// Compliance are real extra pages appended after the 10 so no nav is lost.
+// (The mockup also shows a "⚙ Settings" link — omitted here on purpose: there is
+// no /settings page yet, and a dead link would break the honesty rule.)
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
-  { href: '/',           label: 'Cockpit',       icon: '📟' },
-  { href: '/clients',    label: 'Clients',       icon: '👥' },
-  { href: '/money-path', label: 'Money Path',    icon: '💰' },
-  { href: '/revenue',    label: 'Revenue',       icon: '📈' },
-  { href: '/billing',    label: 'Billing',       icon: '🧾' },
-  { href: '/gtm',        label: 'GTM Hub',       icon: '🚀' },
-  { href: '/unibox',     label: 'Unibox',        icon: '📥' },
-  { href: '/outreach',   label: 'Outreach',      icon: '🎯' },
-  { href: '/health',     label: 'Deliverability',icon: '❤️' },
-  { href: '/ops',        label: 'Ops',           icon: '🛠' },
-  { href: '/compliance', label: 'Compliance',    icon: '🛡' },
-  { href: '/founder',    label: 'Founder',       icon: '👑' },
+  { href: '/',           label: 'Cockpit',    icon: '📟' },
+  { href: '/clients',    label: 'Clients',    icon: '👥' },
+  { href: '/money-path', label: 'Money Path', icon: '💰' },
+  { href: '/billing',    label: 'Billing',    icon: '🧾' },
+  { href: '/revenue',    label: 'Revenue',    icon: '📈' },
+  { href: '/gtm',        label: 'GTM Hub',    icon: '🚀' },
+  { href: '/unibox',     label: 'Unibox',     icon: '📥' },
+  { href: '/health',     label: 'Health',     icon: '❤️' },
+  { href: '/ops',        label: 'Ops',        icon: '🛠' },
+  { href: '/founder',    label: 'Founder',    icon: '👑' },
+  { href: '/outreach',   label: 'Outreach',   icon: '🎯' },
+  { href: '/compliance', label: 'Compliance', icon: '🛡' },
 ]
 
 function initials(email: string): string {
   const name = email.split('@')[0] || 'OP'
   return name.slice(0, 2).toUpperCase()
+}
+
+// Friendly display name for the account button: "jacques.vieiraza@…" → "Jacques".
+function displayName(email: string): string {
+  const local = (email.split('@')[0] || '').split('.')[0]
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : 'Operator'
 }
 
 export default function VidaLayout({ children }: { children: React.ReactNode }) {
@@ -106,8 +117,9 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           {/* Account dropdown = the nervous system */}
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(o => !o)}
-              className="flex items-center gap-2 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] py-1 pl-1 pr-2.5 hover:bg-[#f0ebfa] transition-colors">
+              className="flex items-center gap-2 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] py-1 pl-1 pr-3 hover:bg-[#f0ebfa] transition-colors">
               <span className="w-7 h-7 rounded-full bg-[#151033] text-white flex items-center justify-center text-[11px] font-bold">{email ? initials(email) : 'OP'}</span>
+              <span className="text-[13px] font-semibold text-[#1f1235]">{email ? displayName(email) : 'Operator'}</span>
               <ChevronDown className="w-3.5 h-3.5 text-[#9b8ec4]" />
             </button>
             {menuOpen && (

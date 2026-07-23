@@ -69,9 +69,9 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   )
 
   const ACCOUNT: [string, string, React.ElementType][] = [
-    ['/dashboard/settings', 'My profile', User], ['/dashboard/billing', 'Billing', CreditCard],
-    ['/dashboard/usage', 'Usage', Gauge], ['/dashboard/documents', 'Documents', FileText],
-    ['/dashboard/referral', 'Referral', Gift], ['/dashboard/settings', 'Settings', Settings],
+    ['/milla/settings', 'My profile', User], ['/milla/billing', 'Billing', CreditCard],
+    ['/milla/usage', 'Usage', Gauge], ['/milla/documents', 'Documents', FileText],
+    ['/milla/referral', 'Referral', Gift], ['/milla/settings', 'Settings', Settings],
   ]
 
   return (
@@ -131,19 +131,19 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           <nav>
             {link('/milla', 'New leads', Sparkles, isLeads, s?.leads_awaiting || undefined)}
             {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
-            {link('/dashboard/figsy', 'My campaign', Target, false)}
-            {link('/dashboard/analytics', 'Reports', FileBarChart, false)}
+            {link('/milla/campaign', 'My campaign', Target, pathname.startsWith('/milla/campaign'))}
+            {link('/milla/reports', 'Reports', FileBarChart, pathname.startsWith('/milla/reports'))}
           </nav>
           {section('Insights')}
           <nav>
-            {link('/dashboard/kpis', 'Performance', TrendingUp, false)}
-            {link('/dashboard/analytics', 'Analytics', LineChart, false)}
-            {link('/dashboard/roi', 'Your ROI', Gem, false)}
+            {link('/milla/performance', 'Performance', TrendingUp, pathname.startsWith('/milla/performance'))}
+            {link('/milla/analytics', 'Analytics', LineChart, pathname.startsWith('/milla/analytics'))}
+            {link('/milla/roi', 'Your ROI', Gem, pathname.startsWith('/milla/roi'))}
           </nav>
           {section('Company')}
           <nav>
-            {link('/dashboard/company', 'Command Centre', LayoutGrid, false)}
-            {link('/dashboard/team', 'Teams Hub', Users, false)}
+            {link('/milla/command-centre', 'Command Centre', LayoutGrid, pathname.startsWith('/milla/command-centre'))}
+            {link('/milla/teams', 'Teams Hub', Users, pathname.startsWith('/milla/teams'))}
           </nav>
           {section('Recent replies')}
           <div className="px-1">

@@ -1319,12 +1319,20 @@ export async function campaignReadyLeadIds(clientId: string): Promise<string[]> 
     .map((l: { id: string }) => l.id)
 }
 
-export async function autoEnrollLead(leadId: string, clientId: string): Promise<void> {
+export async function autoEnrollLead(leadId: string, clientId: string, opts?: { force?: boolean }): Promise<void> {
   try {
     // #344 (AR-07) — KILL-SWITCH, checked BEFORE the charge. autoEnrollLead charges a
     // FIGSY credit then sends step 1; if the switch is off, sendSequenceEmail would defer
     // the send but the charge would already be taken. Bail here so "off" never charges.
-    if (!outreachEnabled()) {
+    //
+    // #487 — EXCEPTION: the approve-gated $4 trigger passes { force: true }. An explicit
+    // client (or operator-on-behalf) approval is a DELIBERATE decision to buy the work,
+    // so it charges + enrols even while AUTO_OUTREACH_ENABLED is off — but the actual
+    // SEND still defers, because the sendSequenceEmail call at the end of this function
+    // has its OWN kill-switch check that returns 'deferred' without sending or advancing.
+    // Net: approve charges $3 + creates the enrolment now; nothing leaves until the
+    // switch is turned on. The auto (non-approve) path is unchanged — it still bails here.
+    if (!opts?.force && !outreachEnabled()) {
       console.warn(`[figsy] autoEnrollLead: AUTO_OUTREACH_ENABLED != true — not enrolling/charging lead ${leadId} (kill-switch off).`)
       return
     }

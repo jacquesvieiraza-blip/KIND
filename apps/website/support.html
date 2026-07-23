@@ -11,7 +11,7 @@
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Support — K.I.N.D AI Platform</title>
+  <title>Support — Milla &amp; Vida</title>
   <meta name="description" content="Get help with K.I.N.D. FAQ, contact form, and direct email support." />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -251,25 +251,7 @@
 <body>
 
 <!-- AUTH MODAL -->
-<div class="modal-overlay" id="auth-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeAuth()">✕</button>
-    <h2 id="auth-title">Welcome to K.I.N.D</h2>
-    <p class="modal-sub" id="auth-sub">Get started free — no card required.</p>
-    <div class="modal-tabs">
-      <button class="modal-tab active" id="tab-signup" onclick="switchTab('signup')">Sign up</button>
-      <button class="modal-tab" id="tab-login" onclick="switchTab('login')">Log in</button>
-    </div>
-    <form id="auth-form" onsubmit="submitAuth(event)">
-      <div class="form-group"><label for="auth-email">Email</label><input type="email" id="auth-email" placeholder="you@company.com" required /></div>
-      <div class="form-group"><label for="auth-password">Password</label><input type="password" id="auth-password" placeholder="••••••••" required minlength="6" /></div>
-      <p class="modal-forgot" id="forgot-link" style="display:none">Forgot password?</p>
-      <button type="submit" class="btn-form" id="auth-submit">Create account</button>
-      <p class="modal-msg" id="auth-msg"></p>
-    </form>
-    <p class="modal-footer">By signing up you agree to our <a href="terms.html">Terms of Service</a>.</p>
-  </div>
-</div>
+<!-- auth modal removed (#482 audit) — managed service has no self-serve signup -->
 
 <!-- NAV -->
 <nav>
@@ -376,7 +358,7 @@
 
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">How do I get started?<span class="fq-icon">&#x25BE;</span></button>
-      <div class="faq-a"><p>Sign up free at <a href="https://app.get-kind.com">app.get-kind.com</a>. Once your account is confirmed, you&rsquo;ll complete a short onboarding form (company name, industry) and then build your first ICP. Your first leads will appear in your pipeline once the ICP runs.</p></div>
+      <div class="faq-a"><p><a href="demo.html">Book a walkthrough</a> and we set everything up for you — your ideal customer profile, your campaign, the lot. Leads then land in your <a href="https://app.get-kind.com/login">Milla portal</a> for you to review and approve. Reviewing is free; you only pay $4 when you approve a lead.</p></div>
     </div>
 
     <div class="faq-item">
@@ -517,7 +499,7 @@
     document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'
     document.getElementById('auth-msg').className = 'modal-msg'
   }
-  document.getElementById('auth-modal').addEventListener('click', function(e) { if (e.target === this) closeAuth() })
+  var _authModal = document.getElementById('auth-modal'); if (_authModal) _authModal.addEventListener('click', function(e) { if (e.target === this) closeAuth() })
   async function submitAuth(e) {
     e.preventDefault()
     const email = document.getElementById('auth-email').value

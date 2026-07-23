@@ -1,5 +1,7 @@
 # 🚀 LAUNCH PAD — Milla&Vida, the 14-day build
 
+> 🛠️ **Live item-by-item build status → [`docs/BUILD-STATUS.md`](./BUILD-STATUS.md)** — every page/feature, merged-vs-live, and what's left. Updated after every build.
+
 > **The one daily page.** Everything on it either ships in the 14 days or unblocks them. **If it's not on this page, it does not block launch.**
 > Status of record → **PRODUCT-INVENTORY** (#477–#491 + THE NEW MAP) · why/history → **KIND-MASTER** session log · future → **V2-TRACKER** "🛝 MILLA&VIDA FUTURE".
 

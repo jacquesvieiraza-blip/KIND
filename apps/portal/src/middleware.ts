@@ -2,6 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  // #488 — DEV-ONLY Milla preview bypass (never in production). Lets the screenshot harness
+  // load /milla with mocked data — no Supabase session. Double-guarded: NODE_ENV must not be
+  // 'production' AND the operator must opt in with MILLA_DEV_PREVIEW=1. Cannot fire on Railway.
+  if (process.env.NODE_ENV !== 'production' && process.env.MILLA_DEV_PREVIEW === '1') {
+    return NextResponse.next({ request })
+  }
+
   // Railway terminates TLS at the edge and forwards to the app over plain HTTP.
   // If the client actually arrived over http, x-forwarded-proto is 'http' — bump
   // them to https at the entry point so no downstream redirect can land on http
@@ -47,6 +54,11 @@ export async function middleware(request: NextRequest) {
   const base = fwdProto && fwdHost ? `${fwdProto}://${fwdHost}` : request.url
 
   if (!user && pathname.startsWith('/dashboard')) {
+    return NextResponse.redirect(new URL('/login', base))
+  }
+
+  // #488 — Milla (the client lead desk) requires a signed-in client.
+  if (!user && pathname.startsWith('/milla')) {
     return NextResponse.redirect(new URL('/login', base))
   }
 

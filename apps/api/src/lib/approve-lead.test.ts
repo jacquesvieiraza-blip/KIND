@@ -45,7 +45,9 @@ vi.mock('@kind/db', () => ({
       const q = makeQuery(table)
       if (table === 'figsy_enrollments') {
         q.select = () => { q._isCount = true; return q }
-        Object.defineProperty(q, '_countValue', { get() { return (enrollQueryN++ === 0) ? enrollBefore : enrollAfter } })
+        // #492 fix — approveLead now runs ONE enrolment count (post-enrol): "does an active
+        // enrolment exist?" → return the post-enrol count.
+        Object.defineProperty(q, '_countValue', { get() { enrollQueryN++; return enrollAfter } })
       }
       return q
     },
@@ -129,6 +131,17 @@ describe('#492 approveLead — $1 charged + $3 HELD', () => {
     expect((out as { workHeld?: boolean }).workHeld).toBe(false)
     expect((out as { workReason?: string }).workReason).toBeTruthy()
     expect(releaseFigsyHold).toHaveBeenCalledWith('c1', 'lead1', 'no_work_started')     // don't hold for absent work
+  })
+
+  it('#492/F3 — re-approve of an ALREADY-REVEALED lead takes NO new hold (idempotent)', async () => {
+    leadRow = { ...leadRow!, revealed_at: '2026-07-23T00:00:00Z', email: 'known@acme.com' }
+    enrollAfter = 1 // it already has an active enrolment
+    const out = await approveLead('lead1', 'c1')
+    expect(out.status).toBe('approved')
+    expect((out as { workHeld?: boolean }).workHeld).toBe(true)
+    expect(holdFigsyCredit).not.toHaveBeenCalled()   // no second hold
+    expect(vi.mocked(autoEnrollLead)).not.toHaveBeenCalled() // no re-enrol
+    expect(rpcCalls.find(r => r.fn === 'try_charge_reveal_credit')).toBeFalsy() // no re-charge
   })
 
   it('pass charges NOTHING, releases any hold, marks the lead passed', async () => {

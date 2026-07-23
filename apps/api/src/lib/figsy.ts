@@ -436,6 +436,18 @@ export async function applyReplyBranching(
     await db.from('figsy_enrollments')
       .update({ status: 'replied', next_send_at: null, reply_branch_handled_at: now })
       .eq('id', enrollment.id)
+    // #492/F1 — a reply that stops the sequence releases the held $3 ONLY when it is a
+    // clearly-NEGATIVE reply (this lead will not book). Positive replies (hot/warm) keep
+    // the hold until the booking captures it — releasing here would free the $3 right
+    // before the meeting that should capture it. Ambiguous classes (other/OOO) also keep
+    // the hold; a post-gate stale-hold sweep reclaims any stragglers.
+    const { data: lastReply } = await db.from('figsy_replies')
+      .select('classification').eq('enrollment_id', enrollment.id)
+      .order('received_at', { ascending: false }).limit(1).maybeSingle()
+    const NEGATIVE = ['cold', 'opt_out', 'unsubscribe', 'wrong_person', 'referral']
+    if (lastReply && NEGATIVE.includes((lastReply.classification ?? '') as string)) {
+      void releaseHoldForEnrollment(enrollment.id, `reply_${lastReply.classification}`)
+    }
     return 'skip'
   }
 

@@ -63,9 +63,10 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
     const cid = client.id
     const SAMPLE = 25
 
-    // Sourced = scored, not yet revealed/approved, not passed.
+    // Sourced = scored, not yet revealed/approved, not passed. surfaced_for_approval_at
+    // tells the card whether it's already been Sent to the client (awaiting their 👍).
     const sourced = await db.from('leads')
-      .select('id, first_name, last_name, company, job_title, score, status', { count: 'exact' })
+      .select('id, first_name, last_name, company, job_title, score, status, surfaced_for_approval_at, approval_expires_at', { count: 'exact' })
       .eq('client_id', cid).is('revealed_at', null).neq('status', 'passed')
       .in('status', ['scored', 'pending']).order('score', { ascending: false }).limit(SAMPLE)
 
@@ -103,6 +104,22 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
       : { data: [] }
     const qualified = { count: enrollAll.count ?? 0, data: qualCards.data ?? [] }
 
+    // #493 Booked = confirmed meetings (the $3 captured). Real calendar_bookings, joined
+    // to the lead for a name.
+    const bookedRows = await db.from('calendar_bookings')
+      .select('id, lead_id, meeting_title, start_time, status', { count: 'exact' })
+      .eq('client_id', cid).eq('status', 'confirmed').order('start_time', { ascending: true }).limit(SAMPLE)
+    const bookedLeadIds = Array.from(new Set((bookedRows.data ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
+    const bookedLeadNames = bookedLeadIds.length > 0
+      ? await db.from('leads').select('id, first_name, last_name, company').in('id', bookedLeadIds)
+      : { data: [] }
+    const nameById = new Map((bookedLeadNames.data ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
+    const bookedCards = (bookedRows.data ?? []).map((b: Record<string, unknown>) => {
+      const l = nameById.get(b.lead_id as string) as Record<string, unknown> | undefined
+      return { id: b.id, lead_id: b.lead_id, start_time: b.start_time,
+        first_name: l?.first_name ?? null, last_name: l?.last_name ?? null, company: l?.company ?? null }
+    })
+
     res.json({
       success: true,
       client: { id: cid, company_name: client.company_name },
@@ -112,36 +129,31 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
         sending:       { count: sending.count ?? 0,       cards: sending.data ?? [] },
         replied:       { count: replied.count ?? 0,       cards: replied.data ?? [] },
         qualified:     { count: qualified.count ?? 0,     cards: qualified.data ?? [] },
+        booked:        { count: bookedRows.count ?? 0,    cards: bookedCards },
       },
     })
   } catch (err) { console.error('[operator/board]', err); res.status(500).json({ success: false, error: 'Failed to load board' }) }
 })
 
-// ── #487 APPROVE-ON-BEHALF (operator records a client's yes) ───────────────────
-// Requires an explicit confirmation flag (so a mis-click can't spend a client's money)
-// and writes an audit row naming the operator. Same $4 money path as the client approve.
-operatorRouter.post('/leads/:id/approve', async (req: Request, res: Response) => {
+// ── #493 SEND TO CLIENT (operators NEVER spend — invariant #1) ─────────────────
+// The operator's only move on a masked lead is to SURFACE it to the client for the
+// client's own 👍 in Milla. This spends NOTHING — it starts the #492 72h approval TTL and
+// writes an audit row. (The old operator "approve-on-behalf $4" endpoint was removed: no
+// path may let an operator spend a client's credits.)
+operatorRouter.post('/leads/:id/surface', async (req: Request, res: Response) => {
   try {
-    const { client_id, confirm } = (req.body ?? {}) as { client_id?: string; confirm?: boolean }
-    if (confirm !== true) { res.status(400).json({ success: false, error: 'confirm:true required — approve-on-behalf spends the client\'s credits.' }); return }
+    const { client_id } = (req.body ?? {}) as { client_id?: string }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
-
-    const { approveLead } = await import('../lib/approve-lead')
-    const outcome = await approveLead(req.params.id, client.id)
-
+    const { surfaceLeadForApproval } = await import('../lib/operator-queue')
+    const { surfaced } = await surfaceLeadForApproval(client.id, req.params.id)
     await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: client.id, action: 'approve_lead',
-      subjectType: 'lead', subjectId: req.params.id,
-      detail: { outcome: outcome.status, revealed: outcome.revealed, workHeld: (outcome as { workHeld?: boolean }).workHeld ?? false, on_behalf: true },
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'surface_lead',
+      subjectType: 'lead', subjectId: req.params.id, detail: { on_behalf: true, surfaced },
     })
-
-    if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
-    if (outcome.status === 'insufficient_reveal_credits') { res.status(402).json({ success: false, ...outcome }); return }
-    if (outcome.status === 'no_email') { res.status(422).json({ success: false, ...outcome }); return }
-    if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, ...outcome }); return }
-    res.json({ success: true, ...outcome })
-  } catch (err) { console.error('[operator/approve]', err); res.status(500).json({ success: false, error: 'Failed to approve lead' }) }
+    if (!surfaced) { res.status(404).json({ success: false, error: 'Lead not found or already actioned' }); return }
+    res.json({ success: true, surfaced: true })
+  } catch (err) { console.error('[operator/surface]', err); res.status(500).json({ success: false, error: 'Failed to send lead to client' }) }
 })
 
 operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {

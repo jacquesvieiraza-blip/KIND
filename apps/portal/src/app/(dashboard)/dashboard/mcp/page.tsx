@@ -13,33 +13,41 @@ const MCP_ENDPOINT = `${API_URL}/mcp`
 
 interface Message { role: 'user' | 'assistant'; content: string }
 
+// #478 — honesty: only figsy_suggest_campaign actually executes over MCP today (it calls
+// the model and returns a real strategy). figsy_find_leads and figsy_get_campaign_stats
+// return a "authenticate in the portal" stub server-side — they don't run the search/stats
+// over MCP yet, so they're flagged comingSoon. The "250M+ contacts / instantly" overclaim
+// is removed (we source ICP-matched leads via PDL+Hunter in the portal, not a 250M DB).
 const MCP_TOOLS = [
+  {
+    icon: Zap,
+    name: 'figsy_suggest_campaign',
+    label: 'Suggest a Campaign',
+    description: 'FIGSY proposes a campaign strategy: name, subject lines, and rationale — all from a single prompt.',
+    example: '"Suggest a campaign targeting Series A SaaS founders in Nigeria"',
+    color: 'text-emerald-600',
+    bg: 'bg-emerald-50',
+    comingSoon: false,
+  },
   {
     icon: Search,
     name: 'figsy_find_leads',
     label: 'Find B2B Leads',
-    description: 'Search 250M+ contacts by industry, job title, company size, and country. Ask Claude to find prospects and they appear instantly.',
+    description: 'Ask Claude to find ICP-matched prospects. Runs your lead search over MCP — today this runs in the portal; MCP execution is coming soon.',
     example: '"Find 10 fintech CTOs in South Africa for FIGSY"',
     color: 'text-[#7C3AED]',
     bg: 'bg-[#F5F0FF]',
+    comingSoon: true,
   },
   {
     icon: BarChart2,
     name: 'figsy_get_campaign_stats',
     label: 'Campaign Performance',
-    description: 'Pull live outreach stats — emails sent, open rate, reply rate, meetings booked — straight into your AI conversation.',
+    description: 'Pull outreach stats — emails sent, reply rate, meetings booked — into your AI conversation. MCP execution is coming soon.',
     example: '"What are my FIGSY campaign stats this week?"',
     color: 'text-amber-600',
     bg: 'bg-amber-50',
-  },
-  {
-    icon: Zap,
-    name: 'figsy_suggest_campaign',
-    label: 'Suggest a Campaign',
-    description: 'FIGSY analyses your ICP and proposes a campaign strategy: name, subject lines, and rationale — all from a single prompt.',
-    example: '"Suggest a campaign targeting Series A SaaS founders in Nigeria"',
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50',
+    comingSoon: true,
   },
   // milla_ask tool hidden 10 Jul (FIGSY-only cut) — returns when Milla does.
 ]
@@ -180,7 +188,7 @@ export default function McpPage() {
               </div>
               <h1 className="text-2xl font-bold text-white leading-tight">KIND MCP Server</h1>
               <p className="text-white/60 text-sm mt-1.5 max-w-xl">
-                Connect your KIND account to Claude.ai, Cursor, or any MCP-enabled AI tool. Run lead searches, pull campaign stats, and use FIGSY from wherever you work.
+                Connect your KIND account to Claude.ai, Cursor, or any MCP-enabled AI tool. Ask FIGSY to suggest a campaign from wherever you work — lead search and live stats over MCP are coming soon.
               </p>
             </div>
           </div>
@@ -228,6 +236,9 @@ export default function McpPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-semibold text-gray-900">{tool.label}</p>
                       <code className="text-[10px] font-mono text-[#7C3AED] bg-[#F5F0FF] px-1.5 py-0.5 rounded">{tool.name}</code>
+                      {tool.comingSoon && (
+                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded">Coming soon</span>
+                      )}
                     </div>
                     <p className="text-xs text-gray-500 mt-1 leading-relaxed">{tool.description}</p>
                     <p className="text-[11px] text-[#7C3AED]/70 mt-2 italic">{tool.example}</p>

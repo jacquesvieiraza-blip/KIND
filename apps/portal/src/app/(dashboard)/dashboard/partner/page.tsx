@@ -217,7 +217,10 @@ export default function PartnerPage() {
   function copyReferralLink() {
     const code = data?.partner.referral_code
     if (!code) return
-    navigator.clipboard.writeText(`https://get-kind.com?ref=${code}`).then(() => {
+    // #479 — get-kind.com (the marketing site) does NOT forward ?ref to the portal, so
+    // the code was dropped and the partner never got credited. Point at the portal login
+    // capture (matches ReferralBanner + the client referral page).
+    navigator.clipboard.writeText(`https://app.get-kind.com/login?ref=${code}`).then(() => {
       setCopiedRef(true)
       setTimeout(() => setCopiedRef(false), 2000)
     })
@@ -267,7 +270,7 @@ export default function PartnerPage() {
 
   const { partner, referrals, commissions, deals, stats } = data
   const tierLabel = TIER_LABELS[partner.partner_type] ?? partner.partner_type
-  const refLink = partner.referral_code ? `https://get-kind.com?ref=${partner.referral_code}` : null
+  const refLink = partner.referral_code ? `https://app.get-kind.com/login?ref=${partner.referral_code}` : null  // #479 — capture path, not the bare marketing domain
 
   // Show onboarding checklist only when partner has no activity yet
   const isNewPartner = referrals.length === 0 && deals.length === 0 && commissions.length === 0

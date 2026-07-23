@@ -17,7 +17,7 @@ import crypto from 'crypto'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail, lifecycleEmailsEnabled } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { isPlaceholderEmail } from '../lib/email-hygiene'
 import { scoreLeadsForIcp } from '../lib/scoring'
@@ -356,6 +356,9 @@ Output only the email body. No subject line. No placeholders.`
 // Call daily. Sends emails at day 10, 12, and 14 of trial.
 internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => {
   try {
+    // #480 — client lifecycle cron: skip entirely when the master switch is off, so
+    // no nudge fires AND no 'notified' state is stamped (it re-fires when re-enabled).
+    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
     const now = new Date()
     const { data: trials } = await db.from('subscriptions')
       .select('id, client_id, trial_ends_at, trial_expiry_notified_at, clients(company_name, user_id)')
@@ -1212,6 +1215,11 @@ internalRouter.post('/figsy/refresh-memory-all', async (_req: Request, res: Resp
 // Call daily. Warns clients with zero credit balance.
 internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => {
   try {
+    // #480 (Fable verify) — this handler stamps low_credit_warned_at AFTER the send; if
+    // only the sender were gated, a suppressed send would still stamp → the warning is
+    // lost for up to 7 days after re-enabling. Gate the whole handler like its siblings.
+    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
+
     const now = new Date()
 
     const { data: clients } = await db.from('clients')
@@ -1360,6 +1368,9 @@ internalRouter.post('/figsy/auto-replenish', async (_req: Request, res: Response
 // summary: pipeline value, reply rate vs benchmark, leads added today, active campaigns.
 internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Response) => {
   try {
+    // #480 — client lifecycle cron: skip entirely when the master switch is off, so
+    // no nudge fires AND no 'notified' state is stamped (it re-fires when re-enabled).
+    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
     const now       = new Date()
     const todayUTC  = new Date(now)
     todayUTC.setUTCHours(0, 0, 0, 0)
@@ -1489,6 +1500,9 @@ internalRouter.post('/milla/morning-brief-all', async (_req: Request, res: Respo
 // Signals: reply rate drop >30%, interested reply spike, no emails sent in 48h on active campaign.
 internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Response) => {
   try {
+    // #480 — client lifecycle cron: skip entirely when the master switch is off, so
+    // no nudge fires AND no 'notified' state is stamped (it re-fires when re-enabled).
+    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
     const now      = new Date()
     const prev7d   = new Date(now.getTime() - 7  * 86400000).toISOString()
     const prev14d  = new Date(now.getTime() - 14 * 86400000).toISOString()
@@ -1592,6 +1606,16 @@ internalRouter.post('/milla/check-anomalies', async (_req: Request, res: Respons
 // Schedule: POST /internal/cmo/self-outreach (call weekly via cron)
 internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) => {
   try {
+    // #481 — DORMANT-SAFE. This job SOURCES (spends PDL) then ENROLS + sends. Gate the
+    // WHOLE job on the same kill-switch the send path uses, checked BEFORE any sourcing,
+    // so nothing spends PDL or enrols while we're building dark. autoEnrollLead also
+    // re-checks the switch before charging, but that's downstream of the PDL spend — this
+    // top gate is what keeps sourcing itself dormant until AUTO_OUTREACH_ENABLED (Day 14).
+    if (process.env.AUTO_OUTREACH_ENABLED !== 'true') {
+      res.json({ success: true, data: { found: 0, enrolled: 0, skipped: 0, message: 'Self-outreach dormant — AUTO_OUTREACH_ENABLED is off (no sourcing, no sends).' } })
+      return
+    }
+
     const kindClientId = process.env.FIGSY_KIND_CLIENT_ID
     const founderEmail = process.env.FOUNDER_EMAIL
     if (!kindClientId) {
@@ -1639,7 +1663,7 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
           country:    contact.country    ?? null,
           status:     'new',
           score:      70, // default score for ICP-matched outbound
-          score_reasoning: 'Apollo ICP match — K.I.N.D self-outreach',
+          score_reasoning: 'PDL/ICP match — K.I.N.D self-outreach',
         }).select('id').single()
 
         if (leadError || !lead) continue
@@ -1684,6 +1708,9 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
 // ── LOW CREDIT WARNING — fires daily, warns clients with 1–4 credits remaining ──
 internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
   try {
+    // #480 — client lifecycle cron: skip entirely when the master switch is off, so
+    // no nudge fires AND no 'notified' state is stamped (it re-fires when re-enabled).
+    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
     const now = new Date()
     const oneDayAgo = new Date(now.getTime() - 86400000).toISOString()
 
@@ -2080,6 +2107,9 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
 // ── SUBSCRIPTION LAPSE CHECK — fires daily, marks overdue active subscriptions as lapsed ──
 internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Response) => {
   try {
+    // #480 — client lifecycle cron: skip entirely when the master switch is off, so
+    // no nudge fires AND no 'notified' state is stamped (it re-fires when re-enabled).
+    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
     const now = new Date().toISOString()
 
     // Active subscriptions whose billing period has ended — no renewal charge received

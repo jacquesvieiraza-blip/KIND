@@ -33,14 +33,29 @@ export function isRealRecipient(to: string | string[]): boolean {
 // These are 1:1 transactional mails (welcome, billing, digests) from the primary
 // domain, so they intentionally carry NO List-Unsubscribe header (that's for cold
 // bulk outreach only — see lib/deliverability.ts).
+// #480 — MASTER SWITCH for automated CLIENT lifecycle mail (nudges, digests, credit
+// warnings, nurture, campaign-paused). Defaults ON — set LIFECYCLE_EMAILS_ENABLED=false
+// to silence ALL of it in one place (used during the build so a house/demo account isn't
+// nudged). This is NOT the outreach kill-switch (that's AUTO_OUTREACH_ENABLED, cold sends)
+// and NOT for transactional auth/billing mail (welcome, seat invite, onboarding, consent)
+// or founder alerts — those always send.
+export function lifecycleEmailsEnabled(): boolean {
+  return process.env.LIFECYCLE_EMAILS_ENABLED !== 'false'
+}
+
 async function sendTx(opts: {
   from?: string
   to: string | string[]
   subject: string
   html: string
   text?: string
+  lifecycle?: boolean   // #480 — true = automated client lifecycle mail, gated by the master switch
 }) {
   if (!resend) return
+  if (opts.lifecycle && !lifecycleEmailsEnabled()) {
+    console.log(`[email] lifecycle mail suppressed (LIFECYCLE_EMAILS_ENABLED=false) — "${opts.subject}"`)
+    return
+  }
   if (!isRealRecipient(opts.to)) {
     console.log(`[email] skipped non-deliverable recipient: ${Array.isArray(opts.to) ? opts.to.join(', ') : opts.to}`)
     return
@@ -556,7 +571,7 @@ export async function sendNurtureEmail(
   }
 
   const { subject, html } = emails[stage]
-  await sendTx({ from: FROM, to, subject, html })
+  await sendTx({ from: FROM, to, subject, html, lifecycle: true })  // #480
 }
 
 export async function sendZeroCreditsWarning(
@@ -579,6 +594,7 @@ export async function sendZeroCreditsWarning(
   await sendTx({
     from: FROM,
     to,
+    lifecycle: true,   // #480
     subject,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
@@ -620,6 +636,7 @@ export async function sendLowCreditsWarning(
   await sendTx({
     from: FROM,
     to,
+    lifecycle: true,   // #480
     subject,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
@@ -658,6 +675,7 @@ export async function sendCampaignPausedEmail(
   await sendTx({
     from: FROM,
     to,
+    lifecycle: true,   // #480
     subject: `Your campaign "${campaignName}" was paused — let's fix it`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
@@ -742,6 +760,7 @@ export async function sendWeeklyLeadsDigest(
   await sendTx({
     from: FROM,
     to,
+    lifecycle: true,   // #480
     subject: `Your K.I.N.D weekly leads report — ${weekOf}`,
     html: `
       <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111;border:1px solid #e8f0fe;border-radius:12px;overflow:hidden">

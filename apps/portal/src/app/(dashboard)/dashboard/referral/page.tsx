@@ -36,7 +36,10 @@ export default function ReferralPage() {
           const id: string = json.data?.id
           if (id) {
             setClientId(id)
-            setReferralUrl(`${window.location.origin}?ref=${id}`)
+            // #479 — the ?ref code is only captured at /login and /onboard. Pointing the
+            // share link at the bare origin dropped the ref → referrers were never credited.
+            // Match ReferralBanner (/login?ref=) so the capture actually fires.
+            setReferralUrl(`${window.location.origin}/login?ref=${id}`)
           }
         }
 

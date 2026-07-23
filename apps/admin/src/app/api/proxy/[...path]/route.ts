@@ -20,7 +20,10 @@ async function proxy(req: NextRequest, path: string[]) {
   const key = process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET || ''
   if (!key) return NextResponse.json({ success: false, error: 'Admin key not configured — check ADMIN_SECRET_KEY env var' }, { status: 401 })
 
-  const url = `${API}/${path.join('/')}`
+  // Forward the query string too — without req.nextUrl.search, GET calls like
+  // /operator/board?client_id=… reach the API with NO client_id, which returned
+  // "Unknown client_id" for every client (the Vida board never loaded).
+  const url = `${API}/${path.join('/')}${req.nextUrl.search}`
   const isGet = req.method === 'GET'
   let res: Response
   try {

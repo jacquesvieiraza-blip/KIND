@@ -1,0 +1,83 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Milla&Vida — build roadmap</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Figtree:wght@400;600;700&display=swap" rel="stylesheet"><style>
+  *{box-sizing:border-box;margin:0}
+  body{font-family:'Figtree',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:linear-gradient(165deg,#faf8ff,#f1ebfd);color:#1f1235;padding:44px 46px}
+  h1{font-size:30px;text-align:center}
+  .sub{font-size:16px;color:#8a7fb0;text-align:center;margin:6px 0 30px}
+  .legend{display:flex;gap:18px;justify-content:center;margin-bottom:26px;font-size:13px;color:#7B6FA0}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px}
+  .built{background:#16a34a}.small{background:#7C3AED}.new{background:#EC4899}
+  .phase{display:grid;grid-template-columns:150px 1fr 130px;gap:18px;align-items:stretch;margin-bottom:14px}
+  .pl{border-radius:16px;padding:16px 14px;color:#fff;display:flex;flex-direction:column;justify-content:center}
+  .p0{background:linear-gradient(135deg,#64748b,#475569)}
+  .p1{background:linear-gradient(135deg,#EC4899,#be185d)}
+  .p2{background:linear-gradient(135deg,#8b5cf6,#6d28d9)}
+  .p3{background:linear-gradient(135deg,#7C3AED,#5b21b6)}
+  .p4{background:linear-gradient(135deg,#3b2a6e,#241546)}
+  .pl b{font-size:16px}.pl span{font-size:12px;opacity:.85;margin-top:3px}
+  .body{background:#fff;border:1px solid #ece5fb;border-radius:16px;padding:14px 18px;box-shadow:0 4px 16px rgba(124,58,237,.05)}
+  .track{display:flex;gap:8px;margin-bottom:7px;font-size:13.5px;align-items:baseline}
+  .track:last-child{margin-bottom:0}
+  .tk{flex-shrink:0;width:74px;font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:#9b8ec4}
+  .track p{color:#4c4368;line-height:1.5}
+  .track p b{color:#1f1235}
+  .pill{display:inline-block;font-size:10.5px;font-weight:800;border-radius:6px;padding:0 6px;margin-left:4px;vertical-align:middle}
+  .pill.b{background:#e9fbef;color:#16a34a}.pill.s{background:#f3ecff;color:#7C3AED}.pill.n{background:#fdeef5;color:#DB2777}
+  .time{background:#fbfaff;border:1px solid #ece5fb;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:12px}
+  .time b{font-size:19px;color:#7C3AED}.time span{font-size:11.5px;color:#9b8ec4;margin-top:2px}
+  .money{background:linear-gradient(100deg,#16a34a,#15803d);color:#fff;border-radius:14px;padding:14px 22px;text-align:center;font-size:16px;font-weight:700;margin:8px 0 16px;box-shadow:0 6px 20px rgba(22,163,74,.25)}
+  .foot{text-align:center;font-size:14px;color:#8a7fb0;margin-top:20px;line-height:1.6}
+  .foot b{color:#7C3AED}
+</style></head><body>
+  <h1>Milla &amp; Vida — the 2-week build</h1>
+  <p class="sub">Your order: Website → Vida (the real part) → Milla. Reuse everything; render into the new design. Aligned to payday.</p>
+  <div class="legend">
+    <span><span class="dot built"></span>Already built — reuse</span>
+    <span><span class="dot small"></span>Re-skin / re-word</span>
+    <span><span class="dot new"></span>New build</span>
+  </div>
+
+  <div class="phase">
+    <div class="pl p0"><b>Day 1</b><span>Make it honest</span></div>
+    <div class="body">
+      <div class="track"><span class="tk">Engine</span><p><b>Scoring crash bug</b> (no fake $ charges)<span class="pill n">must</span> · strip fake showroom items · referral link fix · lifecycle-email master switch.</p></div>
+    </div>
+    <div class="time"><b>Day 1</b><span>prerequisite</span></div>
+  </div>
+  <div class="phase">
+    <div class="pl p1"><b>Days 2–4</b><span>WEBSITE first</span></div>
+    <div class="body">
+      <div class="track"><span class="tk">Site</span><p>Milla&amp;Vida rebrand on the existing framework<span class="pill s">re-skin</span>: homepage story (approve-then-reveal, agents' new roles), Nexus per-client, Product, pricing wording, nav + footer. Preview → your approve → live.</p></div>
+      <div class="track"><span class="tk">Exit</span><p>Site sells the managed service honestly. You can send prospects to it.</p></div>
+    </div>
+    <div class="time"><b>~3 days</b><span>preview-first</span></div>
+  </div>
+  <div class="phase">
+    <div class="pl p3"><b>Days 5–9</b><span>VIDA — the real part</span></div>
+    <div class="body">
+      <div class="track"><span class="tk">Reuse</span><p>ICP builder+run, campaigns, sequences, send gates, unibox, kanban, calendar booking, admin pages<span class="pill b">built</span> — rendered into the Vida design.</p></div>
+      <div class="track"><span class="tk">New</span><p>Client-picker context (operate any client)<span class="pill n">new</span> · pipeline board view<span class="pill s">re-skin of kanban</span> · nervous-system dropdown (admin, top-right)<span class="pill s">links</span> · operator audit log<span class="pill n">new</span> · masked-until-approved reveal gate<span class="pill n">new</span>.</p></div>
+      <div class="track"><span class="tk">Exit</span><p>You run a full client end-to-end from Vida: ICP → source → drafts → approve → send → replies → book.</p></div>
+    </div>
+    <div class="time"><b>~5 days</b><span></span></div>
+  </div>
+  <div class="phase">
+    <div class="pl p2"><b>Days 10–13</b><span>MILLA — client portal</span></div>
+    <div class="body">
+      <div class="track"><span class="tk">Reuse</span><p>Portal chrome, replies, meetings, Performance/Analytics/ROI, Command Centre, Teams Hub, billing/credits, account menu<span class="pill b">built</span>.</p></div>
+      <div class="track"><span class="tk">New</span><p>Lead desk: masked leads + 👍/✕ approve-to-pursue<span class="pill n">new</span> · Milla concierge chat<span class="pill s">re-skin of ICP chat</span> · declutter nav to the locked list<span class="pill s">hide</span>.</p></div>
+      <div class="track"><span class="tk">Exit</span><p>A client logs in, reviews, approves — friction-free.</p></div>
+    </div>
+    <div class="time"><b>~4 days</b><span></span></div>
+  </div>
+  <div class="phase">
+    <div class="pl p4"><b>Day 14</b><span>Walk + pilot</span></div>
+    <div class="body">
+      <div class="track"><span class="tk">Prove</span><p>Full dogfood run as Client Zero (our own leads) + your walk of both portals. Then the first paying pilot.</p></div>
+    </div>
+    <div class="time"><b>Day 14</b><span>payday-aligned</span></div>
+  </div>
+
+  <p class="foot"><b>2 weeks, honest version:</b> tight but real — because ~70% is reuse. What moves OUT of the 2 weeks: Nexus auto-tuning, self-serve glide, Smartlead API automation (operator uses Smartlead's UI meanwhile). Anything slips → Milla trims first, Vida never does.</p>
+</body></html>
+<style>h1,.pl b,.time b{font-family:'Outfit',system-ui,sans-serif}</style>

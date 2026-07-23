@@ -70,6 +70,26 @@ Alta's real strength isn't three agents — it's **one shared data layer**: ever
 
 **Load-bearing risks (why parked):** sprint bleed (lines 8–10 open — the 9-Jul reset exists because scope-before-revenue killed momentum) · unit economics (#440/#442 multiply LLM calls per prospect) · autonomous replies = the send-integrity class just hardened (phantom sends/kill-switch/consent) · why-now signals ride PDL spend with quotas #423 still 🔴 · Milla-boundary contradiction.
 
+# ░ 🛝 MILLA&VIDA FUTURE — what's PAST the 14-day managed build (22 Jul pivot · future detail only) ░
+
+> **Context:** the 22-Jul pivot (full decision in KIND-MASTER session log) sells a **managed/concierge service** on the existing FIGSY engine — **Vida** = the operator console (WE run the loop), **Milla** = the client portal (client reviews masked leads + 👍/✕ approves), **Nexus** = the per-client private learning brain. The 14-day build (#477–#490, tracked in PRODUCT-INVENTORY + LAUNCH-PAD) delivers the managed MVP. **This section holds only what lives BEYOND those 14 days** — the roadmap rationale, not status (status = PRODUCT-INVENTORY). Nothing here is a build ticket yet.
+
+## 1. The glide path — managed → co-pilot → self-serve (no migration, ever)
+The whole point of the model: **the product never changes, only *who clicks 👍 approve* does.** Same portal, same engine, same masked-lead → approve → reveal → work → book loop along all three stages:
+- **Managed (the 14-day build):** the operator (us, in Vida) runs everything; the client just reviews outcomes in Milla. Client Zero = us.
+- **Co-pilot (next):** the client starts clicking 👍 on their own leads in Milla while we still run sourcing/sequences in Vida. Only the approve action moves to the client — no data migration, no re-onboarding, no new SKU.
+- **Self-serve (later):** the client drives their own ICP builder + campaigns; Vida becomes oversight/support. This is where the *original* self-serve SaaS vision lands — but now the client arrives at it having already seen the product deliver, so we never sold a promise we couldn't keep.
+- **Why it's safe:** because approve-then-reveal + the $4-on-👍 money spine are identical at every stage, a client can sit anywhere on the glide path and the billing, trust gate, and UI are unchanged. We move a client one notch when *they* are ready, not on a migration deadline.
+
+## 2. Nexus auto-tuning — the per-client brain that sharpens itself
+Nexus (per-client, private, never shared across clients — the #476 unified-data-layer thesis, scoped to one tenant) starts in the 14-day build as **read + surface** (why this lead fits, what's converting). Post-build it earns **auto-tuning**: every 👍/✕ and every reply teaches that client's Nexus which angle/subject/persona/timing lands, and it re-tunes *that client's* sourcing + sequences automatically (the Luna-style self-optimise loop from #439/#440, fenced to one client). **The dogfood flywheel:** our own Client-Zero approvals sharpen our own Nexus → better outreach → more clients → their approvals sharpen theirs. Cost model first (per-interaction LLM spend vs the $4/lead margin — same guard as #440).
+
+## 3. Sending — Smartlead API automation (operator uses the UI meanwhile)
+In the 14-day build the operator sends from **Smartlead's own UI** (clients' isolated pre-warmed inboxes; our outreach fires from the Instantly rig). The future work is the **#211 Smartlead API** integration in phases so sending is driven from inside Vida, not a separate tab: **Phase 1 (done)** = key live + read-only connectivity (admin-gated, ZERO sending); **Phase 2** = the `SendingProvider` seam (previewed) so Vida can route a send through Smartlead per-client; **Phase 3** = full per-client inbox management + reporting surfaced in Vida. Until Phase 2 ships, sending stays manual-in-Smartlead-UI — deliberately, so nothing sends through an unverified seam.
+
+## 4. Old Blocks 3–5 (the per-agent upgrades) — folded here, still valid, now post-managed
+The 22-Jul 5-block roadmap is superseded as the *organizing frame*, but its Block 3–5 **upgrade detail survives as forward roadmap** (each queues behind the managed MVP + first paying client, founder-picked order): FIGSY multi-channel (**LinkedIn #388**, **voice/AI calling #475**) · the **Jack&Jill deepening** (#437–#443 — why-now, per-prospect memory, coaching, autonomous replies) · **Alta parity** (#475 voice · #476 unified data layer) · Milla intelligence depth (#427 + #120 pgvector) · Vida inbound engine (#429). None are managed-MVP blockers; all are how the managed service compounds into the complete product once revenue funds the hours.
+
 # ░ 🅧 MILLA &amp; VIDA — TWO-SIDED · PARKED / SUPERSEDED (14 Jul) — kept for history ░
 > **🛑 FOUNDER DECIDED AGAINST (14 Jul).** The two-sided "problem marketplace" is **PARKED** — it risked a Checkatrade-style liquidity game + a site rename, off-strategy for a hyper-focused lead product. **Verdict: one product (FIGSY — qualified leads in/out, with a brain); borrow Jack &amp; Jill *ideas* as FIGSY features, not its marketplace *shape*.** Milla → the **Brain add-on** (#427); Vida → the **Inbound-Qualification add-on** (#429, NOT a marketplace); Denise → the **Sales-Action add-on** (#428). Build path → LAUNCH-PAD "THE BUILD PATH". The original two-sided spec is preserved below as history — **do not build.**
 

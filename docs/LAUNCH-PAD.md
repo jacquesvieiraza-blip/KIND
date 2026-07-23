@@ -42,7 +42,7 @@
 
 **Note (not sprint-blocking):** **#453 Demo mode** serves the **sales-demo motion** — an `is_demo` client runs a full loop (source → reveal → FIGSY drafts) at **$0** and can never email a real prospect, so the founder can demo live without cost or risk; the Money Path shows real economics only. Ships alongside the sprint, doesn't gate line 10.
 
-**Board (frozen archive):** 🟢90 · 🩷148 · 🟣1 · 🟡18 · 🔴218 · ⏸5 · **Σ480** · live count: `scripts/count-inventory.sh`
+**Board (frozen archive):** 🟢90 · 🩷148 · 🟣1 · 🟡18 · 🔴232 · ⏸5 · **Σ494** · live count: `scripts/count-inventory.sh`
 
 ### 🔑 Legend
 **Status:** 🔴 not built · 🟡 built, on a branch/PR · 🟣 approved on preview · 🩷 live, not verified · 🟢 live + verified · ⏸ blocked
@@ -57,67 +57,21 @@ Services: **website = `KIND`** · portal = `@kind/portal` · admin = `@kind/admi
 
 ---
 
-# 🧭 THE ROADMAP — 5 BLOCKS (22 Jul, founder-locked)
-> **The runlist of record.** Tick a box the same session its PR merges (every PR names its block item, e.g. "Block 1.4 — calendar"). **Status of record stays in PRODUCT-INVENTORY** (IDs referenced per row) — these boxes track execution, not status. Per-agent capability detail → V2-TRACKER AGENT CAPABILITY SPECS. Blocks 1–2 = the 8 free days ($0, demo-mode provable); Blocks 3–5 = after payday, founder picks order.
+# 🧭 THE 14-DAY BUILD — Milla&Vida (23 Jul, founder-locked · the daily page)
+> **The runlist of record.** Order: **Website → Vida → Milla** (design refs → `docs/mv-previews/`). Reuse ~70%; render into the new design. Tick a box the session its PR merges. **Status of record stays in PRODUCT-INVENTORY** (#477–#490). **If days squeeze: Milla trims first, Vida never, Website never.** Future work (glide-to-self-serve · Nexus auto-tune · Smartlead API) → V2-TRACKER "🛝 MILLA&VIDA FUTURE".
 
-## ⓪ THE GATE — the SPRINT still comes first
-The SPRINT table at the top IS the immediate MVP. Its money steps (PDL · inboxes · fire outreach) wait for **payday (day 8)**; Blocks 1–2 fill those 8 days with $0 build so payday is go-live, not debugging. **Payday order: ① PDL $98 → ② reactivate Instantly (our outreach inboxes, ~4 wks warm) → ③ buy Smartlead pre-warmed inboxes (clients send day 1, #270 SOP) → ④ money-machine walk to the cent → ⑤ kill-switch ON, cap 20/day.**
+| Day | Ships | Inventory IDs | Owner | ✔ |
+|-----|-------|---------------|:---:|:--:|
+| **1** | **Honesty fixes** — scoring crash bug · showroom strip · referral link · lifecycle-email master switch · Client-Zero→PDL | #477 #478 #479 #480 #481 | 🤖 | ⬜ |
+| **2–4** | **WEBSITE** — Milla&Vida rebrand on the current framework (homepage · Nexus→per-client · Product · pricing wording · nav · footer). Preview → approve → live | #482 | 🤖 build · 🧍 approve+deploy | ⬜ |
+| **5–9** | **VIDA — the real part** — client-picker · pipeline board · nervous-system dropdown · operator audit · approve-gated reveal. Reuses ICP/campaigns/sequences/unibox/calendar/admin | #483 #484 #485 #486 #487 | 🤖 | ⬜ |
+| **10–13** | **MILLA** — lead desk (👍/✕ masked cards) · concierge chat (un-gate the ICP chat) · nav declutter. On the existing portal chrome | #488 #489 #490 | 🤖 | ⬜ |
+| **14** | **Walk + pilot** — Client-Zero dogfood (our own leads) · founder walks both portals · first paying pilot | — | 🤝 | ⬜ |
 
-## BLOCK 1 — FIGSY 100% (basic) · days 1–4 + payday
-| ✔ | # | Item | Inventory IDs | Owner | Time |
-|---|---|------|---------------|-------|------|
-| ⬜ | 1.1 | Demo-mode walk — click-by-click full-loop test, free, finds bugs | #453 | 🤝 | Day 1 |
-| ✅ | 1.2 | Docs reconcile — roadmap stamped as runlist + 11 stale dots flipped to code truth | — | 🤖 | Day 1 |
-| ✅ | 1.3 | Bug sweep (12 fixes) — 11 were already fixed in code (verified line-by-line); #15 co-pilot review gate built + Fable-verified + shipped | #345 #354 #358 #365 #367 #375 #376 #383 #391 #392 #400 #15 | 🤖 | Days 1–2 |
-| ✅ | 1.4 | Calendar booking — prospect self-serve booking page + CSRF fix built + Fable-verified + merged (🧍 walk needs Google OAuth creds on @kind/api) | #361 #368 | 🤖 | Days 2–3 |
-| ⬜ | 1.5 | Send engine — per-client Smartlead sending, code staging-proven, dormant till inboxes bought | #211 #270 #271 | 🤖 | Days 3–4 |
-| ⬜ | 1.6 | Discovery paging — kill the ~50-lead ceiling | #366 | 🤖 | Day 4 |
-| ⬜ | 1.7 | Truth docs — Terms §5 · Stripe description · unit economics | #413 #414 #415 | 🤝 | Day 4 |
-| ⬜ | 1.8 | PAYDAY switch-on — PDL + Smartlead pre-warmed + Instantly reactivated + fire outreach | #198 | 🧍 | Day 8 |
+**Payday (aligned to Day 14):** ① PDL $98 · ② Instantly reactivate (our outreach, ~4 wks warm) · ③ Smartlead pre-warmed inbox for the pilot client · ④ money walk to the cent · ⑤ kill-switch ON, cap 20/day.
 
-## BLOCK 2 — MILLA + VIDA 100% (basic) · days 4–8
-| ✔ | # | Item | Inventory IDs | Owner | Time |
-|---|---|------|---------------|-------|------|
-| ⬜ | 2.1 | Milla knowledge — pgvector semantic memory (free) | #120 | 🤖 | Day 4 |
-| ⬜ | 2.2 | Milla layer (+$1) — the locked 10-feature "understood lead" spec | #427 | 🤖 | Days 4–5 |
-| ⬜ | 2.3 | Denise absorbed (+$1) — the locked 12-feature reply→close spec | #428 | 🤖 | Days 5–6 |
-| ⬜ | 2.4 | Brain v1 — shared store all agents write, Milla reads (self-optimise = Block 4.4) | #476 | 🤖 | Day 6 |
-| ⬜ | 2.5 | Vida engine ($3) — the locked 12-feature inbound-qualification spec, live on website chat | #429 | 🤖 | Days 6–7 |
-| ⬜ | 2.6 | Vida knowledge — wired to Milla's memory (stops invented answers) | #362 | 🤖 | Day 7 |
-| ⬜ | 2.7 | WhatsApp code-ready — HMAC + multi-tenant built, waits on Meta | #359 #360 | 🤖 | Day 7 |
-| ⬜ | 2.8 | Meta application filed (free, starts their approval clock) | #128 | 🧍 | Day 7 |
-| ⬜ | 2.9 | Full 3-agent demo walk + Fable verification pass | — | 🤝 | Day 8 |
+> **Old 5-block roadmap superseded 23 Jul** (managed-first pivot). Unshipped block items keep living in PRODUCT-INVENTORY; the upgrade detail (Blocks 3–5) → V2-TRACKER.
 
-## BLOCK 3 — FIGSY upgrades · ~2–3 wks after payday
-| ✔ | # | Item | Inventory IDs | Owner | Time |
-|---|---|------|---------------|-------|------|
-| ⬜ | 3.1 | Deliverability 10/10 — warm rig + reputation to inbox-not-spam | #101 #198 | 🤝 | 1 wk |
-| ⬜ | 3.2 | LinkedIn channel — daily touches via PhantomBuster, honest states | #127 #388 | 🤖 | 3 days |
-| ⬜ | 3.3 | Smart sending — adaptive volume, inbox rotation, CRM pull | #140 | 🤖 | 3 days |
-| ⬜ | 3.4 | Lead signals — job changes, hiring, tech stack on lead cards | #79 #247 | 🤖 | 3 days |
-| ⬜ | 3.5 | Self-learning ICP — "narrow your ICP?" suggestions | #156 | 🤖 | 2 days |
-| ⬜ | 3.6 | Visual sequence builder — drag-and-drop UI | #82 #155 | 🤖 | 3 days |
-| ⬜ | 3.7 | Views + fields — score heatmap, timeline, custom fields | #153 #154 | 🤖 | 2 days |
-| ⬜ | 3.8 | Voice calling — FIGSY calls prospects (Vapi $) | #475 #229 | 🤝 | 1 wk |
-
-## BLOCK 4 — MILLA upgrades · ~1–2 wks
-| ✔ | # | Item | Inventory IDs | Owner | Time |
-|---|---|------|---------------|-------|------|
-| ⬜ | 4.1 | Account VA — ask-anything on your docs + weekly brief (parked-M4 Milla, revived) | #2 | 🤖 | 3 days |
-| ⬜ | 4.2 | AI notetaker | #81 | 🤖 | 3 days |
-| ⬜ | 4.3 | Proposals + e-sign | #149 | 🤖 | 3 days |
-| ⬜ | 4.4 | Brain self-optimise — tunes angles/timing across agents (the moat, full) | #476 | 🤖 | 1 wk |
-| ⬜ | 4.5 | Real connectors — HubSpot/Gmail actually connected (kills the #395 mock) | #395 #399 | 🤝 | 1 wk |
-
-## BLOCK 5 — VIDA upgrades · ~1–2 wks
-| ✔ | # | Item | Inventory IDs | Owner | Time |
-|---|---|------|---------------|-------|------|
-| ⬜ | 5.1 | WhatsApp live — switch on when Meta approves | #128 #360 | 🤝 | Meta's clock |
-| ⬜ | 5.2 | Voice inbound — Vida answers + qualifies by voice (Vapi $) | #475 #96 | 🤝 | 1 wk |
-| ⬜ | 5.3 | Branching lead-capture forms | #205 | 🤖 | 2 days |
-| ⬜ | 5.4 | Visitor intelligence — de-anonymise site visitors | #165 | 🤖 | 3 days |
-
-> **Deferred by physics/money, not choice:** voice (Vapi $) · WhatsApp live (Meta's clock) · extra discovery engines needing paid keys (#450–#452 ride Block 3). Alta-parity detail → V2-TRACKER.
 
 ## 🅧 PARKED — the two-sided marketplace *(decided against 14 Jul)*
 The Milla/Vida two-sided "problem marketplace" (old Milestone X · inventory #457–#467) is **PARKED** — it risked becoming a Checkatrade-style liquidity game and forcing a site rename, off-strategy for a hyper-focused lead product. The 2–3 good Jack & Jill *ideas* live on in FIGSY (②). Not deleted — superseded; revisit only after paid clients prove the core.

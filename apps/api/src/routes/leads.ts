@@ -278,6 +278,97 @@ leadRouter.get('/ledger', async (req: AuthRequest, res) => {
   } catch (err) { console.error('[leads/ledger]', err); res.status(500).json({ success: false, error: 'Failed to load ledger' }) }
 })
 
+// ── #503/#506/#510 MILLA DASHBOARD SUMMARY — the KPI cards, the real-data chat
+// opener and the recent-replies rail, all from LIVE tables. No fabricated numbers:
+// leads_awaiting mirrors /for-approval exactly (surfaced + within TTL + unrevealed +
+// not passed); meetings_booked is confirmed calendar_bookings this month; active_campaign
+// is the client's newest active campaign; recent_replies is the last handful of replies.
+leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const now = new Date()
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
+    const nowIso = now.toISOString()
+
+    const [{ data: client }, awaiting, meetings, campaign, replies, icps] = await Promise.all([
+      db.from('clients').select('credit_balance, figsy_credits_remaining').eq('id', clientId).maybeSingle(),
+      // mirrors /for-approval — the exact set of masked cards the client can act on
+      db.from('leads').select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId).not('delivered_at', 'is', null)
+        .not('surfaced_for_approval_at', 'is', null).gt('approval_expires_at', nowIso)
+        .is('revealed_at', null).neq('status', 'passed'),
+      db.from('calendar_bookings').select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId).eq('status', 'confirmed').gte('start_time', monthStart),
+      db.from('figsy_campaigns').select('name').eq('client_id', clientId).eq('status', 'active')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      db.from('figsy_replies').select('from_name, from_email, classification, received_at')
+        .eq('client_id', clientId).order('received_at', { ascending: false }).limit(4),
+      // #495 — each icps row is a version; oldest = v1. Real history, no fabrication.
+      db.from('icps').select('name, industries, geographies, seniority_levels, company_sizes, job_titles, created_at')
+        .eq('client_id', clientId).order('created_at', { ascending: true }).limit(12),
+    ])
+
+    const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
+    const arr = (v: unknown): string[] => Array.isArray(v) ? (v as string[]).filter(Boolean) : []
+    const icp_versions = icpRows.map((r, i) => ({
+      version: `v${i + 1}`,
+      current: i === icpRows.length - 1,
+      name: (r.name as string | null) ?? `ICP v${i + 1}`,
+      summary: [
+        arr(r.seniority_levels).join(' / ') || null,
+        arr(r.industries).join(', ') || null,
+        arr(r.geographies).join(', ') || null,
+        arr(r.company_sizes).length ? `${arr(r.company_sizes)[0]}–${arr(r.company_sizes).slice(-1)[0]} staff` : null,
+      ].filter(Boolean).join(' · '),
+      created_at: (r.created_at as string | null) ?? null,
+    }))
+
+    res.json({
+      success: true,
+      data: {
+        reveal_credits:  (client as Record<string, number> | null)?.credit_balance ?? 0,
+        work_credits:    (client as Record<string, number> | null)?.figsy_credits_remaining ?? 0,
+        leads_awaiting:  awaiting.count ?? 0,
+        meetings_booked: meetings.count ?? 0,
+        active_campaign: (campaign.data as { name?: string } | null)?.name ?? null,
+        recent_replies:  (replies.data ?? []).map((r: Record<string, unknown>) => ({
+          name: (r.from_name as string | null) ?? (r.from_email as string | null) ?? 'Reply',
+          classification: (r.classification as string | null) ?? 'reply',
+        })),
+        icp_versions,
+      },
+    })
+  } catch (err) { console.error('[leads/milla-summary]', err); res.status(500).json({ success: false, error: 'Failed to load summary' }) }
+})
+
+// ── #507 MILLA MEETINGS — the client's confirmed bookings (their calendar), joined to the
+// lead for a name. Real calendar_bookings rows only; the $3-captured note mirrors #492.
+leadRouter.get('/meetings', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { data: rows } = await db.from('calendar_bookings')
+      .select('id, lead_id, meeting_title, start_time, status')
+      .eq('client_id', clientId).in('status', ['confirmed', 'completed'])
+      .order('start_time', { ascending: false }).limit(100)
+    const leadIds = Array.from(new Set((rows ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
+    const { data: leadRows } = leadIds.length
+      ? await db.from('leads').select('id, first_name, last_name, company, email').in('id', leadIds)
+      : { data: [] }
+    const byId = new Map((leadRows ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
+    const meetings = (rows ?? []).map((b: Record<string, unknown>) => {
+      const l = byId.get(b.lead_id as string) as Record<string, unknown> | undefined
+      return {
+        id: b.id, title: b.meeting_title ?? 'Meeting', start_time: b.start_time, status: b.status,
+        name: l ? [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || (l.email as string) : 'Prospect',
+        company: (l?.company as string | null) ?? null,
+      }
+    })
+    res.json({ success: true, data: meetings })
+  } catch (err) { console.error('[leads/meetings]', err); res.status(500).json({ success: false, error: 'Failed to load meetings' }) }
+})
+
 // ── CREATE ────────────────────────────────────────────────────────────────────
 leadRouter.post('/', rateLimit({ limit: 60, windowMs: 60_000, key: 'leads-create', byUser: true }), async (req: AuthRequest, res) => {
   try {

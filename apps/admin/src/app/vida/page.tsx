@@ -19,7 +19,7 @@ type ClientRow = {
   house_or_demo: boolean
 }
 
-type SourcedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null; score: number | null; status: string | null }
+type SourcedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null; score: number | null; status: string | null; surfaced_for_approval_at: string | null }
 type LeadJoin = { first_name?: string | null; last_name?: string | null; company?: string | null } | null
 type NeedsApprovalCard = {
   id: string; lead_id: string; status: string | null; created_at: string | null
@@ -29,6 +29,7 @@ type NeedsApprovalCard = {
 type SendingCard = { id: string; lead_id: string; current_step: number | null; total_steps: number | null; status: string | null; next_send_at: string | null }
 type RepliedCard = { id: string; lead_id: string; from_name: string | null; from_email: string | null; classification: string | null; received_at: string | null }
 type QualifiedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; email: string | null; score: number | null }
+type BookedCard = { id: string; lead_id: string; start_time: string | null; first_name: string | null; last_name: string | null; company: string | null }
 
 type Board = {
   client: { id: string; company_name: string | null }
@@ -38,6 +39,7 @@ type Board = {
     sending: { count: number; cards: SendingCard[] }
     replied: { count: number; cards: RepliedCard[] }
     qualified: { count: number; cards: QualifiedCard[] }
+    booked: { count: number; cards: BookedCard[] }
   }
 }
 
@@ -119,15 +121,14 @@ export default function VidaConsolePage() {
     loadBoard(selected)
   }, [selected, loadBoard])
 
-  // Sourced column — the $4 lead-approve-on-behalf (reveal $1 + work $3) or pass.
-  async function act(leadId: string, kind: 'approve' | 'pass') {
+  // Sourced column — the operator NEVER spends (#493, invariant #1). The only actions are
+  // SURFACE the masked lead to the client for their own 👍 in Milla ("send"), or PASS it.
+  async function act(leadId: string, kind: 'surface' | 'pass') {
     if (!selected) return
     setActing(leadId)
     try {
-      const body: Record<string, unknown> = { client_id: selected }
-      if (kind === 'approve') body.confirm = true
       const res = await fetch(`/api/proxy/operator/leads/${encodeURIComponent(leadId)}/${kind}`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: selected }),
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Action failed (${res.status})`)
@@ -160,11 +161,17 @@ export default function VidaConsolePage() {
   const selectedClient = clients?.find(c => c.id === selected) ?? null
   const cols = board?.columns
 
-  const approveBtns = (leadId: string) => (
+  // Sourced-card actions. Operators never spend — they SEND the masked lead to the client,
+  // who approves ($1+$3) in Milla. Once surfaced, the card shows "awaiting client 👍".
+  const sourcedBtns = (leadId: string, surfaced: boolean) => surfaced ? (
+    <div className="mt-2 text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-lg py-1.5 px-2.5 text-center">
+      With client · awaiting 👍
+    </div>
+  ) : (
     <div className="flex gap-1.5 mt-2">
-      <button disabled={acting === leadId} onClick={() => act(leadId, 'approve')}
+      <button disabled={acting === leadId} onClick={() => act(leadId, 'surface')}
         className="flex-1 text-[11px] font-bold text-white rounded-lg py-1.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-        {acting === leadId ? '…' : '✓ Approve — $4'}
+        {acting === leadId ? '…' : '→ Send to client'}
       </button>
       <button disabled={acting === leadId} onClick={() => act(leadId, 'pass')}
         className="text-[11px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-2.5 border border-[#ece5fb] bg-white disabled:opacity-50">
@@ -252,7 +259,7 @@ export default function VidaConsolePage() {
                         <span className="text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded px-1.5">{c.score ?? '—'}</span>
                         <span className="text-[10px] text-[#b3a9cc]">score</span>
                       </div>
-                      {approveBtns(c.id)}
+                      {sourcedBtns(c.id, !!c.surfaced_for_approval_at)}
                     </div>
                   ))}
                 </Col>
@@ -298,11 +305,23 @@ export default function VidaConsolePage() {
                   ))}
                 </Col>
                 {/* Qualified $4 */}
-                <Col title="Qualified · $4" count={cols.qualified.count}>
+                <Col title="Qualified · $3 held" count={cols.qualified.count}>
                   {cols.qualified.cards.length === 0 ? <EmptyCol /> : cols.qualified.cards.map(c => (
                     <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
                       <span className="text-[11px] text-[#9b8ec4] truncate block">{c.company || c.email || '—'}</span>
+                    </div>
+                  ))}
+                </Col>
+                {/* Booked · $3 captured */}
+                <Col title="Booked · $3 captured" count={cols.booked.count}>
+                  {cols.booked.cards.length === 0 ? <EmptyCol /> : cols.booked.cards.map(c => (
+                    <div key={c.id} className="bg-white border border-emerald-200 rounded-xl p-2.5 mb-2.5">
+                      <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
+                      <span className="text-[11px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
+                      <span className="text-[10.5px] text-emerald-600 font-semibold block mt-0.5">
+                        {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
+                      </span>
                     </div>
                   ))}
                 </Col>

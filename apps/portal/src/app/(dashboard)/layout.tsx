@@ -164,6 +164,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
     </div>
   ) : null
 
+  // #496 — ESCAPE HATCH: a client here came from a Milla rail link (Insights/Company/etc.).
+  // Never trap them in the old portal — always give the way back to Milla. (Partners have
+  // their own portal and no Milla shell, so they don't get this.)
+  const millaBanner = !isPartner ? (
+    <a href="/milla" className="block shrink-0 text-center bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-white text-[13px] font-bold py-2 hover:opacity-90">
+      ← Back to Milla
+    </a>
+  ) : null
+
   // ── SLIM LAYOUT (V2) — gated by FEATURE_V2_SCREENS=layout. OFF by default,
   //    so the live product is unchanged until the flag is flipped. ──────────────
   if (v2Enabled('layout')) {
@@ -179,6 +188,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         />
         <div className="flex-1 flex flex-col overflow-hidden">
           {stagingBanner}
+          {millaBanner}
           <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end gap-3 px-6 shrink-0">
             {/* Both wallets — reveal ($1) + FIGSY work ($3) */}
             <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50" title="Reveal credits — $1 unmasks a lead">
@@ -202,6 +212,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <div className="flex h-screen overflow-hidden bg-[#FAFAFE] flex-col">
       {stagingBanner}
+      {millaBanner}
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           userEmail={user.email || ''}

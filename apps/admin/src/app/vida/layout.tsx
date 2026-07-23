@@ -107,11 +107,14 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           }`} title="Global outreach kill-switch (AUTO_OUTREACH_ENABLED)">
             <Power className="w-3.5 h-3.5" /> Kill-switch {status ? (on ? 'ON' : 'OFF') : '…'}
           </span>
-          {/* Cap chip — amber when no cap configured */}
+          {/* Cap chip — neutral "…" until status loads (never assert "no cap" on unknown),
+              amber only when status has loaded AND no cap is configured, purple with the cap. */}
           <span className={`inline-flex items-center text-xs font-bold rounded-full px-3 py-1 border ${
-            status?.daily_cap == null ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-[#7C3AED] bg-purple-50 border-purple-200'
+            !status ? 'text-[#9b8ec4] bg-[#f6f2fd] border-[#e4dcf7]'
+              : status.daily_cap == null ? 'text-amber-700 bg-amber-50 border-amber-200'
+              : 'text-[#7C3AED] bg-purple-50 border-purple-200'
           }`} title="Global daily cold-send cap (FIGSY_COLD_DAILY_CAP / warm-up ramp)">
-            {status?.daily_cap == null ? '⚠ No send cap set' : `Cap ${status.daily_cap}/day`}
+            {!status ? 'Cap …' : status.daily_cap == null ? '⚠ No send cap set' : `Cap ${status.daily_cap}/day`}
           </span>
 
           {/* Account dropdown = the nervous system */}

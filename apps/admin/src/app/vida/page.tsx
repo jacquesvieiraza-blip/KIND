@@ -112,6 +112,7 @@ export default function VidaConsolePage() {
     loadBoard(selected)
   }, [selected, loadBoard])
 
+  // Sourced column — the $4 lead-approve-on-behalf (reveal $1 + work $3) or pass.
   async function act(leadId: string, kind: 'approve' | 'pass') {
     if (!selected) return
     setActing(leadId)
@@ -123,6 +124,26 @@ export default function VidaConsolePage() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Action failed (${res.status})`)
+      await loadBoard(selected)
+    } catch (e) {
+      setBoardError(e instanceof Error ? e.message : 'Action failed')
+    } finally { setActing(null) }
+  }
+
+  // Needs-approval column — RELEASE (approve & send) or REJECT a FIGSY-written draft.
+  // Acts on the approval-queue row id (NOT the lead) — no charge fires here; the $4 already
+  // happened at enrollment. A send may honestly defer (cap/kill-switch) — surface the note.
+  async function actQueue(queueId: string, kind: 'approve' | 'reject') {
+    if (!selected) return
+    setActing(queueId)
+    try {
+      const res = await fetch(`/api/proxy/operator/queue/${encodeURIComponent(queueId)}/${kind}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: selected }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Action failed (${res.status})`)
+      if (kind === 'approve' && json.sent === false && json.note) setBoardError(json.note)
+      else setBoardError(null)
       await loadBoard(selected)
     } catch (e) {
       setBoardError(e instanceof Error ? e.message : 'Action failed')
@@ -141,6 +162,21 @@ export default function VidaConsolePage() {
       <button disabled={acting === leadId} onClick={() => act(leadId, 'pass')}
         className="text-[11px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-2.5 border border-[#ece5fb] bg-white disabled:opacity-50">
         Not a fit
+      </button>
+    </div>
+  )
+
+  // Needs-approval card buttons — release the draft (real send) or reject it. Acts on the
+  // queue id; no "$4" here (that charge already fired at enrollment).
+  const queueBtns = (queueId: string) => (
+    <div className="flex gap-1.5 mt-2">
+      <button disabled={acting === queueId} onClick={() => actQueue(queueId, 'approve')}
+        className="flex-1 text-[11px] font-bold text-white rounded-lg py-1.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+        {acting === queueId ? '…' : 'Approve & send'}
+      </button>
+      <button disabled={acting === queueId} onClick={() => actQueue(queueId, 'reject')}
+        className="text-[11px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-2.5 border border-[#ece5fb] bg-white disabled:opacity-50">
+        Reject
       </button>
     </div>
   )
@@ -219,7 +255,7 @@ export default function VidaConsolePage() {
                     <div key={c.id} className="bg-[#fffdf7] border-[1.5px] border-[#f0c674] rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">Draft ready</b>
                       <span className="text-[11px] text-[#9b8ec4]">gate · human</span>
-                      {approveBtns(c.lead_id)}
+                      {queueBtns(c.id)}
                     </div>
                   ))}
                 </Col>

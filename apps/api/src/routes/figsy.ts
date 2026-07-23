@@ -3082,7 +3082,9 @@ figsyRouter.get('/approval-queue', requireAuth, async (req: AuthRequest, res) =>
 // re-approved forever. A THROW mid-send also restores 'pending' — otherwise the row
 // strands as approved-but-unsent, invisible to the queue and impossible to retry.
 // Used by BOTH approve doors: the portal's /emails/:id/approve and /approval-queue/:id/approve.
-async function approveQueuedDraft(clientId: string | null, queueId: string): Promise<{ http: number; body: Record<string, unknown> }> {
+// Exported so Vida's operator console can release a draft on a client's behalf through the
+// EXACT same charged, logged, atomically-claimed send path (no parallel implementation).
+export async function approveQueuedDraft(clientId: string | null, queueId: string): Promise<{ http: number; body: Record<string, unknown> }> {
   const { data: row, error } = await db
     .from('figsy_approval_queue')
     .update({ status: 'approved' })

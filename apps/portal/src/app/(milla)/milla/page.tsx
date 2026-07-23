@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
@@ -29,6 +30,7 @@ function fmt(iso: string | null): string {
 const CHIPS = ['Which look strongest?', 'Find more like these', 'Pause campaign', 'Show my ROI']
 
 export default function MillaHomePage() {
+  const router = useRouter()
   const [summary, setSummary] = useState<Summary | null>(null)
   const [leads, setLeads] = useState<MaskedLead[] | null>(null)
   const [ledger, setLedger] = useState<Ledger | null>(null)
@@ -61,6 +63,11 @@ export default function MillaHomePage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  // #513 wiring — a client with no ICP yet hasn't onboarded: send them to Milla's
+  // conversational setup. Once they approve an ICP (v1 exists) they stay on the dashboard.
+  useEffect(() => {
+    if (summary && summary.icp_versions.length === 0) router.replace('/milla/welcome')
+  }, [summary, router])
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 

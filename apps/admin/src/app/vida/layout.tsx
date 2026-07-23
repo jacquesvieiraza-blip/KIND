@@ -25,7 +25,7 @@ type Health = { sent_today: number; replies_today: number; pending_approvals: nu
 // (The mockup also shows a "⚙ Settings" link — omitted here on purpose: there is
 // no /settings page yet, and a dead link would break the honesty rule.)
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
-  { href: '/',           label: 'Cockpit',    icon: '📟' },
+  { href: '/cockpit',    label: 'Cockpit',    icon: '📟' },
   { href: '/clients',    label: 'Clients',    icon: '👥' },
   { href: '/money-path', label: 'Money Path', icon: '💰' },
   { href: '/billing',    label: 'Billing',    icon: '🧾' },

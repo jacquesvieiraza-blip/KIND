@@ -137,11 +137,11 @@ function LoginForm() {
             if (!body?.data?.company_name) {
               router.push('/onboard')
             } else {
-              router.push('/dashboard')
+              router.push('/milla')
             }
           }
         } catch {
-          router.push('/dashboard')
+          router.push('/milla')
         }
         router.refresh()
       }

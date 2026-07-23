@@ -24,8 +24,9 @@ export function LoginForm() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setError(error.message); setLoading(false); return }
-      // Middleware re-checks the allowlist on the next request; land on the cockpit.
-      router.replace('/')
+      // Middleware re-checks the allowlist on the next request; land on VIDA —
+      // the admin app IS the operator console now (old cockpit → /cockpit).
+      router.replace('/vida')
       router.refresh()
     } catch {
       setError('Could not sign in — please try again.')

@@ -26,7 +26,11 @@ async function proxy(req: NextRequest, path: string[]) {
   try {
     res = await fetch(url, {
       method:  req.method,
-      headers: { 'Content-Type': 'application/json', 'x-admin-key': key },
+      // #486 — forward the VERIFIED operator email (from the Supabase session checked
+      // above). The API trusts x-operator-email ONLY because it always arrives with a
+      // valid x-admin-key, which only this server-side proxy holds — a browser can never
+      // set it. This is what names the operator in operator_audit_log.
+      headers: { 'Content-Type': 'application/json', 'x-admin-key': key, 'x-operator-email': user!.email ?? 'unknown-operator' },
       body:    isGet ? undefined : await req.text(),
     })
   } catch (e: any) {

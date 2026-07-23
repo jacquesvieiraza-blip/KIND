@@ -562,6 +562,44 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })
 
+// ── #487 APPROVE-GATED REVEAL — the $4 trigger (CLIENT side, for Milla) ────────
+// The client taps 👍 approve on a masked lead in their portal: this reveals the contact
+// ($1) AND sets our team to work it ($3) in ONE action — the ONLY place both fire. The
+// heavy lifting lives in approveLead() (shared with the operator-on-behalf path in Vida)
+// so the money sequence is identical everywhere. Scoped to the client's own lead by
+// getClientId → the lead's client_id (enforced inside approveLead's queries).
+leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'lead-approve', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { approveLead } = await import('../lib/approve-lead')
+    const outcome = await approveLead(req.params.id, clientId)
+    if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+    if (outcome.status === 'insufficient_reveal_credits') {
+      res.status(402).json({ success: false, error: 'insufficient_reveal_credits', message: 'Add reveal credits to approve this lead ($1 each).' }); return
+    }
+    if (outcome.status === 'no_email') {
+      res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not verify an email for this lead — you were not charged.' }); return
+    }
+    if (outcome.status === 'already_in_crm') {
+      res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return
+    }
+    res.json({ success: true, ...outcome })
+  } catch (err) { console.error('[approve]', err); res.status(500).json({ success: false, error: 'Failed to approve lead' }) }
+})
+
+// ✕ pass — client says "not a fit". No charge, no reveal; the lead leaves the queue.
+leadRouter.post('/:id/pass', rateLimit({ limit: 120, windowMs: 60_000, key: 'lead-pass', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { passLead } = await import('../lib/approve-lead')
+    const outcome = await passLead(req.params.id, clientId)
+    if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found or already actioned' }); return }
+    res.json({ success: true, passed: true })
+  } catch (err) { console.error('[pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
+})
+
 // ── SEND POPIA CONSENT EMAIL ──────────────────────────────────────────────────
 leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
   try {

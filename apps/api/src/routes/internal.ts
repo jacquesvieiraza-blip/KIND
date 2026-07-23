@@ -1215,6 +1215,11 @@ internalRouter.post('/figsy/refresh-memory-all', async (_req: Request, res: Resp
 // Call daily. Warns clients with zero credit balance.
 internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => {
   try {
+    // #480 (Fable verify) — this handler stamps low_credit_warned_at AFTER the send; if
+    // only the sender were gated, a suppressed send would still stamp → the warning is
+    // lost for up to 7 days after re-enabling. Gate the whole handler like its siblings.
+    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
+
     const now = new Date()
 
     const { data: clients } = await db.from('clients')

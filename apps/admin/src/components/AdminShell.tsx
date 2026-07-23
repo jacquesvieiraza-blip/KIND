@@ -23,7 +23,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden">
+      {/* #496 escape hatch — old-chrome pages always carry the way back to Vida. */}
+      <a href="/vida" className="block shrink-0 bg-gradient-to-r from-[#7C3AED] to-[#EC4899] text-white text-[13px] font-bold text-center py-2 hover:opacity-90">
+        ← Back to Vida console
+      </a>
+      <div className="flex flex-1 overflow-hidden">
       <AdminSidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <AdminHeader />
@@ -35,6 +40,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <NoraColumn />
           </div>
         </main>
+      </div>
       </div>
     </div>
   )

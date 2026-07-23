@@ -14,6 +14,7 @@ export type OperatorAction =
   | 'pass_lead'             // marked a lead not-a-fit (no charge)
   | 'approve_draft'         // released a FIGSY-written draft (real send) — no new charge
   | 'reject_draft'          // closed a FIGSY-written draft (no send)
+  | 'surface_lead'          // #493 — sent a masked lead to the client for their 👍 (no spend)
   | 'reveal_lead'           // stand-alone reveal
   | 'enroll_lead'           // stand-alone enroll into a campaign
   | 'send_now'              // forced a due send

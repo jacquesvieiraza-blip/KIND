@@ -45,7 +45,9 @@ vi.mock('@kind/db', () => ({
       const q = makeQuery(table)
       if (table === 'figsy_enrollments') {
         q.select = () => { q._isCount = true; return q }
-        Object.defineProperty(q, '_countValue', { get() { return (enrollQueryN++ === 0) ? enrollBefore : enrollAfter } })
+        // #492 fix — approveLead now runs ONE enrolment count (post-enrol): "does an active
+        // enrolment exist?" → return the post-enrol count.
+        Object.defineProperty(q, '_countValue', { get() { enrollQueryN++; return enrollAfter } })
       }
       return q
     },

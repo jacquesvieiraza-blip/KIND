@@ -139,20 +139,20 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     return outcome
   }
 
-  // Snapshot enrolment BEFORE, so we can tell if the work actually started (an enrolment row
-  // appears ⟺ work began — and the $3 stays held against it). Enrol on the hold: figsyHeld
-  // skips the figsy charge (already held).
-  const { count: before } = await db.from('figsy_enrollments')
-    .select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('lead_id', leadId)
-
+  // Enrol on the hold (figsyHeld skips the $3 charge — already held). Then decide whether
+  // the $3 stays held by whether an ACTIVE ENROLMENT EXISTS for this lead — NOT by whether
+  // the count grew this call. A second/idempotent approve of an already-enrolled lead adds
+  // no row, but its work IS active, so the hold must STAY (releasing it would leak the $3
+  // while the lead is still being worked). We only release when there is NO enrolment at all
+  // (no active campaign / dedup skip) — genuinely no work to hold money against.
   await autoEnrollLead(leadId, clientId, { force: true, figsyHeld: true })
 
-  const { count: after } = await db.from('figsy_enrollments')
+  const { count: enrolled } = await db.from('figsy_enrollments')
     .select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('lead_id', leadId)
 
-  const workHeld = (after ?? 0) > (before ?? 0)
+  const workHeld = (enrolled ?? 0) > 0
   if (!workHeld) {
-    // No work started (no active campaign / dedup) → don't hold money for absent work.
+    // No enrolment exists → no work to hold money against → return the $3.
     await releaseFigsyHold(clientId, leadId, 'no_work_started')
   }
   return {

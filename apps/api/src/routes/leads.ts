@@ -221,7 +221,8 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       .select('id, job_title, company, industry, country, score, score_reasoning, created_at')
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
-      .not('surfaced_for_approval_at', 'is', null)  // #493 — only leads the operator has Sent to the client
+      .not('surfaced_for_approval_at', 'is', null)      // #493 — only leads the operator has Sent to the client
+      .gt('approval_expires_at', new Date().toISOString()) // #492 — enforce the 72h TTL: an expired lead leaves the desk (no charge, no hold ever created)
       .is('revealed_at', null)
       .neq('status', 'passed')
       .order('score', { ascending: false, nullsFirst: false })

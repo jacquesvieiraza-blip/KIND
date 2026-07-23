@@ -1,34 +1,50 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, MessageCircle, CalendarCheck, Target, BarChart3, LogOut } from 'lucide-react'
+import {
+  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem,
+  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, Settings, ChevronDown, Bell,
+} from 'lucide-react'
 
-// #488 — the Milla client shell: a slim light top bar (Milla brand + live credit chips +
-// account), a client-only left rail (New leads / Meetings / Campaign / Reports), and the
-// working area ({children}). Matches docs/mv-previews/milla2.html.
+// #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
+// live reveal/work credit chips + notification + account dropdown), a full client rail
+// (New leads · Meetings · My campaign · Reports · INSIGHTS · COMPANY · RECENT REPLIES from
+// LIVE data), and the working area. Insights/Company link the client's existing real pages.
 
-type Ledger = { reveal_credits: number; work_credits: number }
+type Summary = {
+  reveal_credits: number; work_credits: number; leads_awaiting: number; meetings_booked: number
+  recent_replies: { name: string; classification: string }[]
+}
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
 
+const REPLY_TONE: Record<string, string> = {
+  hot: 'interested', warm: 'interested', interested: 'interested',
+  cold: 'not now', opt_out: 'opted out', unsubscribe: 'opted out',
+  wrong_person: 'wrong person', referral: 'referral', out_of_office: 'out of office',
+}
+
 export function MillaShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const [led, setLed] = useState<Ledger | null>(null)
+  const [s, setS] = useState<Summary | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     ;(async () => {
-      try {
-        const tok = await token()
-        const res = await api.get<{ data: Ledger }>('/leads/ledger', tok)
-        setLed(res.data)
-      } catch { /* chips degrade to … */ }
+      try { const r = await api.get<{ data: Summary }>('/leads/milla-summary', await token()); setS(r.data) } catch { /* chips degrade */ }
     })()
+  }, [])
+
+  useEffect(() => {
+    function onDoc(e: MouseEvent) { if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false) }
+    document.addEventListener('mousedown', onDoc); return () => document.removeEventListener('mousedown', onDoc)
   }, [])
 
   async function signOut() {
@@ -37,53 +53,106 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   }
 
   const isLeads = pathname === '/milla'
-  const isChat = pathname.startsWith('/milla/chat')
-  const rail = (href: string, label: string, Icon: React.ElementType, active: boolean, soon?: boolean) =>
-    soon ? (
-      <span className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 text-[#c3bad9] cursor-not-allowed" title="Coming soon">
-        <Icon className="w-4 h-4 shrink-0" /> {label}
-        <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded-full px-1.5 py-0.5">soon</span>
-      </span>
-    ) : (
-      <Link href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
-        active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
-      }`}>
-        <Icon className="w-4 h-4 shrink-0" /> {label}
-      </Link>
-    )
+  const link = (href: string, label: string, Icon: React.ElementType, active: boolean, badge?: number) => (
+    <Link key={label} href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
+      active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
+    }`}>
+      <Icon className="w-4 h-4 shrink-0" /> {label}
+      {badge ? <span className="ml-auto text-[10px] font-bold text-white bg-[#7C3AED] rounded-full px-1.5">{badge}</span> : null}
+    </Link>
+  )
+  const section = (label: string) => (
+    <div className="mt-4 mb-1 px-3 text-[9.5px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">{label}</div>
+  )
+
+  const ACCOUNT: [string, string, React.ElementType][] = [
+    ['/dashboard/settings', 'My profile', User], ['/dashboard/billing', 'Billing', CreditCard],
+    ['/dashboard/usage', 'Usage', Gauge], ['/dashboard/documents', 'Documents', FileText],
+    ['/dashboard/referral', 'Referral', Gift], ['/dashboard/settings', 'Settings', Settings],
+  ]
 
   return (
     <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
       {/* top bar */}
-      <header className="h-[52px] shrink-0 flex items-center gap-3 px-4 border-b border-[#eee7f7] bg-white">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[13px] font-extrabold">M</div>
-        <div className="text-[15px] font-extrabold">Milla <span className="text-[#9b8ec4] font-semibold text-[13px]">· your campaign partner</span></div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1 border text-[#7C3AED] bg-purple-50 border-purple-200" title="Reveal credits ($1 each)">
-            🪙 {led ? led.reveal_credits : '…'} reveal
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1 border text-[#EC4899] bg-pink-50 border-pink-200" title="Work credits ($3 each, held on approve)">
-            ⚡ {led ? led.work_credits : '…'} work
-          </span>
-          <button onClick={signOut} title="Sign out" className="w-8 h-8 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] flex items-center justify-center text-[#7c6f9b] hover:bg-[#f0ebfa]">
-            <LogOut className="w-4 h-4" />
-          </button>
+      <header className="h-[54px] shrink-0 flex items-center gap-3 px-5 border-b border-[#eee7f7] bg-white">
+        <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">M</div>
+        <div className="text-[15px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[12.5px]">&amp;Vida</span></div>
+        <div className="ml-auto flex items-center gap-3.5">
+          <span className="text-[13.5px] font-extrabold text-[#EC4899]">{s ? s.reveal_credits.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[12px]">reveal</span></span>
+          <span className="text-[13.5px] font-extrabold text-[#7C3AED]">{s ? s.work_credits.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[12px]">work credits</span></span>
+          <Bell className="w-4.5 h-4.5 text-[#9b8ec4]" style={{ width: 18, height: 18 }} />
+          <div className="relative" ref={menuRef}>
+            <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 h-8 rounded-full border border-[#ece5fb] bg-white pl-1.5 pr-3 text-[13px] font-extrabold hover:bg-[#f7f4fd]">
+              <span className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[10px] font-extrabold flex items-center justify-center">AC</span>
+              Account <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-0 top-10 z-50 w-52 rounded-xl border border-[#e9e2f8] bg-white shadow-xl py-2">
+                <div className="px-3 pb-1.5 pt-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Account</div>
+                {ACCOUNT.map(([href, label, Icon]) => (
+                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#5c5279] hover:bg-[#f7f4fd]">
+                    <Icon className="w-4 h-4 text-[#9b8ec4]" /> {label}
+                  </a>
+                ))}
+                <div className="my-1.5 border-t border-[#f0eafa]" />
+                <button onClick={signOut} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-red-500 hover:bg-red-50">
+                  <LogOut className="w-4 h-4" /> Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* body */}
+      {/* #501 flow ribbon — the client's journey, with live badges */}
+      <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747] text-white">
+        <span className="text-[10px] font-extrabold tracking-[0.1em] text-[#b9a6e6] mr-2.5">FLOW</span>
+        {[
+          ['Sign up'], ['Build plan'], ['We reach out'], ['Replies'],
+          ['You approve', s?.leads_awaiting], ['Follow-up'], ['Meeting booked', s?.meetings_booked], ['Results'],
+        ].map(([label, badge], i, arr) => (
+          <span key={label as string} className="flex items-center shrink-0">
+            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#d9cef2] px-1">
+              <span className="w-[18px] h-[18px] rounded-full bg-[#3d2a63] text-white text-[10px] font-extrabold flex items-center justify-center">{i + 1}</span>
+              {label as string}
+              {typeof badge === 'number' && badge > 0 && <span className="text-[9px] font-extrabold bg-[#EC4899] text-white rounded-full px-1.5">{badge}</span>}
+            </span>
+            {i < arr.length - 1 && <span className="text-[#5b4785] px-0.5">›</span>}
+          </span>
+        ))}
+      </div>
+
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-[210px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4">
-          <nav className="mt-1">
-            {rail('/milla', 'New leads', Sparkles, isLeads)}
-            {rail('/milla/chat', 'Ask Milla', MessageCircle, isChat)}
-            {rail('#', 'Meetings', CalendarCheck, false, true)}
-            {rail('#', 'Campaign', Target, false, true)}
-            {rail('#', 'Reports', BarChart3, false, true)}
+        {/* rail */}
+        <aside className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto">
+          <nav>
+            {link('/milla', 'New leads', Sparkles, isLeads, s?.leads_awaiting || undefined)}
+            {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
+            {link('/dashboard/figsy', 'My campaign', Target, false)}
+            {link('/dashboard/analytics', 'Reports', FileBarChart, false)}
           </nav>
-          <div className="mt-auto text-[11px] text-[#b3a9cc] px-2 leading-relaxed">
-            We run your outbound. You just approve the leads worth pursuing.
+          {section('Insights')}
+          <nav>
+            {link('/dashboard/kpis', 'Performance', TrendingUp, false)}
+            {link('/dashboard/analytics', 'Analytics', LineChart, false)}
+            {link('/dashboard/roi', 'Your ROI', Gem, false)}
+          </nav>
+          {section('Company')}
+          <nav>
+            {link('/dashboard/company', 'Command Centre', LayoutGrid, false)}
+            {link('/dashboard/team', 'Teams Hub', Users, false)}
+          </nav>
+          {section('Recent replies')}
+          <div className="px-1">
+            {s && s.recent_replies.length === 0 && <div className="text-[11.5px] text-[#b3a9cc] px-2 py-1">No replies yet.</div>}
+            {(s?.recent_replies ?? []).map((r, i) => (
+              <div key={i} className="flex items-start gap-2 px-2 py-1.5 text-[12px]">
+                <Star className="w-3.5 h-3.5 text-[#EC4899] shrink-0 mt-0.5" />
+                <div className="min-w-0"><b className="font-bold">{r.name}</b> <span className="text-[#9b8ec4]">· {REPLY_TONE[r.classification] ?? r.classification}</span></div>
+              </div>
+            ))}
           </div>
+          <div className="mt-auto pt-4 text-[11px] text-[#b3a9cc] px-2 leading-relaxed">We run your outbound. You just approve the leads worth pursuing.</div>
         </aside>
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>

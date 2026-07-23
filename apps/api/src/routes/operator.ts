@@ -171,6 +171,32 @@ operatorRouter.get('/audit', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/audit]', err); res.status(500).json({ success: false, error: 'Failed to load audit log' }) }
 })
 
+// ── #485 who am I — echoes the operator email the proxy injected (rail identity) ──
+operatorRouter.get('/whoami', (req: Request, res: Response) => {
+  res.json({ success: true, data: { email: operatorEmail(req) } })
+})
+
+// ── #485 engine-health card (rail) — REAL live numbers, never hardcoded ───────
+operatorRouter.get('/health', async (_req: Request, res: Response) => {
+  try {
+    const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
+    const iso = midnight.toISOString()
+    const [sent, replies, pending] = await Promise.all([
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', iso),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', iso),
+      db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    ])
+    res.json({
+      success: true,
+      data: {
+        sent_today:        sent.count ?? 0,
+        replies_today:     replies.count ?? 0,
+        pending_approvals: pending.count ?? 0,
+      },
+    })
+  } catch (err) { console.error('[operator/health]', err); res.status(500).json({ success: false, error: 'Failed to load health' }) }
+})
+
 // ── #485 top-bar status chips (honest kill-switch + cap state) ────────────────
 // Fable verify fix: the chip must show the REAL send cap. The engine's cap is
 // coldDailyCap() (FIGSY_COLD_DAILY_CAP, else the FIGSY_WARMUP_START ramp) — and

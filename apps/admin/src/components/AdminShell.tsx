@@ -14,6 +14,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>
   }
 
+  // The Vida operator console has its OWN full-screen shell (apps/admin/src/app/vida/
+  // layout.tsx) — the old Admin OS chrome (sidebar + Nora) must not wrap it. The old
+  // admin pages keep this shell; the nervous system stays reachable from Vida's
+  // top-right dropdown.
+  if (pathname === '/vida' || pathname.startsWith('/vida/')) {
+    return <>{children}</>
+  }
+
   return (
     <div className="flex h-full overflow-hidden">
       <AdminSidebar />

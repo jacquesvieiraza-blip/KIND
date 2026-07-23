@@ -13,6 +13,13 @@
 
 -- ── STEP 1 (run alone) ────────────────────────────────────────────────────────
 ALTER TYPE lead_status ADD VALUE IF NOT EXISTS 'passed';
+-- Pre-existing prod bug exposed by this migration's first run: the enum also lacks
+-- 'opted_out', yet SIX code sites write leads.status='opted_out' (POPIA decline +
+-- unsubscribe) — those updates have failed silently on prod since the enum was created.
+-- Compliance was never at risk (the opt_out_blocklist upsert succeeds and the send
+-- chokepoint checks it per send) — but opted-out leads kept a stale status in every
+-- view. This makes the existing code work as designed:
+ALTER TYPE lead_status ADD VALUE IF NOT EXISTS 'opted_out';
 
 -- ── STEP 2 ────────────────────────────────────────────────────────────────────
 -- Every state-changing action an operator takes on a client's behalf from Vida

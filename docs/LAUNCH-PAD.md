@@ -5,17 +5,18 @@
 
 **THE PLAN (founder-locked 22 Jul):** we sell a **managed service** on the FIGSY engine, trading as **Milla&Vida**. **Vida** = OUR operator console (we run ICP → source → draft → send → triage → book). **Milla** = the client portal (masked leads · 👍 approve / ✕ pass · concierge chat · meetings · reports). **Nexus** = per-client private brain. **$4 fires ONLY on the client's 👍** ($1 reveal + $3 work) · reviewing free · dead-email auto-refund · prepaid credits. **Client Zero = us.** Build order: **Website → Vida → Milla.** If days squeeze: **Milla trims first, Vida never, Website never.**
 
-**Board:** 🟢90 · 🩷158 · 🟣1 · 🟡18 · 🔴223 · ⏸5 · **Σ495** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢91 · 🩷158 · 🟣1 · 🟡18 · 🔴222 · ⏸5 · **Σ495** · live count: `scripts/count-inventory.sh`
 
 ---
 
 ## 🧭 THE MAP — one row per day (tick the session it merges)
+> **Where each portal lives (no new services, no new logins):** **Milla** = the current client portal, re-skinned → `@kind/portal` (app.get-kind.com, client login) · **Vida** = the current admin app, rebuilt → `@kind/admin` (admin.get-kind.com, your admin login) · they never talk directly — both use the same `@kind/api` + database (the 👍 lands in the DB, Vida sees it instantly).
 
 | Day | Date | Ships | IDs | Owner | ✔ |
 |-----|------|-------|-----|:---:|:--:|
 | **0** | Wed 23 | **CONFIRMS (~20 min, unblocks everything)** — see the checklist below the map | — | 🧍 | ⬜ |
-| **1** | Wed 23 | **Honesty fixes** — scoring crash bug · showroom strip (incl. Team fake add-member) · referral link · lifecycle master switch · Client-Zero→PDL → then 🧍 `railway up` api+portal | #477 #478 #479 #480 #481 | 🤖 build · 🧍 deploy | ⬜ |
-| **2–4** | Thu 24–Sat 26 | **WEBSITE** — Milla&Vida rebrand on the current framework (nav+footer preserved, zero orphaned pages). **Preview → your 🟣 → merge → 🧍 `railway up KIND`** | #482 | 🤖 build · 🧍 approve+deploy | ⬜ |
+| **1** | Wed 23 | **Honesty fixes** — scoring crash bug · showroom strip (incl. Team fake add-member) · referral link · lifecycle master switch · Client-Zero→PDL → then 🧍 `railway up` api+portal | #477 #478 #479 #480 #481 | 🤖 build · 🧍 deploy | ✅ |
+| **2–4** | Thu 24–Sat 26 | **WEBSITE** — Milla&Vida rebrand on the current framework (nav+footer preserved, zero orphaned pages). **Preview → your 🟣 → merge → 🧍 `railway up KIND`** | #482 | 🤖 build · 🧍 approve+deploy | ✅ |
 | **5–9** | Sun 27–Thu 31 | **VIDA — the real part** — client-picker · pipeline board · nervous-system dropdown · operator audit log · approve-gated reveal. Reuses ICP/campaigns/sequences/unibox/calendar/admin → 🧍 `railway up` api+admin+portal | #483 #484 #485 #486 #487 | 🤖 build · 🧍 deploy | ⬜ |
 | **10–13** | Fri 1–Mon 4 Aug | **MILLA** — lead desk (👍/✕ masked cards) · concierge chat (un-gate ICP chat) · nav declutter to the locked keep-list. **Preview → your 🟣 → merge → 🧍 deploy** | #488 #489 #490 | 🤖 build · 🧍 approve+deploy | ⬜ |
 | **14** | Tue 5 Aug | **LAUNCH GATE + pilot** — the gate checklist below, walked to the cent · Client-Zero dogfood fires · first paying pilot | — | 🤝 | ⬜ |

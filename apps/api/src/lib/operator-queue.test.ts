@@ -6,22 +6,27 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 //   2. reject closes the draft SCOPED to the client + status='pending', and reports
 //      honestly whether a row was actually closed (so the route can 404).
 
-// --- capture the reject query chain so we can assert the exact scoping ---
+// --- capture the query chain so we can assert exact scoping (reject) + shape (list) ---
 const rejectChain: Array<{ m: string; args: unknown[] }> = []
 let rejectRow: { id: string } | null = null
+let listRows: Record<string, unknown>[] = []
 
-function makeRejectQuery() {
+function makeQuery() {
   const q: any = {
     update(row: unknown) { rejectChain.push({ m: 'update', args: [row] }); return q },
     eq(col: string, val: unknown) { rejectChain.push({ m: 'eq', args: [col, val] }); return q },
     select(c: string) { rejectChain.push({ m: 'select', args: [c] }); return q },
+    order() { return q },
+    limit() { return q },
     async maybeSingle() { return { data: rejectRow, error: null } },
+    // the list flow (listPendingDrafts) awaits the builder directly:
+    then(resolve: (v: unknown) => unknown) { return resolve({ data: listRows, error: null }) },
   }
   return q
 }
 
 vi.mock('@kind/db', () => ({
-  db: { from: (table: string) => { expect(table).toBe('figsy_approval_queue'); return makeRejectQuery() } },
+  db: { from: (table: string) => { expect(table).toBe('figsy_approval_queue'); return makeQuery() } },
 }))
 
 // The heavy figsy router is never loaded — approveQueuedDraft is mocked to a spy so we can
@@ -29,9 +34,9 @@ vi.mock('@kind/db', () => ({
 const approveSpy = vi.fn(async (_clientId: string | null, _queueId: string) => ({ http: 200, body: { success: true, approved: true, sent: true } }))
 vi.mock('../routes/figsy', () => ({ approveQueuedDraft: approveSpy }))
 
-import { approveDraftOnBehalf, rejectDraftOnBehalf } from './operator-queue'
+import { approveDraftOnBehalf, rejectDraftOnBehalf, listPendingDrafts } from './operator-queue'
 
-beforeEach(() => { rejectChain.length = 0; rejectRow = null; approveSpy.mockClear() })
+beforeEach(() => { rejectChain.length = 0; rejectRow = null; listRows = []; approveSpy.mockClear() })
 
 describe('approveDraftOnBehalf', () => {
   it('delegates to the shared approveQueuedDraft with (clientId, queueId) and returns its result', async () => {
@@ -66,5 +71,31 @@ describe('rejectDraftOnBehalf', () => {
     rejectRow = null
     const r = await rejectDraftOnBehalf('client-1', 'queue-does-not-exist')
     expect(r).toEqual({ rejected: false })
+  })
+})
+
+describe('listPendingDrafts (cross-client Lead queue)', () => {
+  it('filters to pending only and flattens client + lead names for the UI', async () => {
+    listRows = [
+      { id: 'q1', client_id: 'c1', lead_id: 'l1', to_email: 'a@x.com', subject: 'Hi A', body: 'Body A', sequence_step: 1, created_at: '2026-07-23T10:00:00Z',
+        clients: { company_name: 'Acme' }, leads: { first_name: 'Ada', last_name: 'Lovelace' } },
+      { id: 'q2', client_id: 'c2', lead_id: 'l2', to_email: 'b@y.com', subject: 'Hi B', body: 'Body B', sequence_step: 2, created_at: '2026-07-23T09:00:00Z',
+        clients: { company_name: 'Beta' }, leads: { first_name: 'Bo', last_name: null } },
+    ]
+    const drafts = await listPendingDrafts(100)
+    // pending-only invariant: the query filters status='pending'
+    const eqs = rejectChain.filter(c => c.m === 'eq').map(c => c.args)
+    expect(eqs).toContainEqual(['status', 'pending'])
+    // cross-client: two different clients survive, names flattened
+    expect(drafts.map(d => d.client_name)).toEqual(['Acme', 'Beta'])
+    expect(drafts[0]).toMatchObject({ id: 'q1', client_id: 'c1', lead_name: 'Ada Lovelace', subject: 'Hi A', body: 'Body A', sequence_step: 1 })
+    expect(drafts[1].lead_name).toBe('Bo') // single-name lead doesn't crash
+  })
+
+  it('returns [] and tolerates missing joins', async () => {
+    listRows = [{ id: 'q3', client_id: 'c3', lead_id: null, to_email: null, subject: null, body: null, sequence_step: null, created_at: null, clients: null, leads: null }]
+    const drafts = await listPendingDrafts()
+    expect(drafts).toHaveLength(1)
+    expect(drafts[0]).toMatchObject({ id: 'q3', client_name: null, lead_name: null })
   })
 })

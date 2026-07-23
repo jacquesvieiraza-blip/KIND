@@ -20,7 +20,12 @@ type ClientRow = {
 }
 
 type SourcedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null; score: number | null; status: string | null }
-type NeedsApprovalCard = { id: string; lead_id: string; status: string | null; created_at: string | null }
+type LeadJoin = { first_name?: string | null; last_name?: string | null; company?: string | null } | null
+type NeedsApprovalCard = {
+  id: string; lead_id: string; status: string | null; created_at: string | null
+  to_email: string | null; subject: string | null; body: string | null; sequence_step: number | null
+  leads?: LeadJoin
+}
 type SendingCard = { id: string; lead_id: string; current_step: number | null; total_steps: number | null; status: string | null; next_send_at: string | null }
 type RepliedCard = { id: string; lead_id: string; from_name: string | null; from_email: string | null; classification: string | null; received_at: string | null }
 type QualifiedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; email: string | null; score: number | null }
@@ -72,6 +77,8 @@ export default function VidaConsolePage() {
   const [boardLoading, setBoardLoading] = useState(false)
   const [boardError, setBoardError] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
+  const [openDrafts, setOpenDrafts] = useState<Set<string>>(new Set())
+  const toggleDraft = (id: string) => setOpenDrafts(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   useEffect(() => {
     let alive = true
@@ -251,13 +258,26 @@ export default function VidaConsolePage() {
                 </Col>
                 {/* Needs approval */}
                 <Col title="Needs approval" count={cols.needs_approval.count}>
-                  {cols.needs_approval.cards.length === 0 ? <EmptyCol /> : cols.needs_approval.cards.map(c => (
-                    <div key={c.id} className="bg-[#fffdf7] border-[1.5px] border-[#f0c674] rounded-xl p-2.5 mb-2.5">
-                      <b className="text-[12.5px] block">Draft ready</b>
-                      <span className="text-[11px] text-[#9b8ec4]">gate · human</span>
-                      {queueBtns(c.id)}
-                    </div>
-                  ))}
+                  {cols.needs_approval.cards.length === 0 ? <EmptyCol /> : cols.needs_approval.cards.map(c => {
+                    const nm = fullName(c.leads?.first_name ?? null, c.leads?.last_name ?? null)
+                    const open = openDrafts.has(c.id)
+                    return (
+                      <div key={c.id} className="bg-[#fffdf7] border-[1.5px] border-[#f0c674] rounded-xl p-2.5 mb-2.5">
+                        <b className="text-[12.5px] block">{nm}</b>
+                        <span className="text-[11px] text-[#9b8ec4] block truncate">{c.to_email || '—'}{c.sequence_step ? ` · step ${c.sequence_step}` : ''}</span>
+                        <div className="text-[11.5px] font-semibold text-[#1f1235] mt-1 leading-snug line-clamp-2">{c.subject || '(no subject)'}</div>
+                        <button onClick={() => toggleDraft(c.id)} className="text-[10.5px] font-bold text-[#7C3AED] mt-1 hover:underline">
+                          {open ? 'Hide draft ▲' : 'Preview draft ▼'}
+                        </button>
+                        {open && (
+                          <div className="mt-1.5 text-[11px] text-[#4c4368] bg-white border border-[#f0e3c4] rounded-lg p-2 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed">
+                            {c.body || '(empty body)'}
+                          </div>
+                        )}
+                        {queueBtns(c.id)}
+                      </div>
+                    )
+                  })}
                 </Col>
                 {/* Sending */}
                 <Col title="Sending" count={cols.sending.count}>

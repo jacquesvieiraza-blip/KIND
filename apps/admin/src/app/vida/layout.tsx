@@ -78,6 +78,10 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   const on = status?.outreach_enabled === true
   const isClients = pathname === '/vida'
   const isAudit = pathname.startsWith('/vida/audit')
+  const isQueue = pathname.startsWith('/vida/queue')
+  const isSuppression = pathname.startsWith('/vida/suppression')
+  const isReports = pathname.startsWith('/vida/reports')
+  const pendingCount = health?.pending_approvals ?? null
 
   const railLink = (href: string, label: string, Icon: React.ElementType, active: boolean) => (
     <Link href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
@@ -160,10 +164,17 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           <nav className="mt-1">
             {railLink('/vida', 'Clients', Users, isClients)}
             {railLink('/vida/audit', 'Audit log', ClipboardList, isAudit)}
-            {railSoon('Lead queue', Sparkles)}
+            <Link href="/vida/queue" className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
+              isQueue ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
+            }`}>
+              <Sparkles className="w-4 h-4 shrink-0" /> Lead queue
+              {pendingCount != null && pendingCount > 0 && (
+                <span className="ml-auto text-[10px] font-extrabold text-white bg-[#7C3AED] rounded-full px-1.5 py-0.5 min-w-[18px] text-center">{pendingCount}</span>
+              )}
+            </Link>
             {railSoon('Bookings', CalendarClock)}
-            {railLink('/compliance', 'Suppression', Ban, false)}
-            {railLink('/revenue', 'Reports & billing', Receipt, false)}
+            {railLink('/vida/suppression', 'Suppression', Ban, isSuppression)}
+            {railLink('/vida/reports', 'Reports & billing', Receipt, isReports)}
           </nav>
 
           {/* Engine health — real numbers */}

@@ -69,9 +69,11 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
       .eq('client_id', cid).is('revealed_at', null).neq('status', 'passed')
       .in('status', ['scored', 'pending']).order('score', { ascending: false }).limit(SAMPLE)
 
-    // Needs approval = pending drafts in the co-pilot queue (#15) for this client.
+    // Needs approval = pending drafts in the co-pilot queue (#15) for this client. Carries
+    // the FULL draft (to_email/subject/body/step) + the lead name so the operator can READ
+    // the email before releasing it — never a blind approve.
     const needsApproval = await db.from('figsy_approval_queue')
-      .select('id, lead_id, status, created_at', { count: 'exact' })
+      .select('id, lead_id, status, created_at, to_email, subject, body, sequence_step, leads ( first_name, last_name, company )', { count: 'exact' })
       .eq('client_id', cid).eq('status', 'pending').order('created_at', { ascending: false }).limit(SAMPLE)
 
     // Sending = active enrollments mid-sequence.
@@ -250,4 +252,70 @@ operatorRouter.get('/status', async (_req: Request, res: Response) => {
       },
     })
   } catch (err) { console.error('[operator/status]', err); res.status(500).json({ success: false, error: 'Failed to load status' }) }
+})
+
+// ── LEAD QUEUE — every pending draft across ALL clients (the operator's inbox) ─────
+// So the operator never has to open each client to find what's waiting. Read-only; the
+// Approve & send / Reject actions reuse the per-draft /queue/:id endpoints above.
+operatorRouter.get('/queue', async (_req: Request, res: Response) => {
+  try {
+    const { listPendingDrafts } = await import('../lib/operator-queue')
+    const drafts = await listPendingDrafts(100)
+    res.json({ success: true, data: drafts })
+  } catch (err) { console.error('[operator/queue-list]', err); res.status(500).json({ success: false, error: 'Failed to load lead queue' }) }
+})
+
+// ── SUPPRESSION — the real do-not-contact / opt-out list (opt_out_blocklist) ───────
+// The compliance-critical list the send path checks per send. Read-only viewer: latest
+// entries + a total count + a by-reason breakdown. This is the REAL suppression data —
+// NOT the static certifications page the old rail linked to.
+operatorRouter.get('/suppression', async (_req: Request, res: Response) => {
+  try {
+    const LIST = 200
+    const [rows, totalQ] = await Promise.all([
+      db.from('opt_out_blocklist').select('email, reason, created_at').order('created_at', { ascending: false }).limit(LIST),
+      db.from('opt_out_blocklist').select('email', { count: 'exact', head: true }),
+    ])
+    const list = (rows.data ?? []) as { email: string | null; reason: string | null; created_at: string | null }[]
+    const byReason: Record<string, number> = {}
+    for (const r of list) { const k = r.reason ?? 'unknown'; byReason[k] = (byReason[k] ?? 0) + 1 }
+    res.json({
+      success: true,
+      data: { total: totalQ.count ?? 0, showing: list.length, by_reason: byReason, entries: list },
+    })
+  } catch (err) { console.error('[operator/suppression]', err); res.status(500).json({ success: false, error: 'Failed to load suppression list' }) }
+})
+
+// ── REPORTS & BILLING — per-client revenue essentials the operator reads ───────────
+// For each client: credits balance, FIGSY credits, revealed count ($1 each) and qualified
+// count (an enrollment ⟺ the $4 fired). Real aggregates — no fabricated MRR. Bounded by
+// client count (a couple of head-count queries per client).
+operatorRouter.get('/reports', async (_req: Request, res: Response) => {
+  try {
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, credit_balance, figsy_credits_remaining, is_demo')
+      .order('created_at', { ascending: false })
+    const excluded = await getExcludedClientIds()
+    const rows = await Promise.all((clients ?? []).map(async (c: Record<string, unknown>) => {
+      const cid = c.id as string
+      const [qual, revealed] = await Promise.all([
+        db.from('figsy_enrollments').select('lead_id', { count: 'exact', head: true }).eq('client_id', cid),
+        db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', cid).not('revealed_at', 'is', null),
+      ])
+      return {
+        client_id: cid,
+        company_name: (c.company_name as string | null) ?? null,
+        house_or_demo: c.is_demo === true || excluded.has(cid),
+        credit_balance: (c.credit_balance as number | null) ?? 0,
+        figsy_credits_remaining: (c.figsy_credits_remaining as number | null) ?? 0,
+        revealed_count: revealed.count ?? 0,
+        qualified_count: qual.count ?? 0,
+      }
+    }))
+    const totals = rows.reduce((a, r) => ({
+      revealed: a.revealed + r.revealed_count,
+      qualified: a.qualified + r.qualified_count,
+    }), { revealed: 0, qualified: 0 })
+    res.json({ success: true, data: { clients: rows, totals } })
+  } catch (err) { console.error('[operator/reports]', err); res.status(500).json({ success: false, error: 'Failed to load reports' }) }
 })

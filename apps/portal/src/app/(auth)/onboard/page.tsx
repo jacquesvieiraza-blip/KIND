@@ -91,7 +91,7 @@ function OnboardChat() {
       if (!session) { router.replace('/login'); return }
       try {
         const res = await api.get<{ data: { id: string } | null }>('/clients/me/profile', session.access_token)
-        if (res.data?.id) { router.replace('/dashboard'); return }
+        if (res.data?.id) { router.replace('/milla'); return }
       } catch {}
       setChecking(false)
     }).catch(() => setChecking(false))
@@ -163,7 +163,7 @@ function OnboardChat() {
         }, session.access_token)
         localStorage.removeItem('kind_referral')
         localStorage.removeItem('kind_terms_accepted')
-        router.push('/dashboard')
+        router.push('/milla')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong — please try again')
         setSubmitting(false)

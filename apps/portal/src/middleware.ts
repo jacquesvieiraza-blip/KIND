@@ -50,6 +50,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', base))
   }
 
+  // #478 — partner-preview was PUBLIC (no login) → a fake partner dashboard exposed to
+  // the whole internet. Require auth at minimum so it can't be reached anonymously.
+  if (!user && pathname.startsWith('/partner-preview')) {
+    return NextResponse.redirect(new URL('/login', base))
+  }
+
+  // #478 — the /v2 tree is ~21 mock/demo screens (including a fake signup) that any
+  // logged-in client could reach by typing the URL. Gate it behind an explicit preview
+  // allowlist (V2_PREVIEW_EMAILS, comma-separated). Unset = nobody → clients never see
+  // the mocks; the real V2 home (DashboardHomeV2 at /dashboard) is unaffected.
+  if (pathname === '/v2' || pathname.startsWith('/v2/')) {
+    const allow = (process.env.V2_PREVIEW_EMAILS || '')
+      .toLowerCase().split(',').map((s) => s.trim()).filter(Boolean)
+    const email = (user?.email || '').toLowerCase()
+    if (!user || !allow.includes(email)) {
+      return NextResponse.redirect(new URL('/dashboard', base))
+    }
+  }
+
   if (user && (pathname === '/login' || pathname === '/')) {
     return NextResponse.redirect(new URL('/dashboard', base))
   }

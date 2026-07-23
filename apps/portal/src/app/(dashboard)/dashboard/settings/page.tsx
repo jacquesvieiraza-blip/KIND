@@ -214,6 +214,7 @@ function TeamSection({ clientId, userRole }: { clientId: string; userRole: strin
   const [role, setRole] = useState('member')
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [inviteError, setInviteError] = useState('')   // #478 — real invite failure feedback
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
   const supabase = createClient()
 
@@ -235,16 +236,27 @@ function TeamSection({ clientId, userRole }: { clientId: string; userRole: strin
     e.preventDefault()
     setSending(true)
     const h = await authHeader()
-    await fetch(`${apiUrl}/team/invite`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...h },
-      body: JSON.stringify({ email, role }),
-    })
+    // #478 — don't claim "invite sent" unless it actually was. The endpoint is real
+    // (/team/invite, role-validated per #402); surface a real failure instead of a lie.
+    let ok = false
+    try {
+      const res = await fetch(`${apiUrl}/team/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...h },
+        body: JSON.stringify({ email, role }),
+      })
+      ok = res.ok
+    } catch { ok = false }
     setSending(false)
-    setSent(true)
-    setEmail('')
-    loadMembers()
-    setTimeout(() => setSent(false), 3000)
+    if (ok) {
+      setSent(true)
+      setEmail('')
+      loadMembers()
+      setTimeout(() => setSent(false), 3000)
+    } else {
+      setInviteError('Could not send the invite — please try again.')
+      setTimeout(() => setInviteError(''), 4000)
+    }
   }
 
   const canInvite = userRole === 'owner' || userRole === 'admin'
@@ -305,6 +317,7 @@ function TeamSection({ clientId, userRole }: { clientId: string; userRole: strin
           </button>
         </form>
       )}
+      {inviteError && <p className="text-xs text-red-500 mt-2">{inviteError}</p>}
     </div>
   )
 }

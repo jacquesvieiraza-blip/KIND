@@ -44,34 +44,13 @@ async function getClientId(userId: string): Promise<string | null> {
 async function requireMillaAccess(
   userId: string,
 ): Promise<{ clientId: string } | { error: string; status: number }> {
+  // #489 — MANAGED-SERVICE PIVOT: Milla is the client concierge, included for EVERY managed
+  // client. The old per-agent `virtual_assistant` subscription gate is superseded pricing
+  // (KIND-MASTER: "+$1 Milla/Denise layer pricing → superseded"), so the only requirement
+  // now is a valid client record. No separate subscription blocks the concierge chat.
   const clientId = await getClientId(userId)
   if (!clientId) return { error: 'Client not found', status: 404 }
-
-  try {
-    const { data, error } = await db.from('subscriptions')
-      .select('product, status')
-      .eq('client_id', clientId)
-      .eq('product', 'virtual_assistant')
-      .eq('status', 'active')
-      .limit(1)
-
-    if (error) {
-      // Transient/lookup error — fail safe, do not block a paying user.
-      console.error('[milla/requireMillaAccess] subscription lookup error (failing open):', error)
-      return { clientId }
-    }
-
-    const hasActive = (data ?? []).some(s => s.product === 'virtual_assistant' && s.status === 'active')
-    if (!hasActive) {
-      return { error: 'An active Milla (Virtual Assistant) subscription is required to use this feature.', status: 403 }
-    }
-
-    return { clientId }
-  } catch (err) {
-    // Transient/network error — fail safe, do not block a paying user.
-    console.error('[milla/requireMillaAccess] subscription lookup threw (failing open):', err)
-    return { clientId }
-  }
+  return { clientId }
 }
 
 // ── FIGSY access gate ─────────────────────────────────────────────────────────

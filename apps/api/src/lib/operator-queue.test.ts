@@ -15,6 +15,8 @@ function makeQuery() {
   const q: any = {
     update(row: unknown) { rejectChain.push({ m: 'update', args: [row] }); return q },
     eq(col: string, val: unknown) { rejectChain.push({ m: 'eq', args: [col, val] }); return q },
+    is(col: string, val: unknown) { rejectChain.push({ m: 'is', args: [col, val] }); return q },
+    neq(col: string, val: unknown) { rejectChain.push({ m: 'neq', args: [col, val] }); return q },
     select(c: string) { rejectChain.push({ m: 'select', args: [c] }); return q },
     order() { return q },
     limit() { return q },
@@ -26,7 +28,7 @@ function makeQuery() {
 }
 
 vi.mock('@kind/db', () => ({
-  db: { from: (table: string) => { expect(table).toBe('figsy_approval_queue'); return makeQuery() } },
+  db: { from: (table: string) => { expect(['figsy_approval_queue', 'leads']).toContain(table); return makeQuery() } },
 }))
 
 // The heavy figsy router is never loaded — approveQueuedDraft is mocked to a spy so we can
@@ -34,7 +36,7 @@ vi.mock('@kind/db', () => ({
 const approveSpy = vi.fn(async (_clientId: string | null, _queueId: string) => ({ http: 200, body: { success: true, approved: true, sent: true } }))
 vi.mock('../routes/figsy', () => ({ approveQueuedDraft: approveSpy }))
 
-import { approveDraftOnBehalf, rejectDraftOnBehalf, listPendingDrafts } from './operator-queue'
+import { approveDraftOnBehalf, rejectDraftOnBehalf, listPendingDrafts, surfaceLeadForApproval } from './operator-queue'
 
 beforeEach(() => { rejectChain.length = 0; rejectRow = null; listRows = []; approveSpy.mockClear() })
 
@@ -97,5 +99,30 @@ describe('listPendingDrafts (cross-client Lead queue)', () => {
     const drafts = await listPendingDrafts()
     expect(drafts).toHaveLength(1)
     expect(drafts[0]).toMatchObject({ id: 'q3', client_name: null, lead_name: null })
+  })
+})
+
+describe('surfaceLeadForApproval (#493 — Send to client; operators never spend)', () => {
+  it('marks the lead surfaced + sets the 72h TTL, scoped to client + masked + un-passed', async () => {
+    rejectRow = { id: 'lead-1' }
+    const r = await surfaceLeadForApproval('client-1', 'lead-1', 72)
+    expect(r).toEqual({ surfaced: true })
+    // NO money RPC anywhere — surfacing spends nothing.
+    // Scoping invariants: update sets surfaced_for_approval_at + approval_expires_at;
+    // eq id + eq client_id; is revealed_at null; neq status passed.
+    const upd = rejectChain.find(c => c.m === 'update')?.args[0] as Record<string, unknown>
+    expect(upd.surfaced_for_approval_at).toBeTruthy()
+    expect(upd.approval_expires_at).toBeTruthy()
+    const eqs = rejectChain.filter(c => c.m === 'eq').map(c => c.args)
+    expect(eqs).toContainEqual(['id', 'lead-1'])
+    expect(eqs).toContainEqual(['client_id', 'client-1'])
+    expect(rejectChain.filter(c => c.m === 'is').map(c => c.args)).toContainEqual(['revealed_at', null])
+    expect(rejectChain.filter(c => c.m === 'neq').map(c => c.args)).toContainEqual(['status', 'passed'])
+  })
+
+  it('reports surfaced:false when no matching masked lead (already revealed / passed / wrong client)', async () => {
+    rejectRow = null
+    const r = await surfaceLeadForApproval('client-1', 'nope')
+    expect(r).toEqual({ surfaced: false })
   })
 })

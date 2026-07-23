@@ -207,6 +207,77 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch leads' }) }
 })
 
+// ── #488 MILLA LEAD DESK — masked leads awaiting the client's 👍 ────────────────
+// The client-facing desk. Returns ONLY safe masked fields (role @ company, score, why-it-
+// fits) — NEVER name/email/phone/linkedin — so masking is enforced SERVER-SIDE, not by the
+// browser hiding columns. Scoped to the client's own delivered, not-yet-revealed, not-passed
+// leads. After the client approves ($1), the full contact comes back through /leads/:id/reveal
+// or the normal /leads list (revealed=true).
+leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // first/last name are fetched SERVER-SIDE ONLY (never returned) so we can scrub any
+    // occurrence of them from score_reasoning before it becomes the masked "why_fits".
+    const { data, error } = await db.from('leads')
+      .select('id, first_name, last_name, job_title, company, industry, country, score, score_reasoning, created_at')
+      .eq('client_id', clientId)
+      .not('delivered_at', 'is', null)
+      .not('surfaced_for_approval_at', 'is', null)      // #493 — only leads the operator has Sent to the client
+      .gt('approval_expires_at', new Date().toISOString()) // #492 — enforce the 72h TTL: an expired lead leaves the desk (no charge, no hold ever created)
+      .is('revealed_at', null)
+      .neq('status', 'passed')
+      .order('score', { ascending: false, nullsFirst: false })
+      .limit(50)
+    if (error) throw error
+    // #492/F2 — the masked card must NEVER leak the name the client hasn't paid $1 for. The
+    // scoring prompt is fed the lead's name, so score_reasoning often echoes it → scrub the
+    // first name, last name and full name out of why_fits before it leaves the server. Map
+    // to a fixed masked shape (name/email/phone are never in the output object).
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const scrub = (why: string | null, first: string | null, last: string | null): string | null => {
+      if (!why) return null
+      let out = why
+      const toks = [first && last ? `${first} ${last}` : null, first, last].filter((t): t is string => !!t && t.trim().length > 1)
+      for (const t of toks) out = out.replace(new RegExp(`\\b${esc(t.trim())}\\b`, 'gi'), 'this prospect')
+      return out
+    }
+    const masked = (data ?? []).map((l: Record<string, any>) => ({
+      id: l.id,
+      role: l.job_title ?? 'Decision-maker',
+      company: l.company ?? '—',
+      industry: l.industry ?? null,
+      country: l.country ?? null,
+      score: l.score ?? null,
+      why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
+      created_at: l.created_at ?? null,
+    }))
+    res.json({ success: true, data: masked })
+  } catch (err) { console.error('[leads/for-approval]', err); res.status(500).json({ success: false, error: 'Failed to load leads' }) }
+})
+
+// ── #488 CLIENT CREDIT LEDGER — balances + every charge/hold/capture/release ────
+leadRouter.get('/ledger', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const [{ data: client }, { data: tx }] = await Promise.all([
+      db.from('clients').select('credit_balance, figsy_credits_remaining').eq('id', clientId).maybeSingle(),
+      db.from('credit_transactions')
+        .select('amount, type, note, created_at')
+        .eq('client_id', clientId).order('created_at', { ascending: false }).limit(50),
+    ])
+    res.json({
+      success: true,
+      data: {
+        reveal_credits: (client as Record<string, number> | null)?.credit_balance ?? 0,
+        work_credits:   (client as Record<string, number> | null)?.figsy_credits_remaining ?? 0,
+        entries: tx ?? [],
+      },
+    })
+  } catch (err) { console.error('[leads/ledger]', err); res.status(500).json({ success: false, error: 'Failed to load ledger' }) }
+})
+
 // ── CREATE ────────────────────────────────────────────────────────────────────
 leadRouter.post('/', rateLimit({ limit: 60, windowMs: 60_000, key: 'leads-create', byUser: true }), async (req: AuthRequest, res) => {
   try {
@@ -576,7 +647,11 @@ leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'l
     const outcome = await approveLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
     if (outcome.status === 'insufficient_reveal_credits') {
-      res.status(402).json({ success: false, error: 'insufficient_reveal_credits', message: 'Add reveal credits to approve this lead ($1 each).' }); return
+      res.status(402).json({ success: false, error: 'insufficient_reveal_credits', message: 'Add credits to approve — $1 to reveal plus $3 held for the work. Top up to continue.' }); return
+    }
+    if (outcome.status === 'insufficient_work_credits') {
+      // #492 — the $3 work-hold couldn't be reserved, so NOTHING moved (no reveal either).
+      res.status(402).json({ success: false, error: 'insufficient_work_credits', message: 'Add credits to approve — $1 to reveal plus $3 held for the work. Top up to continue.' }); return
     }
     if (outcome.status === 'no_email') {
       res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not verify an email for this lead — you were not charged.' }); return

@@ -79,10 +79,11 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
       .select('id, lead_id, current_step, total_steps, status, next_send_at', { count: 'exact' })
       .eq('client_id', cid).eq('status', 'enrolled').order('next_send_at', { ascending: true }).limit(SAMPLE)
 
-    // Replied = replies in the unibox for this client.
+    // Replied = replies in the unibox for this client (real columns: classification /
+    // received_at — figsy_replies has no 'sentiment'/'subject'/'created_at').
     const replied = await db.from('figsy_replies')
-      .select('id, lead_id, from_email, subject, sentiment, created_at', { count: 'exact' })
-      .eq('client_id', cid).order('created_at', { ascending: false }).limit(SAMPLE)
+      .select('id, lead_id, from_name, from_email, classification, meeting_booked_at, received_at', { count: 'exact' })
+      .eq('client_id', cid).order('received_at', { ascending: false }).limit(SAMPLE)
 
     // Qualified ($4) = leads this client has approved (revealed + worked). Proxy: revealed
     // leads that carry an enrollment. Count booked meetings too (calendar_bookings).

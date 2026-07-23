@@ -42,7 +42,7 @@ if (!process.env.ANTHROPIC_API_KEY) {
 //        day ≤3 → 10 · day 4 → 20 · day 5–6 → 30 · day 7–8 → 40 · day 9+ → 50.
 //        (Mirrors the gettingkind.com warmup plan; day 1 = the start date.)
 // If neither is set → no cap (unchanged default behaviour).
-function coldDailyCap(): number | null {
+export function coldDailyCap(): number | null {   // #485 exported — the Vida status chip must show the REAL cap
   const explicit = parseInt(process.env.FIGSY_COLD_DAILY_CAP ?? '', 10)
   if (Number.isFinite(explicit) && explicit > 0) return explicit
   const start = process.env.FIGSY_WARMUP_START

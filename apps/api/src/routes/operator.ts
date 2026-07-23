@@ -85,11 +85,21 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
       .select('id, lead_id, from_name, from_email, classification, meeting_booked_at, received_at', { count: 'exact' })
       .eq('client_id', cid).order('received_at', { ascending: false }).limit(SAMPLE)
 
-    // Qualified ($4) = leads this client has approved (revealed + worked). Proxy: revealed
-    // leads that carry an enrollment. Count booked meetings too (calendar_bookings).
-    const qualified = await db.from('leads')
-      .select('id, first_name, last_name, company, email, score', { count: 'exact' })
-      .eq('client_id', cid).not('revealed_at', 'is', null).order('score', { ascending: false }).limit(SAMPLE)
+    // Qualified ($4) = leads that were actually WORKED — an enrollment row exists ⟺ the
+    // $3 fired (fail-closed charge before insert, refunded on failure), on top of the $1
+    // reveal. Counting revealed-only leads here would overstate the $4 column (a reveal
+    // alone is $1) — so the count comes from enrollments, and the cards join back to
+    // leads for names. (Fable verify fix — the founder reads this column as money.)
+    const enrollAll = await db.from('figsy_enrollments')
+      .select('lead_id', { count: 'exact' })
+      .eq('client_id', cid).order('enrolled_at', { ascending: false }).limit(SAMPLE)
+    const qualLeadIds = Array.from(new Set((enrollAll.data ?? []).map((e: { lead_id: string }) => e.lead_id)))
+    const qualCards = qualLeadIds.length > 0
+      ? await db.from('leads')
+          .select('id, first_name, last_name, company, email, score')
+          .in('id', qualLeadIds).order('score', { ascending: false })
+      : { data: [] }
+    const qualified = { count: enrollAll.count ?? 0, data: qualCards.data ?? [] }
 
     res.json({
       success: true,
@@ -162,13 +172,18 @@ operatorRouter.get('/audit', async (req: Request, res: Response) => {
 })
 
 // ── #485 top-bar status chips (honest kill-switch + cap state) ────────────────
+// Fable verify fix: the chip must show the REAL send cap. The engine's cap is
+// coldDailyCap() (FIGSY_COLD_DAILY_CAP, else the FIGSY_WARMUP_START ramp) — and
+// null means NO cap is configured, which the console must say plainly, never a
+// fabricated "20".
 operatorRouter.get('/status', async (_req: Request, res: Response) => {
   try {
+    const { coldDailyCap, outreachEnabled } = await import('../lib/figsy')
     res.json({
       success: true,
       data: {
-        outreach_enabled: process.env.AUTO_OUTREACH_ENABLED === 'true',
-        daily_cap: Number(process.env.FIGSY_DAILY_SEND_CAP ?? 20),
+        outreach_enabled: outreachEnabled(),
+        daily_cap: coldDailyCap(),   // number | null — null = no cap set
       },
     })
   } catch (err) { console.error('[operator/status]', err); res.status(500).json({ success: false, error: 'Failed to load status' }) }

@@ -41,7 +41,7 @@ type Board = {
   }
 }
 
-type Status = { outreach_enabled: boolean; daily_cap: number }
+type Status = { outreach_enabled: boolean; daily_cap: number | null }   // null = NO cap configured
 
 function initials(name: string | null): string {
   if (!name) return '—'
@@ -82,10 +82,14 @@ function StatusChips({ status, loading }: { status: Status | null; loading: bool
         Kill-switch {on ? 'ON' : 'OFF'}
       </span>
       <span
-        className="inline-flex items-center text-xs font-bold rounded-full px-3 py-1 border text-[#7C3AED] bg-purple-50 border-purple-200"
-        title="Daily send cap per client (FIGSY_DAILY_SEND_CAP)"
+        className={`inline-flex items-center text-xs font-bold rounded-full px-3 py-1 border ${
+          status.daily_cap === null
+            ? 'text-amber-700 bg-amber-50 border-amber-200'
+            : 'text-[#7C3AED] bg-purple-50 border-purple-200'
+        }`}
+        title="Global daily cold-send cap (FIGSY_COLD_DAILY_CAP / warm-up ramp) — amber means NO cap is configured"
       >
-        Cap {status.daily_cap}/day
+        {status.daily_cap === null ? '⚠ No send cap set' : `Cap ${status.daily_cap}/day`}
       </span>
     </>
   )

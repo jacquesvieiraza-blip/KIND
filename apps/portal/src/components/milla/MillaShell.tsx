@@ -52,6 +52,9 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
     window.location.href = '/login'
   }
 
+  // #513 — onboarding is full-screen (no rail/top bar) until the client's ICP is live.
+  if (pathname === '/milla/welcome') return <>{children}</>
+
   const isLeads = pathname === '/milla'
   const link = (href: string, label: string, Icon: React.ElementType, active: boolean, badge?: number) => (
     <Link key={label} href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${

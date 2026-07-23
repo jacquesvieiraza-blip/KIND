@@ -1,15 +1,32 @@
--- #486 — OPERATOR AUDIT LOG (Vida operator console).
+-- #486 — OPERATOR AUDIT LOG (Vida operator console) + #487 'passed' lead state.
+--
+-- ⚠️ PROD REALITY (learned on first run, 23 Jul): leads.status is an ENUM (lead_status),
+-- NOT text-with-CHECK as supabase/migrations/20260525 assumed — that CHECK migration
+-- evidently never applied to prod. So 'passed' is added as an ENUM VALUE, and there is
+-- NO check constraint to (re)create: the enum itself is the guard.
+--
+-- RUN IN TWO STEPS in the Supabase SQL editor:
+--   Step 1 (alone):  the ALTER TYPE line — a new enum value can't be used in the same
+--                    transaction that adds it.
+--   Step 2:          everything else.
+-- Idempotent: IF NOT EXISTS throughout — safe to re-run.
+
+-- ── STEP 1 (run alone) ────────────────────────────────────────────────────────
+ALTER TYPE lead_status ADD VALUE IF NOT EXISTS 'passed';
+-- Pre-existing prod bug exposed by this migration's first run: the enum also lacks
+-- 'opted_out', yet SIX code sites write leads.status='opted_out' (POPIA decline +
+-- unsubscribe) — those updates have failed silently on prod since the enum was created.
+-- Compliance was never at risk (the opt_out_blocklist upsert succeeds and the send
+-- chokepoint checks it per send) — but opted-out leads kept a stale status in every
+-- view. This makes the existing code work as designed:
+ALTER TYPE lead_status ADD VALUE IF NOT EXISTS 'opted_out';
+
+-- ── STEP 2 ────────────────────────────────────────────────────────────────────
 -- Every state-changing action an operator takes on a client's behalf from Vida
 -- (approve-on-behalf, reveal, enroll, send-now, pause, suppression change) writes
 -- one immutable row here. The operator's email is set SERVER-SIDE from the admin
--- Supabase session (never trusted from the client), so this is a real accountability
--- trail for "who did what to which client".
---
--- Idempotent + additive: CREATE ... IF NOT EXISTS, safe to re-run. Service-role only
--- (the API writes/reads it via the service key; operators view it through the
--- admin-key-gated /admin/operator-audit route) — no RLS client policy needed because
--- no client ever queries this table directly.
-
+-- Supabase session (never trusted from the client). Service-role only — no client
+-- RLS policy needed because no client ever queries this table directly.
 CREATE TABLE IF NOT EXISTS public.operator_audit_log (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   operator_email text NOT NULL,
@@ -21,22 +38,10 @@ CREATE TABLE IF NOT EXISTS public.operator_audit_log (
   created_at     timestamptz NOT NULL DEFAULT now()
 );
 
--- Newest-first reads, and per-client filtering in the Vida audit viewer.
 CREATE INDEX IF NOT EXISTS operator_audit_log_created_idx
   ON public.operator_audit_log (created_at DESC);
 CREATE INDEX IF NOT EXISTS operator_audit_log_client_idx
   ON public.operator_audit_log (client_id, created_at DESC);
 
--- #487 — "pass" (✕ not-a-fit) is a real terminal state for a masked, un-approved lead.
--- Add the column + widen the leads.status CHECK to allow it (Postgres can't ALTER a
--- CHECK — drop + re-add, carrying the full existing allow-list forward so nothing that
--- is already valid becomes invalid). Idempotent: IF NOT EXISTS / IF EXISTS throughout.
+-- #487 — "pass" (✕ not-a-fit) timestamp for a masked, un-approved lead.
 ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS passed_at timestamptz;
-
-ALTER TABLE public.leads DROP CONSTRAINT IF EXISTS leads_status_check;
-ALTER TABLE public.leads
-  ADD CONSTRAINT leads_status_check
-    CHECK (status IN (
-      'pending', 'scored', 'contacted', 'consent_sent', 'consent_given',
-      'exported', 'rejected', 'opted_out', 'passed'
-    ));

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { Sparkles, CalendarCheck, Target, BarChart3, LogOut } from 'lucide-react'
+import { Sparkles, MessageCircle, CalendarCheck, Target, BarChart3, LogOut } from 'lucide-react'
 
 // #488 — the Milla client shell: a slim light top bar (Milla brand + live credit chips +
 // account), a client-only left rail (New leads / Meetings / Campaign / Reports), and the
@@ -37,6 +37,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   }
 
   const isLeads = pathname === '/milla'
+  const isChat = pathname.startsWith('/milla/chat')
   const rail = (href: string, label: string, Icon: React.ElementType, active: boolean, soon?: boolean) =>
     soon ? (
       <span className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 text-[#c3bad9] cursor-not-allowed" title="Coming soon">
@@ -75,6 +76,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         <aside className="w-[210px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4">
           <nav className="mt-1">
             {rail('/milla', 'New leads', Sparkles, isLeads)}
+            {rail('/milla/chat', 'Ask Milla', MessageCircle, isChat)}
             {rail('#', 'Meetings', CalendarCheck, false, true)}
             {rail('#', 'Campaign', Target, false, true)}
             {rail('#', 'Reports', BarChart3, false, true)}

@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
+import { unscoredOnFailure } from './scoring-failure'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -125,12 +126,7 @@ Return ONLY a JSON array with no markdown, no code fences, no explanation:
         // persistent scoring outage is visible (the alarm is durable now, #339).
         await Promise.all(
           batchIds.map(id =>
-            db.from('leads').update({
-              score:                    null,
-              score_reasoning:          'SCORING_FAILED: AI scoring unavailable — not a real score (retried hourly by /figsy/rescore-stranded)',
-              scored_at:                null,
-              estimated_deal_value_usd: null,
-            }).eq('id', id)
+            db.from('leads').update(unscoredOnFailure()).eq('id', id)
           )
         )
         if (!alertedScoringFailure) {
@@ -165,22 +161,27 @@ Return ONLY a JSON array with no markdown, no code fences, no explanation:
       console.log(`[scoring] batch ${Math.floor(i / BATCH_SIZE) + 1}: scored ${results.length} leads`)
     } catch (err) {
       console.error(`[scoring] batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, err)
-      // Mark these leads as scored with neutral score so they're visible in the UI
+      // #477 (was #358, half-fixed) — NEVER fake a score on the crash path either. A
+      // thrown AI/network error must be treated EXACTLY like the no-results branch above:
+      // null score, no fabricated value, scored_at null, status NOT flipped to 'scored'
+      // — so the lead is not delivered/charged and is re-scored on the next run. The old
+      // code stamped 50/$5000/'scored', which delivered + charged fake leads as real.
       try {
-        const now = new Date().toISOString()
-        await Promise.allSettled(
+        await Promise.all(
           batchIds.map(id =>
-            db.from('leads').update({
-              score:              50,
-              score_reasoning:    'Auto-scored: scoring error, please review manually',
-              scored_at:          now,
-              status:             'scored',
-              estimated_deal_value_usd: 5000,
-            }).eq('id', id)
+            db.from('leads').update(unscoredOnFailure()).eq('id', id)
           )
         )
       } catch (fallbackErr) {
-        console.error('[scoring] fallback score update also failed:', fallbackErr)
+        console.error('[scoring] unscore-on-failure update also failed:', fallbackErr)
+      }
+      if (!alertedScoringFailure) {
+        alertedScoringFailure = true
+        void sendFounderAlert('api_down', 'FIGSY lead scoring failed — AI scoring threw an error', [
+          `Client: ${clientName}`,
+          `At least one batch of ${batchIds.length} leads could not be scored and was left UNSCORED (not delivered, not charged).`,
+          `They will be re-scored on the next run. If this persists, check ANTHROPIC_API_KEY / the model endpoint.`,
+        ])
       }
     }
   }

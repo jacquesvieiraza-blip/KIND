@@ -7,7 +7,7 @@
 
 **THE PLAN (founder-locked 22 Jul):** we sell a **managed service** on the FIGSY engine, trading as **Milla&Vida**. **Vida** = OUR operator console (we run ICP → source → draft → send → triage → book). **Milla** = the client portal (masked leads · 👍 approve / ✕ pass · concierge chat · meetings · reports). **Nexus** = per-client private brain. **Money (locked 23 Jul, #492):** the client's 👍 charges **$1 + HOLDS $3** (needs ≥$4 free) · **$3 captured only on confirmed booking** · booked-then-no-show → 2 re-book attempts then the $3 is kept (terms on the approval card) · never-books → $3 released · $1 never reversed · 72h approval TTL · reviewing free · dead-email $1 auto-refund · prepaid credits · **only the client's 👍 ever spends — operators never**. **Client Zero = us.** Build order: **Website → Vida → Milla.** If days squeeze: **Milla trims first, Vida never, Website never.**
 
-**Board:** 🟢91 · 🩷164 · 🟣1 · 🟡18 · 🔴220 · ⏸5 · **Σ499** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢91 · 🩷166 · 🟣1 · 🟡18 · 🔴218 · ⏸5 · **Σ499** · live count: `scripts/count-inventory.sh`
 
 ---
 

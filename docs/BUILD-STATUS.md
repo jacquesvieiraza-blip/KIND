@@ -17,36 +17,36 @@
 | 1112 | Lead queue · Suppression · Reports | ✅ | 🩷 |
 | 486 | Operator identity + audit | ✅ | 🩷 |
 | 485 | Kill-switch + cap + health | ✅ | 🩷 |
-| 493 | Send-to-client / gate labels / Booked·$3 | ✅ | ⏳ |
-| 493c | Gate chips on board columns (Send/Qualify/Money/$3) | ✅ | ⏳ |
+| 493 | Send-to-client / gate labels / Booked·$3 | ✅ | 🩷 |
+| 493c | Gate chips on board columns (Send/Qualify/Money/$3) | ✅ | 🩷 |
 | 501 | Flow ribbon | ✅ | 🟢 |
 | 500 | KPI cards | ✅ | 🟢 |
 | 498 | Command bar | ✅ | 🟢 |
-| 505 | Live blockers strip (real gate counts) | ✅ | ⏳ |
-| 496 | Escape hatch (interim) | ✅ | ⏳ |
-| 1124 | Board loads a client (proxy client_id fix) | ✅ | ⏳ stuck — ships on ship.sh |
-| 494 | Qualify gate ("Mark qualified" on Replied) | ✅ | ⏳ |
-| 499 | Bookings page + Mark no-show (state) | ✅ | ⏳ |
-| 499m | No-show → **2 rebooks → keep the $3** (founder rule 24 Jul; $3 kept, no refund) | ✅ | ⏳ |
-| 498b | One-click sourcing from command bar (**pool-aware cost confirm**) | ✅ | ⏳ |
+| 505 | Live blockers strip (real gate counts) | ✅ | 🩷 |
+| 496 | Escape hatch (interim) | ✅ | 🩷 |
+| 1124 | Board loads a client (proxy client_id fix) | ✅ | 🩷 |
+| 494 | Qualify gate ("Mark qualified" on Replied) | ✅ | 🩷 |
+| 499 | Bookings page + Mark no-show (state) | ✅ | 🩷 |
+| 499m | No-show → **2 rebooks → keep the $3** (founder rule 24 Jul; $3 kept, no refund) | ✅ | 🩷 |
+| 498b | One-click sourcing from command bar (**pool-aware cost confirm**) | ✅ | 🩷 |
 | 511v | Nexus signals view | 🚩 | **FLAGGED — no Nexus backend = would be a shell** |
 
 ## VIDA — native rebuilds (kill the dropdown → old-admin exit)
 | # | Item | Main | Live |
 |---|---|:--:|---|
-| 502 | Engine rail in-shell (dropdown → rail Engine section + native routes) | ✅ | ⏳ |
-| 530 | Cockpit — Vida-native | ✅ | ⏳ |
-| 531 | Clients (admin) — Vida-native | ✅ | ⏳ |
-| 532 | Money Path — Vida-native | ✅ | ⏳ |
-| 533 | Billing — Vida-native | ✅ | ⏳ |
-| 534 | Revenue — Vida-native | ✅ | ⏳ |
-| 535 | GTM Hub — Vida-native | ✅ | ⏳ |
-| 536 | Unibox — Vida-native | ✅ | ⏳ |
-| 537 | Health — Vida-native | ✅ | ⏳ |
-| 538 | Ops — Vida-native | ✅ | ⏳ |
-| 539 | Founder — Vida-native | ✅ | ⏳ |
-| 540 | Outreach — Vida-native | ✅ | ⏳ |
-| 541 | Compliance — Vida-native | ✅ | ⏳ |
+| 502 | Engine rail in-shell (dropdown → rail Engine section + native routes) | ✅ | 🩷 |
+| 530 | Cockpit — Vida-native | ✅ | 🩷 |
+| 531 | Clients (admin) — Vida-native | ✅ | 🩷 |
+| 532 | Money Path — Vida-native | ✅ | 🩷 |
+| 533 | Billing — Vida-native | ✅ | 🩷 |
+| 534 | Revenue — Vida-native | ✅ | 🩷 |
+| 535 | GTM Hub — Vida-native | ✅ | 🩷 |
+| 536 | Unibox — Vida-native | ✅ | 🩷 |
+| 537 | Health — Vida-native | ✅ | 🩷 |
+| 538 | Ops — Vida-native | ✅ | 🩷 |
+| 539 | Founder — Vida-native | ✅ | 🩷 |
+| 540 | Outreach — Vida-native | ✅ | 🩷 |
+| 541 | Compliance — Vida-native | ✅ | 🩷 |
 
 ## MILLA — client console (core)
 | # | Item | Main | Live for you |
@@ -61,30 +61,30 @@
 | 506 | Real-data chat opener | ✅ | 🩷 |
 | 510 | Recent-replies rail | ✅ | 🩷 |
 | 495 | ICP v1/v2 versioning | ✅ | 🩷 |
-| 507 | Meetings tab | ✅ | ⏳ walk it |
+| 507 | Meetings tab | ✅ | 🩷 walk it |
 | 447 | Reveal-push email deep-link | ✅ | 🩷 |
-| 496 | Escape hatch (interim) | ✅ | ⏳ |
+| 496 | Escape hatch (interim) | ✅ | 🩷 |
 | 513 | Conversational onboarding | ✅ | 🟢 (/milla/welcome loaded) |
 | 514 | Propose ICP + credit plan | ✅ | 🟢 |
-| 1125 | Onboarding wired into signup/login (no more orphan) | ✅ | ⏳ ships on ship.sh |
-| 512 | Client ICP approval gate | ✅ | ⏳ ships on ship.sh |
-| 516 | Client report page (= native Reports) | ✅ | ⏳ ships on ship.sh |
+| 1125 | Onboarding wired into signup/login (no more orphan) | ✅ | 🩷 |
+| 512 | Client ICP approval gate | ✅ | 🩷 |
+| 516 | Client report page (= native Reports) | ✅ | 🩷 |
 | 515 | Magic-link + SMS approve | 🚩 | **FLAGGED — needs SMS provider + no-login security decision** |
 
 ## MILLA — native rebuilds (kill the rail/account → old-portal exit)
 | # | Item | Main | Live |
 |---|---|:--:|---|
-| 508 | My campaign — Milla-native | ✅ | ⏳ |
-| 520 | Insights · Performance — Milla-native | ✅ | ⏳ |
-| 521 | Insights · Analytics — Milla-native | ✅ | ⏳ |
-| 522 | Insights · Your ROI — Milla-native | ✅ | ⏳ |
-| 523 | Company · Command Centre — Milla-native | ✅ | ⏳ |
-| 524 | Company · Teams Hub — Milla-native | ✅ | ⏳ |
-| 525 | Account · My profile / Settings — Milla-native | ✅ | ⏳ |
-| 526 | Account · Billing — Milla-native | ✅ | ⏳ |
-| 527 | Account · Usage — Milla-native | ✅ | ⏳ |
-| 528 | Account · Documents — Milla-native | ✅ | ⏳ |
-| 529 | Account · Referral — Milla-native | ✅ | ⏳ |
+| 508 | My campaign — Milla-native | ✅ | 🩷 |
+| 520 | Insights · Performance — Milla-native | ✅ | 🩷 |
+| 521 | Insights · Analytics — Milla-native | ✅ | 🩷 |
+| 522 | Insights · Your ROI — Milla-native | ✅ | 🩷 |
+| 523 | Company · Command Centre — Milla-native | ✅ | 🩷 |
+| 524 | Company · Teams Hub — Milla-native | ✅ | 🩷 |
+| 525 | Account · My profile / Settings — Milla-native | ✅ | 🩷 |
+| 526 | Account · Billing — Milla-native | ✅ | 🩷 |
+| 527 | Account · Usage — Milla-native | ✅ | 🩷 |
+| 528 | Account · Documents — Milla-native | ✅ | 🩷 |
+| 529 | Account · Referral — Milla-native | ✅ | 🩷 |
 
 ## COMBINED — engine, money, gates, off-ramps, infra
 | # | Item | Main | Live for you |
@@ -97,9 +97,9 @@
 | — | classifyReply + logging | ✅ | 🩷 |
 | 44/361 | Calendar + `/book` | ✅ | 🩷 |
 | 26 | $3-on-booking capture | ✅ | 🩷 |
-| 498 | Command endpoint (Vida bar backend) | ✅ | ⏳ |
+| 498 | Command endpoint (Vida bar backend) | ✅ | 🩷 |
 | 494 | Qualification gate | ❌ | ❌ |
-| — | No-show → rebook×2 → keep | ⚠️ | ⏳ |
+| — | No-show → 2 rebooks → keep the $3 (#499m) | ✅ | 🩷 |
 | 511 | Nexus learning loop | ❌ | ❌ |
 | 517 | Unified operating record | ❌ | ❌ |
 | 504 | Milla↔Vida toggle | ✅ decided: two apps | — |

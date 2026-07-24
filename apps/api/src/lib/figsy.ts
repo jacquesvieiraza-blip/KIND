@@ -1221,7 +1221,7 @@ export async function generateSequenceWithMemory(
   // Preference: tone/format per client
   const preference = (memory as any).preference_memory as Record<string, unknown> | null
 
-  const memoryContext = [
+  let memoryContext = [
     // Episodic memory — recent reply patterns
     episodic?.recent_reply_rate != null
       ? `Recent (14d) reply rate: ${((episodic.recent_reply_rate as number) * 100).toFixed(1)}% — adapt tone accordingly.`
@@ -1246,6 +1246,29 @@ export async function generateSequenceWithMemory(
       ? `Phrases to avoid: ${(preference.avoid_phrases as string[]).slice(0, 3).join(', ')}`
       : null,
   ].filter(Boolean).join('\n')
+
+  // ── #511t2 NEXUS COPY TUNING (GATED — default-deny) ───────────────────────
+  // When THIS client's auto-tune is enabled AND the confidence gate passes, fold in what the
+  // client's own Nexus has learned about who BOOKS (persona) and what they push back with
+  // (objections), so the copy leans into the buyer that converts. If the gate isn't 'ready'
+  // (the default for every client), memoryContext is byte-identical to today — nothing tunes.
+  // Best-effort + fenced: a Nexus hiccup never breaks sequence generation, and the loaded
+  // profile is asserted to belong to THIS client before it can shape a single word.
+  try {
+    const { getNexusProfile } = await import('./nexus')
+    const { nexusTuneGate, nexusGlobalKill, assertSameClient } = await import('./nexus-guard')
+    const prof = await getNexusProfile(clientId)
+    assertSameClient(prof.client_id, clientId) // THE FENCE — never another client's brain
+    const { data: tuneFlag } = await db.from('clients').select('nexus_autotune_enabled').eq('id', clientId).maybeSingle()
+    const gate = nexusTuneGate(prof, tuneFlag?.nexus_autotune_enabled === true, nexusGlobalKill())
+    if (gate.allowed) {
+      const persona = [prof.top_persona.job_title, prof.top_persona.seniority, prof.top_persona.industry].filter(Boolean).join(' · ')
+      const parts: string[] = []
+      if (persona) parts.push(`This client books best with ${persona} — mirror that buyer's priorities and language.`)
+      if (prof.objections.length) parts.push(`Pre-empt the common pushback: ${prof.objections.slice(0, 3).map(o => o.class.replace(/_/g, ' ')).join(', ')}.`)
+      if (parts.length) memoryContext += `\nNexus (this client's own learned pattern — weight it heavily): ${parts.join(' ')}`
+    }
+  } catch { /* Nexus is best-effort — never break sequence generation */ }
 
   // ── Signal detection — pick the best personalization hook ─────────────────
   const memSignals: string[] = []

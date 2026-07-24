@@ -489,7 +489,7 @@ export async function runIcpJob(
     // must obey the same kill-switch as outreach. Previously they sent unconditionally
     // (outside the AUTO_OUTREACH_ENABLED gate below), so a "safe test" ICP run still
     // cold-emailed real execs a consent request. Gate the consent send on the switch.
-    scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '')
+    scoreLeadsForIcp(insertedIds, icp, clientRow?.company_name ?? '', clientId)
       .then(() => {
         if (process.env.AUTO_OUTREACH_ENABLED === 'true') {
           return autoConsentScoredLeads(insertedIds, clientRow?.company_name ?? '', clientId)

@@ -82,7 +82,7 @@ const TYPE_LABEL: Record<string, string> = {
   refund:         'Refund',
 }
 
-const OVERAGE_RATE_USD = 1
+const APPROVED_LEAD_RATE_USD = 4
 
 export default function UsagePage() {
   const supabase = createClient()
@@ -100,12 +100,12 @@ export default function UsagePage() {
       if (!session) { setLoading(false); return }
       try {
         const [creditsRes, statsRes, usageRes] = await Promise.all([
-          api.get<{ data: { balance: number; total_purchased?: number; total_used?: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
+          api.get<{ data: { wallet_balance_usd: number; total_purchased?: number; total_used?: number; transactions?: CreditTransaction[] } }>('/credits', session.access_token),
           api.get<{ data: LeadStats }>('/leads/stats', session.access_token).catch(() => ({ data: null })),
           api.get<{ data: UsageData }>('/clients/me/usage', session.access_token).catch(() => ({ data: null })),
         ])
-        setBalance(creditsRes.data.balance)
-        setTransactions(creditsRes.data.transactions)
+        setBalance(creditsRes.data.wallet_balance_usd ?? 0)
+        setTransactions(creditsRes.data.transactions ?? [])
         setTotals({
           purchased: creditsRes.data.total_purchased ?? null,
           used:      creditsRes.data.total_used ?? null,
@@ -145,11 +145,10 @@ export default function UsagePage() {
 
 
   // #385 — real month-to-date per-lead spend from the server (FULL ledger, not the
-  // 50-row /credits slice which under-reports high-volume clients). $1 per reveal, $3
-  // per FIGSY-worked lead.
-  const revealsThisMonth = usage?.reveals_this_month ?? 0
-  const revealSpendUsd   = revealsThisMonth * OVERAGE_RATE_USD  // $1 per reveal
-  const figsyThisMonth   = usage?.figsy_this_month ?? 0
+  // 50-row /credits slice which under-reports high-volume clients). One wallet: a flat
+  // $4 per approved lead, final — FIGSY's work is included.
+  const approvedThisMonth = usage?.reveals_this_month ?? 0
+  const spendThisMonthUsd = approvedThisMonth * APPROVED_LEAD_RATE_USD
 
 
   return (
@@ -159,25 +158,21 @@ export default function UsagePage() {
         <p className="text-[#7B6FA0] text-sm mt-1">Credits, lead pipeline, and outreach performance.</p>
       </div>
 
-      {/* #385 — Per-qualified-lead spend this month (REAL ledger, not a fake bundle).
-          You pay per lead: $1 to reveal, $3 for FIGSY to work it. No monthly included bundle. */}
+      {/* #385 — Per-approved-lead spend this month (REAL ledger, not a fake bundle).
+          One wallet: a flat $4 per approved lead, final. No monthly included bundle. */}
       <div className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-6 space-y-4">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
           <h2 className="text-base font-semibold text-gray-900">Per-lead spend this month</h2>
-          <span className="text-xs text-[#9B8EC4]">You pay per qualified lead — no monthly bundle</span>
+          <span className="text-xs text-[#9B8EC4]">You pay per approved lead — no monthly bundle</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           <div className="bg-green-50 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-green-700">{revealsThisMonth}</p>
-            <p className="text-xs text-[#7B6FA0] mt-1">Reveals · $1 each</p>
-          </div>
-          <div className="bg-indigo-50 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-indigo-700">{figsyThisMonth}</p>
-            <p className="text-xs text-[#7B6FA0] mt-1">FIGSY worked · $3 each</p>
+            <p className="text-3xl font-bold text-green-700">{approvedThisMonth}</p>
+            <p className="text-xs text-[#7B6FA0] mt-1">Leads approved · $4 each</p>
           </div>
           <div className="bg-[#F5EEFF]/60 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-gray-900">${(revealSpendUsd + figsyThisMonth * 3).toFixed(0)}</p>
+            <p className="text-3xl font-bold text-gray-900">${spendThisMonthUsd.toFixed(0)}</p>
             <p className="text-xs text-[#7B6FA0] mt-1">Spent this month</p>
           </div>
         </div>
@@ -185,8 +180,8 @@ export default function UsagePage() {
         <div className="flex items-start gap-2 bg-[#F5F0FF]/60 border border-purple-100 rounded-lg px-3 py-2">
           <AlertCircle className="w-3.5 h-3.5 text-[#7C3AED] mt-0.5 shrink-0" />
           <p className="text-xs text-[#7B6FA0]">
-            Reveal a delivered lead for <strong>$1</strong>, then have FIGSY work it for <strong>$3</strong>.
-            Sourcing and delivery are free — you only pay for leads you choose to reveal.
+            Approve a delivered lead for a flat <strong>$4</strong>, final.
+            Sourcing, delivery and FIGSY&apos;s work are included — you only pay for leads you approve.
           </p>
         </div>
       </div>
@@ -194,9 +189,9 @@ export default function UsagePage() {
       {/* Credit summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: 'Balance', value: balance, icon: <Coins className="w-5 h-5" />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
-          { label: 'Credits purchased', value: totalPurchased, icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-[#7C3AED]', bg: 'bg-[#F5F0FF]' },
-          { label: 'Credits used', value: totalSpent, icon: <TrendingUp className="w-5 h-5" />, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Wallet', value: `$${balance ?? 0}`, icon: <Coins className="w-5 h-5" />, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+          { label: 'Added', value: `$${totalPurchased}`, icon: <ArrowUpRight className="w-5 h-5" />, color: 'text-[#7C3AED]', bg: 'bg-[#F5F0FF]' },
+          { label: 'Spent', value: `$${totalSpent}`, icon: <TrendingUp className="w-5 h-5" />, color: 'text-green-600', bg: 'bg-green-50' },
         ].map(({ label, value, icon, color, bg }) => (
           <div key={label} className="bg-white/80 backdrop-blur-sm rounded-xl border border-purple-100/60 p-5">
             <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${bg} ${color}`}>{icon}</div>

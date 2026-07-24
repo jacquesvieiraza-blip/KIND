@@ -63,8 +63,9 @@ function fullName(f: string | null, l: string | null): string {
 }
 
 // column shell. #493c — an optional GATE chip names the human/money gate this column sits
-// behind (Send gate = operator releases the draft · Money gate = client's own $1+$3 👍 ·
-// Qualify = operator judgement · $3 captured = booking confirmed). Purely informational.
+// behind (Send gate = operator releases the draft · Money gate = client's own 👍, which is the
+// $4 charged at the client's 👍 (final) · Qualify = operator judgement · Booked = meeting reported).
+// Purely informational.
 function Col({ title, count, gate, children }: { title: string; count: number; gate?: { label: string; tone: 'send' | 'money' | 'qualify' | 'done' }; children: React.ReactNode }) {
   const gateStyle: Record<string, string> = {
     send:    'text-[#b45309] bg-[#fef3c7] border-[#fde68a]',
@@ -280,7 +281,7 @@ export default function VidaConsolePage() {
   const cols = board?.columns
 
   // Sourced-card actions. Operators never spend — they SEND the masked lead to the client,
-  // who approves ($1+$3) in Milla. Once surfaced, the card shows "awaiting client 👍".
+  // who approves in Milla ($4 charged at the client's 👍, final). Once surfaced, the card shows "awaiting client 👍".
   const sourcedBtns = (leadId: string, surfaced: boolean) => surfaced ? (
     <div className="mt-2 text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-lg py-1.5 px-2.5 text-center">
       With client · awaiting 👍
@@ -387,7 +388,7 @@ export default function VidaConsolePage() {
                   {kpi('Active client', selectedClient?.company_name || '—', `${selectedClient?.figsy_credits_remaining ?? 0} work credits`)}
                   {kpi('Daily send cap', cap == null ? 'No cap set' : `${status?.daily_cap}`, status?.outreach_enabled ? 'outreach ON' : 'outreach OFF', status?.outreach_enabled ? '#059669' : '#b45309')}
                   {kpi('Needs approval', String(cols?.needs_approval.count ?? 0), 'your Send gate', '#b45309')}
-                  {kpi('Booked · $3 captured', String(cols?.booked.count ?? 0), 'confirmed meetings', '#059669')}
+                  {kpi('Booked', String(cols?.booked.count ?? 0), 'meetings reported', '#059669')}
                 </>
               })()}
             </div>
@@ -558,7 +559,7 @@ export default function VidaConsolePage() {
                   })}
                 </Col>
                 {/* Qualified $4 */}
-                <Col title="Qualified · $3 held" count={cols.qualified.count} gate={{ label: '💳 Money gate', tone: 'money' }}>
+                <Col title="Qualified" count={cols.qualified.count} gate={{ label: '💳 Money gate', tone: 'money' }}>
                   {cols.qualified.cards.length === 0 ? <EmptyCol /> : cols.qualified.cards.map(c => (
                     <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
@@ -567,8 +568,8 @@ export default function VidaConsolePage() {
                     </div>
                   ))}
                 </Col>
-                {/* Booked · $3 captured */}
-                <Col title="Booked · $3 captured" count={cols.booked.count} gate={{ label: '$3 captured', tone: 'done' }}>
+                {/* Booked */}
+                <Col title="Booked" count={cols.booked.count} gate={{ label: 'Booked', tone: 'done' }}>
                   {cols.booked.cards.length === 0 ? <EmptyCol /> : cols.booked.cards.map(c => (
                     <div key={c.id} className="bg-white border border-emerald-200 rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>

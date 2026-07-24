@@ -747,14 +747,14 @@ operatorRouter.get('/record', async (req: Request, res: Response) => {
     }
     timeline.sort((x, y) => new Date(x.at ?? 0).getTime() - new Date(y.at ?? 0).getTime())
 
-    // Money summary for this lead — from the hold/capture/release ledger + hold status.
-    const { data: holds } = await db.from('credit_holds').select('status').eq('client_id', cid).eq('lead_id', leadId)
-    const holdStates = (holds ?? []).map((h: { status: string }) => h.status)
+    // ONE WALLET — a lead is charged a flat $4 once at approve (final). Money state is
+    // simply charged / not charged, read from the per-lead wallet_charge ledger row.
+    const { data: chargeRow } = await db.from('credit_transactions')
+      .select('id').eq('client_id', cid).eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge').limit(1).maybeSingle()
+    const isCharged = !!chargeRow
     const money = {
-      held:     holdStates.includes('held'),
-      captured: holdStates.includes('captured'),
-      released: holdStates.includes('released'),
-      state:    holdStates.includes('captured') ? '$3 captured (booked)' : holdStates.includes('held') ? '$3 held' : holdStates.includes('released') ? '$3 released (returned)' : 'no work charge',
+      charged: isCharged,
+      state:   isCharged ? 'Charged $4' : 'Not charged',
     }
 
     res.json({

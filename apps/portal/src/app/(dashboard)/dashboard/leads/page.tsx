@@ -625,19 +625,19 @@ export default function LeadsPage() {
     setActionLoading(null)
   }
 
-  // #420/#422 — the $1 reveal: unmask a lead's email (charges 1 reveal credit).
+  // #420/#422 — reveal a lead's email (charged from the one wallet).
   async function revealLead(leadId: string) {
     if (!token || actionLoading === `reveal-${leadId}`) return
     setActionLoading(`reveal-${leadId}`)
     try {
       const res = await api.post<{ revealed: boolean; email: string | null; charged: boolean }>(`/leads/${leadId}/reveal`, {}, token)
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, email: res.email ?? l.email, revealed: true } : l))
-      if (res.charged) showToast('Lead revealed — $1 charged', 'success')
+      if (res.charged) showToast('Lead revealed', 'success')
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Reveal failed'
       if (/insufficient_reveal_credits|402/.test(msg)) {
-        showToast('No reveal credits — top up to unmask leads ($1 each)', 'error')
-        notifyCreditNudge('reveal-empty') // #454 — friendly "add reveal credits" nudge
+        showToast('Not enough in your wallet — top up to unmask leads', 'error')
+        notifyCreditNudge('reveal-empty') // #454 — friendly "top up your wallet" nudge
       } else if (/no_email_found|422/.test(msg)) {
         showToast('No verified email found for this lead — you were not charged', 'error')
       } else if (/already_in_crm|409/.test(msg)) {

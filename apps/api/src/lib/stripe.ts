@@ -98,6 +98,45 @@ export async function createCheckoutSession(params: {
   }
 }
 
+// ── ONE WALLET top-up checkout (dynamic amount, no pre-made SKU) ──────────────
+// The work model: a single dollar wallet. First purchase is $99; later top-ups are
+// any amount. We use Stripe price_data so we never need per-amount price IDs.
+export async function createWalletCheckoutSession(params: {
+  clientId:    string
+  amountUsd:   number
+  successUrl:  string
+  cancelUrl:   string
+  clientEmail: string
+}): Promise<{ url: string | null; error?: string }> {
+  if (!stripe) return { url: null, error: 'Stripe not configured' }
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode:                 'payment',
+      payment_method_types: ['card'],
+      customer_email:       params.clientEmail,
+      line_items: [{
+        quantity: 1,
+        price_data: {
+          currency:     'usd',
+          unit_amount:  Math.round(params.amountUsd * 100), // dollars → cents
+          product_data: { name: 'K.I.N.D wallet top-up' },
+        },
+      }],
+      success_url: params.successUrl,
+      cancel_url:  params.cancelUrl,
+      metadata: {
+        clientId:  params.clientId,
+        amountUsd: String(params.amountUsd),
+        type:      'wallet_topup',
+      },
+    })
+    return { url: session.url }
+  } catch (err) {
+    console.error('[Stripe] createWalletCheckoutSession error:', err)
+    return { url: null, error: stripeErrorMessage(err) }
+  }
+}
+
 // ── Recurring subscription checkout ──────────────────────────────────────────
 export async function createSubscriptionCheckoutSession(params: {
   clientId:    string

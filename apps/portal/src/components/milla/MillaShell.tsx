@@ -11,12 +11,12 @@ import {
 } from 'lucide-react'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
-// live reveal/work credit chips + notification + account dropdown), a full client rail
+// live wallet balance chip + notification + account dropdown), a full client rail
 // (New leads · Meetings · My campaign · Reports · INSIGHTS · COMPANY · RECENT REPLIES from
 // LIVE data), and the working area. Insights/Company link the client's existing real pages.
 
 type Summary = {
-  reveal_credits: number; work_credits: number; leads_awaiting: number; meetings_booked: number
+  wallet_balance_usd: number; leads_awaiting: number; meetings_booked: number
   recent_replies: { name: string; classification: string }[]
 }
 
@@ -81,8 +81,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">M</div>
         <div className="text-[15px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[12.5px]">&amp;Vida</span></div>
         <div className="ml-auto flex items-center gap-3.5">
-          <span className="text-[13.5px] font-extrabold text-[#EC4899]">{s ? s.reveal_credits.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[12px]">reveal</span></span>
-          <span className="text-[13.5px] font-extrabold text-[#7C3AED]">{s ? s.work_credits.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[12px]">work credits</span></span>
+          <span className="text-[13.5px] font-extrabold text-[#7C3AED]">${s ? s.wallet_balance_usd.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[12px]">wallet</span></span>
           <Bell className="w-4.5 h-4.5 text-[#9b8ec4]" style={{ width: 18, height: 18 }} />
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 h-8 rounded-full border border-[#ece5fb] bg-white pl-1.5 pr-3 text-[13px] font-extrabold hover:bg-[#f7f4fd]">

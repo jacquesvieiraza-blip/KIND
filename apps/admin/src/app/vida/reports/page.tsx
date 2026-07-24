@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 
 // Vida REPORTS & BILLING — per-client revenue essentials the operator reads: prepaid credit
-// balance, FIGSY credits, revealed count ($1 each) and qualified count (an enrollment ⟺ the
-// $4 fired). Real aggregates from the live tables — no fabricated MRR. (Replaces the old rail
+// balance, FIGSY credits, revealed count and worked-leads count (each approved/worked lead is
+// a flat $4). Real aggregates from the live tables — no fabricated MRR. (Replaces the old rail
 // link that pointed at the founder MRR/churn page.) Design ref: docs/mv-previews/vida2.html.
 
 type Row = {
@@ -41,7 +41,7 @@ export default function VidaReportsPage() {
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="max-w-5xl">
         <h1 className="text-2xl font-bold text-[#1f1235]">Reports &amp; billing</h1>
-        <p className="text-sm text-[#7c6f9b] mt-0.5">Per client · prepaid credits, contacts revealed ($1 each) and leads qualified (the $4 that fired)</p>
+        <p className="text-sm text-[#7c6f9b] mt-0.5">Per client · prepaid credits, contacts revealed and worked leads (a flat $4 each)</p>
 
         {error && <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
         {!data && !error && <p className="text-sm text-[#9b8ec4] mt-4">Loading…</p>}
@@ -51,7 +51,7 @@ export default function VidaReportsPage() {
             <div className="flex flex-wrap gap-2.5 mt-4">
               <div className="bg-white border border-[#ece5fb] rounded-xl px-4 py-3">
                 <div className="text-2xl font-bold text-[#1f1235] tabular-nums">{data.totals.qualified.toLocaleString()}</div>
-                <div className="text-[11px] text-[#9b8ec4] font-semibold uppercase tracking-wide">Qualified · $4 fired</div>
+                <div className="text-[11px] text-[#9b8ec4] font-semibold uppercase tracking-wide">Worked leads · $4</div>
               </div>
               <div className="bg-white border border-[#ece5fb] rounded-xl px-4 py-3">
                 <div className="text-2xl font-bold text-[#1f1235] tabular-nums">{data.totals.revealed.toLocaleString()}</div>
@@ -72,7 +72,7 @@ export default function VidaReportsPage() {
                       <th className="text-right px-4 py-2.5 font-semibold">Credits</th>
                       <th className="text-right px-4 py-2.5 font-semibold">FIGSY credits</th>
                       <th className="text-right px-4 py-2.5 font-semibold">Revealed</th>
-                      <th className="text-right px-4 py-2.5 font-semibold">Qualified · $4</th>
+                      <th className="text-right px-4 py-2.5 font-semibold">Worked leads · $4</th>
                     </tr>
                   </thead>
                   <tbody>

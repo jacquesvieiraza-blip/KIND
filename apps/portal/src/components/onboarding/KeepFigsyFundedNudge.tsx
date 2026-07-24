@@ -57,11 +57,11 @@ export function KeepFigsyFundedNudge() {
 
   const isFigsy = kind === 'figsy-empty'
   const title = isFigsy
-    ? "You're out of FIGSY credits"
-    : "You're out of reveal credits"
+    ? "Your wallet is empty"
+    : "Your wallet is empty"
   const body = isFigsy
-    ? 'Top up to keep FIGSY working — writing, sending and following up on your behalf. Your enrolled campaigns keep running in the meantime.'
-    : 'Add reveal credits to unmask more leads — $1 unmasks one, and you never pay twice for the same person.'
+    ? 'Top up your wallet to keep FIGSY working — writing, sending and following up on your behalf. Your enrolled campaigns keep running in the meantime.'
+    : 'Top up your wallet to approve more leads — a flat $4 per approved lead, final, and you never pay twice for the same person.'
 
   return (
     <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-4" role="dialog" aria-modal="true" aria-label={title}>

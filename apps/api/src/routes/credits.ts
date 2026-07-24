@@ -9,29 +9,27 @@ creditRouter.use(requireAuth)
 creditRouter.get('/', async (req: AuthRequest, res) => {
   try {
     const { data: client } = await db.from('clients')
-      .select('id, credit_balance, figsy_credits_remaining').eq('user_id', req.userId!).single()
+      .select('id, wallet_balance_usd').eq('user_id', req.userId!).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: transactions } = await db.from('credit_transactions')
       .select('*').eq('client_id', client.id)
       .order('created_at', { ascending: false }).limit(50)
 
-    // Totals must be computed over the FULL ledger, not the 50-row display slice —
-    // otherwise "Credits purchased / used" on the usage page silently cap at ~50
-    // and never reconcile with the balance (fixes #55d demo incoherence).
+    // ONE WALLET — totals in dollars over the FULL ledger. Purchased = top-ups in;
+    // spent = every debit (the $4 charges) as a positive dollar figure.
     const { data: ledger } = await db.from('credit_transactions')
       .select('amount, type').eq('client_id', client.id)
-    const total_purchased = (ledger ?? []).filter(t => t.type === 'purchase').reduce((s, t) => s + (t.amount ?? 0), 0)
-    const total_used       = (ledger ?? []).filter(t => (t.amount ?? 0) < 0).reduce((s, t) => s + Math.abs(t.amount ?? 0), 0)
+    const total_purchased_usd = (ledger ?? []).filter(t => ['wallet_topup', 'purchase', 'credit_purchase'].includes(t.type as string)).reduce((s, t) => s + (t.amount ?? 0), 0)
+    const total_spent_usd     = (ledger ?? []).filter(t => (t.amount ?? 0) < 0).reduce((s, t) => s + Math.abs(t.amount ?? 0), 0)
 
     res.json({
       success: true,
       data: {
-        balance:                  client.credit_balance ?? 0,
-        figsy_credits_remaining:  client.figsy_credits_remaining ?? 0,
-        total_purchased,
-        total_used,
-        transactions:             transactions ?? [],
+        wallet_balance_usd:  Number(client.wallet_balance_usd ?? 0),
+        total_purchased_usd,
+        total_spent_usd,
+        transactions:        transactions ?? [],
       },
     })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch credits' }) }

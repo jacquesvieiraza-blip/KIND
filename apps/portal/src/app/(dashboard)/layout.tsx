@@ -16,7 +16,7 @@ import { AgentColumn } from './AgentColumn'
 import { ProfileMenu } from '@/components/layout/ProfileMenu'
 import { v2Enabled } from '@/lib/flags'
 import { NotificationBell } from '@/components/ui/NotificationBell'
-import { Coins, Zap, FlaskConical } from 'lucide-react'
+import { Zap, FlaskConical } from 'lucide-react'
 
 const IS_STAGING = process.env.NEXT_PUBLIC_IS_STAGING === 'true'
 
@@ -190,12 +190,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {stagingBanner}
           {millaBanner}
           <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-end gap-3 px-6 shrink-0">
-            {/* Both wallets — reveal ($1) + FIGSY work ($3) */}
-            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-amber-700 bg-amber-50" title="Reveal credits — $1 unmasks a lead">
-              <Coins className="w-3.5 h-3.5" /> {creditBalance.toLocaleString()} <span className="font-semibold text-amber-600/70">reveal</span>
-            </span>
-            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-[#7C3AED] bg-purple-50" title="FIGSY work credits — $3 per lead">
-              <Zap className="w-3.5 h-3.5" /> {figsyCredits.toLocaleString()} <span className="font-semibold text-[#7C3AED]/70">FIGSY</span>
+            {/* One wallet — a single $ balance. $4 per approved lead, final. */}
+            <span className="flex items-center gap-1.5 text-xs font-bold px-2.5 py-1.5 rounded-full text-[#7C3AED] bg-purple-50" title="Wallet — $4 per approved lead">
+              <Zap className="w-3.5 h-3.5" /> ${creditBalance.toLocaleString()} <span className="font-semibold text-[#7C3AED]/70">wallet</span>
             </span>
             <NotificationBell />
             <ProfileMenu name={companyName} email={user.email || ''} />

@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import {
   Home, Users, Inbox, Target, BarChart, CreditCard, Settings,
-  LogOut, FileText, Coins, Zap, MessageSquare,
+  LogOut, FileText, Zap, MessageSquare,
   BarChart2, Brain, Search, TrendingUp, Lock, LineChart,
   Menu, X, UserCheck, Plug, MessageCircle, Code2, Handshake, Sparkles, Mic, Library,
 } from 'lucide-react'
@@ -83,12 +83,12 @@ const ACCOUNT_NAV = [
 export function Sidebar({
   userEmail,
   creditBalance = 0,
-  figsyCredits = 0,
   hasFigsy = false,
   isPartner = false,
 }: {
   userEmail: string
   creditBalance?: number
+  /** @deprecated one-wallet model — retained so callers still compile; ignored. */
   figsyCredits?: number
   hasFigsy?: boolean
   // Milla/Vida/Denise entitlement props removed with the FIGSY-only cut (10 Jul);
@@ -172,15 +172,11 @@ export function Sidebar({
           </div>
           <span className="text-[#1E1152] font-bold text-sm tracking-tight">K.I.N.D</span>
         </div>
-        {/* Both wallets — reveal ($1) + FIGSY work ($3) */}
+        {/* One wallet — a single $ balance. $4 per approved lead, final. */}
         <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/60 rounded-full px-2 py-0.5" title="Reveal credits — $1 unmasks a lead">
-            <Coins className="w-3 h-3 text-amber-500" />
-            <span className="text-[11px] font-bold text-amber-600">{creditBalance}</span>
-          </div>
-          <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="FIGSY work credits — $3 per lead">
+          <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="Wallet — $4 per approved lead">
             <Zap className="w-3 h-3 text-[#7C3AED]" />
-            <span className="text-[11px] font-bold text-[#7C3AED]">{figsyCredits}</span>
+            <span className="text-[11px] font-bold text-[#7C3AED]">${creditBalance}</span>
           </div>
         </div>
       </header>
@@ -307,20 +303,15 @@ export function Sidebar({
             <p className="text-[#7C3AED]/35 text-[11px] truncate">{userEmail}</p>
             <div className="flex items-center gap-1.5 shrink-0 ml-2">
               <NotificationBell />
-              <div className="flex items-center gap-1 bg-amber-50 border border-amber-200/60 rounded-full px-2 py-0.5" title="Reveal credits — $1 unmasks a lead">
-                <Coins className="w-3 h-3 text-amber-500" />
-                <span className="text-[11px] font-bold text-amber-600">{creditBalance}</span>
-              </div>
-              <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="FIGSY work credits — $3 per lead">
+              <div className="flex items-center gap-1 bg-purple-50 border border-purple-200/60 rounded-full px-2 py-0.5" title="Wallet — $4 per approved lead">
                 <Zap className="w-3 h-3 text-[#7C3AED]" />
-                <span className="text-[11px] font-bold text-[#7C3AED]">{figsyCredits}</span>
+                <span className="text-[11px] font-bold text-[#7C3AED]">${creditBalance}</span>
               </div>
             </div>
           </div>
-          {/* Wallet labels so the two counters read clearly, not just two numbers */}
+          {/* One wallet label so the balance reads clearly */}
           <div className="px-3 flex items-center justify-end gap-3 text-[9px] font-semibold uppercase tracking-wide">
-            <span className="text-amber-600/70">Reveal</span>
-            <span className="text-[#7C3AED]/60">FIGSY</span>
+            <span className="text-[#7C3AED]/60">Wallet</span>
           </div>
           <StatusBar />
           <button

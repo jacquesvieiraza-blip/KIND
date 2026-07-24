@@ -6,17 +6,17 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
-// chat (centre, real-data opener) + masked lead cards (right) + credit ledger + Your ICP
+// chat (centre, real-data opener) + masked lead cards (right) + wallet ledger + Your ICP
 // (versioned). Every number is live: summary → KPIs/opener/ICP, /for-approval → cards,
-// /ledger → ledger. Approve calls the #492 $1+$3-held money rails.
+// /ledger → ledger. Approve charges a flat $4 per approved lead from the one wallet.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null }
-type Revealed = { email: string; workHeld: boolean }
+type Revealed = { email: string; charged: boolean }
 type LedgerEntry = { amount: number; type: string; note: string | null; created_at: string | null }
-type Ledger = { reveal_credits: number; work_credits: number; entries: LedgerEntry[] }
+type Ledger = { wallet_balance_usd: number; transactions: LedgerEntry[] }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
 type Summary = {
-  reveal_credits: number; work_credits: number; leads_awaiting: number; meetings_booked: number
+  wallet_balance_usd: number; leads_awaiting: number; meetings_booked: number
   active_campaign: string | null; icp_versions: IcpVersion[]
 }
 type Msg = { id: string; role: 'user' | 'assistant'; content: string }
@@ -59,7 +59,7 @@ export default function MillaHomePage() {
       const n = s.data.leads_awaiting
       const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
       setMessages([{ id: 'greet', role: 'assistant', content: n > 0
-        ? `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; **nothing is charged until you do** ($1 reveals the contact, +$3 held and only captured if one books). Want me to talk you through them?`
+        ? `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; **nothing is charged until you approve — then a flat $4 per lead, final**. Want me to talk you through them?`
         : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` }])
     } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your dashboard') }
   }, [])
@@ -86,12 +86,12 @@ export default function MillaHomePage() {
     setActing(id); setTopUp(null); setError(null)
     try {
       const tok = await token()
-      const res = await api.post<{ email: string; workHeld: boolean }>(`/leads/${id}/approve`, {}, tok)
-      setRevealed(r => ({ ...r, [id]: { email: res.email, workHeld: res.workHeld } }))
+      const res = await api.post<{ email: string; charged: boolean }>(`/leads/${id}/approve`, {}, tok)
+      setRevealed(r => ({ ...r, [id]: { email: res.email, charged: res.charged } }))
       const g = await api.get<{ data: Ledger }>('/leads/ledger', tok); setLedger(g.data)
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 402) setTopUp('You need $4 free to approve — $1 to reveal plus $3 held. Top up to continue.')
+      if (err.status === 402) setTopUp('You need $4 in your wallet to approve. Top up to continue.')
       else setError(err.message || 'Could not approve — please try again')
     } finally { setActing(null) }
   }
@@ -134,7 +134,7 @@ export default function MillaHomePage() {
     <div className="h-full overflow-y-auto px-5 py-4">
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <KPI hero k="Credit balance" v={summary ? summary.reveal_credits.toLocaleString() : '…'} s={summary ? `${summary.reveal_credits} reveal · ${summary.work_credits} work · need both to approve` : '$1 approve · $3 on booking'} />
+        <KPI hero k="Wallet balance" v={summary ? `$${summary.wallet_balance_usd.toLocaleString()}` : '…'} s="$4 per approved lead" />
         <KPI k="Leads awaiting you" v={summary ? String(summary.leads_awaiting) : '…'} s={summary && summary.leads_awaiting ? '1 tap to approve' : 'all caught up'} tone="#EC4899" />
         <KPI k="Meetings booked" v={summary ? String(summary.meetings_booked) : '…'} s="this month" tone="#059669" />
         <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />
@@ -181,7 +181,7 @@ export default function MillaHomePage() {
               <div key={l.id} className="bg-white border-[1.5px] border-emerald-200 rounded-2xl p-3.5">
                 <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[13px]">Approved · {l.role} @ {l.company}</b></div>
                 <div className="text-[12px] text-[#4c4368] mt-1">Contact: <b>{revealed[l.id].email}</b></div>
-                <div className="text-[11px] text-[#7c6f9b] mt-0.5">$1 charged · $3 held{revealed[l.id].workHeld ? ' — working it now' : ' — released (no active campaign)'}</div>
+                <div className="text-[11px] text-[#7c6f9b] mt-0.5">$4 charged — working it now</div>
               </div>
             ))}
             {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (
@@ -200,7 +200,7 @@ export default function MillaHomePage() {
                       </div>
                       {l.why_fits && <div className="text-[12px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
                       <div className="flex gap-1.5 mt-2.5">
-                        <button disabled={busy} onClick={() => approve(l.id)} className="flex-1 text-[12px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : '✓ Approve qualified lead · $1'}</button>
+                        <button disabled={busy} onClick={() => approve(l.id)} className="flex-1 text-[12px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : '✓ Approve qualified lead · $4'}</button>
                         <button disabled={busy} onClick={() => pass(l.id)} className="text-[12px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
                       </div>
                     </div>
@@ -208,7 +208,7 @@ export default function MillaHomePage() {
                 </div>
               )
             })}
-            <div className="text-[10.5px] text-[#b3a9cc] px-1 pt-1">$1 reveals the contact now · $3 held, captured only when a lead books a meeting.</div>
+            <div className="text-[10.5px] text-[#b3a9cc] px-1 pt-1">$4 per approved lead — final. Reviewing is free.</div>
           </div>
         </aside>
       </div>
@@ -216,19 +216,19 @@ export default function MillaHomePage() {
       {/* ledger + ICP */}
       <div className="flex gap-4 mt-4">
         <div className="flex-1 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Credit ledger <span className="text-[#9b8ec4] font-semibold text-[11px]">· every charge, audited</span></div>
-          {(ledger?.entries ?? []).length === 0 ? (
+          <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Wallet ledger <span className="text-[#9b8ec4] font-semibold text-[11px]">· every charge, audited</span></div>
+          {(ledger?.transactions ?? []).length === 0 ? (
             <div className="px-4 py-8 text-center text-[13px] text-[#9b8ec4]">No charges yet — approve a lead to begin.</div>
           ) : (
             <div className="overflow-x-auto"><table className="w-full text-[12.5px] min-w-[420px]">
               <thead><tr className="bg-[#faf8ff] text-[#b3a9cc] text-[9.5px] uppercase tracking-wide">
                 <th className="text-left px-4 py-2 font-extrabold">When</th><th className="text-left px-4 py-2 font-extrabold">Activity</th><th className="text-right px-4 py-2 font-extrabold">Amount</th>
               </tr></thead>
-              <tbody>{(ledger?.entries ?? []).slice(0, 8).map((e, i) => (
+              <tbody>{(ledger?.transactions ?? []).slice(0, 8).map((e, i) => (
                 <tr key={i} className="border-t border-[#f4eefb]">
                   <td className="px-4 py-2.5 text-[#9b8ec4] whitespace-nowrap">{fmt(e.created_at)}</td>
                   <td className="px-4 py-2.5 text-[#4c4368]">{e.note || e.type}</td>
-                  <td className={`px-4 py-2.5 text-right tabular-nums font-extrabold ${e.amount < 0 ? 'text-[#b45309]' : 'text-emerald-600'}`}>{e.amount > 0 ? `+${e.amount}` : e.amount}</td>
+                  <td className={`px-4 py-2.5 text-right tabular-nums font-extrabold ${e.amount < 0 ? 'text-[#b45309]' : 'text-emerald-600'}`}>{e.amount > 0 ? `+$${e.amount}` : `-$${Math.abs(e.amount)}`}</td>
                 </tr>
               ))}</tbody>
             </table></div>

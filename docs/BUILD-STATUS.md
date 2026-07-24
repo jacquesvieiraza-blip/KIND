@@ -89,7 +89,7 @@
 ## COMBINED — engine, money, gates, off-ramps, infra
 | # | Item | Main | Live for you |
 |---|---|:--:|---|
-| 492 | Money $1+$3 hold/capture/release | ✅ | 🩷 (213 tests, not walked to the cent) |
+| 492 | Money — ONE WALLET / work model: $4 per approved lead, final (no hold/capture/release) | ✅ | 🟡 built 24 Jul, migration owed on prod, not walked |
 | — | Money migration (`credit_holds`) | ✅ SQL run | 🟢 |
 | — | Client money gate · Operator send gate | ✅ | 🩷 |
 | — | Charge model ($0/$1/$3) | ✅ | 🩷 |

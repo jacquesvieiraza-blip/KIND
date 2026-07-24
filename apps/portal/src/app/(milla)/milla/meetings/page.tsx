@@ -5,7 +5,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
 // #507 — MILLA MEETINGS tab: the client's booked meetings (their calendar), from live
-// calendar_bookings. Each booked meeting is where the $3 was captured (#492).
+// calendar_bookings. Meetings are REPORTED here — never a money condition.
 
 type Meeting = { id: string; title: string; start_time: string | null; status: string; name: string; company: string | null }
 
@@ -42,7 +42,7 @@ export default function MillaMeetingsPage() {
         <div className="text-[12px] text-[#5c5279] mt-0.5">{when(m.start_time)}</div>
       </div>
       <span className={`text-[11px] font-extrabold rounded-full px-3 py-1 ${m.status === 'completed' ? 'text-indigo-700 bg-indigo-50' : 'text-emerald-700 bg-emerald-50'}`}>
-        {m.status === 'completed' ? 'Completed' : 'Confirmed'} · $3 captured
+        {m.status === 'completed' ? 'Completed' : 'Confirmed'}
       </span>
     </div>
   )
@@ -51,7 +51,7 @@ export default function MillaMeetingsPage() {
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="max-w-3xl">
         <h1 className="text-2xl font-bold text-[#1f1235]">Meetings</h1>
-        <p className="text-sm text-[#7c6f9b] mt-0.5">Every meeting FIGSY booked from your approved leads. The $3 is captured when a meeting confirms.</p>
+        <p className="text-sm text-[#7c6f9b] mt-0.5">Every meeting FIGSY booked from your approved leads.</p>
 
         {error && <div className="mt-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
         {!meetings && !error && <p className="text-sm text-[#9b8ec4] mt-4">Loading your meetings…</p>}

@@ -303,15 +303,7 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         status: 'opted_out', opted_out_at: new Date().toISOString(),
       }).eq('email', fromEmail)
 
-      // #492 (audit fix) — a terminal opt-out RELEASES the held $3 (this lead will never book).
-      // Flipping the enrollment to 'opted_out' also removes it from the send-loop, so the
-      // send-path release can no longer fire — release here by client+lead (works even if there
-      // was no enrollment). Without this the $3 stayed trapped until the 60-day stale sweep.
-      try {
-        const { releaseFigsyHold } = await import('../lib/credit-holds')
-        await releaseFigsyHold(lead.client_id, lead.id, 'reply_opt_out')
-      } catch (e) { console.error('[figsy/inbound] opt-out hold release failed:', e instanceof Error ? e.message : e) }
-
+      // ONE WALLET: a terminal opt-out moves no money — the $4 was final at approve.
       if (enrollment?.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
     }
 
@@ -624,13 +616,13 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { if (didCharge) await refundFigsyEnroll(clientId); skipped++; continue }
+        if (error) { if (didCharge) await refundFigsyEnroll(clientId, lead.id); skipped++; continue }
         if (didCharge) figsyRemaining -= 1
         enrolled++
       } catch {
         // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
         // the credit into this catch with no refund. Return it ONLY if we actually charged.
-        if (didCharge) await refundFigsyEnroll(clientId)
+        if (didCharge) await refundFigsyEnroll(clientId, lead.id)
         skipped++
       }
     }
@@ -1645,13 +1637,13 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { if (didCharge) await refundFigsyEnroll(clientId); skipped++; continue }
+        if (error) { if (didCharge) await refundFigsyEnroll(clientId, lead.id); skipped++; continue }
         if (didCharge) figsyRemaining -= 1
         enrolled++
       } catch {
         // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
         // the credit into this catch with no refund. Return it ONLY if we actually charged.
-        if (didCharge) await refundFigsyEnroll(clientId)
+        if (didCharge) await refundFigsyEnroll(clientId, lead.id)
         skipped++
       }
     }

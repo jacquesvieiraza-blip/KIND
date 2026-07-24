@@ -106,6 +106,12 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     reference: `lead:${claim.id}`, note: 'Approved lead worked ($4)', created_at: now,
   }).then(() => {}, () => {})
 
+  // W5 — TRIAL sourcing drip: a real reveal unlocks +2 more sourced records (our PDL
+  // budget), so a trial client learns the loop by playing it. The RPC caps lifetime
+  // trial grants at 20 records, so this is self-limiting and a no-op once out of trial.
+  void db.rpc('add_sourcing_allowance', { p_client_id: clientId, p_records: 2, p_trial: true })
+    .then(() => {}, (e: unknown) => console.error('[approve] trial sourcing drip failed (non-fatal):', e))
+
   // 8. Start the outreach on the already-paid lead — charges nothing (prepaid).
   await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch(() => {})
 

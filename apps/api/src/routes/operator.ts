@@ -41,7 +41,7 @@ async function requireClient(clientId: unknown): Promise<{ id: string; company_n
 operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   try {
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, industry, country, created_at, is_demo, credit_balance, figsy_credits_remaining')
+      .select('id, company_name, industry, country, created_at, is_demo, wallet_balance_usd')
       .order('created_at', { ascending: false })
     const excluded = await getExcludedClientIds()   // house/demo — labelled, not hidden
     const rows = (clients ?? []).map((c: Record<string, unknown>) => ({
@@ -396,7 +396,7 @@ operatorRouter.get('/suppression', async (_req: Request, res: Response) => {
 operatorRouter.get('/reports', async (_req: Request, res: Response) => {
   try {
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, credit_balance, figsy_credits_remaining, is_demo')
+      .select('id, company_name, wallet_balance_usd, is_demo')
       .order('created_at', { ascending: false })
     const excluded = await getExcludedClientIds()
     const rows = await Promise.all((clients ?? []).map(async (c: Record<string, unknown>) => {
@@ -409,8 +409,7 @@ operatorRouter.get('/reports', async (_req: Request, res: Response) => {
         client_id: cid,
         company_name: (c.company_name as string | null) ?? null,
         house_or_demo: c.is_demo === true || excluded.has(cid),
-        credit_balance: (c.credit_balance as number | null) ?? 0,
-        figsy_credits_remaining: (c.figsy_credits_remaining as number | null) ?? 0,
+        wallet_balance_usd: Number((c.wallet_balance_usd as number | null) ?? 0),
         revealed_count: revealed.count ?? 0,
         qualified_count: qual.count ?? 0,
       }

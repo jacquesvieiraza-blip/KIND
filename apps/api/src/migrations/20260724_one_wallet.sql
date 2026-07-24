@@ -54,15 +54,17 @@ BEGIN
   RETURN v_ok > 0;
 END $$;
 
--- ── give money back: top-ups + the dead-email $4 reversal ──────────────────────
+-- ── change the wallet: top-ups + dead-email reversal (positive), refund/chargeback
+-- claw-back (negative). Clamps at 0 so a claw-back can never drive the wallet
+-- negative (mirrors the old increment_*_credits clamp behaviour). ────────────────
 CREATE OR REPLACE FUNCTION public.increment_wallet(p_client_id uuid, p_amount numeric)
 RETURNS void
 LANGUAGE plpgsql
 AS $$
 BEGIN
-  IF p_amount IS NULL OR p_amount <= 0 THEN RETURN; END IF;
+  IF p_amount IS NULL OR p_amount = 0 THEN RETURN; END IF;
   UPDATE public.clients
-    SET wallet_balance_usd = wallet_balance_usd + p_amount
+    SET wallet_balance_usd = GREATEST(0, wallet_balance_usd + p_amount)
     WHERE id = p_client_id;
 END $$;
 

@@ -881,14 +881,17 @@ export async function refundFigsyEnroll(clientId: string, leadId?: string): Prom
       'Action: add $4 to this client’s wallet manually.',
     ])
   })
+  // W3 — free the per-lead charge reference so a legitimate retry can re-charge, and
+  // give the reverse row a NULL reference so it can never collide with the unique
+  // `lead:{id}` index (a same-reference reverse would block the retry-charge silently).
   if (leadId) {
     await db.from('credit_transactions').delete()
       .eq('client_id', clientId).eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge').then(() => {}, () => {})
   }
   await db.from('credit_transactions').insert({
     client_id: clientId, amount: 4, type: 'wallet_reverse', plan: 'work_model',
-    reference: leadId ? `lead:${leadId}` : null,
-    note: 'Enrollment failed after charge — $4 returned',
+    reference: null,
+    note: leadId ? `Enrollment failed after charge — $4 returned (lead ${leadId})` : 'Enrollment failed after charge — $4 returned',
     created_at: new Date().toISOString(),
   }).then(() => {}, () => {})
 }

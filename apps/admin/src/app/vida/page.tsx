@@ -14,8 +14,7 @@ type ClientRow = {
   industry: string | null
   country: string | null
   is_demo: boolean | null
-  credit_balance: number | null
-  figsy_credits_remaining: number | null
+  wallet_balance_usd: number | null
   house_or_demo: boolean
 }
 
@@ -385,7 +384,7 @@ export default function VidaConsolePage() {
                 )
                 const cap = status?.daily_cap
                 return <>
-                  {kpi('Active client', selectedClient?.company_name || '—', `${selectedClient?.figsy_credits_remaining ?? 0} work credits`)}
+                  {kpi('Active client', selectedClient?.company_name || '—', `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`)}
                   {kpi('Daily send cap', cap == null ? 'No cap set' : `${status?.daily_cap}`, status?.outreach_enabled ? 'outreach ON' : 'outreach OFF', status?.outreach_enabled ? '#059669' : '#b45309')}
                   {kpi('Needs approval', String(cols?.needs_approval.count ?? 0), 'your Send gate', '#b45309')}
                   {kpi('Booked', String(cols?.booked.count ?? 0), 'meetings reported', '#059669')}

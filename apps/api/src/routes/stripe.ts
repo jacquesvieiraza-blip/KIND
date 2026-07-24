@@ -84,7 +84,9 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
 // row we won the claim and pay exactly once; a retried/concurrent webhook or a
 // later purchase finds the marker set and no-ops. Never throws — the caller
 // runs it fire-and-forget so a payout failure can't break the payment webhook.
-const REFERRAL_BONUS_FIGSY_CREDITS = 15
+// ONE WALLET (W2) — the referral bonus is paid in wallet dollars, not the retired
+// FIGSY credit column. ~$45 (was 15 FIGSY credits × $3).
+const REFERRAL_BONUS_USD = 45
 async function payReferrerOnFirstPurchase(referredClientId: string) {
   const { data: client } = await db.from('clients')
     .select('id, company_name, referred_by, referral_bonus_paid_at')
@@ -111,8 +113,8 @@ async function payReferrerOnFirstPurchase(referredClientId: string) {
   const { error: ledgerErr } = await db.from('credit_transactions').insert({
     client_id: client.referred_by,
     type:      'referral_bonus',
-    amount:    REFERRAL_BONUS_FIGSY_CREDITS,
-    plan:      'figsy',
+    amount:    REFERRAL_BONUS_USD,
+    plan:      'work_model',
     reference: ledgerRef,
     note:      `Referral bonus — ${client.company_name ?? 'a referred client'} made their first purchase`,
     created_at: now,
@@ -122,21 +124,21 @@ async function payReferrerOnFirstPurchase(referredClientId: string) {
     void sendFounderAlert('payment_failed', 'Referral payout failed', [
       `Referrer: ${client.referred_by}`,
       `Referred client ${referredClientId} made their first purchase, but writing the referral-bonus ledger row failed: ${ledgerErr.message}`,
-      'The payout marker was reset — a future purchase will retry. Grant the 15 FIGSY credits manually if needed.',
+      `The payout marker was reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
     ])
     return
   }
-  const { error: rpcErr } = await db.rpc('increment_figsy_credits', {
+  const { error: rpcErr } = await db.rpc('increment_wallet', {
     p_client_id: client.referred_by,
-    p_amount:    REFERRAL_BONUS_FIGSY_CREDITS,
+    p_amount:    REFERRAL_BONUS_USD,
   })
   if (rpcErr) {
     await db.from('credit_transactions').delete().eq('reference', ledgerRef)
     await db.from('clients').update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
     void sendFounderAlert('payment_failed', 'Referral payout failed', [
       `Referrer: ${client.referred_by}`,
-      `Referred client ${referredClientId} made their first purchase, but the FIGSY credit grant RPC failed: ${rpcErr.message}`,
-      'The ledger row was rolled back and the payout marker reset — a future purchase will retry. Grant the 15 FIGSY credits manually if needed.',
+      `Referred client ${referredClientId} made their first purchase, but the wallet grant RPC failed: ${rpcErr.message}`,
+      `The ledger row was rolled back and the payout marker reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
     ])
     return
   }
@@ -642,18 +644,18 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           const { error: clawLedgerErr } = await db.from('credit_transactions').insert({
             client_id: refundedClient.referred_by,
             type:      'refund',
-            amount:    -REFERRAL_BONUS_FIGSY_CREDITS,
-            plan:      'figsy',
+            amount:    -REFERRAL_BONUS_USD,
+            plan:      'work_model',
             reference: `referral_claw_${refundedClientId}`,
             note:      `Referral bonus clawed back — referred client ${refundedClientId} was ${isDispute ? 'charged back' : 'refunded'}`,
           })
           if (clawLedgerErr) return // 23505 = already clawed once (idempotent); any other error handled below
-          const { error: clawErr } = await db.rpc('increment_figsy_credits', { p_client_id: refundedClient.referred_by, p_amount: -REFERRAL_BONUS_FIGSY_CREDITS })
+          const { error: clawErr } = await db.rpc('increment_wallet', { p_client_id: refundedClient.referred_by, p_amount: -REFERRAL_BONUS_USD })
           if (clawErr) {
-            void sendFounderAlert('payment_failed', 'Referral claw-back failed — revoke 15 credits manually', [
+            void sendFounderAlert('payment_failed', `Referral claw-back failed — revoke $${REFERRAL_BONUS_USD} manually`, [
               `Referrer: ${refundedClient.referred_by}`,
               `Referred client ${refundedClientId} was ${isDispute ? 'charged back' : 'refunded'}; the referral-bonus claw-back RPC failed: ${clawErr.message}`,
-              'Action: revoke 15 FIGSY credits from the referrer manually.',
+              `Action: revoke $${REFERRAL_BONUS_USD} from the referrer's wallet manually.`,
             ])
           }
         })().catch(err => console.error('[Stripe] referral claw-back failed (non-fatal):', err))

@@ -105,17 +105,17 @@
 | 504 | Milla↔Vida toggle | ✅ decided: two apps | — |
 | — | Deploy pipeline `scripts/ship.sh` | 🟡 PR #1126 | ❌ merge to use |
 | — | Auto-deploy · CI | ⏸ flagged | ⏸ |
-| E1 | TTL expiry → release $3 | ⚠️ | ⏳ |
+| E1 | TTL expiry → release $3 (release primitive exists; **no cron sweep** — needs building) | ⚠️ | ❌ |
 | E2 | Client rejects → pass | ✅ | 🩷 |
 | E3 | Insufficient $1 → top-up | ✅ | 🩷 |
 | E4 | Bounce → $1 refund | ✅ | 🩷 |
-| E5 | Wrong person → no-refund rule | ❌ | ❌ |
+| E5 | Wrong person → no-refund rule (**`wrong_person` classification exists**; explicit rule/handler not built) | ❌ | ❌ |
 | E6 | Duplicate → suppressed | ✅ | 🩷 |
-| E7 | Risky reply → escalate | ❌ | ❌ |
+| E7 | Risky reply → escalate (**no reply-risk escalation path**; hot_reply alert exists, not this) | ❌ | ❌ |
 | E8 | Reviewer rejects draft | ✅ | 🩷 |
-| E9 | Booking fails → retry ladder | ⚠️ | ⏳ |
+| E9 | Booking fails → retry ladder (**no retry logic** in calendar.ts/gcal.ts — needs building) | ❌ | ❌ |
 | E10 | Kill-switch | ✅ | 🩷 |
-| E11 | No-show → release/keep | ⚠️ | ⏳ |
+| E11 | No-show → keep (**built via #499m** — keep + 2 rebooks; auto-detection future) | ✅ | 🩷 |
 | E12 | Payment fail → webhook | ✅ | 🩷 |
 
 ---
@@ -123,6 +123,6 @@
 ## What's left (the ❌ / 🚩 list)
 - **Milla:** ✅ all reds built **except 🚩 #515 magic-link + SMS** — flagged: no SMS provider configured, and no-login money approve needs a security decision.
 - **Vida:** ✅ built — #502 Engine rail · all 12 native pages (#530–#541) · #494 Qualify gate · #499 Bookings + Mark no-show · #493c gate chips · #505 blockers strip · **#499m no-show → 2 rebooks → keep the $3** · **#498b one-click sourcing w/ pool-aware confirm**. **🚩 Still flagged (not built — no backend = shell):** #511v Nexus signals.
-- **Combined:** #511 Nexus loop · #517 unified record · off-ramps E5/E7 (+ finish E1/E9/E11)
+- **Combined (audited 24 Jul vs code — still to build):** **E1** TTL-expiry $3 release (needs a cron sweep — release primitive exists) · **E9** booking-fail retry ladder (no retry logic today) · **E7** risky-reply → escalate (no path) · **E5** wrong-person no-refund rule (classification exists, rule doesn't) · **#511** Nexus learning loop (no backend) · **#517** unified operating record (doc-only). **Already done:** E11 no-show → keep is built via #499m. **Blocked:** auto-deploy/CI (GitHub account flagged).
 
 **Milla old-portal exit: CLOSED** — all 11 rail/account links point to `/milla/*` native routes. **Vida old-admin exit: CLOSED** — the account-dropdown nervous-system + the rail Engine section both point to `/vida/*` native routes (12 real engine pages inside the Vida shell), and the Bookings rail link is now live.

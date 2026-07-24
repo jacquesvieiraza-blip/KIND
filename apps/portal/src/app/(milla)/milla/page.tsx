@@ -16,7 +16,7 @@ type LedgerEntry = { amount: number; type: string; note: string | null; created_
 type Ledger = { wallet_balance_usd: number; transactions: LedgerEntry[] }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
 type Summary = {
-  wallet_balance_usd: number; leads_awaiting: number; meetings_booked: number
+  wallet_balance_usd: number; has_funded: boolean; leads_awaiting: number; meetings_booked: number
   active_campaign: string | null; icp_versions: IcpVersion[]
 }
 type Msg = { id: string; role: 'user' | 'assistant'; content: string }
@@ -78,6 +78,12 @@ export default function MillaHomePage() {
   // conversational setup. Once they approve an ICP (v1 exists) they stay on the dashboard.
   useEffect(() => {
     if (summary && summary.icp_versions.length === 0) router.replace('/milla/welcome')
+  }, [summary, router])
+  // NO FREEBIES — a client who has built their ICP but never paid is sent to Billing to
+  // load their $99. No purchase → no dashboard. (The money rails also block approve/source
+  // at $0, but this is the guided step that gets us the $99.)
+  useEffect(() => {
+    if (summary && summary.icp_versions.length > 0 && !summary.has_funded) router.replace('/milla/billing?start=1')
   }, [summary, router])
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])

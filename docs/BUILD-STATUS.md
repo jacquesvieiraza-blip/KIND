@@ -103,7 +103,7 @@
 | 511 | Nexus learning loop | ✅ | 🩷 COMPLETE — all 12 items, see the 🧠 NEXUS section |
 | 517 | Unified operating record (per-lead timeline: sends·replies·bookings·ops·money — `/vida/record`) | ✅ | 🩷 |
 | 504 | Milla↔Vida toggle | ✅ decided: two apps | — |
-| — | Deploy pipeline `scripts/ship.sh` | 🟡 PR #1126 | ❌ merge to use |
+| — | Deploy pipeline `scripts/ship.sh` | ✅ | 🟢 (merged + in daily use) |
 | — | Auto-deploy · CI | ⏸ flagged | ⏸ |
 | E1 | TTL expiry → release $3 (**daily stale-hold sweep** — fail-safe backstop, cron 03:30 UTC) | ✅ | 🩷 |
 | E2 | Client rejects → pass | ✅ | 🩷 |

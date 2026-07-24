@@ -46,6 +46,7 @@ type Board = {
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
 type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
+type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl_cost_est: number; allowance_left: number; leads_per_run: number; capped: boolean; is_demo: boolean; icp_name?: string | null; no_active_icp?: boolean }
 
 // #501 — the 8-step operating flow, shown as a status ribbon across the top of the console.
 const FLOW = ['Sign up', 'Build plan', 'Approve send', 'Qualify', 'Client approves', 'Follow-up', 'Book', 'Learn']
@@ -105,13 +106,62 @@ export default function VidaConsolePage() {
   const [cmdLog, setCmdLog] = useState<CmdMsg[]>([])
   const [cmdBusy, setCmdBusy] = useState(false)
 
+  // #498b — one-click sourcing: a pool-aware confirm before we spend a cent of PDL budget.
+  const [srcPreview, setSrcPreview] = useState<SourcePreview | null>(null)
+  const [srcBusy, setSrcBusy] = useState(false)
+  const [srcResult, setSrcResult] = useState<string | null>(null)
+
   useEffect(() => {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
   }, [])
 
+  // #498b — detect a sourcing intent ("source 50 leads", "find 30 prospects", "source leads")
+  // and route it to the pool-aware CONFIRM flow instead of the prose command handoff. Returns
+  // the requested count (default 20) or null if the text isn't a sourcing command.
+  function parseSourceIntent(t: string): number | null {
+    const lc = t.toLowerCase()
+    if (!/\b(source|find|pull|prospect)\b/.test(lc)) return null
+    const m = lc.match(/(\d{1,3})/)
+    return m ? Math.max(1, Math.min(200, parseInt(m[1], 10))) : 20
+  }
+
+  async function previewSource(count: number) {
+    if (!selected) return
+    setSrcBusy(true); setSrcResult(null); setSrcPreview(null)
+    try {
+      const res = await fetch(`/api/proxy/operator/source-preview?client_id=${encodeURIComponent(selected)}&count=${count}`)
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Preview failed (${res.status})`)
+      setSrcPreview(json.data)
+    } catch (e) {
+      setSrcResult(e instanceof Error ? e.message : 'Preview failed')
+    } finally { setSrcBusy(false) }
+  }
+
+  async function confirmSource() {
+    if (!selected || !srcPreview) return
+    setSrcBusy(true)
+    try {
+      const res = await fetch('/api/proxy/operator/source', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, count: srcPreview.count, confirm: true }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Sourcing failed (${res.status})`)
+      setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for ${selectedClient?.company_name || 'client'}${json.note ? ` · ${json.note}` : ''}. New leads are in the Sourced column.`)
+      setSrcPreview(null)
+      await loadBoard(selected)
+    } catch (e) {
+      setSrcResult(e instanceof Error ? e.message : 'Sourcing failed')
+    } finally { setSrcBusy(false) }
+  }
+
   async function runCommand(text: string) {
     const t = text.trim()
     if (!t || !selected || cmdBusy) return
+    // Sourcing intent → pool-aware confirm (spends OUR PDL budget), not the prose handoff.
+    const srcCount = parseSourceIntent(t)
+    if (srcCount != null) { setCmd(''); previewSource(srcCount); return }
     setCmd(''); setCmdBusy(true)
     setCmdLog(l => [...l, { role: 'operator', text: t }])
     try {
@@ -363,11 +413,44 @@ export default function VidaConsolePage() {
                   <button type="submit" disabled={cmdBusy || !cmd.trim()} className="text-[12px] font-bold text-white rounded-lg px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{cmdBusy ? '…' : 'Run'}</button>
                 </form>
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {["What's blocking?", 'Status', 'Redefine the ICP', 'Build a campaign', 'Update the sequence'].map(chip => (
-                    <button key={chip} onClick={() => runCommand(chip)} disabled={cmdBusy}
+                  {["What's blocking?", 'Status', 'Source 20 leads', 'Redefine the ICP', 'Build a campaign', 'Update the sequence'].map(chip => (
+                    <button key={chip} onClick={() => runCommand(chip)} disabled={cmdBusy || srcBusy}
                       className="text-[11px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-2.5 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{chip}</button>
                   ))}
                 </div>
+
+                {/* #498b — pool-aware sourcing CONFIRM. Shows the real cost (pool $0 vs PDL) before spending. */}
+                {srcBusy && !srcPreview && <div className="mt-2.5 text-[12px] text-[#9b8ec4]">Checking the pool…</div>}
+                {srcPreview && (
+                  <div className="mt-2.5 bg-[#fbf8ff] border border-[#e4d4fb] rounded-xl p-3">
+                    {srcPreview.no_active_icp ? (
+                      <p className="text-[12px] text-[#b45309] font-semibold">No active ICP for this client — set their targeting first (Redefine the ICP), then source.</p>
+                    ) : (
+                      <>
+                        <div className="text-[12.5px] text-[#1f1235]">
+                          <b>Source {srcPreview.count} for {selectedClient?.company_name || 'client'}</b>
+                          {srcPreview.capped && <span className="text-[10.5px] text-[#b45309] font-semibold"> · capped at {srcPreview.leads_per_run}/run</span>}
+                        </div>
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[12px]">
+                          <span className="text-emerald-700 font-semibold">{srcPreview.pool_free} from our pool · $0</span>
+                          <span className="text-[#7C3AED] font-semibold">{srcPreview.pdl_needed} from PDL · ~${srcPreview.pdl_cost_est.toFixed(2)}</span>
+                          <span className="text-[#9b8ec4]">allowance left: {srcPreview.allowance_left}</span>
+                          {srcPreview.is_demo && <span className="text-[#9b8ec4]">demo · pool-only, $0</span>}
+                        </div>
+                        <p className="text-[10.5px] text-[#b3a9cc] mt-1">Estimate — pool is an upper bound, so PDL cost is a ceiling. Spends OUR budget, never client credits.</p>
+                        <div className="flex gap-2 mt-2">
+                          <button disabled={srcBusy} onClick={confirmSource}
+                            className="text-[12px] font-bold text-white rounded-lg py-1.5 px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                            {srcBusy ? 'Sourcing…' : `Confirm · source ${srcPreview.count}`}
+                          </button>
+                          <button disabled={srcBusy} onClick={() => setSrcPreview(null)}
+                            className="text-[12px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-4 border border-[#ece5fb] bg-white disabled:opacity-50">Cancel</button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+                {srcResult && <div className="mt-2 text-[12px] font-semibold text-[#1f1235] bg-[#f3ecff] border border-[#e4d4fb] rounded-lg px-3 py-2">{srcResult}</div>}
               </div>
             </div>
 

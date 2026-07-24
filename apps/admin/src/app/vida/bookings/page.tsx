@@ -12,7 +12,7 @@ type ClientRow = { id: string; company_name: string | null; industry: string | n
 type Booking = {
   id: string; lead_id: string | null; meeting_title: string | null; start_time: string | null
   end_time: string | null; status: string | null; meeting_link: string | null; no_show_at: string | null
-  first_name: string | null; last_name: string | null; company: string | null
+  rebook_count: number; first_name: string | null; last_name: string | null; company: string | null
 }
 type Counts = { total: number; confirmed: number; no_show: number }
 
@@ -40,6 +40,8 @@ export default function VidaBookingsPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
+  const [rebookOpen, setRebookOpen] = useState<string | null>(null) // booking id with the reschedule input open
+  const [rebookWhen, setRebookWhen] = useState('')                  // datetime-local value
 
   useEffect(() => {
     fetch('/api/proxy/operator/clients').then(r => r.json()).then(j => {
@@ -83,6 +85,26 @@ export default function VidaBookingsPage() {
       await load(selected)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Action failed')
+    } finally { setActing(null) }
+  }
+
+  // #499m — a goodwill rebook after a no-show. No new charge; max 2 (backend enforces).
+  // `when` is the operator-agreed new time (optional — omitting just counts the retry).
+  async function rebook(id: string, when: string) {
+    if (!selected) return
+    setActing(id)
+    try {
+      const body: Record<string, unknown> = { client_id: selected }
+      if (when) body.new_start = new Date(when).toISOString()
+      const res = await fetch(`/api/proxy/operator/bookings/${encodeURIComponent(id)}/rebook`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Rebook failed (${res.status})`)
+      setRebookOpen(null); setRebookWhen('')
+      await load(selected)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Rebook failed')
     } finally { setActing(null) }
   }
 
@@ -131,7 +153,7 @@ export default function VidaBookingsPage() {
                 <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">{counts?.confirmed ?? 0} confirmed · $3 captured</span>
                 <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">{counts?.no_show ?? 0} no-show</span>
               </div>
-              <p className="text-[10.5px] text-[#b3a9cc] mt-1.5">Marking a no-show records the state only — it does not release or keep the $3. The rebook / keep money rule is a separate step (flagged for the founder).</p>
+              <p className="text-[10.5px] text-[#b3a9cc] mt-1.5">The $3 is captured at booking and <b className="text-[#5c5279]">kept</b> on a no-show. A no-show gets up to <b className="text-[#5c5279]">2 goodwill rebooks</b> (no new charge); after that the meeting is terminal-kept.</p>
             </div>
 
             {error && <div className="mx-[22px] mt-3 text-xs text-red-500">{error}</div>}
@@ -143,32 +165,62 @@ export default function VidaBookingsPage() {
             <div className="flex-1 overflow-y-auto px-[22px] py-3.5 space-y-2.5">
               {bookings?.map(b => {
                 const noShow = b.status === 'no_show'
+                const used = b.rebook_count ?? 0
+                const atMax = used >= 2
+                const isOpen = rebookOpen === b.id
                 return (
-                  <div key={b.id} className={`bg-white border rounded-xl px-4 py-3 flex items-center gap-3 ${noShow ? 'border-amber-200' : 'border-[#eee7f7]'}`}>
-                    <span className="w-9 h-9 rounded-lg bg-[#efeafc] text-[#7C3AED] flex items-center justify-center text-[12px] font-bold shrink-0">
-                      {initials(fullName(b.first_name, b.last_name))}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <b className="text-[13.5px] block truncate">{fullName(b.first_name, b.last_name)}</b>
-                      <span className="text-[11.5px] text-[#9b8ec4] block truncate">{[b.company, b.meeting_title].filter(Boolean).join(' · ') || '—'}</span>
+                  <div key={b.id} className={`bg-white border rounded-xl px-4 py-3 ${noShow ? 'border-amber-200' : 'border-[#eee7f7]'}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="w-9 h-9 rounded-lg bg-[#efeafc] text-[#7C3AED] flex items-center justify-center text-[12px] font-bold shrink-0">
+                        {initials(fullName(b.first_name, b.last_name))}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <b className="text-[13.5px] block truncate">{fullName(b.first_name, b.last_name)}</b>
+                        <span className="text-[11.5px] text-[#9b8ec4] block truncate">
+                          {[b.company, b.meeting_title].filter(Boolean).join(' · ') || '—'}
+                          {used > 0 && <span className="text-[#b45309] font-semibold"> · rebooked {used}/2</span>}
+                        </span>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className={`text-[12px] font-semibold block ${noShow ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtWhen(b.start_time)}</span>
+                        <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: noShow ? '#b45309' : '#059669' }}>{noShow ? 'no-show' : 'confirmed'}</span>
+                      </div>
+                      {b.meeting_link && !noShow && (
+                        <a href={b.meeting_link} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-[#7C3AED] shrink-0 hover:underline">Open ↗</a>
+                      )}
+                      {!noShow && (
+                        <button disabled={acting === b.id} onClick={() => markNoShow(b.id, true)}
+                          className="text-[11px] font-semibold text-amber-700 rounded-lg py-1.5 px-3 border border-amber-200 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 shrink-0">
+                          {acting === b.id ? '…' : 'Mark no-show'}
+                        </button>
+                      )}
+                      {noShow && atMax && (
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-1.5 px-3 shrink-0">Kept · $3 · 2 rebooks used</span>
+                      )}
+                      {noShow && !atMax && (
+                        <div className="flex gap-1.5 shrink-0">
+                          <button disabled={acting === b.id} onClick={() => { setRebookOpen(isOpen ? null : b.id); setRebookWhen('') }}
+                            className="text-[11px] font-bold text-[#7C3AED] rounded-lg py-1.5 px-3 border border-[#e4d4fb] bg-[#f3ecff] hover:bg-[#ebe0fc] disabled:opacity-50">
+                            {isOpen ? 'Cancel' : `Rebook (${used}/2)`}
+                          </button>
+                          <button disabled={acting === b.id} onClick={() => markNoShow(b.id, false)}
+                            className="text-[11px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-3 border border-[#ece5fb] bg-white disabled:opacity-50">
+                            Undo
+                          </button>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className={`text-[12px] font-semibold block ${noShow ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtWhen(b.start_time)}</span>
-                      <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: noShow ? '#b45309' : '#059669' }}>{noShow ? 'no-show' : 'confirmed'}</span>
-                    </div>
-                    {b.meeting_link && !noShow && (
-                      <a href={b.meeting_link} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-[#7C3AED] shrink-0 hover:underline">Open ↗</a>
-                    )}
-                    {noShow ? (
-                      <button disabled={acting === b.id} onClick={() => markNoShow(b.id, false)}
-                        className="text-[11px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-3 border border-[#ece5fb] bg-white disabled:opacity-50 shrink-0">
-                        {acting === b.id ? '…' : 'Undo no-show'}
-                      </button>
-                    ) : (
-                      <button disabled={acting === b.id} onClick={() => markNoShow(b.id, true)}
-                        className="text-[11px] font-semibold text-amber-700 rounded-lg py-1.5 px-3 border border-amber-200 bg-amber-50 hover:bg-amber-100 disabled:opacity-50 shrink-0">
-                        {acting === b.id ? '…' : 'Mark no-show'}
-                      </button>
+                    {/* #499m inline reschedule — operator enters the agreed new time (optional) */}
+                    {noShow && !atMax && isOpen && (
+                      <div className="mt-2.5 flex items-center gap-2 pl-12">
+                        <input type="datetime-local" value={rebookWhen} onChange={e => setRebookWhen(e.target.value)}
+                          className="text-[12px] rounded-lg border border-[#e4dcf7] bg-white px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+                        <button disabled={acting === b.id} onClick={() => rebook(b.id, rebookWhen)}
+                          className="text-[11px] font-bold text-white rounded-lg py-1.5 px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                          {acting === b.id ? '…' : rebookWhen ? 'Confirm new time' : 'Count rebook (no time)'}
+                        </button>
+                        <span className="text-[10.5px] text-[#b3a9cc]">No new charge · you send the new invite</span>
+                      </div>
                     )}
                   </div>
                 )

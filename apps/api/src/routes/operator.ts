@@ -455,15 +455,16 @@ operatorRouter.get('/blockers', async (req: Request, res: Response) => {
 
 // ── #499 BOOKINGS — the operator's meetings view for a client (READ) ────────────────
 // Every booking for the client (confirmed + no-show), joined to the lead for a name. This
-// is a real read of calendar_bookings — the $3-on-booking capture is unchanged. The
-// no-show → rebook×2 → keep MONEY automation is NOT here (flagged: capture-timing decision).
+// is a real read of calendar_bookings — the $3-on-booking capture is unchanged. The $3 is
+// KEPT on a no-show (money already captured at booking); #499m tracks rebook_count so the
+// console gives at most 2 goodwill rebooks before the meeting is terminal-kept.
 operatorRouter.get('/bookings', async (req: Request, res: Response) => {
   try {
     const client = await requireClient(req.query.client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     const cid = client.id
     const { data: rows } = await db.from('calendar_bookings')
-      .select('id, lead_id, meeting_title, start_time, end_time, status, meeting_link, no_show_at, created_at')
+      .select('id, lead_id, meeting_title, start_time, end_time, status, meeting_link, no_show_at, rebook_count, created_at')
       .eq('client_id', cid).order('start_time', { ascending: false }).limit(100)
     const leadIds = Array.from(new Set((rows ?? []).map((b: { lead_id: string | null }) => b.lead_id).filter(Boolean))) as string[]
     const leadNames = leadIds.length > 0
@@ -475,6 +476,7 @@ operatorRouter.get('/bookings', async (req: Request, res: Response) => {
       return {
         id: b.id, lead_id: b.lead_id, meeting_title: b.meeting_title, start_time: b.start_time,
         end_time: b.end_time, status: b.status, meeting_link: b.meeting_link, no_show_at: b.no_show_at,
+        rebook_count: (b.rebook_count as number | null) ?? 0,
         first_name: l?.first_name ?? null, last_name: l?.last_name ?? null, company: l?.company ?? null,
       }
     })
@@ -485,10 +487,10 @@ operatorRouter.get('/bookings', async (req: Request, res: Response) => {
 })
 
 // ── #499 MARK NO-SHOW — record that a booked meeting did not happen (STATE ONLY) ─────
-// Flips the booking to status='no_show' and stamps who/when. This is deliberately NON-MONEY:
-// it does NOT release or keep the $3 hold. The no-show → rebook×2 → keep/release ladder is a
-// separate, FLAGGED decision (capture already fires at booking, so "keep vs release on a
-// no-show" is a capture-timing call for the founder). Un-mark with { no_show: false }.
+// Flips the booking to status='no_show' and stamps who/when. NON-MONEY: the $3 was captured
+// at booking and is KEPT — no refund/release fires here (founder rule 24 Jul: no-show → up
+// to 2 rebooks → keep). The rebook ladder lives in POST /bookings/:id/rebook below.
+// Un-mark (mis-click) with { no_show: false }.
 operatorRouter.post('/bookings/:id/no-show', async (req: Request, res: Response) => {
   try {
     const { client_id, no_show } = (req.body ?? {}) as { client_id?: string; no_show?: boolean }
@@ -510,4 +512,144 @@ operatorRouter.post('/bookings/:id/no-show', async (req: Request, res: Response)
     })
     res.json({ success: true, no_show: mark })
   } catch (err) { console.error('[operator/no-show]', err); res.status(500).json({ success: false, error: 'Failed to update booking' }) }
+})
+
+// ── #499m REBOOK — a goodwill retry after a no-show (NO NEW CHARGE, MAX 2) ───────────
+// Founder rule (24 Jul): a no-show gets up to TWO rebooks; after that the $3 is kept and no
+// more rebooks are offered. The $3 was already captured at booking and is NEVER refunded —
+// this endpoint moves NO money. It records the retry: increments rebook_count, clears the
+// no-show flag, and (if the operator supplies the newly-agreed time) reschedules OUR booking
+// record. It does NOT re-invite via Google (gcal has no patch); the operator sends the new
+// invite out-of-band — reflected honestly in the UI. The 3rd no-show has no rebook button.
+operatorRouter.post('/bookings/:id/rebook', async (req: Request, res: Response) => {
+  try {
+    const { client_id, new_start } = (req.body ?? {}) as { client_id?: string; new_start?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data: booking } = await db.from('calendar_bookings')
+      .select('id, start_time, end_time, rebook_count').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!booking) { res.status(404).json({ success: false, error: 'Booking not found' }); return }
+    const used = (booking.rebook_count as number | null) ?? 0
+    if (used >= 2) { res.status(409).json({ success: false, error: 'Max 2 rebooks reached — the $3 is kept and no further rebook is offered.' }); return }
+
+    // Optional reschedule: if the operator passes the newly-agreed time, move OUR record and
+    // preserve the meeting's duration; otherwise just count the rebook and clear the no-show.
+    const update: Record<string, unknown> = {
+      rebook_count: used + 1, status: 'confirmed', no_show_at: null, no_show_by: null,
+    }
+    if (typeof new_start === 'string' && new_start) {
+      const start = new Date(new_start)
+      if (isNaN(start.getTime())) { res.status(400).json({ success: false, error: 'Invalid new_start time' }); return }
+      const oldStart = booking.start_time ? new Date(booking.start_time as string).getTime() : NaN
+      const oldEnd = booking.end_time ? new Date(booking.end_time as string).getTime() : NaN
+      const durMs = (!isNaN(oldStart) && !isNaN(oldEnd) && oldEnd > oldStart) ? oldEnd - oldStart : 30 * 60 * 1000
+      update.start_time = start.toISOString()
+      update.end_time = new Date(start.getTime() + durMs).toISOString()
+    }
+    const { error } = await db.from('calendar_bookings').update(update).eq('id', req.params.id).eq('client_id', client.id)
+    if (error) throw error
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'booking_rebook',
+      subjectType: 'booking', subjectId: req.params.id,
+      detail: { rebook_count: used + 1, rescheduled: !!(new_start), no_new_charge: true },
+    })
+    res.json({ success: true, rebook_count: used + 1, rebooks_left: 2 - (used + 1) })
+  } catch (err) { console.error('[operator/rebook]', err); res.status(500).json({ success: false, error: 'Failed to rebook' }) }
+})
+
+// ── #498b SOURCE PREVIEW — the pool-aware DRY RUN behind the one-click confirm ───────
+// Answers "if I source N leads for this client, what does it cost US?" — WITHOUT spending a
+// cent. Mirrors the pool-first candidate match (lead_pool, OR-generous, minus what the client
+// already owns) so the operator sees the split BEFORE confirming: pool serves at $0, only the
+// remainder hits PDL (~$0.28/record) and only within the client's pre-funded allowance. It
+// NEVER calls try_spend_sourcing and NEVER inserts — pool_free is an estimate (upper bound),
+// so pdl_needed / cost is a conservative floor. The real fence still governs the actual run.
+const PDL_COST_PER_RECORD = 0.28
+operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.query.client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const cid = client.id
+    const want = Math.max(1, Math.min(200, parseInt(String(req.query.count ?? '20'), 10) || 20))
+
+    // Client run-cap + allowance (the real spend fence reads the same allowance).
+    const { data: cs } = await db.from('clients').select('leads_per_run, sourcing_allowance, is_demo').eq('id', cid).maybeSingle()
+    const leadsPerRun = (cs?.leads_per_run as number | null) ?? 20
+    const allowance = (cs?.sourcing_allowance as number | null) ?? 0
+    const isDemo = cs?.is_demo === true
+    const count = Math.min(want, leadsPerRun)
+
+    // Active ICP — FIGSY only sources against the active targeting.
+    const { data: icp } = await db.from('icps')
+      .select('id, name, job_titles, industries, geographies, seniority_levels')
+      .eq('client_id', cid).eq('is_active', true).maybeSingle()
+    if (!icp) { res.json({ success: true, data: { count, pool_free: 0, pdl_needed: 0, pdl_cost_est: 0, allowance_left: allowance, leads_per_run: leadsPerRun, capped: want > leadsPerRun, is_demo: isDemo, no_active_icp: true } }); return }
+
+    // Mirror servePoolLeads' OR-generous candidate query (read-only, no insert).
+    const clean = (v: string) => v.replace(/[,()*%]/g, ' ').trim()
+    const geos = ((icp.geographies as string[] | null) ?? []).map(clean).filter(Boolean)
+    const roleOr = [
+      ...((icp.job_titles as string[] | null) ?? []).map(clean).filter(Boolean).map(t => `title.ilike.*${t}*`),
+      ...((icp.industries as string[] | null) ?? []).map(clean).filter(Boolean).map(i => `industry.ilike.*${i}*`),
+      ...((icp.seniority_levels as string[] | null) ?? []).map(clean).filter(Boolean).map(s => `seniority.ilike.*${s}*`),
+    ]
+    let q = db.from('lead_pool').select('email_norm')
+    if (geos.length) q = q.or(geos.map(g => `country.ilike.*${g}*`).join(','))
+    if (roleOr.length) q = q.or(roleOr.join(','))
+    const { data: candidates } = await q.limit(Math.max(count * 5, 50))
+    const candEmails = ((candidates ?? []) as { email_norm: string | null }[]).map(c => c.email_norm).filter((e): e is string => !!e)
+
+    // Subtract what the client already owns (the dominant real filter). Bounded to this client.
+    let poolFree = 0
+    if (candEmails.length > 0) {
+      const { data: ownedRows } = await db.from('leads').select('email').eq('client_id', cid).not('email', 'is', null)
+      const owned = new Set(((ownedRows ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
+      const freshPool = candEmails.filter(e => !owned.has(e.trim().toLowerCase()))
+      poolFree = Math.min(freshPool.length, count)
+    }
+    const pdlNeeded = isDemo ? 0 : Math.max(0, count - poolFree) // demo never hits PDL
+    res.json({
+      success: true,
+      data: {
+        count, pool_free: poolFree, pdl_needed: pdlNeeded,
+        pdl_cost_est: Math.round(pdlNeeded * PDL_COST_PER_RECORD * 100) / 100,
+        allowance_left: allowance, leads_per_run: leadsPerRun,
+        capped: want > leadsPerRun, is_demo: isDemo, icp_name: icp.name ?? null,
+      },
+    })
+  } catch (err) { console.error('[operator/source-preview]', err); res.status(500).json({ success: false, error: 'Failed to preview sourcing' }) }
+})
+
+// ── #498b SOURCE — one-click sourcing run, GATED BY EXPLICIT CONFIRM ─────────────────
+// Only fires with { confirm: true } (the operator saw the pool/PDL split first). Runs the
+// SAME fenced, pool-first path the client-side ICP runs use (runIcpJob → servePoolLeads →
+// try_spend_sourcing for the remainder), so every existing budget guard — pool-first, daily
+// cap, monthly PDL ceiling, per-client allowance — still applies. No guard is bypassed; this
+// only saves the operator a trip into the engine. Spends OUR PDL budget, never client credits.
+operatorRouter.post('/source', async (req: Request, res: Response) => {
+  try {
+    const { client_id, count, confirm } = (req.body ?? {}) as { client_id?: string; count?: number; confirm?: boolean }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (confirm !== true) { res.status(400).json({ success: false, error: 'Sourcing spends our PDL budget — confirm required' }); return }
+    const cid = client.id
+    const want = Math.max(1, Math.min(200, typeof count === 'number' ? count : 20))
+
+    const { data: icp } = await db.from('icps').select('id, name').eq('client_id', cid).eq('is_active', true).maybeSingle()
+    if (!icp) { res.status(400).json({ success: false, error: 'No active ICP — set the client\'s targeting before sourcing.' }); return }
+
+    // runIcpJob wants a userId (unused in its body, but pass the client's owner for attribution).
+    const { data: owner } = await db.from('clients').select('user_id').eq('id', cid).maybeSingle()
+    const userId = (owner?.user_id as string | null) || 'operator'
+
+    const { runIcpJob } = await import('./icps')
+    const result = await runIcpJob(icp.id as string, cid, userId, want)
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: cid, action: 'source_run',
+      subjectType: 'icp', subjectId: icp.id as string,
+      detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed },
+    })
+    res.json({ success: true, requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed })
+  } catch (err) { console.error('[operator/source]', err); res.status(500).json({ success: false, error: 'Failed to source' }) }
 })

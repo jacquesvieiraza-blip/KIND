@@ -27,8 +27,8 @@
 | 1124 | Board loads a client (proxy client_id fix) | ✅ | ⏳ stuck — ships on ship.sh |
 | 494 | Qualify gate ("Mark qualified" on Replied) | ✅ | ⏳ |
 | 499 | Bookings page + Mark no-show (state) | ✅ | ⏳ |
-| 499m | No-show → rebook×2 → keep/release MONEY rule | 🚩 | **FLAGGED — capture-timing founder call** |
-| 498b | One-click sourcing from command bar | 🚩 | **FLAGGED — money-sensitive; needs design call** |
+| 499m | No-show → **2 rebooks → keep the $3** (founder rule 24 Jul; $3 kept, no refund) | ✅ | ⏳ |
+| 498b | One-click sourcing from command bar (**pool-aware cost confirm**) | ✅ | ⏳ |
 | 511v | Nexus signals view | 🚩 | **FLAGGED — no Nexus backend = would be a shell** |
 
 ## VIDA — native rebuilds (kill the dropdown → old-admin exit)
@@ -122,7 +122,7 @@
 
 ## What's left (the ❌ / 🚩 list)
 - **Milla:** ✅ all reds built **except 🚩 #515 magic-link + SMS** — flagged: no SMS provider configured, and no-login money approve needs a security decision.
-- **Vida:** ✅ built this round — #502 Engine rail · all 12 native pages (#530–#541) · #494 Qualify gate · #499 Bookings + Mark no-show · #493c gate chips · #505 blockers strip. **🚩 Flagged (NOT built — need a founder call, not shells):** #499m no-show→rebook×2→keep/release money rule (capture-timing decision) · #498b one-click sourcing (money-sensitive) · #511v Nexus signals (no backend).
+- **Vida:** ✅ built — #502 Engine rail · all 12 native pages (#530–#541) · #494 Qualify gate · #499 Bookings + Mark no-show · #493c gate chips · #505 blockers strip · **#499m no-show → 2 rebooks → keep the $3** · **#498b one-click sourcing w/ pool-aware confirm**. **🚩 Still flagged (not built — no backend = shell):** #511v Nexus signals.
 - **Combined:** #511 Nexus loop · #517 unified record · off-ramps E5/E7 (+ finish E1/E9/E11)
 
 **Milla old-portal exit: CLOSED** — all 11 rail/account links point to `/milla/*` native routes. **Vida old-admin exit: CLOSED** — the account-dropdown nervous-system + the rail Engine section both point to `/vida/*` native routes (12 real engine pages inside the Vida shell), and the Bookings rail link is now live.

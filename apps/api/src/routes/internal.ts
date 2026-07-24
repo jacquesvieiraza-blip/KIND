@@ -2378,6 +2378,25 @@ internalRouter.post('/figsy/rescore-stranded', async (_req: Request, res: Respon
   }
 })
 
+// ── #511 NEXUS · recompute every client's learning profile (nightly) ────────────────
+// Deterministic per-client aggregate (lib/nexus.computeNexusProfile) — fenced by client_id,
+// no LLM, no money. Bounded by client count. Fail-soft per client so one bad client can't
+// abort the sweep.
+internalRouter.post('/nexus/recompute-all', async (_req: Request, res: Response) => {
+  try {
+    const { computeNexusProfile } = await import('../lib/nexus')
+    const { data: clients } = await db.from('clients').select('id').limit(5000)
+    let done = 0, failed = 0
+    for (const c of (clients ?? []) as { id: string }[]) {
+      try { await computeNexusProfile(c.id); done++ } catch (e) { failed++; console.error('[nexus/recompute] client failed', c.id, e instanceof Error ? e.message : e) }
+    }
+    res.json({ success: true, data: { clients: (clients ?? []).length, computed: done, failed } })
+  } catch (err) {
+    console.error('[nexus/recompute-all]', err)
+    res.status(500).json({ success: false, error: 'Nexus recompute failed' })
+  }
+})
+
 // ── E1 · STALE-HOLD SWEEP — reclaim any $3 held past its TTL (money backstop) ───────
 // Daily cron. Releases a held work-credit ONLY when it's provably not live, unbooked work
 // (see sweepStaleHolds fail-safe guards). TTL overridable via FIGSY_HOLD_TTL_DAYS (default 60).

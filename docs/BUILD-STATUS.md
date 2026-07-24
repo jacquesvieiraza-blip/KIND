@@ -123,11 +123,11 @@
 
 | # | Phase | Item | Main | Live |
 |---|---|---|:--:|---|
-| 511a | 0 · Foundation | `nexus_profiles` table (migration) — one versioned, fenced-by-client row: reply/meeting rate, best subjects, winning angle, best-converting persona, send-timing, objection patterns, sample size + confidence | ❌ | ❌ |
-| 511b | 0 · Foundation | `computeNexusProfile(clientId)` — deterministic per-client aggregator over outcome_events + replies + bookings + sent_emails (meeting-weighted); LLM only to summarise objections, batched | ❌ | ❌ |
-| 511c | 0 · Foundation | Nightly cron `/internal/nexus/recompute-all` — refresh every client's profile from the day's outcomes | ❌ | ❌ |
-| 511v | 1 · Signals (read) | `GET /operator/nexus?client_id=` + **Vida Nexus panel** — what's converting for this client, with honest confidence ("still learning" when thin) | ❌ | ❌ |
-| 511m | 1 · Signals (read) | **Milla "why this lead fits"** on masked cards — wires up `score_reasoning` (written today, shown to no one) + the Nexus persona profile | ❌ | ❌ |
+| 511a | 0 · Foundation | `nexus_profiles` table (migration) — one fenced-by-client row: reply/meeting rate, best subjects, winning angle, best-converting persona, objection patterns, sample size + confidence | ✅ | 🩷 |
+| 511b | 0 · Foundation | `computeNexusProfile(clientId)` — deterministic, bounded per-client aggregator (enrollments + replies + bookings + sent_emails); **no LLM** (cheap); honest `confidence` on thin data | ✅ | 🩷 |
+| 511c | 0 · Foundation | Nightly cron `/internal/nexus/recompute-all` (04:00 UTC) — refresh every client's profile | ✅ | 🩷 |
+| 511v | 1 · Signals (read) | `GET /operator/nexus?client_id=` + **Vida Nexus panel** (`/vida/nexus`, rail link live) — what's converting, with honest confidence | ✅ | 🩷 |
+| 511m | 1 · Signals (read) | **Milla "why this lead fits"** — ✅ **already live** (masked card renders `why_fits` from name-scrubbed `score_reasoning`, `leads.ts:245` + `milla/page.tsx:190`); Nexus persona-match badge = optional later | ✅ | 🩷 |
 | 511g1 | 3 · Guardrails | **Per-client fence test** — automated proof Client A's data can never influence Client B (lands BEFORE any write-back) | ❌ | ❌ |
 | 511g2 | 3 · Guardrails | **Confidence gate** + "learning vs tuned" state — no auto-tune until N booked outcomes (never learn from noise) | ❌ | ❌ |
 | 511g3 | 3 · Guardrails | **Cost guard + founder kill-switch** — per-client compute tracked vs the $4 margin; auto-tune OFF by default per client | ❌ | ❌ |
@@ -136,7 +136,7 @@
 | 511t3 | 2 · Auto-tune | **Sourcing auto-tune** ⚠️💳 — nudge ICP scoring toward personas that actually BOOK, per-client. Changes PDL spend → co-pilot-gated + founder review, never silently autonomous | ❌ | ❌ |
 | 511f | 4 · Flywheel | **Dogfood + Milla "Nexus learned X this week"** — Client-Zero approvals sharpen our own brain; show the client their brain improving (trust + retention) | ❌ | ❌ |
 
-**Nexus build order (each = one PR):** ① 511a·511b·511c·511v·511m (Phase 0+1 — compute + surface, zero money risk, ship first) → ② 511g1·511g2·511g3 (guardrails, BEFORE any write-back) → ③ 511t1·511t2 (tune the copy — safe) → ④ 511t3 (tune targeting — money-sensitive, your review) → ⑤ 511f (flywheel).
+**Nexus build order (each = one PR):** ✅ **① 511a·511b·511c·511v·511m — Phase 0+1 BUILT** (compute + surface, zero money risk) → ② 511g1·511g2·511g3 (guardrails, BEFORE any write-back) → ③ 511t1·511t2 (tune the copy — safe) → ④ 511t3 (tune targeting — money-sensitive, your review) → ⑤ 511f (flywheel).
 **Load-bearing risks:** unit economics (LLM compute vs $4 margin — batch nightly) · the fence is the product (one cross-client leak breaks the promise — tested) · auto-tune touches spend (sourcing changes = PDL spend — co-pilot-gated) · cold start (thin data reads "still learning," never a confident-but-wrong signal).
 
 ---

@@ -102,12 +102,6 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
       <Icon className="w-4 h-4 shrink-0" /> {label}
     </Link>
   )
-  const railSoon = (label: string, Icon: React.ElementType) => (
-    <span className="flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 text-[#c3bad9] cursor-not-allowed" title="Coming soon">
-      <Icon className="w-4 h-4 shrink-0" /> {label}
-      <span className="ml-auto text-[9px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded-full px-1.5 py-0.5">soon</span>
-    </span>
-  )
 
   return (
     <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
@@ -193,7 +187,7 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           <div className="mt-4 px-3 text-[9.5px] font-extrabold uppercase tracking-[0.07em] text-[#b3a9cc]">Engine</div>
           <nav className="mt-1.5">
             {ENGINE_RAIL.map(item => railLink(item.href, item.label, item.icon, pathname.startsWith(item.href)))}
-            {railSoon('Nexus signals', Brain)}
+            {railLink('/vida/nexus', 'Nexus signals', Brain, pathname.startsWith('/vida/nexus'))}
           </nav>
 
           {/* Engine health — real numbers */}

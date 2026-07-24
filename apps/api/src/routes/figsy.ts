@@ -599,9 +599,12 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           : draftToSteps(draft)
 
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
-        // failure means the balance is gone — stop enrolling further leads.
-        didCharge = await chargeFigsyEnroll(clientId, lead)
-        if (!didCharge) { insufficientCredits = true; break }
+        // failure means the balance is gone — stop enrolling further leads. (F1) didCharge is
+        // TRUE only when a credit was actually taken ('charged') — a 'skipped' result (demo, or
+        // the $3 already held for this lead) enrols WITHOUT charging and must NEVER be refunded.
+        const chargeResult = await chargeFigsyEnroll(clientId, lead)
+        if (chargeResult === 'failed') { insufficientCredits = true; break }
+        didCharge = chargeResult === 'charged'
 
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
@@ -621,12 +624,12 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
-        if (!isDemo) figsyRemaining -= 1
+        if (error) { if (didCharge) await refundFigsyEnroll(clientId); skipped++; continue }
+        if (didCharge) figsyRemaining -= 1
         enrolled++
       } catch {
         // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
-        // the credit into this catch with no refund. Return it before skipping.
+        // the credit into this catch with no refund. Return it ONLY if we actually charged.
         if (didCharge) await refundFigsyEnroll(clientId)
         skipped++
       }
@@ -1617,9 +1620,12 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           : draftToSteps(draft)
 
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
-        // failure means the balance is gone — stop enrolling further leads.
-        didCharge = await chargeFigsyEnroll(clientId, lead)
-        if (!didCharge) { insufficientCredits = true; break }
+        // failure means the balance is gone — stop enrolling further leads. (F1) didCharge is
+        // TRUE only when a credit was actually taken ('charged') — a 'skipped' result (demo, or
+        // the $3 already held for this lead) enrols WITHOUT charging and must NEVER be refunded.
+        const chargeResult = await chargeFigsyEnroll(clientId, lead)
+        if (chargeResult === 'failed') { insufficientCredits = true; break }
+        didCharge = chargeResult === 'charged'
 
         const { error } = await db.from('figsy_enrollments').insert({
           campaign_id:    campaign.id,
@@ -1639,12 +1645,12 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           step3_subject:  draft.step3.subject,
           step3_body:     draft.step3.body,
         })
-        if (error) { await refundFigsyEnroll(clientId); skipped++; continue }
-        if (!isDemo) figsyRemaining -= 1
+        if (error) { if (didCharge) await refundFigsyEnroll(clientId); skipped++; continue }
+        if (didCharge) figsyRemaining -= 1
         enrolled++
       } catch {
         // P8 — a THROW after a successful charge (e.g. the insert throws) would leak
-        // the credit into this catch with no refund. Return it before skipping.
+        // the credit into this catch with no refund. Return it ONLY if we actually charged.
         if (didCharge) await refundFigsyEnroll(clientId)
         skipped++
       }

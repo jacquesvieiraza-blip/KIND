@@ -812,10 +812,17 @@ export async function sendSequenceEmail(
 // GREATEST(0,…) returned "success" while charging nothing). Callers MUST charge
 // BEFORE inserting the enrollment and abort the enroll on a false return.
 // Returns true only when a credit was really taken (then the ledger row is written).
+// (F1 fix) Tri-state so callers know whether a credit was ACTUALLY taken:
+//   'charged' — a FIGSY credit was decremented (refund it if the enrollment insert then fails)
+//   'skipped' — no charge (demo, or the $3 is already held/captured for this lead) → NEVER refund
+//   'failed'  — the charge failed, nothing taken → do not enroll, nothing to refund
+// The old boolean conflated 'skipped' with 'charged', so a hold-skip that hit an insert failure
+// wrongly refunded a credit that was never charged (wallet inflation / ledger drift).
+export type EnrollChargeResult = 'charged' | 'skipped' | 'failed'
 export async function chargeFigsyEnroll(
   clientId: string,
   lead: { id?: string; first_name?: string | null; last_name?: string | null; company?: string | null },
-): Promise<boolean> {
+): Promise<EnrollChargeResult> {
   const leadName = `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() || '(unknown lead)'
 
   // #453 — DEMO MODE: enrolling for a demo client is FREE and OFF-LEDGER. Skip the $1
@@ -826,7 +833,7 @@ export async function chargeFigsyEnroll(
   // (autoEnrollLead + the two manual /figsy enroll loops) so demo work never bills.
   if (await isDemoClient(clientId)) {
     console.log(`[demo] FIGSY enroll free (no reveal/work charge, off-ledger) for client ${clientId} — ${leadName}`)
-    return true
+    return 'skipped'
   }
 
   // #420/#422 — the $4 ladder holds at the choke point: enrolling an UNREVEALED
@@ -839,7 +846,7 @@ export async function chargeFigsyEnroll(
       const { data: revealOk, error: revealErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
       if (revealErr || revealOk !== true) {
         console.error('[figsy] chargeFigsyEnroll: reveal charge failed for unrevealed lead', lead.id, revealErr?.message ?? 'insufficient reveal credits', 'client', clientId)
-        return false // fail closed — no reveal credit → no enrollment
+        return 'failed' // fail closed — no reveal credit → no enrollment
       }
       // Atomic claim; a lost race means someone else revealed — the $1 we just
       // took is returned to keep the wallet honest.
@@ -886,7 +893,7 @@ export async function chargeFigsyEnroll(
       .select('id').eq('client_id', clientId).eq('lead_id', lead.id).in('status', ['held', 'captured']).limit(1).maybeSingle()
     if (existingHold) {
       console.log(`[figsy] chargeFigsyEnroll: lead ${lead.id} already has a $3 work hold/capture — skipping duplicate work charge (client ${clientId})`)
-      return true
+      return 'skipped'
     }
   }
 
@@ -901,7 +908,7 @@ export async function chargeFigsyEnroll(
       `Lead: ${leadName}${lead.company ? ` at ${lead.company}` : ''}`,
       error ? `Reason: RPC error — ${error.message}` : 'Reason: no FIGSY credits at charge time (balance hit 0 between the pre-check and the charge).',
     ])
-    return false
+    return 'failed'
   }
   await db.from('credit_transactions').insert({
     client_id: clientId,
@@ -911,7 +918,7 @@ export async function chargeFigsyEnroll(
     note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
     created_at: new Date().toISOString(),
   }).then(() => {}, () => {})
-  return true
+  return 'charged'
 }
 
 // #332 — return a charged credit when the enrollment insert fails AFTER we
@@ -1543,9 +1550,14 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // alerted the founder.
     // #492 — when the $3 is already HELD (client approve path), the FIGSY credit was
     // taken at the hold, so we do NOT charge again here — enrollment proceeds on the hold.
-    const charged = isDemo || opts?.figsyHeld ? true : await chargeFigsyEnroll(clientId, lead)
-    if (!charged) {
-      console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling.`)
+    // (F1 fix) tri-state: 'charged' = a credit was taken (refund on failure); 'skipped' = demo or
+    // the $3 is already held for this lead (never refund — the hold isn't ours to touch here);
+    // 'failed' = nothing taken (don't enrol, don't refund). The managed approve path passes
+    // figsyHeld → 'skipped', and on failure it RELEASES its own hold (below).
+    const chargeResult: EnrollChargeResult =
+      (isDemo || opts?.figsyHeld) ? 'skipped' : await chargeFigsyEnroll(clientId, lead)
+    if (chargeResult === 'failed') {
+      console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling (nothing charged).`)
       return
     }
 
@@ -1577,10 +1589,11 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       }).select('id').single()
     } catch (insertThrow) {
       console.error('[figsy] autoEnrollLead: enrollment insert threw after charge — returning credit for lead', leadId, insertThrow)
-      // #492 — held path RELEASES the hold (increment + mark released); charged path refunds.
-      // Calling refund on a held credit would double-return it, so branch on figsyHeld.
+      // #492 — return ONLY money actually taken by THIS call: held path releases its own hold;
+      // charged path refunds. A 'skipped' result (demo, or a pre-existing hold from a separate
+      // approve) took nothing here → return nothing (refunding would inflate the wallet — F1).
       if (opts?.figsyHeld) await releaseFigsyHold(clientId, leadId, 'enroll_insert_threw')
-      else await refundFigsyEnroll(clientId)
+      else if (chargeResult === 'charged') await refundFigsyEnroll(clientId)
       return
     }
     const { data: enrollment, error } = insertRes
@@ -1589,7 +1602,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       // We already charged/held — return the credit so the wallet + ledger reconcile.
       console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— returning credit')
       if (opts?.figsyHeld) await releaseFigsyHold(clientId, leadId, 'enroll_insert_failed')
-      else await refundFigsyEnroll(clientId)
+      else if (chargeResult === 'charged') await refundFigsyEnroll(clientId)
       return
     }
 

@@ -73,6 +73,13 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
     ['/milla/usage', 'Usage', Gauge], ['/milla/documents', 'Documents', FileText],
     ['/milla/referral', 'Referral', Gift],
   ]
+  // The ROI / insights surface lives in the top-right dropdown (not the left rail) so the
+  // rail stays purely the client's workspace. Still kept — this is how we prove the ROI.
+  const ROI: [string, string, React.ElementType][] = [
+    ['/milla/performance', 'Performance', TrendingUp], ['/milla/analytics', 'Analytics', LineChart],
+    ['/milla/roi', 'Your ROI', Gem], ['/milla/command-centre', 'Command Centre', LayoutGrid],
+    ['/milla/teams', 'Teams Hub', Users],
+  ]
 
   return (
     <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
@@ -89,7 +96,14 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
               Account <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-10 z-50 w-52 rounded-xl border border-[#e9e2f8] bg-white shadow-xl py-2">
+              <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-[#e9e2f8] bg-white shadow-xl py-2">
+                <div className="px-3 pb-1.5 pt-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Your ROI</div>
+                {ROI.map(([href, label, Icon]) => (
+                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#0e7c86] hover:bg-[#f7f4fd]">
+                    <Icon className="w-4 h-4" /> {label}
+                  </a>
+                ))}
+                <div className="my-1.5 border-t border-[#f0eafa]" />
                 <div className="px-3 pb-1.5 pt-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Account</div>
                 {ACCOUNT.map(([href, label, Icon]) => (
                   <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#5c5279] hover:bg-[#f7f4fd]">
@@ -133,17 +147,8 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             {link('/milla/campaign', 'My campaign', Target, pathname.startsWith('/milla/campaign'))}
             {link('/milla/reports', 'Reports', FileBarChart, pathname.startsWith('/milla/reports'))}
           </nav>
-          {section('Insights')}
-          <nav>
-            {link('/milla/performance', 'Performance', TrendingUp, pathname.startsWith('/milla/performance'))}
-            {link('/milla/analytics', 'Analytics', LineChart, pathname.startsWith('/milla/analytics'))}
-            {link('/milla/roi', 'Your ROI', Gem, pathname.startsWith('/milla/roi'))}
-          </nav>
-          {section('Company')}
-          <nav>
-            {link('/milla/command-centre', 'Command Centre', LayoutGrid, pathname.startsWith('/milla/command-centre'))}
-            {link('/milla/teams', 'Teams Hub', Users, pathname.startsWith('/milla/teams'))}
-          </nav>
+          {/* ROI (Performance/Analytics/Your ROI/Command Centre/Teams Hub) moved to the
+              top-right "Your ROI" dropdown — the rail stays the client's workspace only. */}
           {section('Recent replies')}
           <div className="px-1">
             {s && s.recent_replies.length === 0 && <div className="text-[11.5px] text-[#b3a9cc] px-2 py-1">No replies yet.</div>}

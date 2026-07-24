@@ -6,14 +6,13 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
-// chat (centre, real-data opener) + masked lead cards (right) + wallet ledger + Your ICP
-// (versioned). Every number is live: summary → KPIs/opener/ICP, /for-approval → cards,
-// /ledger → ledger. Approve charges a flat $4 per approved lead from the one wallet.
+// chat (centre, real-data opener) + masked lead cards (right) + Your ICP (versioned).
+// Every number is live: summary → KPIs/opener/ICP, /for-approval → cards. Approve charges
+// a flat $4 per approved lead from the one wallet. The wallet ledger (every charge,
+// audited) moved to Billing (M4) — New leads stays leads + Milla only.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null }
 type Revealed = { email: string; charged: boolean }
-type LedgerEntry = { amount: number; type: string; note: string | null; created_at: string | null }
-type Ledger = { wallet_balance_usd: number; transactions: LedgerEntry[] }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
 type Summary = {
   wallet_balance_usd: number; has_funded: boolean; leads_awaiting: number; meetings_booked: number
@@ -35,7 +34,6 @@ export default function MillaHomePage() {
   // #511f — the client's own Nexus, surfaced (the flywheel: they see Milla getting sharper).
   const [nexus, setNexus] = useState<{ learned: string; top_persona: string | null; reply_rate: number; meeting_rate: number; confidence: string; sample_worked: number } | null>(null)
   const [leads, setLeads] = useState<MaskedLead[] | null>(null)
-  const [ledger, setLedger] = useState<Ledger | null>(null)
   const [acting, setActing] = useState<string | null>(null)
   const [revealed, setRevealed] = useState<Record<string, Revealed>>({})
   const [topUp, setTopUp] = useState<string | null>(null)
@@ -50,12 +48,11 @@ export default function MillaHomePage() {
   const load = useCallback(async () => {
     try {
       const tok = await token()
-      const [s, l, g] = await Promise.all([
+      const [s, l] = await Promise.all([
         api.get<{ data: Summary }>('/leads/milla-summary', tok),
         api.get<{ data: MaskedLead[] }>('/leads/for-approval', tok),
-        api.get<{ data: Ledger }>('/leads/ledger', tok),
       ])
-      setSummary(s.data); setLeads(l.data); setLedger(g.data)
+      setSummary(s.data); setLeads(l.data)
       const n = s.data.leads_awaiting
       const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
       setMessages([{ id: 'greet', role: 'assistant', content: n > 0
@@ -93,7 +90,6 @@ export default function MillaHomePage() {
       const tok = await token()
       const res = await api.post<{ email: string; charged: boolean }>(`/leads/${id}/approve`, {}, tok)
       setRevealed(r => ({ ...r, [id]: { email: res.email, charged: res.charged } }))
-      const g = await api.get<{ data: Ledger }>('/leads/ledger', tok); setLedger(g.data)
     } catch (e) {
       const err = e as Error & { status?: number }
       if (err.status === 402) setTopUp('You need $4 in your wallet to approve. Top up to continue.')
@@ -231,45 +227,23 @@ export default function MillaHomePage() {
         </aside>
       </div>
 
-      {/* ledger + ICP */}
-      <div className="flex gap-4 mt-4">
-        <div className="flex-1 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Wallet ledger <span className="text-[#9b8ec4] font-semibold text-[11px]">· every charge, audited</span></div>
-          {(ledger?.transactions ?? []).length === 0 ? (
-            <div className="px-4 py-8 text-center text-[13px] text-[#9b8ec4]">No charges yet — approve a lead to begin.</div>
-          ) : (
-            <div className="overflow-x-auto"><table className="w-full text-[12.5px] min-w-[420px]">
-              <thead><tr className="bg-[#faf8ff] text-[#b3a9cc] text-[9.5px] uppercase tracking-wide">
-                <th className="text-left px-4 py-2 font-extrabold">When</th><th className="text-left px-4 py-2 font-extrabold">Activity</th><th className="text-right px-4 py-2 font-extrabold">Amount</th>
-              </tr></thead>
-              <tbody>{(ledger?.transactions ?? []).slice(0, 8).map((e, i) => (
-                <tr key={i} className="border-t border-[#f4eefb]">
-                  <td className="px-4 py-2.5 text-[#9b8ec4] whitespace-nowrap">{fmt(e.created_at)}</td>
-                  <td className="px-4 py-2.5 text-[#4c4368]">{e.note || e.type}</td>
-                  <td className={`px-4 py-2.5 text-right tabular-nums font-extrabold ${e.amount < 0 ? 'text-[#b45309]' : 'text-emerald-600'}`}>{e.amount > 0 ? `+$${e.amount}` : `-$${Math.abs(e.amount)}`}</td>
-                </tr>
-              ))}</tbody>
-            </table></div>
-          )}
-        </div>
-
-        <div className="flex-1 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#eee7f7] flex items-center text-[13.5px] font-bold">Your ICP <span className="text-[#9b8ec4] font-semibold text-[11px] ml-1.5">· versioned · approved by you</span><a href="/milla/icp" className="ml-auto text-[11.5px] font-bold text-[#7C3AED] hover:underline">Review / approve →</a></div>
-          <div className="px-4 py-3.5">
-            {!summary?.icp_versions?.length ? (
-              <div className="text-[13px] text-[#9b8ec4] py-6 text-center">Your ICP is set during onboarding — it'll show here once approved.</div>
-            ) : <>
-              <p className="text-[12.5px] text-[#5c5279] leading-relaxed mb-3">{summary.icp_versions.find(v => v.current)?.summary || summary.icp_versions.find(v => v.current)?.name}</p>
-              <div className="flex flex-wrap gap-2.5">
-                {summary.icp_versions.map(v => (
-                  <div key={v.version} className={`flex-1 min-w-[150px] border rounded-xl px-3 py-2.5 ${v.current ? 'border-emerald-300 bg-emerald-50/40' : 'border-[#ece5fb]'}`}>
-                    <b className="text-[13px]">{v.version}</b>{v.current && <span className="text-[9.5px] font-extrabold text-emerald-600"> · current</span>}
-                    <span className="block text-[11px] text-[#9b8ec4] mt-0.5">{fmt(v.created_at)} · approved</span>
-                  </div>
-                ))}
-              </div>
-            </>}
-          </div>
+      {/* ICP — the ledger moved to Billing (M4): New leads stays leads + Milla only. */}
+      <div className="mt-4 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-[#eee7f7] flex items-center text-[13.5px] font-bold">Your ICP <span className="text-[#9b8ec4] font-semibold text-[11px] ml-1.5">· versioned · approved by you</span><a href="/milla/icp" className="ml-auto text-[11.5px] font-bold text-[#7C3AED] hover:underline">Review / approve →</a></div>
+        <div className="px-4 py-3.5">
+          {!summary?.icp_versions?.length ? (
+            <div className="text-[13px] text-[#9b8ec4] py-6 text-center">Your ICP is set during onboarding — it'll show here once approved.</div>
+          ) : <>
+            <p className="text-[12.5px] text-[#5c5279] leading-relaxed mb-3">{summary.icp_versions.find(v => v.current)?.summary || summary.icp_versions.find(v => v.current)?.name}</p>
+            <div className="flex flex-wrap gap-2.5">
+              {summary.icp_versions.map(v => (
+                <div key={v.version} className={`flex-1 min-w-[150px] border rounded-xl px-3 py-2.5 ${v.current ? 'border-emerald-300 bg-emerald-50/40' : 'border-[#ece5fb]'}`}>
+                  <b className="text-[13px]">{v.version}</b>{v.current && <span className="text-[9.5px] font-extrabold text-emerald-600"> · current</span>}
+                  <span className="block text-[11px] text-[#9b8ec4] mt-0.5">{fmt(v.created_at)} · approved</span>
+                </div>
+              ))}
+            </div>
+          </>}
         </div>
       </div>
 

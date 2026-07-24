@@ -133,7 +133,7 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   return (
     <div className="p-8 max-w-5xl space-y-6">
       {/* Back link */}
-      <Link href="/clients" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors">
+      <Link href="/vida/clients-admin" className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors">
         ← All Clients
       </Link>
 

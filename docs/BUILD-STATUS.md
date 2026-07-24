@@ -29,7 +29,7 @@
 | 499 | Bookings page + Mark no-show (state) | ✅ | 🩷 |
 | 499m | No-show → **2 rebooks → keep the $3** (founder rule 24 Jul; $3 kept, no refund) | ✅ | 🩷 |
 | 498b | One-click sourcing from command bar (**pool-aware cost confirm**) | ✅ | 🩷 |
-| 511v | Nexus signals view | 🚩 | **FLAGGED — no Nexus backend = would be a shell** |
+| 511v | Nexus signals view | ✅ | 🩷 (built — see the 🧠 NEXUS section) |
 
 ## VIDA — native rebuilds (kill the dropdown → old-admin exit)
 | # | Item | Main | Live |
@@ -100,7 +100,7 @@
 | 498 | Command endpoint (Vida bar backend) | ✅ | 🩷 |
 | 494 | Qualification gate (built — see VIDA core) | ✅ | 🩷 |
 | — | No-show → 2 rebooks → keep the $3 (#499m) | ✅ | 🩷 |
-| 511 | Nexus learning loop | ❌ | ❌ |
+| 511 | Nexus learning loop | ✅ | 🩷 COMPLETE — all 12 items, see the 🧠 NEXUS section |
 | 517 | Unified operating record (per-lead timeline: sends·replies·bookings·ops·money — `/vida/record`) | ✅ | 🩷 |
 | 504 | Milla↔Vida toggle | ✅ decided: two apps | — |
 | — | Deploy pipeline `scripts/ship.sh` | 🟡 PR #1126 | ❌ merge to use |
@@ -143,7 +143,8 @@
 
 ## What's left (the ❌ / 🚩 list)
 - **Milla:** ✅ all reds built **except 🚩 #515 magic-link + SMS** — flagged: no SMS provider configured, and no-login money approve needs a security decision.
-- **Vida:** ✅ built — #502 Engine rail · all 12 native pages (#530–#541) · #494 Qualify gate · #499 Bookings + Mark no-show · #493c gate chips · #505 blockers strip · **#499m no-show → 2 rebooks → keep the $3** · **#498b one-click sourcing w/ pool-aware confirm**. **🚩 Still flagged (not built — no backend = shell):** #511v Nexus signals.
-- **Combined (24 Jul — built this round):** ✅ **E1** stale-hold sweep (daily cron backstop) · ✅ **E9** booking retry ladder · ✅ **E7** risky-reply → escalate (+tests) · ✅ **#517** unified operating record (`/vida/record`). **E5** ruled by founder → **keep refunding** (current behaviour is the rule; no change). **Still to build:** **#511 Nexus** — the per-client learning brain, now scoped into 12 phased items (511a–511f) in the **COMBINED · 🧠 NEXUS** section above. 5 PRs; the money-sensitive sourcing tune (511t3) lands after the guardrails. **Blocked:** auto-deploy/CI (GitHub account flagged).
+- **Vida:** ✅ built — #502 Engine rail · all 12 native pages (#530–#541) · #494 Qualify gate · #499 Bookings + Mark no-show · #493c gate chips · #505 blockers strip · **#499m no-show → 2 rebooks → keep the $3** · **#498b one-click sourcing w/ pool-aware confirm** · **🧠 Nexus signals panel (#511v)**. Nothing left.
+- **Combined:** ✅ E1 stale-hold sweep · E9 booking retry · E7 risky-reply escalate · #517 operating record · E5 ruled (keep refunding). **🧠 NEXUS COMPLETE** — all 12 items (511a–511f) built, every tuning path default-off behind kill-switch + confidence gate + fence.
+- **The ONLY items not built:** **🚩 #515** Milla magic-link + SMS approve (needs an SMS provider + a no-login security decision — both founder calls) · **⏸ Auto-deploy / CI** (blocked — GitHub account flagged since 3 Jul).
 
 **Milla old-portal exit: CLOSED** — all 11 rail/account links point to `/milla/*` native routes. **Vida old-admin exit: CLOSED** — the account-dropdown nervous-system + the rail Engine section both point to `/vida/*` native routes (12 real engine pages inside the Vida shell), and the Bookings rail link is now live.

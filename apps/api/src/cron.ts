@@ -137,6 +137,10 @@ export function startCrons(): void {
   // so a client's credit can never be trapped by a stalled/ambiguous enrollment).
   cron.schedule('30 3 * * *', () => callInternal('/figsy/sweep-stale-holds'), { timezone: 'UTC' })
 
+  // Daily 04:00 UTC — #511 Nexus: recompute each client's private learning profile from the
+  // day's outcomes (per-client, deterministic, no LLM, no money).
+  cron.schedule('0 4 * * *', () => callInternal('/nexus/recompute-all'), { timezone: 'UTC' })
+
   // Monday 07:00 UTC — weekly client leads digest
   cron.schedule('0 7 * * 1', () => callInternal('/digest/weekly'), { timezone: 'UTC' })
 

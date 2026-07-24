@@ -654,6 +654,21 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/source]', err); res.status(500).json({ success: false, error: 'Failed to source' }) }
 })
 
+// ── #511 NEXUS · SIGNALS (read) — this client's private learning brain, surfaced ───────
+// Returns the client's Nexus profile (what's converting: winning angle, best subjects, top
+// persona, reply/meeting rates, objection patterns) with honest confidence. Compute-on-read
+// if the stored profile is stale/missing (the nightly cron keeps it warm). Fenced by
+// client_id — a client's brain is computed only from its own outcomes, never shared.
+operatorRouter.get('/nexus', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.query.client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { getNexusProfile } = await import('../lib/nexus')
+    const profile = await getNexusProfile(client.id)
+    res.json({ success: true, client: { id: client.id, company_name: client.company_name }, data: profile })
+  } catch (err) { console.error('[operator/nexus]', err); res.status(500).json({ success: false, error: 'Failed to load Nexus' }) }
+})
+
 // ── #517 UNIFIED OPERATING RECORD — one lead's whole story, assembled from the sources ──
 // The single place an operator sees everything that happened to a lead: every send/reply/
 // booking (outcome_events), every operator action (operator_audit_log), every money move

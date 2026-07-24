@@ -288,7 +288,7 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
     const nowIso = now.toISOString()
 
-    const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal] = await Promise.all([
+    const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases] = await Promise.all([
       db.from('clients').select('wallet_balance_usd').eq('id', clientId).maybeSingle(),
       // mirrors /for-approval — the exact set of masked cards the client can act on
       db.from('leads').select('id', { count: 'exact', head: true })
@@ -309,6 +309,10 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
       db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
       db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'confirmed'),
+      // NO FREEBIES — has this client EVER paid? (any wallet top-up / purchase). Drives the
+      // $99 paywall: no purchase → the client is gated until they load their wallet.
+      db.from('credit_transactions').select('id', { count: 'exact', head: true })
+        .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase']),
     ])
 
     const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
@@ -330,6 +334,9 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
       success: true,
       data: {
         wallet_balance_usd: Number((client as Record<string, number> | null)?.wallet_balance_usd ?? 0),
+        // NO FREEBIES — true once the client has made their first ($99) purchase. The Milla
+        // dashboard gates on this: no purchase → paywall to Billing.
+        has_funded: (purchases.count ?? 0) > 0,
         leads_awaiting:  awaiting.count ?? 0,
         meetings_booked: meetings.count ?? 0,
         // Real all-time totals + true $ spend. ONE WALLET: spend = approved leads × $4

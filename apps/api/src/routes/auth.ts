@@ -182,34 +182,11 @@ authRouter.post('/onboard', async (req, res) => {
       // at signup (trial_sourcing_granted tracks the 20-record lifetime cap; reveals
       // drip +2 up to it). This is the ONLY non-purchase allowance grant — a never-paid
       // client can source at most 20 records EVER (~$5.60 max exposure per free signup).
-      // ONE WALLET (W1) — the welcome grant funds the single dollar wallet, not the
-      // retired credit columns. $35 = enough to approve several leads at $4 and learn
-      // the loop. The +10 trial sourcing pool (our PDL budget) is unchanged.
-      const WELCOME_WALLET_USD = 35
-      const { error: grantErr } = await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: WELCOME_WALLET_USD })
-      if (grantErr) {
-        console.error('[auth/signup] welcome-wallet grant failed for', clientId, grantErr)
-        void sendFounderAlert('charge_failed', 'Welcome wallet NOT granted at signup', [
-          `Client: ${clientId} (${profileFields.company_name})`,
-          `The wallet grant RPC failed: ${grantErr.message}`,
-          `The new client has $0 in their wallet — grant it manually in admin.`,
-        ])
-      } else {
-        // Seed the trial sourcing pool (our budget), best-effort.
-        await db.from('clients')
-          .update({ sourcing_allowance: 10, trial_sourcing_granted: 10 }).eq('id', clientId)
-          .then(() => {}, () => {})
-        try {
-          await db.from('credit_transactions').insert([{
-            client_id: clientId,
-            amount: WELCOME_WALLET_USD,
-            type: 'trial_bonus',
-            plan: 'work_model',
-            note: `Welcome wallet — $${WELCOME_WALLET_USD} to get started`,
-            created_at: now,
-          }])
-        } catch { /* non-critical — don't fail signup */ }
-      }
+      // NO FREEBIES (founder-locked 24 Jul) — a new client starts with a $0 wallet and
+      // $0 sourcing. Nothing can be sourced or approved until they make their $99 first
+      // purchase; that payment's Stripe webhook credits the wallet AND accrues the
+      // sourcing budget (k=2). This is how we guarantee the $99 lands before any cost to us.
+      void now // (no signup grant — intentional)
     }
 
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})
@@ -218,7 +195,7 @@ authRouter.post('/onboard', async (req, res) => {
       void sendFounderAlert('new_signup', `New signup — ${profileFields.company_name}`, [
         `${profileFields.company_name} just completed onboarding (${user.email}).`,
         profileFields.country ? `Country: ${profileFields.country}.` : '',
-        `They're on a 14-day FIGSY trial. Assign a pooled inbox so they can send day 1.`,
+        `No freebies — they start at $0 and must load $99 to begin. Assign a pooled inbox once they've paid.`,
       ])
     }
     fetch(`${process.env.API_INTERNAL_URL || `http://localhost:${process.env.PORT || 4000}`}/founder/cs/followup`, {

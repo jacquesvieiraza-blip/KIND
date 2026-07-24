@@ -16,7 +16,7 @@ type LedgerEntry = { amount: number; type: string; note: string | null; created_
 type Ledger = { wallet_balance_usd: number; transactions: LedgerEntry[] }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
 type Summary = {
-  wallet_balance_usd: number; leads_awaiting: number; meetings_booked: number
+  wallet_balance_usd: number; has_funded: boolean; leads_awaiting: number; meetings_booked: number
   active_campaign: string | null; icp_versions: IcpVersion[]
 }
 type Msg = { id: string; role: 'user' | 'assistant'; content: string }
@@ -79,6 +79,11 @@ export default function MillaHomePage() {
   useEffect(() => {
     if (summary && summary.icp_versions.length === 0) router.replace('/milla/welcome')
   }, [summary, router])
+  // $99 AT GO-LIVE (founder-locked) — a client who hasn't paid can still onboard, build
+  // their plan and browse their masked leads FREE. They're NOT walled out. The $99 is the
+  // GO-LIVE step: nothing sources or sends until it's paid (money rails enforce $0 = no
+  // work), and a "Go live — load $99" banner sits on the dashboard until they do.
+  const needsGoLive = !!summary && summary.icp_versions.length > 0 && !summary.has_funded
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
@@ -132,6 +137,19 @@ export default function MillaHomePage() {
 
   return (
     <div className="h-full overflow-y-auto px-5 py-4">
+      {/* $99 GO-LIVE banner — shown until the client funds their wallet. Browsing is free;
+          this is the step that switches their campaign on. */}
+      {needsGoLive && (
+        <a href="/milla/billing?start=1" className="block mb-4 rounded-2xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-extrabold text-[#5b21b6] text-[15px]">Go live — load your wallet to start your campaign</p>
+              <p className="text-[13px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b>. Browsing and building your plan is free — nothing sources or sends until you go live. Each approved lead is then a flat $4.</p>
+            </div>
+            <span className="shrink-0 text-[13px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 →</span>
+          </div>
+        </a>
+      )}
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KPI hero k="Wallet balance" v={summary ? `$${summary.wallet_balance_usd.toLocaleString()}` : '…'} s="$4 per approved lead" />

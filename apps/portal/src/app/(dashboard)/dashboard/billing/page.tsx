@@ -239,9 +239,17 @@ export default function BillingPage() {
   return (
     <div className="space-y-8 max-w-3xl">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Billing & Credits</h1>
-        <p className="text-[#7B6FA0] text-sm mt-1">Manage credits and agent subscriptions.</p>
+        <h1 className="text-2xl font-bold text-gray-900">Billing & Wallet</h1>
+        <p className="text-[#7B6FA0] text-sm mt-1">One wallet. $99 to start, then top up any time. $4 per approved lead.</p>
       </div>
+
+      {/* NO FREEBIES — the paywall banner: a client who hasn't paid is sent here to load $99. */}
+      {!hasPurchased && (
+        <div className="rounded-xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4">
+          <p className="font-bold text-[#5b21b6]">You're one step from live — load your wallet to begin.</p>
+          <p className="text-sm text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b>. It funds your wallet and starts your campaign — each approved lead is a flat $4. Nothing is charged until you approve.</p>
+        </div>
+      )}
 
       {/* Wallet balance — one wallet, one balance in dollars */}
       <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl text-white">

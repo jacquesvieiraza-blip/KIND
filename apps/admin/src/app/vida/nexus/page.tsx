@@ -15,6 +15,7 @@ type Nexus = {
   sample_worked: number; sample_replies: number; sample_meetings: number
   confidence: 'learning' | 'emerging' | 'confident'; computed_at: string
 }
+type Tune = { state: 'off' | 'learning' | 'ready'; allowed: boolean; reason: string; enabled: boolean }
 
 function initials(name: string | null): string {
   if (!name) return '—'
@@ -32,6 +33,8 @@ export default function VidaNexusPage() {
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [nexus, setNexus] = useState<Nexus | null>(null)
+  const [tune, setTune] = useState<Tune | null>(null)
+  const [toggling, setToggling] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -52,10 +55,24 @@ export default function VidaNexusPage() {
       const res = await fetch(`/api/proxy/operator/nexus?client_id=${encodeURIComponent(cid)}`)
       const j = await res.json().catch(() => ({}))
       if (!res.ok || !j?.success) throw new Error(j?.error || `Failed to load Nexus (${res.status})`)
-      setNexus(j.data)
-    } catch (e) { setNexus(null); setError(e instanceof Error ? e.message : 'Failed to load Nexus') }
+      setNexus(j.data); setTune(j.tune ?? null)
+    } catch (e) { setNexus(null); setTune(null); setError(e instanceof Error ? e.message : 'Failed to load Nexus') }
     finally { setLoading(false) }
   }, [])
+
+  async function toggleAutotune(enabled: boolean) {
+    if (!selected) return
+    setToggling(true)
+    try {
+      const res = await fetch('/api/proxy/operator/nexus/autotune', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: selected, enabled }),
+      })
+      const j = await res.json().catch(() => ({}))
+      if (!res.ok || !j?.success) throw new Error(j?.error || `Toggle failed (${res.status})`)
+      await load(selected)
+    } catch (e) { setError(e instanceof Error ? e.message : 'Toggle failed') }
+    finally { setToggling(false) }
+  }
 
   useEffect(() => {
     if (!selected) return
@@ -132,6 +149,28 @@ export default function VidaNexusPage() {
                     </div>
                   ))}
                 </div>
+
+                {/* #511g Phase-3 guardrails — auto-tune gate + per-client kill-switch */}
+                {tune && (
+                  <div className="mt-4 bg-white border border-[#eee7f7] rounded-xl p-4 flex items-center gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <b className="text-[13px]">Auto-tune</b>
+                        <span className="text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5" style={
+                          tune.state === 'ready' ? { color: '#059669', background: '#ecfdf5' }
+                          : tune.state === 'learning' ? { color: '#b45309', background: '#fef3c7' }
+                          : { color: '#9b8ec4', background: '#f7f4fd' }
+                        }>{tune.state}</span>
+                      </div>
+                      <p className="text-[11.5px] text-[#9b8ec4] mt-0.5">{tune.reason}</p>
+                      <p className="text-[10.5px] text-[#c3bad9] mt-0.5">Off by default. Enabling lets Nexus tune this client&apos;s copy/targeting — behind the confidence gate. Nothing tunes until Phase 2 ships.</p>
+                    </div>
+                    <button disabled={toggling} onClick={() => toggleAutotune(!tune.enabled)}
+                      className={`shrink-0 text-[12px] font-bold rounded-lg py-2 px-4 disabled:opacity-50 ${tune.enabled ? 'text-[#5c5279] border border-[#ece5fb] bg-white' : 'text-white bg-gradient-to-br from-[#7C3AED] to-[#EC4899]'}`}>
+                      {toggling ? '…' : tune.enabled ? 'Disable' : 'Enable auto-tune'}
+                    </button>
+                  </div>
+                )}
 
                 {/* what's converting */}
                 <div className="mt-5 grid sm:grid-cols-2 gap-3">

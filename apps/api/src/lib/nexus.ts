@@ -79,8 +79,9 @@ export async function computeNexusProfile(clientId: string): Promise<NexusProfil
     topPersona = { seniority: topOf(sen), industry: topOf(ind), job_title: topOf(tit) }
   }
 
-  // Best subjects = the SEND subjects that earned replies (sent_emails has no client_id, so we
-  // scope by this client's replied lead ids — never another client's). Top by frequency.
+  // Best subjects = the SEND subjects that earned replies. `figsy_sent_emails` has no client_id
+  // column, so we fence by THIS client's replied lead ids (derived above from their own leads) —
+  // a subject from another client's send can never enter this brain. Top by frequency.
   let bestSubjects: string[] = []
   if (repliedLeadIds.size > 0) {
     const { data: sent } = await db.from('figsy_sent_emails')

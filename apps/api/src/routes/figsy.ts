@@ -303,6 +303,15 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         status: 'opted_out', opted_out_at: new Date().toISOString(),
       }).eq('email', fromEmail)
 
+      // #492 (audit fix) — a terminal opt-out RELEASES the held $3 (this lead will never book).
+      // Flipping the enrollment to 'opted_out' also removes it from the send-loop, so the
+      // send-path release can no longer fire — release here by client+lead (works even if there
+      // was no enrollment). Without this the $3 stayed trapped until the 60-day stale sweep.
+      try {
+        const { releaseFigsyHold } = await import('../lib/credit-holds')
+        await releaseFigsyHold(lead.client_id, lead.id, 'reply_opt_out')
+      } catch (e) { console.error('[figsy/inbound] opt-out hold release failed:', e instanceof Error ? e.message : e) }
+
       if (enrollment?.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
     }
 

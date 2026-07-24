@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 // leads approved, spend, and a plain-language summary — all from LIVE data (summary +
 // meetings + ledger). No fabricated metrics; every number traces to a real row.
 
-type Summary = { meetings_booked: number; active_campaign: string | null; recent_replies: { name: string; classification: string }[] }
+type Summary = { meetings_booked: number; active_campaign: string | null; recent_replies: { name: string; classification: string }[]; leads_approved_total?: number; replies_total?: number; meetings_total?: number; spend_usd?: number }
 type LedgerEntry = { amount: number; type: string; note: string | null; created_at: string | null }
 type Ledger = { reveal_credits: number; work_credits: number; entries: LedgerEntry[] }
 type Meeting = { id: string; title: string; start_time: string | null; status: string; name: string; company: string | null }
@@ -40,11 +40,13 @@ export default function MillaReportsPage() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  const entries = ledger?.entries ?? []
-  const reveals = entries.filter(e => e.type === 'usage' && (e.note ?? '').toLowerCase().includes('reveal')).length
-  const spend = entries.filter(e => e.amount < 0).reduce((a, e) => a + Math.abs(e.amount), 0)
-  const captured = entries.filter(e => (e.note ?? '').toLowerCase().includes('captured')).length
-  const replies = summary?.recent_replies?.length ?? 0
+  // (audit fix) Use the REAL server-computed all-time totals, not a capped 50-row ledger slice /
+  // 4-row replies rail. Spend is true dollars — reveals × $1 + confirmed bookings × $3 — not a
+  // raw credit-count sum (which wrongly valued a $3 work credit at $1 and counted released holds).
+  const reveals = summary?.leads_approved_total ?? 0
+  const captured = summary?.meetings_total ?? summary?.meetings_booked ?? 0
+  const spend = summary?.spend_usd ?? (reveals * 1 + captured * 3)
+  const replies = summary?.replies_total ?? summary?.recent_replies?.length ?? 0
 
   const KPI = ({ k, v, s, tone }: { k: string; v: string; s: string; tone?: string }) => (
     <div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-4">
@@ -68,7 +70,7 @@ export default function MillaReportsPage() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5">
               <KPI k="Meetings booked" v={String(summary.meetings_booked)} s="this month" tone="#EC4899" />
               <KPI k="Leads approved" v={String(reveals)} s="you chose to pursue" />
-              <KPI k="Replies in" v={String(replies)} s="recent" tone="#059669" />
+              <KPI k="Replies in" v={String(replies)} s="total" tone="#059669" />
               <KPI k="Spend" v={`$${spend}`} s={`$${reveals} reveal · $${captured * 3} booked`} />
             </div>
 

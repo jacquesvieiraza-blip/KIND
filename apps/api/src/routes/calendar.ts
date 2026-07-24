@@ -127,6 +127,8 @@ async function performBooking(params: {
           start:        params.start,
           end:          params.end,
           description:  `Meeting arranged via K.I.N.D FIGSY AI SDR.\nCompany: ${client.company_name ?? ''}`,
+          // (audit fix M4) stable across retries → one deterministic Google event, never a duplicate
+          idempotencyKey: `${params.clientId}:${params.leadId}:${params.start}`,
         })
         break // success
       } catch (err) {
@@ -159,9 +161,24 @@ async function performBooking(params: {
     status:          'confirmed',
   })
   if (insertErr) {
-    // The Google event DID get created — surface the meet link so the meeting isn't lost,
-    // but report the persistence failure honestly.
+    // (audit fix M6) A UNIQUE violation (23505) means a concurrent request already booked this
+    // lead — the OTHER request owns the confirmed row + the $3 capture. Do NOT capture again or
+    // claim success here; report it as already-booked so we never leave a duplicate.
+    if ((insertErr as { code?: string }).code === '23505') {
+      console.warn('[calendar/performBooking] duplicate booking blocked by unique guard — lead', params.leadId)
+      return { ok: false, status: 409, error: 'That lead already has a confirmed booking.' }
+    }
+    // Otherwise the Google event DID get created — a real confirmed meeting. Surface the meet
+    // link so it isn't lost, and (audit fix M3) still CAPTURE the held $3 even though the booking
+    // row didn't persist — a real booking is the capture trigger, and skipping it would leave the
+    // $3 held and later refunded by the stale-hold sweep = revenue leak on a real meeting.
     console.error('[calendar/performBooking] booking row insert failed (event created):', insertErr.message)
+    try {
+      const { captureFigsyHold } = await import('../lib/credit-holds')
+      await captureFigsyHold(params.clientId, params.leadId)
+    } catch (capErr) {
+      console.error('[calendar/performBooking] $3 capture after insert-fail also failed:', capErr)
+    }
     return { ok: true, meetLink, eventId }
   }
 

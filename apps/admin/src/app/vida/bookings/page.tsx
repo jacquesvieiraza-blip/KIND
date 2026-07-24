@@ -214,7 +214,7 @@ export default function VidaBookingsPage() {
                     {/* #499m inline reschedule — operator enters the agreed new time (optional) */}
                     {noShow && !atMax && isOpen && (
                       <div className="mt-2.5 flex items-center gap-2 pl-12">
-                        <input type="datetime-local" value={rebookWhen} onChange={e => setRebookWhen(e.target.value)}
+                        <input type="datetime-local" value={rebookWhen} min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)} onChange={e => setRebookWhen(e.target.value)}
                           className="text-[12px] rounded-lg border border-[#e4dcf7] bg-white px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
                         <button disabled={acting === b.id} onClick={() => rebook(b.id, rebookWhen)}
                           className="text-[11px] font-bold text-white rounded-lg py-1.5 px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">

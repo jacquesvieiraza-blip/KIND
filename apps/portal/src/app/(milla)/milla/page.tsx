@@ -134,7 +134,7 @@ export default function MillaHomePage() {
     <div className="h-full overflow-y-auto px-5 py-4">
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <KPI hero k="Credit balance" v={summary ? summary.reveal_credits.toLocaleString() : '…'} s="$1 approve · $3 on booking" />
+        <KPI hero k="Credit balance" v={summary ? summary.reveal_credits.toLocaleString() : '…'} s={summary ? `${summary.reveal_credits} reveal · ${summary.work_credits} work · need both to approve` : '$1 approve · $3 on booking'} />
         <KPI k="Leads awaiting you" v={summary ? String(summary.leads_awaiting) : '…'} s={summary && summary.leads_awaiting ? '1 tap to approve' : 'all caught up'} tone="#EC4899" />
         <KPI k="Meetings booked" v={summary ? String(summary.meetings_booked) : '…'} s="this month" tone="#059669" />
         <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />

@@ -131,7 +131,6 @@ export async function releaseFigsyHold(clientId: string, leadId: string, reason:
 // Returns how many it released. Idempotent (releaseFigsyHold only acts on a 'held' row).
 export async function sweepStaleHolds(ttlDays = 60, limit = 500): Promise<{ scanned: number; released: number }> {
   const cutoff = new Date(Date.now() - ttlDays * 86400000).toISOString()
-  const nowIso = new Date().toISOString()
   const { data: stale } = await db.from('credit_holds')
     .select('id, client_id, lead_id, created_at').eq('status', 'held')
     .lt('created_at', cutoff).order('created_at', { ascending: true }).limit(limit)
@@ -142,10 +141,14 @@ export async function sweepStaleHolds(ttlDays = 60, limit = 500): Promise<{ scan
     const { data: booked } = await db.from('calendar_bookings')
       .select('id').eq('client_id', h.client_id).eq('lead_id', h.lead_id).eq('status', 'confirmed').limit(1).maybeSingle()
     if (booked) { console.error('[credit-holds] stale HELD hold on a BOOKED lead (should be captured) — left for review:', h.lead_id, 'client', h.client_id); continue }
-    // Guard 2 — a live, actively-sending enrollment will still capture on booking; skip.
+    // Guard 2 — a live enrollment will still capture on booking; skip. NOTE: match on status
+    // ALONE, not next_send_at — a co-pilot enrollment paused at the operator's Send gate stays
+    // 'enrolled'/'in_progress' with next_send_at=null (figsy.ts), and a backlog leaves it in the
+    // past; filtering on next_send_at>now would miss those live holds and wrongly refund the $3
+    // on real work. Only holds whose enrollment is TERMINAL (or absent) are stragglers to reclaim.
     const { data: active } = await db.from('figsy_enrollments')
       .select('id').eq('client_id', h.client_id).eq('lead_id', h.lead_id)
-      .in('status', ['enrolled', 'in_progress']).gt('next_send_at', nowIso).limit(1).maybeSingle()
+      .in('status', ['enrolled', 'in_progress']).limit(1).maybeSingle()
     if (active) continue
     await releaseFigsyHold(h.client_id, h.lead_id, `stale_hold_ttl_${ttlDays}d`)
     released++

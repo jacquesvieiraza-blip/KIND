@@ -85,8 +85,8 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   const pendingCount = health?.pending_approvals ?? null
 
   // #502 — the ENGINE section, moved OUT of the account dropdown into the rail (native
-  // Vida routes, no old-admin exit). Nexus signals has no backend yet → shown as "soon",
-  // never a dead link (honesty rule). Design ref: the approved Vida blend.
+  // Vida routes, no old-admin exit). Nexus signals is now LIVE (#511 complete) — a real
+  // /vida/nexus route in the rail below, never a dead link. Design ref: the approved Vida blend.
   const ENGINE_RAIL: { href: string; label: string; icon: React.ElementType }[] = [
     { href: '/vida/cockpit',    label: 'Cockpit',    icon: Gauge },
     { href: '/vida/money-path', label: 'Money Path', icon: Wallet },

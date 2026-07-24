@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
   Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem,
-  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, Settings, ChevronDown, Bell,
+  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, Bell,
 } from 'lucide-react'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
@@ -71,7 +71,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   const ACCOUNT: [string, string, React.ElementType][] = [
     ['/milla/settings', 'My profile', User], ['/milla/billing', 'Billing', CreditCard],
     ['/milla/usage', 'Usage', Gauge], ['/milla/documents', 'Documents', FileText],
-    ['/milla/referral', 'Referral', Gift], ['/milla/settings', 'Settings', Settings],
+    ['/milla/referral', 'Referral', Gift],
   ]
 
   return (

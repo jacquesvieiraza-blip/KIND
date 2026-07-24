@@ -664,9 +664,34 @@ operatorRouter.get('/nexus', async (req: Request, res: Response) => {
     const client = await requireClient(req.query.client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     const { getNexusProfile } = await import('../lib/nexus')
+    const { nexusTuneGate, nexusGlobalKill } = await import('../lib/nexus-guard')
     const profile = await getNexusProfile(client.id)
-    res.json({ success: true, client: { id: client.id, company_name: client.company_name }, data: profile })
+    // #511g2/g3 — the tune gate state (off/learning/ready) so the panel can show whether the
+    // brain is allowed to auto-tune. Default-deny: reads the per-client kill-switch flag.
+    const { data: flag } = await db.from('clients').select('nexus_autotune_enabled').eq('id', client.id).maybeSingle()
+    const gate = nexusTuneGate(profile, flag?.nexus_autotune_enabled === true, nexusGlobalKill())
+    res.json({ success: true, client: { id: client.id, company_name: client.company_name }, data: profile, tune: { ...gate, enabled: flag?.nexus_autotune_enabled === true } })
   } catch (err) { console.error('[operator/nexus]', err); res.status(500).json({ success: false, error: 'Failed to load Nexus' }) }
+})
+
+// ── #511g3 NEXUS AUTO-TUNE KILL-SWITCH — enable/disable per client (founder gate) ──────
+// Auto-tune is OFF by default for every client. This flips the per-client flag; the Phase-2
+// write-back path consults `nexusTuneGate` (this flag + the confidence gate + the global
+// kill) before ever changing a client's sequences or sourcing. Audited. No money moves here.
+operatorRouter.post('/nexus/autotune', async (req: Request, res: Response) => {
+  try {
+    const { client_id, enabled } = (req.body ?? {}) as { client_id?: string; enabled?: boolean }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const on = enabled === true
+    const { error } = await db.from('clients').update({ nexus_autotune_enabled: on }).eq('id', client.id)
+    if (error) throw error
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'nexus_autotune_toggle',
+      subjectType: 'client', subjectId: client.id, detail: { enabled: on },
+    })
+    res.json({ success: true, enabled: on })
+  } catch (err) { console.error('[operator/nexus/autotune]', err); res.status(500).json({ success: false, error: 'Failed to update auto-tune' }) }
 })
 
 // ── #517 UNIFIED OPERATING RECORD — one lead's whole story, assembled from the sources ──

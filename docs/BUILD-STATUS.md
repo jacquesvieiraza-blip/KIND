@@ -128,15 +128,15 @@
 | 511c | 0 · Foundation | Nightly cron `/internal/nexus/recompute-all` (04:00 UTC) — refresh every client's profile | ✅ | 🩷 |
 | 511v | 1 · Signals (read) | `GET /operator/nexus?client_id=` + **Vida Nexus panel** (`/vida/nexus`, rail link live) — what's converting, with honest confidence | ✅ | 🩷 |
 | 511m | 1 · Signals (read) | **Milla "why this lead fits"** — ✅ **already live** (masked card renders `why_fits` from name-scrubbed `score_reasoning`, `leads.ts:245` + `milla/page.tsx:190`); Nexus persona-match badge = optional later | ✅ | 🩷 |
-| 511g1 | 3 · Guardrails | **Per-client fence test** — automated proof Client A's data can never influence Client B (lands BEFORE any write-back) | ❌ | ❌ |
-| 511g2 | 3 · Guardrails | **Confidence gate** + "learning vs tuned" state — no auto-tune until N booked outcomes (never learn from noise) | ❌ | ❌ |
-| 511g3 | 3 · Guardrails | **Cost guard + founder kill-switch** — per-client compute tracked vs the $4 margin; auto-tune OFF by default per client | ❌ | ❌ |
+| 511g1 | 3 · Guardrails | **Per-client fence** — `assertSameClient` chokepoint (throws `NexusFenceError` cross-client) + fence tests; every write-back MUST call it | ✅ | 🩷 |
+| 511g2 | 3 · Guardrails | **Confidence gate** + off/learning/ready state — `autoTuneReady` (confident + ≥3 meetings + ≥40 worked) +tests; shown in the panel | ✅ | 🩷 |
+| 511g3 | 3 · Guardrails | **Founder kill-switch** — per-client `nexus_autotune_enabled` (default OFF) + global `NEXUS_AUTOTUNE_KILL`; toggle in the Vida panel; deterministic compute = cost guard (no LLM) | ✅ | 🩷 |
 | 511t1 | 2 · Auto-tune | **Widen `figsy_memory` writers** (#439) — objection patterns, persona-level reply/meeting rates, angle-vs-meeting-quality (today: reply rate only) | ❌ | ❌ |
 | 511t2 | 2 · Auto-tune | **Sequences auto-tune** — enrich what `generateSequenceWithMemory` reads: persona-tuned angle + best subjects by segment (no spend change) | ❌ | ❌ |
 | 511t3 | 2 · Auto-tune | **Sourcing auto-tune** ⚠️💳 — nudge ICP scoring toward personas that actually BOOK, per-client. Changes PDL spend → co-pilot-gated + founder review, never silently autonomous | ❌ | ❌ |
 | 511f | 4 · Flywheel | **Dogfood + Milla "Nexus learned X this week"** — Client-Zero approvals sharpen our own brain; show the client their brain improving (trust + retention) | ❌ | ❌ |
 
-**Nexus build order (each = one PR):** ✅ **① 511a·511b·511c·511v·511m — Phase 0+1 BUILT** (compute + surface, zero money risk) → ② 511g1·511g2·511g3 (guardrails, BEFORE any write-back) → ③ 511t1·511t2 (tune the copy — safe) → ④ 511t3 (tune targeting — money-sensitive, your review) → ⑤ 511f (flywheel).
+**Nexus build order (each = one PR):** ✅ **① 511a·511b·511c·511v·511m — Phase 0+1 BUILT** (compute + surface, zero money risk) → ✅ **② 511g1·511g2·511g3 — Phase 3 guardrails BUILT** (fence + confidence gate + kill-switch, all before any write-back) → ③ 511t1·511t2 (tune the copy — safe) → ④ 511t3 (tune targeting — money-sensitive, your review) → ⑤ 511f (flywheel).
 **Load-bearing risks:** unit economics (LLM compute vs $4 margin — batch nightly) · the fence is the product (one cross-client leak breaks the promise — tested) · auto-tune touches spend (sourcing changes = PDL spend — co-pilot-gated) · cold start (thin data reads "still learning," never a confident-but-wrong signal).
 
 ---

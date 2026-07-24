@@ -342,6 +342,38 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
   } catch (err) { console.error('[leads/milla-summary]', err); res.status(500).json({ success: false, error: 'Failed to load summary' }) }
 })
 
+// ── #511f NEXUS · the client's OWN brain, surfaced in Milla (the flywheel) ──────────────
+// Client-facing + SAFE: returns only this client's own learned pattern (their best-converting
+// persona, how many subjects are winning, reply/meeting rate, confidence) so they see Milla
+// getting sharper on their behalf. getClientId fences it to the authed user's own client —
+// no operator internals, no other client's data. Empty/thin → an honest "still learning".
+leadRouter.get('/nexus-summary', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { getNexusProfile } = await import('../lib/nexus')
+    const p = await getNexusProfile(clientId)
+    const persona = [p.top_persona.job_title, p.top_persona.seniority, p.top_persona.industry].filter(Boolean).join(' · ')
+    res.json({
+      success: true,
+      data: {
+        confidence: p.confidence,
+        reply_rate: p.reply_rate,
+        meeting_rate: p.meeting_rate,
+        sample_worked: p.sample_worked,
+        top_persona: persona || null,
+        winning_subjects: p.best_subjects.length,
+        // A friendly one-liner for the card — honest about thin data.
+        learned: p.sample_worked < 20
+          ? 'Milla is still learning what works best for you.'
+          : persona
+            ? `Milla is learning your buyers book best when they're ${persona}.`
+            : 'Milla is learning which messages land best for you.',
+      },
+    })
+  } catch (err) { console.error('[leads/nexus-summary]', err); res.status(500).json({ success: false, error: 'Failed to load Nexus summary' }) }
+})
+
 // ── #507 MILLA MEETINGS — the client's confirmed bookings (their calendar), joined to the
 // lead for a name. Real calendar_bookings rows only; the $3-captured note mirrors #492.
 leadRouter.get('/meetings', async (req: AuthRequest, res) => {

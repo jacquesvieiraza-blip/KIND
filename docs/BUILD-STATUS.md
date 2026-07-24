@@ -131,12 +131,12 @@
 | 511g1 | 3 · Guardrails | **Per-client fence** — `assertSameClient` chokepoint (throws `NexusFenceError` cross-client) + fence tests; every write-back MUST call it | ✅ | 🩷 |
 | 511g2 | 3 · Guardrails | **Confidence gate** + off/learning/ready state — `autoTuneReady` (confident + ≥3 meetings + ≥40 worked) +tests; shown in the panel | ✅ | 🩷 |
 | 511g3 | 3 · Guardrails | **Founder kill-switch** — per-client `nexus_autotune_enabled` (default OFF) + global `NEXUS_AUTOTUNE_KILL`; toggle in the Vida panel; deterministic compute = cost guard (no LLM) | ✅ | 🩷 |
-| 511t1 | 2 · Auto-tune | **Widen `figsy_memory` writers** (#439) — objection patterns, persona-level reply/meeting rates, angle-vs-meeting-quality (today: reply rate only) | ❌ | ❌ |
-| 511t2 | 2 · Auto-tune | **Sequences auto-tune** — enrich what `generateSequenceWithMemory` reads: persona-tuned angle + best subjects by segment (no spend change) | ❌ | ❌ |
-| 511t3 | 2 · Auto-tune | **Sourcing auto-tune** ⚠️💳 — nudge ICP scoring toward personas that actually BOOK, per-client. Changes PDL spend → co-pilot-gated + founder review, never silently autonomous | ❌ | ❌ |
-| 511f | 4 · Flywheel | **Dogfood + Milla "Nexus learned X this week"** — Client-Zero approvals sharpen our own brain; show the client their brain improving (trust + retention) | ❌ | ❌ |
+| 511t1 | 2 · Auto-tune | **Widened learning writers** — persona-that-books, objection patterns, meeting-weighted rates captured in `nexus_profiles` (realized there, not bolted onto figsy_memory) | ✅ | 🩷 |
+| 511t2 | 2 · Auto-tune | **Sequences auto-tune (GATED)** — `generateSequenceWithMemory` injects the client's persona + objection-preempt guidance **only when `nexusTuneGate` is ready**; default-deny = byte-identical to today; `assertSameClient` fence-checked. No spend change | ✅ | 🩷 |
+| 511t3 | 2 · Auto-tune | **Sourcing auto-tune** ⚠️💳 — nudge ICP scoring toward personas that actually BOOK. Changes PDL spend → **next PR**, gated + your review | ❌ | ❌ |
+| 511f | 4 · Flywheel | **Milla "What Milla's learning for you"** — client-facing `GET /leads/nexus-summary` (safe, fenced) + dashboard card; dogfood inherent (Client-Zero compute) | ✅ | 🩷 |
 
-**Nexus build order (each = one PR):** ✅ **① 511a·511b·511c·511v·511m — Phase 0+1 BUILT** (compute + surface, zero money risk) → ✅ **② 511g1·511g2·511g3 — Phase 3 guardrails BUILT** (fence + confidence gate + kill-switch, all before any write-back) → ③ 511t1·511t2 (tune the copy — safe) → ④ 511t3 (tune targeting — money-sensitive, your review) → ⑤ 511f (flywheel).
+**Nexus build order (each = one PR):** ✅ **① 511a·511b·511c·511v·511m — Phase 0+1 BUILT** (compute + surface, zero money risk) → ✅ **② 511g1·511g2·511g3 — Phase 3 guardrails BUILT** (fence + confidence gate + kill-switch, all before any write-back) → ✅ **③ 511t1·511t2·511f — Phase 2-copy + Phase 4 BUILT** (gated copy tuning + Milla flywheel, no spend change) → ④ **511t3 (tune targeting — money-sensitive, next PR, your review)**.
 **Load-bearing risks:** unit economics (LLM compute vs $4 margin — batch nightly) · the fence is the product (one cross-client leak breaks the promise — tested) · auto-tune touches spend (sourcing changes = PDL spend — co-pilot-gated) · cold start (thin data reads "still learning," never a confident-but-wrong signal).
 
 ---

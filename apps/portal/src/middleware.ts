@@ -77,12 +77,44 @@ export async function middleware(request: NextRequest) {
       .toLowerCase().split(',').map((s) => s.trim()).filter(Boolean)
     const email = (user?.email || '').toLowerCase()
     if (!user || !allow.includes(email)) {
-      return NextResponse.redirect(new URL('/dashboard', base))
+      return NextResponse.redirect(new URL('/milla', base))
+    }
+  }
+
+  // ── WORK MODEL — the old /dashboard portal is retired for clients. Milla (/milla)
+  // is the ONLY client console. Any surviving link into /dashboard (from a legacy page
+  // embedded in the Milla shell, or a shared component) is transparently rewritten into
+  // the matching /milla screen, so a client can never be thrown back to the old portal.
+  // The partner + developer sub-trees are separate personas → left reachable.
+  if (user && (pathname === '/dashboard' || pathname.startsWith('/dashboard/'))) {
+    const seg = pathname.split('/')[2] || ''            // /dashboard/<seg>/...
+    const KEEP = new Set(['partner', 'developer'])
+    if (!KEEP.has(seg)) {
+      const MAP: Record<string, string> = {
+        '':           '/milla',              // old portal home → New leads
+        'figsy':      '/milla/campaign',
+        'figsy-chat': '/milla/chat',
+        'leads':      '/milla',
+        'inbox':      '/milla',
+        'billing':    '/milla/billing',
+        'kpis':       '/milla/performance',
+        'settings':   '/milla/settings',
+        'company':    '/milla/command-centre',
+        'usage':      '/milla/usage',
+        'analytics':  '/milla/analytics',
+        'roi':        '/milla/roi',
+        'referral':   '/milla/referral',
+        'documents':  '/milla/documents',
+        'team':       '/milla/teams',
+        'knowledge':  '/milla/icp',
+        'messages':   '/milla/chat',
+      }
+      return NextResponse.redirect(new URL(MAP[seg] ?? '/milla', base))
     }
   }
 
   if (user && (pathname === '/login' || pathname === '/')) {
-    return NextResponse.redirect(new URL('/dashboard', base))
+    return NextResponse.redirect(new URL('/milla', base))
   }
 
   return supabaseResponse

@@ -98,7 +98,7 @@
 | 44/361 | Calendar + `/book` | ✅ | 🩷 |
 | 26 | $3-on-booking capture | ✅ | 🩷 |
 | 498 | Command endpoint (Vida bar backend) | ✅ | 🩷 |
-| 494 | Qualification gate | ❌ | ❌ |
+| 494 | Qualification gate (built — see VIDA core) | ✅ | 🩷 |
 | — | No-show → 2 rebooks → keep the $3 (#499m) | ✅ | 🩷 |
 | 511 | Nexus learning loop | ❌ | ❌ |
 | 517 | Unified operating record | ❌ | ❌ |

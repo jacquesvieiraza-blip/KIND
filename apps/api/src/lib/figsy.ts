@@ -875,6 +875,21 @@ export async function chargeFigsyEnroll(
     }
   }
 
+  // (audit fix) DOUBLE-$3 GUARD — the $3 work credit has no per-lead dedup (unlike the $1 reveal,
+  // which #424 dedupes per client+email above). If this lead already carries a work hold (held or
+  // captured from the managed approve→hold path), the $3 is ALREADY accounted; charging again here
+  // would bill the same lead twice. Skip the figsy charge (enrollment still proceeds — the existing
+  // hold covers the work). This makes chargeFigsyEnroll idempotent w.r.t. the hold, mirroring
+  // holdFigsyCredit's own idempotency, so approve-then-enroll (any order via any path) is safe.
+  if (lead.id) {
+    const { data: existingHold } = await db.from('credit_holds')
+      .select('id').eq('client_id', clientId).eq('lead_id', lead.id).in('status', ['held', 'captured']).limit(1).maybeSingle()
+    if (existingHold) {
+      console.log(`[figsy] chargeFigsyEnroll: lead ${lead.id} already has a $3 work hold/capture — skipping duplicate work charge (client ${clientId})`)
+      return true
+    }
+  }
+
   const { data: charged, error } = await db.rpc('try_charge_figsy_credit', { p_client_id: clientId })
   // P6 — fail CLOSED: only a hard `true` from the RPC counts as a real charge. A
   // null/undefined return (RPC returned no row, or an unexpected shape) must NOT be

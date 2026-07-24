@@ -118,11 +118,32 @@
 | E11 | No-show → keep (**built via #499m** — keep + 2 rebooks; auto-detection future) | ✅ | 🩷 |
 | E12 | Payment fail → webhook | ✅ | 🩷 |
 
+## COMBINED · 🧠 NEXUS — per-client learning brain (#511, full build, phased)
+> Each client's **private** learning brain — learns on that client's results ONLY, **never shared across clients** (the fence IS the product). Builds on what already exists: `figsy_memory` (per-client), the `/internal/evals` math, the `outcome_events` data floor, and the `#517` per-lead record. **5 PRs, in order — the money-sensitive sourcing tune lands AFTER the guardrails.** Everything below is 🔴 not built.
+
+| # | Phase | Item | Main | Live |
+|---|---|---|:--:|---|
+| 511a | 0 · Foundation | `nexus_profiles` table (migration) — one versioned, fenced-by-client row: reply/meeting rate, best subjects, winning angle, best-converting persona, send-timing, objection patterns, sample size + confidence | ❌ | ❌ |
+| 511b | 0 · Foundation | `computeNexusProfile(clientId)` — deterministic per-client aggregator over outcome_events + replies + bookings + sent_emails (meeting-weighted); LLM only to summarise objections, batched | ❌ | ❌ |
+| 511c | 0 · Foundation | Nightly cron `/internal/nexus/recompute-all` — refresh every client's profile from the day's outcomes | ❌ | ❌ |
+| 511v | 1 · Signals (read) | `GET /operator/nexus?client_id=` + **Vida Nexus panel** — what's converting for this client, with honest confidence ("still learning" when thin) | ❌ | ❌ |
+| 511m | 1 · Signals (read) | **Milla "why this lead fits"** on masked cards — wires up `score_reasoning` (written today, shown to no one) + the Nexus persona profile | ❌ | ❌ |
+| 511g1 | 3 · Guardrails | **Per-client fence test** — automated proof Client A's data can never influence Client B (lands BEFORE any write-back) | ❌ | ❌ |
+| 511g2 | 3 · Guardrails | **Confidence gate** + "learning vs tuned" state — no auto-tune until N booked outcomes (never learn from noise) | ❌ | ❌ |
+| 511g3 | 3 · Guardrails | **Cost guard + founder kill-switch** — per-client compute tracked vs the $4 margin; auto-tune OFF by default per client | ❌ | ❌ |
+| 511t1 | 2 · Auto-tune | **Widen `figsy_memory` writers** (#439) — objection patterns, persona-level reply/meeting rates, angle-vs-meeting-quality (today: reply rate only) | ❌ | ❌ |
+| 511t2 | 2 · Auto-tune | **Sequences auto-tune** — enrich what `generateSequenceWithMemory` reads: persona-tuned angle + best subjects by segment (no spend change) | ❌ | ❌ |
+| 511t3 | 2 · Auto-tune | **Sourcing auto-tune** ⚠️💳 — nudge ICP scoring toward personas that actually BOOK, per-client. Changes PDL spend → co-pilot-gated + founder review, never silently autonomous | ❌ | ❌ |
+| 511f | 4 · Flywheel | **Dogfood + Milla "Nexus learned X this week"** — Client-Zero approvals sharpen our own brain; show the client their brain improving (trust + retention) | ❌ | ❌ |
+
+**Nexus build order (each = one PR):** ① 511a·511b·511c·511v·511m (Phase 0+1 — compute + surface, zero money risk, ship first) → ② 511g1·511g2·511g3 (guardrails, BEFORE any write-back) → ③ 511t1·511t2 (tune the copy — safe) → ④ 511t3 (tune targeting — money-sensitive, your review) → ⑤ 511f (flywheel).
+**Load-bearing risks:** unit economics (LLM compute vs $4 margin — batch nightly) · the fence is the product (one cross-client leak breaks the promise — tested) · auto-tune touches spend (sourcing changes = PDL spend — co-pilot-gated) · cold start (thin data reads "still learning," never a confident-but-wrong signal).
+
 ---
 
 ## What's left (the ❌ / 🚩 list)
 - **Milla:** ✅ all reds built **except 🚩 #515 magic-link + SMS** — flagged: no SMS provider configured, and no-login money approve needs a security decision.
 - **Vida:** ✅ built — #502 Engine rail · all 12 native pages (#530–#541) · #494 Qualify gate · #499 Bookings + Mark no-show · #493c gate chips · #505 blockers strip · **#499m no-show → 2 rebooks → keep the $3** · **#498b one-click sourcing w/ pool-aware confirm**. **🚩 Still flagged (not built — no backend = shell):** #511v Nexus signals.
-- **Combined (24 Jul — built this round):** ✅ **E1** stale-hold sweep (daily cron backstop) · ✅ **E9** booking retry ladder · ✅ **E7** risky-reply → escalate (+tests) · ✅ **#517** unified operating record (`/vida/record`). **E5** ruled by founder → **keep refunding** (current behaviour is the rule; no change). **Still to build:** **#511** Nexus learning loop — *its own focused build* (no backend yet). **Blocked:** auto-deploy/CI (GitHub account flagged).
+- **Combined (24 Jul — built this round):** ✅ **E1** stale-hold sweep (daily cron backstop) · ✅ **E9** booking retry ladder · ✅ **E7** risky-reply → escalate (+tests) · ✅ **#517** unified operating record (`/vida/record`). **E5** ruled by founder → **keep refunding** (current behaviour is the rule; no change). **Still to build:** **#511 Nexus** — the per-client learning brain, now scoped into 12 phased items (511a–511f) in the **COMBINED · 🧠 NEXUS** section above. 5 PRs; the money-sensitive sourcing tune (511t3) lands after the guardrails. **Blocked:** auto-deploy/CI (GitHub account flagged).
 
 **Milla old-portal exit: CLOSED** — all 11 rail/account links point to `/milla/*` native routes. **Vida old-admin exit: CLOSED** — the account-dropdown nervous-system + the rail Engine section both point to `/vida/*` native routes (12 real engine pages inside the Vida shell), and the Bookings rail link is now live.

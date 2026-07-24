@@ -225,7 +225,7 @@ export default function MillaHomePage() {
         </div>
 
         <div className="flex-1 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Your ICP <span className="text-[#9b8ec4] font-semibold text-[11px]">· versioned · approved by you</span></div>
+          <div className="px-4 py-3 border-b border-[#eee7f7] flex items-center text-[13.5px] font-bold">Your ICP <span className="text-[#9b8ec4] font-semibold text-[11px] ml-1.5">· versioned · approved by you</span><a href="/milla/icp" className="ml-auto text-[11.5px] font-bold text-[#7C3AED] hover:underline">Review / approve →</a></div>
           <div className="px-4 py-3.5">
             {!summary?.icp_versions?.length ? (
               <div className="text-[13px] text-[#9b8ec4] py-6 text-center">Your ICP is set during onboarding — it'll show here once approved.</div>

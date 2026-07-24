@@ -12,7 +12,7 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
   Power, ClipboardList, Sparkles, Users, CalendarClock, Ban, Receipt,
-  ChevronDown, LogOut,
+  ChevronDown, LogOut, Gauge, Wallet, TrendingUp, Rocket, Inbox, Brain,
 } from 'lucide-react'
 
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
@@ -25,18 +25,18 @@ type Health = { sent_today: number; replies_today: number; pending_approvals: nu
 // (The mockup also shows a "⚙ Settings" link — omitted here on purpose: there is
 // no /settings page yet, and a dead link would break the honesty rule.)
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
-  { href: '/cockpit',    label: 'Cockpit',    icon: '📟' },
-  { href: '/clients',    label: 'Clients',    icon: '👥' },
-  { href: '/money-path', label: 'Money Path', icon: '💰' },
-  { href: '/billing',    label: 'Billing',    icon: '🧾' },
-  { href: '/revenue',    label: 'Revenue',    icon: '📈' },
-  { href: '/gtm',        label: 'GTM Hub',    icon: '🚀' },
-  { href: '/unibox',     label: 'Unibox',     icon: '📥' },
-  { href: '/health',     label: 'Health',     icon: '❤️' },
-  { href: '/ops',        label: 'Ops',        icon: '🛠' },
-  { href: '/founder',    label: 'Founder',    icon: '👑' },
-  { href: '/outreach',   label: 'Outreach',   icon: '🎯' },
-  { href: '/compliance', label: 'Compliance', icon: '🛡' },
+  { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
+  { href: '/vida/clients-admin',    label: 'Clients',    icon: '👥' },
+  { href: '/vida/money-path', label: 'Money Path', icon: '💰' },
+  { href: '/vida/billing',    label: 'Billing',    icon: '🧾' },
+  { href: '/vida/revenue',    label: 'Revenue',    icon: '📈' },
+  { href: '/vida/gtm',        label: 'GTM Hub',    icon: '🚀' },
+  { href: '/vida/unibox',     label: 'Unibox',     icon: '📥' },
+  { href: '/vida/health',     label: 'Health',     icon: '❤️' },
+  { href: '/vida/ops',        label: 'Ops',        icon: '🛠' },
+  { href: '/vida/founder',    label: 'Founder',    icon: '👑' },
+  { href: '/vida/outreach',   label: 'Outreach',   icon: '🎯' },
+  { href: '/vida/compliance', label: 'Compliance', icon: '🛡' },
 ]
 
 function initials(email: string): string {
@@ -79,9 +79,21 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   const isClients = pathname === '/vida'
   const isAudit = pathname.startsWith('/vida/audit')
   const isQueue = pathname.startsWith('/vida/queue')
+  const isBookings = pathname.startsWith('/vida/bookings')
   const isSuppression = pathname.startsWith('/vida/suppression')
   const isReports = pathname.startsWith('/vida/reports')
   const pendingCount = health?.pending_approvals ?? null
+
+  // #502 — the ENGINE section, moved OUT of the account dropdown into the rail (native
+  // Vida routes, no old-admin exit). Nexus signals has no backend yet → shown as "soon",
+  // never a dead link (honesty rule). Design ref: the approved Vida blend.
+  const ENGINE_RAIL: { href: string; label: string; icon: React.ElementType }[] = [
+    { href: '/vida/cockpit',    label: 'Cockpit',    icon: Gauge },
+    { href: '/vida/money-path', label: 'Money Path', icon: Wallet },
+    { href: '/vida/revenue',    label: 'Revenue',    icon: TrendingUp },
+    { href: '/vida/gtm',        label: 'GTM Hub',    icon: Rocket },
+    { href: '/vida/unibox',     label: 'Unibox',     icon: Inbox },
+  ]
 
   const railLink = (href: string, label: string, Icon: React.ElementType, active: boolean) => (
     <Link href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
@@ -172,9 +184,16 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
                 <span className="ml-auto text-[10px] font-extrabold text-white bg-[#7C3AED] rounded-full px-1.5 py-0.5 min-w-[18px] text-center">{pendingCount}</span>
               )}
             </Link>
-            {railSoon('Bookings', CalendarClock)}
+            {railLink('/vida/bookings', 'Bookings', CalendarClock, isBookings)}
             {railLink('/vida/suppression', 'Suppression', Ban, isSuppression)}
             {railLink('/vida/reports', 'Reports & billing', Receipt, isReports)}
+          </nav>
+
+          {/* #502 ENGINE — the nervous system in the rail (native routes) */}
+          <div className="mt-4 px-3 text-[9.5px] font-extrabold uppercase tracking-[0.07em] text-[#b3a9cc]">Engine</div>
+          <nav className="mt-1.5">
+            {ENGINE_RAIL.map(item => railLink(item.href, item.label, item.icon, pathname.startsWith(item.href)))}
+            {railSoon('Nexus signals', Brain)}
           </nav>
 
           {/* Engine health — real numbers */}

@@ -85,7 +85,7 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
     // Replied = replies in the unibox for this client (real columns: classification /
     // received_at — figsy_replies has no 'sentiment'/'subject'/'created_at').
     const replied = await db.from('figsy_replies')
-      .select('id, lead_id, from_name, from_email, classification, meeting_booked_at, received_at', { count: 'exact' })
+      .select('id, lead_id, from_name, from_email, classification, meeting_booked_at, received_at, qualified_at', { count: 'exact' })
       .eq('client_id', cid).order('received_at', { ascending: false }).limit(SAMPLE)
 
     // Qualified ($4) = leads that were actually WORKED — an enrollment row exists ⟺ the
@@ -170,6 +170,34 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found or already actioned' }); return }
     res.json({ success: true, passed: true })
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
+})
+
+// ── #494 QUALIFY GATE — operator marks a reply a qualified conversation (NO SPEND) ──
+// A human judgement on a reply: the right person, real interest — distinct from the AI
+// `classification`. This is a triage marker only: it spends nothing and moves no money
+// (the $3 hold is untouched). Idempotent — marking an already-qualified reply is a no-op
+// that still returns success. Un-qualify by passing { qualified: false }.
+operatorRouter.post('/replies/:id/qualify', async (req: Request, res: Response) => {
+  try {
+    const { client_id, qualified } = (req.body ?? {}) as { client_id?: string; qualified?: boolean }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    // Scope the reply to this client so an operator can't qualify another client's reply.
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, qualified_at').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+    const setQualified = qualified !== false // default true
+    const { error } = await db.from('figsy_replies').update({
+      qualified_at: setQualified ? new Date().toISOString() : null,
+      qualified_by: setQualified ? operatorEmail(req) : null,
+    }).eq('id', req.params.id).eq('client_id', client.id)
+    if (error) throw error
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'qualify_reply',
+      subjectType: 'reply', subjectId: req.params.id, detail: { qualified: setQualified, on_behalf: true },
+    })
+    res.json({ success: true, qualified: setQualified })
+  } catch (err) { console.error('[operator/qualify]', err); res.status(500).json({ success: false, error: 'Failed to qualify reply' }) }
 })
 
 // ── #487 DRAFT-QUEUE RELEASE (operator releases a FIGSY-written draft) ──────────
@@ -393,4 +421,93 @@ operatorRouter.get('/reports', async (_req: Request, res: Response) => {
     }), { revealed: 0, qualified: 0 })
     res.json({ success: true, data: { clients: rows, totals } })
   } catch (err) { console.error('[operator/reports]', err); res.status(500).json({ success: false, error: 'Failed to load reports' }) }
+})
+
+// ── #505 LIVE BLOCKERS — the structured "what's stuck for this client right now" strip ──
+// The same three gates the command bar answers in prose, as data so the board can render a
+// live strip under the command bar (no LLM, no fabrication). Read-only, non-spend:
+//   • send_gate     — drafts waiting on the operator's Send gate (figsy_approval_queue)
+//   • money_gate    — leads sent to the client, awaiting THEIR 👍 (surfaced, not revealed)
+//   • unsent_sourced— sourced leads the operator hasn't sent to the client yet
+//   • replies_to_triage — replies in the unibox not yet qualified
+operatorRouter.get('/blockers', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.query.client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const cid = client.id
+    const [sendGate, moneyGate, unsent, triage] = await Promise.all([
+      db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('client_id', cid).eq('status', 'pending'),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', cid).not('surfaced_for_approval_at', 'is', null).is('revealed_at', null),
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', cid).is('revealed_at', null).is('surfaced_for_approval_at', null).neq('status', 'passed').in('status', ['scored', 'pending']),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', cid).is('qualified_at', null),
+    ])
+    res.json({
+      success: true,
+      data: {
+        send_gate:          sendGate.count ?? 0,
+        money_gate:         moneyGate.count ?? 0,
+        unsent_sourced:     unsent.count ?? 0,
+        replies_to_triage:  triage.count ?? 0,
+      },
+    })
+  } catch (err) { console.error('[operator/blockers]', err); res.status(500).json({ success: false, error: 'Failed to load blockers' }) }
+})
+
+// ── #499 BOOKINGS — the operator's meetings view for a client (READ) ────────────────
+// Every booking for the client (confirmed + no-show), joined to the lead for a name. This
+// is a real read of calendar_bookings — the $3-on-booking capture is unchanged. The
+// no-show → rebook×2 → keep MONEY automation is NOT here (flagged: capture-timing decision).
+operatorRouter.get('/bookings', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.query.client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const cid = client.id
+    const { data: rows } = await db.from('calendar_bookings')
+      .select('id, lead_id, meeting_title, start_time, end_time, status, meeting_link, no_show_at, created_at')
+      .eq('client_id', cid).order('start_time', { ascending: false }).limit(100)
+    const leadIds = Array.from(new Set((rows ?? []).map((b: { lead_id: string | null }) => b.lead_id).filter(Boolean))) as string[]
+    const leadNames = leadIds.length > 0
+      ? await db.from('leads').select('id, first_name, last_name, company').in('id', leadIds)
+      : { data: [] }
+    const nameById = new Map((leadNames.data ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
+    const bookings = (rows ?? []).map((b: Record<string, unknown>) => {
+      const l = nameById.get(b.lead_id as string) as Record<string, unknown> | undefined
+      return {
+        id: b.id, lead_id: b.lead_id, meeting_title: b.meeting_title, start_time: b.start_time,
+        end_time: b.end_time, status: b.status, meeting_link: b.meeting_link, no_show_at: b.no_show_at,
+        first_name: l?.first_name ?? null, last_name: l?.last_name ?? null, company: l?.company ?? null,
+      }
+    })
+    const confirmed = bookings.filter(b => b.status === 'confirmed').length
+    const noShow = bookings.filter(b => b.status === 'no_show').length
+    res.json({ success: true, client: { id: cid, company_name: client.company_name }, data: bookings, counts: { total: bookings.length, confirmed, no_show: noShow } })
+  } catch (err) { console.error('[operator/bookings]', err); res.status(500).json({ success: false, error: 'Failed to load bookings' }) }
+})
+
+// ── #499 MARK NO-SHOW — record that a booked meeting did not happen (STATE ONLY) ─────
+// Flips the booking to status='no_show' and stamps who/when. This is deliberately NON-MONEY:
+// it does NOT release or keep the $3 hold. The no-show → rebook×2 → keep/release ladder is a
+// separate, FLAGGED decision (capture already fires at booking, so "keep vs release on a
+// no-show" is a capture-timing call for the founder). Un-mark with { no_show: false }.
+operatorRouter.post('/bookings/:id/no-show', async (req: Request, res: Response) => {
+  try {
+    const { client_id, no_show } = (req.body ?? {}) as { client_id?: string; no_show?: boolean }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data: booking } = await db.from('calendar_bookings')
+      .select('id, status').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!booking) { res.status(404).json({ success: false, error: 'Booking not found' }); return }
+    const mark = no_show !== false // default true
+    const { error } = await db.from('calendar_bookings').update({
+      status: mark ? 'no_show' : 'confirmed',
+      no_show_at: mark ? new Date().toISOString() : null,
+      no_show_by: mark ? operatorEmail(req) : null,
+    }).eq('id', req.params.id).eq('client_id', client.id)
+    if (error) throw error
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'booking_no_show',
+      subjectType: 'booking', subjectId: req.params.id, detail: { no_show: mark, money_untouched: true },
+    })
+    res.json({ success: true, no_show: mark })
+  } catch (err) { console.error('[operator/no-show]', err); res.status(500).json({ success: false, error: 'Failed to update booking' }) }
 })

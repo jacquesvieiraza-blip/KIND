@@ -21,6 +21,8 @@ export type OperatorAction =
   | 'pause_campaign'        // paused/resumed a campaign
   | 'suppression_change'    // added/removed a suppression/opt-out
   | 'vida_command'          // #498 — issued a Vida command-bar instruction (no spend)
+  | 'qualify_reply'         // #494 — operator marked a reply as a qualified conversation (no spend)
+  | 'booking_no_show'       // #499 — operator marked a booking a no-show (state only; no money automation yet)
 
 export interface OperatorAuditEntry {
   operatorEmail: string

@@ -27,7 +27,7 @@ type NeedsApprovalCard = {
   leads?: LeadJoin
 }
 type SendingCard = { id: string; lead_id: string; current_step: number | null; total_steps: number | null; status: string | null; next_send_at: string | null }
-type RepliedCard = { id: string; lead_id: string; from_name: string | null; from_email: string | null; classification: string | null; received_at: string | null }
+type RepliedCard = { id: string; lead_id: string; from_name: string | null; from_email: string | null; classification: string | null; received_at: string | null; qualified_at: string | null }
 type QualifiedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; email: string | null; score: number | null }
 type BookedCard = { id: string; lead_id: string; start_time: string | null; first_name: string | null; last_name: string | null; company: string | null }
 
@@ -45,6 +45,7 @@ type Board = {
 
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
+type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
 
 // #501 — the 8-step operating flow, shown as a status ribbon across the top of the console.
 const FLOW = ['Sign up', 'Build plan', 'Approve send', 'Qualify', 'Client approves', 'Follow-up', 'Book', 'Learn']
@@ -60,14 +61,24 @@ function fullName(f: string | null, l: string | null): string {
   return [f, l].filter(Boolean).join(' ').trim() || 'Unknown lead'
 }
 
-// column shell
-function Col({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+// column shell. #493c — an optional GATE chip names the human/money gate this column sits
+// behind (Send gate = operator releases the draft · Money gate = client's own $1+$3 👍 ·
+// Qualify = operator judgement · $3 captured = booking confirmed). Purely informational.
+function Col({ title, count, gate, children }: { title: string; count: number; gate?: { label: string; tone: 'send' | 'money' | 'qualify' | 'done' }; children: React.ReactNode }) {
+  const gateStyle: Record<string, string> = {
+    send:    'text-[#b45309] bg-[#fef3c7] border-[#fde68a]',
+    money:   'text-[#7C3AED] bg-[#f3ecff] border-[#e4d4fb]',
+    qualify: 'text-[#0369a1] bg-[#e0f2fe] border-[#bae6fd]',
+    done:    'text-emerald-700 bg-emerald-50 border-emerald-200',
+  }
   return (
     <div className="w-[210px] shrink-0">
-      <div className="flex justify-between items-center text-[11px] tracking-[0.05em] uppercase text-[#9b8ec4] font-bold mb-2.5 px-0.5">
+      <div className="flex justify-between items-center text-[11px] tracking-[0.05em] uppercase text-[#9b8ec4] font-bold mb-1 px-0.5">
         <span>{title}</span>
         <em className="not-italic text-[#1f1235] bg-[#efeafc] rounded-[10px] px-1.5">{count}</em>
       </div>
+      {gate && <div className={`inline-block text-[9.5px] font-bold rounded-full px-2 py-0.5 mb-2 border ${gateStyle[gate.tone]}`}>{gate.label}</div>}
+      {!gate && <div className="mb-2" />}
       {children}
     </div>
   )
@@ -89,6 +100,7 @@ export default function VidaConsolePage() {
   const toggleDraft = (id: string) => setOpenDrafts(s => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   const [status, setStatus] = useState<Status | null>(null)
+  const [blockers, setBlockers] = useState<Blockers | null>(null)
   const [cmd, setCmd] = useState('')
   const [cmdLog, setCmdLog] = useState<CmdMsg[]>([])
   const [cmdBusy, setCmdBusy] = useState(false)
@@ -144,6 +156,9 @@ export default function VidaConsolePage() {
     } catch (e) {
       setBoard(null); setBoardError(e instanceof Error ? e.message : 'Failed to load board')
     } finally { setBoardLoading(false) }
+    // #505 — live blockers strip. Best-effort: a blockers failure never breaks the board.
+    fetch(`/api/proxy/operator/blockers?client_id=${encodeURIComponent(clientId)}`)
+      .then(r => r.json()).then(j => setBlockers(j?.success ? j.data : null)).catch(() => setBlockers(null))
   }, [])
 
   useEffect(() => {
@@ -185,6 +200,23 @@ export default function VidaConsolePage() {
       if (!res.ok || !json?.success) throw new Error(json?.error || `Action failed (${res.status})`)
       if (kind === 'approve' && json.sent === false && json.note) setBoardError(json.note)
       else setBoardError(null)
+      await loadBoard(selected)
+    } catch (e) {
+      setBoardError(e instanceof Error ? e.message : 'Action failed')
+    } finally { setActing(null) }
+  }
+
+  // #494 Qualify gate — mark a reply a qualified conversation (operator judgement, NO SPEND).
+  // Idempotent toggle; refreshes the board so the ✓ chip + blockers count update.
+  async function qualifyReply(replyId: string, qualified: boolean) {
+    if (!selected) return
+    setActing(replyId)
+    try {
+      const res = await fetch(`/api/proxy/operator/replies/${encodeURIComponent(replyId)}/qualify`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ client_id: selected, qualified }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Action failed (${res.status})`)
       await loadBoard(selected)
     } catch (e) {
       setBoardError(e instanceof Error ? e.message : 'Action failed')
@@ -339,6 +371,28 @@ export default function VidaConsolePage() {
               </div>
             </div>
 
+            {/* #505 LIVE BLOCKERS strip — real gate counts for this client, no LLM */}
+            {blockers && (
+              <div className="shrink-0 mx-[22px] mt-2.5 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc]">Blockers</span>
+                {([
+                  ['Send gate', blockers.send_gate, 'drafts awaiting your approval', '#b45309', '#fef3c7'],
+                  ['Money gate', blockers.money_gate, 'sent to client, awaiting their 👍', '#7C3AED', '#f3ecff'],
+                  ['Unsent sourced', blockers.unsent_sourced, "sourced, not yet sent", '#5c5279', '#efeafc'],
+                  ['To triage', blockers.replies_to_triage, 'replies not yet qualified', '#0369a1', '#e0f2fe'],
+                ] as [string, number, string, string, string][]).map(([label, n, title, fg, bg]) => (
+                  <span key={label} title={title}
+                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2.5 py-1 border"
+                    style={{ color: n > 0 ? fg : '#b3a9cc', background: n > 0 ? bg : '#f7f4fd', borderColor: n > 0 ? bg : '#eee7f7' }}>
+                    <b className="text-[12px]">{n}</b> {label}
+                  </span>
+                ))}
+                {blockers.send_gate + blockers.money_gate + blockers.unsent_sourced + blockers.replies_to_triage === 0 && (
+                  <span className="text-[11px] font-semibold text-emerald-600">All clear · nothing waiting on you</span>
+                )}
+              </div>
+            )}
+
             <div className="px-[22px] pt-4 pb-1">
               <b className="text-[15px]">{selectedClient?.company_name || board?.client.company_name || 'Client'} — campaign pipeline</b>
               <span className="block text-[11.5px] text-[#9b8ec4]">Every stage FIGSY moves a lead through · human gate before send</span>
@@ -348,7 +402,7 @@ export default function VidaConsolePage() {
             {cols && (
               <div className="flex-1 overflow-x-auto flex gap-3 px-[22px] py-3.5">
                 {/* Sourced */}
-                <Col title="Sourced" count={cols.sourced.count}>
+                <Col title="Sourced" count={cols.sourced.count} gate={{ label: '→ your send', tone: 'send' }}>
                   {cols.sourced.cards.length === 0 ? <EmptyCol /> : cols.sourced.cards.map(c => (
                     <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
@@ -362,7 +416,7 @@ export default function VidaConsolePage() {
                   ))}
                 </Col>
                 {/* Needs approval */}
-                <Col title="Needs approval" count={cols.needs_approval.count}>
+                <Col title="Needs approval" count={cols.needs_approval.count} gate={{ label: '🔒 Send gate', tone: 'send' }}>
                   {cols.needs_approval.cards.length === 0 ? <EmptyCol /> : cols.needs_approval.cards.map(c => {
                     const nm = fullName(c.leads?.first_name ?? null, c.leads?.last_name ?? null)
                     const open = openDrafts.has(c.id)
@@ -393,17 +447,32 @@ export default function VidaConsolePage() {
                     </div>
                   ))}
                 </Col>
-                {/* Replied */}
-                <Col title="Replied" count={cols.replied.count}>
-                  {cols.replied.cards.length === 0 ? <EmptyCol /> : cols.replied.cards.map(c => (
-                    <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
-                      <b className="text-[12.5px] block truncate">{c.from_name || c.from_email || 'Reply'}</b>
-                      <span className="text-[11px] text-[#9b8ec4]">{c.classification || 'reply'}</span>
-                    </div>
-                  ))}
+                {/* Replied — #494 operator Qualify gate (non-spend) */}
+                <Col title="Replied" count={cols.replied.count} gate={{ label: '✓ Qualify gate', tone: 'qualify' }}>
+                  {cols.replied.cards.length === 0 ? <EmptyCol /> : cols.replied.cards.map(c => {
+                    const isQualified = !!c.qualified_at
+                    return (
+                      <div key={c.id} className={`bg-white border rounded-xl p-2.5 mb-2.5 ${isQualified ? 'border-emerald-200' : 'border-[#eee7f7]'}`}>
+                        <b className="text-[12.5px] block truncate">{c.from_name || c.from_email || 'Reply'}</b>
+                        <span className="text-[11px] text-[#9b8ec4]">{c.classification || 'reply'}</span>
+                        {isQualified ? (
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-[10.5px] font-bold text-emerald-600">✓ Qualified</span>
+                            <button disabled={acting === c.id} onClick={() => qualifyReply(c.id, false)}
+                              className="text-[10px] font-semibold text-[#9b8ec4] hover:text-[#5c5279] disabled:opacity-50">Undo</button>
+                          </div>
+                        ) : (
+                          <button disabled={acting === c.id} onClick={() => qualifyReply(c.id, true)}
+                            className="w-full mt-2 text-[11px] font-bold text-[#059669] rounded-lg py-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50">
+                            {acting === c.id ? '…' : '✓ Mark qualified'}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
                 </Col>
                 {/* Qualified $4 */}
-                <Col title="Qualified · $3 held" count={cols.qualified.count}>
+                <Col title="Qualified · $3 held" count={cols.qualified.count} gate={{ label: '💳 Money gate', tone: 'money' }}>
                   {cols.qualified.cards.length === 0 ? <EmptyCol /> : cols.qualified.cards.map(c => (
                     <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
@@ -412,7 +481,7 @@ export default function VidaConsolePage() {
                   ))}
                 </Col>
                 {/* Booked · $3 captured */}
-                <Col title="Booked · $3 captured" count={cols.booked.count}>
+                <Col title="Booked · $3 captured" count={cols.booked.count} gate={{ label: '$3 captured', tone: 'done' }}>
                   {cols.booked.cards.length === 0 ? <EmptyCol /> : cols.booked.cards.map(c => (
                     <div key={c.id} className="bg-white border border-emerald-200 rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>

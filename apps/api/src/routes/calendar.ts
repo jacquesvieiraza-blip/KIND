@@ -107,17 +107,35 @@ async function performBooking(params: {
     if (!free) {
       return { ok: false, status: 409, error: 'That time was just taken — please pick another slot.' }
     }
-    const created = await createMeeting({
-      accessToken:  client.google_calendar_access_token,
-      refreshToken: client.google_calendar_refresh_token,
-      leadEmail:    lead.email,
-      leadName,
-      clientEmail,
-      title,
-      start:        params.start,
-      end:          params.end,
-      description:  `Meeting arranged via K.I.N.D FIGSY AI SDR.\nCompany: ${client.company_name ?? ''}`,
-    })
+    // E9 — RETRY LADDER. A booking is the highest-value outcome (#17b) — a transient Google
+    // hiccup (5xx, rate-limit, network blip) must not lose it. Retry up to 3 attempts with
+    // backoff. An AUTH error (disconnected calendar) is NOT transient → break immediately and
+    // fail closed. A taken slot already returned 409 above, so it never reaches here.
+    let created: Awaited<ReturnType<typeof createMeeting>> | null = null
+    let lastErr: unknown = null
+    const BACKOFF_MS = [0, 600, 1800]
+    for (let attempt = 0; attempt < BACKOFF_MS.length; attempt++) {
+      if (BACKOFF_MS[attempt] > 0) await new Promise(r => setTimeout(r, BACKOFF_MS[attempt]))
+      try {
+        created = await createMeeting({
+          accessToken:  client.google_calendar_access_token,
+          refreshToken: client.google_calendar_refresh_token,
+          leadEmail:    lead.email,
+          leadName,
+          clientEmail,
+          title,
+          start:        params.start,
+          end:          params.end,
+          description:  `Meeting arranged via K.I.N.D FIGSY AI SDR.\nCompany: ${client.company_name ?? ''}`,
+        })
+        break // success
+      } catch (err) {
+        lastErr = err
+        if (isGoogleAuthError(err)) break // not transient — stop retrying, handled below
+        console.error(`[calendar/performBooking] createMeeting attempt ${attempt + 1}/${BACKOFF_MS.length} failed:`, err)
+      }
+    }
+    if (!created) throw lastErr ?? new Error('createMeeting failed')
     meetLink = created.meetLink
     eventId  = created.eventId
   } catch (err) {
@@ -125,7 +143,7 @@ async function performBooking(params: {
       await markDisconnected(params.clientId)
       return { ok: false, status: 400, error: 'Google Calendar is not connected.' }
     }
-    console.error('[calendar/performBooking] createMeeting failed:', err)
+    console.error('[calendar/performBooking] createMeeting failed after retries:', err)
     return { ok: false, status: 502, error: 'Could not create the calendar event — please try again.' }
   }
 

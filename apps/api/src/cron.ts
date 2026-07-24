@@ -133,6 +133,10 @@ export function startCrons(): void {
   // Hourly — #358 (F4): re-score leads left UNSCORED by a transient AI-scoring failure
   cron.schedule('20 * * * *', () => callInternal('/figsy/rescore-stranded'), { timezone: 'UTC' })
 
+  // Daily 03:30 UTC — E1: reclaim any $3 work-credit held past its TTL (fail-safe backstop
+  // so a client's credit can never be trapped by a stalled/ambiguous enrollment).
+  cron.schedule('30 3 * * *', () => callInternal('/figsy/sweep-stale-holds'), { timezone: 'UTC' })
+
   // Monday 07:00 UTC — weekly client leads digest
   cron.schedule('0 7 * * 1', () => callInternal('/digest/weekly'), { timezone: 'UTC' })
 

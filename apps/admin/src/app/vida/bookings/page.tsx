@@ -180,6 +180,7 @@ export default function VidaBookingsPage() {
                           {[b.company, b.meeting_title].filter(Boolean).join(' · ') || '—'}
                           {used > 0 && <span className="text-[#b45309] font-semibold"> · rebooked {used}/2</span>}
                         </span>
+                        {b.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(b.lead_id)}`} className="text-[10.5px] font-bold text-[#7C3AED] hover:underline">Record →</a>}
                       </div>
                       <div className="text-right shrink-0">
                         <span className={`text-[12px] font-semibold block ${noShow ? 'text-amber-600' : 'text-emerald-600'}`}>{fmtWhen(b.start_time)}</span>

@@ -560,6 +560,7 @@ export default function VidaConsolePage() {
                     <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
                       <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
                       <span className="text-[11px] text-[#9b8ec4] truncate block">{c.company || c.email || '—'}</span>
+                      <a href={`/vida/record?lead_id=${encodeURIComponent(c.id)}`} className="text-[10.5px] font-bold text-[#7C3AED] hover:underline mt-1 inline-block">Record →</a>
                     </div>
                   ))}
                 </Col>
@@ -572,6 +573,7 @@ export default function VidaConsolePage() {
                       <span className="text-[10.5px] text-emerald-600 font-semibold block mt-0.5">
                         {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
                       </span>
+                      {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="text-[10.5px] font-bold text-[#7C3AED] hover:underline mt-1 inline-block">Record →</a>}
                     </div>
                   ))}
                 </Col>

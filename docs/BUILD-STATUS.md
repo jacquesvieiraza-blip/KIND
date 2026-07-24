@@ -18,32 +18,35 @@
 | 486 | Operator identity + audit | ✅ | 🩷 |
 | 485 | Kill-switch + cap + health | ✅ | 🩷 |
 | 493 | Send-to-client / gate labels / Booked·$3 | ✅ | ⏳ |
+| 493c | Gate chips on board columns (Send/Qualify/Money/$3) | ✅ | ⏳ |
 | 501 | Flow ribbon | ✅ | 🟢 |
 | 500 | KPI cards | ✅ | 🟢 |
 | 498 | Command bar | ✅ | 🟢 |
+| 505 | Live blockers strip (real gate counts) | ✅ | ⏳ |
 | 496 | Escape hatch (interim) | ✅ | ⏳ |
 | 1124 | Board loads a client (proxy client_id fix) | ✅ | ⏳ stuck — ships on ship.sh |
-| 494 | Qualify gate ("Mark qualified") | ❌ | ❌ |
-| 499 | Bookings page + no-show×2 | ❌ | ❌ |
-| 498b | One-click sourcing from command bar | ❌ | ❌ |
-| 511v | Nexus signals view | ❌ | ❌ |
+| 494 | Qualify gate ("Mark qualified" on Replied) | ✅ | ⏳ |
+| 499 | Bookings page + Mark no-show (state) | ✅ | ⏳ |
+| 499m | No-show → rebook×2 → keep/release MONEY rule | 🚩 | **FLAGGED — capture-timing founder call** |
+| 498b | One-click sourcing from command bar | 🚩 | **FLAGGED — money-sensitive; needs design call** |
+| 511v | Nexus signals view | 🚩 | **FLAGGED — no Nexus backend = would be a shell** |
 
 ## VIDA — native rebuilds (kill the dropdown → old-admin exit)
 | # | Item | Main | Live |
 |---|---|:--:|---|
-| 502 | Engine rail in-shell (umbrella — move dropdown into Vida rail) | ❌ | ❌ |
-| 530 | Cockpit — Vida-native | ❌ | ❌ |
-| 531 | Clients (admin) — Vida-native | ❌ | ❌ |
-| 532 | Money Path — Vida-native | ❌ | ❌ |
-| 533 | Billing — Vida-native | ❌ | ❌ |
-| 534 | Revenue — Vida-native | ❌ | ❌ |
-| 535 | GTM Hub — Vida-native | ❌ | ❌ |
-| 536 | Unibox — Vida-native | ❌ | ❌ |
-| 537 | Health — Vida-native | ❌ | ❌ |
-| 538 | Ops — Vida-native | ❌ | ❌ |
-| 539 | Founder — Vida-native | ❌ | ❌ |
-| 540 | Outreach — Vida-native | ❌ | ❌ |
-| 541 | Compliance — Vida-native | ❌ | ❌ |
+| 502 | Engine rail in-shell (dropdown → rail Engine section + native routes) | ✅ | ⏳ |
+| 530 | Cockpit — Vida-native | ✅ | ⏳ |
+| 531 | Clients (admin) — Vida-native | ✅ | ⏳ |
+| 532 | Money Path — Vida-native | ✅ | ⏳ |
+| 533 | Billing — Vida-native | ✅ | ⏳ |
+| 534 | Revenue — Vida-native | ✅ | ⏳ |
+| 535 | GTM Hub — Vida-native | ✅ | ⏳ |
+| 536 | Unibox — Vida-native | ✅ | ⏳ |
+| 537 | Health — Vida-native | ✅ | ⏳ |
+| 538 | Ops — Vida-native | ✅ | ⏳ |
+| 539 | Founder — Vida-native | ✅ | ⏳ |
+| 540 | Outreach — Vida-native | ✅ | ⏳ |
+| 541 | Compliance — Vida-native | ✅ | ⏳ |
 
 ## MILLA — client console (core)
 | # | Item | Main | Live for you |
@@ -117,9 +120,9 @@
 
 ---
 
-## What's left (the ❌ list)
-- **Milla:** ✅ all reds built tonight **except 🚩 #515 magic-link + SMS** — flagged: no SMS provider configured, and no-login money approve needs a security decision. Everything else ships on `ship.sh`.
-- **Vida:** #494 Qualify gate · #499 Bookings + no-show · #498b 1-click sourcing · #511v Nexus view · **12 native pages** (#502, #530–#541)
-- **Combined:** #494 qualification gate · #511 Nexus loop · #517 unified record · off-ramps E5/E7 (+ finish E1/E9/E11)
+## What's left (the ❌ / 🚩 list)
+- **Milla:** ✅ all reds built **except 🚩 #515 magic-link + SMS** — flagged: no SMS provider configured, and no-login money approve needs a security decision.
+- **Vida:** ✅ built this round — #502 Engine rail · all 12 native pages (#530–#541) · #494 Qualify gate · #499 Bookings + Mark no-show · #493c gate chips · #505 blockers strip. **🚩 Flagged (NOT built — need a founder call, not shells):** #499m no-show→rebook×2→keep/release money rule (capture-timing decision) · #498b one-click sourcing (money-sensitive) · #511v Nexus signals (no backend).
+- **Combined:** #511 Nexus loop · #517 unified record · off-ramps E5/E7 (+ finish E1/E9/E11)
 
-**Milla old-portal exit: CLOSED** — all 11 rail/account links now point to `/milla/*` native routes (real pages inside the Milla shell). **Vida still has its 12.**
+**Milla old-portal exit: CLOSED** — all 11 rail/account links point to `/milla/*` native routes. **Vida old-admin exit: CLOSED** — the account-dropdown nervous-system + the rail Engine section both point to `/vida/*` native routes (12 real engine pages inside the Vida shell), and the Bookings rail link is now live.

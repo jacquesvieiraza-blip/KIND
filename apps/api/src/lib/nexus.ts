@@ -46,8 +46,11 @@ export async function computeNexusProfile(clientId: string): Promise<NexusProfil
   const repliedLeadIds = new Set(replyRows.map(r => r.lead_id).filter(Boolean) as string[])
   const bookedLeadIds = Array.from(new Set(((bookings.data ?? []) as { lead_id: string | null }[]).map(r => r.lead_id).filter(Boolean) as string[]))
 
-  const replyRate = sampleWorked > 0 ? repliedLeadIds.size / sampleWorked : 0
-  const meetingRate = sampleWorked > 0 ? bookedLeadIds.length / sampleWorked : 0
+  // Clamp to [0,1] — sampleWorked is the exact enrollment count while replied/booked come from
+  // bounded fetches, and replies can exist for leads without an enrollment row, so the raw ratio
+  // can slightly exceed 1; a rate >100% would read as a bug to the operator.
+  const replyRate = sampleWorked > 0 ? Math.min(1, repliedLeadIds.size / sampleWorked) : 0
+  const meetingRate = sampleWorked > 0 ? Math.min(1, bookedLeadIds.length / sampleWorked) : 0
 
   // Objections = non-positive reply classifications, counted. What this market pushes back with.
   const objMap = new Map<string, number>()
@@ -62,8 +65,11 @@ export async function computeNexusProfile(clientId: string): Promise<NexusProfil
   // outcome), the most common seniority / industry / title. Falls back to null on thin data.
   let topPersona: NexusProfile['top_persona'] = {}
   if (bookedLeadIds.length > 0) {
+    // THE FENCE, explicit — scope to THIS client's leads (belt-and-braces on top of the
+    // client-scoped bookedLeadIds), so a mis-attributed booking can never pull another
+    // client's persona into this brain. The fence is a filter, not an assumption.
     const { data: bookedLeads } = await db.from('leads')
-      .select('seniority, industry, job_title').in('id', bookedLeadIds).limit(2000)
+      .select('seniority, industry, job_title').eq('client_id', clientId).in('id', bookedLeadIds).limit(2000)
     const sen = new Map<string, number>(), ind = new Map<string, number>(), tit = new Map<string, number>()
     for (const l of (bookedLeads ?? []) as { seniority: string | null; industry: string | null; job_title: string | null }[]) {
       if (l.seniority) sen.set(l.seniority, (sen.get(l.seniority) ?? 0) + 1)

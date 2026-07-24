@@ -120,7 +120,10 @@ export default function VidaConsolePage() {
   // the requested count (default 20) or null if the text isn't a sourcing command.
   function parseSourceIntent(t: string): number | null {
     const lc = t.toLowerCase()
-    if (!/\b(source|find|pull|prospect)\b/.test(lc)) return null
+    // (audit fix) Require a sourcing verb AND a lead/prospect noun, so ordinary commands
+    // ("find the CEO's email", "pull up the last reply") aren't hijacked into the pool-cost
+    // confirm. Only phrasing like "source 20 leads" / "find leads" routes to sourcing.
+    if (!/\b(source|find|pull|get|prospect)\b/.test(lc) || !/\b(lead|leads|prospect|prospects)\b/.test(lc)) return null
     const m = lc.match(/(\d{1,3})/)
     return m ? Math.max(1, Math.min(200, parseInt(m[1], 10))) : 20
   }
@@ -443,7 +446,7 @@ export default function VidaConsolePage() {
                             className="text-[12px] font-bold text-white rounded-lg py-1.5 px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
                             {srcBusy ? 'Sourcing…' : `Confirm · source ${srcPreview.count}`}
                           </button>
-                          <button disabled={srcBusy} onClick={() => setSrcPreview(null)}
+                          <button disabled={srcBusy} onClick={() => { setSrcPreview(null); setSrcResult(null) }}
                             className="text-[12px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-4 border border-[#ece5fb] bg-white disabled:opacity-50">Cancel</button>
                         </div>
                       </>

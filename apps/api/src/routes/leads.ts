@@ -291,7 +291,7 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
     const nowIso = now.toISOString()
 
-    const [{ data: client }, awaiting, meetings, campaign, replies, icps] = await Promise.all([
+    const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal] = await Promise.all([
       db.from('clients').select('credit_balance, figsy_credits_remaining').eq('id', clientId).maybeSingle(),
       // mirrors /for-approval — the exact set of masked cards the client can act on
       db.from('leads').select('id', { count: 'exact', head: true })
@@ -307,6 +307,11 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
       // #495 — each icps row is a version; oldest = v1. Real history, no fabrication.
       db.from('icps').select('name, industries, geographies, seniority_levels, company_sizes, job_titles, created_at')
         .eq('client_id', clientId).order('created_at', { ascending: true }).limit(12),
+      // (audit fix) REAL all-time counts for the report — the reports page was deriving these
+      // from a 50-row ledger slice / a 4-row replies rail, so healthy accounts under-counted.
+      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
+      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'confirmed'),
     ])
 
     const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
@@ -331,6 +336,12 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
         work_credits:    (client as Record<string, number> | null)?.figsy_credits_remaining ?? 0,
         leads_awaiting:  awaiting.count ?? 0,
         meetings_booked: meetings.count ?? 0,
+        // Real all-time totals + true $ spend (reveals × $1 + confirmed bookings × $3). Released
+        // holds are NOT spend, so this never overstates like a raw ledger sum did.
+        leads_approved_total: approvedTotal.count ?? 0,
+        replies_total:        repliesTotal.count ?? 0,
+        meetings_total:       meetingsTotal.count ?? 0,
+        spend_usd:            (approvedTotal.count ?? 0) * 1 + (meetingsTotal.count ?? 0) * 3,
         active_campaign: (campaign.data as { name?: string } | null)?.name ?? null,
         recent_replies:  (replies.data ?? []).map((r: Record<string, unknown>) => ({
           name: (r.from_name as string | null) ?? (r.from_email as string | null) ?? 'Reply',
@@ -353,7 +364,8 @@ leadRouter.get('/nexus-summary', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { getNexusProfile } = await import('../lib/nexus')
     const p = await getNexusProfile(clientId)
-    const persona = [p.top_persona.job_title, p.top_persona.seniority, p.top_persona.industry].filter(Boolean).join(' · ')
+    const tp = p.top_persona ?? {}
+    const persona = [tp.job_title, tp.seniority, tp.industry].filter(Boolean).join(' · ')
     res.json({
       success: true,
       data: {
@@ -362,7 +374,7 @@ leadRouter.get('/nexus-summary', async (req: AuthRequest, res) => {
         meeting_rate: p.meeting_rate,
         sample_worked: p.sample_worked,
         top_persona: persona || null,
-        winning_subjects: p.best_subjects.length,
+        winning_subjects: (p.best_subjects ?? []).length,
         // A friendly one-liner for the card — honest about thin data.
         learned: p.sample_worked < 20
           ? 'Milla is still learning what works best for you.'
@@ -386,7 +398,7 @@ leadRouter.get('/meetings', async (req: AuthRequest, res) => {
       .order('start_time', { ascending: false }).limit(100)
     const leadIds = Array.from(new Set((rows ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
     const { data: leadRows } = leadIds.length
-      ? await db.from('leads').select('id, first_name, last_name, company, email').in('id', leadIds)
+      ? await db.from('leads').select('id, first_name, last_name, company, email').eq('client_id', clientId).in('id', leadIds)
       : { data: [] }
     const byId = new Map((leadRows ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
     const meetings = (rows ?? []).map((b: Record<string, unknown>) => {

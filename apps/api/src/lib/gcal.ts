@@ -2,6 +2,8 @@
 // pulling googleapis into the build graph (it triggers native apt deps on Railway).
 // Re-add googleapis to package.json when Google Calendar goes live.
 
+import { createHash } from 'crypto'
+
 const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? ''
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ''
 const REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI  ??
@@ -182,35 +184,56 @@ export async function createMeeting(params: {
   accessToken:  string; refreshToken: string; leadEmail: string
   leadName:     string; clientEmail:  string; title:     string
   start:        string; end:          string; description: string
+  idempotencyKey?: string   // (audit fix) stable across retries → deterministic event id
 }): Promise<{ eventId: string; meetLink: string | null }> {
   const google = await loadGoogle()
   const auth     = await getCalendarClient(params.accessToken, params.refreshToken)
   const calendar = google.calendar({ version: 'v3', auth })
 
-  const { data: event } = await calendar.events.insert({
-    calendarId:            'primary',
-    conferenceDataVersion: 1,
-    sendUpdates:           'all',
-    requestBody: {
-      summary:     params.title,
-      description: params.description,
-      start:       { dateTime: params.start },
-      end:         { dateTime: params.end },
-      attendees: [
-        { email: params.leadEmail, displayName: params.leadName },
-        { email: params.clientEmail },
-      ],
-      conferenceData: {
-        createRequest: {
-          requestId:             `kind-${Date.now()}`,
-          conferenceSolutionKey: { type: 'hangoutsMeet' },
+  const meetLinkOf = (event: { conferenceData?: { entryPoints?: { entryPointType: string; uri?: string }[] } }) =>
+    event.conferenceData?.entryPoints?.find((ep) => ep.entryPointType === 'video')?.uri ?? null
+
+  // #E9/M4 IDEMPOTENCY — when a caller supplies an idempotencyKey, derive a DETERMINISTIC event
+  // id (sha1 hex = 0-9a-f ⊂ Google's base32hex id charset) and a stable conference requestId.
+  // A retry after a transient post-commit failure re-inserts the SAME id → Google returns 409
+  // "already exists" instead of creating a duplicate; we then GET that event and return it. So
+  // the retry ladder can never create two calendar events / two invites for one booking.
+  const eventId = params.idempotencyKey
+    ? createHash('sha1').update(params.idempotencyKey).digest('hex')
+    : undefined
+  const requestId = eventId ? `kind-${eventId.slice(0, 24)}` : `kind-${Date.now()}`
+
+  try {
+    const { data: event } = await calendar.events.insert({
+      calendarId:            'primary',
+      conferenceDataVersion: 1,
+      sendUpdates:           'all',
+      requestBody: {
+        ...(eventId ? { id: eventId } : {}),
+        summary:     params.title,
+        description: params.description,
+        start:       { dateTime: params.start },
+        end:         { dateTime: params.end },
+        attendees: [
+          { email: params.leadEmail, displayName: params.leadName },
+          { email: params.clientEmail },
+        ],
+        conferenceData: {
+          createRequest: { requestId, conferenceSolutionKey: { type: 'hangoutsMeet' } },
         },
       },
-    },
-  })
-
-  return {
-    eventId:  event.id ?? '',
-    meetLink: event.conferenceData?.entryPoints?.find((ep: { entryPointType: string; uri?: string }) => ep.entryPointType === 'video')?.uri ?? null,
+    })
+    return { eventId: event.id ?? '', meetLink: meetLinkOf(event) }
+  } catch (err) {
+    // Duplicate deterministic id (409) = the event already landed on a prior attempt. Fetch it
+    // and return it as success rather than erroring — this is exactly what makes the retry safe.
+    const status = (err as { code?: number; status?: number })?.code ?? (err as { status?: number })?.status
+    if (eventId && (status === 409 || status === 200)) {
+      try {
+        const { data: existing } = await calendar.events.get({ calendarId: 'primary', eventId })
+        return { eventId: existing.id ?? eventId, meetLink: meetLinkOf(existing) }
+      } catch { /* fall through to rethrow below */ }
+    }
+    throw err
   }
 }

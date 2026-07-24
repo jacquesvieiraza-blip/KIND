@@ -602,9 +602,19 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
     // Subtract what the client already owns (the dominant real filter). Bounded to this client.
     let poolFree = 0
     if (candEmails.length > 0) {
+      // (audit fix) Mirror the REAL pool serve (icps.ts servePoolLeads): a candidate is only
+      // pool-eligible if the client doesn't already own it AND it's not opted-out AND not on the
+      // do-not-contact suppression floor. Subtracting only owned emails over-stated pool_free and
+      // under-stated the PDL cost the operator confirms — the opposite of a conservative floor.
+      const { isSuppressed } = await import('../lib/suppression')
       const { data: ownedRows } = await db.from('leads').select('email').eq('client_id', cid).not('email', 'is', null)
       const owned = new Set(((ownedRows ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
-      const freshPool = candEmails.filter(e => !owned.has(e.trim().toLowerCase()))
+      const { data: blockedRows } = await db.from('opt_out_blocklist').select('email').is('opted_back_in_at', null).in('email', candEmails)
+      const blocked = new Set(((blockedRows ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
+      const freshPool = candEmails.filter(e => {
+        const norm = e.trim().toLowerCase()
+        return !owned.has(norm) && !blocked.has(norm) && !isSuppressed({ email: norm })
+      })
       poolFree = Math.min(freshPool.length, count)
     }
     const pdlNeeded = isDemo ? 0 : Math.max(0, count - poolFree) // demo never hits PDL

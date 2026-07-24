@@ -176,9 +176,9 @@ export default function VidaNexusPage() {
                 <div className="mt-5 grid sm:grid-cols-2 gap-3">
                   <div className="bg-white border border-[#eee7f7] rounded-xl p-4">
                     <div className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] mb-2">Top-converting persona</div>
-                    {nexus.top_persona.seniority || nexus.top_persona.industry || nexus.top_persona.job_title ? (
+                    {nexus.top_persona?.seniority || nexus.top_persona?.industry || nexus.top_persona?.job_title ? (
                       <div className="flex flex-wrap gap-1.5">
-                        {[nexus.top_persona.job_title, nexus.top_persona.seniority, nexus.top_persona.industry].filter(Boolean).map((v, i) => (
+                        {[nexus.top_persona?.job_title, nexus.top_persona?.seniority, nexus.top_persona?.industry].filter(Boolean).map((v, i) => (
                           <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">{v}</span>
                         ))}
                       </div>
@@ -193,9 +193,9 @@ export default function VidaNexusPage() {
                 {/* subjects */}
                 <div className="mt-3 bg-white border border-[#eee7f7] rounded-xl p-4">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] mb-2">Subjects that win replies</div>
-                  {nexus.best_subjects.length ? (
+                  {(nexus.best_subjects ?? []).length ? (
                     <ul className="space-y-1">
-                      {nexus.best_subjects.map((s, i) => <li key={i} className="text-[12.5px] text-[#1f1235]">“{s}”</li>)}
+                      {(nexus.best_subjects ?? []).map((s, i) => <li key={i} className="text-[12.5px] text-[#1f1235]">“{s}”</li>)}
                     </ul>
                   ) : <p className="text-[12px] text-[#9b8ec4]">No standout subject yet.</p>}
                 </div>
@@ -203,9 +203,9 @@ export default function VidaNexusPage() {
                 {/* objections */}
                 <div className="mt-3 bg-white border border-[#eee7f7] rounded-xl p-4">
                   <div className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] mb-2">What this market pushes back with</div>
-                  {nexus.objections.length ? (
+                  {(nexus.objections ?? []).length ? (
                     <div className="flex flex-wrap gap-1.5">
-                      {nexus.objections.map((o, i) => (
+                      {(nexus.objections ?? []).map((o, i) => (
                         <span key={i} className="text-[11.5px] font-semibold text-[#5c5279] bg-[#f7f4fd] border border-[#ece5fb] rounded-full px-2.5 py-1">{o.class.replace(/_/g, ' ')} · {o.count}</span>
                       ))}
                     </div>

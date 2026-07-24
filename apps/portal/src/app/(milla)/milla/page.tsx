@@ -93,6 +93,11 @@ export default function MillaHomePage() {
     } catch (e) {
       const err = e as Error & { status?: number }
       if (err.status === 402) setTopUp('You need $4 in your wallet to approve. Top up to continue.')
+      // The api helper surfaces the server's `error` CODE as the message — translate the
+      // known codes into plain English rather than showing a client "no_campaign".
+      else if (err.message === 'no_campaign') setError("Your campaign isn't switched on yet, so we can't start outreach — you have not been charged. We've been alerted and will get it live.")
+      else if (err.message === 'already_in_crm') setError('This contact is already in your CRM — no charge.')
+      else if (err.message === 'no_email_found') setError('We could not verify an email for this lead — you were not charged.')
       else setError(err.message || 'Could not approve — please try again')
     } finally { setActing(null) }
   }

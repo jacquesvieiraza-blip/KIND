@@ -648,6 +648,7 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     if (outcome.status === 'insufficient_funds') { res.status(402).json({ success: false, error: 'insufficient_funds', message: 'You need $4 in your wallet to approve. Top up to continue.' }); return }
     if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
     if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }
+    if (outcome.status === 'no_campaign') { res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return }
     res.json({ success: true, revealed: true, email: outcome.email, charged: outcome.charged })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })
@@ -674,6 +675,11 @@ leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'l
     }
     if (outcome.status === 'already_in_crm') {
       res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return
+    }
+    if (outcome.status === 'no_campaign') {
+      // We charge for WORK. With no active campaign there is nothing to enrol into, so
+      // the wallet was deliberately left untouched (see approve-lead.ts step 3c).
+      res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return
     }
     res.json({ success: true, ...outcome })
   } catch (err) { console.error('[approve]', err); res.status(500).json({ success: false, error: 'Failed to approve lead' }) }

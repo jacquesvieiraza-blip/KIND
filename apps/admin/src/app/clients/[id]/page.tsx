@@ -56,6 +56,31 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
   const [granting, setGranting]   = useState(false)
   const [grantMsg, setGrantMsg]   = useState<{ ok: boolean; text: string } | null>(null)
 
+  // Start-campaign (managed model): in the work model WE run the outreach, so campaign
+  // creation is an operator action. A client with NO active campaign cannot be worked at
+  // all — approveLead fail-closes and refuses to charge the $4 — so this button is what
+  // unblocks them. Idempotent server-side.
+  const [starting, setStarting]     = useState(false)
+  const [startMsg, setStartMsg]     = useState<{ ok: boolean; text: string } | null>(null)
+
+  async function handleStartCampaign() {
+    setStarting(true); setStartMsg(null)
+    try {
+      const r = await fetch('/api/proxy/operator/campaign/start', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: params.id }),
+      })
+      const j = await r.json()
+      if (!j?.success) throw new Error(j?.error || 'Failed to start campaign')
+      setStartMsg({ ok: true, text: j.created ? 'Campaign started — this client can be worked now.' : 'They already have an active campaign.' })
+      const fresh = await fetch(`/api/proxy/figsy/campaigns?client_id=${params.id}`).then(x => x.json())
+      if (fresh.success) setCampaigns(fresh.data || [])
+    } catch (e) {
+      setStartMsg({ ok: false, text: e instanceof Error ? e.message : 'Failed to start campaign' })
+    }
+    setStarting(false)
+  }
+
   useEffect(() => {
     async function load() {
       const [clientRes, creditRes, campaignsRes, icpsRes, leadsRes, usageRes] = await Promise.all([
@@ -324,7 +349,19 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
             )}
           </div>
         ) : (
-          <p className="text-sm text-gray-400">No active FIGSY campaigns</p>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-800">No active campaign — this client cannot be worked.</p>
+            <p className="text-xs text-amber-700 mt-1">
+              Approvals are blocked while there is no active campaign: we deliberately refuse the $4 rather than
+              charge for outreach that can&apos;t run. Start their campaign to unblock them.
+            </p>
+            <button onClick={handleStartCampaign} disabled={starting}
+              className="mt-3 inline-flex items-center gap-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-60 transition-colors">
+              {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              Start campaign
+            </button>
+            {startMsg && <p className={`text-xs mt-2 font-medium ${startMsg.ok ? 'text-emerald-600' : 'text-red-600'}`}>{startMsg.text}</p>}
+          </div>
         )}
       </div>
 

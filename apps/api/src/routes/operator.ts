@@ -172,6 +172,42 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── START A CLIENT'S CAMPAIGN (operator-side, the managed model) ──────────────────
+// In the work model WE run the outreach, so campaign creation belongs to the operator,
+// not the client (their "My campaign" is read-only status). Without this there is no
+// way to create a campaign at all: POST /figsy/campaigns is client-JWT-only and was
+// only ever reachable from the self-serve console we removed from Milla.
+//
+// A client with no ACTIVE campaign cannot be worked — approveLead now fail-closes and
+// refuses to charge the $4 rather than take money for work that can't run. This is the
+// button that unblocks them. Idempotent: if an active campaign already exists it is
+// returned untouched (never a second one). Created ACTIVE on purpose — the table default
+// is 'draft', and a draft would leave the client just as blocked.
+operatorRouter.post('/campaign/start', async (req: Request, res: Response) => {
+  try {
+    const { client_id, name } = (req.body ?? {}) as { client_id?: string; name?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: existing } = await db.from('figsy_campaigns')
+      .select('id, name, status').eq('client_id', client.id).eq('status', 'active')
+      .limit(1).maybeSingle()
+    if (existing) { res.json({ success: true, data: existing, created: false }); return }
+
+    const campaignName = (typeof name === 'string' && name.trim()) ? name.trim().slice(0, 120) : 'Outbound campaign'
+    const { data: created, error } = await db.from('figsy_campaigns')
+      .insert({ client_id: client.id, name: campaignName, status: 'active' })
+      .select('id, name, status').single()
+    if (error) throw error
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'start_campaign',
+      subjectType: 'campaign', subjectId: created.id, detail: { name: campaignName, on_behalf: true },
+    })
+    res.json({ success: true, data: created, created: true })
+  } catch (err) { console.error('[operator/campaign/start]', err); res.status(500).json({ success: false, error: 'Failed to start campaign' }) }
+})
+
 // ── #494 QUALIFY GATE — operator marks a reply a qualified conversation (NO SPEND) ──
 // A human judgement on a reply: the right person, real interest — distinct from the AI
 // `classification`. This is a triage marker only: it spends nothing and moves no money

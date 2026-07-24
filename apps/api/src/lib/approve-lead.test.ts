@@ -12,6 +12,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const rpcCalls: Array<{ fn: string; args: unknown }> = []
 let rpcReturns: Record<string, unknown> = {}
 let leadRow: Record<string, unknown> | null = null
+// The client's ACTIVE campaign lookup (step 3c). null ⟹ nothing to enrol into, so the
+// $4 must NOT be charged — we never take money for work we can't run.
+let campaignRow: Record<string, unknown> | null = { id: 'camp1' }
 let claimWins = true
 let enrollAfter = 0
 const tableInserts: Array<{ table: string; row: unknown }> = []
@@ -27,8 +30,8 @@ function makeQuery(table: string) {
     select(_c?: string, opts?: { count?: string; head?: boolean }) { q._isCount = !!opts?.count; return q },
     eq() { return q }, neq() { return q }, is() { return q }, in() { return q }, not() { return q },
     order() { return q }, limit() { return q },
-    async maybeSingle() { return { data: leadRow, error: null } },
-    async single() { return { data: leadRow, error: null } },
+    async maybeSingle() { return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null } },
+    async single() { return { data: table === 'figsy_campaigns' ? campaignRow : leadRow, error: null } },
     then(resolve: (v: unknown) => unknown) {
       if (q._isCount) return resolve({ count: enrollAfter, error: null })
       if (q._update && table === 'leads') return resolve({ data: claimWins ? [leadRow] : [], error: null })
@@ -48,6 +51,7 @@ vi.mock('./figsy', () => ({ autoEnrollLead: vi.fn(async () => { enrollAfter = 1 
 vi.mock('./enrichment', () => ({ waterfallEnrich: vi.fn(async () => ({ email: 'found@acme.com' })) }))
 vi.mock('./demo', () => ({ isDemoClient: vi.fn(async () => isDemo) }))
 vi.mock('./billing-rules', () => ({ normalizeRevealEmail: (e: string | null) => (e ? e.toLowerCase() : null) }))
+vi.mock('./alerts', () => ({ sendFounderAlert: vi.fn(async () => {}) }))
 
 import { approveLead, passLead } from './approve-lead'
 import { autoEnrollLead } from './figsy'
@@ -56,6 +60,7 @@ beforeEach(() => {
   rpcCalls.length = 0; tableInserts.length = 0; leadUpdates.length = 0
   rpcReturns = { try_charge_wallet: true, increment_wallet: null, record_reveal_or_refund: 'charged', reveal_is_owned: false }
   leadRow = { id: 'lead1', client_id: 'c1', email: null, first_name: 'A', last_name: 'B', company: 'Acme', crm_existing: false }
+  campaignRow = { id: 'camp1' }
   claimWins = true; enrollAfter = 0; isDemo = false
   vi.mocked(autoEnrollLead).mockClear()
 })
@@ -117,6 +122,27 @@ describe('ONE WALLET — approveLead ($4 flat, final)', () => {
     expect(charged()).toHaveLength(0)
     expect((out as { charged?: boolean }).charged).toBe(false)
     expect(vi.mocked(autoEnrollLead)).toHaveBeenCalledWith('lead1', 'c1', { force: true, prepaid: true })
+  })
+
+  // REGRESSION GUARD — the $4 buys WORK. autoEnrollLead bails silently when the client has
+  // no ACTIVE campaign, so charging first would debit the wallet, write no enrolment and
+  // send nothing: paid-for-nothing, with no error and no refund. Fail closed instead.
+  it('NO active campaign ⟹ does NOT charge, returns no_campaign, un-claims the lead', async () => {
+    campaignRow = null
+    const out = await approveLead('lead1', 'c1')
+    expect(out.status).toBe('no_campaign')
+    expect(out.revealed).toBe(false)
+    expect(charged()).toHaveLength(0)                                   // wallet untouched
+    expect(vi.mocked(autoEnrollLead)).not.toHaveBeenCalled()
+    // the claim is released so the lead can be approved again once we start their campaign
+    expect(leadUpdates.some(u => u.revealed_at === null)).toBe(true)
+  })
+
+  it('NO active campaign ⟹ never reverses/credits the wallet either (nothing moved at all)', async () => {
+    campaignRow = null
+    await approveLead('lead1', 'c1')
+    expect(rpcCalls.filter(r => r.fn === 'increment_wallet')).toHaveLength(0)
+    expect(rpcCalls.filter(r => r.fn === 'try_charge_wallet')).toHaveLength(0)
   })
 
   it('re-approve of an already-approved lead (lost claim) takes NO new charge (idempotent)', async () => {

@@ -3,6 +3,7 @@ import { autoEnrollLead } from './figsy'
 import { waterfallEnrich } from './enrichment'
 import { normalizeRevealEmail } from './billing-rules'
 import { isDemoClient } from './demo'
+import { sendFounderAlert } from './alerts'
 
 // ONE WALLET — the work model (founder-locked 24 Jul, supersedes #492).
 // APPROVE is the ONLY money event: the client's 👍 (in Milla) or an operator
@@ -22,6 +23,7 @@ export type ApproveOutcome =
   | { status: 'no_email'; revealed: false }        // dead email — $4 not charged / reversed
   | { status: 'already_in_crm'; revealed: false }  // client owns it — no charge
   | { status: 'insufficient_funds'; revealed: false } // wallet < $4 — nothing moved (402)
+  | { status: 'no_campaign'; revealed: false }     // no active campaign → can't work it → NOT charged
   | { status: 'not_found'; revealed: false }
 
 export async function approveLead(leadId: string, clientId: string): Promise<ApproveOutcome> {
@@ -67,6 +69,26 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
       await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch(() => {})
       return { status: 'approved', revealed: true, email: claim.email as string, charged: false }
     }
+  }
+
+  // 3c. NO ACTIVE CAMPAIGN → we cannot do the work, so we must not take the money.
+  //     The $4 buys WORK (we enrol the lead and run the outreach). autoEnrollLead below
+  //     bails silently when the client has no ACTIVE campaign — so without this guard the
+  //     wallet is debited, no enrolment row is ever written, and nothing is ever sent:
+  //     the client pays $4 for nothing, with no error and no refund. Fail closed instead,
+  //     exactly like the insufficient-funds gate, and alert us so an operator starts the
+  //     campaign in Vida. (Deliberately placed AFTER the free paths — demo / already-in-CRM
+  //     / already-owned never charge, so they are unaffected.)
+  const { data: activeCampaign } = await db.from('figsy_campaigns')
+    .select('id').eq('client_id', clientId).eq('status', 'active').limit(1).maybeSingle()
+  if (!activeCampaign) {
+    await unclaim()
+    void sendFounderAlert('sends_stalled', 'Approve blocked — no active campaign', [
+      `A client tried to approve a lead but has NO active campaign, so no outreach could run.`,
+      `Client: ${clientId} · Lead: ${leadId}`,
+      `They were NOT charged. Start their campaign in Vida (client → Start campaign) to unblock.`,
+    ]).catch(() => {})
+    return { status: 'no_campaign', revealed: false }
   }
 
   // 4. Charge the flat $4 (the atomic decrement IS the gate).

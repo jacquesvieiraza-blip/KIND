@@ -7,6 +7,15 @@
 
 **THE PLAN (founder-locked 22 Jul):** we sell a **managed service** on the FIGSY engine, trading as **Milla&Vida**. **Vida** = OUR operator console (we run ICP → source → draft → send → triage → book). **Milla** = the client portal (masked leads · 👍 approve / ✕ pass · concierge chat · meetings · reports). **Nexus** = per-client private brain. **Money (locked 23 Jul, #492):** the client's 👍 charges **$1 + HOLDS $3** (needs ≥$4 free) · **$3 captured only on confirmed booking** · booked-then-no-show → 2 re-book attempts then the $3 is kept (terms on the approval card) · never-books → $3 released · $1 never reversed · 72h approval TTL · reviewing free · dead-email $1 auto-refund · prepaid credits · **only the client's 👍 ever spends — operators never**. **Client Zero = us.** Build order: **Website → Vida → Milla.** If days squeeze: **Milla trims first, Vida never, Website never.**
 
+## ✅ VERIFIED STATE (24 Jul) — the 14-day build is BUILT + then some
+> **Where we actually are:** the whole Milla&Vida build is **shipped and live (🩷 — deployed, awaiting your walk-through)**. Item-by-item detail → **BUILD-STATUS**.
+> - **Vida** ✅ — client picker · pipeline board · gates (Qualify #494 · gate chips #493c) · Bookings + no-show → 2 rebooks → keep $3 (#499/#499m) · one-click sourcing w/ pool-aware confirm (#498b) · live blockers strip (#505) · **12 native engine pages + Engine rail (#502/#530–541) — old-admin exit CLOSED** · **🧠 Nexus signals panel**.
+> - **Milla** ✅ — masked cards · 👍/✕ approve · concierge chat · onboarding · ICP gate · reports · **11 native pages — old-portal exit CLOSED** · "why this fits" · **🧠 Nexus flywheel card**. *(Only #515 magic-link + SMS outstanding — flagged.)*
+> - **Combined** ✅ — money rails $1+$3 (#492) · off-ramps E1–E12 (E1 stale-hold sweep · E7 risky-reply escalate · E9 booking retry · E5 ruled = keep refunding) · #517 unified operating record.
+> - **🧠 Nexus** ✅ **COMPLETE** — all 12 items (compute · signals · guardrails · gated copy+sourcing tune · flywheel); every tuning path **default-OFF** behind the per-client kill-switch + confidence gate + fence.
+> - **The ONLY unbuilt items:** 🚩 **#515** (Milla magic-link + SMS — needs an SMS provider + a no-login security call) · ⏸ **Auto-deploy/CI** (blocked — GitHub account flagged).
+> - **Next:** Fable verifies the full session → founder end-to-end walk (🩷 → 🟢). **Migrations owed on prod:** `20260724_nexus_autotune_flag.sql` (+ confirm the other 24-Jul migrations ran).
+
 **Board:** 🟢91 · 🩷166 · 🟣1 · 🟡18 · 🔴218 · ⏸5 · **Σ499** · live count: `scripts/count-inventory.sh`
 
 ---
@@ -20,7 +29,7 @@
 | **1** | Wed 23 | **Honesty fixes** — scoring crash bug · showroom strip (incl. Team fake add-member) · referral link · lifecycle master switch · Client-Zero→PDL → then 🧍 `railway up` api+portal | #477 #478 #479 #480 #481 | 🤖 build · 🧍 deploy | ✅ |
 | **2–4** | Thu 24–Sat 26 | **WEBSITE** — Milla&Vida rebrand on the current framework (nav+footer preserved, zero orphaned pages). **Preview → your 🟣 → merge → 🧍 `railway up KIND`** | #482 | 🤖 build · 🧍 approve+deploy | ✅ |
 | **5–9** | Sun 27–Thu 31 | **VIDA — the real part** — client-picker · pipeline board · nervous-system dropdown · operator audit log · approve-gated reveal. Reuses ICP/campaigns/sequences/unibox/calendar/admin → 🧍 `railway up` api+admin+portal *(shipped PRs #1109/#1111/#1112 — deploy #1112 owed)* | #483 #484 #485 #486 #487 | 🤖 build · 🧍 deploy | ✅ |
-| **10–13** | Fri 1–Mon 4 Aug | **MONEY RE-TIME then MILLA** — ① #492 money engine ($1+$3-hold at 👍 · capture at booking · 2-strike no-show · release if never booked · 72h TTL; **SQL migration owed 🧍**) → ② #488 lead desk (👍/✕ masked cards, terms printed on the approval card) → ③ #493 Vida: strip operator-spend → "Send to client" + Booked column → ④ #489 concierge chat · #490 nav declutter. **Preview → your 🟣 → merge → 🧍 deploy** | #492 #488 #493 #489 #490 | 🤖 build · 🧍 approve+deploy | ⬜ |
+| **10–13** | Fri 1–Mon 4 Aug | **MONEY RE-TIME then MILLA** — ① #492 money engine ($1+$3-hold at 👍 · capture at booking · 2-strike no-show · release if never booked · 72h TTL; **SQL migration owed 🧍**) → ② #488 lead desk (👍/✕ masked cards, terms printed on the approval card) → ③ #493 Vida: strip operator-spend → "Send to client" + Booked column → ④ #489 concierge chat · #490 nav declutter. **Preview → your 🟣 → merge → 🧍 deploy** | #492 #488 #493 #489 #490 | 🤖 build · 🧍 approve+deploy | ✅ |
 | **14** | Tue 5 Aug | **LAUNCH GATE + pilot** — the gate checklist below, walked to the cent · Client-Zero dogfood fires · first paying pilot | — | 🤝 | ⬜ |
 
 ### 🧍 DAY-0 CONFIRMS — yours, ~20 min, so we never stall mid-build

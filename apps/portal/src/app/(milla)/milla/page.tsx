@@ -32,6 +32,8 @@ const CHIPS = ['Which look strongest?', 'Find more like these', 'Pause campaign'
 export default function MillaHomePage() {
   const router = useRouter()
   const [summary, setSummary] = useState<Summary | null>(null)
+  // #511f — the client's own Nexus, surfaced (the flywheel: they see Milla getting sharper).
+  const [nexus, setNexus] = useState<{ learned: string; top_persona: string | null; reply_rate: number; meeting_rate: number; confidence: string; sample_worked: number } | null>(null)
   const [leads, setLeads] = useState<MaskedLead[] | null>(null)
   const [ledger, setLedger] = useState<Ledger | null>(null)
   const [acting, setActing] = useState<string | null>(null)
@@ -63,6 +65,15 @@ export default function MillaHomePage() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  // #511f — best-effort Nexus summary (never blocks the dashboard).
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await api.get<{ data: typeof nexus }>('/leads/nexus-summary', await token())
+        setNexus(r.data)
+      } catch { /* silent — the card just doesn't render */ }
+    })()
+  }, [])
   // #513 wiring — a client with no ICP yet hasn't onboarded: send them to Milla's
   // conversational setup. Once they approve an ICP (v1 exists) they stay on the dashboard.
   useEffect(() => {
@@ -243,6 +254,23 @@ export default function MillaHomePage() {
           </div>
         </div>
       </div>
+
+      {/* #511f — what Milla's learning for this client (the flywheel) */}
+      {nexus && nexus.sample_worked > 0 && (
+        <div className="mt-4 bg-gradient-to-br from-[#faf7ff] to-white border border-[#ece5fb] rounded-2xl px-5 py-4">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className="text-[15px]">🧠</span>
+            <b className="text-[13.5px]">What Milla&apos;s learning for you</b>
+            <span className="text-[9.5px] font-extrabold uppercase tracking-wide text-[#9b8ec4] bg-white border border-[#ece5fb] rounded-full px-2 py-0.5 ml-auto">{nexus.confidence}</span>
+          </div>
+          <p className="text-[13px] text-[#5c5279] leading-relaxed">{nexus.learned}</p>
+          <div className="flex flex-wrap gap-2.5 mt-2.5">
+            {nexus.top_persona && <span className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">Books best: {nexus.top_persona}</span>}
+            <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-2.5 py-1">Reply rate {Math.round(nexus.reply_rate * 1000) / 10}%</span>
+            <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-2.5 py-1">Meeting rate {Math.round(nexus.meeting_rate * 1000) / 10}%</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

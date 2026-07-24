@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, getClientKnowledgeForOutreach, classifyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, outreachEnabled } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, isRiskyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, outreachEnabled } from '../lib/figsy'
 import type { Lead, SendOutcome } from '../lib/figsy'
 import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
@@ -262,6 +262,29 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       channel:       'email',
       payload:       { classification, reasoning, subject: (payload.subject as string) ?? null, body, from_email: fromEmail },
     })
+
+    // E7 — RISKY REPLY → ESCALATE. The classifier tags intent (hot/cold/opt_out/…) but not
+    // LEGAL/reputational risk. A reply threatening legal action, a data-protection complaint,
+    // or an abuse report needs a human NOW — never an automated follow-up. Detect on keywords,
+    // escalate to the founder, and log an outcome event so it surfaces in the record (#517).
+    // Best-effort + fire-and-forget: never blocks or fails the inbound webhook.
+    if (isRiskyReply(body)) {
+      void logOutcomeEvent({
+        client_id: lead.client_id, campaign_id: enrollment?.campaign_id ?? null, lead_id: lead.id,
+        enrollment_id: enrollment?.id ?? null, event_type: 'risk_escalation', channel: 'email',
+        payload: { from_email: fromEmail, subject: (payload.subject as string) ?? null, snippet: (body ?? '').replace(/\s+/g, ' ').trim().slice(0, 300) },
+      })
+      void (async () => {
+        const { data: c } = await db.from('clients').select('company_name').eq('id', lead.client_id).maybeSingle()
+        await sendFounderAlert('support_escalation', `⚠️ Risky reply — ${c?.company_name ?? 'a client'} (needs a human)`, [
+          `Client: ${c?.company_name ?? lead.client_id}`,
+          `From: ${fromEmail}`,
+          `Subject: ${(payload.subject as string) ?? '(none)'}`,
+          `Reply: ${(body ?? '').replace(/\s+/g, ' ').trim().slice(0, 300)}`,
+          `This reply tripped the legal/complaint risk filter — review and respond by hand; do not let it auto-follow-up.`,
+        ])
+      })().catch(() => {})
+    }
 
     // Handle opt-out — pause enrollment and add to blocklist. #312: the classifier
     // can tag a reply 'unsubscribe' as well as 'opt_out' ("please unsubscribe me" →

@@ -302,6 +302,11 @@ export type ReplyClassification =
   | 'out_of_office' // ✈️ Auto-reply or OOO
   | 'other'         // ❓ Unclear, bounce, spam, or unclassifiable
 
+// E7 — the legal/reputational risk filter lives in its own pure module (reply-risk.ts) so it
+// stays db-free + unit-testable. Re-exported here so the reply-intake route imports it alongside
+// classifyReply from a single place.
+export { isRiskyReply } from './reply-risk'
+
 export async function classifyReply(body: string): Promise<{
   classification: ReplyClassification
   reasoning: string

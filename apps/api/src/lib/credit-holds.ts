@@ -115,3 +115,41 @@ export async function releaseFigsyHold(clientId: string, leadId: string, reason:
     created_at: new Date().toISOString(),
   }).then(() => {}, () => {})
 }
+
+// ── E1 · STALE-HOLD SWEEP (the backstop the send-loop comment promises) ─────────
+// Every terminal transition (negative reply, sequence complete, opt-out, pass) already
+// releases the $3. But an ambiguous reply (other/OOO) or a dead/stuck enrollment can leave
+// a $3 HELD forever — the send loop's own comment (figsy.ts) says "a post-gate stale-hold
+// sweep reclaims any stragglers." This is that sweep: a generous-TTL backstop so a client's
+// work-credit can never be trapped. It is FAIL-SAFE — it releases a hold ONLY when it is
+// provably not part of live, unbooked work:
+//   • the hold is 'held' and older than ttlDays (default 60 — longer than any real sequence)
+//   • the lead has NO confirmed booking (a booked lead should have CAPTURED, not held —
+//     releasing would be wrong; leave those for the anomaly log)
+//   • the lead has NO actively-sending enrollment (status enrolled/in_progress with a
+//     future next_send_at) — never free a hold a live campaign will still capture
+// Returns how many it released. Idempotent (releaseFigsyHold only acts on a 'held' row).
+export async function sweepStaleHolds(ttlDays = 60, limit = 500): Promise<{ scanned: number; released: number }> {
+  const cutoff = new Date(Date.now() - ttlDays * 86400000).toISOString()
+  const nowIso = new Date().toISOString()
+  const { data: stale } = await db.from('credit_holds')
+    .select('id, client_id, lead_id, created_at').eq('status', 'held')
+    .lt('created_at', cutoff).order('created_at', { ascending: true }).limit(limit)
+  const rows = (stale ?? []) as { id: string; client_id: string; lead_id: string }[]
+  let released = 0
+  for (const h of rows) {
+    // Guard 1 — a confirmed booking means this SHOULD have captured; never release. Log it.
+    const { data: booked } = await db.from('calendar_bookings')
+      .select('id').eq('client_id', h.client_id).eq('lead_id', h.lead_id).eq('status', 'confirmed').limit(1).maybeSingle()
+    if (booked) { console.error('[credit-holds] stale HELD hold on a BOOKED lead (should be captured) — left for review:', h.lead_id, 'client', h.client_id); continue }
+    // Guard 2 — a live, actively-sending enrollment will still capture on booking; skip.
+    const { data: active } = await db.from('figsy_enrollments')
+      .select('id').eq('client_id', h.client_id).eq('lead_id', h.lead_id)
+      .in('status', ['enrolled', 'in_progress']).gt('next_send_at', nowIso).limit(1).maybeSingle()
+    if (active) continue
+    await releaseFigsyHold(h.client_id, h.lead_id, `stale_hold_ttl_${ttlDays}d`)
+    released++
+  }
+  if (released > 0 || rows.length > 0) console.log(`[credit-holds] stale-hold sweep: scanned ${rows.length}, released ${released} (ttl ${ttlDays}d)`)
+  return { scanned: rows.length, released }
+}

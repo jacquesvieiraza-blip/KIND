@@ -2368,7 +2368,7 @@ internalRouter.post('/figsy/rescore-stranded', async (_req: Request, res: Respon
       if (!icp) continue
       const { data: client } = await db.from('clients')
         .select('company_name').eq('id', (icp as { client_id: string }).client_id).maybeSingle()
-      await scoreLeadsForIcp(leadIds, icp as any, (client as { company_name?: string } | null)?.company_name ?? '')
+      await scoreLeadsForIcp(leadIds, icp as any, (client as { company_name?: string } | null)?.company_name ?? '', (icp as { client_id: string }).client_id)
       rescored += leadIds.length
     }
     res.json({ success: true, data: { rescored, groups: byIcp.size } })

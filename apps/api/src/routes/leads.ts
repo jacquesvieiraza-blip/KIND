@@ -1466,7 +1466,7 @@ leadRouter.post('/import/linkedin', async (req: AuthRequest, res) => {
       const { data: clientRow } = await db.from('clients')
         .select('company_name').eq('id', clientId).maybeSingle()
       if (icpRow) {
-        scoreLeadsForIcp(insertedIds, icpRow as any, clientRow?.company_name ?? '').catch(console.error)
+        scoreLeadsForIcp(insertedIds, icpRow as any, clientRow?.company_name ?? '', clientId).catch(console.error)
       }
     }
 
@@ -1624,7 +1624,7 @@ leadRouter.post('/find-at-companies', async (req: AuthRequest, res) => {
 
     // Score in background
     if (insertedIds.length > 0 && icpRow) {
-      scoreLeadsForIcp(insertedIds, icpRow as any, clientRow?.company_name ?? '').catch(console.error)
+      scoreLeadsForIcp(insertedIds, icpRow as any, clientRow?.company_name ?? '', clientId).catch(console.error)
     }
 
     res.json({ success: true, data: { created, skipped, total_found: contacts.length } })

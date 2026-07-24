@@ -52,12 +52,35 @@ export async function scoreLeadsForIcp(
   leadIds: string[],
   icp: IcpCriteria,
   clientName: string,
+  clientId?: string,   // #511t3 — enables the gated Nexus persona-boost (optional; omitted = today)
 ): Promise<void> {
   if (!leadIds.length) return
 
   if (!process.env.ANTHROPIC_API_KEY) {
     console.warn('[scoring] ANTHROPIC_API_KEY not set — skipping scoring, leads will stay as "pending"')
     return
+  }
+
+  // ── #511t3 NEXUS SOURCING TUNING (GATED — default-deny, money-sensitive) ──────────
+  // Nudge scoring toward the persona THIS client actually BOOKS — but ONLY when the client's
+  // auto-tune switch is ON and the confidence gate passes. Computed ONCE (not per batch). If
+  // the gate isn't 'ready' (the default for every client), nexusBoost is '' → the prompt is
+  // byte-identical to today, so which leads score high — and therefore what we spend PDL on —
+  // is UNCHANGED until the founder explicitly enables this client. Fenced + best-effort.
+  let nexusBoost = ''
+  if (clientId) {
+    try {
+      const { getNexusProfile } = await import('./nexus')
+      const { nexusTuneGate, nexusGlobalKill, assertSameClient } = await import('./nexus-guard')
+      const prof = await getNexusProfile(clientId)
+      assertSameClient(prof.client_id, clientId) // THE FENCE — never another client's brain
+      const { data: flag } = await db.from('clients').select('nexus_autotune_enabled').eq('id', clientId).maybeSingle()
+      const gate = nexusTuneGate(prof, flag?.nexus_autotune_enabled === true, nexusGlobalKill())
+      const persona = [prof.top_persona.job_title, prof.top_persona.seniority, prof.top_persona.industry].filter(Boolean).join(' · ')
+      if (gate.allowed && persona) {
+        nexusBoost = `\n\nNexus signal (this client's OWN booked-meeting history): they convert best with ${persona}. All else equal, score leads matching that persona higher — but never override a clear ICP mismatch.`
+      }
+    } catch { /* best-effort — scoring proceeds exactly as today on any Nexus error */ }
   }
 
   const BATCH_SIZE = 10
@@ -99,7 +122,7 @@ export async function scoreLeadsForIcp(
 ICP criteria:
 ${icpDescription}
 
-Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfect match, 0 = no match.
+Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfect match, 0 = no match.${nexusBoost}
 
 Leads to score:
 ${leadsText}

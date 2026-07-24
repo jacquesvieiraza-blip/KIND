@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import {
-  Coins, Zap, TrendingUp, Loader2, Check, ChevronDown,
+  Zap, TrendingUp, Loader2, Check,
   Shield, CreditCard,
 } from 'lucide-react'
 
@@ -61,23 +61,11 @@ interface CreditTransaction {
   created_at: string
 }
 
-// ── Stripe credit bundles ─────────────────────────────────────────────────────
-// FIGSY is $3/credit flat (locked, @kind/shared) → $60 / $120 / $300 (item 168).
-// (#284 — the $1 Lead-Gen bundles were removed; FIGSY is the single live product.)
-const STRIPE_FIGSY_BUNDLES = [
-  { credits: 20,  priceUsd: 60,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20  || '', creditType: 'figsy' as const },
-  { credits: 40,  priceUsd: 120, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40  || '', creditType: 'figsy' as const },
-  { credits: 100, priceUsd: 300, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100 || '', creditType: 'figsy' as const },
-]
-
-// $1 reveal top-ups (SPRINT line 3) — the reveal wallet of the per-qualified-lead
-// model: $1 unmasks a lead, +$3 FIGSY work = $4. Un-retired (#420/#394). Price IDs
-// live in Stripe as the "KIND Lead Gen" one-time prices; wired via Railway env.
-const STRIPE_LEADGEN_BUNDLES = [
-  { credits: 20,  priceUsd: 20,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20  || '', creditType: 'lead_gen' as const },
-  { credits: 40,  priceUsd: 40,  priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40  || '', creditType: 'lead_gen' as const },
-  { credits: 100, priceUsd: 100, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100 || '', creditType: 'lead_gen' as const },
-]
+// ── One wallet ────────────────────────────────────────────────────────────────
+// ONE wallet, one balance in dollars. $99 to start, then free top-ups of $40/$100/$200.
+// Each approved lead is a flat $4, final. Checkout takes { amount_usd } — no bundle SKUs.
+const WALLET_FIRST_PURCHASE_USD = 99
+const WALLET_TOPUP_AMOUNTS_USD = [40, 100, 200]
 
 
 function printReceipt(tx: CreditTransaction) {
@@ -86,8 +74,8 @@ function printReceipt(tx: CreditTransaction) {
 <h1>Credit Purchase Receipt</h1>
 <p style="color:#666;font-size:14px">${new Date(tx.created_at).toLocaleDateString('en-GB', { dateStyle: 'long' })}</p>
 <table>
-<tr><td>Description</td><td>${tx.note || 'Credit purchase'}</td></tr>
-<tr><td>Credits added</td><td>+${tx.amount}</td></tr>
+<tr><td>Description</td><td>${tx.note || 'Wallet top-up'}</td></tr>
+<tr><td>Amount</td><td>${tx.amount > 0 ? '+' : ''}$${tx.amount}</td></tr>
 <tr><td>Plan</td><td>${tx.plan ? (tx.plan === 'kind_ai' ? 'K.I.N.D AI' : 'FIGSY') : '—'}</td></tr>
 <tr><td>Transaction ID</td><td style="font-size:11px">${tx.id}</td></tr>
 </table>
@@ -107,11 +95,8 @@ export default function BillingPage() {
   const [buyError, setBuyError]           = useState<string | null>(null)
   const [termsAccepted, setTermsAccepted] = useState(false)
 
-  const [figsyBalance, setFigsyBalance] = useState<number | null>(null)
-
-  // Credit purchases
-  const [selectedFigsy, setSelectedFigsy]     = useState(STRIPE_FIGSY_BUNDLES[0].credits)
-  const [selectedLeadGen, setSelectedLeadGen] = useState(STRIPE_LEADGEN_BUNDLES[0].credits)
+  // Wallet top-up (dollars). One wallet, one balance.
+  const [topUpAmount, setTopUpAmount]           = useState(WALLET_TOPUP_AMOUNTS_USD[0])
   const [creditInitiating, setCreditInitiating] = useState<string | null>(null)
 
   // Subscriptions
@@ -136,14 +121,13 @@ export default function BillingPage() {
 
       try {
         const [creditsRes, subsRes] = await Promise.allSettled([
-          api.get<{ data: { balance: number; figsy_credits_remaining: number; transactions: CreditTransaction[] } }>('/credits', session.access_token),
+          api.get<{ data: { wallet_balance_usd: number; transactions?: CreditTransaction[] } }>('/credits', session.access_token),
           api.get<{ data: { id: string; product: string; status: string; paused_until?: string | null }[] }>('/subscriptions', session.access_token),
         ])
 
         if (creditsRes.status === 'fulfilled') {
-          setBalance(creditsRes.value.data.balance)
-          setFigsyBalance(creditsRes.value.data.figsy_credits_remaining ?? 0)
-          setTransactions(creditsRes.value.data.transactions)
+          setBalance(creditsRes.value.data.wallet_balance_usd ?? 0)
+          setTransactions(creditsRes.value.data.transactions ?? [])
         } else {
           setLoadError('Could not load billing data — please refresh.')
         }
@@ -163,15 +147,14 @@ export default function BillingPage() {
     load()
   }, [supabase])
 
-  async function handleCreditBuy(priceId: string, credits: number, creditType: 'lead_gen' | 'figsy') {
+  async function handleTopUp(amountUsd: number) {
     if (!termsAccepted) { setBuyError('Please accept the terms before purchasing.'); return }
-    const key = `${creditType}_${credits}`
-    setCreditInitiating(key)
+    setCreditInitiating(String(amountUsd))
     setBuyError(null)
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { setCreditInitiating(null); return }
     try {
-      const res = await api.post<{ url?: string; error?: string }>('/stripe/checkout', { priceId, credits, creditType }, session.access_token)
+      const res = await api.post<{ url?: string; error?: string }>('/stripe/checkout', { amount_usd: amountUsd }, session.access_token)
       if (res.url) { window.location.href = res.url }
       else setBuyError('Checkout could not be created. Please contact hello@get-kind.com.')
     } catch (err) {
@@ -250,10 +233,8 @@ export default function BillingPage() {
     </div>
   )
 
-  const figsyBundle     = STRIPE_FIGSY_BUNDLES.find(b => b.credits === selectedFigsy)!
-  const leadGenBundle   = STRIPE_LEADGEN_BUNDLES.find(b => b.credits === selectedLeadGen)!
-  const leadGenReady    = STRIPE_LEADGEN_BUNDLES.some(b => b.priceId)
-  const stripeReady     = STRIPE_FIGSY_BUNDLES.some(b => b.priceId) || leadGenReady
+  // First purchase is the $99 starter; after any funding we show the free top-ups.
+  const hasPurchased = (balance ?? 0) > 0 || transactions.some(t => t.amount > 0)
 
   return (
     <div className="space-y-8 max-w-3xl">
@@ -262,34 +243,28 @@ export default function BillingPage() {
         <p className="text-[#7B6FA0] text-sm mt-1">Manage credits and agent subscriptions.</p>
       </div>
 
-      {/* Balance */}
-      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl text-white grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-white/10">
-        <div className="px-6 py-5">
-          <p className="text-white/60 text-sm mb-1">Current balance</p>
-          <div className="flex items-end gap-2">
-            <p className="text-4xl font-bold">{balance ?? 0}</p>
-            <p className="text-white/60 mb-1">credits</p>
-          </div>
-          <p className="text-white/40 text-xs mt-1">1 credit = 1 qualified lead delivered</p>
-        </div>
+      {/* Wallet balance — one wallet, one balance in dollars */}
+      <div className="bg-gradient-to-r from-[#1A0F47] to-[#0F0929] rounded-xl text-white">
         <div className="px-6 py-5">
           <div className="flex items-center justify-between mb-1">
-            <p className="text-white/60 text-sm">FIGSY outreach credits</p>
+            <p className="text-white/60 text-sm">Wallet</p>
             <Zap className="w-5 h-5 text-purple-300" />
           </div>
-          <p className="text-4xl font-bold">{figsyBalance ?? 0}</p>
-          <p className="text-white/40 text-xs mt-1">1 credit = 1 lead enrolled in email campaign</p>
+          <div className="flex items-end gap-2">
+            <p className="text-4xl font-bold">${balance ?? 0}</p>
+          </div>
+          <p className="text-white/40 text-xs mt-1">$4 per approved lead — final</p>
         </div>
       </div>
 
-      {/* How credits work */}
+      {/* How the wallet works */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
         {[
-          // #406 — honest two-wallet model: delivery is FREE + masked; $1 reveals a lead
-          // (reveal wallet), $3 has FIGSY work it (FIGSY wallet). No charge at delivery.
+          // One wallet: delivery is FREE + masked; you approve a lead for a flat $4,
+          // final — FIGSY's work is included. Nothing is charged until you approve.
           { icon: <Zap className="w-4 h-4 text-purple-500" />, title: 'Lead found & delivered', sub: 'No charge — masked', bg: 'bg-[#F5F0FF]' },
-          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'Reveal a lead', sub: '$1 · reveal credit', bg: 'bg-green-50' },
-          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'FIGSY works it', sub: '$3 · FIGSY credit', bg: 'bg-indigo-50' },
+          { icon: <Check className="w-4 h-4 text-green-500" />, title: 'You approve a lead', sub: '$4 per approved lead', bg: 'bg-green-50' },
+          { icon: <TrendingUp className="w-4 h-4 text-indigo-500" />, title: 'FIGSY works it', sub: 'Included — writes, sends, books', bg: 'bg-indigo-50' },
         ].map(({ icon, title, sub, bg }) => (
           <div key={title} className="bg-purple-50/40 rounded-xl p-4 text-center">
             <div className={`w-8 h-8 ${bg} rounded-full flex items-center justify-center mx-auto mb-2`}>{icon}</div>
@@ -327,75 +302,56 @@ export default function BillingPage() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-4 text-sm text-amber-800">{pauseNotice}</div>
       )}
 
-      {/* ── CREDIT BUNDLES ──────────────────────────────────────────────────── */}
+      {/* ── WALLET ──────────────────────────────────────────────────────────── */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-1">Top up credits</h2>
-        <p className="text-sm text-[#9B8EC4] mb-4">One-time purchase · Credits never expire · Billed in USD via Stripe</p>
+        <h2 className="text-lg font-semibold text-gray-900 mb-1">{hasPurchased ? 'Top up your wallet' : 'Get started'}</h2>
+        <p className="text-sm text-[#9B8EC4] mb-4">One wallet · Funds never expire · Billed in USD via Stripe · $4 per approved lead</p>
 
-        {!stripeReady && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-5 py-3 text-sm text-amber-700 mb-4">
-            Stripe is not yet configured. Contact hello@get-kind.com to complete your purchase.
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-2xl">
-          {/* Reveal top-ups — $1 unmasks a lead (SPRINT line 3). Shown once its
-              Stripe price IDs are wired (NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_*). */}
-          {leadGenReady && (
-            <div className="rounded-xl overflow-hidden border border-purple-100/60">
-              <div className="bg-[#7C3AED] px-5 py-4 text-white">
-                <p className="font-semibold">Reveal credits</p>
-                <p className="text-white/70 text-xs mt-0.5">$1 unmasks a verified lead</p>
-              </div>
-              <div className="bg-white px-5 py-5 space-y-4">
-                <div className="relative">
-                  <select value={selectedLeadGen} onChange={e => setSelectedLeadGen(Number(e.target.value))}
-                    className="w-full appearance-none border border-purple-100/80 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
-                    {STRIPE_LEADGEN_BUNDLES.map(b => (
-                      <option key={b.credits} value={b.credits}>{b.credits} reveals — ${b.priceUsd}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-[#9B8EC4] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-                </div>
-                <button
-                  onClick={() => handleCreditBuy(leadGenBundle.priceId, leadGenBundle.credits, 'lead_gen')}
-                  disabled={!!creditInitiating || !termsAccepted || !leadGenBundle.priceId}
-                  className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                  {creditInitiating === `lead_gen_${selectedLeadGen}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                  Buy {selectedLeadGen} reveals — ${leadGenBundle.priceUsd}
-                </button>
-                <p className="text-xs text-[#9B8EC4] text-center">Credits never expire</p>
-              </div>
-            </div>
-          )}
-
-          {/* FIGSY work credits — $3/lead, the outreach layer on top of a reveal. */}
-          <div className="rounded-xl overflow-hidden border border-purple-100/60">
-            <div className="bg-[#0F0929] px-5 py-4 text-white">
-              <p className="font-semibold">FIGSY Advanced</p>
-              <p className="text-white/60 text-xs mt-0.5">Full outreach — AI SDR credits</p>
+        {!hasPurchased ? (
+          /* First purchase — the $99 starter unlocks the wallet. */
+          <div className="rounded-xl overflow-hidden border border-purple-100/60 max-w-md">
+            <div className="bg-[#7C3AED] px-5 py-4 text-white">
+              <p className="font-semibold">Get started — ${WALLET_FIRST_PURCHASE_USD}</p>
+              <p className="text-white/70 text-xs mt-0.5">Fund your wallet. Each approved lead is a flat $4.</p>
             </div>
             <div className="bg-white px-5 py-5 space-y-4">
-              <div className="relative">
-                <select value={selectedFigsy} onChange={e => setSelectedFigsy(Number(e.target.value))}
-                  className="w-full appearance-none border border-purple-100/80 rounded-lg px-4 py-2.5 text-sm pr-9 focus:outline-none focus:ring-2 focus:ring-blue-200 bg-white">
-                  {STRIPE_FIGSY_BUNDLES.map(b => (
-                    <option key={b.credits} value={b.credits}>{b.credits} credits — ${b.priceUsd}</option>
-                  ))}
-                </select>
-                <ChevronDown className="w-4 h-4 text-[#9B8EC4] absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-              </div>
               <button
-                onClick={() => handleCreditBuy(figsyBundle.priceId, figsyBundle.credits, 'figsy')}
-                disabled={!!creditInitiating || !termsAccepted || !figsyBundle.priceId}
-                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#0F0929] hover:bg-[#1A0F47] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                {creditInitiating === `figsy_${selectedFigsy}` ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
-                Buy {selectedFigsy} credits — ${figsyBundle.priceUsd}
+                onClick={() => handleTopUp(WALLET_FIRST_PURCHASE_USD)}
+                disabled={!!creditInitiating || !termsAccepted}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#7C3AED] hover:bg-[#6D28D9] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {creditInitiating === String(WALLET_FIRST_PURCHASE_USD) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Get started — ${WALLET_FIRST_PURCHASE_USD}
               </button>
-              <p className="text-xs text-[#9B8EC4] text-center">Credits never expire</p>
+              <p className="text-xs text-[#9B8EC4] text-center">Funds never expire</p>
             </div>
           </div>
-        </div>
+        ) : (
+          /* Free top-ups — $40 / $100 / $200 added straight to the one wallet. */
+          <div className="rounded-xl overflow-hidden border border-purple-100/60 max-w-md">
+            <div className="bg-[#0F0929] px-5 py-4 text-white">
+              <p className="font-semibold">Top up</p>
+              <p className="text-white/60 text-xs mt-0.5">Add funds to your wallet — no fees.</p>
+            </div>
+            <div className="bg-white px-5 py-5 space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                {WALLET_TOPUP_AMOUNTS_USD.map(amt => (
+                  <button key={amt} type="button" onClick={() => setTopUpAmount(amt)}
+                    className={`rounded-lg px-3 py-2.5 text-sm font-semibold border transition-colors ${topUpAmount === amt ? 'border-[#7C3AED] bg-[#F5F0FF] text-[#7C3AED]' : 'border-purple-100/80 text-gray-700 hover:bg-gray-50'}`}>
+                    ${amt}
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => handleTopUp(topUpAmount)}
+                disabled={!!creditInitiating || !termsAccepted}
+                className="w-full flex items-center justify-center gap-2 text-sm font-semibold px-4 py-2.5 rounded-xl bg-[#0F0929] hover:bg-[#1A0F47] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {creditInitiating === String(topUpAmount) ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                Top up ${topUpAmount}
+              </button>
+              <p className="text-xs text-[#9B8EC4] text-center">Funds never expire</p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* AGENT SUBSCRIPTIONS block removed 10 Jul (FIGSY-only cut) — Milla/Vida/Denise
@@ -475,7 +431,7 @@ export default function BillingPage() {
         running = running // silence unused var warning
         return (
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit balance over time</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-3">Wallet balance over time</h2>
             <div className="bg-white rounded-xl border border-gray-100 p-5">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
@@ -497,7 +453,7 @@ export default function BillingPage() {
       {/* ── TRANSACTION HISTORY ─────────────────────────────────────────────── */}
       {transactions.length > 0 && (
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-3">Credit history</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Wallet history</h2>
           <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
             {transactions.map((tx, i) => (
               <div key={tx.id} className={`flex items-center justify-between px-5 py-3.5 text-sm ${i < transactions.length - 1 ? 'border-b border-gray-50' : ''}`}>

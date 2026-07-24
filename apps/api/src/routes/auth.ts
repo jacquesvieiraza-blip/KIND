@@ -182,35 +182,34 @@ authRouter.post('/onboard', async (req, res) => {
       // at signup (trial_sourcing_granted tracks the 20-record lifetime cap; reveals
       // drip +2 up to it). This is the ONLY non-purchase allowance grant — a never-paid
       // client can source at most 20 records EVER (~$5.60 max exposure per free signup).
-      const { error: grantErr } = await db.from('clients')
-        .update({ credit_balance: 20, figsy_credits_remaining: 5, sourcing_allowance: 10, trial_sourcing_granted: 10 }).eq('id', clientId)
+      // ONE WALLET (W1) — the welcome grant funds the single dollar wallet, not the
+      // retired credit columns. $35 = enough to approve several leads at $4 and learn
+      // the loop. The +10 trial sourcing pool (our PDL budget) is unchanged.
+      const WELCOME_WALLET_USD = 35
+      const { error: grantErr } = await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: WELCOME_WALLET_USD })
       if (grantErr) {
-        console.error('[auth/signup] welcome-credit grant failed for', clientId, grantErr)
-        void sendFounderAlert('charge_failed', 'Welcome credits NOT granted at signup', [
+        console.error('[auth/signup] welcome-wallet grant failed for', clientId, grantErr)
+        void sendFounderAlert('charge_failed', 'Welcome wallet NOT granted at signup', [
           `Client: ${clientId} (${profileFields.company_name})`,
-          `The credit_balance/figsy_credits_remaining write failed: ${grantErr.message}`,
-          `The new client has no starting credits — grant them manually in admin.`,
+          `The wallet grant RPC failed: ${grantErr.message}`,
+          `The new client has $0 in their wallet — grant it manually in admin.`,
         ])
-      } else try {
-        await db.from('credit_transactions').insert([
-          {
+      } else {
+        // Seed the trial sourcing pool (our budget), best-effort.
+        await db.from('clients')
+          .update({ sourcing_allowance: 10, trial_sourcing_granted: 10 }).eq('id', clientId)
+          .then(() => {}, () => {})
+        try {
+          await db.from('credit_transactions').insert([{
             client_id: clientId,
-            amount: 20,
+            amount: WELCOME_WALLET_USD,
             type: 'trial_bonus',
-            plan: 'lead_gen',
-            note: 'Welcome credits — 20 reveals ($1 each)',
+            plan: 'work_model',
+            note: `Welcome wallet — $${WELCOME_WALLET_USD} to get started`,
             created_at: now,
-          },
-          {
-            client_id: clientId,
-            amount: 5,
-            type: 'trial_bonus',
-            plan: 'figsy',
-            note: 'Welcome credits — 5 FIGSY work credits ($3 each)',
-            created_at: now,
-          },
-        ])
-      } catch { /* non-critical — don't fail signup */ }
+          }])
+        } catch { /* non-critical — don't fail signup */ }
+      }
     }
 
     sendWelcomeEmail(user.email!, profileFields.company_name).catch(() => {})

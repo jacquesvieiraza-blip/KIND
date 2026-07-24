@@ -10,9 +10,7 @@ import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
-import { normalizeRevealEmail, revealCharged } from '../lib/billing-rules'
 import { waterfallEnrich } from '../lib/enrichment'
-import { isDemoClient } from '../lib/demo'
 
 export const leadRouter = Router()
 
@@ -262,7 +260,7 @@ leadRouter.get('/ledger', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const [{ data: client }, { data: tx }] = await Promise.all([
-      db.from('clients').select('credit_balance, figsy_credits_remaining').eq('id', clientId).maybeSingle(),
+      db.from('clients').select('wallet_balance_usd').eq('id', clientId).maybeSingle(),
       db.from('credit_transactions')
         .select('amount, type, note, created_at')
         .eq('client_id', clientId).order('created_at', { ascending: false }).limit(50),
@@ -270,8 +268,7 @@ leadRouter.get('/ledger', async (req: AuthRequest, res) => {
     res.json({
       success: true,
       data: {
-        reveal_credits: (client as Record<string, number> | null)?.credit_balance ?? 0,
-        work_credits:   (client as Record<string, number> | null)?.figsy_credits_remaining ?? 0,
+        wallet_balance_usd: Number((client as Record<string, number> | null)?.wallet_balance_usd ?? 0),
         entries: tx ?? [],
       },
     })
@@ -292,7 +289,7 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
     const nowIso = now.toISOString()
 
     const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal] = await Promise.all([
-      db.from('clients').select('credit_balance, figsy_credits_remaining').eq('id', clientId).maybeSingle(),
+      db.from('clients').select('wallet_balance_usd').eq('id', clientId).maybeSingle(),
       // mirrors /for-approval — the exact set of masked cards the client can act on
       db.from('leads').select('id', { count: 'exact', head: true })
         .eq('client_id', clientId).not('delivered_at', 'is', null)
@@ -332,16 +329,15 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
     res.json({
       success: true,
       data: {
-        reveal_credits:  (client as Record<string, number> | null)?.credit_balance ?? 0,
-        work_credits:    (client as Record<string, number> | null)?.figsy_credits_remaining ?? 0,
+        wallet_balance_usd: Number((client as Record<string, number> | null)?.wallet_balance_usd ?? 0),
         leads_awaiting:  awaiting.count ?? 0,
         meetings_booked: meetings.count ?? 0,
-        // Real all-time totals + true $ spend (reveals × $1 + confirmed bookings × $3). Released
-        // holds are NOT spend, so this never overstates like a raw ledger sum did.
+        // Real all-time totals + true $ spend. ONE WALLET: spend = approved leads × $4
+        // (the flat charge at the 👍). Meetings are reported, never a spend line.
         leads_approved_total: approvedTotal.count ?? 0,
         replies_total:        repliesTotal.count ?? 0,
         meetings_total:       meetingsTotal.count ?? 0,
-        spend_usd:            (approvedTotal.count ?? 0) * 1 + (meetingsTotal.count ?? 0) * 3,
+        spend_usd:            (approvedTotal.count ?? 0) * 4,
         active_campaign: (campaign.data as { name?: string } | null)?.name ?? null,
         recent_replies:  (replies.data ?? []).map((r: Record<string, unknown>) => ({
           name: (r.from_name as string | null) ?? (r.from_email as string | null) ?? 'Reply',
@@ -637,134 +633,15 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-
-    // 1. Atomic claim — only the first reveal of this lead wins.
-    const now = new Date().toISOString()
-    const { data: claimedRows, error: claimErr } = await db.from('leads')
-      .update({ revealed_at: now })
-      .eq('id', req.params.id).eq('client_id', clientId).is('revealed_at', null)
-      .select('*')
-    if (claimErr) { console.error('[reveal] claim error', claimErr); res.status(500).json({ success: false, error: 'Failed to reveal lead' }); return }
-    const claim = (claimedRows ?? [])[0] as Record<string, any> | undefined
-
-    // Lost the claim → already revealed (or not ours). Idempotent: return current email.
-    if (!claim) {
-      const { data: existing } = await db.from('leads')
-        .select('email, phone, revealed_at').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
-      if (!existing) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
-      res.json({ success: true, revealed: !!existing.revealed_at, email: existing.email ?? null, phone: existing.phone ?? null, charged: false })
-      return
-    }
-
-    const unclaim = () => db.from('leads').update({ revealed_at: null }).eq('id', claim.id).then(() => {}, () => {})
-
-    // #453 — DEMO MODE: reveals are FREE and OFF-LEDGER. Resolve the client early; a
-    // demo reveal must leave ZERO rows in the money books — NO try_charge_reveal_credit,
-    // NO Hunter/waterfall, NO client_reveals, NO credit_transactions usage row, NO trial
-    // +2 drip. Pool-served demo leads already carry the email on the row, so just expose
-    // it (the atomic claim above already stamped revealed_at). If a demo lead somehow has
-    // no email, return the normal no-email response, uncharged (and un-claim so it can be
-    // retried once a pool lead with an email is served).
-    if (await isDemoClient(clientId)) {
-      const demoEmail = (claim.email as string | null) ?? null
-      if (!demoEmail) {
-        await unclaim()
-        res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' })
-        return
-      }
-      console.log(`[demo] free off-ledger reveal for client ${clientId} lead ${claim.id} — no charge, no money-book rows.`)
-      res.json({ success: true, revealed: true, email: demoEmail, phone: claim.phone ?? null, charged: false })
-      return
-    }
-
-    // 2. Already in the client's own CRM → they own it → no charge.
-    if (claim.crm_existing) {
-      await unclaim()
-      res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' })
-      return
-    }
-
-    // 2b. #424 charge-once — if the email is already known (PDL leads carry it) and
-    // this client has ALREADY paid to reveal that person (any earlier lead/campaign),
-    // it's free: expose it without charging, at any balance. Hunter-only leads (no
-    // email yet) can't be checked here — they reconcile after resolution in step 6.
-    const knownEmail = normalizeRevealEmail(claim.email)
-    if (knownEmail) {
-      const { data: owned } = await db.rpc('reveal_is_owned', { p_client_id: clientId, p_email_norm: knownEmail })
-      if (owned === true) {
-        res.json({ success: true, revealed: true, email: claim.email, phone: claim.phone ?? null, charged: false })
-        return
-      }
-    }
-
-    // 3. Charge $1 (atomic decrement IS the gate).
-    const { data: charged, error: chargeErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
-    if (chargeErr) { console.error('[reveal] charge rpc error', chargeErr); await unclaim(); res.status(500).json({ success: false, error: 'Failed to reveal lead' }); return }
-    if (charged !== true) {
-      await unclaim()
-      res.status(402).json({ success: false, error: 'insufficient_reveal_credits', message: 'Add reveal credits to unmask this lead ($1 each).' })
-      return
-    }
-
-    // 4. Reveal the email. PDL-sourced leads already carry a work_email; only run
-    //    the Hunter waterfall when we don't have one yet.
-    let email: string | null = claim.email ?? null
-    if (!email) {
-      try {
-        const enriched = await waterfallEnrich({
-          first_name:   claim.first_name,
-          last_name:    claim.last_name,
-          company:      claim.company,
-          linkedin_url: claim.linkedin_url,
-        })
-        email = enriched.email ?? null
-      } catch (e) { console.error('[reveal] hunter waterfall failed for lead', claim.id, e); email = null }
-    }
-
-    // 5. No email → REFUND (fail-closed) + un-claim. Client is never charged for a dud.
-    if (!email) {
-      const { error: refundErr } = await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: 1 })
-      if (refundErr) console.error('[reveal] REFUND FAILED for client', clientId, 'lead', claim.id, refundErr)
-      await unclaim()
-      res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' })
-      return
-    }
-
-    // 6. Persist the email, then the #424 charge-once reconcile: record ownership of
-    // this email for the client. If they already owned it (a re-sourced duplicate of
-    // the same person on a different lead row), record_reveal_or_refund returns the
-    // $1 — net once-per-email-EVER. Only log the usage ledger row when the charge nets.
-    await db.from('leads').update({ email, apollo_consented: true }).eq('id', claim.id).then(() => {}, () => {})
-
-    const emailNorm = normalizeRevealEmail(email)
-    let chargedNet = true
-    if (emailNorm) {
-      const { data: revealOutcome } = await db.rpc('record_reveal_or_refund', {
-        p_client_id: clientId, p_email_norm: emailNorm, p_lead_id: claim.id,
-      })
-      chargedNet = revealCharged(revealOutcome)
-    }
-
-    if (chargedNet) {
-      await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount:    -1,
-        type:      'usage',
-        plan:      'lead_gen',
-        reference: `reveal:${claim.id}`,
-        note:      'Lead revealed ($1)',
-        created_at: now,
-      }).then(() => {}, () => {}) // unique-reference conflict = already booked; ignore
-    }
-
-    // #445 — TRIAL sourcing drip: a successful reveal unlocks +2 more sourced records,
-    // so a trial client learns the loop by playing it (reveal → more leads appear). The
-    // RPC caps lifetime trial grants at 20 records, so this is self-limiting and a no-op
-    // once the client is out of trial pool — safe to call on every reveal. Fire-and-forget.
-    void db.rpc('add_sourcing_allowance', { p_client_id: clientId, p_records: 2, p_trial: true })
-      .then(() => {}, (e: unknown) => console.error('[reveal] trial sourcing drip failed (non-fatal):', e))
-
-    res.json({ success: true, revealed: true, email, charged: chargedNet })
+    // ONE WALLET — reveal and approve are the SAME money event now: a single flat $4
+    // charged once per lead. Delegate to approveLead so there is exactly one money path.
+    const { approveLead } = await import('../lib/approve-lead')
+    const outcome = await approveLead(req.params.id, clientId)
+    if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+    if (outcome.status === 'insufficient_funds') { res.status(402).json({ success: false, error: 'insufficient_funds', message: 'You need $4 in your wallet to approve. Top up to continue.' }); return }
+    if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
+    if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }
+    res.json({ success: true, revealed: true, email: outcome.email, charged: outcome.charged })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })
 
@@ -781,12 +658,9 @@ leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'l
     const { approveLead } = await import('../lib/approve-lead')
     const outcome = await approveLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
-    if (outcome.status === 'insufficient_reveal_credits') {
-      res.status(402).json({ success: false, error: 'insufficient_reveal_credits', message: 'Add credits to approve — $1 to reveal plus $3 held for the work. Top up to continue.' }); return
-    }
-    if (outcome.status === 'insufficient_work_credits') {
-      // #492 — the $3 work-hold couldn't be reserved, so NOTHING moved (no reveal either).
-      res.status(402).json({ success: false, error: 'insufficient_work_credits', message: 'Add credits to approve — $1 to reveal plus $3 held for the work. Top up to continue.' }); return
+    if (outcome.status === 'insufficient_funds') {
+      // ONE WALLET — the flat $4 couldn't be charged, so NOTHING moved.
+      res.status(402).json({ success: false, error: 'insufficient_funds', message: 'You need $4 in your wallet to approve. Top up to continue.' }); return
     }
     if (outcome.status === 'no_email') {
       res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not verify an email for this lead — you were not charged.' }); return

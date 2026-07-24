@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 
 type Summary = { meetings_booked: number; active_campaign: string | null; recent_replies: { name: string; classification: string }[]; leads_approved_total?: number; replies_total?: number; meetings_total?: number; spend_usd?: number }
 type LedgerEntry = { amount: number; type: string; note: string | null; created_at: string | null }
-type Ledger = { reveal_credits: number; work_credits: number; entries: LedgerEntry[] }
+type Ledger = { wallet_balance_usd: number; transactions: LedgerEntry[] }
 type Meeting = { id: string; title: string; start_time: string | null; status: string; name: string; company: string | null }
 
 async function token(): Promise<string | undefined> {
@@ -41,12 +41,13 @@ export default function MillaReportsPage() {
   useEffect(() => { load() }, [load])
 
   // (audit fix) Use the REAL server-computed all-time totals, not a capped 50-row ledger slice /
-  // 4-row replies rail. Spend is true dollars — reveals × $1 + confirmed bookings × $3 — not a
-  // raw credit-count sum (which wrongly valued a $3 work credit at $1 and counted released holds).
-  const reveals = summary?.leads_approved_total ?? 0
-  const captured = summary?.meetings_total ?? summary?.meetings_booked ?? 0
-  const spend = summary?.spend_usd ?? (reveals * 1 + captured * 3)
+  // 4-row replies rail. Spend is true dollars — a flat $4 per approved lead, final. Meetings are
+  // reported, never a money condition.
+  const approved = summary?.leads_approved_total ?? 0
+  const meetingCount = summary?.meetings_total ?? summary?.meetings_booked ?? 0
+  const spend = summary?.spend_usd ?? (approved * 4)
   const replies = summary?.replies_total ?? summary?.recent_replies?.length ?? 0
+  const costPerMeeting = meetingCount > 0 ? Math.round(spend / meetingCount) : null
 
   const KPI = ({ k, v, s, tone }: { k: string; v: string; s: string; tone?: string }) => (
     <div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-4">
@@ -67,11 +68,12 @@ export default function MillaReportsPage() {
 
         {summary && (
           <>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mt-5">
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5 mt-5">
               <KPI k="Meetings booked" v={String(summary.meetings_booked)} s="this month" tone="#EC4899" />
-              <KPI k="Leads approved" v={String(reveals)} s="you chose to pursue" />
+              <KPI k="Leads approved" v={String(approved)} s="you chose to pursue" />
               <KPI k="Replies in" v={String(replies)} s="total" tone="#059669" />
-              <KPI k="Spend" v={`$${spend}`} s={`$${reveals} reveal · $${captured * 3} booked`} />
+              <KPI k="Spend" v={`$${spend}`} s={`${approved} leads approved × $4`} />
+              <KPI k="Cost per meeting" v={costPerMeeting == null ? '—' : `$${costPerMeeting}`} s={meetingCount > 0 ? `across ${meetingCount} meeting${meetingCount === 1 ? '' : 's'}` : 'no meetings yet'} />
             </div>
 
             <div className="flex flex-col lg:flex-row gap-4 mt-4">
@@ -85,7 +87,7 @@ export default function MillaReportsPage() {
                       {(m.name || '?').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase()}
                     </span>
                     <div className="min-w-0 flex-1"><b className="text-[13px]">{m.name}</b><span className="block text-[11.5px] text-[#9b8ec4]">{[m.company, when(m.start_time)].filter(Boolean).join(' · ')}</span></div>
-                    <span className="text-[10.5px] font-extrabold text-emerald-700 bg-emerald-50 rounded-full px-2.5 py-1">$3 captured</span>
+                    <span className="text-[10.5px] font-extrabold text-emerald-700 bg-emerald-50 rounded-full px-2.5 py-1">{m.status === 'completed' ? 'Completed' : 'Confirmed'}</span>
                   </div>
                 ))}
               </div>
@@ -94,8 +96,8 @@ export default function MillaReportsPage() {
                 <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Summary</div>
                 <div className="px-4 py-4 text-[13px] leading-relaxed text-[#4c4368]">
                   {summary.active_campaign ? <>Your <b className="text-[#7C3AED]">{summary.active_campaign}</b> campaign is live. </> : <>Your campaign is being set up. </>}
-                  You&apos;ve approved <b>{reveals}</b> lead{reveals === 1 ? '' : 's'}, {replies} repl{replies === 1 ? 'y has' : 'ies have'} come back, and <b>{summary.meetings_booked}</b> meeting{summary.meetings_booked === 1 ? '' : 's'} {summary.meetings_booked === 1 ? 'has' : 'have'} booked this month. You only pay when you approve — total spend so far is <b>${spend}</b>.
-                  {captured > 0 && <> The <b>$3</b> work fee was captured on <b>{captured}</b> confirmed booking{captured === 1 ? '' : 's'}.</>}
+                  You&apos;ve approved <b>{approved}</b> lead{approved === 1 ? '' : 's'}, {replies} repl{replies === 1 ? 'y has' : 'ies have'} come back, and <b>{summary.meetings_booked}</b> meeting{summary.meetings_booked === 1 ? '' : 's'} {summary.meetings_booked === 1 ? 'has' : 'have'} booked this month. You only pay when you approve — a flat <b>$4</b> per lead, so total spend so far is <b>${spend}</b>.
+                  {meetingCount > 0 && costPerMeeting != null && <> That&apos;s about <b>${costPerMeeting}</b> per meeting booked.</>}
                 </div>
               </div>
             </div>

@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@/lib/supabase/server'
 import { api } from '@/lib/api'
 import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
-import { TwoWalletExplainer } from '@/components/ui/TwoWalletExplainer'
+import { OneWalletExplainer } from '@/components/ui/OneWalletExplainer'
 import { ActivityFeed, type ActivityEvent } from '@/components/ui/ActivityFeed'
 import { WelcomeVideoCard } from '@/components/onboarding/WelcomeVideoCard'
 import { LearningCentre } from '@/components/onboarding/LearningCentre'
@@ -182,9 +182,9 @@ export default async function DashboardPage() {
         />
       )}
 
-      {/* Two-wallet explainer (#447) — shows until the first credit purchase. */}
+      {/* One-wallet explainer (#447) — shows until the first wallet top-up. */}
       {clientId && (
-        <TwoWalletExplainer clientId={clientId} hasPurchase={onboarding?.hasPurchase ?? false} />
+        <OneWalletExplainer clientId={clientId} hasPurchase={onboarding?.hasPurchase ?? false} />
       )}
 
       {/* FIGSY conversation — tour anchor: step 1 "Welcome" points here (#454). */}

@@ -3,13 +3,14 @@ import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
-import { canEnroll, normalizeRevealEmail, revealCharged } from './billing-rules'
+import { canEnroll } from './billing-rules'
 import { sendFounderAlert } from './alerts'
 import { interpretSend } from './resend-checked'
 import { isDemoClient } from './demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, type SequenceStep } from './sequence-apply'
 import { bookingUrlForLead } from './booking-token'
-import { releaseFigsyHold, releaseHoldForEnrollment } from './credit-holds'
+// ONE WALLET (24 Jul): no holds — money is a single $4 charged at approve. The old
+// credit-holds release/capture calls are removed; nothing to import here anymore.
 import {
   COLD_FROM,
   COLD_REPLY_TO,
@@ -451,7 +452,7 @@ export async function applyReplyBranching(
       .order('received_at', { ascending: false }).limit(1).maybeSingle()
     const NEGATIVE = ['cold', 'opt_out', 'unsubscribe', 'wrong_person', 'referral']
     if (lastReply && NEGATIVE.includes((lastReply.classification ?? '') as string)) {
-      void releaseHoldForEnrollment(enrollment.id, `reply_${lastReply.classification}`)
+      // ONE WALLET: no held $3 to release — the $4 was final at approve.
     }
     return 'skip'
   }
@@ -464,8 +465,7 @@ export async function applyReplyBranching(
       status: 'completed', completed_at: now, next_send_at: null,
       current_step: skipped, reply_branch_handled_at: now,
     }).eq('id', enrollment.id)
-    // #492 — sequence finished with no booking → release the held $3 (idempotent).
-    void releaseHoldForEnrollment(enrollment.id, 'sequence_completed')
+    // ONE WALLET: no held $3 — the $4 was final at approve; nothing to release.
   } else {
     const nextSendAt = new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[skipped] ?? 4) * 86400000).toISOString()
     await db.from('figsy_enrollments').update({
@@ -572,8 +572,7 @@ export async function sendSequenceEmail(
   if (blocked) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
     await db.from('figsy_enrollments').update({ status: 'opted_out' }).eq('id', enrollmentId)
-    // #492 — opted out before booking → release the held $3 (idempotent).
-    void releaseHoldForEnrollment(enrollmentId, 'opted_out')
+    // ONE WALLET: opt-out moves no money — the $4 was final at approve.
     return 'suppressed'
   }
 
@@ -760,9 +759,7 @@ export async function sendSequenceEmail(
     next_send_at: nextSendAt,
     ...(isLast ? { completed_at: new Date().toISOString() } : {}),
   }).eq('id', enrollmentId)
-  // #492 — last step sent, no booking → release the held $3 (idempotent; a booked lead's
-  // hold is already 'captured', so this is a safe no-op there).
-  if (isLast) void releaseHoldForEnrollment(enrollmentId, 'sequence_completed')
+  // ONE WALLET: last step sent moves no money — the $4 was final at approve.
 
   // THE DATA FLOOR (#17b) — log the send (the credit-spend denominator). Fire-and-forget.
   void logOutcomeEvent({
@@ -832,118 +829,69 @@ export async function chargeFigsyEnroll(
   // suppresses the actual outreach. This single gate covers all three enroll paths
   // (autoEnrollLead + the two manual /figsy enroll loops) so demo work never bills.
   if (await isDemoClient(clientId)) {
-    console.log(`[demo] FIGSY enroll free (no reveal/work charge, off-ledger) for client ${clientId} — ${leadName}`)
+    console.log(`[demo] FIGSY enroll free (off-ledger) for client ${clientId} — ${leadName}`)
     return 'skipped'
   }
 
-  // #420/#422 — the $4 ladder holds at the choke point: enrolling an UNREVEALED
-  // lead auto-charges the $1 reveal first (enrollment implies the reveal — the
-  // reply would expose the contact anyway). Without this, any enroll path would
-  // deliver full outreach for $3 and bypass the reveal charge.
+  // ONE WALLET — a lead is worked for a flat $4, charged ONCE ever from the wallet.
+  // If this lead was already charged (typically the client's approve took the $4, or a
+  // prior enrol), skip — the work is already paid. Dedup on the per-lead ledger row.
   if (lead.id) {
-    const { data: row } = await db.from('leads').select('revealed_at, email').eq('id', lead.id).maybeSingle()
-    if (row && !row.revealed_at) {
-      const { data: revealOk, error: revealErr } = await db.rpc('try_charge_reveal_credit', { p_client_id: clientId })
-      if (revealErr || revealOk !== true) {
-        console.error('[figsy] chargeFigsyEnroll: reveal charge failed for unrevealed lead', lead.id, revealErr?.message ?? 'insufficient reveal credits', 'client', clientId)
-        return 'failed' // fail closed — no reveal credit → no enrollment
-      }
-      // Atomic claim; a lost race means someone else revealed — the $1 we just
-      // took is returned to keep the wallet honest.
-      const { data: claimed } = await db.from('leads')
-        .update({ revealed_at: new Date().toISOString() })
-        .eq('id', lead.id).is('revealed_at', null).select('id')
-      if ((claimed ?? []).length === 0) {
-        await db.rpc('increment_client_credits', { p_client_id: clientId, p_amount: 1 }).then(() => {}, () => {})
-      } else {
-        // #424 charge-once — record ownership by email; if the client already owned
-        // this person (re-sourced duplicate), record_reveal_or_refund returns the $1.
-        // Net once-per-email-EVER. Only log the usage row when the charge nets.
-        const emailNorm = normalizeRevealEmail(row.email)
-        let chargedNet = true
-        if (emailNorm) {
-          const { data: outcome } = await db.rpc('record_reveal_or_refund', {
-            p_client_id: clientId, p_email_norm: emailNorm, p_lead_id: lead.id,
-          })
-          chargedNet = revealCharged(outcome)
-        }
-        if (chargedNet) {
-          await db.from('credit_transactions').insert({
-            client_id: clientId,
-            amount: -1,
-            type: 'usage',
-            plan: 'lead_gen',
-            reference: `reveal:${lead.id}`,
-            note: `Lead revealed at enrollment ($1): ${leadName}`,
-            created_at: new Date().toISOString(),
-          }).then(() => {}, () => {})
-        }
-      }
-    }
-  }
-
-  // (audit fix) DOUBLE-$3 GUARD — the $3 work credit has no per-lead dedup (unlike the $1 reveal,
-  // which #424 dedupes per client+email above). If this lead already carries a work hold (held or
-  // captured from the managed approve→hold path), the $3 is ALREADY accounted; charging again here
-  // would bill the same lead twice. Skip the figsy charge (enrollment still proceeds — the existing
-  // hold covers the work). This makes chargeFigsyEnroll idempotent w.r.t. the hold, mirroring
-  // holdFigsyCredit's own idempotency, so approve-then-enroll (any order via any path) is safe.
-  if (lead.id) {
-    const { data: existingHold } = await db.from('credit_holds')
-      .select('id').eq('client_id', clientId).eq('lead_id', lead.id).in('status', ['held', 'captured']).limit(1).maybeSingle()
-    if (existingHold) {
-      console.log(`[figsy] chargeFigsyEnroll: lead ${lead.id} already has a $3 work hold/capture — skipping duplicate work charge (client ${clientId})`)
+    const { data: existing } = await db.from('credit_transactions')
+      .select('id').eq('client_id', clientId).eq('reference', `lead:${lead.id}`).eq('type', 'wallet_charge').limit(1).maybeSingle()
+    if (existing) {
+      console.log(`[figsy] chargeFigsyEnroll: lead ${lead.id} already charged $4 — skipping (client ${clientId})`)
       return 'skipped'
     }
   }
 
-  const { data: charged, error } = await db.rpc('try_charge_figsy_credit', { p_client_id: clientId })
-  // P6 — fail CLOSED: only a hard `true` from the RPC counts as a real charge. A
-  // null/undefined return (RPC returned no row, or an unexpected shape) must NOT be
-  // treated as a successful charge — that would enrol a lead for free.
+  // Charge the flat $4 (the atomic decrement IS the gate). Fail CLOSED — only a hard
+  // `true` counts; a null/undefined must never be treated as a successful charge.
+  const { data: charged, error } = await db.rpc('try_charge_wallet', { p_client_id: clientId, p_amount: 4 })
   if (error || charged !== true) {
-    console.error('[figsy] chargeFigsyEnroll: FIGSY credit charge failed', error?.message ?? 'insufficient balance', 'client', clientId)
+    console.error('[figsy] chargeFigsyEnroll: wallet charge failed', error?.message ?? 'insufficient balance', 'client', clientId)
     void sendFounderAlert('charge_failed', 'FIGSY enrollment charge failed — lead NOT enrolled', [
       `Client: ${clientId}`,
       `Lead: ${leadName}${lead.company ? ` at ${lead.company}` : ''}`,
-      error ? `Reason: RPC error — ${error.message}` : 'Reason: no FIGSY credits at charge time (balance hit 0 between the pre-check and the charge).',
+      error ? `Reason: RPC error — ${error.message}` : 'Reason: wallet balance below $4 at charge time.',
     ])
     return 'failed'
   }
   await db.from('credit_transactions').insert({
     client_id: clientId,
-    amount: -1,
-    type: 'usage',
-    plan: 'figsy',
-    note: `FIGSY outreach enrolled: ${lead.first_name ?? ''} ${lead.last_name ?? ''} at ${lead.company ?? ''}`.trim(),
+    amount: -4,
+    type: 'wallet_charge',
+    plan: 'work_model',
+    reference: lead.id ? `lead:${lead.id}` : null,
+    note: `Approved lead worked ($4): ${leadName}${lead.company ? ` at ${lead.company}` : ''}`.trim(),
     created_at: new Date().toISOString(),
   }).then(() => {}, () => {})
   return 'charged'
 }
 
-// #332 — return a charged credit when the enrollment insert fails AFTER we
-// charged (charge-first ordering). Best-effort: restores the balance via the
-// clamping increment RPC and writes a refund ledger row so the wallet + ledger
-// stay reconciled. Never throws into the caller.
-export async function refundFigsyEnroll(clientId: string): Promise<void> {
-  const { error } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 })
-  if (error) {
-    console.error('[figsy] refundFigsyEnroll: FIGSY credit refund failed', error.message, 'client', clientId)
-    // P9 — a failed refund means the client LOST a credit for an enrollment that
-    // never landed. Don't let that sit in console-only; alert so it can be fixed.
-    void sendFounderAlert('charge_failed', 'FIGSY refund failed — client lost a credit', [
+// #332 — return the $4 when the enrollment insert fails AFTER we charged (charge-first
+// ordering). Best-effort: credits the wallet and removes the per-lead charge ledger row
+// (so a legitimate retry can charge again) — never throws into the caller.
+export async function refundFigsyEnroll(clientId: string, leadId?: string): Promise<void> {
+  await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: 4 }).then(() => {}, (e: unknown) => {
+    console.error('[figsy] refundFigsyEnroll: $4 wallet reversal failed', String(e), 'client', clientId)
+    void sendFounderAlert('charge_failed', 'Wallet reversal failed — client lost $4', [
       `Client: ${clientId}`,
-      `An enrollment failed after the FIGSY credit was charged, and returning the credit also failed: ${error.message}`,
-      'Action: grant 1 FIGSY credit back to this client manually.',
+      'An enrollment failed after the $4 was charged, and returning it also failed.',
+      'Action: add $4 to this client’s wallet manually.',
     ])
-    return
+  })
+  // W3 — free the per-lead charge reference so a legitimate retry can re-charge, and
+  // give the reverse row a NULL reference so it can never collide with the unique
+  // `lead:{id}` index (a same-reference reverse would block the retry-charge silently).
+  if (leadId) {
+    await db.from('credit_transactions').delete()
+      .eq('client_id', clientId).eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge').then(() => {}, () => {})
   }
   await db.from('credit_transactions').insert({
-    client_id: clientId,
-    amount: 1,
-    type: 'refund',
-    plan: 'figsy',
-    note: 'Enrollment failed after charge — credit returned',
+    client_id: clientId, amount: 4, type: 'wallet_reverse', plan: 'work_model',
+    reference: null,
+    note: leadId ? `Enrollment failed after charge — $4 returned (lead ${leadId})` : 'Enrollment failed after charge — $4 returned',
     created_at: new Date().toISOString(),
   }).then(() => {}, () => {})
 }
@@ -1389,7 +1337,7 @@ export async function campaignReadyLeadIds(clientId: string): Promise<string[]> 
     .map((l: { id: string }) => l.id)
 }
 
-export async function autoEnrollLead(leadId: string, clientId: string, opts?: { force?: boolean; figsyHeld?: boolean }): Promise<void> {
+export async function autoEnrollLead(leadId: string, clientId: string, opts?: { force?: boolean; prepaid?: boolean }): Promise<void> {
   try {
     // #344 (AR-07) — KILL-SWITCH, checked BEFORE the charge. autoEnrollLead charges a
     // FIGSY credit then sends step 1; if the switch is off, sendSequenceEmail would defer
@@ -1548,14 +1496,13 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // so a lead already enrolled is never charged. If the charge fails (RPC error or
     // no credit), abort WITHOUT inserting or sending — chargeFigsyEnroll already
     // alerted the founder.
-    // #492 — when the $3 is already HELD (client approve path), the FIGSY credit was
-    // taken at the hold, so we do NOT charge again here — enrollment proceeds on the hold.
-    // (F1 fix) tri-state: 'charged' = a credit was taken (refund on failure); 'skipped' = demo or
-    // the $3 is already held for this lead (never refund — the hold isn't ours to touch here);
-    // 'failed' = nothing taken (don't enrol, don't refund). The managed approve path passes
-    // figsyHeld → 'skipped', and on failure it RELEASES its own hold (below).
+    // ONE WALLET — when `prepaid` is set (the client-approve path already took the $4)
+    // we do NOT charge again here; enrolment proceeds on the already-paid lead.
+    // tri-state: 'charged' = the $4 was taken by THIS call (refund on failure); 'skipped'
+    // = demo or already-paid (never refund — nothing taken here); 'failed' = wallet too
+    // low (don't enrol, don't refund).
     const chargeResult: EnrollChargeResult =
-      (isDemo || opts?.figsyHeld) ? 'skipped' : await chargeFigsyEnroll(clientId, lead)
+      (isDemo || opts?.prepaid) ? 'skipped' : await chargeFigsyEnroll(clientId, lead)
     if (chargeResult === 'failed') {
       console.warn(`[figsy] autoEnrollLead: charge failed for lead ${leadId} — not enrolling (nothing charged).`)
       return
@@ -1588,21 +1535,18 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
         step3_body:     draft.step3.body,
       }).select('id').single()
     } catch (insertThrow) {
-      console.error('[figsy] autoEnrollLead: enrollment insert threw after charge — returning credit for lead', leadId, insertThrow)
-      // #492 — return ONLY money actually taken by THIS call: held path releases its own hold;
-      // charged path refunds. A 'skipped' result (demo, or a pre-existing hold from a separate
-      // approve) took nothing here → return nothing (refunding would inflate the wallet — F1).
-      if (opts?.figsyHeld) await releaseFigsyHold(clientId, leadId, 'enroll_insert_threw')
-      else if (chargeResult === 'charged') await refundFigsyEnroll(clientId)
+      console.error('[figsy] autoEnrollLead: enrollment insert threw after charge — returning $4 for lead', leadId, insertThrow)
+      // Return ONLY money taken by THIS call: refund the $4 if we charged it. A 'skipped'
+      // result (demo, or already paid by the approve) took nothing here → return nothing.
+      if (chargeResult === 'charged') await refundFigsyEnroll(clientId, leadId)
       return
     }
     const { data: enrollment, error } = insertRes
 
     if (error || !enrollment) {
-      // We already charged/held — return the credit so the wallet + ledger reconcile.
-      console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— returning credit')
-      if (opts?.figsyHeld) await releaseFigsyHold(clientId, leadId, 'enroll_insert_failed')
-      else if (chargeResult === 'charged') await refundFigsyEnroll(clientId)
+      // We already charged — return the $4 so the wallet + ledger reconcile.
+      console.error('[figsy] autoEnrollLead: enrollment insert failed after charge', error?.message, 'for lead', leadId, '— returning $4')
+      if (chargeResult === 'charged') await refundFigsyEnroll(clientId, leadId)
       return
     }
 

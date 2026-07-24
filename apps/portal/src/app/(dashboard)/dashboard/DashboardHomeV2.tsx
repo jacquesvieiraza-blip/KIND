@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { ArrowRight, BadgeCheck, Target, Inbox, LineChart, Search } from 'lucide-react'
 import { CopyShareLink } from '@/components/ui/CopyShareLink'
 import { FirstRunChecklist } from '@/components/ui/FirstRunChecklist'
-import { TwoWalletExplainer } from '@/components/ui/TwoWalletExplainer'
+import { OneWalletExplainer } from '@/components/ui/OneWalletExplainer'
 import { WelcomeVideoCard } from '@/components/onboarding/WelcomeVideoCard'
 import { LearningCentre } from '@/components/onboarding/LearningCentre'
 
@@ -77,7 +77,7 @@ export function DashboardHomeV2({
           on the V2 home (the tour's entry point only rendered on the V1 path). */}
       <WelcomeVideoCard />
 
-      {/* #447 — first-run checklist + two-wallet explainer (reveal push) */}
+      {/* #447 — first-run checklist + one-wallet explainer */}
       {clientId && (
         <FirstRunChecklist
           clientId={clientId}
@@ -88,7 +88,7 @@ export function DashboardHomeV2({
           topLeadId={topLeadId}
         />
       )}
-      {clientId && <TwoWalletExplainer clientId={clientId} hasPurchase={!!hasPurchase} />}
+      {clientId && <OneWalletExplainer clientId={clientId} hasPurchase={!!hasPurchase} />}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 

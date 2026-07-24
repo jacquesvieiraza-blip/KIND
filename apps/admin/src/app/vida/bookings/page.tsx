@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 
 // #499 — VIDA BOOKINGS. The operator's meetings view for a client: every confirmed meeting
-// (the $3 captured at booking) plus any marked no-show, joined to the lead. Real read of
-// calendar_bookings via /api/proxy/operator/bookings. "Mark no-show" is a STATE-ONLY write
-// (it does not release or keep the $3) — the no-show → rebook×2 → keep/release MONEY
-// automation is deliberately NOT here; that is a flagged founder capture-timing decision.
+// plus any marked no-show, joined to the lead. Real read of calendar_bookings via
+// /api/proxy/operator/bookings. Meetings are REPORTED, never a money condition — no money
+// moves here. "Mark no-show" is a STATE-ONLY write, and a no-show gets up to 2 goodwill
+// rebooks (no new charge).
 
 type ClientRow = { id: string; company_name: string | null; industry: string | null; country: string | null }
 type Booking = {
@@ -150,10 +150,10 @@ export default function VidaBookingsPage() {
             <div className="shrink-0 px-[22px] pt-[15px] pb-2 border-b border-[#eee7f7] bg-white">
               <b className="text-[15px]">{selectedClient?.company_name || 'Client'} — bookings</b>
               <div className="flex items-center gap-2 mt-1.5">
-                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">{counts?.confirmed ?? 0} confirmed · $3 captured</span>
+                <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-0.5">{counts?.confirmed ?? 0} confirmed</span>
                 <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2.5 py-0.5">{counts?.no_show ?? 0} no-show</span>
               </div>
-              <p className="text-[10.5px] text-[#b3a9cc] mt-1.5">The $3 is captured at booking and <b className="text-[#5c5279]">kept</b> on a no-show. A no-show gets up to <b className="text-[#5c5279]">2 goodwill rebooks</b> (no new charge); after that the meeting is terminal-kept.</p>
+              <p className="text-[10.5px] text-[#b3a9cc] mt-1.5">Meetings are reported to the client — no money moves here. A no-show gets up to <b className="text-[#5c5279]">2 goodwill rebooks</b>.</p>
             </div>
 
             {error && <div className="mx-[22px] mt-3 text-xs text-red-500">{error}</div>}
@@ -196,7 +196,7 @@ export default function VidaBookingsPage() {
                         </button>
                       )}
                       {noShow && atMax && (
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-1.5 px-3 shrink-0">Kept · $3 · 2 rebooks used</span>
+                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg py-1.5 px-3 shrink-0">2 rebooks used</span>
                       )}
                       {noShow && !atMax && (
                         <div className="flex gap-1.5 shrink-0">

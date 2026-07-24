@@ -2,14 +2,13 @@
 
 import { useEffect, useState } from 'react'
 
-// Vida REPORTS & BILLING — per-client revenue essentials the operator reads: prepaid credit
-// balance, FIGSY credits, revealed count ($1 each) and qualified count (an enrollment ⟺ the
-// $4 fired). Real aggregates from the live tables — no fabricated MRR. (Replaces the old rail
-// link that pointed at the founder MRR/churn page.) Design ref: docs/mv-previews/vida2.html.
+// Vida REPORTS & billing — per-client essentials the operator reads: wallet balance ($),
+// contacts revealed, and worked-leads count (each approved/worked lead is a flat $4).
+// Real aggregates from the live tables — no fabricated MRR. Design ref: docs/mv-previews/vida2.html.
 
 type Row = {
   client_id: string; company_name: string | null; house_or_demo: boolean
-  credit_balance: number; figsy_credits_remaining: number; revealed_count: number; qualified_count: number
+  wallet_balance_usd: number; revealed_count: number; qualified_count: number
 }
 type Reports = { clients: Row[]; totals: { revealed: number; qualified: number } }
 
@@ -41,7 +40,7 @@ export default function VidaReportsPage() {
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="max-w-5xl">
         <h1 className="text-2xl font-bold text-[#1f1235]">Reports &amp; billing</h1>
-        <p className="text-sm text-[#7c6f9b] mt-0.5">Per client · prepaid credits, contacts revealed ($1 each) and leads qualified (the $4 that fired)</p>
+        <p className="text-sm text-[#7c6f9b] mt-0.5">Per client · prepaid credits, contacts revealed and worked leads (a flat $4 each)</p>
 
         {error && <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
         {!data && !error && <p className="text-sm text-[#9b8ec4] mt-4">Loading…</p>}
@@ -51,7 +50,7 @@ export default function VidaReportsPage() {
             <div className="flex flex-wrap gap-2.5 mt-4">
               <div className="bg-white border border-[#ece5fb] rounded-xl px-4 py-3">
                 <div className="text-2xl font-bold text-[#1f1235] tabular-nums">{data.totals.qualified.toLocaleString()}</div>
-                <div className="text-[11px] text-[#9b8ec4] font-semibold uppercase tracking-wide">Qualified · $4 fired</div>
+                <div className="text-[11px] text-[#9b8ec4] font-semibold uppercase tracking-wide">Worked leads · $4</div>
               </div>
               <div className="bg-white border border-[#ece5fb] rounded-xl px-4 py-3">
                 <div className="text-2xl font-bold text-[#1f1235] tabular-nums">{data.totals.revealed.toLocaleString()}</div>
@@ -69,15 +68,14 @@ export default function VidaReportsPage() {
                   <thead>
                     <tr className="bg-[#faf8ff] text-[#b3a9cc] text-[10px] uppercase tracking-wide">
                       <th className="text-left px-4 py-2.5 font-semibold">Client</th>
-                      <th className="text-right px-4 py-2.5 font-semibold">Credits</th>
-                      <th className="text-right px-4 py-2.5 font-semibold">FIGSY credits</th>
+                      <th className="text-right px-4 py-2.5 font-semibold">Wallet ($)</th>
                       <th className="text-right px-4 py-2.5 font-semibold">Revealed</th>
-                      <th className="text-right px-4 py-2.5 font-semibold">Qualified · $4</th>
+                      <th className="text-right px-4 py-2.5 font-semibold">Worked leads · $4</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.clients.length === 0 && (
-                      <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-[#9b8ec4]">No clients yet.</td></tr>
+                      <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-[#9b8ec4]">No clients yet.</td></tr>
                     )}
                     {data.clients.map(c => (
                       <tr key={c.client_id} className="border-t border-[#f4eefb]">
@@ -88,8 +86,7 @@ export default function VidaReportsPage() {
                             {c.house_or_demo && <span className="text-[9px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded px-1.5 py-0.5">house</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-[#4c4368]">{c.credit_balance.toLocaleString()}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums text-[#4c4368]">{c.figsy_credits_remaining.toLocaleString()}</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums text-[#4c4368]">${(c.wallet_balance_usd ?? 0).toLocaleString()}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-[#4c4368]">{c.revealed_count.toLocaleString()}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums font-bold text-[#7C3AED]">{c.qualified_count.toLocaleString()}</td>
                       </tr>

@@ -1,10 +1,10 @@
 'use client'
 
-/** First-run checklist (#447) — the four steps that push a new client across the
- *  $1 → $4 money-model line. Each step is lit from REAL data (see /onboarding/progress):
+/** First-run checklist (#447) — the four steps that push a new client to their first
+ *  approved lead. Each step is lit from REAL data (see /onboarding/progress):
  *    ① hasIcp        — client told FIGSY who they sell to
  *    ② hasLeads      — FIGSY sourced ≥1 lead
- *    ③ hasReveal     — client spent $1 to reveal a lead's email
+ *    ③ hasReveal     — client approved a lead ($4, final)
  *    ④ hasEnrollment — client put FIGSY to work (≥1 enrollment)
  *  The card hides permanently once all four are complete (localStorage flag keyed
  *  by client id, so it stays gone even if a later count momentarily regresses). */

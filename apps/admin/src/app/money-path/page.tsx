@@ -255,8 +255,8 @@ export default async function MoneyPathPage() {
             <Card>
               <p className="text-sm text-gray-500">
                 No record has earned yet — the pool holds <strong>{pool.summary.total_records.toLocaleString()}</strong> records
-                ({usd(pool.summary.total_acquisition_cost)} of owned data) waiting to be revealed. Each earns $1 per client who
-                reveals it + $3 per FIGSY work, forever.
+                ({usd(pool.summary.total_acquisition_cost)} of owned data) waiting to be revealed. Each approved lead earns a
+                flat $4.
               </p>
             </Card>
           ) : (

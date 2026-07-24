@@ -2397,19 +2397,11 @@ internalRouter.post('/nexus/recompute-all', async (_req: Request, res: Response)
   }
 })
 
-// ── E1 · STALE-HOLD SWEEP — reclaim any $3 held past its TTL (money backstop) ───────
-// Daily cron. Releases a held work-credit ONLY when it's provably not live, unbooked work
-// (see sweepStaleHolds fail-safe guards). TTL overridable via FIGSY_HOLD_TTL_DAYS (default 60).
+// ── ONE WALLET (24 Jul): the stale-hold sweep is RETIRED — there are no $3 holds to
+// release. The $4 is final at approve; no TTL, no capture, no release. Endpoint removed;
+// remove its cron schedule entry too (nothing to sweep). ────────────────────────────
 internalRouter.post('/figsy/sweep-stale-holds', async (_req: Request, res: Response) => {
-  try {
-    const { sweepStaleHolds } = await import('../lib/credit-holds')
-    const ttl = parseInt(process.env.FIGSY_HOLD_TTL_DAYS || '60', 10)
-    const result = await sweepStaleHolds(Number.isFinite(ttl) && ttl > 0 ? ttl : 60)
-    res.json({ success: true, data: result })
-  } catch (err) {
-    console.error('[figsy/sweep-stale-holds]', err)
-    res.status(500).json({ success: false, error: 'Stale-hold sweep failed' })
-  }
+  res.json({ success: true, data: { retired: true, note: 'one-wallet model: no holds to sweep' } })
 })
 
 // ── HUBSPOT PIPELINE VIEW ─────────────────────────────────────────────────────

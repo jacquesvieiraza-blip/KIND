@@ -1,9 +1,8 @@
 'use client'
 
-/** Two-wallet explainer (#447) — teaches the two-charge money model before the
- *  client's first purchase. Shows until they've bought credits (hasPurchase) or
- *  dismiss it. Mirrors the two credit pills in the layout header/sidebar:
- *    🪙 Reveal credits ($1)   ⚡ FIGSY credits ($3). */
+/** One-wallet explainer (#447) — teaches the money model before the client's first
+ *  purchase: one wallet, $99 to start, a flat $4 per approved lead (final). Shows until
+ *  they've funded the wallet (hasPurchase) or dismiss it. */
 
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
@@ -13,7 +12,7 @@ interface Props {
   hasPurchase: boolean
 }
 
-export function TwoWalletExplainer({ clientId, hasPurchase }: Props) {
+export function OneWalletExplainer({ clientId, hasPurchase }: Props) {
   const dismissKey = `kind_wallet_explainer_dismissed_${clientId || 'anon'}`
   const [dismissed, setDismissed] = useState(false)
 
@@ -26,7 +25,7 @@ export function TwoWalletExplainer({ clientId, hasPurchase }: Props) {
     try { localStorage.setItem(dismissKey, '1') } catch { /* ignore */ }
   }
 
-  // Once the client has purchased they know the model — stop showing it.
+  // Once the client has funded their wallet they know the model — stop showing it.
   if (hasPurchase || dismissed) return null
 
   return (
@@ -38,15 +37,15 @@ export function TwoWalletExplainer({ clientId, hasPurchase }: Props) {
       >
         <X className="w-4 h-4" />
       </button>
-      <p className="text-xs font-bold uppercase tracking-wider text-[#9B8EC4] mb-2.5">How your credits work</p>
+      <p className="text-xs font-bold uppercase tracking-wider text-[#9B8EC4] mb-2.5">How your wallet works</p>
       <div className="space-y-2 text-sm">
         <p className="flex items-start gap-2 text-gray-700">
-          <span className="shrink-0">🪙</span>
-          <span><span className="font-semibold text-amber-700">Reveal credits</span> — $1 shows you exactly who a lead is.</span>
+          <span className="shrink-0">👛</span>
+          <span><span className="font-semibold text-[#7C3AED]">One wallet.</span> $99 to start, then free top-ups whenever you need them.</span>
         </p>
         <p className="flex items-start gap-2 text-gray-700">
-          <span className="shrink-0">⚡</span>
-          <span><span className="font-semibold text-[#7C3AED]">FIGSY credits</span> — $3 puts him to work on them: writes, sends, chases, books.</span>
+          <span className="shrink-0">✅</span>
+          <span>Each approved lead is a flat <span className="font-semibold text-[#7C3AED]">$4</span> — final. Reviewing leads is free.</span>
         </p>
       </div>
     </div>

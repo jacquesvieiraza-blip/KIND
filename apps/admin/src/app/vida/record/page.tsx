@@ -8,7 +8,7 @@ import { useSearchParams } from 'next/navigation'
 // money moves) assembled server-side from outcome_events + audit + ledger + bookings + replies.
 // Opened with ?lead_id=… (the board / bookings pages link here). Pure read — nothing to spend.
 
-type Money = { held: boolean; captured: boolean; released: boolean; state: string }
+type Money = { charged: boolean; state: string }
 type Entry = { at: string | null; kind: string; label: string; detail?: string | null }
 type Reply = { classification: string | null; qualified: boolean; at: string | null }
 type Record_ = {
@@ -69,10 +69,10 @@ function RecordInner() {
               </div>
               <div className="text-right shrink-0">
                 <span className="inline-block text-[11px] font-bold rounded-full px-2.5 py-1 border" style={{
-                  color: rec.money.captured ? '#059669' : rec.money.held ? '#7C3AED' : '#9b8ec4',
-                  background: rec.money.captured ? '#ecfdf5' : rec.money.held ? '#f3ecff' : '#f7f4fd',
-                  borderColor: rec.money.captured ? '#a7f3d0' : rec.money.held ? '#e4d4fb' : '#eee7f7',
-                }}>{rec.money.state}</span>
+                  color: rec.money.charged ? '#059669' : '#9b8ec4',
+                  background: rec.money.charged ? '#ecfdf5' : '#f7f4fd',
+                  borderColor: rec.money.charged ? '#a7f3d0' : '#eee7f7',
+                }}>{rec.money.charged ? 'Charged $4' : 'Not charged'}</span>
               </div>
             </div>
 
@@ -80,7 +80,7 @@ function RecordInner() {
             <div className="flex flex-wrap gap-2 mt-3">
               <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">Status: {rec.lead.status || '—'}</span>
               <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">Score: {rec.lead.score ?? '—'}</span>
-              <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">{rec.lead.revealed ? 'Revealed ($1)' : 'Masked'}</span>
+              <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-3 py-1">{rec.lead.revealed ? 'Revealed' : 'Masked'}</span>
               {rec.replies.some(r => r.qualified) && <span className="text-[11.5px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">✓ Qualified</span>}
             </div>
 

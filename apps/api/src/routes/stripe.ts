@@ -8,11 +8,10 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import {
   isStripeConfigured,
   listInvoicesByEmail,
-  createCheckoutSession,
+  createWalletCheckoutSession,
   createSubscriptionCheckoutSession,
   constructWebhookEvent,
   getSessionMetaByPaymentIntent,
-  getStripePriceId,
   getStripeSubscriptionPriceId,
   STRIPE_SUBSCRIPTIONS,
   STRIPE_BUNDLES,
@@ -85,7 +84,9 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
 // row we won the claim and pay exactly once; a retried/concurrent webhook or a
 // later purchase finds the marker set and no-ops. Never throws — the caller
 // runs it fire-and-forget so a payout failure can't break the payment webhook.
-const REFERRAL_BONUS_FIGSY_CREDITS = 15
+// ONE WALLET (W2) — the referral bonus is paid in wallet dollars, not the retired
+// FIGSY credit column. ~$45 (was 15 FIGSY credits × $3).
+const REFERRAL_BONUS_USD = 45
 async function payReferrerOnFirstPurchase(referredClientId: string) {
   const { data: client } = await db.from('clients')
     .select('id, company_name, referred_by, referral_bonus_paid_at')
@@ -112,8 +113,8 @@ async function payReferrerOnFirstPurchase(referredClientId: string) {
   const { error: ledgerErr } = await db.from('credit_transactions').insert({
     client_id: client.referred_by,
     type:      'referral_bonus',
-    amount:    REFERRAL_BONUS_FIGSY_CREDITS,
-    plan:      'figsy',
+    amount:    REFERRAL_BONUS_USD,
+    plan:      'work_model',
     reference: ledgerRef,
     note:      `Referral bonus — ${client.company_name ?? 'a referred client'} made their first purchase`,
     created_at: now,
@@ -123,21 +124,21 @@ async function payReferrerOnFirstPurchase(referredClientId: string) {
     void sendFounderAlert('payment_failed', 'Referral payout failed', [
       `Referrer: ${client.referred_by}`,
       `Referred client ${referredClientId} made their first purchase, but writing the referral-bonus ledger row failed: ${ledgerErr.message}`,
-      'The payout marker was reset — a future purchase will retry. Grant the 15 FIGSY credits manually if needed.',
+      `The payout marker was reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
     ])
     return
   }
-  const { error: rpcErr } = await db.rpc('increment_figsy_credits', {
+  const { error: rpcErr } = await db.rpc('increment_wallet', {
     p_client_id: client.referred_by,
-    p_amount:    REFERRAL_BONUS_FIGSY_CREDITS,
+    p_amount:    REFERRAL_BONUS_USD,
   })
   if (rpcErr) {
     await db.from('credit_transactions').delete().eq('reference', ledgerRef)
     await db.from('clients').update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
     void sendFounderAlert('payment_failed', 'Referral payout failed', [
       `Referrer: ${client.referred_by}`,
-      `Referred client ${referredClientId} made their first purchase, but the FIGSY credit grant RPC failed: ${rpcErr.message}`,
-      'The ledger row was rolled back and the payout marker reset — a future purchase will retry. Grant the 15 FIGSY credits manually if needed.',
+      `Referred client ${referredClientId} made their first purchase, but the wallet grant RPC failed: ${rpcErr.message}`,
+      `The ledger row was rolled back and the payout marker reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
     ])
     return
   }
@@ -178,41 +179,44 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
   }
 
   try {
-    const { priceId, credits, creditType } = z.object({
-      priceId:    z.string().min(1),
-      credits:    z.number().int().positive(),
-      creditType: z.enum(['lead_gen', 'figsy']),
+    // ONE WALLET — a single dollar top-up. First purchase must be $99; later top-ups
+    // are any of the presets. Server enforces both (never trust the client).
+    const { amount_usd } = z.object({
+      amount_usd: z.number().positive(),
     }).parse(req.body)
-
-    // #313 — fail CLOSED. The old guard `if (expectedPriceId && …)` skipped validation
-    // entirely whenever getStripePriceId returned null — i.e. for any `credits` value
-    // that isn't a configured bundle, OR when the bundle's price env var is unset. A
-    // client could then POST a real cheap priceId with `credits: 999999`; the webhook
-    // trusts the metadata `credits` and grants them all. Now an unresolvable/mismatched
-    // bundle is a hard 400 — never a silent pass. `credits` must map to a real bundle.
-    const expectedPriceId = getStripePriceId(creditType, credits)
-    if (!expectedPriceId || expectedPriceId !== priceId) {
-      res.status(400).json({ success: false, error: 'Price ID does not match credit type and quantity' })
-      return
-    }
 
     const { data: client } = await db.from('clients')
       .select('id').eq('user_id', req.userId!).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Has this client purchased before? (any prior wallet top-up / credit purchase)
+    const { count: priorPurchases } = await db.from('credit_transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
+    const isFirst = (priorPurchases ?? 0) === 0
+
+    const FIRST_PURCHASE_USD = 99
+    const TOPUP_PRESETS = [40, 100, 200]
+    if (isFirst && amount_usd !== FIRST_PURCHASE_USD) {
+      res.status(400).json({ success: false, error: 'first_purchase_must_be_99', message: 'Your first purchase is $99 to load your wallet.' })
+      return
+    }
+    if (!isFirst && !TOPUP_PRESETS.includes(amount_usd) && amount_usd !== FIRST_PURCHASE_USD) {
+      res.status(400).json({ success: false, error: 'invalid_topup_amount', message: 'Top up $40, $100, or $200.' })
+      return
+    }
 
     const token = req.headers.authorization?.replace('Bearer ', '') || ''
     const { data: { user } } = await db.auth.getUser(token)
     const clientEmail = user?.email || ''
 
     const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const { url, error } = await createCheckoutSession({
+    const { url, error } = await createWalletCheckoutSession({
       clientId:   client.id,
-      priceId,
-      credits,
-      creditType,
+      amountUsd:  amount_usd,
       clientEmail,
-      successUrl: `${portalUrl}/dashboard/billing?stripe=success`,
-      cancelUrl:  `${portalUrl}/dashboard/billing?stripe=cancelled`,
+      successUrl: `${portalUrl}/milla/billing?stripe=success`,
+      cancelUrl:  `${portalUrl}/milla/billing?stripe=cancelled`,
     })
 
     if (!url) { res.status(500).json({ success: false, error: error || 'Failed to create Stripe Checkout session' }); return }
@@ -302,7 +306,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as {
         id: string
-        metadata?: { clientId?: string; credits?: string; creditType?: string; product?: string; type?: string }
+        metadata?: { clientId?: string; credits?: string; creditType?: string; product?: string; type?: string; amountUsd?: string }
         subscription?: string
       }
       const meta = session.metadata || {}
@@ -311,6 +315,49 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         // Subscription checkout completed — subscription activation handled
         // by customer.subscription.created event below. Nothing to do here.
         console.log(`[Stripe] Subscription checkout complete for ${meta.product} client ${meta.clientId}`)
+      } else if (meta.type === 'wallet_topup' && meta.clientId && meta.amountUsd) {
+        // ONE WALLET — credit the client's single dollar wallet. Ledger-first
+        // (unique reference = session.id) is the idempotency guard, then the atomic
+        // increment_wallet RPC. Same paid-safe pattern as the credit path below.
+        const clientId  = meta.clientId
+        const amountUsd = parseFloat(meta.amountUsd)
+        if (!Number.isFinite(amountUsd) || amountUsd <= 0) { res.sendStatus(200); return }
+
+        const { error: ledgerErr } = await db.from('credit_transactions').insert({
+          client_id: clientId, type: 'wallet_topup', amount: amountUsd, plan: 'work_model',
+          reference: session.id, note: `Wallet top-up $${amountUsd} via Stripe`,
+        })
+        if (ledgerErr) {
+          if (ledgerErr.code === '23505') { res.sendStatus(200); return } // already credited (retry)
+          console.error('[Stripe] wallet ledger insert failed after payment — 500 for retry', ledgerErr.message, 'session', session.id)
+          void sendFounderAlert('payment_failed', 'Wallet ledger insert failed after payment — Stripe will retry', [
+            `Client: ${clientId} paid $${amountUsd} (session ${session.id}).`,
+            `The payment succeeded but writing the wallet ledger row failed — no funds were added. Reason: ${ledgerErr.message}`,
+          ])
+          res.status(500).json({ error: 'ledger insert failed — retry' }); return
+        }
+        const { error: walletErr } = await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: amountUsd })
+        if (walletErr) {
+          await db.from('credit_transactions').delete().eq('reference', session.id)
+          console.error('[Stripe] wallet credit failed after payment — deleting ledger row for retry', walletErr.message, 'session', session.id)
+          void sendFounderAlert('payment_failed', 'Wallet credit failed after payment — Stripe will retry', [
+            `Client: ${clientId} paid $${amountUsd} (session ${session.id}).`,
+            `The payment succeeded but crediting the wallet failed — the ledger row was rolled back so Stripe's retry can re-credit. Reason: ${walletErr.message}`,
+          ])
+          res.status(500).json({ error: 'wallet credit failed — retry' }); return
+        }
+        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
+        // #445 — sourcing-allowance accrual, k=2: +2 records of PDL budget per $1 collected.
+        const { error: allowErr } = await db.rpc('add_sourcing_allowance', { p_client_id: clientId, p_records: Math.round(amountUsd * 2), p_trial: false })
+        if (allowErr) {
+          console.error('[Stripe] sourcing-allowance accrual failed for', clientId, allowErr)
+          void sendFounderAlert('charge_failed', 'Sourcing allowance NOT accrued after wallet top-up', [
+            `Client: ${clientId} paid $${amountUsd}.`,
+            `Their sourcing allowance (+${Math.round(amountUsd * 2)} records) failed to accrue: ${allowErr.message}`,
+          ])
+        }
+        void payReferrerOnFirstPurchase(clientId).catch(err => console.error('[Stripe] referrer payout failed (non-fatal):', err))
+        res.sendStatus(200); return
       } else if (meta.clientId && meta.credits && meta.creditType) {
         // Credit purchase
         const credits    = parseInt(meta.credits, 10)
@@ -597,18 +644,18 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           const { error: clawLedgerErr } = await db.from('credit_transactions').insert({
             client_id: refundedClient.referred_by,
             type:      'refund',
-            amount:    -REFERRAL_BONUS_FIGSY_CREDITS,
-            plan:      'figsy',
+            amount:    -REFERRAL_BONUS_USD,
+            plan:      'work_model',
             reference: `referral_claw_${refundedClientId}`,
             note:      `Referral bonus clawed back — referred client ${refundedClientId} was ${isDispute ? 'charged back' : 'refunded'}`,
           })
           if (clawLedgerErr) return // 23505 = already clawed once (idempotent); any other error handled below
-          const { error: clawErr } = await db.rpc('increment_figsy_credits', { p_client_id: refundedClient.referred_by, p_amount: -REFERRAL_BONUS_FIGSY_CREDITS })
+          const { error: clawErr } = await db.rpc('increment_wallet', { p_client_id: refundedClient.referred_by, p_amount: -REFERRAL_BONUS_USD })
           if (clawErr) {
-            void sendFounderAlert('payment_failed', 'Referral claw-back failed — revoke 15 credits manually', [
+            void sendFounderAlert('payment_failed', `Referral claw-back failed — revoke $${REFERRAL_BONUS_USD} manually`, [
               `Referrer: ${refundedClient.referred_by}`,
               `Referred client ${refundedClientId} was ${isDispute ? 'charged back' : 'refunded'}; the referral-bonus claw-back RPC failed: ${clawErr.message}`,
-              'Action: revoke 15 FIGSY credits from the referrer manually.',
+              `Action: revoke $${REFERRAL_BONUS_USD} from the referrer's wallet manually.`,
             ])
           }
         })().catch(err => console.error('[Stripe] referral claw-back failed (non-fatal):', err))
@@ -617,6 +664,27 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           `A ${isDispute ? 'chargeback (dispute)' : 'refund'} was processed on Stripe; ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits were revoked from client ${meta.clientId}.`,
           isDispute ? 'Review the dispute in Stripe — you may need to submit evidence.' : 'No action needed unless this was unexpected.',
         ])
+      } else if (meta.type === 'wallet_topup' && meta.clientId && meta.amountUsd) {
+        // ONE WALLET — a refunded/charged-back top-up claws the dollars back out of the wallet.
+        const amountUsd = parseFloat(meta.amountUsd)
+        const isDispute = event.type === 'charge.dispute.created'
+        if (Number.isFinite(amountUsd) && amountUsd > 0) {
+          const { error: ledgerErr } = await db.from('credit_transactions').insert({
+            client_id: meta.clientId, type: 'refund', amount: -amountUsd, plan: 'work_model',
+            reference: `refund_${obj.id}`,
+            note: `${isDispute ? 'Chargeback' : 'Refund'}: revoked $${amountUsd} wallet top-up (${linked?.sessionId ?? 'unknown session'})`,
+          })
+          if (ledgerErr) {
+            if (ledgerErr.code === '23505') { res.sendStatus(200); return }
+            throw ledgerErr
+          }
+          const { error: clawErr } = await db.rpc('increment_wallet', { p_client_id: meta.clientId, p_amount: -amountUsd })
+          if (clawErr) console.error('[Stripe] wallet claw-back failed — balance not revoked', clawErr.message, 'client', meta.clientId)
+          void sendFounderAlert('churn_risk', `${isDispute ? 'Chargeback' : 'Refund'} — $${amountUsd} wallet clawed back`, [
+            `A ${isDispute ? 'chargeback (dispute)' : 'refund'} was processed on Stripe; $${amountUsd} was revoked from client ${meta.clientId}'s wallet.`,
+            isDispute ? 'Review the dispute in Stripe — you may need to submit evidence.' : 'No action needed unless this was unexpected.',
+          ])
+        }
       } else {
         console.warn(`[Stripe] ${event.type} — could not resolve a credit grant to claw back (payment_intent ${obj.payment_intent ?? 'none'})`)
       }

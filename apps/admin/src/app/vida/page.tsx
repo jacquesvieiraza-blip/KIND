@@ -136,6 +136,9 @@ export default function VidaConsolePage() {
   // Per-client cockpit (ICP · Campaign · Sequence · Inbox) — one admin-key read.
   const [tab, setTab] = useState<CockpitTab>('Inbox')
   const [cockpit, setCockpit] = useState<Cockpit | null>(null)
+  // Declared here, not with the other derived values further down: an effect below uses it in
+  // a DEPENDENCY ARRAY, which is evaluated during render — a later `const` would throw.
+  const activeCampaign = cockpit?.campaigns.find(c => c.status === 'active') ?? cockpit?.campaigns[0] ?? null
   const [cockpitLoading, setCockpitLoading] = useState(false)
   const [cockpitError, setCockpitError] = useState<string | null>(null)
   const [cockpitBusy, setCockpitBusy] = useState(false)
@@ -637,13 +640,24 @@ export default function VidaConsolePage() {
     loadBoard(selected)
   }, [selected, loadBoard])
 
-  // Lazy-load the tab's own data the first time it is opened.
+  // Lazy-load the tab's own data the first time it is opened. A status message belongs to
+  // the tab that produced it — "3 added to campaign" must not follow you to the ICP tab.
   useEffect(() => {
     if (!selected) return
+    setSaveMsg(null)
     if (tab === 'People' && people === null) loadPeople(selected, activeCampaign?.id)
     if (tab === 'Asks' && asks === null) loadAsks(selected)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab, selected])
+
+  // People may have loaded before the cockpit answered, in which case we didn't yet know
+  // which campaign to compare against and every row looked pickable — including people
+  // already in it. Re-read once the campaign is known so "in campaign" is honest.
+  useEffect(() => {
+    if (!selected || !activeCampaign?.id || people === null) return
+    loadPeople(selected, activeCampaign.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCampaign?.id])
 
   // Sourced column — the operator NEVER spends (#493, invariant #1). The only actions are
   // SURFACE the masked lead to the client for their own 👍 in Milla ("send"), or PASS it.
@@ -702,7 +716,6 @@ export default function VidaConsolePage() {
 
   const selectedClient = clients?.find(c => c.id === selected) ?? null
   const cols = board?.columns
-  const activeCampaign = cockpit?.campaigns.find(c => c.status === 'active') ?? cockpit?.campaigns[0] ?? null
   const alertsByClient = alerts.reduce<Record<string, Alert[]>>((m, a) => {
     (m[a.client_id] ||= []).push(a); return m
   }, {})

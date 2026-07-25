@@ -233,7 +233,9 @@ export default function MillaIcpPage() {
                 )}
 
                 <form onSubmit={e => { e.preventDefault(); sendRevise(input) }} className="flex gap-2">
-                  <input value={input} onChange={e => setInput(e.target.value)} disabled={busy}
+                  {/* 1000 matches the server's cap on /icps/chat-build — without it a long
+                      paste comes back as a raw validation error instead of a reply. */}
+                  <input value={input} onChange={e => setInput(e.target.value)} disabled={busy} maxLength={1000}
                     placeholder="What should change?"
                     className="flex-1 border border-[#ece5fb] rounded-xl px-3.5 py-2.5 text-[13px] outline-none focus:border-[#7C3AED] disabled:opacity-60" />
                   <button type="submit" disabled={busy || !input.trim()}

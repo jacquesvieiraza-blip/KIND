@@ -233,30 +233,57 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
     const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
     if (typeof b.name === 'string' && b.name.trim()) patch.name = b.name.trim().slice(0, 120)
     if (typeof b.campaign_intent === 'string') patch.campaign_intent = b.campaign_intent.slice(0, 500)
-    // Co-Pilot = every send waits for the operator's eyes. Auto-Pilot = it flows.
-    if (typeof b.copilot_mode === 'boolean') { patch.copilot_mode = b.copilot_mode; patch.approve_before_send = b.copilot_mode }
-    if (b.daily_send_limit !== undefined) {
-      const n = Number(b.daily_send_limit)
-      patch.daily_send_limit = Number.isFinite(n) && n > 0 ? Math.min(500, Math.round(n)) : null
-    }
     if (typeof b.status === 'string' && ['draft', 'active', 'paused'].includes(b.status)) patch.status = b.status
 
+    // THE GATES LIVE IN settings, NOT ON THE ROW. `figsy_campaigns` has look-alike
+    // `copilot_mode` / `approve_before_send` columns that NOTHING reads, and no
+    // `daily_send_limit` column at all — the send path reads settings.review_required
+    // (lib/figsy.ts) and the cron reads settings.daily_send_limit (routes/internal.ts).
+    // Writing the columns would give the operator a Co-Pilot toggle the engine ignores:
+    // the UI would promise "every email waits for you" and the emails would still go out.
+    // lib/campaign-settings.ts owns that mapping; the columns are kept in sync so they
+    // stop being a lie sitting in the table.
+    const { readCampaignGates, mergeCampaignGates, normaliseDailyCap } = await import('../lib/campaign-settings')
+    const wantCoPilot = typeof b.copilot_mode === 'boolean' ? b.copilot_mode : undefined
+    const wantCap = normaliseDailyCap(b.daily_send_limit)
+    const touchesGates = wantCoPilot !== undefined || wantCap !== undefined
+    if (wantCoPilot !== undefined) { patch.copilot_mode = wantCoPilot; patch.approve_before_send = wantCoPilot }
+
+    const SELECT = 'id, name, status, campaign_intent, settings'
+    const shape = (row: Record<string, unknown>) => {
+      const gates = readCampaignGates(row.settings)
+      const { settings: _drop, ...rest } = row
+      return { ...rest, copilot_mode: gates.review_required, daily_send_limit: gates.daily_send_limit }
+    }
+
     if (b.campaign_id) {
+      // Read-merge-write: settings also carries send_days, send_hour_utc, ab_subject_b…e,
+      // reply-branching steps and system_prompt. Replacing the object would drop them.
+      if (touchesGates) {
+        const { data: cur } = await db.from('figsy_campaigns')
+          .select('settings').eq('id', b.campaign_id as string).eq('client_id', client.id).maybeSingle()
+        patch.settings = mergeCampaignGates(cur?.settings, { review_required: wantCoPilot, daily_send_limit: wantCap })
+      }
       const { data, error } = await db.from('figsy_campaigns').update(patch)
-        .eq('id', b.campaign_id as string).eq('client_id', client.id)
-        .select('id, name, status, campaign_intent, copilot_mode, daily_send_limit').maybeSingle()
+        .eq('id', b.campaign_id as string).eq('client_id', client.id).select(SELECT).maybeSingle()
       if (error) throw error
       if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'pause_campaign', subjectType: 'campaign', subjectId: data.id, detail: { edited: true } })
-      res.json({ success: true, data }); return
+      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'pause_campaign', subjectType: 'campaign', subjectId: data.id, detail: { edited: true, co_pilot: wantCoPilot ?? null } })
+      res.json({ success: true, data: shape(data) }); return
     }
+
+    // A NEW campaign defaults to Co-Pilot even when the caller says nothing: a campaign
+    // created here can start sending, and the safe default is that a human sees each email.
+    patch.settings = mergeCampaignGates(null, { review_required: wantCoPilot ?? true, daily_send_limit: wantCap ?? null })
+    patch.copilot_mode = wantCoPilot ?? true
+    patch.approve_before_send = wantCoPilot ?? true
 
     const { data, error } = await db.from('figsy_campaigns')
       .insert({ client_id: client.id, name: (patch.name as string) ?? 'Outbound campaign', status: 'active', ...patch })
-      .select('id, name, status, campaign_intent, copilot_mode, daily_send_limit').single()
+      .select(SELECT).single()
     if (error) throw error
-    await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'start_campaign', subjectType: 'campaign', subjectId: data.id, detail: { from_suggestion: true } })
-    res.json({ success: true, data })
+    await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'start_campaign', subjectType: 'campaign', subjectId: data.id, detail: { from_suggestion: true, co_pilot: patch.copilot_mode } })
+    res.json({ success: true, data: shape(data) })
   } catch (err) { console.error('[operator/campaign-save]', err); res.status(500).json({ success: false, error: 'Failed to save the campaign' }) }
 })
 
@@ -647,20 +674,31 @@ operatorRouter.get('/asks', async (req: Request, res: Response) => {
     const client = await requireClient(String(req.query.client_id ?? ''))
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
 
+    // Bounded read of the recent thread. An ask further back than this window won't appear —
+    // stated here rather than pretended away.
+    const WINDOW = 200
     const { data: rows } = await db.from('milla_messages')
       .select('id, role, content, created_at').eq('client_id', client.id)
-      .order('created_at', { ascending: false }).limit(80)
+      .order('created_at', { ascending: false }).limit(WINDOW)
     const asc = (rows ?? []).slice().reverse() as { id: string; role: string; content: string; created_at: string }[]
 
+    // An answer is a client message in the turn IMMEDIATELY after our ask — i.e. before Milla
+    // replies again. Attributing every later user message to the last ask would show ordinary
+    // chatter ("which look strongest?") as if it answered our question, which is worse than
+    // showing nothing: it reads like the client responded when they didn't.
     const asks: { id: string; question: string; asked_at: string; answers: { content: string; at: string }[] }[] = []
+    let openAsk: (typeof asks)[number] | null = null
     for (const m of asc) {
       if (m.role === 'assistant' && m.content.startsWith(ASK_PREFIX)) {
-        asks.push({ id: m.id, question: m.content.slice(ASK_PREFIX.length), asked_at: m.created_at, answers: [] })
-      } else if (m.role === 'user' && asks.length > 0) {
-        asks[asks.length - 1].answers.push({ content: m.content.slice(0, 1000), at: m.created_at })
+        openAsk = { id: m.id, question: m.content.slice(ASK_PREFIX.length), asked_at: m.created_at, answers: [] }
+        asks.push(openAsk)
+      } else if (m.role === 'user') {
+        if (openAsk) openAsk.answers.push({ content: m.content.slice(0, 1000), at: m.created_at })
+      } else {
+        openAsk = null   // Milla answered — the turn is closed; anything later is a new topic.
       }
     }
-    res.json({ success: true, data: asks.reverse().slice(0, 20) })
+    res.json({ success: true, data: asks.reverse().slice(0, 20), window: WINDOW })
   } catch (err) { console.error('[operator/asks]', err); res.status(500).json({ success: false, error: 'Failed to load asks' }) }
 })
 
@@ -673,7 +711,10 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
     const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
     const [clients, icps, camps, replies] = await Promise.all([
       db.from('clients').select('id, company_name, created_at, is_demo').order('created_at', { ascending: false }).limit(200),
-      db.from('icps').select('client_id, name, created_at, updated_at, is_active').gte('created_at', since).limit(400),
+      // NOT date-filtered on purpose. "ICP approved, no campaign — they can't be worked" is
+      // the highest-value alert here, and a 14-day window would go silent for exactly the
+      // clients it matters most for: the ones onboarded a while ago and still not working.
+      db.from('icps').select('client_id, name, created_at, updated_at, is_active').limit(1000),
       db.from('figsy_campaigns').select('client_id, status, created_at').limit(400),
       db.from('figsy_replies').select('client_id, classification, received_at, qualified_at').gte('received_at', since).limit(400),
     ])
@@ -1071,11 +1112,12 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
     const [icps, campaigns, sequences, replies] = await Promise.all([
       db.from('icps').select('id, name, created_at, last_run_at')
         .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
-      // campaign_intent / copilot_mode / daily_send_limit are here because the Campaign
-      // editor pre-fills from this read — without them "Edit" would open blank and saving
-      // would silently wipe the brief every email is written from.
+      // campaign_intent + settings are here because the Campaign editor pre-fills from this
+      // read — without them "Edit" would open blank and saving would wipe the brief every
+      // email is written from. `settings` (not a `daily_send_limit` column, which does not
+      // exist) is where the real send gates live — see lib/campaign-settings.ts.
       db.from('figsy_campaigns')
-        .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at, campaign_intent, copilot_mode, daily_send_limit')
+        .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at, campaign_intent, settings')
         .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
       db.from('figsy_sequences').select('id, name, steps, created_at, updated_at')
         .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
@@ -1106,13 +1148,22 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
       checks,
     }
 
+    // Flatten the gates out of settings so the editor gets plain fields and never has to
+    // know where they live (one mapping, in lib/campaign-settings.ts).
+    const { readCampaignGates } = await import('../lib/campaign-settings')
+    const campaignRows = (campaigns.data ?? []).map((c: Record<string, unknown>) => {
+      const gates = readCampaignGates(c.settings)
+      const { settings: _drop, ...rest } = c
+      return { ...rest, copilot_mode: gates.review_required, daily_send_limit: gates.daily_send_limit }
+    })
+
     res.json({
       success: true,
       data: {
         client:    { id: cid, company_name: client.company_name ?? null },
         onboarding,
         icps:      icps.data ?? [],
-        campaigns: campaigns.data ?? [],
+        campaigns: campaignRows,
         sequences: sequences.data ?? [],
         replies:   replies.data ?? [],
       },

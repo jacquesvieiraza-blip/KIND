@@ -72,16 +72,62 @@ CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(cr
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS
 // client speaks PostgREST, which cannot execute DDL.
-export async function runPendingMigrations(): Promise<{ key: string; ok: boolean; error?: string }[]> {
+//
+// The first attempt failed with `connect ENETUNREACH …:5432` against an IPv6 address:
+// Supabase's direct host is IPv6-only and Railway has no IPv6 egress, so the connection died
+// before it sent anything. lib/db-connection.ts derives the IPv4 pooler equivalents; we try
+// the configured URL first, then those, and report which host actually worked so DATABASE_URL
+// can be set to it permanently.
+export type MigrationRunResult = {
+  results: { key: string; ok: boolean; error?: string }[]
+  host: string
+  usedFallback: boolean
+  hint?: string
+}
+
+export async function runPendingMigrations(): Promise<MigrationRunResult> {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('DATABASE_URL is not set on this service — add it in Railway → @kind/api → Variables.')
 
   const { Client } = await import('pg')
+  const { connectionCandidates, safeHost, isUnreachableError } = await import('./db-connection')
+  const candidates = connectionCandidates(url, process.env.SUPABASE_URL)
+
+  // Find ONE reachable connection string before running any SQL, so a migration is never
+  // half-applied across two different attempts.
+  let working: string | null = null
+  let lastError: unknown = null
+  for (const candidate of candidates) {
+    const probe = new Client({ connectionString: candidate, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 })
+    try {
+      await probe.connect()
+      working = candidate
+      await probe.end().catch(() => {})
+      break
+    } catch (e) {
+      lastError = e
+      await probe.end().catch(() => {})
+      // A wrong password is not a routing problem — stop rather than replay bad credentials
+      // against every region, which is how accounts get locked out.
+      if (!isUnreachableError(e)) break
+    }
+  }
+
+  if (!working) {
+    const msg = lastError instanceof Error ? lastError.message : String(lastError)
+    throw new Error(
+      `Could not reach the database from this service. Tried ${candidates.length} address(es); last error: ${msg}. ` +
+      `Supabase's direct host is IPv6-only and Railway has no IPv6 route, so DATABASE_URL needs to be the ` +
+      `SESSION POOLER string (postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432).`,
+    )
+  }
+
+  const usedFallback = working !== url
   const results: { key: string; ok: boolean; error?: string }[] = []
 
   for (const m of PENDING_MIGRATIONS) {
     // A fresh connection per migration so one failure cannot poison the next.
-    const client = new Client({ connectionString: url, ssl: { rejectUnauthorized: false } })
+    const client = new Client({ connectionString: working, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 })
     try {
       await client.connect()
       await client.query(m.sql)
@@ -92,5 +138,13 @@ export async function runPendingMigrations(): Promise<{ key: string; ok: boolean
       await client.end().catch(() => {})
     }
   }
-  return results
+
+  return {
+    results,
+    host: safeHost(working),
+    usedFallback,
+    hint: usedFallback
+      ? `Connected via the IPv4 pooler at ${safeHost(working)} — the configured DATABASE_URL is the IPv6-only direct host and is unreachable from Railway. Set DATABASE_URL to the pooler string in Railway → @kind/api → Variables so this stops being a fallback.`
+      : undefined,
+  }
 }

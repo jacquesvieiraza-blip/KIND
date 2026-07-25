@@ -43,8 +43,16 @@ export default function VidaEnginePage() {
       const j = await fetch('/api/proxy/operator/migrations/run', { method: 'POST' }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Migration failed')
       const failed = (j.data.results ?? []).filter((r: { ok: boolean }) => !r.ok)
-      if (failed.length) setMigMsg(`Failed: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}`)
-      else { setMigMsg('Migration applied. Inbox tracking is live.'); await load() }
+      const ran = (j.data.results ?? []).filter((r: { ok: boolean }) => r.ok).length
+      // Say WHERE it connected. The first run died with ENETUNREACH because Supabase's direct
+      // host is IPv6-only and Railway has no IPv6 route; the runner now falls back to the IPv4
+      // pooler, and the founder should know that so DATABASE_URL can be fixed for good.
+      const via = j.data.host ? ` (via ${j.data.host})` : ''
+      if (failed.length) setMigMsg(`Failed${via}: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}`)
+      else {
+        setMigMsg(`${ran} migration${ran === 1 ? '' : 's'} applied${via}. Inbox tracking is live.${j.data.hint ? ` — ${j.data.hint}` : ''}`)
+        await load()
+      }
     } catch (err) { setMigMsg(err instanceof Error ? err.message : 'Migration failed') }
     setBusy(null)
   }

@@ -12,7 +12,7 @@ import { subscriptionRouter } from './routes/subscriptions'
 import { leadRouter } from './routes/leads'
 import { icpRouter } from './routes/icps'
 import { creditRouter } from './routes/credits'
-import { errorHandler } from './middleware/error'
+import { errorHandler, captureProcessError } from './middleware/error'
 import { adminRouter } from './routes/admin'
 import { figsyRouter } from './routes/figsy'
 import { internalRouter } from './routes/internal'
@@ -209,11 +209,16 @@ app.use(errorHandler)
 // A single unhandled error in one route must NOT take down the whole API and
 // every client's dashboard with it. Log it loudly and keep serving everyone
 // else. (Railway still restarts the container on a genuine fatal crash.)
+// #290 — these now RECORD + ALERT, not just log. A 500 on a route emailed the founder while
+// a rejected promise taking out a cron did not: the crash-class errors were the only ones
+// that stayed invisible.
 process.on('uncaughtException', (err) => {
   console.error('[uncaughtException] API kept alive — investigate:', err)
+  try { captureProcessError('uncaughtException', err) } catch { /* never let capture crash the process */ }
 })
 process.on('unhandledRejection', (reason) => {
   console.error('[unhandledRejection] API kept alive — investigate:', reason)
+  try { captureProcessError('unhandledRejection', reason) } catch { /* never let capture crash the process */ }
 })
 
 app.listen(PORT, () => {

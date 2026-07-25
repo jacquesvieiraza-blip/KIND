@@ -45,6 +45,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS client_inboxes_one_live_per_kind
   WHERE status IN ('assigned','warming','active');
 `.trim(),
   },
+  {
+    // #290 — `supabase/migrations/20260703_error_events.sql` was written to be run BY HAND
+    // in the Supabase SQL editor, and the founder has been locked out of that editor since
+    // (GitHub flag). So there is no way to know whether this table exists in production —
+    // and the error handler swallows the insert failure by design, which means error capture
+    // may have been silently degraded this whole time: exactly the "exceptions vanish"
+    // problem the item was raised to fix. Idempotent, so running it either way is safe.
+    key: '20260703_error_events',
+    title: 'Error events (error tracking — the table the 500-handler writes to)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.error_events (
+  id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  route      text,
+  method     text,
+  status     integer,
+  message    text,
+  stack      text,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(created_at DESC);
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

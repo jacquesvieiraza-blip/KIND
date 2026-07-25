@@ -31,6 +31,43 @@ function shouldAlert(signature: string): boolean {
   return true
 }
 
+/**
+ * Record + alert for an error that did NOT arrive through a route — an uncaughtException or
+ * an unhandledRejection. index.ts used to only console.error these, which meant the
+ * crash-class errors (the most serious kind) were the ONLY ones that never alerted: a 500
+ * on one route emailed the founder, while a rejected promise taking out a cron did not.
+ * Same table, same per-signature hourly throttle.
+ */
+export function captureProcessError(kind: 'uncaughtException' | 'unhandledRejection', reason: unknown): void {
+  const err = reason instanceof Error ? reason : new Error(String(reason))
+  const message = err.message || 'Unknown error'
+
+  void (async () => {
+    try {
+      await db.from('error_events').insert({
+        route: `process:${kind}`, method: 'PROCESS', status: 500,
+        message: message.slice(0, 1000),
+        stack: (err.stack ?? '').slice(0, 5000),
+      })
+    } catch (e) {
+      console.error('[error-tracking] failed to record process error:', e instanceof Error ? e.message : e)
+    }
+  })()
+
+  const signature = `process:${kind} :: ${message}`.slice(0, 200)
+  if (shouldAlert(signature)) {
+    void sendFounderAlert('api_down', `API ${kind} — investigate`, [
+      `Kind:    ${kind}`,
+      `Message: ${message}`,
+      `Time:    ${new Date().toISOString()}`,
+      '',
+      (err.stack ?? '').split('\n').slice(0, 5).join('\n'),
+      '',
+      'The API was kept alive; something failed outside a request. (Throttled to one alert per signature per hour.)',
+    ])
+  }
+}
+
 export function errorHandler(err: Error, req: Request, res: Response, _next: NextFunction) {
   console.error(err.stack)
 

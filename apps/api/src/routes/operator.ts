@@ -796,13 +796,24 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
   try {
     const { runPendingMigrations, PENDING_MIGRATIONS } = await import('../lib/pending-migrations')
-    const results = await runPendingMigrations()
+    const run = await runPendingMigrations()
+    const results = run.results
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'run_migration',
       subjectType: 'migration', subjectId: null,
-      detail: { ran: results.map(r => r.key), failed: results.filter(r => !r.ok).map(r => r.key) },
+      detail: {
+        ran: results.filter(r => r.ok).map(r => r.key),
+        failed: results.filter(r => !r.ok).map(r => r.key),
+        host: run.host, used_pooler_fallback: run.usedFallback,
+      },
     })
-    res.json({ success: true, data: { results, available: PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })) } })
+    res.json({
+      success: true,
+      data: {
+        results, host: run.host, used_fallback: run.usedFallback, hint: run.hint ?? null,
+        available: PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })),
+      },
+    })
   } catch (err) {
     console.error('[operator/migrations]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to run migrations' })

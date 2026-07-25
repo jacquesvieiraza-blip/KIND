@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow,
+  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow, GraduationCap,
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, Bell,
 } from 'lucide-react'
 
@@ -151,6 +151,8 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             {link('/milla/icp', 'My ICP', Crosshair, pathname.startsWith('/milla/icp'))}
             {link('/milla/documents', 'Documents', FileText, pathname.startsWith('/milla/documents'))}
             {link('/milla/reports', 'Reports', FileBarChart, pathname.startsWith('/milla/reports'))}
+            {/* M9 — we booked the meeting; this is how the client wins it. */}
+            {link('/milla/coaching', 'Coaching', GraduationCap, pathname.startsWith('/milla/coaching'))}
           </nav>
           {/* ROI (Performance/Analytics/Your ROI/Command Centre/Teams Hub) moved to the
               top-right "Your ROI" dropdown — the rail stays the client's workspace only. */}

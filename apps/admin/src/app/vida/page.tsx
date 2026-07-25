@@ -50,6 +50,7 @@ type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number;
 type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Bookings'
 type Cockpit = {
   client:    { id: string; company_name: string | null }
+  onboarding: { percent: number; missing: string[]; checks: { key: string; label: string; ok: boolean }[] }
   icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null }[]
   campaigns: { id: string; name: string; status: string; leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number; created_at: string | null }[]
   sequences: { id: string; name: string; steps: unknown; created_at: string | null; updated_at: string | null }[]
@@ -157,6 +158,70 @@ export default function VidaConsolePage() {
       } else setReplyMsg(j?.error || 'Could not send')
     } catch { setReplyMsg('Could not send') }
     setReplyBusy(null)
+  }
+
+  // V4d — ICP + SEQUENCE AUTHORING. Read-only views were not enough: the operator has to be
+  // able to CHANGE the targeting and the messaging, which is our actual job in this model.
+  const [icpEdit, setIcpEdit] = useState<Record<string, string> | null>(null)
+  const [seqEdit, setSeqEdit] = useState<{ id?: string; name: string; steps: { subject: string; body: string; wait_days: number }[] } | null>(null)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+
+  const ICP_FIELDS: [string, string][] = [
+    ['name', 'Name'], ['industries', 'Industries'], ['job_titles', 'Job titles'],
+    ['seniority_levels', 'Seniority'], ['company_sizes', 'Company sizes'],
+    ['geographies', 'Geographies'], ['tech_stack', 'Tech stack'], ['keywords', 'Keywords'],
+  ]
+
+  async function openIcpEditor(icpId?: string) {
+    if (!selected) return
+    setSaveMsg(null)
+    if (!icpId) { setIcpEdit({ name: '', industries: '', job_titles: '', seniority_levels: '', company_sizes: '', geographies: '', tech_stack: '', keywords: '' }); return }
+    try {
+      const j = await fetch(`/api/proxy/operator/icp/${icpId}?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      const d = j.data as Record<string, unknown>
+      const join = (v: unknown) => Array.isArray(v) ? v.join(', ') : ''
+      setIcpEdit({ icp_id: icpId, name: String(d.name ?? ''), industries: join(d.industries), job_titles: join(d.job_titles),
+        seniority_levels: join(d.seniority_levels), company_sizes: join(d.company_sizes),
+        geographies: join(d.geographies), tech_stack: join(d.tech_stack), keywords: join(d.keywords) })
+    } catch { setSaveMsg('Could not open that ICP') }
+  }
+
+  async function saveIcp() {
+    if (!selected || !icpEdit) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/icp', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...icpEdit, client_id: selected }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      setIcpEdit(null); setSaveMsg('ICP saved.'); await loadCockpit(selected)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the ICP') }
+    setCockpitBusy(false)
+  }
+
+  function openSeqEditor(sq?: { id: string; name: string; steps: unknown }) {
+    setSaveMsg(null)
+    if (!sq) { setSeqEdit({ name: '', steps: [{ subject: '', body: '', wait_days: 0 }] }); return }
+    const steps = Array.isArray(sq.steps)
+      ? (sq.steps as Record<string, unknown>[]).map(st => ({ subject: String(st.subject ?? ''), body: String(st.body ?? ''), wait_days: Number(st.wait_days ?? 3) || 0 }))
+      : [{ subject: '', body: '', wait_days: 0 }]
+    setSeqEdit({ id: sq.id, name: sq.name, steps })
+  }
+
+  async function saveSequence() {
+    if (!selected || !seqEdit) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/sequence', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, sequence_id: seqEdit.id, name: seqEdit.name, steps: seqEdit.steps }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      setSeqEdit(null); setSaveMsg('Sequence saved.'); await loadCockpit(selected)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the sequence') }
+    setCockpitBusy(false)
   }
 
   async function startCampaign() {
@@ -462,7 +527,14 @@ export default function VidaConsolePage() {
                   <b className="text-[13.5px] block leading-tight truncate">{selectedClient?.company_name || 'Client'}</b>
                   <span className="text-[11px] text-[#9b8ec4]">{[selectedClient?.industry, selectedClient?.country].filter(Boolean).join(' · ') || 'client'}</span>
                 </div>
-                <span className="ml-auto shrink-0 text-[11.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">
+                {/* V11 ONBOARDING GATE — how complete is this client, and what's missing. */}
+                {cockpit && (
+                  <span className={`ml-auto shrink-0 text-[11.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#b45309] bg-[#fffbeb]'}`}
+                    title={cockpit.onboarding.missing.length ? `Missing: ${cockpit.onboarding.missing.join(', ')}` : 'Fully onboarded'}>
+                    Onboarding {cockpit.onboarding.percent}%
+                  </span>
+                )}
+                <span className={`shrink-0 text-[11.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'}`}>
                   ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
                 </span>
               </div>
@@ -470,6 +542,17 @@ export default function VidaConsolePage() {
               <div className="shrink-0 px-[22px] py-1.5 text-[11px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
                 You&rsquo;re working <b className="text-[#7C3AED]">{selectedClient?.company_name || 'this client'}</b> — Vida and the cockpit are scoped to this client only.
               </div>
+              {cockpit && cockpit.onboarding.missing.length > 0 && (
+                <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fffbeb] border-b border-[#fde68a]">
+                  <span className="text-[11.5px] font-bold text-[#b45309]">Onboarding gaps:</span>
+                  {cockpit.onboarding.missing.map(m => (
+                    <span key={m} className="text-[11px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
+                  ))}
+                  <button onClick={() => runCommand(`Ask ${selectedClient?.company_name || 'the client'} for the missing onboarding details: ${cockpit.onboarding.missing.join(', ')}`)}
+                    disabled={cmdBusy}
+                    className="ml-auto text-[11.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask them for these</button>
+                </div>
+              )}
 
               {/* Pipeline at a glance — every stage, click through to the tab that works it.
                   Replaces the old 6-column kanban, which cost a full column of width. */}
@@ -708,36 +791,112 @@ export default function VidaConsolePage() {
                   ))
                 ) : null)}
 
-                {/* ICP */}
-                {tab === 'ICP' && (cockpit ? (<>
+                {/* ICP — read AND author (V4d) */}
+                {tab === 'ICP' && (cockpit ? (icpEdit ? (
+                  <div>
+                    <button onClick={() => setIcpEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to ICPs</button>
+                    <b className="text-[13px] block mb-2">{icpEdit.icp_id ? 'Edit ICP' : 'New ICP version'}</b>
+                    {ICP_FIELDS.map(([key, label]) => (
+                      <label key={key} className="block mb-2">
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">{label}</span>
+                        <input value={icpEdit[key] ?? ''} onChange={e => setIcpEdit({ ...icpEdit, [key]: e.target.value })}
+                          placeholder={key === 'name' ? 'e.g. SA logistics C-suite' : 'comma separated'}
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                    ))}
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={saveIcp} disabled={cockpitBusy || !(icpEdit.name ?? '').trim()}
+                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                        {cockpitBusy ? 'Saving…' : icpEdit.icp_id ? 'Save changes' : 'Save as current ICP'}
+                      </button>
+                      <button onClick={() => setIcpEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                    </div>
+                    <p className="text-[11px] text-[#9b8ec4] mt-2">A new version becomes the active ICP — sourcing targets it immediately.</p>
+                  </div>
+                ) : (<>
                   {cockpit.icps.length === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">No ICP yet — sourcing has no target until there is one.</p>
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No ICP yet — sourcing has no target until there is one.</p>
                     : cockpit.icps.map((i, n) => (
                       <div key={i.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
                         <div className="min-w-0">
                           <b className="text-[12.5px] block truncate">{i.name || `ICP v${cockpit.icps.length - n}`}</b>
                           <span className="text-[11px] text-[#9b8ec4]">{i.last_run_at ? `last sourced ${fmtDate(i.last_run_at)}` : 'never sourced'}</span>
                         </div>
-                        {n === 0 && <span className="ml-auto shrink-0 text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">current</span>}
+                        <div className="ml-auto shrink-0 flex items-center gap-2">
+                          {n === 0 && <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">current</span>}
+                          <button onClick={() => openIcpEditor(i.id)} className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                        </div>
                       </div>
                     ))}
-                  <button onClick={() => runCommand('Redefine the ICP')} disabled={cmdBusy}
-                    className="mt-1 text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-3 py-1.5 disabled:opacity-50">Redefine the ICP with Vida</button>
-                </>) : null)}
+                  <button onClick={() => openIcpEditor()} className="mt-1 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">+ New ICP version</button>
+                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                </>)) : null)}
 
-                {/* SEQUENCE */}
-                {tab === 'Sequence' && (cockpit ? (<>
-                  {cockpit.sequences.length === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">No saved sequence — FIGSY writes one per campaign by default.</p>
-                    : cockpit.sequences.map(sq => (
-                      <div key={sq.id} className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
-                        <b className="text-[12.5px] block">{sq.name}</b>
-                        <span className="text-[11px] text-[#9b8ec4]">{Array.isArray(sq.steps) ? sq.steps.length : 0} steps · updated {fmtDate(sq.updated_at)}</span>
+                {/* SEQUENCE — read AND author (V4d) */}
+                {tab === 'Sequence' && (cockpit ? (seqEdit ? (
+                  <div>
+                    <button onClick={() => setSeqEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
+                    <label className="block mb-2.5">
+                      <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Sequence name</span>
+                      <input value={seqEdit.name} onChange={e => setSeqEdit({ ...seqEdit, name: e.target.value })}
+                        placeholder="e.g. Practitioner angle"
+                        className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                    </label>
+                    {seqEdit.steps.map((st, i) => (
+                      <div key={i} className="border border-[#eee7f7] rounded-xl p-3 mb-2.5">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <b className="text-[12px]">Step {i + 1}</b>
+                          {i > 0 && (
+                            <label className="text-[11px] text-[#9b8ec4] flex items-center gap-1">
+                              wait
+                              <input type="number" min={0} max={60} value={st.wait_days}
+                                onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, wait_days: Number(e.target.value) || 0 }; setSeqEdit({ ...seqEdit, steps }) }}
+                                className="w-14 border border-[#ece5fb] rounded px-1.5 py-0.5 text-[11.5px] outline-none" />
+                              days
+                            </label>
+                          )}
+                          {seqEdit.steps.length > 1 && (
+                            <button onClick={() => setSeqEdit({ ...seqEdit, steps: seqEdit.steps.filter((_, n) => n !== i) })}
+                              className="ml-auto text-[11px] font-bold text-red-500">Remove</button>
+                          )}
+                        </div>
+                        <input value={st.subject} onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, subject: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
+                          placeholder="Subject line" className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mb-1.5 outline-none focus:border-[#7C3AED]" />
+                        <textarea value={st.body} rows={5}
+                          onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, body: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
+                          placeholder="Email body. Keep it short and specific."
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                       </div>
                     ))}
-                  <button onClick={() => runCommand('Update the sequence')} disabled={cmdBusy}
-                    className="mt-1 text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-3 py-1.5 disabled:opacity-50">Update the sequence with Vida</button>
-                </>) : null)}
+                    {seqEdit.steps.length < 10 && (
+                      <button onClick={() => setSeqEdit({ ...seqEdit, steps: [...seqEdit.steps, { subject: '', body: '', wait_days: 3 }] })}
+                        className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 mb-3">+ Add step</button>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={saveSequence} disabled={cockpitBusy || !seqEdit.name.trim()}
+                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                        {cockpitBusy ? 'Saving…' : 'Save sequence'}
+                      </button>
+                      <button onClick={() => setSeqEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                    </div>
+                    <p className="text-[11px] text-[#9b8ec4] mt-2">Nothing sends without the human Send gate — saving does not start outreach.</p>
+                  </div>
+                ) : (<>
+                  {cockpit.sequences.length === 0
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No saved sequence — write one, or FIGSY drafts per campaign.</p>
+                    : cockpit.sequences.map(sq => (
+                      <div key={sq.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                        <div className="min-w-0">
+                          <b className="text-[12.5px] block truncate">{sq.name}</b>
+                          <span className="text-[11px] text-[#9b8ec4]">{Array.isArray(sq.steps) ? sq.steps.length : 0} steps · updated {fmtDate(sq.updated_at)}</span>
+                        </div>
+                        <button onClick={() => openSeqEditor({ id: sq.id, name: sq.name, steps: sq.steps })}
+                          className="ml-auto shrink-0 text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                      </div>
+                    ))}
+                  <button onClick={() => openSeqEditor()} className="mt-1 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">+ Write a sequence</button>
+                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                </>)) : null)}
 
                 {/* BOOKINGS */}
                 {tab === 'Bookings' && (

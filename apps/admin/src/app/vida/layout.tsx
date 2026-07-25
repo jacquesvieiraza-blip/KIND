@@ -38,6 +38,7 @@ const OPERATE: { href: string; label: string; icon: string }[] = [
 ]
 
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
+  { href: '/vida/engine',     label: 'Engine',     icon: '📡' },
   { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
   { href: '/vida/clients-admin',    label: 'Clients',    icon: '👥' },
   { href: '/vida/money-path', label: 'Money Path', icon: '💰' },

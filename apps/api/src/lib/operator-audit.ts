@@ -21,6 +21,9 @@ export type OperatorAction =
   | 'pause_campaign'        // paused/resumed a campaign
   | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
   | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
+  | 'assign_inbox'          // V9 #270/#271 — pooled/branded sending inbox lifecycle
+  | 'edit_icp'              // V4d — operator authored/edited the client's ICP
+  | 'edit_sequence'         // V4d — operator authored/edited the client's sequence
   | 'suppression_change'    // added/removed a suppression/opt-out
   | 'vida_command'          // #498 — issued a Vida command-bar instruction (no spend)
   | 'qualify_reply'         // #494 — operator marked a reply as a qualified conversation (no spend)

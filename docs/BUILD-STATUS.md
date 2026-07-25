@@ -9,6 +9,52 @@
 
 ---
 
+## 🧭 NORTH-STAR CONSOLE REBUILD (25 Jul) — built vs needed
+> The agreed previews: **Milla** = rail | Milla as the centre SPINE | leads canvas. **Vida** = clients list | Vida scoped to that client | 7-tab cockpit. This section is the honest built-vs-needed against those, and supersedes the old punch list (which wrongly marked "Milla is the spine" as already live).
+
+### Milla — client console
+| # | Item | Main | Live for you |
+|---|---|:--:|---|
+| M1 | **Milla is the SPINE** — full-height centre column, rail left, leads canvas right | ✅ | ⏳ |
+| M2 | Left rail = workspace only | ✅ | 🩷 |
+| M3 | ROI → top-right **Account ▾** (kept, relocated) | ✅ | 🩷 |
+| M4 | Wallet ledger → Billing (de-duplicated) | ✅ | 🩷 |
+| M5 | "My campaign" read-only (operator tools removed) | ✅ | 🩷 |
+| M6 | Top overview KPIs | ✅ | 🟢 |
+| M7 | Top-right cluster (wallet · bell · Account) | ✅ | 🟢 |
+| M8 | "What Milla's learning" + ICP versioning | ✅ | 🩷 |
+| M10 | **Pipeline** — Approved → Contacted → Replied → Booked (`GET /leads/pipeline`) | ✅ | ⏳ |
+| M11 | Conversational onboarding (`/milla/welcome`, #513/#514) | ✅ | 🩷 |
+| M9 | **Coaching** — `/milla/coaching`: booked meetings + why-they-fit + their own words + an on-demand AI prep brief | ✅ | ⏳ |
+
+### Vida — operator console
+| # | Item | Main | Live for you |
+|---|---|:--:|---|
+| V1 | **Client-selected model** — pick a client, Vida + cockpit scope to them only | ✅ | ⏳ |
+| V2 | **7-tab cockpit** — Inbox · Approvals · People · Campaign · ICP · Sequence · Bookings | ✅ | ⏳ |
+| V3 | **Client Inbox** — read the thread, ✨ draft in the client's voice, **Send** (`/operator/replies/:id` · `/draft` · `/send`) | ✅ | ⏳ |
+| V4a | Campaign control — start · pause · resume (`/operator/campaign/start` · `/:id/status`) | ✅ | ⏳ |
+| V4b | People — sourced list, Send-to-client / Pass | ✅ | ⏳ |
+| V4c | Approvals — read draft, Approve & send / Reject | ✅ | ⏳ |
+| V5 | Run-the-business → top-right dropdown (+ Operate group; rail retired as a duplicate) | ✅ | ⏳ |
+| V6 | Operate surfaces (Clients · Queue · Bookings · Suppression · Audit · Reports) | ✅ | 🩷 |
+| V8 | Suppression & Compliance | ✅ | 🩷 |
+| V10 | Nexus signals | ✅ | 🩷 |
+| V12 | **Money guard** — never charge $4 with no active campaign | ✅ | ⏳ |
+| V4d | **ICP / Sequence AUTHORING** — real editors (ICP fields · sequence steps w/ subject, body, wait days) | ✅ | ⏳ |
+| V7 | **Engine** (item 211) — `/vida/engine`: sends, open + **bounce rate** (red over 3%), opt-outs, every live inbox with warm-up day, and the "needs an inbox" queue | ✅ | ⏳ |
+| V9 | **Inbox SOP triggers** — #270 assign pooled (instant, sends day 1) · #271 record branded (warms 14d, **no gap**) · switch live · release. Table `client_inboxes`. | ✅ | ⏳ |
+| V11 | **Onboarding gate** — % complete + the exact missing fields, in Vida's header and a banner, with "Ask them for these" | ✅ | ⏳ |
+
+### Nothing is outstanding from the north-star list
+All 16 Milla items and all 15 Vida items are built. `M9 Coaching` and `V7/V9/V11/V4d` — the five that were open this morning — are done and in this PR.
+
+**Genuinely still open (not console work):**
+- **W3** — terms are written; they want a lawyer's read before the first external client signs.
+- **Deploy** — everything above needs `bash scripts/ship.sh` + the migration below.
+
+---
+
 ## VIDA — operator console (core)
 | # | Item | Main | Live for you |
 |---|---|:--:|---|

@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, getClientKnowledgeForOutreach, classifyReply, isRiskyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, outreachEnabled } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, isRiskyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
 import type { Lead, SendOutcome } from '../lib/figsy'
 import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
@@ -11,7 +11,7 @@ import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
 import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
-import { verifyUnsubscribeToken, COLD_FROM, COLD_REPLY_TO, warmupRampCap, spamScore } from '../lib/deliverability'
+import { verifyUnsubscribeToken, warmupRampCap, spamScore } from '../lib/deliverability'
 import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
 import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
@@ -2013,79 +2013,14 @@ figsyRouter.post('/replies/:id/send-reply', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const { body: replyBody } = z.object({ body: z.string().min(1).max(5000) }).parse(req.body)
 
-    const { body: replyBody } = z.object({
-      body: z.string().min(1).max(5000),
-    }).parse(req.body)
-
-    const { data: reply } = await db.from('figsy_replies')
-      .select('id, from_email, subject, lead_id, client_id')
-      .eq('id', req.params.id)
-      .eq('client_id', clientId)
-      .maybeSingle()
-
-    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
-
-    const { Resend: ResendCls } = await import('resend')
-    const resendInst = process.env.RESEND_API_KEY ? new ResendCls(process.env.RESEND_API_KEY) : null
-
-    if (!resendInst) {
-      res.status(503).json({ success: false, error: 'Email sending not configured' })
-      return
-    }
-
-    // #453 — DEMO MODE: a manual reply from the unibox is an OUTBOUND prospect send. A
-    // demo client must never email a real person, so suppress the send and return a
-    // success-shaped result marked demo (the UI doesn't error), booking no sent-reply row.
-    if (await isDemoClient(clientId)) {
-      console.log(`[demo] prospect send suppressed for client ${clientId} — manual reply to ${reply.from_email} NOT sent (demo).`)
-      res.json({ success: true, data: { sent: false, demo: true } })
-      return
-    }
-
-    // #468 — the manual unibox reply is a real prospect send but historically bypassed
-    // BOTH the opt-out blocklist and the kill-switch. Enforce them here so a human click
-    // can't do what the automation is forbidden from doing.
-    // (1) Never email someone who opted out.
-    const { data: blocked } = await db.from('opt_out_blocklist')
-      .select('email').eq('email', reply.from_email).maybeSingle()
-    if (blocked) {
-      res.status(409).json({ success: false, error: 'This contact opted out — you can’t reply to them.' })
-      return
-    }
-    // (2) A founder-deliberate kill-switch OFF must mean OFF, even for a manual reply.
-    if (!outreachEnabled()) {
-      res.status(409).json({ success: false, error: 'Outreach is paused — the kill-switch (AUTO_OUTREACH_ENABLED) is off. Turn it on to send replies.' })
-      return
-    }
-
-    const reSubject = reply.subject?.startsWith('Re:') ? reply.subject : `Re: ${reply.subject ?? 'Your enquiry'}`
-    // D4: reply from the cold domain the prospect's thread is on — keep threading
-    // intact and never leak the transactional domain into a cold conversation.
-    const fromAddr  = COLD_FROM
-
-    const { data: sendResult, error: sendError } = await resendInst.emails.send({
-      from:     fromAddr,
-      reply_to: COLD_REPLY_TO,
-      to:       reply.from_email,
-      subject:  reSubject,
-      text:     replyBody,
-    })
-
-    if (sendError) throw sendError
-
-    // Log the sent reply
-    await db.from('figsy_replies').insert({
-      client_id:      clientId,
-      from_email:     fromAddr,
-      subject:        reSubject,
-      body:           replyBody,
-      classification: 'sent_reply',
-      processed_at:   new Date().toISOString(),
-      lead_id:        reply.lead_id,
-    })
-
-    res.json({ success: true, data: { sent: true, resend_id: (sendResult as any)?.id } })
+    // Shared with the operator's per-client Inbox (lib/manual-reply) so the demo,
+    // opt-out and kill-switch gates can never drift between the two paths.
+    const { sendManualReply } = await import('../lib/manual-reply')
+    const r = await sendManualReply(req.params.id, clientId, replyBody)
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+    res.json({ success: true, data: r.sent ? { sent: true, resend_id: r.resendId } : { sent: false, demo: true } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[figsy/send-reply]', err)

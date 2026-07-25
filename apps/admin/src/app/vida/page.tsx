@@ -45,6 +45,17 @@ type Board = {
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
 type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
+
+// Per-client cockpit (GET /operator/cockpit) — the ICP/campaign/sequence/inbox surfaces.
+type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Bookings'
+type Cockpit = {
+  client:    { id: string; company_name: string | null }
+  onboarding: { percent: number; missing: string[]; checks: { key: string; label: string; ok: boolean }[] }
+  icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null }[]
+  campaigns: { id: string; name: string; status: string; leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number; created_at: string | null }[]
+  sequences: { id: string; name: string; steps: unknown; created_at: string | null; updated_at: string | null }[]
+  replies:   { id: string; lead_id: string | null; from_name: string | null; from_email: string | null; classification: string | null; qualified_at: string | null; meeting_booked_at: string | null; received_at: string | null }[]
+}
 type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl_cost_est: number; allowance_left: number; leads_per_run: number; capped: boolean; is_demo: boolean; icp_name?: string | null; no_active_icp?: boolean }
 
 // #501 — the 8-step operating flow, shown as a status ribbon across the top of the console.
@@ -59,33 +70,6 @@ function initials(name: string | null): string {
 }
 function fullName(f: string | null, l: string | null): string {
   return [f, l].filter(Boolean).join(' ').trim() || 'Unknown lead'
-}
-
-// column shell. #493c — an optional GATE chip names the human/money gate this column sits
-// behind (Send gate = operator releases the draft · Money gate = client's own 👍, which is the
-// $4 charged at the client's 👍 (final) · Qualify = operator judgement · Booked = meeting reported).
-// Purely informational.
-function Col({ title, count, gate, children }: { title: string; count: number; gate?: { label: string; tone: 'send' | 'money' | 'qualify' | 'done' }; children: React.ReactNode }) {
-  const gateStyle: Record<string, string> = {
-    send:    'text-[#b45309] bg-[#fef3c7] border-[#fde68a]',
-    money:   'text-[#7C3AED] bg-[#f3ecff] border-[#e4d4fb]',
-    qualify: 'text-[#0369a1] bg-[#e0f2fe] border-[#bae6fd]',
-    done:    'text-emerald-700 bg-emerald-50 border-emerald-200',
-  }
-  return (
-    <div className="w-[210px] shrink-0">
-      <div className="flex justify-between items-center text-[11px] tracking-[0.05em] uppercase text-[#9b8ec4] font-bold mb-1 px-0.5">
-        <span>{title}</span>
-        <em className="not-italic text-[#1f1235] bg-[#efeafc] rounded-[10px] px-1.5">{count}</em>
-      </div>
-      {gate && <div className={`inline-block text-[9.5px] font-bold rounded-full px-2 py-0.5 mb-2 border ${gateStyle[gate.tone]}`}>{gate.label}</div>}
-      {!gate && <div className="mb-2" />}
-      {children}
-    </div>
-  )
-}
-function EmptyCol() {
-  return <div className="text-[11px] text-[#c3bad9] border border-dashed border-[#ece5fb] rounded-xl py-4 text-center">Nothing here yet</div>
 }
 
 export default function VidaConsolePage() {
@@ -107,6 +91,165 @@ export default function VidaConsolePage() {
   const [cmdBusy, setCmdBusy] = useState(false)
 
   // #498b — one-click sourcing: a pool-aware confirm before we spend a cent of PDL budget.
+  // Per-client cockpit (ICP · Campaign · Sequence · Inbox) — one admin-key read.
+  const [tab, setTab] = useState<CockpitTab>('Inbox')
+  const [cockpit, setCockpit] = useState<Cockpit | null>(null)
+  const [cockpitLoading, setCockpitLoading] = useState(false)
+  const [cockpitError, setCockpitError] = useState<string | null>(null)
+  const [cockpitBusy, setCockpitBusy] = useState(false)
+
+  const loadCockpit = useCallback(async (clientId: string) => {
+    setCockpitLoading(true); setCockpitError(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/cockpit?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Failed to load cockpit')
+      setCockpit(j.data)
+    } catch (e) { setCockpitError(e instanceof Error ? e.message : 'Failed to load cockpit') }
+    setCockpitLoading(false)
+  }, [])
+
+  // Load the cockpit whenever a client is selected (and reset to Pipeline on switch).
+  useEffect(() => {
+    if (!selected) { setCockpit(null); return }
+    setTab('Inbox'); setCockpit(null); setOpenReply(null); setThread(null); setDraft(''); loadCockpit(selected)
+  }, [selected, loadCockpit])
+
+  // Inbox thread — open a prospect reply, draft an answer in the client's voice, send it.
+  const [openReply, setOpenReply] = useState<string | null>(null)
+  const [thread, setThread] = useState<{ reply: Record<string, unknown>; lead: Record<string, unknown> | null } | null>(null)
+  const [draft, setDraft] = useState('')
+  const [replyBusy, setReplyBusy] = useState<string | null>(null)
+  const [replyMsg, setReplyMsg] = useState<string | null>(null)
+
+  async function openThread(id: string) {
+    if (!selected) return
+    setOpenReply(id); setThread(null); setDraft(''); setReplyMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/replies/${id}?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
+      if (j?.success) setThread(j.data)
+      else setReplyMsg(j?.error || 'Could not load the thread')
+    } catch { setReplyMsg('Could not load the thread') }
+  }
+
+  async function draftReply() {
+    if (!selected || !openReply) return
+    setReplyBusy('draft'); setReplyMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/replies/${openReply}/draft`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected }),
+      }).then(r => r.json())
+      if (j?.success) setDraft(j.data.draft); else setReplyMsg(j?.error || 'Could not draft')
+    } catch { setReplyMsg('Could not draft') }
+    setReplyBusy(null)
+  }
+
+  async function sendReply() {
+    if (!selected || !openReply || !draft.trim()) return
+    setReplyBusy('send'); setReplyMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/replies/${openReply}/send`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, body: draft }),
+      }).then(r => r.json())
+      if (j?.success) {
+        setReplyMsg(j.data?.demo ? 'Demo client — send suppressed (nothing emailed).' : 'Sent.')
+        setDraft(''); setOpenReply(null); setThread(null); loadCockpit(selected)
+      } else setReplyMsg(j?.error || 'Could not send')
+    } catch { setReplyMsg('Could not send') }
+    setReplyBusy(null)
+  }
+
+  // V4d — ICP + SEQUENCE AUTHORING. Read-only views were not enough: the operator has to be
+  // able to CHANGE the targeting and the messaging, which is our actual job in this model.
+  const [icpEdit, setIcpEdit] = useState<Record<string, string> | null>(null)
+  const [seqEdit, setSeqEdit] = useState<{ id?: string; name: string; steps: { subject: string; body: string; wait_days: number }[] } | null>(null)
+  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+
+  const ICP_FIELDS: [string, string][] = [
+    ['name', 'Name'], ['industries', 'Industries'], ['job_titles', 'Job titles'],
+    ['seniority_levels', 'Seniority'], ['company_sizes', 'Company sizes'],
+    ['geographies', 'Geographies'], ['tech_stack', 'Tech stack'], ['keywords', 'Keywords'],
+  ]
+
+  async function openIcpEditor(icpId?: string) {
+    if (!selected) return
+    setSaveMsg(null)
+    if (!icpId) { setIcpEdit({ name: '', industries: '', job_titles: '', seniority_levels: '', company_sizes: '', geographies: '', tech_stack: '', keywords: '' }); return }
+    try {
+      const j = await fetch(`/api/proxy/operator/icp/${icpId}?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      const d = j.data as Record<string, unknown>
+      const join = (v: unknown) => Array.isArray(v) ? v.join(', ') : ''
+      setIcpEdit({ icp_id: icpId, name: String(d.name ?? ''), industries: join(d.industries), job_titles: join(d.job_titles),
+        seniority_levels: join(d.seniority_levels), company_sizes: join(d.company_sizes),
+        geographies: join(d.geographies), tech_stack: join(d.tech_stack), keywords: join(d.keywords) })
+    } catch { setSaveMsg('Could not open that ICP') }
+  }
+
+  async function saveIcp() {
+    if (!selected || !icpEdit) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/icp', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ...icpEdit, client_id: selected }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      setIcpEdit(null); setSaveMsg('ICP saved.'); await loadCockpit(selected)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the ICP') }
+    setCockpitBusy(false)
+  }
+
+  function openSeqEditor(sq?: { id: string; name: string; steps: unknown }) {
+    setSaveMsg(null)
+    if (!sq) { setSeqEdit({ name: '', steps: [{ subject: '', body: '', wait_days: 0 }] }); return }
+    const steps = Array.isArray(sq.steps)
+      ? (sq.steps as Record<string, unknown>[]).map(st => ({ subject: String(st.subject ?? ''), body: String(st.body ?? ''), wait_days: Number(st.wait_days ?? 3) || 0 }))
+      : [{ subject: '', body: '', wait_days: 0 }]
+    setSeqEdit({ id: sq.id, name: sq.name, steps })
+  }
+
+  async function saveSequence() {
+    if (!selected || !seqEdit) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/sequence', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, sequence_id: seqEdit.id, name: seqEdit.name, steps: seqEdit.steps }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error)
+      setSeqEdit(null); setSaveMsg('Sequence saved.'); await loadCockpit(selected)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the sequence') }
+    setCockpitBusy(false)
+  }
+
+  async function startCampaign() {
+    if (!selected) return
+    setCockpitBusy(true)
+    try {
+      await fetch('/api/proxy/operator/campaign/start', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected }),
+      }).then(r => r.json())
+      await loadCockpit(selected)
+    } catch { /* surfaced by the reload */ }
+    setCockpitBusy(false)
+  }
+
+  async function setCampaignStatus(campaignId: string, status: 'active' | 'paused') {
+    if (!selected) return
+    setCockpitBusy(true)
+    try {
+      await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(campaignId)}/status`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, status }),
+      }).then(r => r.json())
+      await loadCockpit(selected)
+    } catch { /* surfaced by the reload */ }
+    setCockpitBusy(false)
+  }
+
   const [srcPreview, setSrcPreview] = useState<SourcePreview | null>(null)
   const [srcBusy, setSrcBusy] = useState(false)
   const [srcResult, setSrcResult] = useState<string | null>(null)
@@ -354,235 +497,475 @@ export default function VidaConsolePage() {
       <div className="flex-1 flex flex-col bg-[#fbfaff] overflow-hidden">
         {!selected && (
           <div className="flex-1 flex items-center justify-center text-[#9b8ec4] text-sm">
-            Select a client on the left to load their campaign pipeline.
+            Select a client on the left to work their campaign.
           </div>
         )}
-        {selected && (
-          <>
-            {/* #501 FLOW ribbon */}
-            <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-[22px] py-2 border-b border-[#eee7f7] bg-white">
-              {FLOW.map((step, i) => (
-                <span key={step} className="flex items-center gap-1 shrink-0">
-                  <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#7c6f9b]">
-                    <span className="w-[18px] h-[18px] rounded-full bg-[#efeafc] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
-                    {step}
-                  </span>
-                  {i < FLOW.length - 1 && <span className="text-[#d9d0ee] px-0.5">›</span>}
+        {selected && (<>
+          {/* #501 FLOW ribbon */}
+          <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-[22px] py-2 border-b border-[#eee7f7] bg-white">
+            {FLOW.map((step, i) => (
+              <span key={step} className="flex items-center gap-1 shrink-0">
+                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#7c6f9b]">
+                  <span className="w-[18px] h-[18px] rounded-full bg-[#efeafc] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                  {step}
                 </span>
-              ))}
-            </div>
+                {i < FLOW.length - 1 && <span className="text-[#d9d0ee] px-0.5">&rsaquo;</span>}
+              </span>
+            ))}
+          </div>
 
-            {/* #500 KPI cards */}
-            <div className="shrink-0 grid grid-cols-2 lg:grid-cols-4 gap-3 px-[22px] pt-3">
-              {(() => {
-                const kpi = (label: string, value: string, sub: string, tone = '#1f1235') => (
-                  <div className="bg-white border border-[#eee7f7] rounded-xl px-3.5 py-2.5">
-                    <div className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">{label}</div>
-                    <div className="text-[18px] font-extrabold leading-tight mt-0.5" style={{ color: tone }}>{value}</div>
-                    <div className="text-[10.5px] text-[#9b8ec4] mt-0.5">{sub}</div>
-                  </div>
-                )
-                const cap = status?.daily_cap
-                return <>
-                  {kpi('Active client', selectedClient?.company_name || '—', `$${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet`)}
-                  {kpi('Daily send cap', cap == null ? 'No cap set' : `${status?.daily_cap}`, status?.outreach_enabled ? 'outreach ON' : 'outreach OFF', status?.outreach_enabled ? '#059669' : '#b45309')}
-                  {kpi('Needs approval', String(cols?.needs_approval.count ?? 0), 'your Send gate', '#b45309')}
-                  {kpi('Booked', String(cols?.booked.count ?? 0), 'meetings reported', '#059669')}
-                </>
-              })()}
-            </div>
+          {/* THE CONSOLE: Vida (conversation) | cockpit (this client's work surfaces) */}
+          <div className="flex-1 flex min-h-0">
 
-            {/* #498 Vida command bar */}
-            <div className="shrink-0 mx-[22px] mt-3 bg-white border border-[#eee7f7] rounded-xl overflow-hidden">
-              <div className="flex items-center gap-2 px-3.5 py-2 border-b border-[#f2ecfb]">
-                <span className="w-6 h-6 rounded-md bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[11px] font-bold flex items-center justify-center">V</span>
-                <b className="text-[13px]">Vida</b>
-                <span className="text-[11px] text-[#9b8ec4]">conversational · context: {selectedClient?.company_name || 'client'}</span>
+            {/* ── VIDA — the assistant, scoped to the selected client ── */}
+            <section className="flex-1 min-w-0 flex flex-col border-r border-[#eee7f7]">
+              <div className="shrink-0 flex items-center gap-2.5 px-[22px] py-2.5 border-b border-[#eee7f7] bg-white">
+                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[11px] font-bold flex items-center justify-center">
+                  {initials(selectedClient?.company_name ?? null)}
+                </span>
+                <div className="min-w-0">
+                  <b className="text-[13.5px] block leading-tight truncate">{selectedClient?.company_name || 'Client'}</b>
+                  <span className="text-[11px] text-[#9b8ec4]">{[selectedClient?.industry, selectedClient?.country].filter(Boolean).join(' · ') || 'client'}</span>
+                </div>
+                {/* V11 ONBOARDING GATE — how complete is this client, and what's missing. */}
+                {cockpit && (
+                  <span className={`ml-auto shrink-0 text-[11.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#b45309] bg-[#fffbeb]'}`}
+                    title={cockpit.onboarding.missing.length ? `Missing: ${cockpit.onboarding.missing.join(', ')}` : 'Fully onboarded'}>
+                    Onboarding {cockpit.onboarding.percent}%
+                  </span>
+                )}
+                <span className={`shrink-0 text-[11.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'}`}>
+                  ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
+                </span>
               </div>
-              {cmdLog.length > 0 && (
-                <div className="max-h-40 overflow-y-auto px-3.5 py-2 space-y-1.5">
-                  {cmdLog.map((m, i) => (
-                    <div key={i} className={m.role === 'operator' ? 'text-right' : ''}>
-                      <span className={`inline-block text-[12px] rounded-xl px-3 py-1.5 ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.text}</span>
-                      {m.link && <a href={m.link} className="block text-[11px] font-bold text-[#7C3AED] mt-0.5 hover:underline">Open →</a>}
-                    </div>
+
+              <div className="shrink-0 px-[22px] py-1.5 text-[11px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
+                You&rsquo;re working <b className="text-[#7C3AED]">{selectedClient?.company_name || 'this client'}</b> — Vida and the cockpit are scoped to this client only.
+              </div>
+              {cockpit && cockpit.onboarding.missing.length > 0 && (
+                <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fffbeb] border-b border-[#fde68a]">
+                  <span className="text-[11.5px] font-bold text-[#b45309]">Onboarding gaps:</span>
+                  {cockpit.onboarding.missing.map(m => (
+                    <span key={m} className="text-[11px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
                   ))}
+                  <button onClick={() => runCommand(`Ask ${selectedClient?.company_name || 'the client'} for the missing onboarding details: ${cockpit.onboarding.missing.join(', ')}`)}
+                    disabled={cmdBusy}
+                    className="ml-auto text-[11.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask them for these</button>
                 </div>
               )}
-              <div className="px-3.5 py-2.5">
-                <form onSubmit={e => { e.preventDefault(); runCommand(cmd) }} className="flex gap-2">
-                  <input value={cmd} onChange={e => setCmd(e.target.value)} placeholder={`Command Vida in ${selectedClient?.company_name || 'client'} context…`}
-                    className="flex-1 text-[12.5px] rounded-lg border border-[#e4dcf7] bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-                  <button type="submit" disabled={cmdBusy || !cmd.trim()} className="text-[12px] font-bold text-white rounded-lg px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{cmdBusy ? '…' : 'Run'}</button>
-                </form>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {["What's blocking?", 'Status', 'Source 20 leads', 'Redefine the ICP', 'Build a campaign', 'Update the sequence'].map(chip => (
-                    <button key={chip} onClick={() => runCommand(chip)} disabled={cmdBusy || srcBusy}
-                      className="text-[11px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-2.5 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{chip}</button>
-                  ))}
-                </div>
 
-                {/* #498b — pool-aware sourcing CONFIRM. Shows the real cost (pool $0 vs PDL) before spending. */}
-                {srcBusy && !srcPreview && <div className="mt-2.5 text-[12px] text-[#9b8ec4]">Checking the pool…</div>}
+              {/* Pipeline at a glance — every stage, click through to the tab that works it.
+                  Replaces the old 6-column kanban, which cost a full column of width. */}
+              <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
+                <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Pipeline</span>
+                {([
+                  ['Sourced', cols?.sourced.count ?? 0, 'People'],
+                  ['Needs approval', cols?.needs_approval.count ?? 0, 'Approvals'],
+                  ['Sending', cols?.sending.count ?? 0, null],
+                  ['Replied', cols?.replied.count ?? 0, 'Inbox'],
+                  ['Qualified', cols?.qualified.count ?? 0, null],
+                  ['Booked', cols?.booked.count ?? 0, 'Bookings'],
+                ] as [string, number, CockpitTab | null][]).map(([label, n, goTo]) => (
+                  <button key={label} onClick={() => goTo && setTab(goTo)} disabled={!goTo}
+                    className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 ${n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
+                    {n} {label}
+                  </button>
+                ))}
+              </div>
+
+              {/* live gate counts for THIS client */}
+              <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
+                <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Blockers</span>
+                {([['Send gate', blockers?.send_gate], ['Money gate', blockers?.money_gate], ['Unsent sourced', blockers?.unsent_sourced], ['To triage', blockers?.replies_to_triage]] as [string, number | undefined][]).map(([label, n]) => (
+                  <span key={label} className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n ?? 0} {label}</span>
+                ))}
+              </div>
+
+              <div className="flex-1 overflow-y-auto px-[22px] py-3.5 space-y-2">
+                {cmdLog.length === 0 && (
+                  <div className="text-[12.5px] text-[#9b8ec4] leading-relaxed max-w-lg">
+                    Ask Vida anything about <b className="text-[#5c5279]">{selectedClient?.company_name || 'this client'}</b> — or use a shortcut below.
+                    Everything you do here is scoped to them.
+                  </div>
+                )}
+                {cmdLog.map((m, i) => (
+                  <div key={i} className={m.role === 'operator' ? 'text-right' : ''}>
+                    <span className={`inline-block text-[12.5px] leading-relaxed rounded-xl px-3.5 py-2 max-w-[85%] text-left ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7] text-[#1f1235]'}`}>{m.text}</span>
+                    {m.link && <a href={m.link} className="block text-[11px] font-bold text-[#7C3AED] mt-0.5 hover:underline">Open &rarr;</a>}
+                  </div>
+                ))}
+
                 {srcPreview && (
-                  <div className="mt-2.5 bg-[#fbf8ff] border border-[#e4d4fb] rounded-xl p-3">
-                    {srcPreview.no_active_icp ? (
-                      <p className="text-[12px] text-[#b45309] font-semibold">No active ICP for this client — set their targeting first (Redefine the ICP), then source.</p>
-                    ) : (
-                      <>
-                        <div className="text-[12.5px] text-[#1f1235]">
-                          <b>Source {srcPreview.count} for {selectedClient?.company_name || 'client'}</b>
-                          {srcPreview.capped && <span className="text-[10.5px] text-[#b45309] font-semibold"> · capped at {srcPreview.leads_per_run}/run</span>}
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1.5 text-[12px]">
-                          <span className="text-emerald-700 font-semibold">{srcPreview.pool_free} from our pool · $0</span>
-                          <span className="text-[#7C3AED] font-semibold">{srcPreview.pdl_needed} from PDL · ~${srcPreview.pdl_cost_est.toFixed(2)}</span>
-                          <span className="text-[#9b8ec4]">allowance left: {srcPreview.allowance_left}</span>
-                          {srcPreview.is_demo && <span className="text-[#9b8ec4]">demo · pool-only, $0</span>}
-                        </div>
-                        <p className="text-[10.5px] text-[#b3a9cc] mt-1">Estimate — pool is an upper bound, so PDL cost is a ceiling. Spends OUR budget, never client credits.</p>
-                        <div className="flex gap-2 mt-2">
-                          <button disabled={srcBusy} onClick={confirmSource}
-                            className="text-[12px] font-bold text-white rounded-lg py-1.5 px-4 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                            {srcBusy ? 'Sourcing…' : `Confirm · source ${srcPreview.count}`}
-                          </button>
-                          <button disabled={srcBusy} onClick={() => { setSrcPreview(null); setSrcResult(null) }}
-                            className="text-[12px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-4 border border-[#ece5fb] bg-white disabled:opacity-50">Cancel</button>
-                        </div>
-                      </>
+                  <div className="border border-[#e4dcf7] bg-white rounded-xl px-3.5 py-3 max-w-md">
+                    <b className="text-[12.5px] block mb-1">Source {srcPreview.count} leads?</b>
+                    <p className="text-[11.5px] text-[#5c5279] leading-relaxed">
+                      {srcPreview.no_active_icp
+                        ? 'This client has no active ICP — approve one first.'
+                        : <>{srcPreview.pool_free} free from the pool · {srcPreview.pdl_needed} new from PDL (~${srcPreview.pdl_cost_est.toFixed(2)} of OUR budget){srcPreview.is_demo ? ' · demo client, pool only' : ''}</>}
+                    </p>
+                    {!srcPreview.no_active_icp && (
+                      <div className="flex gap-2 mt-2.5">
+                        <button onClick={confirmSource} disabled={srcBusy}
+                          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-60">
+                          {srcBusy ? 'Sourcing…' : 'Confirm & source'}
+                        </button>
+                        <button onClick={() => setSrcPreview(null)} className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[12px] font-bold text-[#5c5279]">Cancel</button>
+                      </div>
                     )}
                   </div>
                 )}
-                {srcResult && <div className="mt-2 text-[12px] font-semibold text-[#1f1235] bg-[#f3ecff] border border-[#e4d4fb] rounded-lg px-3 py-2">{srcResult}</div>}
+                {srcResult && <div className="text-[12px] font-semibold text-emerald-700">{srcResult}</div>}
               </div>
-            </div>
 
-            {/* #505 LIVE BLOCKERS strip — real gate counts for this client, no LLM */}
-            {blockers && (
-              <div className="shrink-0 mx-[22px] mt-2.5 flex flex-wrap items-center gap-2">
-                <span className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc]">Blockers</span>
-                {([
-                  ['Send gate', blockers.send_gate, 'drafts awaiting your approval', '#b45309', '#fef3c7'],
-                  ['Money gate', blockers.money_gate, 'sent to client, awaiting their 👍', '#7C3AED', '#f3ecff'],
-                  ['Unsent sourced', blockers.unsent_sourced, "sourced, not yet sent", '#5c5279', '#efeafc'],
-                  ['To triage', blockers.replies_to_triage, 'replies not yet qualified', '#0369a1', '#e0f2fe'],
-                ] as [string, number, string, string, string][]).map(([label, n, title, fg, bg]) => (
-                  <span key={label} title={title}
-                    className="inline-flex items-center gap-1.5 text-[11px] font-semibold rounded-full px-2.5 py-1 border"
-                    style={{ color: n > 0 ? fg : '#b3a9cc', background: n > 0 ? bg : '#f7f4fd', borderColor: n > 0 ? bg : '#eee7f7' }}>
-                    <b className="text-[12px]">{n}</b> {label}
-                  </span>
-                ))}
-                {blockers.send_gate + blockers.money_gate + blockers.unsent_sourced + blockers.replies_to_triage === 0 && (
-                  <span className="text-[11px] font-semibold text-emerald-600">All clear · nothing waiting on you</span>
-                )}
-              </div>
-            )}
-
-            <div className="px-[22px] pt-4 pb-1">
-              <b className="text-[15px]">{selectedClient?.company_name || board?.client.company_name || 'Client'} — campaign pipeline</b>
-              <span className="block text-[11.5px] text-[#9b8ec4]">Every stage FIGSY moves a lead through · human gate before send</span>
-            </div>
-            {boardError && <div className="mx-[22px] mt-2 text-xs text-red-500">{boardError}</div>}
-            {boardLoading && !board && <div className="px-[22px] py-6 text-sm text-[#9b8ec4]">Loading board…</div>}
-            {cols && (
-              <div className="flex-1 overflow-x-auto flex gap-3 px-[22px] py-3.5">
-                {/* Sourced */}
-                <Col title="Sourced" count={cols.sourced.count} gate={{ label: '→ your send', tone: 'send' }}>
-                  {cols.sourced.cards.length === 0 ? <EmptyCol /> : cols.sourced.cards.map(c => (
-                    <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
-                      <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
-                      <span className="text-[11px] text-[#9b8ec4]">{[c.job_title, c.company].filter(Boolean).join(' · ') || '—'}</span>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded px-1.5">{c.score ?? '—'}</span>
-                        <span className="text-[10px] text-[#b3a9cc]">score</span>
-                      </div>
-                      {sourcedBtns(c.id, !!c.surfaced_for_approval_at && !!c.approval_expires_at && new Date(c.approval_expires_at).getTime() > Date.now())}
-                    </div>
+              <div className="shrink-0 px-[22px] pb-3">
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {["What's blocking?", 'Status', 'Source 20 leads', 'Redefine the ICP', 'Build a campaign', 'Update the sequence'].map(c => (
+                    <button key={c} onClick={() => runCommand(c)} disabled={cmdBusy}
+                      className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">{c}</button>
                   ))}
-                </Col>
-                {/* Needs approval */}
-                <Col title="Needs approval" count={cols.needs_approval.count} gate={{ label: '🔒 Send gate', tone: 'send' }}>
-                  {cols.needs_approval.cards.length === 0 ? <EmptyCol /> : cols.needs_approval.cards.map(c => {
-                    const nm = fullName(c.leads?.first_name ?? null, c.leads?.last_name ?? null)
-                    const open = openDrafts.has(c.id)
-                    return (
-                      <div key={c.id} className="bg-[#fffdf7] border-[1.5px] border-[#f0c674] rounded-xl p-2.5 mb-2.5">
-                        <b className="text-[12.5px] block">{nm}</b>
-                        <span className="text-[11px] text-[#9b8ec4] block truncate">{c.to_email || '—'}{c.sequence_step ? ` · step ${c.sequence_step}` : ''}</span>
-                        <div className="text-[11.5px] font-semibold text-[#1f1235] mt-1 leading-snug line-clamp-2">{c.subject || '(no subject)'}</div>
-                        <button onClick={() => toggleDraft(c.id)} className="text-[10.5px] font-bold text-[#7C3AED] mt-1 hover:underline">
-                          {open ? 'Hide draft ▲' : 'Preview draft ▼'}
+                </div>
+                <form onSubmit={e => { e.preventDefault(); if (cmd.trim()) runCommand(cmd.trim()) }} className="flex gap-2">
+                  <input value={cmd} onChange={e => setCmd(e.target.value)} disabled={cmdBusy}
+                    placeholder={`Command Vida in ${selectedClient?.company_name || 'client'} context…`}
+                    className="flex-1 border border-[#ece5fb] rounded-xl px-3.5 py-2.5 text-[12.5px] bg-white outline-none focus:border-[#7C3AED] disabled:opacity-60" />
+                  <button type="submit" disabled={cmdBusy || !cmd.trim()}
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl px-5 text-[12.5px] font-bold disabled:opacity-40">
+                    {cmdBusy ? '…' : 'Run'}
+                  </button>
+                </form>
+              </div>
+            </section>
+
+            {/* ── COCKPIT — this client's seven work surfaces ── */}
+            <aside className="w-[480px] shrink-0 flex flex-col bg-white min-h-0">
+              <div className="shrink-0 flex items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7] overflow-x-auto">
+                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Bookings'] as CockpitTab[]).map(t => {
+                  const on = tab === t
+                  const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
+                    : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
+                    : t === 'People' ? (cols?.sourced.count ?? 0)
+                    : t === 'Bookings' ? (cols?.booked.count ?? 0) : 0
+                  return (
+                    <button key={t} onClick={() => setTab(t)}
+                      className={`shrink-0 px-2.5 py-2 text-[12px] font-bold rounded-t-lg border-b-2 -mb-px transition-colors ${on ? 'border-[#7C3AED] text-[#1f1235] bg-[#faf8ff]' : 'border-transparent text-[#9b8ec4] hover:text-[#5c5279]'}`}>
+                      {t}{n > 0 && <span className="ml-1 text-[9.5px] font-extrabold text-white bg-[#EC4899] rounded-full px-1.5">{n}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-3.5">
+                {cockpitError && <p className="text-[12px] text-red-500 mb-2">{cockpitError}</p>}
+                {cockpitLoading && !cockpit && <p className="text-[12.5px] text-[#9b8ec4]">Loading…</p>}
+
+                {/* INBOX — a prospect asks; WE answer */}
+                {tab === 'Inbox' && (cockpit ? (
+                  openReply ? (
+                    <div>
+                      <button onClick={() => { setOpenReply(null); setThread(null); setDraft('') }} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; All replies</button>
+                      {!thread ? <p className="text-[12.5px] text-[#9b8ec4]">Loading thread…</p> : (<>
+                        <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
+                          <b className="text-[13px] block">{String(thread.reply.from_name || thread.reply.from_email || 'Prospect')}</b>
+                          <span className="text-[11px] text-[#9b8ec4]">
+                            {[thread.lead?.job_title, thread.lead?.company].filter(Boolean).join(' · ') || String(thread.reply.from_email ?? '')}
+                          </span>
+                          <p className="text-[12.5px] text-[#4c4368] leading-relaxed mt-2 whitespace-pre-wrap">
+                            {String(thread.reply.body_text || thread.reply.body || '(no body captured)').slice(0, 1500)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <b className="text-[12px]">Your reply</b>
+                          <span className="text-[11px] text-[#9b8ec4]">— sent as {selectedClient?.company_name || 'the client'}</span>
+                          <button onClick={draftReply} disabled={replyBusy !== null}
+                            className="ml-auto text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+                            {replyBusy === 'draft' ? 'Drafting…' : '✨ Draft for me'}
+                          </button>
+                        </div>
+                        <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={7}
+                          placeholder="Write the reply, or let Vida draft it in the client's voice…"
+                          className="w-full border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={sendReply} disabled={replyBusy !== null || !draft.trim()}
+                            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                            {replyBusy === 'send' ? 'Sending…' : 'Send'}
+                          </button>
+                          <button onClick={() => qualifyReply(openReply, true)} disabled={acting !== null}
+                            className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[12.5px] font-bold disabled:opacity-50">Mark qualified</button>
+                          <a href={`/vida/record?lead_id=${encodeURIComponent(String(thread.reply.lead_id ?? ''))}`}
+                            className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Record</a>
+                        </div>
+                        {replyMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{replyMsg}</p>}
+                      </>)}
+                    </div>
+                  ) : cockpit.replies.length === 0 ? (
+                    <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">No replies yet.</p>
+                  ) : cockpit.replies.map(r => (
+                    <button key={r.id} onClick={() => openThread(r.id)}
+                      className="w-full text-left flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2 hover:border-[#d9c9f7]">
+                      <div className="min-w-0">
+                        <b className="text-[12.5px] block truncate">{r.from_name || r.from_email || 'Unknown'}</b>
+                        <span className="text-[11px] text-[#9b8ec4]">{r.classification || 'unclassified'} · {fmtDate(r.received_at)}</span>
+                      </div>
+                      <span className={`ml-auto shrink-0 text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${r.meeting_booked_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : r.qualified_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
+                        {r.meeting_booked_at ? 'booked' : r.qualified_at ? 'qualified' : 'needs you'}
+                      </span>
+                    </button>
+                  ))
+                ) : null)}
+
+                {/* APPROVALS — drafts waiting on the operator's send gate */}
+                {tab === 'Approvals' && (
+                  (cols?.needs_approval.cards.length ?? 0) === 0
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">Nothing waiting on your send gate.</p>
+                    : cols!.needs_approval.cards.map(c => (
+                      <div key={c.id} className="border border-[#eee7f7] rounded-xl p-3 mb-2">
+                        <b className="text-[12.5px] block">{fullName(c.leads?.first_name ?? null, c.leads?.last_name ?? null)}</b>
+                        <span className="text-[11px] text-[#9b8ec4]">{c.leads?.company || c.to_email || '—'} · step {c.sequence_step ?? 1}</span>
+                        <button onClick={() => toggleDraft(c.id)} className="block text-[11.5px] font-bold text-[#7C3AED] mt-1.5">
+                          {openDrafts.has(c.id) ? 'Hide draft' : 'Read draft'}
                         </button>
-                        {open && (
-                          <div className="mt-1.5 text-[11px] text-[#4c4368] bg-white border border-[#f0e3c4] rounded-lg p-2 max-h-40 overflow-y-auto whitespace-pre-wrap leading-relaxed">
-                            {c.body || '(empty body)'}
+                        {openDrafts.has(c.id) && (
+                          <div className="mt-1.5 bg-[#faf8ff] border border-[#f2ecfb] rounded-lg p-2.5">
+                            <b className="text-[11.5px] block mb-1">{c.subject || '(no subject)'}</b>
+                            <p className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{(c.body || '').slice(0, 1200)}</p>
                           </div>
                         )}
-                        {queueBtns(c.id)}
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={() => actQueue(c.id, 'approve')} disabled={acting !== null}
+                            className="bg-[#7C3AED] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-50">Approve &amp; send</button>
+                          <button onClick={() => actQueue(c.id, 'reject')} disabled={acting !== null}
+                            className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[12px] font-bold text-[#5c5279] disabled:opacity-50">Reject</button>
+                        </div>
                       </div>
-                    )
-                  })}
-                </Col>
-                {/* Sending */}
-                <Col title="Sending" count={cols.sending.count}>
-                  {cols.sending.cards.length === 0 ? <EmptyCol /> : cols.sending.cards.map(c => (
-                    <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
-                      <b className="text-[12.5px] block">Step {(c.current_step ?? 0)}{c.total_steps ? ` of ${c.total_steps}` : ''}</b>
-                      <span className="text-[11px] text-[#9b8ec4]">{c.status ?? 'enrolled'}</span>
+                    ))
+                )}
+
+                {/* PEOPLE — sourced, not yet in front of the client */}
+                {tab === 'People' && (
+                  (cols?.sourced.cards.length ?? 0) === 0
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
+                    : cols!.sourced.cards.map(c => (
+                      <div key={c.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                        <div className="min-w-0">
+                          <b className="text-[12.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
+                          <span className="text-[11px] text-[#9b8ec4] truncate block">{[c.job_title, c.company].filter(Boolean).join(' · ') || '—'}</span>
+                        </div>
+                        <div className="ml-auto shrink-0 flex items-center gap-2">
+                          {c.score != null && <span className="text-[13px] font-extrabold tabular-nums">{c.score}</span>}
+                          <button onClick={() => act(c.id, 'surface')} disabled={acting !== null}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Send to client</button>
+                          <button onClick={() => act(c.id, 'pass')} disabled={acting !== null}
+                            className="text-[11.5px] font-bold text-[#9b8ec4] disabled:opacity-50">Pass</button>
+                        </div>
+                      </div>
+                    ))
+                )}
+
+                {/* CAMPAIGN */}
+                {tab === 'Campaign' && (cockpit ? (
+                  cockpit.campaigns.length === 0 ? (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                      <b className="text-[12.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
+                      <p className="text-[11.5px] text-amber-700 mt-1">Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.</p>
+                      <button onClick={startCampaign} disabled={cockpitBusy}
+                        className="mt-2.5 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                        {cockpitBusy ? 'Starting…' : 'Start campaign'}
+                      </button>
                     </div>
-                  ))}
-                </Col>
-                {/* Replied — #494 operator Qualify gate (non-spend) */}
-                <Col title="Replied" count={cols.replied.count} gate={{ label: '✓ Qualify gate', tone: 'qualify' }}>
-                  {cols.replied.cards.length === 0 ? <EmptyCol /> : cols.replied.cards.map(c => {
-                    const isQualified = !!c.qualified_at
-                    return (
-                      <div key={c.id} className={`bg-white border rounded-xl p-2.5 mb-2.5 ${isQualified ? 'border-emerald-200' : 'border-[#eee7f7]'}`}>
-                        <b className="text-[12.5px] block truncate">{c.from_name || c.from_email || 'Reply'}</b>
-                        <span className="text-[11px] text-[#9b8ec4]">{c.classification || 'reply'}</span>
-                        {isQualified ? (
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-[10.5px] font-bold text-emerald-600">✓ Qualified</span>
-                            <button disabled={acting === c.id} onClick={() => qualifyReply(c.id, false)}
-                              className="text-[10px] font-semibold text-[#9b8ec4] hover:text-[#5c5279] disabled:opacity-50">Undo</button>
-                          </div>
-                        ) : (
-                          <button disabled={acting === c.id} onClick={() => qualifyReply(c.id, true)}
-                            className="w-full mt-2 text-[11px] font-bold text-[#059669] rounded-lg py-1.5 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 disabled:opacity-50">
-                            {acting === c.id ? '…' : '✓ Mark qualified'}
+                  ) : cockpit.campaigns.map(c => (
+                    <div key={c.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                      <div className="min-w-0">
+                        <b className="text-[12.5px] block truncate">{c.name}</b>
+                        <span className="text-[11px] text-[#9b8ec4]">{c.leads_enrolled} enrolled · {c.emails_sent} sent · {c.replies_total} replies</span>
+                      </div>
+                      <div className="ml-auto shrink-0 flex items-center gap-2">
+                        <span className={`text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${c.status === 'active' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>{c.status === 'active' ? 'live' : c.status}</span>
+                        {(c.status === 'active' || c.status === 'paused') && (
+                          <button onClick={() => setCampaignStatus(c.id, c.status === 'active' ? 'paused' : 'active')} disabled={cockpitBusy}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">
+                            {c.status === 'active' ? 'Pause' : 'Resume'}
                           </button>
                         )}
                       </div>
-                    )
-                  })}
-                </Col>
-                {/* Qualified $4 */}
-                <Col title="Qualified" count={cols.qualified.count} gate={{ label: '💳 Money gate', tone: 'money' }}>
-                  {cols.qualified.cards.length === 0 ? <EmptyCol /> : cols.qualified.cards.map(c => (
-                    <div key={c.id} className="bg-white border border-[#eee7f7] rounded-xl p-2.5 mb-2.5">
-                      <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
-                      <span className="text-[11px] text-[#9b8ec4] truncate block">{c.company || c.email || '—'}</span>
-                      <a href={`/vida/record?lead_id=${encodeURIComponent(c.id)}`} className="text-[10.5px] font-bold text-[#7C3AED] hover:underline mt-1 inline-block">Record →</a>
                     </div>
-                  ))}
-                </Col>
-                {/* Booked */}
-                <Col title="Booked" count={cols.booked.count} gate={{ label: 'Booked', tone: 'done' }}>
-                  {cols.booked.cards.length === 0 ? <EmptyCol /> : cols.booked.cards.map(c => (
-                    <div key={c.id} className="bg-white border border-emerald-200 rounded-xl p-2.5 mb-2.5">
-                      <b className="text-[12.5px] block">{fullName(c.first_name, c.last_name)}</b>
-                      <span className="text-[11px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
-                      <span className="text-[10.5px] text-emerald-600 font-semibold block mt-0.5">
-                        {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
-                      </span>
-                      {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="text-[10.5px] font-bold text-[#7C3AED] hover:underline mt-1 inline-block">Record →</a>}
+                  ))
+                ) : null)}
+
+                {/* ICP — read AND author (V4d) */}
+                {tab === 'ICP' && (cockpit ? (icpEdit ? (
+                  <div>
+                    <button onClick={() => setIcpEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to ICPs</button>
+                    <b className="text-[13px] block mb-2">{icpEdit.icp_id ? 'Edit ICP' : 'New ICP version'}</b>
+                    {ICP_FIELDS.map(([key, label]) => (
+                      <label key={key} className="block mb-2">
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">{label}</span>
+                        <input value={icpEdit[key] ?? ''} onChange={e => setIcpEdit({ ...icpEdit, [key]: e.target.value })}
+                          placeholder={key === 'name' ? 'e.g. SA logistics C-suite' : 'comma separated'}
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                    ))}
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={saveIcp} disabled={cockpitBusy || !(icpEdit.name ?? '').trim()}
+                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                        {cockpitBusy ? 'Saving…' : icpEdit.icp_id ? 'Save changes' : 'Save as current ICP'}
+                      </button>
+                      <button onClick={() => setIcpEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
                     </div>
-                  ))}
-                </Col>
+                    <p className="text-[11px] text-[#9b8ec4] mt-2">A new version becomes the active ICP — sourcing targets it immediately.</p>
+                  </div>
+                ) : (<>
+                  {cockpit.icps.length === 0
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No ICP yet — sourcing has no target until there is one.</p>
+                    : cockpit.icps.map((i, n) => (
+                      <div key={i.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                        <div className="min-w-0">
+                          <b className="text-[12.5px] block truncate">{i.name || `ICP v${cockpit.icps.length - n}`}</b>
+                          <span className="text-[11px] text-[#9b8ec4]">{i.last_run_at ? `last sourced ${fmtDate(i.last_run_at)}` : 'never sourced'}</span>
+                        </div>
+                        <div className="ml-auto shrink-0 flex items-center gap-2">
+                          {n === 0 && <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">current</span>}
+                          <button onClick={() => openIcpEditor(i.id)} className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                        </div>
+                      </div>
+                    ))}
+                  <button onClick={() => openIcpEditor()} className="mt-1 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">+ New ICP version</button>
+                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                </>)) : null)}
+
+                {/* SEQUENCE — read AND author (V4d) */}
+                {tab === 'Sequence' && (cockpit ? (seqEdit ? (
+                  <div>
+                    <button onClick={() => setSeqEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
+                    <label className="block mb-2.5">
+                      <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Sequence name</span>
+                      <input value={seqEdit.name} onChange={e => setSeqEdit({ ...seqEdit, name: e.target.value })}
+                        placeholder="e.g. Practitioner angle"
+                        className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                    </label>
+                    {seqEdit.steps.map((st, i) => (
+                      <div key={i} className="border border-[#eee7f7] rounded-xl p-3 mb-2.5">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <b className="text-[12px]">Step {i + 1}</b>
+                          {i > 0 && (
+                            <label className="text-[11px] text-[#9b8ec4] flex items-center gap-1">
+                              wait
+                              <input type="number" min={0} max={60} value={st.wait_days}
+                                onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, wait_days: Number(e.target.value) || 0 }; setSeqEdit({ ...seqEdit, steps }) }}
+                                className="w-14 border border-[#ece5fb] rounded px-1.5 py-0.5 text-[11.5px] outline-none" />
+                              days
+                            </label>
+                          )}
+                          {seqEdit.steps.length > 1 && (
+                            <button onClick={() => setSeqEdit({ ...seqEdit, steps: seqEdit.steps.filter((_, n) => n !== i) })}
+                              className="ml-auto text-[11px] font-bold text-red-500">Remove</button>
+                          )}
+                        </div>
+                        <input value={st.subject} onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, subject: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
+                          placeholder="Subject line" className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mb-1.5 outline-none focus:border-[#7C3AED]" />
+                        <textarea value={st.body} rows={5}
+                          onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, body: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
+                          placeholder="Email body. Keep it short and specific."
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
+                      </div>
+                    ))}
+                    {seqEdit.steps.length < 10 && (
+                      <button onClick={() => setSeqEdit({ ...seqEdit, steps: [...seqEdit.steps, { subject: '', body: '', wait_days: 3 }] })}
+                        className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 mb-3">+ Add step</button>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={saveSequence} disabled={cockpitBusy || !seqEdit.name.trim()}
+                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                        {cockpitBusy ? 'Saving…' : 'Save sequence'}
+                      </button>
+                      <button onClick={() => setSeqEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                    </div>
+                    <p className="text-[11px] text-[#9b8ec4] mt-2">Nothing sends without the human Send gate — saving does not start outreach.</p>
+                  </div>
+                ) : (<>
+                  {cockpit.sequences.length === 0
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No saved sequence — write one, or FIGSY drafts per campaign.</p>
+                    : cockpit.sequences.map(sq => (
+                      <div key={sq.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                        <div className="min-w-0">
+                          <b className="text-[12.5px] block truncate">{sq.name}</b>
+                          <span className="text-[11px] text-[#9b8ec4]">{Array.isArray(sq.steps) ? sq.steps.length : 0} steps · updated {fmtDate(sq.updated_at)}</span>
+                        </div>
+                        <button onClick={() => openSeqEditor({ id: sq.id, name: sq.name, steps: sq.steps })}
+                          className="ml-auto shrink-0 text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                      </div>
+                    ))}
+                  <button onClick={() => openSeqEditor()} className="mt-1 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">+ Write a sequence</button>
+                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                </>)) : null)}
+
+                {/* BOOKINGS */}
+                {tab === 'Bookings' && (
+                  (cols?.booked.cards.length ?? 0) === 0
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
+                    : cols!.booked.cards.map(c => (
+                      <div key={c.id} className="flex items-center gap-2.5 border border-emerald-200 bg-emerald-50/40 rounded-xl px-3 py-2.5 mb-2">
+                        <div className="min-w-0">
+                          <b className="text-[12.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
+                          <span className="text-[11px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
+                          <span className="text-[11px] text-emerald-700 font-semibold">
+                            {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
+                          </span>
+                        </div>
+                        {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="ml-auto shrink-0 text-[11.5px] font-bold text-[#7C3AED]">Record &rarr;</a>}
+                      </div>
+                    ))
+                )}
               </div>
-            )}
-          </>
+            </aside>
+          </div>
+        </>)}
+      </div>
+    </div>
+  )
+}
+
+// ── cockpit presentational helpers (kept local + tiny; no new deps) ────────────────
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+function Panel({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
+  return (
+    <div className="max-w-3xl">
+      <b className="text-[15px]">{title}</b>
+      <span className="block text-[11.5px] text-[#9b8ec4] mb-3">{sub}</span>
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
+  )
+}
+function Empty({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-xl border border-[#eee7f7] bg-white px-4 py-6 text-center text-[13px] text-[#9b8ec4]">{children}</div>
+}
+function Hint({ children }: { children: React.ReactNode }) {
+  return <p className="text-[11.5px] text-[#9b8ec4] mt-1">{children}</p>
+}
+function Row({ title, sub, tag, action }: {
+  title: string; sub: string
+  tag?: { label: string; tone: 'good' | 'warn' | 'mute' }
+  action?: { label: string; onClick: () => void }
+}) {
+  const tone = tag?.tone === 'good' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+    : tag?.tone === 'warn' ? 'text-amber-800 bg-amber-50 border-amber-200'
+    : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#eee7f7] bg-white px-3.5 py-2.5">
+      <div className="min-w-0">
+        <b className="text-[13px] block truncate">{title}</b>
+        <span className="text-[11.5px] text-[#9b8ec4]">{sub}</span>
+      </div>
+      <div className="ml-auto flex items-center gap-2 shrink-0">
+        {tag && <span className={`text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${tone}`}>{tag.label}</span>}
+        {action && (
+          <button onClick={action.onClick}
+            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd]">
+            {action.label}
+          </button>
         )}
       </div>
     </div>

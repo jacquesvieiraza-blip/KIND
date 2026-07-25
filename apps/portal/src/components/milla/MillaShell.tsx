@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem,
+  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow, GraduationCap,
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, Bell,
 } from 'lucide-react'
 
@@ -70,8 +70,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
 
   const ACCOUNT: [string, string, React.ElementType][] = [
     ['/milla/settings', 'My profile', User], ['/milla/billing', 'Billing', CreditCard],
-    ['/milla/usage', 'Usage', Gauge], ['/milla/documents', 'Documents', FileText],
-    ['/milla/referral', 'Referral', Gift],
+    ['/milla/usage', 'Usage', Gauge], ['/milla/referral', 'Referral', Gift],
   ]
   // The ROI / insights surface lives in the top-right dropdown (not the left rail) so the
   // rail stays purely the client's workspace. Still kept — this is how we prove the ROI.
@@ -143,9 +142,17 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         <aside className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto">
           <nav>
             {link('/milla', 'New leads', Sparkles, isLeads, s?.leads_awaiting || undefined)}
+            {link('/milla/pipeline', 'Pipeline', Workflow, pathname.startsWith('/milla/pipeline'))}
             {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
             {link('/milla/campaign', 'My campaign', Target, pathname.startsWith('/milla/campaign'))}
+            {/* #512 ICP approval + Documents were reachable only from a single link on the
+                home page / the account menu — they are part of the client's actual workspace
+                (approve the plan, keep their material current), so they belong in the rail. */}
+            {link('/milla/icp', 'My ICP', Crosshair, pathname.startsWith('/milla/icp'))}
+            {link('/milla/documents', 'Documents', FileText, pathname.startsWith('/milla/documents'))}
             {link('/milla/reports', 'Reports', FileBarChart, pathname.startsWith('/milla/reports'))}
+            {/* M9 — we booked the meeting; this is how the client wins it. */}
+            {link('/milla/coaching', 'Coaching', GraduationCap, pathname.startsWith('/milla/coaching'))}
           </nav>
           {/* ROI (Performance/Analytics/Your ROI/Command Centre/Teams Hub) moved to the
               top-right "Your ROI" dropdown — the rail stays the client's workspace only. */}

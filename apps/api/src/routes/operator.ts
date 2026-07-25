@@ -172,6 +172,389 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── V7 ENGINE — the deliverability surface (item 211) ──────────────────────────────
+// RULEBOOK 12.2: you cannot share a sender across clients. This is the page that proves
+// each client has isolated, warmed sending and that it is HEALTHY — sends, opens, bounces,
+// opt-outs, warm-up state and the daily cap, per inbox. Previously invisible: a burning
+// inbox would take delivery down silently.
+operatorRouter.get('/engine', async (_req: Request, res: Response) => {
+  try {
+    const since = new Date(Date.now() - 7 * 864e5).toISOString()
+    const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
+
+    const [inboxes, clients, sent7, sentToday, bounced7, optOuts, opened7] = await Promise.all([
+      db.from('client_inboxes')
+        .select('id, client_id, email, kind, status, provider, daily_cap, warmup_started_at, warmup_ready_at, assigned_at')
+        .not('status', 'in', '("released","retired")').order('assigned_at', { ascending: false }),
+      db.from('clients').select('id, company_name'),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', midnight.toISOString()),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).eq('status', 'bounced'),
+      db.from('opt_out_blocklist').select('email', { count: 'exact', head: true }),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).not('opened_at', 'is', null),
+    ])
+
+    const nameById = new Map((clients.data ?? []).map((c: { id: string; company_name: string | null }) => [c.id, c.company_name]))
+    const rows: Record<string, unknown>[] = (inboxes.data ?? []).map((i: Record<string, unknown>) => {
+      const ready = i.warmup_ready_at ? new Date(i.warmup_ready_at as string).getTime() : null
+      const started = i.warmup_started_at ? new Date(i.warmup_started_at as string).getTime() : null
+      let warmupDay: number | null = null
+      if (started) warmupDay = Math.max(0, Math.min(14, Math.round((Date.now() - started) / 864e5)))
+      return { ...i, company_name: nameById.get(i.client_id as string) ?? null,
+        warmup_day: warmupDay, warmup_ready: ready ? Date.now() >= ready : null }
+    })
+
+    // Clients with NO live sender — nothing can go out for them (the #270/#271 queue).
+    const withInbox = new Set(rows.map(r => r.client_id as string))
+    const excluded = new Set(await getExcludedClientIds())
+    const needsInbox = (clients.data ?? [])
+      .filter((c: { id: string }) => !withInbox.has(c.id) && !excluded.has(c.id))
+      .map((c: { id: string; company_name: string | null }) => ({ client_id: c.id, company_name: c.company_name }))
+
+    const sent = sent7.count ?? 0
+    res.json({ success: true, data: {
+      totals: {
+        sent_7d: sent, sent_today: sentToday.count ?? 0,
+        opened_7d: opened7.count ?? 0, bounced_7d: bounced7.count ?? 0,
+        opt_outs_total: optOuts.count ?? 0,
+        bounce_rate: sent > 0 ? Math.round(((bounced7.count ?? 0) / sent) * 1000) / 10 : 0,
+        open_rate:   sent > 0 ? Math.round(((opened7.count ?? 0) / sent) * 1000) / 10 : 0,
+      },
+      inboxes: rows,
+      needs_inbox: needsInbox,
+    } })
+  } catch (err) { console.error('[operator/engine]', err); res.status(500).json({ success: false, error: 'Failed to load engine' }) }
+})
+
+// ── V9 #270 — assign a PRE-WARMED POOLED inbox (instant; client sends day 1) ────────
+operatorRouter.post('/inboxes/assign', async (req: Request, res: Response) => {
+  try {
+    const { client_id, email, daily_cap } = (req.body ?? {}) as { client_id?: string; email?: string; daily_cap?: number }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (!email || !email.includes('@')) { res.status(400).json({ success: false, error: 'A pooled inbox email is required' }); return }
+
+    const { data, error } = await db.from('client_inboxes').insert({
+      client_id: client.id, email: email.trim().toLowerCase(), kind: 'pooled',
+      status: 'active', daily_cap: daily_cap ?? null,
+    }).select('id, email, kind, status').single()
+    if (error) throw error
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: data.id, detail: { email, kind: 'pooled' },
+    })
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/inbox-assign]', err); res.status(500).json({ success: false, error: 'Failed to assign inbox' }) }
+})
+
+// ── V9 #271 — client paid: record their BRANDED inbox, warming ~14d, no gap ─────────
+operatorRouter.post('/inboxes/brand', async (req: Request, res: Response) => {
+  try {
+    const { client_id, email } = (req.body ?? {}) as { client_id?: string; email?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (!email || !email.includes('@')) { res.status(400).json({ success: false, error: 'A branded inbox email is required' }); return }
+
+    const now = Date.now()
+    const { data, error } = await db.from('client_inboxes').insert({
+      client_id: client.id, email: email.trim().toLowerCase(), kind: 'branded',
+      status: 'warming',
+      warmup_started_at: new Date(now).toISOString(),
+      warmup_ready_at: new Date(now + 14 * 864e5).toISOString(),
+    }).select('id, email, kind, status, warmup_ready_at').single()
+    if (error) throw error
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: data.id, detail: { email, kind: 'branded', warming: true },
+    })
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/inbox-brand]', err); res.status(500).json({ success: false, error: 'Failed to record branded inbox' }) }
+})
+
+// Switch a warmed branded inbox live and release the pooled one (the ~day-29 switch).
+operatorRouter.post('/inboxes/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { client_id, status } = (req.body ?? {}) as { client_id?: string; status?: string }
+    if (!['active', 'warming', 'released', 'retired'].includes(String(status))) {
+      res.status(400).json({ success: false, error: 'Invalid status' }); return
+    }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const patch: Record<string, unknown> = { status, updated_at: new Date().toISOString() }
+    if (status === 'released' || status === 'retired') patch.released_at = new Date().toISOString()
+
+    const { data, error } = await db.from('client_inboxes').update(patch)
+      .eq('id', req.params.id).eq('client_id', client.id)
+      .select('id, email, kind, status').maybeSingle()
+    if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Inbox not found' }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: req.params.id, detail: { status },
+    })
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/inbox-status]', err); res.status(500).json({ success: false, error: 'Failed to update inbox' }) }
+})
+
+// ── V4d — ICP AUTHORING (create a new version / edit the current one) ──────────────
+operatorRouter.post('/icp', async (req: Request, res: Response) => {
+  try {
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const client = await requireClient(b.client_id as string | undefined)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const arr = (v: unknown): string[] => Array.isArray(v)
+      ? v.map(x => String(x).trim()).filter(Boolean).slice(0, 60)
+      : String(v ?? '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 60)
+
+    const payload = {
+      name: String(b.name ?? '').trim().slice(0, 120) || 'ICP',
+      industries: arr(b.industries), job_titles: arr(b.job_titles),
+      seniority_levels: arr(b.seniority_levels), company_sizes: arr(b.company_sizes),
+      geographies: arr(b.geographies), tech_stack: arr(b.tech_stack), keywords: arr(b.keywords),
+      updated_at: new Date().toISOString(),
+    }
+
+    if (b.icp_id) {
+      const { data, error } = await db.from('icps').update(payload)
+        .eq('id', b.icp_id as string).eq('client_id', client.id).select('id, name').maybeSingle()
+      if (error) throw error
+      if (!data) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_icp', subjectType: 'icp', subjectId: data.id, detail: { updated: true } })
+      res.json({ success: true, data }); return
+    }
+
+    // New version becomes the active one; older versions are deactivated.
+    await db.from('icps').update({ is_active: false }).eq('client_id', client.id)
+    const { data, error } = await db.from('icps')
+      .insert({ client_id: client.id, ...payload, is_active: true }).select('id, name').single()
+    if (error) throw error
+    await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_icp', subjectType: 'icp', subjectId: data.id, detail: { created: true } })
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/icp]', err); res.status(500).json({ success: false, error: 'Failed to save ICP' }) }
+})
+
+// Read one ICP in full (the editor needs every field, /cockpit only lists them).
+operatorRouter.get('/icp/:id', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data } = await db.from('icps').select('*').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!data) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/icp-get]', err); res.status(500).json({ success: false, error: 'Failed to load ICP' }) }
+})
+
+// ── V4d — SEQUENCE AUTHORING (steps: subject + body per step) ──────────────────────
+operatorRouter.post('/sequence', async (req: Request, res: Response) => {
+  try {
+    const b = (req.body ?? {}) as { client_id?: string; sequence_id?: string; name?: string; steps?: unknown }
+    const client = await requireClient(b.client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (!Array.isArray(b.steps) || b.steps.length === 0) { res.status(400).json({ success: false, error: 'At least one step is required' }); return }
+    if (b.steps.length > 10) { res.status(400).json({ success: false, error: 'Maximum 10 steps' }); return }
+
+    const steps = (b.steps as Record<string, unknown>[]).map((st, i) => ({
+      step: i + 1,
+      subject: String(st.subject ?? '').slice(0, 200),
+      body: String(st.body ?? '').slice(0, 5000),
+      wait_days: Number(st.wait_days ?? (i === 0 ? 0 : 3)) || 0,
+    }))
+    const name = String(b.name ?? '').trim().slice(0, 120) || 'Sequence'
+
+    if (b.sequence_id) {
+      const { data, error } = await db.from('figsy_sequences')
+        .update({ name, steps, updated_at: new Date().toISOString() })
+        .eq('id', b.sequence_id).eq('client_id', client.id).select('id, name').maybeSingle()
+      if (error) throw error
+      if (!data) { res.status(404).json({ success: false, error: 'Sequence not found' }); return }
+      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_sequence', subjectType: 'sequence', subjectId: data.id, detail: { steps: steps.length } })
+      res.json({ success: true, data }); return
+    }
+
+    const { data, error } = await db.from('figsy_sequences')
+      .insert({ client_id: client.id, name, steps }).select('id, name').single()
+    if (error) throw error
+    await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_sequence', subjectType: 'sequence', subjectId: data.id, detail: { created: true, steps: steps.length } })
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/sequence]', err); res.status(500).json({ success: false, error: 'Failed to save sequence' }) }
+})
+
+// ── INBOX: read one reply thread, draft an answer, send it (operator-on-behalf) ────
+// "A prospect asks a question — WE handle it." The client never touches this.
+operatorRouter.get('/replies/:id', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, lead_id, from_name, from_email, subject, body, body_text, classification, qualified_at, meeting_booked_at, received_at')
+      .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    let lead: Record<string, unknown> | null = null
+    if (reply.lead_id) {
+      const { data } = await db.from('leads')
+        .select('id, first_name, last_name, job_title, company, industry, email')
+        .eq('id', reply.lead_id).maybeSingle()
+      lead = data ?? null
+    }
+    res.json({ success: true, data: { reply, lead } })
+  } catch (err) { console.error('[operator/reply]', err); res.status(500).json({ success: false, error: 'Failed to load reply' }) }
+})
+
+// Draft an answer in the CLIENT's voice. Returns text for the operator to edit — never sends.
+operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) => {
+  try {
+    const { client_id } = (req.body ?? {}) as { client_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (!process.env.ANTHROPIC_API_KEY) { res.status(503).json({ success: false, error: 'AI drafting not configured' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, from_name, from_email, subject, body, body_text, classification, lead_id')
+      .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    let leadCtx = ''
+    if (reply.lead_id) {
+      const { data: lead } = await db.from('leads')
+        .select('first_name, last_name, job_title, company, industry').eq('id', reply.lead_id).maybeSingle()
+      if (lead) leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
+        lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
+        lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+    }
+    const { data: c } = await db.from('clients')
+      .select('company_name, signer_name, industry').eq('id', client.id).maybeSingle()
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const msg = await ai.messages.create({
+      model: 'claude-haiku-4-5-20251001', max_tokens: 500,
+      messages: [{ role: 'user', content:
+        `You write a short B2B email reply ON BEHALF OF ${c?.company_name ?? 'our client'}` +
+        `${c?.industry ? ` (${c.industry})` : ''}. Write as them, never mention an agency or AI.\n\n` +
+        `Prospect: ${reply.from_name ?? reply.from_email}\n${leadCtx ? `Context: ${leadCtx}\n` : ''}` +
+        `Their message:\n"""${(reply.body_text ?? reply.body ?? '').slice(0, 2000)}"""\n\n` +
+        `Reply in 2-4 short sentences. Answer their actual question, then propose a 15-minute call. ` +
+        `Plain text, no subject line, no placeholders. Sign off as ${c?.signer_name ?? c?.company_name ?? 'the team'}.` }],
+    })
+    const draft = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
+    res.json({ success: true, data: { draft } })
+  } catch (err) { console.error('[operator/reply-draft]', err); res.status(500).json({ success: false, error: 'Failed to draft reply' }) }
+})
+
+// Send it. Same gates as every other prospect send (demo · opt-out · kill-switch).
+operatorRouter.post('/replies/:id/send', async (req: Request, res: Response) => {
+  try {
+    const { client_id, body } = (req.body ?? {}) as { client_id?: string; body?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (typeof body !== 'string' || !body.trim()) { res.status(400).json({ success: false, error: 'body is required' }); return }
+
+    const { sendManualReply } = await import('../lib/manual-reply')
+    const r = await sendManualReply(req.params.id, client.id, body.trim().slice(0, 5000))
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'send_reply',
+      subjectType: 'reply', subjectId: req.params.id, detail: { sent: r.sent, on_behalf: true },
+    })
+    res.json({ success: true, data: r.sent ? { sent: true } : { sent: false, demo: true } })
+  } catch (err) { console.error('[operator/reply-send]', err); res.status(500).json({ success: false, error: 'Failed to send reply' }) }
+})
+
+// ── PER-CLIENT COCKPIT (ICP · campaigns · sequences · inbox) ──────────────────────
+// The data path Vida never had. /figsy/* and /icps are gated by requireAuth (a CLIENT
+// Bearer JWT), but the admin app proxies with x-admin-key and no client session — so the
+// operator console literally could not read a client's ICP, campaigns or sequences. That
+// is why Vida had no ICP/campaign/sequence surfaces at all, and why the old client-detail
+// page's `/api/proxy/figsy/campaigns?client_id=` + `/api/proxy/icps?client_id=` calls
+// silently 401'd and always rendered "none". One admin-key-gated, client_id-scoped read
+// replaces all of them.
+operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
+  try {
+    const clientId = String(req.query.client_id ?? '')
+    const client = await requireClient(clientId)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const cid = client.id
+
+    const [icps, campaigns, sequences, replies] = await Promise.all([
+      db.from('icps').select('id, name, created_at, last_run_at')
+        .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
+      db.from('figsy_campaigns')
+        .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at')
+        .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
+      db.from('figsy_sequences').select('id, name, steps, created_at, updated_at')
+        .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
+      db.from('figsy_replies')
+        .select('id, lead_id, from_name, from_email, classification, qualified_at, meeting_booked_at, received_at')
+        .eq('client_id', cid).order('received_at', { ascending: false }).limit(40),
+    ])
+
+    // V11 ONBOARDING GATE — "is this client 100%? if not, ask more or book a call."
+    // Vida could not previously tell you a client was half-onboarded, so work started on
+    // thin information. Scored off what we actually need to target well.
+    const { data: prof } = await db.from('clients')
+      .select('company_name, industry, country, website, phone, signer_name').eq('id', cid).maybeSingle()
+    const checks: { key: string; label: string; ok: boolean }[] = [
+      { key: 'company_name', label: 'Company name',        ok: !!prof?.company_name },
+      { key: 'industry',     label: 'Industry',            ok: !!prof?.industry },
+      { key: 'country',      label: 'Country',             ok: !!prof?.country },
+      { key: 'website',      label: 'Website',             ok: !!prof?.website },
+      { key: 'signer_name',  label: 'Who signs the emails', ok: !!prof?.signer_name },
+      { key: 'icp',          label: 'Approved ICP',        ok: (icps.data ?? []).length > 0 },
+      { key: 'sequence',     label: 'Sequence written',    ok: (sequences.data ?? []).length > 0 },
+      { key: 'campaign',     label: 'Campaign live',       ok: (campaigns.data ?? []).some((c: { status: string }) => c.status === 'active') },
+    ]
+    const done = checks.filter(c => c.ok).length
+    const onboarding = {
+      percent: Math.round((done / checks.length) * 100),
+      missing: checks.filter(c => !c.ok).map(c => c.label),
+      checks,
+    }
+
+    res.json({
+      success: true,
+      data: {
+        client:    { id: cid, company_name: client.company_name ?? null },
+        onboarding,
+        icps:      icps.data ?? [],
+        campaigns: campaigns.data ?? [],
+        sequences: sequences.data ?? [],
+        replies:   replies.data ?? [],
+      },
+    })
+  } catch (err) { console.error('[operator/cockpit]', err); res.status(500).json({ success: false, error: 'Failed to load client cockpit' }) }
+})
+
+// Pause / resume a client's campaign (operator-side; the client's view is read-only).
+operatorRouter.post('/campaign/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { client_id, status } = (req.body ?? {}) as { client_id?: string; status?: string }
+    if (status !== 'active' && status !== 'paused') {
+      res.status(400).json({ success: false, error: 'status must be active or paused' }); return
+    }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: updated, error } = await db.from('figsy_campaigns')
+      .update({ status }).eq('id', req.params.id).eq('client_id', client.id)
+      .select('id, name, status').maybeSingle()
+    if (error) throw error
+    if (!updated) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'pause_campaign',
+      subjectType: 'campaign', subjectId: req.params.id, detail: { status, on_behalf: true },
+    })
+    res.json({ success: true, data: updated })
+  } catch (err) { console.error('[operator/campaign/status]', err); res.status(500).json({ success: false, error: 'Failed to update campaign' }) }
+})
+
 // ── START A CLIENT'S CAMPAIGN (operator-side, the managed model) ──────────────────
 // In the work model WE run the outreach, so campaign creation belongs to the operator,
 // not the client (their "My campaign" is read-only status). Without this there is no

@@ -391,6 +391,133 @@ leadRouter.get('/nexus-summary', async (req: AuthRequest, res) => {
 
 // ── #507 MILLA MEETINGS — the client's confirmed bookings (their calendar), joined to the
 // lead for a name. Real calendar_bookings rows only; the $3-captured note mirrors #492.
+// ── M10 CLIENT PIPELINE — what happens AFTER the client's 👍 ──────────────────
+// The client approves a lead and then loses sight of it: "My campaign" is campaign-level
+// and Meetings only shows the finish line. This is the in-between — their approved leads
+// moving Approved → Contacted → Replied → Booked. Read-only, their own data only.
+leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Approved = the client paid the $4 and we revealed it (revealed_at is the claim).
+    const { data: approved } = await db.from('leads')
+      .select('id, first_name, last_name, company, job_title, score, revealed_at')
+      .eq('client_id', clientId).not('revealed_at', 'is', null)
+      .order('revealed_at', { ascending: false }).limit(200)
+    const approvedIds = (approved ?? []).map((l: { id: string }) => l.id)
+    const safeIds = approvedIds.length ? approvedIds : ['00000000-0000-0000-0000-000000000000']
+
+    const [enrolled, replies, bookings] = await Promise.all([
+      db.from('figsy_enrollments').select('lead_id, emails_sent, status').in('lead_id', safeIds),
+      db.from('figsy_replies').select('lead_id, classification, received_at, meeting_booked_at')
+        .eq('client_id', clientId).in('lead_id', safeIds),
+      db.from('calendar_bookings').select('lead_id, start_time, status')
+        .eq('client_id', clientId).in('lead_id', safeIds),
+    ])
+
+    const contactedIds = new Set((enrolled.data ?? []).filter((e: { emails_sent?: number }) => (e.emails_sent ?? 0) > 0).map((e: { lead_id: string }) => e.lead_id))
+    const repliedMap = new Map((replies.data ?? []).map((r: { lead_id: string }) => [r.lead_id, r]))
+    const bookedMap = new Map((bookings.data ?? []).map((b: { lead_id: string }) => [b.lead_id, b]))
+
+    const card = (l: Record<string, unknown>) => ({
+      id: l.id, name: [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || 'Lead',
+      company: l.company ?? null, job_title: l.job_title ?? null, score: l.score ?? null,
+    })
+    const stages = { approved: [] as unknown[], contacted: [] as unknown[], replied: [] as unknown[], booked: [] as unknown[] }
+    for (const l of (approved ?? []) as Record<string, unknown>[]) {
+      const id = l.id as string
+      const b = bookedMap.get(id)
+      if (b) { stages.booked.push({ ...card(l), start_time: (b as { start_time?: string }).start_time ?? null }); continue }
+      const r = repliedMap.get(id)
+      if (r) { stages.replied.push({ ...card(l), classification: (r as { classification?: string }).classification ?? null }); continue }
+      if (contactedIds.has(id)) { stages.contacted.push(card(l)); continue }
+      stages.approved.push(card(l))
+    }
+
+    res.json({ success: true, data: {
+      counts: { approved: stages.approved.length, contacted: stages.contacted.length, replied: stages.replied.length, booked: stages.booked.length },
+      stages,
+    } })
+  } catch (err) { console.error('[leads/pipeline]', err); res.status(500).json({ success: false, error: 'Failed to load pipeline' }) }
+})
+
+// ── M9 COACHING — help the client WIN the meeting we booked ────────────────────
+// We stop at "meeting booked" today. The client still has to run that call, and we hold
+// the context they need (who the prospect is, why they fit, what they actually replied).
+// This turns that into a prep brief. Value-add, no money event.
+leadRouter.get('/coaching', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: bookings } = await db.from('calendar_bookings')
+      .select('id, lead_id, start_time, status')
+      .eq('client_id', clientId).gte('start_time', new Date(Date.now() - 864e5).toISOString())
+      .order('start_time', { ascending: true }).limit(25)
+
+    const leadIds = Array.from(new Set((bookings ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
+    const safe = leadIds.length ? leadIds : ['00000000-0000-0000-0000-000000000000']
+    const [leads, replies] = await Promise.all([
+      db.from('leads').select('id, first_name, last_name, job_title, company, industry, score, why_fits, score_reasoning').in('id', safe),
+      db.from('figsy_replies').select('lead_id, body_text, body, classification').eq('client_id', clientId).in('lead_id', safe),
+    ])
+    const leadById = new Map((leads.data ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
+    const replyById = new Map((replies.data ?? []).map((r: Record<string, unknown>) => [r.lead_id as string, r]))
+
+    const meetings = (bookings ?? []).map((b: Record<string, unknown>) => {
+      const l = leadById.get(b.lead_id as string) as Record<string, unknown> | undefined
+      const r = replyById.get(b.lead_id as string) as Record<string, unknown> | undefined
+      return {
+        booking_id: b.id, lead_id: b.lead_id, start_time: b.start_time, status: b.status,
+        name: l ? [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || 'Prospect' : 'Prospect',
+        job_title: l?.job_title ?? null, company: l?.company ?? null, industry: l?.industry ?? null,
+        score: l?.score ?? null,
+        why_fits: (l?.why_fits ?? l?.score_reasoning ?? null) as string | null,
+        their_words: ((r?.body_text ?? r?.body ?? null) as string | null)?.slice(0, 600) ?? null,
+        signal: (r?.classification ?? null) as string | null,
+      }
+    })
+    res.json({ success: true, data: { meetings } })
+  } catch (err) { console.error('[leads/coaching]', err); res.status(500).json({ success: false, error: 'Failed to load coaching' }) }
+})
+
+// Generate the prep brief for ONE booked meeting (on demand — no cost unless asked).
+leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    if (!process.env.ANTHROPIC_API_KEY) { res.status(503).json({ success: false, error: 'Coaching is not configured yet' }); return }
+
+    const { data: lead } = await db.from('leads')
+      .select('id, first_name, last_name, job_title, company, industry, why_fits, score_reasoning')
+      .eq('id', req.params.leadId).eq('client_id', clientId).maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('body_text, body, classification').eq('client_id', clientId).eq('lead_id', lead.id)
+      .order('received_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: me } = await db.from('clients').select('company_name, industry').eq('id', clientId).maybeSingle()
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const msg = await ai.messages.create({
+      model: 'claude-haiku-4-5-20251001', max_tokens: 700,
+      messages: [{ role: 'user', content:
+        `Prepare ${me?.company_name ?? 'a seller'} for a first sales call.\n\n` +
+        `THEM: ${[lead.first_name, lead.last_name].filter(Boolean).join(' ')} — ${lead.job_title ?? 'unknown role'} at ${lead.company ?? 'unknown company'}` +
+        `${lead.industry ? ` (${lead.industry})` : ''}.\n` +
+        `${lead.why_fits || lead.score_reasoning ? `WHY THEY FIT: ${lead.why_fits || lead.score_reasoning}\n` : ''}` +
+        `${reply ? `THEIR OWN WORDS: "${(reply.body_text ?? reply.body ?? '').slice(0, 800)}"\n` : ''}\n` +
+        `Give exactly four short sections with these headings and nothing else:\n` +
+        `WHAT THEY LIKELY CARE ABOUT\nTHREE QUESTIONS TO ASK\nTHE OBJECTION TO EXPECT\nHOW TO CLOSE THE NEXT STEP\n` +
+        `Be specific to this person. Plain text, no markdown, no preamble.` }],
+    })
+    const brief = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
+    res.json({ success: true, data: { brief } })
+  } catch (err) { console.error('[leads/coaching-brief]', err); res.status(500).json({ success: false, error: 'Failed to build the brief' }) }
+})
+
 leadRouter.get('/meetings', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

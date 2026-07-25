@@ -1794,6 +1794,57 @@ internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
 
 // ── LEAD DRIP DELIVERY — fires daily, delivers up to daily_drip_rate leads per client ──
 // Credits are deducted HERE (at delivery), not at insertion.
+// ── FLOW V2 · NIGHTLY SOURCING TOP-UP ─────────────────────────────────────────────────
+// The $99 buys 200 sourced people so the client can approve 100 after passing on roughly
+// half. try_spend_sourcing caps a client at 100 RECORDS PER DAY (v_daily_cap in
+// 20260711_sourcing_fences.sql), so payment day can only ever deliver 100 — the other 100
+// has to arrive the next day or the client is choosing from a list with no choice in it.
+//
+// This is that second half. startWorkForClient tops UP to the target rather than adding a
+// batch, so a client already at 200 costs one count query and nothing else. Every real
+// spend still passes the same fences: the money gate, the client's own allowance
+// (2 records per $1 they paid), the daily cap and the global monthly ceiling.
+//
+// Called daily by cron. Safe to run repeatedly.
+internalRouter.post('/leads/top-up', async (_req: Request, res: Response) => {
+  try {
+    const { PAID_TX_TYPES, PACK_SOURCE_TARGET } = await import('../lib/onboarding-pack')
+    const { startWorkForClient } = await import('../lib/start-work')
+
+    // Only clients who have paid AND still have allowance to spend — anyone else would
+    // burn a round trip to be refused by the fence.
+    const { data: paidRows } = await db.from('credit_transactions')
+      .select('client_id').in('type', PAID_TX_TYPES).limit(20000)
+    const paidIds = [...new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))]
+    if (paidIds.length === 0) { res.json({ success: true, checked: 0, topped_up: 0 }); return }
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, sourcing_allowance, is_demo').in('id', paidIds)
+
+    let toppedUp = 0, sourced = 0, surfaced = 0
+    for (const c of (clients ?? []) as Array<Record<string, unknown>>) {
+      const cid = c.id as string
+      if (c.is_demo === true) continue                       // demos never spend PDL
+      if (((c.sourcing_allowance as number | null) ?? 0) <= 0) continue
+
+      const { count: have } = await db.from('leads')
+        .select('id', { count: 'exact', head: true }).eq('client_id', cid).neq('status', 'passed')
+      if ((have ?? 0) >= PACK_SOURCE_TARGET) continue
+
+      const r = await startWorkForClient(cid)                // never throws
+      if (r.sourced > 0 || r.surfaced > 0) {
+        toppedUp++; sourced += r.sourced; surfaced += r.surfaced
+        console.log(`[leads/top-up] ${c.company_name ?? cid}: sourced ${r.sourced}, surfaced ${r.surfaced}`)
+      }
+    }
+
+    res.json({ success: true, checked: (clients ?? []).length, topped_up: toppedUp, sourced, surfaced })
+  } catch (err) {
+    console.error('[leads/top-up]', err)
+    res.status(500).json({ success: false, error: 'Top-up run failed' })
+  }
+})
+
 internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
   try {
     // Get all active clients with undelivered leads

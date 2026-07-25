@@ -19,7 +19,7 @@
 // surfacing only touches leads that aren't already with the client.
 
 import { db } from '@kind/db'
-import { sourceTarget } from './onboarding-pack'
+import { sourceTarget, PAID_TX_TYPES } from './onboarding-pack'
 
 /**
  * ONE ICP = ONE CAMPAIGN (flow v2). The campaign is the vehicle for an ICP, not a separate
@@ -81,7 +81,7 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
     // ── Money gate. No purchase, no spend. ──────────────────────────────────
     const { count: purchases } = await db.from('credit_transactions')
       .select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
+      .eq('client_id', clientId).in('type', PAID_TX_TYPES)
     if ((purchases ?? 0) === 0) return { ...empty, reason: 'not_paid' }
 
     const { data: icp } = await db.from('icps')

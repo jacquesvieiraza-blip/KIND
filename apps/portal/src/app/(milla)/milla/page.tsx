@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 // flat $4 per approved lead from the one wallet. The wallet ledger moved to Billing (M4)
 // and the ICP card to its own rail page (/milla/icp) — this screen is leads + Milla only.
 
-type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null }
+type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean }
 type Revealed = { email: string; charged: boolean }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
 type Pack = { active: boolean; included: number; used: number; left: number; nextLeadCostUsd: number }
@@ -148,6 +148,13 @@ export default function MillaHomePage() {
     finally { setSending(false) }
   }
 
+  // While the pack has leads left an approval costs nothing — a card that still says
+
+  // "$4" is the difference between a client working through 100 leads and stopping.
+
+  const freeApproval = !!summary?.pack?.active && (summary.pack.left ?? 0) > 0
+
+
   const pending = (leads ?? []).filter(l => !revealed[l.id])
   const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
     ? <b key={i} className="text-[#7C3AED]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
@@ -243,7 +250,11 @@ export default function MillaHomePage() {
             {pending.map(l => {
               const busy = acting === l.id
               return (
-                <div key={l.id} className="border border-[#ece5fb] rounded-2xl p-3.5">
+                <div key={l.id} className={`rounded-2xl p-3.5 ${l.recommended ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
+                  {/* WE'D START HERE — the API ranks everyone we sourced and marks its top 20.
+                      It was computing this and the client never saw it, which left them facing
+                      200 identical cards with no steer. */}
+                  {l.recommended && <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#7C3AED] mb-2">★ We&apos;d start here</div>}
                   <div className="flex items-start gap-2.5">
                     <span className="w-9 h-9 rounded-lg bg-[#efeafc] text-[#7C3AED] flex items-center justify-center shrink-0">🎭</span>
                     <div className="min-w-0 flex-1">
@@ -253,7 +264,7 @@ export default function MillaHomePage() {
                       </div>
                       {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
                       <div className="flex gap-1.5 mt-2.5">
-                        <button disabled={busy} onClick={() => approve(l.id)} className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : '✓ Approve qualified lead · $4'}</button>
+                        <button disabled={busy} onClick={() => approve(l.id)} className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : freeApproval ? '✓ Approve · included' : '✓ Approve qualified lead · $4'}</button>
                         <button disabled={busy} onClick={() => pass(l.id)} className="text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
                       </div>
                     </div>

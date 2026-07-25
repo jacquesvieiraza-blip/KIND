@@ -165,6 +165,10 @@ export function startCrons(): void {
   // Daily 08:10 UTC — deliver drip leads (staggered from /figsy/check-performance at 08:00)
   cron.schedule('10 8 * * *', () => callInternal('/leads/drip'), { timezone: 'UTC' })
 
+  // Daily 08:20 UTC — finish the 200 the $99 paid for. try_spend_sourcing caps a client at
+  // 100 records/day, so payment day can only deliver half the pack's sourcing target.
+  cron.schedule('20 8 * * *', () => callInternal('/leads/top-up'), { timezone: 'UTC' })
+
   // Daily 07:40 UTC — low credit warning (staggered from /milla/morning-brief-all at 07:30)
   cron.schedule('40 7 * * *', () => callInternal('/ae/low-credits'), { timezone: 'UTC' })
 

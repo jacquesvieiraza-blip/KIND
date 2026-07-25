@@ -22,6 +22,24 @@ export const PACK_SOURCE_TARGET = 200
 /** Flat price per approved lead once the pack is used up. */
 export const LEAD_PRICE_USD = 4
 
+/**
+ * REAL MONEY IN — a client actually paid us. Drives revenue counting and the
+ * "first purchase must be $99" rule. A comp is not a purchase.
+ */
+export const PURCHASE_TX_TYPES: string[] = ['wallet_topup', 'purchase', 'credit_purchase']
+
+/**
+ * ENTITLED — this client is unlocked: we may spend on sourcing for them, and they hold the
+ * 100-lead pack. That is the $99 OR a manual grant, because a manual grant is exactly how we
+ * comp a client or open a walkthrough account.
+ *
+ * These two lists were previously inlined in six places and one of them disagreed: the Vida
+ * worklist counted `manual_grant` as paid while every money path did not, so a comped client
+ * showed as funded on the operator's board and then got a 402 the moment anyone tried to
+ * source for them. One definition, two named meanings.
+ */
+export const PAID_TX_TYPES: string[] = [...PURCHASE_TX_TYPES, 'manual_grant']
+
 export type PackState = {
   /** They've bought the pack. */
   active: boolean
@@ -53,16 +71,6 @@ export function packState(hasPurchased: boolean, approvedCount: number): PackSta
     left,
     nextLeadCostUsd: left > 0 ? 0 : LEAD_PRICE_USD,
   }
-}
-
-/**
- * Does this approval need the $4, or is it covered by the pack?
- *
- * The single question the approve path asks. Kept separate from `packState` so the money path
- * reads as one boolean rather than digging through a shape.
- */
-export function approvalIsFree(hasPurchased: boolean, approvedCount: number): boolean {
-  return packState(hasPurchased, approvedCount).left > 0
 }
 
 /**

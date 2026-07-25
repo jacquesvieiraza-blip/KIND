@@ -8,6 +8,7 @@ import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
+import { PAID_TX_TYPES } from '../lib/onboarding-pack'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
@@ -339,7 +340,7 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
       // NO FREEBIES — has this client EVER paid? (any wallet top-up / purchase). Drives the
       // $99 paywall: no purchase → the client is gated until they load their wallet.
       db.from('credit_transactions').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase']),
+        .eq('client_id', clientId).in('type', PAID_TX_TYPES),
     ])
 
     // Pack state: bought it? how many of the 100 have they used? Both derived from rows that

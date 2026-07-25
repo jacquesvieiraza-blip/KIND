@@ -18,6 +18,7 @@ import {
   type SubscriptionProduct,
 } from '../lib/stripe'
 import { sendFounderAlert } from '../lib/alerts'
+import { PURCHASE_TX_TYPES } from '../lib/onboarding-pack'
 
 // ── Auto-commission: if this client was referred by a partner, create a commission record ──
 async function maybeCreatePartnerCommission(clientId: string, amountUsd: number) {
@@ -189,10 +190,12 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
       .select('id').eq('user_id', req.userId!).single()
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    // Has this client purchased before? (any prior wallet top-up / credit purchase)
+    // Has this client PAID US before? PURCHASE_TX_TYPES deliberately, not PAID_TX_TYPES: a
+    // manual grant unlocks a client but is not money in, and if it counted here a comped
+    // account could skip the $99 pack entirely and start on a $40 top-up.
     const { count: priorPurchases } = await db.from('credit_transactions')
       .select('id', { count: 'exact', head: true })
-      .eq('client_id', client.id).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
+      .eq('client_id', client.id).in('type', PURCHASE_TX_TYPES)
     const isFirst = (priorPurchases ?? 0) === 0
 
     const FIRST_PURCHASE_USD = 99
@@ -328,27 +331,6 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           reference: session.id, note: `Wallet top-up $${amountUsd} via Stripe`,
         })
 
-        // ── PAYMENT STARTS THE WORK (flow v2) ──────────────────────────────────────
-        // The client approved their ICP on day one and it then sat dormant, because nothing
-        // linked "they paid" to "go find people" — an operator had to remember to type it
-        // into a chat box. Money is the trigger now: source 200 against the live ICP and put
-        // every one of them in front of the client, top 20 marked.
-        //
-        // Fire-and-forget: a sourcing failure must never fail the webhook and make Stripe
-        // retry a payment that already succeeded. Buying the INBOX stays manual on purpose —
-        // it spends real money, so it surfaces as the operator's next action instead.
-        void (async () => {
-          const { startWorkForClient } = await import('../lib/start-work')
-          const r = await startWorkForClient(clientId)
-          console.log('[stripe] payment started work for', clientId, JSON.stringify(r))
-          void sendFounderAlert('new_signup', `Payment received — work started`, [
-            `Client ${clientId} paid $${amountUsd}.`,
-            r.started
-              ? `Sourced ${r.sourced}, sent ${r.surfaced} to them (top ${r.recommended} recommended).`
-              : `Nothing sourced — ${r.reason ?? 'unknown reason'}.`,
-            'Next: assign their inbox in Vida → Engine. Nothing can go out until they have a sender.',
-          ]).catch(() => {})
-        })().catch(e => console.error('[stripe] start-work failed (non-fatal):', e))
         if (ledgerErr) {
           if (ledgerErr.code === '23505') { res.sendStatus(200); return } // already credited (retry)
           console.error('[Stripe] wallet ledger insert failed after payment — 500 for retry', ledgerErr.message, 'session', session.id)
@@ -379,6 +361,36 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           ])
         }
         void payReferrerOnFirstPurchase(clientId).catch(err => console.error('[Stripe] referrer payout failed (non-fatal):', err))
+
+        // ── PAYMENT STARTS THE WORK (flow v2) ──────────────────────────────────────
+        // The client approved their ICP on day one and it then sat dormant, because nothing
+        // linked "they paid" to "go find people" — an operator had to remember to type it
+        // into a chat box. Money is the trigger now: source against the live ICP and put
+        // every person we find in front of the client, top 20 marked.
+        //
+        // ORDER MATTERS. This runs AFTER add_sourcing_allowance, not before: sourcing spends
+        // the client's allowance via try_spend_sourcing, and a brand-new client's allowance
+        // is 0 until the line above credits it. Fired first, the very payment that was meant
+        // to start everything sourced nobody and alerted "Sourced 0".
+        //
+        // Fire-and-forget: a sourcing failure must never fail the webhook and make Stripe
+        // retry a payment that already succeeded. Buying the INBOX stays manual on purpose —
+        // it spends real money, so it surfaces as the operator's next action instead.
+        void (async () => {
+          const { startWorkForClient } = await import('../lib/start-work')
+          const r = await startWorkForClient(clientId)
+          console.log('[stripe] payment started work for', clientId, JSON.stringify(r))
+          void sendFounderAlert('new_signup', `Payment received — work started`, [
+            `Client ${clientId} paid $${amountUsd}.`,
+            r.started
+              ? `Sourced ${r.sourced}, sent ${r.surfaced} to them (top ${r.recommended} recommended).`
+              : `Nothing sourced — ${r.reason ?? 'unknown reason'}.`,
+            r.started && r.sourced > 0 && r.sourced < 200
+              ? `Day-one sourcing is capped at 100 records per client; the nightly top-up finishes the 200.`
+              : 'Next: assign their inbox in Vida → Engine. Nothing can go out until they have a sender.',
+          ]).catch(() => {})
+        })().catch(e => console.error('[stripe] start-work failed (non-fatal):', e))
+
         res.sendStatus(200); return
       } else if (meta.clientId && meta.credits && meta.creditType) {
         // Credit purchase

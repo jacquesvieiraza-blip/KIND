@@ -85,6 +85,7 @@ type NextAction = {
 }
 type WorkRow = ClientRow & {
   counts: { sourced: number; with_client: number; approved: number }
+  pack: { active: boolean; included: number; left: number; label: string }
   next: NextAction
 }
 // The founder's mapped flow, as the rail across the top of the work column.
@@ -1059,7 +1060,13 @@ export default function VidaConsolePage() {
                     <div className="px-4 py-2.5 flex items-center gap-4 flex-wrap text-[12.5px] text-[#9b8ec4]">
                       <span><b className="text-[#1f1235]">{selectedWork.counts.sourced}</b> sourced</span>
                       <span><b className="text-[#1f1235]">{selectedWork.counts.with_client}</b> with the client</span>
-                      <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${selectedWork.counts.approved * 4}</b> in</span>
+                      {/* Billed, NOT approved × $4 — the first 100 approvals are inside the
+                          $99 pack, so multiplying every approval by $4 overstated what this
+                          client has actually paid us by up to $400. */}
+                      <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${selectedWork.pack.active ? 99 + Math.max(0, selectedWork.counts.approved - selectedWork.pack.included) * 4 : 0}</b> in</span>
+                      {selectedWork.pack.active && (
+                        <span className={selectedWork.pack.left === 0 ? 'text-[#7C3AED] font-semibold' : ''}>{selectedWork.pack.label}</span>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -4,6 +4,7 @@ import { waterfallEnrich } from './enrichment'
 import { normalizeRevealEmail } from './billing-rules'
 import { isDemoClient } from './demo'
 import { sendFounderAlert } from './alerts'
+import { PAID_TX_TYPES } from './onboarding-pack'
 
 // ONE WALLET — the work model (founder-locked 24 Jul, supersedes #492).
 // APPROVE is the ONLY money event: the client's 👍 (in Milla) or an operator
@@ -104,7 +105,7 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   const { packState } = await import('./onboarding-pack')
   const [{ count: purchaseCount }, { count: approvedCount }] = await Promise.all([
     db.from('credit_transactions').select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase']),
+      .eq('client_id', clientId).in('type', PAID_TX_TYPES),
     db.from('leads').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).not('revealed_at', 'is', null),
   ])

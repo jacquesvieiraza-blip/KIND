@@ -103,16 +103,17 @@ describe('listPendingDrafts (cross-client Lead queue)', () => {
 })
 
 describe('surfaceLeadForApproval (#493 — Send to client; operators never spend)', () => {
-  it('marks the lead surfaced + sets the 72h TTL, scoped to client + masked + un-passed', async () => {
+  it('marks the lead surfaced with NO expiry, scoped to client + masked + un-passed', async () => {
     rejectRow = { id: 'lead-1' }
-    const r = await surfaceLeadForApproval('client-1', 'lead-1', 72)
+    const r = await surfaceLeadForApproval('client-1', 'lead-1')
     expect(r).toEqual({ surfaced: true })
     // NO money RPC anywhere — surfacing spends nothing.
-    // Scoping invariants: update sets surfaced_for_approval_at + approval_expires_at;
-    // eq id + eq client_id; is revealed_at null; neq status passed.
+    // Scoping invariants: update sets surfaced_for_approval_at; eq id + eq client_id;
+    // is revealed_at null; neq status passed.
     const upd = rejectChain.find(c => c.m === 'update')?.args[0] as Record<string, unknown>
     expect(upd.surfaced_for_approval_at).toBeTruthy()
-    expect(upd.approval_expires_at).toBeTruthy()
+    // NO TIME LIMIT ON PAID LEADS — a lead is with the client until they pick or pass.
+    expect(upd.approval_expires_at).toBeUndefined()
     const eqs = rejectChain.filter(c => c.m === 'eq').map(c => c.args)
     expect(eqs).toContainEqual(['id', 'lead-1'])
     expect(eqs).toContainEqual(['client_id', 'client-1'])

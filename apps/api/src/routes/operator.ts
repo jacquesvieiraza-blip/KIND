@@ -3,6 +3,7 @@ import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit } from '../lib/operator-audit'
+import { PAID_TX_TYPES, packState, packLabel } from '../lib/onboarding-pack'
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -67,7 +68,6 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const ids = rows.map(c => c.id as string)
     if (ids.length === 0) { res.json({ success: true, data: [] }); return }
 
-    const nowIso = new Date().toISOString()
     // client_inboxes may not exist yet on an un-migrated database — degrade to "no inbox"
     // rather than failing the whole console.
     const inboxQ = db.from('client_inboxes').select('client_id, status').in('client_id', ids)
@@ -76,9 +76,9 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const [icps, purchases, inboxes, leads, seqs, camps, queue, replies] = await Promise.all([
       db.from('icps').select('client_id').in('client_id', ids).eq('is_active', true),
       db.from('credit_transactions').select('client_id')
-        .in('client_id', ids).in('type', ['wallet_topup', 'purchase', 'credit_purchase', 'manual_grant']),
+        .in('client_id', ids).in('type', PAID_TX_TYPES),
       inboxQ,
-      db.from('leads').select('client_id, surfaced_for_approval_at, approval_expires_at, revealed_at, status')
+      db.from('leads').select('client_id, surfaced_for_approval_at, revealed_at, status')
         .in('client_id', ids).neq('status', 'passed').limit(20000),
       db.from('figsy_sequences').select('client_id').in('client_id', ids),
       db.from('figsy_campaigns').select('client_id, status').in('client_id', ids),
@@ -106,8 +106,11 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const queueN = countBy(queue)
 
     const sourcedN   = countBy(leads)
-    const withClient = countBy(leads, r => !!r.surfaced_for_approval_at && !r.revealed_at
-      && (!r.approval_expires_at || String(r.approval_expires_at) > nowIso))
+    // NO TIME LIMIT ON PAID LEADS (founder-locked 25 Jul). This used to drop a lead off the
+    // operator's board once its 72h expiry passed while Milla still showed it to the client —
+    // so the two consoles disagreed about what was outstanding. The expiry is gone; a lead is
+    // with the client until they approve or pass it.
+    const withClient = countBy(leads, r => !!r.surfaced_for_approval_at && !r.revealed_at)
     const approvedN  = countBy(leads, r => !!r.revealed_at)
 
     // Replies still OPEN — not qualified, no meeting, and not noise. One bucket, because
@@ -146,6 +149,13 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
           with_client: withClient.get(id) ?? 0,
           approved: approvedN.get(id) ?? 0,
         },
+        // WHERE THEY ARE ON THEIR $99 — the operator needs to see the pack running out
+        // BEFORE it does, because that is the moment the client starts paying $4 a lead.
+        // Free to compute: paid + approved are already counted above.
+        pack: (() => {
+          const st = packState((paidN.get(id) ?? 0) > 0, approvedN.get(id) ?? 0)
+          return { active: st.active, included: st.included, left: st.left, label: packLabel(st) }
+        })(),
         next,
       }
     })
@@ -171,7 +181,7 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
     // Sourced = scored, not yet revealed/approved, not passed. surfaced_for_approval_at
     // tells the card whether it's already been Sent to the client (awaiting their 👍).
     const sourced = await db.from('leads')
-      .select('id, first_name, last_name, company, job_title, score, status, surfaced_for_approval_at, approval_expires_at', { count: 'exact' })
+      .select('id, first_name, last_name, company, job_title, score, status, surfaced_for_approval_at', { count: 'exact' })
       .eq('client_id', cid).is('revealed_at', null).neq('status', 'passed')
       .in('status', ['scored', 'pending']).order('score', { ascending: false }).limit(SAMPLE)
 
@@ -1720,7 +1730,7 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
     // approves anyone or not — so sourcing for a client who has never paid spends OUR money
     // on someone who may never return. This had no check at all.
     const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
-      .eq('client_id', client.id).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
+      .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
     if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
       res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
@@ -1801,7 +1811,7 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     // approves anyone or not — so sourcing for a client who has never paid spends OUR money
     // on someone who may never return. This had no check at all.
     const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
-      .eq('client_id', client.id).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
+      .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
     if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
       res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
@@ -1820,12 +1830,20 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     const { runIcpJob } = await import('./icps')
     const result = await runIcpJob(icp.id as string, cid, userId, want)
 
+    // EVERYONE WE SOURCE GOES TO THE CLIENT (flow v2, founder-locked 25 Jul). The paid path
+    // did this already; this manual top-up left them parked in a "sourced but not sent"
+    // bucket that only cleared if an operator remembered to push each one across. Same call,
+    // so both routes put people in front of the client identically.
+    const { surfaceEverything } = await import('../lib/start-work')
+    const { surfaced, recommended } = await surfaceEverything(cid)
+
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: cid, action: 'source_run',
       subjectType: 'icp', subjectId: icp.id as string,
-      detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed },
+      detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed, surfaced },
     })
-    res.json({ success: true, requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed })
+    res.json({ success: true, requested: want, inserted: result.inserted, skipped: result.skipped,
+               surfaced, recommended, note: result.relaxed })
   } catch (err) { console.error('[operator/source]', err); res.status(500).json({ success: false, error: 'Failed to source' }) }
 })
 

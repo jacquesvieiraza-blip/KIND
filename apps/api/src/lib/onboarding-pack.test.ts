@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
-  packState, approvalIsFree, sourceTarget, packLabel,
+  packState, sourceTarget, packLabel,
   PACK_LEADS, PACK_PRICE_USD, PACK_SOURCE_TARGET, LEAD_PRICE_USD,
+  PURCHASE_TX_TYPES, PAID_TX_TYPES,
 } from './onboarding-pack'
 
 describe('the numbers are the founder-locked ones', () => {
@@ -11,6 +12,25 @@ describe('the numbers are the founder-locked ones', () => {
     expect(PACK_PRICE_USD).toBe(99)
     expect(PACK_SOURCE_TARGET).toBe(200)
     expect(LEAD_PRICE_USD).toBe(4)
+  })
+})
+
+describe('what counts as paid', () => {
+  it('a manual grant unlocks a client but is not revenue', () => {
+    // These were inlined in six places and one disagreed: the Vida board counted manual_grant
+    // as paid while every money path did not, so a comped client read as funded and then got
+    // a 402 the moment anyone sourced for them.
+    expect(PAID_TX_TYPES).toContain('manual_grant')
+    expect(PURCHASE_TX_TYPES).not.toContain('manual_grant')
+  })
+
+  it('every real payment type counts as both', () => {
+    for (const t of PURCHASE_TX_TYPES) expect(PAID_TX_TYPES).toContain(t)
+  })
+
+  it('a refund is never a reason to unlock anyone', () => {
+    expect(PAID_TX_TYPES).not.toContain('refund')
+    expect(PURCHASE_TX_TYPES).not.toContain('refund')
   })
 })
 
@@ -33,9 +53,9 @@ describe('packState', () => {
 
   it('the 100th approval is still free; the 101st costs $4', () => {
     // Off-by-one here is a client being charged for a lead they were promised.
-    expect(approvalIsFree(true, 99)).toBe(true)
+    expect(packState(true, 99).left).toBe(1)
     expect(packState(true, 99).nextLeadCostUsd).toBe(0)
-    expect(approvalIsFree(true, 100)).toBe(false)
+    expect(packState(true, 100).left).toBe(0)
     expect(packState(true, 100).nextLeadCostUsd).toBe(4)
   })
 
@@ -48,8 +68,9 @@ describe('packState', () => {
 
   it('an unpurchased client is never given free approvals', () => {
     // The pack is what the $99 buys. No purchase must never read as "100 free".
-    expect(approvalIsFree(false, 0)).toBe(false)
-    expect(approvalIsFree(false, 50)).toBe(false)
+    expect(packState(false, 0).left).toBe(0)
+    expect(packState(false, 50).left).toBe(0)
+    expect(packState(false, 50).nextLeadCostUsd).toBe(LEAD_PRICE_USD)
   })
 
   it('tolerates junk counts rather than handing out free leads', () => {

@@ -33,14 +33,22 @@ export default function VidaEnginePage() {
   const [form, setForm] = useState<{ clientId: string; email: string } | null>(null)
   const [brandFor, setBrandFor] = useState<{ clientId: string; email: string } | null>(null)
   const [migMsg, setMigMsg] = useState<string | null>(null)
+  // Shown only after the database REJECTS a password: the escape hatch for "the stored
+  // password is stale and the Supabase dashboard that could reset it is unreachable" (GitHub
+  // removed the Supabase OAuth app entirely). Used for one run, never stored anywhere.
+  const [dbPw, setDbPw] = useState('')
+  const [needsPw, setNeedsPw] = useState(false)
 
   // The Supabase SQL editor is unreachable (GitHub OAuth + flagged account), so the
   // migration runs from here instead. Only reviewed, committed, idempotent statements —
   // the endpoint ignores any body, so this is not an arbitrary-SQL hole.
-  async function runMigration() {
+  async function runMigration(withPassword?: string) {
     setBusy('migration'); setMigMsg(null); setError(null)
     try {
-      const j = await fetch('/api/proxy/operator/migrations/run', { method: 'POST' }).then(r => r.json())
+      const j = await fetch('/api/proxy/operator/migrations/run', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(withPassword ? { db_password: withPassword } : {}),
+      }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Migration failed')
       const failed = (j.data.results ?? []).filter((r: { ok: boolean }) => !r.ok)
       const ran = (j.data.results ?? []).filter((r: { ok: boolean }) => r.ok).length
@@ -51,9 +59,16 @@ export default function VidaEnginePage() {
       if (failed.length) setMigMsg(`Failed${via}: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}`)
       else {
         setMigMsg(`${ran} migration${ran === 1 ? '' : 's'} applied${via}. Inbox tracking is live.${j.data.hint ? ` — ${j.data.hint}` : ''}`)
+        setNeedsPw(false); setDbPw('')
         await load()
       }
-    } catch (err) { setMigMsg(err instanceof Error ? err.message : 'Migration failed') }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Migration failed'
+      setMigMsg(msg)
+      // Only offer the password box when the server actually rejected credentials — offering
+      // it on a network failure would send you chasing the wrong problem.
+      if (/password|credential|authentication|Tenant or user not found/i.test(msg)) setNeedsPw(true)
+    }
     setBusy(null)
   }
 
@@ -109,11 +124,40 @@ export default function VidaEnginePage() {
             Deliverability below is live. The inbox list and the &ldquo;needs an inbox&rdquo; queue switch on once
             <code className="mx-1 px-1 bg-white rounded">20260725_client_inboxes.sql</code> has been applied.
           </p>
-          <button onClick={runMigration} disabled={busy === 'migration'}
+          <button onClick={() => runMigration()} disabled={busy === 'migration'}
             className="mt-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
             {busy === 'migration' ? 'Running…' : 'Run it now'}
           </button>
-          {migMsg && <p className="text-[11.5px] font-semibold text-amber-900 mt-2">{migMsg}</p>}
+          {migMsg && <p className="text-[11.5px] font-semibold text-amber-900 mt-2 leading-relaxed">{migMsg}</p>}
+
+          {/* Appears only when the database rejected the stored password. There is no way back
+              into the Supabase dashboard to reset it (GitHub removed the Supabase OAuth app),
+              so this is the only remaining route in. Used for one run, stored nowhere. */}
+          {needsPw && (
+            <form
+              onSubmit={ev => { ev.preventDefault(); if (dbPw.trim()) runMigration(dbPw.trim()) }}
+              className="mt-3 border-t border-amber-200 pt-3"
+            >
+              <label className="block text-[11.5px] font-bold text-amber-900 mb-1">
+                Try a different Postgres password
+              </label>
+              <p className="text-[11px] text-amber-800 mb-1.5 leading-relaxed">
+                The route is fine — the database answered and rejected the stored password.
+                This is used for this one run and never saved. If it works, put the same
+                password into <code className="px-1 bg-white rounded">DATABASE_URL</code> in
+                Railway → @kind/api → Variables.
+              </p>
+              <div className="flex gap-2">
+                <input type="password" value={dbPw} onChange={ev => setDbPw(ev.target.value)}
+                  autoComplete="off" placeholder="Postgres password"
+                  className="flex-1 border border-amber-300 rounded-lg px-3 py-2 text-[12.5px] bg-white outline-none focus:border-amber-500" />
+                <button type="submit" disabled={busy === 'migration' || !dbPw.trim()}
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 text-[12.5px] font-bold disabled:opacity-40">
+                  {busy === 'migration' ? 'Trying…' : 'Try it'}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 

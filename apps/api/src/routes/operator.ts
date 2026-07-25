@@ -796,7 +796,13 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
   try {
     const { runPendingMigrations, PENDING_MIGRATIONS } = await import('../lib/pending-migrations')
-    const run = await runPendingMigrations()
+    // An optional password for THIS RUN ONLY — the escape hatch for "the stored password is
+    // stale and the Supabase dashboard that could reset it is unreachable" (GitHub removed
+    // the Supabase OAuth app, so there is no way back into that dashboard at all). It is
+    // never stored, never logged and never written to the audit row. Still not SQL: the only
+    // statements that can run are the reviewed, committed ones in pending-migrations.ts.
+    const dbPassword = typeof (req.body ?? {}).db_password === 'string' ? (req.body as { db_password: string }).db_password : null
+    const run = await runPendingMigrations(dbPassword)
     const results = run.results
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'run_migration',

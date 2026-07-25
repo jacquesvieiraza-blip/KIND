@@ -110,7 +110,7 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
   ]
 
   const railLink = (href: string, label: string, Icon: React.ElementType, active: boolean) => (
-    <Link href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
+    <Link href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[14.5px] font-semibold mb-0.5 transition-colors ${
       active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
     }`}>
       <Icon className="w-4 h-4 shrink-0" /> {label}
@@ -124,8 +124,8 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
         {/* A1 — the brand is the way home. Wherever you are in Vida, clicking it lands you
             back on the clients console. It was static text, so a sub-page was a dead end. */}
         <Link href="/vida" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to the clients console">
-          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[13px] font-extrabold">V</span>
-          <span className="text-[15px] font-extrabold">Milla&amp;Vida <span className="text-[#9b8ec4] font-semibold text-[13px]">· operator</span></span>
+          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">V</span>
+          <span className="text-[16px] font-extrabold">Milla&amp;Vida <span className="text-[#9b8ec4] font-semibold text-[14px]">· operator</span></span>
         </Link>
 
         <div className="ml-auto flex items-center gap-2">
@@ -159,33 +159,33 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(o => !o)}
               className="flex items-center gap-2 rounded-full border border-[#e4dcf7] bg-[#f6f2fd] py-1 pl-1 pr-3 hover:bg-[#f0ebfa] transition-colors">
-              <span className="w-7 h-7 rounded-full bg-[#151033] text-white flex items-center justify-center text-[11px] font-bold">{email ? initials(email) : 'OP'}</span>
-              <span className="text-[13px] font-semibold text-[#1f1235]">{email ? displayName(email) : 'Operator'}</span>
+              <span className="w-7 h-7 rounded-full bg-[#151033] text-white flex items-center justify-center text-[12px] font-bold">{email ? initials(email) : 'OP'}</span>
+              <span className="text-[14px] font-semibold text-[#1f1235]">{email ? displayName(email) : 'Operator'}</span>
               <ChevronDown className="w-3.5 h-3.5 text-[#9b8ec4]" />
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-[42px] w-[280px] bg-white border border-[#ece5fb] rounded-2xl shadow-[0_12px_40px_rgba(124,58,237,0.15)] p-2 z-50">
-                <p className="text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Operate</p>
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Operate</p>
                 <div className="grid grid-cols-2 gap-0.5">
                   {OPERATE.map(item => (
                     <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12.5px] text-[#4c4368] hover:bg-[#f7f4fd] transition-colors">
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13.5px] text-[#4c4368] hover:bg-[#f7f4fd] transition-colors">
                       <span>{item.icon}</span> {item.label}
                     </Link>
                   ))}
                 </div>
                 <div className="h-px bg-[#f0ebfa] my-1.5" />
-                <p className="text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Run the business</p>
+                <p className="text-[10.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Run the business</p>
                 <div className="grid grid-cols-2 gap-0.5">
                   {NERVOUS_SYSTEM.map(item => (
                     <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12.5px] text-[#4c4368] hover:bg-[#f7f4fd] transition-colors">
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[13.5px] text-[#4c4368] hover:bg-[#f7f4fd] transition-colors">
                       <span>{item.icon}</span> {item.label}
                     </Link>
                   ))}
                 </div>
                 <div className="h-px bg-[#f0ebfa] my-1.5" />
-                <button onClick={signOut} className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-[12.5px] text-red-500 hover:bg-red-50 transition-colors">
+                <button onClick={signOut} className="flex items-center gap-2 w-full px-2.5 py-2 rounded-lg text-[13.5px] text-red-500 hover:bg-red-50 transition-colors">
                   <LogOut className="w-3.5 h-3.5" /> Sign out
                 </button>
               </div>

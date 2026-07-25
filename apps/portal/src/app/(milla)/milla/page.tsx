@@ -152,9 +152,9 @@ export default function MillaHomePage() {
 
   const KPI = ({ k, v, s, tone, hero }: { k: string; v: string; s: string; tone?: string; hero?: boolean }) => (
     <div className={`rounded-2xl px-4 py-3.5 border ${hero ? 'text-white border-transparent bg-gradient-to-br from-[#7C3AED] to-[#6d28d9]' : 'bg-white border-[#eee7f7]'}`}>
-      <div className={`text-[9.5px] font-extrabold uppercase tracking-wide ${hero ? 'text-[#e9d5ff]' : 'text-[#b3a9cc]'}`}>{k}</div>
+      <div className={`text-[10.5px] font-extrabold uppercase tracking-wide ${hero ? 'text-[#e9d5ff]' : 'text-[#b3a9cc]'}`}>{k}</div>
       <div className="text-[22px] font-extrabold mt-0.5 leading-tight" style={!hero && tone ? { color: tone } : undefined}>{v}</div>
-      <div className={`text-[10.5px] mt-0.5 ${hero ? 'text-[#e9d5ff]' : 'text-[#9b8ec4]'}`}>{s}</div>
+      <div className={`text-[11.5px] mt-0.5 ${hero ? 'text-[#e9d5ff]' : 'text-[#9b8ec4]'}`}>{s}</div>
     </div>
   )
 
@@ -166,10 +166,10 @@ export default function MillaHomePage() {
         <a href="/milla/billing?start=1" className="block mb-4 rounded-2xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="font-extrabold text-[#5b21b6] text-[15px]">Go live — load your wallet to start your campaign</p>
-              <p className="text-[13px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b>. Browsing and building your plan is free — nothing sources or sends until you go live. Each approved lead is then a flat $4.</p>
+              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — load your wallet to start your campaign</p>
+              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b>. Browsing and building your plan is free — nothing sources or sends until you go live. Each approved lead is then a flat $4.</p>
             </div>
-            <span className="shrink-0 text-[13px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 →</span>
+            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 →</span>
           </div>
         </a>
       )}
@@ -183,50 +183,55 @@ export default function MillaHomePage() {
 
       {/* Milla is the SPINE: she fills the console, leads canvas beside her. */}
       <div className="flex-1 flex gap-4 mt-4 min-h-0">
-        {/* chat */}
-        <section className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
+        {/* chat — FIXED width. A conversation column past ~600px is 170+ characters a line,
+            which reads badly however full it is. */}
+        <section className="w-[600px] shrink-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7]">
-            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[12px] flex items-center justify-center">M</span>
-            <div><b className="text-[14px]">Milla</b> <span className="text-[#9b8ec4] text-[11.5px]">· conversational &amp; strategic</span></div>
-            <span className="ml-auto text-[11.5px] font-semibold text-[#059669] inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Campaign live</span>
+            <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
+            <div><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
+            <span className="ml-auto text-[12.5px] font-semibold text-[#059669] inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Campaign live</span>
           </div>
           <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-4 py-4">
             <div className="max-w-2xl space-y-3">
               {messages.map(m => (
                 <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[13px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.role === 'assistant' ? rich(m.content) : m.content}</div>
+                  <div className={`max-w-[86%] rounded-2xl px-4 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#f3ecff] text-[#1f1235]'}`}>{m.role === 'assistant' ? rich(m.content) : m.content}</div>
                 </div>
               ))}
-              {sending && <div className="flex justify-start"><div className="bg-[#f3ecff] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[13px]">Milla is thinking…</div></div>}
+              {sending && <div className="flex justify-start"><div className="bg-[#f3ecff] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[14px]">Milla is thinking…</div></div>}
             </div>
           </div>
           <div className="px-4 py-3 border-t border-[#eee7f7]">
             <div className="flex flex-wrap gap-1.5 mb-2">
-              {CHIPS.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
+              {CHIPS.map(c => <button key={c} onClick={() => send(c)} disabled={sending} className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1 hover:bg-[#ebe0fc] disabled:opacity-50">{c}</button>)}
             </div>
             <form onSubmit={e => { e.preventDefault(); send(input) }} className="flex gap-2">
-              <input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask Milla, request leads, or give feedback…" className="flex-1 text-[13px] rounded-xl border border-[#e4dcf7] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-              <button type="submit" disabled={sending || !input.trim()} className="text-[13px] font-bold text-white rounded-xl px-5 bg-[#7C3AED] disabled:opacity-50">Send</button>
+              <input value={input} onChange={e => setInput(e.target.value)} placeholder="Ask Milla, request leads, or give feedback…" className="flex-1 text-[14px] rounded-xl border border-[#e4dcf7] px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
+              <button type="submit" disabled={sending || !input.trim()} className="text-[14px] font-bold text-white rounded-xl px-5 bg-[#7C3AED] disabled:opacity-50">Send</button>
             </form>
           </div>
         </section>
 
         {/* lead cards */}
-        <aside className="w-[380px] shrink-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
-          <div className="px-4 py-3 border-b border-[#eee7f7]"><b className="text-[14px]">New leads</b> <span className="text-[#9b8ec4] text-[11.5px]">· masked · no charge yet</span></div>
-          <div className="px-3.5 py-3 overflow-y-auto space-y-2.5">
-            {topUp && <div className="text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">{topUp}</div>}
-            {error && <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
-            {!leads && !error && <p className="text-[13px] text-[#9b8ec4]">Loading…</p>}
+        {/* LEADS — this is what the client is here to DO, so it gets the room. It FLEXES and
+            the conversation is fixed; the other way round meant every extra pixel of a bigger
+            monitor went to the chat while the work stayed pinned at 380px. Cards flow into
+            columns once there's width for them. */}
+        <aside className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
+          <div className="px-4 py-3 border-b border-[#eee7f7]"><b className="text-[15px]">New leads</b> <span className="text-[#9b8ec4] text-[12.5px]">· masked · no charge yet</span></div>
+          <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
+            {topUp && <div className="text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">{topUp}</div>}
+            {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
+            {!leads && !error && <p className="text-[14px] text-[#9b8ec4]">Loading…</p>}
             {leads?.filter(l => revealed[l.id]).map(l => (
               <div key={l.id} className="bg-white border-[1.5px] border-emerald-200 rounded-2xl p-3.5">
-                <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[13px]">Approved · {l.role} @ {l.company}</b></div>
-                <div className="text-[12px] text-[#4c4368] mt-1">Contact: <b>{revealed[l.id].email}</b></div>
-                <div className="text-[11px] text-[#7c6f9b] mt-0.5">$4 charged — working it now</div>
+                <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[14px]">Approved · {l.role} @ {l.company}</b></div>
+                <div className="text-[13px] text-[#4c4368] mt-1">Contact: <b>{revealed[l.id].email}</b></div>
+                <div className="text-[12px] text-[#7c6f9b] mt-0.5">$4 charged — working it now</div>
               </div>
             ))}
             {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (
-              <div className="text-[13px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>
+              <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>
             )}
             {pending.map(l => {
               const busy = acting === l.id
@@ -236,20 +241,20 @@ export default function MillaHomePage() {
                     <span className="w-9 h-9 rounded-lg bg-[#efeafc] text-[#7C3AED] flex items-center justify-center shrink-0">🎭</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start gap-2">
-                        <div className="min-w-0"><b className="text-[13px] block leading-tight">{l.role}</b><span className="text-[11.5px] text-[#9b8ec4]">@ {l.company}</span></div>
-                        {l.score != null && <span className="ml-auto text-right"><span className="text-[15px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[9px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>}
+                        <div className="min-w-0"><b className="text-[14px] block leading-tight">{l.role}</b><span className="text-[12.5px] text-[#9b8ec4]">@ {l.company}</span></div>
+                        {l.score != null && <span className="ml-auto text-right"><span className="text-[16px] font-extrabold text-[#7C3AED] tabular-nums">{l.score}</span><span className="block text-[10px] uppercase tracking-wide text-[#b3a9cc] font-extrabold">score</span></span>}
                       </div>
-                      {l.why_fits && <div className="text-[12px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
+                      {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
                       <div className="flex gap-1.5 mt-2.5">
-                        <button disabled={busy} onClick={() => approve(l.id)} className="flex-1 text-[12px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : '✓ Approve qualified lead · $4'}</button>
-                        <button disabled={busy} onClick={() => pass(l.id)} className="text-[12px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
+                        <button disabled={busy} onClick={() => approve(l.id)} className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : '✓ Approve qualified lead · $4'}</button>
+                        <button disabled={busy} onClick={() => pass(l.id)} className="text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
                       </div>
                     </div>
                   </div>
                 </div>
               )
             })}
-            <div className="text-[10.5px] text-[#b3a9cc] px-1 pt-1">$4 per approved lead — final. Reviewing is free.</div>
+            <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">$4 per approved lead — final. Reviewing is free.</div>
           </div>
         </aside>
       </div>
@@ -258,15 +263,15 @@ export default function MillaHomePage() {
       {nexus && nexus.sample_worked > 0 && (
         <div className="mt-4 bg-gradient-to-br from-[#faf7ff] to-white border border-[#ece5fb] rounded-2xl px-5 py-4">
           <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-[15px]">🧠</span>
-            <b className="text-[13.5px]">What Milla&apos;s learning for you</b>
-            <span className="text-[9.5px] font-extrabold uppercase tracking-wide text-[#9b8ec4] bg-white border border-[#ece5fb] rounded-full px-2 py-0.5 ml-auto">{nexus.confidence}</span>
+            <span className="text-[16px]">🧠</span>
+            <b className="text-[14.5px]">What Milla&apos;s learning for you</b>
+            <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#9b8ec4] bg-white border border-[#ece5fb] rounded-full px-2 py-0.5 ml-auto">{nexus.confidence}</span>
           </div>
-          <p className="text-[13px] text-[#5c5279] leading-relaxed">{nexus.learned}</p>
+          <p className="text-[14px] text-[#5c5279] leading-relaxed">{nexus.learned}</p>
           <div className="flex flex-wrap gap-2.5 mt-2.5">
-            {nexus.top_persona && <span className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">Books best: {nexus.top_persona}</span>}
-            <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-2.5 py-1">Reply rate {Math.round(nexus.reply_rate * 1000) / 10}%</span>
-            <span className="text-[11.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-2.5 py-1">Meeting rate {Math.round(nexus.meeting_rate * 1000) / 10}%</span>
+            {nexus.top_persona && <span className="text-[12.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">Books best: {nexus.top_persona}</span>}
+            <span className="text-[12.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-2.5 py-1">Reply rate {Math.round(nexus.reply_rate * 1000) / 10}%</span>
+            <span className="text-[12.5px] font-semibold text-[#5c5279] bg-white border border-[#ece5fb] rounded-full px-2.5 py-1">Meeting rate {Math.round(nexus.meeting_rate * 1000) / 10}%</span>
           </div>
         </div>
       )}

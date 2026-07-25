@@ -5,18 +5,27 @@
 
 ---
 
-## 1. THE MONEY MODEL — $1 reveal + $3 work = $4 (LOCKED)
+## 1. THE MONEY MODEL — one wallet · $99 onboarding pack · then $4 a lead (LOCKED 25 Jul)
 
-Leads arrive **masked** (browsing is free). The client pays to unlock value in two steps:
+> ⚠️ **This section was stale until 25 Jul** — it still described the retired two-wallet model ($1 reveal into `credit_balance` + $3 work into `figsy_credits_remaining`). That was superseded by **#492 ONE WALLET** on 24 Jul and the doc never caught up. Corrected here; this is the pricing home, so nothing else should restate it.
 
-| Step | Charge | Wallet (code) | What happens |
-|---|---|---|---|
-| **Reveal** | **$1** | `credit_balance` (`try_charge_reveal_credit`) | unmask + verify the contact's email → it lands in their leads |
-| **Work** | **+$3** | `figsy_credits_remaining` (`try_charge_figsy_credit`) | FIGSY enrols the revealed lead into a ≤10-step sequence, writes/sends, books the meeting |
-| **Fully-worked** | **= $4** | — | reveal **and** work the same lead |
+Leads arrive **masked** — browsing and building the plan are free. There is **one dollar wallet** per client (`wallet_balance_usd`, moved only by `try_charge_wallet` / `increment_wallet`) and **one money event**.
 
-- A client can stop at **$1 (data only)** or add **$3 (full FIGSY)**. Work can never precede reveal (FIGSY only enrols revealed leads), so **$3 is impossible before $1**.
-- Charge-once integrity: reveal is charged **once per (client, email) EVER** (#424); work is charged **once per (campaign, lead)** (#426). No accidental double-charge.
+| Step | Charge | What happens |
+|---|---|---|
+| **Onboarding pack** | **$99 → 50 leads** ($1.98 each) | the first purchase. Nothing sources or sends until it lands — the ICP stays dormant |
+| **Each approved lead** | **$4, flat and final** | the client's 👍 on a scored person. That's when we start working them |
+| **Top-ups after the pack** | any amount, $4 a lead | |
+
+- **The client's 👍 is the only thing that ever spends.** Operators never spend.
+- A **dead email is never charged** (reversed in-flow). **Meetings are reported, not billed.**
+- We **refuse the charge outright** if there's no live campaign to work the lead — never take money for work that can't run.
+- A **no-show gets two attempts**; after that the client chooses to pursue it themselves or pay a fresh $4 for a re-run.
+
+**What the $99 pack costs us** (rates in §2): 100 records sourced at $0.28 = $28 · 50 leads worked at ~$0.06 = $3 · Stripe on the $99 = $3.17 → **≈ $32, leaving ≈ $67 (68%)**. Their inbox is separate and recurring: **$4.50/month + ~$13/year** for a branded domain.
+
+⚠️ **Implementation note — the wallet is dollar-denominated.** A $99 checkout credits **$99**, which is 24 leads at $4, not 50. Delivering the pack means crediting **$200** on the first purchase (a **$101 onboarding grant** alongside the $99 purchase row) so `try_charge_wallet` needs no new pricing logic. **Revenue stays $99** — the grant must be written as `manual_grant`, never `purchase`/`wallet_topup`, or it inflates the revenue reports. *Not yet built.*
+
 - **No monthly subscriptions.** (The agent family Milla/Vida/Denise is parked; when it returns it prices per-qualified-lead, not $/mo — #431. ⚠️ *Code note: `packages/shared` still carries legacy $49/$29/$39 monthly prices for those parked products; reconcile when #431 builds.*)
 
 ---

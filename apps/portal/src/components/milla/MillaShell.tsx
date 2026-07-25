@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair,
+  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow,
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, Bell,
 } from 'lucide-react'
 
@@ -142,6 +142,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         <aside className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto">
           <nav>
             {link('/milla', 'New leads', Sparkles, isLeads, s?.leads_awaiting || undefined)}
+            {link('/milla/pipeline', 'Pipeline', Workflow, pathname.startsWith('/milla/pipeline'))}
             {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
             {link('/milla/campaign', 'My campaign', Target, pathname.startsWith('/milla/campaign'))}
             {/* #512 ICP approval + Documents were reachable only from a single link on the

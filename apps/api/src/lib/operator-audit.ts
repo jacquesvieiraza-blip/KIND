@@ -20,6 +20,7 @@ export type OperatorAction =
   | 'send_now'              // forced a due send
   | 'pause_campaign'        // paused/resumed a campaign
   | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
+  | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
   | 'suppression_change'    // added/removed a suppression/opt-out
   | 'vida_command'          // #498 — issued a Vida command-bar instruction (no spend)
   | 'qualify_reply'         // #494 — operator marked a reply as a qualified conversation (no spend)

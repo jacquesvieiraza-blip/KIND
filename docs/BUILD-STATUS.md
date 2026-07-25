@@ -9,6 +9,52 @@
 
 ---
 
+## 🧭 NORTH-STAR CONSOLE REBUILD (25 Jul) — built vs needed
+> The agreed previews: **Milla** = rail | Milla as the centre SPINE | leads canvas. **Vida** = clients list | Vida scoped to that client | 7-tab cockpit. This section is the honest built-vs-needed against those, and supersedes the old punch list (which wrongly marked "Milla is the spine" as already live).
+
+### Milla — client console
+| # | Item | Main | Live for you |
+|---|---|:--:|---|
+| M1 | **Milla is the SPINE** — full-height centre column, rail left, leads canvas right | ✅ | ⏳ |
+| M2 | Left rail = workspace only | ✅ | 🩷 |
+| M3 | ROI → top-right **Account ▾** (kept, relocated) | ✅ | 🩷 |
+| M4 | Wallet ledger → Billing (de-duplicated) | ✅ | 🩷 |
+| M5 | "My campaign" read-only (operator tools removed) | ✅ | 🩷 |
+| M6 | Top overview KPIs | ✅ | 🟢 |
+| M7 | Top-right cluster (wallet · bell · Account) | ✅ | 🟢 |
+| M8 | "What Milla's learning" + ICP versioning | ✅ | 🩷 |
+| M10 | **Pipeline** — Approved → Contacted → Replied → Booked (`GET /leads/pipeline`) | ✅ | ⏳ |
+| M11 | Conversational onboarding (`/milla/welcome`, #513/#514) | ✅ | 🩷 |
+| M9 | **Coaching** — prep the client to win the booked meeting | ❌ | ❌ |
+
+### Vida — operator console
+| # | Item | Main | Live for you |
+|---|---|:--:|---|
+| V1 | **Client-selected model** — pick a client, Vida + cockpit scope to them only | ✅ | ⏳ |
+| V2 | **7-tab cockpit** — Inbox · Approvals · People · Campaign · ICP · Sequence · Bookings | ✅ | ⏳ |
+| V3 | **Client Inbox** — read the thread, ✨ draft in the client's voice, **Send** (`/operator/replies/:id` · `/draft` · `/send`) | ✅ | ⏳ |
+| V4a | Campaign control — start · pause · resume (`/operator/campaign/start` · `/:id/status`) | ✅ | ⏳ |
+| V4b | People — sourced list, Send-to-client / Pass | ✅ | ⏳ |
+| V4c | Approvals — read draft, Approve & send / Reject | ✅ | ⏳ |
+| V5 | Run-the-business → top-right dropdown (+ Operate group; rail retired as a duplicate) | ✅ | ⏳ |
+| V6 | Operate surfaces (Clients · Queue · Bookings · Suppression · Audit · Reports) | ✅ | 🩷 |
+| V8 | Suppression & Compliance | ✅ | 🩷 |
+| V10 | Nexus signals | ✅ | 🩷 |
+| V12 | **Money guard** — never charge $4 with no active campaign | ✅ | ⏳ |
+| V4d | **ICP / Sequence AUTHORING** — today they are read + a Vida command; no editor | ⚠️ | ⏳ |
+| V7 | **Engine surface** (item 211) — per-inbox warmed-sending health, caps, deliverability | ❌ | ❌ |
+| V9 | **Inbox SOP triggers** — #270 signup→pooled inbox · #271 paid→branded inbox | ❌ | ❌ |
+| V11 | **Onboarding gate** — "is this client 100%? ask more / book a call" | ❌ | ❌ |
+
+### What is genuinely left (the honest list)
+1. **V7 Engine** — the deliverability surface. Highest risk if inboxes burn.
+2. **V9 inbox triggers** — still manual alerts; the SOP itself is correct in `docs/client-flow-sop.md`.
+3. **V11 onboarding gate** — Vida can't yet tell you a client is only 60% onboarded.
+4. **V4d ICP/sequence editors** — controllable by command, not yet directly editable.
+5. **M9 Coaching** — the post-booking value-add.
+
+---
+
 ## VIDA — operator console (core)
 | # | Item | Main | Live for you |
 |---|---|:--:|---|

@@ -24,6 +24,19 @@ type Health = { sent_today: number; replies_today: number; pending_approvals: nu
 // Compliance are real extra pages appended after the 10 so no nav is lost.
 // (The mockup also shows a "⚙ Settings" link — omitted here on purpose: there is
 // no /settings page yet, and a dead link would break the honesty rule.)
+// The day-to-day OPERATE surfaces. These used to be a left rail, but the rail duplicated
+// this same dropdown and cost a whole column — Vida needs that width for the three-column
+// console (clients | Vida | cockpit). Same links, one home.
+const OPERATE: { href: string; label: string; icon: string }[] = [
+  { href: '/vida',             label: 'Clients',           icon: '👥' },
+  { href: '/vida/queue',       label: 'Lead queue',        icon: '✦' },
+  { href: '/vida/bookings',    label: 'Bookings',          icon: '📅' },
+  { href: '/vida/suppression', label: 'Suppression',       icon: '🚫' },
+  { href: '/vida/audit',       label: 'Audit log',         icon: '📋' },
+  { href: '/vida/reports',     label: 'Reports & billing', icon: '🧾' },
+  { href: '/vida/nexus',       label: 'Nexus signals',     icon: '🧠' },
+]
+
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
   { href: '/vida/clients-admin',    label: 'Clients',    icon: '👥' },
@@ -111,6 +124,16 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
         <div className="text-[15px] font-extrabold">Milla&amp;Vida <span className="text-[#9b8ec4] font-semibold text-[13px]">· operator</span></div>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* Engine health — was the rail's "ENGINE HEALTH · FIGSY" box. */}
+          <span className="hidden md:inline-flex items-center gap-2 text-xs font-semibold text-[#5c5279] bg-[#f6f2fd] border border-[#e4dcf7] rounded-full px-3 py-1"
+            title="Sent today · replies to triage · awaiting your approval">
+            <span>{health?.sent_today ?? '—'} sent</span>
+            <span className="text-[#cfc4e8]">·</span>
+            <span>{health?.replies_today ?? '—'} to triage</span>
+            <span className="text-[#cfc4e8]">·</span>
+            <span>{health?.pending_approvals ?? '—'} to approve</span>
+          </span>
+
           {/* Kill-switch chip */}
           <span className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1 border ${
             on ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-amber-700 bg-amber-50 border-amber-200'
@@ -137,7 +160,17 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-[42px] w-[280px] bg-white border border-[#ece5fb] rounded-2xl shadow-[0_12px_40px_rgba(124,58,237,0.15)] p-2 z-50">
-                <p className="text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Nervous system · admin</p>
+                <p className="text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Operate</p>
+                <div className="grid grid-cols-2 gap-0.5">
+                  {OPERATE.map(item => (
+                    <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg text-[12.5px] text-[#4c4368] hover:bg-[#f7f4fd] transition-colors">
+                      <span>{item.icon}</span> {item.label}
+                    </Link>
+                  ))}
+                </div>
+                <div className="h-px bg-[#f0ebfa] my-1.5" />
+                <p className="text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-[#b3a9cc] px-2.5 pt-1.5 pb-1">Run the business</p>
                 <div className="grid grid-cols-2 gap-0.5">
                   {NERVOUS_SYSTEM.map(item => (
                     <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)}
@@ -158,55 +191,6 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
 
       {/* ── BODY: rail + working area ───────────────────────────────────────── */}
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-[212px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4">
-          <div className="flex items-center gap-2.5 px-2 pb-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#a78bfa] flex items-center justify-center text-white text-sm font-bold">V</div>
-            <div className="leading-tight">
-              <b className="text-[13.5px]">Vida</b>
-              <span className="block text-[10.5px] text-[#9b8ec4]">Engine console</span>
-            </div>
-          </div>
-
-          <nav className="mt-1">
-            {railLink('/vida', 'Clients', Users, isClients)}
-            {railLink('/vida/audit', 'Audit log', ClipboardList, isAudit)}
-            <Link href="/vida/queue" className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
-              isQueue ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
-            }`}>
-              <Sparkles className="w-4 h-4 shrink-0" /> Lead queue
-              {pendingCount != null && pendingCount > 0 && (
-                <span className="ml-auto text-[10px] font-extrabold text-white bg-[#7C3AED] rounded-full px-1.5 py-0.5 min-w-[18px] text-center">{pendingCount}</span>
-              )}
-            </Link>
-            {railLink('/vida/bookings', 'Bookings', CalendarClock, isBookings)}
-            {railLink('/vida/suppression', 'Suppression', Ban, isSuppression)}
-            {railLink('/vida/reports', 'Reports & billing', Receipt, isReports)}
-          </nav>
-
-          {/* #502 ENGINE — the nervous system in the rail (native routes) */}
-          <div className="mt-4 px-3 text-[9.5px] font-extrabold uppercase tracking-[0.07em] text-[#b3a9cc]">Engine</div>
-          <nav className="mt-1.5">
-            {ENGINE_RAIL.map(item => railLink(item.href, item.label, item.icon, pathname.startsWith(item.href)))}
-            {railLink('/vida/nexus', 'Nexus signals', Brain, pathname.startsWith('/vida/nexus'))}
-          </nav>
-
-          {/* Engine health — real numbers */}
-          <div className="mt-5 bg-[#f7f4fd] border border-[#eee7f7] rounded-xl p-3">
-            <h4 className="text-[10px] tracking-[0.07em] uppercase text-[#b3a9cc] font-bold mb-2.5">Engine health · FIGSY</h4>
-            <div className="flex justify-between text-xs py-0.5 text-[#5c5279]"><span>Sends (today)</span><b className={on ? 'text-emerald-600' : 'text-[#9b8ec4]'}>{on ? 'live' : 'paused'}</b></div>
-            <div className="flex justify-between text-xs py-0.5 text-[#5c5279]"><span>Sent today</span><b>{health?.sent_today ?? '—'}</b></div>
-            <div className="flex justify-between text-xs py-0.5 text-[#5c5279]"><span>Replies to triage</span><b>{health?.replies_today ?? '—'}</b></div>
-            <div className="flex justify-between text-xs py-0.5 text-[#5c5279]"><span>Awaiting approval</span><b>{health?.pending_approvals ?? '—'}</b></div>
-          </div>
-
-          <div className="mt-auto flex items-center gap-2.5 px-2.5 py-2.5 border-t border-[#eee7f7]">
-            <span className="w-[30px] h-[30px] rounded-full bg-[#151033] text-white flex items-center justify-center text-[11px] font-bold">{email ? initials(email) : 'OP'}</span>
-            <div className="leading-tight min-w-0">
-              <b className="text-xs block">Operator</b>
-              <span className="text-[10.5px] text-[#9b8ec4] block truncate">{email || '…'}</span>
-            </div>
-          </div>
-        </aside>
 
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>

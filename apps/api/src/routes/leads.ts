@@ -391,6 +391,57 @@ leadRouter.get('/nexus-summary', async (req: AuthRequest, res) => {
 
 // ── #507 MILLA MEETINGS — the client's confirmed bookings (their calendar), joined to the
 // lead for a name. Real calendar_bookings rows only; the $3-captured note mirrors #492.
+// ── M10 CLIENT PIPELINE — what happens AFTER the client's 👍 ──────────────────
+// The client approves a lead and then loses sight of it: "My campaign" is campaign-level
+// and Meetings only shows the finish line. This is the in-between — their approved leads
+// moving Approved → Contacted → Replied → Booked. Read-only, their own data only.
+leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // Approved = the client paid the $4 and we revealed it (revealed_at is the claim).
+    const { data: approved } = await db.from('leads')
+      .select('id, first_name, last_name, company, job_title, score, revealed_at')
+      .eq('client_id', clientId).not('revealed_at', 'is', null)
+      .order('revealed_at', { ascending: false }).limit(200)
+    const approvedIds = (approved ?? []).map((l: { id: string }) => l.id)
+    const safeIds = approvedIds.length ? approvedIds : ['00000000-0000-0000-0000-000000000000']
+
+    const [enrolled, replies, bookings] = await Promise.all([
+      db.from('figsy_enrollments').select('lead_id, emails_sent, status').in('lead_id', safeIds),
+      db.from('figsy_replies').select('lead_id, classification, received_at, meeting_booked_at')
+        .eq('client_id', clientId).in('lead_id', safeIds),
+      db.from('calendar_bookings').select('lead_id, start_time, status')
+        .eq('client_id', clientId).in('lead_id', safeIds),
+    ])
+
+    const contactedIds = new Set((enrolled.data ?? []).filter((e: { emails_sent?: number }) => (e.emails_sent ?? 0) > 0).map((e: { lead_id: string }) => e.lead_id))
+    const repliedMap = new Map((replies.data ?? []).map((r: { lead_id: string }) => [r.lead_id, r]))
+    const bookedMap = new Map((bookings.data ?? []).map((b: { lead_id: string }) => [b.lead_id, b]))
+
+    const card = (l: Record<string, unknown>) => ({
+      id: l.id, name: [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || 'Lead',
+      company: l.company ?? null, job_title: l.job_title ?? null, score: l.score ?? null,
+    })
+    const stages = { approved: [] as unknown[], contacted: [] as unknown[], replied: [] as unknown[], booked: [] as unknown[] }
+    for (const l of (approved ?? []) as Record<string, unknown>[]) {
+      const id = l.id as string
+      const b = bookedMap.get(id)
+      if (b) { stages.booked.push({ ...card(l), start_time: (b as { start_time?: string }).start_time ?? null }); continue }
+      const r = repliedMap.get(id)
+      if (r) { stages.replied.push({ ...card(l), classification: (r as { classification?: string }).classification ?? null }); continue }
+      if (contactedIds.has(id)) { stages.contacted.push(card(l)); continue }
+      stages.approved.push(card(l))
+    }
+
+    res.json({ success: true, data: {
+      counts: { approved: stages.approved.length, contacted: stages.contacted.length, replied: stages.replied.length, booked: stages.booked.length },
+      stages,
+    } })
+  } catch (err) { console.error('[leads/pipeline]', err); res.status(500).json({ success: false, error: 'Failed to load pipeline' }) }
+})
+
 leadRouter.get('/meetings', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

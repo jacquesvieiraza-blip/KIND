@@ -6,10 +6,10 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
-// chat (centre, real-data opener) + masked lead cards (right) + Your ICP (versioned).
-// Every number is live: summary → KPIs/opener/ICP, /for-approval → cards. Approve charges
-// a flat $4 per approved lead from the one wallet. The wallet ledger (every charge,
-// audited) moved to Billing (M4) — New leads stays leads + Milla only.
+// chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
+// Every number is live: summary → KPIs/opener, /for-approval → cards. Approve charges a
+// flat $4 per approved lead from the one wallet. The wallet ledger moved to Billing (M4)
+// and the ICP card to its own rail page (/milla/icp) — this screen is leads + Milla only.
 
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null }
 type Revealed = { email: string; charged: boolean }
@@ -22,9 +22,6 @@ type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
-}
-function fmt(iso: string | null): string {
-  if (!iso) return '—'; const d = new Date(iso); return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 const CHIPS = ['Which look strongest?', 'Find more like these', 'Pause campaign', 'Show my ROI']
 
@@ -137,7 +134,7 @@ export default function MillaHomePage() {
   )
 
   return (
-    <div className="h-full overflow-y-auto px-5 py-4">
+    <div className="h-full flex flex-col overflow-hidden px-5 py-4">
       {/* $99 GO-LIVE banner — shown until the client funds their wallet. Browsing is free;
           this is the step that switches their campaign on. */}
       {needsGoLive && (
@@ -159,10 +156,10 @@ export default function MillaHomePage() {
         <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />
       </div>
 
-      {/* chat + leads */}
-      <div className="flex gap-4 mt-4">
+      {/* Milla is the SPINE: she fills the console, leads canvas beside her. */}
+      <div className="flex-1 flex gap-4 mt-4 min-h-0">
         {/* chat */}
-        <section className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-[440px]">
+        <section className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7]">
             <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[12px] flex items-center justify-center">M</span>
             <div><b className="text-[14px]">Milla</b> <span className="text-[#9b8ec4] text-[11.5px]">· conversational &amp; strategic</span></div>
@@ -190,7 +187,7 @@ export default function MillaHomePage() {
         </section>
 
         {/* lead cards */}
-        <aside className="w-[380px] shrink-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col">
+        <aside className="w-[380px] shrink-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
           <div className="px-4 py-3 border-b border-[#eee7f7]"><b className="text-[14px]">New leads</b> <span className="text-[#9b8ec4] text-[11.5px]">· masked · no charge yet</span></div>
           <div className="px-3.5 py-3 overflow-y-auto space-y-2.5">
             {topUp && <div className="text-[12px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">{topUp}</div>}
@@ -230,26 +227,6 @@ export default function MillaHomePage() {
             <div className="text-[10.5px] text-[#b3a9cc] px-1 pt-1">$4 per approved lead — final. Reviewing is free.</div>
           </div>
         </aside>
-      </div>
-
-      {/* ICP — the ledger moved to Billing (M4): New leads stays leads + Milla only. */}
-      <div className="mt-4 bg-white border border-[#eee7f7] rounded-2xl overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#eee7f7] flex items-center text-[13.5px] font-bold">Your ICP <span className="text-[#9b8ec4] font-semibold text-[11px] ml-1.5">· versioned · approved by you</span><a href="/milla/icp" className="ml-auto text-[11.5px] font-bold text-[#7C3AED] hover:underline">Review / approve →</a></div>
-        <div className="px-4 py-3.5">
-          {!summary?.icp_versions?.length ? (
-            <div className="text-[13px] text-[#9b8ec4] py-6 text-center">Your ICP is set during onboarding — it'll show here once approved.</div>
-          ) : <>
-            <p className="text-[12.5px] text-[#5c5279] leading-relaxed mb-3">{summary.icp_versions.find(v => v.current)?.summary || summary.icp_versions.find(v => v.current)?.name}</p>
-            <div className="flex flex-wrap gap-2.5">
-              {summary.icp_versions.map(v => (
-                <div key={v.version} className={`flex-1 min-w-[150px] border rounded-xl px-3 py-2.5 ${v.current ? 'border-emerald-300 bg-emerald-50/40' : 'border-[#ece5fb]'}`}>
-                  <b className="text-[13px]">{v.version}</b>{v.current && <span className="text-[9.5px] font-extrabold text-emerald-600"> · current</span>}
-                  <span className="block text-[11px] text-[#9b8ec4] mt-0.5">{fmt(v.created_at)} · approved</span>
-                </div>
-              ))}
-            </div>
-          </>}
-        </div>
       </div>
 
       {/* #511f — what Milla's learning for this client (the flywheel) */}

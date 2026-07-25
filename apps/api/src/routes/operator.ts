@@ -172,6 +172,89 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── INBOX: read one reply thread, draft an answer, send it (operator-on-behalf) ────
+// "A prospect asks a question — WE handle it." The client never touches this.
+operatorRouter.get('/replies/:id', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, lead_id, from_name, from_email, subject, body, body_text, classification, qualified_at, meeting_booked_at, received_at')
+      .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    let lead: Record<string, unknown> | null = null
+    if (reply.lead_id) {
+      const { data } = await db.from('leads')
+        .select('id, first_name, last_name, job_title, company, industry, email')
+        .eq('id', reply.lead_id).maybeSingle()
+      lead = data ?? null
+    }
+    res.json({ success: true, data: { reply, lead } })
+  } catch (err) { console.error('[operator/reply]', err); res.status(500).json({ success: false, error: 'Failed to load reply' }) }
+})
+
+// Draft an answer in the CLIENT's voice. Returns text for the operator to edit — never sends.
+operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) => {
+  try {
+    const { client_id } = (req.body ?? {}) as { client_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (!process.env.ANTHROPIC_API_KEY) { res.status(503).json({ success: false, error: 'AI drafting not configured' }); return }
+
+    const { data: reply } = await db.from('figsy_replies')
+      .select('id, from_name, from_email, subject, body, body_text, classification, lead_id')
+      .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
+
+    let leadCtx = ''
+    if (reply.lead_id) {
+      const { data: lead } = await db.from('leads')
+        .select('first_name, last_name, job_title, company, industry').eq('id', reply.lead_id).maybeSingle()
+      if (lead) leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
+        lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
+        lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+    }
+    const { data: c } = await db.from('clients')
+      .select('company_name, signer_name, industry').eq('id', client.id).maybeSingle()
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const msg = await ai.messages.create({
+      model: 'claude-haiku-4-5-20251001', max_tokens: 500,
+      messages: [{ role: 'user', content:
+        `You write a short B2B email reply ON BEHALF OF ${c?.company_name ?? 'our client'}` +
+        `${c?.industry ? ` (${c.industry})` : ''}. Write as them, never mention an agency or AI.\n\n` +
+        `Prospect: ${reply.from_name ?? reply.from_email}\n${leadCtx ? `Context: ${leadCtx}\n` : ''}` +
+        `Their message:\n"""${(reply.body_text ?? reply.body ?? '').slice(0, 2000)}"""\n\n` +
+        `Reply in 2-4 short sentences. Answer their actual question, then propose a 15-minute call. ` +
+        `Plain text, no subject line, no placeholders. Sign off as ${c?.signer_name ?? c?.company_name ?? 'the team'}.` }],
+    })
+    const draft = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
+    res.json({ success: true, data: { draft } })
+  } catch (err) { console.error('[operator/reply-draft]', err); res.status(500).json({ success: false, error: 'Failed to draft reply' }) }
+})
+
+// Send it. Same gates as every other prospect send (demo · opt-out · kill-switch).
+operatorRouter.post('/replies/:id/send', async (req: Request, res: Response) => {
+  try {
+    const { client_id, body } = (req.body ?? {}) as { client_id?: string; body?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (typeof body !== 'string' || !body.trim()) { res.status(400).json({ success: false, error: 'body is required' }); return }
+
+    const { sendManualReply } = await import('../lib/manual-reply')
+    const r = await sendManualReply(req.params.id, client.id, body.trim().slice(0, 5000))
+    if (!r.ok) { res.status(r.status).json({ success: false, error: r.error }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'send_reply',
+      subjectType: 'reply', subjectId: req.params.id, detail: { sent: r.sent, on_behalf: true },
+    })
+    res.json({ success: true, data: r.sent ? { sent: true } : { sent: false, demo: true } })
+  } catch (err) { console.error('[operator/reply-send]', err); res.status(500).json({ success: false, error: 'Failed to send reply' }) }
+})
+
 // ── PER-CLIENT COCKPIT (ICP · campaigns · sequences · inbox) ──────────────────────
 // The data path Vida never had. /figsy/* and /icps are gated by requireAuth (a CLIENT
 // Bearer JWT), but the admin app proxies with x-admin-key and no client session — so the

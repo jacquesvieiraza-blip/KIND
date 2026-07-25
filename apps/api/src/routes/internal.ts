@@ -981,6 +981,20 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       campaignLimit.set((c as { id: string }).id, typeof dl === 'number' && dl >= 0 ? dl : null)
     }
 
+    // SEND WINDOW (settings.send_days / settings.send_hour_utc) — same bug class as the
+    // per-campaign cap above: the UI has written these for months and NOTHING on the send
+    // path ever read them, so a "Mon–Thu from 07:00" window was decorative. Now honoured.
+    // Fails OPEN (no window, or one we can't parse, means send) — the kill-switch, the caps
+    // and the approval queue are the real safety gates, and a garbled preference field must
+    // never silently halt a client's outreach.
+    const { withinSendWindow } = await import('../lib/campaign-settings')
+    const windowNow = new Date()
+    const outsideWindow = new Set<string>()
+    for (const c of activeCamps ?? []) {
+      const row = c as { id: string; settings?: unknown }
+      if (!withinSendWindow(row.settings, windowNow)) outsideWindow.add(row.id)
+    }
+
     // How many each campaign has ALREADY sent today, to enforce the per-campaign cap.
     const { data: sentRows } = await db.from('figsy_sent_emails')
       .select('campaign_id')
@@ -1030,6 +1044,7 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
     const stepsCache = new Map<string, { step: number; on_reply?: 'stop' | 'skip_next' | 'continue' }[] | null>()
     let sent = 0
     let campaignCappedSkips = 0
+    let windowSkips = 0
     for (const enrollment of fairOrder) {
       if (sent >= remaining) break   // shared daily budget spent
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
@@ -1047,6 +1062,10 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
         campaignCappedSkips++
         continue
       }
+
+      // Outside this campaign's configured send window — leave it due and pick it up on the
+      // next run inside the window. Nothing is lost: next_send_at is untouched.
+      if (outsideWindow.has(campId)) { windowSkips++; continue }
 
       // Honour the step's on_reply setting if the lead has replied since last send
       try {
@@ -1071,7 +1090,9 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       }
     }
 
-    res.json({ success: true, data: { sent, remaining_today: remaining - sent, daily_limit: dailyLimit, clients_served: byClient.size, campaign_capped_skips: campaignCappedSkips } })
+    // window_skips is reported, not swallowed: "sent 0" with a window set must be
+    // explainable, or it looks like the engine died.
+    res.json({ success: true, data: { sent, remaining_today: remaining - sent, daily_limit: dailyLimit, clients_served: byClient.size, campaign_capped_skips: campaignCappedSkips, window_skips: windowSkips, campaigns_outside_window: outsideWindow.size } })
   } catch (err) {
     console.error('[figsy/send-due-all]', err)
     res.status(500).json({ success: false, error: 'FIGSY send-due-all failed' })

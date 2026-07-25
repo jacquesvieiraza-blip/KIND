@@ -246,14 +246,31 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
     const { readCampaignGates, mergeCampaignGates, normaliseDailyCap } = await import('../lib/campaign-settings')
     const wantCoPilot = typeof b.copilot_mode === 'boolean' ? b.copilot_mode : undefined
     const wantCap = normaliseDailyCap(b.daily_send_limit)
-    const touchesGates = wantCoPilot !== undefined || wantCap !== undefined
+    // V7 in full: the send WINDOW and the A/B subject variants, not just name + cap.
+    // send_days/send_hour_utc were write-only until this PR — the cron now honours them
+    // (routes/internal.ts), so this control is real rather than decorative.
+    const wantDays = b.send_days === undefined ? undefined
+      : (Array.isArray(b.send_days) ? (b.send_days as unknown[]).map(String) : null)
+    const wantHour = b.send_hour_utc === undefined ? undefined
+      : (b.send_hour_utc === null || b.send_hour_utc === '' ? null : Number(b.send_hour_utc))
+    const abKeys = ['ab_subject_b', 'ab_subject_c', 'ab_subject_d', 'ab_subject_e'] as const
+    const wantAb: Record<string, string | null | undefined> = {}
+    for (const k of abKeys) {
+      if (b[k] !== undefined) wantAb[k] = typeof b[k] === 'string' ? (b[k] as string) : null
+    }
+
+    const gatePatch = {
+      review_required: wantCoPilot, daily_send_limit: wantCap,
+      send_days: wantDays, send_hour_utc: wantHour, ...wantAb,
+    }
+    const touchesGates = Object.values(gatePatch).some(v => v !== undefined)
     if (wantCoPilot !== undefined) { patch.copilot_mode = wantCoPilot; patch.approve_before_send = wantCoPilot }
 
     const SELECT = 'id, name, status, campaign_intent, settings'
     const shape = (row: Record<string, unknown>) => {
       const gates = readCampaignGates(row.settings)
       const { settings: _drop, ...rest } = row
-      return { ...rest, copilot_mode: gates.review_required, daily_send_limit: gates.daily_send_limit }
+      return { ...rest, ...gates, copilot_mode: gates.review_required }
     }
 
     if (b.campaign_id) {
@@ -262,7 +279,7 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
       if (touchesGates) {
         const { data: cur } = await db.from('figsy_campaigns')
           .select('settings').eq('id', b.campaign_id as string).eq('client_id', client.id).maybeSingle()
-        patch.settings = mergeCampaignGates(cur?.settings, { review_required: wantCoPilot, daily_send_limit: wantCap })
+        patch.settings = mergeCampaignGates(cur?.settings, gatePatch)
       }
       const { data, error } = await db.from('figsy_campaigns').update(patch)
         .eq('id', b.campaign_id as string).eq('client_id', client.id).select(SELECT).maybeSingle()
@@ -274,7 +291,7 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
 
     // A NEW campaign defaults to Co-Pilot even when the caller says nothing: a campaign
     // created here can start sending, and the safe default is that a human sees each email.
-    patch.settings = mergeCampaignGates(null, { review_required: wantCoPilot ?? true, daily_send_limit: wantCap ?? null })
+    patch.settings = mergeCampaignGates(null, { ...gatePatch, review_required: wantCoPilot ?? true, daily_send_limit: wantCap ?? null })
     patch.copilot_mode = wantCoPilot ?? true
     patch.approve_before_send = wantCoPilot ?? true
 
@@ -1154,7 +1171,7 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
     const campaignRows = (campaigns.data ?? []).map((c: Record<string, unknown>) => {
       const gates = readCampaignGates(c.settings)
       const { settings: _drop, ...rest } = c
-      return { ...rest, copilot_mode: gates.review_required, daily_send_limit: gates.daily_send_limit }
+      return { ...rest, ...gates, copilot_mode: gates.review_required }
     })
 
     res.json({

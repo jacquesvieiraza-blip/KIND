@@ -49,9 +49,45 @@
 ### Nothing is outstanding from the north-star list
 All 16 Milla items and all 15 Vida items are built. `M9 Coaching` and `V7/V9/V11/V4d` — the five that were open this morning — are done and in this PR.
 
+---
+
+## 🚀 THE LAUNCH PATH (25 Jul flow walk — LOCKED, then built)
+> The walk found the real gap: the **shell** was there, the **features** were not. The old self-serve console could build an ICP by conversation, generate people, assign them, suggest a campaign, edit a sequence, send a test and hit run — but every one of those endpoints was gated by `requireAuth` (a **client** Bearer JWT), and Vida proxies with an admin key and **no client session**. So the operator could look at a client's campaign and never propose, fill, preview, test or run one. This section is the operator twin of that whole path, plus the client's half.
+>
+> **IDs below are FLOW-WALK ids** (A1 · V1–V17 · M2/M4/M5) — deliberately separate from the north-star table above, which uses its own V-numbering.
+>
+> **No new SQL.** Every item here uses tables that already exist (`icps`, `figsy_campaigns`, `figsy_sequences`, `figsy_enrollments`, `leads`, `milla_sessions`, `milla_messages`) — so none of it was blocked on the Supabase lockout.
+
+| # | Item | Where | Main | Live for you |
+|---|---|---|:--:|---|
+| A1 | Top-left brand is clickable → back to the main screen | both consoles | ✅ | ⏳ |
+| V1 | Onboarding checklist **is** the setup guide — click a gap, land on the surface that closes it | Vida | ✅ | ⏳ |
+| V2 | **Build / refine the ICP by conversation** (`POST /operator/icp/chat`) — the form is the precise-edit fallback | Vida · ICP | ✅ | ⏳ |
+| V3 | "Ask them for these" **actually reaches Milla** (`POST /operator/ask` → their own Milla thread) | Vida · Asks | ✅ | ⏳ |
+| V4 | **Multi-select people** — the whole pool + who's already enrolled (`GET /operator/people`) | Vida · People | ✅ | ⏳ |
+| V5 | **Assign the picked people** to the campaign (`POST /operator/campaign/:id/assign`) — never re-charges | Vida · People | ✅ | ⏳ |
+| V6 | **AI proposes the campaign, the operator approves** (`/campaign/suggest` → `/campaign/save`) | Vida · Campaign | ✅ | ⏳ |
+| V7 | **Edit the campaign** — name, the brief every email is written from, daily cap | Vida · Campaign | ✅ | ⏳ |
+| V8 | **Auto-Pilot / Co-Pilot** toggle (Co-Pilot writes `approve_before_send`) | Vida · Campaign | ✅ | ⏳ |
+| V9 | **AI proposes the sequence, the operator approves** (`POST /operator/sequence/suggest`) | Vida · Sequence | ✅ | ⏳ |
+| V11 | **Preview the sequence** as the prospect reads it (`GET /operator/sequence/:id/preview`) | Vida · Sequence | ✅ | ⏳ |
+| V12 | **Test email** — read step 1, then mail it to us (`POST /operator/campaign/:id/test`) | Vida · Campaign | ✅ | ⏳ |
+| V13 | **Run it / pause it** | Vida · Campaign | ✅ | ⏳ |
+| V14 | **Who's in this campaign**, and where each of them is in the sequence | Vida · Campaign | ✅ | ⏳ |
+| V17 | **The bell** — new client whose first ICP waits on us · ICP revised under a live campaign · replies to answer (`GET /operator/alerts`) | Vida · clients list | ✅ | ⏳ |
+| M2 | **The client answers our asks in Milla** — the thread persists, so an ask is waiting when they next open it | Milla · home | ✅ | ⏳ |
+| M4 | **The client revises their ICP by conversation** — goes LIVE, and notifies us (`POST /icps/revise`) | Milla · ICP | ✅ | ⏳ |
+| M5 | **The client sees the sequence — read-only, cannot edit** | Milla · My campaign | ✅ | ⏳ |
+
+**Two honesty fixes made while building this** (both the kind that would have read as working):
+- `POST /operator/campaign/:id/assign` counted successful `autoEnrollLead` calls. That function returns `void` and bails **silently** on no verified email, suppression, a CRM match, exhausted FIGSY credits or an unconfigured sender — so it would report "12 added" when 3 were. It now counts the `figsy_enrollments` table after the fact and names what didn't make it.
+- The same function enrols into the client's most recent **active** campaign (it takes no campaign id), so assigning to a paused campaign would have done nothing quietly. It now refuses with *"'X' isn't running — hit Run it first."*
+
+**Deferred by the founder:** refining the approval gates ("eventually we will refine the gates") — including whether the ICP-revision step keeps a Skip button.
+
 **Genuinely still open (not console work):**
 - **W3** — terms are written; they want a lawyer's read before the first external client signs.
-- **Deploy** — everything above needs `bash scripts/ship.sh` + the migration below.
+- **Deploy** — everything above needs `bash scripts/ship.sh`. **No SQL for the launch path.**
 
 ---
 

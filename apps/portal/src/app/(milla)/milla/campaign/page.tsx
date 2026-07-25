@@ -16,6 +16,10 @@ type Campaign = {
   status: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived'
   leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number
 }
+// M5 — the client SEES the sequence, and cannot edit it. Full transparency about what goes
+// out in their name (they asked for this), with the authoring kept on Vida where we do the
+// work. Read-only by construction: this page has no write path to figsy_sequences at all.
+type Sequence = { id: string; name: string; steps: { subject?: string; body?: string; wait_days?: number }[] | null }
 
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Draft', active: 'Live', paused: 'Paused', completed: 'Completed',
@@ -36,6 +40,8 @@ async function token(): Promise<string | undefined> {
 
 export default function MillaCampaignPage() {
   const [campaigns, setCampaigns] = useState<Campaign[] | null>(null)
+  const [sequences, setSequences] = useState<Sequence[] | null>(null)
+  const [openSeq, setOpenSeq] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -44,6 +50,11 @@ export default function MillaCampaignPage() {
         const tok = await token()
         const r = await api.get<{ data: Campaign[] }>('/figsy/campaigns', tok)
         setCampaigns(r.data)
+        // Best-effort: no sequence yet just means the section doesn't render.
+        try {
+          const sq = await api.get<{ data: Sequence[] }>('/figsy/sequences', tok)
+          setSequences(sq.data)
+        } catch { setSequences([]) }
       } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your campaign') }
     })()
   }, [])
@@ -113,6 +124,52 @@ export default function MillaCampaignPage() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {/* M5 — what we actually send in your name. Visible, never editable here: tell us what
+          to change and we change it, so nothing goes out that you haven't seen the shape of. */}
+      {sequences && sequences.length > 0 && (
+        <div className="mt-5">
+          <div className="flex items-baseline gap-2 mb-2">
+            <h2 className="text-[15px] font-extrabold text-gray-900">The emails we send for you</h2>
+            <span className="text-[11px] font-bold text-[#7C3AED] bg-[#F5EEFF] rounded-full px-2 py-0.5">read-only</span>
+          </div>
+          <p className="text-[12px] text-[#9B8EC4] mb-3">
+            Each prospect gets their own version — their name, role and company are filled in, and the opening line
+            is written from something real about them. Want it said differently? Tell Milla and we&rsquo;ll rewrite it.
+          </p>
+          {sequences.map(sq => {
+            const steps = Array.isArray(sq.steps) ? sq.steps : []
+            const open = openSeq === sq.id
+            return (
+              <div key={sq.id} className="bg-white border border-[#eee7f7] rounded-2xl p-4 sm:p-5 mb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="font-bold text-gray-900 text-[14px]">{sq.name}</span>
+                  <span className="text-[11.5px] text-[#9B8EC4]">{steps.length} email{steps.length === 1 ? '' : 's'}</span>
+                  <button onClick={() => setOpenSeq(open ? null : sq.id)}
+                    className="ml-auto text-[12px] font-bold text-[#7C3AED] hover:underline">
+                    {open ? 'Hide' : 'Read them'}
+                  </button>
+                </div>
+                {open && (
+                  <div className="mt-3 space-y-2.5">
+                    {steps.map((st, i) => {
+                      const day = steps.slice(0, i + 1).reduce((d, s, n) => d + (Number(s.wait_days ?? (n === 0 ? 0 : 3)) || 0), 0)
+                      return (
+                        <div key={i} className="bg-[#FAF8FF] border border-[#f2ecfb] rounded-xl p-3">
+                          <p className="text-[10px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Email {i + 1} · day {day}</p>
+                          <p className="text-[12.5px] font-bold text-gray-900 mt-0.5">{st.subject || '(no subject)'}</p>
+                          <p className="text-[12px] text-[#4c4368] leading-relaxed whitespace-pre-wrap mt-1">{st.body || ''}</p>
+                        </div>
+                      )
+                    })}
+                    {steps.length === 0 && <p className="text-[12.5px] text-[#9B8EC4]">Nothing written yet.</p>}
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

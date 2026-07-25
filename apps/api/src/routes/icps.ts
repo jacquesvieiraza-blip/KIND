@@ -821,6 +821,49 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
   }
 })
 
+// ── M4 — THE CLIENT REVISES THEIR OWN TARGETING, BY CONVERSATION ──────────────
+// Founder-locked in the flow walk: a client revision GOES LIVE (no approval gate holding
+// their own change hostage) and NOTIFIES US, because the people already in a live campaign
+// were picked against the OLD profile and may now be the wrong people.
+//
+// Deliberately separate from POST /icps: that one creates an inactive draft and auto-runs
+// on credits. This one supersedes the current version atomically-in-order (deactivate all,
+// then insert active) so the client is never left with zero active ICPs, and it does NOT
+// auto-source — Vida re-picks who goes into the campaign, which is the whole point of the
+// notification. Same shape the conversational builder returns (POST /icps/chat-build).
+icpRouter.post('/revise', async (req: AuthRequest, res) => {
+  try {
+    const body = icpSchema.parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: previous } = await db.from('icps')
+      .select('id, name').eq('client_id', clientId).eq('is_active', true)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+    await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
+    const { data, error } = await db.from('icps')
+      .insert({ ...body, client_id: clientId, is_active: true }).select().single()
+    if (error) throw error
+
+    // Notify us. Vida's bell already derives "ICP revised since the campaign was built"
+    // from the rows, so this alert is the push half of the same fact — never the only half.
+    const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
+    void sendFounderAlert('new_signup', `ICP revised — ${client?.company_name ?? 'a client'}`, [
+      `${client?.company_name ?? 'A client'} changed their targeting in Milla.`,
+      previous?.name ? `Was: ${previous.name}` : 'They had no active ICP before this.',
+      `Now: ${data.name ?? 'unnamed ICP'}`,
+      'It is LIVE. Anyone already enrolled was picked against the old profile — re-check who is in the campaign in Vida.',
+    ]).catch(() => {})
+
+    res.status(201).json({ success: true, data })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
+    console.error('[icps/revise]', err)
+    res.status(500).json({ success: false, error: 'Failed to save your targeting' })
+  }
+})
+
 icpRouter.patch('/:id', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.partial().parse(req.body)

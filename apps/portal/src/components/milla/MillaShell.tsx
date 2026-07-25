@@ -84,8 +84,13 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
     <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
       {/* top bar */}
       <header className="h-[54px] shrink-0 flex items-center gap-3 px-5 border-b border-[#eee7f7] bg-white">
-        <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">M</div>
-        <div className="text-[15px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[12.5px]">&amp;Vida</span></div>
+        {/* A1 — the brand is the way home. Clicking it from any rail page returns the client
+            to their main screen (new leads + Milla). It used to be static text, so deeper
+            pages had no obvious way back. */}
+        <Link href="/milla" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to your leads">
+          <span className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">M</span>
+          <span className="text-[15px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[12.5px]">&amp;Vida</span></span>
+        </Link>
         <div className="ml-auto flex items-center gap-3.5">
           <span className="text-[13.5px] font-extrabold text-[#7C3AED]">${s ? s.wallet_balance_usd.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[12px]">wallet</span></span>
           <Bell className="w-4.5 h-4.5 text-[#9b8ec4]" style={{ width: 18, height: 18 }} />

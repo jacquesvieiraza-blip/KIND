@@ -52,13 +52,38 @@ export default function MillaHomePage() {
       setSummary(s.data); setLeads(l.data)
       const n = s.data.leads_awaiting
       const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
-      setMessages([{ id: 'greet', role: 'assistant', content: n > 0
+      // Functional update, and the greeting is keyed 'greet': the thread-history effect
+      // below races this one, and whichever lands second must not wipe the other.
+      setMessages(m => [{ id: 'greet', role: 'assistant', content: n > 0
         ? `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; **nothing is charged until you approve — then a flat $4 per lead, final**. Want me to talk you through them?`
-        : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` }])
+        : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
+        ...m.filter(x => x.id !== 'greet')])
     } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your dashboard') }
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  // M2 — the thread persists, so anything WE asked them (Vida's "Ask them for these" writes
+  // straight into this thread) is waiting here when they next open Milla, and their answer
+  // lands in the same thread where we read it. Without this the chat started blank every
+  // visit and an ask could never be seen, let alone answered.
+  useEffect(() => {
+    (async () => {
+      try {
+        const tok = await token()
+        const list = await api.get<{ data: { id: string }[] }>('/milla/sessions', tok)
+        const sid = list.data?.[0]?.id
+        if (!sid) return
+        setSessionId(sid)
+        const hist = await api.get<{ data: { id: string; role: 'user' | 'assistant'; content: string }[] }>(
+          `/milla/sessions/${sid}/messages`, tok)
+        const rows = (hist.data ?? []).slice(-20)
+        if (rows.length > 0) {
+          setMessages(m => [...m, ...rows.map(r => ({ id: r.id, role: r.role, content: r.content }))])
+        }
+      } catch { /* no thread yet — the greeting stands on its own */ }
+    })()
+  }, [])
   // #511f — best-effort Nexus summary (never blocks the dashboard).
   useEffect(() => {
     (async () => {

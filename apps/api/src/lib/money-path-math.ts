@@ -49,6 +49,50 @@ export function sourceRevealRatio(recordsSourced: number, reveals: number): numb
 }
 
 /**
+ * NAMES PER APPROVAL — the one number the money model rests on, measured instead of assumed.
+ *
+ * We pay PDL_RATE_USD for every name we pull, whether the client approves it or not, so this
+ * ratio sets the data cost of a $4 lead: at 2 it is ~$0.56, at 7 it is ~$1.96 — the same price
+ * with nearly half the profit. Flow v2 plans for 2 (source 200, approve 100); item #415
+ * measured nearer 7 on the old product. Founder-locked 25 Jul: **plan on 2, let Vida measure
+ * it, and only change the number with data behind it.**
+ *
+ * A ratio off three approvals is noise, so a reading is only `confident` past MIN_APPROVALS —
+ * below that it reports honestly that it is still counting rather than showing a number the
+ * founder might type into the cashflow lab.
+ */
+export const RATIO_MIN_APPROVALS = 20
+
+export type RatioReading = {
+  sourced: number
+  approved: number
+  /** null until there is anything to divide by. */
+  ratio: number | null
+  confident: boolean
+  /** Plain words for the operator console — never a bare number. */
+  label: string
+}
+
+export function namesPerApproval(sourced: number, approved: number): RatioReading {
+  const s = Math.max(0, Math.floor(Number(sourced) || 0))
+  const a = Math.max(0, Math.floor(Number(approved) || 0))
+  const raw = sourceRevealRatio(s, a)
+  const ratio = raw === null ? null : round2(raw)
+  const confident = a >= RATIO_MIN_APPROVALS && ratio !== null
+
+  if (ratio === null) {
+    return { sourced: s, approved: a, ratio, confident: false, label: 'No approvals yet — nothing to measure' }
+  }
+  if (!confident) {
+    return {
+      sourced: s, approved: a, ratio, confident: false,
+      label: `${ratio} names per approval so far — too early to trust (${a} of ${RATIO_MIN_APPROVALS})`,
+    }
+  }
+  return { sourced: s, approved: a, ratio, confident: true, label: `${ratio} names per approval` }
+}
+
+/**
  * Blended effective $/record = total sourcing cost / total records sourced. Guards the
  * divide-by-zero (no records yet → 0).
  */

@@ -3,6 +3,7 @@ import {
   creditTxUsd,
   netContribution,
   sourceRevealRatio,
+  namesPerApproval,
   effectiveCostPerRecord,
   round2,
   PDL_RATE_USD,
@@ -75,5 +76,46 @@ describe('round2 — cents rounding for display', () => {
   it('rounds a raw PDL float to cents', () => {
     expect(round2(2.8000000000000003)).toBe(2.8)
     expect(round2(1.005)).toBe(1.01)
+  })
+})
+
+describe('namesPerApproval — the ratio the money model rests on, measured not assumed', () => {
+  it('says nothing rather than divide by zero', () => {
+    const r = namesPerApproval(200, 0)
+    expect(r.ratio).toBeNull()
+    expect(r.confident).toBe(false)
+    expect(r.label).toBe('No approvals yet — nothing to measure')
+  })
+
+  it('shows the number but refuses to call it real too early', () => {
+    // Three approvals is noise. The danger is the founder typing it into the cashflow lab
+    // and re-pricing the product off six data points.
+    const r = namesPerApproval(21, 3)
+    expect(r.ratio).toBe(7)
+    expect(r.confident).toBe(false)
+    expect(r.label).toContain('too early to trust')
+    expect(r.label).toContain('3 of 20')
+  })
+
+  it('becomes confident exactly at the threshold', () => {
+    expect(namesPerApproval(40, 19).confident).toBe(false)
+    expect(namesPerApproval(40, 20).confident).toBe(true)
+    expect(namesPerApproval(40, 20).label).toBe('2 names per approval')
+  })
+
+  it('measures the two numbers that are actually in dispute', () => {
+    // flow v2 plans for 2; #415 measured nearer 7. Both must read cleanly.
+    expect(namesPerApproval(200, 100).ratio).toBe(2)
+    expect(namesPerApproval(700, 100).ratio).toBe(7)
+  })
+
+  it('rounds to cents so a raw float never reaches the console', () => {
+    expect(namesPerApproval(100, 30).ratio).toBe(3.33)
+  })
+
+  it('treats junk as zero rather than throwing on the operator front door', () => {
+    expect(namesPerApproval(-5, 20).sourced).toBe(0)
+    expect(namesPerApproval(NaN, 20).sourced).toBe(0)
+    expect(namesPerApproval(40.9, 20).sourced).toBe(40)
   })
 })

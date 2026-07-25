@@ -83,9 +83,11 @@ type NextAction = {
   cta?: { kind: 'inbox' | 'sequence' | 'run' | 'replies' | 'qualify' | 'approvals' | 'chase'; label: string }
   urgency: number
 }
+type RatioReading = { sourced: number; approved: number; ratio: number | null; confident: boolean; label: string }
 type WorkRow = ClientRow & {
   counts: { sourced: number; with_client: number; approved: number }
   pack: { active: boolean; included: number; left: number; label: string }
+  ratio: RatioReading
   next: NextAction
 }
 // The founder's mapped flow, as the rail across the top of the work column.
@@ -150,6 +152,9 @@ export default function VidaConsolePage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [work, setWork] = useState<WorkRow[] | null>(null)
+  // Blended names-per-approval across the real book — the figure that belongs in the
+  // cashflow lab, kept separate from the noisy per-client reading.
+  const [bookRatio, setBookRatio] = useState<RatioReading | null>(null)
   const [onlyNeedsYou, setOnlyNeedsYou] = useState(true)
 
   const [board, setBoard] = useState<Board | null>(null)
@@ -576,7 +581,7 @@ export default function VidaConsolePage() {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
     // V17 — the bell. Best-effort: no alerts must never break the console.
     fetch('/api/proxy/operator/alerts').then(r => r.json()).then(j => { if (j?.success) setAlerts(j.data) }).catch(() => {})
-    fetch('/api/proxy/operator/worklist').then(r => r.json()).then(j => { if (j?.success) setWork(j.data) }).catch(() => {})
+    fetch('/api/proxy/operator/worklist').then(r => r.json()).then(j => { if (j?.success) { setWork(j.data); setBookRatio(j.meta?.ratio ?? null) } }).catch(() => {})
   }, [])
 
   // #498b — detect a sourcing intent ("source 50 leads", "find 30 prospects", "source leads")
@@ -799,6 +804,23 @@ export default function VidaConsolePage() {
             </button>
           ))}
         </div>
+        {/* THE BOOK'S RATIO — names sourced per approved lead, across every real client.
+            Founder-locked 25 Jul: the cashflow model plans on 2, and this is where the real
+            number comes from. It costs $0.28 a name whether they approve it or not, so this
+            is the difference between keeping ~$3.20 and ~$1.80 on a $4 lead. */}
+        {bookRatio && (
+          <div className="mx-[18px] mb-2.5 rounded-xl border border-[#ece5fb] bg-[#faf8ff] px-3 py-2">
+            <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Across the book</div>
+            <div className={`text-[13px] ${bookRatio.confident ? 'text-[#1f1235] font-semibold' : 'text-[#9b8ec4]'}`}>
+              📐 {bookRatio.label}
+            </div>
+            {bookRatio.confident && (
+              <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
+                Data cost ${(bookRatio.ratio! * 0.28).toFixed(2)} per approved lead — put this number in the cashflow lab.
+              </div>
+            )}
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto px-3 pb-3">
           {clientsError && <p className="text-xs text-red-500 px-2 py-3">{clientsError}</p>}
           {!clients && !clientsError && <p className="text-xs text-[#9b8ec4] px-2 py-3">Loading clients…</p>}
@@ -1067,6 +1089,11 @@ export default function VidaConsolePage() {
                       {selectedWork.pack.active && (
                         <span className={selectedWork.pack.left === 0 ? 'text-[#7C3AED] font-semibold' : ''}>{selectedWork.pack.label}</span>
                       )}
+                      {/* Every name costs $0.28 whether they approve it or not. This is the
+                          number the whole money model rests on — measured, not assumed. */}
+                      <span className={selectedWork.ratio.confident ? 'text-[#1f1235]' : ''} title="Names we sourced ÷ leads they approved. $0.28 a name, approved or not.">
+                        📐 {selectedWork.ratio.label}
+                      </span>
                     </div>
                   </div>
                 </div>

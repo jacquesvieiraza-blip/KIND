@@ -4,6 +4,7 @@ import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit } from '../lib/operator-audit'
 import { PAID_TX_TYPES, packState, packLabel } from '../lib/onboarding-pack'
+import { namesPerApproval } from '../lib/money-path-math'
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -78,8 +79,11 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       db.from('credit_transactions').select('client_id')
         .in('client_id', ids).in('type', PAID_TX_TYPES),
       inboxQ,
+      // Passed leads are INCLUDED here (they used to be filtered out at the query) because
+      // the names-per-approval ratio is meaningless without them: a client who passes on 190
+      // of 200 is exactly the case the number exists to catch.
       db.from('leads').select('client_id, surfaced_for_approval_at, revealed_at, status')
-        .in('client_id', ids).neq('status', 'passed').limit(20000),
+        .in('client_id', ids).limit(20000),
       db.from('figsy_sequences').select('client_id').in('client_id', ids),
       db.from('figsy_campaigns').select('client_id, status').in('client_id', ids),
       db.from('figsy_approval_queue').select('client_id').in('client_id', ids).eq('status', 'pending'),
@@ -105,12 +109,13 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const activeN = countBy(camps, r => r.status === 'active')
     const queueN = countBy(queue)
 
-    const sourcedN   = countBy(leads)
+    const allLeadsN  = countBy(leads)                                   // incl. passed — the ratio's numerator
+    const sourcedN   = countBy(leads, r => r.status !== 'passed')
     // NO TIME LIMIT ON PAID LEADS (founder-locked 25 Jul). This used to drop a lead off the
     // operator's board once its 72h expiry passed while Milla still showed it to the client —
     // so the two consoles disagreed about what was outstanding. The expiry is gone; a lead is
     // with the client until they approve or pass it.
-    const withClient = countBy(leads, r => !!r.surfaced_for_approval_at && !r.revealed_at)
+    const withClient = countBy(leads, r => !!r.surfaced_for_approval_at && !r.revealed_at && r.status !== 'passed')
     const approvedN  = countBy(leads, r => !!r.revealed_at)
 
     // Replies still OPEN — not qualified, no meeting, and not noise. One bucket, because
@@ -152,6 +157,11 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
         // WHERE THEY ARE ON THEIR $99 — the operator needs to see the pack running out
         // BEFORE it does, because that is the moment the client starts paying $4 a lead.
         // Free to compute: paid + approved are already counted above.
+        // NAMES PER APPROVAL, measured (founder-locked 25 Jul: plan on 2, let Vida measure).
+        // Every name costs $0.28 whether they approve it or not, so this ratio is what the
+        // cashflow model rests on — and it stays honestly "too early" until there is enough
+        // of it to trust.
+        ratio: namesPerApproval(allLeadsN.get(id) ?? 0, approvedN.get(id) ?? 0),
         pack: (() => {
           const st = packState((paidN.get(id) ?? 0) > 0, approvedN.get(id) ?? 0)
           return { active: st.active, included: st.included, left: st.left, label: packLabel(st) }
@@ -160,7 +170,16 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       }
     })
 
-    res.json({ success: true, data: sortByUrgency(out) })
+    // Blended across the whole book — the per-client reading is noisy on small numbers, and
+    // THIS is the figure that belongs in the cashflow lab. Excludes demos and house accounts,
+    // which don't buy data on the same terms.
+    const real = rows.filter(c => c.is_demo !== true && !excluded.has(c.id as string)).map(c => c.id as string)
+    const blended = namesPerApproval(
+      real.reduce((s, id) => s + (allLeadsN.get(id) ?? 0), 0),
+      real.reduce((s, id) => s + (approvedN.get(id) ?? 0), 0),
+    )
+
+    res.json({ success: true, data: sortByUrgency(out), meta: { ratio: blended } })
   } catch (err) {
     console.error('[operator/worklist]', err)
     res.status(500).json({ success: false, error: 'Failed to load the worklist' })

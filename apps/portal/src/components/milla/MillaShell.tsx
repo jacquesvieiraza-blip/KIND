@@ -57,15 +57,15 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
 
   const isLeads = pathname === '/milla'
   const link = (href: string, label: string, Icon: React.ElementType, active: boolean, badge?: number) => (
-    <Link key={label} href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[13.5px] font-semibold mb-0.5 transition-colors ${
+    <Link key={label} href={href} className={`flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[14.5px] font-semibold mb-0.5 transition-colors ${
       active ? 'bg-[#f3ecff] text-[#7C3AED]' : 'text-[#5c5279] hover:bg-[#f7f4fd]'
     }`}>
       <Icon className="w-4 h-4 shrink-0" /> {label}
-      {badge ? <span className="ml-auto text-[10px] font-bold text-white bg-[#7C3AED] rounded-full px-1.5">{badge}</span> : null}
+      {badge ? <span className="ml-auto text-[11px] font-bold text-white bg-[#7C3AED] rounded-full px-1.5">{badge}</span> : null}
     </Link>
   )
   const section = (label: string) => (
-    <div className="mt-4 mb-1 px-3 text-[9.5px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">{label}</div>
+    <div className="mt-4 mb-1 px-3 text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">{label}</div>
   )
 
   const ACCOUNT: [string, string, React.ElementType][] = [
@@ -88,34 +88,34 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             to their main screen (new leads + Milla). It used to be static text, so deeper
             pages had no obvious way back. */}
         <Link href="/milla" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to your leads">
-          <span className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[14px] font-extrabold">M</span>
-          <span className="text-[15px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[12.5px]">&amp;Vida</span></span>
+          <span className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[15px] font-extrabold">M</span>
+          <span className="text-[16px] font-extrabold">Milla<span className="text-[#9b8ec4] font-semibold text-[13.5px]">&amp;Vida</span></span>
         </Link>
         <div className="ml-auto flex items-center gap-3.5">
-          <span className="text-[13.5px] font-extrabold text-[#7C3AED]">${s ? s.wallet_balance_usd.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[12px]">wallet</span></span>
+          <span className="text-[14.5px] font-extrabold text-[#7C3AED]">${s ? s.wallet_balance_usd.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[13px]">wallet</span></span>
           <Bell className="w-4.5 h-4.5 text-[#9b8ec4]" style={{ width: 18, height: 18 }} />
           <div className="relative" ref={menuRef}>
-            <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 h-8 rounded-full border border-[#ece5fb] bg-white pl-1.5 pr-3 text-[13px] font-extrabold hover:bg-[#f7f4fd]">
-              <span className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[10px] font-extrabold flex items-center justify-center">AC</span>
+            <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 h-8 rounded-full border border-[#ece5fb] bg-white pl-1.5 pr-3 text-[14px] font-extrabold hover:bg-[#f7f4fd]">
+              <span className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[11px] font-extrabold flex items-center justify-center">AC</span>
               Account <ChevronDown className={`w-3.5 h-3.5 transition-transform ${menuOpen ? 'rotate-180' : ''}`} />
             </button>
             {menuOpen && (
               <div className="absolute right-0 top-10 z-50 w-56 rounded-xl border border-[#e9e2f8] bg-white shadow-xl py-2">
-                <div className="px-3 pb-1.5 pt-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Your ROI</div>
+                <div className="px-3 pb-1.5 pt-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Your ROI</div>
                 {ROI.map(([href, label, Icon]) => (
-                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#0e7c86] hover:bg-[#f7f4fd]">
+                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[14px] font-semibold text-[#0e7c86] hover:bg-[#f7f4fd]">
                     <Icon className="w-4 h-4" /> {label}
                   </a>
                 ))}
                 <div className="my-1.5 border-t border-[#f0eafa]" />
-                <div className="px-3 pb-1.5 pt-0.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Account</div>
+                <div className="px-3 pb-1.5 pt-0.5 text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc]">Account</div>
                 {ACCOUNT.map(([href, label, Icon]) => (
-                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-[#5c5279] hover:bg-[#f7f4fd]">
+                  <a key={label} href={href} className="flex items-center gap-2.5 px-3 py-2 text-[14px] font-semibold text-[#5c5279] hover:bg-[#f7f4fd]">
                     <Icon className="w-4 h-4 text-[#9b8ec4]" /> {label}
                   </a>
                 ))}
                 <div className="my-1.5 border-t border-[#f0eafa]" />
-                <button onClick={signOut} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-semibold text-red-500 hover:bg-red-50">
+                <button onClick={signOut} className="w-full flex items-center gap-2.5 px-3 py-2 text-[14px] font-semibold text-red-500 hover:bg-red-50">
                   <LogOut className="w-4 h-4" /> Sign out
                 </button>
               </div>
@@ -126,16 +126,16 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
 
       {/* #501 flow ribbon — the client's journey, with live badges */}
       <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-5 py-2 bg-[#2a1747] text-white">
-        <span className="text-[10px] font-extrabold tracking-[0.1em] text-[#b9a6e6] mr-2.5">FLOW</span>
+        <span className="text-[11px] font-extrabold tracking-[0.1em] text-[#b9a6e6] mr-2.5">FLOW</span>
         {[
           ['Sign up'], ['Build plan'], ['We reach out'], ['Replies'],
           ['You approve', s?.leads_awaiting], ['Follow-up'], ['Meeting booked', s?.meetings_booked], ['Results'],
         ].map(([label, badge], i, arr) => (
           <span key={label as string} className="flex items-center shrink-0">
-            <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#d9cef2] px-1">
-              <span className="w-[18px] h-[18px] rounded-full bg-[#3d2a63] text-white text-[10px] font-extrabold flex items-center justify-center">{i + 1}</span>
+            <span className="flex items-center gap-1.5 text-[13px] font-semibold text-[#d9cef2] px-1">
+              <span className="w-[18px] h-[18px] rounded-full bg-[#3d2a63] text-white text-[11px] font-extrabold flex items-center justify-center">{i + 1}</span>
               {label as string}
-              {typeof badge === 'number' && badge > 0 && <span className="text-[9px] font-extrabold bg-[#EC4899] text-white rounded-full px-1.5">{badge}</span>}
+              {typeof badge === 'number' && badge > 0 && <span className="text-[10px] font-extrabold bg-[#EC4899] text-white rounded-full px-1.5">{badge}</span>}
             </span>
             {i < arr.length - 1 && <span className="text-[#5b4785] px-0.5">›</span>}
           </span>
@@ -144,7 +144,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
 
       <div className="flex-1 flex overflow-hidden">
         {/* rail */}
-        <aside className="w-[216px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto">
+        <aside className="w-[260px] shrink-0 border-r border-[#eee7f7] bg-[#fdfcff] flex flex-col px-3 py-4 overflow-y-auto">
           <nav>
             {link('/milla', 'New leads', Sparkles, isLeads, s?.leads_awaiting || undefined)}
             {link('/milla/pipeline', 'Pipeline', Workflow, pathname.startsWith('/milla/pipeline'))}
@@ -163,15 +163,15 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
               top-right "Your ROI" dropdown — the rail stays the client's workspace only. */}
           {section('Recent replies')}
           <div className="px-1">
-            {s && s.recent_replies.length === 0 && <div className="text-[11.5px] text-[#b3a9cc] px-2 py-1">No replies yet.</div>}
+            {s && s.recent_replies.length === 0 && <div className="text-[12.5px] text-[#b3a9cc] px-2 py-1">No replies yet.</div>}
             {(s?.recent_replies ?? []).map((r, i) => (
-              <div key={i} className="flex items-start gap-2 px-2 py-1.5 text-[12px]">
+              <div key={i} className="flex items-start gap-2 px-2 py-1.5 text-[13px]">
                 <Star className="w-3.5 h-3.5 text-[#EC4899] shrink-0 mt-0.5" />
                 <div className="min-w-0"><b className="font-bold">{r.name}</b> <span className="text-[#9b8ec4]">· {REPLY_TONE[r.classification] ?? r.classification}</span></div>
               </div>
             ))}
           </div>
-          <div className="mt-auto pt-4 text-[11px] text-[#b3a9cc] px-2 leading-relaxed">We run your outbound. You just approve the leads worth pursuing.</div>
+          <div className="mt-auto pt-4 text-[12px] text-[#b3a9cc] px-2 leading-relaxed">We run your outbound. You just approve the leads worth pursuing.</div>
         </aside>
         <main className="flex-1 overflow-hidden">{children}</main>
       </div>

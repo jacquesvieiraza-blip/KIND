@@ -762,10 +762,10 @@ export default function VidaConsolePage() {
   return (
     <div className="flex h-full min-h-0">
       {/* ── CLIENTS PANEL ──────────────────────────────────────────────────── */}
-      <div className="w-[336px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col overflow-hidden">
+      <div className="w-[380px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col overflow-hidden">
         <div className="px-[18px] pt-[15px] pb-2.5">
-          <b className="text-[14.5px]">Clients</b>
-          <span className="block text-[11.5px] text-[#9b8ec4]">Pick a client to work their campaign</span>
+          <b className="text-[15.5px]">Clients</b>
+          <span className="block text-[12.5px] text-[#9b8ec4]">Pick a client to work their campaign</span>
         </div>
         <div className="flex-1 overflow-y-auto px-3 pb-3">
           {clientsError && <p className="text-xs text-red-500 px-2 py-3">{clientsError}</p>}
@@ -783,22 +783,22 @@ export default function VidaConsolePage() {
                 className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl mb-1 transition-colors ${
                   active ? 'bg-[#f3ecff] border border-[#e4d4fb]' : 'hover:bg-[#faf8ff] border border-transparent'
                 }`}>
-                <span className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 ${active ? 'bg-[#7C3AED] text-white' : 'bg-[#efeafc] text-[#7C3AED]'}`}>
+                <span className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 ${active ? 'bg-[#7C3AED] text-white' : 'bg-[#efeafc] text-[#7C3AED]'}`}>
                   {initials(c.company_name)}
                   {mine.length > 0 && (
-                    <span className={`absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[9px] font-extrabold text-white flex items-center justify-center ring-2 ring-white ${high ? 'bg-[#EC4899]' : 'bg-[#b3a9cc]'}`}>
+                    <span className={`absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[10px] font-extrabold text-white flex items-center justify-center ring-2 ring-white ${high ? 'bg-[#EC4899]' : 'bg-[#b3a9cc]'}`}>
                       {mine.length}
                     </span>
                   )}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <b className="text-[13px] block truncate">{c.company_name || 'Unnamed'}</b>
-                  <span className={`text-[11px] block truncate ${high ? 'text-[#EC4899] font-semibold' : 'text-[#9b8ec4]'}`}>
+                  <b className="text-[14px] block truncate">{c.company_name || 'Unnamed'}</b>
+                  <span className={`text-[12px] block truncate ${high ? 'text-[#EC4899] font-semibold' : 'text-[#9b8ec4]'}`}>
                     {high ? mine.find(a => a.severity === 'high')!.label : ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
                   </span>
                 </span>
                 {c.house_or_demo && (
-                  <span className="text-[9px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded px-1.5 py-0.5 shrink-0">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded px-1.5 py-0.5 shrink-0">
                     {c.is_demo ? 'demo' : 'house'}
                   </span>
                 )}
@@ -820,8 +820,8 @@ export default function VidaConsolePage() {
           <div className="shrink-0 flex items-center gap-1 overflow-x-auto px-[22px] py-2 border-b border-[#eee7f7] bg-white">
             {FLOW.map((step, i) => (
               <span key={step} className="flex items-center gap-1 shrink-0">
-                <span className="flex items-center gap-1.5 text-[11px] font-semibold text-[#7c6f9b]">
-                  <span className="w-[18px] h-[18px] rounded-full bg-[#efeafc] text-[#7C3AED] text-[10px] font-bold flex items-center justify-center">{i + 1}</span>
+                <span className="flex items-center gap-1.5 text-[12px] font-semibold text-[#7c6f9b]">
+                  <span className="w-[18px] h-[18px] rounded-full bg-[#efeafc] text-[#7C3AED] text-[11px] font-bold flex items-center justify-center">{i + 1}</span>
                   {step}
                 </span>
                 {i < FLOW.length - 1 && <span className="text-[#d9d0ee] px-0.5">&rsaquo;</span>}
@@ -833,39 +833,39 @@ export default function VidaConsolePage() {
           <div className="flex-1 flex min-h-0">
 
             {/* ── VIDA — the assistant, scoped to the selected client ── */}
-            <section className="flex-1 min-w-0 flex flex-col border-r border-[#eee7f7]">
+            <section className="w-[540px] shrink-0 flex flex-col border-r border-[#eee7f7]">
               <div className="shrink-0 flex items-center gap-2.5 px-[22px] py-2.5 border-b border-[#eee7f7] bg-white">
-                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[11px] font-bold flex items-center justify-center">
+                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[12px] font-bold flex items-center justify-center">
                   {initials(selectedClient?.company_name ?? null)}
                 </span>
                 <div className="min-w-0">
-                  <b className="text-[13.5px] block leading-tight truncate">{selectedClient?.company_name || 'Client'}</b>
-                  <span className="text-[11px] text-[#9b8ec4]">{[selectedClient?.industry, selectedClient?.country].filter(Boolean).join(' · ') || 'client'}</span>
+                  <b className="text-[14.5px] block leading-tight truncate">{selectedClient?.company_name || 'Client'}</b>
+                  <span className="text-[12px] text-[#9b8ec4]">{[selectedClient?.industry, selectedClient?.country].filter(Boolean).join(' · ') || 'client'}</span>
                 </div>
                 {/* V11 ONBOARDING GATE — how complete is this client, and what's missing. */}
                 {cockpit && (
-                  <span className={`ml-auto shrink-0 text-[11.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#b45309] bg-[#fffbeb]'}`}
+                  <span className={`ml-auto shrink-0 text-[12.5px] font-bold rounded-full px-2.5 py-1 ${cockpit.onboarding.percent === 100 ? 'text-emerald-700 bg-emerald-50' : 'text-[#b45309] bg-[#fffbeb]'}`}
                     title={cockpit.onboarding.missing.length ? `Missing: ${cockpit.onboarding.missing.join(', ')}` : 'Fully onboarded'}>
                     Onboarding {cockpit.onboarding.percent}%
                   </span>
                 )}
-                <span className={`shrink-0 text-[11.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'}`}>
+                <span className={`shrink-0 text-[12.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'}`}>
                   ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
                 </span>
               </div>
 
-              <div className="shrink-0 px-[22px] py-1.5 text-[11px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
+              <div className="shrink-0 px-[22px] py-1.5 text-[12px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
                 You&rsquo;re working <b className="text-[#7C3AED]">{selectedClient?.company_name || 'this client'}</b> — Vida and the cockpit are scoped to this client only.
               </div>
 
               {/* V17 — what changed for THIS client that needs us. */}
               {myAlerts.length > 0 && (
                 <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fdf2f8] border-b border-[#fbcfe8]">
-                  <span className="text-[11.5px] font-bold text-[#9d174d]">Needs you:</span>
+                  <span className="text-[12.5px] font-bold text-[#9d174d]">Needs you:</span>
                   {myAlerts.map((a, i) => (
                     <button key={`${a.kind}-${i}`}
                       onClick={() => setTab(a.kind === 'replies' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
-                      className="text-[11px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
+                      className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
                       {a.label} &rarr;
                     </button>
                   ))}
@@ -876,26 +876,26 @@ export default function VidaConsolePage() {
                   surface that closes it. "Ask them for these" now reaches their Milla thread. */}
               {cockpit && cockpit.onboarding.missing.length > 0 && (
                 <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fffbeb] border-b border-[#fde68a]">
-                  <span className="text-[11.5px] font-bold text-[#b45309]">Onboarding gaps:</span>
+                  <span className="text-[12.5px] font-bold text-[#b45309]">Onboarding gaps:</span>
                   {cockpit.onboarding.missing.map(m => {
                     const go = GAP_TAB[m] ?? null
                     return go ? (
                       <button key={m} onClick={() => setTab(go)}
-                        className="text-[11px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5 hover:border-[#b45309]">{m} &rarr;</button>
+                        className="text-[12px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5 hover:border-[#b45309]">{m} &rarr;</button>
                     ) : (
-                      <span key={m} className="text-[11px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
+                      <span key={m} className="text-[12px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
                     )
                   })}
                   <button
                     onClick={() => sendAsk(`Quick one so we can get your outreach sharper — could you send us: ${cockpit.onboarding.missing.filter(m => !GAP_TAB[m]).join(', ') || cockpit.onboarding.missing.join(', ')}?`)}
                     disabled={cockpitBusy}
-                    className="ml-auto text-[11.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask them for these</button>
+                    className="ml-auto text-[12.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask them for these</button>
                 </div>
               )}
 
               {/* Pipeline at a glance — every stage, click through to the tab that works it. */}
               <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
-                <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Pipeline</span>
+                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Pipeline</span>
                 {([
                   ['Sourced', cols?.sourced.count ?? 0, 'People'],
                   ['Needs approval', cols?.needs_approval.count ?? 0, 'Approvals'],
@@ -905,7 +905,7 @@ export default function VidaConsolePage() {
                   ['Booked', cols?.booked.count ?? 0, 'Bookings'],
                 ] as [string, number, CockpitTab | null][]).map(([label, n, goTo]) => (
                   <button key={label} onClick={() => goTo && setTab(goTo)} disabled={!goTo}
-                    className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 ${n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
+                    className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n > 0 ? 'text-[#1f1235] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'} ${goTo ? 'hover:border-[#7C3AED]' : 'cursor-default'}`}>
                     {n} {label}
                   </button>
                 ))}
@@ -913,34 +913,34 @@ export default function VidaConsolePage() {
 
               {/* live gate counts for THIS client */}
               <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
-                <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Blockers</span>
+                <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Blockers</span>
                 {([['Send gate', blockers?.send_gate], ['Money gate', blockers?.money_gate], ['Unsent sourced', blockers?.unsent_sourced], ['To triage', blockers?.replies_to_triage]] as [string, number | undefined][]).map(([label, n]) => (
-                  <span key={label} className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n ?? 0} {label}</span>
+                  <span key={label} className={`text-[12px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n ?? 0} {label}</span>
                 ))}
                 {status && !status.outreach_enabled && (
-                  <span className="text-[11px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending OFF (kill-switch)</span>
+                  <span className="text-[12px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending OFF (kill-switch)</span>
                 )}
               </div>
 
               <div className="flex-1 overflow-y-auto px-[22px] py-3.5 space-y-2">
-                {boardError && <div className="text-[12px] font-semibold text-red-600">{boardError}</div>}
+                {boardError && <div className="text-[13px] font-semibold text-red-600">{boardError}</div>}
                 {cmdLog.length === 0 && (
-                  <div className="text-[12.5px] text-[#9b8ec4] leading-relaxed max-w-lg">
+                  <div className="text-[13.5px] text-[#9b8ec4] leading-relaxed max-w-lg">
                     Ask Vida anything about <b className="text-[#5c5279]">{selectedClient?.company_name || 'this client'}</b> — or use a shortcut below.
                     Everything you do here is scoped to them.
                   </div>
                 )}
                 {cmdLog.map((m, i) => (
                   <div key={i} className={m.role === 'operator' ? 'text-right' : ''}>
-                    <span className={`inline-block text-[12.5px] leading-relaxed rounded-xl px-3.5 py-2 max-w-[85%] text-left ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7] text-[#1f1235]'}`}>{m.text}</span>
-                    {m.link && <a href={m.link} className="block text-[11px] font-bold text-[#7C3AED] mt-0.5 hover:underline">Open &rarr;</a>}
+                    <span className={`inline-block text-[13.5px] leading-relaxed rounded-xl px-3.5 py-2 max-w-[85%] text-left ${m.role === 'operator' ? 'bg-[#1f1235] text-white' : 'bg-white border border-[#eee7f7] text-[#1f1235]'}`}>{m.text}</span>
+                    {m.link && <a href={m.link} className="block text-[12px] font-bold text-[#7C3AED] mt-0.5 hover:underline">Open &rarr;</a>}
                   </div>
                 ))}
 
                 {srcPreview && (
                   <div className="border border-[#e4dcf7] bg-white rounded-xl px-3.5 py-3 max-w-md">
-                    <b className="text-[12.5px] block mb-1">Source {srcPreview.count} leads?</b>
-                    <p className="text-[11.5px] text-[#5c5279] leading-relaxed">
+                    <b className="text-[13.5px] block mb-1">Source {srcPreview.count} leads?</b>
+                    <p className="text-[12.5px] text-[#5c5279] leading-relaxed">
                       {srcPreview.no_active_icp
                         ? 'This client has no active ICP — build one on the ICP tab first.'
                         : <>{srcPreview.pool_free} free from the pool · {srcPreview.pdl_needed} new from PDL (~${srcPreview.pdl_cost_est.toFixed(2)} of OUR budget){srcPreview.is_demo ? ' · demo client, pool only' : ''}</>}
@@ -948,38 +948,38 @@ export default function VidaConsolePage() {
                     {!srcPreview.no_active_icp && (
                       <div className="flex gap-2 mt-2.5">
                         <button onClick={confirmSource} disabled={srcBusy}
-                          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-60">
+                          className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3 py-1.5 text-[13px] font-bold disabled:opacity-60">
                           {srcBusy ? 'Sourcing…' : 'Confirm & source'}
                         </button>
-                        <button onClick={() => setSrcPreview(null)} className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[12px] font-bold text-[#5c5279]">Cancel</button>
+                        <button onClick={() => setSrcPreview(null)} className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[13px] font-bold text-[#5c5279]">Cancel</button>
                       </div>
                     )}
                   </div>
                 )}
-                {srcResult && <div className="text-[12px] font-semibold text-emerald-700">{srcResult}</div>}
+                {srcResult && <div className="text-[13px] font-semibold text-emerald-700">{srcResult}</div>}
               </div>
 
               <div className="shrink-0 px-[22px] pb-3">
                 <div className="flex flex-wrap gap-1.5 mb-2">
                   {["What's blocking?", 'Status', 'Source 20 leads'].map(c => (
                     <button key={c} onClick={() => runCommand(c)} disabled={cmdBusy}
-                      className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">{c}</button>
+                      className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">{c}</button>
                   ))}
                   {/* These three are the launch path — they open the surface that does the
                       work, instead of handing prose back to the operator. */}
                   <button onClick={() => { setTab('ICP'); setIcpMode('chat') }}
-                    className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build the ICP &rarr;</button>
+                    className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build the ICP &rarr;</button>
                   <button onClick={() => { setTab('Campaign'); if (!activeCampaign) suggestCampaign() }}
-                    className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build a campaign &rarr;</button>
+                    className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build a campaign &rarr;</button>
                   <button onClick={() => { setTab('Sequence'); suggestSequence() }}
-                    className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Draft the sequence &rarr;</button>
+                    className="text-[12.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Draft the sequence &rarr;</button>
                 </div>
                 <form onSubmit={e => { e.preventDefault(); if (cmd.trim()) runCommand(cmd.trim()) }} className="flex gap-2">
                   <input value={cmd} onChange={e => setCmd(e.target.value)} disabled={cmdBusy}
                     placeholder={`Command Vida in ${selectedClient?.company_name || 'client'} context…`}
-                    className="flex-1 border border-[#ece5fb] rounded-xl px-3.5 py-2.5 text-[12.5px] bg-white outline-none focus:border-[#7C3AED] disabled:opacity-60" />
+                    className="flex-1 border border-[#ece5fb] rounded-xl px-3.5 py-2.5 text-[13.5px] bg-white outline-none focus:border-[#7C3AED] disabled:opacity-60" />
                   <button type="submit" disabled={cmdBusy || !cmd.trim()}
-                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl px-5 text-[12.5px] font-bold disabled:opacity-40">
+                    className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-xl px-5 text-[13.5px] font-bold disabled:opacity-40">
                     {cmdBusy ? '…' : 'Run'}
                   </button>
                 </form>
@@ -987,7 +987,7 @@ export default function VidaConsolePage() {
             </section>
 
             {/* ── COCKPIT — this client's work surfaces ── */}
-            <aside className="w-[480px] shrink-0 flex flex-col bg-white min-h-0">
+            <aside className="flex-1 min-w-0 flex flex-col bg-white min-h-0">
               <div className="shrink-0 flex items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7] overflow-x-auto">
                 {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings'] as CockpitTab[]).map(t => {
                   const on = tab === t
@@ -998,66 +998,66 @@ export default function VidaConsolePage() {
                     : t === 'Bookings' ? (cols?.booked.count ?? 0) : 0
                   return (
                     <button key={t} onClick={() => setTab(t)}
-                      className={`shrink-0 px-2.5 py-2 text-[12px] font-bold rounded-t-lg border-b-2 -mb-px transition-colors ${on ? 'border-[#7C3AED] text-[#1f1235] bg-[#faf8ff]' : 'border-transparent text-[#9b8ec4] hover:text-[#5c5279]'}`}>
-                      {t}{n > 0 && <span className="ml-1 text-[9.5px] font-extrabold text-white bg-[#EC4899] rounded-full px-1.5">{n}</span>}
+                      className={`shrink-0 px-2.5 py-2 text-[13px] font-bold rounded-t-lg border-b-2 -mb-px transition-colors ${on ? 'border-[#7C3AED] text-[#1f1235] bg-[#faf8ff]' : 'border-transparent text-[#9b8ec4] hover:text-[#5c5279]'}`}>
+                      {t}{n > 0 && <span className="ml-1 text-[10.5px] font-extrabold text-white bg-[#EC4899] rounded-full px-1.5">{n}</span>}
                     </button>
                   )
                 })}
               </div>
 
               <div className="flex-1 overflow-y-auto p-3.5">
-                {cockpitError && <p className="text-[12px] text-red-500 mb-2">{cockpitError}</p>}
-                {cockpitLoading && !cockpit && <p className="text-[12.5px] text-[#9b8ec4]">Loading…</p>}
+                {cockpitError && <p className="text-[13px] text-red-500 mb-2">{cockpitError}</p>}
+                {cockpitLoading && !cockpit && <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>}
 
                 {/* INBOX — a prospect asks; WE answer */}
                 {tab === 'Inbox' && (cockpit ? (
                   openReply ? (
                     <div>
-                      <button onClick={() => { setOpenReply(null); setThread(null); setDraft('') }} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; All replies</button>
-                      {!thread ? <p className="text-[12.5px] text-[#9b8ec4]">Loading thread…</p> : (<>
+                      <button onClick={() => { setOpenReply(null); setThread(null); setDraft('') }} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; All replies</button>
+                      {!thread ? <p className="text-[13.5px] text-[#9b8ec4]">Loading thread…</p> : (<>
                         <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
-                          <b className="text-[13px] block">{String(thread.reply.from_name || thread.reply.from_email || 'Prospect')}</b>
-                          <span className="text-[11px] text-[#9b8ec4]">
+                          <b className="text-[14px] block">{String(thread.reply.from_name || thread.reply.from_email || 'Prospect')}</b>
+                          <span className="text-[12px] text-[#9b8ec4]">
                             {[thread.lead?.job_title, thread.lead?.company].filter(Boolean).join(' · ') || String(thread.reply.from_email ?? '')}
                           </span>
-                          <p className="text-[12.5px] text-[#4c4368] leading-relaxed mt-2 whitespace-pre-wrap">
+                          <p className="text-[13.5px] text-[#4c4368] leading-relaxed mt-2 whitespace-pre-wrap">
                             {String(thread.reply.body_text || thread.reply.body || '(no body captured)').slice(0, 1500)}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 mb-2">
-                          <b className="text-[12px]">Your reply</b>
-                          <span className="text-[11px] text-[#9b8ec4]">— sent as {selectedClient?.company_name || 'the client'}</span>
+                          <b className="text-[13px]">Your reply</b>
+                          <span className="text-[12px] text-[#9b8ec4]">— sent as {selectedClient?.company_name || 'the client'}</span>
                           <button onClick={draftReply} disabled={replyBusy !== null}
-                            className="ml-auto text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+                            className="ml-auto text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
                             {replyBusy === 'draft' ? 'Drafting…' : '✨ Draft for me'}
                           </button>
                         </div>
                         <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={7}
                           placeholder="Write the reply, or let Vida draft it in the client's voice…"
-                          className="w-full border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
+                          className="w-full border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[13.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                         <div className="flex gap-2 mt-2">
                           <button onClick={sendReply} disabled={replyBusy !== null || !draft.trim()}
-                            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                            className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 py-2 text-[13.5px] font-bold disabled:opacity-40">
                             {replyBusy === 'send' ? 'Sending…' : 'Send'}
                           </button>
                           <button onClick={() => qualifyReply(openReply, true)} disabled={acting !== null}
-                            className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[12.5px] font-bold disabled:opacity-50">Mark qualified</button>
+                            className="border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg px-3 py-2 text-[13.5px] font-bold disabled:opacity-50">Mark qualified</button>
                           <a href={`/vida/record?lead_id=${encodeURIComponent(String(thread.reply.lead_id ?? ''))}`}
-                            className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Record</a>
+                            className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Record</a>
                         </div>
-                        {replyMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{replyMsg}</p>}
+                        {replyMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{replyMsg}</p>}
                       </>)}
                     </div>
                   ) : cockpit.replies.length === 0 ? (
-                    <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">No replies yet.</p>
+                    <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No replies yet.</p>
                   ) : cockpit.replies.map(r => (
                     <button key={r.id} onClick={() => openThread(r.id)}
                       className="w-full text-left flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2 hover:border-[#d9c9f7]">
                       <div className="min-w-0">
-                        <b className="text-[12.5px] block truncate">{r.from_name || r.from_email || 'Unknown'}</b>
-                        <span className="text-[11px] text-[#9b8ec4]">{r.classification || 'unclassified'} · {fmtDate(r.received_at)}</span>
+                        <b className="text-[13.5px] block truncate">{r.from_name || r.from_email || 'Unknown'}</b>
+                        <span className="text-[12px] text-[#9b8ec4]">{r.classification || 'unclassified'} · {fmtDate(r.received_at)}</span>
                       </div>
-                      <span className={`ml-auto shrink-0 text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${r.meeting_booked_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : r.qualified_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
+                      <span className={`ml-auto shrink-0 text-[11px] font-extrabold rounded-full border px-2 py-0.5 ${r.meeting_booked_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : r.qualified_at ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
                         {r.meeting_booked_at ? 'booked' : r.qualified_at ? 'qualified' : 'needs you'}
                       </span>
                     </button>
@@ -1067,25 +1067,25 @@ export default function VidaConsolePage() {
                 {/* APPROVALS — drafts waiting on the operator's send gate */}
                 {tab === 'Approvals' && (
                   (cols?.needs_approval.cards.length ?? 0) === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">Nothing waiting on your send gate.</p>
+                    ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Nothing waiting on your send gate.</p>
                     : cols!.needs_approval.cards.map(c => (
                       <div key={c.id} className="border border-[#eee7f7] rounded-xl p-3 mb-2">
-                        <b className="text-[12.5px] block">{fullName(c.leads?.first_name ?? null, c.leads?.last_name ?? null)}</b>
-                        <span className="text-[11px] text-[#9b8ec4]">{c.leads?.company || c.to_email || '—'} · step {c.sequence_step ?? 1}</span>
-                        <button onClick={() => toggleDraft(c.id)} className="block text-[11.5px] font-bold text-[#7C3AED] mt-1.5">
+                        <b className="text-[13.5px] block">{fullName(c.leads?.first_name ?? null, c.leads?.last_name ?? null)}</b>
+                        <span className="text-[12px] text-[#9b8ec4]">{c.leads?.company || c.to_email || '—'} · step {c.sequence_step ?? 1}</span>
+                        <button onClick={() => toggleDraft(c.id)} className="block text-[12.5px] font-bold text-[#7C3AED] mt-1.5">
                           {openDrafts.has(c.id) ? 'Hide draft' : 'Read draft'}
                         </button>
                         {openDrafts.has(c.id) && (
                           <div className="mt-1.5 bg-[#faf8ff] border border-[#f2ecfb] rounded-lg p-2.5">
-                            <b className="text-[11.5px] block mb-1">{c.subject || '(no subject)'}</b>
-                            <p className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{(c.body || '').slice(0, 1200)}</p>
+                            <b className="text-[12.5px] block mb-1">{c.subject || '(no subject)'}</b>
+                            <p className="text-[12.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{(c.body || '').slice(0, 1200)}</p>
                           </div>
                         )}
                         <div className="flex gap-2 mt-2">
                           <button onClick={() => actQueue(c.id, 'approve')} disabled={acting !== null}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-50">Approve &amp; send</button>
+                            className="bg-[#7C3AED] text-white rounded-lg px-3 py-1.5 text-[13px] font-bold disabled:opacity-50">Approve &amp; send</button>
                           <button onClick={() => actQueue(c.id, 'reject')} disabled={acting !== null}
-                            className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[12px] font-bold text-[#5c5279] disabled:opacity-50">Reject</button>
+                            className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[13px] font-bold text-[#5c5279] disabled:opacity-50">Reject</button>
                         </div>
                       </div>
                     ))
@@ -1093,27 +1093,27 @@ export default function VidaConsolePage() {
 
                 {/* ── PEOPLE — V4 pick them, V5 put THOSE ones in the campaign ── */}
                 {tab === 'People' && (people === null ? (
-                  <p className="text-[12.5px] text-[#9b8ec4]">Loading people…</p>
+                  <p className="text-[13.5px] text-[#9b8ec4]">Loading people…</p>
                 ) : people.length === 0 ? (
-                  <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
+                  <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
                 ) : (<>
                   <div className="sticky top-0 -mt-3.5 -mx-3.5 px-3.5 pt-3.5 pb-2 bg-white z-10 border-b border-[#f2ecfb] mb-2.5">
                     <div className="flex items-center gap-2">
-                      <b className="text-[12.5px]">{picked.size} of {people.length} picked</b>
+                      <b className="text-[13.5px]">{picked.size} of {people.length} picked</b>
                       <button onClick={() => setPicked(new Set(people.filter(p => !p.in_campaign).map(p => p.id)))}
-                        className="text-[11px] font-bold text-[#7C3AED]">All</button>
-                      <button onClick={() => setPicked(new Set())} className="text-[11px] font-bold text-[#9b8ec4]">None</button>
+                        className="text-[12px] font-bold text-[#7C3AED]">All</button>
+                      <button onClick={() => setPicked(new Set())} className="text-[12px] font-bold text-[#9b8ec4]">None</button>
                       <button onClick={assignPicked} disabled={cockpitBusy || picked.size === 0 || !activeCampaign}
-                        className="ml-auto bg-[#7C3AED] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-40">
+                        className="ml-auto bg-[#7C3AED] text-white rounded-lg px-3 py-1.5 text-[13px] font-bold disabled:opacity-40">
                         {cockpitBusy ? 'Adding…' : `Add ${picked.size || ''} to campaign`}
                       </button>
                     </div>
-                    <p className="text-[10.5px] text-[#9b8ec4] mt-1">
+                    <p className="text-[11.5px] text-[#9b8ec4] mt-1">
                       {activeCampaign
                         ? <>Goes into <b className="text-[#5c5279]">{activeCampaign.name}</b>. Every new ICP means new prospects — pick who fits, not everyone.</>
                         : <span className="text-[#b45309] font-semibold">No campaign yet — build one on the Campaign tab before you can add anyone.</span>}
                     </p>
-                    {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-1">{saveMsg}</p>}
+                    {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-1">{saveMsg}</p>}
                   </div>
                   {people.map(p => (
                     <div key={p.id} className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 mb-2 ${p.in_campaign ? 'border-emerald-200 bg-emerald-50/40' : picked.has(p.id) ? 'border-[#7C3AED] bg-[#faf8ff]' : 'border-[#eee7f7]'}`}>
@@ -1121,20 +1121,20 @@ export default function VidaConsolePage() {
                         onChange={e => setPicked(s => { const n = new Set(s); e.target.checked ? n.add(p.id) : n.delete(p.id); return n })}
                         className="shrink-0 w-4 h-4 accent-[#7C3AED] disabled:opacity-40" />
                       <div className="min-w-0">
-                        <b className="text-[12.5px] block truncate">{fullName(p.first_name, p.last_name)}</b>
-                        <span className="text-[11px] text-[#9b8ec4] truncate block">{[p.job_title, p.company].filter(Boolean).join(' · ') || '—'}</span>
+                        <b className="text-[13.5px] block truncate">{fullName(p.first_name, p.last_name)}</b>
+                        <span className="text-[12px] text-[#9b8ec4] truncate block">{[p.job_title, p.company].filter(Boolean).join(' · ') || '—'}</span>
                       </div>
                       <div className="ml-auto shrink-0 flex items-center gap-2">
-                        {p.score != null && <span className="text-[13px] font-extrabold tabular-nums">{p.score}</span>}
+                        {p.score != null && <span className="text-[14px] font-extrabold tabular-nums">{p.score}</span>}
                         {p.in_campaign
-                          ? <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">in campaign</span>
+                          ? <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">in campaign</span>
                           : p.enrolled
-                            ? <span className="text-[10px] font-extrabold text-[#9b8ec4] bg-[#f7f4fd] border border-[#eee7f7] rounded-full px-2 py-0.5">working</span>
+                            ? <span className="text-[11px] font-extrabold text-[#9b8ec4] bg-[#f7f4fd] border border-[#eee7f7] rounded-full px-2 py-0.5">working</span>
                             : (<>
                               <button onClick={() => act(p.id, 'surface')} disabled={acting !== null}
-                                className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Send to client</button>
+                                className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Send to client</button>
                               <button onClick={() => act(p.id, 'pass')} disabled={acting !== null}
-                                className="text-[11.5px] font-bold text-[#9b8ec4] disabled:opacity-50">Pass</button>
+                                className="text-[12.5px] font-bold text-[#9b8ec4] disabled:opacity-50">Pass</button>
                             </>)}
                       </div>
                     </div>
@@ -1145,20 +1145,20 @@ export default function VidaConsolePage() {
                 {tab === 'Campaign' && (cockpit ? (
                   enrollView ? (
                     <div>
-                      <button onClick={() => setEnrollView(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
-                      <b className="text-[13px] block">{enrollView.campaign.name} — who&rsquo;s in it</b>
-                      <span className="block text-[11px] text-[#9b8ec4] mb-3">{enrollView.rows.length} enrolled</span>
+                      <button onClick={() => setEnrollView(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
+                      <b className="text-[14px] block">{enrollView.campaign.name} — who&rsquo;s in it</b>
+                      <span className="block text-[12px] text-[#9b8ec4] mb-3">{enrollView.rows.length} enrolled</span>
                       {enrollView.rows.length === 0
-                        ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">Nobody in it yet — pick people on the People tab.</p>
+                        ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">Nobody in it yet — pick people on the People tab.</p>
                         : enrollView.rows.map(r => (
                           <div key={r.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
                             <div className="min-w-0">
-                              <b className="text-[12.5px] block truncate">{fullName(r.first_name, r.last_name)}</b>
-                              <span className="text-[11px] text-[#9b8ec4] truncate block">{[r.job_title, r.company].filter(Boolean).join(' · ') || '—'}</span>
+                              <b className="text-[13.5px] block truncate">{fullName(r.first_name, r.last_name)}</b>
+                              <span className="text-[12px] text-[#9b8ec4] truncate block">{[r.job_title, r.company].filter(Boolean).join(' · ') || '—'}</span>
                             </div>
                             <div className="ml-auto shrink-0 text-right">
-                              <span className="text-[11px] font-bold text-[#5c5279] block">step {r.current_step ?? 1}/{r.total_steps ?? 3}</span>
-                              <span className={`text-[10px] font-extrabold rounded-full border px-2 py-0.5 inline-block mt-0.5 ${r.replied ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>
+                              <span className="text-[12px] font-bold text-[#5c5279] block">step {r.current_step ?? 1}/{r.total_steps ?? 3}</span>
+                              <span className={`text-[11px] font-extrabold rounded-full border px-2 py-0.5 inline-block mt-0.5 ${r.replied ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>
                                 {r.replied ? `replied · ${r.replied}` : r.next_send_at ? `next ${fmtDate(r.next_send_at)}` : (r.status ?? 'enrolled')}
                               </span>
                             </div>
@@ -1167,33 +1167,33 @@ export default function VidaConsolePage() {
                     </div>
                   ) : campEdit ? (
                     <div>
-                      <button onClick={() => setCampEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
-                      <b className="text-[13px] block mb-2">{campEdit.id ? 'Edit campaign' : 'New campaign'}</b>
+                      <button onClick={() => setCampEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
+                      <b className="text-[14px] block mb-2">{campEdit.id ? 'Edit campaign' : 'New campaign'}</b>
                       <label className="block mb-2">
-                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Name</span>
+                        <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Name</span>
                         <input value={campEdit.name} onChange={e => setCampEdit({ ...campEdit, name: e.target.value })}
                           placeholder="e.g. SA logistics COOs"
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
                       </label>
                       <label className="block mb-2">
-                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Who it hunts, and why now</span>
+                        <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Who it hunts, and why now</span>
                         <textarea value={campEdit.campaign_intent} rows={3}
                           onChange={e => setCampEdit({ ...campEdit, campaign_intent: e.target.value })}
                           placeholder="This is the brief every email is written from — be specific."
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed mt-0.5 outline-none focus:border-[#7C3AED]" />
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] leading-relaxed mt-0.5 outline-none focus:border-[#7C3AED]" />
                       </label>
                       <label className="block mb-3">
-                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Daily send cap</span>
+                        <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Daily send cap</span>
                         <input type="number" min={1} max={500} value={campEdit.daily_send_limit}
                           onChange={e => setCampEdit({ ...campEdit, daily_send_limit: e.target.value })}
                           placeholder="blank = platform default"
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
                       </label>
                       {/* V7 — THE SEND WINDOW. Real, not decorative: settings.send_days /
                           send_hour_utc were write-only until this PR; the send cron now
                           honours them. No days picked = any day; no hour = any hour. */}
                       <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
-                        <b className="text-[12px] block mb-1.5">When it may send</b>
+                        <b className="text-[13px] block mb-1.5">When it may send</b>
                         <div className="flex flex-wrap gap-1 mb-2">
                           {DAY_LABELS.map(([key, label]) => {
                             const on = campEdit.send_days.includes(key)
@@ -1203,24 +1203,24 @@ export default function VidaConsolePage() {
                                   ...campEdit,
                                   send_days: on ? campEdit.send_days.filter(d => d !== key) : [...campEdit.send_days, key],
                                 })}
-                                className={`text-[11.5px] font-bold rounded-lg border px-2.5 py-1 ${on ? 'text-white bg-[#7C3AED] border-[#7C3AED]' : 'text-[#5c5279] bg-white border-[#ece5fb] hover:border-[#d9c9f7]'}`}>
+                                className={`text-[12.5px] font-bold rounded-lg border px-2.5 py-1 ${on ? 'text-white bg-[#7C3AED] border-[#7C3AED]' : 'text-[#5c5279] bg-white border-[#ece5fb] hover:border-[#d9c9f7]'}`}>
                                 {label}
                               </button>
                             )
                           })}
                         </div>
-                        <label className="flex items-center gap-2 text-[11.5px] text-[#5c5279]">
+                        <label className="flex items-center gap-2 text-[12.5px] text-[#5c5279]">
                           Not before
                           <select value={campEdit.send_hour_utc}
                             onChange={e => setCampEdit({ ...campEdit, send_hour_utc: e.target.value })}
-                            className="border border-[#ece5fb] rounded-lg px-2 py-1 text-[12px] outline-none focus:border-[#7C3AED]">
+                            className="border border-[#ece5fb] rounded-lg px-2 py-1 text-[13px] outline-none focus:border-[#7C3AED]">
                             <option value="">any hour</option>
                             {Array.from({ length: 24 }, (_, h) => (
                               <option key={h} value={String(h)}>{String(h).padStart(2, '0')}:00 UTC</option>
                             ))}
                           </select>
                         </label>
-                        <p className="text-[10.5px] text-[#9b8ec4] mt-1.5">
+                        <p className="text-[11.5px] text-[#9b8ec4] mt-1.5">
                           {campEdit.send_days.length === 0 && !campEdit.send_hour_utc.trim()
                             ? 'Any day, any hour — the daily cap and kill-switch still apply.'
                             : `Sends only ${campEdit.send_days.length ? DAY_LABELS.filter(([k]) => campEdit.send_days.includes(k)).map(([, l]) => l).join(' · ') : 'any day'}${campEdit.send_hour_utc.trim() ? `, from ${String(campEdit.send_hour_utc).padStart(2, '0')}:00 UTC` : ''}. Anything due outside it waits — nothing is lost.`}
@@ -1231,17 +1231,17 @@ export default function VidaConsolePage() {
                           (lib/figsy.ts picks a variant) and the #511 auto-tune cron scores
                           them, so filling B is what switches the test on. */}
                       <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
-                        <b className="text-[12px] block">Subject A/B test</b>
-                        <p className="text-[10.5px] text-[#9b8ec4] mb-1.5">
+                        <b className="text-[13px] block">Subject A/B test</b>
+                        <p className="text-[11.5px] text-[#9b8ec4] mb-1.5">
                           Step 1&rsquo;s own subject is variant A. Add B to start testing; C–E are optional.
                         </p>
                         {([['ab_subject_b', 'B'], ['ab_subject_c', 'C'], ['ab_subject_d', 'D'], ['ab_subject_e', 'E']] as [keyof CampEdit, string][]).map(([key, letter]) => (
                           <label key={String(key)} className="flex items-center gap-2 mb-1">
-                            <span className="w-4 text-[11px] font-extrabold text-[#b3a9cc]">{letter}</span>
+                            <span className="w-4 text-[12px] font-extrabold text-[#b3a9cc]">{letter}</span>
                             <input value={String(campEdit[key] ?? '')} maxLength={200}
                               onChange={e => setCampEdit({ ...campEdit, [key]: e.target.value })}
                               placeholder={letter === 'B' ? 'e.g. quick question about {{company}}' : 'optional'}
-                              className="flex-1 border border-[#ece5fb] rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#7C3AED]" />
+                              className="flex-1 border border-[#ece5fb] rounded-lg px-2.5 py-1.5 text-[13px] outline-none focus:border-[#7C3AED]" />
                           </label>
                         ))}
                       </div>
@@ -1249,326 +1249,326 @@ export default function VidaConsolePage() {
                       {/* V8 — Auto-Pilot vs Co-Pilot. Co-Pilot writes approve_before_send, so
                           every email stops at the Approvals tab before it reaches a prospect. */}
                       <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
-                        <b className="text-[12px] block mb-1.5">How it sends</b>
+                        <b className="text-[13px] block mb-1.5">How it sends</b>
                         {([[true, 'Co-Pilot', 'Every email waits for you on the Approvals tab.'], [false, 'Auto-Pilot', 'Sends flow on schedule. Kill-switch and caps still apply.']] as [boolean, string, string][]).map(([mode, label, hint]) => (
                           <label key={label} className={`flex items-start gap-2 rounded-lg px-2.5 py-2 mb-1 cursor-pointer border ${campEdit.copilot_mode === mode ? 'border-[#7C3AED] bg-[#faf8ff]' : 'border-transparent hover:bg-[#faf8ff]'}`}>
                             <input type="radio" name="pilot" checked={campEdit.copilot_mode === mode}
                               onChange={() => setCampEdit({ ...campEdit, copilot_mode: mode })}
                               className="mt-0.5 accent-[#7C3AED]" />
                             <span>
-                              <b className="text-[12px] block">{label}</b>
-                              <span className="text-[11px] text-[#9b8ec4]">{hint}</span>
+                              <b className="text-[13px] block">{label}</b>
+                              <span className="text-[12px] text-[#9b8ec4]">{hint}</span>
                             </span>
                           </label>
                         ))}
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => saveCampaign()} disabled={cockpitBusy || !campEdit.name.trim()}
-                          className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                          className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[13.5px] font-bold disabled:opacity-40">
                           {cockpitBusy ? 'Saving…' : campEdit.id ? 'Save changes' : 'Create campaign'}
                         </button>
-                        <button onClick={() => setCampEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                        <button onClick={() => setCampEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Cancel</button>
                       </div>
-                      {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                      {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
                     </div>
                   ) : (<>
                     {/* V6 — Vida proposes; the operator approves. Never auto-created behind us. */}
                     {cockpit.campaigns.length === 0 && !proposal && (
                       <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-3">
-                        <b className="text-[12.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
-                        <p className="text-[11.5px] text-amber-700 mt-1">Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.</p>
+                        <b className="text-[13.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
+                        <p className="text-[12.5px] text-amber-700 mt-1">Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.</p>
                         <div className="flex gap-2 mt-2.5">
                           <button onClick={suggestCampaign} disabled={cockpitBusy}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-60">
                             {cockpitBusy ? 'Thinking…' : '✨ Suggest a campaign'}
                           </button>
                           <button onClick={() => openCampEditor()} disabled={cockpitBusy}
-                            className="border border-amber-300 bg-white text-amber-800 rounded-lg px-3 py-2 text-[12.5px] font-bold disabled:opacity-60">Write it myself</button>
+                            className="border border-amber-300 bg-white text-amber-800 rounded-lg px-3 py-2 text-[13.5px] font-bold disabled:opacity-60">Write it myself</button>
                           <button onClick={startCampaign} disabled={cockpitBusy}
-                            className="text-[11.5px] font-bold text-amber-800 underline disabled:opacity-60">Just unblock them</button>
+                            className="text-[12.5px] font-bold text-amber-800 underline disabled:opacity-60">Just unblock them</button>
                         </div>
                       </div>
                     )}
                     {proposal && (
                       <div className="rounded-xl border border-[#e4dcf7] bg-[#faf8ff] px-4 py-3 mb-3">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Vida proposes · from ICP “{proposal.icp_name}”</span>
-                        <b className="text-[13px] block mt-1">{proposal.name}</b>
-                        <p className="text-[11.5px] text-[#5c5279] leading-relaxed mt-1">{proposal.campaign_intent}</p>
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Vida proposes · from ICP “{proposal.icp_name}”</span>
+                        <b className="text-[14px] block mt-1">{proposal.name}</b>
+                        <p className="text-[12.5px] text-[#5c5279] leading-relaxed mt-1">{proposal.campaign_intent}</p>
                         <div className="flex gap-2 mt-2.5">
                           <button onClick={() => saveCampaign({ name: proposal.name, campaign_intent: proposal.campaign_intent, copilot_mode: true })}
                             disabled={cockpitBusy}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-60">
                             {cockpitBusy ? 'Creating…' : 'Approve & create'}
                           </button>
                           <button onClick={() => openCampEditor()} disabled={cockpitBusy}
-                            className="border border-[#ece5fb] bg-white rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Edit first</button>
-                          <button onClick={() => setProposal(null)} className="text-[11.5px] font-bold text-[#9b8ec4]">Discard</button>
+                            className="border border-[#ece5fb] bg-white rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Edit first</button>
+                          <button onClick={() => setProposal(null)} className="text-[12.5px] font-bold text-[#9b8ec4]">Discard</button>
                         </div>
-                        <p className="text-[10.5px] text-[#9b8ec4] mt-2">New campaigns start in Co-Pilot — every email stops at Approvals until you switch it.</p>
+                        <p className="text-[11.5px] text-[#9b8ec4] mt-2">New campaigns start in Co-Pilot — every email stops at Approvals until you switch it.</p>
                       </div>
                     )}
                     {cockpit.campaigns.map(c => (
                       <div key={c.id} className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
                         <div className="flex items-center gap-2.5">
                           <div className="min-w-0">
-                            <b className="text-[12.5px] block truncate">{c.name}</b>
-                            <span className="text-[11px] text-[#9b8ec4]">{c.leads_enrolled} enrolled · {c.emails_sent} sent · {c.replies_total} replies</span>
+                            <b className="text-[13.5px] block truncate">{c.name}</b>
+                            <span className="text-[12px] text-[#9b8ec4]">{c.leads_enrolled} enrolled · {c.emails_sent} sent · {c.replies_total} replies</span>
                           </div>
-                          <span className={`ml-auto shrink-0 text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${c.status === 'active' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>{c.status === 'active' ? 'live' : c.status}</span>
+                          <span className={`ml-auto shrink-0 text-[11px] font-extrabold rounded-full border px-2 py-0.5 ${c.status === 'active' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>{c.status === 'active' ? 'live' : c.status}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-2">
                           <button onClick={() => openCampEditor(c)} disabled={cockpitBusy}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Edit</button>
+                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Edit</button>
                           <button onClick={() => openEnrollments(c)} disabled={cockpitBusy}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Who&rsquo;s in it</button>
+                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Who&rsquo;s in it</button>
                           {/* V12 — test before a real prospect ever sees it. */}
                           <button onClick={() => testCampaign(c.id, false)} disabled={cockpitBusy}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Preview step 1</button>
+                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Preview step 1</button>
                           <button onClick={() => testCampaign(c.id, true)} disabled={cockpitBusy}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Email me a test</button>
+                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Email me a test</button>
                           {/* V13 — run / pause. */}
                           {c.status === 'active'
                             ? <button onClick={() => setCampaignStatus(c.id, 'paused')} disabled={cockpitBusy}
-                                className="text-[11.5px] font-bold text-[#9b8ec4] border border-[#ece5fb] rounded-lg px-2.5 py-1 disabled:opacity-50">Pause</button>
+                                className="text-[12.5px] font-bold text-[#9b8ec4] border border-[#ece5fb] rounded-lg px-2.5 py-1 disabled:opacity-50">Pause</button>
                             : <button onClick={() => setCampaignStatus(c.id, 'active')} disabled={cockpitBusy}
-                                className="text-[11.5px] font-bold text-white bg-gradient-to-br from-[#7C3AED] to-[#EC4899] rounded-lg px-2.5 py-1 disabled:opacity-50">Run it</button>}
+                                className="text-[12.5px] font-bold text-white bg-gradient-to-br from-[#7C3AED] to-[#EC4899] rounded-lg px-2.5 py-1 disabled:opacity-50">Run it</button>}
                         </div>
                       </div>
                     ))}
                     {testResult && (
                       <div className="border border-[#e4dcf7] bg-[#faf8ff] rounded-xl p-3 mt-1">
                         <div className="flex items-center gap-2 mb-1.5">
-                          <b className="text-[12px]">Step 1, as it will send</b>
-                          <button onClick={() => setTestResult(null)} className="ml-auto text-[11px] font-bold text-[#9b8ec4]">Close</button>
+                          <b className="text-[13px]">Step 1, as it will send</b>
+                          <button onClick={() => setTestResult(null)} className="ml-auto text-[12px] font-bold text-[#9b8ec4]">Close</button>
                         </div>
-                        <b className="text-[11.5px] block mb-1">{testResult.preview.subject}</b>
-                        <p className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{testResult.preview.body}</p>
-                        {testResult.sent && <p className="text-[11px] font-semibold text-emerald-700 mt-2">Emailed to {testResult.to}.</p>}
+                        <b className="text-[12.5px] block mb-1">{testResult.preview.subject}</b>
+                        <p className="text-[12.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{testResult.preview.body}</p>
+                        {testResult.sent && <p className="text-[12px] font-semibold text-emerald-700 mt-2">Emailed to {testResult.to}.</p>}
                       </div>
                     )}
                     {cockpit.campaigns.length > 0 && (
                       <button onClick={suggestCampaign} disabled={cockpitBusy}
-                        className="mt-1 text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">✨ Suggest another campaign</button>
+                        className="mt-1 text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">✨ Suggest another campaign</button>
                     )}
-                    {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                    {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
                   </>)
                 ) : null)}
 
                 {/* ── ICP — V2 build it by TALKING; the form is the precise-edit fallback ── */}
                 {tab === 'ICP' && (cockpit ? (icpEdit ? (
                   <div>
-                    <button onClick={() => setIcpEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to ICPs</button>
-                    <b className="text-[13px] block mb-2">{icpEdit.icp_id ? 'Edit ICP' : 'New ICP version'}</b>
+                    <button onClick={() => setIcpEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to ICPs</button>
+                    <b className="text-[14px] block mb-2">{icpEdit.icp_id ? 'Edit ICP' : 'New ICP version'}</b>
                     {ICP_FIELDS.map(([key, label]) => (
                       <label key={key} className="block mb-2">
-                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">{label}</span>
+                        <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">{label}</span>
                         <input value={icpEdit[key] ?? ''} onChange={e => setIcpEdit({ ...icpEdit, [key]: e.target.value })}
                           placeholder={key === 'name' ? 'e.g. SA logistics C-suite' : 'comma separated'}
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
                       </label>
                     ))}
                     <div className="flex gap-2 mt-3">
                       <button onClick={saveIcp} disabled={cockpitBusy || !(icpEdit.name ?? '').trim()}
-                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[13.5px] font-bold disabled:opacity-40">
                         {cockpitBusy ? 'Saving…' : icpEdit.icp_id ? 'Save changes' : 'Save as current ICP'}
                       </button>
-                      <button onClick={() => setIcpEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                      <button onClick={() => setIcpEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Cancel</button>
                     </div>
-                    <p className="text-[11px] text-[#9b8ec4] mt-2">A new version becomes the active ICP — sourcing targets it immediately.</p>
+                    <p className="text-[12px] text-[#9b8ec4] mt-2">A new version becomes the active ICP — sourcing targets it immediately.</p>
                   </div>
                 ) : icpMode === 'chat' ? (
                   <div className="flex flex-col h-full min-h-0">
                     <div className="shrink-0 flex items-center gap-2 mb-2">
-                      <b className="text-[13px]">Build it by talking</b>
-                      <button onClick={() => setIcpMode('list')} className="ml-auto text-[11.5px] font-bold text-[#9b8ec4]">All ICPs</button>
+                      <b className="text-[14px]">Build it by talking</b>
+                      <button onClick={() => setIcpMode('list')} className="ml-auto text-[12.5px] font-bold text-[#9b8ec4]">All ICPs</button>
                     </div>
                     <div className="flex-1 overflow-y-auto space-y-2 mb-2 min-h-[120px]">
                       {icpChat.length === 0 && (
-                        <p className="text-[12px] text-[#9b8ec4] leading-relaxed">
+                        <p className="text-[13px] text-[#9b8ec4] leading-relaxed">
                           Tell me who we should be hunting for {selectedClient?.company_name || 'this client'} — industry, titles, seniority, size, region.
                           {cockpit.icps.length > 0 && ' I already have their current ICP, so say what should change.'}
                         </p>
                       )}
                       {icpChat.map((m, i) => (
                         <div key={i} className={m.role === 'user' ? 'text-right' : ''}>
-                          <span className={`inline-block text-[12px] leading-relaxed rounded-xl px-3 py-2 max-w-[90%] text-left ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#faf8ff] border border-[#eee7f7] text-[#1f1235]'}`}>{m.content}</span>
+                          <span className={`inline-block text-[13px] leading-relaxed rounded-xl px-3 py-2 max-w-[90%] text-left ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#faf8ff] border border-[#eee7f7] text-[#1f1235]'}`}>{m.content}</span>
                         </div>
                       ))}
-                      {cockpitBusy && <p className="text-[11.5px] text-[#9b8ec4]">Thinking…</p>}
+                      {cockpitBusy && <p className="text-[12.5px] text-[#9b8ec4]">Thinking…</p>}
                     </div>
                     {icpProposal && (
                       <div className="shrink-0 border border-[#e4dcf7] bg-[#faf8ff] rounded-xl p-3 mb-2">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Proposed profile</span>
-                        <b className="text-[12.5px] block mt-0.5 mb-1">{String((icpProposal as Record<string, unknown>).name ?? 'ICP')}</b>
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Proposed profile</span>
+                        <b className="text-[13.5px] block mt-0.5 mb-1">{String((icpProposal as Record<string, unknown>).name ?? 'ICP')}</b>
                         {ICP_FIELDS.filter(([k]) => k !== 'name').map(([k, label]) => {
                           const v = joinArr((icpProposal as Record<string, unknown>)[k])
-                          return v ? <p key={k} className="text-[11px] text-[#5c5279]"><b className="text-[#9b8ec4] font-bold">{label}:</b> {v}</p> : null
+                          return v ? <p key={k} className="text-[12px] text-[#5c5279]"><b className="text-[#9b8ec4] font-bold">{label}:</b> {v}</p> : null
                         })}
                         <div className="flex gap-2 mt-2.5">
                           <button onClick={proposalToForm}
-                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12px] font-bold">Review &amp; save</button>
-                          <button onClick={() => setIcpProposal(null)} className="text-[11.5px] font-bold text-[#9b8ec4]">Keep talking</button>
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13px] font-bold">Review &amp; save</button>
+                          <button onClick={() => setIcpProposal(null)} className="text-[12.5px] font-bold text-[#9b8ec4]">Keep talking</button>
                         </div>
                       </div>
                     )}
                     <form onSubmit={e => { e.preventDefault(); sendIcpChat(icpInput) }} className="shrink-0 flex gap-2">
                       <input value={icpInput} onChange={e => setIcpInput(e.target.value)} disabled={cockpitBusy}
                         placeholder="e.g. SA logistics, COOs and heads of ops, 50–500 staff…"
-                        className="flex-1 border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[12.5px] outline-none focus:border-[#7C3AED] disabled:opacity-60" />
+                        className="flex-1 border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[13.5px] outline-none focus:border-[#7C3AED] disabled:opacity-60" />
                       <button type="submit" disabled={cockpitBusy || !icpInput.trim()}
-                        className="bg-[#7C3AED] text-white rounded-xl px-4 text-[12.5px] font-bold disabled:opacity-40">Send</button>
+                        className="bg-[#7C3AED] text-white rounded-xl px-4 text-[13.5px] font-bold disabled:opacity-40">Send</button>
                     </form>
                   </div>
                 ) : (<>
                   {cockpit.icps.length === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No ICP yet — sourcing has no target until there is one.</p>
+                    ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">No ICP yet — sourcing has no target until there is one.</p>
                     : cockpit.icps.map((i, n) => (
                       <div key={i.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
                         <div className="min-w-0">
-                          <b className="text-[12.5px] block truncate">{i.name || `ICP v${cockpit.icps.length - n}`}</b>
-                          <span className="text-[11px] text-[#9b8ec4]">{i.last_run_at ? `last sourced ${fmtDate(i.last_run_at)}` : 'never sourced'}</span>
+                          <b className="text-[13.5px] block truncate">{i.name || `ICP v${cockpit.icps.length - n}`}</b>
+                          <span className="text-[12px] text-[#9b8ec4]">{i.last_run_at ? `last sourced ${fmtDate(i.last_run_at)}` : 'never sourced'}</span>
                         </div>
                         <div className="ml-auto shrink-0 flex items-center gap-2">
-                          {n === 0 && <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">current</span>}
-                          <button onClick={() => openIcpEditor(i.id)} className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                          {n === 0 && <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">current</span>}
+                          <button onClick={() => openIcpEditor(i.id)} className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
                         </div>
                       </div>
                     ))}
                   <div className="flex gap-2 mt-1">
                     <button onClick={() => { setIcpMode('chat'); setSaveMsg(null) }}
-                      className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">
+                      className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold">
                       {cockpit.icps.length === 0 ? '💬 Build the ICP by talking' : '💬 Refine it by talking'}
                     </button>
-                    <button onClick={() => openIcpEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Fill the form</button>
+                    <button onClick={() => openIcpEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Fill the form</button>
                   </div>
-                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
                 </>)) : null)}
 
                 {/* ── SEQUENCE — V9 propose · approve by saving · V11 preview ── */}
                 {tab === 'Sequence' && (cockpit ? (seqEdit ? (
                   <div>
-                    <button onClick={() => setSeqEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
-                    {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
+                    <button onClick={() => setSeqEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
+                    {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
                     <label className="block mb-2.5">
-                      <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Sequence name</span>
+                      <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Sequence name</span>
                       <input value={seqEdit.name} onChange={e => setSeqEdit({ ...seqEdit, name: e.target.value })}
                         placeholder="e.g. Practitioner angle"
-                        className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                        className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
                     </label>
                     {seqEdit.steps.map((st, i) => (
                       <div key={i} className="border border-[#eee7f7] rounded-xl p-3 mb-2.5">
                         <div className="flex items-center gap-2 mb-1.5">
-                          <b className="text-[12px]">Step {i + 1}</b>
+                          <b className="text-[13px]">Step {i + 1}</b>
                           {i > 0 && (
-                            <label className="text-[11px] text-[#9b8ec4] flex items-center gap-1">
+                            <label className="text-[12px] text-[#9b8ec4] flex items-center gap-1">
                               wait
                               <input type="number" min={0} max={60} value={st.wait_days}
                                 onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, wait_days: Number(e.target.value) || 0 }; setSeqEdit({ ...seqEdit, steps }) }}
-                                className="w-14 border border-[#ece5fb] rounded px-1.5 py-0.5 text-[11.5px] outline-none" />
+                                className="w-14 border border-[#ece5fb] rounded px-1.5 py-0.5 text-[12.5px] outline-none" />
                               days
                             </label>
                           )}
                           {seqEdit.steps.length > 1 && (
                             <button onClick={() => setSeqEdit({ ...seqEdit, steps: seqEdit.steps.filter((_, n) => n !== i) })}
-                              className="ml-auto text-[11px] font-bold text-red-500">Remove</button>
+                              className="ml-auto text-[12px] font-bold text-red-500">Remove</button>
                           )}
                         </div>
                         <input value={st.subject} onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, subject: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
-                          placeholder="Subject line" className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mb-1.5 outline-none focus:border-[#7C3AED]" />
+                          placeholder="Subject line" className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mb-1.5 outline-none focus:border-[#7C3AED]" />
                         <textarea value={st.body} rows={5}
                           onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, body: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
                           placeholder="Email body. Keep it short and specific. {{first_name}} · {{company}} · {{job_title}} are filled per prospect."
-                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                       </div>
                     ))}
                     {seqEdit.steps.length < 10 && (
                       <button onClick={() => setSeqEdit({ ...seqEdit, steps: [...seqEdit.steps, { subject: '', body: '', wait_days: 3 }] })}
-                        className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 mb-3">+ Add step</button>
+                        className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 mb-3">+ Add step</button>
                     )}
                     <div className="flex gap-2">
                       <button onClick={saveSequence} disabled={cockpitBusy || !seqEdit.name.trim()}
-                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[13.5px] font-bold disabled:opacity-40">
                         {cockpitBusy ? 'Saving…' : seqEdit.id ? 'Save changes' : 'Approve & save'}
                       </button>
                       <button onClick={suggestSequence} disabled={cockpitBusy}
-                        className="border border-[#e4dcf7] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#7C3AED] disabled:opacity-50">✨ Redraft</button>
-                      <button onClick={() => setSeqEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                        className="border border-[#e4dcf7] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#7C3AED] disabled:opacity-50">✨ Redraft</button>
+                      <button onClick={() => setSeqEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Cancel</button>
                     </div>
-                    <p className="text-[11px] text-[#9b8ec4] mt-2">Nothing sends without the Send gate — saving does not start outreach.</p>
+                    <p className="text-[12px] text-[#9b8ec4] mt-2">Nothing sends without the Send gate — saving does not start outreach.</p>
                   </div>
                 ) : seqPreview ? (
                   <div>
-                    <button onClick={() => setSeqPreview(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
-                    <b className="text-[13px] block">{seqPreview.name}</b>
-                    <span className="block text-[11px] text-[#9b8ec4] mb-3">
+                    <button onClick={() => setSeqPreview(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
+                    <b className="text-[14px] block">{seqPreview.name}</b>
+                    <span className="block text-[12px] text-[#9b8ec4] mb-3">
                       As {[seqPreview.sample_lead.first_name, seqPreview.sample_lead.last_name].filter(Boolean).join(' ') || 'a prospect'}
                       {seqPreview.sample_lead.company ? ` at ${seqPreview.sample_lead.company}` : ''} will read it
                     </span>
                     {seqPreview.steps.map(s => (
                       <div key={s.step} className="border border-[#eee7f7] rounded-xl p-3 mb-2">
-                        <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Step {s.step} · day {s.day}</span>
-                        <b className="text-[12.5px] block mt-0.5 mb-1">{s.subject || '(no subject)'}</b>
-                        <p className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{s.body}</p>
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Step {s.step} · day {s.day}</span>
+                        <b className="text-[13.5px] block mt-0.5 mb-1">{s.subject || '(no subject)'}</b>
+                        <p className="text-[12.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{s.body}</p>
                       </div>
                     ))}
                   </div>
                 ) : (<>
                   {cockpit.sequences.length === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No saved sequence yet — let Vida draft one, then read it before you approve.</p>
+                    ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">No saved sequence yet — let Vida draft one, then read it before you approve.</p>
                     : cockpit.sequences.map(sq => (
                       <div key={sq.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
                         <div className="min-w-0">
-                          <b className="text-[12.5px] block truncate">{sq.name}</b>
-                          <span className="text-[11px] text-[#9b8ec4]">{Array.isArray(sq.steps) ? sq.steps.length : 0} steps · updated {fmtDate(sq.updated_at)}</span>
+                          <b className="text-[13.5px] block truncate">{sq.name}</b>
+                          <span className="text-[12px] text-[#9b8ec4]">{Array.isArray(sq.steps) ? sq.steps.length : 0} steps · updated {fmtDate(sq.updated_at)}</span>
                         </div>
                         <div className="ml-auto shrink-0 flex items-center gap-2">
                           <button onClick={() => previewSequence(sq.id)} disabled={cockpitBusy}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Preview</button>
+                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Preview</button>
                           <button onClick={() => openSeqEditor({ id: sq.id, name: sq.name, steps: sq.steps })}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                            className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
                         </div>
                       </div>
                     ))}
                   <div className="flex gap-2 mt-1">
                     <button onClick={suggestSequence} disabled={cockpitBusy}
-                      className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                      className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-60">
                       {cockpitBusy ? 'Drafting…' : '✨ Suggest a sequence'}
                     </button>
-                    <button onClick={() => openSeqEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Write it myself</button>
+                    <button onClick={() => openSeqEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Write it myself</button>
                   </div>
-                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
                 </>)) : null)}
 
                 {/* ── ASKS — V3 we ask, M2 they answer in Milla ── */}
                 {tab === 'Asks' && (<>
-                  <b className="text-[13px] block">Ask the client</b>
-                  <span className="block text-[11px] text-[#9b8ec4] mb-2.5">
+                  <b className="text-[14px] block">Ask the client</b>
+                  <span className="block text-[12px] text-[#9b8ec4] mb-2.5">
                     Lands in their Milla thread — the one place they already talk to us. Their answer comes back here.
                   </span>
                   <form onSubmit={e => { e.preventDefault(); sendAsk(askInput) }} className="mb-3">
                     <textarea value={askInput} onChange={e => setAskInput(e.target.value)} rows={3}
                       placeholder="e.g. Who should the emails be signed by, and what's the best case study we can name?"
-                      className="w-full border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
+                      className="w-full border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[13.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                     <button type="submit" disabled={cockpitBusy || !askInput.trim()}
-                      className="mt-1.5 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                      className="mt-1.5 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[13.5px] font-bold disabled:opacity-40">
                       {cockpitBusy ? 'Sending…' : 'Ask them'}
                     </button>
                   </form>
-                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
-                  {asks === null ? <p className="text-[12.5px] text-[#9b8ec4]">Loading…</p>
-                    : asks.length === 0 ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-4">Nothing asked yet.</p>
+                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
+                  {asks === null ? <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>
+                    : asks.length === 0 ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-4">Nothing asked yet.</p>
                     : asks.map(a => (
                       <div key={a.id} className="border border-[#eee7f7] rounded-xl p-3 mb-2">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Asked {fmtDate(a.asked_at)}</span>
-                          <span className={`ml-auto text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${a.answers.length ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
+                          <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Asked {fmtDate(a.asked_at)}</span>
+                          <span className={`ml-auto text-[11px] font-extrabold rounded-full border px-2 py-0.5 ${a.answers.length ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
                             {a.answers.length ? 'answered' : 'waiting'}
                           </span>
                         </div>
-                        <p className="text-[12px] text-[#1f1235] leading-relaxed whitespace-pre-wrap">{a.question}</p>
+                        <p className="text-[13px] text-[#1f1235] leading-relaxed whitespace-pre-wrap">{a.question}</p>
                         {a.answers.map((ans, i) => (
-                          <p key={i} className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap bg-[#faf8ff] border border-[#f2ecfb] rounded-lg px-2.5 py-2 mt-1.5">
-                            <b className="text-[10px] uppercase tracking-wide text-[#9b8ec4] block">They said · {fmtDate(ans.at)}</b>
+                          <p key={i} className="text-[12.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap bg-[#faf8ff] border border-[#f2ecfb] rounded-lg px-2.5 py-2 mt-1.5">
+                            <b className="text-[11px] uppercase tracking-wide text-[#9b8ec4] block">They said · {fmtDate(ans.at)}</b>
                             {ans.content}
                           </p>
                         ))}
@@ -1579,17 +1579,17 @@ export default function VidaConsolePage() {
                 {/* BOOKINGS */}
                 {tab === 'Bookings' && (
                   (cols?.booked.cards.length ?? 0) === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
+                    ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
                     : cols!.booked.cards.map(c => (
                       <div key={c.id} className="flex items-center gap-2.5 border border-emerald-200 bg-emerald-50/40 rounded-xl px-3 py-2.5 mb-2">
                         <div className="min-w-0">
-                          <b className="text-[12.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
-                          <span className="text-[11px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
-                          <span className="text-[11px] text-emerald-700 font-semibold">
+                          <b className="text-[13.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
+                          <span className="text-[12px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
+                          <span className="text-[12px] text-emerald-700 font-semibold">
                             {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
                           </span>
                         </div>
-                        {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="ml-auto shrink-0 text-[11.5px] font-bold text-[#7C3AED]">Record &rarr;</a>}
+                        {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="ml-auto shrink-0 text-[12.5px] font-bold text-[#7C3AED]">Record &rarr;</a>}
                       </div>
                     ))
                 )}

@@ -85,19 +85,22 @@ export type MigrationRunResult = {
   hint?: string
 }
 
-export async function runPendingMigrations(): Promise<MigrationRunResult> {
+export async function runPendingMigrations(passwordOverride?: string | null): Promise<MigrationRunResult> {
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('DATABASE_URL is not set on this service — add it in Railway → @kind/api → Variables.')
 
   const { Client } = await import('pg')
-  const { connectionCandidates, safeHost, isUnreachableError } = await import('./db-connection')
-  const candidates = connectionCandidates(url, process.env.SUPABASE_URL)
+  const { connectionCandidates, safeHost, isUnreachableError, isAuthError } = await import('./db-connection')
+  const candidates = connectionCandidates(url, process.env.SUPABASE_URL, passwordOverride)
 
   // Find ONE reachable connection string before running any SQL, so a migration is never
   // half-applied across two different attempts.
   let working: string | null = null
   let lastError: unknown = null
+  let attempted = 0
+  let sawAuthFailure = false
   for (const candidate of candidates) {
+    attempted++
     const probe = new Client({ connectionString: candidate, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 8000 })
     try {
       await probe.connect()
@@ -109,14 +112,27 @@ export async function runPendingMigrations(): Promise<MigrationRunResult> {
       await probe.end().catch(() => {})
       // A wrong password is not a routing problem — stop rather than replay bad credentials
       // against every region, which is how accounts get locked out.
-      if (!isUnreachableError(e)) break
+      if (!isUnreachableError(e)) { sawAuthFailure = isAuthError(e); break }
     }
   }
 
   if (!working) {
     const msg = lastError instanceof Error ? lastError.message : String(lastError)
+    // Say WHICH problem this is. "Nothing was reachable" and "the server rejected the
+    // password" need completely different actions, and reporting the count of candidates
+    // GENERATED rather than the number actually TRIED made the last failure read like a
+    // 19-address network sweep when it stopped after two.
+    if (sawAuthFailure) {
+      throw new Error(
+        `The database answered and REJECTED the credentials — so the network route is fine and this is a password problem. ` +
+        `Tried ${attempted} address(es); last error: ${msg}. ` +
+        `Fix: paste the correct Postgres password into the "Try a different password" box below (used for this run only, never stored), ` +
+        `or update DATABASE_URL in Railway → @kind/api → Variables. ` +
+        `Note Supavisor reports the user as "postgres" even when we connect as postgres.<ref> — it splits the dot into user + tenant, so that name in the error is expected and not the problem.`,
+      )
+    }
     throw new Error(
-      `Could not reach the database from this service. Tried ${candidates.length} address(es); last error: ${msg}. ` +
+      `Could not reach the database from this service. Tried ${attempted} of ${candidates.length} address(es); last error: ${msg}. ` +
       `Supabase's direct host is IPv6-only and Railway has no IPv6 route, so DATABASE_URL needs to be the ` +
       `SESSION POOLER string (postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432).`,
     )

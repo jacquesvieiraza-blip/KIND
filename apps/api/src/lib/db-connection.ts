@@ -39,9 +39,22 @@ export function projectRef(databaseUrl?: string | null, supabaseUrl?: string | n
   return fromApi ?? null
 }
 
-/** The password from a postgres:// URL, undecoded characters and all. */
-function passwordOf(databaseUrl: string): string | null {
-  const m = databaseUrl.match(/^postgres(?:ql)?:\/\/[^:/?#]+:([^@]*)@/i)
+/**
+ * The password from a postgres:// URL.
+ *
+ * Greedy to the LAST '@' on purpose. A generated password containing an unencoded '@' (which
+ * is invalid but extremely common in pasted connection strings) would otherwise be truncated
+ * at the first one — and a truncated password reads back as "password authentication failed",
+ * sending you hunting for a credentials problem that is really a parsing bug.
+ */
+export function passwordOf(databaseUrl: string): string | null {
+  const m = databaseUrl.match(/^postgres(?:ql)?:\/\/([^:@/]+):(.*)@([^@]+)$/i)
+  return m ? m[2] : null
+}
+
+/** The username from a postgres:// URL. */
+export function usernameOf(databaseUrl: string): string | null {
+  const m = databaseUrl.match(/^postgres(?:ql)?:\/\/([^:@/]+):/i)
   return m ? m[1] : null
 }
 
@@ -57,18 +70,43 @@ export function isDirectSupabaseHost(databaseUrl: string): boolean {
  * Returns the configured URL unchanged when it is already a pooler URL or something custom:
  * we never second-guess a connection string that has a chance of working.
  */
-export function connectionCandidates(databaseUrl: string, supabaseUrl?: string | null): string[] {
-  const candidates = [databaseUrl]
-  if (!isDirectSupabaseHost(databaseUrl)) return candidates
-
+export function connectionCandidates(
+  databaseUrl: string,
+  supabaseUrl?: string | null,
+  passwordOverride?: string | null,
+): string[] {
+  // An operator-supplied password replaces the one in DATABASE_URL — the escape hatch for
+  // "the stored password is stale and the dashboard that could reset it is unreachable".
+  const pw = (passwordOverride && passwordOverride.length > 0) ? passwordOverride : passwordOf(databaseUrl)
   const ref = projectRef(databaseUrl, supabaseUrl)
-  const pw = passwordOf(databaseUrl)
+
+  const candidates: string[] = []
+  // Only trust the configured URL as-is when we are NOT overriding its password.
+  if (!passwordOverride) candidates.push(databaseUrl)
+  else if (ref && pw) candidates.push(`postgresql://postgres:${encodeURIComponent(pw)}@db.${ref}.supabase.co:5432/postgres`)
+
+  if (!isDirectSupabaseHost(databaseUrl) && !passwordOverride) return candidates
   if (!ref || !pw) return candidates
 
+  // Supavisor wants user `postgres.<ref>`: it splits on the dot into user + tenant, which is
+  // why an auth failure here is reported against user "postgres" rather than the full string.
+  // Guard against double-suffixing if DATABASE_URL already carries the pooler username.
+  const user = `postgres.${ref}`
   for (const region of POOLER_REGIONS) {
-    candidates.push(`postgresql://postgres.${ref}:${pw}@aws-0-${region}.pooler.supabase.com:5432/postgres`)
+    candidates.push(`postgresql://${user}:${encodeURIComponent(pw)}@aws-0-${region}.pooler.supabase.com:5432/postgres`)
   }
-  return candidates
+  return Array.from(new Set(candidates))
+}
+
+/**
+ * Does this error mean "the server answered and rejected the credentials"? That is a very
+ * different message to the operator than "nothing was reachable": one is a password to fix,
+ * the other is a network route. Conflating them is what sent us chasing IPv6 twice.
+ */
+export function isAuthError(err: unknown): boolean {
+  const code = (err as { code?: string })?.code ?? ''
+  const msg = err instanceof Error ? err.message : String(err)
+  return code === '28P01' || code === '28000' || /password authentication failed|no pg_hba|role .* does not exist|Tenant or user not found/i.test(msg)
 }
 
 /** Host:port of a connection string — safe to log or show, carries no credentials. */

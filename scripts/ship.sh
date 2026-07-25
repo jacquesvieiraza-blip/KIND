@@ -43,11 +43,41 @@ done
 
 echo ""
 echo "== 3/3  Deploying all four services =="
-railway up --detach --service "@kind/api"
-railway up --detach --service "@kind/portal"
-railway up --detach --service "@kind/admin"
-railway up --detach --service "KIND"      # the marketing website (apps/website)
+# One service failing must NOT silently swallow the rest. With `set -e` a single bad
+# `railway up` (wrong/renamed service, not linked, network blip) aborted the whole script
+# on the spot — so the services listed AFTER it were never deployed, with no obvious error.
+# That is exactly how "I deployed and nothing changed" happens. Deploy each one
+# independently, remember the result, and print an unmissable summary.
+FAILED=""
+deploy() {   # deploy <railway-service-name> <label>
+  echo ""
+  echo "-- deploying $2  (service: $1)"
+  if railway up --detach --service "$1"; then
+    echo "   OK: $2 upload accepted"
+  else
+    echo "   *** FAILED: $2 (service \"$1\") — see the error above ***"
+    FAILED="$FAILED $2"
+  fi
+}
+
+deploy "@kind/api"    "api"
+deploy "@kind/portal" "portal"
+deploy "@kind/admin"  "admin"
+deploy "KIND"         "website"
 
 echo ""
-echo "Done. Check Railway -> each service -> Deployments: new commits = Building/Success."
-echo "A 'Skipped' here only ever means: that app had nothing new since the last ship."
+echo "=================== SHIP SUMMARY ==================="
+if [ -n "$FAILED" ]; then
+  echo "SOME SERVICES DID NOT DEPLOY:$FAILED"
+  echo ""
+  echo "Fix these before trusting anything you see live — the old version is still"
+  echo "serving for each failed service. Most common cause: the Railway service name"
+  echo "in this script no longer matches the real one. List the real names with:"
+  echo "    railway status"
+  echo "    railway service"
+  exit 1
+fi
+echo "All four uploads accepted at $HEAD (api - portal - admin - website)."
+echo ""
+echo "Now confirm each actually BUILT: Railway -> service -> Deployments."
+echo "A 'Skipped' there only ever means: that app had nothing new since the last ship."

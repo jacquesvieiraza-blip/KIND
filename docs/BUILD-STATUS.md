@@ -60,24 +60,25 @@ All 16 Milla items and all 15 Vida items are built. `M9 Coaching` and `V7/V9/V11
 
 | # | Item | Where | Main | Live for you |
 |---|---|---|:--:|---|
-| A1 | Top-left brand is clickable → back to the main screen | both consoles | ✅ | ⏳ |
-| V1 | Onboarding checklist **is** the setup guide — click a gap, land on the surface that closes it | Vida | ✅ | ⏳ |
-| V2 | **Build / refine the ICP by conversation** (`POST /operator/icp/chat`) — the form is the precise-edit fallback | Vida · ICP | ✅ | ⏳ |
-| V3 | "Ask them for these" **actually reaches Milla** (`POST /operator/ask` → their own Milla thread) | Vida · Asks | ✅ | ⏳ |
-| V4 | **Multi-select people** — the whole pool + who's already enrolled (`GET /operator/people`) | Vida · People | ✅ | ⏳ |
-| V5 | **Assign the picked people** to the campaign (`POST /operator/campaign/:id/assign`) — never re-charges | Vida · People | ✅ | ⏳ |
-| V6 | **AI proposes the campaign, the operator approves** (`/campaign/suggest` → `/campaign/save`) | Vida · Campaign | ✅ | ⏳ |
-| V7 | **Edit the campaign** — name, the brief every email is written from, daily cap | Vida · Campaign | ✅ | ⏳ |
-| V8 | **Auto-Pilot / Co-Pilot** toggle (Co-Pilot writes `approve_before_send`) | Vida · Campaign | ✅ | ⏳ |
-| V9 | **AI proposes the sequence, the operator approves** (`POST /operator/sequence/suggest`) | Vida · Sequence | ✅ | ⏳ |
-| V11 | **Preview the sequence** as the prospect reads it (`GET /operator/sequence/:id/preview`) | Vida · Sequence | ✅ | ⏳ |
-| V12 | **Test email** — read step 1, then mail it to us (`POST /operator/campaign/:id/test`) | Vida · Campaign | ✅ | ⏳ |
-| V13 | **Run it / pause it** | Vida · Campaign | ✅ | ⏳ |
-| V14 | **Who's in this campaign**, and where each of them is in the sequence | Vida · Campaign | ✅ | ⏳ |
-| V17 | **The bell** — new client whose first ICP waits on us · ICP revised under a live campaign · replies to answer (`GET /operator/alerts`) | Vida · clients list | ✅ | ⏳ |
-| M2 | **The client answers our asks in Milla** — the thread persists, so an ask is waiting when they next open it | Milla · home | ✅ | ⏳ |
-| M4 | **The client revises their ICP by conversation** — goes LIVE, and notifies us (`POST /icps/revise`) | Milla · ICP | ✅ | ⏳ |
-| M5 | **The client sees the sequence — read-only, cannot edit** | Milla · My campaign | ✅ | ⏳ |
+| A1 | Top-left brand is clickable → back to the main screen | both consoles | ✅ | 🩷 |
+| V1 | Onboarding checklist **is** the setup guide — click a gap, land on the surface that closes it | Vida | ✅ | 🩷 |
+| V2 | **Build / refine the ICP by conversation** (`POST /operator/icp/chat`) — the form is the precise-edit fallback | Vida · ICP | ✅ | 🩷 |
+| V3 | "Ask them for these" **actually reaches Milla** (`POST /operator/ask` → their own Milla thread) | Vida · Asks | ✅ | 🩷 |
+| V4 | **Multi-select people** — the whole pool + who's already enrolled (`GET /operator/people`) | Vida · People | ✅ | 🩷 |
+| V5 | **Assign the picked people** to the campaign (`POST /operator/campaign/:id/assign`) — never re-charges | Vida · People | ✅ | 🩷 |
+| V6 | **AI proposes the campaign, the operator approves** (`/campaign/suggest` → `/campaign/save`) | Vida · Campaign | ✅ | 🩷 |
+| V7a | **Edit the campaign** — name, the brief every email is written from, daily cap | Vida · Campaign | ✅ | 🩷 |
+| V7b | **Send window + A/B subjects** — the rest of V7. `settings.send_days` / `send_hour_utc` were **write-only** (nothing on the send path read them, so a window was decorative); the cron now honours them. A/B subject variants B–E in the editor. | Vida · Campaign | ✅ | ⏳ |
+| V8 | **Auto-Pilot / Co-Pilot** toggle (Co-Pilot writes `approve_before_send`) | Vida · Campaign | ✅ | 🩷 |
+| V9 | **AI proposes the sequence, the operator approves** (`POST /operator/sequence/suggest`) | Vida · Sequence | ✅ | 🩷 |
+| V11 | **Preview the sequence** as the prospect reads it (`GET /operator/sequence/:id/preview`) | Vida · Sequence | ✅ | 🩷 |
+| V12 | **Test email** — read step 1, then mail it to us (`POST /operator/campaign/:id/test`) | Vida · Campaign | ✅ | 🩷 |
+| V13 | **Run it / pause it** | Vida · Campaign | ✅ | 🩷 |
+| V14 | **Who's in this campaign**, and where each of them is in the sequence | Vida · Campaign | ✅ | 🩷 |
+| V17 | **The bell** — new client whose first ICP waits on us · ICP revised under a live campaign · replies to answer (`GET /operator/alerts`) | Vida · clients list | ✅ | 🩷 |
+| M2 | **The client answers our asks in Milla** — the thread persists, so an ask is waiting when they next open it | Milla · home | ✅ | 🩷 |
+| M4 | **The client revises their ICP by conversation** — goes LIVE, and notifies us (`POST /icps/revise`) | Milla · ICP | ✅ | 🩷 |
+| M5 | **The client sees the sequence — read-only, cannot edit** | Milla · My campaign | ✅ | 🩷 |
 
 **Two honesty fixes made while building this** (both the kind that would have read as working):
 - `POST /operator/campaign/:id/assign` counted successful `autoEnrollLead` calls. That function returns `void` and bails **silently** on no verified email, suppression, a CRM match, exhausted FIGSY credits or an unconfigured sender — so it would report "12 added" when 3 were. It now counts the `figsy_enrollments` table after the fact and names what didn't make it.
@@ -96,7 +97,10 @@ Run against the built code, not from memory. Two of the five would have shipped 
 
 Also verified clean during the audit: every UI URL maps to a real route (31 checked) · `icps.updated_at`, `figsy_enrollments.total_steps`, `leads.revealed_at`, `milla_sessions.title`, `milla_messages.client_id` all exist in the schema · `POST /icps/revise` sits before `/:id/run` so route order is right and `requireAuth` covers it · `requireMillaAccess` needs only a client record, so a client **can** reply to an ask (M2 works) · Co-Pilot's queue lands in `figsy_approval_queue`, which is exactly what the Approvals tab reads, so the promise now matches the engine.
 
-**Deferred by the founder:** refining the approval gates ("eventually we will refine the gates") — including whether the ICP-revision step keeps a Skip button.
+### Post-merge punch-list audit (25 Jul) — read against the walk artifact, not memory
+Checked every ID in `flow-punchlist.html` (35 rows). **17 of the 18 open items shipped complete in #1151. One was partial:** V7 said *"caps · send days/hours · A/B subjects · intent"* and #527 delivered caps + intent (+ name + pilot mode) only. V7b above closes it — and closing it uncovered the same bug class as the Co-Pilot flag: **`send_days` / `send_hour_utc` were write-only.** The other 17 rows in the artifact were already marked *Built* before the walk (V15 cockpit · V16 pooled inbox · V18 sourcing confirm · V19 start/pause · V10 sequence editor · V20 Inbox · V21 suppression · V22 qualify gate · V23 money guard · V24 bookings · M1/M3/M6/M7/M8/M10/M11) and were verified live.
+
+**Deferred by the founder:** refining the approval gates ("eventually we will refine the gates"). *Step 4's "optional Skip" in the flow chart is a description, not a build item — refining the ICP is optional by default because the client's ICP is already live from step 1, so the default path runs 1 → 2 → 3 → 5 and there is nothing to skip past.*
 
 **Genuinely still open (not console work):**
 - **W3** — terms are written; they want a lawyer's read before the first external client signs.

@@ -60,6 +60,9 @@ type CampaignRow = {
   id: string; name: string; status: string; leads_enrolled: number; emails_sent: number
   replies_total: number; replies_interested: number; created_at: string | null
   campaign_intent?: string | null; copilot_mode?: boolean | null; daily_send_limit?: number | null
+  send_days?: string[] | null; send_hour_utc?: number | null
+  ab_subject_b?: string | null; ab_subject_c?: string | null
+  ab_subject_d?: string | null; ab_subject_e?: string | null
 }
 type Cockpit = {
   client:    { id: string; company_name: string | null }
@@ -86,7 +89,16 @@ type Enrollment = {
   next_send_at: string | null; first_name: string | null; last_name: string | null
   job_title: string | null; company: string | null; replied: string | null
 }
-type CampEdit = { id?: string; name: string; campaign_intent: string; daily_send_limit: string; copilot_mode: boolean }
+type CampEdit = {
+  id?: string; name: string; campaign_intent: string; daily_send_limit: string; copilot_mode: boolean
+  // V7 in full — the send window and the A/B subject variants. The window is real now:
+  // the send cron honours settings.send_days / send_hour_utc (it ignored them before).
+  send_days: string[]; send_hour_utc: string
+  ab_subject_b: string; ab_subject_c: string; ab_subject_d: string; ab_subject_e: string
+}
+const DAY_LABELS: [string, string][] = [
+  ['mon', 'Mon'], ['tue', 'Tue'], ['wed', 'Wed'], ['thu', 'Thu'], ['fri', 'Fri'], ['sat', 'Sat'], ['sun', 'Sun'],
+]
 type SeqStep = { subject: string; body: string; wait_days: number }
 type ChatTurn = { role: 'user' | 'assistant'; content: string }
 type IcpDraft = Record<string, unknown> | null
@@ -412,16 +424,29 @@ export default function VidaConsolePage() {
     setCockpitBusy(false)
   }
 
+  const BLANK_CAMP: Omit<CampEdit, 'name' | 'campaign_intent'> = {
+    daily_send_limit: '', copilot_mode: true, send_days: [], send_hour_utc: '',
+    ab_subject_b: '', ab_subject_c: '', ab_subject_d: '', ab_subject_e: '',
+  }
+
   function openCampEditor(c?: CampaignRow) {
     setSaveMsg(null); setTestResult(null)
     setCampEdit(c
-      ? { id: c.id, name: c.name, campaign_intent: c.campaign_intent ?? '', daily_send_limit: c.daily_send_limit != null ? String(c.daily_send_limit) : '', copilot_mode: c.copilot_mode === true }
-      : { name: proposal?.name ?? '', campaign_intent: proposal?.campaign_intent ?? '', daily_send_limit: '', copilot_mode: true })
+      ? {
+        id: c.id, name: c.name, campaign_intent: c.campaign_intent ?? '',
+        daily_send_limit: c.daily_send_limit != null ? String(c.daily_send_limit) : '',
+        copilot_mode: c.copilot_mode === true,
+        send_days: Array.isArray(c.send_days) ? c.send_days : [],
+        send_hour_utc: c.send_hour_utc != null ? String(c.send_hour_utc) : '',
+        ab_subject_b: c.ab_subject_b ?? '', ab_subject_c: c.ab_subject_c ?? '',
+        ab_subject_d: c.ab_subject_d ?? '', ab_subject_e: c.ab_subject_e ?? '',
+      }
+      : { name: proposal?.name ?? '', campaign_intent: proposal?.campaign_intent ?? '', ...BLANK_CAMP })
   }
 
   async function saveCampaign(patch?: Partial<CampEdit> & { status?: string }) {
     if (!selected) return
-    const src = campEdit ?? { name: proposal?.name ?? '', campaign_intent: proposal?.campaign_intent ?? '', daily_send_limit: '', copilot_mode: true }
+    const src: CampEdit = campEdit ?? { name: proposal?.name ?? '', campaign_intent: proposal?.campaign_intent ?? '', ...BLANK_CAMP }
     setCockpitBusy(true); setSaveMsg(null)
     try {
       const body: Record<string, unknown> = {
@@ -432,8 +457,20 @@ export default function VidaConsolePage() {
         copilot_mode: patch?.copilot_mode ?? src.copilot_mode,
       }
       const cap = patch?.daily_send_limit ?? src.daily_send_limit
-      if (String(cap ?? '').trim()) body.daily_send_limit = Number(cap)
+      // Send the cap on EVERY save, blank included — blank means "clear it", and omitting it
+      // would make a cleared cap silently keep the old number.
+      body.daily_send_limit = String(cap ?? '').trim() ? Number(cap) : null
       if (patch?.status) body.status = patch.status
+      // Only send the window + A/B when editing a real campaign (the quick-approve path has
+      // no editor open and must not blank them).
+      if (campEdit) {
+        body.send_days = src.send_days
+        body.send_hour_utc = src.send_hour_utc.trim() === '' ? null : Number(src.send_hour_utc)
+        body.ab_subject_b = src.ab_subject_b
+        body.ab_subject_c = src.ab_subject_c
+        body.ab_subject_d = src.ab_subject_d
+        body.ab_subject_e = src.ab_subject_e
+      }
       const j = await fetch('/api/proxy/operator/campaign/save', {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
       }).then(r => r.json())
@@ -1152,6 +1189,63 @@ export default function VidaConsolePage() {
                           placeholder="blank = platform default"
                           className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
                       </label>
+                      {/* V7 — THE SEND WINDOW. Real, not decorative: settings.send_days /
+                          send_hour_utc were write-only until this PR; the send cron now
+                          honours them. No days picked = any day; no hour = any hour. */}
+                      <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
+                        <b className="text-[12px] block mb-1.5">When it may send</b>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {DAY_LABELS.map(([key, label]) => {
+                            const on = campEdit.send_days.includes(key)
+                            return (
+                              <button key={key} type="button"
+                                onClick={() => setCampEdit({
+                                  ...campEdit,
+                                  send_days: on ? campEdit.send_days.filter(d => d !== key) : [...campEdit.send_days, key],
+                                })}
+                                className={`text-[11.5px] font-bold rounded-lg border px-2.5 py-1 ${on ? 'text-white bg-[#7C3AED] border-[#7C3AED]' : 'text-[#5c5279] bg-white border-[#ece5fb] hover:border-[#d9c9f7]'}`}>
+                                {label}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        <label className="flex items-center gap-2 text-[11.5px] text-[#5c5279]">
+                          Not before
+                          <select value={campEdit.send_hour_utc}
+                            onChange={e => setCampEdit({ ...campEdit, send_hour_utc: e.target.value })}
+                            className="border border-[#ece5fb] rounded-lg px-2 py-1 text-[12px] outline-none focus:border-[#7C3AED]">
+                            <option value="">any hour</option>
+                            {Array.from({ length: 24 }, (_, h) => (
+                              <option key={h} value={String(h)}>{String(h).padStart(2, '0')}:00 UTC</option>
+                            ))}
+                          </select>
+                        </label>
+                        <p className="text-[10.5px] text-[#9b8ec4] mt-1.5">
+                          {campEdit.send_days.length === 0 && !campEdit.send_hour_utc.trim()
+                            ? 'Any day, any hour — the daily cap and kill-switch still apply.'
+                            : `Sends only ${campEdit.send_days.length ? DAY_LABELS.filter(([k]) => campEdit.send_days.includes(k)).map(([, l]) => l).join(' · ') : 'any day'}${campEdit.send_hour_utc.trim() ? `, from ${String(campEdit.send_hour_utc).padStart(2, '0')}:00 UTC` : ''}. Anything due outside it waits — nothing is lost.`}
+                        </p>
+                      </div>
+
+                      {/* V7 — A/B SUBJECT VARIANTS. ab_subject_b IS read by the engine
+                          (lib/figsy.ts picks a variant) and the #511 auto-tune cron scores
+                          them, so filling B is what switches the test on. */}
+                      <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
+                        <b className="text-[12px] block">Subject A/B test</b>
+                        <p className="text-[10.5px] text-[#9b8ec4] mb-1.5">
+                          Step 1&rsquo;s own subject is variant A. Add B to start testing; C–E are optional.
+                        </p>
+                        {([['ab_subject_b', 'B'], ['ab_subject_c', 'C'], ['ab_subject_d', 'D'], ['ab_subject_e', 'E']] as [keyof CampEdit, string][]).map(([key, letter]) => (
+                          <label key={String(key)} className="flex items-center gap-2 mb-1">
+                            <span className="w-4 text-[11px] font-extrabold text-[#b3a9cc]">{letter}</span>
+                            <input value={String(campEdit[key] ?? '')} maxLength={200}
+                              onChange={e => setCampEdit({ ...campEdit, [key]: e.target.value })}
+                              placeholder={letter === 'B' ? 'e.g. quick question about {{company}}' : 'optional'}
+                              className="flex-1 border border-[#ece5fb] rounded-lg px-2.5 py-1.5 text-[12px] outline-none focus:border-[#7C3AED]" />
+                          </label>
+                        ))}
+                      </div>
+
                       {/* V8 — Auto-Pilot vs Co-Pilot. Co-Pilot writes approve_before_send, so
                           every email stops at the Approvals tab before it reaches a prospect. */}
                       <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">

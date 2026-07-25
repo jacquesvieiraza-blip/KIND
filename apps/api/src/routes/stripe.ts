@@ -688,6 +688,86 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       } else {
         console.warn(`[Stripe] ${event.type} — could not resolve a credit grant to claw back (payment_intent ${obj.payment_intent ?? 'none'})`)
       }
+
+      // STOP THE WORK, not just the money. Clawing the wallet back to $0 blocks the NEXT
+      // approval (try_charge_wallet fails), but every enrollment already mid-sequence keeps
+      // emailing prospects in this client's name — on our sending reputation, for someone
+      // who has just taken their money back. Pause their active campaigns and let the
+      // operator decide. Reversible in one click in Vida (Campaign → Run it).
+      if (meta.clientId) {
+        const { data: paused } = await db.from('figsy_campaigns')
+          .update({ status: 'paused' })
+          .eq('client_id', meta.clientId).eq('status', 'active')
+          .select('id')
+        const n = (paused ?? []).length
+        if (n > 0) {
+          void sendFounderAlert('churn_risk', `Outreach paused — ${event.type === 'charge.dispute.created' ? 'chargeback' : 'refund'} on client ${meta.clientId}`, [
+            `${n} active campaign${n === 1 ? '' : 's'} paused for client ${meta.clientId}.`,
+            'Their money was reversed, so we stopped sending in their name rather than keep working for free and spending our sending reputation.',
+            'Action: if this was expected (a goodwill refund, say), resume them in Vida → Campaign → Run it.',
+          ])
+        }
+      }
+    }
+
+    // ── #317b — DISPUTE CLOSED: if WE WON, give the money back ────────────────
+    // Without this the claw-back is permanent: a client who paid legitimately, had a card
+    // dispute we then WON, is left short — we keep the cash Stripe returned to us AND they
+    // never get their wallet back. That is us taking money for nothing, which is the exact
+    // thing the money rails exist to prevent.
+    //
+    // Only 'won' restores. 'lost' means Stripe took the funds — the claw-back was correct and
+    // stands. Idempotent on `refund_restore_<dispute id>`, so a replayed webhook restores at
+    // most once. Campaigns are deliberately NOT auto-resumed: the operator decides that, and
+    // an auto-resume would start sending on a client who may have gone quiet.
+    if (event.type === 'charge.dispute.closed') {
+      const d = event.data.object as { id: string; status?: string; payment_intent?: string | null }
+      if (d.status === 'won') {
+        const linked = await getSessionMetaByPaymentIntent(d.payment_intent)
+        const meta = linked?.metadata ?? {}
+        const credits = parseInt(meta.credits ?? '', 10)
+        const topUpUsd = parseFloat(meta.amountUsd ?? '')
+        const isWalletTopUp = meta.type === 'wallet_topup' && Number.isFinite(topUpUsd) && topUpUsd > 0
+        const isCreditGrant = !!meta.creditType && Number.isFinite(credits) && credits > 0
+
+        if (meta.clientId && (isWalletTopUp || isCreditGrant)) {
+          const amount = isWalletTopUp ? topUpUsd : credits
+          const isFigsy = meta.creditType === 'figsy'
+          const { error: ledgerErr } = await db.from('credit_transactions').insert({
+            client_id: meta.clientId,
+            // 'manual_grant', not 'adjustment': credit_transactions.type has a CHECK
+            // constraint and 'adjustment' is NOT in it — the insert would have thrown, the
+            // handler would have 500'd, Stripe would retry forever and the client would
+            // never be restored. Allowed values: purchase, credit_purchase, referral,
+            // referral_bonus, trial_bonus, consumed, usage, manual_grant, refund.
+            type:      'manual_grant',
+            amount,
+            plan:      isWalletTopUp ? 'work_model' : (isFigsy ? 'figsy' : 'kind_ai'),
+            reference: `refund_restore_${d.id}`,
+            note:      `Dispute WON — restored ${isWalletTopUp ? `$${amount} wallet top-up` : `${amount} ${isFigsy ? 'FIGSY' : 'lead gen'} credits`} previously clawed back (${linked?.sessionId ?? 'unknown session'})`,
+          })
+          if (ledgerErr && ledgerErr.code !== '23505') throw ledgerErr
+          if (!ledgerErr) {
+            const rpc = isWalletTopUp ? 'increment_wallet' : (isFigsy ? 'increment_figsy_credits' : 'increment_client_credits')
+            const { error: restoreErr } = await db.rpc(rpc, { p_client_id: meta.clientId, p_amount: amount })
+            if (restoreErr) {
+              console.error('[Stripe] dispute-won restore RPC failed', restoreErr.message, 'client', meta.clientId)
+              void sendFounderAlert('payment_failed', 'Dispute won — restore FAILED, credit them manually', [
+                `Client: ${meta.clientId}`,
+                `We won the dispute, so the earlier claw-back should be reversed, but the restore RPC failed: ${restoreErr.message}`,
+                `Action: credit ${isWalletTopUp ? `$${amount} to their wallet` : `${amount} credits`} manually.`,
+              ])
+            } else {
+              void sendFounderAlert('churn_risk', 'Dispute WON — client restored', [
+                `Client ${meta.clientId} disputed a payment, we won, and ${isWalletTopUp ? `$${amount} was restored to their wallet` : `${amount} credits were restored`}.`,
+                'Their campaigns are still PAUSED from the dispute — resume them in Vida → Campaign → Run it when you are ready.',
+              ])
+            }
+          }
+        } else {
+          console.warn(`[Stripe] charge.dispute.closed(won) — nothing to restore (payment_intent ${d.payment_intent ?? 'none'})`)
+        }
+      }
     }
 
   } catch (err) {

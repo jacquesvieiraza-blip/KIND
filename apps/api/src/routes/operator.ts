@@ -172,6 +172,71 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── PER-CLIENT COCKPIT (ICP · campaigns · sequences · inbox) ──────────────────────
+// The data path Vida never had. /figsy/* and /icps are gated by requireAuth (a CLIENT
+// Bearer JWT), but the admin app proxies with x-admin-key and no client session — so the
+// operator console literally could not read a client's ICP, campaigns or sequences. That
+// is why Vida had no ICP/campaign/sequence surfaces at all, and why the old client-detail
+// page's `/api/proxy/figsy/campaigns?client_id=` + `/api/proxy/icps?client_id=` calls
+// silently 401'd and always rendered "none". One admin-key-gated, client_id-scoped read
+// replaces all of them.
+operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
+  try {
+    const clientId = String(req.query.client_id ?? '')
+    const client = await requireClient(clientId)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const cid = client.id
+
+    const [icps, campaigns, sequences, replies] = await Promise.all([
+      db.from('icps').select('id, name, created_at, last_run_at')
+        .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
+      db.from('figsy_campaigns')
+        .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at')
+        .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
+      db.from('figsy_sequences').select('id, name, steps, created_at, updated_at')
+        .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
+      db.from('figsy_replies')
+        .select('id, lead_id, from_name, from_email, classification, qualified_at, meeting_booked_at, received_at')
+        .eq('client_id', cid).order('received_at', { ascending: false }).limit(40),
+    ])
+
+    res.json({
+      success: true,
+      data: {
+        client:    { id: cid, company_name: client.company_name ?? null },
+        icps:      icps.data ?? [],
+        campaigns: campaigns.data ?? [],
+        sequences: sequences.data ?? [],
+        replies:   replies.data ?? [],
+      },
+    })
+  } catch (err) { console.error('[operator/cockpit]', err); res.status(500).json({ success: false, error: 'Failed to load client cockpit' }) }
+})
+
+// Pause / resume a client's campaign (operator-side; the client's view is read-only).
+operatorRouter.post('/campaign/:id/status', async (req: Request, res: Response) => {
+  try {
+    const { client_id, status } = (req.body ?? {}) as { client_id?: string; status?: string }
+    if (status !== 'active' && status !== 'paused') {
+      res.status(400).json({ success: false, error: 'status must be active or paused' }); return
+    }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: updated, error } = await db.from('figsy_campaigns')
+      .update({ status }).eq('id', req.params.id).eq('client_id', client.id)
+      .select('id, name, status').maybeSingle()
+    if (error) throw error
+    if (!updated) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'pause_campaign',
+      subjectType: 'campaign', subjectId: req.params.id, detail: { status, on_behalf: true },
+    })
+    res.json({ success: true, data: updated })
+  } catch (err) { console.error('[operator/campaign/status]', err); res.status(500).json({ success: false, error: 'Failed to update campaign' }) }
+})
+
 // ── START A CLIENT'S CAMPAIGN (operator-side, the managed model) ──────────────────
 // In the work model WE run the outreach, so campaign creation belongs to the operator,
 // not the client (their "My campaign" is read-only status). Without this there is no

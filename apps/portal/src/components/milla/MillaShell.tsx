@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
-  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem,
+  Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair,
   LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, Bell,
 } from 'lucide-react'
 
@@ -70,8 +70,7 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
 
   const ACCOUNT: [string, string, React.ElementType][] = [
     ['/milla/settings', 'My profile', User], ['/milla/billing', 'Billing', CreditCard],
-    ['/milla/usage', 'Usage', Gauge], ['/milla/documents', 'Documents', FileText],
-    ['/milla/referral', 'Referral', Gift],
+    ['/milla/usage', 'Usage', Gauge], ['/milla/referral', 'Referral', Gift],
   ]
   // The ROI / insights surface lives in the top-right dropdown (not the left rail) so the
   // rail stays purely the client's workspace. Still kept — this is how we prove the ROI.
@@ -145,6 +144,11 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             {link('/milla', 'New leads', Sparkles, isLeads, s?.leads_awaiting || undefined)}
             {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
             {link('/milla/campaign', 'My campaign', Target, pathname.startsWith('/milla/campaign'))}
+            {/* #512 ICP approval + Documents were reachable only from a single link on the
+                home page / the account menu — they are part of the client's actual workspace
+                (approve the plan, keep their material current), so they belong in the rail. */}
+            {link('/milla/icp', 'My ICP', Crosshair, pathname.startsWith('/milla/icp'))}
+            {link('/milla/documents', 'Documents', FileText, pathname.startsWith('/milla/documents'))}
             {link('/milla/reports', 'Reports', FileBarChart, pathname.startsWith('/milla/reports'))}
           </nav>
           {/* ROI (Performance/Analytics/Your ROI/Command Centre/Teams Hub) moved to the

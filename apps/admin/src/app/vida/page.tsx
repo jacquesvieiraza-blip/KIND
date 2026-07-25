@@ -45,6 +45,16 @@ type Board = {
 type Status = { outreach_enabled: boolean; daily_cap: number | null }
 type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
 type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
+
+// Per-client cockpit (GET /operator/cockpit) — the ICP/campaign/sequence/inbox surfaces.
+type CockpitTab = 'Pipeline' | 'ICP' | 'Campaign' | 'Sequence' | 'Inbox'
+type Cockpit = {
+  client:    { id: string; company_name: string | null }
+  icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null }[]
+  campaigns: { id: string; name: string; status: string; leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number; created_at: string | null }[]
+  sequences: { id: string; name: string; steps: unknown; created_at: string | null; updated_at: string | null }[]
+  replies:   { id: string; lead_id: string | null; from_name: string | null; from_email: string | null; classification: string | null; qualified_at: string | null; meeting_booked_at: string | null; received_at: string | null }[]
+}
 type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl_cost_est: number; allowance_left: number; leads_per_run: number; capped: boolean; is_demo: boolean; icp_name?: string | null; no_active_icp?: boolean }
 
 // #501 — the 8-step operating flow, shown as a status ribbon across the top of the console.
@@ -107,6 +117,55 @@ export default function VidaConsolePage() {
   const [cmdBusy, setCmdBusy] = useState(false)
 
   // #498b — one-click sourcing: a pool-aware confirm before we spend a cent of PDL budget.
+  // Per-client cockpit (ICP · Campaign · Sequence · Inbox) — one admin-key read.
+  const [tab, setTab] = useState<CockpitTab>('Pipeline')
+  const [cockpit, setCockpit] = useState<Cockpit | null>(null)
+  const [cockpitLoading, setCockpitLoading] = useState(false)
+  const [cockpitError, setCockpitError] = useState<string | null>(null)
+  const [cockpitBusy, setCockpitBusy] = useState(false)
+
+  const loadCockpit = useCallback(async (clientId: string) => {
+    setCockpitLoading(true); setCockpitError(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/cockpit?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Failed to load cockpit')
+      setCockpit(j.data)
+    } catch (e) { setCockpitError(e instanceof Error ? e.message : 'Failed to load cockpit') }
+    setCockpitLoading(false)
+  }, [])
+
+  // Load the cockpit whenever a client is selected (and reset to Pipeline on switch).
+  useEffect(() => {
+    if (!selected) { setCockpit(null); return }
+    setTab('Pipeline'); setCockpit(null); loadCockpit(selected)
+  }, [selected, loadCockpit])
+
+  async function startCampaign() {
+    if (!selected) return
+    setCockpitBusy(true)
+    try {
+      await fetch('/api/proxy/operator/campaign/start', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected }),
+      }).then(r => r.json())
+      await loadCockpit(selected)
+    } catch { /* surfaced by the reload */ }
+    setCockpitBusy(false)
+  }
+
+  async function setCampaignStatus(campaignId: string, status: 'active' | 'paused') {
+    if (!selected) return
+    setCockpitBusy(true)
+    try {
+      await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(campaignId)}/status`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, status }),
+      }).then(r => r.json())
+      await loadCockpit(selected)
+    } catch { /* surfaced by the reload */ }
+    setCockpitBusy(false)
+  }
+
   const [srcPreview, setSrcPreview] = useState<SourcePreview | null>(null)
   const [srcBusy, setSrcBusy] = useState(false)
   const [srcResult, setSrcResult] = useState<string | null>(null)
@@ -479,6 +538,96 @@ export default function VidaConsolePage() {
               </div>
             )}
 
+            {/* PER-CLIENT COCKPIT TABS — the operator's work surfaces for THIS client.
+                ICP · Campaign · Sequence · Inbox were missing entirely because the admin
+                app had no way to read them (see GET /operator/cockpit). */}
+            <div className="px-[22px] pt-4 flex items-end gap-1 border-b border-[#f2ecfb]">
+              {(['Pipeline', 'ICP', 'Campaign', 'Sequence', 'Inbox'] as CockpitTab[]).map(t => {
+                const on = tab === t
+                const badge = t === 'Inbox' && cockpit ? cockpit.replies.filter(r => !r.qualified_at).length : 0
+                return (
+                  <button key={t} onClick={() => setTab(t)}
+                    className={`px-3 py-2 text-[12.5px] font-bold rounded-t-lg border-b-2 -mb-px transition-colors ${
+                      on ? 'border-[#7C3AED] text-[#1f1235] bg-white' : 'border-transparent text-[#9b8ec4] hover:text-[#5c5279]'
+                    }`}>
+                    {t}
+                    {badge > 0 && <span className="ml-1.5 text-[10px] font-extrabold text-white bg-[#EC4899] rounded-full px-1.5">{badge}</span>}
+                  </button>
+                )
+              })}
+            </div>
+
+            {tab !== 'Pipeline' && (
+              <div className="flex-1 overflow-y-auto px-[22px] py-4">
+                {cockpitLoading && !cockpit && <p className="text-sm text-[#9b8ec4]">Loading {tab.toLowerCase()}…</p>}
+                {cockpitError && <p className="text-xs text-red-500">{cockpitError}</p>}
+
+                {cockpit && tab === 'ICP' && (
+                  <Panel title="Ideal Customer Profile" sub="Versioned. The client approves it in Milla; we build it here.">
+                    {cockpit.icps.length === 0
+                      ? <Empty>No ICP yet — build one so sourcing has a target.</Empty>
+                      : cockpit.icps.map((i, n) => (
+                        <Row key={i.id} title={i.name || `ICP v${cockpit.icps.length - n}`}
+                          sub={i.last_run_at ? `last sourced ${fmtDate(i.last_run_at)}` : 'never sourced'}
+                          tag={n === 0 ? { label: 'current', tone: 'good' } : undefined} />
+                      ))}
+                    <Hint>Use the command bar above — <b>&ldquo;Redefine the ICP&rdquo;</b> — to change it.</Hint>
+                  </Panel>
+                )}
+
+                {cockpit && tab === 'Campaign' && (
+                  <Panel title="Campaign" sub="We run it. The client's view is read-only status.">
+                    {cockpit.campaigns.length === 0 ? (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                        <p className="text-[13px] font-bold text-amber-800">No campaign — this client cannot be worked.</p>
+                        <p className="text-[11.5px] text-amber-700 mt-1">Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.</p>
+                        <button onClick={startCampaign} disabled={cockpitBusy}
+                          className="mt-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                          {cockpitBusy ? 'Starting…' : 'Start campaign'}
+                        </button>
+                      </div>
+                    ) : cockpit.campaigns.map(c => (
+                      <Row key={c.id} title={c.name}
+                        sub={`${c.leads_enrolled} enrolled · ${c.emails_sent} sent · ${c.replies_total} replies`}
+                        tag={{ label: c.status === 'active' ? 'live' : c.status, tone: c.status === 'active' ? 'good' : 'mute' }}
+                        action={c.status === 'active' || c.status === 'paused' ? {
+                          label: c.status === 'active' ? 'Pause' : 'Resume',
+                          onClick: () => setCampaignStatus(c.id, c.status === 'active' ? 'paused' : 'active'),
+                        } : undefined} />
+                    ))}
+                  </Panel>
+                )}
+
+                {cockpit && tab === 'Sequence' && (
+                  <Panel title="Sequence" sub="What we send, per client. Human send-gate before anything leaves.">
+                    {cockpit.sequences.length === 0
+                      ? <Empty>No saved sequence — FIGSY writes one per campaign by default.</Empty>
+                      : cockpit.sequences.map(s => (
+                        <Row key={s.id} title={s.name}
+                          sub={`${Array.isArray(s.steps) ? s.steps.length : 0} steps · updated ${fmtDate(s.updated_at)}`} />
+                      ))}
+                    <Hint>Use the command bar — <b>&ldquo;Update the sequence&rdquo;</b> — to change the messaging.</Hint>
+                  </Panel>
+                )}
+
+                {cockpit && tab === 'Inbox' && (
+                  <Panel title="Inbox — prospect replies we handle" sub="A prospect asks; WE answer on the client's behalf.">
+                    {cockpit.replies.length === 0
+                      ? <Empty>No replies yet.</Empty>
+                      : cockpit.replies.map(r => (
+                        <Row key={r.id} title={r.from_name || r.from_email || 'Unknown'}
+                          sub={`${r.classification || 'unclassified'} · ${fmtDate(r.received_at)}`}
+                          tag={r.meeting_booked_at ? { label: 'booked', tone: 'good' }
+                            : r.qualified_at ? { label: 'qualified', tone: 'good' }
+                            : { label: 'needs you', tone: 'warn' }}
+                          action={{ label: 'Open record', onClick: () => { window.location.href = `/vida/record?lead_id=${r.lead_id}` } }} />
+                      ))}
+                  </Panel>
+                )}
+              </div>
+            )}
+
+            {tab === 'Pipeline' && <>
             <div className="px-[22px] pt-4 pb-1">
               <b className="text-[15px]">{selectedClient?.company_name || board?.client.company_name || 'Client'} — campaign pipeline</b>
               <span className="block text-[11.5px] text-[#9b8ec4]">Every stage FIGSY moves a lead through · human gate before send</span>
@@ -582,7 +731,56 @@ export default function VidaConsolePage() {
                 </Col>
               </div>
             )}
+            </>}
           </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── cockpit presentational helpers (kept local + tiny; no new deps) ────────────────
+function fmtDate(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+function Panel({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
+  return (
+    <div className="max-w-3xl">
+      <b className="text-[15px]">{title}</b>
+      <span className="block text-[11.5px] text-[#9b8ec4] mb-3">{sub}</span>
+      <div className="flex flex-col gap-2">{children}</div>
+    </div>
+  )
+}
+function Empty({ children }: { children: React.ReactNode }) {
+  return <div className="rounded-xl border border-[#eee7f7] bg-white px-4 py-6 text-center text-[13px] text-[#9b8ec4]">{children}</div>
+}
+function Hint({ children }: { children: React.ReactNode }) {
+  return <p className="text-[11.5px] text-[#9b8ec4] mt-1">{children}</p>
+}
+function Row({ title, sub, tag, action }: {
+  title: string; sub: string
+  tag?: { label: string; tone: 'good' | 'warn' | 'mute' }
+  action?: { label: string; onClick: () => void }
+}) {
+  const tone = tag?.tone === 'good' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+    : tag?.tone === 'warn' ? 'text-amber-800 bg-amber-50 border-amber-200'
+    : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-[#eee7f7] bg-white px-3.5 py-2.5">
+      <div className="min-w-0">
+        <b className="text-[13px] block truncate">{title}</b>
+        <span className="text-[11.5px] text-[#9b8ec4]">{sub}</span>
+      </div>
+      <div className="ml-auto flex items-center gap-2 shrink-0">
+        {tag && <span className={`text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${tone}`}>{tag.label}</span>}
+        {action && (
+          <button onClick={action.onClick}
+            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd]">
+            {action.label}
+          </button>
         )}
       </div>
     </div>

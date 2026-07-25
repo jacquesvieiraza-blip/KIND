@@ -11,3 +11,7 @@ build
 *.tsbuildinfo
 .claude/
 .claude/settings.local.json
+
+# ship.sh writes these locally to force a Railway rebuild — never committed
+.deploy-stamp
+apps/*/.deploy-stamp

@@ -23,6 +23,7 @@ type Engine = {
   totals: { sent_7d: number; sent_today: number; opened_7d: number; bounced_7d: number; opt_outs_total: number; bounce_rate: number; open_rate: number }
   inboxes: Inbox[]
   needs_inbox: { client_id: string; company_name: string | null }[]
+  migration_pending?: boolean
 }
 
 export default function VidaEnginePage() {
@@ -31,6 +32,22 @@ export default function VidaEnginePage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [form, setForm] = useState<{ clientId: string; email: string } | null>(null)
   const [brandFor, setBrandFor] = useState<{ clientId: string; email: string } | null>(null)
+  const [migMsg, setMigMsg] = useState<string | null>(null)
+
+  // The Supabase SQL editor is unreachable (GitHub OAuth + flagged account), so the
+  // migration runs from here instead. Only reviewed, committed, idempotent statements —
+  // the endpoint ignores any body, so this is not an arbitrary-SQL hole.
+  async function runMigration() {
+    setBusy('migration'); setMigMsg(null); setError(null)
+    try {
+      const j = await fetch('/api/proxy/operator/migrations/run', { method: 'POST' }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Migration failed')
+      const failed = (j.data.results ?? []).filter((r: { ok: boolean }) => !r.ok)
+      if (failed.length) setMigMsg(`Failed: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}`)
+      else { setMigMsg('Migration applied. Inbox tracking is live.'); await load() }
+    } catch (err) { setMigMsg(err instanceof Error ? err.message : 'Migration failed') }
+    setBusy(null)
+  }
 
   const load = useCallback(async () => {
     try {
@@ -76,6 +93,21 @@ export default function VidaEnginePage() {
 
       {error && <div className="text-[12.5px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4">{error}</div>}
       {!e && !error && <p className="text-[13px] text-[#9b8ec4] py-10 text-center">Loading…</p>}
+
+      {e?.migration_pending && (
+        <div className="border border-amber-300 bg-amber-50 rounded-xl px-4 py-3 mb-4">
+          <b className="text-[13px] text-amber-900 block">Inbox tracking is waiting on one migration.</b>
+          <p className="text-[11.5px] text-amber-800 mt-1">
+            Deliverability below is live. The inbox list and the &ldquo;needs an inbox&rdquo; queue switch on once
+            <code className="mx-1 px-1 bg-white rounded">20260725_client_inboxes.sql</code> has been applied.
+          </p>
+          <button onClick={runMigration} disabled={busy === 'migration'}
+            className="mt-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+            {busy === 'migration' ? 'Running…' : 'Run it now'}
+          </button>
+          {migMsg && <p className="text-[11.5px] font-semibold text-amber-900 mt-2">{migMsg}</p>}
+        </div>
+      )}
 
       {e && (<>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">

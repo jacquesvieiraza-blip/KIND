@@ -121,8 +121,12 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
     <div className="h-screen flex flex-col bg-[#faf8ff] text-[#1f1235] overflow-hidden">
       {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
       <header className="h-[52px] shrink-0 flex items-center gap-3 px-4 border-b border-[#eee7f7] bg-white">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[13px] font-extrabold">V</div>
-        <div className="text-[15px] font-extrabold">Milla&amp;Vida <span className="text-[#9b8ec4] font-semibold text-[13px]">· operator</span></div>
+        {/* A1 — the brand is the way home. Wherever you are in Vida, clicking it lands you
+            back on the clients console. It was static text, so a sub-page was a dead end. */}
+        <Link href="/vida" className="flex items-center gap-3 rounded-lg -mx-1 px-1 py-0.5 hover:opacity-80 transition-opacity" title="Back to the clients console">
+          <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white flex items-center justify-center text-[13px] font-extrabold">V</span>
+          <span className="text-[15px] font-extrabold">Milla&amp;Vida <span className="text-[#9b8ec4] font-semibold text-[13px]">· operator</span></span>
+        </Link>
 
         <div className="ml-auto flex items-center gap-2">
           {/* Engine health — was the rail's "ENGINE HEALTH · FIGSY" box. */}

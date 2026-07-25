@@ -3,10 +3,18 @@
 import { useCallback, useEffect, useState } from 'react'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
-// Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail). This is
-// the Clients panel + the 5-column campaign board (Sourced → Needs approval → Sending →
-// Replied → Qualified·$4). Consumes the admin-gated /operator API via /api/proxy (admin
-// key + verified operator email injected server-side). Design ref: docs/mv-previews/vida2.html.
+// Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
+// panel | Vida scoped to the selected client | the client's work surfaces as tabs.
+// Consumes the admin-gated /operator API via /api/proxy (admin key + verified operator
+// email injected server-side). Design ref: docs/mv-previews/vida2.html.
+//
+// THE LAUNCH PATH lives here (V2–V14). The old self-serve console could do all of this,
+// but only behind a client JWT — so the operator could look at a client's campaign and
+// never propose, edit, fill, preview, test or run one. Every step below is now reachable:
+//   ICP by conversation → people picked → campaign proposed & approved → sequence
+//   proposed & approved → preview → test email to us → RUN.
+// Nothing sends to a prospect without the human Send gate; the $4 is still charged only
+// at the CLIENT's 👍 in Milla, never here.
 
 type ClientRow = {
   id: string
@@ -47,19 +55,54 @@ type CmdMsg = { role: 'operator' | 'vida'; text: string; link?: string | null }
 type Blockers = { send_gate: number; money_gate: number; unsent_sourced: number; replies_to_triage: number }
 
 // Per-client cockpit (GET /operator/cockpit) — the ICP/campaign/sequence/inbox surfaces.
-type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Bookings'
+type CockpitTab = 'Inbox' | 'Approvals' | 'People' | 'Campaign' | 'ICP' | 'Sequence' | 'Asks' | 'Bookings'
+type CampaignRow = {
+  id: string; name: string; status: string; leads_enrolled: number; emails_sent: number
+  replies_total: number; replies_interested: number; created_at: string | null
+  campaign_intent?: string | null; copilot_mode?: boolean | null; daily_send_limit?: number | null
+}
 type Cockpit = {
   client:    { id: string; company_name: string | null }
   onboarding: { percent: number; missing: string[]; checks: { key: string; label: string; ok: boolean }[] }
   icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null }[]
-  campaigns: { id: string; name: string; status: string; leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number; created_at: string | null }[]
+  campaigns: CampaignRow[]
   sequences: { id: string; name: string; steps: unknown; created_at: string | null; updated_at: string | null }[]
   replies:   { id: string; lead_id: string | null; from_name: string | null; from_email: string | null; classification: string | null; qualified_at: string | null; meeting_booked_at: string | null; received_at: string | null }[]
 }
 type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl_cost_est: number; allowance_left: number; leads_per_run: number; capped: boolean; is_demo: boolean; icp_name?: string | null; no_active_icp?: boolean }
 
+// V17 — the bell. Derived live from real rows (GET /operator/alerts).
+type Alert = { client_id: string; company_name: string | null; kind: string; label: string; severity: 'high' | 'normal' }
+// V4 — the pool the operator picks from.
+type Person = {
+  id: string; first_name: string | null; last_name: string | null; job_title: string | null
+  company: string | null; industry: string | null; country: string | null; score: number | null
+  status: string | null; email: string | null; revealed_at: string | null
+  enrolled: boolean; in_campaign: boolean
+}
+// V14 — who is in a campaign, and where they are in the sequence.
+type Enrollment = {
+  id: string; lead_id: string; status: string | null; current_step: number | null; total_steps: number | null
+  next_send_at: string | null; first_name: string | null; last_name: string | null
+  job_title: string | null; company: string | null; replied: string | null
+}
+type CampEdit = { id?: string; name: string; campaign_intent: string; daily_send_limit: string; copilot_mode: boolean }
+type SeqStep = { subject: string; body: string; wait_days: number }
+type ChatTurn = { role: 'user' | 'assistant'; content: string }
+type IcpDraft = Record<string, unknown> | null
+type Ask = { id: string; question: string; asked_at: string; answers: { content: string; at: string }[] }
+
 // #501 — the 8-step operating flow, shown as a status ribbon across the top of the console.
 const FLOW = ['Sign up', 'Build plan', 'Approve send', 'Qualify', 'Client approves', 'Follow-up', 'Book', 'Learn']
+
+// V1 — an onboarding gap is not a label, it is a door. Each one opens the tab that fixes it.
+const GAP_TAB: Record<string, CockpitTab | null> = {
+  'Approved ICP': 'ICP',
+  'Sequence written': 'Sequence',
+  'Campaign live': 'Campaign',
+  'Company name': null, 'Industry': null, 'Country': null,
+  'Website': null, 'Who signs the emails': null,
+}
 
 function initials(name: string | null): string {
   if (!name) return '—'
@@ -76,9 +119,9 @@ export default function VidaConsolePage() {
   const [clients, setClients] = useState<ClientRow[] | null>(null)
   const [clientsError, setClientsError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
+  const [alerts, setAlerts] = useState<Alert[]>([])
 
   const [board, setBoard] = useState<Board | null>(null)
-  const [boardLoading, setBoardLoading] = useState(false)
   const [boardError, setBoardError] = useState<string | null>(null)
   const [acting, setActing] = useState<string | null>(null)
   const [openDrafts, setOpenDrafts] = useState<Set<string>>(new Set())
@@ -90,10 +133,12 @@ export default function VidaConsolePage() {
   const [cmdLog, setCmdLog] = useState<CmdMsg[]>([])
   const [cmdBusy, setCmdBusy] = useState(false)
 
-  // #498b — one-click sourcing: a pool-aware confirm before we spend a cent of PDL budget.
   // Per-client cockpit (ICP · Campaign · Sequence · Inbox) — one admin-key read.
   const [tab, setTab] = useState<CockpitTab>('Inbox')
   const [cockpit, setCockpit] = useState<Cockpit | null>(null)
+  // Declared here, not with the other derived values further down: an effect below uses it in
+  // a DEPENDENCY ARRAY, which is evaluated during render — a later `const` would throw.
+  const activeCampaign = cockpit?.campaigns.find(c => c.status === 'active') ?? cockpit?.campaigns[0] ?? null
   const [cockpitLoading, setCockpitLoading] = useState(false)
   const [cockpitError, setCockpitError] = useState<string | null>(null)
   const [cockpitBusy, setCockpitBusy] = useState(false)
@@ -108,18 +153,40 @@ export default function VidaConsolePage() {
     setCockpitLoading(false)
   }, [])
 
-  // Load the cockpit whenever a client is selected (and reset to Pipeline on switch).
-  useEffect(() => {
-    if (!selected) { setCockpit(null); return }
-    setTab('Inbox'); setCockpit(null); setOpenReply(null); setThread(null); setDraft(''); loadCockpit(selected)
-  }, [selected, loadCockpit])
-
   // Inbox thread — open a prospect reply, draft an answer in the client's voice, send it.
   const [openReply, setOpenReply] = useState<string | null>(null)
   const [thread, setThread] = useState<{ reply: Record<string, unknown>; lead: Record<string, unknown> | null } | null>(null)
   const [draft, setDraft] = useState('')
   const [replyBusy, setReplyBusy] = useState<string | null>(null)
   const [replyMsg, setReplyMsg] = useState<string | null>(null)
+
+  // Launch-path state — everything the operator now actually authors.
+  const [people, setPeople] = useState<Person[] | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [campEdit, setCampEdit] = useState<CampEdit | null>(null)
+  const [proposal, setProposal] = useState<{ name: string; campaign_intent: string; icp_name: string } | null>(null)
+  const [testResult, setTestResult] = useState<{ preview: { subject: string; body: string }; sent: boolean; to: string | null } | null>(null)
+  const [enrollView, setEnrollView] = useState<{ campaign: CampaignRow; rows: Enrollment[] } | null>(null)
+  const [icpMode, setIcpMode] = useState<'list' | 'chat'>('list')
+  const [icpChat, setIcpChat] = useState<ChatTurn[]>([])
+  const [icpInput, setIcpInput] = useState('')
+  const [icpProposal, setIcpProposal] = useState<IcpDraft>(null)
+  const [seqPreview, setSeqPreview] = useState<{ name: string; steps: { step: number; day: number; subject: string; body: string }[]; sample_lead: Record<string, unknown> } | null>(null)
+  const [asks, setAsks] = useState<Ask[] | null>(null)
+  const [askInput, setAskInput] = useState('')
+
+  // Reset every per-client surface on a client switch — a stale draft belonging to another
+  // client is the one mistake this console must never make.
+  useEffect(() => {
+    if (!selected) { setCockpit(null); return }
+    setTab('Inbox'); setCockpit(null)
+    setOpenReply(null); setThread(null); setDraft(''); setReplyMsg(null)
+    setPeople(null); setPicked(new Set()); setCampEdit(null); setProposal(null)
+    setTestResult(null); setEnrollView(null)
+    setIcpMode('list'); setIcpChat([]); setIcpInput(''); setIcpProposal(null)
+    setSeqPreview(null); setAsks(null); setAskInput(''); setSaveMsg(null)
+    loadCockpit(selected)
+  }, [selected, loadCockpit])
 
   async function openThread(id: string) {
     if (!selected) return
@@ -163,7 +230,7 @@ export default function VidaConsolePage() {
   // V4d — ICP + SEQUENCE AUTHORING. Read-only views were not enough: the operator has to be
   // able to CHANGE the targeting and the messaging, which is our actual job in this model.
   const [icpEdit, setIcpEdit] = useState<Record<string, string> | null>(null)
-  const [seqEdit, setSeqEdit] = useState<{ id?: string; name: string; steps: { subject: string; body: string; wait_days: number }[] } | null>(null)
+  const [seqEdit, setSeqEdit] = useState<{ id?: string; name: string; steps: SeqStep[] } | null>(null)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
 
   const ICP_FIELDS: [string, string][] = [
@@ -172,19 +239,57 @@ export default function VidaConsolePage() {
     ['geographies', 'Geographies'], ['tech_stack', 'Tech stack'], ['keywords', 'Keywords'],
   ]
 
+  const joinArr = (v: unknown) => Array.isArray(v) ? v.join(', ') : typeof v === 'string' ? v : ''
+
   async function openIcpEditor(icpId?: string) {
     if (!selected) return
-    setSaveMsg(null)
+    setSaveMsg(null); setIcpMode('list')
     if (!icpId) { setIcpEdit({ name: '', industries: '', job_titles: '', seniority_levels: '', company_sizes: '', geographies: '', tech_stack: '', keywords: '' }); return }
     try {
       const j = await fetch(`/api/proxy/operator/icp/${icpId}?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
       if (!j?.success) throw new Error(j?.error)
       const d = j.data as Record<string, unknown>
-      const join = (v: unknown) => Array.isArray(v) ? v.join(', ') : ''
-      setIcpEdit({ icp_id: icpId, name: String(d.name ?? ''), industries: join(d.industries), job_titles: join(d.job_titles),
-        seniority_levels: join(d.seniority_levels), company_sizes: join(d.company_sizes),
-        geographies: join(d.geographies), tech_stack: join(d.tech_stack), keywords: join(d.keywords) })
+      setIcpEdit({ icp_id: icpId, name: String(d.name ?? ''), industries: joinArr(d.industries), job_titles: joinArr(d.job_titles),
+        seniority_levels: joinArr(d.seniority_levels), company_sizes: joinArr(d.company_sizes),
+        geographies: joinArr(d.geographies), tech_stack: joinArr(d.tech_stack), keywords: joinArr(d.keywords) })
     } catch { setSaveMsg('Could not open that ICP') }
+  }
+
+  // V2 — the ICP is built by TALKING, the way it was in the old console. The form stays as
+  // the precise-edit fallback; the conversation is the front door.
+  async function sendIcpChat(text: string) {
+    if (!selected || !text.trim() || cockpitBusy) return
+    const history = icpChat.slice(-12)
+    setIcpChat(l => [...l, { role: 'user', content: text }]); setIcpInput(''); setCockpitBusy(true)
+    try {
+      const j = await fetch('/api/proxy/operator/icp/chat', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, message: text, history }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not work the ICP')
+      setIcpChat(l => [...l, { role: 'assistant', content: j.data.message }])
+      if (j.data.icp) setIcpProposal(j.data.icp as Record<string, unknown>)
+    } catch (e) {
+      setIcpChat(l => [...l, { role: 'assistant', content: e instanceof Error ? e.message : 'Could not work the ICP' }])
+    }
+    setCockpitBusy(false)
+  }
+
+  // Take whatever the conversation proposed into the field editor, so the operator can see
+  // and correct every value before it becomes the live targeting.
+  function proposalToForm() {
+    const p = icpProposal ?? {}
+    setIcpEdit({
+      name: String((p as Record<string, unknown>).name ?? ''),
+      industries: joinArr((p as Record<string, unknown>).industries),
+      job_titles: joinArr((p as Record<string, unknown>).job_titles),
+      seniority_levels: joinArr((p as Record<string, unknown>).seniority_levels),
+      company_sizes: joinArr((p as Record<string, unknown>).company_sizes),
+      geographies: joinArr((p as Record<string, unknown>).geographies),
+      tech_stack: joinArr((p as Record<string, unknown>).tech_stack),
+      keywords: joinArr((p as Record<string, unknown>).keywords),
+    })
+    setIcpMode('list')
   }
 
   async function saveIcp() {
@@ -196,18 +301,40 @@ export default function VidaConsolePage() {
         body: JSON.stringify({ ...icpEdit, client_id: selected }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error)
-      setIcpEdit(null); setSaveMsg('ICP saved.'); await loadCockpit(selected)
+      setIcpEdit(null); setIcpProposal(null); setSaveMsg('ICP saved — sourcing targets it from now on.'); await loadCockpit(selected)
     } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the ICP') }
     setCockpitBusy(false)
   }
 
   function openSeqEditor(sq?: { id: string; name: string; steps: unknown }) {
-    setSaveMsg(null)
+    setSaveMsg(null); setSeqPreview(null)
     if (!sq) { setSeqEdit({ name: '', steps: [{ subject: '', body: '', wait_days: 0 }] }); return }
     const steps = Array.isArray(sq.steps)
       ? (sq.steps as Record<string, unknown>[]).map(st => ({ subject: String(st.subject ?? ''), body: String(st.body ?? ''), wait_days: Number(st.wait_days ?? 3) || 0 }))
       : [{ subject: '', body: '', wait_days: 0 }]
     setSeqEdit({ id: sq.id, name: sq.name, steps })
+  }
+
+  // V9 — Vida drafts the sequence against a real prospect, then de-personalises it into a
+  // template. It lands in the editor as a PROPOSAL: the operator approves by saving.
+  async function suggestSequence() {
+    if (!selected) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/sequence/suggest', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, campaign_id: activeCampaign?.id }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not draft a sequence')
+      setSeqEdit({
+        name: j.data.name,
+        steps: (j.data.steps as { subject: string; body: string; wait_days: number }[])
+          .map(s => ({ subject: s.subject, body: s.body, wait_days: s.wait_days })),
+      })
+      const d = j.data.drafted_against as { first_name?: string; job_title?: string; company?: string } | undefined
+      setSaveMsg(d?.first_name ? `Drafted against ${[d.first_name, d.job_title, d.company].filter(Boolean).join(' · ')} — read it, change it, then save.` : 'Draft ready — read it before you save.')
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not draft a sequence') }
+    setCockpitBusy(false)
   }
 
   async function saveSequence() {
@@ -221,6 +348,151 @@ export default function VidaConsolePage() {
       if (!j?.success) throw new Error(j?.error)
       setSeqEdit(null); setSaveMsg('Sequence saved.'); await loadCockpit(selected)
     } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the sequence') }
+    setCockpitBusy(false)
+  }
+
+  // V11 — read it exactly as the prospect will, tokens filled from a real lead.
+  async function previewSequence(id: string) {
+    if (!selected) return
+    setCockpitBusy(true); setSaveMsg(null); setSeqPreview(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/sequence/${id}/preview?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not preview')
+      setSeqPreview(j.data)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not preview') }
+    setCockpitBusy(false)
+  }
+
+  // ── V4 / V5 — pick the people, put THOSE people in the campaign ────────────────
+  const loadPeople = useCallback(async (clientId: string, campaignId?: string) => {
+    setSaveMsg(null)
+    try {
+      const q = `client_id=${encodeURIComponent(clientId)}${campaignId ? `&campaign_id=${encodeURIComponent(campaignId)}` : ''}`
+      const j = await fetch(`/api/proxy/operator/people?${q}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Failed to load people')
+      setPeople(j.data)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Failed to load people'); setPeople([]) }
+  }, [])
+
+  async function assignPicked() {
+    if (!selected || picked.size === 0) return
+    const camp = activeCampaign
+    if (!camp) { setSaveMsg('No campaign yet — build one on the Campaign tab first.'); return }
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(camp.id)}/assign`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, lead_ids: Array.from(picked) }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not assign')
+      setSaveMsg([
+        `${j.data.assigned} added to ${camp.name}`,
+        j.data.already_in ? `${j.data.already_in} already in it` : null,
+        j.data.note,
+        'No new charge — assigning never bills.',
+      ].filter(Boolean).join(' · '))
+      setPicked(new Set())
+      await Promise.all([loadPeople(selected, camp.id), loadCockpit(selected), loadBoard(selected)])
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not assign') }
+    setCockpitBusy(false)
+  }
+
+  // ── V6 / V7 / V8 — Vida proposes the campaign, the operator approves and edits it ──
+  async function suggestCampaign() {
+    if (!selected) return
+    setCockpitBusy(true); setSaveMsg(null); setProposal(null)
+    try {
+      const j = await fetch('/api/proxy/operator/campaign/suggest', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not propose a campaign')
+      setProposal(j.data)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not propose a campaign') }
+    setCockpitBusy(false)
+  }
+
+  function openCampEditor(c?: CampaignRow) {
+    setSaveMsg(null); setTestResult(null)
+    setCampEdit(c
+      ? { id: c.id, name: c.name, campaign_intent: c.campaign_intent ?? '', daily_send_limit: c.daily_send_limit != null ? String(c.daily_send_limit) : '', copilot_mode: c.copilot_mode === true }
+      : { name: proposal?.name ?? '', campaign_intent: proposal?.campaign_intent ?? '', daily_send_limit: '', copilot_mode: true })
+  }
+
+  async function saveCampaign(patch?: Partial<CampEdit> & { status?: string }) {
+    if (!selected) return
+    const src = campEdit ?? { name: proposal?.name ?? '', campaign_intent: proposal?.campaign_intent ?? '', daily_send_limit: '', copilot_mode: true }
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const body: Record<string, unknown> = {
+        client_id: selected,
+        campaign_id: patch?.id ?? src.id,
+        name: patch?.name ?? src.name,
+        campaign_intent: patch?.campaign_intent ?? src.campaign_intent,
+        copilot_mode: patch?.copilot_mode ?? src.copilot_mode,
+      }
+      const cap = patch?.daily_send_limit ?? src.daily_send_limit
+      if (String(cap ?? '').trim()) body.daily_send_limit = Number(cap)
+      if (patch?.status) body.status = patch.status
+      const j = await fetch('/api/proxy/operator/campaign/save', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not save the campaign')
+      setCampEdit(null); setProposal(null)
+      setSaveMsg(`Campaign saved — ${j.data.copilot_mode ? 'Co-Pilot: every send waits for you.' : 'Auto-Pilot: sends flow without a per-email gate.'}`)
+      await loadCockpit(selected)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the campaign') }
+    setCockpitBusy(false)
+  }
+
+  // V12 — the last gate before a real prospect: read step 1, then mail it to ourselves.
+  async function testCampaign(campaignId: string, send: boolean) {
+    if (!selected) return
+    setCockpitBusy(true); setSaveMsg(null); setTestResult(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(campaignId)}/test`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, send }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not build the test')
+      setTestResult(j.data)
+      if (j.data.sent) setSaveMsg(`Test email sent to ${j.data.to}.`)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not build the test') }
+    setCockpitBusy(false)
+  }
+
+  // V14 — who is actually in it, and where each of them is.
+  async function openEnrollments(c: CampaignRow) {
+    if (!selected) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(c.id)}/enrollments?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not load who is in it')
+      setEnrollView({ campaign: c, rows: j.data })
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not load who is in it') }
+    setCockpitBusy(false)
+  }
+
+  // ── V3 / M2 — ask the client something, in their own Milla thread ──────────────
+  const loadAsks = useCallback(async (clientId: string) => {
+    try {
+      const j = await fetch(`/api/proxy/operator/asks?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
+      setAsks(j?.success ? j.data : [])
+    } catch { setAsks([]) }
+  }, [])
+
+  async function sendAsk(question: string) {
+    if (!selected || !question.trim()) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/ask', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: selected, question }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not send the ask')
+      setAskInput(''); setSaveMsg('Asked — it is in their Milla thread now.')
+      setTab('Asks'); await loadAsks(selected)
+    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not send the ask') }
     setCockpitBusy(false)
   }
 
@@ -256,6 +528,8 @@ export default function VidaConsolePage() {
 
   useEffect(() => {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
+    // V17 — the bell. Best-effort: no alerts must never break the console.
+    fetch('/api/proxy/operator/alerts').then(r => r.json()).then(j => { if (j?.success) setAlerts(j.data) }).catch(() => {})
   }, [])
 
   // #498b — detect a sourcing intent ("source 50 leads", "find 30 prospects", "source leads")
@@ -294,9 +568,10 @@ export default function VidaConsolePage() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Sourcing failed (${res.status})`)
-      setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for ${selectedClient?.company_name || 'client'}${json.note ? ` · ${json.note}` : ''}. New leads are in the Sourced column.`)
+      setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for ${selectedClient?.company_name || 'client'}${json.note ? ` · ${json.note}` : ''}. New leads are in People.`)
       setSrcPreview(null)
       await loadBoard(selected)
+      if (people) await loadPeople(selected, activeCampaign?.id)
     } catch (e) {
       setSrcResult(e instanceof Error ? e.message : 'Sourcing failed')
     } finally { setSrcBusy(false) }
@@ -343,7 +618,7 @@ export default function VidaConsolePage() {
   }, [])
 
   const loadBoard = useCallback(async (clientId: string) => {
-    setBoardLoading(true); setBoardError(null)
+    setBoardError(null)
     try {
       const res = await fetch(`/api/proxy/operator/board?client_id=${encodeURIComponent(clientId)}`)
       const json = await res.json().catch(() => ({}))
@@ -351,7 +626,7 @@ export default function VidaConsolePage() {
       setBoard({ client: json.client, columns: json.columns })
     } catch (e) {
       setBoard(null); setBoardError(e instanceof Error ? e.message : 'Failed to load board')
-    } finally { setBoardLoading(false) }
+    }
     // #505 — live blockers strip. Best-effort: a blockers failure never breaks the board.
     fetch(`/api/proxy/operator/blockers?client_id=${encodeURIComponent(clientId)}`)
       .then(r => r.json()).then(j => setBlockers(j?.success ? j.data : null)).catch(() => setBlockers(null))
@@ -365,6 +640,25 @@ export default function VidaConsolePage() {
     loadBoard(selected)
   }, [selected, loadBoard])
 
+  // Lazy-load the tab's own data the first time it is opened. A status message belongs to
+  // the tab that produced it — "3 added to campaign" must not follow you to the ICP tab.
+  useEffect(() => {
+    if (!selected) return
+    setSaveMsg(null)
+    if (tab === 'People' && people === null) loadPeople(selected, activeCampaign?.id)
+    if (tab === 'Asks' && asks === null) loadAsks(selected)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, selected])
+
+  // People may have loaded before the cockpit answered, in which case we didn't yet know
+  // which campaign to compare against and every row looked pickable — including people
+  // already in it. Re-read once the campaign is known so "in campaign" is honest.
+  useEffect(() => {
+    if (!selected || !activeCampaign?.id || people === null) return
+    loadPeople(selected, activeCampaign.id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCampaign?.id])
+
   // Sourced column — the operator NEVER spends (#493, invariant #1). The only actions are
   // SURFACE the masked lead to the client for their own 👍 in Milla ("send"), or PASS it.
   async function act(leadId: string, kind: 'surface' | 'pass') {
@@ -377,6 +671,7 @@ export default function VidaConsolePage() {
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Action failed (${res.status})`)
       await loadBoard(selected)
+      if (people) await loadPeople(selected, activeCampaign?.id)
     } catch (e) {
       setBoardError(e instanceof Error ? e.message : 'Action failed')
     } finally { setActing(null) }
@@ -421,40 +716,11 @@ export default function VidaConsolePage() {
 
   const selectedClient = clients?.find(c => c.id === selected) ?? null
   const cols = board?.columns
-
-  // Sourced-card actions. Operators never spend — they SEND the masked lead to the client,
-  // who approves in Milla ($4 charged at the client's 👍, final). Once surfaced, the card shows "awaiting client 👍".
-  const sourcedBtns = (leadId: string, surfaced: boolean) => surfaced ? (
-    <div className="mt-2 text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-lg py-1.5 px-2.5 text-center">
-      With client · awaiting 👍
-    </div>
-  ) : (
-    <div className="flex gap-1.5 mt-2">
-      <button disabled={acting === leadId} onClick={() => act(leadId, 'surface')}
-        className="flex-1 text-[11px] font-bold text-white rounded-lg py-1.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-        {acting === leadId ? '…' : '→ Send to client'}
-      </button>
-      <button disabled={acting === leadId} onClick={() => act(leadId, 'pass')}
-        className="text-[11px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-2.5 border border-[#ece5fb] bg-white disabled:opacity-50">
-        Not a fit
-      </button>
-    </div>
-  )
-
-  // Needs-approval card buttons — release the draft (real send) or reject it. Acts on the
-  // queue id; no "$4" here (that charge already fired at enrollment).
-  const queueBtns = (queueId: string) => (
-    <div className="flex gap-1.5 mt-2">
-      <button disabled={acting === queueId} onClick={() => actQueue(queueId, 'approve')}
-        className="flex-1 text-[11px] font-bold text-white rounded-lg py-1.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-        {acting === queueId ? '…' : 'Approve & send'}
-      </button>
-      <button disabled={acting === queueId} onClick={() => actQueue(queueId, 'reject')}
-        className="text-[11px] font-semibold text-[#5c5279] rounded-lg py-1.5 px-2.5 border border-[#ece5fb] bg-white disabled:opacity-50">
-        Reject
-      </button>
-    </div>
-  )
+  const alertsByClient = alerts.reduce<Record<string, Alert[]>>((m, a) => {
+    (m[a.client_id] ||= []).push(a); return m
+  }, {})
+  const myAlerts = selected ? (alertsByClient[selected] ?? []) : []
+  const unansweredAsks = (asks ?? []).filter(a => a.answers.length === 0).length
 
   return (
     <div className="flex h-full min-h-0">
@@ -470,17 +736,29 @@ export default function VidaConsolePage() {
           {clients?.length === 0 && <p className="text-xs text-[#9b8ec4] px-2 py-3">No clients yet.</p>}
           {clients?.map(c => {
             const active = c.id === selected
+            // V17 — the bell: a new client whose first ICP waits on us, an ICP revised under
+            // a live campaign, replies to answer. Real rows, no notifications table.
+            const mine = alertsByClient[c.id] ?? []
+            const high = mine.some(a => a.severity === 'high')
             return (
               <button key={c.id} onClick={() => setSelected(c.id)}
+                title={mine.map(a => a.label).join(' · ') || undefined}
                 className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl mb-1 transition-colors ${
                   active ? 'bg-[#f3ecff] border border-[#e4d4fb]' : 'hover:bg-[#faf8ff] border border-transparent'
                 }`}>
-                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 ${active ? 'bg-[#7C3AED] text-white' : 'bg-[#efeafc] text-[#7C3AED]'}`}>
+                <span className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-[11px] font-bold shrink-0 ${active ? 'bg-[#7C3AED] text-white' : 'bg-[#efeafc] text-[#7C3AED]'}`}>
                   {initials(c.company_name)}
+                  {mine.length > 0 && (
+                    <span className={`absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[9px] font-extrabold text-white flex items-center justify-center ring-2 ring-white ${high ? 'bg-[#EC4899]' : 'bg-[#b3a9cc]'}`}>
+                      {mine.length}
+                    </span>
+                  )}
                 </span>
                 <span className="min-w-0 flex-1">
                   <b className="text-[13px] block truncate">{c.company_name || 'Unnamed'}</b>
-                  <span className="text-[11px] text-[#9b8ec4] block truncate">{[c.industry, c.country].filter(Boolean).join(' · ') || '—'}</span>
+                  <span className={`text-[11px] block truncate ${high ? 'text-[#EC4899] font-semibold' : 'text-[#9b8ec4]'}`}>
+                    {high ? mine.find(a => a.severity === 'high')!.label : ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
+                  </span>
                 </span>
                 {c.house_or_demo && (
                   <span className="text-[9px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded px-1.5 py-0.5 shrink-0">
@@ -542,26 +820,49 @@ export default function VidaConsolePage() {
               <div className="shrink-0 px-[22px] py-1.5 text-[11px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
                 You&rsquo;re working <b className="text-[#7C3AED]">{selectedClient?.company_name || 'this client'}</b> — Vida and the cockpit are scoped to this client only.
               </div>
+
+              {/* V17 — what changed for THIS client that needs us. */}
+              {myAlerts.length > 0 && (
+                <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fdf2f8] border-b border-[#fbcfe8]">
+                  <span className="text-[11.5px] font-bold text-[#9d174d]">Needs you:</span>
+                  {myAlerts.map((a, i) => (
+                    <button key={`${a.kind}-${i}`}
+                      onClick={() => setTab(a.kind === 'replies' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
+                      className="text-[11px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
+                      {a.label} &rarr;
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* V1 — the onboarding checklist IS the setup guide: click a gap, land on the
+                  surface that closes it. "Ask them for these" now reaches their Milla thread. */}
               {cockpit && cockpit.onboarding.missing.length > 0 && (
                 <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fffbeb] border-b border-[#fde68a]">
                   <span className="text-[11.5px] font-bold text-[#b45309]">Onboarding gaps:</span>
-                  {cockpit.onboarding.missing.map(m => (
-                    <span key={m} className="text-[11px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
-                  ))}
-                  <button onClick={() => runCommand(`Ask ${selectedClient?.company_name || 'the client'} for the missing onboarding details: ${cockpit.onboarding.missing.join(', ')}`)}
-                    disabled={cmdBusy}
+                  {cockpit.onboarding.missing.map(m => {
+                    const go = GAP_TAB[m] ?? null
+                    return go ? (
+                      <button key={m} onClick={() => setTab(go)}
+                        className="text-[11px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5 hover:border-[#b45309]">{m} &rarr;</button>
+                    ) : (
+                      <span key={m} className="text-[11px] font-semibold text-[#b45309] bg-white border border-[#fcd34d] rounded-full px-2 py-0.5">{m}</span>
+                    )
+                  })}
+                  <button
+                    onClick={() => sendAsk(`Quick one so we can get your outreach sharper — could you send us: ${cockpit.onboarding.missing.filter(m => !GAP_TAB[m]).join(', ') || cockpit.onboarding.missing.join(', ')}?`)}
+                    disabled={cockpitBusy}
                     className="ml-auto text-[11.5px] font-bold text-[#b45309] underline disabled:opacity-50">Ask them for these</button>
                 </div>
               )}
 
-              {/* Pipeline at a glance — every stage, click through to the tab that works it.
-                  Replaces the old 6-column kanban, which cost a full column of width. */}
+              {/* Pipeline at a glance — every stage, click through to the tab that works it. */}
               <div className="shrink-0 flex items-center gap-1.5 flex-wrap px-[22px] py-2 border-b border-[#f2ecfb]">
                 <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc] mr-1">Pipeline</span>
                 {([
                   ['Sourced', cols?.sourced.count ?? 0, 'People'],
                   ['Needs approval', cols?.needs_approval.count ?? 0, 'Approvals'],
-                  ['Sending', cols?.sending.count ?? 0, null],
+                  ['Sending', cols?.sending.count ?? 0, 'Campaign'],
                   ['Replied', cols?.replied.count ?? 0, 'Inbox'],
                   ['Qualified', cols?.qualified.count ?? 0, null],
                   ['Booked', cols?.booked.count ?? 0, 'Bookings'],
@@ -579,9 +880,13 @@ export default function VidaConsolePage() {
                 {([['Send gate', blockers?.send_gate], ['Money gate', blockers?.money_gate], ['Unsent sourced', blockers?.unsent_sourced], ['To triage', blockers?.replies_to_triage]] as [string, number | undefined][]).map(([label, n]) => (
                   <span key={label} className={`text-[11px] font-bold rounded-full border px-2.5 py-0.5 ${n ? 'text-[#0e7c86] bg-[#e6f6f7] border-[#a8dde0]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>{n ?? 0} {label}</span>
                 ))}
+                {status && !status.outreach_enabled && (
+                  <span className="text-[11px] font-bold rounded-full border px-2.5 py-0.5 text-red-700 bg-red-50 border-red-200">Sending OFF (kill-switch)</span>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto px-[22px] py-3.5 space-y-2">
+                {boardError && <div className="text-[12px] font-semibold text-red-600">{boardError}</div>}
                 {cmdLog.length === 0 && (
                   <div className="text-[12.5px] text-[#9b8ec4] leading-relaxed max-w-lg">
                     Ask Vida anything about <b className="text-[#5c5279]">{selectedClient?.company_name || 'this client'}</b> — or use a shortcut below.
@@ -600,7 +905,7 @@ export default function VidaConsolePage() {
                     <b className="text-[12.5px] block mb-1">Source {srcPreview.count} leads?</b>
                     <p className="text-[11.5px] text-[#5c5279] leading-relaxed">
                       {srcPreview.no_active_icp
-                        ? 'This client has no active ICP — approve one first.'
+                        ? 'This client has no active ICP — build one on the ICP tab first.'
                         : <>{srcPreview.pool_free} free from the pool · {srcPreview.pdl_needed} new from PDL (~${srcPreview.pdl_cost_est.toFixed(2)} of OUR budget){srcPreview.is_demo ? ' · demo client, pool only' : ''}</>}
                     </p>
                     {!srcPreview.no_active_icp && (
@@ -619,10 +924,18 @@ export default function VidaConsolePage() {
 
               <div className="shrink-0 px-[22px] pb-3">
                 <div className="flex flex-wrap gap-1.5 mb-2">
-                  {["What's blocking?", 'Status', 'Source 20 leads', 'Redefine the ICP', 'Build a campaign', 'Update the sequence'].map(c => (
+                  {["What's blocking?", 'Status', 'Source 20 leads'].map(c => (
                     <button key={c} onClick={() => runCommand(c)} disabled={cmdBusy}
                       className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">{c}</button>
                   ))}
+                  {/* These three are the launch path — they open the surface that does the
+                      work, instead of handing prose back to the operator. */}
+                  <button onClick={() => { setTab('ICP'); setIcpMode('chat') }}
+                    className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build the ICP &rarr;</button>
+                  <button onClick={() => { setTab('Campaign'); if (!activeCampaign) suggestCampaign() }}
+                    className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Build a campaign &rarr;</button>
+                  <button onClick={() => { setTab('Sequence'); suggestSequence() }}
+                    className="text-[11.5px] font-semibold text-[#7C3AED] border border-[#e4dcf7] rounded-full px-3 py-1 hover:bg-[#f7f4fd]">Draft the sequence &rarr;</button>
                 </div>
                 <form onSubmit={e => { e.preventDefault(); if (cmd.trim()) runCommand(cmd.trim()) }} className="flex gap-2">
                   <input value={cmd} onChange={e => setCmd(e.target.value)} disabled={cmdBusy}
@@ -636,14 +949,15 @@ export default function VidaConsolePage() {
               </div>
             </section>
 
-            {/* ── COCKPIT — this client's seven work surfaces ── */}
+            {/* ── COCKPIT — this client's work surfaces ── */}
             <aside className="w-[480px] shrink-0 flex flex-col bg-white min-h-0">
               <div className="shrink-0 flex items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7] overflow-x-auto">
-                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Bookings'] as CockpitTab[]).map(t => {
+                {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings'] as CockpitTab[]).map(t => {
                   const on = tab === t
                   const n = t === 'Inbox' ? (cockpit?.replies.filter(r => !r.qualified_at && !r.meeting_booked_at).length ?? 0)
                     : t === 'Approvals' ? (cols?.needs_approval.count ?? 0)
                     : t === 'People' ? (cols?.sourced.count ?? 0)
+                    : t === 'Asks' ? unansweredAsks
                     : t === 'Bookings' ? (cols?.booked.count ?? 0) : 0
                   return (
                     <button key={t} onClick={() => setTab(t)}
@@ -740,58 +1054,213 @@ export default function VidaConsolePage() {
                     ))
                 )}
 
-                {/* PEOPLE — sourced, not yet in front of the client */}
-                {tab === 'People' && (
-                  (cols?.sourced.cards.length ?? 0) === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
-                    : cols!.sourced.cards.map(c => (
-                      <div key={c.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
-                        <div className="min-w-0">
-                          <b className="text-[12.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
-                          <span className="text-[11px] text-[#9b8ec4] truncate block">{[c.job_title, c.company].filter(Boolean).join(' · ') || '—'}</span>
-                        </div>
-                        <div className="ml-auto shrink-0 flex items-center gap-2">
-                          {c.score != null && <span className="text-[13px] font-extrabold tabular-nums">{c.score}</span>}
-                          <button onClick={() => act(c.id, 'surface')} disabled={acting !== null}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Send to client</button>
-                          <button onClick={() => act(c.id, 'pass')} disabled={acting !== null}
-                            className="text-[11.5px] font-bold text-[#9b8ec4] disabled:opacity-50">Pass</button>
-                        </div>
-                      </div>
-                    ))
-                )}
-
-                {/* CAMPAIGN */}
-                {tab === 'Campaign' && (cockpit ? (
-                  cockpit.campaigns.length === 0 ? (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-                      <b className="text-[12.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
-                      <p className="text-[11.5px] text-amber-700 mt-1">Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.</p>
-                      <button onClick={startCampaign} disabled={cockpitBusy}
-                        className="mt-2.5 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
-                        {cockpitBusy ? 'Starting…' : 'Start campaign'}
+                {/* ── PEOPLE — V4 pick them, V5 put THOSE ones in the campaign ── */}
+                {tab === 'People' && (people === null ? (
+                  <p className="text-[12.5px] text-[#9b8ec4]">Loading people…</p>
+                ) : people.length === 0 ? (
+                  <p className="text-[12.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
+                ) : (<>
+                  <div className="sticky top-0 -mt-3.5 -mx-3.5 px-3.5 pt-3.5 pb-2 bg-white z-10 border-b border-[#f2ecfb] mb-2.5">
+                    <div className="flex items-center gap-2">
+                      <b className="text-[12.5px]">{picked.size} of {people.length} picked</b>
+                      <button onClick={() => setPicked(new Set(people.filter(p => !p.in_campaign).map(p => p.id)))}
+                        className="text-[11px] font-bold text-[#7C3AED]">All</button>
+                      <button onClick={() => setPicked(new Set())} className="text-[11px] font-bold text-[#9b8ec4]">None</button>
+                      <button onClick={assignPicked} disabled={cockpitBusy || picked.size === 0 || !activeCampaign}
+                        className="ml-auto bg-[#7C3AED] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-40">
+                        {cockpitBusy ? 'Adding…' : `Add ${picked.size || ''} to campaign`}
                       </button>
                     </div>
-                  ) : cockpit.campaigns.map(c => (
-                    <div key={c.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                    <p className="text-[10.5px] text-[#9b8ec4] mt-1">
+                      {activeCampaign
+                        ? <>Goes into <b className="text-[#5c5279]">{activeCampaign.name}</b>. Every new ICP means new prospects — pick who fits, not everyone.</>
+                        : <span className="text-[#b45309] font-semibold">No campaign yet — build one on the Campaign tab before you can add anyone.</span>}
+                    </p>
+                    {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-1">{saveMsg}</p>}
+                  </div>
+                  {people.map(p => (
+                    <div key={p.id} className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 mb-2 ${p.in_campaign ? 'border-emerald-200 bg-emerald-50/40' : picked.has(p.id) ? 'border-[#7C3AED] bg-[#faf8ff]' : 'border-[#eee7f7]'}`}>
+                      <input type="checkbox" checked={picked.has(p.id)} disabled={p.in_campaign}
+                        onChange={e => setPicked(s => { const n = new Set(s); e.target.checked ? n.add(p.id) : n.delete(p.id); return n })}
+                        className="shrink-0 w-4 h-4 accent-[#7C3AED] disabled:opacity-40" />
                       <div className="min-w-0">
-                        <b className="text-[12.5px] block truncate">{c.name}</b>
-                        <span className="text-[11px] text-[#9b8ec4]">{c.leads_enrolled} enrolled · {c.emails_sent} sent · {c.replies_total} replies</span>
+                        <b className="text-[12.5px] block truncate">{fullName(p.first_name, p.last_name)}</b>
+                        <span className="text-[11px] text-[#9b8ec4] truncate block">{[p.job_title, p.company].filter(Boolean).join(' · ') || '—'}</span>
                       </div>
                       <div className="ml-auto shrink-0 flex items-center gap-2">
-                        <span className={`text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${c.status === 'active' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>{c.status === 'active' ? 'live' : c.status}</span>
-                        {(c.status === 'active' || c.status === 'paused') && (
-                          <button onClick={() => setCampaignStatus(c.id, c.status === 'active' ? 'paused' : 'active')} disabled={cockpitBusy}
-                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">
-                            {c.status === 'active' ? 'Pause' : 'Resume'}
-                          </button>
-                        )}
+                        {p.score != null && <span className="text-[13px] font-extrabold tabular-nums">{p.score}</span>}
+                        {p.in_campaign
+                          ? <span className="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">in campaign</span>
+                          : p.enrolled
+                            ? <span className="text-[10px] font-extrabold text-[#9b8ec4] bg-[#f7f4fd] border border-[#eee7f7] rounded-full px-2 py-0.5">working</span>
+                            : (<>
+                              <button onClick={() => act(p.id, 'surface')} disabled={acting !== null}
+                                className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Send to client</button>
+                              <button onClick={() => act(p.id, 'pass')} disabled={acting !== null}
+                                className="text-[11.5px] font-bold text-[#9b8ec4] disabled:opacity-50">Pass</button>
+                            </>)}
                       </div>
                     </div>
-                  ))
+                  ))}
+                </>))}
+
+                {/* ── CAMPAIGN — V6 propose · V7 edit · V8 pilot mode · V12 test · V13 run · V14 who's in it ── */}
+                {tab === 'Campaign' && (cockpit ? (
+                  enrollView ? (
+                    <div>
+                      <button onClick={() => setEnrollView(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
+                      <b className="text-[13px] block">{enrollView.campaign.name} — who&rsquo;s in it</b>
+                      <span className="block text-[11px] text-[#9b8ec4] mb-3">{enrollView.rows.length} enrolled</span>
+                      {enrollView.rows.length === 0
+                        ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">Nobody in it yet — pick people on the People tab.</p>
+                        : enrollView.rows.map(r => (
+                          <div key={r.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                            <div className="min-w-0">
+                              <b className="text-[12.5px] block truncate">{fullName(r.first_name, r.last_name)}</b>
+                              <span className="text-[11px] text-[#9b8ec4] truncate block">{[r.job_title, r.company].filter(Boolean).join(' · ') || '—'}</span>
+                            </div>
+                            <div className="ml-auto shrink-0 text-right">
+                              <span className="text-[11px] font-bold text-[#5c5279] block">step {r.current_step ?? 1}/{r.total_steps ?? 3}</span>
+                              <span className={`text-[10px] font-extrabold rounded-full border px-2 py-0.5 inline-block mt-0.5 ${r.replied ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>
+                                {r.replied ? `replied · ${r.replied}` : r.next_send_at ? `next ${fmtDate(r.next_send_at)}` : (r.status ?? 'enrolled')}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : campEdit ? (
+                    <div>
+                      <button onClick={() => setCampEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to campaigns</button>
+                      <b className="text-[13px] block mb-2">{campEdit.id ? 'Edit campaign' : 'New campaign'}</b>
+                      <label className="block mb-2">
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Name</span>
+                        <input value={campEdit.name} onChange={e => setCampEdit({ ...campEdit, name: e.target.value })}
+                          placeholder="e.g. SA logistics COOs"
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                      <label className="block mb-2">
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Who it hunts, and why now</span>
+                        <textarea value={campEdit.campaign_intent} rows={3}
+                          onChange={e => setCampEdit({ ...campEdit, campaign_intent: e.target.value })}
+                          placeholder="This is the brief every email is written from — be specific."
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed mt-0.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                      <label className="block mb-3">
+                        <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Daily send cap</span>
+                        <input type="number" min={1} max={500} value={campEdit.daily_send_limit}
+                          onChange={e => setCampEdit({ ...campEdit, daily_send_limit: e.target.value })}
+                          placeholder="blank = platform default"
+                          className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mt-0.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                      {/* V8 — Auto-Pilot vs Co-Pilot. Co-Pilot writes approve_before_send, so
+                          every email stops at the Approvals tab before it reaches a prospect. */}
+                      <div className="border border-[#eee7f7] rounded-xl p-3 mb-3">
+                        <b className="text-[12px] block mb-1.5">How it sends</b>
+                        {([[true, 'Co-Pilot', 'Every email waits for you on the Approvals tab.'], [false, 'Auto-Pilot', 'Sends flow on schedule. Kill-switch and caps still apply.']] as [boolean, string, string][]).map(([mode, label, hint]) => (
+                          <label key={label} className={`flex items-start gap-2 rounded-lg px-2.5 py-2 mb-1 cursor-pointer border ${campEdit.copilot_mode === mode ? 'border-[#7C3AED] bg-[#faf8ff]' : 'border-transparent hover:bg-[#faf8ff]'}`}>
+                            <input type="radio" name="pilot" checked={campEdit.copilot_mode === mode}
+                              onChange={() => setCampEdit({ ...campEdit, copilot_mode: mode })}
+                              className="mt-0.5 accent-[#7C3AED]" />
+                            <span>
+                              <b className="text-[12px] block">{label}</b>
+                              <span className="text-[11px] text-[#9b8ec4]">{hint}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={() => saveCampaign()} disabled={cockpitBusy || !campEdit.name.trim()}
+                          className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                          {cockpitBusy ? 'Saving…' : campEdit.id ? 'Save changes' : 'Create campaign'}
+                        </button>
+                        <button onClick={() => setCampEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                      </div>
+                      {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                    </div>
+                  ) : (<>
+                    {/* V6 — Vida proposes; the operator approves. Never auto-created behind us. */}
+                    {cockpit.campaigns.length === 0 && !proposal && (
+                      <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 mb-3">
+                        <b className="text-[12.5px] text-amber-800 block">No campaign — this client cannot be worked.</b>
+                        <p className="text-[11.5px] text-amber-700 mt-1">Approvals are blocked and the $4 is deliberately NOT charged while no campaign is active.</p>
+                        <div className="flex gap-2 mt-2.5">
+                          <button onClick={suggestCampaign} disabled={cockpitBusy}
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                            {cockpitBusy ? 'Thinking…' : '✨ Suggest a campaign'}
+                          </button>
+                          <button onClick={() => openCampEditor()} disabled={cockpitBusy}
+                            className="border border-amber-300 bg-white text-amber-800 rounded-lg px-3 py-2 text-[12.5px] font-bold disabled:opacity-60">Write it myself</button>
+                          <button onClick={startCampaign} disabled={cockpitBusy}
+                            className="text-[11.5px] font-bold text-amber-800 underline disabled:opacity-60">Just unblock them</button>
+                        </div>
+                      </div>
+                    )}
+                    {proposal && (
+                      <div className="rounded-xl border border-[#e4dcf7] bg-[#faf8ff] px-4 py-3 mb-3">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Vida proposes · from ICP “{proposal.icp_name}”</span>
+                        <b className="text-[13px] block mt-1">{proposal.name}</b>
+                        <p className="text-[11.5px] text-[#5c5279] leading-relaxed mt-1">{proposal.campaign_intent}</p>
+                        <div className="flex gap-2 mt-2.5">
+                          <button onClick={() => saveCampaign({ name: proposal.name, campaign_intent: proposal.campaign_intent, copilot_mode: true })}
+                            disabled={cockpitBusy}
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                            {cockpitBusy ? 'Creating…' : 'Approve & create'}
+                          </button>
+                          <button onClick={() => openCampEditor()} disabled={cockpitBusy}
+                            className="border border-[#ece5fb] bg-white rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Edit first</button>
+                          <button onClick={() => setProposal(null)} className="text-[11.5px] font-bold text-[#9b8ec4]">Discard</button>
+                        </div>
+                        <p className="text-[10.5px] text-[#9b8ec4] mt-2">New campaigns start in Co-Pilot — every email stops at Approvals until you switch it.</p>
+                      </div>
+                    )}
+                    {cockpit.campaigns.map(c => (
+                      <div key={c.id} className="border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="min-w-0">
+                            <b className="text-[12.5px] block truncate">{c.name}</b>
+                            <span className="text-[11px] text-[#9b8ec4]">{c.leads_enrolled} enrolled · {c.emails_sent} sent · {c.replies_total} replies</span>
+                          </div>
+                          <span className={`ml-auto shrink-0 text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${c.status === 'active' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'}`}>{c.status === 'active' ? 'live' : c.status}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          <button onClick={() => openCampEditor(c)} disabled={cockpitBusy}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Edit</button>
+                          <button onClick={() => openEnrollments(c)} disabled={cockpitBusy}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Who&rsquo;s in it</button>
+                          {/* V12 — test before a real prospect ever sees it. */}
+                          <button onClick={() => testCampaign(c.id, false)} disabled={cockpitBusy}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Preview step 1</button>
+                          <button onClick={() => testCampaign(c.id, true)} disabled={cockpitBusy}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Email me a test</button>
+                          {/* V13 — run / pause. */}
+                          {c.status === 'active'
+                            ? <button onClick={() => setCampaignStatus(c.id, 'paused')} disabled={cockpitBusy}
+                                className="text-[11.5px] font-bold text-[#9b8ec4] border border-[#ece5fb] rounded-lg px-2.5 py-1 disabled:opacity-50">Pause</button>
+                            : <button onClick={() => setCampaignStatus(c.id, 'active')} disabled={cockpitBusy}
+                                className="text-[11.5px] font-bold text-white bg-gradient-to-br from-[#7C3AED] to-[#EC4899] rounded-lg px-2.5 py-1 disabled:opacity-50">Run it</button>}
+                        </div>
+                      </div>
+                    ))}
+                    {testResult && (
+                      <div className="border border-[#e4dcf7] bg-[#faf8ff] rounded-xl p-3 mt-1">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <b className="text-[12px]">Step 1, as it will send</b>
+                          <button onClick={() => setTestResult(null)} className="ml-auto text-[11px] font-bold text-[#9b8ec4]">Close</button>
+                        </div>
+                        <b className="text-[11.5px] block mb-1">{testResult.preview.subject}</b>
+                        <p className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{testResult.preview.body}</p>
+                        {testResult.sent && <p className="text-[11px] font-semibold text-emerald-700 mt-2">Emailed to {testResult.to}.</p>}
+                      </div>
+                    )}
+                    {cockpit.campaigns.length > 0 && (
+                      <button onClick={suggestCampaign} disabled={cockpitBusy}
+                        className="mt-1 text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">✨ Suggest another campaign</button>
+                    )}
+                    {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                  </>)
                 ) : null)}
 
-                {/* ICP — read AND author (V4d) */}
+                {/* ── ICP — V2 build it by TALKING; the form is the precise-edit fallback ── */}
                 {tab === 'ICP' && (cockpit ? (icpEdit ? (
                   <div>
                     <button onClick={() => setIcpEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to ICPs</button>
@@ -813,6 +1282,49 @@ export default function VidaConsolePage() {
                     </div>
                     <p className="text-[11px] text-[#9b8ec4] mt-2">A new version becomes the active ICP — sourcing targets it immediately.</p>
                   </div>
+                ) : icpMode === 'chat' ? (
+                  <div className="flex flex-col h-full min-h-0">
+                    <div className="shrink-0 flex items-center gap-2 mb-2">
+                      <b className="text-[13px]">Build it by talking</b>
+                      <button onClick={() => setIcpMode('list')} className="ml-auto text-[11.5px] font-bold text-[#9b8ec4]">All ICPs</button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-2 mb-2 min-h-[120px]">
+                      {icpChat.length === 0 && (
+                        <p className="text-[12px] text-[#9b8ec4] leading-relaxed">
+                          Tell me who we should be hunting for {selectedClient?.company_name || 'this client'} — industry, titles, seniority, size, region.
+                          {cockpit.icps.length > 0 && ' I already have their current ICP, so say what should change.'}
+                        </p>
+                      )}
+                      {icpChat.map((m, i) => (
+                        <div key={i} className={m.role === 'user' ? 'text-right' : ''}>
+                          <span className={`inline-block text-[12px] leading-relaxed rounded-xl px-3 py-2 max-w-[90%] text-left ${m.role === 'user' ? 'bg-[#1f1235] text-white' : 'bg-[#faf8ff] border border-[#eee7f7] text-[#1f1235]'}`}>{m.content}</span>
+                        </div>
+                      ))}
+                      {cockpitBusy && <p className="text-[11.5px] text-[#9b8ec4]">Thinking…</p>}
+                    </div>
+                    {icpProposal && (
+                      <div className="shrink-0 border border-[#e4dcf7] bg-[#faf8ff] rounded-xl p-3 mb-2">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Proposed profile</span>
+                        <b className="text-[12.5px] block mt-0.5 mb-1">{String((icpProposal as Record<string, unknown>).name ?? 'ICP')}</b>
+                        {ICP_FIELDS.filter(([k]) => k !== 'name').map(([k, label]) => {
+                          const v = joinArr((icpProposal as Record<string, unknown>)[k])
+                          return v ? <p key={k} className="text-[11px] text-[#5c5279]"><b className="text-[#9b8ec4] font-bold">{label}:</b> {v}</p> : null
+                        })}
+                        <div className="flex gap-2 mt-2.5">
+                          <button onClick={proposalToForm}
+                            className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12px] font-bold">Review &amp; save</button>
+                          <button onClick={() => setIcpProposal(null)} className="text-[11.5px] font-bold text-[#9b8ec4]">Keep talking</button>
+                        </div>
+                      </div>
+                    )}
+                    <form onSubmit={e => { e.preventDefault(); sendIcpChat(icpInput) }} className="shrink-0 flex gap-2">
+                      <input value={icpInput} onChange={e => setIcpInput(e.target.value)} disabled={cockpitBusy}
+                        placeholder="e.g. SA logistics, COOs and heads of ops, 50–500 staff…"
+                        className="flex-1 border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[12.5px] outline-none focus:border-[#7C3AED] disabled:opacity-60" />
+                      <button type="submit" disabled={cockpitBusy || !icpInput.trim()}
+                        className="bg-[#7C3AED] text-white rounded-xl px-4 text-[12.5px] font-bold disabled:opacity-40">Send</button>
+                    </form>
+                  </div>
                 ) : (<>
                   {cockpit.icps.length === 0
                     ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No ICP yet — sourcing has no target until there is one.</p>
@@ -828,14 +1340,21 @@ export default function VidaConsolePage() {
                         </div>
                       </div>
                     ))}
-                  <button onClick={() => openIcpEditor()} className="mt-1 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">+ New ICP version</button>
+                  <div className="flex gap-2 mt-1">
+                    <button onClick={() => { setIcpMode('chat'); setSaveMsg(null) }}
+                      className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">
+                      {cockpit.icps.length === 0 ? '💬 Build the ICP by talking' : '💬 Refine it by talking'}
+                    </button>
+                    <button onClick={() => openIcpEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Fill the form</button>
+                  </div>
                   {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
                 </>)) : null)}
 
-                {/* SEQUENCE — read AND author (V4d) */}
+                {/* ── SEQUENCE — V9 propose · approve by saving · V11 preview ── */}
                 {tab === 'Sequence' && (cockpit ? (seqEdit ? (
                   <div>
                     <button onClick={() => setSeqEdit(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
+                    {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
                     <label className="block mb-2.5">
                       <span className="text-[10.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Sequence name</span>
                       <input value={seqEdit.name} onChange={e => setSeqEdit({ ...seqEdit, name: e.target.value })}
@@ -864,7 +1383,7 @@ export default function VidaConsolePage() {
                           placeholder="Subject line" className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] mb-1.5 outline-none focus:border-[#7C3AED]" />
                         <textarea value={st.body} rows={5}
                           onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, body: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
-                          placeholder="Email body. Keep it short and specific."
+                          placeholder="Email body. Keep it short and specific. {{first_name}} · {{company}} · {{job_title}} are filled per prospect."
                           className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                       </div>
                     ))}
@@ -875,28 +1394,93 @@ export default function VidaConsolePage() {
                     <div className="flex gap-2">
                       <button onClick={saveSequence} disabled={cockpitBusy || !seqEdit.name.trim()}
                         className="bg-[#7C3AED] text-white rounded-lg px-4 py-2 text-[12.5px] font-bold disabled:opacity-40">
-                        {cockpitBusy ? 'Saving…' : 'Save sequence'}
+                        {cockpitBusy ? 'Saving…' : seqEdit.id ? 'Save changes' : 'Approve & save'}
                       </button>
+                      <button onClick={suggestSequence} disabled={cockpitBusy}
+                        className="border border-[#e4dcf7] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#7C3AED] disabled:opacity-50">✨ Redraft</button>
                       <button onClick={() => setSeqEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
                     </div>
-                    <p className="text-[11px] text-[#9b8ec4] mt-2">Nothing sends without the human Send gate — saving does not start outreach.</p>
+                    <p className="text-[11px] text-[#9b8ec4] mt-2">Nothing sends without the Send gate — saving does not start outreach.</p>
+                  </div>
+                ) : seqPreview ? (
+                  <div>
+                    <button onClick={() => setSeqPreview(null)} className="text-[11.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
+                    <b className="text-[13px] block">{seqPreview.name}</b>
+                    <span className="block text-[11px] text-[#9b8ec4] mb-3">
+                      As {[seqPreview.sample_lead.first_name, seqPreview.sample_lead.last_name].filter(Boolean).join(' ') || 'a prospect'}
+                      {seqPreview.sample_lead.company ? ` at ${seqPreview.sample_lead.company}` : ''} will read it
+                    </span>
+                    {seqPreview.steps.map(s => (
+                      <div key={s.step} className="border border-[#eee7f7] rounded-xl p-3 mb-2">
+                        <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Step {s.step} · day {s.day}</span>
+                        <b className="text-[12.5px] block mt-0.5 mb-1">{s.subject || '(no subject)'}</b>
+                        <p className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{s.body}</p>
+                      </div>
+                    ))}
                   </div>
                 ) : (<>
                   {cockpit.sequences.length === 0
-                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No saved sequence — write one, or FIGSY drafts per campaign.</p>
+                    ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-6">No saved sequence yet — let Vida draft one, then read it before you approve.</p>
                     : cockpit.sequences.map(sq => (
                       <div key={sq.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
                         <div className="min-w-0">
                           <b className="text-[12.5px] block truncate">{sq.name}</b>
                           <span className="text-[11px] text-[#9b8ec4]">{Array.isArray(sq.steps) ? sq.steps.length : 0} steps · updated {fmtDate(sq.updated_at)}</span>
                         </div>
-                        <button onClick={() => openSeqEditor({ id: sq.id, name: sq.name, steps: sq.steps })}
-                          className="ml-auto shrink-0 text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                        <div className="ml-auto shrink-0 flex items-center gap-2">
+                          <button onClick={() => previewSequence(sq.id)} disabled={cockpitBusy}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">Preview</button>
+                          <button onClick={() => openSeqEditor({ id: sq.id, name: sq.name, steps: sq.steps })}
+                            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
+                        </div>
                       </div>
                     ))}
-                  <button onClick={() => openSeqEditor()} className="mt-1 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">+ Write a sequence</button>
+                  <div className="flex gap-2 mt-1">
+                    <button onClick={suggestSequence} disabled={cockpitBusy}
+                      className="bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+                      {cockpitBusy ? 'Drafting…' : '✨ Suggest a sequence'}
+                    </button>
+                    <button onClick={() => openSeqEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[12.5px] font-bold text-[#5c5279]">Write it myself</button>
+                  </div>
                   {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
                 </>)) : null)}
+
+                {/* ── ASKS — V3 we ask, M2 they answer in Milla ── */}
+                {tab === 'Asks' && (<>
+                  <b className="text-[13px] block">Ask the client</b>
+                  <span className="block text-[11px] text-[#9b8ec4] mb-2.5">
+                    Lands in their Milla thread — the one place they already talk to us. Their answer comes back here.
+                  </span>
+                  <form onSubmit={e => { e.preventDefault(); sendAsk(askInput) }} className="mb-3">
+                    <textarea value={askInput} onChange={e => setAskInput(e.target.value)} rows={3}
+                      placeholder="e.g. Who should the emails be signed by, and what's the best case study we can name?"
+                      className="w-full border border-[#ece5fb] rounded-xl px-3 py-2.5 text-[12.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
+                    <button type="submit" disabled={cockpitBusy || !askInput.trim()}
+                      className="mt-1.5 bg-[#7C3AED] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                      {cockpitBusy ? 'Sending…' : 'Ask them'}
+                    </button>
+                  </form>
+                  {saveMsg && <p className="text-[11.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
+                  {asks === null ? <p className="text-[12.5px] text-[#9b8ec4]">Loading…</p>
+                    : asks.length === 0 ? <p className="text-[12.5px] text-[#9b8ec4] text-center py-4">Nothing asked yet.</p>
+                    : asks.map(a => (
+                      <div key={a.id} className="border border-[#eee7f7] rounded-xl p-3 mb-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-[9.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Asked {fmtDate(a.asked_at)}</span>
+                          <span className={`ml-auto text-[10px] font-extrabold rounded-full border px-2 py-0.5 ${a.answers.length ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
+                            {a.answers.length ? 'answered' : 'waiting'}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-[#1f1235] leading-relaxed whitespace-pre-wrap">{a.question}</p>
+                        {a.answers.map((ans, i) => (
+                          <p key={i} className="text-[11.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap bg-[#faf8ff] border border-[#f2ecfb] rounded-lg px-2.5 py-2 mt-1.5">
+                            <b className="text-[10px] uppercase tracking-wide text-[#9b8ec4] block">They said · {fmtDate(ans.at)}</b>
+                            {ans.content}
+                          </p>
+                        ))}
+                      </div>
+                    ))}
+                </>)}
 
                 {/* BOOKINGS */}
                 {tab === 'Bookings' && (
@@ -929,45 +1513,4 @@ function fmtDate(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso)
   return isNaN(d.getTime()) ? '—' : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-}
-function Panel({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
-  return (
-    <div className="max-w-3xl">
-      <b className="text-[15px]">{title}</b>
-      <span className="block text-[11.5px] text-[#9b8ec4] mb-3">{sub}</span>
-      <div className="flex flex-col gap-2">{children}</div>
-    </div>
-  )
-}
-function Empty({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-xl border border-[#eee7f7] bg-white px-4 py-6 text-center text-[13px] text-[#9b8ec4]">{children}</div>
-}
-function Hint({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11.5px] text-[#9b8ec4] mt-1">{children}</p>
-}
-function Row({ title, sub, tag, action }: {
-  title: string; sub: string
-  tag?: { label: string; tone: 'good' | 'warn' | 'mute' }
-  action?: { label: string; onClick: () => void }
-}) {
-  const tone = tag?.tone === 'good' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
-    : tag?.tone === 'warn' ? 'text-amber-800 bg-amber-50 border-amber-200'
-    : 'text-[#9b8ec4] bg-[#f7f4fd] border-[#eee7f7]'
-  return (
-    <div className="flex items-center gap-3 rounded-xl border border-[#eee7f7] bg-white px-3.5 py-2.5">
-      <div className="min-w-0">
-        <b className="text-[13px] block truncate">{title}</b>
-        <span className="text-[11.5px] text-[#9b8ec4]">{sub}</span>
-      </div>
-      <div className="ml-auto flex items-center gap-2 shrink-0">
-        {tag && <span className={`text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${tone}`}>{tag.label}</span>}
-        {action && (
-          <button onClick={action.onClick}
-            className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd]">
-            {action.label}
-          </button>
-        )}
-      </div>
-    </div>
-  )
 }

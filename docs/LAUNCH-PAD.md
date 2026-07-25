@@ -7,8 +7,15 @@
 
 **THE PLAN (founder-locked 22 Jul):** we sell a **managed service** on the FIGSY engine, trading as **Milla&Vida**. **Vida** = OUR operator console (we run ICP → source → draft → send → triage → book). **Milla** = the client portal (masked leads · 👍 approve / ✕ pass · concierge chat · meetings · reports). **Nexus** = per-client private brain. **Money (locked 24 Jul, #492 — ONE WALLET / work model, supersedes the 23-Jul re-time):** a single dollar wallet per client · first purchase **$99**, then free top-ups ($40/$100/$200) · the client's 👍 charges a flat **$4 per approved lead, FINAL** (no $1/$3 split, no hold, no capture-on-booking, no release, no TTL) · a **dead email is never charged** · **meetings are reported, not refunded** · reviewing free · **only the client's 👍 ever spends — operators never**. **Client Zero = us.** Build order: **Website → Vida → Milla.** If days squeeze: **Milla trims first, Vida never, Website never.**
 
-## ✅ VERIFIED STATE (24 Jul) — the 14-day build is BUILT + then some
-> **Where we actually are:** the whole Milla&Vida build is **shipped and live (🩷 — deployed, awaiting your walk-through)**. Item-by-item detail → **BUILD-STATUS**.
+## ✅ VERIFIED STATE (25 Jul) — THE LAUNCH PATH IS BUILT, on a branch, not yet merged
+> **Today, in one line:** the flow walk found the **shell** was live and the **features** were not — so the whole launch path is now built (#520–#537, 🟡 on branch). **Nothing here needs SQL.**
+> - **What the walk found:** everything the old self-serve console could do — ICP by conversation, generate people, assign them, suggest a campaign, edit a sequence, send a test, hit run — was gated by `requireAuth` (a **client** JWT). Vida proxies with an admin key and **no client session**, so the operator could look at a campaign but never propose, fill, preview, test or run one.
+> - **Vida now does the work end to end:** build/refine the ICP **by talking** → pick the people (multi-select) → **Vida proposes the campaign, you approve** → edit it (brief · daily cap · **Auto-Pilot / Co-Pilot**) → **Vida drafts the sequence, you approve** → preview it as the prospect reads it → **email yourself a test** → **Run it** → see who's in it and where each of them is. Plus the **bell** (new client's first ICP · ICP revised under a live campaign · replies to answer) and **Ask them for these**, which now lands in the client's own Milla thread.
+> - **Milla's half:** their thread persists so an ask is waiting for them (and their answer comes back to us) · they **revise their ICP by conversation** and it goes **live** (we get told, because anyone already enrolled was picked against the old profile) · they **see the sequence, read-only**.
+> - **Two honesty fixes** worth knowing, both of which would have read as working: assign counted successful calls, not enrolments (would have said "12 added" when 3 were), and assigning to a paused campaign silently did nothing. Both now tell the truth.
+> - **Next:** one PR → your review → merge → `bash scripts/ship.sh` → walk it (🟡 → 🩷 → 🟢). **Deferred by you:** refining the approval gates.
+>
+> **Where the 14-day build stands:** shipped and live (🩷 — deployed, awaiting your walk-through). Item-by-item detail → **BUILD-STATUS**.
 > - **Vida** ✅ — client picker · pipeline board · gates (Qualify #494 · gate chips #493c) · Bookings + no-show → 2 rebooks → keep $3 (#499/#499m) · one-click sourcing w/ pool-aware confirm (#498b) · live blockers strip (#505) · **12 native engine pages + Engine rail (#502/#530–541) — old-admin exit CLOSED** · **🧠 Nexus signals panel**.
 > - **Milla** ✅ — masked cards · 👍/✕ approve · concierge chat · onboarding · ICP gate · reports · **11 native pages — old-portal exit CLOSED** · "why this fits" · **🧠 Nexus flywheel card**. *(Only #515 magic-link + SMS outstanding — flagged.)*
 > - **Combined** ✅ — money rails $1+$3 (#492) · off-ramps E1–E12 (E1 stale-hold sweep · E7 risky-reply escalate · E9 booking retry · E5 ruled = keep refunding) · #517 unified operating record.
@@ -16,7 +23,7 @@
 > - **The ONLY unbuilt items:** 🚩 **#515** (Milla magic-link + SMS — needs an SMS provider + a no-login security call) · ⏸ **Auto-deploy/CI** (blocked — GitHub account flagged).
 > - **Next:** Fable verifies the full session → founder end-to-end walk (🩷 → 🟢). **Migrations owed on prod:** `20260724_nexus_autotune_flag.sql` (+ confirm the other 24-Jul migrations ran).
 
-**Board:** 🟢91 · 🩷166 · 🟣1 · 🟡19 · 🔴217 · ⏸5 · **Σ499** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢91 · 🩷166 · 🟣1 · 🟡37 · 🔴217 · ⏸5 · **Σ517** · live count: `scripts/count-inventory.sh`
 
 ---
 

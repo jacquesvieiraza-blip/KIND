@@ -172,6 +172,626 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── THE LAUNCH PATH (operator-side) ────────────────────────────────────────────────
+// Everything below already existed in the retired self-serve console, but only behind a
+// CLIENT Bearer token. Vida proxies with an admin key and no client session, so the
+// operator could see a campaign but never propose, preview, test or RUN one. These are the
+// operator twins — same logic, admin-key auth, always scoped by client_id.
+
+// Vida proposes a campaign (name + who it hunts for) from the client's live ICP.
+// Proposal only — nothing is created until the operator accepts it.
+operatorRouter.post('/campaign/suggest', async (req: Request, res: Response) => {
+  try {
+    const { client_id } = (req.body ?? {}) as { client_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: icp } = await db.from('icps')
+      .select('name, industries, job_titles, seniority_levels, geographies, company_sizes, keywords')
+      .eq('client_id', client.id).eq('is_active', true)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (!icp) { res.status(409).json({ success: false, error: 'No active ICP — the client needs one before we can target anyone.' }); return }
+
+    const { data: c } = await db.from('clients').select('company_name, industry').eq('id', client.id).maybeSingle()
+    const who = [
+      (icp.job_titles ?? []).slice(0, 3).join(', '),
+      (icp.industries ?? []).slice(0, 3).join(', '),
+      (icp.geographies ?? []).slice(0, 2).join(', '),
+    ].filter(Boolean).join(' · ')
+
+    // Deterministic when there is no LLM key — never invent, never fail the flow.
+    let name = `${(icp.job_titles ?? [])[0] ?? 'Decision makers'} — ${(icp.industries ?? [])[0] ?? 'target market'}`
+    let intent = who || icp.name
+    if (process.env.ANTHROPIC_API_KEY) {
+      try {
+        const { default: Anthropic } = await import('@anthropic-ai/sdk')
+        const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+        const msg = await ai.messages.create({
+          model: 'claude-haiku-4-5-20251001', max_tokens: 200,
+          messages: [{ role: 'user', content:
+            `Name an outbound campaign for ${c?.company_name ?? 'a client'}${c?.industry ? ` (${c.industry})` : ''} targeting: ${who || icp.name}.\n` +
+            `Reply as exactly two lines and nothing else:\nNAME: <max 6 words>\nHUNTING: <one sentence, who and why now>` }],
+        })
+        const txt = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('')
+        const n = txt.match(/NAME:\s*(.+)/i)?.[1]?.trim()
+        const h = txt.match(/HUNTING:\s*(.+)/i)?.[1]?.trim()
+        if (n) name = n.slice(0, 120)
+        if (h) intent = h.slice(0, 500)
+      } catch { /* keep the deterministic proposal */ }
+    }
+    res.json({ success: true, data: { name, campaign_intent: intent, icp_name: icp.name } })
+  } catch (err) { console.error('[operator/campaign-suggest]', err); res.status(500).json({ success: false, error: 'Failed to suggest a campaign' }) }
+})
+
+// Accept a proposal / edit a campaign. Creates ACTIVE when there is no id.
+operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
+  try {
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const client = await requireClient(b.client_id as string | undefined)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+    if (typeof b.name === 'string' && b.name.trim()) patch.name = b.name.trim().slice(0, 120)
+    if (typeof b.campaign_intent === 'string') patch.campaign_intent = b.campaign_intent.slice(0, 500)
+    if (typeof b.status === 'string' && ['draft', 'active', 'paused'].includes(b.status)) patch.status = b.status
+
+    // THE GATES LIVE IN settings, NOT ON THE ROW. `figsy_campaigns` has look-alike
+    // `copilot_mode` / `approve_before_send` columns that NOTHING reads, and no
+    // `daily_send_limit` column at all — the send path reads settings.review_required
+    // (lib/figsy.ts) and the cron reads settings.daily_send_limit (routes/internal.ts).
+    // Writing the columns would give the operator a Co-Pilot toggle the engine ignores:
+    // the UI would promise "every email waits for you" and the emails would still go out.
+    // lib/campaign-settings.ts owns that mapping; the columns are kept in sync so they
+    // stop being a lie sitting in the table.
+    const { readCampaignGates, mergeCampaignGates, normaliseDailyCap } = await import('../lib/campaign-settings')
+    const wantCoPilot = typeof b.copilot_mode === 'boolean' ? b.copilot_mode : undefined
+    const wantCap = normaliseDailyCap(b.daily_send_limit)
+    const touchesGates = wantCoPilot !== undefined || wantCap !== undefined
+    if (wantCoPilot !== undefined) { patch.copilot_mode = wantCoPilot; patch.approve_before_send = wantCoPilot }
+
+    const SELECT = 'id, name, status, campaign_intent, settings'
+    const shape = (row: Record<string, unknown>) => {
+      const gates = readCampaignGates(row.settings)
+      const { settings: _drop, ...rest } = row
+      return { ...rest, copilot_mode: gates.review_required, daily_send_limit: gates.daily_send_limit }
+    }
+
+    if (b.campaign_id) {
+      // Read-merge-write: settings also carries send_days, send_hour_utc, ab_subject_b…e,
+      // reply-branching steps and system_prompt. Replacing the object would drop them.
+      if (touchesGates) {
+        const { data: cur } = await db.from('figsy_campaigns')
+          .select('settings').eq('id', b.campaign_id as string).eq('client_id', client.id).maybeSingle()
+        patch.settings = mergeCampaignGates(cur?.settings, { review_required: wantCoPilot, daily_send_limit: wantCap })
+      }
+      const { data, error } = await db.from('figsy_campaigns').update(patch)
+        .eq('id', b.campaign_id as string).eq('client_id', client.id).select(SELECT).maybeSingle()
+      if (error) throw error
+      if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'pause_campaign', subjectType: 'campaign', subjectId: data.id, detail: { edited: true, co_pilot: wantCoPilot ?? null } })
+      res.json({ success: true, data: shape(data) }); return
+    }
+
+    // A NEW campaign defaults to Co-Pilot even when the caller says nothing: a campaign
+    // created here can start sending, and the safe default is that a human sees each email.
+    patch.settings = mergeCampaignGates(null, { review_required: wantCoPilot ?? true, daily_send_limit: wantCap ?? null })
+    patch.copilot_mode = wantCoPilot ?? true
+    patch.approve_before_send = wantCoPilot ?? true
+
+    const { data, error } = await db.from('figsy_campaigns')
+      .insert({ client_id: client.id, name: (patch.name as string) ?? 'Outbound campaign', status: 'active', ...patch })
+      .select(SELECT).single()
+    if (error) throw error
+    await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'start_campaign', subjectType: 'campaign', subjectId: data.id, detail: { from_suggestion: true, co_pilot: patch.copilot_mode } })
+    res.json({ success: true, data: shape(data) })
+  } catch (err) { console.error('[operator/campaign-save]', err); res.status(500).json({ success: false, error: 'Failed to save the campaign' }) }
+})
+
+// Assign the people the operator PICKED into a campaign (step 7 — never "all of them").
+operatorRouter.post('/campaign/:id/assign', async (req: Request, res: Response) => {
+  try {
+    const { client_id, lead_ids } = (req.body ?? {}) as { client_id?: string; lead_ids?: string[] }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (!Array.isArray(lead_ids) || lead_ids.length === 0) { res.status(400).json({ success: false, error: 'Pick at least one person' }); return }
+
+    const { data: camp } = await db.from('figsy_campaigns')
+      .select('id, name, status').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!camp) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    // autoEnrollLead enrols into the client's most recent ACTIVE campaign — it does not take
+    // a campaign id. Assigning to a paused/draft campaign would therefore do nothing (or,
+    // worse, quietly enrol into a different campaign). Refuse instead of pretending.
+    if (camp.status !== 'active') {
+      res.status(409).json({ success: false, error: `“${camp.name}” isn’t running — hit Run it first, then add people.` }); return
+    }
+
+    // Only this client's leads, and never re-add someone already enrolled.
+    const { data: mine } = await db.from('leads').select('id').eq('client_id', client.id).in('id', lead_ids.slice(0, 200))
+    const ids = (mine ?? []).map((l: { id: string }) => l.id)
+    if (ids.length === 0) { res.status(400).json({ success: false, error: 'None of those leads belong to this client' }); return }
+    const { data: already } = await db.from('figsy_enrollments').select('lead_id').eq('campaign_id', camp.id).in('lead_id', ids)
+    const skip = new Set((already ?? []).map((e: { lead_id: string }) => e.lead_id))
+    const fresh = ids.filter(id => !skip.has(id))
+
+    const { autoEnrollLead } = await import('../lib/figsy')
+    for (const leadId of fresh) {
+      // prepaid: the client's $4 (or our own sourcing) already covered this lead — assigning
+      // to a campaign must never charge again.
+      await autoEnrollLead(leadId, client.id, { force: true, prepaid: true }).catch(() => {})
+    }
+
+    // COUNT THE TRUTH, not the loop. autoEnrollLead returns void and bails silently on any
+    // of: no verified email, suppression/do-not-contact, an existing CRM match, exhausted
+    // FIGSY credits, or a send engine that isn't configured. Counting successful calls would
+    // report "12 added" when 3 were added — so the number comes from the table.
+    const { data: after } = await db.from('figsy_enrollments')
+      .select('lead_id').eq('campaign_id', camp.id).in('lead_id', ids)
+    const nowIn = new Set((after ?? []).map((e: { lead_id: string }) => e.lead_id))
+    const assigned = fresh.filter(id => nowIn.has(id)).length
+    const notAdded = fresh.length - assigned
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'enroll_lead',
+      subjectType: 'campaign', subjectId: camp.id,
+      detail: { picked: ids.length, assigned, already: skip.size, not_added: notAdded },
+    })
+    res.json({
+      success: true,
+      data: {
+        assigned, already_in: skip.size, not_added: notAdded,
+        note: notAdded > 0
+          ? `${notAdded} couldn’t be added — no verified email, on the do-not-contact list, already in the client’s CRM, or the sending pool is empty.`
+          : null,
+      },
+    })
+  } catch (err) { console.error('[operator/campaign-assign]', err); res.status(500).json({ success: false, error: 'Failed to assign people' }) }
+})
+
+// Preview step 1 exactly as it will send, and optionally post it to the operator's inbox.
+// This is the last gate before anything reaches a real prospect.
+operatorRouter.post('/campaign/:id/test', async (req: Request, res: Response) => {
+  try {
+    const { client_id, send, to_email } = (req.body ?? {}) as { client_id?: string; send?: boolean; to_email?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: camp } = await db.from('figsy_campaigns')
+      .select('id, name, campaign_intent, settings').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!camp) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
+    const { data: c } = await db.from('clients')
+      .select('company_name, industry, signer_name').eq('id', client.id).maybeSingle()
+
+    // A representative lead from this client's own pool, so the preview is honest.
+    const { data: sample } = await db.from('leads')
+      .select('first_name, last_name, job_title, company, industry, country, score')
+      .eq('client_id', client.id).order('score', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+    const lead = sample ?? { first_name: 'Alex', last_name: 'Morgan', job_title: 'Head of Operations', company: 'Sample Co', industry: c?.industry ?? null, country: 'ZA', score: 85 }
+
+    const { generateSequence, getClientKnowledgeForOutreach } = await import('../lib/figsy')
+    const knowledge = await getClientKnowledgeForOutreach(client.id).catch(() => undefined)
+    const seq = await generateSequence(
+      lead as never, c?.company_name ?? '', c?.industry ?? null,
+      camp.campaign_intent ?? undefined, undefined, c?.signer_name ?? null, knowledge as never,
+    )
+    const step1 = (seq as { step1?: { subject?: string; body?: string } } | null)?.step1
+    if (!step1?.subject || !step1?.body) { res.status(502).json({ success: false, error: 'Could not draft a preview — try again.' }); return }
+
+    if (!send) { res.json({ success: true, data: { preview: step1, sent: false, to: null } }); return }
+
+    const to = (to_email && to_email.includes('@')) ? to_email : operatorEmail(req)
+    if (!to || !to.includes('@')) { res.status(400).json({ success: false, error: 'No address to send the test to' }); return }
+    const { Resend: ResendCls } = await import('resend')
+    if (!process.env.RESEND_API_KEY) { res.status(503).json({ success: false, error: 'Email sending is not configured' }); return }
+    const resend = new ResendCls(process.env.RESEND_API_KEY)
+    const { COLD_FROM, COLD_REPLY_TO } = await import('../lib/deliverability')
+    const { error: sendErr } = await resend.emails.send({
+      from: COLD_FROM, reply_to: COLD_REPLY_TO, to,
+      subject: `[TEST · ${c?.company_name ?? 'client'}] ${step1.subject}`, text: step1.body,
+    })
+    if (sendErr) throw sendErr
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'send_now',
+      subjectType: 'campaign', subjectId: camp.id, detail: { test_email: true, to },
+    })
+    res.json({ success: true, data: { preview: step1, sent: true, to } })
+  } catch (err) { console.error('[operator/campaign-test]', err); res.status(500).json({ success: false, error: 'Failed to build the test' }) }
+})
+
+// V4 — the people the operator picks from. /board's "sourced" column only shows
+// unrevealed leads; picking who goes into a campaign needs the whole pool plus whether
+// each person is ALREADY enrolled (so we never double-add and never re-charge).
+operatorRouter.get('/people', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const campaignId = typeof req.query.campaign_id === 'string' ? req.query.campaign_id : null
+
+    const { data: leads } = await db.from('leads')
+      .select('id, first_name, last_name, job_title, company, industry, country, score, status, email, revealed_at')
+      .eq('client_id', client.id).neq('status', 'passed')
+      .order('score', { ascending: false, nullsFirst: false }).limit(200)
+
+    // Enrolled anywhere (so the operator sees "already working") and, when a campaign is
+    // in play, enrolled in THAT campaign (so the checkbox can be disabled).
+    const ids = (leads ?? []).map((l: { id: string }) => l.id)
+    let enrolledAll = new Set<string>()
+    let enrolledHere = new Set<string>()
+    if (ids.length > 0) {
+      const { data: e } = await db.from('figsy_enrollments')
+        .select('lead_id, campaign_id').eq('client_id', client.id).in('lead_id', ids)
+      enrolledAll = new Set((e ?? []).map((r: { lead_id: string }) => r.lead_id))
+      enrolledHere = new Set((e ?? [])
+        .filter((r: { campaign_id: string }) => campaignId && r.campaign_id === campaignId)
+        .map((r: { lead_id: string }) => r.lead_id))
+    }
+
+    res.json({
+      success: true,
+      data: (leads ?? []).map((l: Record<string, unknown>) => ({
+        ...l,
+        // Never leak an unrevealed address into the operator console — masked is masked.
+        email: l.revealed_at ? l.email : null,
+        enrolled: enrolledAll.has(l.id as string),
+        in_campaign: enrolledHere.has(l.id as string),
+      })),
+    })
+  } catch (err) { console.error('[operator/people]', err); res.status(500).json({ success: false, error: 'Failed to load people' }) }
+})
+
+// V14 — who is actually IN this campaign, and where each of them is in the sequence.
+operatorRouter.get('/campaign/:id/enrollments', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: rows } = await db.from('figsy_enrollments')
+      .select('id, lead_id, current_step, total_steps, status, next_send_at, enrolled_at')
+      .eq('client_id', client.id).eq('campaign_id', req.params.id)
+      .order('enrolled_at', { ascending: false }).limit(200)
+
+    const ids = Array.from(new Set((rows ?? []).map((r: { lead_id: string }) => r.lead_id).filter(Boolean)))
+    const { data: leads } = ids.length > 0
+      ? await db.from('leads').select('id, first_name, last_name, job_title, company').in('id', ids)
+      : { data: [] }
+    const byId = new Map((leads ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
+
+    // Replied trumps "sending" in the operator's head — surface it on the row.
+    const { data: replies } = ids.length > 0
+      ? await db.from('figsy_replies').select('lead_id, classification').eq('client_id', client.id).in('lead_id', ids)
+      : { data: [] }
+    const replyBy = new Map((replies ?? []).map((r: Record<string, unknown>) => [r.lead_id as string, r.classification as string]))
+
+    res.json({
+      success: true,
+      data: (rows ?? []).map((r: Record<string, unknown>) => {
+        const l = byId.get(r.lead_id as string) as Record<string, unknown> | undefined
+        return {
+          id: r.id, lead_id: r.lead_id, status: r.status,
+          current_step: r.current_step, total_steps: r.total_steps, next_send_at: r.next_send_at,
+          first_name: l?.first_name ?? null, last_name: l?.last_name ?? null,
+          job_title: l?.job_title ?? null, company: l?.company ?? null,
+          replied: replyBy.get(r.lead_id as string) ?? null,
+        }
+      }),
+    })
+  } catch (err) { console.error('[operator/enrollments]', err); res.status(500).json({ success: false, error: 'Failed to load who is in this campaign' }) }
+})
+
+// V2 — BUILD / REFINE THE ICP BY CONVERSATION (replaces the form).
+// The client-side twin is POST /icps/chat-build, which is client-JWT-only. This one is
+// seeded with the client's CURRENT active ICP, so the operator's conversation refines what
+// exists instead of starting from nothing. Returns a proposal — POST /operator/icp saves it.
+operatorRouter.post('/icp/chat', async (req: Request, res: Response) => {
+  try {
+    const { client_id, message, history } = (req.body ?? {}) as
+      { client_id?: string; message?: string; history?: { role: 'user' | 'assistant'; content: string }[] }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    if (typeof message !== 'string' || !message.trim()) { res.status(400).json({ success: false, error: 'Say something first' }); return }
+
+    const { data: current } = await db.from('icps')
+      .select('id, name, industries, job_titles, seniority_levels, company_sizes, geographies, tech_stack, keywords')
+      .eq('client_id', client.id).eq('is_active', true)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: c } = await db.from('clients').select('company_name, industry, country').eq('id', client.id).maybeSingle()
+
+    const system = `You are Vida, the operator-side ICP builder for K.I.N.D. You are talking to a K.I.N.D OPERATOR who is building or refining the ICP for their client ${c?.company_name ?? 'the client'}${c?.industry ? ` (${c.industry})` : ''}${c?.country ? `, based in ${c.country}` : ''}.
+
+${current ? `Their CURRENT active ICP is:\n${JSON.stringify(current, null, 1)}\nRefine it — keep what is already right, change only what the operator asks about.` : 'They have NO ICP yet — build the first one.'}
+
+Reply with ONLY valid JSON (no markdown fence):
+{"message":"<your reply to the operator, max 2 sentences>","icp":{"name":"...","industries":[],"job_titles":[],"seniority_levels":[],"company_sizes":[],"geographies":[],"tech_stack":[],"keywords":[]}}
+
+Rules:
+- "industries" from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy
+- "seniority_levels" from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor
+- "company_sizes" from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+
+- Include "icp" on EVERY reply, carrying the full proposed profile (current values plus your changes) so the editor always has something to save. Use [] for anything you genuinely don't know.
+- Never invent a fact about the client's business. Ask instead.`
+
+    if (!process.env.ANTHROPIC_API_KEY) {
+      // No LLM key: stay useful rather than failing the step — hand back exactly what
+      // exists so the operator can still edit and save it.
+      res.json({ success: true, data: { message: 'I can’t reach my brain right now — here is the current profile to edit directly.', icp: current ?? null } })
+      return
+    }
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk')
+    const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const msg = await ai.messages.create({
+      model: 'claude-haiku-4-5-20251001', max_tokens: 900, system,
+      messages: [
+        ...(history ?? []).slice(-12).map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: message.slice(0, 2000) },
+      ],
+    })
+    const raw = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('')
+      .trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
+    let parsed: { message?: string; icp?: Record<string, unknown> }
+    try { parsed = JSON.parse(raw) } catch { parsed = { message: raw.slice(0, 400) || 'Tell me more — industry, titles, seniority, size, region?' } }
+
+    res.json({
+      success: true,
+      data: {
+        message: parsed.message ?? 'Tell me more about who we should be hunting.',
+        icp: parsed.icp ?? current ?? null,
+        icp_id: current?.id ?? null,
+      },
+    })
+  } catch (err) { console.error('[operator/icp-chat]', err); res.status(500).json({ success: false, error: 'Failed to work the ICP' }) }
+})
+
+// V9 — AI PROPOSES A SEQUENCE, the operator approves it.
+// Drafted against a REAL top-scoring lead from this client's pool so the copy is honest,
+// then de-personalised back into {{tokens}} so it is reusable as a template.
+operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => {
+  try {
+    const { client_id, campaign_id } = (req.body ?? {}) as { client_id?: string; campaign_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: c } = await db.from('clients')
+      .select('company_name, industry, signer_name, booking_url').eq('id', client.id).maybeSingle()
+    const { data: camp } = campaign_id
+      ? await db.from('figsy_campaigns').select('name, campaign_intent').eq('id', campaign_id).eq('client_id', client.id).maybeSingle()
+      : { data: null }
+
+    const { data: sample } = await db.from('leads')
+      .select('id, first_name, last_name, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
+      .eq('client_id', client.id).order('score', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+    if (!sample) { res.status(409).json({ success: false, error: 'No people sourced yet — source someone first so the draft is written against a real prospect.' }); return }
+
+    const { generateSequence, getClientKnowledgeForOutreach } = await import('../lib/figsy')
+    const knowledge = await getClientKnowledgeForOutreach(client.id).catch(() => undefined)
+    const draft = await generateSequence(
+      sample as never, c?.company_name ?? '', c?.industry ?? null,
+      camp?.campaign_intent ?? undefined, c?.booking_url ?? null, c?.signer_name ?? null, knowledge as never,
+    ) as unknown as Record<string, { subject?: string; body?: string }>
+
+    // Put the tokens back so this reads as a template, not one person's email. Shared with
+    // the preview side so the two can never drift (lib/sequence-tokens.ts).
+    const { detokenise } = await import('../lib/sequence-tokens')
+    const lead = sample as { first_name?: string | null; last_name?: string | null; job_title?: string | null; company?: string | null }
+
+    const steps = [1, 2, 3].map(n => {
+      const st = draft[`step${n}`]
+      return {
+        step: n,
+        subject: detokenise(String(st?.subject ?? ''), lead),
+        body: detokenise(String(st?.body ?? ''), lead),
+        wait_days: n === 1 ? 0 : n === 2 ? 4 : 7,
+      }
+    }).filter(s => s.subject && s.body)
+    if (steps.length === 0) { res.status(502).json({ success: false, error: 'Could not draft a sequence — try again.' }); return }
+
+    res.json({
+      success: true,
+      data: {
+        name: camp?.name ? `${camp.name} — 3 touches` : '3-touch sequence',
+        steps,
+        drafted_against: { first_name: sample.first_name, job_title: sample.job_title, company: sample.company },
+      },
+    })
+  } catch (err) { console.error('[operator/sequence-suggest]', err); res.status(500).json({ success: false, error: 'Failed to draft a sequence' }) }
+})
+
+// V11 — PREVIEW A SAVED SEQUENCE as a real prospect will receive it (tokens filled from a
+// real lead in this client's pool). Read-only: it renders, it never sends.
+operatorRouter.get('/sequence/:id/preview', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data: seq } = await db.from('figsy_sequences')
+      .select('id, name, steps').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!seq) { res.status(404).json({ success: false, error: 'Sequence not found' }); return }
+
+    const { data: sample } = await db.from('leads')
+      .select('first_name, last_name, job_title, company').eq('client_id', client.id)
+      .order('score', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+    const lead = sample ?? { first_name: 'Alex', last_name: 'Morgan', job_title: 'Head of Operations', company: 'Sample Co' }
+    const { data: c } = await db.from('clients').select('company_name, signer_name').eq('id', client.id).maybeSingle()
+
+    const { fillTokens, stepDays } = await import('../lib/sequence-tokens')
+    const sender = { signer_name: c?.signer_name ?? null, company_name: c?.company_name ?? null }
+
+    const raw = Array.isArray(seq.steps) ? (seq.steps as Record<string, unknown>[]) : []
+    const days = stepDays(raw.map(st => ({ wait_days: st.wait_days as number | null | undefined })))
+    const rendered = raw.map((st, i) => ({
+      step: i + 1, day: days[i],
+      subject: fillTokens(String(st.subject ?? ''), lead, sender),
+      body: fillTokens(String(st.body ?? ''), lead, sender),
+    }))
+
+    res.json({ success: true, data: { name: seq.name, steps: rendered, sample_lead: lead } })
+  } catch (err) { console.error('[operator/sequence-preview]', err); res.status(500).json({ success: false, error: 'Failed to preview the sequence' }) }
+})
+
+// ── V3 / M2 — "ASK THEM FOR THESE" actually reaches Milla ──────────────────────────
+// The operator's question lands in the client's own Milla thread (milla_messages), so the
+// client answers it in the one place they already talk to us — and their answer comes back
+// here. No new table: the conversation IS the surface.
+const ASK_PREFIX = '**Quick ask from your K.I.N.D team**\n\n'
+
+async function latestMillaSession(clientId: string): Promise<string | null> {
+  const { data } = await db.from('milla_sessions')
+    .select('id').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (data?.id) return data.id as string
+  const { data: made } = await db.from('milla_sessions')
+    .insert({ client_id: clientId, title: 'From your K.I.N.D team' }).select('id').maybeSingle()
+  return (made?.id as string | undefined) ?? null
+}
+
+operatorRouter.post('/ask', async (req: Request, res: Response) => {
+  try {
+    const { client_id, question } = (req.body ?? {}) as { client_id?: string; question?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const q = String(question ?? '').trim()
+    if (!q) { res.status(400).json({ success: false, error: 'Write the question first' }); return }
+
+    const sessionId = await latestMillaSession(client.id)
+    if (!sessionId) { res.status(503).json({ success: false, error: 'Could not open the client’s Milla thread' }); return }
+
+    const { data, error } = await db.from('milla_messages').insert({
+      session_id: sessionId, client_id: client.id, role: 'assistant',
+      content: ASK_PREFIX + q.slice(0, 2000), sources: null,
+    }).select('id, created_at').maybeSingle()
+    if (error) throw error
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'vida_command',
+      subjectType: 'ask', subjectId: data?.id ?? null, detail: { asked: q.slice(0, 300) },
+    })
+    res.json({ success: true, data: { id: data?.id ?? null, sent_at: data?.created_at ?? null } })
+  } catch (err) { console.error('[operator/ask]', err); res.status(500).json({ success: false, error: 'Failed to send the ask' }) }
+})
+
+// What we asked, and what they said back (the client's replies AFTER each ask).
+operatorRouter.get('/asks', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(String(req.query.client_id ?? ''))
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    // Bounded read of the recent thread. An ask further back than this window won't appear —
+    // stated here rather than pretended away.
+    const WINDOW = 200
+    const { data: rows } = await db.from('milla_messages')
+      .select('id, role, content, created_at').eq('client_id', client.id)
+      .order('created_at', { ascending: false }).limit(WINDOW)
+    const asc = (rows ?? []).slice().reverse() as { id: string; role: string; content: string; created_at: string }[]
+
+    // An answer is a client message in the turn IMMEDIATELY after our ask — i.e. before Milla
+    // replies again. Attributing every later user message to the last ask would show ordinary
+    // chatter ("which look strongest?") as if it answered our question, which is worse than
+    // showing nothing: it reads like the client responded when they didn't.
+    const asks: { id: string; question: string; asked_at: string; answers: { content: string; at: string }[] }[] = []
+    let openAsk: (typeof asks)[number] | null = null
+    for (const m of asc) {
+      if (m.role === 'assistant' && m.content.startsWith(ASK_PREFIX)) {
+        openAsk = { id: m.id, question: m.content.slice(ASK_PREFIX.length), asked_at: m.created_at, answers: [] }
+        asks.push(openAsk)
+      } else if (m.role === 'user') {
+        if (openAsk) openAsk.answers.push({ content: m.content.slice(0, 1000), at: m.created_at })
+      } else {
+        openAsk = null   // Milla answered — the turn is closed; anything later is a new topic.
+      }
+    }
+    res.json({ success: true, data: asks.reverse().slice(0, 20), window: WINDOW })
+  } catch (err) { console.error('[operator/asks]', err); res.status(500).json({ success: false, error: 'Failed to load asks' }) }
+})
+
+// ── V17 — THE BELL: what changed for a client that we need to look at ──────────────
+// Derived live from real rows (no notifications table, no new SQL): a brand-new client
+// whose first ICP is waiting on us, an ICP revised after the campaign was built, a client
+// with no active campaign, and unread-ish prospect replies.
+operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
+  try {
+    const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString()
+    const [clients, icps, camps, replies] = await Promise.all([
+      db.from('clients').select('id, company_name, created_at, is_demo').order('created_at', { ascending: false }).limit(200),
+      // NOT date-filtered on purpose. "ICP approved, no campaign — they can't be worked" is
+      // the highest-value alert here, and a 14-day window would go silent for exactly the
+      // clients it matters most for: the ones onboarded a while ago and still not working.
+      db.from('icps').select('client_id, name, created_at, updated_at, is_active').limit(1000),
+      db.from('figsy_campaigns').select('client_id, status, created_at').limit(400),
+      db.from('figsy_replies').select('client_id, classification, received_at, qualified_at').gte('received_at', since).limit(400),
+    ])
+    const excluded = await getExcludedClientIds()
+
+    const icpByClient = new Map<string, { created_at: string; updated_at: string | null }[]>()
+    for (const i of (icps.data ?? []) as Record<string, unknown>[]) {
+      const k = i.client_id as string
+      if (!icpByClient.has(k)) icpByClient.set(k, [])
+      icpByClient.get(k)!.push({ created_at: i.created_at as string, updated_at: (i.updated_at as string | null) ?? null })
+    }
+    const campByClient = new Map<string, { status: string; created_at: string }[]>()
+    for (const c of (camps.data ?? []) as Record<string, unknown>[]) {
+      const k = c.client_id as string
+      if (!campByClient.has(k)) campByClient.set(k, [])
+      campByClient.get(k)!.push({ status: c.status as string, created_at: c.created_at as string })
+    }
+    const replyByClient = new Map<string, number>()
+    for (const r of (replies.data ?? []) as Record<string, unknown>[]) {
+      if (r.qualified_at) continue
+      const k = r.client_id as string
+      replyByClient.set(k, (replyByClient.get(k) ?? 0) + 1)
+    }
+
+    const out: { client_id: string; company_name: string | null; kind: string; label: string; severity: 'high' | 'normal' }[] = []
+    for (const c of (clients.data ?? []) as Record<string, unknown>[]) {
+      const id = c.id as string
+      if (c.is_demo === true || excluded.has(id)) continue
+      const name = (c.company_name as string | null) ?? null
+      const myIcps = icpByClient.get(id) ?? []
+      const myCamps = campByClient.get(id) ?? []
+      const hasActive = myCamps.some(x => x.status === 'active')
+      const newish = (c.created_at as string) >= since
+
+      if (newish && myIcps.length > 0 && !hasActive) {
+        out.push({ client_id: id, company_name: name, kind: 'new_client_icp', label: 'New client — first ICP is waiting on us', severity: 'high' })
+      } else if (!hasActive && myCamps.length === 0 && myIcps.length > 0) {
+        out.push({ client_id: id, company_name: name, kind: 'no_campaign', label: 'ICP approved, no campaign yet — they can’t be worked', severity: 'high' })
+      }
+      // Revised ICP: touched after the newest campaign was built → the targeting moved
+      // under a live campaign, so the people in it may be the wrong people now.
+      const newestCamp = myCamps.map(x => x.created_at).sort().pop()
+      const icpTouched = myIcps.map(x => x.updated_at ?? x.created_at).sort().pop()
+      if (newestCamp && icpTouched && icpTouched > newestCamp) {
+        out.push({ client_id: id, company_name: name, kind: 'icp_revised', label: 'ICP revised since the campaign was built', severity: 'normal' })
+      }
+      const rc = replyByClient.get(id) ?? 0
+      if (rc > 0) {
+        out.push({ client_id: id, company_name: name, kind: 'replies', label: `${rc} repl${rc === 1 ? 'y' : 'ies'} to answer`, severity: 'normal' })
+      }
+    }
+
+    res.json({ success: true, data: out })
+  } catch (err) { console.error('[operator/alerts]', err); res.status(500).json({ success: false, error: 'Failed to load alerts' }) }
+})
+
+// ── RUN PENDING MIGRATIONS (from Vida) ─────────────────────────────────────────────
+// The Supabase SQL editor is unreachable (GitHub OAuth + a flagged account), and we are
+// adding no new local tooling. This runs the reviewed, committed, idempotent statements in
+// lib/pending-migrations.ts against DATABASE_URL. It never accepts SQL from the request —
+// the body is ignored entirely — so this cannot become an arbitrary-SQL hole.
+operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
+  try {
+    const { runPendingMigrations, PENDING_MIGRATIONS } = await import('../lib/pending-migrations')
+    const results = await runPendingMigrations()
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: 'run_migration',
+      subjectType: 'migration', subjectId: null,
+      detail: { ran: results.map(r => r.key), failed: results.filter(r => !r.ok).map(r => r.key) },
+    })
+    res.json({ success: true, data: { results, available: PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })) } })
+  } catch (err) {
+    console.error('[operator/migrations]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to run migrations' })
+  }
+})
+
 // ── V7 ENGINE — the deliverability surface (item 211) ──────────────────────────────
 // RULEBOOK 12.2: you cannot share a sender across clients. This is the page that proves
 // each client has isolated, warmed sending and that it is HEALTHY — sends, opens, bounces,
@@ -182,10 +802,15 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
     const since = new Date(Date.now() - 7 * 864e5).toISOString()
     const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
 
+    // The client_inboxes table arrives with 20260725_client_inboxes.sql, which is applied by
+    // hand in Supabase. If the code ships BEFORE that SQL is run, this query errors — and a
+    // 500 here would take the whole Engine page down. Degrade instead: no inbox rows, and a
+    // migration_pending flag the page can explain. Everything else on the page still works.
     const [inboxes, clients, sent7, sentToday, bounced7, optOuts, opened7] = await Promise.all([
       db.from('client_inboxes')
         .select('id, client_id, email, kind, status, provider, daily_cap, warmup_started_at, warmup_ready_at, assigned_at')
-        .not('status', 'in', '("released","retired")').order('assigned_at', { ascending: false }),
+        .not('status', 'in', '("released","retired")').order('assigned_at', { ascending: false })
+        .then(r => r, () => ({ data: null, error: { message: 'client_inboxes missing' } })),
       db.from('clients').select('id, company_name'),
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since),
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', midnight.toISOString()),
@@ -194,6 +819,7 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).not('opened_at', 'is', null),
     ])
 
+    const migrationPending = !!inboxes.error
     const nameById = new Map((clients.data ?? []).map((c: { id: string; company_name: string | null }) => [c.id, c.company_name]))
     const rows: Record<string, unknown>[] = (inboxes.data ?? []).map((i: Record<string, unknown>) => {
       const ready = i.warmup_ready_at ? new Date(i.warmup_ready_at as string).getTime() : null
@@ -221,7 +847,8 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
         open_rate:   sent > 0 ? Math.round(((opened7.count ?? 0) / sent) * 1000) / 10 : 0,
       },
       inboxes: rows,
-      needs_inbox: needsInbox,
+      needs_inbox: migrationPending ? [] : needsInbox,
+      migration_pending: migrationPending,
     } })
   } catch (err) { console.error('[operator/engine]', err); res.status(500).json({ success: false, error: 'Failed to load engine' }) }
 })
@@ -485,8 +1112,12 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
     const [icps, campaigns, sequences, replies] = await Promise.all([
       db.from('icps').select('id, name, created_at, last_run_at')
         .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
+      // campaign_intent + settings are here because the Campaign editor pre-fills from this
+      // read — without them "Edit" would open blank and saving would wipe the brief every
+      // email is written from. `settings` (not a `daily_send_limit` column, which does not
+      // exist) is where the real send gates live — see lib/campaign-settings.ts.
       db.from('figsy_campaigns')
-        .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at')
+        .select('id, name, status, leads_enrolled, emails_sent, replies_total, replies_interested, created_at, campaign_intent, settings')
         .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
       db.from('figsy_sequences').select('id, name, steps, created_at, updated_at')
         .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
@@ -517,13 +1148,22 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
       checks,
     }
 
+    // Flatten the gates out of settings so the editor gets plain fields and never has to
+    // know where they live (one mapping, in lib/campaign-settings.ts).
+    const { readCampaignGates } = await import('../lib/campaign-settings')
+    const campaignRows = (campaigns.data ?? []).map((c: Record<string, unknown>) => {
+      const gates = readCampaignGates(c.settings)
+      const { settings: _drop, ...rest } = c
+      return { ...rest, copilot_mode: gates.review_required, daily_send_limit: gates.daily_send_limit }
+    })
+
     res.json({
       success: true,
       data: {
         client:    { id: cid, company_name: client.company_name ?? null },
         onboarding,
         icps:      icps.data ?? [],
-        campaigns: campaigns.data ?? [],
+        campaigns: campaignRows,
         sequences: sequences.data ?? [],
         replies:   replies.data ?? [],
       },

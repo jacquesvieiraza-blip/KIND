@@ -9,6 +9,7 @@ import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { PAID_TX_TYPES } from '../lib/onboarding-pack'
+import type { BatchCheck } from '../lib/approval-batch'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
@@ -804,6 +805,9 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // The minimum-20 gate applies to every door into the money path, or it isn't a gate.
+    const revealGate = await batchGate(clientId, 1)
+    if (revealGate) { res.status(409).json({ success: false, error: 'batch_minimum', required: revealGate.required, message: revealGate.reason }); return }
     // ONE WALLET — reveal and approve are the SAME money event now: a single flat $4
     // charged once per lead. Delegate to approveLead so there is exactly one money path.
     const { approveLead } = await import('../lib/approve-lead')
@@ -840,10 +844,33 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
 // heavy lifting lives in approveLead() (shared with the operator-on-behalf path in Vida)
 // so the money sequence is identical everywhere. Scoped to the client's own lead by
 // getClientId → the lead's client_id (enforced inside approveLead's queries).
+// ── THE MINIMUM-20 GATE (founder-locked 25 Jul) ────────────────────────────────
+// A client's inbox costs us ~$40/month from the day they sign, so a client who approves
+// five people is a client we run a free mail service for. When we send someone their
+// people they choose at least 20 — and the founder asked for a HARD gate, so it lives
+// HERE, on the server, not on a disabled button anyone can step around with a fetch.
+//
+// Returns null when the client may proceed, or the refusal to send back.
+async function batchGate(clientId: string, selecting: number): Promise<BatchCheck | null> {
+  const { checkBatch } = await import('../lib/approval-batch')
+  const [{ count: available }, { count: approvedEver }] = await Promise.all([
+    // What is actually in front of them: surfaced, undecided, not passed.
+    db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('surfaced_for_approval_at', 'is', null)
+      .is('revealed_at', null).neq('status', 'passed'),
+    db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('revealed_at', 'is', null),
+  ])
+  const check = checkBatch(selecting, available ?? 0, approvedEver ?? 0)
+  return check.allowed ? null : check
+}
+
 leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'lead-approve', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const gate = await batchGate(clientId, 1)
+    if (gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.required, message: gate.reason }); return }
     const { approveLead } = await import('../lib/approve-lead')
     const outcome = await approveLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
@@ -864,6 +891,49 @@ leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'l
     }
     res.json({ success: true, ...outcome })
   } catch (err) { console.error('[approve]', err); res.status(500).json({ success: false, error: 'Failed to approve lead' }) }
+})
+
+// ── APPROVE A BATCH — the door the minimum-20 gate sends people through ────────
+// One request, N leads. Each still goes through approveLead(), so the money path is
+// byte-identical to a single approve — the pack quota, the $4 charge, the dead-email
+// refund, the no-campaign refusal. Nothing is charged until the gate passes.
+//
+// Partial failures are reported per lead rather than rolled back: a dud email in a batch
+// of 30 must not un-approve the other 29, and approveLead already refuses to charge for
+// the ones it can't complete.
+leadRouter.post('/approve-batch', rateLimit({ limit: 12, windowMs: 60_000, key: 'lead-approve-batch', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const ids = Array.isArray(req.body?.lead_ids) ? [...new Set(req.body.lead_ids.filter((v: unknown) => typeof v === 'string'))] as string[] : []
+    if (ids.length === 0) { res.status(400).json({ success: false, error: 'lead_ids required' }); return }
+    // A bounded batch: 200 is the whole desk, and an unbounded loop here would hold the
+    // request open long enough to time out mid-charge.
+    if (ids.length > 200) { res.status(400).json({ success: false, error: 'Too many at once — 200 max.' }); return }
+
+    const gate = await batchGate(clientId, ids.length)
+    if (gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.required, message: gate.reason }); return }
+
+    const { approveLead } = await import('../lib/approve-lead')
+    const results: Array<{ id: string; status: string; email?: string | null; charged?: boolean }> = []
+    // SEQUENTIAL on purpose: try_charge_wallet is the atomic gate, and firing 30 charges
+    // concurrently against one wallet is how a client gets charged past their balance.
+    for (const id of ids) {
+      const out = await approveLead(id, clientId).catch(() => ({ status: 'error' as const }))
+      results.push({ id, status: out.status, email: 'email' in out ? out.email : null, charged: 'charged' in out ? out.charged : undefined })
+      // Stop the moment the money runs out — every further attempt would fail the same way.
+      if (out.status === 'insufficient_funds') break
+    }
+
+    const approved = results.filter(r => r.status === 'approved')
+    res.json({
+      success: true, approved: approved.length, attempted: ids.length, results,
+      message: approved.length === ids.length
+        ? `${approved.length} approved — we're on it.`
+        : `${approved.length} of ${ids.length} approved. The rest are listed below with why.`,
+    })
+  } catch (err) { console.error('[approve-batch]', err); res.status(500).json({ success: false, error: 'Failed to approve' }) }
 })
 
 // ✕ pass — client says "not a fit". No charge, no reveal; the lead leaves the queue.

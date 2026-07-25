@@ -14,6 +14,17 @@ export type PendingMigration = { key: string; title: string; sql: string }
 
 export const PENDING_MIGRATIONS: PendingMigration[] = [
   {
+    key: '20260726_client_contact_name',
+    title: "Who we're speaking to (flow v2 step 0 — name on the client row)",
+    sql: `
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS contact_name text;
+
+COMMENT ON COLUMN public.clients.contact_name IS
+  'Who we are speaking to at this client (flow v2 step 0). Not signer_name, which is who signs outbound email.';
+`.trim(),
+  },
+  {
     key: '20260725_client_inboxes',
     title: 'Client inboxes (Engine + pooled→branded inbox SOP)',
     sql: `

@@ -51,6 +51,9 @@ const onboardSchema = z.object({
   country:      z.string().min(2),
   website:      emptyToUndefined.pipe(z.string().url().optional()),
   phone:        emptyToUndefined.optional(),
+  // Who we're speaking to (flow v2 step 0). Deliberately NOT signer_name, which is who
+  // signs the outgoing emails — they are often different people.
+  contact_name: emptyToUndefined.optional(),
   // Accept ANY ref value: a client UUID (client referral) OR an 8-char partner
   // code. Validating as uuid() here used to 400 every partner-link signup.
   referred_by:  emptyToUndefined.optional(),
@@ -67,7 +70,11 @@ authRouter.post('/onboard', async (req, res) => {
     if (!token) { res.status(401).json({ success: false, error: 'Missing token' }); return }
     const { data: { user }, error: authError } = await db.auth.getUser(token)
     if (authError || !user) { res.status(401).json({ success: false, error: 'Invalid token' }); return }
-    const { referred_by, terms_accepted, ...profileFields } = onboardSchema.parse(req.body)
+    // contact_name is pulled OUT of the shared payload on purpose: the column ships in
+    // 20260726_client_contact_name.sql and may not be applied yet. Inside the payload a
+    // missing column fails the whole insert — i.e. it would break every signup. It is
+    // written separately, best-effort, below.
+    const { referred_by, terms_accepted, contact_name, ...profileFields } = onboardSchema.parse(req.body)
 
     // A ref can be a client UUID (client referral) or an 8-char partner code.
     let resolvedReferredBy: string | undefined   // client referrer id
@@ -136,6 +143,14 @@ authRouter.post('/onboard', async (req, res) => {
         .single()
       if (insertErr) throw new Error(`Insert failed: ${insertErr.message} (${insertErr.code})`)
       clientId = inserted.id
+    }
+
+    // Who we're speaking to. Best-effort: an un-migrated database must never cost us a
+    // signup, so a failure here is logged and swallowed rather than thrown.
+    if (contact_name && contact_name.trim()) {
+      const { error: nameErr } = await db.from('clients')
+        .update({ contact_name: contact_name.trim().slice(0, 120) }).eq('id', clientId)
+      if (nameErr) console.warn('[onboard] contact_name not stored (run 20260726_client_contact_name):', nameErr.message)
     }
 
     // Record partner referral attribution (idempotent — unique(client_id)).

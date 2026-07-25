@@ -84,10 +84,12 @@ type NextAction = {
   urgency: number
 }
 type RatioReading = { sourced: number; approved: number; ratio: number | null; confident: boolean; label: string }
+type ColdState = { daysIdle: number | null; neverStarted: boolean; warn: boolean; cold: boolean; label: string }
 type WorkRow = ClientRow & {
   counts: { sourced: number; with_client: number; approved: number }
   pack: { active: boolean; included: number; left: number; label: string }
   ratio: RatioReading
+  cold: ColdState
   next: NextAction
 }
 // The founder's mapped flow, as the rail across the top of the work column.
@@ -101,6 +103,10 @@ type Person = {
   company: string | null; industry: string | null; country: string | null; score: number | null
   status: string | null; email: string | null; revealed_at: string | null
   enrolled: boolean; in_campaign: boolean
+  /** Which ICP found them — a client with two ICPs saw one flat list before this. */
+  icp_name: string | null
+  /** In the top 20 by score we told the client we'd start with. */
+  recommended: boolean
 }
 // V14 — who is in a campaign, and where they are in the sequence.
 type Enrollment = {
@@ -849,6 +855,8 @@ export default function VidaConsolePage() {
                   <b className="text-[14px] block truncate">{c.company_name || 'Unnamed'}</b>
                   <span className={`text-[12.5px] block truncate ${you ? 'text-[#9d174d] font-semibold' : 'text-[#9b8ec4]'}`}>
                     {n?.label ?? ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
+                    {workById[c.id]?.cold?.cold && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wide text-white bg-[#b91c1c] rounded px-1.5 py-0.5">Suspended</span>}
+                    {workById[c.id]?.cold?.warn && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#92400e] bg-[#fef3c7] border border-[#fde68a] rounded px-1.5 py-0.5">Going quiet</span>}
                   </span>
                 </span>
                 {c.house_or_demo && (
@@ -1094,7 +1102,68 @@ export default function VidaConsolePage() {
                       <span className={selectedWork.ratio.confident ? 'text-[#1f1235]' : ''} title="Names we sourced ÷ leads they approved. $0.28 a name, approved or not.">
                         📐 {selectedWork.ratio.label}
                       </span>
+                      {/* We carry a ~$40/month warmed sender for them whether they approve
+                          anyone or not, so 30 days quiet pauses their campaigns. Approving
+                          anyone brings them straight back — no operator needed. */}
+                      <span className={selectedWork.cold.cold ? 'text-[#b91c1c] font-semibold' : selectedWork.cold.warn ? 'text-[#92400e] font-semibold' : ''}>
+                        {selectedWork.cold.cold ? '🧊' : selectedWork.cold.warn ? '⏳' : '🕑'} {selectedWork.cold.label}
+                      </span>
                     </div>
+
+                    {/* ── THE WORK, IN THE CARD ──────────────────────────────────────────
+                        The preview promised "you approve without going hunting through
+                        tabs" and the first build shipped a button that sent you to a tab —
+                        a signpost, not the work. When the next action is the sequence, the
+                        emails are RIGHT HERE, readable, with the decision on them. */}
+                    {selectedWork.next.cta?.kind === 'sequence' && (
+                      <div className="border-t border-[#f2ecfb] px-4 py-3">
+                        {(() => {
+                          const sq = cockpit?.sequences?.[0]
+                          const steps = Array.isArray(sq?.steps) ? (sq!.steps as Record<string, unknown>[]) : []
+                          if (!sq || steps.length === 0) {
+                            return (
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className="text-[13.5px] text-[#5c5279]">Nothing drafted yet — Vida writes it against their highest-scoring approved lead.</span>
+                                <button onClick={suggestSequence} disabled={cockpitBusy}
+                                  className="text-[13px] font-bold text-white rounded-lg px-3.5 py-2 bg-[#7C3AED] disabled:opacity-50">
+                                  {cockpitBusy ? 'Writing…' : '✨ Draft the sequence'}
+                                </button>
+                              </div>
+                            )
+                          }
+                          let day = 0
+                          return (
+                            <>
+                              <div className="flex items-center gap-2 flex-wrap mb-2">
+                                <b className="text-[13.5px] text-[#1f1235]">{sq.name || 'Sequence'}</b>
+                                <span className="text-[12px] text-[#9b8ec4]">{steps.length} email{steps.length === 1 ? '' : 's'} · read it properly before you approve</span>
+                                <span className="ml-auto flex gap-1.5">
+                                  <button onClick={suggestSequence} disabled={cockpitBusy}
+                                    className="text-[12.5px] font-bold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-lg px-2.5 py-1.5 disabled:opacity-50">✨ Redraft</button>
+                                  <button onClick={() => openSeqEditor(sq)}
+                                    className="text-[12.5px] font-bold text-[#5c5279] bg-white border border-[#ece5fb] rounded-lg px-2.5 py-1.5">Edit</button>
+                                </span>
+                              </div>
+                              <div className="grid gap-2 max-h-[340px] overflow-y-auto">
+                                {steps.map((st, i) => {
+                                  day += i === 0 ? 0 : (Number(st.wait_days ?? 3) || 0)
+                                  return (
+                                    <div key={i} className="rounded-xl border border-[#ece5fb] bg-[#faf8ff] px-3 py-2.5">
+                                      <div className="text-[10.5px] font-extrabold uppercase tracking-wide text-[#b3a9cc]">Email {i + 1} · day {day}</div>
+                                      <div className="text-[13.5px] font-bold text-[#1f1235] mt-0.5">{String(st.subject ?? '(no subject)')}</div>
+                                      <div className="text-[13px] text-[#5c5279] mt-1 whitespace-pre-wrap leading-relaxed">{String(st.body ?? '')}</div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                              <div className="text-[12px] text-[#9b8ec4] mt-2">
+                                Approving sends a test to <b className="text-[#5c5279]">hello@get-kind.com</b> first — judge the spam placement there, then it goes live.
+                              </div>
+                            </>
+                          )
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1226,8 +1295,16 @@ export default function VidaConsolePage() {
                   {people.map(p => (
                     <div key={p.id} className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 mb-2 ${p.in_campaign ? 'border-emerald-200 bg-emerald-50/40' : 'border-[#eee7f7]'}`}>
                       <div className="min-w-0">
-                        <b className="text-[13.5px] block truncate">{fullName(p.first_name, p.last_name)}</b>
-                        <span className="text-[12px] text-[#9b8ec4] truncate block">{[p.job_title, p.company].filter(Boolean).join(' · ') || '—'}</span>
+                        <b className="text-[13.5px] block truncate">
+                          {fullName(p.first_name, p.last_name)}
+                          {/* The same 20 the client sees marked in Milla — both consoles
+                              agree on who we said we'd start with. */}
+                          {p.recommended && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded px-1.5 py-0.5 align-middle">Top 20</span>}
+                        </b>
+                        <span className="text-[12px] text-[#9b8ec4] truncate block">
+                          {[p.job_title, p.company].filter(Boolean).join(' · ') || '—'}
+                          {p.icp_name && <span className="text-[#b3a9cc]"> · from “{p.icp_name}”</span>}
+                        </span>
                       </div>
                       <div className="ml-auto shrink-0 flex items-center gap-2">
                         {p.score != null && <span className="text-[14px] font-extrabold tabular-nums">{p.score}</span>}

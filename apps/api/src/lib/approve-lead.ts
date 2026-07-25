@@ -80,8 +80,30 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   //     exactly like the insufficient-funds gate, and alert us so an operator starts the
   //     campaign in Vida. (Deliberately placed AFTER the free paths — demo / already-in-CRM
   //     / already-owned never charge, so they are unaffected.)
-  const { data: activeCampaign } = await db.from('figsy_campaigns')
+  let { data: activeCampaign } = await db.from('figsy_campaigns')
     .select('id').eq('client_id', clientId).eq('status', 'active').limit(1).maybeSingle()
+
+  // ── COMING BACK FROM A COLD SUSPENSION ──────────────────────────────────────────
+  // The 30-day cold check suspends a client by PAUSING their campaigns. Approving is the
+  // signal they're back — but approving fail-closes without an active campaign, so a
+  // suspended client would have been locked out of the only action that un-suspends them.
+  // A paused campaign therefore resumes here, on their own approval, with no operator in
+  // the loop. Only `paused` is touched: a draft campaign was never live and a completed one
+  // is finished, and neither should spring back to sending because someone clicked approve.
+  if (!activeCampaign) {
+    const { data: resumed } = await db.from('figsy_campaigns')
+      .update({ status: 'active' }).eq('client_id', clientId).eq('status', 'paused')
+      .select('id').limit(1)
+    if (resumed && resumed.length > 0) {
+      activeCampaign = { id: resumed[0].id as string }
+      console.log('[approve] client', clientId, 'came back — resumed paused campaign(s)')
+      void sendFounderAlert('new_signup', 'A quiet client just came back', [
+        `Client ${clientId} approved someone, so their paused campaigns are live again.`,
+        'They suspended themselves by going quiet; approving is what brings them back.',
+      ]).catch(() => {})
+    }
+  }
+
   if (!activeCampaign) {
     await unclaim()
     void sendFounderAlert('sends_stalled', 'Approve blocked — no active campaign', [

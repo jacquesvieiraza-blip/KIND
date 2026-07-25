@@ -5,6 +5,7 @@ import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit } from '../lib/operator-audit'
 import { PAID_TX_TYPES, packState, packLabel } from '../lib/onboarding-pack'
 import { namesPerApproval } from '../lib/money-path-math'
+import { coldState } from '../lib/cold-client'
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -74,7 +75,7 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const inboxQ = db.from('client_inboxes').select('client_id, status').in('client_id', ids)
       .then(r => r, () => ({ data: [] as { client_id: string; status: string }[] }))
 
-    const [icps, purchases, inboxes, leads, seqs, camps, queue, replies] = await Promise.all([
+    const [icps, purchases, inboxes, leads, seqs, camps, queue, replies, approvals] = await Promise.all([
       db.from('icps').select('client_id').in('client_id', ids).eq('is_active', true),
       db.from('credit_transactions').select('client_id')
         .in('client_id', ids).in('type', PAID_TX_TYPES),
@@ -89,6 +90,10 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       db.from('figsy_approval_queue').select('client_id').in('client_id', ids).eq('status', 'pending'),
       db.from('figsy_replies').select('client_id, classification, qualified_at, meeting_booked_at')
         .in('client_id', ids).limit(20000),
+      // Last approval per client — drives the 30-day cold clock. Ordered newest-first so a
+      // single pass over the rows keeps the first one it sees per client.
+      db.from('leads').select('client_id, revealed_at').in('client_id', ids)
+        .not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(20000),
     ])
 
     const countBy = (arr: unknown, pred?: (r: Record<string, unknown>) => boolean) => {
@@ -124,6 +129,14 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const NOISE = ['opt_out', 'unsubscribe', 'out_of_office', 'bounce']
     const repliesOpen = countBy(replies, r => !r.qualified_at && !r.meeting_booked_at
       && !NOISE.includes(String(r.classification ?? '')))
+
+    // Newest approval per client (rows arrive newest-first, so first wins).
+    const lastApproval = new Map<string, string>()
+    for (const r of ((approvals as { data?: Record<string, unknown>[] })?.data ?? [])) {
+      const k = r.client_id as string
+      if (!lastApproval.has(k)) lastApproval.set(k, String(r.revealed_at))
+    }
+    const coldNow = new Date()
 
     const { nextAction, sortByUrgency } = await import('../lib/client-step')
     const excluded = await getExcludedClientIds()
@@ -162,6 +175,9 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
         // cashflow model rests on — and it stays honestly "too early" until there is enough
         // of it to trust.
         ratio: namesPerApproval(allLeadsN.get(id) ?? 0, approvedN.get(id) ?? 0),
+        // 30 days without an approval and the nightly check suspends them — we carry a
+        // warmed sender for them the whole time. Shown here so it's never a surprise.
+        cold: coldState(lastApproval.get(id) ?? null, coldNow),
         pack: (() => {
           const st = packState((paidN.get(id) ?? 0) > 0, approvedN.get(id) ?? 0)
           return { active: st.active, included: st.included, left: st.left, label: packLabel(st) }
@@ -476,7 +492,11 @@ operatorRouter.post('/campaign/:id/test', async (req: Request, res: Response) =>
 
     if (!send) { res.json({ success: true, data: { preview: step1, sent: false, to: null } }); return }
 
-    const to = (to_email && to_email.includes('@')) ? to_email : operatorEmail(req)
+    // ONE FIXED TEST INBOX (flow v2). It used to fall back to whoever was logged in, which
+    // makes spam placement unjudgeable — a message that lands in one operator's Gmail and
+    // another's Outlook tells you nothing. Same inbox every time, unless explicitly overridden.
+    const TEST_INBOX = process.env.TEST_INBOX_EMAIL || 'hello@get-kind.com'
+    const to = (to_email && to_email.includes('@')) ? to_email : TEST_INBOX
     if (!to || !to.includes('@')) { res.status(400).json({ success: false, error: 'No address to send the test to' }); return }
     const { Resend: ResendCls } = await import('resend')
     if (!process.env.RESEND_API_KEY) { res.status(503).json({ success: false, error: 'Email sending is not configured' }); return }
@@ -506,9 +526,28 @@ operatorRouter.get('/people', async (req: Request, res: Response) => {
     const campaignId = typeof req.query.campaign_id === 'string' ? req.query.campaign_id : null
 
     const { data: leads } = await db.from('leads')
-      .select('id, first_name, last_name, job_title, company, industry, country, score, status, email, revealed_at')
+      .select('id, first_name, last_name, job_title, company, industry, country, score, status, email, revealed_at, icp_id, surfaced_for_approval_at')
       .eq('client_id', client.id).neq('status', 'passed')
       .order('score', { ascending: false, nullsFirst: false }).limit(200)
+
+    // ⚑ flow v2 gap: `leads.icp_id` is filled at sourcing and the People tab threw it away,
+    // so a client with two ICPs saw one flat list with no way to tell which targeting found
+    // whom. Names resolved in ONE query rather than per lead.
+    const icpIds = [...new Set((leads ?? []).map((l: { icp_id?: string | null }) => l.icp_id).filter(Boolean))] as string[]
+    const icpNames = new Map<string, string>()
+    if (icpIds.length > 0) {
+      const { data: icpRows } = await db.from('icps').select('id, name').in('id', icpIds)
+      for (const r of (icpRows ?? []) as Array<{ id: string; name: string | null }>) icpNames.set(r.id, r.name ?? 'Untitled ICP')
+    }
+
+    // The same top-20-by-score rule the client sees in Milla, so both consoles agree on
+    // which people we said we'd start with. Derived at read time — no column to go stale.
+    const recommended = new Set(
+      [...(leads ?? [])]
+        .filter((l: Record<string, unknown>) => !!l.surfaced_for_approval_at)
+        .sort((a: Record<string, unknown>, b: Record<string, unknown>) => Number(b.score ?? 0) - Number(a.score ?? 0))
+        .slice(0, 20).map((l: Record<string, unknown>) => l.id as string),
+    )
 
     // Enrolled anywhere (so the operator sees "already working") and, when a campaign is
     // in play, enrolled in THAT campaign (so the checkbox can be disabled).
@@ -532,6 +571,8 @@ operatorRouter.get('/people', async (req: Request, res: Response) => {
         email: l.revealed_at ? l.email : null,
         enrolled: enrolledAll.has(l.id as string),
         in_campaign: enrolledHere.has(l.id as string),
+        icp_name: l.icp_id ? (icpNames.get(l.icp_id as string) ?? null) : null,
+        recommended: recommended.has(l.id as string),
       })),
     })
   } catch (err) { console.error('[operator/people]', err); res.status(500).json({ success: false, error: 'Failed to load people' }) }
@@ -1164,16 +1205,32 @@ operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) =>
       .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
     if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
 
-    let leadCtx = ''
+    let leadCtx = '', leadCountry: string | null = null
     if (reply.lead_id) {
       const { data: lead } = await db.from('leads')
-        .select('first_name, last_name, job_title, company, industry').eq('id', reply.lead_id).maybeSingle()
-      if (lead) leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
-        lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
-        lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+        .select('first_name, last_name, job_title, company, industry, country').eq('id', reply.lead_id).maybeSingle()
+      if (lead) {
+        leadCountry = (lead.country as string | null) ?? null
+        leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
+          lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
+          lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+      }
     }
     const { data: c } = await db.from('clients')
-      .select('company_name, signer_name, industry').eq('id', client.id).maybeSingle()
+      .select('company_name, signer_name, industry, calendar_booking_enabled, booking_url').eq('id', client.id).maybeSingle()
+
+    // ⚑ flow v2 (step 8): "no calendar → suggest times the prospect is available." With no
+    // calendar connected the only close available was a booking link the client doesn't
+    // have, so the thread stalled on logistics after the prospect had already said yes.
+    // Three concrete times in THEIR working day instead. Unknown country → no suggestion,
+    // because a 3am proposal is worse than none.
+    const hasCalendar = c?.calendar_booking_enabled === true || !!c?.booking_url
+    let timeHint = ''
+    if (!hasCalendar) {
+      const { suggestSlots, suggestionSentence } = await import('../lib/suggest-times')
+      const sentence = suggestionSentence(suggestSlots(new Date(), leadCountry))
+      if (sentence) timeHint = `\n\nThey have no booking link, so CLOSE ON CONCRETE TIMES. Use exactly these, verbatim: "${sentence}"`
+    }
 
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -1185,7 +1242,8 @@ operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) =>
         `Prospect: ${reply.from_name ?? reply.from_email}\n${leadCtx ? `Context: ${leadCtx}\n` : ''}` +
         `Their message:\n"""${(reply.body_text ?? reply.body ?? '').slice(0, 2000)}"""\n\n` +
         `Reply in 2-4 short sentences. Answer their actual question, then propose a 15-minute call. ` +
-        `Plain text, no subject line, no placeholders. Sign off as ${c?.signer_name ?? c?.company_name ?? 'the team'}.` }],
+        `Plain text, no subject line, no placeholders. Sign off as ${c?.signer_name ?? c?.company_name ?? 'the team'}.` +
+        timeHint }],
     })
     const draft = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
     res.json({ success: true, data: { draft } })
@@ -1703,10 +1761,10 @@ operatorRouter.post('/bookings/:id/rebook', async (req: Request, res: Response) 
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     const { data: booking } = await db.from('calendar_bookings')
-      .select('id, start_time, end_time, rebook_count').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+      .select('id, lead_id, start_time, end_time, rebook_count').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
     if (!booking) { res.status(404).json({ success: false, error: 'Booking not found' }); return }
     const used = (booking.rebook_count as number | null) ?? 0
-    if (used >= 2) { res.status(409).json({ success: false, error: 'Max 2 rebooks reached — the $3 is kept and no further rebook is offered.' }); return }
+    if (used >= 2) { res.status(409).json({ success: false, error: 'Two attempts used — tell the client and offer the $4 re-run.' }); return }
 
     // Optional reschedule: if the operator passes the newly-agreed time, move OUR record and
     // preserve the meeting's duration; otherwise just count the rebook and clear the no-show.
@@ -1729,6 +1787,29 @@ operatorRouter.post('/bookings/:id/rebook', async (req: Request, res: Response) 
       subjectType: 'booking', subjectId: req.params.id,
       detail: { rebook_count: used + 1, rescheduled: !!(new_start), no_new_charge: true },
     })
+    // ⚑ flow v2 (step 8): "tell the client after two failed attempts, with the choice —
+    // they pursue, or we re-run for another $4." Nothing said anything before; the booking
+    // simply went quiet and the client was left assuming a meeting was still coming.
+    if (used + 1 >= 2) {
+      void (async () => {
+        const { data: lead } = await db.from('leads')
+          .select('first_name, last_name, company').eq('id', (booking as Record<string, unknown>).lead_id as string).maybeSingle()
+        const who = [lead?.first_name, lead?.last_name].filter(Boolean).join(' ') || 'the prospect'
+        const at  = lead?.company ? ` at ${lead.company}` : ''
+        const { sendPushToClient } = await import('../lib/push')
+        await sendPushToClient(client.id, {
+          title: 'We tried twice — your call',
+          body: `${who}${at} has missed two meetings. You're welcome to pursue them yourself, or we can re-run them for $4.`,
+          url: '/milla',
+        }).catch(() => {})
+        const { sendFounderAlert } = await import('../lib/alerts')
+        await sendFounderAlert('churn_risk', `Two no-shows — ${client.company_name ?? 'a client'} told`, [
+          `${who}${at} missed two meetings; the client has been told and offered the $4 re-run.`,
+          'No money moved — the original $4 stands and a re-run is a fresh charge.',
+        ]).catch(() => {})
+      })().catch(e => console.error('[rebook] client notice failed (non-fatal)', e))
+    }
+
     res.json({ success: true, rebook_count: used + 1, rebooks_left: 2 - (used + 1) })
   } catch (err) { console.error('[operator/rebook]', err); res.status(500).json({ success: false, error: 'Failed to rebook' }) }
 })

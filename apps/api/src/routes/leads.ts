@@ -312,7 +312,11 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
       // NO FREEBIES — has this client EVER paid? (any wallet top-up / purchase). Drives the
       // $99 paywall: no purchase → the client is gated until they load their wallet.
       db.from('credit_transactions').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase']),
+        // 'manual_grant' counts too: a comped or test client HAS been funded (by us), they
+        // just aren't revenue. Without it, funding a test client leaves them paywalled behind
+        // the $99 go-live banner with money already in their wallet — which reads as broken.
+        // Revenue reporting reads the purchase types only, so this cannot inflate anything.
+        .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase', 'manual_grant']),
     ])
 
     const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>

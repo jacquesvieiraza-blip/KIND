@@ -186,6 +186,11 @@ export default function VidaConsolePage() {
   const [seqPreview, setSeqPreview] = useState<{ name: string; steps: { step: number; day: number; subject: string; body: string }[]; sample_lead: Record<string, unknown> } | null>(null)
   const [asks, setAsks] = useState<Ask[] | null>(null)
   const [askInput, setAskInput] = useState('')
+  // Comp / test funding. The $4 approve gate reads wallet_balance_usd, and the only way to
+  // fill it was a real card — so a test client's 👍 always failed on an empty wallet.
+  const [fundOpen, setFundOpen] = useState(false)
+  const [fundAmt, setFundAmt] = useState('100')
+  const [fundMsg, setFundMsg] = useState<string | null>(null)
 
   // Reset every per-client surface on a client switch — a stale draft belonging to another
   // client is the one mistake this console must never make.
@@ -197,6 +202,7 @@ export default function VidaConsolePage() {
     setTestResult(null); setEnrollView(null)
     setIcpMode('list'); setIcpChat([]); setIcpInput(''); setIcpProposal(null)
     setSeqPreview(null); setAsks(null); setAskInput(''); setSaveMsg(null)
+    setFundOpen(false); setFundMsg(null); setFundAmt('100')
     loadCockpit(selected)
   }, [selected, loadCockpit])
 
@@ -533,6 +539,26 @@ export default function VidaConsolePage() {
     setCockpitBusy(false)
   }
 
+  async function fundWallet() {
+    if (!selected) return
+    const amt = Number(fundAmt)
+    if (!Number.isFinite(amt) || amt === 0) { setFundMsg('Enter an amount.'); return }
+    setCockpitBusy(true); setFundMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/clients/${encodeURIComponent(selected)}/wallet`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ amount_usd: amt, note: 'walkthrough / comp' }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not fund the wallet')
+      setFundMsg(`Wallet is now $${Number(j.data.wallet_balance_usd).toLocaleString()}.`)
+      setFundOpen(false)
+      // Reload the clients list so the header chip shows the new balance.
+      const cl = await fetch('/api/proxy/operator/clients').then(r => r.json())
+      if (cl?.success) setClients(cl.data)
+    } catch (e) { setFundMsg(e instanceof Error ? e.message : 'Could not fund the wallet') }
+    setCockpitBusy(false)
+  }
+
   async function startCampaign() {
     if (!selected) return
     setCockpitBusy(true)
@@ -849,13 +875,37 @@ export default function VidaConsolePage() {
                     Onboarding {cockpit.onboarding.percent}%
                   </span>
                 )}
-                <span className={`shrink-0 text-[11.5px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1 ${cockpit ? '' : 'ml-auto'}`}>
-                  ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
-                </span>
+                <div className={`relative shrink-0 ${cockpit ? '' : 'ml-auto'}`}>
+                  <button onClick={() => { setFundOpen(o => !o); setFundMsg(null) }}
+                    title="Add money to this client's wallet (comp / test — never counted as revenue)"
+                    className="text-[11.5px] font-bold text-[#7C3AED] bg-[#f3ecff] hover:bg-[#e9dcff] border border-transparent hover:border-[#d9c9f7] rounded-full px-2.5 py-1">
+                    ${(selectedClient?.wallet_balance_usd ?? 0).toLocaleString()} wallet
+                  </button>
+                  {fundOpen && (
+                    <div className="absolute right-0 top-full mt-1.5 z-20 w-[268px] bg-white border border-[#e4dcf7] rounded-xl shadow-lg p-3">
+                      <b className="text-[12.5px] block">Fund this wallet</b>
+                      <p className="text-[11px] text-[#9b8ec4] leading-relaxed mt-0.5 mb-2">
+                        For a test client or a comp. Logged as a manual grant, <b>never as revenue</b>.
+                        The client needs at least $4 to approve a lead.
+                      </p>
+                      <form onSubmit={ev => { ev.preventDefault(); fundWallet() }} className="flex gap-1.5">
+                        <span className="text-[13px] font-bold text-[#5c5279] self-center">$</span>
+                        <input type="number" step="1" value={fundAmt} onChange={ev => setFundAmt(ev.target.value)}
+                          className="flex-1 w-full border border-[#ece5fb] rounded-lg px-2 py-1.5 text-[12.5px] outline-none focus:border-[#7C3AED]" />
+                        <button type="submit" disabled={cockpitBusy}
+                          className="bg-[#7C3AED] text-white rounded-lg px-3 text-[12px] font-bold disabled:opacity-40">
+                          {cockpitBusy ? '…' : 'Add'}
+                        </button>
+                      </form>
+                      <p className="text-[10.5px] text-[#9b8ec4] mt-1.5">Negative takes it back. Max $500 at a time.</p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="shrink-0 px-[22px] py-1.5 text-[11px] text-[#9b8ec4] bg-[#fbfaff] border-b border-[#f2ecfb]">
                 You&rsquo;re working <b className="text-[#7C3AED]">{selectedClient?.company_name || 'this client'}</b> — Vida and the cockpit are scoped to this client only.
+                {fundMsg && <b className="ml-2 text-emerald-700">{fundMsg}</b>}
               </div>
 
               {/* V17 — what changed for THIS client that needs us. */}

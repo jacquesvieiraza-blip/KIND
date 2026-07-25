@@ -719,6 +719,66 @@ operatorRouter.get('/asks', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/asks]', err); res.status(500).json({ success: false, error: 'Failed to load asks' }) }
 })
 
+// ── COMP / TEST FUNDING — put money in a client's wallet without a card ────────────
+// Why this exists: the $4 approve gate reads `wallet_balance_usd` via try_charge_wallet, and
+// the ONLY way to fill it was a real Stripe purchase. So a test client — or a comped one —
+// could never be walked through the flow: their 👍 fails on an empty wallet. The old
+// `POST /admin/clients/:id/credits` does not help, it writes the RETIRED `credit_balance`
+// column, not the one-wallet balance.
+//
+// Deliberately NOT revenue. The ledger row is `manual_grant`, never `purchase`/`wallet_topup`,
+// so nothing here can inflate the revenue reports. Capped, audited, and the note says who did
+// it and why.
+operatorRouter.post('/clients/:id/wallet', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.params.id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client' }); return }
+
+    const raw = (req.body ?? {}) as { amount_usd?: unknown; note?: unknown }
+    const amount = Number(raw.amount_usd)
+    if (!Number.isFinite(amount) || amount === 0) {
+      res.status(400).json({ success: false, error: 'Enter an amount (negative to take it back).' }); return
+    }
+    // Capped BOTH ways — a large negative could silently drain a real client's wallet.
+    if (Math.abs(amount) > 500) {
+      res.status(400).json({ success: false, error: 'Capped at $500 a time. Do it twice if you mean it.' }); return
+    }
+    const rounded = Math.round(amount * 100) / 100
+    const note = typeof raw.note === 'string' ? raw.note.slice(0, 300) : ''
+
+    const who = operatorEmail(req)
+    const { error: ledgerErr } = await db.from('credit_transactions').insert({
+      client_id: client.id,
+      type:      'manual_grant',   // NOT a purchase — must never read as revenue
+      amount:    rounded,
+      plan:      'work_model',
+      note:      `${note ? note + ' · ' : ''}[operator wallet grant ${rounded > 0 ? '+' : ''}$${rounded} by ${who} @ ${new Date().toISOString()}]`,
+    })
+    if (ledgerErr) throw ledgerErr
+
+    const { error: walletErr } = await db.rpc('increment_wallet', { p_client_id: client.id, p_amount: rounded })
+    if (walletErr) {
+      // The ledger row exists but the balance did not move — say so loudly rather than
+      // report a success the wallet does not reflect.
+      console.error('[operator/wallet-grant] increment_wallet failed', walletErr.message, 'client', client.id)
+      res.status(500).json({ success: false, error: `Ledger written but the balance did not move: ${walletErr.message}` }); return
+    }
+
+    const { data: after } = await db.from('clients')
+      .select('wallet_balance_usd').eq('id', client.id).maybeSingle()
+
+    await writeOperatorAudit({
+      operatorEmail: who, clientId: client.id, action: 'wallet_grant',
+      subjectType: 'client', subjectId: client.id,
+      detail: { amount_usd: rounded, note: note || null, new_balance: after?.wallet_balance_usd ?? null },
+    })
+    res.json({ success: true, data: { amount_usd: rounded, wallet_balance_usd: Number(after?.wallet_balance_usd ?? 0) } })
+  } catch (err) {
+    console.error('[operator/wallet-grant]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to fund the wallet' })
+  }
+})
+
 // ── V17 — THE BELL: what changed for a client that we need to look at ──────────────
 // Derived live from real rows (no notifications table, no new SQL): a brand-new client
 // whose first ICP is waiting on us, an ICP revised after the campaign was built, a client

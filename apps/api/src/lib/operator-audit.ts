@@ -32,6 +32,7 @@ export type OperatorAction =
   | 'booking_rebook'        // #499m — operator gave the client a goodwill rebook (no new charge; max 2)
   | 'source_run'            // #498b — operator kicked a pool-first sourcing run (spends OUR PDL budget, fenced)
   | 'nexus_autotune_toggle' // #511g3 — enabled/disabled a client's Nexus auto-tune kill-switch
+  | 'demo_reset'            // MBF — rebuilt the demo account to its fixed state (invented data, no money, no sends)
 
 export interface OperatorAuditEntry {
   operatorEmail: string

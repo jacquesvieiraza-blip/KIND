@@ -182,10 +182,15 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
     const since = new Date(Date.now() - 7 * 864e5).toISOString()
     const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
 
+    // The client_inboxes table arrives with 20260725_client_inboxes.sql, which is applied by
+    // hand in Supabase. If the code ships BEFORE that SQL is run, this query errors — and a
+    // 500 here would take the whole Engine page down. Degrade instead: no inbox rows, and a
+    // migration_pending flag the page can explain. Everything else on the page still works.
     const [inboxes, clients, sent7, sentToday, bounced7, optOuts, opened7] = await Promise.all([
       db.from('client_inboxes')
         .select('id, client_id, email, kind, status, provider, daily_cap, warmup_started_at, warmup_ready_at, assigned_at')
-        .not('status', 'in', '("released","retired")').order('assigned_at', { ascending: false }),
+        .not('status', 'in', '("released","retired")').order('assigned_at', { ascending: false })
+        .then(r => r, () => ({ data: null, error: { message: 'client_inboxes missing' } })),
       db.from('clients').select('id, company_name'),
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since),
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', midnight.toISOString()),
@@ -194,6 +199,7 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).not('opened_at', 'is', null),
     ])
 
+    const migrationPending = !!inboxes.error
     const nameById = new Map((clients.data ?? []).map((c: { id: string; company_name: string | null }) => [c.id, c.company_name]))
     const rows: Record<string, unknown>[] = (inboxes.data ?? []).map((i: Record<string, unknown>) => {
       const ready = i.warmup_ready_at ? new Date(i.warmup_ready_at as string).getTime() : null
@@ -221,7 +227,8 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
         open_rate:   sent > 0 ? Math.round(((opened7.count ?? 0) / sent) * 1000) / 10 : 0,
       },
       inboxes: rows,
-      needs_inbox: needsInbox,
+      needs_inbox: migrationPending ? [] : needsInbox,
+      migration_pending: migrationPending,
     } })
   } catch (err) { console.error('[operator/engine]', err); res.status(500).json({ success: false, error: 'Failed to load engine' }) }
 })

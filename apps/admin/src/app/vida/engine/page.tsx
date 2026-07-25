@@ -23,6 +23,7 @@ type Engine = {
   totals: { sent_7d: number; sent_today: number; opened_7d: number; bounced_7d: number; opt_outs_total: number; bounce_rate: number; open_rate: number }
   inboxes: Inbox[]
   needs_inbox: { client_id: string; company_name: string | null }[]
+  migration_pending?: boolean
 }
 
 export default function VidaEnginePage() {
@@ -76,6 +77,16 @@ export default function VidaEnginePage() {
 
       {error && <div className="text-[12.5px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4">{error}</div>}
       {!e && !error && <p className="text-[13px] text-[#9b8ec4] py-10 text-center">Loading…</p>}
+
+      {e?.migration_pending && (
+        <div className="border border-amber-300 bg-amber-50 rounded-xl px-4 py-3 mb-4">
+          <b className="text-[13px] text-amber-900 block">Inbox tracking is waiting on one migration.</b>
+          <p className="text-[11.5px] text-amber-800 mt-1">
+            Deliverability below is live. The inbox list and the &ldquo;needs an inbox&rdquo; queue switch on once
+            <code className="mx-1 px-1 bg-white rounded">20260725_client_inboxes.sql</code> has been run in Supabase.
+          </p>
+        </div>
+      )}
 
       {e && (<>
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">

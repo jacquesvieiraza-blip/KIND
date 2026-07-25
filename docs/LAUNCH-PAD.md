@@ -16,7 +16,7 @@
 > - **The ONLY unbuilt items:** 🚩 **#515** (Milla magic-link + SMS — needs an SMS provider + a no-login security call) · ⏸ **Auto-deploy/CI** (blocked — GitHub account flagged).
 > - **Next:** Fable verifies the full session → founder end-to-end walk (🩷 → 🟢). **Migrations owed on prod:** `20260724_nexus_autotune_flag.sql` (+ confirm the other 24-Jul migrations ran).
 
-**Board:** 🟢91 · 🩷166 · 🟣1 · 🟡18 · 🔴218 · ⏸5 · **Σ499** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢91 · 🩷166 · 🟣1 · 🟡19 · 🔴217 · ⏸5 · **Σ499** · live count: `scripts/count-inventory.sh`
 
 ---
 

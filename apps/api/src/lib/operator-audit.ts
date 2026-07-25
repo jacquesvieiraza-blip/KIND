@@ -19,6 +19,7 @@ export type OperatorAction =
   | 'enroll_lead'           // stand-alone enroll into a campaign
   | 'send_now'              // forced a due send
   | 'pause_campaign'        // paused/resumed a campaign
+  | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
   | 'suppression_change'    // added/removed a suppression/opt-out
   | 'vida_command'          // #498 — issued a Vida command-bar instruction (no spend)
   | 'qualify_reply'         // #494 — operator marked a reply as a qualified conversation (no spend)

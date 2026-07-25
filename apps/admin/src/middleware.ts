@@ -71,6 +71,25 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/', base))
   }
 
+  // The admin app IS Vida now — /vida is the ONLY operator console. The legacy top-level
+  // routes below still exist as the SOURCE pages the /vida/* wrappers embed (same pattern
+  // as the portal's old /dashboard tree), so a bookmarked or hand-typed link into one of
+  // them would drop the operator out of the Vida shell (no top bar, no rail) — the same
+  // class of bug fixed on the client side in #1145. Transparently rewrite into the Vida
+  // twin so that can never happen, current routes and any future ones alike.
+  if (allowed) {
+    const seg = pathname.split('/')[1] || ''
+    const LEGACY_TO_VIDA: Record<string, string> = {
+      clients: 'clients-admin', unibox: 'unibox', revenue: 'revenue', ops: 'ops',
+      compliance: 'compliance', outreach: 'outreach', cockpit: 'cockpit', billing: 'billing',
+      health: 'health', 'money-path': 'money-path', gtm: 'gtm', founder: 'founder',
+    }
+    if (LEGACY_TO_VIDA[seg]) {
+      const rest = pathname.slice(seg.length + 1) // keep /:id etc.
+      return NextResponse.redirect(new URL(`/vida/${LEGACY_TO_VIDA[seg]}${rest}${request.nextUrl.search}`, base))
+    }
+  }
+
   return supabaseResponse
 }
 

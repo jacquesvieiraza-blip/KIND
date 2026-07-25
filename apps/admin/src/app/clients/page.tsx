@@ -259,7 +259,7 @@ export default async function ClientsPage({
           <CloneBestClientButton />
           {counts.atRisk > 0 && (
             <Link
-              href={atRiskOnly ? '/clients' : '/clients?filter=atrisk'}
+              href={atRiskOnly ? '/vida/clients-admin' : '/vida/clients-admin?filter=atrisk'}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-colors ${
                 atRiskOnly
                   ? 'bg-red-500 text-white'
@@ -271,7 +271,7 @@ export default async function ClientsPage({
             </Link>
           )}
           {atRiskOnly && (
-            <Link href="/clients" className="text-xs text-gray-500 hover:text-gray-700 underline">
+            <Link href="/vida/clients-admin" className="text-xs text-gray-500 hover:text-gray-700 underline">
               Show all
             </Link>
           )}
@@ -380,7 +380,7 @@ export default async function ClientsPage({
                       }
                     </td>
                     <td className="px-5 py-3">
-                      <Link href={`/clients/${client.id}`}
+                      <Link href={`/vida/clients-admin/${client.id}`}
                         className="text-xs text-[#7C3AED] hover:text-purple-800 font-semibold">
                         Manage →
                       </Link>
@@ -409,7 +409,7 @@ export default async function ClientsPage({
                   </td>
                   <td className="px-5 py-2.5 text-gray-400">{client.country || '—'}</td>
                   <td className="px-5 py-2.5">
-                    <Link href={`/clients/${client.id}`} className="text-xs text-[#7C3AED] hover:text-purple-800 font-semibold">Manage →</Link>
+                    <Link href={`/vida/clients-admin/${client.id}`} className="text-xs text-[#7C3AED] hover:text-purple-800 font-semibold">Manage →</Link>
                   </td>
                 </tr>
               ))}

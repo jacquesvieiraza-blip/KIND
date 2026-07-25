@@ -1,13 +1,120 @@
 'use client'
 
-// Milla-native — renders the REAL figsy page inside the Milla shell (no old-portal chrome,
-// no exit). Same data + functionality, Milla frame. Rail links point here, not /dashboard.
-import SourcePage from '@/app/(dashboard)/dashboard/figsy/page'
+// M5 — "My campaign" is READ-ONLY for the client (founder-locked north star: "we do the
+// work, you just approve leads"). This used to embed the full self-serve FIGSY console
+// (Auto-Pilot/Co-Pilot toggle, New campaign, Templates, Suggest Campaigns, Resume/Clone/
+// Delete, sequence builder, people sourcing) — all operator tools now live on Vida, scoped
+// per-client, where they belong (docs/KIND-MASTER.md M&V console blueprint). This page shows
+// STATUS ONLY: which campaigns are live, progress, sent, replies — nothing to operate.
 
-export default function MillaNative_campaign() {
+import { useEffect, useState } from 'react'
+import { api } from '@/lib/api'
+import { createClient } from '@/lib/supabase/client'
+
+type Campaign = {
+  id: string; name: string
+  status: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived'
+  leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft', active: 'Live', paused: 'Paused', completed: 'Completed',
+  archived: 'Archived', paused_low_performance: 'Auto-paused',
+}
+const STATUS_COLORS: Record<string, string> = {
+  draft: 'bg-gray-100 text-gray-600', active: 'bg-green-100 text-green-700',
+  paused: 'bg-amber-100 text-amber-700', completed: 'bg-blue-100 text-[#6D28D9]',
+  archived: 'bg-gray-100 text-[#9B8EC4]', paused_low_performance: 'bg-red-100 text-red-700',
+}
+
+function replyRate(c: Campaign): string { return c.emails_sent ? `${Math.round((c.replies_total / c.emails_sent) * 100)}%` : '—' }
+function interestedRate(c: Campaign): string { return c.replies_total ? `${Math.round((c.replies_interested / c.replies_total) * 100)}%` : '—' }
+
+async function token(): Promise<string | undefined> {
+  try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
+}
+
+export default function MillaCampaignPage() {
+  const [campaigns, setCampaigns] = useState<Campaign[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const tok = await token()
+        const r = await api.get<{ data: Campaign[] }>('/figsy/campaigns', tok)
+        setCampaigns(r.data)
+      } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your campaign') }
+    })()
+  }, [])
+
   return (
     <div className="h-full overflow-y-auto p-5 sm:p-6">
-      <SourcePage />
+      <div className="mb-4">
+        <h1 className="text-[19px] font-extrabold text-gray-900">My campaign</h1>
+        <p className="text-[12.5px] text-[#9B8EC4] mt-0.5">Vida runs this for you — live status, nothing to operate.</p>
+      </div>
+
+      {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3 mb-4">{error}</div>}
+
+      {!campaigns ? (
+        <div className="text-[13px] text-[#9B8EC4] py-10 text-center">Loading…</div>
+      ) : campaigns.length === 0 ? (
+        <div className="bg-white border border-[#eee7f7] rounded-2xl px-5 py-10 text-center text-[13.5px] text-[#9B8EC4]">
+          No campaign yet — Vida sets this up once your ICP is approved.
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {campaigns.map(c => (
+            <div key={c.id} className="bg-white border border-[#eee7f7] rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-2.5">
+                <span className="font-bold text-gray-900 text-[14.5px]">{c.name}</span>
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold ${STATUS_COLORS[c.status]}`}>
+                  {STATUS_LABELS[c.status]}
+                </span>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
+                {[
+                  { label: 'Enrolled', value: c.leads_enrolled },
+                  { label: 'Sent', value: c.emails_sent },
+                  { label: 'Replies', value: c.replies_total },
+                  { label: 'Reply rate', value: replyRate(c) },
+                  { label: 'Interested', value: interestedRate(c) },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-[#F5EEFF]/60 rounded-lg p-3">
+                    <p className="text-[16px] font-extrabold text-gray-900 tabular-nums">{value}</p>
+                    <p className="text-[11px] text-[#9B8EC4] mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+
+              {(c.leads_enrolled > 0 || c.emails_sent > 0) && (
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <p className="text-[11.5px] font-semibold text-[#7B6FA0]">Campaign progress</p>
+                    <p className="text-[11.5px] text-[#9B8EC4]">
+                      {c.emails_sent > 0 && c.leads_enrolled > 0
+                        ? `${Math.min(100, Math.round((c.emails_sent / (c.leads_enrolled * 3)) * 100))}% of sequence complete`
+                        : 'Not started'}
+                    </p>
+                  </div>
+                  <div className="h-2 rounded-full bg-gray-100 overflow-hidden flex gap-0.5">
+                    {c.leads_enrolled > 0 && <div className="h-full bg-blue-300 rounded-full" style={{ width: '60%' }} title={`${c.leads_enrolled} enrolled`} />}
+                    {c.emails_sent > 0 && <div className="h-full bg-[#7C3AED] rounded-full" style={{ width: `${Math.min(40, (c.emails_sent / Math.max(c.leads_enrolled * 3, 1)) * 40)}%` }} title={`${c.emails_sent} sent`} />}
+                    {c.replies_interested > 0 && <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.min(20, (c.replies_interested / Math.max(c.emails_sent, 1)) * 200)}%` }} title={`${c.replies_interested} interested`} />}
+                  </div>
+                  <div className="flex items-center gap-4 mt-1.5">
+                    <span className="flex items-center gap-1 text-[10px] text-[#9B8EC4]"><span className="w-2 h-2 rounded-full bg-blue-300" /> Enrolled</span>
+                    <span className="flex items-center gap-1 text-[10px] text-[#9B8EC4]"><span className="w-2 h-2 rounded-full bg-[#7C3AED]" /> Sent</span>
+                    <span className="flex items-center gap-1 text-[10px] text-[#9B8EC4]"><span className="w-2 h-2 rounded-full bg-green-500" /> Interested</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

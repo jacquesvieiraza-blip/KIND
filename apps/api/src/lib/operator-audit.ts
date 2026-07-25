@@ -22,6 +22,7 @@ export type OperatorAction =
   | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
   | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
   | 'assign_inbox'          // V9 #270/#271 — pooled/branded sending inbox lifecycle
+  | 'run_migration'         // ran the committed pending migrations from Vida (no SQL editor access)
   | 'edit_icp'              // V4d — operator authored/edited the client's ICP
   | 'edit_sequence'         // V4d — operator authored/edited the client's sequence
   | 'suppression_change'    // added/removed a suppression/opt-out

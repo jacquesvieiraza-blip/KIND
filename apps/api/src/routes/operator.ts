@@ -172,6 +172,27 @@ operatorRouter.post('/leads/:id/pass', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── RUN PENDING MIGRATIONS (from Vida) ─────────────────────────────────────────────
+// The Supabase SQL editor is unreachable (GitHub OAuth + a flagged account), and we are
+// adding no new local tooling. This runs the reviewed, committed, idempotent statements in
+// lib/pending-migrations.ts against DATABASE_URL. It never accepts SQL from the request —
+// the body is ignored entirely — so this cannot become an arbitrary-SQL hole.
+operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
+  try {
+    const { runPendingMigrations, PENDING_MIGRATIONS } = await import('../lib/pending-migrations')
+    const results = await runPendingMigrations()
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: 'run_migration',
+      subjectType: 'migration', subjectId: null,
+      detail: { ran: results.map(r => r.key), failed: results.filter(r => !r.ok).map(r => r.key) },
+    })
+    res.json({ success: true, data: { results, available: PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })) } })
+  } catch (err) {
+    console.error('[operator/migrations]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to run migrations' })
+  }
+})
+
 // ── V7 ENGINE — the deliverability surface (item 211) ──────────────────────────────
 // RULEBOOK 12.2: you cannot share a sender across clients. This is the page that proves
 // each client has isolated, warmed sending and that it is HEALTHY — sends, opens, bounces,

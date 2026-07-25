@@ -32,6 +32,22 @@ export default function VidaEnginePage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [form, setForm] = useState<{ clientId: string; email: string } | null>(null)
   const [brandFor, setBrandFor] = useState<{ clientId: string; email: string } | null>(null)
+  const [migMsg, setMigMsg] = useState<string | null>(null)
+
+  // The Supabase SQL editor is unreachable (GitHub OAuth + flagged account), so the
+  // migration runs from here instead. Only reviewed, committed, idempotent statements —
+  // the endpoint ignores any body, so this is not an arbitrary-SQL hole.
+  async function runMigration() {
+    setBusy('migration'); setMigMsg(null); setError(null)
+    try {
+      const j = await fetch('/api/proxy/operator/migrations/run', { method: 'POST' }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Migration failed')
+      const failed = (j.data.results ?? []).filter((r: { ok: boolean }) => !r.ok)
+      if (failed.length) setMigMsg(`Failed: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}`)
+      else { setMigMsg('Migration applied. Inbox tracking is live.'); await load() }
+    } catch (err) { setMigMsg(err instanceof Error ? err.message : 'Migration failed') }
+    setBusy(null)
+  }
 
   const load = useCallback(async () => {
     try {
@@ -83,8 +99,13 @@ export default function VidaEnginePage() {
           <b className="text-[13px] text-amber-900 block">Inbox tracking is waiting on one migration.</b>
           <p className="text-[11.5px] text-amber-800 mt-1">
             Deliverability below is live. The inbox list and the &ldquo;needs an inbox&rdquo; queue switch on once
-            <code className="mx-1 px-1 bg-white rounded">20260725_client_inboxes.sql</code> has been run in Supabase.
+            <code className="mx-1 px-1 bg-white rounded">20260725_client_inboxes.sql</code> has been applied.
           </p>
+          <button onClick={runMigration} disabled={busy === 'migration'}
+            className="mt-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+            {busy === 'migration' ? 'Running…' : 'Run it now'}
+          </button>
+          {migMsg && <p className="text-[11.5px] font-semibold text-amber-900 mt-2">{migMsg}</p>}
         </div>
       )}
 

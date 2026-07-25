@@ -327,6 +327,28 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           client_id: clientId, type: 'wallet_topup', amount: amountUsd, plan: 'work_model',
           reference: session.id, note: `Wallet top-up $${amountUsd} via Stripe`,
         })
+
+        // ── PAYMENT STARTS THE WORK (flow v2) ──────────────────────────────────────
+        // The client approved their ICP on day one and it then sat dormant, because nothing
+        // linked "they paid" to "go find people" — an operator had to remember to type it
+        // into a chat box. Money is the trigger now: source 200 against the live ICP and put
+        // every one of them in front of the client, top 20 marked.
+        //
+        // Fire-and-forget: a sourcing failure must never fail the webhook and make Stripe
+        // retry a payment that already succeeded. Buying the INBOX stays manual on purpose —
+        // it spends real money, so it surfaces as the operator's next action instead.
+        void (async () => {
+          const { startWorkForClient } = await import('../lib/start-work')
+          const r = await startWorkForClient(clientId)
+          console.log('[stripe] payment started work for', clientId, JSON.stringify(r))
+          void sendFounderAlert('new_signup', `Payment received — work started`, [
+            `Client ${clientId} paid $${amountUsd}.`,
+            r.started
+              ? `Sourced ${r.sourced}, sent ${r.surfaced} to them (top ${r.recommended} recommended).`
+              : `Nothing sourced — ${r.reason ?? 'unknown reason'}.`,
+            'Next: assign their inbox in Vida → Engine. Nothing can go out until they have a sender.',
+          ]).catch(() => {})
+        })().catch(e => console.error('[stripe] start-work failed (non-fatal):', e))
         if (ledgerErr) {
           if (ledgerErr.code === '23505') { res.sendStatus(200); return } // already credited (retry)
           console.error('[Stripe] wallet ledger insert failed after payment — 500 for retry', ledgerErr.message, 'session', session.id)

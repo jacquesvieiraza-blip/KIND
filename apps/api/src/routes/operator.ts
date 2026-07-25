@@ -1046,6 +1046,9 @@ operatorRouter.post('/icp', async (req: Request, res: Response) => {
     const { data, error } = await db.from('icps')
       .insert({ client_id: client.id, ...payload, is_active: true }).select('id, name').single()
     if (error) throw error
+    // One ICP = one campaign — born together, never assigned (flow v2).
+    const { ensureCampaignForIcp } = await import('../lib/start-work')
+    void ensureCampaignForIcp(client.id, data.id, data.name).catch(() => {})
     await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_icp', subjectType: 'icp', subjectId: data.id, detail: { created: true } })
     res.json({ success: true, data })
   } catch (err) { console.error('[operator/icp]', err); res.status(500).json({ success: false, error: 'Failed to save ICP' }) }
@@ -1713,6 +1716,15 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
   try {
     const client = await requireClient(req.query.client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
+    // approves anyone or not — so sourcing for a client who has never paid spends OUR money
+    // on someone who may never return. This had no check at all.
+    const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
+    const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
+    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+      res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
+    }
     const cid = client.id
     const want = Math.max(1, Math.min(200, parseInt(String(req.query.count ?? '20'), 10) || 20))
 
@@ -1785,6 +1797,15 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     const { client_id, count, confirm } = (req.body ?? {}) as { client_id?: string; count?: number; confirm?: boolean }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
+    // approves anyone or not — so sourcing for a client who has never paid spends OUR money
+    // on someone who may never return. This had no check at all.
+    const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
+    const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
+    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+      res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
+    }
     if (confirm !== true) { res.status(400).json({ success: false, error: 'Sourcing spends our PDL budget — confirm required' }); return }
     const cid = client.id
     const want = Math.max(1, Math.min(200, typeof count === 'number' ? count : 20))

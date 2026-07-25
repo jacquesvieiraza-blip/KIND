@@ -11,6 +11,7 @@ import { scoreLeadsForIcp } from '../lib/scoring'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
+import { sendFounderAlert } from '../lib/alerts'
 
 export const leadRouter = Router()
 
@@ -211,6 +212,23 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
 // browser hiding columns. Scoped to the client's own delivered, not-yet-revealed, not-passed
 // leads. After the client approves ($1), the full contact comes back through /leads/:id/reveal
 // or the normal /leads list (revealed=true).
+// #v2 — "here are the 50 they approved". A client working through a batch would otherwise
+// fire one alert per lead, so this is throttled to one summary per client per 30 minutes
+// (in-memory, per process — deliberately simple; the goal is a nudge, not an audit trail).
+const lastApprovalAlert = new Map<string, number>()
+const APPROVAL_ALERT_WINDOW_MS = 30 * 60 * 1000
+function shouldAlertApprovals(clientId: string): boolean {
+  const now = Date.now()
+  const last = lastApprovalAlert.get(clientId)
+  if (last && now - last < APPROVAL_ALERT_WINDOW_MS) return false
+  lastApprovalAlert.set(clientId, now)
+  if (lastApprovalAlert.size > 500) {
+    const oldest = [...lastApprovalAlert.entries()].sort((a, b) => a[1] - b[1])[0]
+    if (oldest) lastApprovalAlert.delete(oldest[0])
+  }
+  return true
+}
+
 leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
@@ -253,7 +271,14 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
       created_at: l.created_at ?? null,
     }))
-    res.json({ success: true, data: masked })
+    // TOP 20 RECOMMENDED — derived from score at read time rather than stored, so it can
+    // never go stale against a re-score and needs no column. The client sees which ones we'd
+    // start with; they still choose. (flow v2: everyone we source goes over, ranked.)
+    const recommendedIds = new Set(
+      [...masked].sort((a, b) => Number(b.score ?? 0) - Number(a.score ?? 0))
+        .slice(0, 20).map(l => l.id as string),
+    )
+    res.json({ success: true, data: masked.map(l => ({ ...l, recommended: recommendedIds.has(l.id as string) })) })
   } catch (err) { console.error('[leads/for-approval]', err); res.status(500).json({ success: false, error: 'Failed to load leads' }) }
 })
 
@@ -787,6 +812,23 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
     if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }
     if (outcome.status === 'no_campaign') { res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return }
+    // "Here are the N they approved" — throttled to one summary per client per 30 min, so a
+    // client working through a batch is one nudge rather than fifty.
+    if (shouldAlertApprovals(clientId)) {
+      void (async () => {
+        const [{ count: approvedEver }, { data: c }] = await Promise.all([
+          db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
+          db.from('clients').select('company_name').eq('id', clientId).maybeSingle(),
+        ])
+        const { packState } = await import('../lib/onboarding-pack')
+        const pack = packState(true, approvedEver ?? 0)
+        void sendFounderAlert('new_signup', `${c?.company_name ?? 'A client'} is approving leads`, [
+          `${approvedEver ?? 0} approved in total.`,
+          pack.left > 0 ? `${pack.left} of their included ${pack.included} left.` : `Pack used — they're on $4 a lead now.`,
+          'Next: their sequence needs approving before anything goes out.',
+        ]).catch(() => {})
+      })().catch(() => {})
+    }
     res.json({ success: true, revealed: true, email: outcome.email, charged: outcome.charged })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })

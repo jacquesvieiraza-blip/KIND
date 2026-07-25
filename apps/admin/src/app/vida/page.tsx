@@ -76,6 +76,22 @@ type SourcePreview = { count: number; pool_free: number; pdl_needed: number; pdl
 
 // V17 — the bell. Derived live from real rows (GET /operator/alerts).
 type Alert = { client_id: string; company_name: string | null; kind: string; label: string; severity: 'high' | 'normal' }
+// THE WORKLIST — where each client is and the ONE next action. Replaces "eight tabs and work
+// out where you are"; the step logic is a tested decision table in lib/client-step.ts.
+type NextAction = {
+  step: number; label: string; actor: 'you' | 'them' | 'engine'
+  cta?: { kind: 'inbox' | 'sequence' | 'run' | 'replies' | 'qualify' | 'approvals' | 'chase'; label: string }
+  urgency: number
+}
+type WorkRow = ClientRow & {
+  counts: { sourced: number; with_client: number; approved: number }
+  next: NextAction
+}
+// The founder's mapped flow, as the rail across the top of the work column.
+const FLOW_STEPS: [number, string][] = [
+  [0, 'Signed up'], [2, 'Paid $99'], [3, 'Inbox + people'], [4, 'Client picks'],
+  [5, 'Sequence'], [6, 'Run'], [7, 'Replies'], [8, 'Book'], [9, 'Live'],
+]
 // V4 — the pool the operator picks from.
 type Person = {
   id: string; first_name: string | null; last_name: string | null; job_title: string | null
@@ -132,6 +148,8 @@ export default function VidaConsolePage() {
   const [clientsError, setClientsError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
+  const [work, setWork] = useState<WorkRow[] | null>(null)
+  const [onlyNeedsYou, setOnlyNeedsYou] = useState(true)
 
   const [board, setBoard] = useState<Board | null>(null)
   const [boardError, setBoardError] = useState<string | null>(null)
@@ -174,7 +192,6 @@ export default function VidaConsolePage() {
 
   // Launch-path state — everything the operator now actually authors.
   const [people, setPeople] = useState<Person[] | null>(null)
-  const [picked, setPicked] = useState<Set<string>>(new Set())
   const [campEdit, setCampEdit] = useState<CampEdit | null>(null)
   const [proposal, setProposal] = useState<{ name: string; campaign_intent: string; icp_name: string } | null>(null)
   const [testResult, setTestResult] = useState<{ preview: { subject: string; body: string }; sent: boolean; to: string | null } | null>(null)
@@ -193,7 +210,7 @@ export default function VidaConsolePage() {
     if (!selected) { setCockpit(null); return }
     setTab('Inbox'); setCockpit(null)
     setOpenReply(null); setThread(null); setDraft(''); setReplyMsg(null)
-    setPeople(null); setPicked(new Set()); setCampEdit(null); setProposal(null)
+    setPeople(null); setCampEdit(null); setProposal(null)
     setTestResult(null); setEnrollView(null)
     setIcpMode('list'); setIcpChat([]); setIcpInput(''); setIcpProposal(null)
     setSeqPreview(null); setAsks(null); setAskInput(''); setSaveMsg(null)
@@ -386,28 +403,6 @@ export default function VidaConsolePage() {
     } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Failed to load people'); setPeople([]) }
   }, [])
 
-  async function assignPicked() {
-    if (!selected || picked.size === 0) return
-    const camp = activeCampaign
-    if (!camp) { setSaveMsg('No campaign yet — build one on the Campaign tab first.'); return }
-    setCockpitBusy(true); setSaveMsg(null)
-    try {
-      const j = await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(camp.id)}/assign`, {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ client_id: selected, lead_ids: Array.from(picked) }),
-      }).then(r => r.json())
-      if (!j?.success) throw new Error(j?.error || 'Could not assign')
-      setSaveMsg([
-        `${j.data.assigned} added to ${camp.name}`,
-        j.data.already_in ? `${j.data.already_in} already in it` : null,
-        j.data.note,
-        'No new charge — assigning never bills.',
-      ].filter(Boolean).join(' · '))
-      setPicked(new Set())
-      await Promise.all([loadPeople(selected, camp.id), loadCockpit(selected), loadBoard(selected)])
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not assign') }
-    setCockpitBusy(false)
-  }
 
   // ── V6 / V7 / V8 — Vida proposes the campaign, the operator approves and edits it ──
   async function suggestCampaign() {
@@ -533,6 +528,19 @@ export default function VidaConsolePage() {
     setCockpitBusy(false)
   }
 
+  // The next-action button routes to the surface that actually does the work — the whole
+  // point of the rebuild is that you never have to work out which tab that is.
+  function doNextAction(kind: NonNullable<NextAction['cta']>['kind']) {
+    setSaveMsg(null)
+    if (kind === 'replies')    { setTab('Inbox'); return }
+    if (kind === 'approvals')  { setTab('Approvals'); return }
+    if (kind === 'qualify')    { setTab('Inbox'); return }
+    if (kind === 'sequence')   { setTab('Sequence'); if (!cockpit?.sequences.length) suggestSequence(); return }
+    if (kind === 'run')        { setTab('Campaign'); if (activeCampaign) setCampaignStatus(activeCampaign.id, 'active'); return }
+    if (kind === 'inbox')      { window.location.href = '/vida/engine'; return }
+    if (kind === 'chase')      { setTab('Asks'); setAskInput('Quick nudge — your first $99 unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.'); return }
+  }
+
   async function startCampaign() {
     if (!selected) return
     setCockpitBusy(true)
@@ -567,6 +575,7 @@ export default function VidaConsolePage() {
     fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
     // V17 — the bell. Best-effort: no alerts must never break the console.
     fetch('/api/proxy/operator/alerts').then(r => r.json()).then(j => { if (j?.success) setAlerts(j.data) }).catch(() => {})
+    fetch('/api/proxy/operator/worklist').then(r => r.json()).then(j => { if (j?.success) setWork(j.data) }).catch(() => {})
   }, [])
 
   // #498b — detect a sourcing intent ("source 50 leads", "find 30 prospects", "source leads")
@@ -753,6 +762,17 @@ export default function VidaConsolePage() {
 
   const selectedClient = clients?.find(c => c.id === selected) ?? null
   const cols = board?.columns
+  // Worklist lookups. The list is already urgency-sorted by the API, so we only filter here.
+  const workById = (work ?? []).reduce<Record<string, WorkRow>>((m, r) => { m[r.id] = r; return m }, {})
+  const needsYouCount = (work ?? []).filter(r => r.next.actor === 'you').length
+  const orderedClients: ClientRow[] = work
+    ? work.map(w => (clients ?? []).find(c => c.id === w.id) ?? w)
+    : (clients ?? [])
+  const visibleClients = onlyNeedsYou && work
+    ? orderedClients.filter(c => workById[c.id]?.next.actor === 'you' || c.id === selected)
+    : orderedClients
+  const selectedWork = selected ? workById[selected] : undefined
+
   const alertsByClient = alerts.reduce<Record<string, Alert[]>>((m, a) => {
     (m[a.client_id] ||= []).push(a); return m
   }, {})
@@ -765,36 +785,47 @@ export default function VidaConsolePage() {
       <div className="w-[380px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col overflow-hidden">
         <div className="px-[18px] pt-[15px] pb-2.5">
           <b className="text-[15.5px]">Clients</b>
-          <span className="block text-[12.5px] text-[#9b8ec4]">Pick a client to work their campaign</span>
+          <span className="block text-[12.5px] text-[#9b8ec4]">
+            {work ? `${needsYouCount} need you · ${work.length - needsYouCount} running themselves` : 'Loading…'}
+          </span>
+        </div>
+        {/* Sorted by who needs you, not alphabetically — and each row says WHY in words. */}
+        <div className="flex gap-1.5 px-[18px] pb-2.5">
+          {([[true, `Needs you · ${needsYouCount}`], [false, `All · ${work?.length ?? 0}`]] as [boolean, string][]).map(([v, label]) => (
+            <button key={label} onClick={() => setOnlyNeedsYou(v)}
+              className={`text-[12px] font-bold rounded-full px-2.5 py-1 border ${onlyNeedsYou === v ? 'text-white bg-[#7C3AED] border-[#7C3AED]' : 'text-[#9b8ec4] bg-white border-[#ece5fb]'}`}>
+              {label}
+            </button>
+          ))}
         </div>
         <div className="flex-1 overflow-y-auto px-3 pb-3">
           {clientsError && <p className="text-xs text-red-500 px-2 py-3">{clientsError}</p>}
           {!clients && !clientsError && <p className="text-xs text-[#9b8ec4] px-2 py-3">Loading clients…</p>}
           {clients?.length === 0 && <p className="text-xs text-[#9b8ec4] px-2 py-3">No clients yet.</p>}
-          {clients?.map(c => {
+          {visibleClients.length === 0 && (clients?.length ?? 0) > 0 && (
+            <p className="text-[12.5px] text-[#9b8ec4] px-2 py-6 text-center">Nothing needs you right now. 🎉</p>
+          )}
+          {visibleClients.map(c => {
             const active = c.id === selected
-            // V17 — the bell: a new client whose first ICP waits on us, an ICP revised under
-            // a live campaign, replies to answer. Real rows, no notifications table.
-            const mine = alertsByClient[c.id] ?? []
-            const high = mine.some(a => a.severity === 'high')
+            // The row says WHAT'S NEEDED, in words — never a bare count. A pink dot means it
+            // costs money or trust to ignore; green is running fine; grey is on them.
+            const n = workById[c.id]?.next
+            const you = n?.actor === 'you'
+            const dot = you ? 'bg-[#EC4899]' : n?.actor === 'engine' ? 'bg-emerald-400' : 'bg-[#cfc4e8]'
             return (
               <button key={c.id} onClick={() => setSelected(c.id)}
-                title={mine.map(a => a.label).join(' · ') || undefined}
-                className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2.5 rounded-xl mb-1 transition-colors ${
-                  active ? 'bg-[#f3ecff] border border-[#e4d4fb]' : 'hover:bg-[#faf8ff] border border-transparent'
+                title={n ? `Step ${n.step} · ${n.label}` : undefined}
+                className={`w-full text-left flex items-start gap-2.5 px-2.5 py-2.5 rounded-xl mb-1 transition-colors border ${
+                  active ? 'bg-[#f3ecff] border-[#e4d4fb]' : you ? 'bg-[#fdf2f8] border-[#fbcfe8] hover:border-[#f9a8d4]' : 'hover:bg-[#faf8ff] border-transparent'
                 }`}>
-                <span className={`relative w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 ${active ? 'bg-[#7C3AED] text-white' : 'bg-[#efeafc] text-[#7C3AED]'}`}>
+                <span className={`w-2 h-2 rounded-full shrink-0 mt-[7px] ${dot}`} />
+                <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[12px] font-bold shrink-0 ${active ? 'bg-[#7C3AED] text-white' : 'bg-[#efeafc] text-[#7C3AED]'}`}>
                   {initials(c.company_name)}
-                  {mine.length > 0 && (
-                    <span className={`absolute -top-1 -right-1 w-[15px] h-[15px] rounded-full text-[10px] font-extrabold text-white flex items-center justify-center ring-2 ring-white ${high ? 'bg-[#EC4899]' : 'bg-[#b3a9cc]'}`}>
-                      {mine.length}
-                    </span>
-                  )}
                 </span>
                 <span className="min-w-0 flex-1">
                   <b className="text-[14px] block truncate">{c.company_name || 'Unnamed'}</b>
-                  <span className={`text-[12px] block truncate ${high ? 'text-[#EC4899] font-semibold' : 'text-[#9b8ec4]'}`}>
-                    {high ? mine.find(a => a.severity === 'high')!.label : ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
+                  <span className={`text-[12.5px] block truncate ${you ? 'text-[#9d174d] font-semibold' : 'text-[#9b8ec4]'}`}>
+                    {n?.label ?? ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
                   </span>
                 </span>
                 {c.house_or_demo && (
@@ -988,6 +1019,52 @@ export default function VidaConsolePage() {
 
             {/* ── COCKPIT — this client's work surfaces ── */}
             <aside className="flex-1 min-w-0 flex flex-col bg-white min-h-0">
+              {/* ── WHERE THEY ARE + THE ONE NEXT ACTION ──────────────────────────────
+                  Vida's front door. Eight tabs for a five-action job meant every screen
+                  asked you to work out where you were; this answers it. */}
+              {selectedWork && (
+                <div className="shrink-0 px-4 pt-3">
+                  <div className="flex items-center gap-1 overflow-x-auto pb-2.5">
+                    {FLOW_STEPS.map(([n, label], i) => {
+                      const done = selectedWork.next.step > n
+                      const now = selectedWork.next.step === n
+                      return (
+                        <span key={n} className="flex items-center gap-1 shrink-0">
+                          <span className={`w-[22px] h-[22px] rounded-lg text-[11.5px] font-extrabold flex items-center justify-center border ${
+                            now ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                            : done ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-white text-[#b3a9cc] border-[#ece5fb]'}`}>{done ? '✓' : n}</span>
+                          <span className={`text-[12px] whitespace-nowrap ${now ? 'font-extrabold text-[#1f1235]' : 'font-semibold text-[#b3a9cc]'}`}>{label}</span>
+                          {i < FLOW_STEPS.length - 1 && <span className="text-[#d9d0ee] px-0.5">›</span>}
+                        </span>
+                      )
+                    })}
+                  </div>
+
+                  <div className={`rounded-2xl border-[1.5px] overflow-hidden mb-3 ${selectedWork.next.actor === 'you' ? 'border-[#7C3AED]' : 'border-[#ece5fb]'}`}>
+                    <div className={`flex items-center gap-3 flex-wrap px-4 py-3 border-b ${selectedWork.next.actor === 'you' ? 'bg-gradient-to-br from-[#f3ecff] to-[#fdf2f8] border-[#eee7f7]' : 'bg-[#faf8ff] border-[#f2ecfb]'}`}>
+                      <span className="min-w-0">
+                        <span className="block text-[11.5px] font-extrabold uppercase tracking-wide text-[#7C3AED]">
+                          {selectedWork.next.actor === 'you' ? `Next action · step ${selectedWork.next.step}` : selectedWork.next.actor === 'them' ? 'Waiting on the client' : 'The engine has it'}
+                        </span>
+                        <b className="text-[18px] leading-tight text-[#1f1235]">{selectedWork.next.label}</b>
+                      </span>
+                      {selectedWork.next.cta && (
+                        <button onClick={() => doNextAction(selectedWork.next.cta!.kind)} disabled={cockpitBusy}
+                          className="ml-auto shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                          {selectedWork.next.cta.label} →
+                        </button>
+                      )}
+                    </div>
+                    <div className="px-4 py-2.5 flex items-center gap-4 flex-wrap text-[12.5px] text-[#9b8ec4]">
+                      <span><b className="text-[#1f1235]">{selectedWork.counts.sourced}</b> sourced</span>
+                      <span><b className="text-[#1f1235]">{selectedWork.counts.with_client}</b> with the client</span>
+                      <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${selectedWork.counts.approved * 4}</b> in</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="shrink-0 flex items-end gap-0.5 px-3 pt-2.5 border-b border-[#eee7f7] overflow-x-auto">
                 {(['Inbox', 'Approvals', 'People', 'Campaign', 'ICP', 'Sequence', 'Asks', 'Bookings'] as CockpitTab[]).map(t => {
                   const on = tab === t
@@ -1005,6 +1082,9 @@ export default function VidaConsolePage() {
                 })}
               </div>
 
+              <p className="shrink-0 px-4 pt-2 text-[12.5px] text-[#b3a9cc]">
+                Somewhere to look — the action above is what actually moves them.
+              </p>
               <div className="flex-1 overflow-y-auto p-3.5">
                 {cockpitError && <p className="text-[13px] text-red-500 mb-2">{cockpitError}</p>}
                 {cockpitLoading && !cockpit && <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>}
@@ -1098,28 +1178,19 @@ export default function VidaConsolePage() {
                   <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">Nobody sourced yet — ask Vida to source leads.</p>
                 ) : (<>
                   <div className="sticky top-0 -mt-3.5 -mx-3.5 px-3.5 pt-3.5 pb-2 bg-white z-10 border-b border-[#f2ecfb] mb-2.5">
-                    <div className="flex items-center gap-2">
-                      <b className="text-[13.5px]">{picked.size} of {people.length} picked</b>
-                      <button onClick={() => setPicked(new Set(people.filter(p => !p.in_campaign).map(p => p.id)))}
-                        className="text-[12px] font-bold text-[#7C3AED]">All</button>
-                      <button onClick={() => setPicked(new Set())} className="text-[12px] font-bold text-[#9b8ec4]">None</button>
-                      <button onClick={assignPicked} disabled={cockpitBusy || picked.size === 0 || !activeCampaign}
-                        className="ml-auto bg-[#7C3AED] text-white rounded-lg px-3 py-1.5 text-[13px] font-bold disabled:opacity-40">
-                        {cockpitBusy ? 'Adding…' : `Add ${picked.size || ''} to campaign`}
-                      </button>
-                    </div>
+                    {/* v2: there is no "assign to campaign" any more. One ICP = one campaign,
+                        so a person's campaign is decided by the ICP that found them — there
+                        is nothing to assign. Everyone sourced goes to the client; the client
+                        picks; their 👍 is what puts someone into the campaign. */}
+                    <b className="text-[13.5px]">{people.length} people · {people.filter(p => p.in_campaign).length} working</b>
                     <p className="text-[11.5px] text-[#9b8ec4] mt-1">
-                      {activeCampaign
-                        ? <>Goes into <b className="text-[#5c5279]">{activeCampaign.name}</b>. Every new ICP means new prospects — pick who fits, not everyone.</>
-                        : <span className="text-[#b45309] font-semibold">No campaign yet — build one on the Campaign tab before you can add anyone.</span>}
+                      Everyone here went to the client, scored, with the top 20 recommended.
+                      Their 👍 charges $4 and starts the work — you don't assign anyone.
                     </p>
                     {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-1">{saveMsg}</p>}
                   </div>
                   {people.map(p => (
-                    <div key={p.id} className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 mb-2 ${p.in_campaign ? 'border-emerald-200 bg-emerald-50/40' : picked.has(p.id) ? 'border-[#7C3AED] bg-[#faf8ff]' : 'border-[#eee7f7]'}`}>
-                      <input type="checkbox" checked={picked.has(p.id)} disabled={p.in_campaign}
-                        onChange={e => setPicked(s => { const n = new Set(s); e.target.checked ? n.add(p.id) : n.delete(p.id); return n })}
-                        className="shrink-0 w-4 h-4 accent-[#7C3AED] disabled:opacity-40" />
+                    <div key={p.id} className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 mb-2 ${p.in_campaign ? 'border-emerald-200 bg-emerald-50/40' : 'border-[#eee7f7]'}`}>
                       <div className="min-w-0">
                         <b className="text-[13.5px] block truncate">{fullName(p.first_name, p.last_name)}</b>
                         <span className="text-[12px] text-[#9b8ec4] truncate block">{[p.job_title, p.company].filter(Boolean).join(' · ') || '—'}</span>

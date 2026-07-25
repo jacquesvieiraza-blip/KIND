@@ -52,6 +52,111 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   } catch (err) { console.error('[operator/clients]', err); res.status(500).json({ success: false, error: 'Failed to load clients' }) }
 })
 
+// ── THE WORKLIST — every client, where they are, and the ONE next action ──────────
+// This replaces "eight tabs and work out where you are". The step logic is a pure decision
+// table in lib/client-step.ts (unit-tested); this endpoint only gathers the facts.
+//
+// Batched deliberately: one query per TABLE across all clients, never one per client. A
+// per-client loop would be ~8 round trips × N clients on the console's front door.
+operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
+  try {
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at')
+      .order('created_at', { ascending: false }).limit(200)
+    const rows = (clients ?? []) as Record<string, unknown>[]
+    const ids = rows.map(c => c.id as string)
+    if (ids.length === 0) { res.json({ success: true, data: [] }); return }
+
+    const nowIso = new Date().toISOString()
+    // client_inboxes may not exist yet on an un-migrated database — degrade to "no inbox"
+    // rather than failing the whole console.
+    const inboxQ = db.from('client_inboxes').select('client_id, status').in('client_id', ids)
+      .then(r => r, () => ({ data: [] as { client_id: string; status: string }[] }))
+
+    const [icps, purchases, inboxes, leads, seqs, camps, queue, replies] = await Promise.all([
+      db.from('icps').select('client_id').in('client_id', ids).eq('is_active', true),
+      db.from('credit_transactions').select('client_id')
+        .in('client_id', ids).in('type', ['wallet_topup', 'purchase', 'credit_purchase', 'manual_grant']),
+      inboxQ,
+      db.from('leads').select('client_id, surfaced_for_approval_at, approval_expires_at, revealed_at, status')
+        .in('client_id', ids).neq('status', 'passed').limit(20000),
+      db.from('figsy_sequences').select('client_id').in('client_id', ids),
+      db.from('figsy_campaigns').select('client_id, status').in('client_id', ids),
+      db.from('figsy_approval_queue').select('client_id').in('client_id', ids).eq('status', 'pending'),
+      db.from('figsy_replies').select('client_id, classification, qualified_at, meeting_booked_at')
+        .in('client_id', ids).limit(20000),
+    ])
+
+    const countBy = (arr: unknown, pred?: (r: Record<string, unknown>) => boolean) => {
+      const m = new Map<string, number>()
+      for (const r of ((arr as { data?: Record<string, unknown>[] })?.data ?? [])) {
+        if (pred && !pred(r)) continue
+        const k = r.client_id as string
+        m.set(k, (m.get(k) ?? 0) + 1)
+      }
+      return m
+    }
+
+    const icpN   = countBy(icps)
+    const paidN  = countBy(purchases)
+    const inboxN = countBy({ data: (inboxes as { data?: { client_id: string; status: string }[] }).data ?? [] },
+                           r => ['assigned', 'warming', 'active'].includes(String(r.status)))
+    const seqN   = countBy(seqs)
+    const activeN = countBy(camps, r => r.status === 'active')
+    const queueN = countBy(queue)
+
+    const sourcedN   = countBy(leads)
+    const withClient = countBy(leads, r => !!r.surfaced_for_approval_at && !r.revealed_at
+      && (!r.approval_expires_at || String(r.approval_expires_at) > nowIso))
+    const approvedN  = countBy(leads, r => !!r.revealed_at)
+
+    // Replies still OPEN — not qualified, no meeting, and not noise. One bucket, because
+    // nothing in the schema records that WE replied (`processed_at` is the AI classification
+    // stamp). Splitting "answer it" from "qualify it" needs a `replied_at` column — flagged.
+    const NOISE = ['opt_out', 'unsubscribe', 'out_of_office', 'bounce']
+    const repliesOpen = countBy(replies, r => !r.qualified_at && !r.meeting_booked_at
+      && !NOISE.includes(String(r.classification ?? '')))
+
+    const { nextAction, sortByUrgency } = await import('../lib/client-step')
+    const excluded = await getExcludedClientIds()
+
+    const out = rows.map(c => {
+      const id = c.id as string
+      const isDemo = c.is_demo === true
+      const next = nextAction({
+        hasIcp: (icpN.get(id) ?? 0) > 0,
+        hasFunded: (paidN.get(id) ?? 0) > 0,
+        hasInbox: (inboxN.get(id) ?? 0) > 0,
+        sourced: sourcedN.get(id) ?? 0,
+        withClient: withClient.get(id) ?? 0,
+        approved: approvedN.get(id) ?? 0,
+        hasSequence: (seqN.get(id) ?? 0) > 0,
+        campaignActive: (activeN.get(id) ?? 0) > 0,
+        pendingDrafts: queueN.get(id) ?? 0,
+        repliesOpen: repliesOpen.get(id) ?? 0,
+        isDemo,
+      })
+      return {
+        id, company_name: (c.company_name as string | null) ?? null,
+        industry: c.industry ?? null, country: c.country ?? null,
+        is_demo: isDemo, house_or_demo: isDemo || excluded.has(id),
+        wallet_balance_usd: Number((c.wallet_balance_usd as number | null) ?? 0),
+        counts: {
+          sourced: sourcedN.get(id) ?? 0,
+          with_client: withClient.get(id) ?? 0,
+          approved: approvedN.get(id) ?? 0,
+        },
+        next,
+      }
+    })
+
+    res.json({ success: true, data: sortByUrgency(out) })
+  } catch (err) {
+    console.error('[operator/worklist]', err)
+    res.status(500).json({ success: false, error: 'Failed to load the worklist' })
+  }
+})
+
 // ── #484 PIPELINE BOARD ───────────────────────────────────────────────────────
 // Real per-client board: Sourced → Needs approval → Sending → Replied → Qualified ($4).
 // Reads live tables (leads, figsy_approval_queue, figsy_enrollments, figsy_replies) —
@@ -304,65 +409,12 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/campaign-save]', err); res.status(500).json({ success: false, error: 'Failed to save the campaign' }) }
 })
 
-// Assign the people the operator PICKED into a campaign (step 7 — never "all of them").
-operatorRouter.post('/campaign/:id/assign', async (req: Request, res: Response) => {
-  try {
-    const { client_id, lead_ids } = (req.body ?? {}) as { client_id?: string; lead_ids?: string[] }
-    const client = await requireClient(client_id)
-    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
-    if (!Array.isArray(lead_ids) || lead_ids.length === 0) { res.status(400).json({ success: false, error: 'Pick at least one person' }); return }
-
-    const { data: camp } = await db.from('figsy_campaigns')
-      .select('id, name, status').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
-    if (!camp) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-    // autoEnrollLead enrols into the client's most recent ACTIVE campaign — it does not take
-    // a campaign id. Assigning to a paused/draft campaign would therefore do nothing (or,
-    // worse, quietly enrol into a different campaign). Refuse instead of pretending.
-    if (camp.status !== 'active') {
-      res.status(409).json({ success: false, error: `“${camp.name}” isn’t running — hit Run it first, then add people.` }); return
-    }
-
-    // Only this client's leads, and never re-add someone already enrolled.
-    const { data: mine } = await db.from('leads').select('id').eq('client_id', client.id).in('id', lead_ids.slice(0, 200))
-    const ids = (mine ?? []).map((l: { id: string }) => l.id)
-    if (ids.length === 0) { res.status(400).json({ success: false, error: 'None of those leads belong to this client' }); return }
-    const { data: already } = await db.from('figsy_enrollments').select('lead_id').eq('campaign_id', camp.id).in('lead_id', ids)
-    const skip = new Set((already ?? []).map((e: { lead_id: string }) => e.lead_id))
-    const fresh = ids.filter(id => !skip.has(id))
-
-    const { autoEnrollLead } = await import('../lib/figsy')
-    for (const leadId of fresh) {
-      // prepaid: the client's $4 (or our own sourcing) already covered this lead — assigning
-      // to a campaign must never charge again.
-      await autoEnrollLead(leadId, client.id, { force: true, prepaid: true }).catch(() => {})
-    }
-
-    // COUNT THE TRUTH, not the loop. autoEnrollLead returns void and bails silently on any
-    // of: no verified email, suppression/do-not-contact, an existing CRM match, exhausted
-    // FIGSY credits, or a send engine that isn't configured. Counting successful calls would
-    // report "12 added" when 3 were added — so the number comes from the table.
-    const { data: after } = await db.from('figsy_enrollments')
-      .select('lead_id').eq('campaign_id', camp.id).in('lead_id', ids)
-    const nowIn = new Set((after ?? []).map((e: { lead_id: string }) => e.lead_id))
-    const assigned = fresh.filter(id => nowIn.has(id)).length
-    const notAdded = fresh.length - assigned
-
-    await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: client.id, action: 'enroll_lead',
-      subjectType: 'campaign', subjectId: camp.id,
-      detail: { picked: ids.length, assigned, already: skip.size, not_added: notAdded },
-    })
-    res.json({
-      success: true,
-      data: {
-        assigned, already_in: skip.size, not_added: notAdded,
-        note: notAdded > 0
-          ? `${notAdded} couldn’t be added — no verified email, on the do-not-contact list, already in the client’s CRM, or the sending pool is empty.`
-          : null,
-      },
-    })
-  } catch (err) { console.error('[operator/campaign-assign]', err); res.status(500).json({ success: false, error: 'Failed to assign people' }) }
-})
+// ── "ASSIGN PEOPLE TO A CAMPAIGN" — DELETED 25 Jul (flow v2) ─────────────────────
+// One ICP = one campaign, so a person's campaign is decided by the ICP that found them and
+// there is nothing left to assign. More importantly this route enrolled and SENT with
+// `prepaid: true` — asserting the $4 had been taken when it had not — so it could email a
+// prospect before the client had seen, approved or paid for them. The client's 👍 is the
+// only thing that starts work.
 
 // Preview step 1 exactly as it will send, and optionally post it to the operator's inbox.
 // This is the last gate before anything reaches a real prospect.

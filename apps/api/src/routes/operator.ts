@@ -3,6 +3,9 @@ import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit } from '../lib/operator-audit'
+import { PAID_TX_TYPES, packState, packLabel } from '../lib/onboarding-pack'
+import { namesPerApproval } from '../lib/money-path-math'
+import { coldState } from '../lib/cold-client'
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -52,6 +55,153 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
   } catch (err) { console.error('[operator/clients]', err); res.status(500).json({ success: false, error: 'Failed to load clients' }) }
 })
 
+// ── THE WORKLIST — every client, where they are, and the ONE next action ──────────
+// This replaces "eight tabs and work out where you are". The step logic is a pure decision
+// table in lib/client-step.ts (unit-tested); this endpoint only gathers the facts.
+//
+// Batched deliberately: one query per TABLE across all clients, never one per client. A
+// per-client loop would be ~8 round trips × N clients on the console's front door.
+operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
+  try {
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at')
+      .order('created_at', { ascending: false }).limit(200)
+    const rows = (clients ?? []) as Record<string, unknown>[]
+    const ids = rows.map(c => c.id as string)
+    if (ids.length === 0) { res.json({ success: true, data: [] }); return }
+
+    // client_inboxes may not exist yet on an un-migrated database — degrade to "no inbox"
+    // rather than failing the whole console.
+    const inboxQ = db.from('client_inboxes').select('client_id, status').in('client_id', ids)
+      .then(r => r, () => ({ data: [] as { client_id: string; status: string }[] }))
+
+    const [icps, purchases, inboxes, leads, seqs, camps, queue, replies, approvals] = await Promise.all([
+      db.from('icps').select('client_id').in('client_id', ids).eq('is_active', true),
+      db.from('credit_transactions').select('client_id')
+        .in('client_id', ids).in('type', PAID_TX_TYPES),
+      inboxQ,
+      // Passed leads are INCLUDED here (they used to be filtered out at the query) because
+      // the names-per-approval ratio is meaningless without them: a client who passes on 190
+      // of 200 is exactly the case the number exists to catch.
+      db.from('leads').select('client_id, surfaced_for_approval_at, revealed_at, status')
+        .in('client_id', ids).limit(20000),
+      db.from('figsy_sequences').select('client_id').in('client_id', ids),
+      db.from('figsy_campaigns').select('client_id, status').in('client_id', ids),
+      db.from('figsy_approval_queue').select('client_id').in('client_id', ids).eq('status', 'pending'),
+      db.from('figsy_replies').select('client_id, classification, qualified_at, meeting_booked_at')
+        .in('client_id', ids).limit(20000),
+      // Last approval per client — drives the 30-day cold clock. Ordered newest-first so a
+      // single pass over the rows keeps the first one it sees per client.
+      db.from('leads').select('client_id, revealed_at').in('client_id', ids)
+        .not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(20000),
+    ])
+
+    const countBy = (arr: unknown, pred?: (r: Record<string, unknown>) => boolean) => {
+      const m = new Map<string, number>()
+      for (const r of ((arr as { data?: Record<string, unknown>[] })?.data ?? [])) {
+        if (pred && !pred(r)) continue
+        const k = r.client_id as string
+        m.set(k, (m.get(k) ?? 0) + 1)
+      }
+      return m
+    }
+
+    const icpN   = countBy(icps)
+    const paidN  = countBy(purchases)
+    const inboxN = countBy({ data: (inboxes as { data?: { client_id: string; status: string }[] }).data ?? [] },
+                           r => ['assigned', 'warming', 'active'].includes(String(r.status)))
+    const seqN   = countBy(seqs)
+    const activeN = countBy(camps, r => r.status === 'active')
+    const queueN = countBy(queue)
+
+    const allLeadsN  = countBy(leads)                                   // incl. passed — the ratio's numerator
+    const sourcedN   = countBy(leads, r => r.status !== 'passed')
+    // NO TIME LIMIT ON PAID LEADS (founder-locked 25 Jul). This used to drop a lead off the
+    // operator's board once its 72h expiry passed while Milla still showed it to the client —
+    // so the two consoles disagreed about what was outstanding. The expiry is gone; a lead is
+    // with the client until they approve or pass it.
+    const withClient = countBy(leads, r => !!r.surfaced_for_approval_at && !r.revealed_at && r.status !== 'passed')
+    const approvedN  = countBy(leads, r => !!r.revealed_at)
+
+    // Replies still OPEN — not qualified, no meeting, and not noise. One bucket, because
+    // nothing in the schema records that WE replied (`processed_at` is the AI classification
+    // stamp). Splitting "answer it" from "qualify it" needs a `replied_at` column — flagged.
+    const NOISE = ['opt_out', 'unsubscribe', 'out_of_office', 'bounce']
+    const repliesOpen = countBy(replies, r => !r.qualified_at && !r.meeting_booked_at
+      && !NOISE.includes(String(r.classification ?? '')))
+
+    // Newest approval per client (rows arrive newest-first, so first wins).
+    const lastApproval = new Map<string, string>()
+    for (const r of ((approvals as { data?: Record<string, unknown>[] })?.data ?? [])) {
+      const k = r.client_id as string
+      if (!lastApproval.has(k)) lastApproval.set(k, String(r.revealed_at))
+    }
+    const coldNow = new Date()
+
+    const { nextAction, sortByUrgency } = await import('../lib/client-step')
+    const excluded = await getExcludedClientIds()
+
+    const out = rows.map(c => {
+      const id = c.id as string
+      const isDemo = c.is_demo === true
+      const next = nextAction({
+        hasIcp: (icpN.get(id) ?? 0) > 0,
+        hasFunded: (paidN.get(id) ?? 0) > 0,
+        hasInbox: (inboxN.get(id) ?? 0) > 0,
+        sourced: sourcedN.get(id) ?? 0,
+        withClient: withClient.get(id) ?? 0,
+        approved: approvedN.get(id) ?? 0,
+        hasSequence: (seqN.get(id) ?? 0) > 0,
+        campaignActive: (activeN.get(id) ?? 0) > 0,
+        pendingDrafts: queueN.get(id) ?? 0,
+        repliesOpen: repliesOpen.get(id) ?? 0,
+        isDemo,
+      })
+      return {
+        id, company_name: (c.company_name as string | null) ?? null,
+        industry: c.industry ?? null, country: c.country ?? null,
+        is_demo: isDemo, house_or_demo: isDemo || excluded.has(id),
+        wallet_balance_usd: Number((c.wallet_balance_usd as number | null) ?? 0),
+        counts: {
+          sourced: sourcedN.get(id) ?? 0,
+          with_client: withClient.get(id) ?? 0,
+          approved: approvedN.get(id) ?? 0,
+        },
+        // WHERE THEY ARE ON THEIR $99 — the operator needs to see the pack running out
+        // BEFORE it does, because that is the moment the client starts paying $4 a lead.
+        // Free to compute: paid + approved are already counted above.
+        // NAMES PER APPROVAL, measured (founder-locked 25 Jul: plan on 2, let Vida measure).
+        // Every name costs $0.28 whether they approve it or not, so this ratio is what the
+        // cashflow model rests on — and it stays honestly "too early" until there is enough
+        // of it to trust.
+        ratio: namesPerApproval(allLeadsN.get(id) ?? 0, approvedN.get(id) ?? 0),
+        // 30 days without an approval and the nightly check suspends them — we carry a
+        // warmed sender for them the whole time. Shown here so it's never a surprise.
+        cold: coldState(lastApproval.get(id) ?? null, coldNow),
+        pack: (() => {
+          const st = packState((paidN.get(id) ?? 0) > 0, approvedN.get(id) ?? 0)
+          return { active: st.active, included: st.included, left: st.left, label: packLabel(st) }
+        })(),
+        next,
+      }
+    })
+
+    // Blended across the whole book — the per-client reading is noisy on small numbers, and
+    // THIS is the figure that belongs in the cashflow lab. Excludes demos and house accounts,
+    // which don't buy data on the same terms.
+    const real = rows.filter(c => c.is_demo !== true && !excluded.has(c.id as string)).map(c => c.id as string)
+    const blended = namesPerApproval(
+      real.reduce((s, id) => s + (allLeadsN.get(id) ?? 0), 0),
+      real.reduce((s, id) => s + (approvedN.get(id) ?? 0), 0),
+    )
+
+    res.json({ success: true, data: sortByUrgency(out), meta: { ratio: blended } })
+  } catch (err) {
+    console.error('[operator/worklist]', err)
+    res.status(500).json({ success: false, error: 'Failed to load the worklist' })
+  }
+})
+
 // ── #484 PIPELINE BOARD ───────────────────────────────────────────────────────
 // Real per-client board: Sourced → Needs approval → Sending → Replied → Qualified ($4).
 // Reads live tables (leads, figsy_approval_queue, figsy_enrollments, figsy_replies) —
@@ -66,7 +216,7 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
     // Sourced = scored, not yet revealed/approved, not passed. surfaced_for_approval_at
     // tells the card whether it's already been Sent to the client (awaiting their 👍).
     const sourced = await db.from('leads')
-      .select('id, first_name, last_name, company, job_title, score, status, surfaced_for_approval_at, approval_expires_at', { count: 'exact' })
+      .select('id, first_name, last_name, company, job_title, score, status, surfaced_for_approval_at', { count: 'exact' })
       .eq('client_id', cid).is('revealed_at', null).neq('status', 'passed')
       .in('status', ['scored', 'pending']).order('score', { ascending: false }).limit(SAMPLE)
 
@@ -304,65 +454,12 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
   } catch (err) { console.error('[operator/campaign-save]', err); res.status(500).json({ success: false, error: 'Failed to save the campaign' }) }
 })
 
-// Assign the people the operator PICKED into a campaign (step 7 — never "all of them").
-operatorRouter.post('/campaign/:id/assign', async (req: Request, res: Response) => {
-  try {
-    const { client_id, lead_ids } = (req.body ?? {}) as { client_id?: string; lead_ids?: string[] }
-    const client = await requireClient(client_id)
-    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
-    if (!Array.isArray(lead_ids) || lead_ids.length === 0) { res.status(400).json({ success: false, error: 'Pick at least one person' }); return }
-
-    const { data: camp } = await db.from('figsy_campaigns')
-      .select('id, name, status').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
-    if (!camp) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-    // autoEnrollLead enrols into the client's most recent ACTIVE campaign — it does not take
-    // a campaign id. Assigning to a paused/draft campaign would therefore do nothing (or,
-    // worse, quietly enrol into a different campaign). Refuse instead of pretending.
-    if (camp.status !== 'active') {
-      res.status(409).json({ success: false, error: `“${camp.name}” isn’t running — hit Run it first, then add people.` }); return
-    }
-
-    // Only this client's leads, and never re-add someone already enrolled.
-    const { data: mine } = await db.from('leads').select('id').eq('client_id', client.id).in('id', lead_ids.slice(0, 200))
-    const ids = (mine ?? []).map((l: { id: string }) => l.id)
-    if (ids.length === 0) { res.status(400).json({ success: false, error: 'None of those leads belong to this client' }); return }
-    const { data: already } = await db.from('figsy_enrollments').select('lead_id').eq('campaign_id', camp.id).in('lead_id', ids)
-    const skip = new Set((already ?? []).map((e: { lead_id: string }) => e.lead_id))
-    const fresh = ids.filter(id => !skip.has(id))
-
-    const { autoEnrollLead } = await import('../lib/figsy')
-    for (const leadId of fresh) {
-      // prepaid: the client's $4 (or our own sourcing) already covered this lead — assigning
-      // to a campaign must never charge again.
-      await autoEnrollLead(leadId, client.id, { force: true, prepaid: true }).catch(() => {})
-    }
-
-    // COUNT THE TRUTH, not the loop. autoEnrollLead returns void and bails silently on any
-    // of: no verified email, suppression/do-not-contact, an existing CRM match, exhausted
-    // FIGSY credits, or a send engine that isn't configured. Counting successful calls would
-    // report "12 added" when 3 were added — so the number comes from the table.
-    const { data: after } = await db.from('figsy_enrollments')
-      .select('lead_id').eq('campaign_id', camp.id).in('lead_id', ids)
-    const nowIn = new Set((after ?? []).map((e: { lead_id: string }) => e.lead_id))
-    const assigned = fresh.filter(id => nowIn.has(id)).length
-    const notAdded = fresh.length - assigned
-
-    await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: client.id, action: 'enroll_lead',
-      subjectType: 'campaign', subjectId: camp.id,
-      detail: { picked: ids.length, assigned, already: skip.size, not_added: notAdded },
-    })
-    res.json({
-      success: true,
-      data: {
-        assigned, already_in: skip.size, not_added: notAdded,
-        note: notAdded > 0
-          ? `${notAdded} couldn’t be added — no verified email, on the do-not-contact list, already in the client’s CRM, or the sending pool is empty.`
-          : null,
-      },
-    })
-  } catch (err) { console.error('[operator/campaign-assign]', err); res.status(500).json({ success: false, error: 'Failed to assign people' }) }
-})
+// ── "ASSIGN PEOPLE TO A CAMPAIGN" — DELETED 25 Jul (flow v2) ─────────────────────
+// One ICP = one campaign, so a person's campaign is decided by the ICP that found them and
+// there is nothing left to assign. More importantly this route enrolled and SENT with
+// `prepaid: true` — asserting the $4 had been taken when it had not — so it could email a
+// prospect before the client had seen, approved or paid for them. The client's 👍 is the
+// only thing that starts work.
 
 // Preview step 1 exactly as it will send, and optionally post it to the operator's inbox.
 // This is the last gate before anything reaches a real prospect.
@@ -395,7 +492,11 @@ operatorRouter.post('/campaign/:id/test', async (req: Request, res: Response) =>
 
     if (!send) { res.json({ success: true, data: { preview: step1, sent: false, to: null } }); return }
 
-    const to = (to_email && to_email.includes('@')) ? to_email : operatorEmail(req)
+    // ONE FIXED TEST INBOX (flow v2). It used to fall back to whoever was logged in, which
+    // makes spam placement unjudgeable — a message that lands in one operator's Gmail and
+    // another's Outlook tells you nothing. Same inbox every time, unless explicitly overridden.
+    const TEST_INBOX = process.env.TEST_INBOX_EMAIL || 'hello@get-kind.com'
+    const to = (to_email && to_email.includes('@')) ? to_email : TEST_INBOX
     if (!to || !to.includes('@')) { res.status(400).json({ success: false, error: 'No address to send the test to' }); return }
     const { Resend: ResendCls } = await import('resend')
     if (!process.env.RESEND_API_KEY) { res.status(503).json({ success: false, error: 'Email sending is not configured' }); return }
@@ -425,9 +526,28 @@ operatorRouter.get('/people', async (req: Request, res: Response) => {
     const campaignId = typeof req.query.campaign_id === 'string' ? req.query.campaign_id : null
 
     const { data: leads } = await db.from('leads')
-      .select('id, first_name, last_name, job_title, company, industry, country, score, status, email, revealed_at')
+      .select('id, first_name, last_name, job_title, company, industry, country, score, status, email, revealed_at, icp_id, surfaced_for_approval_at')
       .eq('client_id', client.id).neq('status', 'passed')
       .order('score', { ascending: false, nullsFirst: false }).limit(200)
+
+    // ⚑ flow v2 gap: `leads.icp_id` is filled at sourcing and the People tab threw it away,
+    // so a client with two ICPs saw one flat list with no way to tell which targeting found
+    // whom. Names resolved in ONE query rather than per lead.
+    const icpIds = [...new Set((leads ?? []).map((l: { icp_id?: string | null }) => l.icp_id).filter(Boolean))] as string[]
+    const icpNames = new Map<string, string>()
+    if (icpIds.length > 0) {
+      const { data: icpRows } = await db.from('icps').select('id, name').in('id', icpIds)
+      for (const r of (icpRows ?? []) as Array<{ id: string; name: string | null }>) icpNames.set(r.id, r.name ?? 'Untitled ICP')
+    }
+
+    // The same top-20-by-score rule the client sees in Milla, so both consoles agree on
+    // which people we said we'd start with. Derived at read time — no column to go stale.
+    const recommended = new Set(
+      [...(leads ?? [])]
+        .filter((l: Record<string, unknown>) => !!l.surfaced_for_approval_at)
+        .sort((a: Record<string, unknown>, b: Record<string, unknown>) => Number(b.score ?? 0) - Number(a.score ?? 0))
+        .slice(0, 20).map((l: Record<string, unknown>) => l.id as string),
+    )
 
     // Enrolled anywhere (so the operator sees "already working") and, when a campaign is
     // in play, enrolled in THAT campaign (so the checkbox can be disabled).
@@ -451,6 +571,8 @@ operatorRouter.get('/people', async (req: Request, res: Response) => {
         email: l.revealed_at ? l.email : null,
         enrolled: enrolledAll.has(l.id as string),
         in_campaign: enrolledHere.has(l.id as string),
+        icp_name: l.icp_id ? (icpNames.get(l.icp_id as string) ?? null) : null,
+        recommended: recommended.has(l.id as string),
       })),
     })
   } catch (err) { console.error('[operator/people]', err); res.status(500).json({ success: false, error: 'Failed to load people' }) }
@@ -994,6 +1116,9 @@ operatorRouter.post('/icp', async (req: Request, res: Response) => {
     const { data, error } = await db.from('icps')
       .insert({ client_id: client.id, ...payload, is_active: true }).select('id, name').single()
     if (error) throw error
+    // One ICP = one campaign — born together, never assigned (flow v2).
+    const { ensureCampaignForIcp } = await import('../lib/start-work')
+    void ensureCampaignForIcp(client.id, data.id, data.name).catch(() => {})
     await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_icp', subjectType: 'icp', subjectId: data.id, detail: { created: true } })
     res.json({ success: true, data })
   } catch (err) { console.error('[operator/icp]', err); res.status(500).json({ success: false, error: 'Failed to save ICP' }) }
@@ -1080,16 +1205,32 @@ operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) =>
       .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
     if (!reply) { res.status(404).json({ success: false, error: 'Reply not found' }); return }
 
-    let leadCtx = ''
+    let leadCtx = '', leadCountry: string | null = null
     if (reply.lead_id) {
       const { data: lead } = await db.from('leads')
-        .select('first_name, last_name, job_title, company, industry').eq('id', reply.lead_id).maybeSingle()
-      if (lead) leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
-        lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
-        lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+        .select('first_name, last_name, job_title, company, industry, country').eq('id', reply.lead_id).maybeSingle()
+      if (lead) {
+        leadCountry = (lead.country as string | null) ?? null
+        leadCtx = [lead.first_name && `Name: ${lead.first_name} ${lead.last_name ?? ''}`.trim(),
+          lead.job_title && `Role: ${lead.job_title}`, lead.company && `Company: ${lead.company}`,
+          lead.industry && `Industry: ${lead.industry}`].filter(Boolean).join('; ')
+      }
     }
     const { data: c } = await db.from('clients')
-      .select('company_name, signer_name, industry').eq('id', client.id).maybeSingle()
+      .select('company_name, signer_name, industry, calendar_booking_enabled, booking_url').eq('id', client.id).maybeSingle()
+
+    // ⚑ flow v2 (step 8): "no calendar → suggest times the prospect is available." With no
+    // calendar connected the only close available was a booking link the client doesn't
+    // have, so the thread stalled on logistics after the prospect had already said yes.
+    // Three concrete times in THEIR working day instead. Unknown country → no suggestion,
+    // because a 3am proposal is worse than none.
+    const hasCalendar = c?.calendar_booking_enabled === true || !!c?.booking_url
+    let timeHint = ''
+    if (!hasCalendar) {
+      const { suggestSlots, suggestionSentence } = await import('../lib/suggest-times')
+      const sentence = suggestionSentence(suggestSlots(new Date(), leadCountry))
+      if (sentence) timeHint = `\n\nThey have no booking link, so CLOSE ON CONCRETE TIMES. Use exactly these, verbatim: "${sentence}"`
+    }
 
     const { default: Anthropic } = await import('@anthropic-ai/sdk')
     const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -1101,7 +1242,8 @@ operatorRouter.post('/replies/:id/draft', async (req: Request, res: Response) =>
         `Prospect: ${reply.from_name ?? reply.from_email}\n${leadCtx ? `Context: ${leadCtx}\n` : ''}` +
         `Their message:\n"""${(reply.body_text ?? reply.body ?? '').slice(0, 2000)}"""\n\n` +
         `Reply in 2-4 short sentences. Answer their actual question, then propose a 15-minute call. ` +
-        `Plain text, no subject line, no placeholders. Sign off as ${c?.signer_name ?? c?.company_name ?? 'the team'}.` }],
+        `Plain text, no subject line, no placeholders. Sign off as ${c?.signer_name ?? c?.company_name ?? 'the team'}.` +
+        timeHint }],
     })
     const draft = msg.content.filter(b => b.type === 'text').map(b => (b as { text: string }).text).join('').trim()
     res.json({ success: true, data: { draft } })
@@ -1619,10 +1761,10 @@ operatorRouter.post('/bookings/:id/rebook', async (req: Request, res: Response) 
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     const { data: booking } = await db.from('calendar_bookings')
-      .select('id, start_time, end_time, rebook_count').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+      .select('id, lead_id, start_time, end_time, rebook_count').eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
     if (!booking) { res.status(404).json({ success: false, error: 'Booking not found' }); return }
     const used = (booking.rebook_count as number | null) ?? 0
-    if (used >= 2) { res.status(409).json({ success: false, error: 'Max 2 rebooks reached — the $3 is kept and no further rebook is offered.' }); return }
+    if (used >= 2) { res.status(409).json({ success: false, error: 'Two attempts used — tell the client and offer the $4 re-run.' }); return }
 
     // Optional reschedule: if the operator passes the newly-agreed time, move OUR record and
     // preserve the meeting's duration; otherwise just count the rebook and clear the no-show.
@@ -1645,6 +1787,29 @@ operatorRouter.post('/bookings/:id/rebook', async (req: Request, res: Response) 
       subjectType: 'booking', subjectId: req.params.id,
       detail: { rebook_count: used + 1, rescheduled: !!(new_start), no_new_charge: true },
     })
+    // ⚑ flow v2 (step 8): "tell the client after two failed attempts, with the choice —
+    // they pursue, or we re-run for another $4." Nothing said anything before; the booking
+    // simply went quiet and the client was left assuming a meeting was still coming.
+    if (used + 1 >= 2) {
+      void (async () => {
+        const { data: lead } = await db.from('leads')
+          .select('first_name, last_name, company').eq('id', (booking as Record<string, unknown>).lead_id as string).maybeSingle()
+        const who = [lead?.first_name, lead?.last_name].filter(Boolean).join(' ') || 'the prospect'
+        const at  = lead?.company ? ` at ${lead.company}` : ''
+        const { sendPushToClient } = await import('../lib/push')
+        await sendPushToClient(client.id, {
+          title: 'We tried twice — your call',
+          body: `${who}${at} has missed two meetings. You're welcome to pursue them yourself, or we can re-run them for $4.`,
+          url: '/milla',
+        }).catch(() => {})
+        const { sendFounderAlert } = await import('../lib/alerts')
+        await sendFounderAlert('churn_risk', `Two no-shows — ${client.company_name ?? 'a client'} told`, [
+          `${who}${at} missed two meetings; the client has been told and offered the $4 re-run.`,
+          'No money moved — the original $4 stands and a re-run is a fresh charge.',
+        ]).catch(() => {})
+      })().catch(e => console.error('[rebook] client notice failed (non-fatal)', e))
+    }
+
     res.json({ success: true, rebook_count: used + 1, rebooks_left: 2 - (used + 1) })
   } catch (err) { console.error('[operator/rebook]', err); res.status(500).json({ success: false, error: 'Failed to rebook' }) }
 })
@@ -1661,6 +1826,15 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
   try {
     const client = await requireClient(req.query.client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
+    // approves anyone or not — so sourcing for a client who has never paid spends OUR money
+    // on someone who may never return. This had no check at all.
+    const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id).in('type', PAID_TX_TYPES)
+    const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
+    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+      res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
+    }
     const cid = client.id
     const want = Math.max(1, Math.min(200, parseInt(String(req.query.count ?? '20'), 10) || 20))
 
@@ -1733,6 +1907,15 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     const { client_id, count, confirm } = (req.body ?? {}) as { client_id?: string; count?: number; confirm?: boolean }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    // MONEY GATES THE SPEND (flow v2). PDL is billed at SOURCING, whether the client ever
+    // approves anyone or not — so sourcing for a client who has never paid spends OUR money
+    // on someone who may never return. This had no check at all.
+    const { count: paid } = await db.from('credit_transactions').select('id', { count: 'exact', head: true })
+      .eq('client_id', client.id).in('type', PAID_TX_TYPES)
+    const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
+    if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
+      res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
+    }
     if (confirm !== true) { res.status(400).json({ success: false, error: 'Sourcing spends our PDL budget — confirm required' }); return }
     const cid = client.id
     const want = Math.max(1, Math.min(200, typeof count === 'number' ? count : 20))
@@ -1747,12 +1930,20 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     const { runIcpJob } = await import('./icps')
     const result = await runIcpJob(icp.id as string, cid, userId, want)
 
+    // EVERYONE WE SOURCE GOES TO THE CLIENT (flow v2, founder-locked 25 Jul). The paid path
+    // did this already; this manual top-up left them parked in a "sourced but not sent"
+    // bucket that only cleared if an operator remembered to push each one across. Same call,
+    // so both routes put people in front of the client identically.
+    const { surfaceEverything } = await import('../lib/start-work')
+    const { surfaced, recommended } = await surfaceEverything(cid)
+
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: cid, action: 'source_run',
       subjectType: 'icp', subjectId: icp.id as string,
-      detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed },
+      detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed, surfaced },
     })
-    res.json({ success: true, requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed })
+    res.json({ success: true, requested: want, inserted: result.inserted, skipped: result.skipped,
+               surfaced, recommended, note: result.relaxed })
   } catch (err) { console.error('[operator/source]', err); res.status(500).json({ success: false, error: 'Failed to source' }) }
 })
 

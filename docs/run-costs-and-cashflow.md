@@ -5,18 +5,31 @@
 
 ---
 
-## 1. THE MONEY MODEL — $1 reveal + $3 work = $4 (LOCKED)
+## 1. THE MONEY MODEL — one wallet · $99 onboarding pack · then $4 a lead (LOCKED 25 Jul)
 
-Leads arrive **masked** (browsing is free). The client pays to unlock value in two steps:
+> ⚠️ **This section was stale until 25 Jul** — it still described the retired two-wallet model ($1 reveal into `credit_balance` + $3 work into `figsy_credits_remaining`). That was superseded by **#492 ONE WALLET** on 24 Jul and the doc never caught up. Corrected here; this is the pricing home, so nothing else should restate it.
 
-| Step | Charge | Wallet (code) | What happens |
-|---|---|---|---|
-| **Reveal** | **$1** | `credit_balance` (`try_charge_reveal_credit`) | unmask + verify the contact's email → it lands in their leads |
-| **Work** | **+$3** | `figsy_credits_remaining` (`try_charge_figsy_credit`) | FIGSY enrols the revealed lead into a ≤10-step sequence, writes/sends, books the meeting |
-| **Fully-worked** | **= $4** | — | reveal **and** work the same lead |
+Leads arrive **masked** — browsing and building the plan are free. There is **one dollar wallet** per client (`wallet_balance_usd`, moved only by `try_charge_wallet` / `increment_wallet`) and **one money event**.
 
-- A client can stop at **$1 (data only)** or add **$3 (full FIGSY)**. Work can never precede reveal (FIGSY only enrols revealed leads), so **$3 is impossible before $1**.
-- Charge-once integrity: reveal is charged **once per (client, email) EVER** (#424); work is charged **once per (campaign, lead)** (#426). No accidental double-charge.
+| Step | Charge | What happens |
+|---|---|---|
+| **Onboarding pack** | **$99 → 100 leads** (99c each) | the first purchase. Nothing sources or sends until it lands — the ICP stays dormant |
+| **Each approved lead** | **$4, flat and final** | the client's 👍 on a scored person. That's when we start working them |
+| **Top-ups after the pack** | any amount, $4 a lead | |
+
+- **The client's 👍 is the only thing that ever spends.** Operators never spend.
+- A **dead email is never charged** (reversed in-flow). **Meetings are reported, not billed.**
+- We **refuse the charge outright** if there's no live campaign to work the lead — never take money for work that can't run.
+- A **no-show gets two attempts**; after that the client chooses to pursue it themselves or pay a fresh $4 for a re-run.
+
+**What the $99 pack costs us** (rates in §2): **200 records sourced** at $0.28 = **$56** (they pass on roughly half, so 200 gives them a real choice at 100 approvals) · 100 leads worked at ~$0.06 = **$6** · Stripe on the $99 = **$3.17** · their inbox, month 1 = **$4.50** → **≈ $70, leaving ≈ $29 (30%)**. A branded domain (~$13/yr) is separate and only on conversion.
+
+> The $56 is the number to watch: **PDL is spent at sourcing whether the client approves or not.** Pool-first sourcing reduces it — anyone already in our pool is free — so $56 is the worst case, and it falls as the pool grows across clients in the same market.
+
+**How the pack is implemented (built 25 Jul):** a **counted quota**, not a wallet credit. `lib/onboarding-pack.ts` derives it from rows that already exist — bought the pack (a purchase row) and used so far (leads with `revealed_at`) — so there is no column to keep in sync and no fiction in the balance. The first 100 approvals charge **nothing**; the 101st charges $4 exactly as before. *(The alternative was crediting $499 for a $99 payment so "$4 a lead" happened to reach 100 — a balance that is mostly invention and a revenue figure you can't trust.)* A dead email on a pack approval **hands the slot back** rather than crediting $4 the client never paid.
+
+**No time limit on paid leads (founder-locked 25 Jul).** The old 72h approval TTL never *expired* anything — a surfaced lead simply stopped appearing on the client's desk, with no notice to anyone. Against a 100-lead pack that would have silently eaten most of what they'd bought. Removed: they keep every person we send until they pick or pass.
+
 - **No monthly subscriptions.** (The agent family Milla/Vida/Denise is parked; when it returns it prices per-qualified-lead, not $/mo — #431. ⚠️ *Code note: `packages/shared` still carries legacy $49/$29/$39 monthly prices for those parked products; reconcile when #431 builds.*)
 
 ---

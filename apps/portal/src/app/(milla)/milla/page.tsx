@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import ProductTour from '@/components/ProductTour'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -11,12 +12,16 @@ import { createClient } from '@/lib/supabase/client'
 // flat $4 per approved lead from the one wallet. The wallet ledger moved to Billing (M4)
 // and the ICP card to its own rail page (/milla/icp) — this screen is leads + Milla only.
 
-type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null }
+type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean }
 type Revealed = { email: string; charged: boolean }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
+type Pack = { active: boolean; included: number; used: number; left: number; nextLeadCostUsd: number }
 type Summary = {
   wallet_balance_usd: number; has_funded: boolean; leads_awaiting: number; meetings_booked: number
   active_campaign: string | null; icp_versions: IcpVersion[]
+  /** Every lead they have ever approved — releases the minimum-20 gate at 20. */
+  leads_approved_total?: number
+  pack?: Pack
 }
 type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 
@@ -106,6 +111,34 @@ export default function MillaHomePage() {
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
+  // THE MINIMUM-20 GATE (founder-locked 25 Jul). We can't run a real campaign off five
+  // people, and a client's sender costs us ~$40/month from the day they sign — so the first
+  // time round they choose at least 20. The server refuses below the minimum regardless of
+  // what this UI does; these are the words that make the refusal make sense.
+  async function approveSelected() {
+    const ids = [...picked]
+    if (ids.length === 0) return
+    setActing('batch'); setTopUp(null); setError(null)
+    try {
+      const tok = await token()
+      const res = await api.post<{ approved: number; attempted: number; message: string;
+        results: Array<{ id: string; status: string; email?: string | null; charged?: boolean }> }>(
+        '/leads/approve-batch', { lead_ids: ids }, tok)
+      setRevealed(r => {
+        const next = { ...r }
+        for (const x of res.results) if (x.status === 'approved') next[x.id] = { email: x.email ?? '', charged: !!x.charged }
+        return next
+      })
+      setPicked(new Set())
+      if (res.approved < res.attempted) setError(res.message)
+    } catch (e) {
+      const err = e as Error & { status?: number }
+      if (err.status === 402) setTopUp('You need $4 in your wallet to approve. Top up to continue.')
+      else if (err.message === 'batch_minimum') setError(`Choose ${gate.required} to start — we need enough people to run a real campaign.`)
+      else setError(err.message || 'Could not approve — please try again')
+    } finally { setActing(null) }
+  }
+
   async function approve(id: string) {
     setActing(id); setTopUp(null); setError(null)
     try {
@@ -146,12 +179,30 @@ export default function MillaHomePage() {
     finally { setSending(false) }
   }
 
+  // While the pack has leads left an approval costs nothing — a card that still says
+
+  // "$4" is the difference between a client working through 100 leads and stopping.
+
+  const freeApproval = !!summary?.pack?.active && (summary.pack.left ?? 0) > 0
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const togglePick = (id: string) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
+
+
   const pending = (leads ?? []).filter(l => !revealed[l.id])
+  // Mirrors lib/approval-batch.ts on the server. `approvedEver` comes from the summary, so a
+  // client already past 20 gets one-tap approve back — the gate starts the relationship, it
+  // doesn't nag someone already working with us.
+  const approvedEver = summary?.leads_approved_total ?? 0
+  const gate = (() => {
+    const MIN = 20
+    if (approvedEver >= MIN) return { required: 1, batch: false }
+    return { required: Math.min(MIN - approvedEver, pending.length), batch: pending.length > 0 }
+  })()
   const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
     ? <b key={i} className="text-[#7C3AED]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
-  const KPI = ({ k, v, s, tone, hero }: { k: string; v: string; s: string; tone?: string; hero?: boolean }) => (
-    <div className={`rounded-2xl px-4 py-3.5 border ${hero ? 'text-white border-transparent bg-gradient-to-br from-[#7C3AED] to-[#6d28d9]' : 'bg-white border-[#eee7f7]'}`}>
+  const KPI = ({ k, v, s, tone, hero, tour }: { k: string; v: string; s: string; tone?: string; hero?: boolean; tour?: string }) => (
+    <div data-tour={tour} className={`rounded-2xl px-4 py-3.5 border ${hero ? 'text-white border-transparent bg-gradient-to-br from-[#7C3AED] to-[#6d28d9]' : 'bg-white border-[#eee7f7]'}`}>
       <div className={`text-[10.5px] font-extrabold uppercase tracking-wide ${hero ? 'text-[#e9d5ff]' : 'text-[#b3a9cc]'}`}>{k}</div>
       <div className="text-[22px] font-extrabold mt-0.5 leading-tight" style={!hero && tone ? { color: tone } : undefined}>{v}</div>
       <div className={`text-[11.5px] mt-0.5 ${hero ? 'text-[#e9d5ff]' : 'text-[#9b8ec4]'}`}>{s}</div>
@@ -160,32 +211,51 @@ export default function MillaHomePage() {
 
   return (
     <div className="h-full flex flex-col overflow-hidden px-5 py-4">
+      {/* THE WALKTHROUGH (flow v2 step 1) — once, on their first visit, then never again.
+          Steps whose element isn't on screen skip themselves, so a fresh account with an
+          empty lead desk still gets a coherent tour. */}
+      <ProductTour steps={[
+        { target: 'kpi-pack',  title: 'What you have', body: 'Your $99 includes 100 approved leads. This counts down as you approve — nothing else is charged until it runs out.' },
+        { target: 'leads',     title: 'This is your job', body: "Everyone we find lands here, scored and masked. Pick the ones worth talking to — we start work the moment you do. The first time round, choose 20 so there are enough people to run a real campaign." },
+        { target: 'chat',      title: 'Milla, any time', body: "Ask for more people, change who we're targeting, or tell me a lead was wrong. I'm how you steer it — there are no forms." },
+        { target: 'kpi-meetings', title: 'What it comes back as', body: 'Booked meetings. We answer the replies, qualify them and put the meeting in your calendar — you just turn up.' },
+      ]} />
       {/* $99 GO-LIVE banner — shown until the client funds their wallet. Browsing is free;
           this is the step that switches their campaign on. */}
       {needsGoLive && (
         <a href="/milla/billing?start=1" className="block mb-4 rounded-2xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — load your wallet to start your campaign</p>
-              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b>. Browsing and building your plan is free — nothing sources or sends until you go live. Each approved lead is then a flat $4.</p>
+              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — your first 100 leads are $99</p>
+              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b> and it includes <b>100 approved leads</b>. Browsing and building your plan is free — nothing sources or sends until you go live. After the first 100 it&rsquo;s a flat $4 a lead.</p>
             </div>
-            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 →</span>
+            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 · 100 leads →</span>
           </div>
         </a>
       )}
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <KPI hero k="Wallet balance" v={summary ? `$${summary.wallet_balance_usd.toLocaleString()}` : '…'} s="$4 per approved lead" />
+        {/* While the $99 pack has leads left, THAT is the number that matters to the client —
+            a wallet reading $0 next to "100 included" reads as broken. Falls back to the
+            wallet once the pack is used. */}
+        {summary?.pack?.active && summary.pack.left > 0
+          ? <KPI hero tour="kpi-pack" k="Leads included" v={`${summary.pack.left}`} s={`of your ${summary.pack.included} · then $4 each`} />
+          : <KPI hero tour="kpi-pack" k="Wallet balance" v={summary ? `$${summary.wallet_balance_usd.toLocaleString()}` : '…'} s="$4 per approved lead" />}
         <KPI k="Leads awaiting you" v={summary ? String(summary.leads_awaiting) : '…'} s={summary && summary.leads_awaiting ? '1 tap to approve' : 'all caught up'} tone="#EC4899" />
-        <KPI k="Meetings booked" v={summary ? String(summary.meetings_booked) : '…'} s="this month" tone="#059669" />
-        <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />
+        <KPI tour="kpi-meetings" k="Meetings booked" v={summary ? String(summary.meetings_booked) : '…'} s="this month" tone="#059669" />
+        {/* DORMANT (flow v2 step 2). An approved ICP with no $99 behind it is live on paper
+            and doing nothing in practice — nothing sources, nothing sends. Saying "—" here
+            let a client sit for days assuming we were working. */}
+        {needsGoLive && (summary?.icp_versions?.length ?? 0) > 0
+          ? <KPI k="Your targeting" v="Dormant" s="approved — waiting on your $99" tone="#b45309" />
+          : <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />}
       </div>
 
       {/* Milla is the SPINE: she fills the console, leads canvas beside her. */}
       <div className="flex-1 flex gap-4 mt-4 min-h-0">
         {/* chat — FIXED width. A conversation column past ~600px is 170+ characters a line,
             which reads badly however full it is. */}
-        <section className="w-[600px] shrink-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
+        <section data-tour="chat" className="w-[600px] shrink-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7]">
             <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
             <div><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
@@ -217,8 +287,16 @@ export default function MillaHomePage() {
             the conversation is fixed; the other way round meant every extra pixel of a bigger
             monitor went to the chat while the work stayed pinned at 380px. Cards flow into
             columns once there's width for them. */}
-        <aside className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
-          <div className="px-4 py-3 border-b border-[#eee7f7]"><b className="text-[15px]">New leads</b> <span className="text-[#9b8ec4] text-[12.5px]">· masked · no charge yet</span></div>
+        <aside data-tour="leads" className="flex-1 min-w-0 bg-white border border-[#eee7f7] rounded-2xl flex flex-col min-h-0">
+          <div className="px-4 py-3 border-b border-[#eee7f7] flex items-center gap-2 flex-wrap">
+            <b className="text-[15px]">New leads</b>
+            <span className="text-[#9b8ec4] text-[12.5px]">· masked · no charge yet</span>
+            {gate.batch && gate.required > 1 && (
+              <span className="ml-auto text-[12.5px] font-bold text-[#7C3AED] bg-[#f3ecff] border border-[#e4d4fb] rounded-full px-3 py-1">
+                Pick {gate.required} to start
+              </span>
+            )}
+          </div>
           <div className="px-3.5 py-3 overflow-y-auto grid gap-2.5 grid-cols-1 [@media(min-width:1100px)]:grid-cols-2 [@media(min-width:1600px)]:grid-cols-3 items-start content-start">
             {topUp && <div className="text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">{topUp}</div>}
             {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
@@ -227,7 +305,7 @@ export default function MillaHomePage() {
               <div key={l.id} className="bg-white border-[1.5px] border-emerald-200 rounded-2xl p-3.5">
                 <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[14px]">Approved · {l.role} @ {l.company}</b></div>
                 <div className="text-[13px] text-[#4c4368] mt-1">Contact: <b>{revealed[l.id].email}</b></div>
-                <div className="text-[12px] text-[#7c6f9b] mt-0.5">$4 charged — working it now</div>
+                <div className="text-[12px] text-[#7c6f9b] mt-0.5">{revealed[l.id].charged ? '$4 charged' : 'Included in your 100'} — working it now</div>
               </div>
             ))}
             {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (
@@ -236,7 +314,14 @@ export default function MillaHomePage() {
             {pending.map(l => {
               const busy = acting === l.id
               return (
-                <div key={l.id} className="border border-[#ece5fb] rounded-2xl p-3.5">
+                <div key={l.id} onClick={() => gate.batch && gate.required > 1 && togglePick(l.id)}
+                  className={`rounded-2xl p-3.5 transition-shadow ${gate.batch && gate.required > 1 ? 'cursor-pointer' : ''} ${
+                    picked.has(l.id) ? 'border-[1.5px] border-[#7C3AED] bg-[#f7f2ff] shadow-sm'
+                    : l.recommended ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
+                  {/* WE'D START HERE — the API ranks everyone we sourced and marks its top 20.
+                      It was computing this and the client never saw it, which left them facing
+                      200 identical cards with no steer. */}
+                  {l.recommended && <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#7C3AED] mb-2">★ We&apos;d start here</div>}
                   <div className="flex items-start gap-2.5">
                     <span className="w-9 h-9 rounded-lg bg-[#efeafc] text-[#7C3AED] flex items-center justify-center shrink-0">🎭</span>
                     <div className="min-w-0 flex-1">
@@ -246,8 +331,19 @@ export default function MillaHomePage() {
                       </div>
                       {l.why_fits && <div className="text-[13px] text-[#5c5279] mt-2 leading-relaxed bg-[#faf8ff] rounded-lg px-2.5 py-2"><b className="text-[#7c6f9b]">Why this fits:</b> {l.why_fits}</div>}
                       <div className="flex gap-1.5 mt-2.5">
-                        <button disabled={busy} onClick={() => approve(l.id)} className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : '✓ Approve qualified lead · $4'}</button>
-                        <button disabled={busy} onClick={() => pass(l.id)} className="text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
+                        {/* Under the gate the card is a CHOICE, not an action — you pick your
+                            20 and start them together. Past it, one tap approves as before. */}
+                        {gate.batch && gate.required > 1 ? (
+                          <button onClick={e => { e.stopPropagation(); togglePick(l.id) }}
+                            className={`flex-1 text-[13px] font-bold rounded-lg py-2 border-[1.5px] ${picked.has(l.id)
+                              ? 'text-white bg-[#7C3AED] border-[#7C3AED]'
+                              : 'text-[#7C3AED] bg-white border-[#e4d4fb]'}`}>
+                            {picked.has(l.id) ? '✓ Picked' : 'Pick this one'}
+                          </button>
+                        ) : (
+                          <button disabled={busy} onClick={e => { e.stopPropagation(); approve(l.id) }} className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{busy ? '…' : freeApproval ? '✓ Approve · included' : '✓ Approve qualified lead · $4'}</button>
+                        )}
+                        <button disabled={busy} onClick={e => { e.stopPropagation(); pass(l.id) }} className="text-[13px] font-semibold text-[#5c5279] rounded-lg py-2 px-3 border border-[#ece5fb] disabled:opacity-50">Not a fit</button>
                       </div>
                     </div>
                   </div>
@@ -256,6 +352,24 @@ export default function MillaHomePage() {
             })}
             <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">$4 per approved lead — final. Reviewing is free.</div>
           </div>
+          {/* THE START BAR — sticks to the bottom of the lead desk while the gate is on, so
+              "how many more" is never something the client has to count for themselves. */}
+          {gate.batch && gate.required > 1 && (
+            <div className="shrink-0 border-t border-[#eee7f7] bg-[#faf8ff] px-4 py-3 flex items-center gap-3 flex-wrap">
+              <span className="text-[13.5px] text-[#5c5279]">
+                <b className="text-[#1f1235]">{picked.size} of {gate.required} picked</b>
+                <span className="block text-[12px] text-[#9b8ec4]">
+                  {picked.size >= gate.required
+                    ? freeApproval ? 'All included in your 100 — nothing extra to pay.' : `That's $${picked.size * 4}.`
+                    : 'We start with a full batch so the campaign has enough people to work.'}
+                </span>
+              </span>
+              <button onClick={approveSelected} disabled={picked.size < gate.required || acting === 'batch'}
+                className="ml-auto text-[14px] font-bold text-white rounded-xl px-5 py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-40">
+                {acting === 'batch' ? 'Starting…' : `Start work on ${picked.size || gate.required} →`}
+              </button>
+            </div>
+          )}
         </aside>
       </div>
 

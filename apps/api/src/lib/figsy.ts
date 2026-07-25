@@ -1355,13 +1355,26 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       return
     }
 
-    const { data: campaign } = await db.from('figsy_campaigns')
-      .select('id, name, campaign_intent, settings')
-      .eq('client_id', clientId)
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // ONE ICP = ONE CAMPAIGN (flow v2). A lead's campaign is decided by the ICP that found
+    // them — `leads.icp_id` — not by "whichever campaign happens to be newest and active",
+    // which silently ignored the campaign you meant the moment a client had two.
+    const { data: leadIcp } = await db.from('leads').select('icp_id').eq('id', leadId).maybeSingle()
+    let campaign: { id: string; name?: string; campaign_intent?: string | null; settings?: unknown } | null = null
+    if (leadIcp?.icp_id) {
+      const { data: byIcp } = await db.from('figsy_campaigns')
+        .select('id, name, campaign_intent, settings')
+        .eq('client_id', clientId).eq('icp_id', leadIcp.icp_id).eq('status', 'active')
+        .limit(1).maybeSingle()
+      campaign = byIcp ?? null
+    }
+    if (!campaign) {
+      // Fallback for leads sourced before ICPs carried a campaign.
+      const { data: newest } = await db.from('figsy_campaigns')
+        .select('id, name, campaign_intent, settings')
+        .eq('client_id', clientId).eq('status', 'active')
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      campaign = newest ?? null
+    }
 
     if (!campaign) return // No active campaign — nothing to do
 

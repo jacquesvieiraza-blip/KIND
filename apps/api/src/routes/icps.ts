@@ -848,6 +848,10 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
 
     // Notify us. Vida's bell already derives "ICP revised since the campaign was built"
     // from the rows, so this alert is the push half of the same fact — never the only half.
+    // One ICP = one campaign — born together, never assigned.
+    const { ensureCampaignForIcp } = await import('../lib/start-work')
+    void ensureCampaignForIcp(clientId, data.id, data.name).catch(() => {})
+
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
     void sendFounderAlert('new_signup', `ICP revised — ${client?.company_name ?? 'a client'}`, [
       `${client?.company_name ?? 'A client'} changed their targeting in Milla.`,
@@ -1119,6 +1123,12 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // forever. Only auto-run a never-run ICP with credits available; an already-
     // run ICP is left alone (no surprise re-spend). Fire-and-forget so the
     // response is fast; runIcpJob delivers + charges, capped at balance.
+    // One ICP = one campaign — born together, never assigned.
+    if (data) {
+      const { ensureCampaignForIcp } = await import('../lib/start-work')
+      void ensureCampaignForIcp(clientId, data.id, data.name).catch(() => {})
+    }
+
     let started = false
     if (data && !data.last_run_at) {
       const { data: bal } = await db.from('clients').select('credit_balance, first_icp_run_at').eq('id', clientId).single()

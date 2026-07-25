@@ -8,9 +8,12 @@ import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
+import { PAID_TX_TYPES } from '../lib/onboarding-pack'
+import type { BatchCheck } from '../lib/approval-batch'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
+import { sendFounderAlert } from '../lib/alerts'
 
 export const leadRouter = Router()
 
@@ -211,6 +214,23 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
 // browser hiding columns. Scoped to the client's own delivered, not-yet-revealed, not-passed
 // leads. After the client approves ($1), the full contact comes back through /leads/:id/reveal
 // or the normal /leads list (revealed=true).
+// #v2 — "here are the 50 they approved". A client working through a batch would otherwise
+// fire one alert per lead, so this is throttled to one summary per client per 30 minutes
+// (in-memory, per process — deliberately simple; the goal is a nudge, not an audit trail).
+const lastApprovalAlert = new Map<string, number>()
+const APPROVAL_ALERT_WINDOW_MS = 30 * 60 * 1000
+function shouldAlertApprovals(clientId: string): boolean {
+  const now = Date.now()
+  const last = lastApprovalAlert.get(clientId)
+  if (last && now - last < APPROVAL_ALERT_WINDOW_MS) return false
+  lastApprovalAlert.set(clientId, now)
+  if (lastApprovalAlert.size > 500) {
+    const oldest = [...lastApprovalAlert.entries()].sort((a, b) => a[1] - b[1])[0]
+    if (oldest) lastApprovalAlert.delete(oldest[0])
+  }
+  return true
+}
+
 leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
@@ -222,7 +242,10 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)      // #493 — only leads the operator has Sent to the client
-      .gt('approval_expires_at', new Date().toISOString()) // #492 — enforce the 72h TTL: an expired lead leaves the desk (no charge, no hold ever created)
+      // NO TIME LIMIT ON PAID LEADS (founder-locked 25 Jul). The 72h TTL used to filter here,
+      // but it never *expired* anything — a surfaced lead simply stopped appearing, with no
+      // notice to anyone. Against a 100-lead pack that would have silently eaten most of what
+      // the client had paid for. They keep every person we send until they pick or pass.
       .is('revealed_at', null)
       .neq('status', 'passed')
       .order('score', { ascending: false, nullsFirst: false })
@@ -250,7 +273,14 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
       created_at: l.created_at ?? null,
     }))
-    res.json({ success: true, data: masked })
+    // TOP 20 RECOMMENDED — derived from score at read time rather than stored, so it can
+    // never go stale against a re-score and needs no column. The client sees which ones we'd
+    // start with; they still choose. (flow v2: everyone we source goes over, ranked.)
+    const recommendedIds = new Set(
+      [...masked].sort((a, b) => Number(b.score ?? 0) - Number(a.score ?? 0))
+        .slice(0, 20).map(l => l.id as string),
+    )
+    res.json({ success: true, data: masked.map(l => ({ ...l, recommended: recommendedIds.has(l.id as string) })) })
   } catch (err) { console.error('[leads/for-approval]', err); res.status(500).json({ success: false, error: 'Failed to load leads' }) }
 })
 
@@ -286,14 +316,13 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const now = new Date()
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
-    const nowIso = now.toISOString()
 
     const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases] = await Promise.all([
       db.from('clients').select('wallet_balance_usd').eq('id', clientId).maybeSingle(),
       // mirrors /for-approval — the exact set of masked cards the client can act on
       db.from('leads').select('id', { count: 'exact', head: true })
         .eq('client_id', clientId).not('delivered_at', 'is', null)
-        .not('surfaced_for_approval_at', 'is', null).gt('approval_expires_at', nowIso)
+        .not('surfaced_for_approval_at', 'is', null)   // no TTL — see /for-approval above
         .is('revealed_at', null).neq('status', 'passed'),
       db.from('calendar_bookings').select('id', { count: 'exact', head: true })
         .eq('client_id', clientId).eq('status', 'confirmed').gte('start_time', monthStart),
@@ -312,8 +341,15 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
       // NO FREEBIES — has this client EVER paid? (any wallet top-up / purchase). Drives the
       // $99 paywall: no purchase → the client is gated until they load their wallet.
       db.from('credit_transactions').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase']),
+        .eq('client_id', clientId).in('type', PAID_TX_TYPES),
     ])
+
+    // Pack state: bought it? how many of the 100 have they used? Both derived from rows that
+    // already exist, so there is no column to keep in sync.
+    const { packState } = await import('../lib/onboarding-pack')
+    const { count: approvedEver } = await db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('revealed_at', 'is', null)
+    const pack = packState((purchases.count ?? 0) > 0, approvedEver ?? 0)
 
     const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
     const arr = (v: unknown): string[] => Array.isArray(v) ? (v as string[]).filter(Boolean) : []
@@ -337,6 +373,8 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
         // NO FREEBIES — true once the client has made their first ($99) purchase. The Milla
         // dashboard gates on this: no purchase → paywall to Billing.
         has_funded: (purchases.count ?? 0) > 0,
+        // THE $99 PACK — 100 approvals included, counted rather than faked into the wallet.
+        pack,
         leads_awaiting:  awaiting.count ?? 0,
         meetings_booked: meetings.count ?? 0,
         // Real all-time totals + true $ spend. ONE WALLET: spend = approved leads × $4
@@ -767,6 +805,9 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    // The minimum-20 gate applies to every door into the money path, or it isn't a gate.
+    const revealGate = await batchGate(clientId, 1)
+    if (revealGate) { res.status(409).json({ success: false, error: 'batch_minimum', required: revealGate.required, message: revealGate.reason }); return }
     // ONE WALLET — reveal and approve are the SAME money event now: a single flat $4
     // charged once per lead. Delegate to approveLead so there is exactly one money path.
     const { approveLead } = await import('../lib/approve-lead')
@@ -776,6 +817,23 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
     if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }
     if (outcome.status === 'no_campaign') { res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return }
+    // "Here are the N they approved" — throttled to one summary per client per 30 min, so a
+    // client working through a batch is one nudge rather than fifty.
+    if (shouldAlertApprovals(clientId)) {
+      void (async () => {
+        const [{ count: approvedEver }, { data: c }] = await Promise.all([
+          db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
+          db.from('clients').select('company_name').eq('id', clientId).maybeSingle(),
+        ])
+        const { packState } = await import('../lib/onboarding-pack')
+        const pack = packState(true, approvedEver ?? 0)
+        void sendFounderAlert('new_signup', `${c?.company_name ?? 'A client'} is approving leads`, [
+          `${approvedEver ?? 0} approved in total.`,
+          pack.left > 0 ? `${pack.left} of their included ${pack.included} left.` : `Pack used — they're on $4 a lead now.`,
+          'Next: their sequence needs approving before anything goes out.',
+        ]).catch(() => {})
+      })().catch(() => {})
+    }
     res.json({ success: true, revealed: true, email: outcome.email, charged: outcome.charged })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to reveal lead' }) }
 })
@@ -786,10 +844,33 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
 // heavy lifting lives in approveLead() (shared with the operator-on-behalf path in Vida)
 // so the money sequence is identical everywhere. Scoped to the client's own lead by
 // getClientId → the lead's client_id (enforced inside approveLead's queries).
+// ── THE MINIMUM-20 GATE (founder-locked 25 Jul) ────────────────────────────────
+// A client's inbox costs us ~$40/month from the day they sign, so a client who approves
+// five people is a client we run a free mail service for. When we send someone their
+// people they choose at least 20 — and the founder asked for a HARD gate, so it lives
+// HERE, on the server, not on a disabled button anyone can step around with a fetch.
+//
+// Returns null when the client may proceed, or the refusal to send back.
+async function batchGate(clientId: string, selecting: number): Promise<BatchCheck | null> {
+  const { checkBatch } = await import('../lib/approval-batch')
+  const [{ count: available }, { count: approvedEver }] = await Promise.all([
+    // What is actually in front of them: surfaced, undecided, not passed.
+    db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('surfaced_for_approval_at', 'is', null)
+      .is('revealed_at', null).neq('status', 'passed'),
+    db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('revealed_at', 'is', null),
+  ])
+  const check = checkBatch(selecting, available ?? 0, approvedEver ?? 0)
+  return check.allowed ? null : check
+}
+
 leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'lead-approve', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+    const gate = await batchGate(clientId, 1)
+    if (gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.required, message: gate.reason }); return }
     const { approveLead } = await import('../lib/approve-lead')
     const outcome = await approveLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
@@ -810,6 +891,49 @@ leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'l
     }
     res.json({ success: true, ...outcome })
   } catch (err) { console.error('[approve]', err); res.status(500).json({ success: false, error: 'Failed to approve lead' }) }
+})
+
+// ── APPROVE A BATCH — the door the minimum-20 gate sends people through ────────
+// One request, N leads. Each still goes through approveLead(), so the money path is
+// byte-identical to a single approve — the pack quota, the $4 charge, the dead-email
+// refund, the no-campaign refusal. Nothing is charged until the gate passes.
+//
+// Partial failures are reported per lead rather than rolled back: a dud email in a batch
+// of 30 must not un-approve the other 29, and approveLead already refuses to charge for
+// the ones it can't complete.
+leadRouter.post('/approve-batch', rateLimit({ limit: 12, windowMs: 60_000, key: 'lead-approve-batch', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const ids = Array.isArray(req.body?.lead_ids) ? [...new Set(req.body.lead_ids.filter((v: unknown) => typeof v === 'string'))] as string[] : []
+    if (ids.length === 0) { res.status(400).json({ success: false, error: 'lead_ids required' }); return }
+    // A bounded batch: 200 is the whole desk, and an unbounded loop here would hold the
+    // request open long enough to time out mid-charge.
+    if (ids.length > 200) { res.status(400).json({ success: false, error: 'Too many at once — 200 max.' }); return }
+
+    const gate = await batchGate(clientId, ids.length)
+    if (gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.required, message: gate.reason }); return }
+
+    const { approveLead } = await import('../lib/approve-lead')
+    const results: Array<{ id: string; status: string; email?: string | null; charged?: boolean }> = []
+    // SEQUENTIAL on purpose: try_charge_wallet is the atomic gate, and firing 30 charges
+    // concurrently against one wallet is how a client gets charged past their balance.
+    for (const id of ids) {
+      const out = await approveLead(id, clientId).catch(() => ({ status: 'error' as const }))
+      results.push({ id, status: out.status, email: 'email' in out ? out.email : null, charged: 'charged' in out ? out.charged : undefined })
+      // Stop the moment the money runs out — every further attempt would fail the same way.
+      if (out.status === 'insufficient_funds') break
+    }
+
+    const approved = results.filter(r => r.status === 'approved')
+    res.json({
+      success: true, approved: approved.length, attempted: ids.length, results,
+      message: approved.length === ids.length
+        ? `${approved.length} approved — we're on it.`
+        : `${approved.length} of ${ids.length} approved. The rest are listed below with why.`,
+    })
+  } catch (err) { console.error('[approve-batch]', err); res.status(500).json({ success: false, error: 'Failed to approve' }) }
 })
 
 // ✕ pass — client says "not a fit". No charge, no reveal; the lead leaves the queue.

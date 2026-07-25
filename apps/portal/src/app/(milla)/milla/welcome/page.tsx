@@ -69,7 +69,11 @@ export default function MillaWelcomePage() {
     setSaving(true); setError(null)
     try {
       await api.post('/icps', proposed, await token())
-      router.push('/milla')
+      // ⚑ flow v2 (step 2): the $99 was never asked for at the moment it matters. The banner
+      // sat on the dashboard where a brand-new client had no reason to look, so the ICP they
+      // just approved sat dormant. The conversation ENDS on the ask, because that is when
+      // they most want what it buys.
+      router.push('/milla/billing?start=1&from=icp')
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 
@@ -148,7 +152,11 @@ export default function MillaWelcomePage() {
               </div>
               <div className="text-[11.5px] text-[#9b8ec4] mb-4">Estimate: <b className="text-[#5c5279]">{meetLow}–{meetHigh} meetings</b> from ~{recCredits} approvals — you only ever pay when you approve a lead.</div>
 
-              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : 'Approve ICP + plan — start sourcing'}</button>
+              {/* The button says what actually happens next: they approve, and the very next
+                  screen is the $99 — because nothing sources until it lands. Promising
+                  "start sourcing" here was a promise the money gate does not keep. */}
+              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : 'Approve this — then go live for $99'}</button>
+              <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">$99 includes your first <b className="text-[#5c5279]">100 approved leads</b> and your sender. Nothing sources until it lands.</div>
               <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
               {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
             </div>

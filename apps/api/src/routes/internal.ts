@@ -1794,6 +1794,178 @@ internalRouter.post('/ae/low-credits', async (_req: Request, res: Response) => {
 
 // ── LEAD DRIP DELIVERY — fires daily, delivers up to daily_drip_rate leads per client ──
 // Credits are deducted HERE (at delivery), not at insertion.
+// ── THE $99 CHASE — remind a client whose ICP is sitting dormant ──────────────────────
+// ⚑ flow v2 (step 2): "push reminders to an unpaid client — the push table exists, nothing
+// uses it." A client who approved their ICP and then didn't pay has told us exactly what
+// they want and is one step from getting it, and we were saying nothing.
+//
+// Deliberately restrained: reminders on day 1, 3 and 7 after they approved their targeting,
+// then we stop and it becomes a human call (their mobile is captured at sign-up now). A
+// daily push until they pay is how an app gets muted.
+internalRouter.post('/clients/chase-unpaid', async (_req: Request, res: Response) => {
+  try {
+    const { PAID_TX_TYPES } = await import('../lib/onboarding-pack')
+    const { sendPushToClient } = await import('../lib/push')
+    const REMIND_ON_DAYS = [1, 3, 7]
+
+    // Everyone with an approved ICP...
+    const { data: icpRows } = await db.from('icps')
+      .select('client_id, created_at').eq('is_active', true).limit(5000)
+    const icpByClient = new Map<string, string>()
+    for (const r of (icpRows ?? []) as Array<{ client_id: string; created_at: string }>) {
+      const prev = icpByClient.get(r.client_id)
+      if (!prev || r.created_at < prev) icpByClient.set(r.client_id, r.created_at)  // their FIRST ICP
+    }
+    if (icpByClient.size === 0) { res.json({ success: true, reminded: 0 }); return }
+
+    // ...minus everyone who has already paid.
+    const ids = [...icpByClient.keys()]
+    const { data: paidRows } = await db.from('credit_transactions')
+      .select('client_id').in('client_id', ids).in('type', PAID_TX_TYPES)
+    const paid = new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))
+
+    const now = Date.now()
+    let reminded = 0
+    for (const [cid, at] of icpByClient) {
+      if (paid.has(cid)) continue
+      const days = Math.floor((now - new Date(at).getTime()) / 86_400_000)
+      if (!REMIND_ON_DAYS.includes(days)) continue
+      await sendPushToClient(cid, {
+        title: days >= 7 ? 'Your people are waiting' : 'One step left',
+        body: days >= 7
+          ? "Your targeting is ready and nothing has started. $99 gets your sender and your first 100 approved leads."
+          : "Your targeting is approved — go live for $99 and we'll start finding your people today.",
+        url: '/milla/billing?start=1',
+      }).catch(() => {})
+      reminded++
+    }
+
+    res.json({ success: true, checked: icpByClient.size, reminded })
+  } catch (err) {
+    console.error('[clients/chase-unpaid]', err)
+    res.status(500).json({ success: false, error: 'Chase run failed' })
+  }
+})
+
+// ── COLD CLIENTS — 30 DAYS WITHOUT AN APPROVAL, WE SUSPEND ────────────────────────────
+// Founder-locked 25 Jul: "we're not a free service. a client needs to be working with us or
+// we freeze their inbox." Their sender costs us ~$40/month from the day they sign and keeps
+// costing whether they approve anybody or not.
+//
+// Suspending = pausing their ACTIVE campaigns. Nothing further sends. It is reversible by
+// the client themselves: approving anyone puts them back (see the reactivation in
+// approve-lead's caller below), their leads keep waiting, their pack is untouched.
+//
+// Warned a week out so it is never a surprise. Called daily by cron; safe to run repeatedly —
+// a client with no active campaigns is already suspended and is skipped silently.
+internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) => {
+  try {
+    const { coldState, suspensionMessage, COLD_DAYS } = await import('../lib/cold-client')
+    const { sendFounderAlert } = await import('../lib/alerts')
+    const { PAID_TX_TYPES } = await import('../lib/onboarding-pack')
+
+    // Only clients who have PAID — an unpaid client has no sender to freeze and is chased
+    // in a different place (the $99 prompt at step 2).
+    const { data: paidRows } = await db.from('credit_transactions')
+      .select('client_id').in('type', PAID_TX_TYPES).limit(20000)
+    const paidIds = [...new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))]
+    if (paidIds.length === 0) { res.json({ success: true, checked: 0, warned: 0, suspended: 0 }); return }
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, is_demo').in('id', paidIds)
+
+    const now = new Date()
+    let warned = 0, suspended = 0
+    for (const c of (clients ?? []) as Array<Record<string, unknown>>) {
+      const cid = c.id as string
+      if (c.is_demo === true) continue                       // demos are ours, not theirs
+
+      // Their last approval IS the newest revealed lead — no column to keep in sync.
+      const { data: last } = await db.from('leads')
+        .select('revealed_at').eq('client_id', cid).not('revealed_at', 'is', null)
+        .order('revealed_at', { ascending: false }).limit(1).maybeSingle()
+      const state = coldState((last?.revealed_at as string | null) ?? null, now)
+      if (state.neverStarted) continue
+
+      if (state.cold) {
+        const { data: paused } = await db.from('figsy_campaigns')
+          .update({ status: 'paused' }).eq('client_id', cid).eq('status', 'active').select('id')
+        if ((paused ?? []).length === 0) continue            // already suspended — say nothing
+        suspended++
+        console.log(`[cold-check] suspended ${c.company_name ?? cid} — ${state.daysIdle} days idle`)
+        void sendFounderAlert('churn_risk', `Suspended — ${c.company_name ?? 'a client'} has gone quiet`, [
+          `No approvals in ${state.daysIdle} days, so their campaigns are paused.`,
+          `We were keeping a warmed sender running the whole time — that is roughly $${Math.round(40 * (state.daysIdle! / 30))} of inbox we carried.`,
+          'They come straight back the moment they approve anyone. Worth a call before that.',
+          suspensionMessage(c.company_name as string | null),
+        ]).catch(() => {})
+      } else if (state.warn) {
+        warned++
+        void sendFounderAlert('churn_risk', `Going quiet — ${c.company_name ?? 'a client'}`, [
+          `${state.daysIdle} days since their last approval. We suspend at ${COLD_DAYS}.`,
+          'A nudge now is cheaper than a restart later.',
+        ]).catch(() => {})
+      }
+    }
+
+    res.json({ success: true, checked: (clients ?? []).length, warned, suspended })
+  } catch (err) {
+    console.error('[clients/cold-check]', err)
+    res.status(500).json({ success: false, error: 'Cold check failed' })
+  }
+})
+
+// ── FLOW V2 · NIGHTLY SOURCING TOP-UP ─────────────────────────────────────────────────
+// The $99 buys 200 sourced people so the client can approve 100 after passing on roughly
+// half. try_spend_sourcing caps a client at 100 RECORDS PER DAY (v_daily_cap in
+// 20260711_sourcing_fences.sql), so payment day can only ever deliver 100 — the other 100
+// has to arrive the next day or the client is choosing from a list with no choice in it.
+//
+// This is that second half. startWorkForClient tops UP to the target rather than adding a
+// batch, so a client already at 200 costs one count query and nothing else. Every real
+// spend still passes the same fences: the money gate, the client's own allowance
+// (2 records per $1 they paid), the daily cap and the global monthly ceiling.
+//
+// Called daily by cron. Safe to run repeatedly.
+internalRouter.post('/leads/top-up', async (_req: Request, res: Response) => {
+  try {
+    const { PAID_TX_TYPES, PACK_SOURCE_TARGET } = await import('../lib/onboarding-pack')
+    const { startWorkForClient } = await import('../lib/start-work')
+
+    // Only clients who have paid AND still have allowance to spend — anyone else would
+    // burn a round trip to be refused by the fence.
+    const { data: paidRows } = await db.from('credit_transactions')
+      .select('client_id').in('type', PAID_TX_TYPES).limit(20000)
+    const paidIds = [...new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))]
+    if (paidIds.length === 0) { res.json({ success: true, checked: 0, topped_up: 0 }); return }
+
+    const { data: clients } = await db.from('clients')
+      .select('id, company_name, sourcing_allowance, is_demo').in('id', paidIds)
+
+    let toppedUp = 0, sourced = 0, surfaced = 0
+    for (const c of (clients ?? []) as Array<Record<string, unknown>>) {
+      const cid = c.id as string
+      if (c.is_demo === true) continue                       // demos never spend PDL
+      if (((c.sourcing_allowance as number | null) ?? 0) <= 0) continue
+
+      const { count: have } = await db.from('leads')
+        .select('id', { count: 'exact', head: true }).eq('client_id', cid).neq('status', 'passed')
+      if ((have ?? 0) >= PACK_SOURCE_TARGET) continue
+
+      const r = await startWorkForClient(cid)                // never throws
+      if (r.sourced > 0 || r.surfaced > 0) {
+        toppedUp++; sourced += r.sourced; surfaced += r.surfaced
+        console.log(`[leads/top-up] ${c.company_name ?? cid}: sourced ${r.sourced}, surfaced ${r.surfaced}`)
+      }
+    }
+
+    res.json({ success: true, checked: (clients ?? []).length, topped_up: toppedUp, sourced, surfaced })
+  } catch (err) {
+    console.error('[leads/top-up]', err)
+    res.status(500).json({ success: false, error: 'Top-up run failed' })
+  }
+})
+
 internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
   try {
     // Get all active clients with undelivered leads

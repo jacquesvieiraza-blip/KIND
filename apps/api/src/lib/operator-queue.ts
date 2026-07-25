@@ -64,18 +64,20 @@ export async function listPendingDrafts(limit = 100): Promise<PendingDraft[]> {
 
 // #493 — SEND TO CLIENT. The operator NEVER spends (invariant #1); the only thing they can
 // do with a sourced/qualified lead is surface it to the client for the client's own 👍 in
-// Milla. This marks the lead surfaced-for-approval and starts the #492 72h TTL — from here
-// it appears in the client's Milla lead desk. Scoped to the client + only masked, un-passed
-// leads. Returns whether a row was actually surfaced so the route can 404 honestly.
+// Milla. This marks the lead surfaced-for-approval — from here it appears in the client's
+// Milla lead desk. Scoped to the client + only masked, un-passed leads. Returns whether a
+// row was actually surfaced so the route can 404 honestly.
+//
+// NO TIME LIMIT ON PAID LEADS (founder-locked 25 Jul). The old #492 72h TTL is gone: it
+// never expired anything, it just made a surfaced lead quietly stop counting on the operator
+// board while the client could still see it. Nothing writes approval_expires_at now.
 export async function surfaceLeadForApproval(
   clientId: string,
   leadId: string,
-  ttlHours = 72,
 ): Promise<{ surfaced: boolean }> {
   const now = new Date()
-  const expires = new Date(now.getTime() + ttlHours * 3600 * 1000)
   const { data } = await db.from('leads')
-    .update({ surfaced_for_approval_at: now.toISOString(), approval_expires_at: expires.toISOString() })
+    .update({ surfaced_for_approval_at: now.toISOString() })
     .eq('id', leadId).eq('client_id', clientId)
     .is('revealed_at', null).neq('status', 'passed')
     .select('id').maybeSingle()

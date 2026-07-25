@@ -1,0 +1,388 @@
+<!-- THE CASHFLOW LAB — founder-locked 25 Jul as THE money model.
+     The layout is the decision: two needles at the top, every cost line an editable box.
+     Numbers get refined; the shape does not. Open it in a browser — it needs no server.
+     Cost basis: docs/run-costs-and-cashflow.md · docs/TECH-STACK.md · the code constants
+     named in the "What the numbers rest on" card. -->
+<title>Can we scale? — M&V money model</title>
+
+<style>
+  :root{
+    --violet:#7C3AED; --pink:#EC4899;
+    --ink:#1f1235; --body:#453a5e; --muted:#8579a8; --faint:#b3a9cc;
+    --line:#e9e2f6; --surface:#fff; --ground:#f8f6fd;
+    --pos:#065f46; --pos-bg:#ecfdf5; --pos-line:#a7f3d0;
+    --neg:#991b1b; --neg-bg:#fef2f2; --neg-line:#fecaca;
+    --warn:#92400e; --warn-bg:#fffbeb; --warn-line:#fde68a;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --ink:#f4f0fb; --body:#cdc4e2; --muted:#9b8ec4; --faint:#7a6e9c;
+    --line:#2e2545; --surface:#1b1530; --ground:#120e21;
+    --pos:#6ee7b7; --pos-bg:#07231a; --pos-line:#155e46;
+    --neg:#fca5a5; --neg-bg:#2a1113; --neg-line:#7f2a2f;
+    --warn:#fcd34d; --warn-bg:#2a2008; --warn-line:#78500a;}}
+  :root[data-theme="dark"]{--ink:#f4f0fb;--body:#cdc4e2;--muted:#9b8ec4;--faint:#7a6e9c;
+    --line:#2e2545;--surface:#1b1530;--ground:#120e21;
+    --pos:#6ee7b7;--pos-bg:#07231a;--pos-line:#155e46;--neg:#fca5a5;--neg-bg:#2a1113;--neg-line:#7f2a2f;
+    --warn:#fcd34d;--warn-bg:#2a2008;--warn-line:#78500a;}
+  :root[data-theme="light"]{--ink:#1f1235;--body:#453a5e;--muted:#8579a8;--faint:#b3a9cc;
+    --line:#e9e2f6;--surface:#fff;--ground:#f8f6fd;
+    --pos:#065f46;--pos-bg:#ecfdf5;--pos-line:#a7f3d0;--neg:#991b1b;--neg-bg:#fef2f2;--neg-line:#fecaca;
+    --warn:#92400e;--warn-bg:#fffbeb;--warn-line:#fde68a;}
+
+  body{background:var(--ground);color:var(--body);
+    font:400 16px/1.55 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:34px 20px 80px}
+  h1{font-size:clamp(28px,5vw,38px);font-weight:800;letter-spacing:-.022em;color:var(--ink);margin:0 0 8px;text-wrap:balance}
+  h2{font-size:12.5px;letter-spacing:.13em;text-transform:uppercase;font-weight:800;color:var(--violet);margin:38px 0 12px}
+  h3{font-size:18px;font-weight:750;color:var(--ink);margin:0 0 6px}
+  p{margin:0 0 12px}
+  .lede{font-size:17.5px;color:var(--muted);max-width:64ch;margin-bottom:24px}
+  code{font:500 .88em/1.4 ui-monospace,Menlo,monospace;background:var(--ground);border:1px solid var(--line);border-radius:5px;padding:1px 5px;color:var(--ink)}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;margin-bottom:12px}
+
+  .lab{background:var(--surface);border:1.5px solid var(--violet);border-radius:18px;padding:22px;margin-bottom:14px}
+  .ctrl{margin-bottom:18px}
+  .ctrl label{display:flex;align-items:baseline;gap:10px;font-size:14.5px;font-weight:700;color:var(--ink);margin-bottom:8px}
+  .ctrl label span{margin-left:auto;font-size:22px;font-weight:800;color:var(--violet);font-variant-numeric:tabular-nums}
+  .ctrl .hint{font-size:13px;color:var(--muted);font-weight:400;margin:0}
+  input[type=range]{width:100%;accent-color:var(--violet);height:26px}
+  .out{display:grid;gap:10px;grid-template-columns:1fr}
+  @media(min-width:620px){.out{grid-template-columns:repeat(4,1fr)}}
+  .o{border:1px solid var(--line);border-radius:13px;padding:13px 15px;background:var(--ground)}
+  .o .k{font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--faint);display:block}
+  .o .v{font-size:25px;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;line-height:1.15;display:block;margin-top:2px}
+  .o .s{font-size:12.5px;color:var(--muted)}
+  .o.big{background:linear-gradient(135deg,var(--violet),#6d28d9);border-color:transparent}
+  .o.big .k{color:#d8c9f7}.o.big .v{color:#fff}.o.big .s{color:#d8c9f7}
+  .o.loss{background:var(--neg-bg);border-color:var(--neg-line)}
+  .o.loss .v{color:var(--neg)}
+
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+  th,td{text-align:right;padding:10px 14px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left;white-space:normal}
+  th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:800;background:var(--ground)}
+  tr:last-child td{border-bottom:0}
+  td b{color:var(--ink)}
+  .net{color:var(--pos);font-weight:800}
+  .net.bad{color:var(--neg)}
+  tr.mark{background:var(--pos-bg)}
+  tr.total td{background:var(--ground);font-weight:800;color:var(--ink)}
+
+  /* editable cost rows */
+  .costs table{min-width:520px}
+  .costs td.n{padding:6px 14px}
+  input[type=number]{width:88px;text-align:right;font:700 14px/1.3 ui-sans-serif,system-ui,sans-serif;
+    font-variant-numeric:tabular-nums;color:var(--ink);background:var(--ground);
+    border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+  input[type=number]:focus{outline:2px solid var(--violet);outline-offset:1px}
+  .tag{font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;
+    border-radius:5px;padding:1.5px 6px;margin-left:7px;vertical-align:1px}
+  .tag.v{background:var(--pos-bg);color:var(--pos);border:1px solid var(--pos-line)}
+  .tag.e{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn-line)}
+  .sub{color:var(--muted);font-weight:400;font-size:13px;display:block;margin-top:1px}
+
+  ul{margin:0 0 12px;padding-left:20px}
+  li{margin-bottom:6px}
+  .note{border-radius:14px;padding:15px 19px;margin:14px 0;border:1px solid;font-size:14.5px}
+  .warn{background:var(--neg-bg);border-color:var(--neg-line);color:var(--neg)}
+  .caution{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn)}
+  .ok{background:var(--pos-bg);border-color:var(--pos-line);color:var(--pos)}
+  .note b{display:block;margin-bottom:3px}
+  .foot{color:var(--muted);font-size:13.5px;margin-top:20px}
+</style>
+
+<div class="wrap">
+
+  <h1>Can we scale?</h1>
+  <p class="lede">Two needles at the top, every cost line editable below. Change any number and the whole model — break-even, the 1-to-1000 table, the per-client margin — recalculates.</p>
+
+  <!-- ── THE LAB ─────────────────────────────────────────── -->
+  <div class="lab">
+    <div class="ctrl">
+      <label>Paying clients <span id="cN">10</span></label>
+      <input type="range" id="clients" min="1" max="1000" value="10">
+      <p class="hint">Clients past their $99 pack — the steady-state book.</p>
+    </div>
+
+    <div class="ctrl">
+      <label>Approvals per client per month — <i>average</i> <span id="lN">50</span></label>
+      <input type="range" id="leads" min="0" max="200" value="50" step="1">
+      <p class="hint">An <b>average across the whole book</b>, so a client on 10 and a client on 100 average to 55. This is the number that decides whether we have a business — drag it down to 10 and watch what happens.</p>
+    </div>
+
+    <div class="out">
+      <div class="o"><span class="k">Revenue / mo</span><span class="v" id="rev">—</span><span class="s" id="revS">—</span></div>
+      <div class="o"><span class="k">Cost to deliver</span><span class="v" id="cogs">—</span><span class="s" id="cogsS">—</span></div>
+      <div class="o"><span class="k">Fixed / mo</span><span class="v" id="fix">—</span><span class="s" id="fixS">—</span></div>
+      <div class="o big" id="netBox"><span class="k">Net / month</span><span class="v" id="net">—</span><span class="s" id="netS">—</span></div>
+    </div>
+  </div>
+
+  <div class="note ok" id="verdict"><b>—</b></div>
+  <div class="note caution" id="floor"><b>—</b></div>
+
+  <!-- ── FIXED COSTS ─────────────────────────────────────── -->
+  <h2>What runs whether we have 1 client or 100</h2>
+  <p style="font-size:14.5px;color:var(--muted);margin-bottom:12px">
+    Every line is editable — type over any number. <span class="tag v">verified</span> means a real bill or a code constant;
+    <span class="tag e">estimate</span> means it needs confirming against the actual invoice.
+  </p>
+
+  <div class="scroll costs">
+    <table>
+      <thead><tr><th>Platform floor — monthly</th><th>$ / month</th></tr></thead>
+      <tbody>
+        <tr><td>Servers + database <span class="tag v">verified</span><span class="sub">Railway (api · portal · admin · website) + Supabase Pro + Cloudflare</span></td>
+            <td class="n"><input type="number" id="f_servers" value="138" min="0" step="1"></td></tr>
+        <tr><td>Smartlead — main account <span class="tag e">estimate</span><span class="sub">The Engine. Runs every client inbox. Confirm the plan tier on the invoice.</span></td>
+            <td class="n"><input type="number" id="f_smartlead" value="94" min="0" step="1"></td></tr>
+        <tr><td>Hunter — email fallback <span class="tag e">estimate</span><span class="sub">Growth £87 ≈ $110 when we need 10k finds. At pilot volume you may still be on a free tier — set 0 if so.</span></td>
+            <td class="n"><input type="number" id="f_hunter" value="110" min="0" step="1"></td></tr>
+        <tr><td>Anthropic — Claude API <span class="tag e">estimate</span><span class="sub">Runtime AI: scoring + writing. Haiku, ~$0.05/lead, mostly counted per-lead below — this is the base.</span></td>
+            <td class="n"><input type="number" id="f_claude" value="45" min="0" step="1"></td></tr>
+        <tr><td>Resend — Pro <span class="tag v">verified</span><span class="sub">Transactional + the shared cold path.</span></td>
+            <td class="n"><input type="number" id="f_resend" value="20" min="0" step="1"></td></tr>
+        <tr><td>Instantly — our own warmup <span class="tag e">estimate</span><span class="sub">K.I.N.D's own outreach, not client sending.</span></td>
+            <td class="n"><input type="number" id="f_instantly" value="37" min="0" step="1"></td></tr>
+        <tr><td>Zoho Mail <span class="tag e">estimate</span><span class="sub">hello@get-kind.com — the human mailbox. Was missing from every earlier version of this model.</span></td>
+            <td class="n"><input type="number" id="f_zoho" value="3" min="0" step="1"></td></tr>
+        <tr><td>Domains + failover <span class="tag e">estimate</span><span class="sub">Render standby, registrations. Annual bills spread across 12.</span></td>
+            <td class="n"><input type="number" id="f_domains" value="10" min="0" step="1"></td></tr>
+        <tr class="total"><td>Platform floor</td><td id="fixedFloor">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="scroll costs" style="margin-top:12px">
+    <table>
+      <thead><tr><th>Scales with the work</th><th>$</th></tr></thead>
+      <tbody>
+        <tr><td>Per client, per month — their inbox + workspace <span class="tag e">confirm</span><span class="sub">The single biggest per-client cost, and the one that decides the floor on approvals. Confirm the workspace fee with Smartlead.</span></td>
+            <td class="n"><input type="number" id="v_inbox" value="40" min="0" step="1"></td></tr>
+        <tr><td>Per client, once — setup <span class="tag e">estimate</span><span class="sub">A warmed inbox out of our pool, on the day they join. Cash out before the $99 clears.</span></td>
+            <td class="n"><input type="number" id="v_setup" value="45" min="0" step="1"></td></tr>
+        <tr><td>PDL — per name sourced <span class="tag v">code</span><span class="sub"><code>PDL_RATE_USD</code>. Pool re-use is $0 — this is worst case.</span></td>
+            <td class="n"><input type="number" id="v_pdl" value="0.28" min="0" step="0.01"></td></tr>
+        <tr><td>PDL — monthly plan floor <span class="tag v">verified</span><span class="sub">$98 buys ~350 names. You pay the tier whether you use it or not, so the model charges whichever is higher — the tier or the names.</span></td>
+            <td class="n"><input type="number" id="v_pdlfloor" value="98" min="0" step="1"></td></tr>
+        <tr><td>Names sourced per approval <span class="tag e">the ratio to watch</span><span class="sub">Flow v2 sources 200 so they can approve 100 → 2. Historically (#415) it measured nearer 7. This one number moves margin more than any other.</span></td>
+            <td class="n"><input type="number" id="v_ratio" value="2" min="1" step="0.1"></td></tr>
+        <tr><td>Working one lead <span class="tag v">code</span><span class="sub">Verify $0.01 + AI write &amp; send $0.06.</span></td>
+            <td class="n"><input type="number" id="v_work" value="0.07" min="0" step="0.001"></td></tr>
+        <tr><td>Stripe <span class="tag v">verified</span><span class="sub">% of every dollar in. ~3.5% on international cards.</span></td>
+            <td class="n"><input type="number" id="v_stripe" value="3.5" min="0" step="0.1"></td></tr>
+        <tr><td>Price per approved lead <span class="tag v">locked</span><span class="sub">Founder-locked 25 Jul.</span></td>
+            <td class="n"><input type="number" id="v_price" value="4" min="0" step="0.5"></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── SCALE TABLE ─────────────────────────────────────── -->
+  <h2>1 client to 1000</h2>
+  <p style="font-size:14.5px;color:var(--muted);margin-bottom:12px">Steady state — every client past their $99 pack, approving the average set above.</p>
+  <div class="scroll">
+    <table>
+      <thead><tr>
+        <th>Clients</th><th>Revenue</th><th>Delivery</th><th>Fixed</th><th>Net / mo</th><th>Margin</th><th>Net / yr</th>
+      </tr></thead>
+      <tbody id="tbl"></tbody>
+    </table>
+  </div>
+  <p style="font-size:13.5px;color:var(--muted);margin-top:10px" id="tierNote">—</p>
+
+  <!-- ── PER CLIENT ──────────────────────────────────────── -->
+  <h2>Where every dollar goes</h2>
+
+  <div class="card">
+    <h3>One client, one month</h3>
+    <p style="font-size:14.5px">At <b id="leadsEcho">50</b> approvals a month, before any share of the platform floor:</p>
+    <div class="scroll"><table><tbody id="steady"></tbody></table></div>
+  </div>
+
+  <div class="card">
+    <h3>Their first month — the $99 pack</h3>
+    <p style="font-size:14.5px">The pack is <b>not</b> where you make money. It buys the relationship.</p>
+    <div class="scroll"><table><tbody id="first"></tbody></table></div>
+  </div>
+
+  <div class="note warn" id="risk"><b>—</b></div>
+
+  <h2>What the numbers rest on</h2>
+  <div class="card" style="font-size:14.5px">
+    <ul>
+      <li><b>$0.28 a name</b> — PDL, in the code as <code>PDL_RATE_USD</code>, confirmed on their dashboard. Pool-first sourcing serves anyone we already own free, so this is the worst case and it falls as the pool grows.</li>
+      <li><b>$0.07 to work a lead</b> — <code>REVEAL_MARGINAL_COST_USD</code> $0.01 + <code>WORK_MARGINAL_COST_USD</code> $0.06.</li>
+      <li><b>$99 = 100 approvals included</b>, then $4 each, no expiry. Founder-locked 25 Jul.</li>
+      <li><b>200 names sourced up front</b> so they have something to pass on. The sourcing fence caps a client at 100 names a day, so half arrives on payment day and half overnight.</li>
+      <li><b>The floor above is the honest one.</b> Earlier versions of this model carried $190 and left out Smartlead, Instantly and Zoho entirely.</li>
+    </ul>
+  </div>
+
+  <p class="foot">Sources: <code>lib/money-path-math.ts</code> · <code>lib/onboarding-pack.ts</code> · <code>supabase/migrations/20260711_sourcing_fences.sql</code> · <code>docs/TECH-STACK.md</code> · live provider bills. Rebuilt 25 Jul — complete fixed-cost register, editable.</p>
+
+</div>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const num = id => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : 0; };
+
+  const FIXED_IDS = ['f_servers','f_smartlead','f_hunter','f_claude','f_resend','f_instantly','f_zoho','f_domains'];
+  const VAR_IDS   = ['v_inbox','v_setup','v_pdl','v_pdlfloor','v_ratio','v_work','v_stripe','v_price'];
+
+  const fmt  = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString();
+  const fmt2 = n => (n < 0 ? '−$' : '$') + Math.abs(n).toFixed(2);
+
+  function model(clients, leads) {
+    const price = num('v_price'), ratio = num('v_ratio'), pdl = num('v_pdl');
+    const work  = num('v_work'),  inbox = num('v_inbox'), stripePct = num('v_stripe') / 100;
+
+    const floor = FIXED_IDS.reduce((s, id) => s + num(id), 0);
+
+    // Per client, per month
+    const revPer     = leads * price;
+    const sourcePer  = leads * ratio * pdl;
+    const workPer    = leads * work;
+    const stripePer  = revPer * stripePct;
+    const cogsPer    = sourcePer + workPer + stripePer + inbox;
+
+    // PDL is a bought tier: you pay the plan floor even if you source less.
+    const namesTotal = leads * ratio * clients;
+    const pdlRaw     = namesTotal * pdl;
+    const pdlBilled  = Math.max(num('v_pdlfloor'), pdlRaw);
+    const pdlExtra   = pdlBilled - pdlRaw;          // unused tier we pay for anyway
+
+    const revenue = revPer * clients;
+    const cogs    = (cogsPer * clients) + pdlExtra;
+    const fixed   = floor;
+    const net     = revenue - cogs - fixed;
+
+    return { revenue, cogs, fixed, net, revPer, cogsPer, sourcePer, workPer, stripePer,
+             inbox, floor, namesTotal, pdlBilled, pdlExtra, price, ratio, pdl, work, stripePct,
+             margin: revenue > 0 ? net / revenue : 0,
+             contribution: revPer - cogsPer };
+  }
+
+  /** Approvals a client must average just to cover their OWN costs — before any fixed share. */
+  function breakEvenApprovals() {
+    const price = num('v_price'), stripePct = num('v_stripe') / 100;
+    const perLead = price - price * stripePct - num('v_work') - num('v_ratio') * num('v_pdl');
+    if (perLead <= 0) return Infinity;
+    return num('v_inbox') / perLead;
+  }
+
+  function render() {
+    const clients = +$('clients').value, leads = +$('leads').value;
+    $('cN').textContent = clients.toLocaleString();
+    $('lN').textContent = leads;
+    $('leadsEcho').textContent = leads;
+
+    const m = model(clients, leads);
+    $('fixedFloor').textContent = fmt(m.floor) + ' / mo';
+
+    $('rev').textContent  = fmt(m.revenue);
+    $('revS').textContent = fmt(m.revPer) + ' per client';
+    $('cogs').textContent = fmt(m.cogs);
+    $('cogsS').textContent = fmt2(m.cogsPer) + ' per client' + (m.pdlExtra > 1 ? ' + unused PDL tier' : '');
+    $('fix').textContent  = fmt(m.fixed);
+    $('fixS').textContent = 'platform floor';
+    $('net').textContent  = fmt(m.net);
+    $('netS').textContent = Math.round(m.margin * 100) + '% margin · ' + fmt(m.net * 12) + '/yr';
+    $('netBox').className = 'o ' + (m.net < 0 ? 'loss' : 'big');
+
+    // ── verdict: break-even in clients at this average ──
+    let be = 1; while (be < 5000 && model(be, leads).net < 0) be++;
+    const reachable = be < 5000;
+    const v = $('verdict');
+    if (m.net < 0) {
+      v.className = 'note warn';
+      v.innerHTML = '<b>Losing ' + fmt(-m.net) + ' a month at ' + clients.toLocaleString() + ' client' + (clients === 1 ? '' : 's') + '</b>' +
+        (m.contribution <= 0
+          ? 'Adding clients makes this <b>worse</b>, not better — at ' + leads + ' approvals each, every client costs ' + fmt2(-m.contribution) + ' more than they pay. No number of clients fixes that.'
+          : reachable
+            ? 'You break even at <b>' + be.toLocaleString() + ' client' + (be === 1 ? '' : 's') + '</b> averaging ' + leads + ' approvals each.'
+            : 'Break-even is out of reach at this average.');
+    } else {
+      v.className = 'note ok';
+      v.innerHTML = '<b>' + fmt(m.net) + ' a month clear at ' + clients.toLocaleString() + ' client' + (clients === 1 ? '' : 's') + '</b>' +
+        'Break-even is <b>' + be.toLocaleString() + ' client' + (be === 1 ? '' : 's') + '</b>. Each additional client adds about <b>' +
+        fmt2(m.contribution) + '</b> a month.';
+    }
+
+    // ── the floor on approvals ──
+    const beA = breakEvenApprovals();
+    const f = $('floor');
+    if (!Number.isFinite(beA)) {
+      f.className = 'note warn';
+      f.innerHTML = '<b>Every approval loses money</b>At ' + fmt2(m.price) + ' a lead, sourcing ' + m.ratio +
+        ' names at ' + fmt2(m.pdl) + ' each already costs more than the lead earns. Nothing downstream can fix that.';
+    } else {
+      const ok = leads >= beA;
+      f.className = 'note ' + (ok ? 'ok' : 'caution');
+      f.innerHTML = '<b>A client has to approve ' + Math.ceil(beA) + ' a month to pay for their own inbox</b>' +
+        'Their ' + fmt(m.inbox) + '/month inbox is fixed the moment they sign, so the first ' + Math.ceil(beA) +
+        ' approvals just cover it. ' +
+        (ok ? 'At an average of ' + leads + ', every client is carrying themselves — the rest is contribution.'
+            : 'At an average of ' + leads + ', <b>each client is under water before we count a single server bill.</b>');
+    }
+
+    // ── one client, one month ──
+    $('steady').innerHTML =
+      '<tr><td>' + leads + ' approvals × ' + fmt2(m.price) + '</td><td><b>+' + fmt2(m.revPer) + '</b></td></tr>' +
+      '<tr><td>Sourcing ' + Math.round(leads * m.ratio) + ' names <span style="color:var(--muted)">— ' + m.ratio + ' per approval</span></td><td>−' + fmt2(m.sourcePer) + '</td></tr>' +
+      '<tr><td>Working ' + leads + ' leads</td><td>−' + fmt2(m.workPer) + '</td></tr>' +
+      '<tr><td>Stripe</td><td>−' + fmt2(m.stripePer) + '</td></tr>' +
+      '<tr><td>Their inbox + workspace</td><td>−' + fmt2(m.inbox) + '</td></tr>' +
+      '<tr class="' + (m.contribution >= 0 ? 'mark' : '') + '"><td><b>Contribution, per client per month</b></td><td class="net' +
+        (m.contribution < 0 ? ' bad' : '') + '"><b>' + fmt2(m.contribution) + '</b></td></tr>';
+
+    // ── first month: the pack ──
+    const PACK_PRICE = 99, PACK_LEADS = 100, PACK_SOURCE = 200;
+    const fSource = PACK_SOURCE * m.pdl;
+    const fWork   = PACK_LEADS * m.work;
+    const fStripe = PACK_PRICE * m.stripePct;
+    const fSetup  = num('v_setup');
+    const fInbox  = m.inbox;
+    const fNet    = PACK_PRICE - fSource - fWork - fStripe - fSetup - fInbox;
+    $('first').innerHTML =
+      '<tr><td>They pay</td><td><b>+' + fmt2(PACK_PRICE) + '</b></td></tr>' +
+      '<tr><td>Sourcing ' + PACK_SOURCE + ' names <span style="color:var(--muted)">— spent whether they approve anyone or not</span></td><td>−' + fmt2(fSource) + '</td></tr>' +
+      '<tr><td>Working the ' + PACK_LEADS + ' included <span style="color:var(--muted)">— if they use the whole pack</span></td><td>−' + fmt2(fWork) + '</td></tr>' +
+      '<tr><td>Stripe on the $99</td><td>−' + fmt2(fStripe) + '</td></tr>' +
+      '<tr><td>Setup — warmed inbox from our pool</td><td>−' + fmt2(fSetup) + '</td></tr>' +
+      '<tr><td>Their inbox + workspace, month 1</td><td>−' + fmt2(fInbox) + '</td></tr>' +
+      '<tr class="' + (fNet >= 0 ? 'mark' : '') + '"><td><b>Net, first month</b></td><td class="net' +
+        (fNet < 0 ? ' bad' : '') + '"><b>' + fmt2(fNet) + '</b></td></tr>';
+
+    // ── the risk note ──
+    $('risk').innerHTML = fNet >= 0
+      ? '<b>The $99 covers itself — just</b>It clears ' + fmt2(fNet) + ' before any share of the ' + fmt(m.floor) +
+        ' platform floor, and that assumes they approve all 100. Every number on this page assumes they come back for month two. <b>The repeat is the business; the pack is the door.</b> Watch sourced-vs-approved on your first real clients — that ratio is what tells you if the door is too generous.'
+      : '<b>The $99 does not cover its own onboarding</b>At these costs the pack loses ' + fmt2(-fNet) +
+        ' before a single share of the ' + fmt(m.floor) + ' platform floor. Either the pack price goes up, the ' +
+        PACK_SOURCE + ' sourced comes down, or setup gets cheaper — <b>as it stands every new client digs the hole deeper.</b>';
+
+    // ── scale table ──
+    $('tbl').innerHTML = [1,5,10,25,50,100,250,500,1000].map(n => {
+      const x = model(n, leads);
+      const bad = x.net < 0 ? ' bad' : '';
+      return '<tr' + (n === clients ? ' class="mark"' : '') + '>' +
+        '<td><b>' + n.toLocaleString() + '</b></td>' +
+        '<td>' + fmt(x.revenue) + '</td>' +
+        '<td>' + fmt(x.cogs) + '</td>' +
+        '<td>' + fmt(x.fixed) + '</td>' +
+        '<td class="net' + bad + '">' + fmt(x.net) + '</td>' +
+        '<td>' + Math.round(x.margin * 100) + '%</td>' +
+        '<td class="net' + bad + '">' + fmt(x.net * 12) + '</td></tr>';
+    }).join('');
+
+    $('tierNote').innerHTML = 'At this average the book needs <b>' + Math.round(m.namesTotal).toLocaleString() +
+      ' names a month</b> from PDL — billed at ' + fmt(m.pdlBilled) +
+      (m.pdlExtra > 1 ? ', of which ' + fmt(m.pdlExtra) + ' is tier you are paying for and not using.' : '.') +
+      ' The platform floor above holds flat as clients grow; the per-client inbox does not, which is why delivery climbs in a straight line.';
+  }
+
+  ['clients','leads'].forEach(id => $(id).addEventListener('input', render));
+  [...FIXED_IDS, ...VAR_IDS].forEach(id => $(id).addEventListener('input', render));
+  render();
+</script>

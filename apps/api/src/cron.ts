@@ -165,6 +165,17 @@ export function startCrons(): void {
   // Daily 08:10 UTC — deliver drip leads (staggered from /figsy/check-performance at 08:00)
   cron.schedule('10 8 * * *', () => callInternal('/leads/drip'), { timezone: 'UTC' })
 
+  // Daily 09:50 UTC — nudge clients whose ICP is approved but unpaid (day 1, 3 and 7 only).
+  cron.schedule('50 9 * * *', () => callInternal('/clients/chase-unpaid'), { timezone: 'UTC' })
+
+  // Daily 08:40 UTC — suspend clients who haven't approved anyone in 30 days (we carry a
+  // warmed sender for them the whole time), warning them a week out.
+  cron.schedule('40 8 * * *', () => callInternal('/clients/cold-check'), { timezone: 'UTC' })
+
+  // Daily 08:20 UTC — finish the 200 the $99 paid for. try_spend_sourcing caps a client at
+  // 100 records/day, so payment day can only deliver half the pack's sourcing target.
+  cron.schedule('20 8 * * *', () => callInternal('/leads/top-up'), { timezone: 'UTC' })
+
   // Daily 07:40 UTC — low credit warning (staggered from /milla/morning-brief-all at 07:30)
   cron.schedule('40 7 * * *', () => callInternal('/ae/low-credits'), { timezone: 'UTC' })
 

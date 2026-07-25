@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { PURCHASE_TX_TYPES } from '../lib/onboarding-pack'
 
 export const creditRouter = Router()
 creditRouter.use(requireAuth)
@@ -20,7 +21,7 @@ creditRouter.get('/', async (req: AuthRequest, res) => {
     // spent = every debit (the $4 charges) as a positive dollar figure.
     const { data: ledger } = await db.from('credit_transactions')
       .select('amount, type').eq('client_id', client.id)
-    const total_purchased_usd = (ledger ?? []).filter(t => ['wallet_topup', 'purchase', 'credit_purchase'].includes(t.type as string)).reduce((s, t) => s + (t.amount ?? 0), 0)
+    const total_purchased_usd = (ledger ?? []).filter(t => PURCHASE_TX_TYPES.includes(t.type as string)).reduce((s, t) => s + (t.amount ?? 0), 0)
     const total_spent_usd     = (ledger ?? []).filter(t => (t.amount ?? 0) < 0).reduce((s, t) => s + Math.abs(t.amount ?? 0), 0)
 
     res.json({

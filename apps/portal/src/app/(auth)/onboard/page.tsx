@@ -17,13 +17,20 @@ type CollectedData = {
   industry: string
   country: string
   website: string
+  /** Who we're speaking to — NOT signer_name, which is who signs the emails. */
+  contact_name: string
+  phone: string
 }
 
 // ── Scripted conversation steps ──────────────────────────────────────────────
+// ⚑ flow v2 gap (step 0): sign-up landed on the old FIGSY intake — wrong voice, and it
+// never asked WHO we're speaking to. Milla is the client's console and the person we build
+// their ICP with, so she is who greets them. Two new questions: their name and their mobile.
+// `signer_name` is who SIGNS the emails and is deliberately not this.
 const STEPS = [
   {
     field: 'company_name' as keyof CollectedData,
-    message: () => "Hey! I'm FIGSY, your AI SDR at K.I.N.D.\n\nI'm about to find your first leads — but let me get to know you first. What's your company name?",
+    message: () => "Hi — I'm Milla.\n\nI'll find your people and run your outreach, and you approve who we work. Two minutes and we're set. What's your company called?",
     placeholder: 'e.g. Acme Corp',
   },
   {
@@ -37,8 +44,18 @@ const STEPS = [
     placeholder: 'e.g. South Africa, Nigeria, UK…',
   },
   {
+    field: 'contact_name' as keyof CollectedData,
+    message: () => "And who am I speaking to? Just your name — it's who we'll ask when we need a decision.",
+    placeholder: 'e.g. Jacques',
+  },
+  {
+    field: 'phone' as keyof CollectedData,
+    message: (d: CollectedData) => `Thanks ${d.contact_name || 'there'}. A mobile number, in case something needs you quickly and email is too slow?\n\nType 'skip' if you'd rather not.`,
+    placeholder: "e.g. +27 82 123 4567  —  or type 'skip'",
+  },
+  {
     field: 'website' as keyof CollectedData,
-    message: () => "Almost done. What's your website? I'll scan it to pre-fill your ICP automatically.\n\nType 'skip' if you'd prefer to do it manually.",
+    message: () => "Last one. What's your website? I'll read it and pre-fill your targeting.\n\nType 'skip' if you'd prefer to do it manually.",
     placeholder: "e.g. acme.co.za  —  or type 'skip'",
   },
 ]
@@ -75,7 +92,7 @@ function OnboardChat() {
   const [step,        setStep]        = useState(0)
   const [input,       setInput]       = useState('')
   const [history,     setHistory]     = useState<ChatMessage[]>([])
-  const [collected,   setCollected]   = useState<CollectedData>({ company_name: '', industry: '', country: '', website: '' })
+  const [collected,   setCollected]   = useState<CollectedData>({ company_name: '', industry: '', country: '', website: '', contact_name: '', phone: '' })
   const [scanning,    setScanning]    = useState(false)
   const [submitting,  setSubmitting]  = useState(false)
   const [figsyLine,   setFigsyLine]   = useState(STEPS[0].message({} as CollectedData))
@@ -157,13 +174,16 @@ function OnboardChat() {
           industry:     next.industry,
           country:      next.country || '',
           website:      websiteValue,
-          phone:        '',
+          phone:        next.phone && next.phone.trim().toLowerCase() !== 'skip' ? next.phone.trim() : '',
+          contact_name: (next.contact_name ?? '').trim(),
           ...(referredBy ? { referred_by: referredBy } : {}),
           ...(termsAccepted ? { terms_accepted: true } : {}),
         }, session.access_token)
         localStorage.removeItem('kind_referral')
         localStorage.removeItem('kind_terms_accepted')
-        router.push('/milla')
+        // The ICP is born in the conversation (flow v2 step 0), not on the lead desk —
+        // /milla is where they land once there is something to approve.
+        router.push('/milla/welcome')
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Something went wrong — please try again')
         setSubmitting(false)

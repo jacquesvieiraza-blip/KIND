@@ -13,7 +13,7 @@ Leads arrive **masked** — browsing and building the plan are free. There is **
 
 | Step | Charge | What happens |
 |---|---|---|
-| **Onboarding pack** | **$99 → 50 leads** ($1.98 each) | the first purchase. Nothing sources or sends until it lands — the ICP stays dormant |
+| **Onboarding pack** | **$99 → 100 leads** (99c each) | the first purchase. Nothing sources or sends until it lands — the ICP stays dormant |
 | **Each approved lead** | **$4, flat and final** | the client's 👍 on a scored person. That's when we start working them |
 | **Top-ups after the pack** | any amount, $4 a lead | |
 
@@ -22,9 +22,13 @@ Leads arrive **masked** — browsing and building the plan are free. There is **
 - We **refuse the charge outright** if there's no live campaign to work the lead — never take money for work that can't run.
 - A **no-show gets two attempts**; after that the client chooses to pursue it themselves or pay a fresh $4 for a re-run.
 
-**What the $99 pack costs us** (rates in §2): 100 records sourced at $0.28 = $28 · 50 leads worked at ~$0.06 = $3 · Stripe on the $99 = $3.17 → **≈ $32, leaving ≈ $67 (68%)**. Their inbox is separate and recurring: **$4.50/month + ~$13/year** for a branded domain.
+**What the $99 pack costs us** (rates in §2): **200 records sourced** at $0.28 = **$56** (they pass on roughly half, so 200 gives them a real choice at 100 approvals) · 100 leads worked at ~$0.06 = **$6** · Stripe on the $99 = **$3.17** · their inbox, month 1 = **$4.50** → **≈ $70, leaving ≈ $29 (30%)**. A branded domain (~$13/yr) is separate and only on conversion.
 
-⚠️ **Implementation note — the wallet is dollar-denominated.** A $99 checkout credits **$99**, which is 24 leads at $4, not 50. Delivering the pack means crediting **$200** on the first purchase (a **$101 onboarding grant** alongside the $99 purchase row) so `try_charge_wallet` needs no new pricing logic. **Revenue stays $99** — the grant must be written as `manual_grant`, never `purchase`/`wallet_topup`, or it inflates the revenue reports. *Not yet built.*
+> The $56 is the number to watch: **PDL is spent at sourcing whether the client approves or not.** Pool-first sourcing reduces it — anyone already in our pool is free — so $56 is the worst case, and it falls as the pool grows across clients in the same market.
+
+**How the pack is implemented (built 25 Jul):** a **counted quota**, not a wallet credit. `lib/onboarding-pack.ts` derives it from rows that already exist — bought the pack (a purchase row) and used so far (leads with `revealed_at`) — so there is no column to keep in sync and no fiction in the balance. The first 100 approvals charge **nothing**; the 101st charges $4 exactly as before. *(The alternative was crediting $499 for a $99 payment so "$4 a lead" happened to reach 100 — a balance that is mostly invention and a revenue figure you can't trust.)* A dead email on a pack approval **hands the slot back** rather than crediting $4 the client never paid.
+
+**No time limit on paid leads (founder-locked 25 Jul).** The old 72h approval TTL never *expired* anything — a surfaced lead simply stopped appearing on the client's desk, with no notice to anyone. Against a 100-lead pack that would have silently eaten most of what they'd bought. Removed: they keep every person we send until they pick or pass.
 
 - **No monthly subscriptions.** (The agent family Milla/Vida/Denise is parked; when it returns it prices per-qualified-lead, not $/mo — #431. ⚠️ *Code note: `packages/shared` still carries legacy $49/$29/$39 monthly prices for those parked products; reconcile when #431 builds.*)
 

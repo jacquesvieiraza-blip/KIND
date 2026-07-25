@@ -14,9 +14,11 @@ import { createClient } from '@/lib/supabase/client'
 type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null }
 type Revealed = { email: string; charged: boolean }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
+type Pack = { active: boolean; included: number; used: number; left: number; nextLeadCostUsd: number }
 type Summary = {
   wallet_balance_usd: number; has_funded: boolean; leads_awaiting: number; meetings_booked: number
   active_campaign: string | null; icp_versions: IcpVersion[]
+  pack?: Pack
 }
 type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 
@@ -166,16 +168,21 @@ export default function MillaHomePage() {
         <a href="/milla/billing?start=1" className="block mb-4 rounded-2xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — load your wallet to start your campaign</p>
-              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b>. Browsing and building your plan is free — nothing sources or sends until you go live. Each approved lead is then a flat $4.</p>
+              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — your first 100 leads are $99</p>
+              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b> and it includes <b>100 approved leads</b>. Browsing and building your plan is free — nothing sources or sends until you go live. After the first 100 it&rsquo;s a flat $4 a lead.</p>
             </div>
-            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 →</span>
+            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 · 100 leads →</span>
           </div>
         </a>
       )}
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <KPI hero k="Wallet balance" v={summary ? `$${summary.wallet_balance_usd.toLocaleString()}` : '…'} s="$4 per approved lead" />
+        {/* While the $99 pack has leads left, THAT is the number that matters to the client —
+            a wallet reading $0 next to "100 included" reads as broken. Falls back to the
+            wallet once the pack is used. */}
+        {summary?.pack?.active && summary.pack.left > 0
+          ? <KPI hero k="Leads included" v={`${summary.pack.left}`} s={`of your ${summary.pack.included} · then $4 each`} />
+          : <KPI hero k="Wallet balance" v={summary ? `$${summary.wallet_balance_usd.toLocaleString()}` : '…'} s="$4 per approved lead" />}
         <KPI k="Leads awaiting you" v={summary ? String(summary.leads_awaiting) : '…'} s={summary && summary.leads_awaiting ? '1 tap to approve' : 'all caught up'} tone="#EC4899" />
         <KPI k="Meetings booked" v={summary ? String(summary.meetings_booked) : '…'} s="this month" tone="#059669" />
         <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />
@@ -227,7 +234,7 @@ export default function MillaHomePage() {
               <div key={l.id} className="bg-white border-[1.5px] border-emerald-200 rounded-2xl p-3.5">
                 <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[14px]">Approved · {l.role} @ {l.company}</b></div>
                 <div className="text-[13px] text-[#4c4368] mt-1">Contact: <b>{revealed[l.id].email}</b></div>
-                <div className="text-[12px] text-[#7c6f9b] mt-0.5">$4 charged — working it now</div>
+                <div className="text-[12px] text-[#7c6f9b] mt-0.5">{revealed[l.id].charged ? '$4 charged' : 'Included in your 100'} — working it now</div>
               </div>
             ))}
             {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (

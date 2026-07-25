@@ -91,10 +91,38 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     return { status: 'no_campaign', revealed: false }
   }
 
-  // 4. Charge the flat $4 (the atomic decrement IS the gate).
-  const { data: charged, error: chargeErr } = await db.rpc('try_charge_wallet', { p_client_id: clientId, p_amount: PRICE_PER_LEAD_USD })
-  if (chargeErr) { await unclaim(); throw chargeErr }
-  if (charged !== true) { await unclaim(); return { status: 'insufficient_funds', revealed: false } }
+  // 4. Charge — unless this approval is still covered by the $99 onboarding pack.
+  //
+  // The pack is 100 INCLUDED approvals (founder-locked 25 Jul), counted rather than faked
+  // into the wallet: crediting $499 for a $99 payment so that "$4 a lead" happened to reach
+  // 100 would have made the balance fiction and the revenue untrustworthy. So the first 100
+  // approvals cost nothing and the 101st charges $4 exactly as before.
+  //
+  // Both facts are derived from rows that already exist — no new columns:
+  //   • bought the pack → a purchase row in credit_transactions
+  //   • used so far     → leads already revealed for this client (an approval reveals)
+  const { packState } = await import('./onboarding-pack')
+  const [{ count: purchaseCount }, { count: approvedCount }] = await Promise.all([
+    db.from('credit_transactions').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase']),
+    db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('revealed_at', 'is', null),
+  ])
+  const pack = packState((purchaseCount ?? 0) > 0, approvedCount ?? 0)
+
+  if (pack.left > 0) {
+    // Covered by the pack — nothing moves in the wallet. Logged so the ledger still shows
+    // every approval, at $0, rather than the work appearing from nowhere.
+    await db.from('credit_transactions').insert({
+      client_id: clientId, type: 'usage', amount: 0, plan: 'work_model',
+      reference: `pack_${leadId}`,
+      note: `Onboarding pack — approval ${pack.used + 1} of ${pack.included} included (lead ${leadId})`,
+    }).then(() => {}, () => {})   // best-effort: a ledger hiccup must never block the reveal
+  } else {
+    const { data: charged, error: chargeErr } = await db.rpc('try_charge_wallet', { p_client_id: clientId, p_amount: PRICE_PER_LEAD_USD })
+    if (chargeErr) { await unclaim(); throw chargeErr }
+    if (charged !== true) { await unclaim(); return { status: 'insufficient_funds', revealed: false } }
+  }
 
   // 5. Reveal the email (Hunter waterfall only when we don't already have one).
   let email: string | null = claim.email ?? null
@@ -109,9 +137,18 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   }
 
   // 6. No usable email → REVERSE the $4 (never bill a dud) + un-claim.
+  //
+  // ONLY reverse what was actually taken. A pack approval charged nothing, so crediting $4
+  // here would hand the client money they never paid — a dud lead would literally pay them.
+  // Instead the pack slot is handed back by removing the usage row, so the approval doesn't
+  // count against their 100.
   if (!email) {
-    const { error: revErr } = await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: PRICE_PER_LEAD_USD })
-    if (revErr) console.error('[approve] $4 REVERSAL FAILED for client', clientId, 'lead', claim.id, revErr)
+    if (pack.left > 0) {
+      await db.from('credit_transactions').delete().eq('reference', `pack_${leadId}`).then(() => {}, () => {})
+    } else {
+      const { error: revErr } = await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: PRICE_PER_LEAD_USD })
+      if (revErr) console.error('[approve] $4 REVERSAL FAILED for client', clientId, 'lead', claim.id, revErr)
+    }
     await unclaim()
     return { status: 'no_email', revealed: false }
   }
@@ -137,7 +174,9 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   // 8. Start the outreach on the already-paid lead — charges nothing (prepaid).
   await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch(() => {})
 
-  return { status: 'approved', revealed: true, email, charged: true }
+  // `charged` reflects whether money actually moved — a pack approval is free, and Milla
+  // says so on the card rather than claiming a $4 that never happened.
+  return { status: 'approved', revealed: true, email, charged: pack.left === 0 }
 }
 
 // Pass = client says "not a fit". No charge, no reveal; mark the lead so it leaves the queue.

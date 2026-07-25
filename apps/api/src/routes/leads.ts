@@ -222,7 +222,10 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)      // #493 — only leads the operator has Sent to the client
-      .gt('approval_expires_at', new Date().toISOString()) // #492 — enforce the 72h TTL: an expired lead leaves the desk (no charge, no hold ever created)
+      // NO TIME LIMIT ON PAID LEADS (founder-locked 25 Jul). The 72h TTL used to filter here,
+      // but it never *expired* anything — a surfaced lead simply stopped appearing, with no
+      // notice to anyone. Against a 100-lead pack that would have silently eaten most of what
+      // the client had paid for. They keep every person we send until they pick or pass.
       .is('revealed_at', null)
       .neq('status', 'passed')
       .order('score', { ascending: false, nullsFirst: false })
@@ -286,14 +289,13 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const now = new Date()
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
-    const nowIso = now.toISOString()
 
     const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases] = await Promise.all([
       db.from('clients').select('wallet_balance_usd').eq('id', clientId).maybeSingle(),
       // mirrors /for-approval — the exact set of masked cards the client can act on
       db.from('leads').select('id', { count: 'exact', head: true })
         .eq('client_id', clientId).not('delivered_at', 'is', null)
-        .not('surfaced_for_approval_at', 'is', null).gt('approval_expires_at', nowIso)
+        .not('surfaced_for_approval_at', 'is', null)   // no TTL — see /for-approval above
         .is('revealed_at', null).neq('status', 'passed'),
       db.from('calendar_bookings').select('id', { count: 'exact', head: true })
         .eq('client_id', clientId).eq('status', 'confirmed').gte('start_time', monthStart),
@@ -314,6 +316,13 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
       db.from('credit_transactions').select('id', { count: 'exact', head: true })
         .eq('client_id', clientId).in('type', ['wallet_topup', 'purchase', 'credit_purchase']),
     ])
+
+    // Pack state: bought it? how many of the 100 have they used? Both derived from rows that
+    // already exist, so there is no column to keep in sync.
+    const { packState } = await import('../lib/onboarding-pack')
+    const { count: approvedEver } = await db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('revealed_at', 'is', null)
+    const pack = packState((purchases.count ?? 0) > 0, approvedEver ?? 0)
 
     const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
     const arr = (v: unknown): string[] => Array.isArray(v) ? (v as string[]).filter(Boolean) : []
@@ -337,6 +346,8 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
         // NO FREEBIES — true once the client has made their first ($99) purchase. The Milla
         // dashboard gates on this: no purchase → paywall to Billing.
         has_funded: (purchases.count ?? 0) > 0,
+        // THE $99 PACK — 100 approvals included, counted rather than faked into the wallet.
+        pack,
         leads_awaiting:  awaiting.count ?? 0,
         meetings_booked: meetings.count ?? 0,
         // Real all-time totals + true $ spend. ONE WALLET: spend = approved leads × $4

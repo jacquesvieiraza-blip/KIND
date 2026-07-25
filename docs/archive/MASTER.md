@@ -54,7 +54,7 @@
 *Claude protocol: read Section 0 before touching anything. Update Section 0 as the last action of every session. Commit immediately.*
 
 ### ▶ 4 JUN — END OF DAY. NOT LIVE YET. TOMORROW START HERE (in order):
-1. **🚨 SECURITY — rotate exposed credentials** (pasted in chat 4 Jun while debugging). Order: `STRIPE_SECRET_KEY` (sk_live) → `SUPABASE_SERVICE_ROLE_KEY` → DB password (`DATABASE_URL`) → `SUPABASE_ANON_KEY` → then Anthropic/Resend/Apollo/HubSpot/Admin/Stripe-webhook keys. Claude will walk each step.
+1. **🚨 SECURITY — rotate exposed credentials** (pasted in chat 4 Jun while debugging). Order: `STRIPE_SECRET_KEY` (sk_live) → `SUPABASE_SERVICE_ROLE_KEY` → DB password (`[REDACTED 25 Jul — was plaintext here; the value remains in git history, so treat it as burned and rotate it when Supabase access returns]`) → `SUPABASE_ANON_KEY` → then Anthropic/Resend/Apollo/HubSpot/Admin/Stripe-webhook keys. Claude will walk each step.
 2. **Move `FEATURE_PORTAL_V2=true` to the Portal service** (it's wrongly on API). 30 sec.
 3. **Create dogfood account** → ping Claude to grant FIGSY + credits.
 4. **Review + merge branch `claude/ai-business-roadmap-U3OWJ`** — contains Calendly fix, CRM dedup feature (needs migration 010 run), content docs, redacted chat-archive. Then run migration `010_crm_dedup.sql`.
@@ -148,7 +148,7 @@
 **On 4 Jun the full API variable list (incl. live secrets) was pasted into the Claude chat while debugging a build error. These MUST be rotated. Priority order:**
 - [ ] **`STRIPE_SECRET_KEY`** (`sk_live_...`) — rotate in Stripe → Developers → API keys → roll key. Update Railway API. **HIGHEST — live money key.**
 - [ ] **`SUPABASE_SERVICE_ROLE_KEY`** — rotate in Supabase → Settings → API. Full DB access, bypasses RLS. Update Railway API.
-- [ ] **`DATABASE_URL`** — DB password (`Necas!Denise@ckal66`) exposed. Reset Postgres password in Supabase → update `DATABASE_URL` in Railway API.
+- [ ] **`DATABASE_URL`** — DB password (`[REDACTED 25 Jul — was plaintext here; the value remains in git history, so treat it as burned and rotate it when Supabase access returns]`) exposed. Reset Postgres password in Supabase → update `DATABASE_URL` in Railway API.
 - [ ] **`SUPABASE_ANON_KEY`** — rotates with the project JWT secret (do alongside service-role). Update API + Portal + Admin (it's `NEXT_PUBLIC_` in the front-ends).
 - [ ] **`ANTHROPIC_API_KEY`** · **`RESEND_API_KEY`** · **`RESEND_WEBHOOK_SECRET`** · **`APOLLO_API_KEY`** · **`HUBSPOT_API_KEY`** · **`ADMIN_SECRET_KEY`** · **`STRIPE_WEBHOOK_SECRET`** — rotate each at its provider, update Railway.
 - Note: Paystack keys exposed were `sk_test_` (test mode) — lower priority but rotate for hygiene.

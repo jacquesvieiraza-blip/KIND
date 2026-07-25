@@ -130,7 +130,6 @@ interface CampaignSettings {
   send_hour_utc?: number
   intent_signal_enroll?: boolean
   intent_signal_types?: string[]
-  personalized_images_enabled?: boolean
 }
 
 interface ParsedIntent {
@@ -637,7 +636,6 @@ export default function FigsyPage() {
       send_hour_utc:         campaign.settings?.send_hour_utc ?? 7,
       intent_signal_enroll:  campaign.settings?.intent_signal_enroll ?? false,
       intent_signal_types:   campaign.settings?.intent_signal_types ?? ['job_change', 'funding'],
-      personalized_images_enabled: (campaign as any).personalized_images_enabled ?? false,
     }
   }
 
@@ -660,7 +658,6 @@ export default function FigsyPage() {
         send_hour_utc:         settings.send_hour_utc,
         intent_signal_enroll:  settings.intent_signal_enroll,
         intent_signal_types:   settings.intent_signal_types,
-        personalized_images_enabled: settings.personalized_images_enabled,
       }, session?.access_token)
       setCampaigns(prev => prev.map(c => c.id === campaign.id ? res.data : c))
       // Clear local override since campaign now has updated settings
@@ -1413,27 +1410,12 @@ export default function FigsyPage() {
                         )}
                       </div>
 
-                      {/* P2-13 — Personalised email images */}
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1.5">
-                          <span>🖼️</span> Personalised Email Images
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="checkbox"
-                            id={`img-${campaign.id}`}
-                            checked={campaignSettings.personalized_images_enabled ?? false}
-                            onChange={e => setCampaignSettings(s => ({ ...s, personalized_images_enabled: e.target.checked }))}
-                            className="rounded border-purple-200 text-[#7C3AED] focus:ring-[#7C3AED]"
-                          />
-                          <label htmlFor={`img-${campaign.id}`} className="text-xs text-gray-700">
-                            Inject lead name &amp; company into each email as a branded SVG image
-                          </label>
-                        </div>
-                        <p className="text-[11px] text-[#9B8EC4] mt-1">
-                          FIGSY generates a personalised card with the lead's first name and company, appended to the email body.
-                        </p>
-                      </div>
+                      {/* P2-13 Personalised email images — REMOVED 25 Jul. The toggle wrote
+                          `personalized_images_enabled` and NOTHING in the codebase ever read
+                          it: no image was ever generated or appended. Same class as the
+                          send-window bug — a control that promises behaviour the engine does
+                          not have. Deleted rather than left to mislead; if personalised
+                          images are ever built, the toggle comes back with a reader. */}
 
                       <button
                         onClick={() => handleSaveSettings(campaign)}

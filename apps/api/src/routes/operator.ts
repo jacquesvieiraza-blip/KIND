@@ -1004,6 +1004,47 @@ operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
 // each client has isolated, warmed sending and that it is HEALTHY — sends, opens, bounces,
 // opt-outs, warm-up state and the daily cap, per inbox. Previously invisible: a burning
 // inbox would take delivery down silently.
+// ── THE SYSTEM CHECK — everything live, both halves, one call ─────────────────────
+//
+// Founder's spec, 26 Jul: *"I want to know everything live reported back through one check.
+// reports back errors of state."* Plus the integrity check — what the already-shipped bugs
+// actually did, and to whom.
+//
+// READ-ONLY. Every row is CHECKED-OK / CHECKED-BROKEN / NOT-MEASURED with a reason, and
+// nothing is green unless it was really probed. Provider probes use each vendor's cheapest
+// free endpoint; PDL is deliberately NOT called, because every PDL request costs money and a
+// health report must not spend to prove a key works.
+//
+// Slow by design (it makes real network calls), so it runs on demand from a button — never
+// on page load.
+operatorRouter.get('/system', async (_req: Request, res: Response) => {
+  try {
+    const { runSystemCheck } = await import('../lib/system-probes')
+    const { tally, systemHeadline } = await import('../lib/system-check')
+    const { runIntegrity } = await import('../lib/integrity')
+
+    // Integrity must not be able to take the system report down, and vice versa.
+    const [sections, integrity] = await Promise.all([
+      runSystemCheck(),
+      runIntegrity().catch(e => ({
+        checks: [], summary: { critical: 0, high: 0, medium: 0, clean: 0, unknown: 1 },
+        headline: `The integrity check could not run: ${e instanceof Error ? e.message : String(e)}`,
+      })),
+    ])
+    const totals = tally(sections)
+    res.json({ success: true, data: {
+      generated_at: new Date().toISOString(),
+      totals,
+      headline: systemHeadline(totals),
+      sections,
+      integrity,
+    } })
+  } catch (err) {
+    console.error('[operator/system]', err)
+    res.status(500).json({ success: false, error: 'The system check itself failed — that is a finding, not a clean result.' })
+  }
+})
+
 operatorRouter.get('/engine', async (_req: Request, res: Response) => {
   try {
     const since = new Date(Date.now() - 7 * 864e5).toISOString()

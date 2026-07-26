@@ -42,6 +42,10 @@ const OPERATE: { href: string; label: string; icon: string }[] = [
 ]
 
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
+  // FIRST on purpose. It is the one screen that answers "is anything wrong right now" for
+  // BOTH halves at once — and a control you cannot find is not a control (the migration-card
+  // lesson, #564). Everything below it is a detail view of something this page summarises.
+  { href: '/vida/system',     label: 'System',     icon: '🩺' },
   { href: '/vida/engine',     label: 'Engine',     icon: '📡' },
   { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
   // Was also labelled "Clients", identical to /vida in the menu above — two entries, same

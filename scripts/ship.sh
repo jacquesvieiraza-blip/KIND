@@ -20,10 +20,49 @@ set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
 
+# ── 0/4  THE GATE ───────────────────────────────────────────────────────────────
+# There is no CI on this repo (GitHub Actions unavailable — flagged account, appeal
+# unanswered, no further tickets possible), and here main IS live. So the deploy is the only
+# gate that matters, and this is it: type-check, the full test suite, both client-facing
+# builds, doc-lint.
+#
+# The pull happens FIRST, inside this block, because checking the code you are about to
+# replace tells you nothing — we must check what is actually going out.
+#
+# Two escape hatches, both deliberate:
+#   SHIP_DRY_RUN=1  run the gate and STOP. Proves the wiring without deploying.
+#   SKIP_CHECKS=1   deploy without checking. For env-var-only ships, where the checks
+#                   cannot see the thing being changed. Warns loudly enough that nobody
+#                   does it by accident.
 echo ""
-echo "== 1/3  Getting the latest code =="
+echo "== 0/4  Pulling, then checking =="
 git checkout main --quiet
 git pull --ff-only
+
+if [ "${SKIP_CHECKS:-0}" = "1" ]; then
+  echo ""
+  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  echo "!!  SKIP_CHECKS=1 — DEPLOYING WITHOUT CHECKS.              !!"
+  echo "!!  main is LIVE. You are shipping straight to clients.     !!"
+  echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+  echo ""
+elif ! bash scripts/check.sh; then
+  echo ""
+  echo "═══════════════ NOTHING WAS DEPLOYED ═══════════════"
+  echo "The checks failed, so ship.sh stopped before touching Railway."
+  echo "Whatever is live stays live — which is the safe outcome."
+  echo ""
+  echo "Fix what check.sh listed above, then run this again."
+  exit 1
+fi
+
+if [ "${SHIP_DRY_RUN:-0}" = "1" ]; then
+  echo ""
+  echo "═══════════════ DRY RUN — STOPPING HERE ═══════════════"
+  echo "The gate ran and passed. SHIP_DRY_RUN=1 means nothing is deployed."
+  echo "Run without SHIP_DRY_RUN to ship for real."
+  exit 0
+fi
 HEAD=$(git rev-parse --short HEAD)
 echo "Local main is at: $HEAD  ($(git log -1 --pretty=%s | cut -c1-70))"
 

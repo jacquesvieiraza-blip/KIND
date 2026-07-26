@@ -35,12 +35,18 @@ const OPERATE: { href: string; label: string; icon: string }[] = [
   { href: '/vida/audit',       label: 'Audit log',         icon: '📋' },
   { href: '/vida/reports',     label: 'Reports & billing', icon: '🧾' },
   { href: '/vida/nexus',       label: 'Nexus signals',     icon: '🧠' },
+  // /demo has existed all along and was in NEITHER menu, so the only way to open a demo
+  // account was to know the URL. That is the one screen you reach under time pressure in
+  // front of a prospect.
+  { href: '/demo',             label: 'Demo accounts',     icon: '🎬' },
 ]
 
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   { href: '/vida/engine',     label: 'Engine',     icon: '📡' },
   { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
-  { href: '/vida/clients-admin',    label: 'Clients',    icon: '👥' },
+  // Was also labelled "Clients", identical to /vida in the menu above — two entries, same
+  // word, different screens. This one is the admin table (grants, wallets, flags).
+  { href: '/vida/clients-admin',    label: 'Client admin',    icon: '🗂' },
   { href: '/vida/money-path', label: 'Money Path', icon: '💰' },
   { href: '/vida/billing',    label: 'Billing',    icon: '🧾' },
   { href: '/vida/revenue',    label: 'Revenue',    icon: '📈' },
@@ -131,7 +137,7 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
         <div className="ml-auto flex items-center gap-2">
           {/* Engine health — was the rail's "ENGINE HEALTH · FIGSY" box. */}
           <span className="hidden md:inline-flex items-center gap-2 text-xs font-semibold text-[#5c5279] bg-[#f6f2fd] border border-[#e4dcf7] rounded-full px-3 py-1"
-            title="Sent today · replies to triage · awaiting your approval">
+            title="Sent today · open replies to triage · drafts awaiting your approval. Demos and house accounts excluded.">
             <span>{health?.sent_today ?? '—'} sent</span>
             <span className="text-[#cfc4e8]">·</span>
             <span>{health?.replies_today ?? '—'} to triage</span>

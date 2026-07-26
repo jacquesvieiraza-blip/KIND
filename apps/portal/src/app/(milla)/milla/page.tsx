@@ -19,6 +19,9 @@ type Pack = { active: boolean; included: number; used: number; left: number; nex
 type Summary = {
   wallet_balance_usd: number; has_funded: boolean; leads_awaiting: number; meetings_booked: number
   active_campaign: string | null; icp_versions: IcpVersion[]
+  /** The newest campaign's real state, whatever it is — drives the live/paused badge. */
+  campaign_name?: string | null
+  campaign_status?: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived' | null
   /** Every lead they have ever approved — releases the minimum-20 gate at 20. */
   leads_approved_total?: number
   pack?: Pack
@@ -28,7 +31,16 @@ type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
-const CHIPS = ['Which look strongest?', 'Find more like these', 'Pause campaign', 'Show my ROI']
+// Milla answers; she does not act. "Pause campaign" and "Find more like these" used to read
+// as buttons that did those things — they don't, and the message went into a table nobody
+// read. It now pages the operator and appears in Vida → Asks, so these are honest REQUESTS
+// rather than controls: phrased as asking us, because that is what actually happens.
+const CHIPS = [
+  'Which of these look strongest?',
+  'Please find more like these',
+  'Please pause my campaign',
+  'How is my ROI looking?',
+]
 
 export default function MillaHomePage() {
   const router = useRouter()
@@ -57,10 +69,16 @@ export default function MillaHomePage() {
       setSummary(s.data); setLeads(l.data)
       const n = s.data.leads_awaiting
       const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
+      // The greeting quoted "a flat $4 per lead, final" to every client, including one
+      // holding 100 free approvals. It was written before the pack existed.
+      const left = s.data.pack?.active ? (s.data.pack.left ?? 0) : 0
+      const priceLine = left > 0
+        ? `**${left} of your ${s.data.pack!.included} included leads** are still yours — approving costs nothing until they run out`
+        : '**nothing is charged until you approve — then a flat $4 per lead, final**'
       // Functional update, and the greeting is keyed 'greet': the thread-history effect
       // below races this one, and whichever lands second must not wipe the other.
       setMessages(m => [{ id: 'greet', role: 'assistant', content: n > 0
-        ? `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; **nothing is charged until you approve — then a flat $4 per lead, final**. Want me to talk you through them?`
+        ? `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; ${priceLine}. Want me to talk you through them?`
         : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
         ...m.filter(x => x.id !== 'greet')])
     } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your dashboard') }
@@ -129,11 +147,18 @@ export default function MillaHomePage() {
         for (const x of res.results) if (x.status === 'approved') next[x.id] = { email: x.email ?? '', charged: !!x.charged }
         return next
       })
-      setPicked(new Set())
+      // Only the ones that actually went through leave the selection. Clearing everything
+      // made a client re-find the leads they still needed to retry.
+      const done = new Set(res.results.filter(x => x.status === 'approved').map(x => x.id))
+      setPicked(p => new Set([...p].filter(id => !done.has(id))))
       if (res.approved < res.attempted) setError(res.message)
+      // The pack counter is the number they watch most, and it was stale until a manual
+      // refresh — approve 20 and the hero still read "100 included".
+      void load()
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 402) setTopUp('You need $4 in your wallet to approve. Top up to continue.')
+      // A 20-lead batch short on funds used to be told "you need $4".
+      if (err.status === 402) setTopUp(`You need $${ids.length * 4} in your wallet to approve ${ids.length}. Top up to continue.`)
       else if (err.message === 'batch_minimum') setError(`Choose ${gate.required} to start — we need enough people to run a real campaign.`)
       else setError(err.message || 'Could not approve — please try again')
     } finally { setActing(null) }
@@ -145,6 +170,8 @@ export default function MillaHomePage() {
       const tok = await token()
       const res = await api.post<{ email: string; charged: boolean }>(`/leads/${id}/approve`, {}, tok)
       setRevealed(r => ({ ...r, [id]: { email: res.email, charged: res.charged } }))
+      void load()   // keep the pack counter honest — see approveSelected
+
     } catch (e) {
       const err = e as Error & { status?: number }
       if (err.status === 402) setTopUp('You need $4 in your wallet to approve. Top up to continue.')
@@ -198,6 +225,18 @@ export default function MillaHomePage() {
     if (approvedEver >= MIN) return { required: 1, batch: false }
     return { required: Math.min(MIN - approvedEver, pending.length), batch: pending.length > 0 }
   })()
+  // What is actually happening with their sending, in the client's words. Ordered by what
+  // matters most to them: unpaid beats paused, because paying is what unblocks it.
+  const sendState = (() => {
+    if (needsGoLive) return { label: 'Not started — waiting on your $99', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
+    const st = summary?.campaign_status
+    if (st === 'active') return { label: 'Campaign live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
+    if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
+    if (st === 'completed' || st === 'archived') return { label: 'Campaign finished', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    if (st === 'draft') return { label: 'Being set up', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+    return { label: 'Nothing sending yet', tone: 'text-[#5c5279]', dot: 'bg-[#b3a9cc]' }
+  })()
+
   const rich = (t: string) => t.split(/(\*\*[^*]+\*\*)/g).map((p, i) => p.startsWith('**') && p.endsWith('**')
     ? <b key={i} className="text-[#7C3AED]">{p.slice(2, -2)}</b> : <span key={i}>{p}</span>)
 
@@ -259,7 +298,12 @@ export default function MillaHomePage() {
           <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#eee7f7]">
             <span className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white font-extrabold text-[13px] flex items-center justify-center">M</span>
             <div><b className="text-[15px]">Milla</b> <span className="text-[#9b8ec4] text-[12.5px]">· conversational &amp; strategic</span></div>
-            <span className="ml-auto text-[12.5px] font-semibold text-[#059669] inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Campaign live</span>
+            {/* Was hardcoded "● Campaign live" with no condition on it, sitting inches from
+                the KPI that correctly said "Dormant" — the product contradicting itself on
+                one screen. Now it reads the real campaign state. */}
+            <span className={`ml-auto text-[12.5px] font-semibold inline-flex items-center gap-1.5 ${sendState.tone}`}>
+              <span className={`w-2 h-2 rounded-full ${sendState.dot}`} /> {sendState.label}
+            </span>
           </div>
           <div ref={chatBodyRef} className="flex-1 overflow-y-auto px-4 py-4">
             <div className="max-w-2xl space-y-3">
@@ -350,7 +394,13 @@ export default function MillaHomePage() {
                 </div>
               )
             })}
-            <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">$4 per approved lead — final. Reviewing is free.</div>
+            {/* Said "$4 per approved lead" even while the button above it said "included" —
+                two prices on one screen. */}
+            <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">
+              {freeApproval
+                ? `Included in your ${summary?.pack?.included ?? 100} — nothing charged until the pack runs out. Reviewing is free.`
+                : '$4 per approved lead — final. Reviewing is free.'}
+            </div>
           </div>
           {/* THE START BAR — sticks to the bottom of the lead desk while the gate is on, so
               "how many more" is never something the client has to count for themselves. */}

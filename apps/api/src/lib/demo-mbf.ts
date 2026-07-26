@@ -237,10 +237,17 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
 
   // ── Enrolments + sent history for the approved twelve ───────────────────────────
   const approvedIdx = MBF_CAST.map((c, i) => ({ c, i })).filter(x => x.c.state === 'approved')
+  // `enrolled`, NOT `active` — the value the PRODUCT writes at `figsy.ts:1609`.
+  //
+  // The seed invented `active`, the live CHECK constraint rejected it, and the demo built
+  // with *"enrolments: violates check constraint figsy_enrollments_status_check"*. A demo
+  // that writes values the real path never writes is not a demo of this product; it is a
+  // second, divergent implementation that happens to look similar — and it will keep
+  // breaking against constraints the real path satisfies.
   const enrolRows = approvedIdx.map(({ i }) => ({
     client_id: clientId, campaign_id: camp.id, lead_id: leadIds[i],
     current_step: i % 3 === 0 ? 3 : i % 3 === 1 ? 2 : 1,
-    status: 'active', enrolled_at: ago(7 - Math.min(6, Math.floor(i / 3))),
+    status: 'enrolled', enrolled_at: ago(7 - Math.min(6, Math.floor(i / 3))),
   }))
   await step('enrolments', () => db.from('figsy_enrollments').insert(enrolRows))
 

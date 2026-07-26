@@ -18,6 +18,9 @@ import { emitSignal } from './signals'
 import { rateLimit } from '../lib/rate-limit'
 import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
 import { sendFounderAlert } from '../lib/alerts'
+// The provider-agnostic reply spine (#589). Resend feeds it today; Instantly and Smartlead
+// feed the same functions next, so the five reply defects are fixed once, not three times.
+import { isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, REPLY_LOOKUP_STATUSES } from '../lib/reply-ingest'
 
 // Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
 // is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
@@ -216,18 +219,48 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       }
     }
 
-    if (!fromEmail || !body) { res.status(200).json({ received: true }); return }
+    const inbound = {
+      fromEmail, fromName, body,
+      subject: (payload.subject as string) ?? null,
+      providerMessageId: emailId || null,
+      provider: 'resend' as const,
+    }
 
-    // Find lead by email
-    const { data: lead } = await db.from('leads')
-      .select('id, client_id').eq('email', fromEmail).maybeSingle()
-    if (!lead) { res.status(200).json({ received: true }); return }
+    // R2 / R3 — an unusable reply is a FINDING, not a silent 200. The message is still in
+    // the provider's inbox; the only thing that was ever missing is that anyone knew.
+    const unusable = isUnusable(inbound)
+    if (unusable) {
+      await alertDroppedReply(
+        unusable === 'no_sender' ? 'the sender address could not be read' : 'the body arrived empty',
+        inbound,
+        unusable === 'no_body' && emailId
+          ? `Resend's email.received webhook is metadata-only and the follow-up body fetch for ${emailId} returned nothing.`
+          : undefined)
+      res.status(200).json({ received: true, dropped: unusable }); return
+    }
 
-    // Find active enrollment
+    // R1 — EVERY match, across ALL clients. This was `.maybeSingle()`, which ERRORS on more
+    // than one row: two clients prospecting the same person meant `lead` came back null and
+    // the reply was dropped forever behind a 200. The reply is now routed into each matching
+    // client's thread, because picking one would hand one client's reply to another.
+    let matches: { id: string; client_id: string }[]
+    try {
+      matches = await findLeadMatches(fromEmail)
+    } catch (e) {
+      await alertDroppedReply('the lead lookup failed', inbound, e instanceof Error ? e.message : String(e))
+      res.status(200).json({ received: true, dropped: 'lookup_failed' }); return
+    }
+    if (matches.length === 0) { res.status(200).json({ received: true }); return }
+
+    let lastReplyId: string | undefined
+    for (const lead of matches) {
+    // R6 — includes 'replied'. A hot reply sets the enrollment to `replied`, so the SECOND
+    // reply from that prospect matched nothing and skipped every hot path — no alert, no CRM
+    // deal, no counter. The most valuable reply in the funnel is usually the second one.
     const { data: enrollment } = await db.from('figsy_enrollments')
       .select('id, campaign_id')
       .eq('lead_id', lead.id)
-      .in('status', ['enrolled', 'in_progress'])
+      .in('status', [...REPLY_LOOKUP_STATUSES])
       .order('enrolled_at', { ascending: false })
       .limit(1).maybeSingle()
 
@@ -291,17 +324,11 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     // 'unsubscribe'); previously only 'opt_out' was suppressed, so an 'unsubscribe'
     // reply kept receiving steps 2/3 (POPIA violation). Treat both identically.
     if (classification === 'opt_out' || classification === 'unsubscribe') {
-      if (enrollment) {
-        await db.from('figsy_enrollments')
-          .update({ status: 'opted_out' }).eq('id', enrollment.id)
-      }
-      await db.from('opt_out_blocklist').upsert({
-        email:  fromEmail,
-        reason: 'replied_opt_out',
-      }, { onConflict: 'email', ignoreDuplicates: false })
-      await db.from('leads').update({
-        status: 'opted_out', opted_out_at: new Date().toISOString(),
-      }).eq('email', fromEmail)
+      // R7 — all three writes were UNCHECKED. The blocklist is the single suppression source
+      // the send path consults, so a silent failure there means we keep emailing someone who
+      // told us to stop. `suppressOptOut` checks each write and alerts with the address, so
+      // it can be added by hand — an alert that names the person is actionable.
+      await suppressOptOut(fromEmail, enrollment ? [enrollment.id] : [])
 
       // ONE WALLET: a terminal opt-out moves no money — the $4 was final at approve.
       if (enrollment?.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
@@ -467,7 +494,10 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       } catch (autoErr) { console.error('[auto-topup]', autoErr) }
     }
 
-    res.status(200).json({ received: true, id: reply?.id })
+    lastReplyId = reply?.id
+    }  // ← end of the per-client loop (R1)
+
+    res.status(200).json({ received: true, id: lastReplyId, clients: matches.length })
   } catch (err) {
     console.error('[figsy/inbound]', err)
     res.status(200).json({ received: true }) // Always 200 to webhook provider

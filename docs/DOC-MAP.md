@@ -18,6 +18,9 @@
 | **[PRODUCT-INVENTORY.md](./PRODUCT-INVENTORY.md)** | product STATUS — the script-counted board (the ONLY status home) | "what's built / live / left?" |
 | **[KIND-MASTER.md](./KIND-MASTER.md)** | strategy · decisions · history · session log | "why did we decide X?" |
 | **[V2-TRACKER.md](./V2-TRACKER.md)** | future detail · roadmap · risks · steals | "the longer-term plan" |
+| **[CASHFLOW-LAB.html](./CASHFLOW-LAB.html)** | **the money model of record** — two needles (clients · avg approvals/client/month), every cost line an editable box, live recompute. Founder-locked 25 Jul (#556). `run-costs-and-cashflow.md` is its **workings**; if the two disagree, the lab wins. | "can we scale? what does one more client actually do?" |
+
+> **🛑 Retired 26 Jul — `BUILD-STATUS.md` → [`archive/BUILD-STATUS-26JUL.md`](./archive/BUILD-STATUS-26JUL.md) (#555).** It had become a **fifth status doc**, which rule 1 above exists to prevent, and it went wrong in exactly the predicted way: its summary read *"the ONLY items not built: #515 + CI · Nothing left"* while **#211 — the entire per-client sending spine — was 🔴** and no paying client could be delivered. That line is what made the founder stop trusting the docs. **Status has one home. When a doc starts holding status, retire it, don't maintain it.**
 
 **Always-loaded config:** [`CLAUDE.md`](../CLAUDE.md) (agent rules) · [`RULEBOOK.md`](./RULEBOOK.md) (working rules, §11 preview-before-live) · [`README.md`](./README.md) (signpost) · [`TECH-STACK.md`](./TECH-STACK.md) (vendor register) · [`client-flow-sop.md`](./client-flow-sop.md) (**THE SOP**).
 

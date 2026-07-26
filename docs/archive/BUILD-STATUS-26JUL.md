@@ -1,6 +1,13 @@
-# 🛠️ BUILD-STATUS — Milla&Vida live-build tracker
+# 🗄️ ARCHIVED 26 Jul 2026 — BUILD-STATUS (do NOT read this for status)
 
-> **What this is:** the running, item-by-item state of the Milla&Vida build — every page and feature, whether the code is merged, and whether it's actually live for the founder. This is the day-to-day "where are we / what's left" board for the M&V rebuild. Status of record for the wider product still lives in **PRODUCT-INVENTORY**; this doc is the focused M&V working list, updated after every build.
+> # 🛑 RETIRED — THIS DOC WAS WRONG, AND IT IS WHY THE DOCS STOPPED BEING TRUSTED
+> **Retired 26 Jul 2026 · inventory item #555 · superseded by [`PRODUCT-INVENTORY.md`](../PRODUCT-INVENTORY.md) and [`LAUNCH-PAD.md`](../LAUNCH-PAD.md).**
+>
+> This was a **fifth status doc**, which root `CLAUDE.md` forbids for exactly this reason. Its summary line read *"The ONLY items not built: 🚩 #515 magic-link + ⏸ Auto-deploy/CI"* and *"Nothing left"* — while **#211, the entire per-client sending spine, was 🔴 and unbuilt**, meaning a client who paid could not be delivered at all. It also rolled *"FIGSY sourcing · ICP builder · campaigns · sequences · inbox"* into one ✅ 🩷 row, which reads as "sending works". It does not: `figsy.ts:26` is a single shared `FROM` constant, `client_inboxes` is read nowhere on any send path, and no SMTP client is installed.
+>
+> **Everything below is dated record only.** Current truth: status → `PRODUCT-INVENTORY.md` · execution → `LAUNCH-PAD.md` · why/history → `KIND-MASTER.md` · future → `V2-TRACKER.md` · money → `CASHFLOW-LAB.html`.
+
+**What this was:** the running, item-by-item state of the Milla&Vida build — every page and feature, whether the code was merged, and whether it was live for the founder.
 
 **Legend — Main:** ✅ merged · ⚠️ partial · 🟡 open PR · ❌ not built
 **Live for you:** 🟢 confirmed seen · 🩷 deployed, not walked · ⏳ merged, ships on next `bash scripts/ship.sh` · ❌ not built

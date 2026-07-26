@@ -1,77 +1,122 @@
-# 🚀 LAUNCH PAD — Milla&Vida, the 14-day build
+# 🚀 LAUNCH PAD — zero product → live, the execution list
 
-> 🛠️ **Live item-by-item build status → [`docs/BUILD-STATUS.md`](./BUILD-STATUS.md)** — every page/feature, merged-vs-live, and what's left. Updated after every build.
+> **The one page you open.** Every row here either **gets us live** or **unblocks a row that does**. If it isn't on this page, it does not block launch — it lives in V2-TRACKER.
+> **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
+> **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-> **The one daily page.** Everything on it either ships in the 14 days or unblocks them. **If it's not on this page, it does not block launch.**
-> Status of record → **PRODUCT-INVENTORY** (#477–#491 + THE NEW MAP) · why/history → **KIND-MASTER** session log · future → **V2-TRACKER** "🛝 MILLA&VIDA FUTURE".
-
-**THE PLAN (founder-locked 22 Jul):** we sell a **managed service** on the FIGSY engine, trading as **Milla&Vida**. **Vida** = OUR operator console (we run ICP → source → draft → send → triage → book). **Milla** = the client portal (masked leads · 👍 approve / ✕ pass · concierge chat · meetings · reports). **Nexus** = per-client private brain. **Money (locked 24 Jul, #492 — ONE WALLET / work model, supersedes the 23-Jul re-time):** a single dollar wallet per client · first purchase **$99**, then free top-ups ($40/$100/$200) · the client's 👍 charges a flat **$4 per approved lead, FINAL** (no $1/$3 split, no hold, no capture-on-booking, no release, no TTL) · a **dead email is never charged** · **meetings are reported, not refunded** · reviewing free · **only the client's 👍 ever spends — operators never**. **Client Zero = us.** Build order: **Website → Vida → Milla.** If days squeeze: **Milla trims first, Vida never, Website never.**
-
-## ✅ VERIFIED STATE (26 Jul) — MERGED AND DEPLOYED
-> **Today, in one line:** flow v2 is **21 of 21 closed, merged and live** (PRs #1159, #1160), and a full audit of both consoles found and fixed twelve more things — including two places the product contradicted itself on screen in front of a paying client.
-> - **The money model, as it actually runs:** $99 = the onboarding pack (**100 approved leads included**), then a flat **$4 each, no expiry**. Payment starts the work — it sources against the live ICP and puts every person in front of the client with our top 20 marked. Only the client's 👍 ever spends.
-> - **Two gates that keep it solvent:** a client approves **at least 20** the first time (server-enforced on every door into the money path, because a disabled button is a suggestion), and **30 days with no approvals suspends them** — campaigns pause, and approving anyone brings them straight back with no operator in the loop.
-> - **Vida opens on the step, not the objects:** where this client is, the one thing that moves them, and **the work itself inside that card** — the sequence emails, readable, with Redraft/Edit on them. Plus names-per-approval measured per client and across the book, and Suspended / Going-quiet flags.
-> - **MBF** — the demo account. 40 invented people, fixed cast, planted history, one button in Vida → Engine to build or reset it. Nothing can send: `is_demo` is a hard stop in the send path and every address is `.invalid`.
-> - **From the 26-Jul audit:** Milla no longer says "Campaign live" while a campaign is dormant or paused; the pack price is consistent everywhere (greeting, cards, footer); the pack counter refreshes after approving; a client's own Milla messages now **page the operator and appear in Vida → Asks** (they previously landed in a table nobody read); the Vida header's "to triage" counts open replies rather than today's arrivals, and excludes demos; and the Bookings tab can finally mark a no-show and give a goodwill rebook.
-> - **The ONLY unbuilt items:** 🚩 **#515** (Milla magic-link + SMS — needs an SMS provider + a no-login security call) · ⏸ **Auto-deploy/CI** (blocked — GitHub account flagged).
-> - **🧍 Owed by you:** run migration **`20260726_client_contact_name`** from Vida → Engine (additive, safe to re-run; sign-up works without it, the name just doesn't store) · tick Stripe webhook events **`charge.refunded` · `charge.dispute.created` · `charge.dispute.closed`** (without them the refund/chargeback code never fires) · confirm the **Smartlead per-client workspace fee** (~$40 is an estimate and it sets the ~13-approval floor).
-> - **Next:** walk it end to end (🩷 → 🟢).
-
-**Board:** 🟢91 · 🩷193 · 🟣1 · 🟡18 · 🔴218 · ⏸5 · **Σ526** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢91 · 🩷193 · 🟣1 · 🟡21 · 🔴229 · ⏸5 · **Σ540** · live count: `scripts/count-inventory.sh`
 
 ---
 
-## 🧭 THE MAP — one row per day (tick the session it merges)
-> **Where each portal lives (no new services, no new logins):** **Milla** = the current client portal, re-skinned → `@kind/portal` (app.get-kind.com, client login) · **Vida** = the current admin app, rebuilt → `@kind/admin` (admin.get-kind.com, your admin login) · they never talk directly — both use the same `@kind/api` + database (the 👍 lands in the DB, Vida sees it instantly).
+## 🛑 HONEST STATE — read this before anything else
 
-| Day | Date | Ships | IDs | Owner | ✔ |
-|-----|------|-------|-----|:---:|:--:|
-| **0** | Wed 23 | **CONFIRMS (~20 min, unblocks everything)** — see the checklist below the map | — | 🧍 | ⬜ |
-| **1** | Wed 23 | **Honesty fixes** — scoring crash bug · showroom strip (incl. Team fake add-member) · referral link · lifecycle master switch · Client-Zero→PDL → then 🧍 `railway up` api+portal | #477 #478 #479 #480 #481 | 🤖 build · 🧍 deploy | ✅ |
-| **2–4** | Thu 24–Sat 26 | **WEBSITE** — Milla&Vida rebrand on the current framework (nav+footer preserved, zero orphaned pages). **Preview → your 🟣 → merge → 🧍 `railway up KIND`** | #482 | 🤖 build · 🧍 approve+deploy | ✅ |
-| **5–9** | Sun 27–Thu 31 | **VIDA — the real part** — client-picker · pipeline board · nervous-system dropdown · operator audit log · approve-gated reveal. Reuses ICP/campaigns/sequences/unibox/calendar/admin → 🧍 `railway up` api+admin+portal *(shipped PRs #1109/#1111/#1112 — deploy #1112 owed)* | #483 #484 #485 #486 #487 | 🤖 build · 🧍 deploy | ✅ |
-| **10–13** | Fri 1–Mon 4 Aug | **MONEY RE-TIME then MILLA** — ① #492 money engine *(as built: ONE WALLET, flat $4 at 👍, no hold/capture/TTL — the $1+$3-hold design was superseded on 24 Jul)* → ② #488 lead desk (👍/✕ masked cards, terms printed on the approval card) → ③ #493 Vida: strip operator-spend → "Send to client" + Booked column → ④ #489 concierge chat · #490 nav declutter. **Preview → your 🟣 → merge → 🧍 deploy** | #492 #488 #493 #489 #490 | 🤖 build · 🧍 approve+deploy | ✅ |
-| **14** | Tue 5 Aug | **LAUNCH GATE + pilot** — the gate checklist below, walked to the cent · Client-Zero dogfood fires · first paying pilot | — | 🤝 | ⬜ |
+**We cannot sell today, and this is the reason.** The product can find people, score them, mask them, show them to a client, take the client's 👍, charge for it, write the sequence, and book the meeting. **What it cannot do is send from the client's own mailbox** — because `figsy.ts:26` is `const FROM = COLD_FROM`, one module-level constant shared by every client on the platform, and there is **no SMTP client in the dependency tree at all**. `client_inboxes` exists and Vida writes a row into it, but **no send path ever reads that table.** So "sends on your own warmed inbox" — which the website, the flow docs and the pitch all promise — is not built. That is **#211**, 🔴 since 30 June, and it is the single reason a paying client cannot be onboarded.
 
-### 🧍 DAY-0 CONFIRMS — yours, ~20 min, so we never stall mid-build
-| ✓ | Confirm | How |
-|---|---|---|
-| ⬜ | **Migration `20260722_review_gate_producer.sql` run on prod** (co-pilot approve queue) | Supabase SQL editor → run (idempotent) |
-| ⬜ | **Migration `20260722_calendar_booking_live.sql` run on prod** (calendar booking) | Supabase SQL editor → run (idempotent) |
-| ⬜ | **Migration `20260717_pool_pnl_exclude_house_demo.sql` run on prod** (kills phantom pool revenue) | Supabase SQL editor → run (idempotent) |
-| ⬜ | **`GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `GOOGLE_REDIRECT_URI` set on @kind/api** (you set these 22 Jul — confirm they're live) | Railway → @kind/api → Variables |
-| ⬜ | **`NEXT_PUBLIC_TRAINING_LIVE=true` on @kind/portal** (turns the knowledge page ON — the operator needs it to write client copy; flips #346) | Railway → @kind/portal → Variables |
-| ⬜ | **`AUTO_OUTREACH_ENABLED` = OFF, on purpose, until Day 14** (nothing sends while we build) | Railway → @kind/api → Variables |
-| ⬜ | **API runs 1 replica** (if >1, crons double-fire — #343 becomes urgent; if 1, it stays parked) | Railway → @kind/api → Settings |
+**Two docs were lying about it and are now corrected:** `BUILD-STATUS.md` said *"the ONLY items not built: #515 + CI"* while the entire sending spine was 🔴 (retired → `docs/archive/`, #555), and the flow/preview docs describe per-client warmed sending as done (#557).
 
-### 💰 PAYDAY (lands with Day 14)
-① PDL credits ($98 tier) · ② Instantly reactivate — OUR outreach inboxes (~4 wks warm) · ③ Smartlead pre-warmed inbox for the pilot client · ④ the live money walk (below) · ⑤ kill-switch ON, cap 20/day.
+**What IS real and works:** the money model ($99 pack = 100 approvals, then $4, one wallet, only the client's 👍 spends) · the minimum-20 gate, server-enforced on every door · 30-days-idle suspends and un-suspends on their own click · sourcing fences (allowance × 2, 100/client/day, $300/mo global) · the **MBF demo account** (40 fixed invented people, cannot send, one button to build or reset) · both consoles, native, no old-shell escapes.
 
-### ✅ DAY-14 LAUNCH GATE — live = ALL of these, walked, not remembered
-| ✓ | Gate |
-|---|---|
-| ⬜ | **Money walk to the cent:** real card → credits land → masked lead → 👍 approve → **$1 charged + $3 HELD** → booking confirmed → **$3 captured** → ledger + holds reconcile exactly · plus one never-books lead → **$3 released** |
-| ⬜ | **Approve-then-reveal proven:** a lead shows NO email before 👍; 👍 reveals + charges; ✕ costs nothing |
-| ⬜ | **Client-Zero fires:** our own ICP → FIGSY sources via PDL → we approve **in MILLA as the client** (operators never spend) → sends go out on the Instantly rig → replies land in the unibox |
-| ⬜ | **mail-tester ≥9/10** on a test send · sequence copy founder-approved once · `AUTO_OUTREACH_ENABLED` flipped ON **deliberately** · cap 20/day · kill-switch ON |
-| ⬜ | **You walk both portals** — Vida end-to-end as the operator, Milla as a client would see it |
-| ⬜ | **Pilot onboarded** — prepaid credits in, Smartlead inbox live, first leads sourced |
+**What this means for selling:** the **demo** is sellable now (MBF needs no migration, no inbox, no send). **Delivery is not.** So Block A is the whole job.
 
 ---
 
-## 📌 After Day 14 (queued, one line each — detail lives elsewhere)
-- **Data-engine widening** #450 #451 #452 — fires when the pilot pays (inventory).
-- **⚖️ Legal sign-offs** #432–#436 · #410/#413/#414 — lawyer/accountant track, always-on, never blocks the build; **required before external use** (inventory).
-- **Glide to co-pilot/self-serve · Nexus auto-tuning · Smartlead API (#211 Ph2-3) · old Blocks 3–5 upgrades** → V2-TRACKER "🛝 MILLA&VIDA FUTURE".
-- **Vida ops depth** #491 per-cron alerting · #349 money-write sweep verify · #373/#389 migration hygiene (inventory).
+## 🅰 BLOCK A — THE SENDING SPINE (nothing else matters until this is done)
 
-## 🔑 Legend + how things go LIVE
-**Owner:** 🤖 Claude (code, PRs) · 🧍 you (merge · deploy · run SQL · approve previews · money) · 🤝 both.
-**Dots (status lives in the inventory only):** 🔴 not built · 🟡 built, on PR · 🟣 you approved the preview · 🩷 live, not walked · 🟢 live + you verified it.
-**A merge is NOT a deploy.** Every ship = 🧍 merge PR → `git pull` → `railway up --detach --service "<svc>"`. Services: website=`KIND` · portal=`@kind/portal` · admin=`@kind/admin` · api=`@kind/api`. Client-facing work is **previewed here first** — you approve before anything merges.
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #547 🔴 | **Send path uses the account's own inbox — or does not send** | `figsy.ts:26 const FROM = COLD_FROM` feeds both `resend.emails.send` calls. Replace with a per-client resolve off `client_inboxes`. **No inbox = no send**, fail closed, operator alerted. **Never** a silent fallback to our address — that is how one client's bounce rate burns every other client. | 🤖 |
+| #548 🔴 | **A transport that can speak AS a client mailbox** | Resend is the only mail transport installed and it sends only from **our** verified domain. No SMTP client exists. Until this lands, #547's resolve has nothing to hand the message to. Shape is a founder call: provider send API (Smartlead/Instantly) vs SMTP-per-inbox credentials. | 🤝 |
+| #550 🔴 | **Smartlead = CLIENT sending, assigned per client** | `lib/smartlead.ts` is a key-verification stub — no mailbox call, no campaign, no send. Provision/assign a Smartlead mailbox per client, persist it on `client_inboxes`, show its state in Vida. This is what a paying client is buying. | 🤝 |
+| #549 🔴 | **Instantly = OUR outreach, run INSIDE the product** | Client Zero. Our Instantly mailbox attached to the K.I.N.D account so our own prospecting runs through Milla/Vida exactly like a client's — not in a separate tab. Founder-locked 26 Jul: *"we use instantly for us, smartlead for clients."* No CSV export — we use our own product. | 🤝 |
+| #551 🔴 | **Replies land back against the right inbox** | Every reply today arrives through **one** Resend inbound webhook. The moment clients send from their own mailboxes, replies arrive **there** — so without per-provider ingestion mapped inbox → client → lead → thread, the unibox goes silent for every paying client and we miss the meeting we charged for. | 🤖 |
+| #552 🔴 | **Inbox state on screen, and it gates the work** | Vida shows each client's inbox — none / warming / live / paused — and "Start work" refuses without one. Milla says which address their mail goes from. Without this, #547 failing closed looks like a broken product instead of a missing inbox. | 🤖 |
+| #553 🔴 | **First-send ladder before the kill-switch flips** | `AUTO_OUTREACH_ENABLED` is OFF and stays off until: test send lands in a real **inbox** (not spam) · mail-tester ≥9/10 · cap on · one client, one day, watched. Flipping it is deliberate and founder-only. | 🤝 |
+
+## 🅱 BLOCK B — SELL WHILE A IS BUILDING (the demo is the only thing that is ready)
+
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #544 🩷 | **MBF demo account** | Built and live. 40 invented people, fixed cast — 12 being worked, **22 waiting** (≥20 on purpose so the minimum-20 gate demos), 6 visibly worse fits. Planted history, ledger rows that agree with the on-screen counter. **Cannot send:** `is_demo` is a hard stop inside the send path, every address is `.invalid`. One button: Vida → Engine → Build/Reset MBF. | 🤖 |
+| #559 🔴 | **The nine screens, walked and shrunk to a script** | Read the buyer's path screen by screen against MBF and fix what a buyer would see. *"5 demos = 1 sale"* — the stage must never move, so the walk gets rehearsed, not improvised. | 🤝 |
+| #560 🔴 | **Shrink the surface to what we sell** | The retired trees are still reachable and unread: the website's 30+ static pages, the 50 retired `(dashboard)` pages, `(v2)`/`partner-preview`/`consent`/`invite`/`share`, `packages/db`, `packages/shared`. Every one is a page a buyer can land on and a place a bug hides. Delete or gate. | 🤖 |
+
+## 🅲 BLOCK C — BEFORE A REAL PROSPECT IS EMAILED (safety we do not ship without)
+
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #554 🔴 | **RLS policies — never audited** | Seven migration files touch row-level security and **none has been read end-to-end**. The API uses the service-role key so RLS is defence-in-depth — but the anon key is public and **#350 proved one policy was `USING(true)`**, anon-readable. This is the only true breach risk still open. | 🤖 |
+| #558 🔴 | **The repo's migrations no longer describe the live DB** | The live `credit_transactions` type CHECK was widened **by hand in production** — the committed constraint forbids `wallet_topup` / `wallet_charge` / `wallet_reverse`, which every wallet write uses. Payments work, so the DB is ahead of the repo. **Re-running `20260603_schema_reconcile.sql` would break every wallet transaction.** `20260726_wallet_tx_types.sql` re-states the live truth idempotently; the reconcile file needs a do-not-run banner. | 🤝 |
+| #317 🟡 | **Stripe refund / dispute events subscribed** | The refund, chargeback and dispute-won code all shipped and **none of it can ever fire** until Stripe → Webhooks is subscribed to `charge.refunded` · `charge.dispute.created` · `charge.dispute.closed`. A won dispute currently leaves the client permanently short. | 🧍 |
+| #491 🔴 | **Per-cron failure alerting** | All 25 crons die silently if an env var is unset — one blanket alert covers the lot. With real clients sending, a dead cron is a client who stopped being worked and nobody knew. | 🤖 |
+
+## 🅳 BLOCK D — MAKE THE DOCS HOLD (done this session — this is what you are reading)
+
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #555 🟡 | **BUILD-STATUS retired** | It was a **fifth status doc** and its summary line read *"the ONLY items not built: #515 + CI"* while the whole sending spine was 🔴. That one line is why the docs stopped being trustworthy. Moved to `docs/archive/`, marked historical, unlinked from here. Status has one home: PRODUCT-INVENTORY. | 🤖 |
+| #556 🟡 | **Cashflow model is canonical, in the repo** | `docs/CASHFLOW-LAB.html` — two needles at the top, every cost line an editable box. Honest platform floor **~$457/mo** (the old ~$190 left out Smartlead ~$94, Instantly ~$37, Zoho ~$3 and the Anthropic runtime). Two numbers that change how we sell: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack is −$52 in month one** — the repeat is the business, the pack is the door. | 🤖 |
+| #557 🟡 | **Stale flow + preview docs stamped** | `flows/new-client-flow.html` (built on the retired 14-day trial) · `flows/our-outreach-flow.html` (*"manual in Instantly, nothing to code"* — **overruled 26 Jul**) · `MILESTONE-0-CHECKLIST.md` (the retired $1/$3/$5/$6 ladder) · `mv-previews/flow-vida.html` + `home.html` (*"your own warmed inbox"* — describes #211, which is not built). Each now carries a correction banner rather than being silently deleted. | 🤖 |
+
+## 🅴 BLOCK E — THE LIVE GATE (all of it walked, none of it remembered)
+
+| # | Gate — live means every one of these was **walked**, on real data | Owner |
+|---|---|:-----:|
+| — | **Money walk to the cent:** real card → $99 lands → pack reads 100 → masked lead shows **no email** → pick 20 → 👍 → **$0 charged, counter reads 80** → 101st approval charges **$4** → ledger reconciles exactly · one dead email hands the pack slot back, never credits $4 | 🤝 |
+| — | **Send walk:** a client's own assigned inbox sends · **no inbox = refused, visibly** · nothing falls back to our address · the reply comes back to **their** thread in the unibox · booking confirms | 🤝 |
+| — | **Client Zero fires:** our own ICP → sourced → we approve **in Milla as the client** → sends leave on our **Instantly** mailbox **through the product** → replies land in the unibox | 🤝 |
+| — | **Gates hold under a fetch, not just a click:** minimum-20 refused server-side on `/approve`, `/reveal`, `/approve-batch` · a 30-day-idle client is suspended and un-suspends on their **own** approval | 🤖 |
+| — | **Demo is airtight:** MBF reset → walked → nothing sent, every address `.invalid`, no real prospect touched | 🤝 |
+| — | **Both consoles walked** — Vida end to end as the operator, Milla as the client sees it. Everything walked flips 🩷 → 🟢, founder-only (`FOUNDER_FLIP=1`). | 🧍 |
+
+---
+
+## 🧍 OWED BY THE FOUNDER — nothing above can finish without these
+
+| ✓ | Yours | Where |
+|---|-------|-------|
+| ⬜ | **Run migration `20260726_client_contact_name`** (additive, safe to re-run; sign-up works without it, the name just doesn't store) | Vida → Engine → Database migrations |
+| ⬜ | **Run migration `20260726_wallet_tx_types`** (#558 — makes the repo agree with the live wallet CHECK) | Vida → Engine → Database migrations |
+| ⬜ | **Tick Stripe webhook events** `charge.refunded` · `charge.dispute.created` · `charge.dispute.closed` (#317 — without them none of that code ever fires) | Stripe → Developers → Webhooks |
+| ⬜ | **One $99 test purchase on a real card** — proves the pack, the counter and the ledger agree | Milla, as a client |
+| ⬜ | **Instantly: mailbox + how it sends** — API key or SMTP credentials, and whether the rig is warm (#548/#549) | Instantly |
+| ⬜ | **Smartlead: account state + per-client workspace fee** — ~$40/client/month is an **estimate** and it is what sets the ~13-approval floor in the cashflow (#550/#556) | Smartlead |
+| ⬜ | **Deliverability check** — send yourself a test and say whether it landed in **Inbox or Spam** (#553) | Any real mailbox |
+| ⬜ | **Appeal the GitHub account flag** — until it clears, auto-deploy/CI stays ⏸ and every ship is `bash scripts/ship.sh` | GitHub support |
+| ⬜ | **Rotate the Postgres password** — it is in git history and is treated as **burned**; rotate the moment Supabase access is back | Supabase |
+| ⬜ | **Call the two open numbers:** names sourced per approval (flow v2 says **2**, #415 measured **~7** — at 7 the model roughly halves) and the SMS/no-login security decision behind #515 | — |
+
+---
+
+## 📤 MOVED OFF THIS PAGE (it was here, it does not get us live)
+
+Everything below left the launch pad this session. It is **not deleted** — it has a home, and the home is named.
+
+| What | Where it went | Why it left |
+|------|---------------|-------------|
+| The 14-day map (Day 0 → Day 14, dated rows) | **KIND-MASTER** session log | The dates expired; the outside edge is now 31 Aug and the order is Blocks A→E, not days |
+| Day-0 confirms that are already done (Google OAuth, `TRAINING_LIVE`, replica count, the three June/July migrations) | **KIND-MASTER** history | Confirmed or superseded; the two migrations that are still owed moved into 🧍 above |
+| The old money walk ($1 reveal + $3 held + capture-on-booking + release) | **KIND-MASTER** — retired model, kept as history | Superseded 24 Jul by ONE WALLET / flat $4. It was still printed on this page as a live gate |
+| #515 Milla magic-link + SMS | **V2-TRACKER** | Email + password works today. Needs an SMS provider and a no-login security call — neither gets us live |
+| Nexus auto-tuning (#511 family, all built, default-off) | **V2-TRACKER** | Built and fenced. Nothing about it blocks a first paying client |
+| Data-engine widening #450 #451 #452 · Alta-parity #475 #476 · Jack&Jill steals #437–#443 | **V2-TRACKER** | Fires after the pilot pays |
+| ⚖️ Legal sign-offs #432–#436 · #410/#413/#414 | **PRODUCT-INVENTORY** (own rows) | Founder ruling: *"ignore legal, stop bringing it up"* — off this page, not off the inventory |
+| #494 qualification gate · #495 ICP versioning · #349 money-write sweep · #373/#389 migration hygiene | **PRODUCT-INVENTORY** | Real work, not launch-blocking |
+| ⏸ Auto-deploy / CI | **PRODUCT-INVENTORY** (⏸, blocked) | Blocked on the GitHub flag appeal — a 🧍 item, above |
+
+---
+
+## 🔑 Legend + how anything goes live
+
+**Owner:** 🤖 Claude (code, PRs) · 🧍 founder (merge · deploy · run SQL · approve previews · money · 🟢) · 🤝 both.
+**Dots** — status lives in the **inventory** only; the dots on this page are stamped by script: 🔴 not built · 🟡 built, on a PR · 🟣 founder approved it on **preview** · 🩷 live, nobody has walked it · 🟢 live **and** walked. ⏸ blocked.
+**A merge is a deploy on this repo** — `main` is the live site clients use. So **every client-facing build is previewed first**: preview link → founder 🟣 → merge → 🩷 → walk → 🟢. Docs don't deploy, so docs don't need a preview.
+**Ship:** `bash scripts/ship.sh`. Services: website=`KIND` · portal=`@kind/portal` · admin=`@kind/admin` · api=`@kind/api`.
 
 ## 📌 Standing notes
-- **Money (current — ONE WALLET work model, locked 24–25 Jul):** one dollar wallet per client · first purchase **$99 = the onboarding pack, 100 approved leads included**, then a flat **$4 per approved lead, FINAL** · **no time limit on paid leads** · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends — operators never**. **Two gates protect it:** a client must approve **at least 20** the first time round (their sender costs us ~$40/mo from day one, so the first ~13 approvals only pay for that), and **30 days with no approvals suspends them** — campaigns pause, they come straight back the moment they approve anyone. *(Retired and kept only as history in KIND-MASTER: two wallets, $1 reveal + $3 hold, capture-at-booking, release-if-never-booked, the 72h TTL.)*
-- **Before any real send:** `/engine/env` must show `RESEND_API_KEY` · `ADMIN_SECRET_KEY` · `ANTHROPIC_API_KEY` · `RESEND_WEBHOOK_SECRET` · `FIGSY_COLD_FROM` · `TRACKING_URL` · `money_rpcs` installed.
-- **Architecture (locked):** AI drafts/scores; deterministic code decides + fails closed; state advances only after verified provider/DB success.
+
+- **Money (current — ONE WALLET, founder-locked 24–25 Jul):** one dollar wallet per client · first purchase **$99 = the onboarding pack, 100 approved leads included**, then a flat **$4 per approved lead, FINAL** · **no time limit on paid leads** · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends — operators never**. **Two gates protect it:** at least **20** approvals the first time round, and **30 days with no approvals suspends them**. Full model + the cost floor → **`docs/CASHFLOW-LAB.html`** (canonical) · cost detail → `run-costs-and-cashflow.md`.
+- **Instantly is ours. Smartlead is the clients'.** Both run **inside the product** — we use our own product for our own outreach. No CSV hand-off.
+- **No new SQL** beyond committed, reviewed, **idempotent** migrations run from Vida → Engine. The Supabase SQL editor is unreachable (GitHub removed the Supabase OAuth app).
+- **Before any real send:** `/engine/env` must show `RESEND_API_KEY` · `ADMIN_SECRET_KEY` · `ANTHROPIC_API_KEY` · `RESEND_WEBHOOK_SECRET` · `FIGSY_COLD_FROM` · `TRACKING_URL` · `money_rpcs` installed — **plus** whatever #548 settles on for per-inbox credentials.
+- **Architecture (locked):** AI drafts and scores; deterministic code decides and **fails closed**; state advances only after a verified provider/DB success.
+- **A demo account never touches a real prospect.** `is_demo` is a hard stop inside the send path, and demo addresses are `.invalid` (RFC 2606).

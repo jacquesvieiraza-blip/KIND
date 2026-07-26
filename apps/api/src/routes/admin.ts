@@ -310,15 +310,21 @@ adminRouter.patch('/demos/:id/extend', async (req: Request, res: Response) => {
   }
 })
 
-// DELETE /admin/demos/:id — expire/deactivate demo immediately
+// DELETE /admin/demos/:id — actually delete the demo, rows and all.
+//
+// This used to only set `demo_expires_at`, so the UI's "removes the demo client and
+// everything in it — cannot be undone" sat over a no-op: the client stayed, its leads
+// stayed, and on the legacy Apollo demos that meant real strangers' names stayed in the
+// database. The purge REFUSES anything not flagged is_demo — that check is the safety.
 adminRouter.delete('/demos/:id', async (req: Request, res: Response) => {
   try {
-    await db.from('subscriptions').update({ status: 'cancelled' }).eq('client_id', req.params.id)
-    await db.from('clients').update({ demo_expires_at: new Date().toISOString() }).eq('id', req.params.id).eq('is_demo', true)
+    const { purgeDemoClient } = await import('../lib/demo-mbf')
+    const r = await purgeDemoClient(req.params.id)
+    if (!r.purged) { res.status(400).json({ success: false, error: r.reason ?? 'Could not delete it' }); return }
     res.json({ success: true })
   } catch (err) {
-    console.error('[admin/demos/expire]', err)
-    res.status(500).json({ success: false, error: 'Failed to expire demo' })
+    console.error('[admin/demos/delete]', err)
+    res.status(500).json({ success: false, error: 'Failed to delete the demo' })
   }
 })
 

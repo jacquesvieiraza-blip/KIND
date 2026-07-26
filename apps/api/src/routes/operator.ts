@@ -75,7 +75,13 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const inboxQ = db.from('client_inboxes').select('client_id, status').in('client_id', ids)
       .then(r => r, () => ({ data: [] as { client_id: string; status: string }[] }))
 
-    const [icps, purchases, inboxes, leads, seqs, camps, queue, replies, approvals] = await Promise.all([
+    // Leads and replies are PAGED, not `.limit(20000)`. 100 clients × 200 leads already hits
+    // that ceiling, and past it PostgREST returns an arbitrary 20,000 rows — so half the
+    // board's clients would silently read as zero sourced, zero approved, never cold. A
+    // board that quietly lies is worse than one that loads a beat slower.
+    const { pageRows } = await import('../lib/page-rows')
+
+    const [icps, purchases, inboxes, leadsPaged, seqs, camps, queue, repliesPaged, approvalsPaged] = await Promise.all([
       db.from('icps').select('client_id').in('client_id', ids).eq('is_active', true),
       db.from('credit_transactions').select('client_id')
         .in('client_id', ids).in('type', PAID_TX_TYPES),
@@ -83,18 +89,26 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
       // Passed leads are INCLUDED here (they used to be filtered out at the query) because
       // the names-per-approval ratio is meaningless without them: a client who passes on 190
       // of 200 is exactly the case the number exists to catch.
-      db.from('leads').select('client_id, surfaced_for_approval_at, revealed_at, status')
-        .in('client_id', ids).limit(20000),
+      pageRows<Record<string, unknown>>('leads',
+        q => (q as any).select('client_id, surfaced_for_approval_at, revealed_at, status, id').in('client_id', ids),
+        { orderBy: 'id', label: 'worklist:leads' }),
       db.from('figsy_sequences').select('client_id').in('client_id', ids),
       db.from('figsy_campaigns').select('client_id, status').in('client_id', ids),
       db.from('figsy_approval_queue').select('client_id').in('client_id', ids).eq('status', 'pending'),
-      db.from('figsy_replies').select('client_id, classification, qualified_at, meeting_booked_at')
-        .in('client_id', ids).limit(20000),
+      pageRows<Record<string, unknown>>('figsy_replies',
+        q => (q as any).select('client_id, classification, qualified_at, meeting_booked_at, id').in('client_id', ids),
+        { orderBy: 'id', label: 'worklist:replies' }),
       // Last approval per client — drives the 30-day cold clock. Ordered newest-first so a
       // single pass over the rows keeps the first one it sees per client.
-      db.from('leads').select('client_id, revealed_at').in('client_id', ids)
-        .not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(20000),
+      pageRows<Record<string, unknown>>('leads',
+        q => (q as any).select('client_id, revealed_at').in('client_id', ids).not('revealed_at', 'is', null),
+        { orderBy: 'revealed_at', label: 'worklist:lastApproval' }),
     ])
+
+    // pageRows returns { rows, complete }; the supabase reads return { data }. Normalise.
+    const leads    = { data: leadsPaged.rows }
+    const replies  = { data: repliesPaged.rows }
+    const approvals = { data: approvalsPaged.rows }
 
     const countBy = (arr: unknown, pred?: (r: Record<string, unknown>) => boolean) => {
       const m = new Map<string, number>()
@@ -130,11 +144,16 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     const repliesOpen = countBy(replies, r => !r.qualified_at && !r.meeting_booked_at
       && !NOISE.includes(String(r.classification ?? '')))
 
-    // Newest approval per client (rows arrive newest-first, so first wins).
+    // Newest approval per client. Compared explicitly rather than relying on row order —
+    // paging sorts ASCENDING (a stable key is what makes paging safe), and the old
+    // "first row wins" logic silently became "OLDEST approval wins" the moment I paged it.
+    // That would have shown an active client who first approved 60 days ago as SUSPENDED.
     const lastApproval = new Map<string, string>()
     for (const r of ((approvals as { data?: Record<string, unknown>[] })?.data ?? [])) {
       const k = r.client_id as string
-      if (!lastApproval.has(k)) lastApproval.set(k, String(r.revealed_at))
+      const at = String(r.revealed_at)
+      const prev = lastApproval.get(k)
+      if (!prev || at > prev) lastApproval.set(k, at)
     }
     const coldNow = new Date()
 
@@ -2058,8 +2077,16 @@ operatorRouter.post('/demo/mbf/reset', async (req: Request, res: Response) => {
       operatorEmail: operatorEmail(req), clientId: mbf.id, action: 'demo_reset',
       subjectType: 'client', subjectId: mbf.id, detail: { ...result, no_money_moved: true },
     })
-    res.json({ success: true, data: result,
-      message: `MBF is ready — ${result.leads} people, ${result.waiting} waiting to be picked, ${result.replies} replies, ${result.bookings} meetings booked.` })
+    // Say so when a step failed. A confident green tick over a half-seeded demo is how you
+    // find out mid-pitch that the inbox is empty.
+    const ok = result.problems.length === 0
+    res.json({
+      success: ok, data: result,
+      error: ok ? undefined : `MBF built with ${result.problems.length} problem(s): ${result.problems.join(' · ')}`,
+      message: ok
+        ? `MBF is ready — ${result.leads} people, ${result.waiting} waiting to be picked, ${result.replies} replies, ${result.bookings} meetings booked.`
+        : undefined,
+    })
   } catch (err) {
     console.error('[operator/demo-reset]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to reset the demo' })

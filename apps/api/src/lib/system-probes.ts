@@ -204,9 +204,17 @@ async function vida(): Promise<Section> {
   }))
 
   rows.push(await probe('MBF demo ready', async () => {
-    const { data: mbf } = await db.from('clients').select('id, is_demo').eq('company_name', 'MBF Holdings').maybeSingle()
-    if (!mbf) return broken('MBF demo ready', 'The MBF demo account does not exist — there is nothing to demo with.', 'Vida → Engine → Build / reset MBF.')
-    if (!mbf.is_demo) return broken('MBF demo ready', 'MBF exists but is NOT flagged is_demo — the hard stop that prevents it sending is not in place.', 'Rebuild it from Vida → Engine.')
+    // MATCH ON *ANY* DEMO NAMED MBF, not the exact string `MBF Holdings`.
+    // The live account is called "MBF Demo", so an exact-match lookup reported "the MBF demo
+    // account does not exist" while it was sitting right there in the client list. The
+    // conclusion happened to be useful (it has no leads) but the stated reason was false —
+    // and a report that is right by accident is not a report.
+    const { isMbfAccount } = await import('./integrity-checks')
+    const { data: all } = await db.from('clients').select('id, company_name, is_demo')
+    const mbf = ((all ?? []) as { id: string; company_name: string | null; is_demo: boolean | null }[])
+      .find(c => isMbfAccount(c.company_name))
+    if (!mbf) return broken('MBF demo ready', 'No account with MBF in its name exists — there is nothing to demo with.', 'Vida → Engine → Build / reset MBF.')
+    if (!mbf.is_demo) return broken('MBF demo ready', `"${mbf.company_name}" exists but is NOT flagged is_demo — the hard stop that prevents it sending is not in place.`, 'Rebuild it from Vida → Engine.')
     const [{ count: total }, { count: waiting }, { count: real }] = await Promise.all([
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', mbf.id),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', mbf.id).is('revealed_at', null).neq('status', 'passed'),
@@ -263,7 +271,68 @@ async function activity(): Promise<Section> {
   return { title: 'Activity — what the machine actually did', side: 'both', rows }
 }
 
+// ── EVERY OPERATOR ENDPOINT — answering, or erroring? ───────────────────────────
+//
+// The founder's spec asked for this and the first build skipped it. If a Vida endpoint 500s,
+// the page that uses it renders EMPTY — and an empty page is indistinguishable from "nothing
+// to do" (#565). So the console can look calm while half of it is dead.
+//
+// It calls each one for real, over HTTP, against this same process. Read-only GETs ONLY —
+// never a POST, so nothing can be started, sent, charged or changed by running this check.
+//
+// What counts as answering: any 2xx or 4xx. A 400 for a missing `client_id` is the route
+// working correctly — it received the request and made a decision. Only a 5xx, a timeout or
+// a refused connection means broken.
+
+/** Read-only GETs that need no parameters. Anything requiring an id is listed with a note. */
+const OPERATOR_GETS: Array<{ path: string; note?: string }> = [
+  { path: '/clients' }, { path: '/worklist' }, { path: '/alerts' }, { path: '/status' },
+  { path: '/engine' }, { path: '/audit' }, { path: '/whoami' }, { path: '/health' },
+  { path: '/queue' }, { path: '/suppression' }, { path: '/reports' }, { path: '/blockers' },
+  { path: '/bookings' }, { path: '/nexus' }, { path: '/cockpit', note: 'expects client_id' },
+  { path: '/board', note: 'expects client_id' }, { path: '/people', note: 'expects client_id' },
+  { path: '/asks', note: 'expects client_id' }, { path: '/record', note: 'expects client_id' },
+  { path: '/source-preview', note: 'expects client_id' },
+]
+
+async function operatorEndpoints(): Promise<Section> {
+  const rows: Row[] = []
+  const port = process.env.PORT || '3001'
+  const key = process.env.ADMIN_SECRET_KEY
+  if (!key) {
+    return { title: 'Vida endpoints — is every operator route answering?', side: 'vida', rows: [
+      unmeasured('Operator endpoints', 'ADMIN_SECRET_KEY is not set, so these routes cannot be called even by us.',
+        'Set it in Railway → @kind/api → Variables.'),
+    ] }
+  }
+
+  for (const ep of OPERATOR_GETS) {
+    rows.push(await probe(ep.path, async () => {
+      const ctrl = new AbortController()
+      const t = setTimeout(() => ctrl.abort(), 8000)
+      try {
+        const r = await fetch(`http://127.0.0.1:${port}/operator${ep.path}`, {
+          headers: { 'x-admin-key': key }, signal: ctrl.signal,
+        })
+        if (r.status >= 500) {
+          const body = await r.text().catch(() => '')
+          return broken(ep.path, `HTTP ${r.status} — this route is ERRORING. Any Vida screen using it renders empty, which looks identical to "nothing to do". ${body.slice(0, 160)}`,
+            'Check the API logs for this route.')
+        }
+        return ok(ep.path, `HTTP ${r.status} — answering${ep.note ? ` (${ep.note}, so a 4xx here is correct)` : ''}.`)
+      } catch (e) {
+        return broken(ep.path, `Did not answer at all: ${e instanceof Error ? e.message : String(e)}`,
+          'The route is unreachable or hung — Vida screens using it will be blank.')
+      } finally { clearTimeout(t) }
+    }))
+  }
+  return { title: 'Vida endpoints — is every operator route answering?', side: 'vida', rows }
+}
+
 /** Every section, in report order. Never throws. */
 export async function runSystemCheck(): Promise<Section[]> {
-  return [await dependencies(), await schema(), await clients(), await vida(), await activity()]
+  return [
+    await dependencies(), await schema(), await clients(),
+    await vida(), await operatorEndpoints(), await activity(),
+  ]
 }

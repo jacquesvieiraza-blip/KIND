@@ -65,6 +65,21 @@ done
 
 board="🟢${c_green} · 🩷${c_pink} · 🟣${c_purple} · 🟡${c_yellow} · 🔴${c_red} · ⏸${c_blocked} · Σ${total}"
 
+# Look a dot's derived count up by its emoji. This exists because the six named counters
+# above replaced an associative array, and `--check` below still needs to go the other way:
+# from a dot found in the doc, to the number it should be.
+dot_count() {
+  case "$1" in
+    "🟢") printf '%s' "$c_green"   ;;
+    "🩷") printf '%s' "$c_pink"    ;;
+    "🟣") printf '%s' "$c_purple"  ;;
+    "🟡") printf '%s' "$c_yellow"  ;;
+    "🔴") printf '%s' "$c_red"     ;;
+    "⏸")  printf '%s' "$c_blocked" ;;
+    *) return 1 ;;
+  esac
+}
+
 if [ "${1:-}" = "--check" ]; then
   # #322 — validate EVERY place the board is shown, not just the hidden marker.
   # The drift that bit us (🩷45/🔴126/Σ294 marker vs a visible table reading the
@@ -90,7 +105,7 @@ if [ "${1:-}" = "--check" ]; then
     fail=1
   else
     read -r -a tnums <<< "$(printf '%s\n' "$trow" | grep -oE '[0-9]+' | tr '\n' ' ')"
-    expect=("${count["🟢"]}" "${count["🩷"]}" "${count["🟣"]}" "${count["🟡"]}" "${count["🔴"]}" "${count["⏸"]}" "$total")
+    expect=("$c_green" "$c_pink" "$c_purple" "$c_yellow" "$c_red" "$c_blocked" "$total")
     labels=("🟢" "🩷" "🟣" "🟡" "🔴" "⏸" "Σ")
     for i in 0 1 2 3 4 5 6; do
       if [ "${tnums[$i]:-}" != "${expect[$i]}" ]; then
@@ -105,7 +120,7 @@ if [ "${1:-}" = "--check" ]; then
   while IFS= read -r line; do
     hdot="$(printf '%s\n' "$line" | grep -oE '🟢|🩷|🟣|🟡|🔴|⏸' | head -1 || true)"
     hnum="$(printf '%s\n' "$line" | grep -oE '\([0-9]+\)' | head -1 | tr -dc '0-9' || true)"
-    exp="${count[$hdot]:-}"
+    exp="$(dot_count "$hdot" || true)"
     if [ "$hnum" != "$exp" ]; then
       echo "MISMATCH (section header $hdot): doc=${hnum:-<none>} real=${exp:-<none>}" >&2
       fail=1
@@ -117,6 +132,25 @@ if [ "${1:-}" = "--check" ]; then
     exit 0
   fi
   exit 1
+fi
+
+# THE FALL-THROUGH GUARD — reaching here in --check mode means the check ABORTED.
+#
+# This is not hypothetical. #578 replaced `declare -A count` with six named counters for
+# bash 3.2, but left three `${count["🟢"]}` reads behind in --check. On a plain indexed
+# array bash evaluates the subscript as ARITHMETIC, so it died with
+# `🟢: syntax error: operand expected`, abandoned the whole if-block **mid-way**, resumed
+# here, printed the board and **exited 0**. Checks 2 and 3 — the visible summary table and
+# the section headers, i.e. the entire #322 hardening — never ran, and check 1's verdict
+# was discarded. doc-lint calls this with `>/dev/null 2>&1` and reads only the exit code,
+# so the gate reported "doc-lint: OK — no drift" over a check that was doing nothing.
+#
+# Fourth time this week a check has looked green while not running (#578 ×2, #579, this).
+# So: in --check mode, falling out of the block is now itself a FAILURE, loudly.
+if [ "${1:-}" = "--check" ]; then
+  echo "ERROR: --check did not reach a verdict — the check ABORTED partway." >&2
+  echo "       Do NOT read this as a pass. Re-run without redirecting stderr to see why." >&2
+  exit 2
 fi
 
 echo "$board"

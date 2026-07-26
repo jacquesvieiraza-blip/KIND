@@ -26,9 +26,16 @@ FAIL=0
 say() { echo "doc-lint: $*" >&2; }
 
 # ── 1. Inventory board (marker + visible table + section headers) ────────────
-if ! scripts/count-inventory.sh --check >/dev/null 2>&1; then
+# Exit code matters: 1 = real drift, 2 = the check itself could not run. Reporting the
+# second as "board out of sync" would send the founder hunting a doc bug that isn't there.
+board_out="$(scripts/count-inventory.sh --check 2>&1)" && board_rc=0 || board_rc=$?
+if [ "$board_rc" -eq 2 ]; then
+  say "FAIL [board] the board check ITSELF could not run — this is NOT a pass and NOT doc drift"
+  printf '%s\n' "$board_out" | sed 's/^/  /' >&2
+  FAIL=1
+elif [ "$board_rc" -ne 0 ]; then
   say "FAIL [board] PRODUCT-INVENTORY board out of sync — run scripts/count-inventory.sh and update marker/table/headers"
-  scripts/count-inventory.sh --check 2>&1 | sed 's/^/  /' >&2
+  printf '%s\n' "$board_out" | sed 's/^/  /' >&2
   FAIL=1
 fi
 

@@ -125,6 +125,21 @@ export function fromHeader(inbox: InboxRow): string {
   return name ? `${name} <${inbox.email}>` : inbox.email
 }
 
+/**
+ * Settle the port and the encryption mode together, because they are not independent:
+ * **465 is implicit TLS, 587 is STARTTLS**, and mismatching them is the single most common
+ * way an SMTP connection HANGS rather than failing — which reads as a dead product rather
+ * than a wrong setting.
+ *
+ * Also the NaN guard. An empty port box gives `Number('')` → 0 and `Number(undefined)` →
+ * NaN, and either one reaching the transport is a connection attempt to nowhere.
+ */
+export function normalisePort(port: unknown, secure?: unknown): { port: number; secure: boolean } {
+  const n = Number(port)
+  const p = Number.isFinite(n) && n > 0 && n <= 65535 ? Math.floor(n) : 587
+  return { port: p, secure: typeof secure === 'boolean' ? secure : p === 465 }
+}
+
 /** Human wording for a refusal — one sentence an operator can act on, no jargon. */
 export function refusalLabel(reason: RefusalReason): string {
   switch (reason) {

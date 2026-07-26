@@ -38,7 +38,7 @@ const OPERATE: { href: string; label: string; icon: string }[] = [
   // /demo has existed all along and was in NEITHER menu, so the only way to open a demo
   // account was to know the URL. That is the one screen you reach under time pressure in
   // front of a prospect.
-  { href: '/demo',             label: 'Demo accounts',     icon: '🎬' },
+  { href: '/vida/demo',        label: 'Demo accounts',     icon: '🎬' },
 ]
 
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [

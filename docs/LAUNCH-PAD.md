@@ -4,11 +4,10 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-<<<<<<< HEAD
-**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴222 · ⏸5 · **Σ557** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴226 · ⏸5 · **Σ561** · live count: `scripts/count-inventory.sh`
 =======
-**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴222 · ⏸5 · **Σ557** · live count: `scripts/count-inventory.sh`
->>>>>>> 529ea87a (The full sweep — the board was wrong in both directions, and the repeat-business killer was in a row nobody read)
+**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴226 · ⏸5 · **Σ561** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴226 · ⏸5 · **Σ561** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -51,6 +50,17 @@
 | # | Item | What it is / why it blocks | Owner |
 |---|------|----------------------------|:-----:|
 | #366 🔴 | **One ICP only ever sees PAGE ONE of the data — forever** | Found in the 26-Jul sweep, and the code says it out loud: `pdl-search.ts:117` — *"PDL deprecated `from`-based pagination… **Page 1 only for now**; deeper pages need `scroll_token`."* No `scroll_token` exists anywhere. So an ICP returns one page, we dedup against everything that client already holds, and then **the same ICP returns zero people for that client permanently** — silently, no error, just an empty run. **The cashflow says the repeat IS the business** (the $99 pack is −$52 in month one and only recovers if they come back). Month two needs 200 more people against the same ICP. This is the thing that cannot deliver them. Also makes the site's "250M+ contacts" false in practice. | 🤖 |
+
+## 🅑 BLOCK B3 — FOUND BY READING, NOT SEARCHING (26 Jul — the method change)
+
+*Every previous audit was a grep, and a grep only returns what you already suspected. These four came out of reading files top to bottom. The prompt that produced them is `docs/AUDIT-PROMPT.md`.*
+
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #562 🔴 | **The $99 is paid out TWICE — the pack AND the wallet** | `stripe.ts:343` credits **$99 to the wallet**. `approve-lead.ts:134` reads the **same purchase row** and grants the **pack — 100 free approvals**. So they approve 100 free, wallet untouched at $99, then approval 101 onward spends that $99 → **~24 more leads. One $99 buys ~124 leads, not 100 — ~$96 given away per client.** The pack is already −$52 in month one; this makes it ≈−$148. **#541 states the design as "a counted quota, NOT a wallet credit"** — so this is a defect, not a decision. Neither file is wrong alone; no keyword joins them. | 🤝 |
+| #564 🔴 | **Vida's Run button swallows refusals — and the audit log records the wrong action** | `startCampaign` and `setCampaignStatus` **discard the API response**; the endpoints genuinely refuse (400/404/500), so a refused Run shows **nothing** and the operator believes the client is live. The next-action Run also fires **with no confirmation** — one click starts real email — and silently no-ops when there's no campaign. And the route writes `action:'pause_campaign'` hardcoded, so **the audit log says "paused" when someone pressed Run.** | 🤖 |
+| #563 🔴 | **The money screen cannot tell the truth** | `billing/page.tsx` fetches only `/credits` and **never reads pack state**, so it structurally cannot know the client holds 100 free approvals. It says *"$4 per approved lead"* in four places and *"Fund your wallet"* on the $99 — to someone whose first hundred are free. The screen a client opens right after paying. | 🤖 |
+| #565 🔴 | **A failed load in Vida reads as "nothing to do"** | The worklist fetch is `.catch(() => {})`, so a failure renders **no clients needing attention** — identical to a quiet day. It's the screen that decides what the operator does next. | 🤖 |
 
 ## 🅲 BLOCK C — MONEY + SAFETY BEFORE A REAL PROSPECT IS EMAILED
 
@@ -144,7 +154,6 @@ Everything below left the launch pad this session. It is **not deleted** — it 
 
 ---
 
-<<<<<<< HEAD
 ## 🩺 BLOCK M — THE MEASUREMENT SYSTEM (built 26 Jul — the instruments, before any more building)
 
 *Founder-locked: **"I will not merge any open PR until I can measure the product."** These are the instruments. They fix nothing themselves — they make everything after them provable.*
@@ -158,25 +167,6 @@ Everything below left the launch pad this session. It is **not deleted** — it 
 | #577 🟢 | **Sending architecture, locked** | Both vendors confirmed in writing they keep the mailbox passwords. So **our product gives the orders and theirs drive the van**: Instantly by API for us, Smartlead by API for clients, direct SMTP kept for enterprise. **$0 new for us, $0 for clients until one pays.** Every gate still sits upstream of the hand-off | 🧍 |
 
 **How you use them, in order:** merge → `bash scripts/ship.sh` (the gate now guards it) → **Vida → System → Run full check** → that is your baseline → *then* decide the four money PRs → run it again and compare.
-=======
-## 🚫 WHAT IS DELIBERATELY **NOT** ON THIS PAGE — stated, so nothing is hidden
-
-The inventory holds **227 items that are 🔴 or ⏸**. This page carries the ones that stand between us and a first paying client. Here is where every other one went, with counts, so you can see the whole shape rather than trusting that I filtered it well:
-
-| Group | Roughly | Why it is not launch work |
-|-------|:------:|---------------------------|
-| **Partner / seller / AE portal** (#197 #200–#228 #235 #351 #370 #398 …) | ~42 | We have no partners and no AE. It is a second product with its own portal, commissions and payouts. Nothing about it gets a first client. **#351 and #370 are real defects in it** — a wrong commission split and an `ilike` injection on partner identity — and they stay 🔴 because that code is not reachable by a client today. If we ever open the partner portal, they are blockers *then*. |
-| **The other agents** — Denise · Lena · Tony · voice/Vapi · WhatsApp (#4 #144 #145 #229 #359 #360 #369 #404 #475 …) | ~28 | Founder-locked 8 Jul: FIGSY + lead-gen only, everything else "coming soon" and **code parked**. Includes three genuine security holes (#359 forgeable WhatsApp webhook, #369 fail-open Vapi webhook, #360 WhatsApp not multi-tenant) — they are only reachable if those routes are re-enabled, so the correct action is **delete or keep disabled**, not fix. Tracked, not scheduled. |
-| **Marketing, GTM, content, distribution** (#129–#142 #159–#164 #231–#234 #252–#257 …) | ~20 | Product Hunt, G2, YouTube, the Academy, design partners, videos. These sell the product; they do not make it work. They matter the day after a first client, not before. |
-| **Explicitly OUT OF PLAY rows** | 16 | Rows that say so on their own face — agent subscriptions, per-rep unlocks, the AI family hub. Retired by the 8-Jul lock and kept only as history. |
-| **Jack & Jill steals** (#437–#443) | 7 | Captured on sight per the steals rule, correctly logged, and every one is a *deepening* of something that already works. |
-| **Alta parity + the moat** (#475 voice · #476 unified data layer) | 2 | Competitive gaps. Real strategy, zero bearing on a first client. |
-| **Everything else** — Nexus depth, ICP versioning, ISO/SOC2, regional data residency, multi-currency, enterprise SSO, the learning engine, pgvector, mobile | ~110 | Each has an inventory row and an owner. None is between us and revenue. |
-
-**The rule this table exists to enforce:** an item leaving this page must have a **named home** — it never just disappears. If you find something that should be here and isn't, that is a bug in this table, and it means I filtered wrongly. Say so and it comes back.
-
-**Where every one of them lives:** status → `PRODUCT-INVENTORY.md` (all 541 rows, one dot each) · future plans → `V2-TRACKER.md` · why we decided → `KIND-MASTER.md`.
->>>>>>> 529ea87a (The full sweep — the board was wrong in both directions, and the repeat-business killer was in a row nobody read)
 
 ## 🔑 Legend + how anything goes live
 

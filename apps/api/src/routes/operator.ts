@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
-import { writeOperatorAudit } from '../lib/operator-audit'
+import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, packState, packLabel } from '../lib/onboarding-pack'
 import { namesPerApproval } from '../lib/money-path-math'
 import { coldState } from '../lib/cold-client'
@@ -466,7 +466,14 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
         .eq('id', b.campaign_id as string).eq('client_id', client.id).select(SELECT).maybeSingle()
       if (error) throw error
       if (!data) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
-      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'pause_campaign', subjectType: 'campaign', subjectId: data.id, detail: { edited: true, co_pilot: wantCoPilot ?? null } })
+      // #564 — this recorded `pause_campaign` for EVERY save, so a rename or a resume was
+      // logged as a pause. The action is now derived from what the patch actually does.
+      await writeOperatorAudit({
+        operatorEmail: operatorEmail(req), clientId: client.id,
+        action: campaignAuditAction({ isNew: false, nextStatus: patch.status as 'active' | 'paused' | undefined }),
+        subjectType: 'campaign', subjectId: data.id,
+        detail: { edited: true, co_pilot: wantCoPilot ?? null, status: patch.status ?? null },
+      })
       res.json({ success: true, data: shape(data) }); return
     }
 
@@ -1591,7 +1598,10 @@ operatorRouter.post('/campaign/:id/status', async (req: Request, res: Response) 
     if (!updated) { res.status(404).json({ success: false, error: 'Campaign not found' }); return }
 
     await writeOperatorAudit({
-      operatorEmail: operatorEmail(req), clientId: client.id, action: 'pause_campaign',
+      // #564 — the Run/Pause route logged `pause_campaign` for BOTH, so pressing "Run it"
+      // recorded the opposite of what happened. This is the site the founder named.
+      operatorEmail: operatorEmail(req), clientId: client.id,
+      action: campaignAuditAction({ isNew: false, nextStatus: status }),
       subjectType: 'campaign', subjectId: req.params.id, detail: { status, on_behalf: true },
     })
     res.json({ success: true, data: updated })

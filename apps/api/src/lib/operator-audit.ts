@@ -18,7 +18,11 @@ export type OperatorAction =
   | 'reveal_lead'           // stand-alone reveal
   | 'enroll_lead'           // stand-alone enroll into a campaign
   | 'send_now'              // forced a due send
-  | 'pause_campaign'        // paused/resumed a campaign
+  | 'pause_campaign'        // paused a campaign
+  | 'resume_campaign'       // #564 — pressed RUN on an existing campaign. It used to record
+                            // `pause_campaign`, so the log said the opposite of what happened.
+  | 'edit_campaign'         // #564 — changed a name/cap/window WITHOUT starting or stopping
+                            // anything. Every such save also recorded `pause_campaign`.
   | 'start_campaign'        // created + activated a client's campaign (managed model, no spend)
   | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
   | 'assign_inbox'          // V9 #270/#271 — pooled/branded sending inbox lifecycle
@@ -57,4 +61,33 @@ export async function writeOperatorAudit(e: OperatorAuditEntry): Promise<void> {
   } catch (err) {
     console.error('[operator-audit] insert threw:', err instanceof Error ? err.message : err)
   }
+}
+
+/**
+ * WHICH ACTION DID THE OPERATOR ACTUALLY TAKE? (#564)
+ *
+ * The audit log is the only record of who did what to a client's account. It was recording
+ * **`pause_campaign` for everything** on the campaign routes — so pressing **Run it** wrote
+ * *"paused the campaign"*, and renaming one wrote it too. The log did not merely lack detail;
+ * on the most consequential action it said **the opposite of what happened**.
+ *
+ * That is worse than no log. An empty log makes you go and look; a confidently wrong one
+ * makes you stop looking — the same failure shape as a check that passes without running
+ * (#581) and a screen that greens what nobody probed (#576).
+ *
+ * Pure so the mapping is provable without a database, because this is judgement — exactly
+ * the kind that was inlined in a route and therefore untestable.
+ */
+export function campaignAuditAction(a: {
+  /** true when the row is being created, not updated. */
+  isNew: boolean
+  /** The status being written, if the caller is setting one. */
+  nextStatus?: 'draft' | 'active' | 'paused' | null
+}): OperatorAction {
+  if (a.isNew) return 'start_campaign'
+  if (a.nextStatus === 'active') return 'resume_campaign'
+  if (a.nextStatus === 'paused') return 'pause_campaign'
+  // No status in the patch — the operator changed a name, a cap or a window. Recording a
+  // start or a stop here is what made the log untrustworthy.
+  return 'edit_campaign'
 }

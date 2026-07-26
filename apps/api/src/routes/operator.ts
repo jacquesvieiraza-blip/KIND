@@ -1056,6 +1056,13 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
       inboxes: rows,
       needs_inbox: migrationPending ? [] : needsInbox,
       migration_pending: migrationPending,
+        // The committed migrations the runner will apply. The page used to show its "Run it
+        // now" button ONLY when `migration_pending` was true — a flag derived purely from
+        // whether `client_inboxes` exists. Once that one migration had run the button
+        // vanished, taking every LATER migration with it: two were owed and the UI offered
+        // no way to run them. The list is always sent now, so the control can always be
+        // there. Every entry is idempotent, so running them again is a no-op.
+        migrations: (await import('../lib/pending-migrations')).PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })),
     } })
   } catch (err) { console.error('[operator/engine]', err); res.status(500).json({ success: false, error: 'Failed to load engine' }) }
 })

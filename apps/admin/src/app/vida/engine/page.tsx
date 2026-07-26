@@ -24,6 +24,8 @@ type Engine = {
   inboxes: Inbox[]
   needs_inbox: { client_id: string; company_name: string | null }[]
   migration_pending?: boolean
+  /** Every committed migration the runner will apply. Always sent. */
+  migrations?: { key: string; title: string }[]
 }
 
 export default function VidaEnginePage() {
@@ -133,6 +135,62 @@ export default function VidaEnginePage() {
       {error && <div className="text-[12.5px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4">{error}</div>}
       {!e && !error && <p className="text-[13px] text-[#9b8ec4] py-10 text-center">Loading…</p>}
 
+      {/* ── DATABASE — ALWAYS HERE ───────────────────────────────────────────────
+          This control used to live inside the amber "inbox tracking is waiting on one
+          migration" banner, which only rendered when `migration_pending` was true — a flag
+          derived purely from whether `client_inboxes` exists. The moment that migration ran,
+          the button disappeared and took every LATER migration with it: two were owed and
+          there was no way in the product to run them. A control that hides itself once the
+          first job is done is not a control.
+          Every statement is committed, reviewed and idempotent, so pressing this when
+          nothing is outstanding is a no-op. */}
+      <div className="border border-[#e4dcf7] bg-white rounded-xl px-4 py-3 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <b className="text-[13px] text-[#1f1235] block">Database migrations</b>
+            <p className="text-[11.5px] text-[#5c5279] mt-0.5">
+              {(e?.migrations?.length ?? 0) === 0
+                ? 'Nothing committed to apply.'
+                : `${e!.migrations!.length} committed statement${e!.migrations!.length === 1 ? '' : 's'} — safe to re-run, applying an already-applied one does nothing.`}
+            </p>
+          </div>
+          <button onClick={() => runMigration()} disabled={busy === 'migration'}
+            className="ml-auto bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+            {busy === 'migration' ? 'Running…' : 'Run migrations'}
+          </button>
+        </div>
+        {(e?.migrations?.length ?? 0) > 0 && (
+          <ul className="mt-2 space-y-0.5">
+            {e!.migrations!.map(m => (
+              <li key={m.key} className="text-[11.5px] text-[#5c5279]">
+                <code className="px-1 bg-[#f8f6fd] rounded">{m.key}</code> — {m.title}
+              </li>
+            ))}
+          </ul>
+        )}
+        {migMsg && <p className="text-[11.5px] font-semibold text-[#5b21b6] mt-2 leading-relaxed">{migMsg}</p>}
+
+        {/* Only when the database actually rejected the stored password. */}
+        {needsPw && (
+          <form onSubmit={ev => { ev.preventDefault(); if (dbPw.trim()) runMigration(dbPw.trim()) }}
+            className="mt-3 border-t border-[#ece5fb] pt-3">
+            <label className="block text-[11.5px] font-bold text-[#1f1235] mb-1">Try a different Postgres password</label>
+            <p className="text-[11px] text-[#5c5279] mb-1.5 leading-relaxed">
+              The route is fine — the database answered and rejected the stored password. Used for this
+              one run and never saved. If it works, put the same password into <code className="px-1 bg-[#f8f6fd] rounded">DATABASE_URL</code> in
+              Railway → @kind/api → Variables.
+            </p>
+            <div className="flex gap-2">
+              <input type="password" value={dbPw} onChange={ev => setDbPw(ev.target.value)}
+                placeholder="Postgres password"
+                className="flex-1 text-[12.5px] border border-[#ece5fb] rounded-lg px-2.5 py-1.5" />
+              <button type="submit" disabled={busy === 'migration' || !dbPw.trim()}
+                className="bg-[#1f1235] text-white rounded-lg px-3 py-1.5 text-[12.5px] font-bold disabled:opacity-50">Try it</button>
+            </div>
+          </form>
+        )}
+      </div>
+
       {/* MBF — one button, before a demo or after you've broken it mid-pitch. */}
       <div className="border border-[#e4dcf7] bg-[#faf8ff] rounded-xl px-4 py-3 mb-4">
         <b className="text-[13px] text-[#1f1235] block">MBF — the demo account</b>
@@ -148,47 +206,16 @@ export default function VidaEnginePage() {
         {demoMsg && <p className="text-[11.5px] font-semibold text-[#5b21b6] mt-2 leading-relaxed">{demoMsg}</p>}
       </div>
 
+      {/* Kept as an EXPLANATION only — the Run control lives in the always-present card
+          above, so it can never disappear with the condition that spawned it. */}
       {e?.migration_pending && (
         <div className="border border-amber-300 bg-amber-50 rounded-xl px-4 py-3 mb-4">
-          <b className="text-[13px] text-amber-900 block">Inbox tracking is waiting on one migration.</b>
+          <b className="text-[13px] text-amber-900 block">Inbox tracking is waiting on a migration.</b>
           <p className="text-[11.5px] text-amber-800 mt-1">
             Deliverability below is live. The inbox list and the &ldquo;needs an inbox&rdquo; queue switch on once
-            <code className="mx-1 px-1 bg-white rounded">20260725_client_inboxes.sql</code> has been applied.
+            <code className="mx-1 px-1 bg-white rounded">20260725_client_inboxes</code> has been applied —
+            press <b>Run migrations</b> above.
           </p>
-          <button onClick={() => runMigration()} disabled={busy === 'migration'}
-            className="mt-2.5 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
-            {busy === 'migration' ? 'Running…' : 'Run it now'}
-          </button>
-          {migMsg && <p className="text-[11.5px] font-semibold text-amber-900 mt-2 leading-relaxed">{migMsg}</p>}
-
-          {/* Appears only when the database rejected the stored password. There is no way back
-              into the Supabase dashboard to reset it (GitHub removed the Supabase OAuth app),
-              so this is the only remaining route in. Used for one run, stored nowhere. */}
-          {needsPw && (
-            <form
-              onSubmit={ev => { ev.preventDefault(); if (dbPw.trim()) runMigration(dbPw.trim()) }}
-              className="mt-3 border-t border-amber-200 pt-3"
-            >
-              <label className="block text-[11.5px] font-bold text-amber-900 mb-1">
-                Try a different Postgres password
-              </label>
-              <p className="text-[11px] text-amber-800 mb-1.5 leading-relaxed">
-                The route is fine — the database answered and rejected the stored password.
-                This is used for this one run and never saved. If it works, put the same
-                password into <code className="px-1 bg-white rounded">DATABASE_URL</code> in
-                Railway → @kind/api → Variables.
-              </p>
-              <div className="flex gap-2">
-                <input type="password" value={dbPw} onChange={ev => setDbPw(ev.target.value)}
-                  autoComplete="off" placeholder="Postgres password"
-                  className="flex-1 border border-amber-300 rounded-lg px-3 py-2 text-[12.5px] bg-white outline-none focus:border-amber-500" />
-                <button type="submit" disabled={busy === 'migration' || !dbPw.trim()}
-                  className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-4 text-[12.5px] font-bold disabled:opacity-40">
-                  {busy === 'migration' ? 'Trying…' : 'Try it'}
-                </button>
-              </div>
-            </form>
-          )}
         </div>
       )}
 

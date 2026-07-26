@@ -138,7 +138,18 @@ export async function surfaceEverything(clientId: string): Promise<{ surfaced: n
   if (ids.length === 0) return { surfaced: 0, recommended: 0 }
 
   const now = new Date().toISOString()
+  // SURFACING **IS** DELIVERY IN THE MANAGED MODEL — the second silent cap.
+  //
+  // `/leads/for-approval` requires `delivered_at`, and leads are inserted with it null on
+  // purpose: the old self-serve product had a nightly drip release `daily_drip_rate ?? 5`
+  // a day so a trial user couldn't hoover up a database. In the managed model WE decide
+  // what is on a client's desk, and this function is that decision — so a lead we have
+  // just put in front of them but left "undelivered" was invisible to them, and would have
+  // trickled onto the desk five a day. On a 200-lead pack that is forty days.
+  //
+  // Set together, so surfaced and visible can never disagree. Untouched if already set.
   await db.from('leads').update({ surfaced_for_approval_at: now }).in('id', ids)
+  await db.from('leads').update({ delivered_at: now }).in('id', ids).is('delivered_at', null)
 
   // "Recommended" is derived from score at read time (see /leads/for-approval) rather than
   // stored, so it needs no column and can never go stale against a re-score.

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  packState, sourceTarget, packLabel,
+  packState, sourceTarget, packLabel, sourcingTarget,
   PACK_LEADS, PACK_PRICE_USD, PACK_SOURCE_TARGET, LEAD_PRICE_USD,
   PURCHASE_TX_TYPES, PAID_TX_TYPES,
 } from './onboarding-pack'
@@ -118,5 +118,38 @@ describe('packLabel — what the client reads', () => {
     for (const n of [0, 1, 50, 99, 100, 300]) {
       expect(/^\d+$/.test(packLabel(packState(true, n)))).toBe(false)
     }
+  })
+})
+
+describe('sourcingTarget — an explicit request is a decision, not a suggestion', () => {
+  it('honours the $99 pack target of 200 even when the client preference is 20', () => {
+    // THE BUG: Math.min(200, 20) = 20. The $99 sourced a fifth of what it paid for, and a
+    // client could then only approve twenty against a pack promising a hundred.
+    expect(sourcingTarget(PACK_SOURCE_TARGET, 20)).toBe(200)
+  })
+
+  it('honours an operator asking for a specific number', () => {
+    expect(sourcingTarget(75, 20)).toBe(75)
+    expect(sourcingTarget(5, 500)).toBe(5)
+  })
+
+  it('falls back to the client preference when nobody said how many', () => {
+    expect(sourcingTarget(undefined, 50)).toBe(50)
+  })
+
+  it('falls back to 20 when there is no preference either', () => {
+    expect(sourcingTarget(undefined, null)).toBe(20)
+    expect(sourcingTarget(undefined, 0)).toBe(20)
+    expect(sourcingTarget(undefined, undefined)).toBe(20)
+  })
+
+  it('never returns a negative or fractional target', () => {
+    expect(sourcingTarget(-5, 20)).toBe(0)
+    expect(sourcingTarget(12.9, 20)).toBe(12)
+  })
+
+  it('an explicit zero means zero — not "fall back to the preference"', () => {
+    // sourceTarget() returns 0 for an already-stocked client; that must not become 20.
+    expect(sourcingTarget(0, 20)).toBe(0)
   })
 })

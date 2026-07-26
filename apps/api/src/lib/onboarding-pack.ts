@@ -89,3 +89,28 @@ export function packLabel(s: PackState): string {
   if (s.left === 0) return `Pack used · $${LEAD_PRICE_USD} per approved lead from here`
   return `${s.left} of your ${s.included} included leads left`
 }
+
+/**
+ * How many records a sourcing run should ASK for.
+ *
+ * `leads_per_run` is the client's own preference for a self-serve run — the default when
+ * nobody said how many. It is NOT a ceiling on an explicit request.
+ *
+ * It used to be `Math.min(maxLeads, leadsPerRun ?? 20)`, which silently capped every
+ * managed run at 20: the $99 asks for 200 so the client can pass on half and still approve
+ * 100, and got 20 — a desk with no choice on it, against a pack promising a hundred.
+ * Nothing surfaced it, because 20 is a plausible number to see, and `leads_per_run` has no
+ * UI in Vida at all, so it sat at its default with no way to raise it.
+ *
+ * Spend is unaffected: try_spend_sourcing still enforces the client's pre-funded allowance,
+ * the per-client daily record cap and the global monthly ceiling. This decides what we ASK
+ * for, never what we may spend.
+ */
+export function sourcingTarget(
+  requested: number | undefined,
+  leadsPerRun: number | null | undefined,
+): number {
+  if (requested !== undefined && Number.isFinite(requested)) return Math.max(0, Math.floor(requested))
+  const pref = Number(leadsPerRun)
+  return Number.isFinite(pref) && pref > 0 ? Math.floor(pref) : 20
+}

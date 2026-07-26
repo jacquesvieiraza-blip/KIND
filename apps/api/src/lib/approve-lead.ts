@@ -195,7 +195,10 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     client_id: clientId, amount: -PRICE_PER_LEAD_USD, type: 'wallet_charge', plan: 'work_model',
     reference: `lead:${claim.id}`, note: 'Approved lead worked ($4)', created_at: now,
   })
-  if (ledgerErr) {
+  // 23505 is the UNIQUE index on credit_transactions.reference doing its job: a row for
+  // `lead:<id>` already exists, so this lead is already recorded as paid. That is the dedup
+  // working, not a failure — alerting on it would page the founder every time a retry landed.
+  if (ledgerErr && ledgerErr.code !== '23505') {
     console.error('[approve] LEDGER ROW FAILED after charging $4 — double-charge risk', clientId, claim.id, ledgerErr.message)
     void sendFounderAlert('charge_failed', 'Charged $4 but the ledger row failed', [
       `Client ${clientId}, lead ${claim.id}. The money left the wallet; the record of it did not.`,

@@ -15,6 +15,8 @@ type Campaign = {
   id: string; name: string
   status: 'draft' | 'active' | 'paused' | 'paused_low_performance' | 'completed' | 'archived'
   leads_enrolled: number; emails_sent: number; replies_total: number; replies_interested: number
+  /** How many emails the sequence actually has. Progress used a hardcoded 3. */
+  steps_count?: number | null
 }
 // M5 — the client SEES the sequence, and cannot edit it. Full transparency about what goes
 // out in their name (they asked for this), with the authoring kept on Vida where we do the
@@ -106,7 +108,7 @@ export default function MillaCampaignPage() {
                     <p className="text-[11.5px] font-semibold text-[#7B6FA0]">Campaign progress</p>
                     <p className="text-[11.5px] text-[#9B8EC4]">
                       {c.emails_sent > 0 && c.leads_enrolled > 0
-                        ? `${Math.min(100, Math.round((c.emails_sent / (c.leads_enrolled * 3)) * 100))}% of sequence complete`
+                        ? `${Math.min(100, Math.round((c.emails_sent / Math.max(1, c.leads_enrolled * (c.steps_count || 3))) * 100))}% of sequence complete`
                         : 'Not started'}
                     </p>
                   </div>

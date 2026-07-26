@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   toResult, toUnanswered, summarise, headline, rank, SHOW_LIMIT,
+  countsAsCannotSend, countsAsDoubleGrant, isMbfAccount,
   type CheckResult, type Finding,
 } from './integrity-checks'
 
@@ -134,5 +135,67 @@ describe('ranking — worst first, and a clean check still shows', () => {
     const input = [mk('a', 'clean'), mk('b', 'critical')]
     rank(input)
     expect(input[0].key).toBe('a')
+  })
+})
+
+// ── THE THREE THAT GOT IT WRONG ON THE FIRST LIVE RUN ────────────────────────────
+//
+// Every one of these was judgement inlined in a query, where nothing could test it. They are
+// pure now, and each test is the exact live case that produced a false finding.
+
+describe('countsAsCannotSend — a demo is not a stranded client', () => {
+  it('EXCLUDES a demo account', () => {
+    // The live run reported CRITICAL: "1 client has PAID and cannot send" — about the demo.
+    // Demos cannot send BY DESIGN: is_demo is a hard stop and every address is .invalid.
+    expect(countsAsCannotSend(true)).toBe(false)
+  })
+
+  it('still counts a real client', () => {
+    expect(countsAsCannotSend(false)).toBe(true)
+  })
+})
+
+describe('countsAsDoubleGrant — a purchase is required, not just a balance', () => {
+  it('does NOT flag a client who never paid us', () => {
+    // The live case: a client with wallet money from a manual grant, zero purchases. The bug
+    // being looked for cannot have touched them — there was no payment to double-grant.
+    expect(countsAsDoubleGrant(0, 0)).toBe(false)
+    expect(countsAsDoubleGrant(0, 50)).toBe(false)
+  })
+
+  it('DOES flag a client who paid and still holds an unspent pack', () => {
+    // That is the real signature: they paid, and got both the 100 free leads and the dollars.
+    expect(countsAsDoubleGrant(1, 0)).toBe(true)
+    expect(countsAsDoubleGrant(1, 99)).toBe(true)
+  })
+
+  it('does not flag a client who has worked past the pack — the balance is legitimately theirs', () => {
+    expect(countsAsDoubleGrant(1, 100)).toBe(false)
+    expect(countsAsDoubleGrant(2, 250)).toBe(false)
+  })
+})
+
+describe('isMbfAccount — match the name, not one exact string', () => {
+  it('matches the live account name', () => {
+    // The live account is "MBF Demo". An exact match on "MBF Holdings" reported that it did
+    // not exist, while it was sitting in the client list.
+    expect(isMbfAccount('MBF Demo')).toBe(true)
+    expect(isMbfAccount('MBF Holdings')).toBe(true)
+  })
+
+  it('is case-insensitive, because a name typed by hand will not be consistent', () => {
+    expect(isMbfAccount('mbf demo')).toBe(true)
+    expect(isMbfAccount('Mbf Holdings Ltd')).toBe(true)
+  })
+
+  it('does not match an unrelated client', () => {
+    expect(isMbfAccount('Acme Corp')).toBe(false)
+    expect(isMbfAccount('K.I.N.D')).toBe(false)
+  })
+
+  it('handles a missing name rather than throwing mid-report', () => {
+    expect(isMbfAccount(null)).toBe(false)
+    expect(isMbfAccount(undefined)).toBe(false)
+    expect(isMbfAccount('')).toBe(false)
   })
 })

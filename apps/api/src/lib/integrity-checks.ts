@@ -132,6 +132,49 @@ export function headline(s: Summary): string {
   return 'No damage found in live data. Every bug we fixed was caught before it hurt anyone.'
 }
 
+// ── THE THREE DECISIONS THAT GOT IT WRONG ───────────────────────────────────────
+//
+// The first live run of the integrity check produced three findings that were not real. All
+// three were judgement inlined in a query, where nothing could test it. They are pure
+// functions now, for the same reason the verdict logic already was.
+
+/**
+ * Should this client be counted in "paid but cannot send"?
+ *
+ * **No, if they are a demo.** A demo cannot send BY DESIGN — `is_demo` is a hard stop inside
+ * the send path and every address is `.invalid`. Counting one reported a CRITICAL *"a client
+ * has paid and cannot be delivered"* about the demo account, which is the system working
+ * exactly as intended. A check that cries wolf is a check nobody reads.
+ */
+export function countsAsCannotSend(isDemo: boolean): boolean {
+  return !isDemo
+}
+
+/**
+ * Is this the pack-and-wallet double-grant?
+ *
+ * It needs **an actual purchase**, not merely a wallet balance. The signature is *"they paid
+ * us, and got both the 100 free leads and the dollars"*. Checking only for a balance flagged
+ * a client credited by a manual grant — who never paid us anything — as the victim of a bug
+ * that could not have touched them.
+ */
+export function countsAsDoubleGrant(purchaseCount: number, approvalCount: number): boolean {
+  return purchaseCount > 0 && approvalCount < PACK_LEADS
+}
+
+/**
+ * Is this account the MBF demo?
+ *
+ * Matched on the NAME CONTAINING "MBF", not on the exact string `MBF Holdings`. The live
+ * account is called "MBF Demo", so an exact match reported *"the MBF demo account does not
+ * exist"* while it sat in the client list. The conclusion was accidentally useful — it does
+ * have no leads — but the stated reason was false, and a report that is right by accident is
+ * not a report.
+ */
+export function isMbfAccount(companyName: string | null | undefined): boolean {
+  return typeof companyName === 'string' && /mbf/i.test(companyName)
+}
+
 /** Worst first; a clean check still appears, at the end. */
 export function rank(results: CheckResult[]): CheckResult[] {
   const order: Record<Severity, number> = { critical: 0, high: 1, unknown: 2, medium: 3, clean: 4 }

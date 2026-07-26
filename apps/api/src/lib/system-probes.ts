@@ -149,22 +149,34 @@ async function clients(): Promise<Section> {
   for (const c of (cs ?? []) as { id: string; company_name: string | null; is_demo: boolean | null }[]) {
     const name = c.company_name || c.id.slice(0, 8)
     rows.push(await probe(name, async () => {
-      const [{ count: paid }, { count: approved }, { count: awaiting }, boxes, camp] = await Promise.all([
+      const [{ count: paid }, { count: approved }, { count: awaiting }, boxes, camp, last] = await Promise.all([
         db.from('credit_transactions').select('id', { count: 'exact', head: true }).eq('client_id', c.id).in('type', PAID_TX_TYPES),
         db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', c.id).not('revealed_at', 'is', null),
         db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', c.id).is('revealed_at', null).neq('status', 'passed'),
         db.from('client_inboxes').select('id, email, kind, status, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name').eq('client_id', c.id),
         db.from('figsy_campaigns').select('status').eq('client_id', c.id).eq('status', 'active').limit(1).maybeSingle(),
+        // DAYS SINCE LAST APPROVAL — the founder's spec asked for it by name and the first
+        // build left it out. It is the cold-client signal: #538 suspends a client after 30
+        // days with no approval, so this is the number that decides whether that fires.
+        db.from('leads').select('revealed_at').eq('client_id', c.id)
+          .not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(1).maybeSingle(),
       ])
       const hasPaid = (paid ?? 0) > 0
       const pack = packState(hasPaid, approved ?? 0)
       const send = pickSendingInbox((boxes.data ?? []) as never, secretOk)
+      // Reuse the SHIPPED rule rather than re-deriving "30 days" here. `coldState` already
+      // carries the warn/cold thresholds AND the guard that an unparseable date must never
+      // read as "30 days idle" and suspend a paying client (#538).
+      const { coldState } = await import('./cold-client')
+      const cold = coldState((last.data as { revealed_at?: string } | null)?.revealed_at, new Date())
+      const approvalAge = cold.label
       const facts = [
         hasPaid ? 'paid' : 'NOT paid',
         `${approved ?? 0} approved`,
         pack.active ? `${pack.left}/${pack.included} included left` : 'no pack',
         `${awaiting ?? 0} awaiting a decision`,
         camp.data ? 'campaign active' : 'NO active campaign',
+        approvalAge,
       ].join(' · ')
 
       if (c.is_demo) return ok(`${name} (demo)`, `${facts} · demo account — cannot send by design.`)
@@ -175,6 +187,10 @@ async function clients(): Promise<Section> {
       }
       if ((awaiting ?? 0) === 0 && hasPaid) {
         return broken(name, `Paid, can send, but has NOBODY left to approve. ${facts}`, 'Source more for them — a paying client with an empty desk cannot spend.')
+      }
+      if (cold.cold) {
+        return broken(name, `COLD — ${cold.daysIdle} days since their last approval. ${facts}`,
+          'A paying client this quiet is suspended by #538. Contact them.')
       }
       return ok(name, `Can send from ${send.inbox.email}. ${facts}`)
     }))
@@ -204,9 +220,17 @@ async function vida(): Promise<Section> {
   }))
 
   rows.push(await probe('MBF demo ready', async () => {
-    const { data: mbf } = await db.from('clients').select('id, is_demo').eq('company_name', 'MBF Holdings').maybeSingle()
-    if (!mbf) return broken('MBF demo ready', 'The MBF demo account does not exist — there is nothing to demo with.', 'Vida → Engine → Build / reset MBF.')
-    if (!mbf.is_demo) return broken('MBF demo ready', 'MBF exists but is NOT flagged is_demo — the hard stop that prevents it sending is not in place.', 'Rebuild it from Vida → Engine.')
+    // MATCH ON *ANY* DEMO NAMED MBF, not the exact string `MBF Holdings`.
+    // The live account is called "MBF Demo", so an exact-match lookup reported "the MBF demo
+    // account does not exist" while it was sitting right there in the client list. The
+    // conclusion happened to be useful (it has no leads) but the stated reason was false —
+    // and a report that is right by accident is not a report.
+    const { isMbfAccount } = await import('./integrity-checks')
+    const { data: all } = await db.from('clients').select('id, company_name, is_demo')
+    const mbf = ((all ?? []) as { id: string; company_name: string | null; is_demo: boolean | null }[])
+      .find(c => isMbfAccount(c.company_name))
+    if (!mbf) return broken('MBF demo ready', 'No account with MBF in its name exists — there is nothing to demo with.', 'Vida → Engine → Build / reset MBF.')
+    if (!mbf.is_demo) return broken('MBF demo ready', `"${mbf.company_name}" exists but is NOT flagged is_demo — the hard stop that prevents it sending is not in place.`, 'Rebuild it from Vida → Engine.')
     const [{ count: total }, { count: waiting }, { count: real }] = await Promise.all([
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', mbf.id),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', mbf.id).is('revealed_at', null).neq('status', 'passed'),
@@ -218,8 +242,13 @@ async function vida(): Promise<Section> {
   }))
 
   rows.push(await probe('Stray demo / test accounts', async () => {
+    // THE SAME EXACT-STRING BUG, sitting directly below the fix for it.
+    // This filtered on `!== 'MBF Holdings'` while the live account is named "MBF Demo" — so
+    // the one demo we are supposed to keep was itself being reported as a stray to delete.
+    // Matched on "contains MBF" now, the same way the readiness probe above does.
+    const { isMbfAccount } = await import('./integrity-checks')
     const { data } = await db.from('clients').select('id, company_name').eq('is_demo', true)
-    const strays = (data ?? []).filter((c: { company_name: string | null }) => c.company_name !== 'MBF Holdings')
+    const strays = (data ?? []).filter((c: { company_name: string | null }) => !isMbfAccount(c.company_name))
     return strays.length === 0
       ? ok('Stray demo / test accounts', 'One demo environment only — MBF, as locked.')
       : broken('Stray demo / test accounts', `${strays.length} demo account(s) besides MBF are cluttering the client list: ${strays.map((s: { company_name: string | null }) => s.company_name ?? '(unnamed)').join(', ')}.`, 'Delete them in Vida → Demo.')
@@ -233,11 +262,70 @@ async function vida(): Promise<Section> {
     return ok('Operator audit log', `Recording. Last ${data!.length}: ${data!.map((r: { action: string }) => r.action).join(', ')}.`)
   }))
 
-  rows.push(await probe('PDL monthly spend cap', async () => {
-    const { data } = await db.from('app_settings').select('key, value').eq('key', 'pdl_monthly_cap_usd').maybeSingle()
-    return data
-      ? ok('PDL monthly spend cap', `Capped at $${(data as { value: unknown }).value} a month — sourcing cannot run away.`)
-      : unmeasured('PDL monthly spend cap', 'No pdl_monthly_cap_usd setting found; the code default applies.', 'Confirm the default is what you want before sourcing at volume.')
+  // PDL SPEND *AGAINST* THE CAP — the spec said "PDL spend vs monthly cap" and the first
+  // build showed only the cap. A ceiling with no reading against it tells you nothing about
+  // whether you are near it, which is the only reason to have a ceiling.
+  rows.push(await probe('PDL spend against the monthly cap', async () => {
+    const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
+    const [capRow, ledger] = await Promise.all([
+      db.from('app_settings').select('value').eq('key', 'pdl_monthly_cap_usd').maybeSingle(),
+      db.from('sourcing_ledger').select('cost_usd').gte('created_at', monthStart.toISOString()),
+    ])
+    const spent = ((ledger.data ?? []) as { cost_usd?: number | string }[])
+      .reduce((s, r) => s + Number(r.cost_usd ?? 0), 0)
+    const capRaw = (capRow.data as { value?: unknown } | null)?.value
+    const cap = Number(capRaw)
+    if (!capRow.data || !Number.isFinite(cap) || cap <= 0) {
+      return unmeasured('PDL spend against the monthly cap',
+        `$${spent.toFixed(2)} spent this month, but no usable pdl_monthly_cap_usd setting exists, so there is nothing to measure it against — the code default applies.`,
+        'Set pdl_monthly_cap_usd before sourcing at volume.')
+    }
+    const pct = Math.round((spent / cap) * 100)
+    if (spent >= cap) {
+      return broken('PDL spend against the monthly cap', `$${spent.toFixed(2)} of $${cap} used (${pct}%) — the cap is reached, so sourcing is refused.`,
+        'Raise the cap or wait for the month to roll.')
+    }
+    return ok('PDL spend against the monthly cap', `$${spent.toFixed(2)} of $${cap} used this month (${pct}%).`)
+  }))
+
+  // DAILY SEND CAPS — read from the environment they are actually enforced from.
+  rows.push(await probe('Daily send caps', async () => {
+    const caps: Array<[string, string | undefined]> = [
+      ['cold sends/day (all clients)', process.env.FIGSY_COLD_DAILY_CAP],
+      ['sends/day (all clients)', process.env.FIGSY_DAILY_SEND_LIMIT],
+      ['sends/day per client', process.env.FIGSY_PER_CLIENT_DAILY_CAP],
+    ]
+    const set = caps.filter(([, v]) => v)
+    if (set.length === 0) {
+      return unmeasured('Daily send caps', 'None of the three cap variables are set, so the code defaults apply and this check cannot state the live numbers.',
+        'Set them explicitly in Railway before the kill-switch goes on.')
+    }
+    return ok('Daily send caps', set.map(([k, v]) => `${k}: ${v}`).join(' · ')
+      + (set.length < caps.length ? ` · ${caps.length - set.length} unset (code default).` : '.'))
+  }))
+
+  // SEND WINDOW — the live campaign settings, read through the SAME function the send path
+  // uses, so this row cannot disagree with what actually happens at send time.
+  rows.push(await probe('Send window', async () => {
+    const { withinSendWindow, readCampaignGates } = await import('./campaign-settings')
+    const { data, error } = await db.from('figsy_campaigns').select('settings').eq('status', 'active').limit(1).maybeSingle()
+    if (error) return unmeasured('Send window', `Could not read a campaign to check the window: ${error.message}`)
+    if (!data) return unmeasured('Send window', 'No active campaign exists, so there is no window configured to check.', 'This becomes measurable once a client is live.')
+    const s = (data as { settings?: unknown }).settings
+    const gates = readCampaignGates(s)
+    const open = withinSendWindow(s, new Date())
+    const desc = gates.send_hour_utc === null && (gates.send_days ?? []).length === 0
+      ? 'no window configured — FAILS OPEN by design, so a garbled preference can never silently halt outreach'
+      : `from ${gates.send_hour_utc ?? '—'}:00 UTC on ${(gates.send_days ?? []).join('/') || 'any day'}`
+    return ok('Send window', `${open ? 'OPEN right now' : 'CLOSED right now'} — ${desc}.`)
+  }))
+
+  // REPLICA COUNT — the founder's spec said "if readable". It is not, and that is the answer.
+  rows.push(await probe('Replica count', async () => {
+    const id = process.env.RAILWAY_REPLICA_ID
+    return unmeasured('Replica count',
+      `A process can read its OWN replica id${id ? ` (${id.slice(0, 8)}…)` : ' — and this one is not even set'}, never how many replicas exist. Nothing inside the container can answer this, so it is not answered here rather than guessed.`,
+      'Railway → @kind/api → Settings → Replicas. If it is >1, every cron in cron.ts double-fires.')
   }))
 
   return { title: 'Vida — can the operator actually run a client?', side: 'vida', rows }
@@ -263,7 +351,68 @@ async function activity(): Promise<Section> {
   return { title: 'Activity — what the machine actually did', side: 'both', rows }
 }
 
+// ── EVERY OPERATOR ENDPOINT — answering, or erroring? ───────────────────────────
+//
+// The founder's spec asked for this and the first build skipped it. If a Vida endpoint 500s,
+// the page that uses it renders EMPTY — and an empty page is indistinguishable from "nothing
+// to do" (#565). So the console can look calm while half of it is dead.
+//
+// It calls each one for real, over HTTP, against this same process. Read-only GETs ONLY —
+// never a POST, so nothing can be started, sent, charged or changed by running this check.
+//
+// What counts as answering: any 2xx or 4xx. A 400 for a missing `client_id` is the route
+// working correctly — it received the request and made a decision. Only a 5xx, a timeout or
+// a refused connection means broken.
+
+/** Read-only GETs that need no parameters. Anything requiring an id is listed with a note. */
+const OPERATOR_GETS: Array<{ path: string; note?: string }> = [
+  { path: '/clients' }, { path: '/worklist' }, { path: '/alerts' }, { path: '/status' },
+  { path: '/engine' }, { path: '/audit' }, { path: '/whoami' }, { path: '/health' },
+  { path: '/queue' }, { path: '/suppression' }, { path: '/reports' }, { path: '/blockers' },
+  { path: '/bookings' }, { path: '/nexus' }, { path: '/cockpit', note: 'expects client_id' },
+  { path: '/board', note: 'expects client_id' }, { path: '/people', note: 'expects client_id' },
+  { path: '/asks', note: 'expects client_id' }, { path: '/record', note: 'expects client_id' },
+  { path: '/source-preview', note: 'expects client_id' },
+]
+
+async function operatorEndpoints(): Promise<Section> {
+  const rows: Row[] = []
+  const port = process.env.PORT || '3001'
+  const key = process.env.ADMIN_SECRET_KEY
+  if (!key) {
+    return { title: 'Vida endpoints — is every operator route answering?', side: 'vida', rows: [
+      unmeasured('Operator endpoints', 'ADMIN_SECRET_KEY is not set, so these routes cannot be called even by us.',
+        'Set it in Railway → @kind/api → Variables.'),
+    ] }
+  }
+
+  for (const ep of OPERATOR_GETS) {
+    rows.push(await probe(ep.path, async () => {
+      const ctrl = new AbortController()
+      const t = setTimeout(() => ctrl.abort(), 8000)
+      try {
+        const r = await fetch(`http://127.0.0.1:${port}/operator${ep.path}`, {
+          headers: { 'x-admin-key': key }, signal: ctrl.signal,
+        })
+        if (r.status >= 500) {
+          const body = await r.text().catch(() => '')
+          return broken(ep.path, `HTTP ${r.status} — this route is ERRORING. Any Vida screen using it renders empty, which looks identical to "nothing to do". ${body.slice(0, 160)}`,
+            'Check the API logs for this route.')
+        }
+        return ok(ep.path, `HTTP ${r.status} — answering${ep.note ? ` (${ep.note}, so a 4xx here is correct)` : ''}.`)
+      } catch (e) {
+        return broken(ep.path, `Did not answer at all: ${e instanceof Error ? e.message : String(e)}`,
+          'The route is unreachable or hung — Vida screens using it will be blank.')
+      } finally { clearTimeout(t) }
+    }))
+  }
+  return { title: 'Vida endpoints — is every operator route answering?', side: 'vida', rows }
+}
+
 /** Every section, in report order. Never throws. */
 export async function runSystemCheck(): Promise<Section[]> {
-  return [await dependencies(), await schema(), await clients(), await vida(), await activity()]
+  return [
+    await dependencies(), await schema(), await clients(),
+    await vida(), await operatorEndpoints(), await activity(),
+  ]
 }

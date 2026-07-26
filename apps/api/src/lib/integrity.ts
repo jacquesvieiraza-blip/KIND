@@ -9,6 +9,7 @@
 import { db } from '@kind/db'
 import {
   toResult, toUnanswered, summarise, headline, rank,
+  countsAsCannotSend, countsAsDoubleGrant,
   PACK_LEADS, LEAD_PRICE_USD,
   type CheckResult, type Summary,
 } from './integrity-checks'
@@ -95,9 +96,16 @@ async function packAndWallet(): Promise<CheckResult> {
   const real = (data ?? []).filter((c: { is_demo: boolean | null }) => !c.is_demo) as { id: string }[]
   const hits: string[] = []
   for (const c of real) {
+    // A PURCHASE IS REQUIRED, not merely a balance. The double-grant signature is *"they
+    // paid, and got both the pack and the dollars"*. This checked only for wallet money, so
+    // a client credited by a manual grant — who never paid us anything — was reported as a
+    // victim of a bug that cannot have touched them. The purchase row is what makes it real.
+    const { count: purchases } = await db.from('credit_transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', c.id).in('type', ['wallet_topup', 'purchase', 'credit_purchase'])
     const { count } = await db.from('leads').select('id', { count: 'exact', head: true })
       .eq('client_id', c.id).not('revealed_at', 'is', null)
-    if ((count ?? 0) < PACK_LEADS) hits.push(c.id)
+    if (countsAsDoubleGrant(purchases ?? 0, count ?? 0)) hits.push(c.id)
   }
   return toResult({ ...q, severity: 'high', affected: hits,
     cleanVerdict: 'No client holds wallet money with an unspent pack. Nothing was double-granted.',
@@ -137,7 +145,16 @@ async function fundedCannotSend(): Promise<CheckResult> {
   const { data, error } = await db.from('credit_transactions')
     .select('client_id').in('type', ['wallet_topup', 'purchase', 'credit_purchase']).limit(1000)
   if (error) throw error
+
+  // DEMOS ARE EXCLUDED. A demo account cannot send **by design** — `is_demo` is a hard stop
+  // inside the send path and every address is `.invalid`. Counting one here reported a
+  // CRITICAL *"a client has paid and cannot be delivered"* about the MBF/Acme demo, which is
+  // the system working exactly as intended. A check that cries wolf is a check nobody reads.
+  const { data: demos } = await db.from('clients').select('id').eq('is_demo', true)
+  const demoIds = new Set((demos ?? []).map((c: { id: string }) => c.id))
+
   const payers = [...new Set((data ?? []).map((r: { client_id: string }) => r.client_id))]
+    .filter(id => countsAsCannotSend(demoIds.has(id)))
   if (payers.length === 0) {
     return toResult({ ...q, severity: 'critical', affected: [],
       cleanVerdict: 'Nobody has paid us yet, so nobody is waiting on a mailbox.', badVerdict: n => `${n}` })

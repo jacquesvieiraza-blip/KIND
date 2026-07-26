@@ -2,16 +2,20 @@
 
 > **Why this exists.** The repo is ~113,000 lines. Audits kept reporting coverage like *"8.5% of 90k"* — a number that is both discouraging and meaningless, because most of those lines never execute. Worse, work and attention leaked into code that no running system ever touches. This map draws the line.
 >
-> **Generated, not judged.** `scripts/build-core-map.py` starts at the REAL entry points — the API's `index.ts` and `cron.ts`, every Milla page, every Vida page, both middlewares, both in-app API proxies — and follows every `import` and dynamic `import()` transitively until the graph closes. **Zero imports failed to resolve**, so nothing was quietly dropped. Re-run it any time; it is deterministic.
+> **Generated, not judged.** `scripts/build-core-map.py` starts at the REAL entry points — the API's `index.ts` and `cron.ts`, every Milla page, every Vida page, both middlewares, both in-app API proxies — and follows every `import` and dynamic `import()` transitively until the graph closes. **Zero imports failed to resolve**, so nothing was quietly dropped. Re-run it any time; it is deterministic — `python3 scripts/build-core-map.py` rewrites `scripts/core-files.txt` in place and now **exits non-zero if any import fails to resolve**, so a graph that did not close can never be read as a clean map.
+>
+> ⚠️ **That sentence was not true when this map first shipped, and the fix is worth recording.** The script hardcoded `ROOT = '/home/user/KIND'` — a container path that does not exist on the founder's Mac, so it could not run there at all (the same family as **#578** `declare -A` on bash 3.2 and **#579** BSD awk) — and it **never wrote `scripts/core-files.txt`**: it printed its counts and dumped a trace into a scratchpad that dies with the container. So the manifest could not be regenerated, and it was stale by **exactly the five files the measurement system itself added** — `vida/system/page.tsx`, `integrity.ts`, `integrity-checks.ts`, `system-check.ts`, `system-probes.ts`. **The map was fencing out the instruments it shipped beside.** `ROOT` is now derived from the script's own location, and the manifest is written by the script that counts it, so the number in the doc and the list on disk cannot disagree again.
 
 ## The numbers
 
 | | Files | Lines | Share |
 |---|---:|---:|---:|
-| **CORE — reachable from an entry point** | **221** | **51,341** | **45%** |
-| FENCED — not reachable | 324 | 42,170 | 37% |
-| *(remainder: `.sql`, `.html`, and other non-TS source)* | — | ~20,400 | 18% |
-| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | | **112,997** | 100% |
+| **CORE — reachable from an entry point** | **221** | **51,470** | **45%** |
+| FENCED — `.ts`/`.tsx` not reachable | 287 | 38,277 | 33% |
+| *(remainder: `.sql`, `.html`, and test files)* | 105 | 24,644 | 22% |
+| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 613 | **114,391** | 100% |
+
+*Recounted 26 Jul directly from `scripts/core-files.txt` and a walk of `apps/` + `packages/`. The earlier printing of this table read **221 / 51,341** core against **324 / 42,170** fenced — the core file count was right, but the line counts and the fenced split were derived a different way and had drifted. **These are counted, not carried forward.***
 
 **The rules this map exists to enforce:**
 

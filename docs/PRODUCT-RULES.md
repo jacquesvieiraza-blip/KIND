@@ -2,7 +2,7 @@
 
 > **What this is.** The non-negotiables the product must obey. Not strategy, not a roadmap, not status — those have their own homes. This exists so nobody has to guess and the founder does not have to re-explain the same rule every session.
 >
-> **DRAFT — every line below is taken from a decision the founder has already made.** Each rule names where it came from and, where it is enforced in code, the constant that enforces it. **Cut, correct and add.** Nothing here is agreed until the founder says so.
+> **Every line below is taken from a decision the founder has already made.** Each rule names where it came from and, where it is enforced in code, the constant that enforces it. **Cut, correct and add.** Nothing here is agreed until the founder says so.
 >
 > **The rule about these rules:** if a rule here and the code disagree, that is a bug — fix one of them the same session. A rule nobody enforces is a wish.
 
@@ -62,6 +62,56 @@
 | P7 | **A full audit states its coverage** as a % of the core. *"No issues found"* without a coverage statement is not a result. | #573, Prompt 1 |
 | P8 | **One PR = one shippable change.** | CLAUDE.md |
 | P9 | **If unsure, ask. Do not just build. Flag it.** | founder, standing |
+| P10 | **READ THE PATH END TO END. Do not grep and move on.** Grep can prove a thing exists; it can never prove a thing is **missing**. Before touching a path, read that whole file — not the function being edited. If grep was used, say so and say what it could not have shown. | founder, 26 Jul |
+| P11 | **Every prompt is answered with a CLAUSE TABLE — built before the work, reported after it.** See §5a. A prompt is never "done" without one. | founder, 26 Jul |
+
+### 5a · THE CLAUSE TABLE — the rule that exists because I kept getting this wrong
+
+> **Why this is a required artifact and not a promise.** A behaviour I undertake, I forget: I committed to a clause-by-clause read after Prompt 1 and had dropped it by Prompt 4, where I reported an integration complete while **nothing called it**. An artifact is different — if it is missing from the PR, the founder sends it back without reading a line of code, exactly as the pasted-red rule already works.
+>
+> **Every miss this week was invisible to grep**: a module nothing imported, a generator writing to a scratchpad, a green test *requiring* the broken value, a refusal rendered in the success colour. Grep only ever returns what you already suspected.
+
+**Paste this BEFORE the work prompt. It governs the message that follows it.**
+
+```
+BEFORE YOU BUILD ANYTHING. This governs the prompt in my NEXT message, and
+every report you make about it.
+
+1. READ, DON'T GREP. Before you touch a path, read that path end to end —
+   the whole file, not the function you intend to edit. Grep can tell you a
+   thing exists; it can never tell you a thing is missing. If you use grep,
+   say so and say what it could not have shown you.
+
+2. BUILD THE CLAUSE TABLE FIRST. Break my next prompt into every separate
+   clause, QUOTED FROM MY WORDS — not paraphrased. Paraphrasing is how "every
+   /operator endpoint" became "the System screen". Show me that table before
+   you start building, so I can correct the reading before you write code.
+
+3. REPORT AGAINST THAT TABLE. Your final report and your PR must open with:
+
+   | Clause (my words) | Built | Verified how |
+
+   "Verified how" must name the command you ran or the file you read end to
+   end. "I built it" is not verification. "grepped for callers — nothing
+   calls it" is.
+
+4. ANY ❌ GOES IN THE FIRST LINE of the report and the PR title. Not the
+   bottom. If a clause is partly built, it is ❌ with the gap named — there
+   is no ✅ with an asterisk.
+
+5. NEVER SAY A PROMPT IS DONE WITHOUT THAT TABLE. If you catch yourself
+   about to, stop and build the table instead.
+
+6. IF A CLAUSE CANNOT BE BUILT, say NOT-POSSIBLE and why. Do not work around
+   it silently and do not substitute something easier.
+
+Confirm you have read this, then wait for my next message.
+```
+
+**The two clauses that were earned, not designed:**
+
+- **Clause 2 (table BEFORE the work)** would have caught Prompt 4. *"on approved leads, the product creates the campaign in Instantly, pushes the lead"* would have sat there as a row from the start, and its missing ✅ would have been visible at the end instead of surviving into a PR that read as complete.
+- **Clause 4 (❌ at the top)** exists because the NOT-POSSIBLE items went in a tidy section near the bottom while the report led with what worked. The founder had to ask.
 
 ## 6 · OPERATIONS
 
@@ -85,4 +135,4 @@ Written down rather than assumed, per P9.
 
 ---
 
-*Draft prepared 26 Jul from decisions already on record. Not in force until the founder approves it.*
+*Approved by the founder 26 Jul ("its good. i agree"). §5a added the same day, after Prompt 4 was reported complete while nothing called it.*

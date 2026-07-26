@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢91 · 🩷193 · 🟣1 · 🟡23 · 🔴227 · ⏸5 · **Σ540** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷193 · 🟣1 · 🟡27 · 🔴227 · ⏸5 · **Σ545** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -106,6 +106,20 @@ Everything below left the launch pad this session. It is **not deleted** — it 
 | ⏸ Auto-deploy / CI | **PRODUCT-INVENTORY** (⏸, blocked) | Blocked on the GitHub flag appeal — a 🧍 item, above |
 
 ---
+
+## 🩺 BLOCK M — THE MEASUREMENT SYSTEM (built 26 Jul — the instruments, before any more building)
+
+*Founder-locked: **"I will not merge any open PR until I can measure the product."** These are the instruments. They fix nothing themselves — they make everything after them provable.*
+
+| # | Item | What it gives you | Owner |
+|---|------|-------------------|:-----:|
+| #573 🟡 | **The core map** | The 90k-line problem, solved by **fencing not deleting**. 216 files / 50,394 lines are the CORE — traced by following real imports from real entry points, not by judgement. Audit coverage is now stated as **% of the core**, so 100% is reachable. It also proved two assumptions wrong: `(dashboard)` is CORE (Milla imports it — deleting breaks Milla), and `voice`/`whatsapp` are CORE (mounted, so their security holes are live) | 🤖 |
+| #574 🟡 | **The gate** | `scripts/check.sh` → type-check, full test suite, both app builds, doc-lint. Wired into `ship.sh` so **a red build physically cannot deploy**. Proven green → red → refused → green, with the deploy step never reached | 🤖 |
+| #575 🟡 | **The integrity check** | The retroactive half: **what the already-shipped bugs actually did, and to whom.** Eight questions about real rows, read-only, naming which clients. A check that errors renders **UNANSWERED, never clean** | 🤖 |
+| #576 🟡 | **The System screen** | `/vida/system` — everything live, **both halves**, one button. Every row is CHECKED-OK / CHECKED-BROKEN / **NOT-MEASURED with the reason**. Nothing green unless probed. Finally answers which migrations are actually applied in production | 🤖 |
+| #577 🟢 | **Sending architecture, locked** | Both vendors confirmed in writing they keep the mailbox passwords. So **our product gives the orders and theirs drive the van**: Instantly by API for us, Smartlead by API for clients, direct SMTP kept for enterprise. **$0 new for us, $0 for clients until one pays.** Every gate still sits upstream of the hand-off | 🧍 |
+
+**How you use them, in order:** merge → `bash scripts/ship.sh` (the gate now guards it) → **Vida → System → Run full check** → that is your baseline → *then* decide the four money PRs → run it again and compare.
 
 ## 🔑 Legend + how anything goes live
 

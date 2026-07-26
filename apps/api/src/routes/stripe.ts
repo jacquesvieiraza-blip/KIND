@@ -340,7 +340,39 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           ])
           res.status(500).json({ error: 'ledger insert failed — retry' }); return
         }
-        const { error: walletErr } = await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: amountUsd })
+        // ── THE FIRST $99 BUYS THE PACK. IT IS NOT WALLET MONEY. ──────────────────
+        //
+        // It was doing both, and nothing joined the two files that caused it: this one
+        // credited the full $99 to the wallet, and `approve-lead.ts` switched the 100-lead
+        // pack on from the very same purchase row. So one payment bought **100 free
+        // approvals AND $99 of spendable balance** — the client approved 100 for nothing,
+        // the wallet sat untouched at $99, and approval 101 onwards spent it: about
+        // twenty-four more leads at $4. **$99 bought ~124 leads instead of 100.**
+        //
+        // `PRODUCT-INVENTORY.md` #541 locked the design in the founder's own terms — the
+        // pack is *"a counted quota, NOT a wallet credit"* — because crediting dollars to
+        // make "$4 a lead" reach 100 would have made the balance fiction. The quota was
+        // added; the wallet credit was never removed.
+        //
+        // The model, plainly: **$99 once → 100 included leads.** Then **top-ups in bundles
+        // → $4 per approved lead**, and those DO credit the wallet, because that is what the
+        // wallet is for. `add_sourcing_allowance` below is unaffected either way — it accrues
+        // on every payment, including this one, and is what actually funds the sourcing.
+        //
+        // "First" is decided from the ledger, which is already the source of truth for the
+        // pack — so the two can never disagree about which purchase this is.
+        const { count: priorPurchases } = await db.from('credit_transactions')
+          .select('id', { count: 'exact', head: true })
+          .eq('client_id', clientId).in('type', PURCHASE_TX_TYPES)
+          .neq('reference', session.id)
+        const isPackPurchase = (priorPurchases ?? 0) === 0
+
+        const { error: walletErr } = isPackPurchase
+          ? { error: null }
+          : await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: amountUsd })
+        if (isPackPurchase) {
+          console.log(`[stripe] first purchase $${amountUsd} for ${clientId} — pack only, wallet NOT credited (the $99 buys the 100 included leads)`)
+        }
         if (walletErr) {
           await db.from('credit_transactions').delete().eq('reference', session.id)
           console.error('[Stripe] wallet credit failed after payment — deleting ledger row for retry', walletErr.message, 'session', session.id)

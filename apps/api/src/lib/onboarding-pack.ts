@@ -74,13 +74,27 @@ export function packState(hasPurchased: boolean, approvedCount: number): PackSta
 }
 
 /**
- * How many people to source for a client, given what they already have.
+ * How many people to source, given how many are still WAITING FOR A DECISION on the
+ * client's desk.
  *
- * Tops back up to PACK_SOURCE_TARGET rather than adding a fixed batch, so repeated runs can't
- * quietly buy the same 200 twice — the cost of over-sourcing lands on us, not the client.
+ * THE ARGUMENT USED TO BE "everyone we have ever sent them", and that made it a **lifetime
+ * cap of 200 leads per client**. The model is: $99 once for 100 included, then top-ups in
+ * bundles at $4 a lead. So a client works through their desk — approves 100, passes the
+ * rest — then tops up $200 to approve fifty more... and this returned 0, because they had
+ * "already had" 200. They had paid and there was **nobody left to approve**. Sourcing simply
+ * stopped for that client, permanently, with no error.
+ *
+ * Counting only the UNDECIDED keeps the desk stocked instead: work through it and we top it
+ * back up. An approved or passed lead is finished business and must not hold a slot open
+ * against them forever.
+ *
+ * Over-sourcing is not the risk this function guards. `try_spend_sourcing` is — the client's
+ * pre-funded allowance (2 records per $1 they have paid), the per-client daily record cap and
+ * the global monthly ceiling. Those decide what we may SPEND. This only decides what to ASK
+ * for, and asking for people we cannot afford is refused there, not here.
  */
-export function sourceTarget(alreadySourced: number): number {
-  return Math.max(0, PACK_SOURCE_TARGET - Math.max(0, Math.floor(alreadySourced)))
+export function sourceTarget(awaitingDecision: number): number {
+  return Math.max(0, PACK_SOURCE_TARGET - Math.max(0, Math.floor(awaitingDecision)))
 }
 
 /** What the client sees in Milla. Plain words — never a raw number on its own. */

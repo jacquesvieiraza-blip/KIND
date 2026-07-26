@@ -45,7 +45,18 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     const { data: existing } = await db.from('leads')
       .select('email, revealed_at, crm_existing').eq('id', leadId).eq('client_id', clientId).maybeSingle()
     if (!existing) return { status: 'not_found', revealed: false }
-    if (existing.email) return { status: 'approved', revealed: true, email: existing.email as string, charged: true }
+    if (existing.email) {
+      // `charged: true` was hardcoded here, so a double-click, a retry or a refresh on a
+      // lead covered by the included 100 told the client "$4 charged" for an approval that
+      // cost nothing. #541 fixed that on the first-approval path and missed this one.
+      // Ask the ledger what actually happened instead of assuming: a wallet charge writes
+      // `lead:<id>`, a pack approval writes `pack_<id>` at $0.
+      const { data: charge } = await db.from('credit_transactions')
+        .select('id').eq('client_id', clientId)
+        .eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge')
+        .limit(1).maybeSingle()
+      return { status: 'approved', revealed: true, email: existing.email as string, charged: !!charge }
+    }
     return { status: 'no_email', revealed: false }
   }
 
@@ -131,7 +142,25 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     db.from('leads').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).not('revealed_at', 'is', null),
   ])
-  const pack = packState((purchaseCount ?? 0) > 0, approvedCount ?? 0)
+  // OFF BY ONE — THE PACK GAVE 99 FREE APPROVALS, NOT 100.
+  //
+  // The atomic claim above (step 1) sets `revealed_at` BEFORE this counts rows where
+  // `revealed_at is not null` — so the count includes the lead being approved right now.
+  // At approval #100 that read 100, packState returned left=0, and the client was charged
+  // $4 for the hundredth of the hundred they had already paid for. The number "100
+  // included" is printed on the lead card, in Milla's greeting, on the billing page, in
+  // this ledger note and in the terms.
+  //
+  // Subtract this lead rather than moving the count above the claim: the claim is what
+  // makes the once-per-lead charge atomic, and reading before it would let two concurrent
+  // approvals both see 99 and both go free.
+  //
+  // `onboarding-pack.test.ts` asserts packState(true, 99).left === 1 and passes — it calls
+  // the PURE FUNCTION with 99 while this route handed it 100. Same shape as the min-20
+  // gate whose 18 unit tests passed on a bypassable route, which is why the test added for
+  // this drives approveLead itself.
+  const priorApprovals = Math.max(0, (approvedCount ?? 0) - 1)
+  const pack = packState((purchaseCount ?? 0) > 0, priorApprovals)
 
   if (pack.left > 0) {
     // Covered by the pack — nothing moves in the wallet. Logged so the ledger still shows
@@ -146,6 +175,13 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     if (chargeErr) { await unclaim(); throw chargeErr }
     if (charged !== true) { await unclaim(); return { status: 'insufficient_funds', revealed: false } }
   }
+
+  // 4b. Milla says "$4 charged" on a re-approve of a FREE lead — the honest flag, computed
+  //     once here so the first-approval return and the idempotent re-approve path cannot
+  //     disagree. #541 fixed this at the bottom of this function and missed the lost-claim
+  //     branch at the top, so a double-click on a pack-covered lead reported a charge that
+  //     never happened.
+  const moneyMoved = pack.left === 0
 
   // 5. Reveal the email (Hunter waterfall only when we don't already have one).
   let email: string | null = claim.email ?? null
@@ -177,7 +213,35 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   }
 
   // 7. Persist the email + write the single $4 ledger row (once per lead).
-  await db.from('leads').update({ email, apollo_consented: true }).eq('id', claim.id).then(() => {}, () => {})
+  //
+  // THE EMAIL WRITE IS THE PRODUCT. It was `.then(() => {}, () => {})` — swallowed — while
+  // the comment immediately below explained why swallowing the LEDGER write was dangerous.
+  // If this write fails silently: the $4 is gone, `revealed_at` is set, the email is never
+  // stored, and the atomic claim blocks any retry — so the lead can NEVER be re-revealed.
+  // The client paid for a contact we then lost, permanently, with no error anywhere.
+  //
+  // So: put the money back the same way the dead-email path does, release the claim so a
+  // retry can work, and tell the client plainly rather than handing them a revealed lead
+  // whose email we failed to keep.
+  const { error: emailErr } = await db.from('leads')
+    .update({ email, apollo_consented: true }).eq('id', claim.id)
+  if (emailErr) {
+    if (pack.left > 0) {
+      await db.from('credit_transactions').delete().eq('reference', `pack_${leadId}`).then(() => {}, () => {})
+    } else {
+      const { error: revErr } = await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: PRICE_PER_LEAD_USD })
+      if (revErr) console.error('[approve] $4 reversal failed after an email-write failure', clientId, claim.id, revErr)
+    }
+    await unclaim()
+    console.error('[approve] EMAIL WRITE FAILED — money returned, claim released', clientId, claim.id, emailErr.message)
+    void sendFounderAlert('charge_failed', 'Approve rolled back — the revealed email could not be stored', [
+      `Client ${clientId}, lead ${claim.id}. We found the email and failed to save it.`,
+      `Reason: ${emailErr.message}`,
+      pack.left > 0 ? 'Their pack slot was handed back.' : 'The $4 was returned to their wallet.',
+      'The lead is un-claimed, so approving again will retry cleanly.',
+    ]).catch(() => {})
+    return { status: 'no_email', revealed: false }
+  }
   const emailNorm = normalizeRevealEmail(email)
   if (emailNorm) {
     // Keep the #424 once-per-email reveal record for cross-client dedup bookkeeping.
@@ -214,11 +278,30 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     .then(() => {}, (e: unknown) => console.error('[approve] trial sourcing drip failed (non-fatal):', e))
 
   // 8. Start the outreach on the already-paid lead — charges nothing (prepaid).
-  await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch(() => {})
+  //
+  // This was `.catch(() => {})`. A failed enrol produces the EXACT outcome the no-campaign
+  // gate at step 3c fails closed to prevent — $4 taken, no enrolment row, nothing ever sent
+  // — but silently, bypassing the guard that looks like the protection. The lead stays
+  // approved (they asked for it and we have their email, so un-revealing it would lose the
+  // contact they paid for), but the operator is told, because a paid lead that never entered
+  // a sequence is a client waiting for outreach that will never arrive.
+  const enrolled = await autoEnrollLead(leadId, clientId, { force: true, prepaid: true })
+    .then(() => true)
+    .catch((e: unknown) => {
+      console.error('[approve] ENROL FAILED after charging — the lead will never be worked', clientId, leadId, e)
+      void sendFounderAlert('sends_stalled', 'A paid lead was never enrolled — no outreach will run', [
+        `Client ${clientId}, lead ${leadId}.`,
+        moneyMoved ? 'They were charged $4.' : 'It came out of their included pack.',
+        `Reason: ${e instanceof Error ? e.message : String(e)}`,
+        'The lead is approved and revealed, but it is in no sequence — enrol it from Vida or nothing will ever be sent.',
+      ]).catch(() => {})
+      return false
+    })
+  if (!enrolled) console.warn('[approve] lead approved but not enrolled —', leadId)
 
   // `charged` reflects whether money actually moved — a pack approval is free, and Milla
   // says so on the card rather than claiming a $4 that never happened.
-  return { status: 'approved', revealed: true, email, charged: pack.left === 0 }
+  return { status: 'approved', revealed: true, email, charged: moneyMoved }
 }
 
 // Pass = client says "not a fit". No charge, no reveal; mark the lead so it leaves the queue.

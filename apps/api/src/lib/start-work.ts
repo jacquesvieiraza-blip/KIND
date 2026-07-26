@@ -93,10 +93,24 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
     const { data: client } = await db.from('clients').select('user_id').eq('id', clientId).maybeSingle()
     if (!client?.user_id) return { ...empty, reason: 'no_user' }
 
-    // ── Source, topping UP to the target so a repeat call can't buy twice ───
-    const { count: already } = await db.from('leads')
-      .select('id', { count: 'exact', head: true }).eq('client_id', clientId).neq('status', 'passed')
-    const want = sourceTarget(already ?? 0)
+    // ── Source, topping the DESK up to the target ──────────────────────────
+    //
+    // This counted every lead the client had ever held, which made 200 a LIFETIME cap. The
+    // model is $99 once for 100 included, then top-ups in bundles at $4 a lead — so a client
+    // who worked through their desk and topped up $200 to approve fifty more got `want = 0`
+    // and **nobody new to approve**. They had paid and there was nothing to spend it on.
+    //
+    // Count only what is still AWAITING A DECISION: not yet approved (`revealed_at` null) and
+    // not passed. Approved and passed leads are finished business and must not hold slots
+    // open against the client forever.
+    //
+    // Safe against over-sourcing because that is not this function's job: `try_spend_sourcing`
+    // holds the client's pre-funded allowance, the per-client daily cap and the global monthly
+    // ceiling. Asking for people we cannot afford is refused there.
+    const { count: awaiting } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).is('revealed_at', null).neq('status', 'passed')
+    const want = sourceTarget(awaiting ?? 0)
 
     let sourced = 0
     if (want > 0) {
@@ -148,8 +162,29 @@ export async function surfaceEverything(clientId: string): Promise<{ surfaced: n
   // trickled onto the desk five a day. On a 200-lead pack that is forty days.
   //
   // Set together, so surfaced and visible can never disagree. Untouched if already set.
-  await db.from('leads').update({ surfaced_for_approval_at: now }).in('id', ids)
-  await db.from('leads').update({ delivered_at: now }).in('id', ids).is('delivered_at', null)
+  //
+  // BOTH WRITES ARE CHECKED NOW. They were bare `await`s with no `.error` read, and the
+  // function then returned `surfaced: ids.length` regardless — so a failed `delivered_at`
+  // write left the leads invisible to the client (`/for-approval` requires it) while the
+  // operator's alert read "sent 200 to them". Reporting a delivery that did not happen is
+  // the exact invisibility the comment above exists to fix.
+  const { error: surfErr } = await db.from('leads').update({ surfaced_for_approval_at: now }).in('id', ids)
+  const { error: delErr } = await db.from('leads').update({ delivered_at: now }).in('id', ids).is('delivered_at', null)
+  if (surfErr || delErr) {
+    const why = surfErr?.message ?? delErr?.message ?? 'unknown'
+    console.error('[start-work] surfacing FAILED for client', clientId, why)
+    const { sendFounderAlert } = await import('./alerts')
+    void sendFounderAlert('sends_stalled', 'Leads were sourced but NOT put on the client\'s desk', [
+      `Client ${clientId}: ${ids.length} lead(s) could not be surfaced.`,
+      `Reason: ${why}`,
+      surfErr && !delErr ? 'They are not marked as surfaced.' : '',
+      delErr ? 'They are marked surfaced but NOT delivered — which means the client cannot see them at all.' : '',
+      'Nothing is lost: re-running start-work will retry. But their desk is empty until it does.',
+    ].filter(Boolean)).catch(() => {})
+    // Report ZERO rather than a number nobody delivered — the caller logs this figure to the
+    // founder as "sent N to them".
+    return { surfaced: 0, recommended: 0 }
+  }
 
   // "Recommended" is derived from score at read time (see /leads/for-approval) rather than
   // stored, so it needs no column and can never go stale against a re-score.

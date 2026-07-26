@@ -79,21 +79,42 @@ describe('packState', () => {
   })
 })
 
-describe('sourceTarget — tops up, never re-buys', () => {
-  it('a brand-new client needs the full 200', () => {
+describe('sourceTarget — keeps the DESK stocked, not a lifetime cap', () => {
+  // THE ARGUMENT CHANGED MEANING, and that change is the fix.
+  //
+  // It used to be handed "every lead this client has ever held", which made 200 a LIFETIME
+  // CAP: a client who worked through their desk — approved 100, passed the rest — and then
+  // topped up $200 to approve fifty more got 0, because they had "already had" 200. They had
+  // paid and there was nobody left to approve. Sourcing stopped for that client, permanently,
+  // with no error anywhere.
+  //
+  // It is now handed only the leads still AWAITING A DECISION. An approved or passed lead is
+  // finished business and must not hold a slot open against them forever.
+  it('a brand-new client with an empty desk needs the full 200', () => {
     expect(sourceTarget(0)).toBe(200)
   })
 
-  it('tops back up to 200 rather than adding another 200', () => {
-    // Adding a fixed batch each run would quietly buy the same people twice, and that cost
-    // lands on us, not the client.
+  it('tops the desk back up rather than adding another fixed batch', () => {
+    // Adding a batch each run would quietly buy the same people twice, and that cost lands
+    // on us, not the client.
     expect(sourceTarget(120)).toBe(80)
     expect(sourceTarget(199)).toBe(1)
   })
 
-  it('asks for nothing once they are at or past the target', () => {
+  it('asks for nothing while the desk is already full', () => {
     expect(sourceTarget(200)).toBe(0)
     expect(sourceTarget(640)).toBe(0)
+  })
+
+  it('THE FIX: a client who worked through their desk gets more people', () => {
+    // 200 sourced, 100 approved, 60 passed → 40 still awaiting a decision. Under the old
+    // lifetime reading this was sourceTarget(200) = 0 and their top-up bought nothing.
+    expect(sourceTarget(40)).toBe(160)
+  })
+
+  it('a client who has approved EVERYTHING gets a full desk again', () => {
+    // The case that made a top-up worthless: nothing left undecided.
+    expect(sourceTarget(0)).toBe(200)
   })
 
   it('treats junk as "source the full amount" rather than a negative', () => {

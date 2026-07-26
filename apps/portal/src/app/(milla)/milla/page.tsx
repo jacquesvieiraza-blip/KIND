@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
+import { shortfallMessage, deskCoverage } from '@kind/shared'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -62,11 +63,23 @@ export default function MillaHomePage() {
   const load = useCallback(async () => {
     try {
       const tok = await token()
-      const [s, l] = await Promise.all([
+      // #570 — allSettled, not all. With `Promise.all`, ONE failing endpoint rejected the
+      // pair and the client's entire dashboard went blank — including the half that had
+      // loaded fine. The billing page already used allSettled; the desk did not.
+      const [sr, lr] = await Promise.allSettled([
         api.get<{ data: Summary }>('/leads/milla-summary', tok),
         api.get<{ data: MaskedLead[] }>('/leads/for-approval', tok),
       ])
-      setSummary(s.data); setLeads(l.data)
+      if (sr.status === 'rejected' && lr.status === 'rejected') {
+        throw sr.reason instanceof Error ? sr.reason : new Error('Failed to load your dashboard')
+      }
+      if (sr.status === 'rejected') setError('Some of your figures could not be loaded just now — the leads below are still correct.')
+      if (lr.status === 'rejected') setError('Your leads could not be loaded just now — this is not the same as having none. Refresh in a moment.')
+      const s = sr.status === 'fulfilled' ? sr.value : null
+      const l = lr.status === 'fulfilled' ? lr.value : null
+      if (!s) { setLeads(l?.data ?? []); return }
+      if (l) setLeads(l.data)
+      setSummary(s.data)
       const n = s.data.leads_awaiting
       const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
       // The greeting quoted "a flat $4 per lead, final" to every client, including one
@@ -157,8 +170,15 @@ export default function MillaHomePage() {
       void load()
     } catch (e) {
       const err = e as Error & { status?: number }
-      // A 20-lead batch short on funds used to be told "you need $4".
-      if (err.status === 402) setTopUp(`You need $${ids.length * 4} in your wallet to approve ${ids.length}. Top up to continue.`)
+      // #570 — the figure is no longer invented in the browser. `ids.length * 4` ignored the
+      // wallet balance AND the leads still inside the included pack, so it named a total we
+      // could not stand behind on a payment screen. Use the server's numbers when it sends
+      // them; otherwise state the rule rather than a made-up total.
+      if (err.status === 402) setTopUp(shortfallMessage({
+        count: ids.length,
+        neededUsd: (err as { needed_usd?: number }).needed_usd,
+        balanceUsd: (err as { balance_usd?: number }).balance_usd,
+      }))
       else if (err.message === 'batch_minimum') setError(`Choose ${gate.required} to start — we need enough people to run a real campaign.`)
       else setError(err.message || 'Could not approve — please try again')
     } finally { setActing(null) }
@@ -174,7 +194,11 @@ export default function MillaHomePage() {
 
     } catch (e) {
       const err = e as Error & { status?: number }
-      if (err.status === 402) setTopUp('You need $4 in your wallet to approve. Top up to continue.')
+      if (err.status === 402) setTopUp(shortfallMessage({
+        count: 1,
+        neededUsd: (err as { needed_usd?: number }).needed_usd,
+        balanceUsd: (err as { balance_usd?: number }).balance_usd,
+      }))
       // The api helper surfaces the server's `error` CODE as the message — translate the
       // known codes into plain English rather than showing a client "no_campaign".
       else if (err.message === 'no_campaign') setError("Your campaign isn't switched on yet, so we can't start outreach — you have not been charged. We've been alerted and will get it live.")
@@ -183,9 +207,16 @@ export default function MillaHomePage() {
       else setError(err.message || 'Could not approve — please try again')
     } finally { setActing(null) }
   }
+  // #570 — pass() now reloads. It removed the row locally and never refreshed, so the KPI
+  // still read "3 leads awaiting" after the client had passed all three — and with a desk
+  // capped at 50, passing one never pulled the next one in. The screen disagreed with itself.
   async function pass(id: string) {
     setActing(id); setError(null)
-    try { await api.post(`/leads/${id}/pass`, {}, await token()); setLeads(ls => (ls ?? []).filter(l => l.id !== id)) }
+    try {
+      await api.post(`/leads/${id}/pass`, {}, await token())
+      setLeads(ls => (ls ?? []).filter(l => l.id !== id))   // instant, so the row goes at once
+      void load()                                          // then the real counts, from the server
+    }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not pass — please try again') }
     finally { setActing(null) }
   }
@@ -345,6 +376,13 @@ export default function MillaHomePage() {
             {topUp && <div className="text-[13px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">{topUp}</div>}
             {error && <div className="text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
             {!leads && !error && <p className="text-[14px] text-[#9b8ec4]">Loading…</p>}
+            {/* #570 — the KPI counts EVERY lead awaiting a decision; this list is capped at
+                50. A client with 120 waiting read "120 leads awaiting you" above a list of
+                50, with nothing explaining the other 70 — which reads as us having lost them. */}
+            {(() => {
+              const note = summary && leads ? deskCoverage({ awaiting: summary.leads_awaiting, shown: leads.length }) : null
+              return note ? <div className="text-[12.5px] text-[#5c5279] bg-[#faf8ff] border border-[#ece5fb] rounded-xl px-3 py-2">{note}</div> : null
+            })()}
             {leads?.filter(l => revealed[l.id]).map(l => (
               <div key={l.id} className="bg-white border-[1.5px] border-emerald-200 rounded-2xl p-3.5">
                 <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[14px]">Approved · {l.role} @ {l.company}</b></div>

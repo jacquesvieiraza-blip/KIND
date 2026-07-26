@@ -70,6 +70,24 @@ if [ ! -d node_modules/nodemailer ] || [ ! -d node_modules/vitest ]; then
   exit 1
 fi
 
+# 0. BUILD THE WORKSPACE PACKAGES FIRST — the gate must check what it is about to ship.
+#
+# `@kind/shared` declares `"main": "./dist/index.js"` and **`packages/shared/dist` is
+# gitignored**: it is a build artifact, so it is whatever that machine last built, or absent.
+# Nothing here built it, so every step below silently checked a STALE copy.
+#
+# It bit on the first run that mattered. Pure logic moved into `@kind/shared` so both consoles
+# could share one copy; the container it was authored in had a fresh `dist`, so the suite was
+# green there — and the founder's Mac died with `TypeError: loadError is not a function`,
+# because his `dist` predated the new file. **The gate was green for a reason that did not
+# reproduce** — the same shape as bash 3.2 (#578), BSD awk (#579) and a hardcoded container
+# path (#582): tooling that works where it was written and nowhere else.
+#
+# The tests no longer depend on this (apps/api/vitest.config.ts aliases `@kind/shared` to its
+# SOURCE), but the type-check and both Next builds legitimately consume `dist` — so it is
+# built here, first, every time.
+step "Shared package build" npx tsc -p packages/shared
+
 # 1. Does the API compile? A type error here is a runtime crash on the money path.
 step "API type-check" npx tsc --noEmit -p apps/api/tsconfig.json
 

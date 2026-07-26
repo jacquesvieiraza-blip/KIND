@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { MBF_CAST, MBF_REPLIES, MBF_SEQUENCE, MBF_ICP, MBF_NAME, MBF_MARKER, castEmail } from './demo-mbf-data'
+import { MBF_CAST, MBF_REPLIES, MBF_SEQUENCE, MBF_ICP, MBF_NAME, MBF_MARKER, castEmail, canAdoptAsMbf } from './demo-mbf-data'
 
 describe('the cast never changes — the founder is learning a script', () => {
   it('is forty people', () => {
@@ -109,5 +109,50 @@ describe('the story reads as a working account, not an empty one', () => {
 describe('MBF_NAME', () => {
   it('is the name the reset matches on — changing it orphans the existing demo account', () => {
     expect(MBF_NAME).toBe('MBF Holdings')
+  })
+})
+
+// ── ADOPTION — the most destructive decision in this file ────────────────────────────
+//
+// It ends in `wipeMbf`. It exists because the live account was called "MBF Demo" and was
+// never flagged `is_demo`: the reset could not find it and the demo purge refused to delete
+// it, so no control in Vida could touch the row. Adoption fixes that — and the whole risk is
+// that it takes over a REAL client who happens to be called "MBF something". Every refusal
+// path is pinned here.
+describe('canAdoptAsMbf', () => {
+  const clean = { nameMatchesMbf: true, purchaseCount: 0, realEmailLeadCount: 0 }
+
+  it('adopts an empty, never-paid account whose name contains MBF', () => {
+    expect(canAdoptAsMbf(clean)).toEqual({ ok: true })
+  })
+
+  it('REFUSES an account that has ever been paid for — that is somebody\'s business', () => {
+    const v = canAdoptAsMbf({ ...clean, purchaseCount: 1 })
+    expect(v.ok).toBe(false)
+    expect(!v.ok && v.reason).toContain('real payment')
+  })
+
+  it('REFUSES an account holding even ONE real email address', () => {
+    // This is the rule that stops us destroying real people's data. One is enough.
+    const v = canAdoptAsMbf({ ...clean, realEmailLeadCount: 1 })
+    expect(v.ok).toBe(false)
+    expect(!v.ok && v.reason).toContain('REAL email')
+  })
+
+  it('REFUSES a name that does not contain MBF', () => {
+    const v = canAdoptAsMbf({ ...clean, nameMatchesMbf: false })
+    expect(v.ok).toBe(false)
+  })
+
+  it('a single failing condition is enough — they are ANDed, not scored', () => {
+    expect(canAdoptAsMbf({ nameMatchesMbf: true, purchaseCount: 3, realEmailLeadCount: 40 }).ok).toBe(false)
+    expect(canAdoptAsMbf({ nameMatchesMbf: false, purchaseCount: 0, realEmailLeadCount: 0 }).ok).toBe(false)
+  })
+
+  it('names WHICH condition failed, so a refusal is actionable rather than a flat no', () => {
+    const paid = canAdoptAsMbf({ ...clean, purchaseCount: 2 })
+    const real = canAdoptAsMbf({ ...clean, realEmailLeadCount: 7 })
+    expect(!paid.ok && paid.reason).toContain('2')
+    expect(!real.ok && real.reason).toContain('7')
   })
 })

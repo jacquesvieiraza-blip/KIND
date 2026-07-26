@@ -13,7 +13,7 @@
 
 import { db } from '@kind/db'
 import {
-  MBF_NAME, MBF_CAST, MBF_ICP, MBF_SEQUENCE, MBF_REPLIES, castEmail,
+  MBF_NAME, MBF_MARKER, MBF_CAST, MBF_ICP, MBF_SEQUENCE, MBF_REPLIES, castEmail, canAdoptAsMbf,
 } from './demo-mbf-data'
 
 export * from './demo-mbf-data'
@@ -49,6 +49,63 @@ export async function findMbf(): Promise<{ id: string; user_id: string } | null>
   const { data } = await db.from('clients')
     .select('id, user_id').eq('company_name', MBF_NAME).eq('is_demo', true).limit(1).maybeSingle()
   return data ? { id: data.id as string, user_id: data.user_id as string } : null
+}
+
+export type AdoptCandidate =
+  | { kind: 'none' }
+  | { kind: 'adoptable'; id: string; user_id: string; name: string }
+  | { kind: 'refused'; id: string; name: string; reason: string }
+
+/**
+ * Is there an account named "MBF…" that ISN'T the flagged demo, and may we take it over?
+ *
+ * The live account was called "MBF Demo" and was never flagged `is_demo`, so `findMbf` above
+ * could not see it and the demo purge refused to delete it — a row no control in Vida could
+ * touch. Rather than mint a duplicate around it, the reset adopts it.
+ *
+ * The decision itself is `canAdoptAsMbf`, which is pure and tested. This function only
+ * gathers the three facts it needs. A refusal is RETURNED, not thrown, so the route can tell
+ * the founder which account it declined and why instead of silently creating a second one.
+ */
+export async function findAdoptableMbf(): Promise<AdoptCandidate> {
+  const { isMbfAccount } = await import('./integrity-checks')
+  const { data } = await db.from('clients').select('id, user_id, company_name, is_demo').limit(500)
+  const cand = ((data ?? []) as { id: string; user_id: string; company_name: string | null; is_demo: boolean | null }[])
+    .find(c => isMbfAccount(c.company_name) && c.is_demo !== true)
+  if (!cand) return { kind: 'none' }
+
+  const [{ count: purchases }, { count: realEmails }] = await Promise.all([
+    db.from('credit_transactions').select('id', { count: 'exact', head: true })
+      .eq('client_id', cand.id).in('type', ['purchase', 'credit_purchase', 'wallet_topup']),
+    db.from('leads').select('id', { count: 'exact', head: true })
+      .eq('client_id', cand.id).not('email', 'ilike', `%${MBF_MARKER}`).not('email', 'is', null),
+  ])
+
+  const verdict = canAdoptAsMbf({
+    nameMatchesMbf: true,
+    purchaseCount: purchases ?? 0,
+    realEmailLeadCount: realEmails ?? 0,
+  })
+  const name = cand.company_name ?? '(unnamed)'
+  return verdict.ok
+    ? { kind: 'adoptable', id: cand.id, user_id: cand.user_id, name }
+    : { kind: 'refused', id: cand.id, name, reason: verdict.reason }
+}
+
+/**
+ * Take the account over: flag it `is_demo` and give it the canonical name.
+ *
+ * `is_demo` goes on FIRST and on its own. It is the hard stop inside the send path, so it is
+ * the one write that must land before anything else touches this account — if the rename
+ * succeeded and the flag didn't, we would have an account called "MBF Holdings" that can
+ * still email real people, which is worse than what we started with.
+ */
+export async function adoptAsMbf(clientId: string): Promise<{ ok: boolean; error?: string }> {
+  const { error: flagErr } = await db.from('clients').update({ is_demo: true }).eq('id', clientId)
+  if (flagErr) return { ok: false, error: `could not flag it as a demo: ${flagErr.message}` }
+  const { error: nameErr } = await db.from('clients').update({ company_name: MBF_NAME }).eq('id', clientId)
+  if (nameErr) return { ok: false, error: `flagged as a demo, but the rename failed: ${nameErr.message}` }
+  return { ok: true }
 }
 
 /**

@@ -107,14 +107,36 @@ done
 # ── 6. LAUNCH-PAD item rows must MIRROR the inventory dot ─────────────────────
 # Every LAUNCH-PAD row whose first cell is "#id <dot>" must carry the SAME dot the
 # inventory holds for that id. Regenerate with scripts/mirror-launchpad.sh.
-inv_dots="$(awk -F'|' '
+# BSD AWK SAFE — the map goes through a FILE, never through -v.
+#
+# This passed the whole id=dot map (500+ lines) as `awk -v inv="$inv_dots"`. GNU awk
+# accepts newlines in a -v assignment; **BSD awk, which is what macOS ships, does not** —
+# it printed `awk: newline in string 477=🔴...` and gave up. `mismatch` then came back
+# EMPTY, so this check reported OK **without comparing a single dot**.
+#
+# That is the third instance of one bug shape today: a check that looks green because it
+# never ran. And this is the check that keeps LAUNCH-PAD honest against the inventory —
+# the thing the entire doc system rests on. Found 26 Jul in the founder's own terminal.
+#
+# A temp file read in BEGIN works identically on both awks (mirror-launchpad.sh already
+# does it this way).
+INV_MAP="$(mktemp)"
+trap 'rm -f "$INV_MAP"' EXIT
+awk -F'|' '
   /<!-- COUNT:START -->/{inside=1} /<!-- COUNT:END -->/{inside=0}
   inside && NF>=4 { id=$2; gsub(/^ +| +$/,"",id);
     if(id ~ /^[0-9]+[a-z]?$/){ c2=$3; gsub(/^ +| +$/,"",c2); c3=$4; gsub(/^ +| +$/,"",c3);
       d=""; if(c2 ~ /^(🟢|🩷|🟣|🟡|🔴|⏸)$/) d=c2; else if(c3 ~ /^(🟢|🩷|🟣|🟡|🔴|⏸)$/) d=c3;
-      if(d!="") print id"="d } }' docs/PRODUCT-INVENTORY.md)"
-mismatch="$(awk -F'|' -v inv="$inv_dots" '
-  BEGIN{ n=split(inv,a,"\n"); for(i=1;i<=n;i++){ split(a[i],kv,"="); m[kv[1]]=kv[2] } }
+      if(d!="") print id"="d } }' docs/PRODUCT-INVENTORY.md > "$INV_MAP"
+
+# If the map is empty the check CANNOT run — say so instead of passing silently.
+if [ ! -s "$INV_MAP" ]; then
+  say "FAIL [launchpad-mirror] could not read any dots from the inventory — this check did NOT run"
+  FAIL=1
+fi
+
+mismatch="$(awk -F'|' -v mapf="$INV_MAP" '
+  BEGIN{ while((getline line < mapf) > 0){ split(line,kv,"="); m[kv[1]]=kv[2] } }
   { cell=$2; gsub(/^ +| +$/,"",cell);
     if(cell ~ /^#[0-9]+[a-z]? (🟢|🩷|🟣|🟡|🔴|⏸)$/){
       split(cell,p," "); id=p[1]; sub(/^#/,"",id); dot=p[2];

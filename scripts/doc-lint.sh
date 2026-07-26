@@ -88,7 +88,11 @@ for f in "${DOCS[@]}"; do
   [ -f "$f" ] || continue
   for pat in "${BANNED[@]}"; do
     skip=""
-    for kd in "${KNOWN_DIRTY[@]}"; do
+    # BASH 3.2 SAFE — expanding an EMPTY array under `set -u` is an "unbound variable"
+    # error on bash 3.2 (macOS), and KNOWN_DIRTY has been empty since 9 Jul. Bash 4.4+
+    # fixed this, which is why it only ever failed on the founder's Mac. The `+` form
+    # expands to nothing at all when the array is empty.
+    for kd in ${KNOWN_DIRTY[@]+"${KNOWN_DIRTY[@]}"}; do
       [ "$kd" = "$f:$pat" ] && skip=1
     done
     [ -n "$skip" ] && continue

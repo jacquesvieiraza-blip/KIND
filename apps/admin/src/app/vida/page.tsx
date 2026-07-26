@@ -36,7 +36,8 @@ type NeedsApprovalCard = {
 type SendingCard = { id: string; lead_id: string; current_step: number | null; total_steps: number | null; status: string | null; next_send_at: string | null }
 type RepliedCard = { id: string; lead_id: string; from_name: string | null; from_email: string | null; classification: string | null; received_at: string | null; qualified_at: string | null }
 type QualifiedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; email: string | null; score: number | null }
-type BookedCard = { id: string; lead_id: string; start_time: string | null; first_name: string | null; last_name: string | null; company: string | null }
+type BookedCard = { id: string; lead_id: string; start_time: string | null; first_name: string | null; last_name: string | null; company: string | null
+  status: string | null; no_show_at: string | null; rebook_count: number }
 
 type Board = {
   client: { id: string; company_name: string | null }
@@ -214,6 +215,8 @@ export default function VidaConsolePage() {
   const [icpProposal, setIcpProposal] = useState<IcpDraft>(null)
   const [seqPreview, setSeqPreview] = useState<{ name: string; steps: { step: number; day: number; subject: string; body: string }[]; sample_lead: Record<string, unknown> } | null>(null)
   const [asks, setAsks] = useState<Ask[] | null>(null)
+  // What the client said WITHOUT us asking — their one channel, previously invisible.
+  const [fromClient, setFromClient] = useState<{ id: string; content: string; at: string }[]>([])
   const [askInput, setAskInput] = useState('')
 
   // Reset every per-client surface on a client switch — a stale draft belonging to another
@@ -225,7 +228,7 @@ export default function VidaConsolePage() {
     setPeople(null); setCampEdit(null); setProposal(null)
     setTestResult(null); setEnrollView(null)
     setIcpMode('list'); setIcpChat([]); setIcpInput(''); setIcpProposal(null)
-    setSeqPreview(null); setAsks(null); setAskInput(''); setSaveMsg(null)
+    setSeqPreview(null); setAsks(null); setFromClient([]); setAskInput(''); setSaveMsg(null)
     loadCockpit(selected)
   }, [selected, loadCockpit])
 
@@ -522,7 +525,8 @@ export default function VidaConsolePage() {
     try {
       const j = await fetch(`/api/proxy/operator/asks?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
       setAsks(j?.success ? j.data : [])
-    } catch { setAsks([]) }
+      setFromClient(j?.success ? (j.from_client ?? []) : [])
+    } catch { setAsks([]); setFromClient([]) }
   }, [])
 
   async function sendAsk(question: string) {
@@ -551,6 +555,33 @@ export default function VidaConsolePage() {
     if (kind === 'run')        { setTab('Campaign'); if (activeCampaign) setCampaignStatus(activeCampaign.id, 'active'); return }
     if (kind === 'inbox')      { window.location.href = '/vida/engine'; return }
     if (kind === 'chase')      { setTab('Asks'); setAskInput('Quick nudge — your first $99 unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.'); return }
+  }
+
+  // ── BOOKINGS: mark a no-show, give a goodwill rebook ──────────────────────────
+  // The tab was read-only, so the two-attempts rule and the client notice that fires with
+  // it could only be reached from the separate /vida/bookings page — not from the console
+  // an operator actually works in. Neither call moves money.
+  async function actBooking(bookingId: string, kind: 'no-show' | 'rebook', newStart?: string) {
+    if (!selected) return
+    setCockpitBusy(true); setSaveMsg(null)
+    try {
+      const body: Record<string, unknown> = { client_id: selected }
+      if (kind === 'no-show') body.mark = true
+      if (kind === 'rebook' && newStart) body.new_start = newStart
+      const j = await fetch(`/api/proxy/operator/bookings/${encodeURIComponent(bookingId)}/${kind}`, {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+      }).then(r => r.json())
+      if (!j?.success) { setSaveMsg(j?.error || 'Could not update the booking'); return }
+      setSaveMsg(kind === 'no-show'
+        ? 'Marked a no-show. Nothing was refunded — the $4 stands.'
+        : j.rebooks_left === 0
+          ? 'Second attempt used. The client has been told, with the $4 re-run choice.'
+          : `Rebooked. ${j.rebooks_left} attempt left.`)
+      await loadCockpit(selected)
+    } catch (err) {
+      setSaveMsg(err instanceof Error ? err.message : 'Could not update the booking')
+    }
+    setCockpitBusy(false)
   }
 
   async function startCampaign() {
@@ -1723,6 +1754,23 @@ export default function VidaConsolePage() {
 
                 {/* ── ASKS — V3 we ask, M2 they answer in Milla ── */}
                 {tab === 'Asks' && (<>
+                  {/* WHAT THEY SAID, UNPROMPTED. Milla's chat cannot pause a campaign or
+                      source anyone — it answers and writes a message. This is where those
+                      messages surface; before this they went into a table nobody read.
+                      Placed FIRST because what a client asked for outranks what we want
+                      to ask them. */}
+                  {fromClient.length > 0 && (
+                    <div className="border-[1.5px] border-[#7C3AED] rounded-xl p-3 mb-3.5 bg-[#faf8ff]">
+                      <b className="text-[13.5px] block text-[#1f1235]">They said this to Milla — she can&apos;t action it, you can</b>
+                      <span className="block text-[12px] text-[#9b8ec4] mb-2">Last 7 days, newest first. Anything that needs doing needs you.</span>
+                      {fromClient.map(m => (
+                        <p key={m.id} className="text-[13px] text-[#1f1235] leading-relaxed whitespace-pre-wrap bg-white border border-[#ece5fb] rounded-lg px-2.5 py-2 mb-1.5">
+                          <b className="text-[11px] uppercase tracking-wide text-[#9b8ec4] block">{fmtDate(m.at)}</b>
+                          {m.content}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                   <b className="text-[14px] block">Ask the client</b>
                   <span className="block text-[12px] text-[#9b8ec4] mb-2.5">
                     Lands in their Milla thread — the one place they already talk to us. Their answer comes back here.
@@ -1759,22 +1807,52 @@ export default function VidaConsolePage() {
                 </>)}
 
                 {/* BOOKINGS */}
-                {tab === 'Bookings' && (
-                  (cols?.booked.cards.length ?? 0) === 0
+                {tab === 'Bookings' && (<>
+                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
+                  {(cols?.booked.cards.length ?? 0) === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
-                    : cols!.booked.cards.map(c => (
-                      <div key={c.id} className="flex items-center gap-2.5 border border-emerald-200 bg-emerald-50/40 rounded-xl px-3 py-2.5 mb-2">
-                        <div className="min-w-0">
-                          <b className="text-[13.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
-                          <span className="text-[12px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
-                          <span className="text-[12px] text-emerald-700 font-semibold">
-                            {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
-                          </span>
+                    : cols!.booked.cards.map(c => {
+                      const noShow = !!c.no_show_at || c.status === 'no_show'
+                      const attemptsLeft = Math.max(0, 2 - (c.rebook_count ?? 0))
+                      return (
+                        <div key={c.id} className={`border rounded-xl px-3 py-2.5 mb-2 ${noShow ? 'border-amber-300 bg-amber-50/50' : 'border-emerald-200 bg-emerald-50/40'}`}>
+                          <div className="flex items-center gap-2.5">
+                            <div className="min-w-0">
+                              <b className="text-[13.5px] block truncate">{fullName(c.first_name, c.last_name)}</b>
+                              <span className="text-[12px] text-[#9b8ec4] truncate block">{c.company || '—'}</span>
+                              <span className={`text-[12px] font-semibold ${noShow ? 'text-[#92400e]' : 'text-emerald-700'}`}>
+                                {noShow ? 'No-show' : ''}{noShow && c.start_time ? ' · ' : ''}
+                                {c.start_time ? new Date(c.start_time).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : 'booked'}
+                                {(c.rebook_count ?? 0) > 0 && ` · attempt ${(c.rebook_count ?? 0) + 1} of 3`}
+                              </span>
+                            </div>
+                            {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="ml-auto shrink-0 text-[12.5px] font-bold text-[#7C3AED]">Record &rarr;</a>}
+                          </div>
+                          {/* Neither of these moves money. A no-show KEEPS the $4 (they were
+                              worked); a rebook is goodwill, capped at two, and the second one
+                              tells the client with the $4 re-run choice. */}
+                          <div className="flex gap-2 mt-2 flex-wrap">
+                            {!noShow && (
+                              <button onClick={() => actBooking(c.id, 'no-show')} disabled={cockpitBusy}
+                                className="text-[12.5px] font-bold text-[#92400e] bg-[#fffbeb] border border-[#fcd34d] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                                Mark no-show
+                              </button>
+                            )}
+                            {noShow && attemptsLeft > 0 && (
+                              <button onClick={() => { const t = prompt('New agreed time (e.g. 2026-08-04 10:00) — leave blank to just record the retry:'); actBooking(c.id, 'rebook', t?.trim() ? new Date(t.trim().replace(' ', 'T')).toISOString() : undefined) }}
+                                disabled={cockpitBusy}
+                                className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-2.5 py-1.5 disabled:opacity-50">
+                                Rebook · {attemptsLeft} left
+                              </button>
+                            )}
+                            {noShow && attemptsLeft === 0 && (
+                              <span className="text-[12px] text-[#92400e] font-semibold">Two attempts used — the client has been told, with the $4 re-run choice.</span>
+                            )}
+                          </div>
                         </div>
-                        {c.lead_id && <a href={`/vida/record?lead_id=${encodeURIComponent(c.lead_id)}`} className="ml-auto shrink-0 text-[12.5px] font-bold text-[#7C3AED]">Record &rarr;</a>}
-                      </div>
-                    ))
-                )}
+                      )
+                    })}
+                </>)}
               </div>
             </aside>
           </div>

@@ -256,9 +256,18 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
 
     // #493 Booked = confirmed meetings (the $3 captured). Real calendar_bookings, joined
     // to the lead for a name.
-    const bookedRows = await db.from('calendar_bookings')
-      .select('id, lead_id, meeting_title, start_time, status', { count: 'exact' })
-      .eq('client_id', cid).eq('status', 'confirmed').order('start_time', { ascending: true }).limit(SAMPLE)
+    // Cards include NO-SHOWS as well as confirmed: a no-show is the booking that most needs
+    // attention, and filtering to 'confirmed' made it vanish from the console entirely — so
+    // the two goodwill rebooks and the client notice could never be reached from here.
+    // The COUNT stays confirmed-only, because the pipeline column is a funnel stage.
+    const [bookedRows, confirmedCount] = await Promise.all([
+      db.from('calendar_bookings')
+        .select('id, lead_id, meeting_title, start_time, status, no_show_at, rebook_count')
+        .eq('client_id', cid).in('status', ['confirmed', 'no_show'])
+        .order('start_time', { ascending: true }).limit(SAMPLE),
+      db.from('calendar_bookings').select('id', { count: 'exact', head: true })
+        .eq('client_id', cid).eq('status', 'confirmed'),
+    ])
     const bookedLeadIds = Array.from(new Set((bookedRows.data ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
     const bookedLeadNames = bookedLeadIds.length > 0
       ? await db.from('leads').select('id, first_name, last_name, company').in('id', bookedLeadIds)
@@ -267,6 +276,8 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
     const bookedCards = (bookedRows.data ?? []).map((b: Record<string, unknown>) => {
       const l = nameById.get(b.lead_id as string) as Record<string, unknown> | undefined
       return { id: b.id, lead_id: b.lead_id, start_time: b.start_time,
+        status: b.status ?? null, no_show_at: b.no_show_at ?? null,
+        rebook_count: (b.rebook_count as number | null) ?? 0,
         first_name: l?.first_name ?? null, last_name: l?.last_name ?? null, company: l?.company ?? null }
     })
 
@@ -279,7 +290,7 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
         sending:       { count: sending.count ?? 0,       cards: sending.data ?? [] },
         replied:       { count: replied.count ?? 0,       cards: replied.data ?? [] },
         qualified:     { count: qualified.count ?? 0,     cards: qualified.data ?? [] },
-        booked:        { count: bookedRows.count ?? 0,    cards: bookedCards },
+        booked:        { count: confirmedCount.count ?? 0, cards: bookedCards },
       },
     })
   } catch (err) { console.error('[operator/board]', err); res.status(500).json({ success: false, error: 'Failed to load board' }) }
@@ -837,7 +848,28 @@ operatorRouter.get('/asks', async (req: Request, res: Response) => {
         openAsk = null   // Milla answered — the turn is closed; anything later is a new topic.
       }
     }
-    res.json({ success: true, data: asks.reverse().slice(0, 20), window: WINDOW })
+    // ── WHAT THE CLIENT SAID UNPROMPTED ───────────────────────────────────────────
+    // Everything above needs US to have asked first. A client who opens Milla and types
+    // "pause my campaign" produced nothing here — their one channel was invisible, on a
+    // service where asking us IS how anything gets done.
+    //
+    // Unprompted = a client message with no open ask above it. Newest first, and only the
+    // last 7 days, because a fortnight-old question is history rather than a to-do.
+    const weekAgo = Date.now() - 7 * 86_400_000
+    const unprompted: { id: string; content: string; at: string }[] = []
+    let inAsk: boolean = false
+    for (const m of asc) {
+      if (m.role === 'assistant' && m.content.startsWith(ASK_PREFIX)) inAsk = true
+      else if (m.role === 'assistant') inAsk = false
+      else if (m.role === 'user' && !inAsk && new Date(m.created_at).getTime() > weekAgo) {
+        unprompted.push({ id: m.id, content: m.content.slice(0, 1000), at: m.created_at })
+      }
+    }
+
+    res.json({
+      success: true, data: asks.reverse().slice(0, 20), window: WINDOW,
+      from_client: unprompted.reverse().slice(0, 20),
+    })
   } catch (err) { console.error('[operator/asks]', err); res.status(500).json({ success: false, error: 'Failed to load asks' }) }
 })
 
@@ -1495,17 +1527,36 @@ operatorRouter.get('/health', async (_req: Request, res: Response) => {
   try {
     const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
     const iso = midnight.toISOString()
-    const [sent, replies, pending] = await Promise.all([
+    // "N to triage" counted replies that ARRIVED TODAY, while the client list counts replies
+    // still OPEN at any age — so the header read "0 to triage" beside a client showing "152
+    // replies to handle". Both numbers were right; the label was wrong. It now measures what
+    // it says: open, unhandled, not noise.
+    const NOISE = ['opt_out', 'unsubscribe', 'out_of_office', 'bounce']
+    const [sent, openReplies, pending] = await Promise.all([
       db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', iso),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', iso),
-      db.from('figsy_approval_queue').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      db.from('figsy_replies').select('client_id, classification, qualified_at, meeting_booked_at').limit(20000),
+      db.from('figsy_approval_queue').select('client_id', { count: 'exact' }).eq('status', 'pending').limit(20000),
     ])
+
+    // Demos and house accounts are OURS — counting them put our own test noise in the
+    // operator's headline numbers, which is how a real client's reply gets lost in them.
+    const excluded = await getExcludedClientIds()
+    const { data: demoRows } = await db.from('clients').select('id').eq('is_demo', true).limit(500)
+    for (const r of (demoRows ?? []) as { id: string }[]) excluded.add(r.id)
+    const ours = (cid: unknown) => !excluded.has(String(cid))
+
+    const toTriage = ((openReplies.data ?? []) as Record<string, unknown>[]).filter(r =>
+      ours(r.client_id) && !r.qualified_at && !r.meeting_booked_at
+      && !NOISE.includes(String(r.classification ?? ''))).length
+    const toApprove = ((pending.data ?? []) as Record<string, unknown>[]).filter(r => ours(r.client_id)).length
+
     res.json({
       success: true,
       data: {
         sent_today:        sent.count ?? 0,
-        replies_today:     replies.count ?? 0,
-        pending_approvals: pending.count ?? 0,
+        // Kept as `replies_today` so nothing that reads it breaks; it is now open replies.
+        replies_today:     toTriage,
+        pending_approvals: toApprove,
       },
     })
   } catch (err) { console.error('[operator/health]', err); res.status(500).json({ success: false, error: 'Failed to load health' }) }

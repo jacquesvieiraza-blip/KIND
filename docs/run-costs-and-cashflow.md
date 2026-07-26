@@ -85,32 +85,58 @@ Flat pricing, no volume discounts. **Signup grant (welcome mix, no expiry):** 20
 
 ---
 
-## 5. FIXED MONTHLY COSTS (corrected — reconciled, one number)
+## 5. FIXED MONTHLY COSTS (corrected 26 Jul — the ~$190 floor was missing half the stack)
 
-| Service | Plan | Cost/mo |
+| Service | What it is | Cost/mo |
 |---|---|---|
-| Supabase | Pro (backups, af-south-1) | $25 |
-| Railway | Pro + usage (api/portal/admin/site) | ~$20 |
-| Resend | Pro | $20 |
-| **Hunter** | **Growth £87** | **~$110** |
-| **CORE FIXED FLOOR** | | **~$175/mo** |
-| + Failover (Render $7 · Cloudflare $5 · domains $2.50) | | ~$15 → **~$190** |
-| + PDL tier ($98/350 at ≤5 clients · $280/1,000 at ~10) | | **~$288–470** |
+| Railway + Supabase + Cloudflare | Servers, database, DNS/CDN | ~$138 |
+| **Smartlead** | **THE ENGINE — runs every client inbox** | **~$94** ⚠️ confirm tier |
+| **Hunter** | Growth £87 — email fallback behind PDL | ~$110 ⚠️ may still be free tier at pilot volume |
+| **Anthropic** | Claude API at runtime (scoring + writing) | ~$45 ⚠️ estimate |
+| Resend | Pro — transactional + the shared cold path | $20 |
+| **Instantly** | K.I.N.D's OWN warmup, not client sending | ~$37 ⚠️ estimate |
+| **Zoho Mail** | `hello@get-kind.com` — the human mailbox | ~$3 ⚠️ estimate |
+| Domains + failover | Render standby, registrations (annual ÷ 12) | ~$10 |
+| **PLATFORM FLOOR** | | **~$457/mo** |
 
-- **PDL is a bought tier, not per-record on our books** — treat it as semi-fixed at each stage (buy $98/350, consume within it).
-- **Claude Code** (platform development) $100–200/mo — **separate; a build investment, not an operating cost.**
-- **Stripe** is never fixed — ~2.9%+30¢ per transaction (~3% of revenue), a cost *of* revenue.
+**Scales with the work, NOT fixed:**
 
-> **Correction from the old doc:** earlier versions carried "$138" (and elsewhere "$203") as the fixed floor. Both predate the PDL+Hunter reality — **Hunter alone is now $110/mo.** The honest core floor is **~$175–190**, or **~$288** including the entry PDL tier.
+| Line | Amount |
+|---|---|
+| Per client, per month — their inbox + workspace | **~$40** ⚠️ confirm the workspace fee with Smartlead |
+| Per client, once — setup (a warmed inbox from our pool) | ~$45 · a raw inbox is ~$9 + 2 weeks warming |
+| PDL — per name sourced | **$0.28** (`PDL_RATE_USD`) |
+| PDL — monthly plan floor | **$98** buys ~350 names. Billed as `max(tier, names × $0.28)` — a floor, not an extra |
+| Names sourced per approval | **2** (flow v2). ⚠️ #415 measured nearer **7** — Vida now measures it live; do not change this without the data |
+| Working one lead | $0.07 (`REVEAL_MARGINAL_COST_USD` $0.01 + `WORK_MARGINAL_COST_USD` $0.06) |
+| Stripe | ~3.5% of every dollar in |
+
+- **Claude Code** (building the product) ~$150/mo — **separate; a build investment, not an operating cost.**
+- **PDL is a bought tier**, so it is modelled as a floor rather than double-counted as both a fixed line and a per-name cost.
+
+> **Correction history.** Earlier versions carried **$138**, then **$203**, then **~$175–190**. Every one of them left out **Smartlead (~$94 — the product's deliverability foundation, running every client inbox), Instantly (~$37), Zoho Mail (~$3 — the very tool `TECH-STACK.md` calls out as "the one that went missing") and the Anthropic runtime.** The honest floor is **~$457**. The lines marked ⚠️ are estimates until the real invoices are read; the interactive model at `docs/CASHFLOW-LAB.html` makes every one of them an editable box for exactly that reason.
 
 ---
 
-## 6. BREAK-EVEN (honest)
+## 6. BREAK-EVEN (rebuilt 26 Jul on the real floor)
 
-Contribution per conservative client (~$80/mo = ~20 fully-worked leads) ≈ **~$70/mo** after ~$0.23/lead all-in variable (ex-PDL).
+**The floor on a client, before any share of the platform.** Their inbox costs us ~$40/month from the day they sign. At $4 a lead, minus Stripe, working, and 2 names of sourcing, each approval nets ~$3.24 — so:
+
+> **A client must approve ~13 leads a month just to pay for their own inbox.** Below that they cost us money and **no amount of scale fixes it** — every extra client makes us poorer. This is why the **minimum-20 gate** and the **30-day cold suspension** exist.
+
+**Break-even on the whole business**, at an average of 50 approvals per client per month (~$121 contribution each):
 
 | To cover… | Fixed | Clients needed |
 |---|---|---|
+| Platform floor | ~$457 | **~4 clients** |
+| + Claude Code dev (~$150) | ~$607 | **~5 clients** |
+
+**Their first month is not where the money is.** The $99 pack costs us ~$56 sourcing (200 names) + ~$7 working + ~$3.50 Stripe + $45 setup + $40 inbox ≈ **$151 — so month one runs at about −$52.** Month two recovers it at 50 approvals. **The repeat is the business; the pack is the door.**
+
+> Interactive version, with every line editable: **`docs/CASHFLOW-LAB.html`**.
+
+---
+---|---|
 | Core floor (no PDL tier, no dev) | ~$190 | **~3 clients** |
 | + entry PDL tier ($98) | ~$288 | **~4 clients** |
 | + Claude Code dev ($150) | ~$438 | **~6 clients** |

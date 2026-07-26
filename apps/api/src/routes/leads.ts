@@ -326,7 +326,10 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
         .is('revealed_at', null).neq('status', 'passed'),
       db.from('calendar_bookings').select('id', { count: 'exact', head: true })
         .eq('client_id', clientId).eq('status', 'confirmed').gte('start_time', monthStart),
-      db.from('figsy_campaigns').select('name').eq('client_id', clientId).eq('status', 'active')
+      // Name AND status of the newest campaign, whatever state it is in. Filtering to
+      // status='active' meant a paused or cold-suspended client was indistinguishable from
+      // one with no campaign at all — and Milla told both of them "Campaign live".
+      db.from('figsy_campaigns').select('name, status').eq('client_id', clientId)
         .order('created_at', { ascending: false }).limit(1).maybeSingle(),
       db.from('figsy_replies').select('from_name, from_email, classification, received_at')
         .eq('client_id', clientId).order('received_at', { ascending: false }).limit(4),
@@ -383,7 +386,12 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
         replies_total:        repliesTotal.count ?? 0,
         meetings_total:       meetingsTotal.count ?? 0,
         spend_usd:            (approvedTotal.count ?? 0) * 4,
-        active_campaign: (campaign.data as { name?: string } | null)?.name ?? null,
+        // active_campaign stays "the name of a LIVE campaign" so existing readers are
+        // unchanged; campaign_status is the new, honest one.
+        active_campaign: (campaign.data as { status?: string } | null)?.status === 'active'
+          ? ((campaign.data as { name?: string } | null)?.name ?? null) : null,
+        campaign_name:   (campaign.data as { name?: string } | null)?.name ?? null,
+        campaign_status: (campaign.data as { status?: string } | null)?.status ?? null,
         recent_replies:  (replies.data ?? []).map((r: Record<string, unknown>) => ({
           name: (r.from_name as string | null) ?? (r.from_email as string | null) ?? 'Reply',
           classification: (r.classification as string | null) ?? 'reply',

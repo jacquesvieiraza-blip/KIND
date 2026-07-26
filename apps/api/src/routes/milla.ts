@@ -259,6 +259,17 @@ millaRouter.get('/sessions/:sessionId/messages', async (req: AuthRequest, res) =
   }
 })
 
+// One alert per client per 15 minutes — in memory, same pattern as the approval-batch
+// throttle. A restart re-arms it, which is the safe direction to fail (an extra nudge).
+const lastClientMessageAlert = new Map<string, number>()
+function shouldAlertClientMessage(clientId: string): boolean {
+  const now = Date.now()
+  const prev = lastClientMessageAlert.get(clientId) ?? 0
+  if (now - prev < 15 * 60_000) return false
+  lastClientMessageAlert.set(clientId, now)
+  return true
+}
+
 millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
   try {
     // Cap the message length so a large paste can't blow Claude's context window
@@ -291,6 +302,25 @@ millaRouter.post('/sessions/:sessionId/chat', async (req: AuthRequest, res) => {
       userMessage:    message,
       messageHistory,
     })
+
+    // ── THE CLIENT'S ONLY CHANNEL HAS TO REACH SOMEONE ────────────────────────────
+    // Milla's chat cannot pause a campaign, source people or change an ICP — it writes a
+    // message and returns text. And `/operator/asks` only surfaces threads WE started, so
+    // a client typing "pause my campaign" landed in a table nobody looks at. On a managed
+    // service that is the client's one channel, so it now pages the operator.
+    //
+    // Throttled to one alert per client per 15 minutes: a client working through a few
+    // questions is one nudge, not five.
+    void (async () => {
+      if (!shouldAlertClientMessage(clientId)) return
+      const { data: c } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
+      const { sendFounderAlert } = await import('../lib/alerts')
+      await sendFounderAlert('new_signup', `${c?.company_name ?? 'A client'} said something in Milla`, [
+        `"${message.slice(0, 300)}"`,
+        'Milla can answer questions but cannot DO anything — if this is a request, it needs you.',
+        'It is waiting in their thread: Vida → the client → Asks.',
+      ]).catch(() => {})
+    })().catch(() => {})
 
     // Persist user message
     await db.from('milla_messages').insert({

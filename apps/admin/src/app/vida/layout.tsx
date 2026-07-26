@@ -137,7 +137,7 @@ export default function VidaLayout({ children }: { children: React.ReactNode }) 
         <div className="ml-auto flex items-center gap-2">
           {/* Engine health — was the rail's "ENGINE HEALTH · FIGSY" box. */}
           <span className="hidden md:inline-flex items-center gap-2 text-xs font-semibold text-[#5c5279] bg-[#f6f2fd] border border-[#e4dcf7] rounded-full px-3 py-1"
-            title="Sent today · replies to triage · awaiting your approval">
+            title="Sent today · open replies to triage · drafts awaiting your approval. Demos and house accounts excluded.">
             <span>{health?.sent_today ?? '—'} sent</span>
             <span className="text-[#cfc4e8]">·</span>
             <span>{health?.replies_today ?? '—'} to triage</span>

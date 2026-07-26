@@ -64,8 +64,29 @@ describe('the story reads as a working account, not an empty one', () => {
     const kinds = new Set(MBF_REPLIES.map(r => r.classification))
     expect(kinds).toContain('hot')
     expect(kinds).toContain('interested')
-    expect(kinds).toContain('objection')
+    expect(kinds).toContain('warm')      // the objection reply — the body carries that story
     expect(kinds).toContain('opt_out')   // so the suppression story can be shown
+  })
+
+  // THE GUARD THIS FILE DID NOT HAVE — and the test above was ENFORCING the bug.
+  //
+  // It asserted `kinds` must contain 'objection', a value NOTHING else in the system uses:
+  // the classifier never produces it, the live CHECK constraint rejects it, and the unibox
+  // cannot render it. So the demo build died with *"violates check constraint
+  // figsy_replies_classification_check"* while a green test insisted the data was right.
+  //
+  // A test that pins invented data is worse than no test: it makes the wrong thing
+  // load-bearing. This one pins the demo to the values the PRODUCT can actually produce.
+  it('every classification is one the product can actually produce', () => {
+    // The union of the live CHECK constraint (20260603_schema_reconcile.sql) and what the
+    // unibox knows how to render. A value outside this set fails at the database.
+    const LEGAL = new Set([
+      'hot', 'warm', 'cold', 'interested', 'not_interested',
+      'opt_out', 'unsubscribe', 'out_of_office', 'wrong_person', 'referral', 'other',
+    ])
+    for (const r of MBF_REPLIES) {
+      expect(LEGAL.has(r.classification), `"${r.classification}" is not a classification the product produces`).toBe(true)
+    }
   })
 
   it('two replies became meetings', () => {

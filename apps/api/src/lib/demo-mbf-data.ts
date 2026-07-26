@@ -180,7 +180,13 @@ export const MBF_REPLIES: Array<{ castIndex: number; classification: string; bod
   { castIndex: 2, classification: 'hot',         daysAgo: 3, booked: true,  body: "We're mid-tender on this. Happy to talk Thursday if you're around." },
   { castIndex: 1, classification: 'interested',  daysAgo: 1, booked: false, body: "Interesting timing. What does implementation actually look like — are we talking weeks or months?" },
   { castIndex: 4, classification: 'interested',  daysAgo: 1, booked: false, body: "Not me, but you want Sipho on our side. Copying him in." },
-  { castIndex: 3, classification: 'objection',   daysAgo: 4, booked: false, body: "We looked at something similar last year and the integration killed it. What's different?" },
+  // `warm`, NOT `objection`. This one reply broke the whole demo build with *"violates check
+  // constraint figsy_replies_classification_check"* — because `objection` is a value NOTHING
+  // else in the system uses: the classifier never produces it, the CHECK constraint does not
+  // allow it, and the unibox does not know how to render it. It existed only here.
+  // The objection is still fully tellable — it is right there in the body text. What the row
+  // must not do is claim a classification the product cannot produce.
+  { castIndex: 3, classification: 'warm',        daysAgo: 4, booked: false, body: "We looked at something similar last year and the integration killed it. What's different?" },
   { castIndex: 7, classification: 'opt_out',     daysAgo: 5, booked: false, body: "Please remove me from your list." },
 ]
 

@@ -124,6 +124,33 @@ CREATE TABLE IF NOT EXISTS public.error_events (
 CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(created_at DESC);
 `.trim(),
   },
+  {
+    // FOUND BY THE FIRST LIVE DEMO REBUILD, 26 Jul — the founder pressed Build / reset MBF
+    // and got: *"Could not find the 'copilot_mode' column of 'figsy_campaigns' in the schema
+    // cache"*. Another instance of #558: the repo's migrations no longer describe the live
+    // database. BOTH columns are missing in production, and each is stranded in a file that
+    // cannot be run from Vida:
+    //
+    //   • `copilot_mode`        — supabase/migrations/20260531_copilot_mode.sql
+    //   • `approve_before_send` — apps/api/src/migrations/20260602_human_in_loop.sql, and
+    //     also 20260603_schema_reconcile.sql, which carries a DO-NOT-RUN warning because
+    //     re-running it would drop the hand-widened wallet constraint (#558) and break every
+    //     wallet transaction. So the reconcile file is NOT the way to get this column.
+    //
+    // Restated here as one idempotent statement instead, so neither original has to be run.
+    //
+    // These are not cosmetic. `copilot_mode` / `approve_before_send` are what hold a
+    // campaign's emails for manual approval — the human-in-the-loop gate. `start-work.ts:50`
+    // sets both to true when work begins for a real client, so this insert would fail the
+    // same way for the FIRST PAYING CLIENT, not just the demo.
+    key: '20260726_campaign_copilot_columns',
+    title: 'Campaign human-in-the-loop columns (copilot_mode + approve_before_send — the demo rebuild and the first paying client both need them)',
+    sql: `
+ALTER TABLE public.figsy_campaigns
+  ADD COLUMN IF NOT EXISTS copilot_mode        boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS approve_before_send boolean NOT NULL DEFAULT false;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

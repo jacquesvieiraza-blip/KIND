@@ -115,6 +115,17 @@ const REQUIRED_SCHEMA: Array<{ table: string; column?: string; why: string; migr
   { table: 'calendar_bookings', why: 'booked meetings — the outcome the client buys', migration: 'baseline' },
   { table: 'opt_out_blocklist', why: 'never email someone who said stop', migration: 'baseline' },
   { table: 'operator_audit_log', why: 'who did what in Vida', migration: 'baseline' },
+  // ADDED AFTER THIS CHECK MISSED IT. The schema section reported all 12 rows green while
+  // `figsy_campaigns.copilot_mode` did not exist in production — and the founder found out by
+  // pressing Build / reset MBF and getting *"Could not find the 'copilot_mode' column"*. The
+  // list is only as good as what is on it, so a green schema section was never a statement
+  // about the schema; it was a statement about these twelve lines.
+  //
+  // These two are the human-in-the-loop gate — they hold a campaign's emails for manual
+  // approval. `start-work.ts:50` writes both when work begins for a REAL client, so the same
+  // insert would have failed for the first paying client, not only the demo.
+  { table: 'figsy_campaigns', column: 'copilot_mode', why: 'holds a campaign\'s emails for manual approval — written for every real client at start-work', migration: '20260726_campaign_copilot_columns' },
+  { table: 'figsy_campaigns', column: 'approve_before_send', why: 'the other half of the same gate', migration: '20260726_campaign_copilot_columns' },
 ]
 
 async function schema(): Promise<Section> {

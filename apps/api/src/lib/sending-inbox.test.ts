@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickSendingInbox, fromHeader, refusalLabel, type InboxRow } from './sending-inbox'
+import { pickSendingInbox, fromHeader, refusalLabel, normalisePort, type InboxRow } from './sending-inbox'
 
 // #547 — WHOSE MAILBOX DOES THIS LEAVE FROM?
 //
@@ -143,6 +143,38 @@ describe('the From header', () => {
     const r = pickSendingInbox([inbox({ from_name: 'Natalie Blake' })], true)
     expect(r.ok).toBe(true)
     if (r.ok) expect(r.from).toContain('<natalie@boostreachhq.co>')
+  })
+})
+
+describe('normalisePort — the pairing that makes SMTP hang instead of fail', () => {
+  it('465 means SSL, 587 means STARTTLS — derived, never guessed', () => {
+    expect(normalisePort(465)).toEqual({ port: 465, secure: true })
+    expect(normalisePort(587)).toEqual({ port: 587, secure: false })
+  })
+
+  it('an explicit choice beats the derivation', () => {
+    // Some hosts do run TLS on a non-standard port; an operator who says so is believed.
+    expect(normalisePort(2465, true)).toEqual({ port: 2465, secure: true })
+    expect(normalisePort(465, false)).toEqual({ port: 465, secure: false })
+  })
+
+  it('an empty or junk port never reaches the transport as NaN or 0', () => {
+    // Number('') is 0 and Number(undefined) is NaN. Either one dialling out is a connection
+    // attempt to nowhere that burns the socket timeout on every single send.
+    for (const junk of ['', null, undefined, NaN, 'abc', 0, -1, 70000, {}]) {
+      const r = normalisePort(junk)
+      expect(r.port).toBe(587)
+      expect(Number.isFinite(r.port)).toBe(true)
+    }
+  })
+
+  it('accepts a port typed as a string, because a form field always is', () => {
+    expect(normalisePort('465')).toEqual({ port: 465, secure: true })
+    expect(normalisePort('587')).toEqual({ port: 587, secure: false })
+  })
+
+  it('never returns a fractional port', () => {
+    expect(normalisePort(587.9).port).toBe(587)
   })
 })
 

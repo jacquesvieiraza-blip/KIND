@@ -6,6 +6,7 @@ import { writeOperatorAudit } from '../lib/operator-audit'
 import { PAID_TX_TYPES, packState, packLabel } from '../lib/onboarding-pack'
 import { namesPerApproval } from '../lib/money-path-math'
 import { coldState } from '../lib/cold-client'
+import type { InboxRow } from '../lib/sending-inbox'
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
 // This is the server side of Vida: the surfaces WE (operators) use to run a client's
@@ -1055,8 +1056,12 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
     // 500 here would take the whole Engine page down. Degrade instead: no inbox rows, and a
     // migration_pending flag the page can explain. Everything else on the page still works.
     const [inboxes, clients, sent7, sentToday, bounced7, optOuts, opened7] = await Promise.all([
+      // #552 — the SMTP columns come with it, because "has a mailbox row" and "can actually
+      // send" are different questions and the page was only able to answer the first. A row
+      // with no credentials is exactly the state that made "Assign pooled inbox" look like
+      // it worked while the client still couldn't email anyone.
       db.from('client_inboxes')
-        .select('id, client_id, email, kind, status, provider, daily_cap, warmup_started_at, warmup_ready_at, assigned_at')
+        .select('id, client_id, email, kind, status, provider, daily_cap, warmup_started_at, warmup_ready_at, assigned_at, from_name, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc')
         .not('status', 'in', '("released","retired")').order('assigned_at', { ascending: false })
         .then(r => r, () => ({ data: null, error: { message: 'client_inboxes missing' } })),
       db.from('clients').select('id, company_name'),
@@ -1069,21 +1074,47 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
 
     const migrationPending = !!inboxes.error
     const nameById = new Map((clients.data ?? []).map((c: { id: string; company_name: string | null }) => [c.id, c.company_name]))
-    const rows: Record<string, unknown>[] = (inboxes.data ?? []).map((i: Record<string, unknown>) => {
+
+    // #552 — the password NEVER leaves this process. `describeCipher` is the only thing any
+    // surface may show about it: "set · fingerprint a1b2c3d4". Enough to confirm one was
+    // saved and to tell two apart; never enough to use.
+    const { describeCipher, secretState } = await import('../lib/inbox-secret')
+    const { pickSendingInbox, refusalLabel } = await import('../lib/sending-inbox')
+    const secretOk = secretState().ok
+
+    const rawRows = (inboxes.data ?? []) as Record<string, unknown>[]
+    const rows: Record<string, unknown>[] = rawRows.map((i: Record<string, unknown>) => {
       const ready = i.warmup_ready_at ? new Date(i.warmup_ready_at as string).getTime() : null
       const started = i.warmup_started_at ? new Date(i.warmup_started_at as string).getTime() : null
       let warmupDay: number | null = null
       if (started) warmupDay = Math.max(0, Math.min(14, Math.round((Date.now() - started) / 864e5)))
-      return { ...i, company_name: nameById.get(i.client_id as string) ?? null,
-        warmup_day: warmupDay, warmup_ready: ready ? Date.now() >= ready : null }
+      const { smtp_pass_enc, ...safe } = i
+      return { ...safe, company_name: nameById.get(i.client_id as string) ?? null,
+        warmup_day: warmupDay, warmup_ready: ready ? Date.now() >= ready : null,
+        smtp_secret: describeCipher(smtp_pass_enc as string | null),
+        has_smtp: Boolean(i.smtp_host && i.smtp_user && smtp_pass_enc) }
     })
 
-    // Clients with NO live sender — nothing can go out for them (the #270/#271 queue).
-    const withInbox = new Set(rows.map(r => r.client_id as string))
+    // Which clients can ACTUALLY send — the same decision the send path makes, asked here so
+    // the board shows the truth rather than "a row exists". Before #552 a client with a
+    // credential-less mailbox counted as covered on this page and then silently sent nothing.
+    const byClient = new Map<string, InboxRow[]>()
+    for (const r of rawRows) {
+      const k = r.client_id as string
+      if (!byClient.has(k)) byClient.set(k, [])
+      byClient.get(k)!.push(r as unknown as InboxRow)
+    }
+
     const excluded = new Set(await getExcludedClientIds())
-    const needsInbox = (clients.data ?? [])
-      .filter((c: { id: string }) => !withInbox.has(c.id) && !excluded.has(c.id))
-      .map((c: { id: string; company_name: string | null }) => ({ client_id: c.id, company_name: c.company_name }))
+    const needsInbox = migrationPending ? [] : (clients.data ?? [])
+      .filter((c: { id: string }) => !excluded.has(c.id))
+      .map((c: { id: string; company_name: string | null }) => {
+        const decision = pickSendingInbox(byClient.get(c.id) ?? [], secretOk)
+        return decision.ok
+          ? null
+          : { client_id: c.id, company_name: c.company_name, reason: decision.reason, why: refusalLabel(decision.reason), detail: decision.detail }
+      })
+      .filter(Boolean)
 
     const sent = sent7.count ?? 0
     res.json({ success: true, data: {
@@ -1095,8 +1126,11 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
         open_rate:   sent > 0 ? Math.round(((opened7.count ?? 0) / sent) * 1000) / 10 : 0,
       },
       inboxes: rows,
-      needs_inbox: migrationPending ? [] : needsInbox,
+      needs_inbox: needsInbox,
       migration_pending: migrationPending,
+      // #548 — without this key the saved passwords cannot be read, so NOTHING sends. Said
+      // out loud on the page rather than discovered as a mysteriously silent outbox.
+      secret_key_set: secretOk,
         // The committed migrations the runner will apply. The page used to show its "Run it
         // now" button ONLY when `migration_pending` was true — a flag derived purely from
         // whether `client_inboxes` exists. Once that one migration had run the button
@@ -1106,6 +1140,100 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
         migrations: (await import('../lib/pending-migrations')).PENDING_MIGRATIONS.map(m => ({ key: m.key, title: m.title })),
     } })
   } catch (err) { console.error('[operator/engine]', err); res.status(500).json({ success: false, error: 'Failed to load engine' }) }
+})
+
+// ── #552 — SAVE THE MAILBOX'S SMTP DETAILS ─────────────────────────────────────────
+//
+// The gap this closes: `/inboxes/assign` created a row with an email address and nothing
+// else, and the Engine page had nowhere to type the connection details. So pressing "Assign
+// pooled inbox" produced a client who looked covered on the board and could still not send
+// a single email — a control that promises what the endpoint doesn't do, the same class as
+// the Delete button that deleted nothing and the migration card that hid itself.
+//
+// The password is encrypted here and never read back out. A blank `smtp_pass` means "leave
+// the stored one alone", so an operator can correct a typo'd port without re-typing the
+// password — the alternative is people pasting passwords more often than they need to.
+operatorRouter.post('/inboxes/:id/credentials', async (req: Request, res: Response) => {
+  try {
+    const { client_id, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass, from_name } =
+      (req.body ?? {}) as Record<string, unknown>
+    const client = await requireClient(client_id as string | undefined)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const host = String(smtp_host ?? '').trim()
+    const user = String(smtp_user ?? '').trim()
+    if (!host) { res.status(400).json({ success: false, error: 'The SMTP host is required (e.g. smtp.zoho.com)' }); return }
+    if (!user) { res.status(400).json({ success: false, error: 'The SMTP username is required — usually the full email address' }); return }
+
+    // Port and encryption mode are settled together, and NaN from an empty box must never
+    // reach the transport — see `normalisePort` for why the two cannot be decided apart.
+    const { normalisePort } = await import('../lib/sending-inbox')
+    const { port, secure } = normalisePort(smtp_port, smtp_secure)
+
+    const patch: Record<string, unknown> = {
+      smtp_host: host,
+      smtp_port: port,
+      smtp_secure: secure,
+      smtp_user: user,
+      from_name: from_name ? String(from_name).trim() : null,
+      updated_at: new Date().toISOString(),
+    }
+
+    if (typeof smtp_pass === 'string' && smtp_pass.length > 0) {
+      const { secretState, encryptSecret } = await import('../lib/inbox-secret')
+      const s = secretState()
+      if (!s.ok) {
+        // Refuse rather than store plaintext, and say exactly what to do about it.
+        res.status(503).json({ success: false, error:
+          'INBOX_SECRET_KEY is not set on the API, so the password cannot be encrypted — and it will never be stored unencrypted. Set it in Railway → @kind/api → Variables (generate with: openssl rand -hex 32), then save again.' })
+        return
+      }
+      patch.smtp_pass_enc = encryptSecret(smtp_pass)
+    }
+
+    const { data, error } = await db.from('client_inboxes').update(patch)
+      .eq('id', req.params.id).eq('client_id', client.id)
+      .select('id, email, kind, status, smtp_host, smtp_port, smtp_secure, smtp_user, from_name').maybeSingle()
+    if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Inbox not found for this client' }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: req.params.id,
+      // The audit records THAT a password was set, never the password.
+      detail: { smtp_host: host, smtp_port: port, smtp_user: user, password_changed: typeof smtp_pass === 'string' && smtp_pass.length > 0 },
+    })
+    res.json({ success: true, data })
+  } catch (err) { console.error('[operator/inbox-credentials]', err); res.status(500).json({ success: false, error: 'Failed to save the mailbox details' }) }
+})
+
+// ── #552 — CAN THIS MAILBOX ACTUALLY LOG IN? ────────────────────────────────────────
+//
+// Authenticates and sends nothing. The alternative is finding out the password is wrong when
+// a real prospect's email fails on a warmed mailbox, which is expensive to unwind — so this
+// is the button an operator presses before a client goes anywhere near live.
+operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) => {
+  try {
+    const { client_id } = (req.body ?? {}) as { client_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { data, error } = await db.from('client_inboxes')
+      .select('id, email, kind, status, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name')
+      .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Inbox not found for this client' }); return }
+
+    const { verifyInbox } = await import('../lib/mailer')
+    const result = await verifyInbox(data as never)
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: req.params.id, detail: { verified: result.ok },
+    })
+    // 200 either way: "we asked and it said no" is a successful check, not a server error.
+    res.json({ success: true, data: result })
+  } catch (err) { console.error('[operator/inbox-verify]', err); res.status(500).json({ success: false, error: 'Failed to check the mailbox' }) }
 })
 
 // ── V9 #270 — assign a PRE-WARMED POOLED inbox (instant; client sends day 1) ────────

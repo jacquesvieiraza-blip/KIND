@@ -53,6 +53,63 @@ function transportOptions(inbox: InboxRow, password: string) {
 }
 
 /**
+ * Can we actually log into this mailbox? — `#552`, the check that turns "I pasted some
+ * details in" into "this client can send".
+ *
+ * Uses nodemailer's `verify()`, which opens the connection and authenticates but sends
+ * nothing. That distinction matters: the alternative is discovering a wrong password when a
+ * real prospect's email fails at 3am, which on a warmed mailbox is expensive to unwind.
+ *
+ * The returned message is written to be read by an operator, not a developer: the three
+ * things that actually go wrong here (wrong password, blocked plain SMTP, wrong port) each
+ * get a named cause and a fix, because "535 5.7.8" tells nobody anything.
+ */
+export async function verifyInbox(inbox: InboxRow): Promise<{ ok: boolean; message: string }> {
+  try {
+    if (!inbox.smtp_host || !inbox.smtp_user || !inbox.smtp_pass_enc) {
+      return { ok: false, message: 'No SMTP details saved yet — add the host, username and password first.' }
+    }
+    const { decryptSecret } = await import('./inbox-secret')
+    let password: string
+    try {
+      password = decryptSecret(inbox.smtp_pass_enc)
+    } catch {
+      return { ok: false, message: 'The saved password cannot be read. Either INBOX_SECRET_KEY changed, or it was saved under a different key — re-enter the password.' }
+    }
+
+    const nodemailer = await import('nodemailer')
+    await nodemailer.createTransport(transportOptions(inbox, password)).verify()
+    return { ok: true, message: `Connected to ${inbox.smtp_host} as ${inbox.smtp_user}. This mailbox can send.` }
+  } catch (e) {
+    const raw = e instanceof Error ? e.message : String(e)
+    const lower = raw.toLowerCase()
+
+    // Google and Microsoft both refuse an ordinary account password over SMTP by default,
+    // and the server's own wording gives no hint of that — it just says the credentials are
+    // wrong, which sends you hunting for a typo that isn't there.
+    if (lower.includes('invalid login') || lower.includes('authentication') || lower.includes('535') || lower.includes('username and password not accepted')) {
+      return {
+        ok: false,
+        message: `The mailbox refused the username and password. On a Google mailbox this usually means it needs an App Password rather than the account password (Security → App Passwords, 2-Step Verification must be on). On Microsoft/Outlook it usually means SMTP AUTH is switched off for that mailbox and has to be enabled. Server said: ${raw}`,
+      }
+    }
+    if (lower.includes('timeout') || lower.includes('etimedout') || lower.includes('econnrefused') || lower.includes('enotfound')) {
+      return {
+        ok: false,
+        message: `Could not reach ${inbox.smtp_host} on port ${inbox.smtp_port ?? 587}. Check the host spelling, and that the port matches the mode — 465 for SSL, 587 for STARTTLS. Server said: ${raw}`,
+      }
+    }
+    if (lower.includes('wrong version number') || lower.includes('ssl')) {
+      return {
+        ok: false,
+        message: `The port and the encryption mode don't match — this is what happens when 587 is set to SSL, or 465 is set to STARTTLS. Try the other combination. Server said: ${raw}`,
+      }
+    }
+    return { ok: false, message: raw }
+  }
+}
+
+/**
  * Send one message from one client's mailbox.
  *
  * Never throws: a throw here would escape the caller's rollback path and strand a phantom

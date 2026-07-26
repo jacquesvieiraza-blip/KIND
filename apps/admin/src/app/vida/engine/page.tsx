@@ -18,14 +18,28 @@ type Inbox = {
   kind: 'pooled' | 'branded'; status: string; provider: string | null; daily_cap: number | null
   warmup_started_at: string | null; warmup_ready_at: string | null; warmup_day: number | null
   warmup_ready: boolean | null; assigned_at: string | null
+  // #552 — how this mailbox is reached. `smtp_secret` is a fingerprint, NEVER the password:
+  // the API strips `smtp_pass_enc` before it leaves the process.
+  from_name: string | null
+  smtp_host: string | null; smtp_port: number | null; smtp_secure: boolean | null; smtp_user: string | null
+  smtp_secret: string; has_smtp: boolean
 }
 type Engine = {
   totals: { sent_7d: number; sent_today: number; opened_7d: number; bounced_7d: number; opt_outs_total: number; bounce_rate: number; open_rate: number }
   inboxes: Inbox[]
-  needs_inbox: { client_id: string; company_name: string | null }[]
+  /** Clients who cannot send — and WHY, which is not always "no mailbox". */
+  needs_inbox: { client_id: string; company_name: string | null; reason?: string; why?: string; detail?: string }[]
   migration_pending?: boolean
   /** Every committed migration the runner will apply. Always sent. */
   migrations?: { key: string; title: string }[]
+  /** #548 — without INBOX_SECRET_KEY the saved passwords cannot be read, so NOTHING sends. */
+  secret_key_set?: boolean
+}
+
+/** The mailbox-details form. Kept out of the component so a re-render can't reshape it. */
+type CredForm = {
+  inboxId: string; clientId: string
+  host: string; port: string; secure: boolean; user: string; pass: string; fromName: string
 }
 
 export default function VidaEnginePage() {
@@ -36,6 +50,10 @@ export default function VidaEnginePage() {
   const [brandFor, setBrandFor] = useState<{ clientId: string; email: string } | null>(null)
   const [migMsg, setMigMsg] = useState<string | null>(null)
   const [demoMsg, setDemoMsg] = useState<string | null>(null)
+  // #552 — the mailbox-details form, and the result of asking the mailbox whether it will
+  // let us in. Keyed by inbox id so two open cards can't overwrite each other's answer.
+  const [cred, setCred] = useState<CredForm | null>(null)
+  const [checked, setChecked] = useState<Record<string, { ok: boolean; message: string }>>({})
   // Shown only after the database REJECTS a password: the escape hatch for "the stored
   // password is stale and the Supabase dashboard that could reset it is unreachable" (GitHub
   // removed the Supabase OAuth app entirely). Used for one run, never stored anywhere.
@@ -106,8 +124,26 @@ export default function VidaEnginePage() {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'That did not work')
-      setForm(null); setBrandFor(null); await load()
+      setForm(null); setBrandFor(null); setCred(null); await load()
     } catch (err) { setError(err instanceof Error ? err.message : 'That did not work') }
+    setBusy(null)
+  }
+
+  // #552 — ask the mailbox whether it will actually let us in. Authenticates, sends nothing.
+  // Finding a wrong password here costs a click; finding it when a real prospect's email
+  // fails on a warmed mailbox costs the mailbox.
+  async function verify(inbox: Inbox) {
+    setBusy(`v-${inbox.id}`); setError(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/inboxes/${inbox.id}/verify`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ client_id: inbox.client_id }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not check the mailbox')
+      setChecked(prev => ({ ...prev, [inbox.id]: j.data }))
+    } catch (err) {
+      setChecked(prev => ({ ...prev, [inbox.id]: { ok: false, message: err instanceof Error ? err.message : 'Could not check the mailbox' } }))
+    }
     setBusy(null)
   }
 
@@ -228,25 +264,59 @@ export default function VidaEnginePage() {
           {kpi('Opt-outs', String(e.totals.opt_outs_total), 'do-not-contact list')}
         </div>
 
-        {/* V9 — clients with NO sender. Nothing can go out for them at all. */}
-        <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc] mb-2">Needs an inbox · {e.needs_inbox.length}</h2>
+        {/* #548 — no key, no send, and it says so BEFORE you spend an afternoon wondering why
+            the outbox is silent. Placed above everything because it disables the whole page's
+            purpose. */}
+        {e.secret_key_set === false && (
+          <div className="border-2 border-red-300 bg-red-50 rounded-xl px-4 py-3 mb-4">
+            <b className="text-[13px] text-red-900 block">Nothing can send — the API cannot read mailbox passwords</b>
+            <p className="text-[11.5px] text-red-800 mt-1 leading-relaxed">
+              <code className="px-1 bg-white rounded border border-red-200">INBOX_SECRET_KEY</code> is not set on{' '}
+              <b>@kind/api</b>. Mailbox passwords are encrypted with it, so without it they cannot be decrypted and
+              every send is refused — deliberately, because the alternative is falling back to a shared sender and
+              burning every client&apos;s deliverability at once.
+              <br />
+              Fix: Railway → @kind/api → Variables → add <code className="px-1 bg-white rounded border border-red-200">INBOX_SECRET_KEY</code>.
+              Generate the value with <code className="px-1 bg-white rounded border border-red-200">openssl rand -hex 32</code>.
+              Keep it — changing it means re-entering every mailbox password.
+            </p>
+          </div>
+        )}
+
+        {/* V9 + #552 — clients who cannot send. The reason is NOT always "no mailbox": a row
+            with no SMTP details, or one that is still warming, is equally unable to send, and
+            this list used to count those clients as covered. */}
+        <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc] mb-2">Cannot send · {e.needs_inbox.length}</h2>
         {e.needs_inbox.length === 0 ? (
           <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-4 py-3 mb-6 text-[12.5px] font-semibold text-emerald-800">
-            Every active client has a sender. Nothing waiting on you.
+            Every active client can send from their own mailbox. Nothing waiting on you.
           </div>
         ) : (
           <div className="mb-6 space-y-2">
             {e.needs_inbox.map(c => (
               <div key={c.client_id} className="border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <div>
+                  <div className="min-w-0">
                     <b className="text-[13px] text-amber-900 block">{c.company_name || 'Unnamed client'}</b>
-                    <span className="text-[11.5px] text-amber-700">No sender — nothing can go out for them. Assign a pre-warmed pooled inbox and they send today.</span>
+                    <span className="text-[11.5px] font-bold text-amber-900 block">{c.why || 'No sending mailbox assigned'}</span>
+                    <span className="text-[11.5px] text-amber-700 block">
+                      {c.detail || 'Nothing can go out for them. Assign a pre-warmed pooled inbox and they send today.'}
+                    </span>
                   </div>
-                  <button onClick={() => setForm({ clientId: c.client_id, email: '' })}
-                    className="ml-auto shrink-0 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">
-                    Assign pooled inbox
-                  </button>
+                  {/* Only offer "assign" when there is genuinely nothing assigned. Offering it
+                      for a mailbox that merely lacks a password would create a SECOND row and
+                      leave the real problem untouched — the fix for those is below, on the
+                      mailbox itself. */}
+                  {(c.reason ?? 'no_inbox') === 'no_inbox' ? (
+                    <button onClick={() => setForm({ clientId: c.client_id, email: '' })}
+                      className="ml-auto shrink-0 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold">
+                      Assign pooled inbox
+                    </button>
+                  ) : (
+                    <span className="ml-auto shrink-0 text-[11.5px] font-bold text-amber-800">
+                      Fix it on their mailbox below ↓
+                    </span>
+                  )}
                 </div>
                 {form?.clientId === c.client_id && (
                   <div className="flex gap-2 mt-3">
@@ -291,7 +361,27 @@ export default function VidaEnginePage() {
                       warm-up {i.warmup_day}/14{i.warmup_ready ? ' · ready' : ''}
                     </span>
                   )}
+                  {/* #552 — can this mailbox actually send? "A row exists" is not the same
+                      question, and the board used to only answer that one. */}
+                  <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${i.has_smtp ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-red-700 bg-red-50 border-red-200'}`}>
+                    {i.has_smtp ? 'can send' : 'no SMTP details'}
+                  </span>
                   <div className="ml-auto shrink-0 flex items-center gap-2">
+                    <button onClick={() => setCred({
+                      inboxId: i.id, clientId: i.client_id,
+                      host: i.smtp_host ?? '', port: String(i.smtp_port ?? 587),
+                      secure: i.smtp_secure ?? (i.smtp_port ?? 587) === 465,
+                      user: i.smtp_user ?? i.email, pass: '', fromName: i.from_name ?? '',
+                    })}
+                      className="text-[11.5px] font-bold text-[#1f1235] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd]">
+                      {i.has_smtp ? 'Mailbox details' : 'Add mailbox details'}
+                    </button>
+                    {i.has_smtp && (
+                      <button onClick={() => verify(i)} disabled={busy === `v-${i.id}`}
+                        className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd] disabled:opacity-50">
+                        {busy === `v-${i.id}` ? 'Checking…' : 'Test connection'}
+                      </button>
+                    )}
                     {i.kind === 'pooled' && (
                       <button onClick={() => setBrandFor({ clientId: i.client_id, email: '' })}
                         className="text-[11.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 hover:bg-[#f7f4fd]">
@@ -310,6 +400,86 @@ export default function VidaEnginePage() {
                     )}
                   </div>
                 </div>
+
+                {/* The result of asking the mailbox. Kept until the next check so a long error
+                    can be read, and never auto-cleared by a reload. */}
+                {checked[i.id] && (
+                  <p className={`text-[11.5px] font-semibold mt-2 leading-relaxed rounded-lg px-2.5 py-2 border ${checked[i.id].ok ? 'text-emerald-800 bg-emerald-50 border-emerald-200' : 'text-red-800 bg-red-50 border-red-200'}`}>
+                    {checked[i.id].message}
+                  </p>
+                )}
+
+                {/* #552 — WHERE THE MAILBOX DETAILS GO.
+                    Before this, "Assign pooled inbox" wrote an address and nothing else, and
+                    there was nowhere in the product to type the connection details — so the
+                    board showed a covered client who still could not email anyone. */}
+                {cred?.inboxId === i.id && (
+                  <form onSubmit={ev => { ev.preventDefault(); post(`inboxes/${i.id}/credentials`, {
+                    client_id: cred.clientId, smtp_host: cred.host, smtp_port: Number(cred.port),
+                    smtp_secure: cred.secure, smtp_user: cred.user, from_name: cred.fromName,
+                    ...(cred.pass ? { smtp_pass: cred.pass } : {}),
+                  }, `c-${i.id}`) }}
+                    className="mt-3 border-t border-[#ece5fb] pt-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <label className="block">
+                        <span className="text-[11px] font-bold text-[#1f1235] block mb-1">SMTP host</span>
+                        <input value={cred.host} onChange={ev => setCred({ ...cred, host: ev.target.value })}
+                          placeholder="smtp.zoho.com" autoFocus
+                          className="w-full text-[12.5px] border border-[#ece5fb] rounded-lg px-2.5 py-1.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] font-bold text-[#1f1235] block mb-1">Port</span>
+                        <div className="flex gap-2">
+                          {/* 465 and 587 are not interchangeable — 465 is implicit TLS, 587 is
+                              STARTTLS, and mismatching them is the classic way SMTP hangs rather
+                              than failing. Two buttons instead of a free-text box + a checkbox. */}
+                          {[{ p: '465', l: '465 · SSL', s: true }, { p: '587', l: '587 · STARTTLS', s: false }].map(o => (
+                            <button key={o.p} type="button" onClick={() => setCred({ ...cred, port: o.p, secure: o.s })}
+                              className={`text-[11.5px] font-bold rounded-lg px-2.5 py-1.5 border ${cred.port === o.p ? 'bg-[#1f1235] text-white border-[#1f1235]' : 'text-[#5c5279] border-[#ece5fb]'}`}>
+                              {o.l}
+                            </button>
+                          ))}
+                        </div>
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] font-bold text-[#1f1235] block mb-1">Username</span>
+                        <input value={cred.user} onChange={ev => setCred({ ...cred, user: ev.target.value })}
+                          placeholder={i.email}
+                          className="w-full text-[12.5px] border border-[#ece5fb] rounded-lg px-2.5 py-1.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                      <label className="block">
+                        <span className="text-[11px] font-bold text-[#1f1235] block mb-1">
+                          Password {i.has_smtp && <span className="font-normal text-[#9b8ec4]">· {i.smtp_secret}</span>}
+                        </span>
+                        <input type="password" value={cred.pass} onChange={ev => setCred({ ...cred, pass: ev.target.value })}
+                          placeholder={i.has_smtp ? 'leave blank to keep the saved one' : 'app password'}
+                          className="w-full text-[12.5px] border border-[#ece5fb] rounded-lg px-2.5 py-1.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                      <label className="block sm:col-span-2">
+                        <span className="text-[11px] font-bold text-[#1f1235] block mb-1">
+                          Display name <span className="font-normal text-[#9b8ec4]">· optional, shown as &ldquo;Name &lt;{i.email}&gt;&rdquo;</span>
+                        </span>
+                        <input value={cred.fromName} onChange={ev => setCred({ ...cred, fromName: ev.target.value })}
+                          placeholder="who the prospect sees this from"
+                          className="w-full text-[12.5px] border border-[#ece5fb] rounded-lg px-2.5 py-1.5 outline-none focus:border-[#7C3AED]" />
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-[#5c5279] mt-2 leading-relaxed">
+                      The password is encrypted before it is stored and is never shown or sent back — only the
+                      fingerprint above. <b>Google mailboxes need an App Password</b> (Security → App Passwords,
+                      2-Step Verification on), not the account password. <b>Microsoft/Outlook needs SMTP AUTH enabled</b> for
+                      the mailbox. Both refuse an ordinary password by default and say only that the login was wrong.
+                    </p>
+                    <div className="flex gap-2 mt-2">
+                      <button type="submit" disabled={busy === `c-${i.id}` || !cred.host.trim() || !cred.user.trim()}
+                        className="bg-[#7C3AED] text-white rounded-lg px-4 py-1.5 text-[12.5px] font-bold disabled:opacity-40">
+                        {busy === `c-${i.id}` ? 'Saving…' : 'Save details'}
+                      </button>
+                      <button type="button" onClick={() => setCred(null)}
+                        className="border border-[#ece5fb] rounded-lg px-3 py-1.5 text-[12.5px] font-bold text-[#5c5279]">Cancel</button>
+                    </div>
+                  </form>
+                )}
 
                 {brandFor?.clientId === i.client_id && (
                   <div className="flex gap-2 mt-3">

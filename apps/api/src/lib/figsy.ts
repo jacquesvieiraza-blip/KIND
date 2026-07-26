@@ -12,7 +12,6 @@ import { bookingUrlForLead } from './booking-token'
 // ONE WALLET (24 Jul): no holds — money is a single $4 charged at approve. The old
 // credit-holds release/capture calls are removed; nothing to import here anymore.
 import {
-  COLD_FROM,
   COLD_REPLY_TO,
   unsubscribeHeaders,
   coldEmailHtml,
@@ -21,9 +20,19 @@ import {
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-// D4: cold outreach sends from a dedicated, separately-warmed domain — NEVER the
-// transactional domain. See lib/deliverability.ts.
-const FROM     = COLD_FROM
+// #547 — THE SHARED `FROM` IS GONE.
+//
+// This line used to be `const FROM = COLD_FROM`: one module-level constant feeding both
+// cold-send call sites, so EVERY client on the platform emailed from the same address.
+// RULEBOOK 12.2 — you cannot share a sender across clients; one client's spam complaints
+// poison the rest. The sender is now resolved per client from `client_inboxes`
+// (lib/sending-inbox.ts) and sent over SMTP through that mailbox (lib/mailer.ts), and a
+// client with no mailbox does not send at all — there is deliberately no fallback here to
+// fall back TO.
+//
+// D4 still holds for the reply address: cold mail must never route replies to the
+// transactional domain. `COLD_FROM` remains exported from lib/deliverability.ts for the
+// transactional/consent paths that legitimately send as us.
 const REPLY_TO = COLD_REPLY_TO
 
 if (!process.env.RESEND_API_KEY) {
@@ -642,16 +651,15 @@ export async function sendSequenceEmail(
     return 'deferred'
   }
 
-  // #311 — if Resend isn't configured, DEFER: do not record a "sent" row and do not
-  // advance the enrollment. Previously the row was inserted + the enrollment advanced
-  // to sent/completed REGARDLESS of whether mail left, so a dead/rotated RESEND_API_KEY
-  // was invisible: dashboards + counters showed sends, AND the sends-stalled watchdog
-  // (which counts these rows) stayed silent on the exact outage it exists to catch.
-  // Deferring leaves the enrollment due; the next cron retries once the key is restored.
-  if (!resend) {
-    console.warn(`[figsy] sendSequenceEmail: RESEND_API_KEY not set — step ${step} to ${lead.email} DEFERRED (no send, no row, no state change).`)
-    return 'deferred'
-  }
+  // #311 was a RESEND_API_KEY guard here: if Resend wasn't configured, DEFER rather than
+  // record a phantom "sent" row. **#547 retires it for this path** — cold outreach no longer
+  // goes through Resend at all, it goes through the client's own mailbox over SMTP. Keeping
+  // the guard would have blocked every send on a key this path stopped using.
+  //
+  // The concern behind #311 is unchanged and is now enforced one step lower: the inbox
+  // resolve below refuses loudly, rolls the step back, and alerts, so a missing mailbox or
+  // an unreadable password can never present as a send. Resend remains the transport for
+  // transactional mail (that guard still stands at its own call site).
 
   // #354 (AR-16) — ATOMIC STEP CLAIM. Before sending, move the enrollment from step-1
   // to `step` conditioned on it STILL being at step-1. If the UPDATE claims no row, a
@@ -673,6 +681,40 @@ export async function sendSequenceEmail(
   }
 
   let messageId: string | undefined
+
+  // ── #547: WHOSE MAILBOX DOES THIS LEAVE FROM? ────────────────────────────────
+  // Until now this function sent from `FROM` — one module-level constant, shared by every
+  // client on the platform. RULEBOOK 12.2: you cannot share a sender across clients; one
+  // client's spam complaints poison the rest. Resolve the client's OWN mailbox, and if
+  // there isn't one, REFUSE — never fall back to the shared address, because that failure
+  // looks like success and the damage lands on everyone else weeks later.
+  //
+  // Placed AFTER the atomic claim so the claim is rolled back on refusal exactly like a
+  // send failure, and BEFORE the sent-row insert so a refusal leaves no phantom row.
+  const { resolveSendingInbox, refusalLabel } = await import('./sending-inbox')
+  const inboxFor = lead.client_id ?? null
+  const resolved = inboxFor
+    ? await resolveSendingInbox(inboxFor)
+    : { ok: false as const, reason: 'no_inbox' as const, detail: 'This lead has no client on it, so there is no mailbox to send from.' }
+  if (!resolved.ok) {
+    console.error(`[figsy] sendSequenceEmail: NOT sending step ${step} to ${lead.email} — ${refusalLabel(resolved.reason)}. ${resolved.detail}`)
+    if (!opts?.isPreview) {
+      // Same rollback as a failed send: put the step back so it stays DUE and retries once
+      // an operator assigns the mailbox. A missing inbox is a fixable state, not a dead lead.
+      await db.from('figsy_enrollments')
+        .update({ current_step: step - 1, next_send_at: new Date().toISOString() })
+        .eq('id', enrollmentId)
+    }
+    void sendFounderAlert('sends_stalled', `Outreach held — ${refusalLabel(resolved.reason)}`, [
+      `Client: ${inboxFor ?? '(none on lead)'}`,
+      `Lead: ${lead.email}`,
+      `Enrollment: ${enrollmentId} (step ${step})`,
+      resolved.detail,
+      `Nothing was sent and nothing fell back to the shared address. The step stays due and retries once this is fixed.`,
+    ])
+    return 'deferred'
+  }
+  const sendingInbox = resolved.inbox
 
   // Insert the DB record first so we have the emailId for the tracking pixel
   const { data: emailRecord } = await db.from('figsy_sent_emails').insert({
@@ -701,18 +743,20 @@ export async function sendSequenceEmail(
     // rollback as a returned { error }; otherwise the claimed step + inserted row strand
     // as a phantom and the next cron fires step N+1 while step N never left. Catch it
     // and synthesise a failed verdict so the one rollback below covers both cases.
+    // #547/#548 — sent through the CLIENT'S OWN mailbox over SMTP (option B, founder-locked
+    // 26 Jul), not from our shared Resend domain. `sendAs` returns the same verdict shape as
+    // `interpretSend` and never throws, so the rollback below is unchanged.
     let checked: ReturnType<typeof interpretSend>
     try {
-      const result = await resend.emails.send({
-        from:     FROM,
-        reply_to: REPLY_TO,
+      const { sendAs } = await import('./mailer')
+      checked = await sendAs(sendingInbox, {
         to:       lead.email,
+        replyTo:  REPLY_TO,
         subject,
         headers:  unsubscribeHeaders(lead.email),
         text:     body,
         html:     coldEmailHtml(body, emailId),
       })
-      checked = interpretSend(result)
     } catch (thrown) {
       checked = { ok: false, id: null, error: thrown }
     }
@@ -730,7 +774,8 @@ export async function sendSequenceEmail(
         `Lead: ${lead.email}`,
         `Enrollment: ${enrollmentId} (step ${step})`,
         `Campaign: ${campaignId}`,
-        `Resend error: ${checked.error instanceof Error ? checked.error.message : JSON.stringify(checked.error)}`,
+        `Mailbox: ${sendingInbox.email} (${sendingInbox.kind}/${sendingInbox.status})`,
+        `Mail server error: ${checked.error instanceof Error ? checked.error.message : JSON.stringify(checked.error)}`,
         `The enrollment stays due and will retry on the next send run.`,
       ])
       return 'failed'
@@ -1061,6 +1106,24 @@ export async function sendDay1OutreachBatch(
   // hard no-fabrication rule the multi-step generateSequence path already uses.
   const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
 
+  // #547 — resolve the client's OWN mailbox ONCE for the whole batch (it cannot change
+  // mid-loop, and a read per lead would be a query per prospect for no new information).
+  // No mailbox = the batch does not run. Every lead stays 'scored' and is picked up on a
+  // later run once an operator assigns one — nothing falls back to our shared address.
+  const { resolveSendingInbox, refusalLabel } = await import('./sending-inbox')
+  const batchInbox = await resolveSendingInbox(clientId)
+  if (!batchInbox.ok) {
+    console.error(`[day1-outreach] NOT sending for client ${clientId} — ${refusalLabel(batchInbox.reason)}. ${batchInbox.detail}`)
+    void sendFounderAlert('sends_stalled', `Day-1 outreach held — ${refusalLabel(batchInbox.reason)}`, [
+      `Client: ${clientId} (${clientCompanyName})`,
+      `Leads waiting: ${leadIds.length}`,
+      batchInbox.detail,
+      `Nothing was sent, no rows were written, and nothing fell back to the shared address. The leads stay scored and retry once this is fixed.`,
+    ])
+    return
+  }
+  const sendingInbox = batchInbox.inbox
+
   const { data: leads } = await db.from('leads')
     .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
     .in('id', leadIds)
@@ -1085,17 +1148,15 @@ export async function sendDay1OutreachBatch(
     try {
       const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName, clientKnowledge)
 
-      // #311 — do not record a day-1 "sent" row when Resend is unconfigured (that made
-      // a dead key invisible + fed the watchdog false sends). Skip the lead instead.
-      if (!resend) {
-        console.warn(`[figsy] sendDay1OutreachBatch: RESEND_API_KEY not set — day-1 to ${lead.email} skipped (no send, no row).`)
-        continue
-      }
-
-      const day1Result = await resend.emails.send({
-        from: FROM,
-        reply_to: REPLY_TO,
+      // #547/#548 — sent through the CLIENT'S OWN mailbox over SMTP, resolved once above.
+      // The #311 RESEND_API_KEY guard that stood here is retired for this path: day-1 cold
+      // mail no longer touches Resend, so gating it on that key would have blocked sends on
+      // a credential this path stopped using. The concern it existed for is enforced by the
+      // resolve above, which refuses and alerts rather than writing a phantom row.
+      const { sendAs } = await import('./mailer')
+      const day1Checked = await sendAs(sendingInbox, {
         to: lead.email,
+        replyTo: REPLY_TO,
         subject: draft.subject,
         // Personal 1:1 cold email (Primary, not Promotions) — header-only unsubscribe.
         headers: unsubscribeHeaders(lead.email),
@@ -1105,12 +1166,12 @@ export async function sendDay1OutreachBatch(
 
       // #338 (AR-01) — a failed send must not leave a phantom "sent" row or flip the
       // lead to 'contacted'. Skip the lead (stays 'scored' → retried next run) + alert.
-      const day1Checked = interpretSend(day1Result)
       if (!day1Checked.ok) {
         console.error(`[day1-outreach] send FAILED for ${lead.email} — no row, lead stays scored`, day1Checked.error)
         void sendFounderAlert('sends_stalled', 'FIGSY day-1 send failed — email did not leave', [
           `Lead: ${lead.email} (${lead.id})`,
-          `Resend error: ${day1Checked.error instanceof Error ? day1Checked.error.message : JSON.stringify(day1Checked.error)}`,
+          `Mailbox: ${sendingInbox.email} (${sendingInbox.kind}/${sendingInbox.status})`,
+          `Mail server error: ${day1Checked.error instanceof Error ? day1Checked.error.message : JSON.stringify(day1Checked.error)}`,
         ])
         continue
       }

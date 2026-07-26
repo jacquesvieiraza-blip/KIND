@@ -14,6 +14,28 @@ export type PendingMigration = { key: string; title: string; sql: string }
 
 export const PENDING_MIGRATIONS: PendingMigration[] = [
   {
+    // #547/#548 — the sending spine. Option B (founder-locked 26 Jul): the provider warms
+    // the mailbox, WE press send through it, so the product needs somewhere to keep the
+    // connection details. The password column holds AES-256-GCM ciphertext only — see
+    // lib/inbox-secret.ts; plaintext must never reach this table.
+    key: '20260726_inbox_smtp',
+    title: 'Mailbox SMTP details on client_inboxes (#547 — send as the client, never from a shared address)',
+    sql: `
+ALTER TABLE public.client_inboxes
+  ADD COLUMN IF NOT EXISTS smtp_host     text,
+  ADD COLUMN IF NOT EXISTS smtp_port     integer,
+  ADD COLUMN IF NOT EXISTS smtp_secure   boolean,
+  ADD COLUMN IF NOT EXISTS smtp_user     text,
+  ADD COLUMN IF NOT EXISTS smtp_pass_enc text,
+  ADD COLUMN IF NOT EXISTS from_name     text;
+
+COMMENT ON COLUMN public.client_inboxes.smtp_pass_enc IS
+  'AES-256-GCM ciphertext (v1:iv:tag:body) of the mailbox password, encrypted with INBOX_SECRET_KEY. NEVER plaintext, and never returned by any API surface.';
+COMMENT ON COLUMN public.client_inboxes.from_name IS
+  'Display name on the From header. The ADDRESS is always client_inboxes.email — a mismatch reads as spoofing to the receiving server.';
+`.trim(),
+  },
+  {
     key: '20260726_wallet_tx_types',
     title: 'Ledger accepts the wallet types the money model writes (pins the live constraint)',
     sql: `

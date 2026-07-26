@@ -1,6 +1,15 @@
 # K.I.N.D — Run Costs & Cashflow Model
 `Rebuilt clean 10 Jul 2026 — every number ties to code (packages/shared pricing · sourcing-fences rate · stripe bundles) or a verified live provider dashboard. One truth per figure; no stale layers.`
 
+> ## 💰 THE MODEL OF RECORD IS [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html) *(founder-locked 25 Jul · inventory #556)*
+> **Open the lab first.** Two needles at the top (clients · average approvals per client per month), every cost line an editable box, and it recomputes live — the layout the founder locked: *"we can refine numbers but the layout I understand."* **This markdown doc is the workings** — where each figure comes from, what it ties to in code, and the scenario envelope. If the two ever disagree, **the lab is the model and this doc is the bug.**
+>
+> **The floor is ~$457/month, not ~$190** (corrected 25 Jul): the old figure omitted **Smartlead ~$94** (The Engine — it runs every client inbox), **Instantly ~$37** (our own rig), **Zoho Mail ~$3** and the **Anthropic runtime**. PDL is modelled the way it is actually billed — a bought tier with a **$98 floor**, charged as `max(tier, names × $0.28)`, not double-counted as a fixed line *and* a per-name cost.
+>
+> **Two numbers out of it that changed how we sell:** ① at $40/client/month for their inbox, a client must approve **~13 leads a month just to pay for their own sender** — below that every extra client makes us poorer and **no amount of scale fixes it** (this is why the minimum-20 gate exists, #542); ② the **$99 pack is −$52 in month one** once $45 setup + $40 inbox are counted, recovering to **+$121 at 50 approvals in month two** — **the repeat is the business, the pack is the door.**
+>
+> ⚠️ **One input still unresolved, founder's call:** *names sourced per approval.* Flow v2 says **2**, #415 measured **~7**. At 7 the model roughly halves. It stays an input box until the live measurement (now on Vida's worklist) settles it.
+
 > **HONEST STATUS (10 Jul 2026):** pre-revenue. **0 paying clients.** We are at the **SPRINT** (first paying client). The old May–Jul launch dates were the *anticipated* timeline; the real build ran long, so all forecasts below are **re-based to Month-0 = first paying client**, not calendar months. This doc is the single home for money math — pricing, costs, unit economics, CAC, break-even, the **three-scenario cashflow envelope (§8B)**, growth shape. Strategy → KIND-MASTER · execution → LAUNCH-PAD · future detail → V2-TRACKER.
 
 ---

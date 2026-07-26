@@ -33,9 +33,18 @@
   .pool h2{ font-size:14px; margin:0 0 10px; color:#92400e; }
   .pool .box{ margin-bottom:10px; }
   .note{ font-size:12px; color:#64748b; margin-top:8px; }
+  .kind-stale{background:#fef2f2;border:3px solid #b91c1c;border-radius:14px;padding:16px 18px;margin:0 0 24px;color:#7f1d1d;font-size:14px;line-height:1.5;max-width:1180px;}
+  .kind-stale h2{margin:0 0 8px;font-size:16px;color:#7f1d1d;}
+  .kind-stale b{color:#7f1d1d;}
+  .kind-stale code{background:#fff;border:1px solid #fecaca;border-radius:4px;padding:1px 4px;font-size:12px;}
 </style>
 </head>
 <body>
+<div class="kind-stale">
+  <h2>🛑 SUPERSEDED — this flow is built on the retired 14-day free trial, and on inbox assignment that does not exist</h2>
+  <p><b>Two things below are no longer true.</b> ① The <b>trial model is retired</b> — the client pays <b>$99 up front</b> for the onboarding pack (100 approved leads included), then a flat <b>$4 per approved lead</b>; there is no trial, no trial expiry and no trial&rarr;paid conversion step. ② The pooled/branded <b>inbox assignment steps are NOT built</b> &mdash; today every client shares one sending address (<code>figsy.ts:26</code>), and no send path reads <code>client_inboxes</code>.</p>
+  <p><b>Current truth:</b> money &rarr; <code>docs/CASHFLOW-LAB.html</code> (canonical) &middot; execution &rarr; <code>docs/LAUNCH-PAD.md</code> &middot; the inbox work &rarr; PRODUCT-INVENTORY <b>#211 / #547&ndash;#553</b> &middot; decisions &rarr; <code>docs/KIND-MASTER.md</code>. <b>Kept as the decision trail, not as a spec.</b></p>
+</div>
   <h1>🔵 New-Client Sending Flow — PREVIEW</h1>
   <p class="sub">Nothing built or merged. Both triggers (signup + payment) included.</p>
   <div class="legend">

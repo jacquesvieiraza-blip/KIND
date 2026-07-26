@@ -1,5 +1,12 @@
 # ✅ MILESTONE 0 — MASTER CHECKLIST (the FIGSY + Lead-Gen punch-list)
 
+> # 🛑 SUPERSEDED 26 Jul 2026 — THE MONEY LADDER BELOW IS RETIRED (inventory #557)
+> **This doc still prices the product on the retired ladder** — `$1 reveal + $3 work = $4`, then `+$1 Milla = $5`, `+$1 Denise = $6`, `Vida inbound $3` — with a hold, a capture-on-booking, a release and a 72h TTL. **None of that is how we charge.**
+>
+> **Current money model (founder-locked 24–25 Jul · #492/#541):** one dollar wallet per client · first purchase **$99 = the onboarding pack, 100 approved leads included** · then a flat **$4 per approved lead, FINAL** — no split shown, no hold, no capture, no release, **no expiry** · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends**. Two gates: **minimum 20 approvals** first time round, and **30 days idle suspends** them.
+>
+> **Money model of record → [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html)** · cost detail → `run-costs-and-cashflow.md` · execution → `LAUNCH-PAD.md` · status → `PRODUCT-INVENTORY.md` · why → `KIND-MASTER.md`. **Everything below is the M0 punch-list as it stood; read the honesty/reliability work as record and ignore every price.**
+
 > **This is the working execution list for M0** (linked from LAUNCH-PAD). M0 = make the product **HONEST → RELIABLE → PROVEN** before one real client. Sell **FIGSY + Lead-Gen** ($1 reveal + $3 work); everything else = "coming soon" — and returns as **per-lead layers/engine (#427–#429), not subscriptions**.
 > **THE RULE for Move 1: DON'T DELETE. Mark not-real features "Coming soon" + grey/disable** (the #326/#334 pattern — badge + greyed + non-interactive). Code stays for Milestone 4.
 > Check items off as done. Each Move ships in reviewable batches. Findings map to PRODUCT-INVENTORY #338–#431.

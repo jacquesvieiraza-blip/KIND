@@ -1971,6 +1971,50 @@ operatorRouter.get('/nexus', async (req: Request, res: Response) => {
 // Auto-tune is OFF by default for every client. This flips the per-client flag; the Phase-2
 // write-back path consults `nexusTuneGate` (this flag + the confidence gate + the global
 // kill) before ever changing a client's sequences or sourcing. Audited. No money moves here.
+// ── MBF — THE DEMO ACCOUNT (founder-locked 26 Jul) ────────────────────────────────────
+// "5 demos = 1 sale." One demo client, one FIXED cast of forty invented people, one fixed
+// story — so the pitch is a script the founder can learn rather than a different stage every
+// time. Creates it if it has never existed; otherwise wipes and rebuilds it to byte-identical
+// state, which is the reset you run between demos or when you've broken it mid-pitch.
+//
+// Nothing here can reach a real person: the client is `is_demo`, which is a hard stop inside
+// the send path itself, and every address is `.invalid` (RFC 2606 — can never resolve).
+operatorRouter.post('/demo/mbf/reset', async (req: Request, res: Response) => {
+  try {
+    const { findMbf, seedMbf, MBF_NAME } = await import('../lib/demo-mbf')
+    let mbf = await findMbf()
+
+    // First run: mint the client. clients.user_id is NOT NULL and unique, so the demo needs
+    // its own auth user — it never logs in through it; you open MBF from Vida.
+    if (!mbf) {
+      const suffix = Math.random().toString(36).slice(2, 10)
+      const { data: user, error: uErr } = await db.auth.admin.createUser({
+        email: `mbf-demo-${suffix}@kind-demo.internal`, password: `Demo${suffix}!`, email_confirm: true,
+      })
+      if (uErr || !user?.user) { res.status(500).json({ success: false, error: `Could not create the demo login: ${uErr?.message ?? 'unknown'}` }); return }
+
+      const { data: created, error: cErr } = await db.from('clients').insert({
+        user_id: user.user.id, company_name: MBF_NAME, is_demo: true,
+        industry: 'Logistics', country: 'South Africa', plan: 'figsy',
+        onboarded_at: new Date().toISOString(),
+      }).select('id, user_id').single()
+      if (cErr) { res.status(500).json({ success: false, error: `Could not create MBF: ${cErr.message}` }); return }
+      mbf = { id: created.id as string, user_id: created.user_id as string }
+    }
+
+    const result = await seedMbf(mbf.id)
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: mbf.id, action: 'demo_reset',
+      subjectType: 'client', subjectId: mbf.id, detail: { ...result, no_money_moved: true },
+    })
+    res.json({ success: true, data: result,
+      message: `MBF is ready — ${result.leads} people, ${result.waiting} waiting to be picked, ${result.replies} replies, ${result.bookings} meetings booked.` })
+  } catch (err) {
+    console.error('[operator/demo-reset]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to reset the demo' })
+  }
+})
+
 operatorRouter.post('/nexus/autotune', async (req: Request, res: Response) => {
   try {
     const { client_id, enabled } = (req.body ?? {}) as { client_id?: string; enabled?: boolean }

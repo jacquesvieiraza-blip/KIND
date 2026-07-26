@@ -175,6 +175,37 @@ export function isMbfAccount(companyName: string | null | undefined): boolean {
   return typeof companyName === 'string' && /mbf/i.test(companyName)
 }
 
+/**
+ * Is this a REAL client — i.e. should an integrity finding about them be believed?
+ *
+ * Demo accounts are our own invented data. A check that reports *"a client was charged
+ * twice"* about a fake company is a check the founder learns to ignore — and then it misses
+ * the real one. That already happened on the first live run: three of eight checks fired on
+ * demos, and every one of them was wrong.
+ */
+export function isRealClient(clientId: string, demoIds: ReadonlySet<string>): boolean {
+  return !demoIds.has(clientId)
+}
+
+/** Drop every row belonging to a demo account. */
+export function excludeDemoRows<T extends { client_id: string }>(
+  rows: readonly T[], demoIds: ReadonlySet<string>,
+): T[] {
+  return rows.filter(r => isRealClient(r.client_id, demoIds))
+}
+
+/**
+ * The report could not tell demo accounts from real ones.
+ *
+ * Every finding is then meaningless — a "clean" result might be hiding a real problem behind
+ * demo noise, and a hit might be about an invented company. So the whole report goes
+ * UNANSWERED rather than rendering findings nobody can act on. Same rule as everywhere else
+ * here: a check that could not run must never look like a check that passed.
+ */
+export function demoLookupFailed(err: unknown): string {
+  return `The list of demo accounts could not be read (${err instanceof Error ? err.message : String(err)}), so real clients cannot be told from demo ones. Every check below is UNANSWERED — not clean.`
+}
+
 /** Worst first; a clean check still appears, at the end. */
 export function rank(results: CheckResult[]): CheckResult[] {
   const order: Record<Severity, number> = { critical: 0, high: 1, unknown: 2, medium: 3, clean: 4 }

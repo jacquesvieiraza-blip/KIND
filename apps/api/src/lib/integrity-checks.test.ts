@@ -3,6 +3,7 @@ import {
   toResult, toUnanswered, summarise, headline, rank, SHOW_LIMIT,
   countsAsCannotSend, countsAsDoubleGrant, isMbfAccount,
   type CheckResult, type Finding,
+  isRealClient, excludeDemoRows, demoLookupFailed,
 } from './integrity-checks'
 
 // The judgement half of the integrity check, tested without a database.
@@ -197,5 +198,56 @@ describe('isMbfAccount — match the name, not one exact string', () => {
     expect(isMbfAccount(null)).toBe(false)
     expect(isMbfAccount(undefined)).toBe(false)
     expect(isMbfAccount('')).toBe(false)
+  })
+})
+
+// ── DEMOS ARE NOT FINDINGS ────────────────────────────────────────────────────────────
+//
+// On the first live run, three of eight checks fired on demo accounts and all three were
+// wrong — the worst being a CRITICAL *"a client has paid and cannot be delivered"* about an
+// account that cannot send BY DESIGN. The founder's point, and it is the whole risk: a check
+// that cries wolf about invented companies is a check you learn to ignore, and then it misses
+// the real one.
+describe('isRealClient / excludeDemoRows', () => {
+  const demos = new Set(['demo-1', 'demo-2'])
+
+  it('a demo client is never a finding', () => {
+    expect(isRealClient('demo-1', demos)).toBe(false)
+    expect(isRealClient('demo-2', demos)).toBe(false)
+  })
+
+  it('a real client still is', () => {
+    expect(isRealClient('real-1', demos)).toBe(true)
+  })
+
+  it('drops only the demo rows and keeps the rest intact', () => {
+    const rows = [
+      { client_id: 'real-1', id: 'a' },
+      { client_id: 'demo-1', id: 'b' },
+      { client_id: 'real-2', id: 'c' },
+      { client_id: 'demo-2', id: 'd' },
+    ]
+    expect(excludeDemoRows(rows, demos).map(r => r.id)).toEqual(['a', 'c'])
+  })
+
+  it('with no demos at all, nothing is dropped', () => {
+    // The empty case matters: a fresh system with zero demos must not silently lose findings.
+    const rows = [{ client_id: 'real-1', id: 'a' }, { client_id: 'real-2', id: 'b' }]
+    expect(excludeDemoRows(rows, new Set())).toHaveLength(2)
+  })
+
+  it('every row being a demo yields nothing — which is CLEAN, not hidden', () => {
+    const rows = [{ client_id: 'demo-1', id: 'a' }, { client_id: 'demo-2', id: 'b' }]
+    expect(excludeDemoRows(rows, demos)).toHaveLength(0)
+  })
+})
+
+describe('demoLookupFailed', () => {
+  it('says the report is UNANSWERED, and explicitly says NOT clean', () => {
+    // If we cannot tell demos from real clients, a green report is a lie in both directions.
+    const msg = demoLookupFailed(new Error('connection refused'))
+    expect(msg).toContain('UNANSWERED')
+    expect(msg).toContain('not clean')
+    expect(msg).toContain('connection refused')
   })
 })

@@ -10,27 +10,49 @@ import { db } from '@kind/db'
 import {
   toResult, toUnanswered, summarise, headline, rank,
   countsAsCannotSend, countsAsDoubleGrant,
+  isRealClient, excludeDemoRows, demoLookupFailed,
   PACK_LEADS, LEAD_PRICE_USD,
   type CheckResult, type Summary,
 } from './integrity-checks'
 
+/**
+ * The demo client ids, read ONCE and handed to every check.
+ *
+ * WHY EVERY CHECK TAKES THIS. Demo accounts are our own invented data, and a finding about a
+ * fake company is worse than no finding: the founder learns to ignore the screen, and then it
+ * misses the real one. On the first live run three of eight checks fired on demos and all
+ * three were wrong — *"a client has paid and cannot be delivered"* about an account that
+ * cannot send **by design**.
+ *
+ * Read once rather than per-check so eight checks cannot disagree with each other about which
+ * accounts are demos.
+ */
+type DemoIds = ReadonlySet<string>
+
+async function loadDemoIds(): Promise<Set<string>> {
+  const { data, error } = await db.from('clients').select('id').eq('is_demo', true).limit(1000)
+  if (error) throw error
+  return new Set((data ?? []).map((c: { id: string }) => c.id))
+}
+
 /** A lead approved but with no email — they paid for a contact we then lost. */
-async function approvedWithoutEmail(): Promise<CheckResult> {
+async function approvedWithoutEmail(demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'approved_without_email',
     question: 'Did any client pay for a lead whose email we then failed to store?',
     defect: '#568 — the email write on the approve path was swallowed' }
   const { data, error } = await db.from('leads')
     .select('id, client_id').not('revealed_at', 'is', null).is('email', null).limit(200)
   if (error) throw error
+  const real = excludeDemoRows((data ?? []) as { id: string; client_id: string }[], demoIds)
   return toResult({ ...q, severity: 'critical',
-    affected: (data ?? []).map((r: { id: string }) => r.id),
+    affected: real.map(r => r.id),
     cleanVerdict: 'No approved lead is missing its email. This bug never fired.',
     badVerdict: n => `${n} lead(s) were approved with NO email. Each client either paid $${LEAD_PRICE_USD} or used a pack slot for a contact they never received — and they cannot be re-approved (the once-per-lead claim blocks it), so each needs a manual refund or a hand-delivered email.`,
   })
 }
 
 /** Surfaced but not delivered — the operator was told; the client cannot see them. */
-async function surfacedButInvisible(): Promise<CheckResult> {
+async function surfacedButInvisible(demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'surfaced_not_delivered',
     question: 'Are there leads we believe we sent a client, that the client cannot actually see?',
     defect: '#568 — the two surface writes were unchecked while the count reported success' }
@@ -39,7 +61,7 @@ async function surfacedButInvisible(): Promise<CheckResult> {
     .not('surfaced_for_approval_at', 'is', null).is('delivered_at', null)
     .is('revealed_at', null).neq('status', 'passed').limit(500)
   if (error) throw error
-  const rows = (data ?? []) as { client_id: string }[]
+  const rows = excludeDemoRows((data ?? []) as { client_id: string }[], demoIds)
   const clients = [...new Set(rows.map(r => r.client_id))]
   return toResult({ ...q, severity: 'high', affected: clients, total: rows.length,
     cleanVerdict: 'Every surfaced lead is also delivered. No client has an invisible desk.',
@@ -48,7 +70,7 @@ async function surfacedButInvisible(): Promise<CheckResult> {
 }
 
 /** Charged $4 while still inside the included pack. */
-async function chargedInsidePack(): Promise<CheckResult> {
+async function chargedInsidePack(demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'charged_inside_pack',
     question: `Was anyone charged $${LEAD_PRICE_USD} for a lead that should have been free?`,
     defect: '#566 — the pack counted the lead being approved, so it gave 99 free, not 100' }
@@ -56,6 +78,7 @@ async function chargedInsidePack(): Promise<CheckResult> {
     .select('client_id').eq('type', 'wallet_charge').limit(2000)
   if (error) throw error
   const clientIds = [...new Set((data ?? []).map((r: { client_id: string }) => r.client_id))]
+    .filter(id => isRealClient(id, demoIds))
   const hits: string[] = []
   for (const id of clientIds) {
     const { count } = await db.from('leads').select('id', { count: 'exact', head: true })
@@ -69,15 +92,19 @@ async function chargedInsidePack(): Promise<CheckResult> {
 }
 
 /** One lead, more than one charge. Also proves whether the UNIQUE index is live. */
-async function doubleCharged(): Promise<CheckResult> {
+async function doubleCharged(demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'double_charged',
     question: 'Has any single lead been charged more than once?',
     defect: 'The once-per-lead invariant — enforced by a UNIQUE index nobody has confirmed exists in production (#273)' }
   const { data, error } = await db.from('credit_transactions')
-    .select('reference').eq('type', 'wallet_charge').not('reference', 'is', null).limit(5000)
+    .select('reference, client_id').eq('type', 'wallet_charge').not('reference', 'is', null).limit(5000)
   if (error) throw error
+  // `client_id` is selected ONLY so demo rows can be dropped — the check itself is about the
+  // reference. Without it there is no way to tell a demo's charge from a real one.
   const seen = new Map<string, number>()
-  for (const r of (data ?? []) as { reference: string }[]) seen.set(r.reference, (seen.get(r.reference) ?? 0) + 1)
+  for (const r of excludeDemoRows((data ?? []) as { reference: string; client_id: string }[], demoIds)) {
+    seen.set(r.reference, (seen.get(r.reference) ?? 0) + 1)
+  }
   const dupes = [...seen.entries()].filter(([, n]) => n > 1).map(([ref]) => ref)
   return toResult({ ...q, severity: 'critical', affected: dupes,
     cleanVerdict: 'No lead has been charged twice. The once-per-lead guard is holding.',
@@ -86,14 +113,17 @@ async function doubleCharged(): Promise<CheckResult> {
 }
 
 /** Both the pack and the wallet from one payment. */
-async function packAndWallet(): Promise<CheckResult> {
+async function packAndWallet(demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'pack_and_wallet',
     question: `Did anyone get both the ${PACK_LEADS} free leads AND wallet money from one payment?`,
     defect: '#562 — the $99 credited the wallet while also switching the pack on' }
   const { data, error } = await db.from('clients')
-    .select('id, wallet_balance_usd, is_demo').gt('wallet_balance_usd', 0).limit(500)
+    .select('id, wallet_balance_usd').gt('wallet_balance_usd', 0).limit(500)
   if (error) throw error
-  const real = (data ?? []).filter((c: { is_demo: boolean | null }) => !c.is_demo) as { id: string }[]
+  // Uses the SHARED demo set like every other check. It used to read `is_demo` on its own
+  // query — a second source of truth for the same fact, and the way eight checks end up
+  // disagreeing about which accounts are demos.
+  const real = ((data ?? []) as { id: string }[]).filter(c => isRealClient(c.id, demoIds))
   const hits: string[] = []
   for (const c of real) {
     // A PURCHASE IS REQUIRED, not merely a balance. The double-grant signature is *"they
@@ -114,14 +144,14 @@ async function packAndWallet(): Promise<CheckResult> {
 }
 
 /** A paid lead in no sequence — charged for work that never started. */
-async function paidNeverEnrolled(): Promise<CheckResult> {
+async function paidNeverEnrolled(demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'paid_never_enrolled',
     question: 'Is anyone waiting on outreach for a lead they paid for that was never enrolled?',
     defect: '#568 — the enrol call was swallowed after charging' }
   const { data, error } = await db.from('leads')
     .select('id, client_id').not('revealed_at', 'is', null).not('email', 'is', null).limit(1000)
   if (error) throw error
-  const rows = (data ?? []) as { id: string; client_id: string }[]
+  const rows = excludeDemoRows((data ?? []) as { id: string; client_id: string }[], demoIds)
   if (rows.length === 0) {
     return toResult({ ...q, severity: 'high', affected: [],
       cleanVerdict: 'No approved leads yet, so nothing can be waiting.', badVerdict: n => `${n}` })
@@ -138,7 +168,7 @@ async function paidNeverEnrolled(): Promise<CheckResult> {
 }
 
 /** Paid, but physically cannot send. */
-async function fundedCannotSend(): Promise<CheckResult> {
+async function fundedCannotSend(demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'funded_cannot_send',
     question: 'Has anyone paid us who still has no mailbox to send from?',
     defect: '#211 — per-client sending. #547 makes this refuse rather than send from a shared address' }
@@ -150,9 +180,6 @@ async function fundedCannotSend(): Promise<CheckResult> {
   // inside the send path and every address is `.invalid`. Counting one here reported a
   // CRITICAL *"a client has paid and cannot be delivered"* about the MBF/Acme demo, which is
   // the system working exactly as intended. A check that cries wolf is a check nobody reads.
-  const { data: demos } = await db.from('clients').select('id').eq('is_demo', true)
-  const demoIds = new Set((demos ?? []).map((c: { id: string }) => c.id))
-
   const payers = [...new Set((data ?? []).map((r: { client_id: string }) => r.client_id))]
     .filter(id => countsAsCannotSend(demoIds.has(id)))
   if (payers.length === 0) {
@@ -175,8 +202,16 @@ async function fundedCannotSend(): Promise<CheckResult> {
   })
 }
 
-/** Which wallet transaction types production actually accepts. */
-async function ledgerTypesLive(): Promise<CheckResult> {
+/**
+ * Which wallet transaction types production actually accepts.
+ *
+ * DELIBERATELY NOT FILTERED BY DEMO — the only check here that isn't, so it is worth saying
+ * why rather than letting it look like an oversight. The question is *"does the live CHECK
+ * constraint allow these types"*, and a row is proof the constraint accepted it **no matter
+ * who wrote it**. A demo's row answers the question exactly as well as a real client's.
+ * Filtering would throw away valid evidence and report "cannot tell" when we can.
+ */
+async function ledgerTypesLive(_demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'ledger_types',
     question: 'Does the live ledger accept the wallet transaction types the money model writes?',
     defect: '#558 — the repo migrations no longer describe the live database' }
@@ -195,7 +230,7 @@ async function ledgerTypesLive(): Promise<CheckResult> {
   }
 }
 
-const RUNNERS: Array<[string, string, string, () => Promise<CheckResult>]> = [
+const RUNNERS: Array<[string, string, string, (d: DemoIds) => Promise<CheckResult>]> = [
   ['approved_without_email', 'Did any client pay for a lead whose email we then failed to store?', '#568', approvedWithoutEmail],
   ['charged_inside_pack', 'Was anyone charged for a lead that should have been free?', '#566', chargedInsidePack],
   ['double_charged', 'Has any single lead been charged more than once?', 'once-per-lead invariant', doubleCharged],
@@ -210,9 +245,24 @@ const RUNNERS: Array<[string, string, string, () => Promise<CheckResult>]> = [
 export async function runIntegrity(): Promise<{
   checks: CheckResult[]; summary: Summary; headline: string
 }> {
+  // If we cannot tell demo accounts from real ones, NOTHING below is trustworthy — a "clean"
+  // result could be hiding a real problem under demo noise, and a hit could be about an
+  // invented company. So the whole report goes UNANSWERED rather than rendering findings
+  // nobody can act on. Same rule as everywhere else here: a check that could not run must
+  // never look like a check that passed.
+  let demoIds: Set<string>
+  try {
+    demoIds = await loadDemoIds()
+  } catch (e) {
+    const why = demoLookupFailed(e)
+    const all = RUNNERS.map(([key, question, defect]) => toUnanswered(key, question, defect, why))
+    const summary = summarise(all)
+    return { checks: rank(all), summary, headline: headline(summary) }
+  }
+
   const results: CheckResult[] = []
   for (const [key, question, defect, run] of RUNNERS) {
-    try { results.push(await run()) }
+    try { results.push(await run(demoIds)) }
     catch (e) { results.push(toUnanswered(key, question, defect, e)) }
   }
   const ranked = rank(results)

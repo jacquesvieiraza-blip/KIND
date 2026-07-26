@@ -34,18 +34,36 @@ if [ -z "$region" ]; then
   exit 2
 fi
 
-declare -A count
+# BASH 3.2 SAFE — no associative arrays.
+#
+# This used `declare -A count`, which needs bash 4+. macOS still ships **bash 3.2**
+# (2007 — Apple froze it over the GPLv3 licence change), so on the founder's Mac this
+# script died with `declare: -A: invalid option` and doc-lint failed with it. It had
+# therefore NEVER run there, silently, while passing in every Linux container.
+#
+# Found 26 Jul the first time the founder ran `scripts/check.sh` himself — which is
+# exactly what a gate is for: it surfaces what only the real machine can see.
+#
+# Six named counters instead. Uglier, and it runs everywhere.
+c_green=0; c_pink=0; c_purple=0; c_yellow=0; c_red=0; c_blocked=0
 total=0
 for dot in "${DOTS[@]}"; do
   # Format A: id then dot.   Format B: id then a non-pipe cell then dot.
   a=$(printf '%s\n' "$region" | grep -cE "^\| ?[0-9]+[a-z]? ?\| ?${dot}( |\|)" || true)
   b=$(printf '%s\n' "$region" | grep -cE "^\| ?[0-9]+[a-z]? ?\|[^|]*\| ?${dot} ?\|" || true)
   n=$((a + b))
-  count["$dot"]=$n
+  case "$dot" in
+    "🟢") c_green=$n ;;
+    "🩷") c_pink=$n ;;
+    "🟣") c_purple=$n ;;
+    "🟡") c_yellow=$n ;;
+    "🔴") c_red=$n ;;
+    "⏸")  c_blocked=$n ;;
+  esac
   total=$((total + n))
 done
 
-board="🟢${count["🟢"]} · 🩷${count["🩷"]} · 🟣${count["🟣"]} · 🟡${count["🟡"]} · 🔴${count["🔴"]} · ⏸${count["⏸"]} · Σ${total}"
+board="🟢${c_green} · 🩷${c_pink} · 🟣${c_purple} · 🟡${c_yellow} · 🔴${c_red} · ⏸${c_blocked} · Σ${total}"
 
 if [ "${1:-}" = "--check" ]; then
   # #322 — validate EVERY place the board is shown, not just the hidden marker.

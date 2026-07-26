@@ -42,6 +42,34 @@ step() {   # step <label> <command...>
 echo "════════════════════ PRE-DEPLOY CHECK ════════════════════"
 echo "Nothing ships unless every one of these passes."
 
+# ── [0] PREFLIGHT — is this machine able to run the checks at all? ───────────────
+#
+# The first time the founder ran this on his own Mac it reported three TypeScript
+# errors ("Cannot find module 'nodemailer' / 'pg' / 'web-push'") — which read like the
+# code was broken. It wasn't: node_modules simply hadn't been installed. A gate whose
+# first failure sends you hunting for a bug that doesn't exist is worse than no gate,
+# so the environment is checked FIRST and named plainly.
+if [ ! -d node_modules ] || [ ! -d node_modules/.bin ]; then
+  echo ""
+  echo "🛑 STOP — dependencies are not installed on this machine."
+  echo ""
+  echo "   This is NOT a problem with the code. Run this once, then try again:"
+  echo ""
+  echo "       yarn install"
+  echo ""
+  exit 1
+fi
+if [ ! -d node_modules/nodemailer ] || [ ! -d node_modules/vitest ]; then
+  echo ""
+  echo "🛑 STOP — node_modules is out of date (packages are missing)."
+  echo ""
+  echo "   Someone added a dependency since your last install. Run:"
+  echo ""
+  echo "       yarn install"
+  echo ""
+  exit 1
+fi
+
 # 1. Does the API compile? A type error here is a runtime crash on the money path.
 step "API type-check" npx tsc --noEmit -p apps/api/tsconfig.json
 

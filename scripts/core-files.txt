@@ -2,6 +2,7 @@
 # Every file reachable by import from a real entry point (api index+cron, every Milla
 # page, every Vida page, both middlewares, both app API proxies).
 # Anything NOT in this list is FENCED: not in play, never deleted, never edited.
+# 221 files, 51470 lines. DO NOT HAND-EDIT — re-run the script.
 apps/admin/src/app/api/clients/[id]/order-form/route.ts
 apps/admin/src/app/api/clients/route.ts
 apps/admin/src/app/api/proxy/[...path]/route.ts
@@ -51,6 +52,7 @@ apps/admin/src/app/vida/record/page.tsx
 apps/admin/src/app/vida/reports/page.tsx
 apps/admin/src/app/vida/revenue/page.tsx
 apps/admin/src/app/vida/suppression/page.tsx
+apps/admin/src/app/vida/system/page.tsx
 apps/admin/src/app/vida/unibox/page.tsx
 apps/admin/src/components/ClientsTabs.tsx
 apps/admin/src/components/MarkdownLite.tsx
@@ -88,6 +90,8 @@ apps/api/src/lib/figsy.ts
 apps/api/src/lib/gcal.ts
 apps/api/src/lib/hubspot.ts
 apps/api/src/lib/inbox-secret.ts
+apps/api/src/lib/integrity-checks.ts
+apps/api/src/lib/integrity.ts
 apps/api/src/lib/lead-delivery.ts
 apps/api/src/lib/linkedin.ts
 apps/api/src/lib/mailer.ts
@@ -126,6 +130,8 @@ apps/api/src/lib/startup-check.ts
 apps/api/src/lib/stripe.ts
 apps/api/src/lib/suggest-times.ts
 apps/api/src/lib/suppression.ts
+apps/api/src/lib/system-check.ts
+apps/api/src/lib/system-probes.ts
 apps/api/src/lib/vapi.ts
 apps/api/src/lib/vida.ts
 apps/api/src/lib/webhook-idempotency.ts

@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { loadError, panelView } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -597,16 +598,28 @@ export default function VidaConsolePage() {
     setCockpitBusy(false)
   }
 
+  // #564 — THE REFUSAL IS SHOWN. This parsed the response and threw it away, so an API that
+  // said "no" produced a button that appeared to do nothing: the reload re-rendered the
+  // unchanged state and the operator was left to guess. The comment claimed the failure was
+  // "surfaced by the reload" — it never was. A control that silently declines is the same
+  // class as the Delete button that deleted nothing.
   async function setCampaignStatus(campaignId: string, status: 'active' | 'paused') {
     if (!selected) return
-    setCockpitBusy(true)
+    setCockpitBusy(true); setSaveMsg(null)
     try {
-      await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(campaignId)}/status`, {
+      const j = await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(campaignId)}/status`, {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ client_id: selected, status }),
       }).then(r => r.json())
+      if (!j?.success) {
+        setSaveMsg(j?.error || `Could not ${status === 'active' ? 'start' : 'pause'} the campaign — the API refused and gave no reason.`)
+        setCockpitBusy(false); return
+      }
+      setSaveMsg(status === 'active' ? 'Campaign is running.' : 'Campaign paused.')
       await loadCockpit(selected)
-    } catch { /* surfaced by the reload */ }
+    } catch (e) {
+      setSaveMsg(`Could not reach the API to ${status === 'active' ? 'start' : 'pause'} this campaign: ${e instanceof Error ? e.message : String(e)}`)
+    }
     setCockpitBusy(false)
   }
 
@@ -614,11 +627,25 @@ export default function VidaConsolePage() {
   const [srcBusy, setSrcBusy] = useState(false)
   const [srcResult, setSrcResult] = useState<string | null>(null)
 
+  // #565 — EMPTY IS NOT BROKEN. All three of these were `.catch(() => {})`, so a failed load
+  // left the state at its initial empty value and the console rendered a calm, confident
+  // "nothing to do" over an endpoint that was down — on the screen whose entire job is
+  // telling the operator what to work on next. Each failure is now captured and shown.
+  const [loadFail, setLoadFail] = useState<{ status?: string; alerts?: string; worklist?: string }>({})
+
   useEffect(() => {
-    fetch('/api/proxy/operator/status').then(r => r.json()).then(j => { if (j?.success) setStatus(j.data) }).catch(() => {})
-    // V17 — the bell. Best-effort: no alerts must never break the console.
-    fetch('/api/proxy/operator/alerts').then(r => r.json()).then(j => { if (j?.success) setAlerts(j.data) }).catch(() => {})
-    fetch('/api/proxy/operator/worklist').then(r => r.json()).then(j => { if (j?.success) { setWork(j.data); setBookRatio(j.meta?.ratio ?? null) } }).catch(() => {})
+    const fail = (k: 'status' | 'alerts' | 'worklist') => (e: unknown) =>
+      setLoadFail(f => ({ ...f, [k]: loadError(e) }))
+
+    fetch('/api/proxy/operator/status').then(r => r.json())
+      .then(j => { if (j?.success) setStatus(j.data); else throw new Error(j?.error || 'the API returned no data') })
+      .catch(fail('status'))
+    fetch('/api/proxy/operator/alerts').then(r => r.json())
+      .then(j => { if (j?.success) setAlerts(j.data); else throw new Error(j?.error || 'the API returned no data') })
+      .catch(fail('alerts'))
+    fetch('/api/proxy/operator/worklist').then(r => r.json())
+      .then(j => { if (j?.success) { setWork(j.data); setBookRatio(j.meta?.ratio ?? null) } else throw new Error(j?.error || 'the API returned no data') })
+      .catch(fail('worklist'))
   }, [])
 
   // #498b — detect a sourcing intent ("source 50 leads", "find 30 prospects", "source leads")
@@ -828,10 +855,32 @@ export default function VidaConsolePage() {
       <div className="w-[380px] shrink-0 border-r border-[#eee7f7] bg-white flex flex-col overflow-hidden">
         <div className="px-[18px] pt-[15px] pb-2.5">
           <b className="text-[15.5px]">Clients</b>
-          <span className="block text-[12.5px] text-[#9b8ec4]">
-            {work ? `${needsYouCount} need you · ${work.length - needsYouCount} running themselves` : 'Loading…'}
-          </span>
+          {/* #565 — a failed load used to sit on "Loading…" forever, which reads as "still
+              working on it" rather than "this is broken". `panelView` keeps the three states
+              apart: loading, genuinely empty, and could-not-establish. */}
+          {(() => {
+            const v = panelView({ loading: !work && !loadFail.worklist, error: loadFail.worklist ?? null, count: work?.length ?? 0, label: 'the worklist' })
+            if (v.state === 'ready') {
+              return <span className="block text-[12.5px] text-[#9b8ec4]">
+                {`${needsYouCount} need you · ${(work?.length ?? 0) - needsYouCount} running themselves`}
+              </span>
+            }
+            return <span className={`block text-[12.5px] ${v.state === 'failed' ? 'text-red-700 font-semibold' : 'text-[#9b8ec4]'}`}>
+              {v.message}
+            </span>
+          })()}
         </div>
+
+        {/* The other two loads fail independently — and each says so rather than leaving the
+            header quietly wrong. An operator who cannot see alerts must know that, not infer
+            it from a bell that never rings. */}
+        {(loadFail.status || loadFail.alerts) && (
+          <div className="mx-[18px] mb-2.5 rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2">
+            <b className="block text-[12px] text-red-900">Part of this console could not load</b>
+            {loadFail.status && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load the status header — {loadFail.status}</p>}
+            {loadFail.alerts && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load alerts — a quiet bell does NOT mean there is nothing wrong. {loadFail.alerts}</p>}
+          </div>
+        )}
         {/* Sorted by who needs you, not alphabetically — and each row says WHY in words. */}
         <div className="flex gap-1.5 px-[18px] pb-2.5">
           {([[true, `Needs you · ${needsYouCount}`], [false, `All · ${work?.length ?? 0}`]] as [boolean, string][]).map(([v, label]) => (

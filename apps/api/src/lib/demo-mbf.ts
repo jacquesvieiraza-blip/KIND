@@ -106,7 +106,10 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
   const approvedCount = MBF_CAST.filter(c => c.state === 'approved').length
   const { data: camp, error: campErr } = await db.from('figsy_campaigns').insert({
     client_id: clientId, icp_id: icp.id, name: 'Ops leaders · Q3', status: 'active',
-    leads_enrolled: approvedCount, emails_sent: 38, replies_total: MBF_REPLIES.length,
+    // emails_sent is computed below from the rows we actually insert. It was hardcoded to
+    // 38 against 24 real rows, so the campaign header and the Engine counters disagreed —
+    // and on a demo the first number a prospect distrusts is one that contradicts another.
+    leads_enrolled: approvedCount, replies_total: MBF_REPLIES.length,
     meetings_booked: MBF_REPLIES.filter(r => r.booked).length, steps_count: MBF_SEQUENCE.length,
     settings: { review_required: true }, copilot_mode: true, approve_before_send: true,
   }).select('id').single()
@@ -172,17 +175,29 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
   for (const { i } of approvedIdx) {
     const steps = i % 3 === 0 ? 3 : i % 3 === 1 ? 2 : 1
     for (let s = 1; s <= steps; s++) {
+      const sentAt = ago(Math.max(1, 7 - s * 2))
+      // opened_at on roughly 3 in 5 — the Engine's open rate reads
+      // `count(opened_at not null) / count(sent)`, so leaving it null showed 0% opened
+      // next to 24 sends, which reads as a broken product rather than a healthy one.
+      // Deterministic (every third is left unopened), never random.
+      const opened = (i + s) % 3 !== 0
       sentRows.push({
         campaign_id: camp.id, lead_id: leadIds[i], step: s,
         subject: MBF_SEQUENCE[s - 1].subject.replace('Rivo', MBF_CAST[i].company.split(' ')[0]),
         body: MBF_SEQUENCE[s - 1].body
           .replace(/\{\{first_name\}\}/g, MBF_CAST[i].first)
           .replace(/\{\{company\}\}/g, MBF_CAST[i].company),
-        status: 'sent', sent_at: ago(Math.max(1, 7 - s * 2)),
+        status: 'sent', sent_at: sentAt,
+        opened_at: opened ? new Date(new Date(sentAt).getTime() + 5 * 3600_000).toISOString() : null,
       })
     }
   }
   if (sentRows.length) await db.from('figsy_sent_emails').insert(sentRows).then(() => {}, () => {})
+
+  // The campaign header must agree with the rows. Written AFTER the sends exist so it can
+  // never drift from them again.
+  await db.from('figsy_campaigns').update({ emails_sent: sentRows.length }).eq('id', camp.id)
+    .then(() => {}, () => {})
 
   // ── The inbox ───────────────────────────────────────────────────────────────────
   const replyRows = MBF_REPLIES.map(r => {

@@ -35,12 +35,18 @@ const OPERATE: { href: string; label: string; icon: string }[] = [
   { href: '/vida/audit',       label: 'Audit log',         icon: '📋' },
   { href: '/vida/reports',     label: 'Reports & billing', icon: '🧾' },
   { href: '/vida/nexus',       label: 'Nexus signals',     icon: '🧠' },
+  // /demo has existed all along and was in NEITHER menu, so the only way to open a demo
+  // account was to know the URL. That is the one screen you reach under time pressure in
+  // front of a prospect.
+  { href: '/demo',             label: 'Demo accounts',     icon: '🎬' },
 ]
 
 const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   { href: '/vida/engine',     label: 'Engine',     icon: '📡' },
   { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
-  { href: '/vida/clients-admin',    label: 'Clients',    icon: '👥' },
+  // Was also labelled "Clients", identical to /vida in the menu above — two entries, same
+  // word, different screens. This one is the admin table (grants, wallets, flags).
+  { href: '/vida/clients-admin',    label: 'Client admin',    icon: '🗂' },
   { href: '/vida/money-path', label: 'Money Path', icon: '💰' },
   { href: '/vida/billing',    label: 'Billing',    icon: '🧾' },
   { href: '/vida/revenue',    label: 'Revenue',    icon: '📈' },

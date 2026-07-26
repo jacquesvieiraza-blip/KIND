@@ -750,6 +750,8 @@ leadRouter.patch('/:id/status', async (req: AuthRequest, res) => {
             .select('id, email, first_name, consent_sent_at, consent_token, status')
             .eq('id', data.id).maybeSingle()
           if (!freshLead || freshLead.consent_sent_at || freshLead.status === 'opted_out') return
+          // A status change must never cold-email a stranger while sending is off.
+          if (!coldMailAllowed()) { console.warn(`[consent] status-change auto-consent SKIPPED for lead ${data.id} — outreach is off.`); return }
           const token = await getOrCreateConsentToken(freshLead)
           const consentUrl = buildConsentUrl(freshLead.id, token)
           await sendConsentEmail(freshLead.email!, freshLead.first_name, clientForConsent?.company_name ?? '', consentUrl, clientId)
@@ -859,6 +861,24 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
 // heavy lifting lives in approveLead() (shared with the operator-on-behalf path in Vida)
 // so the money sequence is identical everywhere. Scoped to the client's own lead by
 // getClientId → the lead's client_id (enforced inside approveLead's queries).
+// ── THE KILL-SWITCH APPLIES TO CONSENT MAIL TOO ────────────────────────────────
+// A consent request is an unsolicited email to a stranger. `icps.ts` already carries the
+// scar: *"consent sends must obey the same kill-switch as outreach — previously they sent
+// unconditionally, so a 'safe test' ICP run still cold-emailed real execs a consent
+// request."* That fix was applied to the sourcing path and to none of the five consent
+// doors in this file.
+//
+// The dangerous one is PATCH /:id/status — a status change silently triggered a cold email,
+// a side effect on an endpoint that looks like bookkeeping. With AUTO_OUTREACH_ENABLED off
+// you believe nothing reaches a prospect; these five made that untrue.
+function coldMailAllowed(): boolean {
+  return process.env.AUTO_OUTREACH_ENABLED === 'true'
+}
+const COLD_MAIL_OFF = {
+  success: false, error: 'outreach_paused',
+  message: 'Sending to prospects is switched off right now, so no consent email went out. Nothing else changed.',
+}
+
 // ── THE MINIMUM-20 GATE (founder-locked 25 Jul) ────────────────────────────────
 // A client's inbox costs us ~$40/month from the day they sign, so a client who approves
 // five people is a client we run a free mail service for. When we send someone their
@@ -991,6 +1011,8 @@ leadRouter.post('/:id/pass', rateLimit({ limit: 120, windowMs: 60_000, key: 'lea
 // ── SEND POPIA CONSENT EMAIL ──────────────────────────────────────────────────
 leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
@@ -1026,6 +1048,8 @@ leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
 // ── RESEND CONSENT EMAIL (for already-sent leads that haven't responded) ─────
 leadRouter.post('/:id/resend-consent', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data: lead } = await db.from('leads')
@@ -1045,6 +1069,8 @@ leadRouter.post('/:id/resend-consent', async (req: AuthRequest, res) => {
 // ── BULK CONSENT SEND (/leads/consent/bulk) ───────────────────────────────────
 leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const { leadIds } = z.object({
       leadIds: z.array(z.string().uuid()).min(1).max(50),
     }).parse(req.body)
@@ -1305,6 +1331,8 @@ Output only the email body, nothing else.`
 // POST /leads/bulk-consent
 leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const { lead_ids } = z.object({
       lead_ids: z.array(z.string().uuid()).min(1).max(100),
     }).parse(req.body)

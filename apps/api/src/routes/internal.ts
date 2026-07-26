@@ -1253,11 +1253,16 @@ internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => 
 
     for (const client of clients ?? []) {
       try {
-        // Find when credits last hit zero (last deduction transaction)
+        // Find when credits last hit zero (the last time money left the wallet).
+        //
+        // This filtered on type='deduction', which NOTHING in the codebase has ever
+        // written — so the query always came back empty, the `continue` below always fired,
+        // and this cron has never sent a single email. A dead feature that looked alive.
+        // The real spend types are the ONE WALLET ones.
         const { data: lastTx } = await db.from('credit_transactions')
           .select('created_at')
           .eq('client_id', client.id)
-          .eq('type', 'deduction')
+          .in('type', ['wallet_charge', 'usage', 'consumed'])
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()

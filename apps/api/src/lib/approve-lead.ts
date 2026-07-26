@@ -183,10 +183,26 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     // Keep the #424 once-per-email reveal record for cross-client dedup bookkeeping.
     await db.rpc('record_reveal_or_refund', { p_client_id: clientId, p_email_norm: emailNorm, p_lead_id: claim.id }).then(() => {}, () => {})
   }
-  await db.from('credit_transactions').insert({
+  // THIS ROW IS LOAD-BEARING — it is not just bookkeeping.
+  //
+  // `chargeFigsyEnroll` asks "has this lead already been paid for?" by looking for exactly
+  // this row. If the insert fails and we swallow it, the $4 has left the wallet and nothing
+  // records it — so a later enrol path sees an unpaid lead and charges the client AGAIN.
+  // It was swallowed with `.then(() => {}, () => {})`, which is why that could happen
+  // silently. Now it alerts, because a missing ledger row is a double-charge waiting to be
+  // triggered rather than a cosmetic gap.
+  const { error: ledgerErr } = await db.from('credit_transactions').insert({
     client_id: clientId, amount: -PRICE_PER_LEAD_USD, type: 'wallet_charge', plan: 'work_model',
     reference: `lead:${claim.id}`, note: 'Approved lead worked ($4)', created_at: now,
-  }).then(() => {}, () => {})
+  })
+  if (ledgerErr) {
+    console.error('[approve] LEDGER ROW FAILED after charging $4 — double-charge risk', clientId, claim.id, ledgerErr.message)
+    void sendFounderAlert('charge_failed', 'Charged $4 but the ledger row failed', [
+      `Client ${clientId}, lead ${claim.id}. The money left the wallet; the record of it did not.`,
+      `Reason: ${ledgerErr.message}`,
+      'This lead now reads as UNPAID to the enrol guard, so it could be charged a second time. Check credit_transactions_type_check allows wallet_charge (migration 20260726_wallet_tx_types).',
+    ]).catch(() => {})
+  }
 
   // W5 — TRIAL sourcing drip: a real reveal unlocks +2 more sourced records (our PDL
   // budget), so a trial client learns the loop by playing it. The RPC caps lifetime

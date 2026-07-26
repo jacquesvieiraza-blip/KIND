@@ -14,6 +14,29 @@ export type PendingMigration = { key: string; title: string; sql: string }
 
 export const PENDING_MIGRATIONS: PendingMigration[] = [
   {
+    key: '20260726_wallet_tx_types',
+    title: 'Ledger accepts the wallet types the money model writes (pins the live constraint)',
+    sql: `
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'credit_transactions_type_check') then
+    alter table public.credit_transactions drop constraint credit_transactions_type_check;
+  end if;
+end $$;
+
+alter table public.credit_transactions
+  add constraint credit_transactions_type_check
+  check (type in (
+    'purchase','credit_purchase',
+    'referral','referral_bonus',
+    'trial_bonus',
+    'consumed','usage',
+    'manual_grant','refund',
+    'wallet_topup','wallet_charge','wallet_reverse'
+  ));
+`.trim(),
+  },
+  {
     key: '20260726_client_contact_name',
     title: "Who we're speaking to (flow v2 step 0 — name on the client row)",
     sql: `

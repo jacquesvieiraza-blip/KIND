@@ -283,11 +283,26 @@ export async function runIcpJob(
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
 
-  // Respect client's leads_per_run setting — cap at whichever is lower: credit balance or per-run limit
+  // `leads_per_run` is the client's own per-run preference for a SELF-SERVE run — the
+  // default when nobody has said how many to fetch. It is NOT a ceiling on an explicit
+  // request.
+  //
+  // It used to be: `Math.min(maxLeads, leadsPerRun ?? 20)`. That silently capped every
+  // managed run at 20 — so the $99, which asks for 200 so the client can pass on half and
+  // still approve 100, delivered 20. The client could then only approve twenty, with no
+  // choice at all, against a pack promising a hundred. Nothing surfaced it because 20 is a
+  // perfectly plausible number to see on a desk, and `leads_per_run` has no UI anywhere in
+  // Vida — it was frozen at its default with no way to raise it.
+  //
+  // An explicit `maxLeads` is a decision the caller already made against budget, allowance
+  // or the pack target, so it is honoured. Real spend stays fenced exactly as before:
+  // try_spend_sourcing still enforces the client's pre-funded allowance, the per-client
+  // daily record cap and the global monthly ceiling. This changes what we ASK for, never
+  // what we are allowed to spend.
   const { data: clientSettings } = await db.from('clients')
     .select('leads_per_run, is_demo').eq('id', clientId).single()
-  const leadsPerRun = clientSettings?.leads_per_run ?? 20
-  const effectiveCap = maxLeads !== undefined ? Math.min(maxLeads, leadsPerRun) : leadsPerRun
+  const { sourcingTarget } = await import('../lib/onboarding-pack')
+  const effectiveCap = sourcingTarget(maxLeads, clientSettings?.leads_per_run as number | null)
   // #453 — DEMO MODE: sourcing is POOL-ONLY at $0. servePoolLeads runs as normal, but
   // the entire PDL remainder (spend, search, ledger, allowance) is skipped for demo.
   const isDemo = clientSettings?.is_demo === true

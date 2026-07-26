@@ -1253,11 +1253,16 @@ internalRouter.post('/ae/zero-credits', async (_req: Request, res: Response) => 
 
     for (const client of clients ?? []) {
       try {
-        // Find when credits last hit zero (last deduction transaction)
+        // Find when credits last hit zero (the last time money left the wallet).
+        //
+        // This filtered on type='deduction', which NOTHING in the codebase has ever
+        // written — so the query always came back empty, the `continue` below always fired,
+        // and this cron has never sent a single email. A dead feature that looked alive.
+        // The real spend types are the ONE WALLET ones.
         const { data: lastTx } = await db.from('credit_transactions')
           .select('created_at')
           .eq('client_id', client.id)
-          .eq('type', 'deduction')
+          .in('type', ['wallet_charge', 'usage', 'consumed'])
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -1865,10 +1870,11 @@ internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) 
     const { PAID_TX_TYPES } = await import('../lib/onboarding-pack')
 
     // Only clients who have PAID — an unpaid client has no sender to freeze and is chased
-    // in a different place (the $99 prompt at step 2).
-    const { data: paidRows } = await db.from('credit_transactions')
-      .select('client_id').in('type', PAID_TX_TYPES).limit(20000)
-    const paidIds = [...new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))]
+    // in a different place (the $99 prompt at step 2). Paged for the same reason as above:
+    // a truncated window here means a client we ARE carrying an inbox for is never checked.
+    const { paidClientIds } = await import('../lib/page-rows')
+    const { ids: paidSet } = await paidClientIds(PAID_TX_TYPES)
+    const paidIds = [...paidSet]
     if (paidIds.length === 0) { res.json({ success: true, checked: 0, warned: 0, suspended: 0 }); return }
 
     const { data: clients } = await db.from('clients')
@@ -1934,9 +1940,13 @@ internalRouter.post('/leads/top-up', async (_req: Request, res: Response) => {
 
     // Only clients who have paid AND still have allowance to spend — anyone else would
     // burn a round trip to be refused by the fence.
-    const { data: paidRows } = await db.from('credit_transactions')
-      .select('client_id').in('type', PAID_TX_TYPES).limit(20000)
-    const paidIds = [...new Set((paidRows ?? []).map((r: { client_id: string }) => r.client_id))]
+    //
+    // Paged, not `.limit(20000)`. This asks a question about CLIENTS from a table of
+    // TRANSACTIONS, and an active client generates many rows — so a fixed window let a busy
+    // client crowd a quiet one out entirely, and that client then never got topped up.
+    const { paidClientIds } = await import('../lib/page-rows')
+    const { ids: paidSet } = await paidClientIds(PAID_TX_TYPES)
+    const paidIds = [...paidSet]
     if (paidIds.length === 0) { res.json({ success: true, checked: 0, topped_up: 0 }); return }
 
     const { data: clients } = await db.from('clients')

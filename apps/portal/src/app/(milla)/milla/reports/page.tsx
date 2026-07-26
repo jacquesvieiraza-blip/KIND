@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 // leads approved, spend, and a plain-language summary — all from LIVE data (summary +
 // meetings + ledger). No fabricated metrics; every number traces to a real row.
 
-type Summary = { meetings_booked: number; active_campaign: string | null; recent_replies: { name: string; classification: string }[]; leads_approved_total?: number; replies_total?: number; meetings_total?: number; spend_usd?: number }
+type Summary = { meetings_booked: number; active_campaign: string | null; recent_replies: { name: string; classification: string }[]; leads_approved_total?: number; replies_total?: number; meetings_total?: number; spend_usd?: number; pack?: { active: boolean; included: number; used: number; left: number } }
 type LedgerEntry = { amount: number; type: string; note: string | null; created_at: string | null }
 type Ledger = { wallet_balance_usd: number; transactions: LedgerEntry[] }
 type Meeting = { id: string; title: string; start_time: string | null; status: string; name: string; company: string | null }
@@ -45,9 +45,15 @@ export default function MillaReportsPage() {
   // reported, never a money condition.
   const approved = summary?.leads_approved_total ?? 0
   const meetingCount = summary?.meetings_total ?? summary?.meetings_booked ?? 0
-  const spend = summary?.spend_usd ?? (approved * 4)
+  // The fallback used to be `approved * 4`, which is the same 4× overstatement the server
+  // had: the first 100 approvals are inside the $99. If the server didn't send a figure we
+  // show nothing rather than invent one — a wrong number about their money is worse than
+  // a dash.
+  const spend = summary?.spend_usd ?? null
   const replies = summary?.replies_total ?? summary?.recent_replies?.length ?? 0
-  const costPerMeeting = meetingCount > 0 ? Math.round(spend / meetingCount) : null
+  const packIncluded = summary?.pack?.included ?? 100
+  const packLeft = summary?.pack?.active ? (summary.pack.left ?? 0) : 0
+  const costPerMeeting = spend != null && meetingCount > 0 ? Math.round(spend / meetingCount) : null
 
   const KPI = ({ k, v, s, tone }: { k: string; v: string; s: string; tone?: string }) => (
     <div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-4">
@@ -72,7 +78,10 @@ export default function MillaReportsPage() {
               <KPI k="Meetings booked" v={String(summary.meetings_booked)} s="this month" tone="#EC4899" />
               <KPI k="Leads approved" v={String(approved)} s="you chose to pursue" />
               <KPI k="Replies in" v={String(replies)} s="total" tone="#059669" />
-              <KPI k="Spend" v={`$${spend}`} s={`${approved} leads approved × $4`} />
+              {/* The caption used to read "N leads approved × $4", which is only true once
+                  the included pack is used up. It now says which regime they're in. */}
+              <KPI k="Spend" v={spend == null ? '—' : `$${spend.toLocaleString()}`}
+                s={packLeft > 0 ? `your $99 — ${packLeft} included leads left` : `$99 pack + $4 per lead beyond it`} />
               <KPI k="Cost per meeting" v={costPerMeeting == null ? '—' : `$${costPerMeeting}`} s={meetingCount > 0 ? `across ${meetingCount} meeting${meetingCount === 1 ? '' : 's'}` : 'no meetings yet'} />
             </div>
 
@@ -96,7 +105,10 @@ export default function MillaReportsPage() {
                 <div className="px-4 py-3 border-b border-[#eee7f7] text-[13.5px] font-bold">Summary</div>
                 <div className="px-4 py-4 text-[13px] leading-relaxed text-[#4c4368]">
                   {summary.active_campaign ? <>Your <b className="text-[#7C3AED]">{summary.active_campaign}</b> campaign is live. </> : <>Your campaign is being set up. </>}
-                  You&apos;ve approved <b>{approved}</b> lead{approved === 1 ? '' : 's'}, {replies} repl{replies === 1 ? 'y has' : 'ies have'} come back, and <b>{summary.meetings_booked}</b> meeting{summary.meetings_booked === 1 ? '' : 's'} {summary.meetings_booked === 1 ? 'has' : 'have'} booked this month. You only pay when you approve — a flat <b>$4</b> per lead, so total spend so far is <b>${spend}</b>.
+                  You&apos;ve approved <b>{approved}</b> lead{approved === 1 ? '' : 's'}, {replies} repl{replies === 1 ? 'y has' : 'ies have'} come back, and <b>{summary.meetings_booked}</b> meeting{summary.meetings_booked === 1 ? '' : 's'} {summary.meetings_booked === 1 ? 'has' : 'have'} booked this month.{' '}
+                  {packLeft > 0
+                    ? <>Your <b>$99</b> covers your first <b>{packIncluded}</b> approvals — <b>{packLeft}</b> still to use, so nothing extra has been charged.</>
+                    : <>Your <b>$99</b> covered the first <b>{packIncluded}</b>; it&apos;s a flat <b>$4</b> a lead after that. Total so far: <b>{spend == null ? '—' : `$${spend.toLocaleString()}`}</b>.</>}
                   {meetingCount > 0 && costPerMeeting != null && <> That&apos;s about <b>${costPerMeeting}</b> per meeting booked.</>}
                 </div>
               </div>

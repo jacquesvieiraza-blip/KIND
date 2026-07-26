@@ -8,7 +8,7 @@ import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
-import { PAID_TX_TYPES } from '../lib/onboarding-pack'
+import { PAID_TX_TYPES, PACK_PRICE_USD, LEAD_PRICE_USD } from '../lib/onboarding-pack'
 import type { BatchCheck } from '../lib/approval-batch'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
@@ -380,12 +380,19 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
         pack,
         leads_awaiting:  awaiting.count ?? 0,
         meetings_booked: meetings.count ?? 0,
-        // Real all-time totals + true $ spend. ONE WALLET: spend = approved leads × $4
-        // (the flat charge at the 👍). Meetings are reported, never a spend line.
+        // Real all-time totals + true $ spend.
+        //
+        // ⚠️ NOT `approved × $4`. The first 100 approvals are INSIDE the $99 pack, so a
+        // client who used their included hundred was shown "$400 spent" against a $99
+        // payment — a 4× overstatement, on the client's own Reports page. Same bug was
+        // fixed on the Vida side and missed here, which is the worse of the two: they read
+        // this one. Spend = the pack they bought + $4 for each approval BEYOND it.
         leads_approved_total: approvedTotal.count ?? 0,
         replies_total:        repliesTotal.count ?? 0,
         meetings_total:       meetingsTotal.count ?? 0,
-        spend_usd:            (approvedTotal.count ?? 0) * 4,
+        spend_usd:            pack.active
+          ? PACK_PRICE_USD + Math.max(0, (approvedTotal.count ?? 0) - pack.included) * LEAD_PRICE_USD
+          : (approvedTotal.count ?? 0) * LEAD_PRICE_USD,
         // active_campaign stays "the name of a LIVE campaign" so existing readers are
         // unchanged; campaign_status is the new, honest one.
         active_campaign: (campaign.data as { status?: string } | null)?.status === 'active'
@@ -743,6 +750,8 @@ leadRouter.patch('/:id/status', async (req: AuthRequest, res) => {
             .select('id, email, first_name, consent_sent_at, consent_token, status')
             .eq('id', data.id).maybeSingle()
           if (!freshLead || freshLead.consent_sent_at || freshLead.status === 'opted_out') return
+          // A status change must never cold-email a stranger while sending is off.
+          if (!coldMailAllowed()) { console.warn(`[consent] status-change auto-consent SKIPPED for lead ${data.id} — outreach is off.`); return }
           const token = await getOrCreateConsentToken(freshLead)
           const consentUrl = buildConsentUrl(freshLead.id, token)
           await sendConsentEmail(freshLead.email!, freshLead.first_name, clientForConsent?.company_name ?? '', consentUrl, clientId)
@@ -814,8 +823,8 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     // The minimum-20 gate applies to every door into the money path, or it isn't a gate.
-    const revealGate = await batchGate(clientId, 1)
-    if (revealGate) { res.status(409).json({ success: false, error: 'batch_minimum', required: revealGate.required, message: revealGate.reason }); return }
+    const revealGate = await batchGate(clientId, [req.params.id])
+    if ('refusal' in revealGate) { res.status(409).json({ success: false, error: 'batch_minimum', required: revealGate.refusal.required, message: revealGate.refusal.reason }); return }
     // ONE WALLET — reveal and approve are the SAME money event now: a single flat $4
     // charged once per lead. Delegate to approveLead so there is exactly one money path.
     const { approveLead } = await import('../lib/approve-lead')
@@ -852,33 +861,73 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
 // heavy lifting lives in approveLead() (shared with the operator-on-behalf path in Vida)
 // so the money sequence is identical everywhere. Scoped to the client's own lead by
 // getClientId → the lead's client_id (enforced inside approveLead's queries).
+// ── THE KILL-SWITCH APPLIES TO CONSENT MAIL TOO ────────────────────────────────
+// A consent request is an unsolicited email to a stranger. `icps.ts` already carries the
+// scar: *"consent sends must obey the same kill-switch as outreach — previously they sent
+// unconditionally, so a 'safe test' ICP run still cold-emailed real execs a consent
+// request."* That fix was applied to the sourcing path and to none of the five consent
+// doors in this file.
+//
+// The dangerous one is PATCH /:id/status — a status change silently triggered a cold email,
+// a side effect on an endpoint that looks like bookkeeping. With AUTO_OUTREACH_ENABLED off
+// you believe nothing reaches a prospect; these five made that untrue.
+function coldMailAllowed(): boolean {
+  return process.env.AUTO_OUTREACH_ENABLED === 'true'
+}
+const COLD_MAIL_OFF = {
+  success: false, error: 'outreach_paused',
+  message: 'Sending to prospects is switched off right now, so no consent email went out. Nothing else changed.',
+}
+
 // ── THE MINIMUM-20 GATE (founder-locked 25 Jul) ────────────────────────────────
 // A client's inbox costs us ~$40/month from the day they sign, so a client who approves
 // five people is a client we run a free mail service for. When we send someone their
 // people they choose at least 20 — and the founder asked for a HARD gate, so it lives
 // HERE, on the server, not on a disabled button anyone can step around with a fetch.
 //
-// Returns null when the client may proceed, or the refusal to send back.
-async function batchGate(clientId: string, selecting: number): Promise<BatchCheck | null> {
+// ⚠️ IT COUNTS THE LEADS, NOT THE REQUEST. The first version took `selecting: number`
+// straight from `ids.length`, which made the gate trivially bypassable: send twenty ids
+// where nineteen are already-approved (or simply invented), the gate sees "20", and the
+// client approves ONE. Eighteen unit tests passed on that, because they tested the pure
+// decision function while the hole was in what the route fed it.
+//
+// So the ids are RESOLVED against the database first: only rows that are this client's,
+// surfaced, undecided and not passed count toward the minimum. Returns the resolved ids
+// on success so the caller works on exactly what was validated, never on raw input.
+async function batchGate(
+  clientId: string,
+  requestedIds: string[],
+): Promise<{ refusal: BatchCheck } | { valid: string[] }> {
   const { checkBatch } = await import('../lib/approval-batch')
+
+  // Which of the submitted ids are genuinely approvable RIGHT NOW, for THIS client.
+  const { data: rows } = requestedIds.length > 0
+    ? await db.from('leads').select('id')
+        .eq('client_id', clientId).in('id', requestedIds)
+        .not('surfaced_for_approval_at', 'is', null)
+        .is('revealed_at', null).neq('status', 'passed')
+    : { data: [] as { id: string }[] }
+  const valid = (rows ?? []).map((r: { id: string }) => r.id)
+
   const [{ count: available }, { count: approvedEver }] = await Promise.all([
-    // What is actually in front of them: surfaced, undecided, not passed.
+    // Everything in front of them, so the requirement can never exceed what they have.
     db.from('leads').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).not('surfaced_for_approval_at', 'is', null)
       .is('revealed_at', null).neq('status', 'passed'),
     db.from('leads').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).not('revealed_at', 'is', null),
   ])
-  const check = checkBatch(selecting, available ?? 0, approvedEver ?? 0)
-  return check.allowed ? null : check
+
+  const check = checkBatch(valid.length, available ?? 0, approvedEver ?? 0)
+  return check.allowed ? { valid } : { refusal: check }
 }
 
 leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'lead-approve', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const gate = await batchGate(clientId, 1)
-    if (gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.required, message: gate.reason }); return }
+    const gate = await batchGate(clientId, [req.params.id])
+    if ('refusal' in gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.refusal.required, message: gate.refusal.reason }); return }
     const { approveLead } = await import('../lib/approve-lead')
     const outcome = await approveLead(req.params.id, clientId)
     if (outcome.status === 'not_found') { res.status(404).json({ success: false, error: 'Lead not found' }); return }
@@ -920,14 +969,17 @@ leadRouter.post('/approve-batch', rateLimit({ limit: 12, windowMs: 60_000, key: 
     // request open long enough to time out mid-charge.
     if (ids.length > 200) { res.status(400).json({ success: false, error: 'Too many at once — 200 max.' }); return }
 
-    const gate = await batchGate(clientId, ids.length)
-    if (gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.required, message: gate.reason }); return }
+    const gate = await batchGate(clientId, ids)
+    if ('refusal' in gate) { res.status(409).json({ success: false, error: 'batch_minimum', required: gate.refusal.required, message: gate.refusal.reason }); return }
+    // Work on what the gate VALIDATED, not on what was posted. Anything the client sent
+    // that wasn't theirs, wasn't surfaced or was already decided is simply not here.
+    const approvable = gate.valid
 
     const { approveLead } = await import('../lib/approve-lead')
     const results: Array<{ id: string; status: string; email?: string | null; charged?: boolean }> = []
     // SEQUENTIAL on purpose: try_charge_wallet is the atomic gate, and firing 30 charges
     // concurrently against one wallet is how a client gets charged past their balance.
-    for (const id of ids) {
+    for (const id of approvable) {
       const out = await approveLead(id, clientId).catch(() => ({ status: 'error' as const }))
       results.push({ id, status: out.status, email: 'email' in out ? out.email : null, charged: 'charged' in out ? out.charged : undefined })
       // Stop the moment the money runs out — every further attempt would fail the same way.
@@ -936,10 +988,10 @@ leadRouter.post('/approve-batch', rateLimit({ limit: 12, windowMs: 60_000, key: 
 
     const approved = results.filter(r => r.status === 'approved')
     res.json({
-      success: true, approved: approved.length, attempted: ids.length, results,
-      message: approved.length === ids.length
+      success: true, approved: approved.length, attempted: approvable.length, results,
+      message: approved.length === approvable.length
         ? `${approved.length} approved — we're on it.`
-        : `${approved.length} of ${ids.length} approved. The rest are listed below with why.`,
+        : `${approved.length} of ${approvable.length} approved. The rest are listed below with why.`,
     })
   } catch (err) { console.error('[approve-batch]', err); res.status(500).json({ success: false, error: 'Failed to approve' }) }
 })
@@ -959,6 +1011,8 @@ leadRouter.post('/:id/pass', rateLimit({ limit: 120, windowMs: 60_000, key: 'lea
 // ── SEND POPIA CONSENT EMAIL ──────────────────────────────────────────────────
 leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
@@ -994,6 +1048,8 @@ leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
 // ── RESEND CONSENT EMAIL (for already-sent leads that haven't responded) ─────
 leadRouter.post('/:id/resend-consent', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data: lead } = await db.from('leads')
@@ -1013,6 +1069,8 @@ leadRouter.post('/:id/resend-consent', async (req: AuthRequest, res) => {
 // ── BULK CONSENT SEND (/leads/consent/bulk) ───────────────────────────────────
 leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const { leadIds } = z.object({
       leadIds: z.array(z.string().uuid()).min(1).max(50),
     }).parse(req.body)
@@ -1273,6 +1331,8 @@ Output only the email body, nothing else.`
 // POST /leads/bulk-consent
 leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
   try {
+    // Cold mail is cold mail, even when a human pressed the button.
+    if (!coldMailAllowed()) { res.status(409).json(COLD_MAIL_OFF); return }
     const { lead_ids } = z.object({
       lead_ids: z.array(z.string().uuid()).min(1).max(100),
     }).parse(req.body)

@@ -837,10 +837,21 @@ export async function chargeFigsyEnroll(
   // If this lead was already charged (typically the client's approve took the $4, or a
   // prior enrol), skip — the work is already paid. Dedup on the per-lead ledger row.
   if (lead.id) {
+    // ⚠️ TWO REFERENCE FORMATS, ONE QUESTION: "has this lead already been paid for?"
+    //   • a WALLET approval writes  reference='lead:<id>'  type='wallet_charge'  (−$4)
+    //   • a PACK approval writes    reference='pack_<id>'  type='usage'          ($0)
+    // The original guard only looked for the wallet form, so a lead approved FREE inside
+    // the client's included 100 read as "never paid" — and any enrol path that doesn't
+    // pass `prepaid` (icps auto-enrol, the two /figsy enrol loops, the intent sweep, two
+    // internal crons: six call sites) would charge $4 for a lead we had promised free.
+    // Latent only because AUTO_OUTREACH_ENABLED is off; live the moment it flips.
     const { data: existing } = await db.from('credit_transactions')
-      .select('id').eq('client_id', clientId).eq('reference', `lead:${lead.id}`).eq('type', 'wallet_charge').limit(1).maybeSingle()
+      .select('id').eq('client_id', clientId)
+      .in('reference', [`lead:${lead.id}`, `pack_${lead.id}`])
+      .in('type', ['wallet_charge', 'usage'])
+      .limit(1).maybeSingle()
     if (existing) {
-      console.log(`[figsy] chargeFigsyEnroll: lead ${lead.id} already charged $4 — skipping (client ${clientId})`)
+      console.log(`[figsy] chargeFigsyEnroll: lead ${lead.id} already paid for — skipping (client ${clientId})`)
       return 'skipped'
     }
   }
@@ -887,6 +898,9 @@ export async function refundFigsyEnroll(clientId: string, leadId?: string): Prom
   if (leadId) {
     await db.from('credit_transactions').delete()
       .eq('client_id', clientId).eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge').then(() => {}, () => {})
+    // NOTE: deliberately does NOT touch a `pack_` row. A pack approval took no money, so
+    // there is nothing to reverse — and deleting the pack row would silently hand the
+    // client back a slot out of their included 100 that they had already used.
   }
   await db.from('credit_transactions').insert({
     client_id: clientId, amount: 4, type: 'wallet_reverse', plan: 'work_model',

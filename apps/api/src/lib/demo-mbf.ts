@@ -28,6 +28,8 @@ const ahead = (d: number, hour = 10) => {
 
 export type SeedResult = {
   client_id: string
+  /** Steps that failed. Empty = the demo is fully built. */
+  problems: string[]
   leads: number
   approved: number
   waiting: number
@@ -88,6 +90,21 @@ export async function wipeMbf(clientId: string): Promise<void> {
  */
 export async function seedMbf(clientId: string): Promise<SeedResult> {
   await wipeMbf(clientId)
+
+  // ⚠️ EVERY WRITE BELOW IS CHECKED. The first version used `.then(() => {}, () => {})`
+  // fifteen times, so a step that silently failed left a HALF-SEEDED demo that looked built
+  // — and you'd find out mid-pitch. Failures are collected and returned, so the button says
+  // "8 of 9 steps" instead of a confident green tick over a broken account.
+  const problems: string[] = []
+  const step = async (what: string, run: () => PromiseLike<{ error?: unknown } | void>) => {
+    try {
+      const r = await run()
+      const err = (r as { error?: unknown } | undefined)?.error
+      if (err) problems.push(`${what}: ${(err as { message?: string }).message ?? String(err)}`)
+    } catch (e) {
+      problems.push(`${what}: ${e instanceof Error ? e.message : String(e)}`)
+    }
+  }
 
   // ── Paid, so nothing shows a $99 banner mid-demo ────────────────────────────────
   // A manual_grant counts as paid everywhere (PAID_TX_TYPES) which activates the 100-lead
@@ -154,12 +171,12 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
       note: `Onboarding pack — approval ${n + 1} of 100 · ${c.first} ${c.last} at ${c.company}`,
       created_at: ago(7 - Math.min(6, Math.floor(i / 3))),
     }))
-  if (packRows.length) await db.from('credit_transactions').insert(packRows).then(() => {}, () => {})
+  if (packRows.length) await step('pack ledger rows', () => db.from('credit_transactions').insert(packRows))
 
   // Sourcing at $0 — a demo never buys data, and the ledger should say so.
-  await db.from('sourcing_ledger').insert({
+  await step('sourcing ledger', () => db.from('sourcing_ledger').insert({
     client_id: clientId, records: MBF_CAST.length, cost_usd: 0,
-  }).then(() => {}, () => {})
+  }))
 
   // ── Enrolments + sent history for the approved twelve ───────────────────────────
   const approvedIdx = MBF_CAST.map((c, i) => ({ c, i })).filter(x => x.c.state === 'approved')
@@ -168,7 +185,7 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
     current_step: i % 3 === 0 ? 3 : i % 3 === 1 ? 2 : 1,
     status: 'active', enrolled_at: ago(7 - Math.min(6, Math.floor(i / 3))),
   }))
-  await db.from('figsy_enrollments').insert(enrolRows).then(() => {}, () => {})
+  await step('enrolments', () => db.from('figsy_enrollments').insert(enrolRows))
 
   // 38 sends across the twelve — step 1 to everyone, step 2 to most, step 3 to a few.
   const sentRows: Array<Record<string, unknown>> = []
@@ -192,12 +209,11 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
       })
     }
   }
-  if (sentRows.length) await db.from('figsy_sent_emails').insert(sentRows).then(() => {}, () => {})
+  if (sentRows.length) await step('sent emails', () => db.from('figsy_sent_emails').insert(sentRows))
 
   // The campaign header must agree with the rows. Written AFTER the sends exist so it can
   // never drift from them again.
-  await db.from('figsy_campaigns').update({ emails_sent: sentRows.length }).eq('id', camp.id)
-    .then(() => {}, () => {})
+  await step('campaign send counter', () => db.from('figsy_campaigns').update({ emails_sent: sentRows.length }).eq('id', camp.id))
 
   // ── The inbox ───────────────────────────────────────────────────────────────────
   const replyRows = MBF_REPLIES.map(r => {
@@ -213,7 +229,7 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
       received_at: ago(r.daysAgo),
     }
   })
-  await db.from('figsy_replies').insert(replyRows).then(() => {}, () => {})
+  await step('replies', () => db.from('figsy_replies').insert(replyRows))
 
   // ── Two meetings in the diary, both still ahead ─────────────────────────────────
   const bookingRows = MBF_REPLIES.filter(r => r.booked).map((r, n) => {
@@ -226,7 +242,7 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
       status: 'confirmed', rebook_count: 0,
     }
   }).map(b => ({ ...b, end_time: new Date(new Date(b.start_time).getTime() + 30 * 60_000).toISOString() }))
-  await db.from('calendar_bookings').insert(bookingRows).then(() => {}, () => {})
+  await step('bookings', () => db.from('calendar_bookings').insert(bookingRows))
 
   // ── The trail the Reports/ROI screens read ──────────────────────────────────────
   const events: Array<Record<string, unknown>> = []
@@ -243,10 +259,12 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
     if (r.booked) events.push({ client_id: clientId, campaign_id: camp.id, lead_id: leadIds[r.castIndex],
       event_type: 'meeting_booked', channel: 'email', payload: {}, occurred_at: ago(r.daysAgo) })
   }
-  await db.from('outcome_events').insert(events).then(() => {}, () => {})
+  await step('outcome events', () => db.from('outcome_events').insert(events))
 
+  if (problems.length > 0) console.error('[MBF] seeded with problems:', problems)
   return {
     client_id: clientId,
+    problems,
     leads: MBF_CAST.length,
     approved: approvedCount,
     waiting: MBF_CAST.filter(c => c.state === 'waiting').length,
@@ -255,4 +273,37 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
     bookings: MBF_REPLIES.filter(r => r.booked).length,
     sent_emails: sentRows.length,
   }
+}
+
+/**
+ * PURGE A DEMO CLIENT — actually delete it, rows and all.
+ *
+ * `DELETE /admin/demos/:id` only ever set `demo_expires_at`, so "Delete" removed nothing:
+ * the client row stayed, its leads stayed, and on the legacy Apollo demos that meant real
+ * strangers' names and companies stayed in the database — the exact thing the one-demo rule
+ * exists to stop. The button said "cannot be undone" over a no-op.
+ *
+ * REFUSES anything that is not flagged `is_demo`. That check is the whole safety of this
+ * function: it is the only place in the codebase that deletes a client row, and a real
+ * client deleted here is unrecoverable.
+ */
+export async function purgeDemoClient(clientId: string): Promise<{ purged: boolean; reason?: string }> {
+  const { data: c } = await db.from('clients')
+    .select('id, is_demo, user_id, company_name').eq('id', clientId).maybeSingle()
+  if (!c) return { purged: false, reason: 'No such client.' }
+  if (c.is_demo !== true) return { purged: false, reason: 'Refusing — that client is not a demo account.' }
+
+  // Everything the client owns, children first (same order as the MBF reset).
+  await wipeMbf(clientId)
+  // Rows wipeMbf does not touch because MBF never has them, but a legacy demo might.
+  for (const t of ['figsy_memory', 'client_inboxes', 'subscriptions', 'push_subscriptions', 'milla_messages', 'milla_sessions', 'operator_audit_log']) {
+    await db.from(t).delete().eq('client_id', clientId).then(() => {}, () => {})
+  }
+  const { error } = await db.from('clients').delete().eq('id', clientId).eq('is_demo', true)
+  if (error) return { purged: false, reason: error.message }
+
+  // The throwaway auth user goes too, so a deleted demo cannot be signed into.
+  if (c.user_id) await db.auth.admin.deleteUser(c.user_id as string).then(() => {}, () => {})
+  console.log(`[demo] purged ${c.company_name ?? clientId} — client row and all owned rows deleted`)
+  return { purged: true }
 }

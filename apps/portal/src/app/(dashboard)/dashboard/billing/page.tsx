@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { packLine, type PackView } from '@kind/shared'
 import {
   Zap, TrendingUp, Loader2, Check,
   Shield, CreditCard,
@@ -89,6 +90,8 @@ function printReceipt(tx: CreditTransaction) {
 export default function BillingPage() {
   const supabase = createClient()
   const [balance, setBalance]             = useState<number | null>(null)
+  const [pack, setPack]                   = useState<PackView | null>(null)
+  const [packUnknown, setPackUnknown]     = useState(false)
   const [transactions, setTransactions]   = useState<CreditTransaction[]>([])
   const [loading, setLoading]             = useState(true)
   const [loadError, setLoadError]         = useState<string | null>(null)
@@ -120,9 +123,16 @@ export default function BillingPage() {
       if (!session) { setLoading(false); return }
 
       try {
-        const [creditsRes, subsRes] = await Promise.allSettled([
+        // #563 — THE PACK. This page read `/credits` and knew ONLY the wallet, so a client
+        // who had just paid $99 opened their billing page and saw a $0 balance with no
+        // mention of the 100 approvals they had bought — on the one screen that exists to
+        // explain what they paid for. The pack is a counted quota, not a wallet credit
+        // (#541), so a wallet-only page can never show it. `milla-summary` already computes
+        // it with the same `packState` the desk and the greeting use — one source of truth.
+        const [creditsRes, subsRes, packRes] = await Promise.allSettled([
           api.get<{ data: { wallet_balance_usd: number; transactions?: CreditTransaction[] } }>('/credits', session.access_token),
           api.get<{ data: { id: string; product: string; status: string; paused_until?: string | null }[] }>('/subscriptions', session.access_token),
+          api.get<{ data: { pack?: PackView } }>('/leads/milla-summary', session.access_token),
         ])
 
         if (creditsRes.status === 'fulfilled') {
@@ -131,6 +141,11 @@ export default function BillingPage() {
         } else {
           setLoadError('Could not load billing data — please refresh.')
         }
+
+        // A failed pack fetch must not claim the client has no pack — that would be the
+        // wallet-only lie again, wearing a different hat.
+        if (packRes.status === 'fulfilled') setPack(packRes.value.data?.pack ?? null)
+        else setPackUnknown(true)
 
         if (subsRes.status === 'fulfilled') {
           const records = subsRes.value.data ?? []
@@ -263,6 +278,29 @@ export default function BillingPage() {
           </div>
           <p className="text-white/40 text-xs mt-1">$4 per approved lead — final</p>
         </div>
+
+        {/* #563 — THE INCLUDED PACK. This page knew only the wallet, so a client who had just
+            paid $99 saw a $0 balance and NO mention of the 100 approvals they had bought — on
+            the one screen that exists to explain what they paid for. The pack is a counted
+            quota, not a wallet credit (#541), which is exactly why a wallet-only page could
+            never show it: the money is not in the balance, it is in the entitlement. */}
+        {packLine(pack) && (
+          <div className="px-6 pb-5 -mt-1">
+            <div className="rounded-lg bg-white/10 px-4 py-3">
+              <p className="text-white/60 text-xs uppercase tracking-wide font-bold">Your $99 pack</p>
+              <p className="text-white text-[13.5px] mt-1">{packLine(pack)}</p>
+            </div>
+          </div>
+        )}
+        {packUnknown && (
+          <div className="px-6 pb-5 -mt-1">
+            <div className="rounded-lg bg-white/10 px-4 py-3">
+              <p className="text-white text-[13px]">
+                We couldn&apos;t load your included-leads balance just now. <b>This does not mean you have none</b> — refresh in a moment.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* How the wallet works */}

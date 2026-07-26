@@ -4,21 +4,26 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢92 · 🩷193 · 🟣1 · 🟡39 · 🔴226 · ⏸5 · **Σ556** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴226 · ⏸5 · **Σ561** · live count: `scripts/count-inventory.sh`
+=======
+**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴226 · ⏸5 · **Σ561** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷198 · 🟣1 · 🟡39 · 🔴226 · ⏸5 · **Σ561** · live count: `scripts/count-inventory.sh`
 
 ---
 
-## 🛑 HONEST STATE — read this before anything else
+## 🛑 HONEST STATE — read this before anything else *(swept against the code 26 Jul)*
 
-**We cannot sell today, and this is the reason.** The product can find people, score them, mask them, show them to a client, take the client's 👍, charge for it, write the sequence, and book the meeting. **What it cannot do is send from the client's own mailbox** — because `figsy.ts:26` is `const FROM = COLD_FROM`, one module-level constant shared by every client on the platform, and there is **no SMTP client in the dependency tree at all**. `client_inboxes` exists and Vida writes a row into it, but **no send path ever reads that table.** So "sends on your own warmed inbox" — which the website, the flow docs and the pitch all promise — is not built. That is **#211**, 🔴 since 30 June, and it is the single reason a paying client cannot be onboarded.
+**Where we actually are.** The product finds people, scores them, masks them, shows them to a client, takes the client's 👍, charges for it, writes the sequence and books the meeting. As of today it can also **send from the client's own mailbox** — `figsy.ts:26 const FROM = COLD_FROM` is deleted, the sender is resolved per client, and **no mailbox means no send** with no fallback (#547 #548 #552, PRs #1167 #1168). What is still missing to make that real: the mailbox credentials themselves, replies coming back to the right place (#551), and the accounts (#549 #550).
 
-**Two docs were lying about it and are now corrected:** `BUILD-STATUS.md` said *"the ONLY items not built: #515 + CI"* while the entire sending spine was 🔴 (retired → `docs/archive/`, #555), and the flow/preview docs describe per-client warmed sending as done (#557).
+**What the full sweep found — and this is why you kept catching me.** I read every 🔴 row against the code rather than trusting its label, and the board was wrong **in both directions**:
 
-**What IS real and works:** the money model ($99 pack = 100 approvals, then $4, one wallet, only the client's 👍 spends) · the minimum-20 gate, server-enforced on every door · 30-days-idle suspends and un-suspends on their own click · sourcing fences (allowance × 2, 100/client/day, $300/mo global) · the **MBF demo account** (40 fixed invented people, cannot send, one button to build or reset) · both consoles, native, no old-shell escapes.
+- **Five rows said "not built" about things that are LIVE.** #492 ONE WALLET — the money model every session above has been building on — read *"not built"* on its own row. Also #488 Milla's lead desk, #489 the Milla chat, #480 the lifecycle-email master switch, and #477 the scoring crash-path fix. All corrected to 🩷.
+- **Three real defects were sitting in rows nobody was reading as launch work.** The one that matters most: **#366 — one ICP only ever sees page one of the data, forever.** The code says it itself (`pdl-search.ts:117`), and it means a client's second month has nowhere to source from. The cashflow says the repeat *is* the business. That has been 🔴 since 30 June with no one treating it as a blocker.
+- **Four money/safety paths are live and wrong right now:** two API replicas would double-send every prospect (#343), a broken subscription is written as `active` (#340), the lapse cron throws nightly (#342), and a **retired payment processor can still charge a card** (#352).
 
-**What this means for selling:** the **demo** is sellable now (MBF needs no migration, no inbox, no send). **Delivery is not.** So Block A is the whole job.
+**What IS solid, verified:** the money model ($99 pack = 100 approvals, then $4, one wallet, only the client's 👍 spends) · the minimum-20 gate, server-enforced on every door · 30-days-idle suspends and un-suspends on their own click · sourcing fences (allowance × 2, 100/client/day, $300/mo global) · the **MBF demo** (40 fixed invented people, physically cannot send) · both consoles native, no old-shell escapes.
 
----
+**So: the demo is sellable today. Delivery needs Blocks A, B2 and C.**
 
 ## 🅰 BLOCK A — THE SENDING SPINE (nothing else matters until this is done)
 
@@ -40,14 +45,53 @@
 | #559 🔴 | **The nine screens, walked and shrunk to a script** | Read the buyer's path screen by screen against MBF and fix what a buyer would see. *"5 demos = 1 sale"* — the stage must never move, so the walk gets rehearsed, not improvised. | 🤝 |
 | #560 🔴 | **Shrink the surface to what we sell** | The retired trees are still reachable and unread: the website's 30+ static pages, the 50 retired `(dashboard)` pages, `(v2)`/`partner-preview`/`consent`/`invite`/`share`, `packages/db`, `packages/shared`. Every one is a page a buyer can land on and a place a bug hides. Delete or gate. | 🤖 |
 
-## 🅲 BLOCK C — BEFORE A REAL PROSPECT IS EMAILED (safety we do not ship without)
+## 🅑 BLOCK B2 — THE DELIVERY BLOCKER NOBODY HAD ON A LIST
 
 | # | Item | What it is / why it blocks | Owner |
 |---|------|----------------------------|:-----:|
-| #554 🔴 | **RLS policies — never audited** | Seven migration files touch row-level security and **none has been read end-to-end**. The API uses the service-role key so RLS is defence-in-depth — but the anon key is public and **#350 proved one policy was `USING(true)`**, anon-readable. This is the only true breach risk still open. | 🤖 |
-| #558 🔴 | **The repo's migrations no longer describe the live DB** | The live `credit_transactions` type CHECK was widened **by hand in production** — the committed constraint forbids `wallet_topup` / `wallet_charge` / `wallet_reverse`, which every wallet write uses. Payments work, so the DB is ahead of the repo. **Re-running `20260603_schema_reconcile.sql` would break every wallet transaction.** `20260726_wallet_tx_types.sql` re-states the live truth idempotently; the reconcile file needs a do-not-run banner. | 🤝 |
+| #366 🔴 | **One ICP only ever sees PAGE ONE of the data — forever** | Found in the 26-Jul sweep, and the code says it out loud: `pdl-search.ts:117` — *"PDL deprecated `from`-based pagination… **Page 1 only for now**; deeper pages need `scroll_token`."* No `scroll_token` exists anywhere. So an ICP returns one page, we dedup against everything that client already holds, and then **the same ICP returns zero people for that client permanently** — silently, no error, just an empty run. **The cashflow says the repeat IS the business** (the $99 pack is −$52 in month one and only recovers if they come back). Month two needs 200 more people against the same ICP. This is the thing that cannot deliver them. Also makes the site's "250M+ contacts" false in practice. | 🤖 |
+
+## 🅑 BLOCK B3 — FOUND BY READING, NOT SEARCHING (26 Jul — the method change)
+
+*Every previous audit was a grep, and a grep only returns what you already suspected. These four came out of reading files top to bottom. The prompt that produced them is `docs/AUDIT-PROMPT.md`.*
+
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #562 🔴 | **The $99 is paid out TWICE — the pack AND the wallet** | `stripe.ts:343` credits **$99 to the wallet**. `approve-lead.ts:134` reads the **same purchase row** and grants the **pack — 100 free approvals**. So they approve 100 free, wallet untouched at $99, then approval 101 onward spends that $99 → **~24 more leads. One $99 buys ~124 leads, not 100 — ~$96 given away per client.** The pack is already −$52 in month one; this makes it ≈−$148. **#541 states the design as "a counted quota, NOT a wallet credit"** — so this is a defect, not a decision. Neither file is wrong alone; no keyword joins them. | 🤝 |
+| #564 🔴 | **Vida's Run button swallows refusals — and the audit log records the wrong action** | `startCampaign` and `setCampaignStatus` **discard the API response**; the endpoints genuinely refuse (400/404/500), so a refused Run shows **nothing** and the operator believes the client is live. The next-action Run also fires **with no confirmation** — one click starts real email — and silently no-ops when there's no campaign. And the route writes `action:'pause_campaign'` hardcoded, so **the audit log says "paused" when someone pressed Run.** | 🤖 |
+| #563 🔴 | **The money screen cannot tell the truth** | `billing/page.tsx` fetches only `/credits` and **never reads pack state**, so it structurally cannot know the client holds 100 free approvals. It says *"$4 per approved lead"* in four places and *"Fund your wallet"* on the $99 — to someone whose first hundred are free. The screen a client opens right after paying. | 🤖 |
+| #565 🔴 | **A failed load in Vida reads as "nothing to do"** | The worklist fetch is `.catch(() => {})`, so a failure renders **no clients needing attention** — identical to a quiet day. It's the screen that decides what the operator does next. | 🤖 |
+
+## 🅲 BLOCK C — MONEY + SAFETY BEFORE A REAL PROSPECT IS EMAILED
+
+*Every row here was **re-verified in the code on 26 Jul**, not carried across from an old audit label. The line numbers are where it actually is today.*
+
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #343 🔴 | **No cron singleton — two API replicas double-send every prospect** | `index.ts:229` calls `startCrons()` unconditionally, and `cron.ts` (216 lines) has **no lock, no env gate, no advisory lock — nothing**. One replica is the only thing preventing every cron firing twice, including the send cron. The Day-0 confirm *"API runs 1 replica"* was **never ticked**, so it is currently unproven — and the failure mode is emailing a prospect twice from their own client's mailbox. | 🤖 |
+| #340 🔴 | **Any broken subscription is written to our DB as `active`** | `stripe.ts:516`: `sub.status === 'active' \|\| sub.status === 'trialing' ? sub.status : 'active'` — so `past_due`, `incomplete`, `unpaid` and `canceled` all land as **active**. A failed card reads as a paying client. Subscriptions are being retired (#431), but **this code is live on the webhook today**. | 🤖 |
+| #342 🔴 | **The lapse cron 500s every day** | `internal.ts:2320` writes `status: 'lapsed'`, and **`'lapsed'` appears in no migration in any of the three migration directories** — so the value is not in the production enum and the write throws. Nightly, silently, since it shipped. | 🤖 |
+| #352 🔴 | **A retired payment processor can still charge a card** | `figsy.ts:427` still calls Paystack `charge_authorization` for auto-topup, and `index.ts:97` still mounts a raw Paystack webhook. Paystack was supposed to be killed (#237 — Stripe only). A live card-charging path, in ZAR, on a processor we do not intend to use, is the worst kind of dead code. | 🤝 |
+| #349 🔴 | **~140 money-table writes ignore their error** | Subscription / credit / enrollment / partner writes that never check `.error`, so a failed write reads as success and the ledger drifts from reality. The pack, the wallet and the pool are each reconciled elsewhere — this is the class of bug that makes those reconciliations disagree with each other. | 🤖 |
+| #554 🔴 | **RLS policies — never audited** | Seven migration files touch row-level security and **none has been read end-to-end**. The API uses the service-role key so RLS is defence-in-depth — but the anon key is public and **#350 proved one policy shipped as `USING(true)`**, anon-readable in production. The only true breach risk still open. | 🤖 |
+| #558 🔴 | **The repo's migrations no longer describe the live DB** | The live `credit_transactions` type CHECK was widened **by hand in production** — the committed constraint forbids `wallet_topup` / `wallet_charge` / `wallet_reverse`, which every wallet write uses. **Re-running `20260603_schema_reconcile.sql` would break every wallet transaction.** `20260726_wallet_tx_types.sql` re-states the live truth idempotently; the reconcile file needs a do-not-run banner. | 🤝 |
+| #273 🔴 | **Three migration directories, 120 SQL files, no runner** | `supabase/migrations` (19) · `packages/db/src/migrations` (13) · `apps/api/src/migrations` (88). Production is hand-pasted, and **#389 records that re-pasting `20260525` DROPs `amount_usd`** — a revenue column. Nobody can currently state what schema production is on. One directory, one applied-migrations table. | 🤖 |
+| #561 🔴 | **69 env vars and no register of which ones matter** | Swept the API 26 Jul: `process.env` is read for **69 distinct names**, and no doc says which are required, optional or dead. Every cron and money path here fails **silently** on a missing key (#311, #480 and #382 are all that same shape), so "is the environment complete?" can only be guessed at. Dead-but-still-wired: `PAYSTACK_SECRET_KEY`, `APOLLO_API_KEY`, `VAPI_*`×4, `WHATSAPP_*`×3, `PHANTOMBUSTER_*`×2, `CLEARBIT_API_KEY`, `HUBSPOT_API_KEY`. | 🤝 |
 | #317 🟡 | **Stripe refund / dispute events subscribed** | The refund, chargeback and dispute-won code all shipped and **none of it can ever fire** until Stripe → Webhooks is subscribed to `charge.refunded` · `charge.dispute.created` · `charge.dispute.closed`. A won dispute currently leaves the client permanently short. | 🧍 |
-| #491 🔴 | **Per-cron failure alerting** | All 25 crons die silently if an env var is unset — one blanket alert covers the lot. With real clients sending, a dead cron is a client who stopped being worked and nobody knew. | 🤖 |
+| #491 🔴 | **Per-cron failure alerting** | All 25 crons die silently if an env var is unset — one blanket alert covers the lot. With real clients sending, a dead cron is a client who stopped being worked and nobody knew. Pairs with #561. | 🤖 |
+| #199 🔴 | **Nothing watches production** | There is a health probe at `index.ts:107` and **no monitor pointed at it** — no UptimeRobot, no BetterStack, no Sentry (error capture is a DB insert that swallows its own failure). If the API dies, the first person to find out is a client. | 🧍 |
+| #329 🔴 | **Wipe the seed data before the first real client** | Founder-confirmed on the admin walk: *"when we flip over live we clean everything."* Test clients, seeded leads and demo residue must not sit in the database a paying client's numbers are computed from. | 🤝 |
+| #298 🔴 | **The restore has never been tested** | Supabase takes backups. Nobody has ever restored one. A backup you have not restored is a belief, not a backup — and this is the only copy of every client's data. One drill, once. | 🤝 |
+
+## 🅲 BLOCK C2 — WHAT WE CLAIM vs WHAT IT DOES (each one is a refund or a complaint waiting)
+
+| # | Item | What it is / why it blocks | Owner |
+|---|------|----------------------------|:-----:|
+| #413 🔴 | **Terms §5 contradicts the code, and itself, on when a credit is consumed** | The document that governs the money disagrees with the money. It is the one place a client will quote back at us. | 🤝 |
+| #414 🔴 | **The Stripe product description oversells at the point of payment** | `packages/shared/src/constants/index.ts:29` — the last thing a client reads before their card is charged, describing something we do not do. | 🤖 |
+| #410 🔴 | **The legal pages name the WRONG data sub-processor** | `privacy.html` ×4, including the formal sub-processor list — it names a provider we do not use and omits the ones we do. | 🤖 |
+| #327 🔴 | **The website claims integrations that do not exist** | `pricing.html:491` "HubSpot & Salesforce integration" · `virtual-assistant.html:536` "Salesforce, Gmail, Outlook, Google". `lib/hubspot.ts` is written and **never called** (#397). Nothing is integrated. | 🤖 |
+| #406 🔴 | **The portal has never had a full element sweep** | Every screen, tile, tab, button, toggle and modal on `apps/portal`, checked against what the backend actually does. The showroom strip (#478) took the worst offenders; the sweep itself was never finished, and it is exactly where "the button lies" bugs live. | 🤖 |
 
 ## 🅳 BLOCK D — MAKE THE DOCS HOLD (done this session — this is what you are reading)
 
@@ -83,6 +127,9 @@
 | ⬜ | **Instantly: mailbox + how it sends** — SMTP credentials, and whether the rig is warm (#549) | Instantly |
 | ⬜ | **Smartlead: account state + per-client workspace fee** — ~$40/client/month is an **estimate** and it is what sets the ~13-approval floor in the cashflow (#550/#556) | Smartlead |
 | ⬜ | **Deliverability check** — send yourself a test and say whether it landed in **Inbox or Spam** (#553) | Any real mailbox |
+| ⬜ | **Point a monitor at the health probe** (#199) — the endpoint exists, nothing watches it. UptimeRobot's free tier is enough. Without it, the first person to notice the API is down is a client | UptimeRobot / BetterStack |
+| ⬜ | **Confirm the API runs exactly ONE replica** (#343) — it is the only thing stopping every cron firing twice, including the send cron. This was a Day-0 confirm and it was **never ticked**, so it is currently unproven | Railway → @kind/api → Settings |
+| ⬜ | **Decide Paystack: delete it** (#352/#237) — `charge_authorization` can still charge a card in ZAR and a raw Paystack webhook is still mounted. Say the word and the code and the key go | — |
 | ⬜ | **Appeal the GitHub account flag** — until it clears, auto-deploy/CI stays ⏸ and every ship is `bash scripts/ship.sh` | GitHub support |
 | ⬜ | **Rotate the Postgres password** — it is in git history and is treated as **burned**; rotate the moment Supabase access is back | Supabase |
 | ⬜ | **Call the two open numbers:** names sourced per approval (flow v2 says **2**, #415 measured **~7** — at 7 the model roughly halves) and the SMS/no-login security decision behind #515 | — |

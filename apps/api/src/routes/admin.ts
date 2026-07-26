@@ -261,7 +261,9 @@ adminRouter.post('/demos/:id/login', async (req: Request, res: Response) => {
     const { data: linkData } = await db.auth.admin.generateLink({
       type: 'magiclink',
       email: user.email,
-      options: { redirectTo: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard` },
+      // /milla, not /dashboard. The old portal is retired for clients — sending a demo there
+      // meant opening a prospect walkthrough on the console we no longer sell.
+      options: { redirectTo: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/milla` },
     })
 
     // The action_link uses PKCE and can't be exchanged from a fresh tab (it falls
@@ -454,7 +456,9 @@ adminRouter.post('/setup-demo', async (req: Request, res: Response) => {
 
     const { data: linkData } = await db.auth.admin.generateLink({
       type: 'magiclink', email,
-      options: { redirectTo: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard` },
+      // /milla, not /dashboard. The old portal is retired for clients — sending a demo there
+      // meant opening a prospect walkthrough on the console we no longer sell.
+      options: { redirectTo: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/milla` },
     })
 
     res.json({

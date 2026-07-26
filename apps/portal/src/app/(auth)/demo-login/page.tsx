@@ -28,7 +28,9 @@ function DemoLogin() {
       let vErr = (await supabase.auth.verifyOtp({ email, token: otp, type: 'email' })).error
       if (vErr) vErr = (await supabase.auth.verifyOtp({ email, token: otp, type: 'magiclink' })).error
       if (vErr) { setError(vErr.message); return }
-      router.replace('/dashboard')
+      // Milla is the client console. /dashboard is retired and only bounces here anyway —
+      // that bounce is what made opening a demo look scruffy in front of a prospect.
+      router.replace('/milla')
       router.refresh()
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps

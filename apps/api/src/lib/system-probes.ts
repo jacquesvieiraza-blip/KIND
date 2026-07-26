@@ -347,17 +347,56 @@ async function vida(): Promise<Section> {
 async function activity(): Promise<Section> {
   const rows: Row[] = []
   const since = new Date(Date.now() - 7 * 864e5).toISOString()
+  // DEMOS ARE EXCLUDED FROM THIS ROW, and this is the bug it was written with.
+  //
+  // The first live run reported *"95 sent · 29 replies"* while the kill-switch was OFF — a
+  // flat contradiction on one screen. Every one of those rows was seeded by `demo-mbf.ts` and
+  // `seed-company.ts`, which insert straight into `figsy_sent_emails`. The probe counted the
+  // whole table.
+  //
+  // Same defect as #543, where demo clients were counted in Vida's headline numbers: our own
+  // test data reported back to us as if it were the business. A bounce-rate alarm computed
+  // over invented `.invalid` addresses is worse than no alarm.
+  //
+  // `figsy_sent_emails` carries no `client_id` — only `campaign_id` — so demos are excluded
+  // via their campaigns. The demo counts are still SHOWN, because those rows do exist and
+  // silently dropping them is a different kind of lie; they are just not the headline.
   rows.push(await probe('Sending activity (7 days)', async () => {
-    const [{ count: sent }, { count: bounced }, { count: replies }] = await Promise.all([
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since),
-      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).eq('status', 'bounced'),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', since),
+    const { data: demos } = await db.from('clients').select('id').eq('is_demo', true)
+    const demoIds = (demos ?? []).map((c: { id: string }) => c.id)
+    const { data: demoCamps } = demoIds.length
+      ? await db.from('figsy_campaigns').select('id').in('client_id', demoIds)
+      : { data: [] as { id: string }[] }
+    const demoCampIds = (demoCamps ?? []).map((c: { id: string }) => c.id)
+
+    // An empty `in` list is invalid PostgREST, so the filter is only applied when there is
+    // something to exclude. Without this guard the probe throws and renders NOT-MEASURED on
+    // a perfectly healthy system that simply has no demos.
+    const realSent = () => {
+      let q = db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since)
+      if (demoCampIds.length) q = q.not('campaign_id', 'in', `(${demoCampIds.join(',')})`)
+      return q
+    }
+
+    const [{ count: sent }, { count: bounced }, { count: replies }, { count: demoSent }] = await Promise.all([
+      realSent(),
+      realSent().eq('status', 'bounced'),
+      demoIds.length
+        ? db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', since).not('client_id', 'in', `(${demoIds.join(',')})`)
+        : db.from('figsy_replies').select('id', { count: 'exact', head: true }).gte('received_at', since),
+      demoCampIds.length
+        ? db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).gte('sent_at', since).in('campaign_id', demoCampIds)
+        : Promise.resolve({ count: 0 }),
     ])
+
+    const aside = (demoSent ?? 0) > 0 ? ` (${demoSent} demo row(s) excluded — seeded, never sent)` : ''
     const rate = (sent ?? 0) > 0 ? Math.round(((bounced ?? 0) / (sent ?? 1)) * 1000) / 10 : 0
-    if ((sent ?? 0) === 0) return ok('Sending activity (7 days)', 'Nothing sent in the last 7 days — expected while the kill-switch is off.')
+    if ((sent ?? 0) === 0) {
+      return ok('Sending activity (7 days)', `Nothing real sent in the last 7 days — expected while the kill-switch is off.${aside}`)
+    }
     return rate >= 3
-      ? broken('Sending activity (7 days)', `${sent} sent, ${bounced} bounced (${rate}%) — above 3% is burning the sending domain.`, 'Pause sending and check the list quality.')
-      : ok('Sending activity (7 days)', `${sent} sent · ${bounced} bounced (${rate}%) · ${replies} replies.`)
+      ? broken('Sending activity (7 days)', `${sent} sent, ${bounced} bounced (${rate}%) — above 3% is burning the sending domain.${aside}`, 'Pause sending and check the list quality.')
+      : ok('Sending activity (7 days)', `${sent} sent · ${bounced} bounced (${rate}%) · ${replies} replies.${aside}`)
   }))
   return { title: 'Activity — what the machine actually did', side: 'both', rows }
 }

@@ -26,6 +26,51 @@ export const MBF_NAME = 'MBF Holdings'
 /** Everything about MBF hangs off this — the reset finds it by name + is_demo. */
 export const MBF_MARKER = 'mbf-demo.invalid'
 
+/**
+ * May this account be ADOPTED as the MBF demo — flagged `is_demo`, renamed, wiped and
+ * re-seeded?
+ *
+ * WHY THIS EXISTS. The reset used to look for `company_name = 'MBF Holdings'` AND
+ * `is_demo = true`. The live account is called **"MBF Demo"** and was never flagged, so it
+ * matched neither half: the reset could not find it (it would have minted a SECOND account
+ * and left the broken one behind) and the demo purge refuses to delete anything not flagged
+ * `is_demo`. **The row was stuck — no control in Vida could fix it or remove it**, while the
+ * System screen correctly reported the missing hard stop as BROKEN.
+ *
+ * WHY IT IS A PURE FUNCTION. Adoption is the single most destructive decision in this file —
+ * it ends in `wipeMbf`. The original safety was a comment plus a `.eq('is_demo', true)`;
+ * this makes the rule testable, and every refusal path provable, without a database.
+ *
+ * THE RULE, and it preserves exactly what the old `is_demo` match protected: a REAL client
+ * who happens to be called "MBF something" must never be found and emptied. So all three
+ * must hold:
+ *
+ *   1. the name contains MBF (the caller establishes this)
+ *   2. they have **never paid us** — one real purchase and it is somebody's business
+ *   3. they hold **no lead with a real email address** — every address must be `.invalid`,
+ *      so there is no real person's data in there to destroy
+ *
+ * Fail any one and we refuse and say which, rather than guessing.
+ */
+export function canAdoptAsMbf(a: {
+  nameMatchesMbf: boolean
+  /** Rows in `credit_transactions` that represent real money from this client. */
+  purchaseCount: number
+  /** Leads whose email is NOT on a `.invalid` domain — i.e. a real person. */
+  realEmailLeadCount: number
+}): { ok: true } | { ok: false; reason: string } {
+  if (!a.nameMatchesMbf) {
+    return { ok: false, reason: 'its name does not contain "MBF"' }
+  }
+  if (a.purchaseCount > 0) {
+    return { ok: false, reason: `it has ${a.purchaseCount} real payment(s) against it — this is somebody's account, not a demo` }
+  }
+  if (a.realEmailLeadCount > 0) {
+    return { ok: false, reason: `it holds ${a.realEmailLeadCount} lead(s) with a REAL email address — wiping it would destroy real people's data` }
+  }
+  return { ok: true }
+}
+
 // ── THE CAST ─────────────────────────────────────────────────────────────────────────
 // Forty people, fixed. Ordered by score descending so the top 20 are stable and the
 // "we'd start here" marks land on the same faces every time.

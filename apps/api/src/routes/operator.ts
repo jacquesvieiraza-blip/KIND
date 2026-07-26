@@ -2099,8 +2099,28 @@ operatorRouter.get('/nexus', async (req: Request, res: Response) => {
 // the send path itself, and every address is `.invalid` (RFC 2606 — can never resolve).
 operatorRouter.post('/demo/mbf/reset', async (req: Request, res: Response) => {
   try {
-    const { findMbf, seedMbf, MBF_NAME } = await import('../lib/demo-mbf')
+    const { findMbf, findAdoptableMbf, adoptAsMbf, seedMbf, MBF_NAME } = await import('../lib/demo-mbf')
     let mbf = await findMbf()
+
+    // ADOPT BEFORE CREATING. The live account was called "MBF Demo" and was never flagged
+    // `is_demo`, so `findMbf` couldn't see it AND the demo purge refused to delete it — a row
+    // no control in Vida could touch, while the System screen correctly showed the missing
+    // hard stop as BROKEN. Minting a second account around it would have added a stray
+    // rather than fixed anything, so we take it over instead. `canAdoptAsMbf` (pure, tested)
+    // refuses anything that has ever been paid for or holds a real email address.
+    if (!mbf) {
+      const cand = await findAdoptableMbf()
+      if (cand.kind === 'refused') {
+        res.status(409).json({ success: false, error:
+          `There is already an account called "${cand.name}", and I will not take it over because ${cand.reason}. Nothing was changed. Rename or remove it, then run this again.` })
+        return
+      }
+      if (cand.kind === 'adoptable') {
+        const adopted = await adoptAsMbf(cand.id)
+        if (!adopted.ok) { res.status(500).json({ success: false, error: `Found "${cand.name}" but ${adopted.error}` }); return }
+        mbf = { id: cand.id, user_id: cand.user_id }
+      }
+    }
 
     // First run: mint the client. clients.user_id is NOT NULL and unique, so the demo needs
     // its own auth user — it never logs in through it; you open MBF from Vida.

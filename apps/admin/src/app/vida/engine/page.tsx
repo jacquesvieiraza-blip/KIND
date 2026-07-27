@@ -103,8 +103,23 @@ export default function VidaEnginePage() {
       // host is IPv6-only and Railway has no IPv6 route; the runner now falls back to the IPv4
       // pooler, and the founder should know that so DATABASE_URL can be fixed for good.
       const via = j.data.host ? ` (via ${j.data.host})` : ''
-      if (failed.length) setMigMsg(`Failed${via}: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}`)
-      else {
+      if (failed.length) {
+        // A PARTIAL SUCCESS IS NOT A FAILURE, AND MUST NOT READ AS ONE.
+        //
+        // This line used to print only the failures. The runner opens a FRESH CONNECTION PER
+        // MIGRATION and catches per migration, so one bad statement stops nothing — but the
+        // screen said `Failed: …` and nothing else, so eleven applied migrations rendered as
+        // a flat red failure. The founder could not tell whether the one that mattered had
+        // gone in, on the screen whose entire job is telling him what the database now has.
+        //
+        // Same defect class as #565 and the leads-page banner: a real outcome collapsed into
+        // the scariest available word.
+        setMigMsg(
+          `${ran} of ${ran + failed.length} applied${via}. ` +
+          `FAILED: ${failed.map((f: { key: string; error: string }) => `${f.key} — ${f.error}`).join('; ')}. ` +
+          `The rest DID apply — each migration runs on its own connection, so one failure does not stop the others.`,
+        )
+      } else {
         setMigMsg(`${ran} migration${ran === 1 ? '' : 's'} applied${via}. Inbox tracking is live.${j.data.hint ? ` — ${j.data.hint}` : ''}`)
         setNeedsPw(false); setDbPw('')
         await load()

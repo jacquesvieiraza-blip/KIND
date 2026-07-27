@@ -64,6 +64,8 @@ export type StartWorkResult = {
   sourced: number
   surfaced: number
   recommended: number
+  /** Set when the sourcing run THREW. `sourced: 0` alone cannot be trusted without it. */
+  sourcingError?: string
 }
 
 /** How many of the surfaced people we mark as "we'd start with these". */
@@ -112,19 +114,39 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
       .eq('client_id', clientId).is('revealed_at', null).neq('status', 'passed')
     const want = sourceTarget(awaiting ?? 0)
 
+    // A SOURCING FAILURE MUST NOT READ AS "NOTHING TO DO".
+    //
+    // This `.catch` returned null, the function carried on, and the caller got
+    // `{ started: true, sourced: 0 }` — indistinguishable from a client who was already
+    // stocked. The client had just PAID. Nobody was told, because it only reached
+    // `console.error`. (Audit 27 Jul.)
     let sourced = 0
+    let sourcingFailed: string | null = null
     if (want > 0) {
       const { runIcpJob } = await import('../routes/icps')
       const run = await runIcpJob(icp.id, clientId, client.user_id as string, want)
-        .catch(e => { console.error('[start-work] sourcing failed for', clientId, e); return null })
+        .catch(e => {
+          sourcingFailed = e instanceof Error ? e.message : String(e)
+          console.error('[start-work] sourcing failed for', clientId, e)
+          return null
+        })
       sourced = run?.inserted ?? 0
+      if (sourcingFailed) {
+        const { sendFounderAlert } = await import('./alerts')
+        void sendFounderAlert('source_down', 'A paying client asked for people and sourcing FAILED', [
+          `Client ${clientId} has paid, and the run for ${want} record(s) failed.`,
+          `Reason: ${sourcingFailed}`,
+          'Their desk is not being filled. This does NOT look like an error anywhere else — it reads as "nothing to do" on every board until it is fixed.',
+          'Re-run start-work for them once the cause is cleared.',
+        ]).catch(() => {})
+      }
     }
 
     // ── Everyone goes to the client, top 20 marked ─────────────────────────
     const { surfaced, recommended } = await surfaceEverything(clientId)
     if (want === 0 && surfaced === 0) return { ...empty, started: true, reason: 'already_stocked' }
 
-    return { started: true, sourced, surfaced, recommended }
+    return { started: true, sourced, surfaced, recommended, ...(sourcingFailed ? { sourcingError: sourcingFailed } : {}) }
   } catch (err) {
     console.error('[start-work] failed for client', clientId, err)
     return empty

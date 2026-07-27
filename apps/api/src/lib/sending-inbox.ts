@@ -44,6 +44,7 @@ export type InboxRow = {
 /** Why a client cannot send. Every one of these is a state an operator can act on. */
 export type RefusalReason =
   | 'no_inbox'          // nothing assigned at all — #550 has not run for this client
+  | 'lookup_failed'     // the mailbox table could not be READ — a different problem entirely
   | 'warming_only'      // a branded mailbox is warming; sending on it would un-warm it
   | 'no_credentials'    // the row exists but has no SMTP details to send with
   | 'no_secret_key'     // INBOX_SECRET_KEY unset — the password cannot be read
@@ -147,6 +148,10 @@ export function refusalLabel(reason: RefusalReason): string {
     case 'warming_only':    return 'Mailbox still warming — cannot send yet'
     case 'no_credentials':  return 'Mailbox has no SMTP details saved'
     case 'no_secret_key':   return 'API cannot read mailbox passwords (INBOX_SECRET_KEY unset)'
+    // Its own reason, because "No sending mailbox assigned" sent the operator to configure a
+    // mailbox that is already there, while the database was the thing that was down.
+    // (Audit 27 Jul — the detail was honest, the LABEL was not.)
+    case 'lookup_failed':   return 'Could not read this client\'s mailboxes — database problem, NOT a missing mailbox'
   }
 }
 
@@ -167,8 +172,8 @@ export async function resolveSendingInbox(clientId: string): Promise<Resolution>
     // which kind of problem it is so it isn't mistaken for "this client has no mailbox".
     return {
       ok: false,
-      reason: 'no_inbox',
-      detail: `Could not read this client's mailboxes (${error.message ?? 'database error'}) — refusing to send rather than falling back to a shared sender.`,
+      reason: 'lookup_failed',
+      detail: `Could not read this client's mailboxes (${error.message ?? 'database error'}) — refusing to send rather than falling back to a shared sender. This is a DATABASE failure, not a missing mailbox: do not go and assign one.`,
     }
   }
 

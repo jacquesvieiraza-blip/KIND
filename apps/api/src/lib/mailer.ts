@@ -22,7 +22,7 @@
 // back a message id.
 
 import type { CheckedSend } from './resend-checked'
-import type { InboxRow } from './sending-inbox'
+import { normalisePort, type InboxRow } from './sending-inbox'
 
 export type OutgoingMail = {
   to: string
@@ -35,10 +35,13 @@ export type OutgoingMail = {
 
 /** Port/secure defaults that match how mailbox providers actually hand these out. */
 function transportOptions(inbox: InboxRow, password: string) {
-  const port = Number(inbox.smtp_port ?? 587)
-  // 465 is implicit TLS; 587 is STARTTLS. Getting this pair wrong is the single most common
-  // way an SMTP connection hangs rather than failing, so it is derived, not guessed.
-  const secure = inbox.smtp_secure ?? port === 465
+  // USE THE GUARD THAT WAS WRITTEN FOR THIS. `sending-inbox.ts` exports `normalisePort`,
+  // whose own comment says an empty box gives `Number('') === 0` and `Number(undefined)` is
+  // NaN, and that "either one reaching the transport is a connection attempt to nowhere".
+  // This file WAS the transport, and it did its own `Number(...)` with no NaN or range check
+  // — so a junk port hung every send for the full 20s socket timeout instead of failing.
+  // Two files each correct on their own; the bug lived in the gap. (Audit 27 Jul.)
+  const { port, secure } = normalisePort(inbox.smtp_port, inbox.smtp_secure)
   return {
     host: String(inbox.smtp_host),
     port,

@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { loadError, panelView } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, type Notice } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -276,7 +276,7 @@ export default function VidaConsolePage() {
   // able to CHANGE the targeting and the messaging, which is our actual job in this model.
   const [icpEdit, setIcpEdit] = useState<Record<string, string> | null>(null)
   const [seqEdit, setSeqEdit] = useState<{ id?: string; name: string; steps: SeqStep[] } | null>(null)
-  const [saveMsg, setSaveMsg] = useState<string | null>(null)
+  const [saveMsg, setSaveMsg] = useState<Notice | null>(null)
 
   const ICP_FIELDS: [string, string][] = [
     ['name', 'Name'], ['industries', 'Industries'], ['job_titles', 'Job titles'],
@@ -297,7 +297,7 @@ export default function VidaConsolePage() {
       setIcpEdit({ icp_id: icpId, name: String(d.name ?? ''), industries: joinArr(d.industries), job_titles: joinArr(d.job_titles),
         seniority_levels: joinArr(d.seniority_levels), company_sizes: joinArr(d.company_sizes),
         geographies: joinArr(d.geographies), tech_stack: joinArr(d.tech_stack), keywords: joinArr(d.keywords) })
-    } catch { setSaveMsg('Could not open that ICP') }
+    } catch { setSaveMsg(notice.error('Could not open that ICP')) }
   }
 
   // V2 — the ICP is built by TALKING, the way it was in the old console. The form stays as
@@ -346,8 +346,8 @@ export default function VidaConsolePage() {
         body: JSON.stringify({ ...icpEdit, client_id: selected }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error)
-      setIcpEdit(null); setIcpProposal(null); setSaveMsg('ICP saved — sourcing targets it from now on.'); await loadCockpit(selected)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the ICP') }
+      setIcpEdit(null); setIcpProposal(null); setSaveMsg(notice.ok('ICP saved — sourcing targets it from now on.')); await loadCockpit(selected)
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not save the ICP'))) }
     setCockpitBusy(false)
   }
 
@@ -377,8 +377,8 @@ export default function VidaConsolePage() {
           .map(s => ({ subject: s.subject, body: s.body, wait_days: s.wait_days })),
       })
       const d = j.data.drafted_against as { first_name?: string; job_title?: string; company?: string } | undefined
-      setSaveMsg(d?.first_name ? `Drafted against ${[d.first_name, d.job_title, d.company].filter(Boolean).join(' · ')} — read it, change it, then save.` : 'Draft ready — read it before you save.')
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not draft a sequence') }
+      setSaveMsg(notice.ok(d?.first_name ? `Drafted against ${[d.first_name, d.job_title, d.company].filter(Boolean).join(' · ')} — read it, change it, then save.` : 'Draft ready — read it before you save.'))
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not draft a sequence'))) }
     setCockpitBusy(false)
   }
 
@@ -391,8 +391,8 @@ export default function VidaConsolePage() {
         body: JSON.stringify({ client_id: selected, sequence_id: seqEdit.id, name: seqEdit.name, steps: seqEdit.steps }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error)
-      setSeqEdit(null); setSaveMsg('Sequence saved.'); await loadCockpit(selected)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the sequence') }
+      setSeqEdit(null); setSaveMsg(notice.ok('Sequence saved.')); await loadCockpit(selected)
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not save the sequence'))) }
     setCockpitBusy(false)
   }
 
@@ -404,7 +404,7 @@ export default function VidaConsolePage() {
       const j = await fetch(`/api/proxy/operator/sequence/${id}/preview?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not preview')
       setSeqPreview(j.data)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not preview') }
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not preview'))) }
     setCockpitBusy(false)
   }
 
@@ -416,7 +416,7 @@ export default function VidaConsolePage() {
       const j = await fetch(`/api/proxy/operator/people?${q}`).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Failed to load people')
       setPeople(j.data)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Failed to load people'); setPeople([]) }
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Failed to load people'))); setPeople([]) }
   }, [])
 
 
@@ -431,7 +431,7 @@ export default function VidaConsolePage() {
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not propose a campaign')
       setProposal(j.data)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not propose a campaign') }
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not propose a campaign'))) }
     setCockpitBusy(false)
   }
 
@@ -487,9 +487,9 @@ export default function VidaConsolePage() {
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not save the campaign')
       setCampEdit(null); setProposal(null)
-      setSaveMsg(`Campaign saved — ${j.data.copilot_mode ? 'Co-Pilot: every send waits for you.' : 'Auto-Pilot: sends flow without a per-email gate.'}`)
+      setSaveMsg(notice.ok(`Campaign saved — ${j.data.copilot_mode ? 'Co-Pilot: every send waits for you.' : 'Auto-Pilot: sends flow without a per-email gate.'}`))
       await loadCockpit(selected)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not save the campaign') }
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not save the campaign'))) }
     setCockpitBusy(false)
   }
 
@@ -504,8 +504,8 @@ export default function VidaConsolePage() {
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not build the test')
       setTestResult(j.data)
-      if (j.data.sent) setSaveMsg(`Test email sent to ${j.data.to}.`)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not build the test') }
+      if (j.data.sent) setSaveMsg(notice.ok(`Test email sent to ${j.data.to}.`))
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not build the test'))) }
     setCockpitBusy(false)
   }
 
@@ -517,7 +517,7 @@ export default function VidaConsolePage() {
       const j = await fetch(`/api/proxy/operator/campaign/${encodeURIComponent(c.id)}/enrollments?client_id=${encodeURIComponent(selected)}`).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not load who is in it')
       setEnrollView({ campaign: c, rows: j.data })
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not load who is in it') }
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not load who is in it'))) }
     setCockpitBusy(false)
   }
 
@@ -539,9 +539,9 @@ export default function VidaConsolePage() {
         body: JSON.stringify({ client_id: selected, question }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not send the ask')
-      setAskInput(''); setSaveMsg('Asked — it is in their Milla thread now.')
+      setAskInput(''); setSaveMsg(notice.ok('Asked — it is in their Milla thread now.'))
       setTab('Asks'); await loadAsks(selected)
-    } catch (e) { setSaveMsg(e instanceof Error ? e.message : 'Could not send the ask') }
+    } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not send the ask'))) }
     setCockpitBusy(false)
   }
 
@@ -572,15 +572,15 @@ export default function VidaConsolePage() {
       const j = await fetch(`/api/proxy/operator/bookings/${encodeURIComponent(bookingId)}/${kind}`, {
         method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
       }).then(r => r.json())
-      if (!j?.success) { setSaveMsg(j?.error || 'Could not update the booking'); return }
-      setSaveMsg(kind === 'no-show'
+      if (!j?.success) { setSaveMsg(notice.error(j?.error || 'Could not update the booking')); return }
+      setSaveMsg(notice.ok(kind === 'no-show'
         ? 'Marked a no-show. Nothing was refunded — the $4 stands.'
         : j.rebooks_left === 0
           ? 'Second attempt used. The client has been told, with the $4 re-run choice.'
-          : `Rebooked. ${j.rebooks_left} attempt left.`)
+          : `Rebooked. ${j.rebooks_left} attempt left.`))
       await loadCockpit(selected)
     } catch (err) {
-      setSaveMsg(err instanceof Error ? err.message : 'Could not update the booking')
+      setSaveMsg(notice.error(noticeText(err, 'Could not update the booking')))
     }
     setCockpitBusy(false)
   }
@@ -612,13 +612,13 @@ export default function VidaConsolePage() {
         body: JSON.stringify({ client_id: selected, status }),
       }).then(r => r.json())
       if (!j?.success) {
-        setSaveMsg(j?.error || `Could not ${status === 'active' ? 'start' : 'pause'} the campaign — the API refused and gave no reason.`)
+        setSaveMsg(notice.error(j?.error || `Could not ${status === 'active' ? 'start' : 'pause'} the campaign — the API refused and gave no reason.`))
         setCockpitBusy(false); return
       }
-      setSaveMsg(status === 'active' ? 'Campaign is running.' : 'Campaign paused.')
+      setSaveMsg(notice.ok(status === 'active' ? 'Campaign is running.' : 'Campaign paused.'))
       await loadCockpit(selected)
     } catch (e) {
-      setSaveMsg(`Could not reach the API to ${status === 'active' ? 'start' : 'pause'} this campaign: ${e instanceof Error ? e.message : String(e)}`)
+      setSaveMsg(notice.error(`Could not reach the API to ${status === 'active' ? 'start' : 'pause'} this campaign: ${e instanceof Error ? e.message : String(e)}`))
     }
     setCockpitBusy(false)
   }
@@ -1370,7 +1370,7 @@ export default function VidaConsolePage() {
                       Everyone here went to the client, scored, with the top 20 recommended.
                       Their 👍 charges $4 and starts the work — you don't assign anyone.
                     </p>
-                    {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-1">{saveMsg}</p>}
+                    {saveMsg && <p className={`text-[12.5px] font-semibold mt-1 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   </div>
                   {people.map(p => (
                     <div key={p.id} className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 mb-2 ${p.in_campaign ? 'border-emerald-200 bg-emerald-50/40' : 'border-[#eee7f7]'}`}>
@@ -1531,7 +1531,7 @@ export default function VidaConsolePage() {
                         </button>
                         <button onClick={() => setCampEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Cancel</button>
                       </div>
-                      {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                      {saveMsg && <p className={`text-[12.5px] font-semibold mt-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                     </div>
                   ) : (<>
                     {/* V6 — Vida proposes; the operator approves. Never auto-created behind us. */}
@@ -1612,7 +1612,7 @@ export default function VidaConsolePage() {
                       <button onClick={suggestCampaign} disabled={cockpitBusy}
                         className="mt-1 text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 disabled:opacity-50">✨ Suggest another campaign</button>
                     )}
-                    {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                    {saveMsg && <p className={`text-[12.5px] font-semibold mt-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   </>)
                 ) : null)}
 
@@ -1703,14 +1703,14 @@ export default function VidaConsolePage() {
                     </button>
                     <button onClick={() => openIcpEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Fill the form</button>
                   </div>
-                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                  {saveMsg && <p className={`text-[12.5px] font-semibold mt-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                 </>)) : null)}
 
                 {/* ── SEQUENCE — V9 propose · approve by saving · V11 preview ── */}
                 {tab === 'Sequence' && (cockpit ? (seqEdit ? (
                   <div>
                     <button onClick={() => setSeqEdit(null)} className="text-[12.5px] font-bold text-[#7C3AED] mb-2.5">&larr; Back to sequences</button>
-                    {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
+                    {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                     <label className="block mb-2.5">
                       <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#b3a9cc]">Sequence name</span>
                       <input value={seqEdit.name} onChange={e => setSeqEdit({ ...seqEdit, name: e.target.value })}
@@ -1798,7 +1798,7 @@ export default function VidaConsolePage() {
                     </button>
                     <button onClick={() => openSeqEditor()} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Write it myself</button>
                   </div>
-                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mt-2">{saveMsg}</p>}
+                  {saveMsg && <p className={`text-[12.5px] font-semibold mt-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                 </>)) : null)}
 
                 {/* ── ASKS — V3 we ask, M2 they answer in Milla ── */}
@@ -1833,7 +1833,7 @@ export default function VidaConsolePage() {
                       {cockpitBusy ? 'Sending…' : 'Ask them'}
                     </button>
                   </form>
-                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
+                  {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   {asks === null ? <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>
                     : asks.length === 0 ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-4">Nothing asked yet.</p>
                     : asks.map(a => (
@@ -1857,7 +1857,7 @@ export default function VidaConsolePage() {
 
                 {/* BOOKINGS */}
                 {tab === 'Bookings' && (<>
-                  {saveMsg && <p className="text-[12.5px] font-semibold text-[#0e7c86] mb-2">{saveMsg}</p>}
+                  {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
                   {(cols?.booked.cards.length ?? 0) === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-8">No meetings booked yet.</p>
                     : cols!.booked.cards.map(c => {

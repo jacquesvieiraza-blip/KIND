@@ -55,10 +55,43 @@ it, and **nobody swept for the pattern.** This audit is that sweep.
 
 ---
 
+## ✅ RUN AGAINST PRODUCTION — 27 Jul 2026, 11:12 (`aws-0-eu-west-1.pooler`)
+
+**The live audit returned three tables, and NONE of the five predicted below.** That is not a
+footnote — it is the finding, and it is the reason this endpoint exists. The file-based
+verdict was wrong in **both** directions: it named five tables that are fine, and it missed
+the most sensitive table in the product.
+
+| Table | Live verdict | Why the files could not show it |
+|---|---|---|
+| **`client_inboxes`** | 🔴 **RLS OFF, no policies** | **No file anywhere in the repo enables RLS on it.** `20260725_client_inboxes` created the table and simply never included the line, so there was nothing to read. |
+| `app_migrations_applied` | 🔴 RLS OFF | Created as a *side effect* of `20260724_one_wallet.sql` via `CREATE TABLE IF NOT EXISTS` — it never passed through a review that would have asked. |
+| `agreement_templates` | 🔴 EXPOSED — `agreement_templates_admin_write` | **That policy exists only in production.** The repo has never contained it; it knows only `agreement_templates_read`. Someone created it by hand. |
+
+### `client_inboxes` is the one that matters
+
+It holds **`smtp_pass_enc`, `smtp_host`, `smtp_user` and `email`** — how we log in to send as
+each client. With RLS off, anyone holding the **public anon key** could read every client's
+mailbox configuration. The passwords are AES-256-GCM ciphertext (`lib/inbox-secret.ts`), so
+this was never plaintext credentials — but the hosts, usernames and addresses are plain, and
+ciphertext should not have been fetchable either.
+
+**Closed by `20260727_rls_live_findings`.** Safe because nothing in a browser touches any of
+the three: every path is server-side on the service-role key, which bypasses RLS.
+
+> **`agreement_templates_admin_write` is #558 pointing the other way.** The standing finding
+> has been *"the repo describes tables production does not have."* This is the reverse:
+> **production carries a policy no file can show you.** Any audit that reads only the repo is
+> blind to it — which is the case for every security review this project has ever done.
+
+---
+
 ## 🔴 The finding: five more tables of the same shape
 
-Each was created by a migration **in the production path** and is dropped **nowhere** in that
-path. The only `DROP POLICY` statements for them live in `supabase/staging-schema.sql`, which
+⚠️ **The 27 Jul live run found NONE of these exposed** — see the section above. They were
+either dropped by hand or the tables never existed in production. The list is kept because the
+remediation is harmless and idempotent, and because the SHAPE is what matters. Each was
+created by a migration **in the production path** and is dropped **nowhere** in that path. The only `DROP POLICY` statements for them live in `supabase/staging-schema.sql`, which
 is a **staging** snapshot. So unless someone removed them by hand, they are live right now.
 
 | Table | Created by | What it holds |

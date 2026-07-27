@@ -164,15 +164,56 @@ describe('the summary', () => {
 })
 
 describe('the browser-read list is real, not guessed', () => {
-  it('names the tables the front ends actually query with the public key', () => {
+  it('names the tables CLIENT COMPONENTS actually query with the public key', () => {
     expect(BROWSER_READ_TABLES).toContain('leads')
     expect(BROWSER_READ_TABLES).toContain('clients')
-    expect(BROWSER_READ_TABLES).toContain('credit_transactions')
   })
-  it('does NOT include tables only the API touches', () => {
-    for (const t of ['lead_enrichment', 'partners', 'figsy_calls', 'webhook_triggers', 'cron_claims']) {
+
+  it('EXCLUDES tables only reached from Next.js server routes — they use the SERVICE key', () => {
+    // The first version of this list had thirteen entries because the grep counted
+    // `app/api/*` route handlers, which build their client with SUPABASE_SERVICE_ROLE_KEY
+    // and bypass RLS entirely. Counting them is the DANGEROUS direction: it makes a table
+    // look like it needs a browser-facing policy when it does not, which is exactly how a
+    // `USING (true)` survives review.
+    for (const t of ['agreement_templates', 'proposals', 'metrics_daily', 'credit_transactions']) {
       expect(BROWSER_READ_TABLES, t).not.toContain(t)
     }
+  })
+
+  it('does NOT include tables only the API touches', () => {
+    for (const t of ['lead_enrichment', 'partners', 'figsy_calls', 'cron_claims', 'client_inboxes']) {
+      expect(BROWSER_READ_TABLES, t).not.toContain(t)
+    }
+  })
+
+  it('client_inboxes is not browser-read — which is why locking it is safe', () => {
+    // The live audit found this table with RLS OFF entirely. It holds smtp_pass_enc,
+    // smtp_host and smtp_user: how we log in to send as each client.
+    expect(BROWSER_READ_TABLES).not.toContain('client_inboxes')
+  })
+})
+
+describe('#554b — the live findings are covered by a migration', () => {
+  const migrations = readFileSync(join(__dirname, './pending-migrations.ts'), 'utf8')
+
+  it('client_inboxes gets RLS — it had NONE, and it holds the mailbox passwords', () => {
+    expect(migrations).toContain('ALTER TABLE IF EXISTS public.client_inboxes ENABLE ROW LEVEL SECURITY')
+  })
+
+  it('app_migrations_applied gets RLS', () => {
+    expect(migrations).toContain('ALTER TABLE IF EXISTS public.app_migrations_applied ENABLE ROW LEVEL SECURITY')
+  })
+
+  it('the production-only agreement_templates write policy is dropped', () => {
+    // This policy exists ONLY in production — the repo has never contained it. #558 in the
+    // other direction: prod carries policies no file can show you.
+    expect(migrations).toContain('DROP POLICY IF EXISTS agreement_templates_admin_write')
+  })
+
+  it('the migration only ADDS protection — it drops no data', () => {
+    const idx = migrations.indexOf('20260727_rls_live_findings')
+    const block = migrations.slice(idx, idx + 2500)
+    expect(block).not.toMatch(/DROP TABLE|DROP COLUMN|DELETE FROM|TRUNCATE/i)
   })
 })
 

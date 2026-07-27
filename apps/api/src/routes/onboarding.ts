@@ -1,6 +1,8 @@
 import { Router } from 'express'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
+import { PURCHASE_TX_TYPES } from '../lib/onboarding-pack'
+import { readProgress, unavailableNote, type Counted } from '../lib/onboarding-progress'
 
 export const onboardingRouter = Router()
 onboardingRouter.use(requireAuth)
@@ -29,23 +31,46 @@ onboardingRouter.get('/progress', async (req: AuthRequest, res) => {
     if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const clientId = client.id as string
 
-    const [icps, leads, revealed, enrollments, purchases] = (await Promise.allSettled([
+    // AUDIT 27 Jul, two defects fixed here.
+    //
+    // ① `hasPurchase` counted `.eq('type', 'purchase')`. Stripe writes `wallet_topup` for
+    //    every wallet payment INCLUDING the first $99 (routes/stripe.ts:330) — so the one
+    //    step proving they are a paying client never ticked. PURCHASE_TX_TYPES is the
+    //    canonical list and exists precisely so this cannot drift again.
+    //
+    // ② A failed count became `0`, which renders as "you haven't done this yet" over a
+    //    question we could not ask. The failures are carried separately now — see
+    //    `readProgress`.
+    const settled = await Promise.allSettled([
       db.from('icps').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null),
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
       db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('credit_transactions').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('type', 'purchase'),
-    ])).map(r => r.status === 'fulfilled' ? (r.value.count ?? 0) : 0)
+      db.from('credit_transactions').select('id', { count: 'exact', head: true }).eq('client_id', clientId).in('type', PURCHASE_TX_TYPES),
+    ])
+    const asCounted = (r: PromiseSettledResult<{ count: number | null; error?: { message?: string } | null }>): Counted => {
+      if (r.status !== 'fulfilled') return { ok: false, why: String(r.reason).slice(0, 200) }
+      if (r.value?.error) return { ok: false, why: r.value.error.message ?? 'query failed' }
+      return { ok: true, count: r.value?.count ?? 0 }
+    }
+    const { flags, unavailable } = readProgress({
+      hasIcp:        asCounted(settled[0] as never),
+      hasLeads:      asCounted(settled[1] as never),
+      hasReveal:     asCounted(settled[2] as never),
+      hasEnrollment: asCounted(settled[3] as never),
+      hasPurchase:   asCounted(settled[4] as never),
+    })
 
     const c = client as Record<string, unknown>
     res.json({
       success: true,
       data: {
-        hasIcp:        icps > 0,
-        hasLeads:      leads > 0,
-        hasReveal:     revealed > 0,
-        hasEnrollment: enrollments > 0,
-        hasPurchase:   purchases > 0,
+        ...flags,
+        // Which of the five could NOT be checked. Empty means the flags are the whole truth.
+        // An unticked box with its key listed here means "we could not ask", never "you
+        // have not done it".
+        unavailable,
+        unavailable_note: unavailableNote(unavailable),
         // Tour cursor (guarded — columns are additive, may be null pre-migration).
         current_step:    (c.onboarding_step as string | null) ?? null,
         completed_steps: (c.onboarding_completed as string[] | null) ?? [],

@@ -96,9 +96,16 @@ export function bookingUrlForLead(
   leadId: string,
   clientId: string,
 ): string | null {
-  if (client?.calendar_booking_enabled && process.env.ADMIN_SECRET_KEY) {
-    const base = process.env.PORTAL_URL ?? 'http://localhost:3000'
-    return `${base}/book/${signBookingToken({ leadId, clientId })}`
+  // NO LOCALHOST IN A COLD EMAIL. This defaulted to `http://localhost:3000`, so an unset
+  // PORTAL_URL put a DEAD LINK in front of every real prospect — they click "book a time"
+  // and get nothing, and we would never hear about it. `startup-check.ts` rates PORTAL_URL
+  // only "important", so the API boots happily without it.
+  //
+  // No link beats a dead link: fall back to the client's own booking URL, and if there
+  // isn't one, send no link at all. (Audit 27 Jul.)
+  const base = process.env.PORTAL_URL?.trim()
+  if (client?.calendar_booking_enabled && process.env.ADMIN_SECRET_KEY && base) {
+    return `${base.replace(/\/+$/, '')}/book/${signBookingToken({ leadId, clientId })}`
   }
   return client?.booking_url ?? null
 }

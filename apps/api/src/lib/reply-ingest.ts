@@ -151,6 +151,52 @@ export async function suppressOptOut(
 }
 
 /**
+ * Why is this reply's body missing — and say it accurately.
+ *
+ * **P2-2.** The alert used to say *"the body arrived empty… the follow-up fetch returned
+ * nothing"* for FOUR different situations, three of which it was describing wrongly:
+ *
+ *   • the fetch returned **HTTP 500** — the status sat in `console.error` and nowhere a
+ *     person looks
+ *   • the fetch **threw** (network, DNS, timeout) — same
+ *   • **`RESEND_API_KEY` was not set**, so the fetch *never ran at all* — and the alert still
+ *     claimed it had returned nothing
+ *   • the fetch genuinely succeeded and the body genuinely was empty — the only case the
+ *     old wording actually fitted
+ *
+ * Telling the founder "the prospect sent an empty email" when the truth is "Resend returned
+ * 500" points them at the wrong thing entirely: one is a prospect quirk to ignore, the other
+ * is our pipeline down and every reply being lost.
+ *
+ * Pure, so each of the four readings is assertable.
+ */
+export function describeBodyFetch(a: {
+  /** The provider's message id, if we have one. */
+  messageId: string | null
+  /** Whether the fetch was even attempted (false when the key is missing). */
+  attempted: boolean
+  /** The real failure, verbatim, if it failed. */
+  failure: string | null
+}): { why: string; detail: string } {
+  if (a.failure && !a.attempted) {
+    return {
+      why: 'the reply body could NOT be fetched — we never asked',
+      detail: `${a.failure} The prospect's reply is intact in Resend; we simply could not retrieve it. Every reply will be affected until this is fixed.`,
+    }
+  }
+  if (a.failure) {
+    return {
+      why: 'the reply body could NOT be fetched from Resend',
+      detail: `${a.failure} This is OUR pipeline failing, not an empty email from the prospect — the message is intact in Resend. If this repeats, every reply is being lost.`,
+    }
+  }
+  return {
+    why: 'the body arrived empty',
+    detail: `Resend delivered the metadata and the follow-up body fetch${a.messageId ? ` for ${a.messageId}` : ''} succeeded but returned nothing. This one may genuinely be an empty message.`,
+  }
+}
+
+/**
  * A reply we could not process — tell the founder, never a silent 200.
  *
  * **R2 / R3 / R1's error path.** The reply is still sitting in the provider's inbox; the only

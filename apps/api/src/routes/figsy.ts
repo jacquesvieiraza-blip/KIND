@@ -20,7 +20,7 @@ import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
 import { sendFounderAlert } from '../lib/alerts'
 // The provider-agnostic reply spine (#589). Resend feeds it today; Instantly and Smartlead
 // feed the same functions next, so the five reply defects are fixed once, not three times.
-import { isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, REPLY_LOOKUP_STATUSES } from '../lib/reply-ingest'
+import { isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, describeBodyFetch, REPLY_LOOKUP_STATUSES } from '../lib/reply-ingest'
 
 // Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
 // is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
@@ -201,21 +201,39 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     // (Flat inbound payloads that already include text skip this.) The raw status
     // is logged so we can confirm/correct the exact endpoint against the first live
     // reply.
+    // P2-2 — the failure REASON is carried out of this block, not just logged.
+    //
+    // A non-OK status and a thrown error both used to end in `console.error`, and the alert
+    // downstream then told the founder *"the body arrived empty"*. That points at the wrong
+    // thing entirely: an empty email is a prospect quirk to ignore, while HTTP 500 is our
+    // pipeline down and EVERY reply being lost.
     const emailId = (payload.email_id as string) || (payload.id as string) || ''
-    if (!body && emailId && process.env.RESEND_API_KEY) {
-      try {
-        const r = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
-          headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
-        })
-        if (r.ok) {
-          const full = await r.json() as { text?: string; html?: string }
-          body = (full.text || full.html?.replace(/<[^>]+>/g, ' ') || '').trim()
-          console.log(`[figsy/replies/inbound] fetched received email ${emailId} — body length ${body.length}`)
-        } else {
-          console.error(`[figsy/replies/inbound] fetch received email ${emailId} failed: ${r.status} ${(await r.text().catch(() => '')).slice(0, 200)}`)
+    let fetchAttempted = false
+    let fetchFailure: string | null = null
+
+    if (!body && emailId) {
+      if (!process.env.RESEND_API_KEY) {
+        // The fetch never runs — and the old alert still claimed it "returned nothing".
+        fetchFailure = 'RESEND_API_KEY is not set, so the body fetch was never attempted.'
+      } else {
+        fetchAttempted = true
+        try {
+          const r = await fetch(`https://api.resend.com/emails/receiving/${emailId}`, {
+            headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}` },
+          })
+          if (r.ok) {
+            const full = await r.json() as { text?: string; html?: string }
+            body = (full.text || full.html?.replace(/<[^>]+>/g, ' ') || '').trim()
+            console.log(`[figsy/replies/inbound] fetched received email ${emailId} — body length ${body.length}`)
+          } else {
+            const t = (await r.text().catch(() => '')).slice(0, 200)
+            fetchFailure = `Resend returned HTTP ${r.status} for ${emailId}. ${t}`
+            console.error(`[figsy/replies/inbound] ${fetchFailure}`)
+          }
+        } catch (e) {
+          fetchFailure = `The request to Resend for ${emailId} failed: ${e instanceof Error ? e.message : String(e)}`
+          console.error(`[figsy/replies/inbound] ${fetchFailure}`)
         }
-      } catch (e) {
-        console.error('[figsy/replies/inbound] fetch received email error:', e)
       }
     }
 
@@ -230,12 +248,15 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     // the provider's inbox; the only thing that was ever missing is that anyone knew.
     const unusable = isUnusable(inbound)
     if (unusable) {
-      await alertDroppedReply(
-        unusable === 'no_sender' ? 'the sender address could not be read' : 'the body arrived empty',
-        inbound,
-        unusable === 'no_body' && emailId
-          ? `Resend's email.received webhook is metadata-only and the follow-up body fetch for ${emailId} returned nothing.`
-          : undefined)
+      if (unusable === 'no_sender') {
+        await alertDroppedReply('the sender address could not be read', inbound)
+      } else {
+        // P2-2 — the alert now carries WHY the body is missing: the HTTP status, the thrown
+        // error, or "we never asked because the key is unset". Each reads differently and
+        // needs a different response.
+        const { why, detail } = describeBodyFetch({ messageId: emailId || null, attempted: fetchAttempted, failure: fetchFailure })
+        await alertDroppedReply(why, inbound, detail)
+      }
       res.status(200).json({ received: true, dropped: unusable }); return
     }
 

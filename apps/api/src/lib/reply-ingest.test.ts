@@ -50,7 +50,7 @@ vi.mock('./alerts', () => ({
 
 import {
   parseFromAddress, isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply,
-  REPLY_LOOKUP_STATUSES, REPLY_ACTIVE_STATUSES,
+  REPLY_LOOKUP_STATUSES, REPLY_ACTIVE_STATUSES, describeBodyFetch,
 } from './reply-ingest'
 
 beforeEach(() => {
@@ -205,5 +205,56 @@ describe('parseFromAddress', () => {
   })
   it('strips quotes around a display name', () => {
     expect(parseFromAddress('"Nkosi, Thabo" <t@a.com>').name).toBe('Nkosi, Thabo')
+  })
+})
+
+// ── P2-2 ──────────────────────────────────────────────────────────────────────────────
+// R3 alerted, but the reason stayed in `console.error`. One message covered FOUR different
+// situations and described three of them wrongly. Telling the founder "the prospect sent an
+// empty email" when the truth is "Resend returned 500" points at the wrong thing entirely:
+// one is a quirk to ignore, the other is our pipeline down with every reply being lost.
+describe('P2-2 — describeBodyFetch says WHICH failure it was', () => {
+  it('an HTTP failure names the status, and says it is OURS not the prospect', () => {
+    const d = describeBodyFetch({ messageId: 'em_1', attempted: true, failure: 'Resend returned HTTP 500 for em_1. upstream error' })
+    expect(d.why).toContain('could NOT be fetched')
+    expect(d.detail).toContain('HTTP 500')
+    expect(d.detail).toContain('not an empty email from the prospect')
+    expect(d.detail).toContain('every reply is being lost')
+  })
+
+  it('a thrown request error is carried through verbatim', () => {
+    const d = describeBodyFetch({ messageId: 'em_2', attempted: true, failure: 'The request to Resend for em_2 failed: ETIMEDOUT' })
+    expect(d.detail).toContain('ETIMEDOUT')
+  })
+
+  it('a MISSING KEY says we never asked — the case the old wording lied about hardest', () => {
+    // The fetch is guarded on RESEND_API_KEY. Without it the request never happens, and the
+    // old alert still claimed the fetch "returned nothing".
+    const d = describeBodyFetch({ messageId: 'em_3', attempted: false, failure: 'RESEND_API_KEY is not set, so the body fetch was never attempted.' })
+    expect(d.why).toContain('we never asked')
+    expect(d.detail).toContain('RESEND_API_KEY')
+    expect(d.detail).toContain('Every reply will be affected')
+  })
+
+  it('a genuinely empty body is the ONLY case that says "empty"', () => {
+    const d = describeBodyFetch({ messageId: 'em_4', attempted: true, failure: null })
+    expect(d.why).toBe('the body arrived empty')
+    expect(d.detail).toContain('may genuinely be an empty message')
+  })
+
+  it('the four readings are all DIFFERENT — that is the whole fix', () => {
+    const whys = [
+      describeBodyFetch({ messageId: 'x', attempted: true,  failure: 'HTTP 500' }).why,
+      describeBodyFetch({ messageId: 'x', attempted: false, failure: 'no key' }).why,
+      describeBodyFetch({ messageId: 'x', attempted: true,  failure: null }).why,
+    ]
+    expect(new Set(whys).size).toBe(3)
+  })
+
+  it('never blames the prospect when the failure was ours', () => {
+    for (const f of ['HTTP 500', 'HTTP 429 rate limited', 'ETIMEDOUT']) {
+      expect(describeBodyFetch({ messageId: 'x', attempted: true, failure: f }).why)
+        .not.toContain('arrived empty')
+    }
   })
 })

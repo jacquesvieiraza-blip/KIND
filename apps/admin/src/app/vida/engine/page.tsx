@@ -54,6 +54,15 @@ type SeedReport = {
   checked_at: string
 }
 
+/** #298 — the backup manifest, as returned by GET /operator/backup/manifest. Counts only. */
+type BackupManifest = {
+  takenAt: string
+  host: string
+  tables: { table: string; rows: number }[]
+  totalRows: number
+  totalTables: number
+}
+
 /** The mailbox-details form. Kept out of the component so a re-render can't reshape it. */
 type CredForm = {
   inboxId: string; clientId: string
@@ -87,6 +96,23 @@ export default function VidaEnginePage() {
   // information, and this one is not reversible.
   const [seed, setSeed] = useState<SeedReport | null>(null)
   const [seedErr, setSeedErr] = useState<string | null>(null)
+  // #298 — same separation again. A manifest that FAILED to build must never be saved as a
+  // reference: an empty manifest makes an empty database compare clean, which is the exact
+  // false all-clear a restore drill exists to prevent.
+  const [man, setMan] = useState<BackupManifest | null>(null)
+  const [manErr, setManErr] = useState<string | null>(null)
+
+  async function runManifest() {
+    setBusy('manifest'); setMan(null); setManErr(null)
+    try {
+      const j = await fetch('/api/proxy/operator/backup/manifest').then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not take a manifest')
+      setMan(j.data as BackupManifest)
+    } catch (err) {
+      setManErr(err instanceof Error ? err.message : 'Could not take a manifest')
+    }
+    setBusy(null)
+  }
 
   async function runSeedReport() {
     setBusy('seed'); setSeed(null); setSeedErr(null)
@@ -414,6 +440,57 @@ export default function VidaEnginePage() {
               Plan and runbook: <code className="px-1 bg-[#f8f6fd] rounded">docs/SEED-WIPE-PLAN.md</code>. Execution needs{' '}
               <code className="px-1 bg-[#f8f6fd] rounded">SEED_WIPE_ARMED</code> set to today&apos;s UTC date AND a typed
               confirmation — a value left set from a previous day cannot fire.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* #298 — BACKUP MANIFEST. Counts only, no data. The piece a restore drill cannot
+          work without: press restore, get a green tick, and without a prior manifest there
+          is no way to tell whether you got everything, half of it, or last week's copy. */}
+      <div className="bg-white rounded-xl border border-[#ece5fb] p-4 mt-4">
+        <div className="flex items-start gap-3">
+          <div>
+            <b className="text-[13px] text-[#1f1235] block">Backup manifest</b>
+            <p className="text-[11.5px] text-[#5c5279] mt-0.5 leading-relaxed">
+              Every table and its exact row count, right now. <b>Save it off this system</b> — a manifest stored
+              only in the database it describes is worthless in the one situation it exists for. Take another
+              after any restore and compare: that comparison is the only thing that ever proves a restore worked.
+            </p>
+          </div>
+          <button onClick={runManifest} disabled={busy === 'manifest'}
+            className="ml-auto shrink-0 bg-[#1f1235] hover:bg-[#312150] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+            {busy === 'manifest' ? 'Counting…' : 'Take manifest'}
+          </button>
+        </div>
+
+        {manErr && (
+          <p className="text-[11.5px] font-semibold text-red-700 mt-2 leading-relaxed">
+            Could not take a manifest: {manErr}. Do NOT save this as a reference — an empty manifest makes an
+            empty database compare clean.
+          </p>
+        )}
+
+        {man && (
+          <div className="mt-3">
+            <p className="text-[12px] font-bold text-[#0e7c86]">
+              {man.totalTables} tables · {man.totalRows.toLocaleString()} rows · {new Date(man.takenAt).toLocaleString()}
+            </p>
+            <button
+              onClick={() => {
+                const blob = new Blob([JSON.stringify(man, null, 2)], { type: 'application/json' })
+                const a = document.createElement('a')
+                a.href = URL.createObjectURL(blob)
+                a.download = `kind-manifest-${man.takenAt.slice(0, 10)}.json`
+                a.click()
+                URL.revokeObjectURL(a.href)
+              }}
+              className="mt-2 bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3 py-1.5 text-[12px] font-bold">
+              Download JSON
+            </button>
+            <p className="text-[11px] text-[#8b82a8] mt-2">
+              Plan and drill runbook: <code className="px-1 bg-[#f8f6fd] rounded">docs/BACKUP-RESTORE-DRILL.md</code>.
+              Counts only — no data leaves the database. Read {man.host}.
             </p>
           </div>
         )}

@@ -20,7 +20,7 @@ const REQUIRED_VARS: VarSpec[] = [
   { key: 'SUPABASE_SERVICE_ROLE_KEY', level: 'critical',  description: 'Supabase service role key' },
   { key: 'ANTHROPIC_API_KEY',         level: 'critical',  description: 'Claude AI — FIGSY sequences, reply classification' },
 
-  // Payments — Stripe is primary. Paystack removed (requires SA entity).
+  // Payments — Stripe is the only processor (#352 removed the last dead Paystack path).
   // NOTE: these fail SILENTLY at runtime (graceful no-op / disabled Buy button) — so they MUST be loud here.
   { key: 'STRIPE_SECRET_KEY',         level: 'important', description: 'Stripe — unset = no checkout, customers cannot pay' },
   { key: 'STRIPE_WEBHOOK_SECRET',     level: 'important', description: 'Stripe webhook — unset = customer charged but NEVER credited' },
@@ -30,7 +30,6 @@ const REQUIRED_VARS: VarSpec[] = [
   { key: 'STRIPE_PRICE_FIGSY_20',     level: 'important', description: 'Stripe price ID — FIGSY 20 bundle' },
   { key: 'STRIPE_PRICE_FIGSY_40',     level: 'important', description: 'Stripe price ID — FIGSY 40 bundle' },
   { key: 'STRIPE_PRICE_FIGSY_100',    level: 'important', description: 'Stripe price ID — FIGSY 100 bundle' },
-  { key: 'PAYSTACK_SECRET_KEY',       level: 'optional',  description: 'Paystack — legacy only, not in use (removed from billing UI)' },
 
   // Email — Resend is THE send transport (sequences, FIGSY cold, digests, alerts)
   { key: 'RESEND_API_KEY',            level: 'critical',  description: 'Resend — all outbound email; unset = FIGSY records "sent" but sends NOTHING' },

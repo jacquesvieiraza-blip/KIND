@@ -435,93 +435,40 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         from:      fromEmail,
       })
 
-      // Auto top-up check — #315 hardened: correct wallet per plan, atomic grant,
-      // cooldown so two near-simultaneous hot replies can't both charge the card, and
-      // canonical bundle pricing.
-      try {
-        const { data: clientForTopup } = await db.from('clients')
-          .select('id, user_id, credit_balance, figsy_credits_remaining, auto_topup_enabled, auto_topup_threshold, auto_topup_plan, auto_topup_bundle_size, auto_topup_paystack_auth')
-          .eq('id', lead.client_id).maybeSingle()
-
-        const plan = clientForTopup?.auto_topup_plan ?? 'kind_ai'
-        const isFigsy = plan === 'figsy'
-        // Threshold + grant must use the SAME wallet the plan spends from: figsy outreach
-        // draws figsy_credits_remaining; lead_gen draws credit_balance. The old code always
-        // read + wrote credit_balance, so a figsy client paid real money and received
-        // lead-gen credits while their figsy pool stayed empty (and never crossed threshold).
-        const currentBalance = isFigsy
-          ? (clientForTopup?.figsy_credits_remaining ?? 0)
-          : (clientForTopup?.credit_balance ?? 0)
-
-        if (clientForTopup?.auto_topup_enabled &&
-            clientForTopup.auto_topup_paystack_auth &&
-            currentBalance < (clientForTopup.auto_topup_threshold ?? 0)) {
-
-          // Anti-double-charge cooldown: the svix idempotency guard only stops IDENTICAL
-          // event replays; two DISTINCT hot replies close together would otherwise each
-          // charge the card. Skip if this client was auto-topped-up in the last 30 min.
-          const cooldownAgo = new Date(Date.now() - 30 * 60_000).toISOString()
-          const { count: recentTopups } = await db.from('credit_transactions')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', clientForTopup.id).eq('type', 'purchase')
-            .ilike('note', 'Auto top-up%').gte('created_at', cooldownAgo)
-
-          const bundleSize = clientForTopup.auto_topup_bundle_size ?? 20
-          // Canonical pricing — lead_gen $1/credit, figsy $3/credit (no volume discounts).
-          const BUNDLES: Record<string, Record<number, number>> = {
-            kind_ai: { 10: 10, 20: 20, 40: 40, 75: 75, 100: 100, 200: 200, 500: 500 },
-            figsy:   { 10: 30, 20: 60, 40: 120, 75: 225, 100: 300, 200: 600, 500: 1500 },
-          }
-          const amountUsd = BUNDLES[plan]?.[bundleSize]
-
-          if ((recentTopups ?? 0) > 0) {
-            console.log(`[auto-topup] client ${clientForTopup.id} topped up within 30 min — skipping (cooldown)`)
-          } else if (amountUsd) {
-            const { data: { user } } = await db.auth.admin.getUserById(clientForTopup.user_id)
-            const topupEmail = user?.email
-            if (!topupEmail) throw new Error('No email for auto-topup client')
-            const amountZarKobo = Math.round(amountUsd * 19 * 100)
-            const chargeRes = await fetch('https://api.paystack.co/transaction/charge_authorization', {
-              method: 'POST',
-              headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`, 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                authorization_code: clientForTopup.auto_topup_paystack_auth,
-                email: topupEmail,
-                amount: amountZarKobo,
-                currency: 'ZAR',
-                metadata: { client_id: clientForTopup.id, type: 'credit_purchase', plan, bundle_size: bundleSize, amount_usd: amountUsd, auto_topup: true },
-              }),
-            })
-            const chargeData = await chargeRes.json() as { status: boolean; data: { status: string; reference?: string } }
-            if (chargeData.status && chargeData.data?.status === 'success') {
-              // Atomic grant to the CORRECT wallet (was a read-modify-write on credit_balance).
-              const rpc = isFigsy ? 'increment_figsy_credits' : 'increment_client_credits'
-              const { error: grantErr } = await db.rpc(rpc, { p_client_id: clientForTopup.id, p_amount: bundleSize })
-              if (grantErr) {
-                console.error('[auto-topup] grant RPC failed after successful charge', grantErr.message)
-                // P11 — the card was CHARGED but the credit grant failed: the client
-                // paid and got nothing. Don't let that sit console-only — alert so it
-                // can be granted manually. (Landmine: unreachable until a Paystack auth
-                // exists, but a silent charge-without-grant must never ship.)
-                void sendFounderAlert('payment_failed', 'Auto-topup charged but grant failed', [
-                  `Client: ${clientForTopup.id}`,
-                  `Auto top-up charged ${bundleSize} ${plan} credits (ref ${chargeData.data?.reference ?? 'unknown'}) but the grant RPC failed: ${grantErr.message}`,
-                  'Action: grant the credits manually — the client was billed.',
-                ])
-              } else {
-                await db.from('credit_transactions').insert({
-                  client_id: clientForTopup.id,
-                  type: 'purchase',
-                  amount: bundleSize,
-                  plan,
-                  reference: chargeData.data?.reference ?? undefined,
-                  note: `Auto top-up: ${bundleSize} credits (${plan})`,
-                }).then(() => {}, () => {})
-              }
-            }
-          }
-        }
-      } catch (autoErr) { console.error('[auto-topup]', autoErr) }
+      // ── #352 (AR-14) — THE AUTO-TOP-UP CARD CHARGE USED TO LIVE HERE. IT IS GONE.
+      //    Founder-confirmed 27 Jul: "I confirm: yes, remove."
+      //
+      // A hot reply landing here would charge the client's card through
+      // `api.paystack.co/transaction/charge_authorization`. Four faults at once:
+      //
+      //   ① IT CHARGED IN ZAR AT A RATE WE INVENTED. `Math.round(amountUsd * 19 * 100)` —
+      //     a hardcoded USD→ZAR rate of 19 inside a live card charge, so a $20 bundle
+      //     billed R380 regardless of what the rate actually was.
+      //   ② CHECK-THEN-ACT — the AR-14 headline. The "cooldown" COUNTED recent top-up rows
+      //     and then charged. Two hot replies arriving together both counted zero and both
+      //     charged: a real double card charge (the one 20260702_webhook_idempotency
+      //     describes; svix idempotency only ever stopped IDENTICAL event replays).
+      //   ③ IT COULD NEVER SUCCEED ANYWAY. The gate required `auto_topup_paystack_auth`,
+      //     and Paystack was pulled from the billing UI in #325, so no client could obtain
+      //     one. The code admitted it: "Landmine: unreachable until a Paystack auth exists."
+      //   ④ NOTHING RECEIVED THE RESULT. `index.ts` mounted raw-body parsing for
+      //     `/webhooks/paystack` and no route was ever registered behind it.
+      //
+      // Removing it settles AR-14 outright rather than hardening it: there is no charge
+      // left to race. And it takes a payment out of a webhook ANY PROSPECT CAN TRIGGER by
+      // replying to an email — which is the property worth keeping long after the Paystack
+      // detail is forgotten.
+      //
+      // DELIBERATELY NOT REMOVED: the client's stored `auto_topup_*` preferences, the
+      // columns behind them, and every historical Paystack reference in
+      // `credit_transactions`. The founder authorised removing the CHARGE PATH, not billing
+      // history or a client's saved settings (NOTHING GETS DELETED, founder-locked 26 Jul).
+      // Milla's billing page already tells clients the truth — auto top-up reads
+      // "coming soon", display-only, since #325.
+      //
+      // To bring auto top-up back it has to be rebuilt on Stripe: an off-session
+      // PaymentIntent against a saved payment method, in USD, with the charge claimed
+      // atomically BEFORE it is made rather than counted after.
     }
 
     lastReplyId = reply?.id

@@ -347,7 +347,6 @@ export default function HealthPage() {
             { name: 'Supabase Status',  url: 'https://status.supabase.com',   desc: 'Database & auth' },
             { name: 'Vercel Status',    url: 'https://www.vercel-status.com',  desc: 'Frontend deployments' },
             { name: 'Railway Status',   url: 'https://status.railway.app',     desc: 'API server' },
-            { name: 'Paystack Status',  url: 'https://status.paystack.com',    desc: 'Payment processing' },
           ].map(link => (
             <a
               key={link.name}

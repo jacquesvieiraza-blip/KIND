@@ -52,7 +52,7 @@ const AGENTS: Record<AgentId, AgentDef> = {
   cfo: {
     name: 'CFO',
     title: 'Chief Financial Officer',
-    mandate: 'MRR, credit burn rates, Apollo cost per client, Paystack fees, net margin. Cash position.',
+    mandate: 'MRR, credit burn rates, Apollo cost per client, Stripe fees, net margin. Cash position.',
     accent: 'text-yellow-400',
     accentBg: 'bg-yellow-400/10 border-yellow-400/20',
   },

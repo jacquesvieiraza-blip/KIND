@@ -45,6 +45,15 @@ type RlsAudit = {
   checked_at: string
 }
 
+/** #329 — the seed-data report, as returned by GET /operator/seed-report. */
+type SeedReport = {
+  classifications: { clientId: string; companyName: string; disposition: string; reason: string }[]
+  eligible: { clientId: string; companyName: string }[]
+  protectedCount: number
+  clean: boolean
+  checked_at: string
+}
+
 /** The mailbox-details form. Kept out of the component so a re-render can't reshape it. */
 type CredForm = {
   inboxId: string; clientId: string
@@ -73,6 +82,23 @@ export default function VidaEnginePage() {
   // screen, "nothing found" because the query died is the worst lie available.
   const [rls, setRls] = useState<RlsAudit | null>(null)
   const [rlsErr, setRlsErr] = useState<string | null>(null)
+  // #329 — same separation, same reason: a report that FAILED must never render as
+  // "nothing to clean". That is the reading that gets somebody to arm a wipe on bad
+  // information, and this one is not reversible.
+  const [seed, setSeed] = useState<SeedReport | null>(null)
+  const [seedErr, setSeedErr] = useState<string | null>(null)
+
+  async function runSeedReport() {
+    setBusy('seed'); setSeed(null); setSeedErr(null)
+    try {
+      const j = await fetch('/api/proxy/operator/seed-report').then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not build the seed report')
+      setSeed(j.data as SeedReport)
+    } catch (err) {
+      setSeedErr(err instanceof Error ? err.message : 'Could not build the seed report')
+    }
+    setBusy(null)
+  }
 
   async function runRlsAudit() {
     setBusy('rls'); setRls(null); setRlsErr(null)
@@ -326,6 +352,68 @@ export default function VidaEnginePage() {
               Only exposed / RLS-off tables are listed — a healthy table needs no row. Full written verdict:{' '}
               <code className="px-1 bg-[#f8f6fd] rounded">docs/RLS-AUDIT.md</code>. Read {rls.host} at{' '}
               {new Date(rls.checked_at).toLocaleString()}.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* #329 — SEED DATA. READ-ONLY, ALWAYS SAFE TO PRESS.
+          The plan is docs/SEED-WIPE-PLAN.md. Nothing here deletes anything: this reports
+          what a wipe WOULD touch, and the execution path is armed by an env var that
+          expires the same day. Most likely outcome is "clean" — exclusion (#543) already
+          does the job the item was raised for. */}
+      <div className="bg-white rounded-xl border border-[#ece5fb] p-4 mt-4">
+        <div className="flex items-start gap-3">
+          <div>
+            <b className="text-[13px] text-[#1f1235] block">Seed data</b>
+            <p className="text-[11.5px] text-[#5c5279] mt-0.5 leading-relaxed">
+              What a go-live wipe would touch — and what it would refuse to. <b>Read-only.</b> A client with a
+              real payment or real leads is protected whatever it is labelled, and the demo and house accounts
+              are kept on purpose.
+            </p>
+          </div>
+          <button onClick={runSeedReport} disabled={busy === 'seed'}
+            className="ml-auto shrink-0 bg-[#1f1235] hover:bg-[#312150] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+            {busy === 'seed' ? 'Reading…' : 'Seed data report'}
+          </button>
+        </div>
+
+        {seedErr && (
+          <p className="text-[11.5px] font-semibold text-red-700 mt-2 leading-relaxed">
+            Could not build the report: {seedErr}. This is NOT &quot;nothing to clean&quot; — nothing was checked.
+          </p>
+        )}
+
+        {seed && (
+          <div className="mt-3">
+            <p className={`text-[12px] font-bold ${seed.clean ? 'text-[#0e7c86]' : 'text-[#5b21b6]'}`}>
+              {seed.clean
+                ? `Clean — nothing eligible. ${seed.protectedCount} client(s), all protected. #329 closes without deleting anything.`
+                : `${seed.eligible.length} eligible · ${seed.protectedCount} protected. Read every eligible row by name before arming anything.`}
+            </p>
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full text-[11.5px]">
+                <tbody>
+                  {seed.classifications.map(v => (
+                    <tr key={v.clientId} className="border-b border-[#f4eefe]">
+                      <td className="py-1 pr-3 align-top whitespace-nowrap font-bold text-[#1f1235]">{v.companyName}</td>
+                      <td className="py-1 pr-3 align-top whitespace-nowrap">
+                        <span className={`px-1.5 py-0.5 rounded text-[10.5px] font-bold ${
+                          v.disposition === 'eligible' ? 'bg-amber-50 text-amber-800' : 'bg-[#f0fdfa] text-[#0e7c86]'
+                        }`}>
+                          {v.disposition === 'eligible' ? 'eligible' : 'protected'}
+                        </span>
+                      </td>
+                      <td className="py-1 text-[#5c5279] leading-relaxed">{v.reason}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-[#8b82a8] mt-2">
+              Plan and runbook: <code className="px-1 bg-[#f8f6fd] rounded">docs/SEED-WIPE-PLAN.md</code>. Execution needs{' '}
+              <code className="px-1 bg-[#f8f6fd] rounded">SEED_WIPE_ARMED</code> set to today&apos;s UTC date AND a typed
+              confirmation — a value left set from a previous day cannot fire.
             </p>
           </div>
         )}

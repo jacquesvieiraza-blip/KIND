@@ -8,19 +8,37 @@
 
 ---
 
-## 🛑 HONEST STATE — read this before anything else *(swept against the code 26 Jul)*
+## 🛑 HONEST STATE — read this before anything else *(swept against the code 27 Jul, end of day)*
 
-**Where we actually are.** The product finds people, scores them, masks them, shows them to a client, takes the client's 👍, charges for it, writes the sequence and books the meeting. As of today it can also **send from the client's own mailbox** — `figsy.ts:26 const FROM = COLD_FROM` is deleted, the sender is resolved per client, and **no mailbox means no send** with no fallback (#547 #548 #552, PRs #1167 #1168). What is still missing to make that real: the mailbox credentials themselves, replies coming back to the right place (#551), and the accounts (#549 #550).
+> **If you have been away and remember nothing, read only this block.** It is rewritten at the end of every working session and it is the state of record for *what is left*. Status per item lives in PRODUCT-INVENTORY; why anything was decided lives in KIND-MASTER.
 
-**What the full sweep found — and this is why you kept catching me.** I read every 🔴 row against the code rather than trusting its label, and the board was wrong **in both directions**:
+**Where we actually are.** The product finds people, scores them, masks them, surfaces them, takes the client's 👍, charges for it, writes the sequence, routes replies to the right client and books the meeting. **Every code item in the sending spine is now built.** What it cannot do is send — because **no mailbox exists for any client** (`LIVE INBOXES · 0`). That is a purchase and a form, not a PR.
 
-- **Five rows said "not built" about things that are LIVE.** #492 ONE WALLET — the money model every session above has been building on — read *"not built"* on its own row. Also #488 Milla's lead desk, #489 the Milla chat, #480 the lifecycle-email master switch, and #477 the scoring crash-path fix. All corrected to 🩷.
-- **Three real defects were sitting in rows nobody was reading as launch work.** The one that matters most: **#366 — one ICP only ever sees page one of the data, forever.** The code says it itself (`pdl-search.ts:117`), and it means a client's second month has nowhere to source from. The cashflow says the repeat *is* the business. That has been 🔴 since 30 June with no one treating it as a blocker.
-- **Four money/safety paths are live and wrong right now:** two API replicas would double-send every prospect (#343), a broken subscription is written as `active` (#340), the lapse cron throws nightly (#342), and a **retired payment processor can still charge a card** (#352).
+**The three things standing between here and a delivered paying client — none of them are code I can write:**
 
-**What IS solid, verified:** the money model ($99 pack = 100 approvals, then $4, one wallet, only the client's 👍 spends) · the minimum-20 gate, server-enforced on every door · 30-days-idle suspends and un-suspends on their own click · sourcing fences (allowance × 2, 100/client/day, $300/mo global) · the **MBF demo** (40 fixed invented people, physically cannot send) · both consoles native, no old-shell escapes.
+| | What | Who |
+|---|------|:---:|
+| 1 | **A mailbox exists.** Buy a SmartSenders mailbox (~$40/client/mo), record it in Vida → Engine against the client with provider `smartlead-api`. Until this is true, `#547` fails closed and nothing sends — by design. | 🧍 |
+| 2 | **#553 — the first-send ladder.** Test send lands in a real *inbox* (not Promotions, not spam) · mail-tester ≥9/10 · daily cap on · one client, one day, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. Founder-only, deliberately. | 🧍 |
+| 3 | **#549 — Instantly for our own outreach.** Blocked on the Instantly bill: API v2 returns **HTTP 402**, a plan limit confirmed live on 27 Jul, not a code fault. | 🧍 |
 
-**So: the demo is sellable today. Delivery needs Blocks A, B2 and C.**
+**Built but NOT PROVEN — each needs real activity, not more code.** These are 🟡/🩷 and must not be read as working:
+
+- **#550 Smartlead** — built 27 Jul, key returns **401**. Nothing exercised against a live workspace. The sequence *step shape* is unverified (their docs 403 us) — **check it in Smartlead's UI after the first push.**
+- **#366 PDL paging** — needs one ICP run twice with real credits to prove month two finds new people.
+- **#340 / #342 subscriptions** — need Stripe test-mode activity to exercise.
+- **#298 backup manifest** — built; **take one and save the JSON off this system.** Never done.
+
+**Environment blockers, one root cause — the flagged GitHub account:**
+
+- **CI has never run.** All five workflows registered and `active`, **0 runs ever** (checked 27 Jul). `scripts/check.sh` is not a belt over CI — **it IS the only gate.**
+- **Supabase dashboard unreachable.** Blocks the restore drill (#298), the Postgres password rotation, and forces every migration through Vida → Engine.
+- **`DATABASE_URL` is mangled** (a placeholder ref was pasted in). Breaks *Run migrations*, *RLS audit*, *Backup manifest*. **Nothing client-facing.** The error now names the right value.
+
+**Verified live in production on 27 Jul, not claimed:** RLS clean (82 tables read, no exposed tables · `client_inboxes` had **no RLS at all** and now does) · cron single-run guard in place · seed report reads MBF and K.I.N.D as protected, ACME eligible · 12/12 migrations applied.
+
+**So: the demo is sellable today. Delivery needs a mailbox, the ladder, and the bill.**
+
 
 ## 🅰 BLOCK A — THE SENDING SPINE (nothing else matters until this is done)
 

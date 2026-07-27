@@ -37,6 +37,18 @@ export type InboundReply = {
   /** The provider's own id, so a dropped reply can be found again in their dashboard. */
   providerMessageId: string | null
   provider: ReplyProvider
+  /**
+   * #551 — THE MAILBOX THAT RECEIVED IT. The address the prospect replied TO.
+   *
+   * Today every reply lands at one shared Resend inbox, so this carries no information and
+   * routing falls back to matching on the prospect's address alone. The moment a client sends
+   * from their OWN mailbox, replies arrive THERE — and this becomes the only unambiguous
+   * answer to *whose reply is this*.
+   *
+   * Null when the provider does not tell us, which must behave exactly as today rather than
+   * dropping anything.
+   */
+  toEmail: string | null
 }
 
 export type ReplyProvider = 'resend' | 'instantly' | 'smartlead' | 'manual'
@@ -219,4 +231,118 @@ export async function alertDroppedReply(
       '',
       'Open it in the provider and reply by hand.',
     ]).catch(() => {})
+}
+
+// ── #551 — REPLIES LAND BACK AGAINST THE RIGHT INBOX ────────────────────────────────────
+//
+// THE DEFECT, and it does not bite until the first client sends from their own mailbox.
+//
+// `findLeadMatches` matches on the PROSPECT'S address across every client, and the handler
+// fans the reply out to all of them. That is CORRECT today: every reply arrives at one shared
+// Resend inbox, so the prospect's address is genuinely the only information we have, and two
+// clients working the same person both deserve to see it (R1).
+//
+// The moment a client sends from their own mailbox, the reply arrives AT THAT MAILBOX — and
+// the fan-out becomes actively wrong. Client A's prospect replies to Client A's mailbox, and
+// we would also drop that reply into Client B's thread because B happens to have sourced the
+// same person. That is one client reading another client's inbound mail.
+//
+// The receiving mailbox answers it exactly. `client_inboxes.email` maps address → client, so
+// the chain is **inbox → client → lead → thread**, and the prospect's address stops being the
+// routing key and becomes only the lead lookup.
+//
+// FALLS BACK TO TODAY'S BEHAVIOUR when the inbox is unknown — a shared inbox, a provider that
+// does not report `to`, a mailbox not yet recorded. Unknown must never mean dropped.
+
+export type ReplyRouting = {
+  /** The matches this reply should actually be written to. */
+  matches: LeadMatch[]
+  /** How it was decided — for the log, and for the alert when nothing matched. */
+  how: 'inbox' | 'fanout'
+  /** Matches deliberately EXCLUDED because they belong to another client. */
+  excluded: LeadMatch[]
+}
+
+/**
+ * Decide which matches a reply belongs to.
+ *
+ * `ownerClientId` is the client who owns the receiving mailbox, or null when we cannot tell.
+ *
+ * **Null falls through to the fan-out** — today's behaviour, unchanged, because with one
+ * shared inbox that IS the right answer and a stricter rule would start dropping replies the
+ * day it shipped.
+ *
+ * When the owner IS known, only that client's matches are kept. An empty result is a real
+ * outcome, not an error: somebody replied to a client's mailbox who is not in that client's
+ * leads. The caller must report it rather than fall back to the fan-out, because falling back
+ * is precisely the harm — handing one client's inbound mail to another.
+ */
+export function routeReply(matches: LeadMatch[], ownerClientId: string | null): ReplyRouting {
+  if (!ownerClientId) return { matches, how: 'fanout', excluded: [] }
+  const mine = matches.filter(m => m.client_id === ownerClientId)
+  const excluded = matches.filter(m => m.client_id !== ownerClientId)
+  return { matches: mine, how: 'inbox', excluded }
+}
+
+/**
+ * Which client owns the mailbox this reply arrived at?
+ *
+ * Returns null when the address is unknown — a shared inbox, or one not yet recorded — which
+ * routes by fan-out exactly as today.
+ *
+ * Deliberately does NOT filter by inbox status. A released or retired mailbox still receives
+ * mail for weeks afterwards, and a reply to a mailbox we have stopped sending from still
+ * belongs to the client it was bought for. Filtering to active would silently orphan the tail
+ * of every switched-over client — the pooled→branded handover is designed to overlap.
+ */
+export async function resolveInboxOwner(toEmail: string | null | undefined): Promise<string | null> {
+  const addr = (toEmail ?? '').toLowerCase().trim()
+  if (!addr) return null
+  const { data, error } = await db.from('client_inboxes')
+    .select('client_id').ilike('email', addr).limit(1).maybeSingle()
+  if (error) {
+    // Fail OPEN to the fan-out. A lookup outage must never drop a reply — it must only cost
+    // us the precision of the routing.
+    console.error('[reply-ingest] inbox owner lookup failed (routing by fan-out):', error.message)
+    return null
+  }
+  return (data as { client_id?: string } | null)?.client_id ?? null
+}
+
+/**
+ * The idempotency key for one inbound reply.
+ *
+ * **#551's second clause: idempotent on the PROVIDER MESSAGE ID.** Today the guard keys on
+ * `svix-id`, which is a RESEND DELIVERY id — Instantly and Smartlead have no such thing, so
+ * the moment a second provider delivers replies the guard would key on an empty string,
+ * `isDuplicateWebhookEvent` would fail open on every event, and a retried hot reply would
+ * re-run the whole path: a second CRM deal, a second alert, a second counter bump.
+ *
+ * The provider message id is namespaced by provider, because two providers can legitimately
+ * issue the same id and one must never suppress the other's reply.
+ */
+export function replyEventKey(reply: Pick<InboundReply, 'provider' | 'providerMessageId'>, deliveryId?: string | null): string | null {
+  const pid = (reply.providerMessageId ?? '').trim()
+  if (pid) return `${reply.provider}:${pid}`
+  const d = (deliveryId ?? '').trim()
+  // No provider id — fall back to the transport's delivery id (Resend's svix-id today).
+  // Returning null rather than an empty string keeps `isDuplicateWebhookEvent` failing OPEN,
+  // which is right: unable to dedup must mean process, never drop.
+  return d ? `${reply.provider}:delivery:${d}` : null
+}
+
+/** The alert body for a reply that reached a KNOWN client mailbox but matched no lead. */
+export function unmatchedAtKnownInboxLines(a: {
+  toEmail: string
+  fromEmail: string
+  companyName: string | null
+  excludedCount: number
+}): string[] {
+  return [
+    `A reply arrived at ${a.companyName ?? 'a client'}'s mailbox (${a.toEmail}) from ${a.fromEmail}, and that address is not one of their leads.`,
+    a.excludedCount > 0
+      ? `${a.excludedCount} other client(s) DO have this person as a lead — deliberately NOT routed there, because a reply to this client's mailbox is this client's mail.`
+      : 'No client has this person as a lead at all.',
+    'It has not been dropped: this alert is the record. Most likely a forwarded thread, a colleague replying, or someone they emailed outside the product.',
+  ]
 }

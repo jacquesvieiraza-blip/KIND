@@ -20,7 +20,10 @@ import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
 import { sendFounderAlert } from '../lib/alerts'
 // The provider-agnostic reply spine (#589). Resend feeds it today; Instantly and Smartlead
 // feed the same functions next, so the five reply defects are fixed once, not three times.
-import { isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, describeBodyFetch, REPLY_LOOKUP_STATUSES } from '../lib/reply-ingest'
+import {
+  isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, describeBodyFetch,
+  REPLY_LOOKUP_STATUSES, resolveInboxOwner, routeReply, replyEventKey, unmatchedAtKnownInboxLines,
+} from '../lib/reply-ingest'
 
 // Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
 // is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
@@ -143,7 +146,21 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
   // without this guard a retried hot reply re-pushes the CRM deal AND re-fires the
   // Paystack auto-top-up (double charge). Key on the stable `svix-id`; a delivery we
   // have already recorded is a no-op. Fails open (see lib/webhook-idempotency).
-  if (await isDuplicateWebhookEvent(db, req.headers['svix-id'], 'resend')) {
+  // #551 — key on the PROVIDER MESSAGE ID, not just Resend's svix delivery id.
+  //
+  // `svix-id` is a Resend transport id. Instantly and Smartlead have no such header, so the
+  // moment a second provider delivers replies this guard would key on an empty string, fail
+  // open on every event, and a retried hot reply would re-run the whole path — a second CRM
+  // deal, a second alert, a second counter bump. `replyEventKey` prefers the provider's own
+  // message id and namespaces it, because two providers can issue the same id and neither
+  // must ever suppress the other's reply.
+  const rawPeek = (() => { try { return JSON.parse(rawBuf.toString('utf8') || '{}') as Record<string, unknown> } catch { return {} } })()
+  const peekData = (rawPeek.data && typeof rawPeek.data === 'object') ? rawPeek.data as Record<string, unknown> : rawPeek
+  const dedupKey = replyEventKey(
+    { provider: 'resend', providerMessageId: (peekData.email_id as string) || (peekData.id as string) || null },
+    Array.isArray(req.headers['svix-id']) ? req.headers['svix-id'][0] : req.headers['svix-id'],
+  )
+  if (await isDuplicateWebhookEvent(db, dedupKey, 'resend')) {
     res.status(200).json({ received: true, deduped: true }); return
   }
 
@@ -237,11 +254,18 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       }
     }
 
+    // #551 — the mailbox that RECEIVED this. Today it is our one shared Resend inbox and
+    // carries no information; the moment a client sends from their own mailbox it becomes the
+    // only unambiguous answer to *whose reply is this*.
+    const toRawIn = payload.to
+    const toEmail = ((Array.isArray(toRawIn) ? toRawIn[0] : toRawIn) as string | undefined)?.toLowerCase().trim() ?? null
+
     const inbound = {
       fromEmail, fromName, body,
       subject: (payload.subject as string) ?? null,
       providerMessageId: emailId || null,
       provider: 'resend' as const,
+      toEmail,
     }
 
     // R2 / R3 — an unusable reply is a FINDING, not a silent 200. The message is still in
@@ -272,6 +296,33 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       res.status(200).json({ received: true, dropped: 'lookup_failed' }); return
     }
     if (matches.length === 0) { res.status(200).json({ received: true }); return }
+
+    // #551 — ROUTE BY THE RECEIVING MAILBOX, falling back to the fan-out when it is unknown.
+    //
+    // With one shared inbox this changes nothing: `resolveInboxOwner` returns null and every
+    // match is kept, exactly as R1 intended. Once a client sends from their own mailbox, the
+    // reply arrives THERE and only that client's thread receives it — because fanning out at
+    // that point would drop one client's inbound mail into another client's unibox.
+    const inboxOwner = await resolveInboxOwner(toEmail)
+    const routed = routeReply(matches, inboxOwner)
+    if (routed.how === 'inbox' && routed.excluded.length > 0) {
+      console.log(`[figsy/replies/inbound] routed by inbox ${toEmail} → client ${inboxOwner}; ${routed.excluded.length} match(es) at other clients deliberately excluded`)
+    }
+    if (routed.matches.length === 0) {
+      // A real person replied to a real client mailbox and is not one of their leads. NOT
+      // dropped silently, and NOT handed to whichever other client happens to hold the lead —
+      // that is the exact harm this routing exists to prevent.
+      const { data: ownerRow } = await db.from('clients').select('company_name').eq('id', inboxOwner!).maybeSingle()
+      void sendFounderAlert('sends_stalled', 'A reply arrived at a client mailbox with no matching lead',
+        unmatchedAtKnownInboxLines({
+          toEmail: toEmail ?? 'unknown',
+          fromEmail,
+          companyName: (ownerRow as { company_name?: string } | null)?.company_name ?? null,
+          excludedCount: routed.excluded.length,
+        })).catch(() => {})
+      res.status(200).json({ received: true, dropped: 'no_lead_at_this_inbox' }); return
+    }
+    matches = routed.matches
 
     // CLASSIFY ONCE, BEFORE THE LOOP.
     //

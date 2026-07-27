@@ -299,6 +299,38 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     })
   if (!enrolled) console.warn('[approve] lead approved but not enrolled —', leadId)
 
+  // 9. HAND THE LEAD TO INSTANTLY — our own outreach only (Client Zero, #593).
+  //
+  // This is the wiring Prompt 4 shipped without: the client and the mapping existed, and
+  // nothing called them. Placed after the enrol because the lead must be paid for, revealed
+  // and in a sequence before anyone sends on its behalf.
+  //
+  // It CANNOT affect the approve. Every gate is re-checked inside — demo, kill-switch, house
+  // client, key present — and the whole thing is wrapped, because this runs after the client
+  // has already been charged and an exception here would surface as a failed approve on a
+  // lead they have paid for.
+  //
+  // Silent on the four EXPECTED refusals (demo · kill-switch off · a client, who goes via
+  // Smartlead · no key). Alerting on those would page the founder on every approval and train
+  // them to ignore it. Only a real API failure or a missing sequence is news.
+  if (enrolled) {
+    try {
+      const { pushApprovedLeadToInstantly, pushRefusalIsNews } = await import('./instantly-push')
+      const push = await pushApprovedLeadToInstantly(leadId, clientId)
+      if (!push.pushed && pushRefusalIsNews(push.reason)) {
+        console.error('[approve] Instantly push failed', clientId, leadId, push.detail)
+        void sendFounderAlert('sends_stalled', 'A paid lead was not handed to Instantly', [
+          `Client ${clientId}, lead ${leadId}.`,
+          `Reason: ${push.detail}`,
+          'The lead is approved, revealed and enrolled — but it is not in the Instantly campaign, so nothing goes out from our own mailboxes for it.',
+        ]).catch(() => {})
+      }
+    } catch (e) {
+      // Never let this break an approve the client has already paid for.
+      console.error('[approve] Instantly push threw (non-fatal)', clientId, leadId, e)
+    }
+  }
+
   // `charged` reflects whether money actually moved — a pack approval is free, and Milla
   // says so on the card rather than claiming a $4 that never happened.
   return { status: 'approved', revealed: true, email, charged: moneyMoved }

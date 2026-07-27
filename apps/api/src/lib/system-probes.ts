@@ -79,9 +79,40 @@ async function dependencies(): Promise<Section> {
     if (!key) return unmeasured('Instantly (OUR outreach)',
       'INSTANTLY_API_KEY is not set. Confirmed 26 Jul: Instantly does not release SMTP credentials, so our own outreach must be driven through their API — which needs this key.',
       'Instantly → Settings → Integrations → API Keys → Create, then store as INSTANTLY_API_KEY in Railway.')
-    const r = await fetchWithTimeout('https://api.instantly.ai/api/v2/accounts', { headers: { Authorization: `Bearer ${key}` } })
-    return r.ok ? ok('Instantly (OUR outreach)', 'Key is live and Instantly answered.')
-      : broken('Instantly (OUR outreach)', `Instantly rejected the key (HTTP ${r.status}).`, 'Regenerate the key in Instantly → Settings → Integrations.')
+    // Uses the real client (#593), so this row and the send path can never disagree about
+    // whether Instantly is reachable — and the key is scrubbed from anything rendered.
+    const { listAccounts } = await import('./instantly')
+    const r = await listAccounts()
+    return r.ok
+      ? ok('Instantly (OUR outreach)', `Key is live and Instantly answered — ${r.data.length} mailbox(es) connected.`)
+      : broken('Instantly (OUR outreach)', r.error,
+        r.error.includes('Growth plan')
+          ? 'This is a PLAN limit, not a code fault. API v2 needs Instantly Growth or above.'
+          : 'Regenerate the key in Instantly → Settings → Integrations.')
+  }))
+
+  // MAILBOXES + WARMUP — the prompt asked for these by name. They are the five already-warm
+  // AirMail boxes, and whether they are warm is the difference between sending and burning a
+  // domain, so the row states what it could and could not establish separately.
+  rows.push(await probe('Instantly mailboxes + warmup', async () => {
+    const { instantlyConfigured, listAccounts, warmupAnalytics } = await import('./instantly')
+    if (!instantlyConfigured()) {
+      return unmeasured('Instantly mailboxes + warmup', 'INSTANTLY_API_KEY is not set, so the mailbox list cannot be read.',
+        'Instantly → Settings → Integrations → API Keys → Create, then store as INSTANTLY_API_KEY in Railway.')
+    }
+    const accts = await listAccounts()
+    if (!accts.ok) return broken('Instantly mailboxes + warmup', accts.error, 'Check the key and the plan.')
+    if (accts.data.length === 0) {
+      return broken('Instantly mailboxes + warmup', 'The key works, but NO mailboxes are connected — there is nothing to send from.',
+        'Connect the warmed mailboxes in Instantly.')
+    }
+    const emails = accts.data.map(a => a.email).filter(Boolean)
+    const warm = await warmupAnalytics(emails)
+    return warm.ok
+      ? ok('Instantly mailboxes + warmup', `${emails.length} mailbox(es): ${emails.slice(0, 6).join(', ')}. Warmup analytics answered.`)
+      : unmeasured('Instantly mailboxes + warmup',
+        `${emails.length} mailbox(es) connected: ${emails.slice(0, 6).join(', ')}. WARMUP could NOT be read (${warm.error}), so do not treat these as warm on this row's say-so.`,
+        'Check warmup in the Instantly UI before the first send.')
   }))
 
   rows.push(await probe('Smartlead (CLIENT sending)', async () => {

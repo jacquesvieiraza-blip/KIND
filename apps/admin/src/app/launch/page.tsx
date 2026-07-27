@@ -173,7 +173,7 @@ const SECTIONS: { title: string; items: CheckItem[] }[] = [
       { id: 'sm-leads',     label: 'Leads appear within minutes',               detail: 'Leads table shows scored leads with Apollo data', critical: true },
       { id: 'sm-consent',   label: 'Send POPIA consent to one lead',            detail: 'Email arrives, lead status updates to consent_sent', critical: true },
       { id: 'sm-export',    label: 'Export leads as CSV',                       detail: 'File downloads with correct columns', critical: true },
-      { id: 'sm-billing',   label: 'Billing → buy credits',                    detail: 'Paystack opens (live key), returns, credit balance updates', critical: true },
+      { id: 'sm-billing',   label: 'Billing → buy credits',                    detail: 'Stripe Checkout opens (live key), returns, credit balance updates', critical: true },
       { id: 'sm-locked',    label: 'FIGSY / VA / Chatbot locked screens',       detail: 'Each shows Upgrade + Book a demo buttons', critical: true },
       { id: 'sm-health',    label: 'Sidebar shows green system health dot',     detail: '"All systems operational" at bottom of sidebar', critical: true },
       { id: 'sm-demo',      label: 'Create a demo environment in admin',        detail: 'Admin → Demo Envs → New Demo → leads appear → Open Demo opens portal in new tab', critical: true },

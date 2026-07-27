@@ -206,7 +206,10 @@ async function fetchCfoData() {
 
   const leadCount = (leads30d || []).length
   const apolloCost = (leadCount * 0.008).toFixed(2)
-  const paystackFees = (mrr * 0.029).toFixed(2)
+  // #352 — this was `paystack_fee_estimate_usd`. The ARITHMETIC was fine; the NAME was a
+  // lie on a money report. Stripe is the processor, and Stripe's own rate is 2.9% + $0.30,
+  // so the fixed leg is now included rather than quietly dropped.
+  const processorFees = (mrr * 0.029 + activeSubs.length * 0.30).toFixed(2)
 
   return {
     mrr_usd: mrr,
@@ -214,8 +217,8 @@ async function fetchCfoData() {
     credit_purchases_this_month: creditRevenue,
     leads_last_30d: leadCount,
     apollo_cost_estimate_usd: apolloCost,
-    paystack_fee_estimate_usd: paystackFees,
-    estimated_net_margin_usd: (mrr - Number(apolloCost) - Number(paystackFees)).toFixed(2),
+    stripe_fee_estimate_usd: processorFees,
+    estimated_net_margin_usd: (mrr - Number(apolloCost) - Number(processorFees)).toFixed(2),
   }
 }
 

@@ -94,7 +94,9 @@ app.use(cors({
   credentials: true,
 }))
 app.use(morgan('dev'))
-app.use('/webhooks/paystack', express.raw({ type: 'application/json' }))
+// #352 — the `/webhooks/paystack` raw-body mount was removed with the charge path it
+// served. No route was ever registered behind it, so it parsed bodies for a handler that
+// did not exist.
 app.use('/webhooks/stripe',  express.raw({ type: 'application/json' }))
 // Stripe webhook also lives at /stripe/webhook — must receive the raw body
 // before express.json() parses it, otherwise constructEvent() always fails.

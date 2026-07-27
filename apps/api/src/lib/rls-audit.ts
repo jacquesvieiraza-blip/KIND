@@ -176,13 +176,21 @@ export function summarise(verdicts: TableVerdict[]): {
 }
 
 /**
- * Tables the BROWSER reads directly with the public key (found by reading every `.from('…')`
- * in the portal, website and admin apps). These are the only tables that legitimately need a
- * browser-facing policy at all; for every other table, a browser-facing policy is surface
- * area with no purpose.
+ * Tables a BROWSER reads directly with the public key.
+ *
+ * THIS LIST WAS WRONG THE FIRST TIME, and the mistake is worth keeping visible because it is
+ * the list that decides whether locking a table down breaks the product. The first pass
+ * grepped every `.from('…')` under every app's `src` and produced THIRTEEN tables — but most
+ * of those hits were **Next.js server route handlers**, which build their client with
+ * `SUPABASE_SERVICE_ROLE_KEY` and therefore bypass RLS entirely. They are not browsers.
+ *
+ * Counting them would have been the dangerous direction: it makes tables look like they NEED
+ * a browser-facing policy when they do not, which is how a `USING (true)` gets defended in
+ * review. Re-derived from client components only — files marked `'use client'` or importing
+ * `lib/supabase/client` — it is five tables, not thirteen.
+ *
+ * Everywhere else, a browser-facing policy is surface area with no purpose.
  */
 export const BROWSER_READ_TABLES = [
-  'agreement_templates', 'clients', 'credit_transactions', 'figsy_campaigns',
-  'figsy_enrollments', 'figsy_replies', 'figsy_sent_emails', 'icps', 'leads',
-  'metrics_daily', 'platform_status', 'proposals', 'subscriptions',
+  'clients', 'figsy_campaigns', 'figsy_replies', 'figsy_sent_emails', 'leads',
 ] as const

@@ -191,6 +191,59 @@ ALTER TABLE IF EXISTS public.partner_referrals    ENABLE ROW LEVEL SECURITY;
 `.trim(),
   },
   {
+    // #554b — WHAT THE LIVE AUDIT ACTUALLY FOUND, which is not what the repo predicted.
+    //
+    // The first RLS audit run against production (27 Jul, 11:12) returned three tables, and
+    // NONE of the five the repo-based verdict named. That is the whole justification for
+    // reading pg_catalog instead of files, and it cuts both ways: the file verdict named
+    // five tables that are fine and MISSED the most sensitive table in the product.
+    //
+    //   ① client_inboxes — RLS OFF, NO POLICIES. This table holds `smtp_pass_enc`,
+    //     `smtp_host`, `smtp_user` and `email`: how we log in to send as each client. RLS
+    //     was never enabled — not in this migration list, not in schema.sql, NOWHERE in the
+    //     repo — because `20260725_client_inboxes` simply never included the line. With RLS
+    //     off, anyone holding the PUBLIC anon key can read every client's mailbox
+    //     configuration. The passwords are AES-256-GCM ciphertext (lib/inbox-secret.ts), so
+    //     this is not plaintext credentials — but the hosts, usernames and addresses are
+    //     plain, and ciphertext should never have been fetchable either.
+    //
+    //   ② app_migrations_applied — RLS OFF. Created as a side effect by
+    //     `apps/api/src/migrations/20260724_one_wallet.sql` via CREATE TABLE IF NOT EXISTS,
+    //     so it never went through any review that would have asked about RLS. Low
+    //     sensitivity (migration keys), but it is internal bookkeeping and there is no
+    //     reason for a browser to read it.
+    //
+    //   ③ agreement_templates.agreement_templates_admin_write — a policy that exists ONLY
+    //     IN PRODUCTION. The repo has never heard of it; it knows only
+    //     `agreement_templates_read`. Someone created it by hand. It is FOR ALL USING (true)
+    //     reaching a browser role, so it grants read AND write on the contract templates to
+    //     anyone with the public key. #558 pointing the other way: production carries
+    //     policies the repo cannot see.
+    //
+    // SAFE: nothing in a browser touches any of these three. Verified by re-reading every
+    // `.from('…')` in client components only — the earlier pass wrongly counted Next.js
+    // server routes under `app/api/`, which use SUPABASE_SERVICE_ROLE_KEY and bypass RLS.
+    // The real browser-read set is just clients, leads, figsy_campaigns, figsy_replies,
+    // figsy_sent_emails. Every path that touches these three tables is server-side on the
+    // service role, which is unaffected by RLS.
+    key: '20260727_rls_live_findings',
+    title: 'Lock the tables the LIVE audit found (#554b — client_inboxes had NO RLS at all)',
+    sql: `
+-- ① The mailbox table. This is the one that matters.
+ALTER TABLE IF EXISTS public.client_inboxes ENABLE ROW LEVEL SECURITY;
+
+-- ② Migration bookkeeping, created as a side effect and never reviewed.
+ALTER TABLE IF EXISTS public.app_migrations_applied ENABLE ROW LEVEL SECURITY;
+
+-- ③ A production-only policy the repo has never contained. FOR ALL USING (true) on a
+--    browser-reachable role = read and write on the contract templates for anyone holding
+--    the public key. Dropped; RLS stays on, and every real caller is server-side on the
+--    service role.
+DROP POLICY IF EXISTS agreement_templates_admin_write ON public.agreement_templates;
+ALTER TABLE IF EXISTS public.agreement_templates ENABLE ROW LEVEL SECURITY;
+`.trim(),
+  },
+  {
     // #340 — the statuses a subscription can honestly be in.
     //
     // `routes/stripe.ts` coerced every non-good Stripe status to `active`, so a card declined

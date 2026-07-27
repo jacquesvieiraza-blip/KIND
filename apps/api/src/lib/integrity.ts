@@ -215,18 +215,49 @@ async function ledgerTypesLive(_demoIds: DemoIds): Promise<CheckResult> {
   const q = { key: 'ledger_types',
     question: 'Does the live ledger accept the wallet transaction types the money model writes?',
     defect: '#558 — the repo migrations no longer describe the live database' }
-  const { data, error } = await db.from('credit_transactions')
-    .select('type').in('type', ['wallet_topup', 'wallet_charge', 'wallet_reverse']).limit(1)
-  if (error) throw error
-  if ((data ?? []).length > 0) {
-    return toResult({ ...q, severity: 'medium', affected: [],
-      cleanVerdict: 'Wallet-type rows exist in production, so the live CHECK constraint does allow them. The repo is behind the database — 20260726_wallet_tx_types pins it.',
-      badVerdict: n => `${n}` })
-  }
-  return {
-    key: q.key, question: q.question, defect: q.defect,
-    severity: 'medium', count: 0, affected: [],
-    verdict: 'No wallet-type rows exist yet, so we still CANNOT tell whether the live CHECK constraint allows them. Run migration 20260726_wallet_tx_types before the first real payment, or the first $99 will fail on the constraint.',
+
+  // ASK THE SCHEMA, NOT THE HISTORY.
+  //
+  // This used to look for a row of each wallet type and, finding none, say: *"we CANNOT tell
+  // … run migration 20260726_wallet_tx_types before the first real payment."* The founder had
+  // already run it — repeatedly — so an honesty screen was instructing him to do something
+  // already done. A false instruction that is correctly ignored teaches you to ignore the
+  // screen, which is worse than saying nothing.
+  //
+  // It could not tell because it was asking the wrong question. *"Has a row of this type ever
+  // been written"* is about HISTORY. *"Will the constraint accept this type"* is about the
+  // SCHEMA — and Postgres will just answer it, before any payment exists.
+  const WANTED = ['wallet_topup', 'wallet_charge', 'wallet_reverse'] as const
+  try {
+    const { readConstraintDef, permittedValues } = await import('./constraint-live')
+    const def = await readConstraintDef('credit_transactions_type_check')
+    if (def === null) {
+      // No constraint at all. Every type is accepted, so the money model is not blocked — but
+      // nothing is validating the column either, which is its own (smaller) problem.
+      // `medium`, not `clean`: the money model is not blocked, but nothing is validating the
+      // column either, and a missing safeguard is not the same as a healthy one.
+      return { key: q.key, question: q.question, defect: q.defect, severity: 'medium', count: 0, affected: [],
+        verdict: 'There is no credit_transactions_type_check constraint in production, so the ledger accepts any type — the money model is not blocked. Nothing is validating the column either; 20260726_wallet_tx_types adds the constraint.' }
+    }
+    const { allowed, missing } = permittedValues(def, WANTED)
+    if (missing.length === 0) {
+      return { key: q.key, question: q.question, defect: q.defect, severity: 'medium', count: 0, affected: [],
+        verdict: `Read from the live constraint: all ${allowed.length} wallet types are permitted (${allowed.join(', ')}). Asked of the schema itself, so this holds before the first payment rather than only after one.` }
+    }
+    return { key: q.key, question: q.question, defect: q.defect, severity: 'high', count: missing.length, affected: [],
+      verdict: `The live constraint REJECTS ${missing.join(', ')}. Any write of those types fails, so the first $99 will fail on the constraint. Fix: Vida → Engine → run the pending migrations (20260726_wallet_tx_types).` }
+  } catch (err) {
+    // The old row-based reading, kept ONLY as a fallback for when pg_catalog is unreachable.
+    // A row of a given type IS proof the constraint accepted it, no matter who wrote it — so
+    // it is real evidence, just weaker, because absence proves nothing.
+    const { data } = await db.from('credit_transactions').select('type').in('type', [...WANTED]).limit(1)
+    const why = err instanceof Error ? err.message : String(err)
+    if ((data ?? []).length > 0) {
+      return { key: q.key, question: q.question, defect: q.defect, severity: 'medium', count: 0, affected: [],
+        verdict: `Could not read the constraint directly (${why}), but wallet-type rows EXIST in production — which is proof the constraint accepted them.` }
+    }
+    return { key: q.key, question: q.question, defect: q.defect, severity: 'medium', count: 0, affected: [],
+      verdict: `NOT ESTABLISHED: the constraint could not be read (${why}) and no wallet-type rows exist yet to infer from. This is not a claim that anything is wrong, and it is not an instruction — it is the check saying it has no evidence either way.` }
   }
 }
 

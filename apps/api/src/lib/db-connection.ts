@@ -58,6 +58,32 @@ export function usernameOf(databaseUrl: string): string | null {
   return m ? m[1] : null
 }
 
+/**
+ * Does DATABASE_URL point at a DIFFERENT project from SUPABASE_URL?
+ *
+ * WHY THIS EXISTS. Rewriting DATABASE_URL to the pooler form requires typing the project ref
+ * into the username (`postgres.<ref>`), and on 27 Jul a worked example I wrote was pasted in
+ * literally — placeholder ref and all. The failure that came back was
+ * `(ENOTFOUND) tenant/user postgres.abcdefghijk not found`, which is Supavisor being
+ * perfectly accurate and completely unhelpful: it names a tenant, not a mistake.
+ *
+ * The two variables sit next to each other in Railway and must describe the SAME project, so
+ * a disagreement is always a typo and never a valid configuration. Detecting it turns a
+ * baffling DNS-shaped error into one sentence naming the variable, the wrong value and the
+ * right one. Returns null when there is nothing to compare — never a false alarm.
+ */
+export function refMismatch(databaseUrl?: string | null, supabaseUrl?: string | null): string | null {
+  if (!databaseUrl || !supabaseUrl) return null
+  const apiRef = supabaseUrl.match(/https?:\/\/([a-z0-9]+)\.supabase\.(?:co|com)/i)?.[1]
+  if (!apiRef) return null
+  // Either shape: the direct host `@db.<ref>.supabase.co`, or the pooler username
+  // `postgres.<ref>` that Supavisor splits into user + tenant.
+  const dbRef = databaseUrl.match(/@db\.([a-z0-9]+)\.supabase\.(?:co|com)/i)?.[1]
+    ?? databaseUrl.match(/^postgres(?:ql)?:\/\/postgres\.([a-z0-9]+):/i)?.[1]
+  if (!dbRef || dbRef.toLowerCase() === apiRef.toLowerCase()) return null
+  return `DATABASE_URL names project "${dbRef}" but SUPABASE_URL names "${apiRef}". They must be the same project, so this is a typo in DATABASE_URL — the correct ref is "${apiRef}". Fix it in Railway → @kind/api → Variables.`
+}
+
 /** True when this URL points at the IPv6-only direct host rather than the pooler. */
 export function isDirectSupabaseHost(databaseUrl: string): boolean {
   return /@db\.[a-z0-9]+\.supabase\.(?:co|com)/i.test(databaseUrl)

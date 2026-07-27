@@ -367,6 +367,37 @@ async function vida(): Promise<Section> {
     return ok('Send window', `${open ? 'OPEN right now' : 'CLOSED right now'} — ${desc}.`)
   }))
 
+  // THE REPLY PATH — the owed row.
+  //
+  // The check covered signup → pay → source → approve → send, and then stopped. A reply is
+  // the point of the whole product: it is what the client is buying, and it is the one step
+  // the client cannot see failing, because a reply that never arrives looks exactly like a
+  // prospect who never answered. Three sessions of work went into that spine (R1's per-client
+  // fan-out, P2-1's hoisted classifier, P2-2's honest fetch-failure reasons) and **none of it
+  // was on this screen**, so a dead reply path would have reported nothing at all.
+  //
+  // Deliberately does NOT send or receive anything. It checks the three things that must be
+  // true for an inbound reply to reach a desk, and says which one is missing.
+  rows.push(await probe('Reply path (inbound → client desk)', async () => {
+    const secret = process.env.RESEND_WEBHOOK_SECRET
+    const { count: replies, error } = await db.from('figsy_replies')
+      .select('id', { count: 'exact', head: true })
+    if (error) return unmeasured('Reply path (inbound → client desk)', `figsy_replies could not be read: ${error.message}`)
+
+    if (!secret) {
+      // Resend signs inbound webhooks over the raw body. No secret → every inbound reply is
+      // rejected at the door, silently, and the client's desk simply stays quiet.
+      return broken('Reply path (inbound → client desk)',
+        'RESEND_WEBHOOK_SECRET is NOT set, so every inbound reply is rejected unverified — a prospect can answer and nothing reaches the client. This is invisible to them: a lost reply looks identical to no reply.',
+        'Set RESEND_WEBHOOK_SECRET in Railway → @kind/api → Variables.')
+    }
+    // The route is mounted with a raw-body parser ahead of express.json(); without it the
+    // signature can never verify. That is structural rather than runtime, so it is asserted
+    // where it can be — in the test — and reported here as configuration present.
+    return ok('Reply path (inbound → client desk)',
+      `Signing secret set and the inbound route is mounted with a raw-body parser (both required, or signatures never verify). ${replies ?? 0} reply/replies captured to date. NOT a proof that the last reply arrived — only that the path is configured to accept one.`)
+  }))
+
   // REPLICA COUNT — the founder's spec said "if readable". It is not, and that is the answer.
   //
   // What CHANGED with #343 is what the unreadable number means. It used to be the whole
@@ -462,12 +493,36 @@ async function activity(): Promise<Section> {
 // working correctly — it received the request and made a decision. Only a 5xx, a timeout or
 // a refused connection means broken.
 
+/**
+ * Does a 4xx mean "no such route" rather than "your request was rejected"?
+ *
+ * Express's default 404 handler answers HTML — `Cannot GET /operator/x` — while every route
+ * in this API answers JSON. So a 404 whose body is not JSON is a route that does not exist,
+ * and that is a completely different finding from a route declining a request.
+ *
+ * Exported for the test, because this is the distinction the check was missing and a source
+ * scan cannot prove it works.
+ */
+export function isMissingRoute(status: number, body: string): boolean {
+  if (status !== 404) return false
+  const b = body.trim()
+  if (b.startsWith('{') || b.startsWith('[')) return false   // our JSON — the route answered
+  return /cannot get|<!doctype|<html|<pre/i.test(b) || b === ''
+}
+
 /** Read-only GETs that need no parameters. Anything requiring an id is listed with a note. */
 const OPERATOR_GETS: Array<{ path: string; note?: string }> = [
   { path: '/clients' }, { path: '/worklist' }, { path: '/alerts' }, { path: '/status' },
   { path: '/engine' }, { path: '/audit' }, { path: '/whoami' }, { path: '/health' },
-  { path: '/queue' }, { path: '/suppression' }, { path: '/reports' }, { path: '/blockers' },
-  { path: '/bookings' }, { path: '/nexus' }, { path: '/cockpit', note: 'expects client_id' },
+  { path: '/queue' }, { path: '/suppression' }, { path: '/reports' },
+  // These three DO exist (verified 27 Jul) and 404 for their own reasons — a missing record
+  // rather than a missing parameter. They carried no note at all, so the row read
+  // "HTTP 404 — answering." with nothing explaining why a 404 was acceptable, which is a
+  // green a reader cannot check. Now they say which it is.
+  { path: '/blockers', note: '404 when there is nothing blocking' },
+  { path: '/bookings', note: '404 when no booking matches' },
+  { path: '/nexus', note: 'expects client_id' },
+  { path: '/cockpit', note: 'expects client_id' },
   { path: '/board', note: 'expects client_id' }, { path: '/people', note: 'expects client_id' },
   { path: '/asks', note: 'expects client_id' }, { path: '/record', note: 'expects client_id' },
   { path: '/source-preview', note: 'expects client_id' },
@@ -492,10 +547,23 @@ async function operatorEndpoints(): Promise<Section> {
         const r = await fetch(`http://127.0.0.1:${port}/operator${ep.path}`, {
           headers: { 'x-admin-key': key }, signal: ctrl.signal,
         })
+        const body = await r.text().catch(() => '')
         if (r.status >= 500) {
-          const body = await r.text().catch(() => '')
           return broken(ep.path, `HTTP ${r.status} — this route is ERRORING. Any Vida screen using it renders empty, which looks identical to "nothing to do". ${body.slice(0, 160)}`,
             'Check the API logs for this route.')
+        }
+        // A 4xx FROM A ROUTE THAT EXISTS IS NOT A 4xx FROM A ROUTE THAT DOES NOT.
+        //
+        // This used to count any 2xx-or-4xx as "answering", which cannot tell those apart.
+        // Delete a route and Express's default handler returns `Cannot GET /operator/x` —
+        // and the check reported it green, "answering". Every route happens to exist today
+        // (all twenty verified), so it was right by luck rather than by construction, and
+        // this whole screen exists to stop being right by luck.
+        //
+        // Our routes always answer JSON. Express's fallback answers HTML. That is the tell.
+        if (isMissingRoute(r.status, body)) {
+          return broken(ep.path, `HTTP ${r.status} and the body is Express's default handler, not ours — THERE IS NO SUCH ROUTE. Any Vida screen calling it is permanently empty.`,
+            'The route was removed or never built. This is not a missing parameter.')
         }
         return ok(ep.path, `HTTP ${r.status} — answering${ep.note ? ` (${ep.note}, so a 4xx here is correct)` : ''}.`)
       } catch (e) {

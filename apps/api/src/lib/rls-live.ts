@@ -25,6 +25,13 @@ export async function readLiveRls(passwordOverride?: string | null): Promise<Liv
   const url = process.env.DATABASE_URL
   if (!url) throw new Error('DATABASE_URL is not set on this service — add it in Railway → @kind/api → Variables.')
 
+  // A ref typo is always a typo, never a valid setup — say so before attempting a connection
+  // that can only fail with a DNS-shaped error naming a tenant instead of the mistake.
+  {
+    const { refMismatch } = await import('./db-connection')
+    const mismatch = refMismatch(url, process.env.SUPABASE_URL)
+    if (mismatch) throw new Error(mismatch)
+  }
   const { Client } = await import('pg')
   const { connectionCandidates, safeHost, isUnreachableError, isAuthError } = await import('./db-connection')
   const candidates = connectionCandidates(url, process.env.SUPABASE_URL, passwordOverride)

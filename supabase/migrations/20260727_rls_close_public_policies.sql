@@ -42,19 +42,40 @@
 -- Also carried as a string in apps/api/src/lib/pending-migrations.ts (key
 -- '20260727_rls_close_public_policies') and run from Vida -> Engine. Keep the two in step.
 
-DROP POLICY IF EXISTS "Service role bypass" ON public.lead_enrichment;
-DROP POLICY IF EXISTS "Service role bypass" ON public.figsy_calls;
-DROP POLICY IF EXISTS "Service role bypass" ON public.webhook_triggers;
-DROP POLICY IF EXISTS "Service role bypass" ON public.partners;
-DROP POLICY IF EXISTS "Service role bypass" ON public.partner_commissions;
-DROP POLICY IF EXISTS "Service role bypass" ON public.partner_referrals;
+-- ── FIXED AFTER IT FAILED IN PRODUCTION (27 Jul, first run) ──────────────────────────────
+--
+-- The first version was six bare DROP POLICY statements and it died on line one:
+--   `relation "public.lead_enrichment" does not exist`
+--
+-- `DROP POLICY IF EXISTS <policy> ON <table>` guards the POLICY. The TABLE reference is
+-- resolved before that, so a missing table is a hard error. And node-postgres sends a
+-- multi-statement query as ONE implicit transaction, so that first line rolled back all
+-- eighteen statements.
+--
+-- It also answered the open question from the audit: most of these tables were NEVER CREATED
+-- in production. They come from `packages/db/src/migrations/`, a directory nothing has ever
+-- confirmed was run there — which is why the live audit found none of them exposed.
+--
+-- Each statement is now guarded on the table actually existing. `to_regclass` returns NULL
+-- instead of throwing for an unknown name, which is the only way to ask "is this table here?"
+-- without erroring.
 
--- Belt: RLS must be ON, or dropping the policy achieves nothing (a table with RLS off is
--- readable regardless of what policies exist — the worst state of all, and the one with no
--- pg_policies row to give it away).
-ALTER TABLE IF EXISTS public.lead_enrichment      ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.figsy_calls          ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.webhook_triggers     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.partners             ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.partner_commissions  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.partner_referrals    ENABLE ROW LEVEL SECURITY;
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'lead_enrichment','figsy_calls','webhook_triggers',
+    'partners','partner_commissions','partner_referrals'
+  ] loop
+    if to_regclass('public.' || t) is not null then
+      execute format('drop policy if exists %I on public.%I', 'Service role bypass', t);
+      -- Belt: RLS must be ON, or dropping the policy achieves nothing — a table with RLS
+      -- off is readable regardless of what policies exist, and it is the one state with no
+      -- pg_policies row to give it away.
+      execute format('alter table public.%I enable row level security', t);
+      raise notice 'secured %', t;
+    else
+      raise notice 'skipped % — not present in this database', t;
+    end if;
+  end loop;
+end $$;

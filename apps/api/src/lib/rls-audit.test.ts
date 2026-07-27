@@ -217,6 +217,30 @@ describe('#554b — the live findings are covered by a migration', () => {
   })
 })
 
+describe('a migration must survive a table that does not exist', () => {
+  const migrations = readFileSync(join(__dirname, './pending-migrations.ts'), 'utf8')
+
+  it('DROP POLICY is guarded on the TABLE existing, not just the policy', () => {
+    // THIS FAILED IN PRODUCTION. `DROP POLICY IF EXISTS <p> ON public.lead_enrichment`
+    // guards the POLICY; the TABLE reference is resolved first, so a missing table is a hard
+    // error — `relation "public.lead_enrichment" does not exist`. And node-postgres sends a
+    // multi-statement query as ONE implicit transaction, so that first line rolled back all
+    // eighteen statements in the migration.
+    const idx = migrations.indexOf('20260727_rls_close_public_policies')
+    const block = migrations.slice(idx, idx + 3000)
+    expect(block).toContain('to_regclass')
+    // No bare DROP POLICY … ON public.<table> outside the guard.
+    expect(block).not.toMatch(/^\s*DROP POLICY IF EXISTS "Service role bypass" ON public\./mi)
+  })
+
+  it('the guard skips rather than throws, and says which it skipped', () => {
+    const idx = migrations.indexOf('20260727_rls_close_public_policies')
+    const block = migrations.slice(idx, idx + 3000)
+    expect(block).toContain('is not null')
+    expect(block).toContain('skipped')
+  })
+})
+
 // ── THE WIRING ───────────────────────────────────────────────────────────────────────────
 describe('the audit is reachable and the findings are written down', () => {
   const code = (p: string) => readFileSync(join(__dirname, p), 'utf8')
@@ -250,9 +274,17 @@ describe('the audit is reachable and the findings are written down', () => {
     expect(doc.toLowerCase()).toContain('anon')
   })
 
-  it('the remediation migration drops the leaking policies idempotently', () => {
+  it('the remediation migration names every leaking table', () => {
+    // Asserts the TABLES, not the statement text. The first version of this pinned the exact
+    // literal `DROP POLICY IF EXISTS "Service role bypass" ON public.lead_enrichment` — and
+    // then production rejected that very statement, so fixing the bug broke the test that was
+    // meant to protect it. A guard should assert the INTENT, or it just freezes the defect.
     const src = readFileSync(join(__dirname, './pending-migrations.ts'), 'utf8')
-    expect(src).toContain('DROP POLICY IF EXISTS "Service role bypass" ON public.lead_enrichment')
-    expect(src).toContain('figsy_calls')
+    const idx = src.indexOf('20260727_rls_close_public_policies')
+    const block = src.slice(idx, idx + 3000)
+    for (const t of ['lead_enrichment', 'figsy_calls', 'webhook_triggers', 'partners', 'partner_commissions', 'partner_referrals']) {
+      expect(block, t).toContain(t)
+    }
+    expect(block).toContain('drop policy if exists')
   })
 })

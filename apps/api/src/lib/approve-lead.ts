@@ -329,6 +329,34 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
       // Never let this break an approve the client has already paid for.
       console.error('[approve] Instantly push threw (non-fatal)', clientId, leadId, e)
     }
+
+    // ── PROMPT 7 — THE CLIENT'S HALF. Instantly is OURS, Smartlead is the CLIENTS' (#577).
+    //
+    // BOTH pushes are attempted, and that is safe by construction rather than by ordering:
+    // `canPushToInstantly` refuses anything that is NOT the house client, and
+    // `canPushToSmartlead` refuses anything that IS. Exactly one can ever accept a given
+    // lead. Written as two independent attempts rather than an if/else on purpose — an
+    // if/else would put the routing decision HERE, in the money path, where a future edit
+    // could quietly send a client's lead from our mailboxes. The mutual exclusion lives in
+    // the two gate functions, where it is unit-tested.
+    //
+    // Silent on the five EXPECTED refusals (demo · kill-switch off · the house account, which
+    // goes via Instantly · no key · client has no Smartlead mailbox yet). Only a real API
+    // failure or a missing sequence is news.
+    try {
+      const { pushApprovedLeadToSmartlead, smartleadRefusalIsNews } = await import('./smartlead-send')
+      const push = await pushApprovedLeadToSmartlead(leadId, clientId)
+      if (!push.pushed && smartleadRefusalIsNews(push.reason)) {
+        console.error('[approve] Smartlead push failed', clientId, leadId, push.detail)
+        void sendFounderAlert('sends_stalled', 'A paid lead was not handed to Smartlead', [
+          `Client ${clientId}, lead ${leadId}.`,
+          `Reason: ${push.detail}`,
+          'The lead is approved, revealed and enrolled — but it is not in the client\'s Smartlead campaign, so nothing goes out from THEIR mailbox for it.',
+        ]).catch(() => {})
+      }
+    } catch (e) {
+      console.error('[approve] Smartlead push threw (non-fatal)', clientId, leadId, e)
+    }
   }
 
   // `charged` reflects whether money actually moved — a pack approval is free, and Milla

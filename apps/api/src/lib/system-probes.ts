@@ -575,10 +575,63 @@ async function operatorEndpoints(): Promise<Section> {
   return { title: 'Vida endpoints — is every operator route answering?', side: 'vida', rows }
 }
 
+// ── CLIENT SENDING (Prompt 7) ───────────────────────────────────────────────────────────
+//
+// Instantly is OURS, Smartlead is the CLIENTS' (#577). The dependency section already asks
+// *"does Smartlead answer at all"* once. This asks the question that decides whether a
+// PARTICULAR client can send: do they have a mailbox recorded with provider `smartlead-api`,
+// what state is it in, and is it warm?
+//
+// Warmup is reported NOT-MEASURED on purpose. The warmup field names on Smartlead's
+// /email-accounts could not be verified (both doc hosts 403 this environment), and a
+// confident "warm" rendered from a field name nobody checked is exactly the green this
+// screen exists to prevent.
+async function clientSending(): Promise<Section> {
+  const rows: Row[] = []
+  const { SMARTLEAD_SENDING_MODE } = await import('./smartlead-map')
+
+  rows.push(await probe('Smartlead — is it answering?', async () => {
+    if (!process.env.SMARTLEAD_API_KEY) {
+      return unmeasured('Smartlead — is it answering?',
+        'SMARTLEAD_API_KEY is not set. Founder-decided: Smartlead is bought only once a client pays, so this is expected and not a fault.',
+        'Nothing to do until the first paying client.')
+    }
+    const { verifySmartlead } = await import('./smartlead')
+    const v = await verifySmartlead()
+    return v.ok
+      ? ok('Smartlead — is it answering?', `Reachable — ${v.emailAccounts ?? 0} mailbox(es), ${v.campaigns ?? 0} campaign(s) in the workspace.`)
+      : broken('Smartlead — is it answering?', v.error ?? 'Smartlead did not answer.',
+          'Until this is green, NO client can send through Smartlead — approved leads are held, not delivered.')
+  }))
+
+  rows.push(await probe('Client mailboxes on Smartlead', async () => {
+    const { data, error } = await db.from('client_inboxes')
+      .select('client_id, email, status, provider, warmup_ready_at, clients(company_name)')
+      .eq('provider', SMARTLEAD_SENDING_MODE)
+    if (error) return unmeasured('Client mailboxes on Smartlead', `client_inboxes could not be read: ${error.message}`)
+
+    const boxes = (data ?? []) as Array<{ status?: string; warmup_ready_at?: string | null; clients?: { company_name?: string } | null }>
+    if (boxes.length === 0) {
+      // NOT a failure — it is the honest state before the first purchase, and saying "broken"
+      // here would put a permanent red on the board for a decision the founder has made.
+      return unmeasured('Client mailboxes on Smartlead',
+        `No client has a mailbox with provider ${SMARTLEAD_SENDING_MODE}, so no client can send through Smartlead yet. Expected until a SmartSenders mailbox is bought and recorded.`,
+        'Vida → Engine → record the purchased mailbox against the client.')
+    }
+    const live = boxes.filter(b => b.status === 'active').length
+    const warming = boxes.filter(b => b.status === 'warming').length
+    const names = boxes.map(b => b.clients?.company_name ?? 'unknown').join(', ')
+    return ok('Client mailboxes on Smartlead',
+      `${boxes.length} mailbox(es) recorded — ${live} active, ${warming} warming (${names}). Warmup STATE itself is not read: Smartlead's warmup fields are unverified, so it is reported here rather than guessed.`)
+  }))
+
+  return { title: 'Client sending — can each client send from their own mailbox?', side: 'vida', rows }
+}
+
 /** Every section, in report order. Never throws. */
 export async function runSystemCheck(): Promise<Section[]> {
   return [
     await dependencies(), await schema(), await clients(),
-    await vida(), await operatorEndpoints(), await activity(),
+    await vida(), await clientSending(), await operatorEndpoints(), await activity(),
   ]
 }

@@ -36,7 +36,9 @@
 | # | Rule | Where it came from |
 |---|---|---|
 | D1 | **Instantly sends for US** — our own outreach, from the 5 already-warm mailboxes, by API. | founder-locked 26 Jul, #577 |
-| D2 | **Smartlead sends for CLIENTS** — mailbox bought per client **only when they pay**. | founder-locked 26 Jul, #577 |
+| D2 | **Smartlead sends for CLIENTS** — mailbox bought per client **only when they pay**. **Built 27 Jul (#550) and NOT PROVEN**: the key returns 401 and the sequence *step shape* is unverified. Check it in Smartlead's UI after the first push. | founder-locked 26 Jul, #577 |
+| D6 | **The two routes are mutually exclusive by construction.** `canPushToInstantly` refuses anything that is not the house account; `canPushToSmartlead` refuses anything that is. A test asserts at most one route accepts any lead — so the money path attempts both with no `if/else`, keeping routing out of the money path. | 27 Jul, #550 |
+| D7 | **A reply belongs to the mailbox that received it.** Routing is inbox → client → lead → thread. An unknown inbox falls back to the fan-out; a known inbox with no matching lead alerts rather than falling back, because falling back hands one client's mail to another. | 27 Jul, #551 |
 | D3 | **Enterprise later** — a client's own mailbox, sent directly by our product over SMTP. | #577 |
 | D4 | **Our product decides who, what and whether. Their engine executes the schedule.** Every safety gate sits upstream of the hand-off. | #577 |
 | D5 | **We do not build mail infrastructure.** Both vendors confirmed in writing they release no SMTP credentials. | 23 Jun, re-confirmed 26 Jul |
@@ -118,10 +120,13 @@ Confirm you have read this, then wait for my next message.
 | # | Rule | Where it came from |
 |---|---|---|
 | O1 | **Deploy is always `bash scripts/ship.sh`.** Merging does not deploy; Railway is not automatic. | verified 26 Jul |
-| O2 | **A red gate cannot deploy.** `check.sh` runs first and refuses. | #574 |
+| O2 | **A red gate cannot deploy.** `check.sh` runs first and refuses. **And it is the ONLY gate — CI has never run.** All five GitHub workflows are registered and `active` with **0 runs, ever** (checked 27 Jul); almost certainly the same account flag that locks Supabase. `check.sh` is not a belt over CI. | #574, confirmed 27 Jul |
 | O3 | **No new SQL** beyond committed, reviewed, **idempotent** migrations run from Vida → Engine. | founder-locked (the SQL editor is unreachable) |
 | O4 | **Secrets go in Railway, never pasted in chat.** | founder, standing |
 | O5 | **Nothing shows green unless it was actually probed.** NOT-MEASURED is a real answer; treating it as green is the failure this exists to stop. | #576 |
+| O6 | **Check the live database, not the repo.** Three migration directories and two schema snapshots disagree with each other and none describes production (#558). A verdict read off a file is a verdict about a file — the RLS audit predicted five exposed tables, production had three, and **none of them were the five**. | 27 Jul, #554b |
+| O7 | **A failed check must never render as a pass.** Not an empty list, not a calm zero, not silence. Five instances this week: `count-inventory --check` exiting 0 without running · the ledger row advising a migration already run · eleven applied migrations shown as one failure · an RLS verdict from stale files · **CI reporting nothing because it has never run.** | 27 Jul, standing |
+| O8 | **A guard asserts the INTENT, not the literal.** A test pinned the exact SQL of a migration; fixing the migration broke the test written to protect it. A guard that freezes the defect is worse than none. | 27 Jul, #554c |
 
 ---
 
@@ -129,10 +134,10 @@ Confirm you have read this, then wait for my next message.
 
 Written down rather than assumed, per P9.
 
-- **Paystack** — `charge_authorization` can still charge a card in ZAR on a retired processor (#352). Delete, or keep?
+- ~~**Paystack**~~ — **RULED 27 Jul: *"I confirm: yes, remove."*** Removed (#352). It charged in **ZAR at a hardcoded rate of 19**, its cooldown counted rows and then charged (a real double charge), it could never succeed (needed an auth code #325 made unobtainable), and nothing received the result. The client's saved `auto_topup_*` preferences and all billing history were **kept** — the removal was the charge path only.
 - **The three security holes in disabled agent routes** — #359, #369, #360. Delete, or keep disabled?
 - **Where this page lives.** It is a *product* rules page, so it does not clash with the four-doc status contract — but the founder may want it merged into `RULEBOOK.md` instead of standing alone.
 
 ---
 
-*Approved by the founder 26 Jul ("its good. i agree"). §5a added the same day, after Prompt 4 was reported complete while nothing called it.*
+*Approved by the founder 26 Jul ("its good. i agree"). §5a added the same day, after Prompt 4 was reported complete while nothing called it. Updated 27 Jul at the end of Prompts 5–7: O2 corrected (CI has never run), O6–O8 added, D2 marked unproven, D6–D7 added, and the Paystack question ruled and closed.*

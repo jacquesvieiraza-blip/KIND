@@ -10,12 +10,18 @@
 
 | | Files | Lines | Share |
 |---|---:|---:|---:|
-| **CORE — reachable from an entry point** | **221** | **51,470** | **45%** |
-| FENCED — `.ts`/`.tsx` not reachable | 287 | 38,277 | 33% |
-| *(remainder: `.sql`, `.html`, and test files)* | 105 | 24,644 | 22% |
-| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 613 | **114,391** | 100% |
+| **CORE — reachable from an entry point** | **242** | **56,854** | **47%** |
+| FENCED — `.ts`/`.tsx` not reachable | 180 | 36,193 | 30% |
+| *(remainder: `.sql`, `.html`, and test files)* | 130 | 28,807 | 24% |
+| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 552 | **121,854** | 100% |
 
-*Recounted 26 Jul directly from `scripts/core-files.txt` and a walk of `apps/` + `packages/`. The earlier printing of this table read **221 / 51,341** core against **324 / 42,170** fenced — the core file count was right, but the line counts and the fenced split were derived a different way and had drifted. **These are counted, not carried forward.***
+**REASON FOR THIS REGENERATION, stated out loud because rule 1 below requires it — and because the first version of this update did not state it, which the founder caught.** Prompts 5–7 added code to the operational core: the RLS audit and its live reader, the backup manifest and its live reader, the constraint reader, the seed-wipe classification, the cron single-run guard, the PDL cursor, the subscription status + lapse logic, the Smartlead integration (map · network · hand-off) and the reply routing. Every one is reachable from a real entry point, so every one belongs inside the fence and inside the audit denominator. **Leaving the map stale would have fenced out the work of three prompts** — exactly the failure recorded in the ⚠️ note above, where the map fenced out the instruments it shipped beside.
+
+*Regenerated 27 Jul — `python3 scripts/build-core-map.py`, 57 seeds, **0 unresolved imports**, manifest rewritten in place.*
+
+**The core GREW by 21 files and 5,384 lines this session**, and that is the map working rather than a problem: Prompts 5–7 added the RLS audit, the backup manifest, the seed report, the cron guard, the Smartlead integration and the reply routing — every one of them reachable from a real entry point, so every one of them is now inside the fence and inside the audit denominator.
+
+⚠️ **The repo TOTAL fell (613 → 552) and that is a counting-method difference, not deletions.** Nothing was deleted (founder-locked). This walk excludes `node_modules`, `dist` and `.next`; the 26 Jul figure was derived a different way and evidently swept some build output in. **The core numbers come straight from the generator and are the ones to trust**; the total is a denominator, and its method is now written down so the next recount can be compared rather than guessed at.
 
 **The rules this map exists to enforce:**
 

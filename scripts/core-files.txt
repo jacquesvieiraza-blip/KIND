@@ -2,7 +2,7 @@
 # Every file reachable by import from a real entry point (api index+cron, every Milla
 # page, every Vida page, both middlewares, both app API proxies).
 # Anything NOT in this list is FENCED: not in play, never deleted, never edited.
-# 221 files, 51470 lines. DO NOT HAND-EDIT — re-run the script.
+# 242 files, 56854 lines. DO NOT HAND-EDIT — re-run the script.
 apps/admin/src/app/api/clients/[id]/order-form/route.ts
 apps/admin/src/app/api/clients/route.ts
 apps/admin/src/app/api/proxy/[...path]/route.ts
@@ -69,6 +69,8 @@ apps/api/src/lib/alerts.ts
 apps/api/src/lib/apollo.ts
 apps/api/src/lib/approval-batch.ts
 apps/api/src/lib/approve-lead.ts
+apps/api/src/lib/backup-live.ts
+apps/api/src/lib/backup-manifest.ts
 apps/api/src/lib/billing-rules.ts
 apps/api/src/lib/booking-token.ts
 apps/api/src/lib/campaign-settings.ts
@@ -76,7 +78,9 @@ apps/api/src/lib/client-step.ts
 apps/api/src/lib/cmo.ts
 apps/api/src/lib/cold-client.ts
 apps/api/src/lib/consent.ts
+apps/api/src/lib/constraint-live.ts
 apps/api/src/lib/crm.ts
+apps/api/src/lib/cron-guard.ts
 apps/api/src/lib/db-connection.ts
 apps/api/src/lib/deliverability.ts
 apps/api/src/lib/demo-mbf-data.ts
@@ -90,6 +94,9 @@ apps/api/src/lib/figsy.ts
 apps/api/src/lib/gcal.ts
 apps/api/src/lib/hubspot.ts
 apps/api/src/lib/inbox-secret.ts
+apps/api/src/lib/instantly-map.ts
+apps/api/src/lib/instantly-push.ts
+apps/api/src/lib/instantly.ts
 apps/api/src/lib/integrity-checks.ts
 apps/api/src/lib/integrity.ts
 apps/api/src/lib/lead-delivery.ts
@@ -101,10 +108,12 @@ apps/api/src/lib/money-path-math.ts
 apps/api/src/lib/nexus-guard.ts
 apps/api/src/lib/nexus.ts
 apps/api/src/lib/onboarding-pack.ts
+apps/api/src/lib/onboarding-progress.ts
 apps/api/src/lib/operator-audit.ts
 apps/api/src/lib/operator-queue.ts
 apps/api/src/lib/outcomes.ts
 apps/api/src/lib/page-rows.ts
+apps/api/src/lib/pdl-cursor.ts
 apps/api/src/lib/pdl-search.ts
 apps/api/src/lib/pending-migrations.ts
 apps/api/src/lib/pool-sourcing.ts
@@ -112,22 +121,30 @@ apps/api/src/lib/push.ts
 apps/api/src/lib/rate-limit.ts
 apps/api/src/lib/real-clients-logic.ts
 apps/api/src/lib/real-clients.ts
+apps/api/src/lib/reply-ingest.ts
 apps/api/src/lib/reply-risk.ts
 apps/api/src/lib/resend-checked.ts
+apps/api/src/lib/rls-audit.ts
+apps/api/src/lib/rls-live.ts
 apps/api/src/lib/run-outcome.ts
 apps/api/src/lib/scoring-failure.ts
 apps/api/src/lib/scoring.ts
 apps/api/src/lib/scrape.ts
 apps/api/src/lib/seed-company.ts
 apps/api/src/lib/seed-showcase.ts
+apps/api/src/lib/seed-wipe.ts
 apps/api/src/lib/sending-inbox.ts
 apps/api/src/lib/sequence-apply.ts
 apps/api/src/lib/sequence-tokens.ts
+apps/api/src/lib/smartlead-map.ts
+apps/api/src/lib/smartlead-send.ts
 apps/api/src/lib/smartlead.ts
 apps/api/src/lib/sourcing-fences.ts
 apps/api/src/lib/start-work.ts
 apps/api/src/lib/startup-check.ts
 apps/api/src/lib/stripe.ts
+apps/api/src/lib/subscription-lapse.ts
+apps/api/src/lib/subscription-status.ts
 apps/api/src/lib/suggest-times.ts
 apps/api/src/lib/suppression.ts
 apps/api/src/lib/system-check.ts
@@ -221,6 +238,10 @@ apps/portal/src/lib/supabase/client.ts
 apps/portal/src/middleware.ts
 packages/db/src/client.ts
 packages/db/src/index.ts
+packages/shared/src/client-honesty.ts
 packages/shared/src/constants/index.ts
 packages/shared/src/index.ts
+packages/shared/src/notice.ts
+packages/shared/src/panel-state.ts
+packages/shared/src/run-outcome-banner.ts
 packages/shared/src/types/index.ts

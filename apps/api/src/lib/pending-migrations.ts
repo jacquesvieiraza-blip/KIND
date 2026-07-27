@@ -163,6 +163,21 @@ ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'unpaid';
 `.trim(),
   },
   {
+    // #342 — the value the lapse cron has been failing to write EVERY DAY since it was
+    // written. `/subscriptions/check-lapsed` does `.update({ status: 'lapsed' })`, Postgres
+    // rejects it because the enum has never held it, the handler rethrows and the route
+    // 500s. Nothing has ever been lapsed, so an unpaid client keeps access forever.
+    //
+    // Separate migration from 20260727_subscription_status on purpose: that one is #340's
+    // and may already be applied, and a value added in one transaction cannot be used in
+    // that same transaction — keeping them apart keeps each independently re-runnable.
+    key: '20260727_subscription_lapsed',
+    title: 'Subscription enum accepts "lapsed" (#342 — the lapse cron has 500\'d daily since it was written)',
+    sql: `
+ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'lapsed';
+`.trim(),
+  },
+  {
     // #343 — THE CRON SINGLETON. `startCrons()` ran on every API process with no gate, so
     // two replicas doubled every email, every charge and every digest, silently, on a
     // schedule. The env var (`RUN_CRONS`) is a kill switch, NOT a singleton: Railway sets

@@ -157,6 +157,11 @@ const REQUIRED_SCHEMA: Array<{ table: string; column?: string; why: string; migr
   // insert would have failed for the first paying client, not only the demo.
   { table: 'figsy_campaigns', column: 'copilot_mode', why: 'holds a campaign\'s emails for manual approval — written for every real client at start-work', migration: '20260726_campaign_copilot_columns' },
   { table: 'figsy_campaigns', column: 'approve_before_send', why: 'the other half of the same gate', migration: '20260726_campaign_copilot_columns' },
+  // Added with the work that needs them, rather than after the next time the list is found
+  // to be short. Every one of these is a migration whose absence is SILENT in normal use —
+  // which is exactly the kind this section exists to catch.
+  { table: 'icps', column: 'pdl_scroll_token', why: 'where PDL paging got to — without it every run re-reads page one and a repeat client sources ZERO new people', migration: '20260727_pdl_cursor' },
+  { table: 'cron_claims', why: 'the cron single-run guard — without it two replicas double every email and every charge', migration: '20260727_cron_claims' },
 ]
 
 async function schema(): Promise<Section> {

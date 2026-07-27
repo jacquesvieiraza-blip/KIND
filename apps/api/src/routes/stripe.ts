@@ -669,7 +669,10 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         await db.from('subscriptions')
           .update({ status: 'active' })
           .eq('stripe_subscription_id', invoice.subscription)
-          .in('status', ['past_due', 'cancelled', 'unpaid', 'incomplete', 'incomplete_expired'])
+          // `lapsed` (#342) is here too: a hand-granted subscription that ran out and is
+          // later paid for through Stripe must come back, or the client stays locked out
+          // forever — the same "access does not match payment" bug pointed the other way.
+          .in('status', ['past_due', 'cancelled', 'unpaid', 'incomplete', 'incomplete_expired', 'lapsed'])
         console.log(`[Stripe] Subscription renewed — ${invoice.subscription} — ${invoice.customer_email}`)
 
         // Auto-commission: find client via subscriptions table and fire commission

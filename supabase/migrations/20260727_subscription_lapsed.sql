@@ -1,0 +1,36 @@
+-- #342 (AR-05) — THE LAPSE CRON HAS 500'd EVERY DAY SINCE IT WAS WRITTEN.
+--
+-- `/subscriptions/check-lapsed` runs daily at 09:00 UTC and does:
+--
+--     .update({ status: 'lapsed' }).eq('status','active').lt('current_period_end', now)
+--
+-- `lapsed` is not a value in the production `subscription_status` enum. Postgres rejects the
+-- statement, the handler rethrows, the route 500s. **No subscription has ever been marked
+-- lapsed, so an unpaid client keeps access forever.**
+--
+-- Third instance of the same family: #190 (`paused`), #340 (every Stripe status coerced to
+-- `active` because the honest values were not in the enum), and this. A green unit test
+-- proves the code does what it says; the database says no.
+--
+-- Separate from 20260727_subscription_status (#340's migration) on purpose. That one may
+-- already be applied, and Postgres forbids USING an enum value in the same transaction that
+-- adds it — keeping them apart keeps each independently re-runnable.
+--
+-- Idempotent: ADD VALUE IF NOT EXISTS is a no-op when the value is already present.
+--
+-- ── NOTE ON WHAT THE APPLICATION NOW DOES WITH IT ────────────────────────────────────────
+--
+-- Adding the value is only half the fix. The cron used to be a single blind bulk UPDATE, and
+-- had it ever succeeded it would have lapsed STRIPE-MANAGED subscriptions on the strength of
+-- `current_period_end` — a column only our own webhook handler writes. One missed
+-- `customer.subscription.updated` and a paying client is locked out on the evidence of our
+-- own bookkeeping error. The cron now reads, decides per subscription, and never lapses a
+-- Stripe-managed one: Stripe reports `past_due`/`unpaid`/`canceled` itself, and since #340 we
+-- store those faithfully. A Stripe subscription drifting far past its period end raises a
+-- MISSED-WEBHOOK alert instead. See apps/api/src/lib/subscription-lapse.ts.
+--
+-- Also carried as a string in apps/api/src/lib/pending-migrations.ts (key
+-- '20260727_subscription_lapsed') and run from Vida → Engine, because the Supabase SQL
+-- editor is unreachable. Keep the two in step.
+
+ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'lapsed';

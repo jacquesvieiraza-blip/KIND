@@ -69,7 +69,7 @@ engineRouter.get('/leads/test', async (req: Request, res: Response) => {
     const pdlConfigured = !!process.env.PDL_API_KEY
     const hunterConfigured = !!process.env.HUNTER_API_KEY
     // Small sample (size 5) keeps the free-tier credit burn low — PDL bills 1 credit/record.
-    const leads = pdlConfigured ? await pdlSearchPeople(icp, 1, 5) : []
+    const leads = pdlConfigured ? await pdlSearchPeople(icp, 5) : []
     const withEmail = leads.filter((l) => typeof l.email === 'string' && l.email.includes('@')).length
     // Surface the REAL PDL outcome (status + error) so a 0 isn't ambiguous (item 244).
     const pdlDiagnostic = await pdlSearchDiagnostic(icp)

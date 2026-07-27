@@ -89,7 +89,7 @@ type IcpQuery = {
   industries:       string[]
 }
 
-function buildPdlBody(icp: IcpQuery, size: number) {
+function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string | null) {
   const must: unknown[] = []
   if (icp.job_titles.length) {
     must.push({ bool: { should: icp.job_titles.map(t => ({ match: { job_title: t } })) } })
@@ -113,9 +113,16 @@ function buildPdlBody(icp: IcpQuery, size: number) {
   if (sizes.length) must.push({ terms: { job_company_size: sizes } })
   // Only return people we can actually email.
   must.push({ exists: { field: 'work_email' } })
-  // NOTE: PDL deprecated `from`-based pagination — sending it 400s the whole request.
-  // Page 1 only for now; deeper pages need `scroll_token` (PDL person-search docs).
-  return { query: { bool: { must } }, size }
+  // PAGINATION IS `scroll_token`, NOT `from` (#366).
+  //
+  // PDL deprecated `from`-based paging — sending it 400s the whole request, which is why
+  // this was page-1-only. The response carries a `scroll_token`; passing it back returns the
+  // NEXT batch. A null token, or a 404, means there is nothing after this page.
+  //
+  // Why it mattered: every run returned the same page 1, we deduped against the emails the
+  // client already held, and the run therefore produced **zero, silently**. A client's second
+  // month found nobody new — and the cashflow says the repeat IS the business.
+  return { query: { bool: { must } }, size, ...(scrollToken ? { scroll_token: scrollToken } : {}) }
 }
 
 /**
@@ -167,36 +174,42 @@ export async function pdlSearchDiagnostic(
 // finding, 10 Jul: 32 credits left + size 50 → 402 "all matches used" on every
 // run, i.e. zero leads while credits sat unspent). 404 = query matched nobody.
 type PdlOutcome =
-  | { kind: 'ok'; contacts: ApolloContact[] }
+  | { kind: 'ok'; contacts: ApolloContact[]; scrollToken: string | null }
   | { kind: 'no_credit' }      // 402 — batch too big for remaining credits (or truly empty)
   | { kind: 'rate_limited' }   // 429
-  | { kind: 'error' }          // anything else (incl. 404 no-match)
+  // 404 means PDL has NOTHING LEFT for this query — either it never matched anyone, or we
+  // have paged to the end. That is a fact about the ICP, not a fault, and it used to be
+  // folded into `error` and returned as a bare `[]` (#366).
+  | { kind: 'exhausted' }
+  | { kind: 'error'; detail: string }
 
-async function pdlSearchOnce(icp: IcpQuery, size: number, key: string): Promise<PdlOutcome> {
+async function pdlSearchOnce(icp: IcpQuery, size: number, key: string, scrollToken?: string | null): Promise<PdlOutcome> {
   try {
     const res = await fetch(PDL_SEARCH_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
-      body:    JSON.stringify(buildPdlBody(icp, size)),
+      body:    JSON.stringify(buildPdlBody(icp, size, scrollToken)),
       signal:  AbortSignal.timeout(15000),
     })
+    if (res.status === 404) return { kind: 'exhausted' }
     if (res.status === 402) {
       console.warn(`[pdl] search 402 at size ${size} — batch exceeds remaining credits, will retry smaller`)
       return { kind: 'no_credit' }
     }
     if (res.status === 429) return { kind: 'rate_limited' }
     if (!res.ok) {
-      console.error(`[pdl] search ${res.status}: ${(await res.text().catch(() => '')).slice(0, 240)}`)
-      return { kind: 'error' }
+      const detail = `HTTP ${res.status}: ${(await res.text().catch(() => '')).slice(0, 240)}`
+      console.error(`[pdl] search ${detail}`)
+      return { kind: 'error', detail }
     }
-    const json = await res.json() as { data?: PdlPerson[] }
-    return {
-      kind: 'ok',
-      contacts: (json.data ?? []).map(mapPdlToContact).filter((c): c is ApolloContact => c !== null),
-    }
+    const json = await res.json() as { data?: PdlPerson[]; scroll_token?: string | null }
+    const contacts = (json.data ?? []).map(mapPdlToContact).filter((c): c is ApolloContact => c !== null)
+    // A null/absent token is PDL saying "that was the last page".
+    return { kind: 'ok', contacts, scrollToken: json.scroll_token ?? null }
   } catch (err) {
-    console.error('[pdl] search failed:', err instanceof Error ? err.message : err)
-    return { kind: 'error' }
+    const detail = err instanceof Error ? err.message : 'request failed'
+    console.error('[pdl] search failed:', detail)
+    return { kind: 'error', detail }
   }
 }
 
@@ -215,44 +228,84 @@ function alertPdlOutOfCredits(): void {
   ])
 }
 
+/** One page of PDL results, plus where to resume and whether there IS a next page. */
+export type PdlPage = {
+  contacts: ApolloContact[]
+  /** Send this back next run to get the FOLLOWING people. Null = no more pages. */
+  scrollToken: string | null
+  /** PDL has nobody left for this query — a fact about the ICP, not a fault (#366). */
+  exhausted: boolean
+  /** Set when the page could not be fetched at all. Distinct from an empty page. */
+  error: string | null
+}
+
 /**
- * Search PDL for people matching an ICP. Returns [] when no PDL_API_KEY is set
- * (dormant), on error, or on no matches — never throws, so it's a safe fallback.
+ * Fetch ONE page of PDL results, resuming from `scrollToken` when given (#366).
  *
- * 402 handling: PDL rejects any batch larger than the credits remaining, so on
- * 402 we retry down a size ladder (50 → 25 → 10 → 5 → 1) and take whatever the
- * remaining balance allows instead of returning nothing. A 402 at size 1 means
- * the account is truly dry → throttled founder alert. Failed calls (402/404/429)
- * consume no PDL credits, so the ladder costs nothing extra.
+ * This is the honest version of the search: it distinguishes the four things a zero can
+ * mean — a page that legitimately held nobody, the END of the audience (`exhausted`), a
+ * failed request (`error`), and PDL not being configured at all. `pdlSearchPeople` below
+ * flattens all four back to `[]` for the callers that only ever wanted a list.
+ *
+ * 402 handling (unchanged): PDL rejects any batch larger than the credits remaining, so on
+ * 402 we retry down a size ladder (50 → 25 → 10 → 5 → 1) and take whatever the remaining
+ * balance allows instead of returning nothing. A 402 at size 1 means the account is truly
+ * dry → throttled founder alert. Failed calls (402/404/429) consume no PDL credits, so the
+ * ladder costs nothing extra.
  */
-export async function pdlSearchPeople(icp: IcpQuery, _page = 1, size = 50): Promise<ApolloContact[]> {
+export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: string | null = null): Promise<PdlPage> {
   const key = process.env.PDL_API_KEY
-  if (!key) return [] // dormant until a key is configured — identical to today
+  // Dormant until a key is configured. NOT `exhausted` — we never asked, so we cannot claim
+  // the audience is finished; that would tell a client to widen an ICP that is fine.
+  if (!key) return { contacts: [], scrollToken, exhausted: false, error: null }
 
   const ladder = [size, 25, 10, 5, 1].filter((s, i, a) => s >= 1 && s <= size && a.indexOf(s) === i)
   let retriedRateLimit = false
 
   for (let i = 0; i < ladder.length; i++) {
-    const outcome = await pdlSearchOnce(icp, ladder[i], key)
+    const outcome = await pdlSearchOnce(icp, ladder[i], key, scrollToken)
     if (outcome.kind === 'ok') {
       if (i > 0) console.log(`[pdl] size ladder recovered: got ${outcome.contacts.length} at size ${ladder[i]} (asked ${size})`)
-      return outcome.contacts
+      return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, error: null }
+    }
+    if (outcome.kind === 'exhausted') {
+      // 404. Either the query never matched anybody, or we have walked it to the end. Both
+      // are "there is nobody left here" — and both must be SAID, never returned as a bare [].
+      console.log(`[pdl] query exhausted (404)${scrollToken ? ' — paged to the end of this audience' : ' — matched nobody at all'}`)
+      return { contacts: [], scrollToken: null, exhausted: true, error: null }
     }
     if (outcome.kind === 'no_credit') continue // step down the ladder
     if (outcome.kind === 'rate_limited' && !retriedRateLimit) {
       // Free-tier rate limits are per-minute and tight; one paced retry at the
-      // same size, then give up (the caller treats [] as "source found nothing").
+      // same size, then give up.
       retriedRateLimit = true
       await new Promise(r => setTimeout(r, 2500))
       i-- // retry the same rung
       continue
     }
-    return [] // hard error (or second 429) — logged inside pdlSearchOnce
+    // Hard error (or second 429) — logged inside pdlSearchOnce. Keep the token: the page was
+    // never served, so resuming from it next run loses nobody.
+    const detail = outcome.kind === 'error' ? outcome.detail : 'rate limited twice'
+    return { contacts: [], scrollToken, exhausted: false, error: detail }
   }
 
-  // 402 all the way down to size 1 — the account has zero search credits left.
+  // 402 all the way down to size 1 — the account has zero search credits left. Emphatically
+  // NOT exhausted: the audience is fine, our wallet is not.
   alertPdlOutOfCredits()
-  return []
+  return { contacts: [], scrollToken, exhausted: false, error: 'PDL is out of search credits' }
+}
+
+/**
+ * Search PDL for people matching an ICP. Returns [] when no PDL_API_KEY is set (dormant),
+ * on error, or on no matches — never throws, so it's a safe fallback.
+ *
+ * Thin wrapper over `pdlSearchPage` for the callers that only want a list (the read-only
+ * diagnostics in routes/engine.ts and routes/icps.ts). Anything that pages across runs must
+ * use `pdlSearchPage` directly — a caller that cannot carry the token forward is a caller
+ * that will re-serve page 1 forever, which is the bug this file exists to fix.
+ */
+export async function pdlSearchPeople(icp: IcpQuery, size = 50): Promise<ApolloContact[]> {
+  return (await pdlSearchPage(icp, size, null)).contacts
 }
 
 // Normalise a PDL person into the shared ApolloContact shape the pipeline expects.

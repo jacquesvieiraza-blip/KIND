@@ -397,7 +397,15 @@ export async function runPendingMigrations(passwordOverride?: string | null): Pr
   if (!url) throw new Error('DATABASE_URL is not set on this service — add it in Railway → @kind/api → Variables.')
 
   const { Client } = await import('pg')
-  const { connectionCandidates, safeHost, isUnreachableError, isAuthError } = await import('./db-connection')
+  const { connectionCandidates, safeHost, isUnreachableError, isAuthError, refMismatch } = await import('./db-connection')
+
+  // A project-ref typo is always a typo, never a valid configuration — DATABASE_URL and
+  // SUPABASE_URL sit beside each other in Railway and must describe the same project. Caught
+  // BEFORE any connection attempt, because the attempt can only fail with a DNS-shaped error
+  // that names a tenant rather than the mistake (`tenant/user postgres.<typo> not found`).
+  const mismatch = refMismatch(url, process.env.SUPABASE_URL)
+  if (mismatch) throw new Error(mismatch)
+
   const candidates = connectionCandidates(url, process.env.SUPABASE_URL, passwordOverride)
 
   // Find ONE reachable connection string before running any SQL, so a migration is never

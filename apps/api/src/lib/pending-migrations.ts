@@ -143,6 +143,26 @@ CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(cr
     // campaign's emails for manual approval — the human-in-the-loop gate. `start-work.ts:50`
     // sets both to true when work begins for a real client, so this insert would fail the
     // same way for the FIRST PAYING CLIENT, not just the demo.
+    // #340 — the statuses a subscription can honestly be in.
+    //
+    // `routes/stripe.ts` coerced every non-good Stripe status to `active`, so a card declined
+    // at signup bought a working product. Mapping faithfully means storing values the enum has
+    // never held — and production's `subscriptions.status` is an ENUM, not text+CHECK (the
+    // repo schema.sql drifted; #190 found this the hard way with `paused`, and #342 is still
+    // living it with `lapsed`). Without this, the honest fix fails exactly like #342.
+    //
+    // `ADD VALUE IF NOT EXISTS` is idempotent. The new values are deliberately NOT used
+    // anywhere in this migration: Postgres forbids using an enum value in the same
+    // transaction that adds it.
+    key: '20260727_subscription_status',
+    title: 'Subscription status enum accepts the real Stripe states (#340 — a declined card must not read as active)',
+    sql: `
+ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'incomplete';
+ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'incomplete_expired';
+ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'unpaid';
+`.trim(),
+  },
+  {
     // #343 — THE CRON SINGLETON. `startCrons()` ran on every API process with no gate, so
     // two replicas doubled every email, every charge and every digest, silently, on a
     // schedule. The env var (`RUN_CRONS`) is a kill switch, NOT a singleton: Railway sets

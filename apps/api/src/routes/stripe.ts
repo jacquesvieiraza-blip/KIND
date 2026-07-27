@@ -19,6 +19,7 @@ import {
 } from '../lib/stripe'
 import { sendFounderAlert } from '../lib/alerts'
 import { PURCHASE_TX_TYPES } from '../lib/onboarding-pack'
+import { mapStripeStatus, isEnumRejection } from '../lib/subscription-status'
 
 // ── Auto-commission: if this client was referred by a partner, create a commission record ──
 async function maybeCreatePartnerCommission(clientId: string, amountUsd: number) {
@@ -545,7 +546,13 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
 
       const dbProduct          = STRIPE_SUBSCRIPTIONS[product].product
       const currentPeriodEnd   = new Date(sub.current_period_end * 1000).toISOString()
-      const status             = sub.status === 'active' || sub.status === 'trialing' ? sub.status : 'active'
+      // #340 — THIS LINE USED TO READ:
+      //   sub.status === 'active' || sub.status === 'trialing' ? sub.status : 'active'
+      // Everything that was NOT already good was written as `active`: a card declined at
+      // signup (`incomplete`), dunning (`past_due`, `unpaid`), even `canceled`. Every
+      // consumer gates on active/trialing, so that ternary was the entire authorisation
+      // decision for the paid product — and it always said yes.
+      const mapped             = mapStripeStatus(sub.status)
       // SPRINT line 5 / #238 — the subscription row MUST carry its monthly USD price,
       // else the revenue report (MRR = sum(amount_usd) of active subs) counts every
       // paid subscriber as $0. Sourced from the locked STRIPE_SUBSCRIPTIONS table.
@@ -555,25 +562,66 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       const { data: existing } = await db.from('subscriptions')
         .select('id').eq('client_id', clientId).eq('product', dbProduct).maybeSingle()
 
-      if (existing) {
-        await db.from('subscriptions').update({
-          status,
-          amount_usd:               amountUsd,
-          current_period_end:       currentPeriodEnd,
-          stripe_subscription_id:   sub.id,
-        }).eq('id', existing.id)
-      } else {
-        await db.from('subscriptions').insert({
-          client_id:                clientId,
-          product:                  dbProduct,
-          status,
-          amount_usd:               amountUsd,
-          current_period_end:       currentPeriodEnd,
-          stripe_subscription_id:   sub.id,
-        })
+      // #340/#342 — WRITE THE FAITHFUL STATUS, AND SURVIVE THE ENUM REJECTING IT.
+      //
+      // Production's `subscriptions.status` is a Postgres ENUM (the repo schema.sql drifted
+      // and claims text+CHECK). Writing `incomplete` before the migration has run fails with
+      // *"invalid input value for enum subscription_status"* — the exact failure #190 hit
+      // with `paused` and #342 is still living with for `lapsed`. And a failed UPDATE leaves
+      // the row on its PREVIOUS value, which for an existing subscription means it stays
+      // `active`: the honest fix would have recreated the bug it was fixing.
+      //
+      // So a rejection retries with a fallback drawn only from values already in the enum,
+      // chosen to deny access just as the real status would. The client stays locked either
+      // way; only the precision of the label is lost, and the founder is told why.
+      const writeStatus = async (value: string) => existing
+        ? db.from('subscriptions').update({
+            status: value,
+            amount_usd:             amountUsd,
+            current_period_end:     currentPeriodEnd,
+            stripe_subscription_id: sub.id,
+          }).eq('id', existing.id)
+        : db.from('subscriptions').insert({
+            client_id:              clientId,
+            product:                dbProduct,
+            status: value,
+            amount_usd:             amountUsd,
+            current_period_end:     currentPeriodEnd,
+            stripe_subscription_id: sub.id,
+          })
+
+      let stored = mapped.status
+      const { error: writeErr } = await writeStatus(mapped.status)
+      if (writeErr && isEnumRejection(writeErr)) {
+        stored = mapped.fallback
+        const { error: fallbackErr } = await writeStatus(mapped.fallback)
+        console.error(`[Stripe] enum rejected status "${mapped.status}" — stored "${mapped.fallback}" instead`, writeErr.message)
+        void sendFounderAlert('charge_failed', 'Subscription status enum is missing values — run the migration', [
+          `Stripe reported "${sub.status}" for client ${clientId}; the database rejected "${mapped.status}".`,
+          `Stored "${mapped.fallback}" instead, which still denies access — the client is NOT getting the product free.`,
+          'Fix: Vida → Engine → run the pending migrations (20260727_subscription_status).',
+          fallbackErr ? `The fallback write ALSO failed: ${fallbackErr.message} — check this client by hand NOW.` : '',
+        ].filter(Boolean))
+      } else if (writeErr) {
+        console.error('[Stripe] subscription status write failed:', writeErr.message)
+        void sendFounderAlert('charge_failed', 'Subscription status could not be written', [
+          `Stripe reported "${sub.status}" for client ${clientId} and the write failed: ${writeErr.message}`,
+          'The subscription row may still show its previous status — check Finance → Billing.',
+        ])
       }
 
-      console.log(`[Stripe] Subscription ${status} for ${product} (${dbProduct}) — client ${clientId}`)
+      // A status Stripe has invented since this code was written is DENIED, not granted —
+      // then reported, so it gets mapped properly rather than sitting as a silent denial.
+      if (mapped.unrecognised) {
+        console.warn(`[Stripe] unrecognised subscription status "${sub.status}" — denied access and stored as ${stored}`)
+        void sendFounderAlert('charge_failed', `Unknown Stripe subscription status: "${sub.status}"`, [
+          `Stripe sent a subscription status we do not map: "${sub.status}" (client ${clientId}).`,
+          `Access was DENIED and it was stored as "${stored}" — the safe direction, but it may be wrong.`,
+          'If this client should have access, fix it in Finance → Billing and map the status in lib/subscription-status.ts.',
+        ])
+      }
+
+      console.log(`[Stripe] Subscription ${stored} (Stripe said "${sub.status}") for ${product} (${dbProduct}) — client ${clientId}`)
     }
 
     // ── Subscription cancelled / deleted ───────────────────────────────────
@@ -607,11 +655,21 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       }
       // Only act on subscription cycle renewals (not the initial checkout payment)
       if (invoice.billing_reason === 'subscription_cycle' && invoice.subscription) {
-        // Re-activate subscription record in case it had lapsed
+        // Re-activate subscription record in case it had lapsed.
+        //
+        // #340 — this list has to cover every non-access state a renewal can rescue, or a
+        // client who pays stays locked out. It used to be ['past_due','cancelled'], written
+        // when those were the only two states that ever occurred — because everything else
+        // was being coerced to `active` and never reached the database at all. Now that the
+        // real states are stored, `unpaid`, `incomplete` and `incomplete_expired` are
+        // reachable, and a successful invoice is exactly what clears them.
+        //
+        // `paused` is deliberately NOT here: a pause is a decision the client made (#190),
+        // not a payment failure, and an invoice must not silently undo it.
         await db.from('subscriptions')
           .update({ status: 'active' })
           .eq('stripe_subscription_id', invoice.subscription)
-          .in('status', ['past_due', 'cancelled'])
+          .in('status', ['past_due', 'cancelled', 'unpaid', 'incomplete', 'incomplete_expired'])
         console.log(`[Stripe] Subscription renewed — ${invoice.subscription} — ${invoice.customer_email}`)
 
         // Auto-commission: find client via subscriptions table and fire commission

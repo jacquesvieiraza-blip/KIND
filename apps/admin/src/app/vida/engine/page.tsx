@@ -36,6 +36,15 @@ type Engine = {
   secret_key_set?: boolean
 }
 
+/** #554 — the live RLS verdict, as returned by GET /operator/rls-audit. */
+type RlsAudit = {
+  verdicts: { tablename: string; verdict: string; finding: string; offenders: string[] }[]
+  summary: { exposed: number; unprotected: number; denyAll: number; scoped: number; review: number; safe: boolean }
+  tables_read: number
+  host: string
+  checked_at: string
+}
+
 /** The mailbox-details form. Kept out of the component so a re-render can't reshape it. */
 type CredForm = {
   inboxId: string; clientId: string
@@ -59,6 +68,23 @@ export default function VidaEnginePage() {
   // removed the Supabase OAuth app entirely). Used for one run, never stored anywhere.
   const [dbPw, setDbPw] = useState('')
   const [needsPw, setNeedsPw] = useState(false)
+  // #554 — the live RLS verdict. `rls` and `rlsErr` are kept SEPARATE deliberately: a failed
+  // audit must never render as an empty (and therefore reassuring) table. On a security
+  // screen, "nothing found" because the query died is the worst lie available.
+  const [rls, setRls] = useState<RlsAudit | null>(null)
+  const [rlsErr, setRlsErr] = useState<string | null>(null)
+
+  async function runRlsAudit() {
+    setBusy('rls'); setRls(null); setRlsErr(null)
+    try {
+      const j = await fetch('/api/proxy/operator/rls-audit').then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'Could not read RLS state')
+      setRls(j.data as RlsAudit)
+    } catch (err) {
+      setRlsErr(err instanceof Error ? err.message : 'Could not read RLS state')
+    }
+    setBusy(null)
+  }
 
   // The Supabase SQL editor is unreachable (GitHub OAuth + flagged account), so the
   // migration runs from here instead. Only reviewed, committed, idempotent statements —
@@ -224,6 +250,69 @@ export default function VidaEnginePage() {
                 className="bg-[#1f1235] text-white rounded-lg px-3 py-1.5 text-[12.5px] font-bold disabled:opacity-50">Try it</button>
             </div>
           </form>
+        )}
+      </div>
+
+      {/* #554 — RLS AUDIT, READ FROM THE LIVE DATABASE.
+          The repo has three migration directories and two disagreeing schema snapshots, and
+          #558 is the standing finding that none of them describes production. So a verdict
+          read off a file is a verdict about a file. This asks pg_policies directly.
+          Read-only — two SELECTs against pg_catalog, it changes nothing. */}
+      <div className="bg-white rounded-xl border border-[#ece5fb] p-4 mt-4">
+        <div className="flex items-start gap-3">
+          <div>
+            <b className="text-[13px] text-[#1f1235] block">Row-level security</b>
+            <p className="text-[11.5px] text-[#5c5279] mt-0.5 leading-relaxed">
+              Reads every policy out of the live database and gives a verdict per table. A policy with no{' '}
+              <code className="px-1 bg-[#f8f6fd] rounded">TO</code> clause applies to <b>everyone</b> — including anyone
+              holding the public key — and permissive policies combine with OR, so one{' '}
+              <code className="px-1 bg-[#f8f6fd] rounded">USING (true)</code> defeats every careful policy on that table.
+            </p>
+          </div>
+          <button onClick={runRlsAudit} disabled={busy === 'rls'}
+            className="ml-auto shrink-0 bg-[#1f1235] hover:bg-[#312150] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+            {busy === 'rls' ? 'Reading…' : 'Run RLS audit'}
+          </button>
+        </div>
+
+        {rlsErr && (
+          <p className="text-[11.5px] font-semibold text-red-700 mt-2 leading-relaxed">
+            Could not read RLS state: {rlsErr}. This is NOT a pass — nothing was checked.
+          </p>
+        )}
+
+        {rls && (
+          <div className="mt-3">
+            <p className={`text-[12px] font-bold ${rls.summary.safe ? 'text-[#0e7c86]' : 'text-red-700'}`}>
+              {rls.summary.safe
+                ? `No exposed tables. ${rls.summary.denyAll} deny-all · ${rls.summary.scoped} scoped · ${rls.tables_read} tables read.`
+                : `${rls.summary.exposed} table(s) readable with the PUBLIC key · ${rls.summary.unprotected} with RLS off.`}
+            </p>
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full text-[11.5px]">
+                <tbody>
+                  {rls.verdicts
+                    .filter(v => v.verdict === 'exposed' || v.verdict === 'unprotected')
+                    .map(v => (
+                      <tr key={v.tablename} className="border-b border-[#f4eefe]">
+                        <td className="py-1 pr-3 align-top whitespace-nowrap">
+                          <code className="px-1 bg-red-50 text-red-800 rounded font-bold">{v.tablename}</code>
+                        </td>
+                        <td className="py-1 text-[#5c5279] leading-relaxed">
+                          {v.finding}
+                          {v.offenders.length > 0 && <> <span className="text-red-700 font-semibold">({v.offenders.join(', ')})</span></>}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-[#8b82a8] mt-2">
+              Only exposed / RLS-off tables are listed — a healthy table needs no row. Full written verdict:{' '}
+              <code className="px-1 bg-[#f8f6fd] rounded">docs/RLS-AUDIT.md</code>. Read {rls.host} at{' '}
+              {new Date(rls.checked_at).toLocaleString()}.
+            </p>
+          </div>
         )}
       </div>
 

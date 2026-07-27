@@ -143,6 +143,54 @@ CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(cr
     // campaign's emails for manual approval — the human-in-the-loop gate. `start-work.ts:50`
     // sets both to true when work begins for a real client, so this insert would fail the
     // same way for the FIRST PAYING CLIENT, not just the demo.
+    // #554 — CLOSE THE POLICIES #350 LEFT BEHIND.
+    //
+    // #350 found `visitor_sessions.admin_read_visits` shipped as a {public} SELECT
+    // USING (true) — every visitor IP and enrichment row readable by anyone holding the
+    // public anon key, confirmed in production. It dropped that ONE policy and nobody swept
+    // for the pattern. This is the sweep.
+    //
+    // A policy with no `TO` clause applies to PUBLIC. `CREATE POLICY "Service role bypass"
+    // ON t FOR ALL USING (true)` restricts nothing to the service role despite its name —
+    // the name is the trap, because reviewers read names and not missing clauses. And since
+    // permissive policies combine with OR, one of these makes every careful
+    // `client_id = current_client_id()` policy on the same table irrelevant.
+    //
+    // Each policy below was created by a migration in the PRODUCTION path and is dropped
+    // NOWHERE in that path — the only DROPs live in supabase/staging-schema.sql, which is a
+    // staging snapshot. So unless they were removed by hand, they are live right now.
+    //
+    // SAFE TO DROP: dropping a permissive policy only ever REMOVES access. The API talks to
+    // Postgres with the service-role key, which bypasses RLS entirely, so nothing the
+    // product does is affected. None of these tables is read directly by any browser code —
+    // verified by reading every `.from('…')` in the portal, website and admin apps
+    // (BROWSER_READ_TABLES in lib/rls-audit.ts). After the drop, RLS stays ON with no
+    // permissive policy: anon and authenticated get nothing.
+    //
+    // NOTHING IS DELETED. These statements remove POLICY definitions, not a single row of
+    // data, and not a table or column.
+    key: '20260727_rls_close_public_policies',
+    title: 'Close the {public} USING(true) policies #350 left behind (#554 — anon-readable tables)',
+    sql: `
+DROP POLICY IF EXISTS "Service role bypass" ON public.lead_enrichment;
+DROP POLICY IF EXISTS "Service role bypass" ON public.figsy_calls;
+DROP POLICY IF EXISTS "Service role bypass" ON public.webhook_triggers;
+DROP POLICY IF EXISTS "Service role bypass" ON public.partners;
+DROP POLICY IF EXISTS "Service role bypass" ON public.partner_commissions;
+DROP POLICY IF EXISTS "Service role bypass" ON public.partner_referrals;
+
+-- Belt: RLS must be ON, or dropping the policy achieves nothing (a table with RLS off is
+-- readable regardless of what policies exist — the worst state of all, and the one with no
+-- pg_policies row to give it away).
+ALTER TABLE IF EXISTS public.lead_enrichment      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.figsy_calls          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.webhook_triggers     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.partners             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.partner_commissions  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.partner_referrals    ENABLE ROW LEVEL SECURITY;
+`.trim(),
+  },
+  {
     // #340 — the statuses a subscription can honestly be in.
     //
     // `routes/stripe.ts` coerced every non-good Stripe status to `active`, so a card declined

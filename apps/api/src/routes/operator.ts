@@ -974,6 +974,41 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 // adding no new local tooling. This runs the reviewed, committed, idempotent statements in
 // lib/pending-migrations.ts against DATABASE_URL. It never accepts SQL from the request —
 // the body is ignored entirely — so this cannot become an arbitrary-SQL hole.
+// #554 — RLS AUDIT, READ FROM THE LIVE DATABASE.
+//
+// Read-only: two SELECTs against pg_catalog. It changes nothing, so it is safe to run at any
+// time — and it is the only way to get a TRUE verdict per table. The repo has three
+// migration directories and two disagreeing schema snapshots, and #558 is the standing
+// finding that none of them describes production. `docs/RLS-AUDIT.md` records what the FILES
+// say; this endpoint says what the DATABASE says, and where they differ the database wins.
+operatorRouter.get('/rls-audit', async (_req: Request, res: Response) => {
+  try {
+    const { readLiveRls } = await import('../lib/rls-live')
+    const { verdictFor, summarise, VERDICT_ORDER, BROWSER_READ_TABLES } = await import('../lib/rls-audit')
+    const live = await readLiveRls(null)
+    const browserReads = new Set<string>(BROWSER_READ_TABLES)
+    const verdicts = live.states
+      .map(s => verdictFor(s, browserReads.has(s.tablename)))
+      .sort((a, b) => VERDICT_ORDER[a.verdict] - VERDICT_ORDER[b.verdict] || a.tablename.localeCompare(b.tablename))
+    res.json({
+      success: true,
+      data: {
+        verdicts,
+        summary: summarise(verdicts),
+        tables_read: live.states.length,
+        host: live.host,
+        checked_at: new Date().toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[operator/rls-audit]', err)
+    // NOT-MEASURED, never a green. A security check that cannot reach the database must say
+    // so — reporting "no problems found" because the query failed is the worst possible lie
+    // on this particular screen.
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not read RLS state' })
+  }
+})
+
 operatorRouter.post('/migrations/run', async (req: Request, res: Response) => {
   try {
     const { runPendingMigrations, PENDING_MIGRATIONS } = await import('../lib/pending-migrations')

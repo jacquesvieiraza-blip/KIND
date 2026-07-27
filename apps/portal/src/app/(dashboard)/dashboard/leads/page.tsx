@@ -7,7 +7,7 @@ import { v2Enabled } from '@/lib/flags'
 import { notifyCreditNudge } from '@/lib/onboarding-nudge'
 import { FigsyThinking } from '@/components/ui/FigsyThinking'
 import type { Lead, LeadStats, ICP, LeadStatus } from '@kind/shared'
-import { SCORE_THRESHOLDS } from '@kind/shared'
+import { SCORE_THRESHOLDS, outcomeBanner, outcomeBannerClass } from '@kind/shared'
 import {
   Users, TrendingUp, ShieldCheck, Download, Search,
   Mail, Ban, Sparkles, Loader2, ExternalLink,
@@ -948,15 +948,18 @@ export default function LeadsPage() {
       {v2Enabled('thinking') && runningIcp && <FigsyThinking />}
 
       {/* PR-A — honest last-run outcome. A run that produced no leads explains itself:
-          a temporary sourcing-quota outage (credits safe) vs a genuinely narrow ICP. */}
-      {runResult && (runResult.status === 'quota_exhausted' || runResult.status === 'no_match') && (
+          a temporary sourcing-quota outage (credits safe) vs a genuinely narrow ICP vs an
+          audience that has simply run to its end (#366).
+
+          The show/tone decision comes from @kind/shared, NOT from a list of statuses written
+          here. This condition used to be `status === 'quota_exhausted' || status ===
+          'no_match'` — an allowlist, which silently rendered nothing the moment a fifth
+          outcome was added. `outcomeBanner` inverts it: everything except a served run is
+          shown, including statuses it has never seen. */}
+      {runResult && outcomeBanner(runResult.status).show && (
         <div
           role="status"
-          className={`mb-4 rounded-xl border px-4 py-3 text-sm ${
-            runResult.status === 'quota_exhausted'
-              ? 'border-amber-200 bg-amber-50 text-amber-800'
-              : 'border-gray-200 bg-gray-50 text-gray-700'
-          }`}
+          className={`mb-4 rounded-xl border px-4 py-3 text-sm ${outcomeBannerClass(outcomeBanner(runResult.status).tone)}`}
         >
           {runResult.message}
         </div>

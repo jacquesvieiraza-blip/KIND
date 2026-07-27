@@ -143,6 +143,44 @@ CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(cr
     // campaign's emails for manual approval — the human-in-the-loop gate. `start-work.ts:50`
     // sets both to true when work begins for a real client, so this insert would fail the
     // same way for the FIRST PAYING CLIENT, not just the demo.
+    // #366 — PDL PAGING. Without these three columns the cursor has nowhere to live, every
+    // run re-reads page 1, and a client's second month sources zero new people while
+    // reporting "no leads matched this ICP".
+    //
+    // The second statement is #342's lesson applied BEFORE it bites: `icp_run_outcomes.status`
+    // carries a CHECK constraint listing four values, and this change starts writing a fifth
+    // ('audience_exhausted'). Without widening it, the insert is rejected — and supabase-js
+    // RETURNS that rejection rather than throwing, so the outcome would simply never appear
+    // and the portal would keep showing the previous run's message. Written as drop-and-add
+    // inside a DO block so re-running is harmless.
+    key: '20260727_pdl_cursor',
+    title: 'PDL scroll_token paging + the audience_exhausted outcome (#366 — a second month that finds NEW people)',
+    sql: `
+ALTER TABLE public.icps
+  ADD COLUMN IF NOT EXISTS pdl_scroll_token text,
+  ADD COLUMN IF NOT EXISTS pdl_scroll_query text,
+  ADD COLUMN IF NOT EXISTS pdl_exhausted_at timestamptz;
+
+COMMENT ON COLUMN public.icps.pdl_scroll_token IS
+  'PDL v5 scroll_token — where the last run stopped. Sent back on the next run so it returns the NEXT people, not the same page again (#366).';
+COMMENT ON COLUMN public.icps.pdl_scroll_query IS
+  'Fingerprint of the ICP query the scroll_token belongs to. A token is only valid for the query that produced it; when these differ the token is discarded and paging restarts.';
+COMMENT ON COLUMN public.icps.pdl_exhausted_at IS
+  'When the data source last reported it has nobody left matching this exact query. Cleared automatically when the ICP is widened.';
+
+do $$
+begin
+  if exists (select 1 from pg_constraint where conname = 'icp_run_outcomes_status_check') then
+    alter table public.icp_run_outcomes drop constraint icp_run_outcomes_status_check;
+  end if;
+end $$;
+
+alter table public.icp_run_outcomes
+  add constraint icp_run_outcomes_status_check
+  check (status in ('served','no_match','quota_exhausted','demo','audience_exhausted'));
+`.trim(),
+  },
+  {
     key: '20260726_campaign_copilot_columns',
     title: 'Campaign human-in-the-loop columns (copilot_mode + approve_before_send — the demo rebuild and the first paying client both need them)',
     sql: `

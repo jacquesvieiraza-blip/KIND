@@ -17,6 +17,10 @@ import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { splitPoolAndRemainder , poolWriteAllowed} from '../lib/pool-sourcing'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
+import {
+  decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
+  type CursorQuery, type StoredCursor,
+} from '../lib/pdl-cursor'
 
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
@@ -28,17 +32,35 @@ async function recordRunOutcome(
   recordsRequested: number,
   poolServed: number,
   totalInserted: number,
+  alreadyHeld = 0,
 ): Promise<void> {
   try {
-    await db.from('icp_run_outcomes').insert({
+    // supabase-js RETURNS `{ error }` — it does not throw. The try/catch alone therefore
+    // caught nothing that actually happens here: a CHECK-constraint rejection (exactly what
+    // a new `status` value risks) returned quietly and the outcome row simply never existed,
+    // leaving the portal to render the previous run's message forever. #342's lesson,
+    // applied at the moment the new value is introduced rather than after it bites.
+    const { error } = await db.from('icp_run_outcomes').insert({
       icp_id: icpId,
       client_id: clientId,
       status,
       records_requested: Math.max(0, Math.round(recordsRequested)),
       pool_served: Math.max(0, Math.round(poolServed)),
       total_inserted: Math.max(0, Math.round(totalInserted)),
-      message: runOutcomeMessage(status, totalInserted),
+      message: runOutcomeMessage(status, totalInserted, alreadyHeld),
     })
+    if (error) {
+      console.error(`[icp] recordRunOutcome REJECTED status "${status}" for icp ${icpId}:`, error.message)
+      // A rejected status means the client is about to be shown a stale outcome. If the
+      // column will not take the value, the migration has not been run — say so loudly.
+      if (/check constraint|violates/i.test(error.message)) {
+        void sendFounderAlert('source_down', `icp_run_outcomes will not accept status "${status}"`, [
+          `The database rejected an ICP run outcome with status "${status}" for ICP ${icpId}.`,
+          'The status CHECK constraint has not been widened — run the pending migrations from Vida → Engine.',
+          'Until then this run outcome is LOST and the client sees the previous run\'s message.',
+        ])
+      }
+    }
   } catch (err) {
     console.error('[icp] recordRunOutcome failed (non-fatal):', err)
   }
@@ -312,6 +334,22 @@ export async function runIcpJob(
   let relaxed: string | null = null
   const insertedIds: string[] = []
 
+  // ── #366 PDL PAGING — WHERE WE GOT TO LAST RUN.
+  //
+  // `pdlSearchPeople(icp, _page = 1, size)` ignored its page argument, so every run asked
+  // PDL for the SAME first page. Run two got the identical people back, deduped every one
+  // of them against the leads already on the desk, and inserted nothing — reported to the
+  // client as "no leads matched this ICP", which is a sentence about their targeting when
+  // it was really a sentence about our paging. A client's second month is the business.
+  //
+  // The cursor lives on the ICP row and is fingerprinted against the query that produced
+  // it, so editing the ICP throws it away rather than replaying a cursor into an audience
+  // the client no longer targets.
+  const cursor = decideCursor(icp as StoredCursor, icp as CursorQuery)
+  if (cursor.reset) console.log(`[icp] PDL cursor reset for icp ${icpId} — the ICP changed since it was stored`)
+  let cursorUpdate: StoredCursor | null = null
+  let audienceExhausted = cursor.exhausted
+
   // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
   // below runs exactly as it did pre-pool. Pool leads are inserted here and flow into
@@ -330,6 +368,12 @@ export async function runIcpJob(
     // touch. A demo run costs us exactly $0.
     relaxed = 'Demo run — leads served from the shared pool at no cost.'
     console.log(`[icp] demo run for client ${clientId} — ${pool.served} pool leads served at $0, PDL skipped.`)
+  } else if (cursor.exhausted) {
+    // #366 — PDL already told us, on a previous run, that this exact query has nobody left.
+    // Re-asking cannot produce a different answer, so we do not spend the grant on it. The
+    // pool serve above still ran (it draws on records we already own), and the outcome
+    // recorded at the end says the audience is finished rather than showing another zero.
+    console.log(`[icp] icp ${icpId} audience already exhausted — PDL skipped, no grant spent.`)
   } else if (pdlRemainder > 0) {
     // #445 — THE SOURCING FENCE. PDL is spent HERE, before any client charge, so we
     // must not pull a single record we haven't pre-funded. try_spend_sourcing atomically
@@ -357,8 +401,18 @@ export async function runIcpJob(
     } else {
       void maybeAlertPdlBudget()
 
-      const { contacts, relaxed: pdlRelaxed } = await searchPeopleWithFallback(icp, 1, grantedSize)
+      // #366 — resume from where the last run stopped. `cursor.token` is null on a first
+      // run (or after an ICP edit), which is the old behaviour exactly.
+      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icp, 1, grantedSize, cursor.token)
       relaxed = pdlRelaxed
+
+      // Remember where PDL got to, so NEXT month starts after these people instead of on
+      // top of them. Only written when PDL actually answered — a failed request leaves the
+      // stored cursor untouched, so the unserved page is retried rather than skipped.
+      if (pdlPage) {
+        cursorUpdate = nextCursorState(icp as CursorQuery, pdlPage, new Date().toISOString())
+        if (pdlPage.exhausted) audienceExhausted = true
+      }
 
       // (Fable F1) RECONCILE — PDL bills per record RETURNED, not per record granted. A
       // thin/empty search (404, narrow ICP) must not drain the client's allowance or book
@@ -475,7 +529,25 @@ export async function runIcpJob(
     }
   }
 
-  await db.from('icps').update({ last_run_at: new Date().toISOString() }).eq('id', icp.id)
+  // #366 — the cursor is written in the SAME statement as last_run_at, so a run can never
+  // be recorded as having happened while the paging quietly stayed put.
+  const { error: icpUpdateErr } = await db.from('icps')
+    .update({ last_run_at: new Date().toISOString(), ...(cursorUpdate ?? {}) })
+    .eq('id', icp.id)
+  if (icpUpdateErr) {
+    console.error(`[icp] icps update failed for ${icpId}:`, icpUpdateErr.message)
+    // A MISSING COLUMN HERE IS THE BUG COMING BACK. If pdl_scroll_token cannot be written,
+    // every future run resumes from nothing, re-serves page 1 and inserts zero — the exact
+    // silent failure this item exists to kill. It must never be a swallowed console line.
+    if (cursorUpdate && /column|schema cache/i.test(icpUpdateErr.message)) {
+      void sendFounderAlert('source_down', 'PDL paging cannot be saved — clients will stop finding new people', [
+        `Writing the PDL cursor to icps failed: ${icpUpdateErr.message}`,
+        'The pdl_scroll_token / pdl_scroll_query / pdl_exhausted_at columns are missing in production.',
+        'Fix: Vida → Engine → run the pending migrations (20260727_pdl_cursor).',
+        'Until then every ICP run re-reads page 1 and every repeat client sources ZERO new leads.',
+      ])
+    }
+  }
 
   // Deliver freshly-inserted leads IMMEDIATELY so the client sees them the moment
   // the run finishes — never an empty dashboard (client-facing views gate on
@@ -576,14 +648,32 @@ export async function runIcpJob(
     }
   }
 
-  await recordRunOutcome(
-    icpId,
-    clientId,
-    deriveRunStatus(!!clientSettings?.is_demo, inserted, false),
-    effectiveCap,
-    pool.served,
-    inserted,
-  )
+  // #366 — AN EXHAUSTED ICP SAYS SO OUT LOUD.
+  //
+  // A finished audience and a broken run both arrive as `inserted: 0`. Told the wrong one,
+  // a client either widens an ICP that was working perfectly or abandons one that simply
+  // ran to its end. So when PDL has nobody left, the run is recorded as `audience_exhausted`
+  // and carries the end-of-audience sentence — never "no leads matched this ICP".
+  const status = deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted)
+  let heldFromIcp = 0
+  if (status === 'audience_exhausted') {
+    const { count } = await db.from('leads')
+      .select('id', { count: 'exact', head: true }).eq('icp_id', icpId).eq('client_id', clientId)
+    heldFromIcp = count ?? 0
+    relaxed = exhaustedMessage(heldFromIcp)
+    // Alert only on the run that DISCOVERS it — `cursor.exhausted` means we already knew and
+    // already told them, and a weekly cron must not mail the founder the same news forever.
+    if (!cursor.exhausted) {
+      const { data: c } = await db.from('clients').select('company_name').eq('id', clientId).single()
+      void sendFounderAlert(
+        'source_down',
+        `${c?.company_name ?? 'A client'} has run out of audience on an ICP`,
+        exhaustedAlertLines(c?.company_name ?? '', (icp as { name?: string }).name ?? '', heldFromIcp),
+      )
+    }
+  }
+
+  await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp)
   return { inserted, skipped, relaxed }
 }
 
@@ -632,7 +722,7 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
           if (contacts.length === 0) {
             // #243: fall back to PDL so preview samples work Apollo-free (PDL_API_KEY set)
             const { pdlSearchPeople } = await import('../lib/pdl-search')
-            contacts = await pdlSearchPeople(icpArg, 1, 3)
+            contacts = await pdlSearchPeople(icpArg, 3)
           }
           return {
             samples: contacts.slice(0, 3).map(c => ({

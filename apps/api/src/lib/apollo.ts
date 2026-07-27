@@ -1,5 +1,5 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
-import { pdlSearchPeople, pdlSearchDiagnostic } from './pdl-search'
+import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage } from './pdl-search'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
 
@@ -283,7 +283,11 @@ export async function searchPeopleWithFallback(
   page = 1,
   size = 50,   // #445 — ask each source for exactly what we may KEEP (the granted
                // sourcing-budget batch), not a fixed 50. Kills the buy-50-keep-20 waste.
-): Promise<{ contacts: ApolloContact[]; relaxed: string | null }> {
+  // #366 — where PDL got to last run for THIS ICP. Null on a first run. The caller stores
+  // the returned `pdlPage.scrollToken` on the ICP row and hands it back next time, which is
+  // what makes a client's second month find people their first month did not.
+  pdlCursor: string | null = null,
+): Promise<{ contacts: ApolloContact[]; relaxed: string | null; pdlPage: PdlPage | null }> {
   // SECOND SOURCE (dormant unless PDL_API_KEY is set): when configured, PDL is used
   // two ways — (1) as a PARALLEL SUPPLEMENT that is MERGED (deduped) with a successful
   // Apollo result so a run returns Apollo ∪ PDL rather than Apollo-only; and (2) as a
@@ -293,14 +297,21 @@ export async function searchPeopleWithFallback(
   const pdlConfigured = !!process.env.PDL_API_KEY
 
   // Fetch the PDL supplement once, in parallel with the Apollo pass below, but only
-  // when configured. Never throws (pdlSearchPeople returns [] on any error), so it
+  // when configured. Never throws (pdlSearchPage swallows every error into `error`), so it
   // can only ever ADD leads — it cannot break the Apollo path. We always supplement
   // (not just when Apollo under-fills): PDL surfaces a distinct pool of contacts that
   // carry a real work_email directly, so merging widens reach on every run. Cost is
   // bounded — one extra PDL search per run, deduped against Apollo before use.
-  const pdlSupplement: Promise<ApolloContact[]> = pdlConfigured
-    ? pdlSearchPeople(icp, page, size).catch(() => [])
-    : Promise.resolve([])
+  //
+  // #366 — this is now a PAGE, not a list: it resumes from `pdlCursor` and reports where it
+  // got to. Every return below carries that page back out so the caller can persist it.
+  const pdlSupplement: Promise<PdlPage | null> = pdlConfigured
+    ? pdlSearchPage(icp, size, pdlCursor).catch(() => null)
+    : Promise.resolve(null)
+  // Every exit point must report the page, so a stored cursor can never silently stop
+  // advancing. Threading it by hand through nine returns is exactly how one gets missed.
+  const out = (contacts: ApolloContact[], relaxed: string | null, pdlPage: PdlPage | null) =>
+    ({ contacts, relaxed, pdlPage })
 
   // Ask Apollo for exactly `size` too (per_page), so no source over-pulls what we keep.
   const sized = (b: ApolloSearchBody): ApolloSearchBody => { b.per_page = size; return b }
@@ -311,13 +322,13 @@ export async function searchPeopleWithFallback(
     const contacts1 = await searchPeople(full)
     if (contacts1.length > 0) {
       const pdl = await pdlSupplement
-      if (pdl.length > 0) {
-        const merged = mergeContacts(contacts1, pdl)
+      if (pdl && pdl.contacts.length > 0) {
+        const merged = mergeContacts(contacts1, pdl.contacts)
         const added  = merged.length - contacts1.length
-        if (added > 0) console.log(`[apollo] merged PDL supplement: +${added} net-new (Apollo ${contacts1.length} ∪ PDL ${pdl.length} = ${merged.length})`)
-        return { contacts: merged, relaxed: null }
+        if (added > 0) console.log(`[apollo] merged PDL supplement: +${added} net-new (Apollo ${contacts1.length} ∪ PDL ${pdl.contacts.length} = ${merged.length})`)
+        return out(merged, null, pdl)
       }
-      return { contacts: contacts1, relaxed: null }
+      return out(contacts1, null, pdl)
     }
 
     // Pass 2 — remove consent filter (consent gate was cutting the pool)
@@ -327,7 +338,8 @@ export async function searchPeopleWithFallback(
       const contacts2 = await searchPeople(relaxed2)
       if (contacts2.length > 0) {
         console.log('[apollo] fallback pass 2: removed consent filter — found', contacts2.length)
-        return { contacts: mergeContacts(contacts2, await pdlSupplement), relaxed: 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.' }
+        const pdl = await pdlSupplement
+        return out(mergeContacts(contacts2, pdl?.contacts ?? []), 'Consent filter relaxed to find results. Apollo-verified emails were too restrictive for this geography.', pdl)
       }
     }
 
@@ -338,7 +350,8 @@ export async function searchPeopleWithFallback(
     const contacts3 = await searchPeople(relaxed3)
     if (contacts3.length > 0) {
       console.log('[apollo] fallback pass 3: removed size + consent filters — found', contacts3.length)
-      return { contacts: mergeContacts(contacts3, await pdlSupplement), relaxed: 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.' }
+      const pdl = await pdlSupplement
+      return out(mergeContacts(contacts3, pdl?.contacts ?? []), 'Company size + consent filters relaxed to find results. Try widening the company size range in your ICP.', pdl)
     }
   } catch (apolloErr) {
     // Apollo unavailable. If PDL is configured, fail over to it; else preserve the
@@ -357,27 +370,31 @@ export async function searchPeopleWithFallback(
     console.warn('[apollo] search failed — failing over to PDL:', errMsg)
     // Reuse the in-flight supplement fetch rather than calling PDL twice.
     const pdl = await pdlSupplement
-    if (pdl.length > 0) return { contacts: pdl, relaxed: 'Sourced via the secondary data provider (Apollo was unavailable).' }
+    if (pdl && pdl.contacts.length > 0) return out(pdl.contacts, 'Sourced via the secondary data provider (Apollo was unavailable).', pdl)
     // #337④ — both sources are down: Apollo errored AND PDL returned nothing.
-    alertSourceDown([
-      'Apollo lead search errored and the secondary provider (PDL) returned zero.',
-      `Apollo error: ${errMsg}`,
-      'Every client ICP run is returning zero leads until at least one source recovers.',
-    ])
-    return { contacts: [], relaxed: 'No contacts found — Apollo was unavailable and the secondary provider returned none.' }
+    // EXCEPT when PDL says `exhausted`: that is not an outage, it is this ICP having no
+    // more people in it. Alerting "both sources are down" for a finished audience sends the
+    // founder chasing an infrastructure fault that does not exist — and buries the real
+    // message, which is that this client needs a wider ICP (#366).
+    if (!pdl?.exhausted) {
+      alertSourceDown([
+        'Apollo lead search errored and the secondary provider (PDL) returned zero.',
+        `Apollo error: ${errMsg}`,
+        'Every client ICP run is returning zero leads until at least one source recovers.',
+      ])
+    }
+    return out([], 'No contacts found — Apollo was unavailable and the secondary provider returned none.', pdl)
   }
 
   // Apollo returned 0 across all passes — use the second source before giving up.
-  if (pdlConfigured) {
-    const pdl = await pdlSupplement
-    if (pdl.length > 0) {
-      console.log('[apollo] 0 from Apollo — PDL second-source found', pdl.length)
-      return { contacts: pdl, relaxed: 'Apollo found nobody for this ICP — sourced from the secondary provider instead.' }
-    }
+  const pdl = pdlConfigured ? await pdlSupplement : null
+  if (pdl && pdl.contacts.length > 0) {
+    console.log('[apollo] 0 from Apollo — PDL second-source found', pdl.contacts.length)
+    return out(pdl.contacts, 'Apollo found nobody for this ICP — sourced from the secondary provider instead.', pdl)
   }
 
   console.log('[apollo] all passes returned 0 — no contacts found for this ICP')
-  return { contacts: [], relaxed: 'No contacts found even with relaxed filters. Try broader job titles or add more geographies.' }
+  return out([], 'No contacts found even with relaxed filters. Try broader job titles or add more geographies.', pdl)
 }
 
 export class ApolloCreditsExhaustedError extends Error {

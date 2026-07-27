@@ -26,6 +26,11 @@ import { enrichAndDeliverLeads } from '../lib/lead-delivery'
 import { deliveryCapBalance, normalizePlan } from '../lib/billing-rules'
 import { recomputeCampaignCounters } from '../lib/figsy'
 import { getClientExclusions } from '../lib/real-clients'
+import { sendFounderAlert } from '../lib/alerts'
+import { isEnumRejection } from '../lib/subscription-status'
+import {
+  decideLapse, webhookSuspectLines, LAPSED_STATUS, LAPSED_FALLBACK, type LapseCandidate,
+} from '../lib/subscription-lapse'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -2310,22 +2315,77 @@ internalRouter.post('/founder-brief', async (_req: Request, res: Response) => {
 // ── SUBSCRIPTION LAPSE CHECK — fires daily, marks overdue active subscriptions as lapsed ──
 internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Response) => {
   try {
-    // #480 — client lifecycle cron: skip entirely when the master switch is off, so
-    // no nudge fires AND no 'notified' state is stamped (it re-fires when re-enabled).
-    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
-    const now = new Date().toISOString()
+    // #342 — THE EMAIL SWITCH NO LONGER GATES THE BILLING DECISION.
+    //
+    // This handler used to return early on `!lifecycleEmailsEnabled()`, exactly like the six
+    // other lifecycle crons. For those it is right — they only send mail. This one CHANGES
+    // BILLING STATE, so turning off marketing email silently switched off billing
+    // enforcement, and nothing said so. The lapse now always runs; only the notification is
+    // gated, at the point the notification is sent.
+    const now = new Date()
+    const nowIso = now.toISOString()
 
-    // Active subscriptions whose billing period has ended — no renewal charge received
-    const { data: lapsed, error } = await db.from('subscriptions')
-      .update({ status: 'lapsed' })
+    // #342 — READ, DECIDE, THEN WRITE. This was a single blind bulk update:
+    //
+    //   .update({ status: 'lapsed' }).eq('status','active').lt('current_period_end', now)
+    //
+    // Two defects in one statement. `lapsed` is not in the production `subscription_status`
+    // enum, so Postgres rejected the whole thing and the route 500'd EVERY DAY since it was
+    // written — no subscription was ever lapsed, and an unpaid client kept access forever.
+    // And had it succeeded it would have locked out Stripe-managed subscriptions on the
+    // strength of `current_period_end`, a column only our own webhook handler writes: one
+    // missed `customer.subscription.updated` and a paying client is locked out using our
+    // bookkeeping error as the evidence. See lib/subscription-lapse.ts.
+    const { data: candidates, error: readErr } = await db.from('subscriptions')
+      .select('id, client_id, product, status, current_period_end, stripe_subscription_id')
       .eq('status', 'active')
-      .lt('current_period_end', now)
-      .select('id, client_id, product')
+      .lt('current_period_end', nowIso)
 
-    if (error) throw error
+    if (readErr) throw readErr
 
-    // For each lapsed subscription, notify the client
-    for (const sub of (lapsed ?? []) as { id: string; client_id: string; product: string }[]) {
+    const toLapse: LapseCandidate[] = []
+    const webhookSuspects: LapseCandidate[] = []
+    for (const c of (candidates ?? []) as LapseCandidate[]) {
+      const d = decideLapse(c, now)
+      if (d.lapse) toLapse.push(c)
+      else if (d.webhookSuspect) webhookSuspects.push(c)
+    }
+
+    // Stripe subscriptions drifting far past the period end we hold are a MISSED WEBHOOK,
+    // not an unpaid client. Say that, rather than locking anyone out over it.
+    if (webhookSuspects.length > 0) {
+      console.warn(`[subscriptions/lapsed] ${webhookSuspects.length} Stripe sub(s) stale past period end — not lapsed`)
+      void sendFounderAlert('charge_failed', 'Stripe subscriptions look stale — we may be missing webhooks', webhookSuspectLines(webhookSuspects))
+    }
+
+    const lapsed: { id: string; client_id: string; product: string }[] = []
+    for (const sub of toLapse) {
+      // Write the honest value; fall back to one the enum definitely holds if it is rejected.
+      // Both deny access, so the account locks either way — this only decides how precisely
+      // the reason is recorded (#340's pattern, and #342 is why the pattern exists).
+      let { error: wErr } = await db.from('subscriptions').update({ status: LAPSED_STATUS }).eq('id', sub.id)
+      if (wErr && isEnumRejection(wErr)) {
+        const retry = await db.from('subscriptions').update({ status: LAPSED_FALLBACK }).eq('id', sub.id)
+        wErr = retry.error
+        console.error(`[subscriptions/lapsed] enum rejected "${LAPSED_STATUS}" — stored "${LAPSED_FALLBACK}" for ${sub.id}`)
+        void sendFounderAlert('charge_failed', 'Subscription enum is missing "lapsed" — run the migration', [
+          `The lapse cron could not write "${LAPSED_STATUS}"; it stored "${LAPSED_FALLBACK}" instead, which also denies access.`,
+          'Fix: Vida → Engine → run the pending migrations (20260727_subscription_lapsed).',
+        ])
+      }
+      if (wErr) {
+        // One failed row must not abandon the rest — that is how a single bad row used to
+        // take the whole run down with it.
+        console.error(`[subscriptions/lapsed] could not lapse ${sub.id}:`, wErr.message)
+        continue
+      }
+      lapsed.push({ id: sub.id, client_id: sub.client_id, product: sub.product })
+    }
+
+    // For each lapsed subscription, notify the client — THIS is what the lifecycle switch
+    // controls, and only this.
+    for (const sub of lapsed) {
+      if (!lifecycleEmailsEnabled()) break
       try {
         const { data: client } = await db.from('clients')
           .select('user_id, company_name').eq('id', sub.client_id).single()
@@ -2360,9 +2420,26 @@ internalRouter.post('/subscriptions/check-lapsed', async (_req: Request, res: Re
       }
     }
 
-    res.json({ success: true, data: { lapsed: (lapsed ?? []).length } })
+    res.json({
+      success: true,
+      data: {
+        lapsed: lapsed.length,
+        considered: (candidates ?? []).length,
+        stripeStale: webhookSuspects.length,
+        emailsSent: lifecycleEmailsEnabled(),
+      },
+    })
   } catch (err) {
+    // #342 — this route 500'd every day for months and nobody knew: the cron logs the
+    // failure and dead-letters it, but nothing ever put it in front of a human. A billing
+    // enforcement job that has silently stopped working is exactly the thing that must not
+    // wait to be noticed.
     console.error('[subscriptions/check-lapsed]', err)
+    void sendFounderAlert('charge_failed', 'The subscription lapse check is failing', [
+      `The daily lapse cron errored: ${err instanceof Error ? err.message : String(err)}`,
+      'While it fails, hand-granted subscriptions never expire — clients keep access past their paid period.',
+      'This job silently 500\'d every day before #342 for exactly this reason.',
+    ])
     res.status(500).json({ success: false, error: 'Subscription lapse check failed' })
   }
 })

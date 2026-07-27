@@ -143,6 +143,37 @@ CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(cr
     // campaign's emails for manual approval — the human-in-the-loop gate. `start-work.ts:50`
     // sets both to true when work begins for a real client, so this insert would fail the
     // same way for the FIRST PAYING CLIENT, not just the demo.
+    // #343 — THE CRON SINGLETON. `startCrons()` ran on every API process with no gate, so
+    // two replicas doubled every email, every charge and every digest, silently, on a
+    // schedule. The env var (`RUN_CRONS`) is a kill switch, NOT a singleton: Railway sets
+    // variables per SERVICE and every replica inherits them, so both replicas would read
+    // `true` and both would fire. The guarantee has to live where both can see it.
+    //
+    // (job, slot) as the primary key IS the lock — the first INSERT wins and every other
+    // process gets a unique violation and stands down. Same shape as the (enrollment_id,
+    // step) backstop from #354 that already keeps sequence sends from doubling.
+    key: '20260727_cron_claims',
+    title: 'Cron slot claims (#343 — two replicas can never run the same job twice)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.cron_claims (
+  job        text        NOT NULL,
+  slot       timestamptz NOT NULL,
+  claimed_by text,
+  claimed_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (job, slot)
+);
+
+COMMENT ON TABLE public.cron_claims IS
+  'One row per (job, scheduled minute). The INSERT is the lock: the first process to claim a slot runs the job, every other gets a unique violation and stands down (#343).';
+
+CREATE INDEX IF NOT EXISTS cron_claims_claimed_at_idx ON public.cron_claims (claimed_at);
+
+-- RLS on with no policies denies anon/authenticated outright; the service role (the API)
+-- bypasses RLS and is the only accessor. Same posture as icp_run_outcomes.
+ALTER TABLE public.cron_claims ENABLE ROW LEVEL SECURITY;
+`.trim(),
+  },
+  {
     // #366 — PDL PAGING. Without these three columns the cursor has nowhere to live, every
     // run re-reads page 1, and a client's second month sources zero new people while
     // reporting "no leads matched this ICP".

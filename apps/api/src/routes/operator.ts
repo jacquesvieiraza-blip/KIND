@@ -974,6 +974,60 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 // adding no new local tooling. This runs the reviewed, committed, idempotent statements in
 // lib/pending-migrations.ts against DATABASE_URL. It never accepts SQL from the request —
 // the body is ignored entirely — so this cannot become an arbitrary-SQL hole.
+// #329 — THE SEED-DATA REPORT. READ-ONLY, ALWAYS SAFE.
+//
+// The plan is docs/SEED-WIPE-PLAN.md; this is the part that reads production and says what
+// would actually be touched. It deletes nothing and can be run at any time.
+//
+// The classification (lib/seed-wipe.ts) protects, in order: any client with a real payment,
+// any client holding leads with real addresses, the house account, and the demo. Real money
+// outranks `is_demo` deliberately — the flag is a human's opinion and a Stripe-referenced
+// ledger row is a fact, and on a destructive path the fact has to win.
+operatorRouter.get('/seed-report', async (_req: Request, res: Response) => {
+  try {
+    const { buildReport } = await import('../lib/seed-wipe')
+    type SeedCandidate = import('../lib/seed-wipe').SeedCandidate
+    const { resolveHouseUserIds, HOUSE_ACCOUNT_EMAIL } = await import('../lib/real-clients')
+    const { PURCHASE_TX_TYPES } = await import('../lib/onboarding-pack')
+
+    const { data: clients, error } = await db.from('clients').select('id, company_name, is_demo, user_id')
+    if (error) throw error
+
+    const houseIds = await resolveHouseUserIds()
+    const candidates: SeedCandidate[] = []
+    for (const c of (clients ?? []) as { id: string; company_name: string | null; is_demo: boolean | null; user_id: string | null }[]) {
+      // A real payment = a purchase-type ledger row carrying a provider reference. A
+      // manual_grant is NOT real money, which is why PURCHASE_TX_TYPES is used rather than
+      // PAID_TX_TYPES — a founder-granted credit must not make a test account undeletable.
+      const { count: paid } = await db.from('credit_transactions')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', c.id).in('type', PURCHASE_TX_TYPES).not('reference', 'is', null)
+      // Real leads = anything not on a .invalid address. Every seeded person uses .invalid
+      // by construction (demo-mbf.ts, seed-company.ts), so this separates invented people
+      // from real ones without trusting a flag.
+      const { count: realLeads } = await db.from('leads')
+        .select('id', { count: 'exact', head: true })
+        .eq('client_id', c.id).not('email', 'is', null).not('email', 'like', '%.invalid')
+      candidates.push({
+        id: c.id,
+        company_name: c.company_name,
+        is_demo: c.is_demo,
+        email: c.user_id && houseIds.has(c.user_id) ? HOUSE_ACCOUNT_EMAIL : null,
+        realPayments: paid ?? 0,
+        realLeads: realLeads ?? 0,
+      })
+    }
+
+    const report = buildReport(candidates, new Set([HOUSE_ACCOUNT_EMAIL]))
+    res.json({ success: true, data: { ...report, checked_at: new Date().toISOString() } })
+  } catch (err) {
+    console.error('[operator/seed-report]', err)
+    // Never an empty pass. A report that could not be produced must not read as "nothing to
+    // clean" — that is the reading that gets somebody to arm the wipe on bad information.
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not build the seed report' })
+  }
+})
+
 // #554 — RLS AUDIT, READ FROM THE LIVE DATABASE.
 //
 // Read-only: two SELECTs against pg_catalog. It changes nothing, so it is safe to run at any

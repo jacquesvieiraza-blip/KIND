@@ -252,6 +252,18 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
     }
     if (matches.length === 0) { res.status(200).json({ received: true }); return }
 
+    // CLASSIFY ONCE, BEFORE THE LOOP.
+    //
+    // `classifyReply` is an LLM call that takes ONLY the body — nothing about the client
+    // enters it. R1's per-client loop put it inside, so a reply matching two clients was
+    // classified TWICE. Two costs, and worse: the model is not deterministic, so the same
+    // email could come back `hot` for one client and `warm` for the other. One would get the
+    // founder alert and the CRM deal; the other would not. For the same email.
+    //
+    // Found by reading the handler end to end after the founder pointed out that grepping
+    // off the last action never shows what is missing (P10).
+    const { classification, reasoning } = await classifyReply(body)
+
     let lastReplyId: string | undefined
     for (const lead of matches) {
     // R6 — includes 'replied'. A hot reply sets the enrollment to `replied`, so the SECOND
@@ -263,9 +275,6 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       .in('status', [...REPLY_LOOKUP_STATUSES])
       .order('enrolled_at', { ascending: false })
       .limit(1).maybeSingle()
-
-    // Classify reply
-    const { classification, reasoning } = await classifyReply(body)
 
     // Store reply
     const { data: reply } = await db.from('figsy_replies').insert({

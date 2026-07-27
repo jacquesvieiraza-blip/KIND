@@ -363,11 +363,23 @@ async function vida(): Promise<Section> {
   }))
 
   // REPLICA COUNT — the founder's spec said "if readable". It is not, and that is the answer.
+  //
+  // What CHANGED with #343 is what the unreadable number means. It used to be the whole
+  // safety story: if replicas > 1, every cron double-fired, and nothing in the product could
+  // tell you whether that was happening. Now the guarantee does not depend on knowing the
+  // count — each job claims its (job, slot) row and the losers stand down — so this row
+  // reports the count as unmeasurable AND says why that is no longer frightening. Leaving
+  // the old "if it is >1, every cron double-fires" line up would be a stale claim on the one
+  // screen whose whole purpose is not making stale claims.
   rows.push(await probe('Replica count', async () => {
     const id = process.env.RAILWAY_REPLICA_ID
+    const { error } = await db.from('cron_claims').select('job', { count: 'exact', head: true })
+    const guard = error
+      ? `⚠️ the cron_claims guard is NOT in place (${error.message}) — until the 20260727_cron_claims migration is run, more than one replica DOES double every email and charge`
+      : 'the cron_claims single-run guard is in place, so extra replicas stand down instead of double-firing (#343)'
     return unmeasured('Replica count',
-      `A process can read its OWN replica id${id ? ` (${id.slice(0, 8)}…)` : ' — and this one is not even set'}, never how many replicas exist. Nothing inside the container can answer this, so it is not answered here rather than guessed.`,
-      'Railway → @kind/api → Settings → Replicas. If it is >1, every cron in cron.ts double-fires.')
+      `A process can read its OWN replica id${id ? ` (${id.slice(0, 8)}…)` : ' — and this one is not even set'}, never how many replicas exist. Nothing inside the container can answer this, so it is not answered here rather than guessed. However — ${guard}.`,
+      'Railway → @kind/api → Settings → Replicas.')
   }))
 
   return { title: 'Vida — can the operator actually run a client?', side: 'vida', rows }

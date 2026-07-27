@@ -1,10 +1,51 @@
 import cron from 'node-cron'
 import { db } from '@kind/db'
 import { sendFounderAlert } from './lib/alerts'
+import { cronsEnabled, slotFor, readClaimError, claimantId, type ClaimOutcome } from './lib/cron-guard'
 
 const PORT       = process.env.PORT || 4000
 const API_BASE   = `http://localhost:${PORT}`
 const ADMIN_KEY  = process.env.ADMIN_SECRET_KEY
+
+// #343 — CLAIM THE SLOT, OR STAND DOWN.
+//
+// Every replica of the API schedules the same jobs and fires them at the same instant. The
+// only place two processes can agree on which of them goes ahead is the database: the claim
+// is an INSERT whose primary key is (job, slot), so the first one wins and every other gets
+// a unique violation. See lib/cron-guard.ts for why the env var alone cannot do this.
+// Exported for the test that proves the RACE is actually settled — a source scan can show
+// the claim is called, never that a second caller stands down.
+export async function claimCronSlot(job: string, at: Date): Promise<ClaimOutcome> {
+  const slot = slotFor(at)
+  try {
+    const { error } = await db.from('cron_claims').insert({
+      job, slot, claimed_by: claimantId(),
+    })
+    return readClaimError(error)
+  } catch (err) {
+    return { kind: 'unavailable', why: err instanceof Error ? err.message : String(err), missingTable: false }
+  }
+}
+
+// The claim table missing means the migration has not been run. The job RUNS ANYWAY —
+// failing closed would stop every send, digest, drip and charge across the business to
+// prevent a doubling that only happens above one replica — so this alert is the entire
+// safety net and must actually arrive. Deduped to once per process, like the admin-key one.
+let alertedClaimUnavailable = false
+function reportClaimUnavailable(job: string, outcome: Extract<ClaimOutcome, { kind: 'unavailable' }>): void {
+  console.error(`[cron] could not claim a slot for ${job} — RUNNING ANYWAY. ${outcome.why}`)
+  if (alertedClaimUnavailable) return
+  alertedClaimUnavailable = true
+  void sendFounderAlert('api_down', 'Cron single-run guard is NOT protecting anything', [
+    `The scheduled job "${job}" could not claim its slot: ${outcome.why}`,
+    outcome.missingTable
+      ? 'The cron_claims table does not exist — run the pending migrations from Vida → Engine (20260727_cron_claims).'
+      : 'The database could not be reached for the claim.',
+    'Jobs are still running, deliberately — stopping every send and charge is worse than the risk.',
+    'BUT while this persists, if @kind/api has more than one replica, every email and every charge fires TWICE.',
+    'Check Railway → @kind/api → Settings → Replicas until this is resolved.',
+  ])
+}
 
 // Run-history: record one row per cron execution into cron_runs so the admin
 // Engine/health page can show a real last-run-per-job panel. Best-effort — never
@@ -40,6 +81,16 @@ async function recordDeadLetter(source: string, error: string, payload?: unknown
 let alertedMissingAdminKey = false
 
 async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Promise<void> {
+  // #343 — claim the slot BEFORE anything else. Cheapest possible check, and it has to come
+  // before the admin-key branch: otherwise two replicas with no key would each raise the
+  // "all crons are disabled" alert, which is the same duplication one layer over.
+  const claim = await claimCronSlot(path, new Date())
+  if (claim.kind === 'taken') {
+    console.log(`[cron] ${path} — another process already claimed this slot; standing down.`)
+    return
+  }
+  if (claim.kind === 'unavailable') reportClaimUnavailable(path, claim)
+
   if (!ADMIN_KEY) {
     console.warn(`[cron] ADMIN_SECRET_KEY not set — skipping ${path}`)
     if (!alertedMissingAdminKey) {
@@ -82,6 +133,13 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
 // there is simply nothing due to send. Best-effort; a failure here must not crash the cron.
 async function checkSendsStalled(): Promise<void> {
   try {
+    // #343 — this one does NOT go through callInternal, so it needs its own claim. Without
+    // it two replicas mail the founder the same stall every hour, and an alert that arrives
+    // twice is an alert that gets filtered.
+    const claim = await claimCronSlot('watchdog:sends-stalled', new Date())
+    if (claim.kind === 'taken') return
+    if (claim.kind === 'unavailable') reportClaimUnavailable('watchdog:sends-stalled', claim)
+
     const now      = new Date()
     const sixHrAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000).toISOString()
 
@@ -111,7 +169,30 @@ async function checkSendsStalled(): Promise<void> {
   }
 }
 
+// #343 — housekeeping for the claims table. Claimed like any other job, so two replicas do
+// not both run the delete.
+async function pruneCronClaims(): Promise<void> {
+  const claim = await claimCronSlot('maintenance:prune-cron-claims', new Date())
+  if (claim.kind === 'taken') return
+  if (claim.kind === 'unavailable') { reportClaimUnavailable('maintenance:prune-cron-claims', claim); return }
+  const cutoff = new Date(Date.now() - 14 * 864e5).toISOString()
+  const { error } = await db.from('cron_claims').delete().lt('claimed_at', cutoff)
+  if (error) console.error('[cron] pruning cron_claims failed (non-fatal):', error.message)
+}
+
 export function startCrons(): void {
+  // #343 — the kill switch. This is NOT what stops two replicas doubling (Railway variables
+  // are per-service, so every replica reads the same value — the claim above is what does
+  // that); it is how crons are kept off a service that should not run them, and how they are
+  // switched off in an emergency without a code change. UNSET MEANS ON, deliberately: a
+  // missing variable must never silently stop every send, digest and charge in the business.
+  const gate = cronsEnabled(process.env.RUN_CRONS)
+  console.log(`[cron] ${gate.reason}`)
+  if (!gate.enabled) {
+    console.warn('[cron] NO JOBS SCHEDULED on this process — no sends, no digests, no drip, no watchdogs.')
+    return
+  }
+
   // Daily 06:00 UTC — trial nurture (days 1/3/5/7/10)
   cron.schedule('0 6 * * *', () => callInternal('/ae/nurture'), { timezone: 'UTC' })
 
@@ -209,8 +290,18 @@ export function startCrons(): void {
   // has stalled (enrollments overdue but zero sends in the last 6 hours).
   cron.schedule('20 * * * *', () => { void checkSendsStalled() }, { timezone: 'UTC' })
 
+  // #343 — Daily 02:30 UTC: drop claim rows older than 14 days. The claims table only needs
+  // enough history to settle a race that lasts milliseconds; keeping it forever would grow
+  // a row per job per day with nothing ever reading it. Written as a scheduled job rather
+  // than a database function because a function nothing calls is not housekeeping, it is
+  // dead code that reads like housekeeping.
+  cron.schedule('30 2 * * *', () => { void pruneCronClaims() }, { timezone: 'UTC' })
+
   // Daily 04:00 UTC — #287 MRR daily snapshot → metrics_daily (MRR-over-time + movement)
   cron.schedule('0 4 * * *', () => callInternal('/metrics/snapshot'), { timezone: 'UTC' })
 
-  console.log('[cron] 25 jobs scheduled')
+  // COUNTED, NOT TYPED. This line read "25 jobs scheduled" while 33 were scheduled — a
+  // number nobody recounts after adding a job, printed at startup with total confidence.
+  // node-cron's task registry is the only thing that actually knows.
+  console.log(`[cron] ${cron.getTasks().size} jobs scheduled · claimed per-slot in cron_claims, so extra replicas stand down`)
 }

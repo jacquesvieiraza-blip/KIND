@@ -974,6 +974,40 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
 // adding no new local tooling. This runs the reviewed, committed, idempotent statements in
 // lib/pending-migrations.ts against DATABASE_URL. It never accepts SQL from the request —
 // the body is ignored entirely — so this cannot become an arbitrary-SQL hole.
+// #298 — THE BACKUP MANIFEST. Every table and its exact row count, right now.
+//
+// This is the piece a restore drill cannot work without and which does not exist today:
+// **nobody knows what "restored correctly" would look like.** Press restore, get a green
+// tick, and there is no way to tell whether you got everything, half of it, or last week's
+// copy. Take a manifest now, take another after any restore, compare — that comparison IS
+// the drill; the button is not.
+//
+// Counts come from a real COUNT(*) per table rather than the planner's `reltuples` estimate,
+// which is only as fresh as the last ANALYZE and can be wrong by thousands on a table that
+// has just been restored. An estimate would make a broken restore look fine.
+//
+// CARRIES NO DATA, deliberately. An endpoint that dumped rows would be one URL that
+// exfiltrates the entire customer database — including client_inboxes, which #554b found
+// with no row-level security at all. Counts prove completeness without moving a single
+// personal detail.
+operatorRouter.get('/backup/manifest', async (_req: Request, res: Response) => {
+  try {
+    const { readLiveTableCounts } = await import('../lib/backup-live')
+    const manifest = await readLiveTableCounts()
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(_req), clientId: null, action: 'backup_manifest',
+      subjectType: 'backup', subjectId: null,
+      detail: { tables: manifest.totalTables, rows: manifest.totalRows, host: manifest.host },
+    })
+    res.json({ success: true, data: manifest })
+  } catch (err) {
+    console.error('[operator/backup-manifest]', err)
+    // Never an empty manifest. A manifest that failed to build, saved as the reference for a
+    // future restore, would make an empty database compare clean.
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not take a manifest' })
+  }
+})
+
 // #329 — THE SEED-DATA REPORT. READ-ONLY, ALWAYS SAFE.
 //
 // The plan is docs/SEED-WIPE-PLAN.md; this is the part that reads production and says what

@@ -27,6 +27,10 @@ export type OperatorAction =
   | 'send_reply'            // answered a prospect on the client's behalf from Vida's Inbox
   | 'assign_inbox'          // V9 #270/#271 — pooled/branded sending inbox lifecycle
   | 'run_migration'         // ran the committed pending migrations from Vida (no SQL editor access)
+  | 'backup_manifest'       // #298 — took a table/row-count snapshot. Recorded because the
+                            // WHEN is half the value: a restore is compared against the last
+                            // manifest, so knowing when one was last taken is the difference
+                            // between a usable reference and a stale one.
   | 'edit_icp'              // V4d — operator authored/edited the client's ICP
   | 'edit_sequence'         // V4d — operator authored/edited the client's sequence
   | 'suppression_change'    // added/removed a suppression/opt-out

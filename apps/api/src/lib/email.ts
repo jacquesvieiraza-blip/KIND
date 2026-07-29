@@ -301,6 +301,36 @@ export async function sendOnboardingEmail(
   await sendTx({ from: FROM, to, subject: email.subject, html: email.html })
 }
 
+// ── #547 DECIDED, 29 Jul: THE CONSENT EMAIL STAYS OURS — it is NOT a per-client send. ────
+//
+// #547 moved every prospect send onto the client's own mailbox, and this one is deliberately
+// exempt. It was left undecided until now, which is worse than either answer, so:
+//
+// WHY IT STAYS ON THE HOUSE DOMAIN — four reasons, and the last is the one that settles it:
+//
+//  ① It is genuinely OUR mail. K.I.N.D is the processor asking permission on the client's
+//    behalf, and the footer says exactly that: "sent on behalf of X via K.I.N.D". A POPIA
+//    consent request from the client's own mailbox makes that sentence a lie.
+//  ② The audit trail belongs to the entity holding the data — us. Consent that arrives from
+//    somewhere else is weaker evidence, not stronger.
+//  ③ Every link in it (consent, decline, opt-out) resolves on OUR domain. From-domain and
+//    link-domain alignment is a deliverability positive; splitting them is a spam signal.
+//  ④ THE DECIDING ONE: this is the one message that goes out BEFORE consent exists. Putting
+//    pre-consent mail on a client's freshly-warmed branded mailbox is precisely what un-warms
+//    it — the same reasoning that makes `warming` a non-sendable status in sending-inbox.ts.
+//    It also fires at SOURCING time, before a client necessarily has a mailbox at all, so
+//    routing it per-client would block consent collection for exactly the new clients who
+//    need it most.
+//
+// RULEBOOK 12.2 is not violated: its harm is "one client's complaints poison the REST". Here
+// the sender is us, identified as us — a complaint lands on the party that actually sent it.
+//
+// ⚠️ OPEN SUB-QUESTION, deliberately NOT changed here: this sends from `FROM`, the
+// TRANSACTIONAL identity (hello@get-kind.com), while D4's rule is that cold-adjacent mail
+// must never poison the transactional domain — and a permission request to a stranger is
+// cold-adjacent. The right home is arguably FIGSY_COLD_FROM. That is a live deliverability
+// change affecting the domain every invoice and password reset also leaves from, so it needs
+// its own PR and the founder's call, not a quiet edit inside this one. Logged on #547.
 export async function sendConsentEmail(
   to: string,
   firstName: string,

@@ -1,10 +1,43 @@
 import { Resend } from 'resend'
-import { htmlToText } from './deliverability'
+import { htmlToText, COLD_FROM } from './deliverability'
 import { interpretSend } from './resend-checked'
 import { isDemoClient } from './demo'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
+
+// #547 — THE CONSENT IDENTITY, and the ONE send in this file that is not transactional.
+//
+// Everything else here is 1:1 mail to somebody who asked for it: a welcome, an invoice, a
+// seat invite, a password-adjacent notice. The consent request is not. It goes to a stranger
+// who has never heard of us, and the only thing they can do about it — other than consent —
+// is mark it spam. That makes it cold-adjacent, and D4's rule for cold-adjacent mail is that
+// it must never leave from the transactional domain, because that domain also carries every
+// invoice, password reset and seat invite a paying client needs to actually receive.
+//
+// So a spam complaint on a consent request now lands on the domain built to absorb cold
+// complaints, rather than on the one an invoice depends on. Only the FROM moves — PR #1211's
+// decision that consent stays OURS rather than per-client is unchanged and correct (see the
+// four reasons above sendConsentEmail).
+//
+// The fallback is deliberately NOT fail-closed: when FIGSY_COLD_FROM is unset, COLD_FROM is
+// already the transactional identity, so consent collection keeps working exactly as it does
+// today. Refusing to send would block consent for every client — a far worse outcome than
+// the reputation risk this is managing. It warns instead, and the warning names CONSENT,
+// because deliverability.ts's own startup warning says "cold outreach" and an operator
+// reading it would not know this path was affected too.
+const CONSENT_FROM = COLD_FROM
+let warnedConsentDomain = false
+function warnIfConsentIsOnTransactional(): void {
+  if (warnedConsentDomain || process.env.FIGSY_COLD_FROM) return
+  warnedConsentDomain = true   // once per process — this fires per send, not at startup
+  console.warn(
+    '[email] ⚠️  CONSENT emails are sending from the TRANSACTIONAL domain (get-kind.com) ' +
+    'because FIGSY_COLD_FROM is unset. A consent request goes to a stranger who can mark it ' +
+    'spam, and that complaint now lands on the domain your invoices, password resets and ' +
+    'seat invites also leave from. Set FIGSY_COLD_FROM to the warmed cold domain.',
+  )
+}
 const DASH = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard`
 
 // Demo/seed clients carry synthetic addresses (e.g. demo-xxxx@kind-demo.internal).
@@ -334,12 +367,11 @@ export async function sendOnboardingEmail(
 // RULEBOOK 12.2 is not violated: its harm is "one client's complaints poison the REST". Here
 // the sender is us, identified as us — a complaint lands on the party that actually sent it.
 //
-// ⚠️ OPEN SUB-QUESTION, deliberately NOT changed here: this sends from `FROM`, the
-// TRANSACTIONAL identity (hello@get-kind.com), while D4's rule is that cold-adjacent mail
-// must never poison the transactional domain — and a permission request to a stranger is
-// cold-adjacent. The right home is arguably FIGSY_COLD_FROM. That is a live deliverability
-// change affecting the domain every invoice and password reset also leaves from, so it needs
-// its own PR and the founder's call, not a quiet edit inside this one. Logged on #547.
+// ✅ THE OPEN SUB-QUESTION IS NOW SETTLED. This used to send from `FROM`, the TRANSACTIONAL
+// identity, while D4's rule is that cold-adjacent mail must never poison that domain — and a
+// permission request to a stranger is cold-adjacent. It now sends from CONSENT_FROM (the
+// separately-warmed cold domain, see the block at the top of this file). WHO it comes from is
+// unchanged — still us, for all four reasons above; only WHICH OF OUR DOMAINS moved.
 export async function sendConsentEmail(
   to: string,
   firstName: string,
@@ -355,10 +387,11 @@ export async function sendConsentEmail(
     console.log(`[demo] prospect send suppressed for client ${clientId} — consent email to ${to} NOT sent (demo).`)
     return
   }
+  warnIfConsentIsOnTransactional()
   const consentUrl = `${optOutUrl}?consent=true`
   const declineUrl = `${optOutUrl}?consent=false`
   await sendTx({
-    from: FROM,
+    from: CONSENT_FROM,
     to,
     subject: `[Action required] ${senderCompanyName} would like to connect`,
     html: `

@@ -585,16 +585,37 @@ export default function VidaConsolePage() {
     setCockpitBusy(false)
   }
 
+  // #564 (the residual) — "Just unblock them" WAS THE LAST BUTTON STILL SWALLOWING ITS ANSWER.
+  //
+  // `setCampaignStatus` below was fixed; this one kept the exact pattern that item condemned:
+  // it parsed the response, threw it away, and carried an empty catch commented "surfaced by
+  // the reload". It never was. The reload re-rendered the same blocked state, so a refusal and
+  // a success looked identical — on the button whose entire job is unblocking a client who
+  // cannot be worked, where "nothing happened" is the most expensive possible outcome to
+  // misread.
+  //
+  // It also now tells the truth about WHICH thing happened. The route returns `created`:
+  // false means the client already had an active campaign and nothing was made. Reporting
+  // that as "started" would be a smaller version of the same lie.
   async function startCampaign() {
     if (!selected) return
-    setCockpitBusy(true)
+    setCockpitBusy(true); setSaveMsg(null)
     try {
-      await fetch('/api/proxy/operator/campaign/start', {
+      const j = await fetch('/api/proxy/operator/campaign/start', {
         method: 'POST', headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ client_id: selected }),
       }).then(r => r.json())
+      if (!j?.success) {
+        setSaveMsg(notice.error(j?.error || 'Could not start a campaign — the API refused and gave no reason.'))
+        setCockpitBusy(false); return
+      }
+      setSaveMsg(notice.ok(j?.created === false
+        ? 'This client already had a running campaign — nothing was created.'
+        : 'Campaign created and running. They can be worked now.'))
       await loadCockpit(selected)
-    } catch { /* surfaced by the reload */ }
+    } catch (e) {
+      setSaveMsg(notice.error(`Could not reach the API to start a campaign: ${e instanceof Error ? e.message : String(e)}`))
+    }
     setCockpitBusy(false)
   }
 

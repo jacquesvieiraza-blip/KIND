@@ -72,6 +72,35 @@ export type StartWorkResult = {
 export const RECOMMEND_TOP = 20
 
 /**
+ * #571 — SPLIT THE SOURCING TARGET ACROSS EVERY ACTIVE ICP.
+ *
+ * Sourcing used to read `.order('created_at', desc).limit(1).maybeSingle()` — the single
+ * NEWEST active ICP. A client with two live ICPs therefore had one of them silently ignored
+ * forever: no error, no log, no empty run to notice. They approved it, it says "never
+ * sourced", and nothing in the product ever explains why.
+ *
+ * THE SPLIT RULE, stated once so it is not re-derived from the code later:
+ *
+ *   • The target is divided EVENLY, because we have no basis for ranking one approved ICP
+ *     above another. They are all the client's stated intent; weighting by ICP age or by how
+ *     many leads each has already produced would quietly turn a preference into a policy.
+ *   • The REMAINDER goes to the newest ICPs first (the list arrives newest-first). If a
+ *     client adds an ICP today, the odd lead lands on the one they were most recently
+ *     thinking about.
+ *   • When there are more ICPs than leads to fetch, the first `want` ICPs get one each and
+ *     the rest get zero — a zero share is skipped entirely rather than issuing an empty run,
+ *     because an empty run still costs an API call and writes a confusing outcome row.
+ *
+ * Pure, so the arithmetic is provable without a database or a sourcing provider.
+ */
+export function splitSourceTarget(want: number, icpCount: number): number[] {
+  if (icpCount <= 0 || want <= 0) return new Array(Math.max(0, icpCount)).fill(0)
+  const base = Math.floor(want / icpCount)
+  const remainder = want % icpCount
+  return Array.from({ length: icpCount }, (_, i) => base + (i < remainder ? 1 : 0))
+}
+
+/**
  * Source against the client's live ICP and put everyone in front of them.
  *
  * Never throws — this runs off a Stripe webhook and a payment must never fail because
@@ -86,10 +115,15 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
       .eq('client_id', clientId).in('type', PAID_TX_TYPES)
     if ((purchases ?? 0) === 0) return { ...empty, reason: 'not_paid' }
 
-    const { data: icp } = await db.from('icps')
+    // #571 — EVERY active ICP, not just the newest. This was `.limit(1).maybeSingle()`, so a
+    // client with two live ICPs had one silently ignored forever — no error, no empty run,
+    // nothing to notice. Newest first, because that is the order the remainder is handed out
+    // in (see splitSourceTarget).
+    const { data: icpRows } = await db.from('icps')
       .select('id').eq('client_id', clientId).eq('is_active', true)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    if (!icp?.id) return { ...empty, reason: 'no_icp' }
+      .order('created_at', { ascending: false })
+    const icps = ((icpRows ?? []) as { id: string }[]).filter(i => i?.id)
+    if (icps.length === 0) return { ...empty, reason: 'no_icp' }
 
     // runIcpJob bills and attributes against the owning user.
     const { data: client } = await db.from('clients').select('user_id').eq('id', clientId).maybeSingle()
@@ -124,19 +158,39 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
     let sourcingFailed: string | null = null
     if (want > 0) {
       const { runIcpJob } = await import('../routes/icps')
-      const run = await runIcpJob(icp.id, clientId, client.user_id as string, want)
-        .catch(e => {
-          sourcingFailed = e instanceof Error ? e.message : String(e)
-          console.error('[start-work] sourcing failed for', clientId, e)
-          return null
-        })
-      sourced = run?.inserted ?? 0
-      if (sourcingFailed) {
+      const shares = splitSourceTarget(want, icps.length)
+      const failures: string[] = []
+
+      // SEQUENTIAL, NOT `Promise.all`. Every run spends the same pre-funded allowance through
+      // `try_spend_sourcing`, and firing them together would race that check — two runs each
+      // reading "enough left" and both spending it. Sourcing is a background job off a
+      // webhook; there is nothing to gain by making it concurrent and a budget to lose.
+      for (let i = 0; i < icps.length; i++) {
+        const share = shares[i]
+        if (share <= 0) continue      // more ICPs than leads to fetch — an empty run helps nobody
+        const run = await runIcpJob(icps[i].id, clientId, client.user_id as string, share)
+          .catch(e => {
+            const why = e instanceof Error ? e.message : String(e)
+            failures.push(`${icps[i].id}: ${why}`)
+            console.error('[start-work] sourcing failed for', clientId, 'icp', icps[i].id, e)
+            return null
+          })
+        sourced += run?.inserted ?? 0
+      }
+
+      // ONE ICP FAILING IS STILL A FAILURE WORTH REPORTING, even when another succeeded —
+      // that ICP's audience is simply not being sourced, and a partial result is exactly the
+      // shape that reads as success on every board.
+      if (failures.length > 0) {
+        sourcingFailed = failures.join(' · ')
         const { sendFounderAlert } = await import('./alerts')
         void sendFounderAlert('source_down', 'A paying client asked for people and sourcing FAILED', [
-          `Client ${clientId} has paid, and the run for ${want} record(s) failed.`,
+          `Client ${clientId} has paid, and ${failures.length} of ${icps.length} ICP run(s) for ${want} record(s) failed.`,
           `Reason: ${sourcingFailed}`,
-          'Their desk is not being filled. This does NOT look like an error anywhere else — it reads as "nothing to do" on every board until it is fixed.',
+          sourced > 0
+            ? `${sourced} record(s) DID land from the other ICP(s) — so this will look like a normal, slightly small delivery unless you read this.`
+            : 'Their desk is not being filled.',
+          'This does NOT look like an error anywhere else — it reads as "nothing to do" on every board until it is fixed.',
           'Re-run start-work for them once the cause is cleared.',
         ]).catch(() => {})
       }
@@ -161,17 +215,67 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
  * surfaced marker itself.
  */
 export async function surfaceEverything(clientId: string): Promise<{ surfaced: number; recommended: number }> {
-  const { data: fresh } = await db.from('leads')
-    .select('id, score')
-    .eq('client_id', clientId)
-    .is('surfaced_for_approval_at', null)
-    .is('revealed_at', null)
-    .neq('status', 'passed')
-    .order('score', { ascending: false, nullsFirst: false })
-    .limit(1000)
+  // #571 — THE SECOND SILENT CAP. This read was `.limit(1000)` inside a function whose whole
+  // contract is "everyone". A client past a thousand undecided leads had the rest left
+  // invisible — not surfaced, not delivered, no error — and the caller reported the truncated
+  // figure to the founder as "sent N to them". Exactly the failure the `delivered_at` comment
+  // below already describes, arriving through a different door.
+  //
+  // Paged with the shared pager (same one the Vida worklist uses) rather than a bigger limit,
+  // because a bigger limit is the same bug with a later trigger.
+  //
+  // ORDERED BY `id`, NOT BY SCORE, and that is a fix rather than a regression: paging needs a
+  // stable, unique key or pages can skip and repeat rows, and `score` is neither (nullable,
+  // and ties are common). The score ordering here never mattered — it only decided WHICH
+  // thousand survived the truncation, and there is no truncation now. "Recommended" is
+  // derived from score at read time in `/leads/for-approval`, which is where it belongs.
+  const { pageRows } = await import('./page-rows')
+  let fresh: { id: string }[]
+  let complete: boolean
+  try {
+    const read = await pageRows<{ id: string }>('leads',
+      q => {
+        // The builder is chainable; describe it as such so each link stays typed rather
+        // than collapsing to `unknown` (or being waved through with `any`).
+        type Chain = {
+          select: (c: string) => Chain
+          eq: (c: string, v: unknown) => Chain
+          is: (c: string, v: unknown) => Chain
+          neq: (c: string, v: unknown) => Chain
+        }
+        return (q as unknown as Chain)
+          .select('id')
+          .eq('client_id', clientId)
+          .is('surfaced_for_approval_at', null)
+          .is('revealed_at', null)
+          .neq('status', 'passed')
+      },
+      { orderBy: 'id', label: `surfaceEverything:${clientId}` })
+    fresh = read.rows
+    complete = read.complete
+  } catch (err) {
+    // `pageRows` THROWS on a read error, where the old `.limit()` read swallowed it into an
+    // undefined and returned a calm zero. A read failure is not "nothing to surface".
+    const why = err instanceof Error ? err.message : String(err)
+    console.error('[start-work] could not read leads to surface for client', clientId, why)
+    const { sendFounderAlert } = await import('./alerts')
+    void sendFounderAlert('sends_stalled', 'Could not read a client\'s leads to put on their desk', [
+      `Client ${clientId}: the query that finds un-surfaced leads failed.`,
+      `Reason: ${why}`,
+      'This reports ZERO surfaced, which is indistinguishable from a client who is already stocked — hence this alert.',
+      'Nothing is lost: re-running start-work will retry.',
+    ]).catch(() => {})
+    return { surfaced: 0, recommended: 0 }
+  }
 
-  const ids = (fresh ?? []).map((l: { id: string }) => l.id)
+  const ids = fresh.map(l => l.id)
   if (ids.length === 0) return { surfaced: 0, recommended: 0 }
+  if (!complete) {
+    // The pager hit its ceiling. Say so rather than let a partial answer be reported as the
+    // whole desk — the same honesty the pager itself logs, escalated because this one is a
+    // paying client's delivery.
+    console.warn(`[start-work] surfacing for ${clientId} is PARTIAL — the pager ceiling was reached at ${ids.length} leads.`)
+  }
 
   const now = new Date().toISOString()
   // SURFACING **IS** DELIVERY IN THE MANAGED MODEL — the second silent cap.

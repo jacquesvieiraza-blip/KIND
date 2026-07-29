@@ -54,7 +54,11 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
 
     if (existing) return // Already recorded
 
-    await db.from('partner_commissions').insert({
+    // #349 — a swallowed failure here is a partner who is never paid. Nothing else
+    // recreates this row: the idempotency check above reads `partner_commissions`, so
+    // a failed insert isn't retried on the next invoice — it's simply gone, and the
+    // partner is short a month's commission with no trace anywhere.
+    const { error: commErr } = await db.from('partner_commissions').insert({
       partner_id: referral.partner_id,
       partner_referral_id: referral.id,
       client_id: clientId,
@@ -63,12 +67,23 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
       period_month: periodMonth,
       status: 'pending',
     })
+    if (commErr) {
+      console.error('[partner-commission] commission row FAILED — partner will not be paid:', commErr.message)
+      void sendFounderAlert('charge_failed', 'Partner commission was NOT recorded', [
+        `Client ${clientId} paid $${amountUsd} and partner ${referral.partner_id} earned $${commissionUsd.toFixed(2)} for ${periodMonth}.`,
+        `The commission row failed to write: ${commErr.message}`,
+        'Nothing retries this — the next invoice sees no row for this period and will not backfill it.',
+        'Fix: add the commission by hand in Vida → Partners before the payout run.',
+      ])
+    }
 
-    // Update first_payment_at if not set
-    await db.from('partner_referrals')
+    // Update first_payment_at if not set. Only a reporting stamp (the partner dashboard's
+    // "first payment" column), so a failure is logged rather than alerted.
+    const { error: stampErr } = await db.from('partner_referrals')
       .update({ first_payment_at: new Date().toISOString() })
       .eq('id', referral.id)
       .is('first_payment_at', null)
+    if (stampErr) console.error('[partner-commission] first_payment_at not stamped:', stampErr.message)
 
   } catch (err) {
     console.error('[partner-commission]', err) // non-blocking — never throws
@@ -636,11 +651,22 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
 
       if (clientId && product && STRIPE_SUBSCRIPTIONS[product]) {
         const dbProduct = STRIPE_SUBSCRIPTIONS[product].product
-        await db.from('subscriptions')
+        // #349 — Stripe has stopped billing this subscription. If the local row doesn't
+        // follow it stays `active`, and every access gate reads active → the client keeps
+        // the product forever without paying for it. Stripe will never resend this event.
+        const { error: cancelErr } = await db.from('subscriptions')
           .update({ status: 'cancelled' })
           .eq('client_id', clientId)
           .eq('product', dbProduct)
           .eq('stripe_subscription_id', sub.id)
+        if (cancelErr) {
+          console.error('[Stripe] cancellation write failed:', cancelErr.message)
+          void sendFounderAlert('charge_failed', 'Subscription cancelled at Stripe but NOT locally', [
+            `Stripe cancelled ${product} for client ${clientId} and the local write failed: ${cancelErr.message}`,
+            'The subscription row still reads its previous status — if that was "active", the client keeps the product for free.',
+            'Fix: set it to cancelled in Finance → Billing. Stripe does not resend this event.',
+          ])
+        }
         console.log(`[Stripe] Subscription cancelled for ${product} — client ${clientId}`)
       }
     }
@@ -666,13 +692,23 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         //
         // `paused` is deliberately NOT here: a pause is a decision the client made (#190),
         // not a payment failure, and an invoice must not silently undo it.
-        await db.from('subscriptions')
+        // #349 — this is the write that ends a lockout. Swallowed, the client has paid
+        // and stays locked out, and nothing retries: the next renewal is a month away.
+        const { error: renewErr } = await db.from('subscriptions')
           .update({ status: 'active' })
           .eq('stripe_subscription_id', invoice.subscription)
           // `lapsed` (#342) is here too: a hand-granted subscription that ran out and is
           // later paid for through Stripe must come back, or the client stays locked out
           // forever — the same "access does not match payment" bug pointed the other way.
           .in('status', ['past_due', 'cancelled', 'unpaid', 'incomplete', 'incomplete_expired', 'lapsed'])
+        if (renewErr) {
+          console.error('[Stripe] renewal re-activation failed:', renewErr.message)
+          void sendFounderAlert('charge_failed', 'A client paid but is still locked out', [
+            `A renewal invoice succeeded for subscription ${invoice.subscription} (${invoice.customer_email || 'no email'}) and the re-activation write failed: ${renewErr.message}`,
+            'They have been charged. If the row was past_due / cancelled / lapsed, they still cannot use the product.',
+            'Fix: set the subscription to active in Finance → Billing. The next invoice is a month away — nothing retries this.',
+          ])
+        }
         console.log(`[Stripe] Subscription renewed — ${invoice.subscription} — ${invoice.customer_email}`)
 
         // Auto-commission: find client via subscriptions table and fire commission
@@ -698,10 +734,17 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       }
       // Mark subscription past_due so the portal can surface a payment warning
       let failedClientName = invoice.customer_email || 'a client'
+      // #349 — the dunning alert below used to state "the subscription is now marked
+      // past_due" unconditionally. If this write fails the row stays `active`, the client
+      // keeps the product while not paying for it, and the alert tells the founder the
+      // opposite. Track the outcome so the alert reports what actually happened.
+      let markedPastDue = false
       if (invoice.subscription) {
-        await db.from('subscriptions')
+        const { error: dueErr } = await db.from('subscriptions')
           .update({ status: 'past_due' })
           .eq('stripe_subscription_id', invoice.subscription)
+        markedPastDue = !dueErr
+        if (dueErr) console.error('[Stripe] past_due write failed:', dueErr.message)
         // Look up the client name for a useful alert.
         const { data: sub } = await db.from('subscriptions')
           .select('client_id, product, clients(company_name)')
@@ -713,7 +756,9 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
       // #286 dunning — a failed payment must not silently sit. Alert the founder.
       void sendFounderAlert('payment_failed', `Payment failed — ${failedClientName}`, [
         `A subscription payment just failed for ${failedClientName} (${invoice.customer_email || 'no email'}).`,
-        `The subscription is now marked past_due. Stripe will retry per its dunning schedule.`,
+        markedPastDue
+          ? `The subscription is now marked past_due. Stripe will retry per its dunning schedule.`
+          : `⚠️ The subscription could NOT be marked past_due — the row still reads its previous status, so the client may still have full access. Set it by hand in Finance → Billing.`,
         `Action: check Finance → Billing, and send a card-update nudge (or offer a short pause).`,
       ])
     }

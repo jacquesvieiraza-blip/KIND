@@ -444,9 +444,20 @@ internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => 
         // repeats. Day-10/12 sends fire on an exact daysLeft match, so they're naturally
         // once; only the open-ended <=0 branch needs the marker.
         if (daysLeft <= 0) {
-          await db.from('subscriptions')
+          // #349 — this marker is the ONLY thing stopping the <=0 branch re-sending. The
+          // email has already gone out by the time we get here, so a swallowed failure
+          // means the same client is emailed again on every run until someone notices.
+          const { error: markErr } = await db.from('subscriptions')
             .update({ trial_expiry_notified_at: new Date().toISOString() })
             .eq('id', sub.id)
+          if (markErr) {
+            console.error('[ae/trial-expiry] marker not stamped — this client will be emailed again next run:', markErr.message)
+            void sendFounderAlert('api_down', 'Trial-expiry email will repeat', [
+              `The trial-expiry email was sent to ${email} and the one-shot marker failed to save: ${markErr.message}`,
+              'The open-ended (expired) branch re-sends on every run until this is stamped, so they will be emailed daily.',
+              'Fix: set subscriptions.trial_expiry_notified_at for this subscription, or pause the trial-expiry cron.',
+            ])
+          }
         }
       }
     }

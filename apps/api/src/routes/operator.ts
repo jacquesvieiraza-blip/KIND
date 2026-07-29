@@ -2313,16 +2313,29 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     // did this already; this manual top-up left them parked in a "sourced but not sent"
     // bucket that only cleared if an operator remembered to push each one across. Same call,
     // so both routes put people in front of the client identically.
-    const { surfaceEverything } = await import('../lib/start-work')
+    const { surfaceEverything, sendReadiness } = await import('../lib/start-work')
     const { surfaced, recommended } = await surfaceEverything(cid)
+
+    // #552 — CAN THEY SEND? Reported, not enforced. Sourcing spends our data budget and fills
+    // the desk; sending touches a real prospect, and that is where the fail-closed gate lives
+    // (figsy.ts refuses and rolls the step back). Blocking sourcing on a mailbox would idle a
+    // paying client's onboarding for a purchase we control and often make days later.
+    //
+    // The operator pressed this button, so the answer goes back to their screen rather than
+    // waiting to be discovered when the first send silently defers.
+    const readiness = await sendReadiness(cid)
+    const sendWarning = readiness.canSend ? null : readiness.warning
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: cid, action: 'source_run',
       subjectType: 'icp', subjectId: icp.id as string,
-      detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed, surfaced },
+      detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed, surfaced,
+                // Recorded on the audit row too: "we sourced 200 for a client who could not
+                // send" is exactly the kind of thing worth being able to look up afterwards.
+                cannot_send: sendWarning?.reason ?? null },
     })
     res.json({ success: true, requested: want, inserted: result.inserted, skipped: result.skipped,
-               surfaced, recommended, note: result.relaxed })
+               surfaced, recommended, note: result.relaxed, send_warning: sendWarning })
   } catch (err) { console.error('[operator/source]', err); res.status(500).json({ success: false, error: 'Failed to source' }) }
 })
 

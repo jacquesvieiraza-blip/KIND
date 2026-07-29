@@ -66,6 +66,72 @@ export type StartWorkResult = {
   recommended: number
   /** Set when the sourcing run THREW. `sourced: 0` alone cannot be trusted without it. */
   sourcingError?: string
+  /** #552 — set when the client has no mailbox to send from. Sourcing still happened. */
+  sendWarning?: SendWarning
+}
+
+export type SendWarning = { headline: string; label: string; detail: string; reason: string }
+
+export type SendReadiness = { canSend: true } | { canSend: false; warning: SendWarning }
+
+/**
+ * #552 — CAN THIS CLIENT SEND? A WARNING, NOT A GATE.
+ *
+ * The ambiguity this resolves: LAUNCH-PAD said *"Start work refuses without an inbox"* and the
+ * code did not — the refusal only ever fired at SEND time (`figsy.ts`). One of the two was
+ * wrong and nobody had decided which.
+ *
+ * **Decided: warn loudly, do not block.** Sourcing and sending fail in opposite directions:
+ *
+ *   • Sourcing spends OUR data budget and fills the client's desk. Blocking it on a mailbox
+ *     idles onboarding for a client who has already paid — their $99 buys people, and the
+ *     mailbox is bought separately, often days later. A hard refusal here would mean paying
+ *     clients sit with an empty desk because a purchase we control has not happened yet.
+ *   • Sending touches a real prospect from a real mailbox, and THAT is where fail-closed
+ *     belongs. It already is: `figsy.ts` refuses and rolls the step back, with no fallback.
+ *
+ * So the gate stays where the danger is, and this makes the state VISIBLE instead of leaving
+ * an operator to discover it when the first send silently defers.
+ *
+ * REUSES `resolveSendingInbox` — the same call the send path makes — deliberately. A
+ * re-implemented check ("does a row exist in client_inboxes?") would drift the moment the
+ * send path's rules changed, and then Vida would show a green light over a mailbox that
+ * cannot actually send: a warming branded inbox, a row with no SMTP credentials, or a missing
+ * INBOX_SECRET_KEY. Those are three separate refusal reasons and none of them is "no row".
+ *
+ * Never throws: this is a warning, and a warning that breaks the thing it annotates is worse
+ * than no warning.
+ */
+export async function sendReadiness(clientId: string): Promise<SendReadiness> {
+  try {
+    const { resolveSendingInbox, refusalLabel } = await import('./sending-inbox')
+    const r = await resolveSendingInbox(clientId)
+    if (r.ok) return { canSend: true }
+    return {
+      canSend: false,
+      warning: {
+        headline: 'This client cannot SEND yet',
+        label: refusalLabel(r.reason),
+        detail: r.detail,
+        reason: r.reason,
+      },
+    }
+  } catch (err) {
+    // Unknowable is NOT the same as fine. Reporting `canSend: true` because the check itself
+    // broke would put a green light over an unknown state, which is the failure this repo has
+    // spent the week removing.
+    const why = err instanceof Error ? err.message : String(err)
+    console.error('[start-work] sendReadiness check failed for', clientId, why)
+    return {
+      canSend: false,
+      warning: {
+        headline: 'Whether this client can SEND is UNKNOWN',
+        label: 'The mailbox check itself failed',
+        detail: `The check that reads this client's mailboxes could not run (${why}). This is not evidence that a mailbox is missing — it is evidence that we cannot tell.`,
+        reason: 'check_failed',
+      },
+    }
+  }
 }
 
 /** How many of the surfaced people we mark as "we'd start with these". */
@@ -128,6 +194,16 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
     // runIcpJob bills and attributes against the owning user.
     const { data: client } = await db.from('clients').select('user_id').eq('id', clientId).maybeSingle()
     if (!client?.user_id) return { ...empty, reason: 'no_user' }
+
+    // #552 — CAN THEY SEND? Checked here, NOT enforced here. See `sendReadiness` for why the
+    // gate belongs at send time and the warning belongs here. Deliberately placed after the
+    // money/ICP/user gates so it never masks a more fundamental refusal, and before the spend
+    // so the warning is attached to the run that caused it.
+    const readiness = await sendReadiness(clientId)
+    const sendWarning = readiness.canSend ? undefined : readiness.warning
+    if (sendWarning) {
+      console.warn(`[start-work] ${clientId}: SOURCING ANYWAY — ${sendWarning.headline}. ${sendWarning.label}. ${sendWarning.detail}`)
+    }
 
     // ── Source, topping the DESK up to the target ──────────────────────────
     //
@@ -198,9 +274,18 @@ export async function startWorkForClient(clientId: string): Promise<StartWorkRes
 
     // ── Everyone goes to the client, top 20 marked ─────────────────────────
     const { surfaced, recommended } = await surfaceEverything(clientId)
-    if (want === 0 && surfaced === 0) return { ...empty, started: true, reason: 'already_stocked' }
+    // The warning rides on BOTH exits. An already-stocked client with no mailbox is exactly
+    // the one an operator would otherwise assume is fine — nothing to source, nothing to
+    // report, and a desk full of people nobody can be emailed about.
+    if (want === 0 && surfaced === 0) {
+      return { ...empty, started: true, reason: 'already_stocked', ...(sendWarning ? { sendWarning } : {}) }
+    }
 
-    return { started: true, sourced, surfaced, recommended, ...(sourcingFailed ? { sourcingError: sourcingFailed } : {}) }
+    return {
+      started: true, sourced, surfaced, recommended,
+      ...(sourcingFailed ? { sourcingError: sourcingFailed } : {}),
+      ...(sendWarning ? { sendWarning } : {}),
+    }
   } catch (err) {
     console.error('[start-work] failed for client', clientId, err)
     return empty

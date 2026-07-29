@@ -615,13 +615,27 @@ export async function runIcpJob(
       const { data: granted } = await db.rpc('grant_first_run_credits', {
         p_client_id: clientId, p_amount: 100, p_max_balance: 2147483647, p_claim_first_run: true,
       })
-      if (granted) await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount: 100,
-        type: 'referral_bonus',
-        note: 'Welcome bonus — first ICP run',
-        created_at: now,
-      })
+      // #349 — the grant already moved (the RPC is the atomic claim). If the ledger row that
+      // records it fails and we swallow it, the client's balance and their statement disagree
+      // permanently, and no reconciliation can tell whether the 100 was granted or invented.
+      if (granted) {
+        const { error: bonusErr } = await db.from('credit_transactions').insert({
+          client_id: clientId,
+          amount: 100,
+          type: 'referral_bonus',
+          note: 'Welcome bonus — first ICP run',
+          created_at: now,
+        })
+        if (bonusErr) {
+          console.error('[icp] WELCOME BONUS LEDGER ROW FAILED after granting 100 —', clientId, bonusErr.message)
+          void sendFounderAlert('charge_failed', 'Granted the 100 welcome bonus but the ledger row failed', [
+            `Client ${clientId}.`,
+            'The credits were added to their balance; the record of it was not written.',
+            `Reason: ${bonusErr.message}`,
+            'Their balance and their statement now disagree. Check credit_transactions_type_check allows referral_bonus.',
+          ]).catch(() => {})
+        }
+      }
 
       // NOTE (#336): the REFERRER bonus used to fire here on the referred
       // client's first ICP run — but a first run is FREE, so a referrer could
@@ -1025,14 +1039,27 @@ icpRouter.post('/:id/run', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-ru
       const { data: granted } = await db.rpc('grant_first_run_credits', {
         p_client_id: clientId, p_amount: 20, p_max_balance: 1, p_claim_first_run: false,
       })
-      if (granted) await db.from('credit_transactions').insert({
-        client_id: clientId,
-        amount: 20,
-        type: 'trial_bonus',
-        plan: 'lead_gen',
-        note: 'Welcome credits — 20 reveals ($1 each)',
-        created_at: new Date().toISOString(),
-      })
+      // #349 — same shape as the 100 grant above: the credits have already moved, so a
+      // swallowed ledger failure leaves the balance and the statement permanently disagreeing.
+      if (granted) {
+        const { error: trialErr } = await db.from('credit_transactions').insert({
+          client_id: clientId,
+          amount: 20,
+          type: 'trial_bonus',
+          plan: 'lead_gen',
+          note: 'Welcome credits — 20 reveals ($1 each)',
+          created_at: new Date().toISOString(),
+        })
+        if (trialErr) {
+          console.error('[icp] TRIAL BONUS LEDGER ROW FAILED after granting 20 —', clientId, trialErr.message)
+          void sendFounderAlert('charge_failed', 'Granted the 20 trial credits but the ledger row failed', [
+            `Client ${clientId}.`,
+            'The credits were added to their balance; the record of it was not written.',
+            `Reason: ${trialErr.message}`,
+            'Their balance and their statement now disagree. Check credit_transactions_type_check allows trial_bonus.',
+          ]).catch(() => {})
+        }
+      }
     }
 
     // #423 — daily sourcing cap: PDL Full is spent when we SOURCE (~50 recs/run),

@@ -3,7 +3,7 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, getClientKnowledgeForOutreach, classifyReply, isRiskyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, classifyReply, isRiskyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, updateEnrollmentState } from '../lib/figsy'
 import type { Lead, SendOutcome } from '../lib/figsy'
 import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
@@ -190,8 +190,22 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
         const { data: bounced } = await db.from('leads').select('id').eq('email', bounceEmail)
         const ids = (bounced ?? []).map((l: { id: string }) => l.id)
         if (ids.length) {
-          await db.from('figsy_enrollments').update({ status: 'opted_out' })
+          // #349 — a HARD BOUNCE or SPAM COMPLAINT just arrived. If this write fails and we
+          // swallow it, the enrollment stays live and we keep sending to an address that has
+          // already bounced or reported us — from the client's own mailbox, against their own
+          // domain reputation. Not an enrollment id here (it is a bulk update by lead), so it
+          // is checked inline rather than through updateEnrollmentState.
+          const { error: suppressErr } = await db.from('figsy_enrollments').update({ status: 'opted_out' })
             .in('lead_id', ids).in('status', ['enrolled', 'in_progress'])
+          if (suppressErr) {
+            console.error('[figsy/webhook] SUPPRESSION WRITE FAILED after a bounce/complaint —', bounceEmail, suppressErr.message)
+            void sendFounderAlert('sends_stalled', 'A bounced/complained address was NOT suppressed', [
+              `Address: ${bounceEmail} (${isComplaint ? 'spam complaint' : 'hard bounce'}).`,
+              'It is on the opt-out blocklist, but its enrollments were not marked opted_out.',
+              `Reason: ${suppressErr.message}`,
+              'The send path re-checks the blocklist, so this should not send again — but the enrollments are wrong and will keep being processed.',
+            ]).catch(() => {})
+          }
         }
         console.log(`[figsy/webhook] ${raw.type} → suppressed ${bounceEmail}${bounceType ? ` (${bounceType})` : ''}`)
       }
@@ -1251,9 +1265,11 @@ figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
       const stepView = enrollmentStep(enrollment, nextStep)
       if (!stepView) {
         // End of the sequence — complete it so it doesn't stay perpetually due.
-        await db.from('figsy_enrollments').update({
+        // #349 — checked: if this write fails the enrollment stays due forever and every
+        // subsequent cron run re-processes it, which is the exact state the line prevents.
+        await updateEnrollmentState(enrollment.id, {
           status: 'completed', completed_at: new Date().toISOString(), next_send_at: null,
-        }).eq('id', enrollment.id)
+        }, 'a finished sequence was not marked completed — it stays due and will be re-processed on every cron run')
         continue
       }
       try {
@@ -1564,7 +1580,14 @@ figsyRouter.patch('/enrollments/:enrollmentId/status', async (req: AuthRequest, 
     const { data: campaign } = await db.from('figsy_campaigns')
       .select('id').eq('id', enrollment.campaign_id).eq('client_id', clientId).maybeSingle()
     if (!campaign) { res.status(403).json({ success: false, error: 'Forbidden' }); return }
-    await db.from('figsy_enrollments').update({ status }).eq('id', enrollment.id)
+    // #349 — this endpoint used to write and then return `{ success: true }` unconditionally,
+    // so a rejected write told the caller their change had been saved. The console then shows
+    // the old status on the next load and looks like it "forgot" the click.
+    const moved = await updateEnrollmentState(enrollment.id, { status },
+      `an operator set this enrollment to "${status}" and the write was rejected — the console reported success`)
+    if (!moved) {
+      res.status(500).json({ success: false, error: 'The status could not be saved — it is unchanged.' }); return
+    }
     res.json({ success: true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to update status' }) }
 })
@@ -1841,9 +1864,11 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
       const stepView = enrollmentStep(enrollment, nextStep)
       if (!stepView) {
         // End of the sequence — complete it so it doesn't stay perpetually due.
-        await db.from('figsy_enrollments').update({
+        // #349 — checked: if this write fails the enrollment stays due forever and every
+        // subsequent cron run re-processes it, which is the exact state the line prevents.
+        await updateEnrollmentState(enrollment.id, {
           status: 'completed', completed_at: new Date().toISOString(), next_send_at: null,
-        }).eq('id', enrollment.id)
+        }, 'a finished sequence was not marked completed — it stays due and will be re-processed on every cron run')
         continue
       }
 

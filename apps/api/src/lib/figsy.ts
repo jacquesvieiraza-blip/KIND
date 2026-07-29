@@ -442,15 +442,15 @@ export async function applyReplyBranching(
   const now = new Date().toISOString()
 
   if (onReply === 'continue') {
-    await db.from('figsy_enrollments')
-      .update({ reply_branch_handled_at: now }).eq('id', enrollment.id)
+    await updateEnrollmentState(enrollment.id, { reply_branch_handled_at: now },
+      'a reply was handled but not stamped — the branch may be applied to the same reply again')
     return 'send'
   }
 
   if (onReply === 'stop') {
-    await db.from('figsy_enrollments')
-      .update({ status: 'replied', next_send_at: null, reply_branch_handled_at: now })
-      .eq('id', enrollment.id)
+    await updateEnrollmentState(enrollment.id,
+      { status: 'replied', next_send_at: null, reply_branch_handled_at: now },
+      'a prospect REPLIED and the sequence was not stopped — they stay due and may receive the next step after replying')
     // #492/F1 — a reply that stops the sequence releases the held $3 ONLY when it is a
     // clearly-NEGATIVE reply (this lead will not book). Positive replies (hot/warm) keep
     // the hold until the booking captures it — releasing here would free the $3 right
@@ -470,17 +470,17 @@ export async function applyReplyBranching(
   const skipped = enrollment.current_step + 1
   if (skipped >= 3) {
     // Nothing follows the skipped step — the sequence is finished.
-    await db.from('figsy_enrollments').update({
+    await updateEnrollmentState(enrollment.id, {
       status: 'completed', completed_at: now, next_send_at: null,
       current_step: skipped, reply_branch_handled_at: now,
-    }).eq('id', enrollment.id)
+    }, 'the reply branch was handled but not recorded — the sequence stays due and may re-process this reply')
     // ONE WALLET: no held $3 — the $4 was final at approve; nothing to release.
   } else {
     const nextSendAt = new Date(Date.now() + (STEP_FOLLOWUP_DELAYS[skipped] ?? 4) * 86400000).toISOString()
-    await db.from('figsy_enrollments').update({
+    await updateEnrollmentState(enrollment.id, {
       status: 'in_progress', current_step: skipped,
       next_send_at: nextSendAt, reply_branch_handled_at: now,
-    }).eq('id', enrollment.id)
+    }, 'the skipped step was not recorded — the prospect may receive the step we deliberately skipped')
   }
   return 'skip'
 }
@@ -580,7 +580,8 @@ export async function sendSequenceEmail(
     .select('id').eq('email', lead.email).is('opted_back_in_at', null).maybeSingle()
   if (blocked) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
-    await db.from('figsy_enrollments').update({ status: 'opted_out' }).eq('id', enrollmentId)
+    await updateEnrollmentState(enrollmentId, { status: 'opted_out' },
+      'a prospect on the OPT-OUT blocklist was not marked opted_out — this step was suppressed, but the enrollment stays live and will keep trying')
     // ONE WALLET: opt-out moves no money — the $4 was final at approve.
     return 'suppressed'
   }
@@ -631,7 +632,8 @@ export async function sendSequenceEmail(
         }
       }
       // Pause the enrollment while it waits for the human. The approve path re-arms + sends.
-      await db.from('figsy_enrollments').update({ next_send_at: null }).eq('id', enrollmentId)
+      await updateEnrollmentState(enrollmentId, { next_send_at: null },
+        'a co-pilot step was queued for review but the enrollment was not paused — it stays due, so the next cron may queue it again or send it unreviewed')
       console.log(`[figsy] sendSequenceEmail: step ${step} for enrollment ${enrollmentId} QUEUED for human review (co-pilot) — not sent.`)
       return 'queued'
     }
@@ -798,12 +800,17 @@ export async function sendSequenceEmail(
     ? null
     : new Date(Date.now() + waitDays * 86400000).toISOString()
 
-  await db.from('figsy_enrollments').update({
+  // THE MOST DANGEROUS WRITE IN THIS FILE. The email has ALREADY LEFT at this point; this
+  // row is the only record that it did. If it fails and we swallow it, the enrollment keeps
+  // its old `current_step` and its old due `next_send_at`, so the very next cron run sends
+  // the SAME email to the SAME real prospect again — from the client's own mailbox, against
+  // their own domain reputation.
+  await updateEnrollmentState(enrollmentId, {
     current_step: step,
     status:       isLast ? 'completed' : 'in_progress',
     next_send_at: nextSendAt,
     ...(isLast ? { completed_at: new Date().toISOString() } : {}),
-  }).eq('id', enrollmentId)
+  }, `step ${step} WAS SENT but the enrollment was not advanced — the same email will be sent to this prospect again on the next cron run`)
   // ONE WALLET: last step sent moves no money — the $4 was final at approve.
 
   // THE DATA FLOOR (#17b) — log the send (the credit-spend denominator). Fire-and-forget.
@@ -913,7 +920,18 @@ export async function chargeFigsyEnroll(
     ])
     return 'failed'
   }
-  await db.from('credit_transactions').insert({
+  // THIS ROW IS LOAD-BEARING — the same row `approve-lead.ts` alerts on, written by the
+  // other door into the same money.
+  //
+  // The dedup guard 30 lines above asks "has this lead already been paid for?" by looking
+  // for exactly this row. It was written `.then(() => {}, () => {})`, so if the insert
+  // failed the $4 had ALREADY left the wallet (the RPC above is the atomic decrement) and
+  // nothing recorded it — the lead then reads as UNPAID to every one of the six enrol call
+  // sites, and the next one charges the client a second time. Silently.
+  //
+  // approve-lead.ts:258 was fixed for precisely this in the wallet-approve path; this is the
+  // same failure through the enrol path, and it stayed swallowed. Now it alerts.
+  const { error: ledgerErr } = await db.from('credit_transactions').insert({
     client_id: clientId,
     amount: -4,
     type: 'wallet_charge',
@@ -921,8 +939,57 @@ export async function chargeFigsyEnroll(
     reference: lead.id ? `lead:${lead.id}` : null,
     note: `Approved lead worked ($4): ${leadName}${lead.company ? ` at ${lead.company}` : ''}`.trim(),
     created_at: new Date().toISOString(),
-  }).then(() => {}, () => {})
+  })
+  // 23505 is the UNIQUE index on credit_transactions.reference doing its job: a row for
+  // `lead:<id>` already exists, so this lead is already recorded as paid. That is the dedup
+  // working, not a failure — alerting on it would page the founder on every legitimate retry.
+  if (ledgerErr && ledgerErr.code !== '23505') {
+    console.error('[figsy] LEDGER ROW FAILED after charging $4 — double-charge risk', clientId, lead.id ?? '(no lead id)', ledgerErr.message)
+    void sendFounderAlert('charge_failed', 'Charged $4 but the ledger row failed', [
+      `Client ${clientId}, lead ${lead.id ?? '(no id)'} — ${leadName}${lead.company ? ` at ${lead.company}` : ''}.`,
+      'The money left the wallet; the record of it did not.',
+      `Reason: ${ledgerErr.message}`,
+      'This lead now reads as UNPAID to the enrol guard, so it could be charged a second time. Check credit_transactions_type_check allows wallet_charge (migration 20260726_wallet_tx_types).',
+    ]).catch(() => {})
+  }
   return 'charged'
+}
+
+// #349 — EVERY ENROLLMENT STATE WRITE IS CHECKED, because supabase-js RETURNS its error
+// rather than throwing it, so a bare `await db.from(...).update(...)` discards the failure
+// and the code carries on as if the row moved.
+//
+// In the ONE WALLET model every enrolled lead has already been paid for ($4 at approve), so
+// there is no such thing as a cosmetic enrollment write here — each one is the record of
+// what a paying client is owed. The failure modes are concrete, not theoretical:
+//
+//   • the post-send advance fails  → the step stays due and the SAME email goes to the same
+//                                    real prospect again on the next cron run
+//   • the opt-out write fails      → we keep emailing someone who asked us to stop
+//   • the co-pilot pause fails     → an unreviewed step can go out
+//   • a completion fails           → the enrollment is perpetually due and re-processed
+//
+// Returns true when the row actually moved, so callers that report success to a client can
+// stop reporting it when it did not.
+export async function updateEnrollmentState(
+  enrollmentId: string | number,
+  patch: Record<string, unknown>,
+  consequence: string,
+  opts?: { alert?: boolean },
+): Promise<boolean> {
+  const { error } = await db.from('figsy_enrollments').update(patch).eq('id', enrollmentId)
+  if (!error) return true
+  console.error(`[figsy] ENROLLMENT WRITE FAILED (${enrollmentId}) — ${consequence}`, error.message, patch)
+  if (opts?.alert !== false) {
+    void sendFounderAlert('sends_stalled', 'An enrollment state write failed on a paid lead', [
+      `Enrollment ${enrollmentId}.`,
+      `Consequence: ${consequence}`,
+      `Reason: ${error.message}`,
+      `Attempted: ${JSON.stringify(patch)}`,
+      'This lead has already been paid for, so the client is owed the outcome this write records.',
+    ]).catch(() => {})
+  }
+  return false
 }
 
 // #332 — return the $4 when the enrollment insert fails AFTER we charged (charge-first

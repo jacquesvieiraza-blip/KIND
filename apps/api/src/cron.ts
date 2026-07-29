@@ -65,6 +65,82 @@ async function recordCronRun(job: string, startedAt: string, ok: boolean, note: 
   }
 }
 
+// #491 — THE FAILURE ALERT. `cron_runs` and `dead_letter` are both PULL surfaces: true the
+// moment they are written, and read only when somebody thinks to look. So a job that starts
+// failing keeps failing on schedule and the first person to find out is the client whose
+// leads stopped arriving.
+//
+// The throttle rides in `cron_runs.note` (see ALERTED_MARKER) rather than in memory,
+// because this process restarts on every deploy — which is exactly when a cron is most
+// likely to be broken, so an in-memory counter would reset at the worst possible moment.
+// Every judgement lives in `lib/cron-health.ts` and is unit-tested; this half only fetches.
+//
+// Returns the note to record, with the marker appended when an alert actually went out —
+// so the throttle records the truth (an alert was sent) rather than an intention.
+async function alertOnCronFailure(job: string, note: string): Promise<string> {
+  try {
+    const { shouldAlertFailure, failureAlertLines, ALERTED_MARKER } = await import('./lib/cron-health')
+    // This job's recent history, newest first. 20 rows is far more than the 24h window needs
+    // even for the every-2-hours send job, and it is one indexed read per FAILURE only.
+    const { data, error } = await db.from('cron_runs')
+      .select('job, started_at, ok, note')
+      .eq('job', job)
+      .order('started_at', { ascending: false })
+      .limit(20)
+    if (error) {
+      // Cannot read the history → cannot evaluate the throttle. ALERT ANYWAY: a duplicate
+      // alert is an annoyance, a silent dead cron is the bug this item exists to remove.
+      console.error(`[cron] could not read run history for ${job} — alerting without the throttle:`, error.message)
+      await sendFounderAlert('api_down', `Scheduled job failed — ${job}`,
+        failureAlertLines(job, note, 'the run history could not be read, so this alert is not throttled'))
+      return `${ALERTED_MARKER} ${note}`
+    }
+
+    const decision = shouldAlertFailure((data ?? []) as never, new Date())
+    if (!decision.alert) {
+      console.warn(`[cron] ${job} failed — not alerting: ${decision.why}`)
+      return note
+    }
+    await sendFounderAlert('api_down', `Scheduled job failed — ${job}`, failureAlertLines(job, note, decision.why))
+    console.warn(`[cron] ${job} failed — founder alerted: ${decision.why}`)
+    return `${ALERTED_MARKER} ${note}`
+  } catch (err) {
+    // The alert path must never take the cron down with it.
+    console.error(`[cron] failure-alert path threw for ${job}:`, err instanceof Error ? err.message : err)
+    return note
+  }
+}
+
+// #491 — THE OTHER WAY A JOB STOPS: it never runs at all, so there is no failed row to
+// alert on. That is the claim-then-crash path #343 introduced — a process claims the slot
+// (an INSERT, so the slot is taken), then dies before finishing; every other replica
+// correctly stands down and the job simply does not happen. It is also what a dead
+// scheduler or a stray RUN_CRONS=false looks like.
+//
+// Runs inside the existing daily prune job rather than as a new scheduled process: one more
+// timer is one more thing that can itself die silently, and this check is cheap.
+async function checkStaleJobs(): Promise<void> {
+  try {
+    const { staleJobs, staleAlertLines } = await import('./lib/cron-health')
+    const { data, error } = await db.from('cron_runs')
+      .select('job, started_at, ok, note')
+      .order('started_at', { ascending: false })
+      .limit(1000)
+    if (error || !data) return   // no history (migration not run) → nothing provable to say
+
+    const byJob: Record<string, { job: string; started_at: string | null; ok: boolean | null; note?: string | null }[]> = {}
+    for (const row of data as { job: string; started_at: string | null; ok: boolean | null; note: string | null }[]) {
+      (byJob[row.job] ??= []).push(row)
+    }
+    const stale = staleJobs(byJob, new Date())
+    if (stale.length === 0) return
+    console.error(`[cron] ${stale.length} job(s) have not run:`, stale.map(s => `${s.job} (${s.hoursSince}h)`).join(', '))
+    await sendFounderAlert('api_down', `${stale.length} scheduled job(s) have stopped running`, staleAlertLines(stale))
+  } catch (err) {
+    console.error('[cron] stale-job check failed:', err instanceof Error ? err.message : err)
+  }
+}
+
 // #390 (AR-60) — record a failed background job durably (dead-letter) so it doesn't just
 // vanish after a console.error. Best-effort; never throws into the cron.
 async function recordDeadLetter(source: string, error: string, payload?: unknown): Promise<void> {
@@ -119,7 +195,11 @@ async function callInternal(path: string, method: 'GET' | 'POST' = 'POST'): Prom
     note = err instanceof Error ? err.message : String(err)
     console.error(`[cron] ${path} failed:`, err)
   } finally {
-    await recordCronRun(path, startedAt, ok, note)
+    // #491 — alert BEFORE recording, so the row we write can carry the marker that says an
+    // alert went out. Recording first and updating after would leave a window where a
+    // restart loses the marker and the next failure re-alerts.
+    const noteToRecord = ok ? note : await alertOnCronFailure(path, note)
+    await recordCronRun(path, startedAt, ok, noteToRecord)
     // #390 — a failed run is dead-lettered so it's visible/retryable, not just logged.
     if (!ok) await recordDeadLetter(`cron:${path}`, note)
   }
@@ -178,6 +258,10 @@ async function pruneCronClaims(): Promise<void> {
   const cutoff = new Date(Date.now() - 14 * 864e5).toISOString()
   const { error } = await db.from('cron_claims').delete().lt('claimed_at', cutoff)
   if (error) console.error('[cron] pruning cron_claims failed (non-fatal):', error.message)
+
+  // #491 — the scheduler-death detector rides on this daily job. It is already claimed
+  // above, so it cannot double-alert across replicas, and it needs no timer of its own.
+  await checkStaleJobs()
 }
 
 export function startCrons(): void {

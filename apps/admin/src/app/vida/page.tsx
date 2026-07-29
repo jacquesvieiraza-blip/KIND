@@ -522,12 +522,23 @@ export default function VidaConsolePage() {
   }
 
   // ── V3 / M2 — ask the client something, in their own Milla thread ──────────────
+  // #565's shape, in a place #565 never reached (found while fixing #564 ②, folded in because
+  // it is the same honesty class in the same file).
+  //
+  // BOTH halves swallowed: the `catch` set `asks` to `[]`, and so did the `!j.success` branch.
+  // Either way the Asks tab rendered "Nothing asked yet." — a confident statement of fact —
+  // over an endpoint that was down. On a screen whose job is telling the operator what a
+  // client is waiting on, "nothing to do" and "I could not find out" must not look identical.
   const loadAsks = useCallback(async (clientId: string) => {
     try {
       const j = await fetch(`/api/proxy/operator/asks?client_id=${encodeURIComponent(clientId)}`).then(r => r.json())
-      setAsks(j?.success ? j.data : [])
-      setFromClient(j?.success ? (j.from_client ?? []) : [])
-    } catch { setAsks([]); setFromClient([]) }
+      if (!j?.success) throw new Error(j?.error || 'the API refused and gave no reason')
+      setAsks(j.data); setFromClient(j.from_client ?? [])
+      setLoadFail(f => ({ ...f, asks: undefined }))
+    } catch (e) {
+      setAsks([]); setFromClient([])
+      setLoadFail(f => ({ ...f, asks: loadError(e) }))
+    }
   }, [])
 
   async function sendAsk(question: string) {
@@ -553,7 +564,31 @@ export default function VidaConsolePage() {
     if (kind === 'approvals')  { setTab('Approvals'); return }
     if (kind === 'qualify')    { setTab('Inbox'); return }
     if (kind === 'sequence')   { setTab('Sequence'); if (!cockpit?.sequences.length) suggestSequence(); return }
-    if (kind === 'run')        { setTab('Campaign'); if (activeCampaign) setCampaignStatus(activeCampaign.id, 'active'); return }
+    // #564 ② — ONE CLICK USED TO START EMAILING REAL PROSPECTS.
+    //
+    // This was `if (activeCampaign) setCampaignStatus(activeCampaign.id, 'active')` — no
+    // confirmation on the single most consequential button in the console. The worklist puts
+    // "Run" under the operator's cursor as the suggested next action, so the dangerous click
+    // was also the obvious one.
+    //
+    // And the other half was worse for being quiet: with NO active campaign it switched tab
+    // and did nothing at all, having just told the operator the next action was "Run". A
+    // button that does nothing is indistinguishable from a broken one.
+    //
+    // `confirm()` rather than an inline card because that is the admin app's existing idiom
+    // for an irreversible action (the MBF rebuild, the terms delete, the partner toggle), and
+    // because a native dialog cannot be scrolled past or mis-rendered.
+    if (kind === 'run') {
+      setTab('Campaign')
+      if (!activeCampaign) {
+        setSaveMsg(notice.error('There is no campaign to run — write one first, on the Campaign tab.'))
+        return
+      }
+      const who = selectedClient?.company_name || 'this client'
+      if (!confirm(`Start real outreach for ${who}?\n\nThis sets their campaign live. Emails go to REAL prospects from ${who}'s own mailbox, on the sequence as written.\n\nNothing sends while the outreach kill-switch is off.`)) return
+      setCampaignStatus(activeCampaign.id, 'active')
+      return
+    }
     if (kind === 'inbox')      { window.location.href = '/vida/engine'; return }
     if (kind === 'chase')      { setTab('Asks'); setAskInput('Quick nudge — your first $99 unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.'); return }
   }
@@ -655,7 +690,7 @@ export default function VidaConsolePage() {
   // left the state at its initial empty value and the console rendered a calm, confident
   // "nothing to do" over an endpoint that was down — on the screen whose entire job is
   // telling the operator what to work on next. Each failure is now captured and shown.
-  const [loadFail, setLoadFail] = useState<{ status?: string; alerts?: string; worklist?: string }>({})
+  const [loadFail, setLoadFail] = useState<{ status?: string; alerts?: string; worklist?: string; asks?: string }>({})
 
   useEffect(() => {
     const fail = (k: 'status' | 'alerts' | 'worklist') => (e: unknown) =>
@@ -1876,7 +1911,15 @@ export default function VidaConsolePage() {
                     </button>
                   </form>
                   {saveMsg && <p className={`text-[12.5px] font-semibold mb-2 ${noticeClass(saveMsg.tone)}`}>{saveMsg.text}</p>}
-                  {asks === null ? <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>
+                  {/* #565's shape: a FAILED load and a genuinely empty one both arrive here as
+                      `asks = []`, and only one of them means "nothing asked yet". The failure
+                      is checked FIRST and says why, because "nothing to do" is the single most
+                      expensive wrong thing this screen can tell an operator. */}
+                  {loadFail.asks
+                    ? <p className="text-[13.5px] text-red-700 font-semibold py-4">
+                        Couldn&apos;t load this client&apos;s asks — {loadFail.asks}. This is NOT &ldquo;nothing asked&rdquo;; it means we could not find out.
+                      </p>
+                    : asks === null ? <p className="text-[13.5px] text-[#9b8ec4]">Loading…</p>
                     : asks.length === 0 ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-4">Nothing asked yet.</p>
                     : asks.map(a => (
                       <div key={a.id} className="border border-[#eee7f7] rounded-xl p-3 mb-2">

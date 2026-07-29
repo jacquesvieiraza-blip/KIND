@@ -122,6 +122,115 @@ describe('#564 residual — the start button surfaces its answer', () => {
   })
 })
 
+// ── #564 ② — THE LAST ONE OPEN ON THIS ITEM ──────────────────────────────────────────────
+//
+// `doNextAction('run')` fired `setCampaignStatus(activeCampaign.id, 'active')` with NO
+// confirmation. One click began emailing real prospects — and because the worklist puts "Run"
+// under the operator's cursor as the SUGGESTED next action, the dangerous click was also the
+// obvious one.
+//
+// The other half was worse for being quiet: with no active campaign it switched tab and did
+// nothing at all, having just told the operator the next action was "Run". A button that does
+// nothing is indistinguishable from a broken one.
+describe('#564 ② — Run asks first, and says so when there is nothing to run', () => {
+  const page = readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8')
+  // Bounded at the function's OWN closing brace — `\n  }` at the component's indentation.
+  // A fixed character count overruns; slicing to the next declaration swallows THAT
+  // function's leading comment. Both were tried on this file and both measured the wrong text.
+  const fnBody = (name: string) => {
+    const i = page.indexOf(`function ${name}`)
+    expect(i, `${name} must still exist`).toBeGreaterThan(-1)
+    const end = page.indexOf('\n  }', i)
+    return page.slice(i, end > i ? end + 4 : i + 2000)
+  }
+  const doNext = fnBody('doNextAction')
+  // ORDERING IS ASSERTED ON CODE ONLY. The comment above this branch QUOTES the old line
+  // (`setCampaignStatus(activeCampaign.id, 'active')`) while explaining the defect, so a raw
+  // indexOf finds the comment first and "proves" the status call precedes its own fix. Same
+  // trap as the `express.static` bound in #560 and the "surfaced by the reload" bound in the
+  // #564 residual — third time, hence the shared strip. (`reply-routing.test.ts` does this.)
+  const codeOnly = (s: string) => s.split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
+  const doNextCode = codeOnly(doNext)
+
+  it('THE CONFIRM EXISTS, and comes BEFORE the status call', () => {
+    const c = doNextCode.indexOf('confirm(')
+    const s = doNextCode.indexOf('setCampaignStatus(activeCampaign.id')
+    expect(c, 'no confirm() in doNextAction').toBeGreaterThan(-1)
+    expect(s, 'the status call vanished').toBeGreaterThan(-1)
+    expect(c).toBeLessThan(s)
+  })
+
+  it('a declined confirm RETURNS — it does not fall through and start anyway', () => {
+    expect(doNext).toMatch(/if \(!confirm\([\s\S]{0,400}?\)\) return/)
+  })
+
+  it('the prompt NAMES THE CLIENT — "are you sure?" on the wrong account is the accident', () => {
+    expect(doNext).toContain('selectedClient?.company_name')
+    expect(doNext).toContain('${who}')
+  })
+
+  it('it says plainly that REAL prospects get emailed', () => {
+    expect(doNext).toContain('REAL prospects')
+  })
+
+  it('no campaign SAYS SO instead of silently no-opping', () => {
+    // It used to switch tab and return. The tab switch is kept (it is where you write one),
+    // but the operator is now told why nothing happened.
+    expect(doNext).toContain('There is no campaign to run')
+    expect(doNext).toContain('notice.error')
+  })
+
+  it('the no-campaign branch returns BEFORE anything is started', () => {
+    const guard = doNextCode.indexOf('if (!activeCampaign)')
+    const call = doNextCode.indexOf('setCampaignStatus(activeCampaign.id')
+    expect(guard).toBeGreaterThan(-1)
+    expect(guard).toBeLessThan(call)
+  })
+
+  it('the other next-actions are untouched — this is not a rewrite', () => {
+    for (const kind of ['replies', 'approvals', 'qualify', 'sequence', 'inbox', 'chase']) {
+      expect(doNext, kind).toContain(`kind === '${kind}'`)
+    }
+  })
+})
+
+// Folded in from the same file: the #565 shape in a place #565 never reached.
+describe('#565 shape — a failed asks load is no longer "Nothing asked yet."', () => {
+  const page = readFileSync(join(__dirname, '../../../admin/src/app/vida/page.tsx'), 'utf8')
+  const loadAsks = page.slice(page.indexOf('const loadAsks'), page.indexOf('\n  }', page.indexOf('const loadAsks')) + 4)
+
+  it('the bare swallow is GONE', () => {
+    expect(loadAsks).not.toMatch(/catch\s*\{\s*setAsks\(\[\]\);\s*setFromClient\(\[\]\)\s*\}/)
+  })
+
+  it('BOTH halves are covered — the !success branch swallowed too, not just the catch', () => {
+    // `setAsks(j?.success ? j.data : [])` rendered an API refusal as an empty list, which is
+    // the same lie by a different route.
+    expect(loadAsks).not.toMatch(/setAsks\(j\?\.success \? j\.data : \[\]\)/)
+    expect(loadAsks).toMatch(/if \(!j\?\.success\) throw/)
+  })
+
+  it('the reason is captured into loadFail, the way #565 already does', () => {
+    expect(loadAsks).toContain('setLoadFail')
+    expect(loadAsks).toContain('loadError(e)')
+  })
+
+  it('a successful reload CLEARS a previous failure', () => {
+    // Otherwise one blip leaves a red banner over healthy data until the page is reloaded.
+    expect(loadAsks).toMatch(/asks: undefined/)
+  })
+
+  it('the screen renders the failure, and distinguishes it from empty', () => {
+    expect(page).toContain('Couldn&apos;t load this client&apos;s asks')
+    expect(page).toContain('This is NOT')
+    // The failure branch must be checked BEFORE the empty branch, or empty wins. Compared on
+    // CODE only: the loadAsks comment quotes "Nothing asked yet." while explaining the defect,
+    // so a raw indexOf finds the comment hundreds of lines earlier and inverts the result.
+    const code = page.split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+    expect(code.indexOf('loadFail.asks')).toBeLessThan(code.indexOf('Nothing asked yet.'))
+  })
+})
+
 describe('#564 residual — the audit row says START', () => {
   const route = readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')
   const startRoute = route.slice(route.indexOf("post('/campaign/start'"), route.indexOf("post('/campaign/start'") + 1400)

@@ -2224,29 +2224,53 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
     const isDemo = cs?.is_demo === true
     const count = Math.min(want, leadsPerRun)
 
-    // Active ICP — FIGSY only sources against the active targeting.
-    const { data: icp } = await db.from('icps')
+    // #571 — THE THIRD INSTANCE, AND THE ONE THAT MADE THE OTHER TWO UNREACHABLE.
+    //
+    // This read was `.eq('is_active', true).maybeSingle()` with no `.limit(1)`, exactly like
+    // POST /source. But this route renders Vida's "Source N leads?" CARD — the step BEFORE the
+    // button. So for a client with two active ICPs the preview errored, `icp` came back null,
+    // the card rendered "no active ICP", **and the Source button never appeared at all**.
+    // Fixing POST /source alone would have left a working door behind a gate that refused to
+    // open, for precisely the client the fix was for.
+    const { data: icpRows } = await db.from('icps')
       .select('id, name, job_titles, industries, geographies, seniority_levels')
-      .eq('client_id', cid).eq('is_active', true).maybeSingle()
-    if (!icp) { res.json({ success: true, data: { count, pool_free: 0, pdl_needed: 0, pdl_cost_est: 0, allowance_left: allowance, leads_per_run: leadsPerRun, capped: want > leadsPerRun, is_demo: isDemo, no_active_icp: true } }); return }
+      .eq('client_id', cid).eq('is_active', true)
+      .order('created_at', { ascending: false })
+    const icps = ((icpRows ?? []) as Record<string, unknown>[]).filter(i => i?.id)
+    if (icps.length === 0) { res.json({ success: true, data: { count, pool_free: 0, pdl_needed: 0, pdl_cost_est: 0, allowance_left: allowance, leads_per_run: leadsPerRun, capped: want > leadsPerRun, is_demo: isDemo, no_active_icp: true, icps_active: 0 } }); return }
 
-    // Mirror servePoolLeads' OR-generous candidate query (read-only, no insert).
+    // The estimate is built PER ICP against the same split POST /source will actually use, so
+    // the card predicts the run rather than a different run that happens to share a total.
+    const { splitSourceTarget } = await import('../lib/start-work')
+    const shares = splitSourceTarget(count, icps.length)
+
+    // Mirror servePoolLeads' OR-generous candidate query (read-only, no insert), once per ICP.
     const clean = (v: string) => v.replace(/[,()*%]/g, ' ').trim()
-    const geos = ((icp.geographies as string[] | null) ?? []).map(clean).filter(Boolean)
-    const roleOr = [
-      ...((icp.job_titles as string[] | null) ?? []).map(clean).filter(Boolean).map(t => `title.ilike.*${t}*`),
-      ...((icp.industries as string[] | null) ?? []).map(clean).filter(Boolean).map(i => `industry.ilike.*${i}*`),
-      ...((icp.seniority_levels as string[] | null) ?? []).map(clean).filter(Boolean).map(s => `seniority.ilike.*${s}*`),
-    ]
-    let q = db.from('lead_pool').select('email_norm')
-    if (geos.length) q = q.or(geos.map(g => `country.ilike.*${g}*`).join(','))
-    if (roleOr.length) q = q.or(roleOr.join(','))
-    const { data: candidates } = await q.limit(Math.max(count * 5, 50))
-    const candEmails = ((candidates ?? []) as { email_norm: string | null }[]).map(c => c.email_norm).filter((e): e is string => !!e)
+    const candidatesFor = async (icp: Record<string, unknown>, share: number): Promise<string[]> => {
+      const geos = ((icp.geographies as string[] | null) ?? []).map(clean).filter(Boolean)
+      const roleOr = [
+        ...((icp.job_titles as string[] | null) ?? []).map(clean).filter(Boolean).map(t => `title.ilike.*${t}*`),
+        ...((icp.industries as string[] | null) ?? []).map(clean).filter(Boolean).map(i => `industry.ilike.*${i}*`),
+        ...((icp.seniority_levels as string[] | null) ?? []).map(clean).filter(Boolean).map(s => `seniority.ilike.*${s}*`),
+      ]
+      let q = db.from('lead_pool').select('email_norm')
+      if (geos.length) q = q.or(geos.map(g => `country.ilike.*${g}*`).join(','))
+      if (roleOr.length) q = q.or(roleOr.join(','))
+      const { data } = await q.limit(Math.max(share * 5, 50))
+      return ((data ?? []) as { email_norm: string | null }[]).map(c => c.email_norm).filter((e): e is string => !!e)
+    }
 
-    // Subtract what the client already owns (the dominant real filter). Bounded to this client.
+    const perIcp: { icp_id: string; icp_name: string | null; requested: number; pool_free: number }[] = []
+    const candByIcp: string[][] = []
+    for (let i = 0; i < icps.length; i++) {
+      candByIcp.push(shares[i] > 0 ? await candidatesFor(icps[i], shares[i]) : [])
+    }
+    const allCand = [...new Set(candByIcp.flat())]
+
+    // The owned/blocked/suppressed subtraction is fetched ONCE for the whole preview rather
+    // than per ICP — same answer, N fewer round trips on a screen an operator is waiting on.
     let poolFree = 0
-    if (candEmails.length > 0) {
+    {
       // (audit fix) Mirror the REAL pool serve (icps.ts servePoolLeads): a candidate is only
       // pool-eligible if the client doesn't already own it AND it's not opted-out AND not on the
       // do-not-contact suppression floor. Subtracting only owned emails over-stated pool_free and
@@ -2254,13 +2278,30 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
       const { isSuppressed } = await import('../lib/suppression')
       const { data: ownedRows } = await db.from('leads').select('email').eq('client_id', cid).not('email', 'is', null)
       const owned = new Set(((ownedRows ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
-      const { data: blockedRows } = await db.from('opt_out_blocklist').select('email').is('opted_back_in_at', null).in('email', candEmails)
+      const blockedRows = allCand.length > 0
+        ? (await db.from('opt_out_blocklist').select('email').is('opted_back_in_at', null).in('email', allCand)).data
+        : []
       const blocked = new Set(((blockedRows ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
-      const freshPool = candEmails.filter(e => {
-        const norm = e.trim().toLowerCase()
-        return !owned.has(norm) && !blocked.has(norm) && !isSuppressed({ email: norm })
-      })
-      poolFree = Math.min(freshPool.length, count)
+
+      // COUNTED ONCE ACROSS ICPs. Two audiences legitimately overlap — the same person can
+      // match both — and the real serve would hand them over once. Without this set the
+      // preview double-counts the overlap, overstates the free pool and understates the PDL
+      // cost the operator is about to confirm, which is the direction that costs us money.
+      const taken = new Set<string>()
+      for (let i = 0; i < icps.length; i++) {
+        const fresh = candByIcp[i].filter(e => {
+          const norm = e.trim().toLowerCase()
+          if (owned.has(norm) || blocked.has(norm) || taken.has(norm) || isSuppressed({ email: norm })) return false
+          return true
+        })
+        const free = Math.min(fresh.length, shares[i])
+        fresh.slice(0, free).forEach(e => taken.add(e.trim().toLowerCase()))
+        poolFree += free
+        perIcp.push({
+          icp_id: String(icps[i].id), icp_name: (icps[i].name as string | null) ?? null,
+          requested: shares[i], pool_free: free,
+        })
+      }
     }
     const pdlNeeded = isDemo ? 0 : Math.max(0, count - poolFree) // demo never hits PDL
     res.json({
@@ -2269,7 +2310,11 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
         count, pool_free: poolFree, pdl_needed: pdlNeeded,
         pdl_cost_est: Math.round(pdlNeeded * PDL_COST_PER_RECORD * 100) / 100,
         allowance_left: allowance, leads_per_run: leadsPerRun,
-        capped: want > leadsPerRun, is_demo: isDemo, icp_name: icp.name ?? null,
+        capped: want > leadsPerRun, is_demo: isDemo,
+        // `icp_name` stays for backwards compatibility (the Vida type still declares it); the
+        // newest ICP's name, as before. `icps` is the honest breakdown when there are several.
+        icp_name: (icps[0].name as string | null) ?? null,
+        icps_active: icps.length, icps: perIcp,
       },
     })
   } catch (err) { console.error('[operator/source-preview]', err); res.status(500).json({ success: false, error: 'Failed to preview sourcing' }) }
@@ -2299,15 +2344,72 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
     const cid = client.id
     const want = Math.max(1, Math.min(200, typeof count === 'number' ? count : 20))
 
-    const { data: icp } = await db.from('icps').select('id, name').eq('client_id', cid).eq('is_active', true).maybeSingle()
-    if (!icp) { res.status(400).json({ success: false, error: 'No active ICP — set the client\'s targeting before sourcing.' }); return }
+    // #571 — THE SAME DEFECT, ONE ROUTE OVER. This read was
+    //   .eq('is_active', true).maybeSingle()   ← no .limit(1)
+    // so a client with TWO active ICPs made PostgREST return "multiple rows returned", `icp`
+    // came back null, and the route answered "No active ICP — set the client's targeting
+    // before sourcing." The operator was sent to fix targeting that was already correct, for
+    // the one client who had done MORE of it than required.
+    //
+    // PR #1209 fixed this shape in `lib/start-work.ts`. Adding `.limit(1)` here would have
+    // stopped the error and kept the real bug: one of the client's ICPs silently never
+    // sourced. So this route now does what the paid path does — every active ICP, target
+    // split across them — and it imports `splitSourceTarget` rather than re-deriving the
+    // arithmetic, because two copies of a split rule is how the two paths drift apart.
+    const { data: icpRows } = await db.from('icps')
+      .select('id, name').eq('client_id', cid).eq('is_active', true)
+      .order('created_at', { ascending: false })
+    const icps = ((icpRows ?? []) as { id: string; name: string | null }[]).filter(i => i?.id)
+    if (icps.length === 0) { res.status(400).json({ success: false, error: 'No active ICP — set the client\'s targeting before sourcing.' }); return }
 
     // runIcpJob wants a userId (unused in its body, but pass the client's owner for attribution).
     const { data: owner } = await db.from('clients').select('user_id').eq('id', cid).maybeSingle()
     const userId = (owner?.user_id as string | null) || 'operator'
 
     const { runIcpJob } = await import('./icps')
-    const result = await runIcpJob(icp.id as string, cid, userId, want)
+    const { splitSourceTarget } = await import('../lib/start-work')
+    const shares = splitSourceTarget(want, icps.length)
+
+    // SEQUENTIAL, exactly as the paid path is: every run spends the same pre-funded allowance
+    // through `try_spend_sourcing`, and firing them together would race that check — two runs
+    // each reading "enough left" and both spending it.
+    const runs: { icp_id: string; icp_name: string | null; requested: number; inserted: number; skipped: number; relaxed?: string | null; error?: string }[] = []
+    for (let i = 0; i < icps.length; i++) {
+      const share = shares[i]
+      if (share <= 0) continue   // more ICPs than leads to fetch — an empty run helps nobody
+      try {
+        const r = await runIcpJob(icps[i].id, cid, userId, share)
+        runs.push({ icp_id: icps[i].id, icp_name: icps[i].name, requested: share, inserted: r.inserted, skipped: r.skipped, relaxed: r.relaxed })
+      } catch (e) {
+        // An operator is watching this one — they pressed the button — so a failure goes back
+        // in the response rather than only to a log. One ICP failing is not the whole run
+        // failing: the others' people are real and already on the desk.
+        const why = e instanceof Error ? e.message : String(e)
+        console.error('[operator/source] ICP run failed', cid, icps[i].id, why)
+        runs.push({ icp_id: icps[i].id, icp_name: icps[i].name, requested: share, inserted: 0, skipped: 0, error: why })
+      }
+    }
+
+    // Only a TOTAL failure is a 500. A partial one reports what landed and what did not.
+    if (runs.length > 0 && runs.every(r => r.error)) {
+      res.status(502).json({ success: false, error: `Sourcing failed for all ${runs.length} ICP(s): ${runs.map(r => r.error).join(' · ')}` })
+      return
+    }
+
+    // The "we widened the search" note is PER-ICP, so with several it has to say which one —
+    // a bare "we relaxed the filters" is unreadable when three audiences ran and one widened.
+    // Failures are a SEPARATE sentence: folding them into `relaxed` would have quietly thrown
+    // away the genuine widening note, which is the operator's signal that an audience is thin.
+    const widened = runs.filter(r => r.relaxed).map(r => `${r.icp_name ?? r.icp_id}: ${r.relaxed}`)
+    const failed  = runs.filter(r => r.error)
+    const result = {
+      inserted: runs.reduce((s, r) => s + r.inserted, 0),
+      skipped:  runs.reduce((s, r) => s + r.skipped, 0),
+      relaxed: [
+        ...(widened.length ? [widened.join(' · ')] : []),
+        ...(failed.length ? [`${failed.length} of ${runs.length} ICP run(s) FAILED — see runs[]`] : []),
+      ].join(' · ') || null,
+    }
 
     // EVERYONE WE SOURCE GOES TO THE CLIENT (flow v2, founder-locked 25 Jul). The paid path
     // did this already; this manual top-up left them parked in a "sourced but not sent"
@@ -2328,14 +2430,20 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: cid, action: 'source_run',
-      subjectType: 'icp', subjectId: icp.id as string,
+      // The newest ICP stays the subject so the row is never subject-less; the full set lives
+      // in `detail`, because with several ICPs "which one" is the first question afterwards.
+      subjectType: 'icp', subjectId: icps[0].id,
       detail: { requested: want, inserted: result.inserted, skipped: result.skipped, note: result.relaxed, surfaced,
+                // #571 — how many ICPs this actually ran across. Before this fix the answer
+                // was always "one, whichever the database happened to return".
+                icps_active: icps.length, icps_run: runs.length, runs,
                 // Recorded on the audit row too: "we sourced 200 for a client who could not
                 // send" is exactly the kind of thing worth being able to look up afterwards.
                 cannot_send: sendWarning?.reason ?? null },
     })
     res.json({ success: true, requested: want, inserted: result.inserted, skipped: result.skipped,
-               surfaced, recommended, note: result.relaxed, send_warning: sendWarning })
+               surfaced, recommended, note: result.relaxed, send_warning: sendWarning,
+               icps_run: runs.length, runs })
   } catch (err) { console.error('[operator/source]', err); res.status(500).json({ success: false, error: 'Failed to source' }) }
 })
 

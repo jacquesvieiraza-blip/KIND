@@ -647,6 +647,9 @@ export default function VidaConsolePage() {
   const [srcPreview, setSrcPreview] = useState<SourcePreview | null>(null)
   const [srcBusy, setSrcBusy] = useState(false)
   const [srcResult, setSrcResult] = useState<string | null>(null)
+  // #552 — "sourced fine, but they still cannot SEND". A separate slot from srcResult on
+  // purpose: one is the outcome of the button, the other is the state of the client.
+  const [srcSendWarn, setSrcSendWarn] = useState<{ headline: string; label: string; detail: string } | null>(null)
 
   // #565 — EMPTY IS NOT BROKEN. All three of these were `.catch(() => {})`, so a failed load
   // left the state at its initial empty value and the console rendered a calm, confident
@@ -684,7 +687,7 @@ export default function VidaConsolePage() {
 
   async function previewSource(count: number) {
     if (!selected) return
-    setSrcBusy(true); setSrcResult(null); setSrcPreview(null)
+    setSrcBusy(true); setSrcResult(null); setSrcPreview(null); setSrcSendWarn(null)
     try {
       const res = await fetch(`/api/proxy/operator/source-preview?client_id=${encodeURIComponent(selected)}&count=${count}`)
       const json = await res.json().catch(() => ({}))
@@ -706,6 +709,11 @@ export default function VidaConsolePage() {
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Sourcing failed (${res.status})`)
       setSrcResult(`Sourced ${json.inserted} lead${json.inserted === 1 ? '' : 's'} for ${selectedClient?.company_name || 'client'}${json.note ? ` · ${json.note}` : ''}. New leads are in People.`)
+      // #552 — sourcing SUCCEEDED and the client still cannot send. Kept separate from
+      // srcResult (which renders green) because this is not a failure of the thing just
+      // pressed — it is the next thing that will block, and it must not read as an error of
+      // the sourcing run nor be swallowed by its success.
+      setSrcSendWarn(json.send_warning ?? null)
       setSrcPreview(null)
       await loadBoard(selected)
       if (people) await loadPeople(selected, activeCampaign?.id)
@@ -1120,6 +1128,19 @@ export default function VidaConsolePage() {
                   </div>
                 )}
                 {srcResult && <div className="text-[13px] font-semibold text-emerald-700">{srcResult}</div>}
+                {/* #552 — AMBER, NOT RED AND NOT GREEN. The sourcing worked; what follows it
+                    will not. Rendering this in the green success line would bury it, and in
+                    red would read as "the sourcing failed", which is a different and wrong
+                    instruction to an operator deciding what to do next. */}
+                {srcSendWarn && (
+                  <div className="mt-2 rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5">
+                    <b className="text-[13px] text-amber-900 block">⚠️ {srcSendWarn.headline} — {srcSendWarn.label}</b>
+                    <p className="text-[12.5px] text-amber-800 mt-1 leading-relaxed">{srcSendWarn.detail}</p>
+                    <p className="text-[12px] text-amber-700 mt-1.5">
+                      The people just sourced are safely on their desk. Nothing will leave until a mailbox is assigned — by design, so no client ever sends from a shared address.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="shrink-0 px-[22px] pb-3">

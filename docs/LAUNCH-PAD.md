@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢92 · 🩷206 · 🟣2 · 🟡55 · 🔴217 · ⏸5 · **Σ577** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷206 · 🟣2 · 🟡56 · 🔴216 · ⏸5 · **Σ577** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -99,7 +99,7 @@
 | #273 🔴 | **Three migration directories, 120 SQL files, no runner** | `supabase/migrations` (19) · `packages/db/src/migrations` (13) · `apps/api/src/migrations` (88). Production is hand-pasted, and **#389 records that re-pasting `20260525` DROPs `amount_usd`** — a revenue column. Nobody can currently state what schema production is on. One directory, one applied-migrations table. | 🤖 |
 | #561 🔴 | **69 env vars and no register of which ones matter** | Swept the API 26 Jul: `process.env` is read for **69 distinct names**, and no doc says which are required, optional or dead. Every cron and money path here fails **silently** on a missing key (#311, #480 and #382 are all that same shape), so "is the environment complete?" can only be guessed at. Dead-but-still-wired: `PAYSTACK_SECRET_KEY`, `APOLLO_API_KEY`, `VAPI_*`×4, `WHATSAPP_*`×3, `PHANTOMBUSTER_*`×2, `CLEARBIT_API_KEY`, `HUBSPOT_API_KEY`. | 🤝 |
 | #317 🟡 | **Stripe refund / dispute events subscribed** | The refund, chargeback and dispute-won code all shipped and **none of it can ever fire** until Stripe → Webhooks is subscribed to `charge.refunded` · `charge.dispute.created` · `charge.dispute.closed`. A won dispute currently leaves the client permanently short. | 🧍 |
-| #491 🔴 | **Per-cron failure alerting** | All 25 crons die silently if an env var is unset — one blanket alert covers the lot. With real clients sending, a dead cron is a client who stopped being worked and nobody knew. Pairs with #561. | 🤖 |
+| #491 🟡 | **Per-cron failure alerting** | All 25 crons die silently if an env var is unset — one blanket alert covers the lot. With real clients sending, a dead cron is a client who stopped being worked and nobody knew. Pairs with #561. | 🤖 |
 | #199 🔴 | **Nothing watches production** | There is a health probe at `index.ts:107` and **no monitor pointed at it** — no UptimeRobot, no BetterStack, no Sentry (error capture is a DB insert that swallows its own failure). If the API dies, the first person to find out is a client. | 🧍 |
 | #329 🩷 | **Wipe the seed data before the first real client** | Founder-confirmed on the admin walk: *"when we flip over live we clean everything."* Test clients, seeded leads and demo residue must not sit in the database a paying client's numbers are computed from. | 🤝 |
 | #298 🩷 | **The restore has never been tested** | Supabase takes backups. Nobody has ever restored one. A backup you have not restored is a belief, not a backup — and this is the only copy of every client's data. One drill, once. | 🤝 |

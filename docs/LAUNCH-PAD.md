@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢92 · 🩷206 · 🟣2 · 🟡59 · 🔴213 · ⏸5 · **Σ577** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷206 · 🟣2 · 🟡60 · 🔴212 · ⏸5 · **Σ577** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -109,7 +109,7 @@
 | # | Item | What it is / why it blocks | Owner |
 |---|------|----------------------------|:-----:|
 | #413 🔴 | **Terms §5 contradicts the code, and itself, on when a credit is consumed** | The document that governs the money disagrees with the money. It is the one place a client will quote back at us. | 🤝 |
-| #414 🔴 | **The Stripe product description oversells at the point of payment** | `packages/shared/src/constants/index.ts:29` — the last thing a client reads before their card is charged, describing something we do not do. | 🤖 |
+| #414 🟡 | **The Stripe product description oversells at the point of payment** | `packages/shared/src/constants/index.ts:29` — the last thing a client reads before their card is charged, describing something we do not do. | 🤖 |
 | #410 🔴 | **The legal pages name the WRONG data sub-processor** | `privacy.html` ×4, including the formal sub-processor list — it names a provider we do not use and omits the ones we do. | 🤖 |
 | #327 🔴 | **The website claims integrations that do not exist** | `pricing.html:491` "HubSpot & Salesforce integration" · `virtual-assistant.html:536` "Salesforce, Gmail, Outlook, Google". `lib/hubspot.ts` is written and **never called** (#397). Nothing is integrated. | 🤖 |
 | #406 🔴 | **The portal has never had a full element sweep** | Every screen, tile, tab, button, toggle and modal on `apps/portal`, checked against what the backend actually does. The showroom strip (#478) took the worst offenders; the sweep itself was never finished, and it is exactly where "the button lies" bugs live. | 🤖 |
@@ -142,6 +142,7 @@
 | ⬜ | **Run migration `20260726_client_contact_name`** (additive, safe to re-run; sign-up works without it, the name just doesn't store) | Vida → Engine → Database migrations |
 | ⬜ | **Run migration `20260726_wallet_tx_types`** (#558 — makes the repo agree with the live wallet CHECK) | Vida → Engine → Database migrations |
 | ⬜ | **Tick Stripe webhook events** `charge.refunded` · `charge.dispute.created` · `charge.dispute.closed` (#317 — without them none of that code ever fires) | Stripe → Developers → Webhooks |
+| ⬜ | **Fix the CHECKOUT description in Stripe (#414)** — the repo copy is now honest, but **no code change can reach the checkout**: it renders the Stripe *product* behind the Price ID, not anything in this repo. Whatever those products say today is what a client reads with their card out. Suggested: *"We run your outbound: we find and score your buyers, you approve the ones you want, and we do the outreach. Reviewing is free — $99 includes your first 100 approved leads, then $4 per approved lead."* | Stripe → Products |
 | ⬜ | **One $99 test purchase on a real card** — proves the pack, the counter and the ledger agree | Milla, as a client |
 | ⬜ | **Set `INBOX_SECRET_KEY`** — generate with `openssl rand -hex 32`. It encrypts the mailbox passwords, and **no key = no send, by design** (#548). Don't lose it: changing it means re-entering every password | Railway → @kind/api → Variables |
 | ⬜ | **SMTP details for the mailbox you ALREADY OWN — buy nothing** — `hello@get-kind.com` on Zoho (already paid for, ~$3/mo): host `smtp.zoho.com` · port `465` · user `hello@get-kind.com` · password = an **App Password** from Zoho → My Account → Security. That is enough to prove a real send end to end (#548) at **$0**. **The $45 Zapmail/SmartSenders pack is NOT on the critical path** — a client mailbox is bought only when a client has paid their $99, so it comes out of *their* money, never speculatively. ⚠️ Google needs an App Password and Microsoft needs SMTP AUTH enabled per mailbox — both block plain passwords by default | Zoho (already ours) |

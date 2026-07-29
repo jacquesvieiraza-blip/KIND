@@ -62,17 +62,47 @@ figsyRouter.get('/track/open/:emailId', async (req, res) => {
 // opt-out blocklist — the same chokepoint every send funnels through.
 async function recordUnsubscribe(email: string): Promise<void> {
   const addr = email.trim().toLowerCase()
-  await db.from('opt_out_blocklist').upsert(
+  // #349 — ALL THREE WRITES ARE CHECKED. This is the one-click unsubscribe (RFC 8058) and the
+  // footer link: somebody has told us to stop. A swallowed failure here is not a cosmetic gap,
+  // it is us continuing to email a person who used the mechanism the law requires us to honour
+  // — and the whole path ran on bare `await`s that discarded their error.
+  //
+  // The BLOCKLIST row is the one that actually stops the sending (every send re-checks it), so
+  // its failure is the loudest: alert. The other two keep the product's own state honest.
+  const { error: blockErr } = await db.from('opt_out_blocklist').upsert(
     { email: addr, reason: 'list_unsubscribe' },
     { onConflict: 'email', ignoreDuplicates: false },
   )
-  await db.from('leads')
+  if (blockErr) {
+    console.error('[figsy/unsubscribe] BLOCKLIST WRITE FAILED — this person is NOT suppressed', addr, blockErr.message)
+    void sendFounderAlert('sends_stalled', 'An unsubscribe was NOT recorded — we may keep emailing them', [
+      `Address: ${addr}`,
+      'They used the one-click unsubscribe and the blocklist write failed, so the send path will not see them as opted out.',
+      `Reason: ${blockErr.message}`,
+      'Add them to opt_out_blocklist by hand. Every send re-checks that table, so until it is there they remain contactable.',
+    ]).catch(() => {})
+  }
+
+  const { error: leadErr } = await db.from('leads')
     .update({ status: 'opted_out', opted_out_at: new Date().toISOString() })
     .eq('email', addr)
-  await db.from('figsy_enrollments')
-    .update({ status: 'opted_out' })
-    .in('lead_id',
-      (await db.from('leads').select('id').eq('email', addr)).data?.map((l: any) => l.id) ?? [])
+  if (leadErr) console.error('[figsy/unsubscribe] lead status not updated', addr, leadErr.message)
+
+  const { data: leadRows } = await db.from('leads').select('id').eq('email', addr)
+  const leadIds = ((leadRows ?? []) as { id: string }[]).map(l => l.id)
+  if (leadIds.length > 0) {
+    const { error: enrolErr } = await db.from('figsy_enrollments')
+      .update({ status: 'opted_out' })
+      .in('lead_id', leadIds)
+    if (enrolErr) {
+      console.error('[figsy/unsubscribe] enrollments not marked opted_out', addr, enrolErr.message)
+      void sendFounderAlert('sends_stalled', 'An unsubscribed contact still has live enrollments', [
+        `Address: ${addr} (${leadIds.length} lead row(s)).`,
+        'They are on the blocklist — the send path re-checks it, so this should not send — but their enrollments still read as live and will keep being processed.',
+        `Reason: ${enrolErr.message}`,
+      ]).catch(() => {})
+    }
+  }
   void logOutcomeEvent({
     client_id: null, campaign_id: null, lead_id: null, enrollment_id: null,
     event_type: 'opt_out', channel: 'email',

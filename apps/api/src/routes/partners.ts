@@ -19,6 +19,7 @@ import { Resend } from 'resend'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { runIcpJob } from './icps'
 import { adminKeyValid } from './admin'
+import { sendFounderAlert } from '../lib/alerts'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM   = 'K.I.N.D <hello@get-kind.com>'
@@ -65,8 +66,13 @@ async function provisionPartnerSandbox(partner: { id: string; name: string; emai
   if (clientErr) throw new Error(`Sandbox client insert failed: ${clientErr.message}`)
   const clientId = client.id
 
+  // #349 — these four rows ARE the sandbox: every product page gates on an active
+  // subscription, so a swallowed failure hands the partner a demo environment where the
+  // thing they're demoing shows the locked/upgrade state. Fail loudly like the client and
+  // ICP inserts above — the caller reports the failure instead of emailing "your sandbox
+  // is ready" about a sandbox that isn't.
   for (const product of ['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot']) {
-    await db.from('subscriptions').insert({
+    const { error: subErr } = await db.from('subscriptions').insert({
       client_id:            clientId,
       product,
       tier:                 'starter',
@@ -75,6 +81,7 @@ async function provisionPartnerSandbox(partner: { id: string; name: string; emai
       current_period_start: new Date().toISOString(),
       current_period_end:   expiresAt,
     })
+    if (subErr) throw new Error(`Sandbox ${product} subscription insert failed: ${subErr.message}`)
   }
 
   const { data: icp, error: icpErr } = await db.from('icps').insert({
@@ -94,7 +101,12 @@ async function provisionPartnerSandbox(partner: { id: string; name: string; emai
     console.error('[partner/sandbox] ICP job failed:', err)
   )
 
-  await db.from('partners').update({ demo_env_id: clientId }).eq('id', partner.id)
+  // #349 — demo_env_id is the only link from the partner back to the sandbox they were
+  // given. Lost, the sandbox is orphaned: the partner dashboard shows no environment and
+  // the next request builds a SECOND one (another client, another four subscriptions).
+  const { error: linkErr } = await db.from('partners')
+    .update({ demo_env_id: clientId }).eq('id', partner.id)
+  if (linkErr) throw new Error(`Sandbox built but not linked to the partner: ${linkErr.message}`)
 
   return { clientId, userId, sandboxEmail, expiresAt }
 }
@@ -436,9 +448,20 @@ partnersRouter.patch('/admin/:partnerId/approve', requireAdminKey, async (req: R
     if (!partner.referral_code) {
       const base = (partner.name || 'partner').toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'partner'
       const code = `${base}${Math.random().toString(36).slice(2, 6)}`
-      const { data: withCode } = await db.from('partners')
+      const { data: withCode, error: codeErr } = await db.from('partners')
         .update({ referral_code: code }).eq('id', partnerId).select().single()
       if (withCode?.referral_code) partner.referral_code = withCode.referral_code
+      // #349 — the approval email and the response below are sent regardless, so a
+      // swallowed failure here approves a partner whose referral link is blank. Say so:
+      // this is a one-shot path, nothing re-runs it on the next approval.
+      if (codeErr || !withCode?.referral_code) {
+        console.error('[partners/approve] referral code not written:', codeErr?.message ?? 'no row returned')
+        void sendFounderAlert('api_down', 'Partner approved WITHOUT a referral code', [
+          `Partner ${partnerId} (${partner.name || 'unnamed'}) was approved but the referral code could not be saved: ${codeErr?.message ?? 'no row returned'}`,
+          'They have no referral link, so they cannot refer anyone and no commission can ever be attributed to them.',
+          'Fix: set partners.referral_code by hand, then resend their approval email.',
+        ])
+      }
     }
 
     // Return immediately — email + sandbox are fire-and-forget

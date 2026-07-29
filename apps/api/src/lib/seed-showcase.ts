@@ -161,9 +161,12 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
   // 7b) Back-date the billing period so the seeded deliveries (1–35 days ago) count
   //     as "this period". Otherwise period_start = account creation (now) and the
   //     usage page shows "0 leads this period" beside 600 delivered leads (#55d).
-  await db.from('subscriptions')
+  // #349 — swallowed, the very bug this back-date exists to prevent comes straight back:
+  // the usage page reads "0 leads this period" beside 600 delivered leads, in a demo.
+  const { error: periodErr } = await db.from('subscriptions')
     .update({ current_period_start: daysAgo(40) })
     .eq('client_id', clientId)
+  if (periodErr) throw new Error(`[showcase] billing period back-date failed: ${periodErr.message}`)
 
   // 8) DENISE — unlock + seed so The Closer is demoable (item 188). The page and
   //    API both gate on an active 'denise' subscription; without it Denise shows
@@ -182,12 +185,15 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
  */
 export async function seedDenise(clientId: string): Promise<void> {
   // Active Denise subscription — unlocks the page + the /denise endpoints.
-  await db.from('subscriptions').upsert({
+  // #349 — this row IS the unlock. Swallowed, seeding "succeeds" and Denise still shows
+  // the locked/upgrade state in the demo — the exact failure this function exists to fix.
+  const { error: subErr } = await db.from('subscriptions').upsert({
     client_id: clientId, product: 'denise', tier: 'starter', status: 'active',
     billing_interval: 'monthly',
     current_period_start: new Date().toISOString(),
     current_period_end: new Date(Date.now() + 30 * 86400000).toISOString(),
   }, { onConflict: 'client_id,product' })
+  if (subErr) throw new Error(`[showcase] denise subscription failed: ${subErr.message} — Denise will show as locked`)
 
   // Don't double-seed drafts if this demo was already seeded.
   const { data: existing } = await db.from('denise_drafts')

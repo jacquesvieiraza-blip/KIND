@@ -558,7 +558,14 @@ export async function sendSequenceEmail(
     if (await isDemoClient(demoClientId)) {
       console.log(`[demo] prospect send suppressed for client ${demoClientId ?? 'unknown'} — sequence step ${step} to ${lead.email} NOT sent (demo).`)
       if (enrollmentId) {
-        await db.from('figsy_enrollments').update({ next_send_at: null }).eq('id', enrollmentId).then(() => {}, () => {})
+        // #349 — was `.then(() => {}, () => {})`. A demo enrollment that stays DUE is
+        // re-picked by every send run forever: the suppression still fires each time so
+        // nothing is ever emailed, but the cron burns the work indefinitely and the demo
+        // account reads as perpetually "sending". Alerting is off — a demo is not a paying
+        // client and this cannot reach a real prospect — but it is no longer discarded.
+        await updateEnrollmentState(enrollmentId, { next_send_at: null },
+          'a DEMO enrollment was suppressed but not stood down — it stays due and will be re-processed on every send run',
+          { alert: false })
       }
       return 'suppressed'
     }

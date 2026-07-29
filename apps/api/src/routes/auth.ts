@@ -155,12 +155,26 @@ authRouter.post('/onboard', async (req, res) => {
 
     // Record partner referral attribution (idempotent — unique(client_id)).
     if (partnerRef) {
-      await db.from('partner_referrals').upsert({
+      // #349 — this used to end in `.then(() => {}, () => {})`, which discarded the error
+      // AND the returned one. This row is the ONLY record that the partner sent us this
+      // client: without it maybeCreatePartnerCommission finds no referral and the partner
+      // is never paid a cent for them, forever. Nothing else writes it.
+      // Still non-fatal — a failed attribution must not cost us the signup — so it is
+      // reported rather than thrown.
+      const { error: refErr } = await db.from('partner_referrals').upsert({
         partner_id:    partnerRef.partner_id,
         client_id:     clientId,
         referral_code: partnerRef.code,
         status:        'trial',
-      }, { onConflict: 'client_id' }).then(() => {}, () => {})
+      }, { onConflict: 'client_id' })
+      if (refErr) {
+        console.error('[onboard] partner referral NOT attributed:', refErr.message)
+        void sendFounderAlert('new_signup', 'Partner referral was NOT attributed', [
+          `Client ${clientId} signed up through partner code "${partnerRef.code}" (partner ${partnerRef.partner_id}) and the attribution row failed: ${refErr.message}`,
+          'The signup went through. But this partner will never earn commission on this client — commissions are looked up through this row.',
+          'Fix: add the referral by hand in Vida → Partners.',
+        ])
+      }
     }
 
     const trialEnd = new Date()

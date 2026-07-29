@@ -300,8 +300,20 @@ adminRouter.patch('/demos/:id/extend', async (req: Request, res: Response) => {
     }
     const { expires_at } = parsed.data
 
-    await db.from('clients').update({ demo_expires_at: expires_at }).eq('id', req.params.id).eq('is_demo', true)
-    await db.from('subscriptions').update({ current_period_end: expires_at, status: 'active' }).eq('client_id', req.params.id)
+    // #349 — both writes are the extension. Swallowed, the operator is told the demo was
+    // extended, walks into the meeting, and the demo has already expired.
+    const { error: clientErr } = await db.from('clients')
+      .update({ demo_expires_at: expires_at }).eq('id', req.params.id).eq('is_demo', true)
+    if (clientErr) {
+      console.error('[admin/demos/extend] client write failed:', clientErr.message)
+      res.status(500).json({ success: false, error: `Demo NOT extended — nothing was changed (${clientErr.message})` }); return
+    }
+    const { error: subErr } = await db.from('subscriptions')
+      .update({ current_period_end: expires_at, status: 'active' }).eq('client_id', req.params.id)
+    if (subErr) {
+      console.error('[admin/demos/extend] subscription write failed:', subErr.message)
+      res.status(500).json({ success: false, error: `Demo date extended but the subscriptions did NOT — the products will still lock. Fix in Finance → Billing (${subErr.message})` }); return
+    }
 
     res.json({ success: true })
   } catch (err) {
@@ -452,12 +464,16 @@ adminRouter.post('/setup-demo', async (req: Request, res: Response) => {
     }
 
     const periodEnd = new Date(Date.now() + 365 * 86400000).toISOString()
+    // #349 — the response below promises "all 4 products active for 1 year". These four
+    // rows are what makes that true; swallowed, the operator hands out credentials to an
+    // account whose product pages show the locked/upgrade state.
     for (const product of ['lead_gen', 'lead_gen_figsy', 'virtual_assistant', 'chatbot']) {
-      await db.from('subscriptions').upsert({
+      const { error: subErr } = await db.from('subscriptions').upsert({
         client_id: clientId, product, tier: 'starter', status: 'active',
         billing_interval: 'monthly', amount_zar: 0,
         current_period_start: new Date().toISOString(), current_period_end: periodEnd,
       }, { onConflict: 'client_id,product' })
+      if (subErr) throw new Error(`Demo ${product} subscription failed: ${subErr.message}`)
     }
 
     const { data: linkData } = await db.auth.admin.generateLink({

@@ -40,12 +40,20 @@ subscriptionRouter.post('/:id/cancel', async (req: AuthRequest, res) => {
     // Stripe cancellation is handled by the client through Stripe's billing portal /
     // the Stripe webhook; here we only mark the local record. (Paystack removed, #325.)
     // Mark cancelled in DB — access continues until current_period_end
-    await db.from('subscriptions')
+    // #349 — swallowed, the client is told "cancelled" while the row still reads active.
+    // They believe they've cancelled, keep being billed by Stripe, and the churn report
+    // never counts them. Refuse instead of lying.
+    const { error: cancelErr } = await db.from('subscriptions')
       .update({
         status: 'cancelled',
         cancelled_at: new Date().toISOString(),
       })
       .eq('id', sub.id)
+    if (cancelErr) {
+      console.error('[subscriptions/cancel] write failed:', cancelErr.message)
+      res.status(500).json({ success: false, error: 'Could not cancel the subscription — nothing was changed. Please try again or email hello@get-kind.com.' })
+      return
+    }
 
     res.json({
       success: true,

@@ -1,7 +1,6 @@
 export const dynamic = 'force-dynamic'
 
 import { createClient } from '@supabase/supabase-js'
-import { PRICING, PRODUCTS } from '@kind/shared'
 import { Users, DollarSign, AlertCircle, Target, CheckCircle2,
   Zap, Wallet, Package, HeartPulse, ArrowUpRight, CreditCard, Repeat } from 'lucide-react'
 import Link from 'next/link'

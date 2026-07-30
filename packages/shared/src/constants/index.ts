@@ -72,6 +72,42 @@ export const PRICING = {
   },
 } as const
 
+// ⚠️ LEGACY — NONE OF THESE FOUR PRODUCTS IS CURRENTLY SOLD. Retired by the 22-Jul pivot,
+// and the block below still describes the self-serve SaaS it replaced. What these two names
+// actually are now:
+//
+//   • **Milla** is the CLIENT PORTAL — the only console a client logs into (`apps/portal`,
+//     the `(milla)` route group). It is not a $49/mo "AI Virtual Assistant" you can buy; it
+//     is the surface the thing we DO sell is delivered through.
+//   • **Vida** is OUR OPERATOR CONSOLE — `apps/admin`, the screen the founder runs the
+//     business from. It is not a $29/mo website chatbot, and it is not sold to anyone.
+//   • **Denise** ($39) and the **bundle** ($69) are likewise not on sale. Denise's code
+//     exists and is demoable; it returns as a per-lead layer in M4, not a subscription.
+//
+// What IS sold (locked 24 Jul, ONE WALLET): the managed outbound service — $99 includes the
+// first 100 approved leads, then $4 per approved lead. See `PRICING` above.
+//
+// THE STRIPE PRICE OBJECTS BEHIND THESE ARE DORMANT, NOT GONE. `lib/stripe.ts` exposes
+// `STRIPE_SUBSCRIPTIONS` keyed milla/vida/denise against `STRIPE_PRICE_*_MONTHLY` env vars,
+// and the `/stripe/subscribe` route and the subscription webhook still work end to end. So a
+// live Price ID in the Stripe dashboard could still take a payment for a product we do not
+// sell. Retiring them is a Stripe-dashboard action, not a code edit.
+//
+// ⚠️ AND A CORRECTION TO THIS FILE'S OWN #414 NOTE ABOVE, verified 29 Jul: that note claims
+// "the only importers are `lib/stripe.ts` … and `admin/cockpit/page.tsx`". **Wrong on both
+// counts.** `lib/stripe.ts` imports `PRICING` only and never touches `PRODUCTS` —
+// `STRIPE_SUBSCRIPTIONS` is an independent literal that hardcodes its own env-var names and
+// duplicates these prices (49/29/39), so the two can drift and nothing would notice. And
+// `PRODUCTS` has FOUR importers, not one: `admin/cockpit`, `(dashboard)/chatbot` and
+// `(dashboard)/assistant` (all three dead imports, two of them removed in this PR) plus
+// `(dashboard)/marketplace`, which genuinely RENDERS `$49/mo`, `$29/mo` and `$39/mo` on a
+// page selling all three as subscriptions. No client can reach it — `middleware.ts` redirects
+// every signed-in client out of `(dashboard)` to `/milla` — which is why this is stale copy
+// rather than a live overcharge. The narrower claim the note makes about `.description` does
+// hold: nothing renders that field.
+//
+// KEPT, NOT DELETED — CORE-MAP rule 3 is founder-locked ("nothing gets deleted"). Marked so
+// nobody reads $49/mo off this block and believes we sell it.
 export const PRODUCTS = {
   virtual_assistant: {
     name: 'Milla — AI Virtual Assistant',

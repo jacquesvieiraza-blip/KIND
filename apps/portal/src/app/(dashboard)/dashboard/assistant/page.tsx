@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { Bot, Calendar, FileText, Database, MessageSquare, CheckCircle2, XCircle } from 'lucide-react'
 import MarkdownLite from '@/components/MarkdownLite'
-import { PRODUCTS } from '@kind/shared'
 
 interface MillaDocument {
   id: string; name: string; type: string

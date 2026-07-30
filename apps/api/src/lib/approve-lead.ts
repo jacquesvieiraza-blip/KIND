@@ -66,6 +66,14 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   if (await isDemoClient(clientId)) {
     const demoEmail = (claim.email as string | null) ?? null
     if (!demoEmail) { await unclaim(); return { status: 'no_email', revealed: false } }
+    // #568 — THIS SWALLOW IS DELIBERATE. LEAVE IT.
+    //
+    // The other two enrol sites in this file alert on failure because a paid lead that never
+    // enters a sequence is a client waiting for outreach that will never arrive. Here nobody
+    // paid and nothing will ever be sent: `is_demo` is a hard stop inside the send path and
+    // every demo address is `.invalid`. So a failed enrol on a demo lead costs a walkthrough
+    // one seeded row, and paging the founder about it would train them to ignore the alert
+    // that means a real client is stuck. Rebuild the demo instead (Vida → Engine → MBF).
     await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch(() => {})
     return { status: 'approved', revealed: true, email: demoEmail, charged: false }
   }
@@ -78,7 +86,27 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   if (knownEmail) {
     const { data: owned } = await db.rpc('reveal_is_owned', { p_client_id: clientId, p_email_norm: knownEmail })
     if (owned === true) {
-      await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch(() => {})
+      // #568④ — THE LAST SWALLOWED ENROL, and the one that hid the longest.
+      //
+      // `charged: false` below makes this look like a free path, so it read as harmless. It is
+      // not: `reveal_is_owned` is true precisely BECAUSE this client already paid for this
+      // contact. The money moved on an earlier approval; what the re-approve buys is the WORK.
+      // Swallowed, they have paid and the lead enters no sequence — the same "paid, never
+      // worked" outcome the no-campaign gate at step 3c fails closed to prevent, and that the
+      // paid path at step 8 alerts on. Two of three sites guarded and this one silent meant
+      // the failure simply moved to whichever door the client happened to come through.
+      //
+      // Found by a test harness, not by reading: returning `reveal_is_owned: true` sent an
+      // assertion down this branch, where it passed while proving nothing.
+      await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch((e: unknown) => {
+        console.error('[approve] ENROL FAILED on a re-approve of an already-paid contact — the lead will never be worked', clientId, leadId, e)
+        void sendFounderAlert('sends_stalled', 'An already-paid lead was never enrolled — no outreach will run', [
+          `Client ${clientId}, lead ${leadId}.`,
+          'No new charge was made — this client had ALREADY paid for this contact (#424 charge-once), so the money moved on an earlier approval and this re-approve was for the work.',
+          `Reason: ${e instanceof Error ? e.message : String(e)}`,
+          'The lead is approved and revealed, but it is in no sequence — enrol it from Vida or nothing will ever be sent.',
+        ]).catch(() => {})
+      })
       return { status: 'approved', revealed: true, email: claim.email as string, charged: false }
     }
   }

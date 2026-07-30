@@ -4,7 +4,7 @@
 > ## 💰 THE MODEL OF RECORD IS [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html) *(founder-locked 25 Jul · inventory #556)*
 > **Open the lab first.** Two needles at the top (clients · average approvals per client per month), every cost line an editable box, and it recomputes live — the layout the founder locked: *"we can refine numbers but the layout I understand."* **This markdown doc is the workings** — where each figure comes from, what it ties to in code, and the scenario envelope. If the two ever disagree, **the lab is the model and this doc is the bug.**
 >
-> **The floor is ~$283/month** (30 Jul — see §5, NOW table). The history: a ~$190 figure omitted Smartlead, Instantly, Zoho and the Anthropic runtime; correcting that gave **~$457** (25 Jul); deferring Smartlead and pricing Instantly at its real tier gave **~$423** (30 Jul); and applying the **idle-tools-bill-nothing** rule — Hunter, PDL and the failover switched off until they do work — gives **~$283**. It rises to **~$550** the day a client signs. PDL is modelled the way it is actually billed — a bought tier with a **$98 floor**, charged as `max(tier, names × $0.28)`, not double-counted as a fixed line *and* a per-name cost.
+> **The floor is ~$223/month** (30 Jul — see §5, NOW table). The history: a ~$190 figure omitted Smartlead, Instantly, Zoho and the Anthropic runtime; correcting that gave **~$457** (25 Jul); deferring Smartlead and pricing Instantly at its real tier gave **~$423** (30 Jul); and applying the **idle-tools-bill-nothing** rule — Hunter, PDL and the failover switched off until they do work — gives **~$283**; and the **Client Zero architecture lock** — our own engine sends, Instantly drops to Growth-for-warmup — gives **~$223**. It rises to **~$490** the day a client signs. PDL is modelled the way it is actually billed — a bought tier with a **$98 floor**, charged as `max(tier, names × $0.28)`, not double-counted as a fixed line *and* a per-name cost.
 >
 > **Two numbers out of it that changed how we sell:** ① at $40/client/month for their inbox, a client must approve **~13 leads a month just to pay for their own sender** — below that every extra client makes us poorer and **no amount of scale fixes it** (this is why the minimum-20 gate exists, #542); ② the **$99 pack is −$52 in month one** once $45 setup + $40 inbox are counted, recovering to **+$121 at 50 approvals in month two** — **the repeat is the business, the pack is the door.**
 >
@@ -113,8 +113,8 @@ Flat pricing, no volume discounts. **Signup grant (welcome mix, no expiry):** 20
 | Service | What it is | Cost/mo |
 |---|---|---|
 | Railway + Supabase + Cloudflare | Servers, database, DNS/CDN — the product being alive | ~$138 |
-| **Instantly — HyperGrowth** | K.I.N.D's OWN outreach (Client Zero, #549). **The minimum tier carrying API v2 + webhooks — Growth has NEITHER** (verified against their plan table, 30 Jul; their own 402 error text says "Growth" and is wrong about their product). Confirmed 30 Jul: API v2 ✓ · webhooks on replies ✓ · custom Reply-To ✓ · unlimited mailboxes/domains · 500-account standard warmup pool. | **~$97** ⚠️ until first invoice |
-| Instantly sending domains + mailboxes | For OUR outreach. **Google ×4 + 2 domains ≈ $23/mo planned** (DFY pricing confirmed: AirMail $4 · Google $5 · pre-warmed Google $10 per account · domain $15/yr). **Buy the domains THROUGH Instantly, not GoDaddy.** | **$0** → ~$23 on purchase |
+| **Instantly — Growth** | **WARMUP UTILITY ONLY** (#577 amended 30 Jul). Vendor-confirmed that warmup runs on mailboxes with *no* Instantly campaigns, including externally-hosted ones. **Not HyperGrowth $97** — that tier's API existed only to let Instantly *send*, and our own engine sends now. Warmup is the single part of their bundle we do not already own. | **~$37** ⚠️ until first invoice |
+| Sending domains + mailboxes | For OUR outreach. **⚠️ BUY DIRECT FROM GOOGLE (~$6/box), NOT Instantly's done-for-you boxes.** Our engine sends over SMTP and `sending-inbox.ts` requires `smtp_host`+`smtp_user`+`smtp_pass_enc`; **#577 records in writing that vendor-provisioned mailboxes expose no SMTP credentials**, so a DFY box saves $1 and cannot be sent through at all. 4 boxes + 2 domains ≈ **$25/mo**. | **$0** → ~$25 on purchase |
 | Resend | Pro — transactional + the reply spine | $20 |
 | **Zoho Mail** | `hello@get-kind.com` — the human mailbox, website inbound | ~$3 ⚠️ estimate |
 | **Domains (GoDaddy)** | `get-kind.com` renewal ÷ 12. Founder confirming renewal prices and killing auto-renew on unused domains. *(GoDaddy renews ~2× Cloudflare Registrar's at-cost pricing — a possible ~$10/yr/domain saving if the transfer hassle is ever worth it.)* | ~$3 ⚠️ estimate |
@@ -124,24 +124,40 @@ Flat pricing, no volume discounts. **Signup grant (welcome mix, no expiry):** 20
 | **PDL** | Sourcing. ⏸ **IDLE = $0** — the $98 tier must **not** auto-renew in months with no sourcing run. Founder confirming. | **$0** ⏸ |
 | **Anthropic** | Claude API at runtime (scoring + writing). **$10 is actual at our-own-volume**; ~$45 was client scale. | ~$10 ⚠️ watch |
 | Apollo | Wired but BYO-key and unused (#410) — confirm no lingering subscription. | $0 |
-| **PLATFORM FLOOR — NOW** | *(pre-first-client, failover still billing)* | **~$283/mo** |
+| **PLATFORM FLOOR — NOW** | *(pre-first-client, failover still billing)* | **~$223/mo** |
 
-*Claude Code is **£119.99/mo ≈ $152** (founder-confirmed 30 Jul, the real invoice figure — earlier versions carried a ~$150 estimate). It is the founder's **build tool, not product infrastructure**, so it sits outside the platform floor: the product does not need it to run for a client, only to be built. **All-in out of pocket today: ~$435/mo.***
+*Claude Code is **£119.99/mo ≈ $152** (founder-confirmed 30 Jul, the real invoice figure — earlier versions carried a ~$150 estimate). It is the founder's **build tool, not product infrastructure**, so it sits outside the platform floor: the product does not need it to run for a client, only to be built. **All-in out of pocket today: ~$375/mo.***
 
 ### FUTURE — first client onward
 
 | Line | Adds | Trigger |
 |---|---|---|
-| Everything in NOW | ~$283 | — |
+| Everything in NOW | ~$223 | — |
 | **Smartlead** main account | +$94 | a client signs |
 | **Hunter** Starter | +$34 | first sourcing run |
 | **PDL** tier | +$98 | first sourcing run |
 | **Anthropic** at client volume | +~$30 | scales with leads worked |
 | Instantly mailboxes (once purchased) | +~$23 | on purchase |
-| **PLATFORM FLOOR — FUTURE** | **~$550/mo** | |
+| **PLATFORM FLOOR — FUTURE** | **~$490/mo** | |
 | *Client's own inbox + workspace* | *+$40 per client* | **paid out of THEIR $99** — never speculative |
 
-**~$550 is covered at ~4–5 clients** averaging 50 approvals a month (~$121 contribution each). The failover is deliberately **not** added back at one client — it returns when an outage would cost real revenue.
+**~$490 is covered at ~4 clients** averaging 50 approvals a month (~$121 contribution each). The failover is deliberately **not** added back at one client — it returns when an outage would cost real revenue.
+
+### THE FUEL — separate from the rent
+
+The floors above are **rent**: what runs whether or not we are hunting. Finding clients costs **fuel** on top, and it is priced per thousand prospects contacted rather than per month:
+
+| Per 1,000 prospects (≈3,000 emails, a 3-step sequence) | Cost |
+|---|---|
+| Sourcing — **Apollo** (free 900/yr → Basic **billed MONTHLY** ~$59; the $49 rate is annual-upfront $588 and waits until the channel proves) | ~$49–59 |
+| Verification — pay-as-you-go (~$8/1,000), **not** a Hunter subscription | ~$8 |
+| AI writing + scoring — Anthropic at $0.07/lead | ~$70 |
+| Sending — **our own engine**, through our own mailboxes | **$0** |
+| **Total fuel per 1,000 prospects** | **~$127–137** |
+
+**Rate of burn:** 4 warm mailboxes send ~100 emails/day, so 1,000 prospects takes **~6 weeks** — roughly **$85/month** while hunting, not a lump sum.
+
+**Payback:** industry cold-outbound benchmarks put 1,000 contacted prospects at **≈1 client** conservatively (1% positive reply → ~10 meetings → ~7 demos → ~15–20% close). One client is worth **$99 + ~$121/month**. **The acquisition maths works even at the pessimistic end** — and Apollo rather than PDL is what makes it work: the same 1,000 names on PDL would be **$280**, turning ~$130 of fuel into ~$384. **PDL and Hunter remain the client-facing stack; Apollo is for our own hunting only** — the exact mirror of *Instantly for us, Smartlead for clients*.
 
 **Scales with the work, NOT fixed:**
 
@@ -158,7 +174,7 @@ Flat pricing, no volume discounts. **Signup grant (welcome mix, no expiry):** 20
 - **Claude Code** (building the product) ~$150/mo — **separate; a build investment, not an operating cost.**
 - **PDL is a bought tier**, so it is modelled as a floor rather than double-counted as both a fixed line and a per-name cost.
 
-> **Correction history.** Earlier versions carried **$138**, then **$203**, then **~$175–190**. Every one of them left out **Smartlead (~$94 — the product's deliverability foundation, running every client inbox), Instantly (~$37), Zoho Mail (~$3 — the very tool `TECH-STACK.md` calls out as "the one that went missing") and the Anthropic runtime.** The honest floor was **~$457**, became **~$423** with the Instantly-first decision, and is **~$283** today under the idle-tools rule — rising to ~$550 at the first client. The lines marked ⚠️ are estimates until the real invoices are read; the interactive model at `docs/CASHFLOW-LAB.html` makes every one of them an editable box for exactly that reason.
+> **Correction history.** Earlier versions carried **$138**, then **$203**, then **~$175–190**. Every one of them left out **Smartlead (~$94 — the product's deliverability foundation, running every client inbox), Instantly (~$37), Zoho Mail (~$3 — the very tool `TECH-STACK.md` calls out as "the one that went missing") and the Anthropic runtime.** The honest floor was **~$457**, became **~$423** with the Instantly-first decision, and is **~$223** today under the idle-tools rule plus the Client Zero architecture lock — rising to ~$490 at the first client. The lines marked ⚠️ are estimates until the real invoices are read; the interactive model at `docs/CASHFLOW-LAB.html` makes every one of them an editable box for exactly that reason.
 
 ---
 
@@ -172,9 +188,9 @@ Flat pricing, no volume discounts. **Signup grant (welcome mix, no expiry):** 20
 
 | To cover… | Fixed | Clients needed |
 |---|---|---|
-| Platform floor — **NOW** *(pre-first-client)* | ~$283 | **~3 clients** |
-| Platform floor — **FUTURE** *(first client onward)* | ~$550 | **~5 clients** |
-| + Claude Code dev (**£119.99 ≈ $152**) | ~$702 | **~6 clients** |
+| Platform floor — **NOW** *(pre-first-client)* | ~$223 | **~2 clients** |
+| Platform floor — **FUTURE** *(first client onward)* | ~$490 | **~4 clients** |
+| + Claude Code dev (**£119.99 ≈ $152**) | ~$642 | **~6 clients** |
 
 **Their first month is not where the money is.** The $99 pack costs us ~$56 sourcing (200 names) + ~$7 working + ~$3.50 Stripe + $45 setup + $40 inbox ≈ **$151 — so month one runs at about −$52.** Month two recovers it at 50 approvals. **The repeat is the business; the pack is the door.**
 

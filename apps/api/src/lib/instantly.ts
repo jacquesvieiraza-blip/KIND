@@ -146,6 +146,12 @@ export async function addLead(campaignId: string, lead: Record<string, unknown>)
 // Founder's instruction, verbatim: *"Report anything the API cannot do (rate limits, plan
 // limits) as NOT-POSSIBLE rather than working around it silently."* So they are stated here,
 // in code, rather than discovered later by someone reading a cron that quietly does nothing.
+//
+// ⚠️ 30 Jul — WE DO NOT USE THIS API AT ALL. The founder amended #577 after walking Instantly's
+// bundle: our own engine (FIGSY + the #547/#548 send path + our unibox) sends our outreach, and
+// Instantly is now a WARMUP UTILITY on the Growth tier. Everything below stays TRUE — the API
+// really does need HyperGrowth — and this file stays because it is the revival path if our own
+// deliverability fails the #553 ladder. Correct, tested, and deliberately dormant.
 export const NOT_POSSIBLE: { what: string; why: string }[] = [
   {
     what: 'Any of this, without the HyperGrowth plan',

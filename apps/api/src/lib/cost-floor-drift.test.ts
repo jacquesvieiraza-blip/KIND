@@ -96,12 +96,26 @@ describe('all three documents agree on the floor', () => {
 })
 
 describe('the Instantly-first decision is recorded where the money is', () => {
-  it('the model names HyperGrowth, not Growth', () => {
-    // The correction that matters: Instantly's own 402 text says "Growth or above" and is wrong
-    // about their product — their plan table lists API: No and Webhooks: No on Growth. Buying
-    // Growth would have bought a tier on which none of the integration runs.
-    expect(lab).toContain('HyperGrowth')
-    expect(lab).toContain('Growth has NEITHER')
+  it('the model names Growth, and says WHY it is not HyperGrowth', () => {
+    // ⚠️ THIS GUARD WAS INVERTED ON 30 Jul, and the inversion is the decision.
+    //
+    // It used to assert the lab said "HyperGrowth" — correct while Instantly was going to SEND
+    // for us, because only that tier carries the API. The founder then amended #577: our own
+    // engine sends, Instantly is a warmup utility, and the API is not used at all. So the tier
+    // we need is Growth, and a guard still demanding HyperGrowth would defend a $60/mo
+    // overspend on a capability we deliberately dropped.
+    expect(lab).toContain('Growth (warmup utility)')
+    expect(lab).toContain('NOT HyperGrowth')
+    expect(lab).not.toMatch(/id="f_instantly"\s+value="97"/)
+  })
+
+  it('and records the mailbox constraint that makes the purchase specific', () => {
+    // The trap this prevents costs real money: Instantly's done-for-you boxes are $1 CHEAPER
+    // and cannot be sent through by our engine at all — #577 has both vendors confirming in
+    // writing that their mailboxes expose no SMTP credentials, and sending-inbox.ts requires
+    // smtp_host + smtp_user + smtp_pass_enc. Buying the cheaper box breaks the architecture.
+    expect(lab).toContain('MUST BE BOUGHT DIRECT FROM GOOGLE')
+    expect(lab).toContain('no SMTP credentials')
   })
 
   it('Smartlead is recorded as DEFERRED rather than deleted', () => {

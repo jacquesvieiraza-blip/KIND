@@ -329,6 +329,20 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
 
   // 9. HAND THE LEAD TO INSTANTLY — our own outreach only (Client Zero, #593).
   //
+  // ⏸ PARKED 30 Jul, AND DORMANT BY ITS OWN DESIGN — DO NOT "FIX" THIS.
+  //
+  // The founder amended #577 after walking Instantly's bundle: OUR OWN ENGINE sends our
+  // outreach now (FIGSY + the #547/#548 send path + our unibox), and Instantly is only a
+  // warmup utility. So nothing should be pushed here.
+  //
+  // No switch was added to park it, because the item already had one: `HOUSE_CLIENT_ID` is
+  // UNSET, and unset means nothing is ever pushed. That was built as a fail-closed safety
+  // property — guessing the house client wrong would email real people from the wrong
+  // account — and it now doubles as the park. Setting that env var is what would wake this.
+  //
+  // Kept, not removed (CORE-MAP rule 3): if our own deliverability fails the #553 ladder,
+  // reviving this is an afternoon — upgrade to HyperGrowth, set the var — not a rebuild.
+  //
   // This is the wiring Prompt 4 shipped without: the client and the mapping existed, and
   // nothing called them. Placed after the enrol because the lead must be paid for, revealed
   // and in a sequence before anyone sends on its behalf.

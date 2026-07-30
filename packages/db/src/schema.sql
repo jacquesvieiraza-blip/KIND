@@ -342,3 +342,120 @@ create policy "order_forms_sign" on public.order_forms
 
 -- Supabase Storage: create bucket 'agreement-templates' (run separately in Storage tab)
 -- Bucket should be: private, max file size 10MB, allowed types: application/pdf
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- RECONCILIATION — columns added by later migrations (#558, 30 Jul 2026)
+-- ═══════════════════════════════════════════════════════════════════════════════
+--
+-- WHY THIS BLOCK EXISTS. The four tables above were written in May and never updated,
+-- while 126 migration files went on adding columns to them. The gap is not cosmetic:
+-- this file did not declare `clients.wallet_balance_usd`, `clients.is_demo`,
+-- `leads.delivered_at` or `leads.revealed_at` — the money column, the demo flag and
+-- the two timestamps the entire approve → surface → charge loop turns on. Anyone who
+-- ran this file to stand up a database got one the product could not use.
+--
+-- HOW IT WAS BUILT. Derived, not remembered: every column below is one the repo's own
+-- migrations add and this file did not declare, and each carries the migration it came
+-- from. `apps/api/src/lib/schema-drift.ts` re-derives the set; `schema-drift.test.ts`
+-- fails the gate if this file falls behind the migrations again.
+--
+-- ⚠️ WHAT THIS DOES NOT CLAIM. It does not say production HAS these columns — the
+-- Supabase dashboard is unreachable and DATABASE_URL is mangled, so nothing here was
+-- checked against the live database. It says the REPO now agrees with itself. The
+-- queries that would settle the rest are in docs/SCHEMA-DRIFT.md, ready to paste into
+-- Vida → Engine.
+--
+-- Idempotent and non-destructive: ADD COLUMN IF NOT EXISTS only. Nothing is dropped.
+
+
+-- ── CLIENTS ──────────────────────────────────────────────────────────────
+alter table public.clients
+  add column if not exists auto_topup_bundle_size           integer,
+  add column if not exists auto_topup_enabled               boolean NOT NULL DEFAULT false,
+  add column if not exists auto_topup_paystack_auth         text,
+  add column if not exists auto_topup_plan                  text,  -- CHECK constraint lives in 20260525_add_missing_clients_columns.sql
+  add column if not exists auto_topup_threshold             integer NOT NULL DEFAULT 0,
+  add column if not exists autonomy                         text default 'auto',  -- CHECK constraint lives in 20260612_company_engine.sql
+  add column if not exists booking_url                      text,
+  add column if not exists calendar_booking_enabled         boolean NOT NULL DEFAULT false,
+  add column if not exists company_id                       uuid,  -- FK to public.companies omitted: that table is not declared in this file
+  add column if not exists company_registration             TEXT,
+  add column if not exists contact_name                     text,
+  add column if not exists credit_balance                   integer NOT NULL DEFAULT 0,
+  add column if not exists crm_api_key                      text,
+  add column if not exists crm_dedup_enabled                boolean not null default false,
+  add column if not exists crm_sync_enabled                 boolean not null default false,
+  add column if not exists crm_type                         text,  -- CHECK constraint lives in 003_crm_integration.sql
+  add column if not exists daily_brief_enabled              BOOLEAN DEFAULT TRUE,
+  add column if not exists daily_drip_rate                  INTEGER DEFAULT 5,
+  add column if not exists demo_created_by                  TEXT,
+  add column if not exists demo_expires_at                  TIMESTAMPTZ,
+  add column if not exists demo_prospect_name               TEXT,
+  add column if not exists enabled_agents                   text[] not null default array['figsy']::text[],
+  add column if not exists figsy_credits_remaining          integer NOT NULL DEFAULT 0,
+  add column if not exists first_icp_run_at                 timestamptz,
+  add column if not exists google_calendar_access_token     text,
+  add column if not exists google_calendar_email            text,
+  add column if not exists google_calendar_refresh_token    text,
+  add column if not exists google_calendar_token_expiry     timestamptz,
+  add column if not exists invite_token                     text,
+  add column if not exists invited_email                    text,
+  add column if not exists is_demo                          BOOLEAN DEFAULT FALSE,
+  add column if not exists low_credit_warned_at             timestamptz,
+  add column if not exists nexus_autotune_enabled           boolean not null default false,
+  add column if not exists onboarding_completed             text[] DEFAULT '{}',
+  add column if not exists onboarding_completed_at          timestamptz,
+  add column if not exists onboarding_started_at            timestamptz,
+  add column if not exists onboarding_status                text DEFAULT 'not_started',
+  add column if not exists onboarding_step                  text,
+  add column if not exists onboarding_version               int NOT NULL DEFAULT 1,
+  add column if not exists plan                             text NOT NULL DEFAULT 'lead_gen',  -- CHECK constraint lives in 20260616_billing_correctness.sql
+  add column if not exists referral_bonus_paid_at           timestamptz,
+  add column if not exists referred_by                      uuid REFERENCES public.clients(id) ON DELETE SET NULL,
+  add column if not exists seat_accepted_at                 timestamptz,
+  add column if not exists seat_active                      boolean not null default true,
+  add column if not exists seat_budget                      integer not null default 0,
+  add column if not exists seat_role                        text default 'owner',  -- CHECK constraint lives in 20260612_company_engine.sql
+  add column if not exists share_token                      TEXT,  -- DEFAULT expression lives in 20260530_client_share_token.sql
+  add column if not exists signer_name                      text,
+  add column if not exists signup_terms_accepted_at         timestamptz,
+  add column if not exists signup_terms_accepted_ip         text,
+  add column if not exists sourcing_allowance               int NOT NULL DEFAULT 0,
+  add column if not exists terms_accepted_at                timestamptz,
+  add column if not exists terms_accepted_ip                text,
+  add column if not exists trial_sourcing_granted           int NOT NULL DEFAULT 0,
+  add column if not exists vat_number                       TEXT,
+  add column if not exists wallet_balance_usd               numeric NOT NULL DEFAULT 0;
+-- sources: 003_crm_integration.sql, 010_crm_dedup.sql, 012_signer_and_booking.sql, 20260513_referral_credits.sql, 20260514_terms_acceptance.sql, 20260518_company_registration.sql, 20260518_demo_environments.sql, 20260525_add_missing_clients_columns.sql, 20260526_drip_and_controls.sql, 20260530_client_share_token.sql, 20260603_schema_reconcile.sql, 20260611_daily_brief_pref.sql, 20260612_company_engine.sql, 20260616_billing_correctness.sql, 20260617_signup_terms.sql, 20260707_money_integrity.sql, 20260711_sourcing_fences.sql, 20260714_onboarding_state.sql, 20260724_nexus_autotune_flag.sql, 20260724_one_wallet.sql, 20260726_client_contact_name.sql
+
+-- ── SUBSCRIPTIONS ──────────────────────────────────────────────────────────────
+alter table public.subscriptions
+  add column if not exists stripe_subscription_id           text,
+  add column if not exists trial_expiry_notified_at         timestamptz;
+-- sources: 20260527_stripe_subscription_id.sql, 20260710_trial_expiry_once.sql
+
+-- ── ICPS ──────────────────────────────────────────────────────────────
+alter table public.icps
+  add column if not exists intent_signals                   jsonb not null default '[]'::jsonb,
+  add column if not exists organization_names               text[] DEFAULT '{}',
+  add column if not exists pdl_exhausted_at                 timestamptz,
+  add column if not exists pdl_scroll_query                 text,
+  add column if not exists pdl_scroll_token                 text,
+  add column if not exists settings                         jsonb;
+-- sources: 20260527_icp_abm_organization_names.sql, 20260601_social_signals.sql, 20260603_schema_reconcile.sql, 20260727_pdl_cursor.sql
+
+-- ── LEADS ──────────────────────────────────────────────────────────────
+alter table public.leads
+  add column if not exists approval_expires_at              timestamptz,
+  add column if not exists consent_auto_fired               boolean default false,
+  add column if not exists consent_token                    TEXT,
+  add column if not exists crm_existing                     boolean not null default false,
+  add column if not exists crm_match_reason                 text,
+  add column if not exists delivered_at                     TIMESTAMPTZ DEFAULT NULL,
+  add column if not exists job_changed_at                   timestamptz,
+  add column if not exists passed_at                        timestamptz,
+  add column if not exists previous_company                 text,
+  add column if not exists research_summary                 jsonb,
+  add column if not exists revealed_at                      timestamptz,
+  add column if not exists surfaced_for_approval_at         timestamptz;
+-- sources: 010_crm_dedup.sql, 20260526_drip_and_controls.sql, 20260530_consent_token.sql, 20260531_auto_consent.sql, 20260531_lead_research.sql, 20260611_lead_job_change.sql, 20260709_reveal_charge.sql, 20260723_money_retime.sql, 20260723_operator_audit_log.sql

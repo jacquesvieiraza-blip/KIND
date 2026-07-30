@@ -72,7 +72,7 @@ async function call<T>(path: string, init?: { method?: string; body?: unknown })
       // 402/403 on this API means the workspace is not on a plan that includes v2 — a
       // NOT-POSSIBLE, not a bug to work around. Say so in those words.
       const plan = (r.status === 402 || r.status === 403)
-        ? ' — API v2 requires the Instantly Growth plan or above; this is a plan limit, not a code fault'
+        ? ' — API v2 requires the Instantly HYPERGROWTH plan or above; this is a plan limit, not a code fault'
         : ''
       return { ok: false, status: r.status, error: redact(`HTTP ${r.status}${plan}. ${text.slice(0, 300)}`) }
     }
@@ -148,8 +148,8 @@ export async function addLead(campaignId: string, lead: Record<string, unknown>)
 // in code, rather than discovered later by someone reading a cron that quietly does nothing.
 export const NOT_POSSIBLE: { what: string; why: string }[] = [
   {
-    what: 'Any of this, without the Growth plan',
-    why: 'Instantly API v2 is documented as Growth-plan-and-above. A workspace below it gets 402/403 on every call, and `call()` says so in those words rather than reporting a code fault.',
+    what: 'Any of this, without the HyperGrowth plan',
+    why: 'Instantly API v2 needs HYPERGROWTH or above. A workspace below it gets 402/403 on every call, and `call()` says so in those words rather than reporting a code fault. ⚠️ CORRECTED 30 Jul: this used to say "Growth-plan-and-above", taken from Instantly\'s own 402 error text. Their published plan-comparison table lists **API: No** and **Webhooks: No** on Growth — so the error message was wrong about its own product, and trusting it would have had the founder buy a tier on which none of this works. Read the plan table, not the error string.',
   },
   {
     what: 'Pulling replies',

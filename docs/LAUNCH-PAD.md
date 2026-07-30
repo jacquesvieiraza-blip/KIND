@@ -14,17 +14,19 @@
 
 **Where we actually are.** The product finds people, scores them, masks them, surfaces them, takes the client's 👍, charges for it, writes the sequence, routes replies to the right client and books the meeting. **Every code item in the sending spine is now built.** What it cannot do is send — because **no mailbox exists for any client** (`LIVE INBOXES · 0`). That is a purchase and a form, not a PR.
 
+**⚠️ THE ORDER CHANGED — INSTANTLY FIRST (founder, 30 Jul).** Smartlead is client-sending infrastructure and buys nothing until there is a client to send for, so **it is deferred until a client is in the works.** Instantly runs OUR outreach — it is the line item that goes and *finds* that client — so it is bought first. The floor drops ~$34/mo meanwhile (see `docs/CASHFLOW-LAB.html`).
+
 **The three things standing between here and a delivered paying client — none of them are code I can write:**
 
 | | What | Who |
 |---|------|:---:|
-| 1 | **A mailbox exists.** Buy a SmartSenders mailbox (~$40/client/mo), record it in Vida → Engine against the client with provider `smartlead-api`. Until this is true, `#547` fails closed and nothing sends — by design. | 🧍 |
-| 2 | **#553 — the first-send ladder.** Test send lands in a real *inbox* (not Promotions, not spam) · mail-tester ≥9/10 · daily cap on · one client, one day, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. Founder-only, deliberately. | 🧍 |
-| 3 | **#549 — Instantly for our own outreach.** Blocked on the Instantly bill: API v2 returns **HTTP 402**, a plan limit confirmed live on 27 Jul, not a code fault. | 🧍 |
+| 1 | **#549 — Instantly, OUR outreach. THE FIRST PURCHASE.** ⚠️ **HyperGrowth (~$97), NOT Growth** — Instantly's own plan table lists **API: No** and **Webhooks: No** on Growth, so on Growth none of the code we already wrote can run. *(Their 402 error text says "Growth or above" and is wrong about their own product — corrected in `lib/instantly.ts` 30 Jul.)* Confirm API **v2** and either webhooks-on-reply or a custom Reply-To before paying. Then set `INSTANTLY_API_KEY` + `HOUSE_CLIENT_ID` — unset means nothing is ever pushed, by design. | 🧍 |
+| 2 | **#553 — the first-send ladder.** Test send lands in a real *inbox* (not Promotions, not spam) · mail-tester ≥9/10 · daily cap on · one client, one day, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. Founder-only, deliberately. Runs against the **Instantly** mailboxes now, not a client's. | 🧍 |
+| 3 | **A CLIENT mailbox exists — DEFERRED until a client is in the works.** Then buy a Smartlead/SmartSenders mailbox (~$40/client/mo) and record it in Vida → Engine with provider `smartlead-api`. Until then `#547` fails closed and nothing sends for clients — by design, and no longer blocking, because Client Zero sends through Instantly. | 🧍 |
 
 **Built but NOT PROVEN — each needs real activity, not more code.** These are 🟡/🩷 and must not be read as working:
 
-- **#550 Smartlead** — built 27 Jul, key returns **401**. Nothing exercised against a live workspace. The sequence *step shape* is unverified (their docs 403 us) — **check it in Smartlead's UI after the first push.**
+- **#550 Smartlead** — built 27 Jul, key returns **401**. Nothing exercised against a live workspace. The sequence *step shape* is unverified (their docs 403 us) — **check it in Smartlead's UI after the first push.** ⏸ **Deliberately parked 30 Jul** — not bought until a client is in the works, so this stays unproven on purpose rather than by neglect.
 - **#366 PDL paging** — needs one ICP run twice with real credits to prove month two finds new people.
 - **#340 / #342 subscriptions** — need Stripe test-mode activity to exercise.
 - **#298 backup manifest** — built; **take one and save the JSON off this system.** Never done.
@@ -119,7 +121,7 @@
 | # | Item | What it is / why it blocks | Owner |
 |---|------|----------------------------|:-----:|
 | #555 🟡 | **BUILD-STATUS retired** | It was a **fifth status doc** and its summary line read *"the ONLY items not built: #515 + CI"* while the whole sending spine was 🔴. That one line is why the docs stopped being trustworthy. Moved to `docs/archive/`, marked historical, unlinked from here. Status has one home: PRODUCT-INVENTORY. | 🤖 |
-| #556 🟡 | **Cashflow model is canonical, in the repo** | `docs/CASHFLOW-LAB.html` — two needles at the top, every cost line an editable box. Honest platform floor **~$457/mo** (the old ~$190 left out Smartlead ~$94, Instantly ~$37, Zoho ~$3 and the Anthropic runtime). Two numbers that change how we sell: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack is −$52 in month one** — the repeat is the business, the pack is the door. | 🤖 |
+| #556 🟡 | **Cashflow model is canonical, in the repo** | `docs/CASHFLOW-LAB.html` — two needles at the top, every cost line an editable box. Honest platform floor **~$423/mo** (30 Jul, Instantly-first: Smartlead deferred to $0, Instantly at its real $97 HyperGrowth tier; ~$517 once a client signs and Smartlead returns). The old ~$190 left out Smartlead, Instantly, Zoho ~$3 and the Anthropic runtime. Two numbers that change how we sell: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack is −$52 in month one** — the repeat is the business, the pack is the door. | 🤖 |
 | #557 🟡 | **Stale flow + preview docs stamped** | `flows/new-client-flow.html` (built on the retired 14-day trial) · `flows/our-outreach-flow.html` (*"manual in Instantly, nothing to code"* — **overruled 26 Jul**) · `MILESTONE-0-CHECKLIST.md` (the retired $1/$3/$5/$6 ladder) · `mv-previews/flow-vida.html` + `home.html` (*"your own warmed inbox"* — describes #211, which is not built). Each now carries a correction banner rather than being silently deleted. | 🤖 |
 
 ## 🅴 BLOCK E — THE LIVE GATE (all of it walked, none of it remembered)

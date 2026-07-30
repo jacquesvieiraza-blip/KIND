@@ -63,13 +63,26 @@ describe('the key', () => {
   })
 })
 
+// ⚠️ CORRECTED 30 Jul — THESE ASSERTIONS PINNED THE WRONG PLAN NAME.
+//
+// They asserted the 402 message says "Growth plan", because that is what Instantly's own 402
+// RESPONSE TEXT says. Their published plan-comparison table lists **API: No** and
+// **Webhooks: No** on Growth — so the vendor's error string is wrong about the vendor's own
+// product, and a test that pinned it would have helped the founder buy a tier on which none of
+// this code can run. The minimum is HYPERGROWTH.
+//
+// The lesson generalises past Instantly: a test that encodes what a third party TOLD us is only
+// as good as the third party. This one now asserts the tier we verified against their pricing
+// table, and says so, so the next person does not "fix" it back.
 describe('a PLAN limit is reported as a plan limit, not a bug', () => {
-  it('402 says the Growth plan is required', async () => {
+  it('402 names HYPERGROWTH — the tier that actually carries API v2', async () => {
     respond = () => ({ status: 402, body: 'upgrade required' })
     const { listAccounts } = await lib()
     const r = await listAccounts()
-    expect(!r.ok && r.error).toContain('Growth plan')
+    expect(!r.ok && r.error).toContain('HYPERGROWTH')
     expect(!r.ok && r.error).toContain('plan limit, not a code fault')
+    // And explicitly NOT the vendor's own wrong answer.
+    expect(!r.ok && r.error).not.toMatch(/requires the Instantly Growth plan/)
   })
 
   it('403 says the same — both mean the workspace cannot use v2', async () => {
@@ -78,13 +91,14 @@ describe('a PLAN limit is reported as a plan limit, not a bug', () => {
     expect(!(await listAccounts()).ok).toBe(true)
     respond = () => ({ status: 403, body: 'forbidden' })
     const r = await (await lib()).listAccounts()
-    expect(!r.ok && r.error).toContain('Growth plan')
+    expect(!r.ok && r.error).toContain('HYPERGROWTH')
   })
 
   it('a 500 does NOT claim to be a plan limit', async () => {
     respond = () => ({ status: 500, body: 'server error' })
     const r = await (await lib()).listAccounts()
-    expect(!r.ok && r.error).not.toContain('Growth plan')
+    expect(!r.ok && r.error).not.toContain('HYPERGROWTH')
+    expect(!r.ok && r.error).not.toContain('plan limit')
   })
 })
 
@@ -122,7 +136,10 @@ describe('NOT_POSSIBLE is stated in code, not discovered later', () => {
   it('names the plan limit, the unverified reply endpoint, and the absent rate limit', async () => {
     const { NOT_POSSIBLE } = await lib()
     const all = NOT_POSSIBLE.map(n => `${n.what} ${n.why}`).join(' ').toLowerCase()
-    expect(all).toContain('growth plan')
+    // `hypergrowth plan` CONTAINS the substring `growth plan`, so the original assertion kept
+    // passing after the tier was corrected — passing for the wrong reason, which is the same
+    // class of hole as binding a test to a comment. Assert the tier itself.
+    expect(all).toContain('hypergrowth')
     expect(all).toContain('repl')
     expect(all).toContain('rate limit')
     expect(NOT_POSSIBLE.length).toBeGreaterThanOrEqual(4)

@@ -7,6 +7,8 @@
 // The standard: never state a figure we cannot stand behind, and never let a partial view
 // look like the whole view.
 
+import { LEAD_PRICE_USD } from './constants/index'
+
 export type PackView = { active: boolean; included: number; used: number; left: number }
 
 /**
@@ -20,7 +22,10 @@ export type PackView = { active: boolean; included: number; used: number; left: 
 export function packLine(pack: PackView | null | undefined): string | null {
   if (!pack || !pack.active) return null
   if (pack.left <= 0) {
-    return `Your ${pack.included} included leads are all used. New approvals are $4 each, taken from your wallet.`
+    // #563 — `$4` was hand-typed here too. It is the price the API actually charges, so it is
+    // read from the same constant rather than repeated: a price change that missed this line
+    // would put a wrong figure on the billing page and nothing would fail.
+    return `Your ${pack.included} included leads are all used. New approvals are $${LEAD_PRICE_USD} each, taken from your wallet.`
   }
   if (pack.used === 0) {
     return `${pack.included} included leads — none used yet. Approving costs nothing until they run out.`

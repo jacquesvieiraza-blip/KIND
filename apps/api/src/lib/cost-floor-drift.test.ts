@@ -118,3 +118,59 @@ describe('the Instantly-first decision is recorded where the money is', () => {
     expect(instantly).not.toContain('requires the Instantly Growth plan')
   })
 })
+
+// ── THE IDLE RULE, AND THE TWO TABLES IT CREATED (30 Jul) ────────────────────────────────
+//
+// This is founder-funded, so the cost register now states TWO things rather than one: what is
+// actually being spent today, and what it becomes at the first client. That split only means
+// anything if the rule behind it is written down — a $0 line with no trigger reads as "this
+// tool is free", which is the opposite of true and exactly how the earlier ~$190 floor came to
+// omit four paid tools.
+describe('the register separates what we spend NOW from what we will spend', () => {
+  it('both tables exist by heading', () => {
+    expect(runCosts).toContain('### NOW — pre-first-client')
+    expect(runCosts).toContain('### FUTURE — first client onward')
+  })
+
+  it('the idle rule is stated, not just implied by the zeroes', () => {
+    // Bound to the sentence itself. Without it, someone reading a $0 Hunter line concludes we
+    // do not pay for Hunter — rather than that we pay for it the month it does work.
+    expect(runCosts).toContain('IDLE TOOLS BILL NOTHING')
+    expect(runCosts).toContain('bills nothing this month')
+  })
+
+  it('every $0 line names the trigger that switches it back on', () => {
+    for (const trigger of ['a sourcing run happens', 'a client signs', 'would feel an outage']) {
+      expect(runCosts, `missing trigger: ${trigger}`).toContain(trigger)
+    }
+  })
+
+  it('the model marks the deferred tools as idle rather than deleting them', () => {
+    // CORE-MAP rule 3 applied to money: a removed row cannot be switched back on, and the
+    // reader cannot tell whether it was cancelled or forgotten.
+    expect(lab).toContain('IDLE = $0')
+    expect(lab).toMatch(/id="f_hunter"\s+value="0"/)
+  })
+})
+
+describe('the failover teardown records the order that does not break production', () => {
+  it('the model says the DNS repoint comes FIRST', () => {
+    // The one instruction with a blast radius: api.get-kind.com routes THROUGH the Cloudflare
+    // load balancer, so deleting the LB before repointing to Railway takes the live API down.
+    // A cost note that omits the order is a cost note that causes an outage.
+    expect(lab).toContain('DNS REPOINT FIRST')
+    expect(lab).toContain('render-cloudflare-failover.md')
+  })
+
+  it('and says the runbook and render.yaml stay in the repo', () => {
+    // Cancelling the service is not the same as deleting the recipe (rule 3).
+    expect(lab).toContain('STAY in the repo')
+  })
+
+  it('LAUNCH-PAD spells the three steps out in order for the founder', () => {
+    const block = launchPad.slice(launchPad.indexOf('Failover teardown'), launchPad.indexOf('Failover teardown') + 700)
+    expect(block).toContain('repoint')
+    expect(block.indexOf('repoint')).toBeLessThan(block.indexOf('delete the Cloudflare'))
+    expect(block.indexOf('delete the Cloudflare')).toBeLessThan(block.indexOf('Render `kind-api-standby`'))
+  })
+})

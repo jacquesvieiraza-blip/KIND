@@ -47,19 +47,61 @@ export const SCAN_ROOTS = ['apps/api/src', 'apps/portal/src', 'apps/admin/src'] 
  */
 const REGEX_MAY_START_AFTER = new Set(['(', ',', '=', ':', '[', '!', '&', '|', '?', '{', '}', ';', '\n', ''])
 
+/**
+ * A stack, not a flag, because template literals NEST.
+ *
+ * ⚠️ THE SECOND BUG IN THIS FUNCTION, found while writing #558's schema sweep and worth
+ * recording because it is the more subtle of the two. `figsy.ts:232` contains
+ *
+ *     `${bestSignal ? `- Best signal: ${bestSignal}` : ''}`
+ *
+ * — a template literal inside a `${…}` inside a template literal. Treating a backtick as an
+ * ordinary quote ends the OUTER template at the INNER opening backtick, and everything after
+ * it parses in the wrong state: the `'unknown'` a few lines up opens a string that never
+ * closes, and the stripper stops stripping for **the rest of the file**. In `figsy.ts` that
+ * is 2,700 lines, and it is why #558's first sweep reported a column called `compat` that
+ * exists only in the words "Back-compat" in a comment.
+ *
+ * Same failure shape as the regex bug below it, and the same reason it matters: the
+ * harmless half invents a finding, the dangerous half hides a real one.
+ */
+type Mode = { kind: 'template'; depth: number } | { kind: 'quote'; ch: string } | { kind: 'expr' }
+
 export function stripCommentsForEnvScan(src: string): string {
   let out = ''
-  let quote: string | null = null
+  const stack: Mode[] = []
   let prevMeaningful = ''
+  const top = () => stack[stack.length - 1]
+
   for (let i = 0; i < src.length; i++) {
     const c = src[i]
-    if (quote) {
+    const t = top()
+
+    // Inside a plain '…' or "…" string: only the matching quote (unescaped) ends it.
+    if (t?.kind === 'quote') {
       out += c
       if (c === '\\') { out += src[++i] ?? ''; continue }
-      if (c === quote) quote = null
+      if (c === t.ch) stack.pop()
       continue
     }
-    if (c === '"' || c === "'" || c === '`') { quote = c; out += c; prevMeaningful = c; continue }
+
+    // Inside a `…` template: `${` opens an EXPRESSION, where code rules apply again.
+    if (t?.kind === 'template') {
+      out += c
+      if (c === '\\') { out += src[++i] ?? ''; continue }
+      if (c === '$' && src[i + 1] === '{') { out += '{'; i++; stack.push({ kind: 'expr' }); continue }
+      if (c === '`') stack.pop()
+      continue
+    }
+
+    // Code context — inside a `${…}` expression or at the top level. Identical rules, so
+    // a nested template, string or comment behaves exactly as it would anywhere else.
+    if (c === '"' || c === "'") { stack.push({ kind: 'quote', ch: c }); out += c; prevMeaningful = c; continue }
+    if (c === '`') { stack.push({ kind: 'template', depth: 0 }); out += c; prevMeaningful = c; continue }
+    if (t?.kind === 'expr') {
+      if (c === '{') { t.kind === 'expr' && stack.push({ kind: 'expr' }); out += c; prevMeaningful = c; continue }
+      if (c === '}') { stack.pop(); out += c; prevMeaningful = c; continue }
+    }
     if (c === '/' && src[i + 1] === '/') {
       while (i < src.length && src[i] !== '\n') i++
       out += '\n'

@@ -3,27 +3,23 @@ import crypto from 'crypto'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
-import { generateSequence, getClientKnowledgeForOutreach, classifyReply, isRiskyReply, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, updateEnrollmentState } from '../lib/figsy'
+import { generateSequence, getClientKnowledgeForOutreach, sendSequenceEmail, enrollmentStep, autoEnrollLead, applyReplyBranching, campaignReadyLeadIds, recomputeCampaignCounters, personalizationSignals, chargeFigsyEnroll, refundFigsyEnroll, updateEnrollmentState } from '../lib/figsy'
 import type { Lead, SendOutcome } from '../lib/figsy'
 import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
-import { pushDealToCrm } from '../lib/crm'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, warmupRampCap, spamScore } from '../lib/deliverability'
-import { syncFigsyInterestedToHubspot } from '../lib/hubspot'
-import { sendPushToClient } from '../lib/push'
 import { emitSignal } from './signals'
 import { rateLimit } from '../lib/rate-limit'
 import { isDuplicateWebhookEvent } from '../lib/webhook-idempotency'
+import { processInboundReply } from '../lib/reply-pipeline'
+import { parseSmartleadInbound, isSmartleadReplyEvent } from '../lib/smartlead-inbound'
 import { sendFounderAlert } from '../lib/alerts'
 // The provider-agnostic reply spine (#589). Resend feeds it today; Instantly and Smartlead
 // feed the same functions next, so the five reply defects are fixed once, not three times.
-import {
-  isUnusable, findLeadMatches, suppressOptOut, alertDroppedReply, describeBodyFetch,
-  REPLY_LOOKUP_STATUSES, resolveInboxOwner, routeReply, replyEventKey, unmatchedAtKnownInboxLines,
-} from '../lib/reply-ingest'
+import { replyEventKey } from '../lib/reply-ingest'
 
 // Generous DoS backstop for the public, token-gated unsubscribe routes. The limit
 // is high on purpose: an unsubscribe must NEVER be blocked for a legitimate
@@ -312,267 +308,108 @@ figsyRouter.post('/replies/inbound', async (req, res) => {
       toEmail,
     }
 
-    // R2 / R3 — an unusable reply is a FINDING, not a silent 200. The message is still in
-    // the provider's inbox; the only thing that was ever missing is that anyone knew.
-    const unusable = isUnusable(inbound)
-    if (unusable) {
-      if (unusable === 'no_sender') {
-        await alertDroppedReply('the sender address could not be read', inbound)
-      } else {
-        // P2-2 — the alert now carries WHY the body is missing: the HTTP status, the thrown
-        // error, or "we never asked because the key is unset". Each reads differently and
-        // needs a different response.
-        const { why, detail } = describeBodyFetch({ messageId: emailId || null, attempted: fetchAttempted, failure: fetchFailure })
-        await alertDroppedReply(why, inbound, detail)
-      }
-      res.status(200).json({ received: true, dropped: unusable }); return
-    }
-
-    // R1 — EVERY match, across ALL clients. This was `.maybeSingle()`, which ERRORS on more
-    // than one row: two clients prospecting the same person meant `lead` came back null and
-    // the reply was dropped forever behind a 200. The reply is now routed into each matching
-    // client's thread, because picking one would hand one client's reply to another.
-    let matches: { id: string; client_id: string }[]
-    try {
-      matches = await findLeadMatches(fromEmail)
-    } catch (e) {
-      await alertDroppedReply('the lead lookup failed', inbound, e instanceof Error ? e.message : String(e))
-      res.status(200).json({ received: true, dropped: 'lookup_failed' }); return
-    }
-    if (matches.length === 0) { res.status(200).json({ received: true }); return }
-
-    // #551 — ROUTE BY THE RECEIVING MAILBOX, falling back to the fan-out when it is unknown.
+    // #551 — EVERYTHING FROM HERE IS PROVIDER-AGNOSTIC and now lives in `lib/reply-pipeline.ts`.
     //
-    // With one shared inbox this changes nothing: `resolveInboxOwner` returns null and every
-    // match is kept, exactly as R1 intended. Once a client sends from their own mailbox, the
-    // reply arrives THERE and only that client's thread receives it — because fanning out at
-    // that point would drop one client's inbound mail into another client's unibox.
-    const inboxOwner = await resolveInboxOwner(toEmail)
-    const routed = routeReply(matches, inboxOwner)
-    if (routed.how === 'inbox' && routed.excluded.length > 0) {
-      console.log(`[figsy/replies/inbound] routed by inbox ${toEmail} → client ${inboxOwner}; ${routed.excluded.length} match(es) at other clients deliberately excluded`)
-    }
-    if (routed.matches.length === 0) {
-      // A real person replied to a real client mailbox and is not one of their leads. NOT
-      // dropped silently, and NOT handed to whichever other client happens to hold the lead —
-      // that is the exact harm this routing exists to prevent.
-      const { data: ownerRow } = await db.from('clients').select('company_name').eq('id', inboxOwner!).maybeSingle()
-      void sendFounderAlert('sends_stalled', 'A reply arrived at a client mailbox with no matching lead',
-        unmatchedAtKnownInboxLines({
-          toEmail: toEmail ?? 'unknown',
-          fromEmail,
-          companyName: (ownerRow as { company_name?: string } | null)?.company_name ?? null,
-          excludedCount: routed.excluded.length,
-        })).catch(() => {})
-      res.status(200).json({ received: true, dropped: 'no_lead_at_this_inbox' }); return
-    }
-    matches = routed.matches
-
-    // CLASSIFY ONCE, BEFORE THE LOOP.
-    //
-    // `classifyReply` is an LLM call that takes ONLY the body — nothing about the client
-    // enters it. R1's per-client loop put it inside, so a reply matching two clients was
-    // classified TWICE. Two costs, and worse: the model is not deterministic, so the same
-    // email could come back `hot` for one client and `warm` for the other. One would get the
-    // founder alert and the CRM deal; the other would not. For the same email.
-    //
-    // Found by reading the handler end to end after the founder pointed out that grepping
-    // off the last action never shows what is missing (P10).
-    const { classification, reasoning } = await classifyReply(body)
-
-    let lastReplyId: string | undefined
-    for (const lead of matches) {
-    // R6 — includes 'replied'. A hot reply sets the enrollment to `replied`, so the SECOND
-    // reply from that prospect matched nothing and skipped every hot path — no alert, no CRM
-    // deal, no counter. The most valuable reply in the funnel is usually the second one.
-    const { data: enrollment } = await db.from('figsy_enrollments')
-      .select('id, campaign_id')
-      .eq('lead_id', lead.id)
-      .in('status', [...REPLY_LOOKUP_STATUSES])
-      .order('enrolled_at', { ascending: false })
-      .limit(1).maybeSingle()
-
-    // Store reply
-    const { data: reply } = await db.from('figsy_replies').insert({
-      enrollment_id:               enrollment?.id ?? null,
-      campaign_id:                 enrollment?.campaign_id ?? null,
-      lead_id:                     lead.id,
-      client_id:                   lead.client_id,
-      from_email:                  fromEmail,
-      from_name:                   fromName,
-      subject:                     (payload.subject as string) ?? null,
-      body,
-      body_text:                   body,
-      classification,
-      classification_reasoning:    reasoning,
-      raw_payload:                 payload,
-      processed_at:                new Date().toISOString(),
-      received_at:                 new Date().toISOString(),
-    }).select('id').single()
-
-    // THE DATA FLOOR (#17b) — append-only raw outcome log. Fire-and-forget.
-    void logOutcomeEvent({
-      client_id:     lead.client_id,
-      campaign_id:   enrollment?.campaign_id ?? null,
-      lead_id:       lead.id,
-      enrollment_id: enrollment?.id ?? null,
-      event_type:    (classification === 'opt_out' || classification === 'unsubscribe') ? 'opt_out' : 'reply',
-      channel:       'email',
-      payload:       { classification, reasoning, subject: (payload.subject as string) ?? null, body, from_email: fromEmail },
+    // It used to be 256 lines inline. Adding the Smartlead feeder meant either duplicating
+    // them or moving them, and duplicating is exactly what #589 forbids — R7 alone (a failed
+    // blocklist write means we keep emailing someone who said stop) is not a thing to own two
+    // copies of. This route's remaining job is Resend's: authenticate, dedup, fetch the body
+    // its metadata-only webhook omits, and hand over an `InboundReply`.
+    const result = await processInboundReply(inbound, {
+      rawPayload: payload,
+      // Resend's `email.received` is metadata-only, so an empty body here means a FAILED
+      // FETCH rather than an empty reply — and the alert has to be able to say which.
+      bodyFetchAttempted: fetchAttempted,
+      bodyFetchFailure: fetchFailure,
     })
-
-    // E7 — RISKY REPLY → ESCALATE. The classifier tags intent (hot/cold/opt_out/…) but not
-    // LEGAL/reputational risk. A reply threatening legal action, a data-protection complaint,
-    // or an abuse report needs a human NOW — never an automated follow-up. Detect on keywords,
-    // escalate to the founder, and log an outcome event so it surfaces in the record (#517).
-    // Best-effort + fire-and-forget: never blocks or fails the inbound webhook.
-    if (isRiskyReply(body)) {
-      void logOutcomeEvent({
-        client_id: lead.client_id, campaign_id: enrollment?.campaign_id ?? null, lead_id: lead.id,
-        enrollment_id: enrollment?.id ?? null, event_type: 'risk_escalation', channel: 'email',
-        payload: { from_email: fromEmail, subject: (payload.subject as string) ?? null, snippet: (body ?? '').replace(/\s+/g, ' ').trim().slice(0, 300) },
-      })
-      void (async () => {
-        const { data: c } = await db.from('clients').select('company_name').eq('id', lead.client_id).maybeSingle()
-        await sendFounderAlert('support_escalation', `⚠️ Risky reply — ${c?.company_name ?? 'a client'} (needs a human)`, [
-          `Client: ${c?.company_name ?? lead.client_id}`,
-          `From: ${fromEmail}`,
-          `Subject: ${(payload.subject as string) ?? '(none)'}`,
-          `Reply: ${(body ?? '').replace(/\s+/g, ' ').trim().slice(0, 300)}`,
-          `This reply tripped the legal/complaint risk filter — review and respond by hand; do not let it auto-follow-up.`,
-        ])
-      })().catch(() => {})
-    }
-
-    // Handle opt-out — pause enrollment and add to blocklist. #312: the classifier
-    // can tag a reply 'unsubscribe' as well as 'opt_out' ("please unsubscribe me" →
-    // 'unsubscribe'); previously only 'opt_out' was suppressed, so an 'unsubscribe'
-    // reply kept receiving steps 2/3 (POPIA violation). Treat both identically.
-    if (classification === 'opt_out' || classification === 'unsubscribe') {
-      // R7 — all three writes were UNCHECKED. The blocklist is the single suppression source
-      // the send path consults, so a silent failure there means we keep emailing someone who
-      // told us to stop. `suppressOptOut` checks each write and alerts with the address, so
-      // it can be added by hand — an alert that names the person is actionable.
-      await suppressOptOut(fromEmail, enrollment ? [enrollment.id] : [])
-
-      // ONE WALLET: a terminal opt-out moves no money — the $4 was final at approve.
-      if (enrollment?.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
-    }
-
-    // Handle hot — pause sequence, bump stats, push deal to CRM
-    if (classification === 'hot' && enrollment) {
-      await db.from('figsy_enrollments')
-        .update({ status: 'replied' }).eq('id', enrollment.id)
-
-      // Web push — alert the client instantly on a hot reply (no-op if VAPID unset)
-      sendPushToClient(lead.client_id, {
-        title: '🔥 Hot reply',
-        body: `${fromEmail} replied positively to your outreach.`,
-        url: '/dashboard/figsy',
-        tag: 'hot-reply',
-      }).catch(() => {})
-
-      // PR-C — the FOUNDER also needs to know. The client push above is a no-op without
-      // VAPID + a subscribed device, and at n=1 clients a hot reply is the whole game.
-      // Best-effort, fire-and-forget — never blocks or fails the inbound webhook.
-      void (async () => {
-        const { data: c } = await db.from('clients').select('company_name').eq('id', lead.client_id).maybeSingle()
-        const snippet = (body ?? '').replace(/\s+/g, ' ').trim().slice(0, 200)
-        await sendFounderAlert('hot_reply', `🔥 Hot reply — ${c?.company_name ?? 'a client'}`, [
-          `Client: ${c?.company_name ?? lead.client_id}`,
-          `From: ${fromEmail}`,
-          `Subject: ${(payload.subject as string) ?? '(none)'}`,
-          snippet ? `Reply: ${snippet}` : '',
-        ])
-      })().catch(() => {})
-
-      if (enrollment.campaign_id) await recomputeCampaignCounters(enrollment.campaign_id)
-
-      // F2-2 — push deal/opportunity to client's CRM
-      const { data: leadFull } = await db.from('leads')
-        .select('id, first_name, last_name, email, job_title, company, linkedin_url, country, score')
-        .eq('id', lead.id).maybeSingle()
-      const { data: client } = await db.from('clients')
-        .select('crm_type, crm_api_key, crm_sync_enabled').eq('id', lead.client_id).maybeSingle()
-
-      if (client?.crm_sync_enabled && client?.crm_type && client?.crm_api_key && leadFull) {
-        const leadName = `${leadFull.first_name} ${leadFull.last_name}`.trim()
-        pushDealToCrm(client.crm_type, client.crm_api_key, {
-          ...leadFull,
-          phone: null,
-        }, {
-          lead_name:     leadName,
-          company:       leadFull.company,
-          reply_snippet: body.slice(0, 300),
-        }).then(result => {
-          if (result.success && result.deal_id && enrollment) {
-            db.from('figsy_enrollments').update({
-              crm_deal_id:   result.deal_id,
-              crm_pushed_at: new Date().toISOString(),
-            }).eq('id', enrollment.id).then(() => {})
-          }
-        }).catch(console.error)
-      }
-
-      // Sync interested reply to HubSpot (no-op if HUBSPOT_API_KEY not set)
-      syncFigsyInterestedToHubspot({
-        lead_email:    fromEmail,
-        lead_name:     leadFull ? `${leadFull.first_name} ${leadFull.last_name}`.trim() : '',
-        company:       leadFull?.company ?? '',
-        client_id:     lead.client_id,
-        reply_snippet: body.slice(0, 300),
-      }).catch(console.error)
-
-      // Emit cross-agent signal: hot reply received
-      void emitSignal(lead.client_id, 'figsy', 'reply_received', {
-        lead_id:   lead.id,
-        sentiment: 'hot',
-        from:      fromEmail,
-      })
-
-      // ── #352 (AR-14) — THE AUTO-TOP-UP CARD CHARGE USED TO LIVE HERE. IT IS GONE.
-      //    Founder-confirmed 27 Jul: "I confirm: yes, remove."
-      //
-      // A hot reply landing here would charge the client's card through
-      // `api.paystack.co/transaction/charge_authorization`. Four faults at once:
-      //
-      //   ① IT CHARGED IN ZAR AT A RATE WE INVENTED. `Math.round(amountUsd * 19 * 100)` —
-      //     a hardcoded USD→ZAR rate of 19 inside a live card charge, so a $20 bundle
-      //     billed R380 regardless of what the rate actually was.
-      //   ② CHECK-THEN-ACT — the AR-14 headline. The "cooldown" COUNTED recent top-up rows
-      //     and then charged. Two hot replies arriving together both counted zero and both
-      //     charged: a real double card charge (the one 20260702_webhook_idempotency
-      //     describes; svix idempotency only ever stopped IDENTICAL event replays).
-      //   ③ IT COULD NEVER SUCCEED ANYWAY. The gate required `auto_topup_paystack_auth`,
-      //     and Paystack was pulled from the billing UI in #325, so no client could obtain
-      //     one. The code admitted it: "Landmine: unreachable until a Paystack auth exists."
-      //   ④ NOTHING RECEIVED THE RESULT. `index.ts` mounted raw-body parsing for
-      //     `/webhooks/paystack` and no route was ever registered behind it.
-      //
-      // Removing it settles AR-14 outright rather than hardening it: there is no charge
-      // left to race. And it takes a payment out of a webhook ANY PROSPECT CAN TRIGGER by
-      // replying to an email — which is the property worth keeping long after the Paystack
-      // detail is forgotten.
-      //
-      // DELIBERATELY NOT REMOVED: the client's stored `auto_topup_*` preferences, the
-      // columns behind them, and every historical Paystack reference in
-      // `credit_transactions`. The founder authorised removing the CHARGE PATH, not billing
-      // history or a client's saved settings (NOTHING GETS DELETED, founder-locked 26 Jul).
-      // Milla's billing page already tells clients the truth — auto top-up reads
-      // "coming soon", display-only, since #325.
-      //
-      // To bring auto top-up back it has to be rebuilt on Stripe: an off-session
-      // PaymentIntent against a saved payment method, in USD, with the charge claimed
-      // atomically BEFORE it is made rather than counted after.
-    }
-
-    lastReplyId = reply?.id
-    }  // ← end of the per-client loop (R1)
-
-    res.status(200).json({ received: true, id: lastReplyId, clients: matches.length })
+    if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
+    res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
   } catch (err) {
     console.error('[figsy/inbound]', err)
     res.status(200).json({ received: true }) // Always 200 to webhook provider
+  }
+})
+
+// ── #551 — SMARTLEAD INBOUND REPLIES — the CLIENTS' sending provider ─────────────────
+//
+// Founder-locked 26 Jul (#577): **Instantly is OURS, Smartlead is the CLIENTS'.** So the
+// moment a client sends from their own Smartlead mailbox, their prospects reply THERE and not
+// to our shared Resend inbox — and without this route the unibox goes silent for every paying
+// client, and we miss the meeting we already charged $4 for.
+//
+// Deliberately thin. Authenticate, dedup, parse, delegate — the 256 lines that decide what a
+// reply MEANS are `lib/reply-pipeline.ts`, shared with Resend (#589).
+//
+// ⚠️ SHIPS INERT. Without `SMARTLEAD_WEBHOOK_SECRET` this fails closed with a 503, so merging
+// it changes nothing until the founder sets the secret and points Smartlead at the URL. That
+// is the right default for a public endpoint that can suppress leads: a forged reply could
+// opt-out a client's prospects or inject a fake hot reply.
+//
+// ⚠️ AND THE PAYLOAD SHAPE IS UNVERIFIED — the key 401s and the docs 403 us, so the field
+// names in `parseSmartleadInbound` are inferred. CHECK IT IN SMARTLEAD'S UI AFTER THE FIRST
+// PUSH (same instruction #550 carries for the sequence step shape). The shape is isolated in
+// that one function precisely so this route never needs revisiting.
+figsyRouter.post('/replies/smartlead', unsubscribeLimiter, async (req, res) => {
+  const secret = process.env.SMARTLEAD_WEBHOOK_SECRET
+  if (!secret) {
+    console.error('[figsy/replies/smartlead] SMARTLEAD_WEBHOOK_SECRET not set — rejecting. Set it on this deploy before pointing Smartlead here.')
+    res.status(503).json({ error: 'Webhook not configured' }); return
+  }
+  // Smartlead has no signature scheme we can verify (docs unreachable), so authentication is a
+  // shared secret in a header or the query string — whichever their UI allows. Compared with
+  // timing-safe equality rather than `===`, because this is a public endpoint.
+  const offered = (req.headers['x-smartlead-secret'] as string | undefined)
+    ?? (req.headers['x-webhook-secret'] as string | undefined)
+    ?? (typeof req.query.secret === 'string' ? req.query.secret : undefined)
+  const ok = !!offered
+    && offered.length === secret.length
+    && crypto.timingSafeEqual(Buffer.from(offered), Buffer.from(secret))
+  if (!ok) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+  try {
+    const raw = (req.body && typeof req.body === 'object' && !Buffer.isBuffer(req.body))
+      ? req.body as Record<string, unknown>
+      : (() => { try { return JSON.parse(Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '{}') as Record<string, unknown> } catch { return {} } })()
+
+    // Their webhooks cover opens, clicks, bounces and sends too. Treating a SENT event as a
+    // reply would insert a fake inbound message against a real lead — and could classify our
+    // OWN email as a hot reply. Skip anything not recognisably a reply.
+    if (!isSmartleadReplyEvent(raw)) {
+      res.status(200).json({ received: true, skipped: 'not_a_reply' }); return
+    }
+
+    const inbound = parseSmartleadInbound(raw)
+    if (!inbound) {
+      // Unreadable, which given the unverified shape is a REAL possibility — so it is a
+      // finding, not a silent 200. The alert carries the payload keys so the parser's alias
+      // list can be corrected from the evidence rather than from another guess.
+      console.error('[figsy/replies/smartlead] payload not readable as a reply — keys:', Object.keys(raw).join(', '))
+      void sendFounderAlert('sends_stalled', 'A Smartlead reply arrived in a shape we could not read', [
+        'A client\'s prospect replied and we could not extract the sender, so it was NOT processed.',
+        `Payload keys: ${Object.keys(raw).join(', ') || '(none)'}`,
+        'The reply is still in Smartlead — nothing is lost. Fix the field aliases in lib/smartlead-inbound.ts (FIELDS) using these keys.',
+        'This is the UNVERIFIED shape the PR flagged: the API key 401s and their docs 403 us, so the names were inferred.',
+      ]).catch(() => {})
+      res.status(200).json({ received: true, dropped: 'unreadable' }); return
+    }
+
+    // #551 — dedup on the PROVIDER MESSAGE ID, namespaced by provider. Smartlead has no
+    // svix-style delivery header, which is exactly why `replyEventKey` exists: keying on an
+    // empty string would fail open on every event and a retried hot reply would re-run the
+    // whole path — a second CRM deal, a second alert, a second counter bump.
+    const dedupKey = replyEventKey(inbound)
+    if (await isDuplicateWebhookEvent(db, dedupKey, 'smartlead')) {
+      res.status(200).json({ received: true, deduped: true }); return
+    }
+
+    // Smartlead delivers the body inline, so there is no fetch to diagnose — the Resend-only
+    // body-fetch fields stay at their defaults.
+    const result = await processInboundReply(inbound, { rawPayload: raw })
+    if (!result.ok) { res.status(200).json({ received: true, dropped: result.dropped }); return }
+    res.status(200).json({ received: true, id: result.replyId, clients: result.clients })
+  } catch (err) {
+    console.error('[figsy/replies/smartlead]', err)
+    res.status(200).json({ received: true })   // never 500 at a webhook — it retries forever
   }
 })
 

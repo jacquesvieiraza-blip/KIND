@@ -1235,16 +1235,31 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
       byClient.get(k)!.push(r as unknown as InboxRow)
     }
 
+    // READINESS FOR EVERY CLIENT, INCLUDING THE ONES THAT CAN SEND (#552 ③).
+    //
+    // This used to compute only the refusals. A client that COULD send appeared nowhere on
+    // the page at all — so "everything is fine" and "this client is missing for some other
+    // reason" rendered identically, which is the #565 shape: absence read as health. The
+    // positive verdict is now stated out loud, and `needs_inbox` is DERIVED from the same
+    // list rather than computed a second time, so the two can never disagree.
+    const { readinessTone, nextStepFor } = await import('../lib/house-client')
     const excluded = new Set(await getExcludedClientIds())
-    const needsInbox = migrationPending ? [] : (clients.data ?? [])
+    const readiness = migrationPending ? [] : (clients.data ?? [])
       .filter((c: { id: string }) => !excluded.has(c.id))
       .map((c: { id: string; company_name: string | null }) => {
         const decision = pickSendingInbox(byClient.get(c.id) ?? [], secretOk)
-        return decision.ok
-          ? null
-          : { client_id: c.id, company_name: c.company_name, reason: decision.reason, why: refusalLabel(decision.reason), detail: decision.detail }
+        const reason = decision.ok ? null : decision.reason
+        return {
+          client_id: c.id, company_name: c.company_name,
+          can_send: decision.ok,
+          reason,
+          why: decision.ok ? 'Can send' : refusalLabel(decision.reason),
+          detail: decision.ok ? `Sending from ${decision.from}.` : decision.detail,
+          tone: readinessTone(decision.ok, reason),
+          next_step: nextStepFor(reason),
+        }
       })
-      .filter(Boolean)
+    const needsInbox = readiness.filter(r => !r.can_send)
 
     const sent = sent7.count ?? 0
     res.json({ success: true, data: {
@@ -1257,6 +1272,8 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
       },
       inboxes: rows,
       needs_inbox: needsInbox,
+      // Every client's verdict, pass or fail. `needs_inbox` above is this list filtered.
+      readiness,
       migration_pending: migrationPending,
       // #548 — without this key the saved passwords cannot be read, so NOTHING sends. Said
       // out loud on the page rather than discovered as a mysteriously silent outbox.
@@ -2886,5 +2903,220 @@ operatorRouter.post('/import-leads', async (req: Request, res: Response) => {
   } catch (err) {
     console.error('[operator/import-leads]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The import failed' })
+  }
+})
+
+// ── ① ADD A MAILBOX TO ANY CLIENT (#547/#552/#553) ──────────────────────────────────────
+//
+// THE GAP, and it is the kind that only shows up when you try to use the thing: the only
+// control that creates an inbox row is "Assign pooled inbox", and it renders **inside the
+// `needs_inbox` card** — a list built by filtering for clients that CANNOT send. So the
+// instant mailbox #1 is saved with working credentials, the client leaves that list and the
+// button disappears **with three mailboxes still to add.** A control that removes itself the
+// moment it half-succeeds; the same shape as the migration card that hid once the first
+// migration had run.
+//
+// It also could not set `provider`, `daily_cap`, or a status of the operator's choosing —
+// `/inboxes/assign` hardcodes `active` and `/inboxes/brand` hardcodes `warming`, so which
+// endpoint you call decides the state, which is backwards.
+//
+// This is one submit: the row AND its credentials, for any client, any number of times.
+operatorRouter.post('/inboxes', async (req: Request, res: Response) => {
+  try {
+    const { parseMailboxInput } = await import('../lib/house-client')
+    const b = (req.body ?? {}) as Record<string, unknown>
+
+    const client = await requireClient(b.client_id as string | undefined)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const parsed = parseMailboxInput(b)
+    if (!parsed.ok) { res.status(400).json({ success: false, error: parsed.errors.join(' ') }); return }
+    const v = parsed.value
+
+    // ⚠️ FAIL CLOSED ON THE KEY, BEFORE ANY ROW IS WRITTEN. Without INBOX_SECRET_KEY the
+    // password cannot be encrypted, and the one thing that must never happen is storing it
+    // in plaintext instead. Checked here rather than after the insert so a keyless save
+    // cannot leave a credential-less row behind that reads as "added" on the board.
+    let passEnc: string | null = null
+    if (v.hasPassword) {
+      const { secretState, encryptSecret } = await import('../lib/inbox-secret')
+      const s = secretState()
+      if (!s.ok) {
+        res.status(503).json({ success: false, error:
+          s.reason === 'missing'
+            ? 'INBOX_SECRET_KEY is not set on the API, so the mailbox password cannot be encrypted — and it will never be stored unencrypted. Set it in Railway → @kind/api → Variables (generate with: openssl rand -hex 32), then save again. Nothing was written.'
+            : 'INBOX_SECRET_KEY is not 64 hex characters, so the mailbox password cannot be encrypted — and it will never be stored unencrypted. Fix it in Railway → @kind/api → Variables, then save again. Nothing was written.' })
+        return
+      }
+      passEnc = encryptSecret(String(b.smtp_pass))
+    }
+
+    // Same mailbox twice would put two rows in front of `pickSendingInbox` with no way to
+    // tell which is current — and a duplicate is nearly always a re-submitted form.
+    const { data: dupe, error: dupeErr } = await db.from('client_inboxes')
+      .select('id, status').eq('client_id', client.id).eq('email', v.email)
+      .not('status', 'in', '("released","retired")').limit(1).maybeSingle()
+    if (dupeErr) { res.status(500).json({ success: false, error: `Could not check for an existing mailbox, so nothing was written (${dupeErr.message})` }); return }
+    if (dupe) { res.status(409).json({ success: false, error: `${v.email} is already recorded for this client (status: ${dupe.status}). Edit that mailbox rather than adding it twice.` }); return }
+
+    const { normalisePort } = await import('../lib/sending-inbox')
+    const { port, secure } = normalisePort(b.smtp_port, b.smtp_secure)
+
+    const now = Date.now()
+    const row: Record<string, unknown> = {
+      client_id: client.id,
+      email: v.email,
+      kind: v.kind,
+      provider: v.provider,
+      status: v.status,
+      daily_cap: v.daily_cap,
+      from_name: v.from_name,
+      smtp_host: v.smtp_host,
+      smtp_user: v.smtp_user,
+      smtp_port: v.smtp_host ? port : null,
+      smtp_secure: v.smtp_host ? secure : null,
+      smtp_pass_enc: passEnc,
+    }
+    // A warming mailbox carries its dates so the board can show a day count. The ready date
+    // is a REMINDER, not permission — #553's ladder is what says a mailbox may send.
+    if (v.status === 'warming') {
+      row.warmup_started_at = new Date(now).toISOString()
+      row.warmup_ready_at = new Date(now + v.warmupDays * 864e5).toISOString()
+    }
+
+    // NOTE THE SELECT: `smtp_pass_enc` is absent on purpose. Even the ciphertext does not
+    // leave the process — `describeCipher` is the only thing any surface may show.
+    const { data, error } = await db.from('client_inboxes').insert(row)
+      .select('id, email, kind, status, provider, daily_cap, from_name, smtp_host, smtp_port, smtp_secure, smtp_user, warmup_ready_at').single()
+    if (error) { res.status(500).json({ success: false, error: `Could not save the mailbox: ${error.message}` }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: data.id,
+      // Records THAT a password was set. Never the password, and never the ciphertext.
+      detail: { email: v.email, kind: v.kind, provider: v.provider, status: v.status, password_set: v.hasPassword },
+    })
+
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error('[operator/inboxes-add]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to add the mailbox' })
+  }
+})
+
+// ── ② THE HOUSE CLIENT — Client Zero, created or adopted from Vida (#549/#593) ──────────
+//
+// `clients.user_id` is NOT NULL and unique, so a client row cannot be conjured out of
+// nothing — it needs an auth user, and the founder already has one (`HOUSE_ACCOUNT_EMAIL`).
+// The question this route answers is therefore "adopt or create", and **adopt wins**:
+// signing into the portal already creates a client row, so minting a second would leave two
+// accounts for one person with nothing deciding which is real. That is #584 exactly.
+//
+// IDEMPOTENT. Pressing it twice adopts the same row and changes nothing.
+//
+// ⚠️ It returns the id to PASTE NOWHERE. See HOUSE_CLIENT_ID_NOTICE — that variable gates
+// the parked Instantly push (#593), not our sending, and it stays unset.
+operatorRouter.post('/house-client', async (req: Request, res: Response) => {
+  try {
+    const {
+      decideHouseClient, HOUSE_CLIENT_NAME, HOUSE_CLIENT_ID_NOTICE, HOUSE_ACCOUNT_EMAIL,
+    } = await import('../lib/house-client')
+    const { resolveHouseUserIds } = await import('../lib/real-clients')
+    const { PAID_TX_TYPES } = await import('../lib/onboarding-pack')
+
+    const houseUserIds = [...await resolveHouseUserIds()]
+    const { data: clientRows, error: clientsErr } = await db.from('clients')
+      .select('id, user_id, company_name, is_demo')
+    if (clientsErr) {
+      res.status(500).json({ success: false, error: `Could not read the client list, so nothing was created (${clientsErr.message})` })
+      return
+    }
+
+    const decision = decideHouseClient({
+      houseUserIds,
+      clients: (clientRows ?? []) as { id: string; user_id: string | null; company_name: string | null; is_demo: boolean | null }[],
+    })
+
+    if (decision.action === 'refuse') {
+      res.status(409).json({ success: false, error: decision.why, data: { candidates: decision.candidates ?? [] } })
+      return
+    }
+
+    let clientId: string
+    let created = false
+
+    if (decision.action === 'adopt') {
+      clientId = decision.clientId
+      // Only write what actually needs changing — a no-op update on every press would put a
+      // fresh `updated_at` on the account each time and make the audit log lie about activity.
+      const patch: Record<string, unknown> = {}
+      if (decision.needsUnDemo) patch.is_demo = false     // a demo account is excluded from revenue AND refused by the CSV import (#599)
+      if (decision.needsRename) patch.company_name = HOUSE_CLIENT_NAME
+      if (Object.keys(patch).length > 0) {
+        const { error } = await db.from('clients').update(patch).eq('id', clientId)
+        if (error) { res.status(500).json({ success: false, error: `Found the house account but could not update it: ${error.message}` }); return }
+      }
+    } else {
+      const { data, error } = await db.from('clients').insert({
+        user_id: decision.userId,
+        company_name: HOUSE_CLIENT_NAME,
+        is_demo: false,
+      }).select('id').single()
+      if (error || !data) { res.status(500).json({ success: false, error: `Could not create the house client: ${error?.message ?? 'no row returned'}` }); return }
+      clientId = data.id as string
+      created = true
+    }
+
+    // ── ENTITLEMENT ─────────────────────────────────────────────────────────────────────
+    // Sourcing refuses for a client with no paid transaction (`startWorkForClient`'s money
+    // gate), so Client Zero would have a mailbox and an empty desk. `manual_grant` is the
+    // EXISTING comp pattern — it is already inside `PAID_TX_TYPES` precisely because "a
+    // manual grant is how we comp a client or open a walkthrough account" — so this uses it
+    // rather than inventing a house-only flag. It also makes `packState` active, which is
+    // correct: our own first 100 approvals cost us nothing, the same as a paying client's.
+    const { count: paid, error: paidErr } = await db.from('credit_transactions')
+      .select('id', { count: 'exact', head: true }).eq('client_id', clientId).in('type', PAID_TX_TYPES)
+    if (paidErr) { res.status(500).json({ success: false, error: `The account is ready but its entitlement could not be checked (${paidErr.message}) — press this again.` }); return }
+
+    let granted = false
+    if ((paid ?? 0) === 0) {
+      const { error: grantErr } = await db.from('credit_transactions').insert({
+        client_id: clientId, type: 'manual_grant', amount: 100,
+        note: `[house client comp — Client Zero, opened from Vida ${new Date().toISOString()}]`,
+      })
+      // CHECKED, not swallowed (#349). A failed grant leaves an account that looks set up and
+      // refuses to source, with nothing on screen explaining why.
+      if (grantErr) { res.status(500).json({ success: false, error: `The account exists but could not be entitled to source (${grantErr.message}). Press this again — it is safe to repeat.` }); return }
+      granted = true
+    }
+
+    const { sendReadiness } = await import('../lib/start-work')
+    const readiness = await sendReadiness(clientId)
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId, action: 'house_client_setup',
+      subjectType: 'client', subjectId: clientId,
+      detail: { action: decision.action, created, granted },
+    })
+
+    res.json({
+      success: true,
+      data: {
+        client_id: clientId,
+        name: HOUSE_CLIENT_NAME,
+        house_email: HOUSE_ACCOUNT_EMAIL,
+        action: decision.action,
+        why: decision.why,
+        granted,
+        can_send: readiness.canSend,
+        readiness: readiness.canSend ? null : readiness.warning,
+        // Travels WITH the id, every time, because the id is exactly what makes somebody
+        // want to set the variable.
+        house_client_id_notice: HOUSE_CLIENT_ID_NOTICE,
+      },
+    })
+  } catch (err) {
+    console.error('[operator/house-client]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to set up the house client' })
   }
 })

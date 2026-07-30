@@ -41,6 +41,10 @@ export type OperatorAction =
   | 'source_run'            // #498b — operator kicked a pool-first sourcing run (spends OUR PDL budget, fenced)
   | 'nexus_autotune_toggle' // #511g3 — enabled/disabled a client's Nexus auto-tune kill-switch
   | 'demo_reset'            // MBF — rebuilt the demo account to its fixed state (invented data, no money, no sends)
+  | 'house_client_setup'    // #549/#593 — opened (or adopted) Client Zero, the house account.
+                            // Its own action rather than a generic edit, because "who turned
+                            // our own outreach account on, and when" is a question the audit
+                            // log should answer without reading a detail blob.
   | 'import_leads'          // #549 — operator loaded a CSV of prospects onto a client. NO money:
                             // imported leads land 'pending' exactly as sourced ones do, and the
                             // charge still happens only at approve.

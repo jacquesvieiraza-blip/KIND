@@ -13,6 +13,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import ImportLeads from '@/components/ImportLeads'
+import AddMailbox from '@/components/AddMailbox'
+import HouseClient from '@/components/HouseClient'
 
 type Inbox = {
   id: string; client_id: string; company_name: string | null; email: string
@@ -25,11 +27,30 @@ type Inbox = {
   smtp_host: string | null; smtp_port: number | null; smtp_secure: boolean | null; smtp_user: string | null
   smtp_secret: string; has_smtp: boolean
 }
+/** #552 ③ — one client's send verdict, stated whether it passes or fails. */
+type Readiness = {
+  client_id: string; company_name: string | null
+  can_send: boolean; reason: string | null
+  why: string; detail: string
+  tone: 'ok' | 'amber' | 'red'
+  next_step: string
+}
+
+/** Readiness colours. RED is deliberately not "worse amber": it means the problem is not
+    this client's — a missing key kills everyone, and an unknown state is not a to-do. */
+const READY_TONE: Record<string, string> = {
+  ok:    'bg-emerald-50 border-emerald-200 text-emerald-900',
+  amber: 'bg-amber-50 border-amber-300 text-amber-900',
+  red:   'bg-red-50 border-red-300 text-red-900',
+}
+
 type Engine = {
   totals: { sent_7d: number; sent_today: number; opened_7d: number; bounced_7d: number; opt_outs_total: number; bounce_rate: number; open_rate: number }
   inboxes: Inbox[]
   /** Clients who cannot send — and WHY, which is not always "no mailbox". */
   needs_inbox: { client_id: string; company_name: string | null; reason?: string; why?: string; detail?: string }[]
+  /** EVERY client's verdict, pass or fail. `needs_inbox` is this list filtered. */
+  readiness?: Readiness[]
   migration_pending?: boolean
   /** Every committed migration the runner will apply. Always sent. */
   migrations?: { key: string; title: string }[]
@@ -269,6 +290,12 @@ export default function VidaEnginePage() {
           not depend on the engine snapshot, and a panel that disappears while inboxes are
           loading is a control you cannot find when you need it (the migration-card lesson,
           #564). Its own component because this page is already 700 lines. */}
+      {/* #549/#593 — Client Zero's account, and the mailboxes it sends from. Rendered
+          OUTSIDE the `{e && …}` block for the same reason as the import panel: neither
+          depends on the engine snapshot, and a control that is missing while the page loads
+          is a control you cannot find when you need it (#564). */}
+      <HouseClient onDone={load} />
+      <AddMailbox secretKeySet={e?.secret_key_set} onSaved={load} />
       <ImportLeads />
 
       {/* ── DATABASE — ALWAYS HERE ───────────────────────────────────────────────
@@ -562,6 +589,33 @@ export default function VidaEnginePage() {
         {/* V9 + #552 — clients who cannot send. The reason is NOT always "no mailbox": a row
             with no SMTP details, or one that is still warming, is equally unable to send, and
             this list used to count those clients as covered. */}
+        {/* #552 ③ — SEND READINESS FOR EVERY CLIENT, NOT ONLY THE FAILURES.
+            This page previously listed only clients who could NOT send. A client that COULD
+            appeared nowhere at all, so "everything is fine" and "this client is missing for
+            some other reason" rendered identically — absence read as health, which is the
+            #565 shape. The verdict is now stated either way, and the colour separates
+            "a job for you" from "not this client's problem": a missing INBOX_SECRET_KEY
+            kills EVERY client, and an unknown state is never painted calm. */}
+        {(e.readiness?.length ?? 0) > 0 && (
+          <>
+            <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc] mb-2">
+              Send readiness · {e.readiness!.filter(r => r.can_send).length}/{e.readiness!.length} can send
+            </h2>
+            <div className="space-y-1.5 mb-6">
+              {e.readiness!.map(r => (
+                <div key={r.client_id} className={`rounded-xl border px-3.5 py-2 ${READY_TONE[r.tone]}`}>
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <b className="text-[12.5px]">{r.company_name || 'Unnamed client'}</b>
+                    <span className="text-[11.5px] font-bold">{r.why}</span>
+                  </div>
+                  <p className="text-[11.5px] mt-0.5 leading-snug opacity-90">{r.detail}</p>
+                  {!r.can_send && <p className="text-[11px] mt-0.5 font-semibold">Next: {r.next_step}</p>}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         <h2 className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#b3a9cc] mb-2">Cannot send · {e.needs_inbox.length}</h2>
         {e.needs_inbox.length === 0 ? (
           <div className="border border-emerald-200 bg-emerald-50 rounded-xl px-4 py-3 mb-6 text-[12.5px] font-semibold text-emerald-800">

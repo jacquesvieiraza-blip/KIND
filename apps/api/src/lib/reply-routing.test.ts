@@ -135,28 +135,50 @@ describe('the alert when a reply reaches a known mailbox with no lead', () => {
 })
 
 // ── THE WIRING ───────────────────────────────────────────────────────────────────────────
-describe('the routing is actually used by the handler', () => {
-  const code = readFileSync(join(__dirname, '../routes/figsy.ts'), 'utf8')
-    .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
+//
+// #551 (29 Jul) — THESE SCANS MOVED FILE, NOT MEANING. The 256 provider-agnostic lines that
+// used to sit inside the Resend Express handler now live in `lib/reply-pipeline.ts`, so the
+// Smartlead feeder shares them instead of growing a second copy (#589). Two assertions below
+// read the pipeline now; the ones about authentication and dedup still read the ROUTE, because
+// those genuinely remain per-provider. Comment lines are stripped from both, the practice this
+// file established after three tests bound to a string inside a comment quoting the old code.
+const strip = (p: string) => readFileSync(join(__dirname, p), 'utf8')
+  .split('\n').filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*')).join('\n')
 
-  it('the handler resolves the inbox owner and routes on it', () => {
-    expect(code).toContain('resolveInboxOwner')
-    expect(code).toContain('routeReply')
+describe('the routing is actually used by the handler', () => {
+  const route = strip('../routes/figsy.ts')
+  const pipeline = strip('./reply-pipeline.ts')
+
+  it('the pipeline resolves the inbox owner and routes on it', () => {
+    expect(pipeline).toContain('resolveInboxOwner')
+    expect(pipeline).toContain('routeReply')
   })
 
-  it('the receiving address is read off the payload', () => {
-    expect(code).toContain('toEmail')
+  it('the receiving address is read off the payload by the route', () => {
+    expect(route).toContain('toEmail')
   })
 
   it('the dedup key comes from replyEventKey, not the raw svix header', () => {
-    expect(code).toContain('replyEventKey')
-    expect(code).not.toMatch(/isDuplicateWebhookEvent\(db, req\.headers\['svix-id'\]/)
+    // Still per-provider: each feeder authenticates and dedups for itself before delegating.
+    expect(route).toContain('replyEventKey')
+    expect(route).not.toMatch(/isDuplicateWebhookEvent\(db, req\.headers\['svix-id'\]/)
   })
 
   it('an unmatched reply at a known inbox ALERTS rather than 200-ing quietly', () => {
-    const i = code.indexOf('unmatchedAtKnownInboxLines')
-    expect(i).toBeGreaterThan(-1)
-    expect(code.slice(i - 600, i + 400)).toContain('sendFounderAlert')
+    // Bound to the CALL SITE (`name({`), not the first mention — which in the pipeline is the
+    // import at the top of the file, where `slice(i - 600, ...)` goes negative and silently
+    // reads from the END of the string, giving an empty window that fails for the wrong reason.
+    // The same class of trap as binding to a comment: the assertion has to measure the thing
+    // it names.
+    const i = pipeline.indexOf('unmatchedAtKnownInboxLines({')
+    expect(i, 'the call site must exist').toBeGreaterThan(-1)
+    expect(pipeline.slice(Math.max(0, i - 600), i + 400)).toContain('sendFounderAlert')
+  })
+
+  it('the route DELEGATES rather than keeping its own copy of the pipeline', () => {
+    // The point of the move. If a provider handler ever re-inlines the loop, this fails.
+    expect(route).toContain('processInboundReply')
+    expect(route).not.toContain('await classifyReply(')
   })
 
   it('the inbox lookup does NOT filter by status', () => {

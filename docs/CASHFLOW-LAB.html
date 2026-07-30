@@ -137,20 +137,22 @@
             <td class="n"><input type="number" id="f_servers" value="138" min="0" step="1"></td></tr>
         <tr><td>Smartlead — main account <span class="tag e">deferred</span><span class="sub"><b>DEFERRED (founder, 30 Jul): not bought until a client is in the works.</b> Client sending is what it is for, so paying for it before a client exists is speculative. The day one signs, this returns at ≈$94 and the per-client inbox line below starts counting.</span></td>
             <td class="n"><input type="number" id="f_smartlead" value="0" min="0" step="1"></td></tr>
-        <tr><td>Hunter — email fallback <span class="tag e">estimate</span><span class="sub">Growth £87 ≈ $110 when we need 10k finds. At pilot volume you may still be on a free tier — set 0 if so.</span></td>
-            <td class="n"><input type="number" id="f_hunter" value="110" min="0" step="1"></td></tr>
-        <tr><td>Anthropic — Claude API <span class="tag e">estimate</span><span class="sub">Runtime AI: scoring + writing. Haiku, ~$0.05/lead, mostly counted per-lead below — this is the base.</span></td>
-            <td class="n"><input type="number" id="f_claude" value="45" min="0" step="1"></td></tr>
+        <tr><td>Hunter — email fallback <span class="tag e">idle = $0</span><span class="sub"><b>IDLE = $0 (founder rule, 30 Jul).</b> Hunter verifies emails during a sourcing run and does nothing between them. Re-activate at ~$34 Starter the month a run happens. The old $110 modeled client scale, not our current spend.</span></td>
+            <td class="n"><input type="number" id="f_hunter" value="0" min="0" step="1"></td></tr>
+        <tr><td>Anthropic — Claude API <span class="tag e">estimate</span><span class="sub">Runtime AI: scoring + writing. Haiku, ~$0.05/lead, mostly counted per-lead below. <b>$10 is actual at our-own-volume</b> — $45 modeled client scale. Watch the invoice.</span></td>
+            <td class="n"><input type="number" id="f_claude" value="10" min="0" step="1"></td></tr>
         <tr><td>Resend — Pro <span class="tag v">verified</span><span class="sub">Transactional + the shared cold path.</span></td>
             <td class="n"><input type="number" id="f_resend" value="20" min="0" step="1"></td></tr>
         <tr><td>Instantly — HyperGrowth <span class="tag e">estimate</span><span class="sub">OUR outreach (Client Zero, #549). $97 list. <b>HyperGrowth is the MINIMUM tier that carries API + webhooks — Growth has NEITHER</b> (verified against Instantly's own plan-comparison table, 30 Jul). Flip to verified on the first invoice.</span></td>
             <td class="n"><input type="number" id="f_instantly" value="97" min="0" step="1"></td></tr>
-        <tr><td>Instantly sending domains + mailboxes <span class="tag e">TBD</span><span class="sub">Domains + mailboxes for OUR outreach — not client sending. Unpriced until Instantly answers; set the real number when known.</span></td>
+        <tr><td>Instantly sending domains + mailboxes <span class="tag e">TBD</span><span class="sub">Domains + mailboxes for OUR outreach — not client sending. <b>Google ×4 + 2 domains ≈ $23/mo planned</b> (Instantly DFY pricing confirmed 30 Jul: AirMail $4 · Google $5 · pre-warmed Google $10 per account · domain $15/yr). Set on purchase. <b>Buy sending domains THROUGH Instantly, not GoDaddy</b> — they belong where the mailboxes are.</span></td>
             <td class="n"><input type="number" id="f_sendinfra" value="0" min="0" step="1"></td></tr>
         <tr><td>Zoho Mail <span class="tag e">estimate</span><span class="sub">hello@get-kind.com — the human mailbox. Was missing from every earlier version of this model.</span></td>
             <td class="n"><input type="number" id="f_zoho" value="3" min="0" step="1"></td></tr>
-        <tr><td>Domains + failover <span class="tag e">estimate</span><span class="sub">Render standby, registrations. Annual bills spread across 12.</span></td>
-            <td class="n"><input type="number" id="f_domains" value="10" min="0" step="1"></td></tr>
+        <tr><td>Domains (GoDaddy) <span class="tag e">estimate</span><span class="sub">get-kind.com renewal ÷ 12. Founder confirming renewal prices and killing auto-renew on unused domains. <i>(GoDaddy renews at roughly 2× Cloudflare Registrar's at-cost pricing — a possible ~$10/yr/domain saving if the transfer hassle is ever worth it. Recorded, not urgent.)</i></span></td>
+            <td class="n"><input type="number" id="f_domains" value="3" min="0" step="1"></td></tr>
+        <tr><td>Failover — Render standby + CF Load Balancer <span class="tag e">cancelling</span><span class="sub"><b>BEING CANCELLED 30 Jul</b> ($7 Render <code>kind-api-standby</code> + $5 Cloudflare Load Balancer). With zero clients this is insurance on an empty house — nobody is there to feel an outage. <b>⚠️ DNS REPOINT FIRST</b>: <code>api.get-kind.com</code> routes THROUGH the load balancer, so deleting it before repointing to Railway takes the live product down. Steps in <code>docs/render-cloudflare-failover.md</code>. Set this to 0 once both are confirmed dead. <b><code>render.yaml</code> and the runbook STAY in the repo</b> (CORE-MAP rule 3) — they are the recipe to bring it back the day clients exist.</span></td>
+            <td class="n"><input type="number" id="f_failover" value="12" min="0" step="1"></td></tr>
         <tr class="total"><td>Platform floor</td><td id="fixedFloor">—</td></tr>
       </tbody>
     </table>
@@ -218,6 +220,7 @@
       <li><b>$99 = 100 approvals included</b>, then $4 each, no expiry. Founder-locked 25 Jul.</li>
       <li><b>200 names sourced up front</b> so they have something to pass on. The sourcing fence caps a client at 100 names a day, so half arrives on payment day and half overnight.</li>
       <li><b>The floor above is the honest one.</b> Earlier versions of this model carried $190 and left out Smartlead, Instantly and Zoho entirely.</li>
+      <li><b>30 Jul — IDLE TOOLS BILL NOTHING (founder rule).</b> This is self-funded, so the defaults above are <b>what is actually being spent right now</b>, not what the model spends at client scale. A tool that is not doing work this month is set to <b>$0</b> and carries the trigger that switches it back on: <b>Hunter</b> and <b>PDL</b> the month a sourcing run happens · <b>Smartlead</b> the day a client signs · the <b>failover</b> when there are clients to feel an outage. Floor <b>$423 → $283</b>.</li>
       <li><b>30 Jul — INSTANTLY-FIRST (founder decision).</b> Instantly HyperGrowth <b>$97</b> is in, because it is the minimum tier carrying API + webhooks — <b>Growth has neither</b>, so on Growth the only way to run outreach is uploading CSVs by hand, which #549 explicitly rules out (<i>"we use our own product for us"</i>). Smartlead goes to <b>$0, deferred</b> until a client is in the works. <b>Net effect: the floor drops ~$34/mo</b> (−$94 Smartlead, +$97 Instantly, −$37 the old Instantly estimate) until the first client signs. Instantly is also the thing that <i>finds</i> that client, so it pays for itself at roughly one.</li>
     </ul>
   </div>
@@ -230,7 +233,7 @@
   const $ = id => document.getElementById(id);
   const num = id => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : 0; };
 
-  const FIXED_IDS = ['f_servers','f_smartlead','f_hunter','f_claude','f_resend','f_instantly','f_sendinfra','f_zoho','f_domains'];
+  const FIXED_IDS = ['f_servers','f_smartlead','f_hunter','f_claude','f_resend','f_instantly','f_sendinfra','f_zoho','f_domains','f_failover'];
   const VAR_IDS   = ['v_inbox','v_setup','v_pdl','v_pdlfloor','v_ratio','v_work','v_stripe','v_price'];
 
   const fmt  = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString();

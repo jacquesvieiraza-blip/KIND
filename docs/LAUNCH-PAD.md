@@ -24,6 +24,14 @@
 | 2 | **#553 — the first-send ladder.** Test send lands in a real *inbox* (not Promotions, not spam) · mail-tester ≥9/10 · daily cap on · one client, one day, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. Founder-only, deliberately. Runs against the **Instantly** mailboxes now, not a client's. | 🧍 |
 | 3 | **A CLIENT mailbox exists — DEFERRED until a client is in the works.** Then buy a Smartlead/SmartSenders mailbox (~$40/client/mo) and record it in Vida → Engine with provider `smartlead-api`. Until then `#547` fails closed and nothing sends for clients — by design, and no longer blocking, because Client Zero sends through Instantly. | 🧍 |
 
+**💷 MONEY — three checks the founder owns, worth up to ~$220/mo (30 Jul, self-funded):**
+
+| | Do | Why |
+|---|---|---|
+| ① | **Check Hunter + PDL billing TODAY.** Both should be $0 while no sourcing run is happening. | If either auto-renews idle that is **up to ~$208/mo paid for nothing** — the single biggest saving on the board. |
+| ② | **Failover teardown — IN THIS ORDER.** ⓐ repoint `api.get-kind.com` to a plain CNAME on Railway (`kindapi-production-e64c.up.railway.app`, proxied) and confirm the portal still loads · ⓑ delete the Cloudflare Load Balancer + its health monitor · ⓒ delete/suspend the Render `kind-api-standby` service. | **−$12/mo.** ⚠️ **Wrong order takes the live product down** — `api.get-kind.com` currently routes *through* the load balancer. Steps: `docs/render-cloudflare-failover.md`. Check Render's billing first: if it is already on a free tier only the $5 Cloudflare line is real. |
+| ③ | **GoDaddy audit.** List every domain on the account, confirm what each renews at, kill auto-renew on any we no longer use. | Retired pages are 301s now (#560) but **a domain nobody visits still renews** at ~$20/yr. |
+
 **Built but NOT PROVEN — each needs real activity, not more code.** These are 🟡/🩷 and must not be read as working:
 
 - **#550 Smartlead** — built 27 Jul, key returns **401**. Nothing exercised against a live workspace. The sequence *step shape* is unverified (their docs 403 us) — **check it in Smartlead's UI after the first push.** ⏸ **Deliberately parked 30 Jul** — not bought until a client is in the works, so this stays unproven on purpose rather than by neglect.
@@ -121,7 +129,7 @@
 | # | Item | What it is / why it blocks | Owner |
 |---|------|----------------------------|:-----:|
 | #555 🟡 | **BUILD-STATUS retired** | It was a **fifth status doc** and its summary line read *"the ONLY items not built: #515 + CI"* while the whole sending spine was 🔴. That one line is why the docs stopped being trustworthy. Moved to `docs/archive/`, marked historical, unlinked from here. Status has one home: PRODUCT-INVENTORY. | 🤖 |
-| #556 🟡 | **Cashflow model is canonical, in the repo** | `docs/CASHFLOW-LAB.html` — two needles at the top, every cost line an editable box. Honest platform floor **~$423/mo** (30 Jul, Instantly-first: Smartlead deferred to $0, Instantly at its real $97 HyperGrowth tier; ~$517 once a client signs and Smartlead returns). The old ~$190 left out Smartlead, Instantly, Zoho ~$3 and the Anthropic runtime. Two numbers that change how we sell: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack is −$52 in month one** — the repeat is the business, the pack is the door. | 🤖 |
+| #556 🟡 | **Cashflow model is canonical, in the repo** | `docs/CASHFLOW-LAB.html` — two needles at the top, every cost line an editable box. Honest platform floor **~$283/mo** (30 Jul — the **idle-tools-bill-nothing** rule: Hunter, PDL and the failover are $0 until they do work, Smartlead $0 until a client signs, Instantly at its real $97 HyperGrowth tier. Rises to **~$550** at the first client; Claude Code is £119.99 ≈ $152 on top, a build tool not product infra). The old ~$190 left out Smartlead, Instantly, Zoho ~$3 and the Anthropic runtime. Two numbers that change how we sell: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack is −$52 in month one** — the repeat is the business, the pack is the door. | 🤖 |
 | #557 🟡 | **Stale flow + preview docs stamped** | `flows/new-client-flow.html` (built on the retired 14-day trial) · `flows/our-outreach-flow.html` (*"manual in Instantly, nothing to code"* — **overruled 26 Jul**) · `MILESTONE-0-CHECKLIST.md` (the retired $1/$3/$5/$6 ladder) · `mv-previews/flow-vida.html` + `home.html` (*"your own warmed inbox"* — describes #211, which is not built). Each now carries a correction banner rather than being silently deleted. | 🤖 |
 
 ## 🅴 BLOCK E — THE LIVE GATE (all of it walked, none of it remembered)

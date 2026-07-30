@@ -135,16 +135,18 @@
       <tbody>
         <tr><td>Servers + database <span class="tag v">verified</span><span class="sub">Railway (api · portal · admin · website) + Supabase Pro + Cloudflare</span></td>
             <td class="n"><input type="number" id="f_servers" value="138" min="0" step="1"></td></tr>
-        <tr><td>Smartlead — main account <span class="tag e">estimate</span><span class="sub">The Engine. Runs every client inbox. Confirm the plan tier on the invoice.</span></td>
-            <td class="n"><input type="number" id="f_smartlead" value="94" min="0" step="1"></td></tr>
+        <tr><td>Smartlead — main account <span class="tag e">deferred</span><span class="sub"><b>DEFERRED (founder, 30 Jul): not bought until a client is in the works.</b> Client sending is what it is for, so paying for it before a client exists is speculative. The day one signs, this returns at ≈$94 and the per-client inbox line below starts counting.</span></td>
+            <td class="n"><input type="number" id="f_smartlead" value="0" min="0" step="1"></td></tr>
         <tr><td>Hunter — email fallback <span class="tag e">estimate</span><span class="sub">Growth £87 ≈ $110 when we need 10k finds. At pilot volume you may still be on a free tier — set 0 if so.</span></td>
             <td class="n"><input type="number" id="f_hunter" value="110" min="0" step="1"></td></tr>
         <tr><td>Anthropic — Claude API <span class="tag e">estimate</span><span class="sub">Runtime AI: scoring + writing. Haiku, ~$0.05/lead, mostly counted per-lead below — this is the base.</span></td>
             <td class="n"><input type="number" id="f_claude" value="45" min="0" step="1"></td></tr>
         <tr><td>Resend — Pro <span class="tag v">verified</span><span class="sub">Transactional + the shared cold path.</span></td>
             <td class="n"><input type="number" id="f_resend" value="20" min="0" step="1"></td></tr>
-        <tr><td>Instantly — our own warmup <span class="tag e">estimate</span><span class="sub">K.I.N.D's own outreach, not client sending.</span></td>
-            <td class="n"><input type="number" id="f_instantly" value="37" min="0" step="1"></td></tr>
+        <tr><td>Instantly — HyperGrowth <span class="tag e">estimate</span><span class="sub">OUR outreach (Client Zero, #549). $97 list. <b>HyperGrowth is the MINIMUM tier that carries API + webhooks — Growth has NEITHER</b> (verified against Instantly's own plan-comparison table, 30 Jul). Flip to verified on the first invoice.</span></td>
+            <td class="n"><input type="number" id="f_instantly" value="97" min="0" step="1"></td></tr>
+        <tr><td>Instantly sending domains + mailboxes <span class="tag e">TBD</span><span class="sub">Domains + mailboxes for OUR outreach — not client sending. Unpriced until Instantly answers; set the real number when known.</span></td>
+            <td class="n"><input type="number" id="f_sendinfra" value="0" min="0" step="1"></td></tr>
         <tr><td>Zoho Mail <span class="tag e">estimate</span><span class="sub">hello@get-kind.com — the human mailbox. Was missing from every earlier version of this model.</span></td>
             <td class="n"><input type="number" id="f_zoho" value="3" min="0" step="1"></td></tr>
         <tr><td>Domains + failover <span class="tag e">estimate</span><span class="sub">Render standby, registrations. Annual bills spread across 12.</span></td>
@@ -216,6 +218,7 @@
       <li><b>$99 = 100 approvals included</b>, then $4 each, no expiry. Founder-locked 25 Jul.</li>
       <li><b>200 names sourced up front</b> so they have something to pass on. The sourcing fence caps a client at 100 names a day, so half arrives on payment day and half overnight.</li>
       <li><b>The floor above is the honest one.</b> Earlier versions of this model carried $190 and left out Smartlead, Instantly and Zoho entirely.</li>
+      <li><b>30 Jul — INSTANTLY-FIRST (founder decision).</b> Instantly HyperGrowth <b>$97</b> is in, because it is the minimum tier carrying API + webhooks — <b>Growth has neither</b>, so on Growth the only way to run outreach is uploading CSVs by hand, which #549 explicitly rules out (<i>"we use our own product for us"</i>). Smartlead goes to <b>$0, deferred</b> until a client is in the works. <b>Net effect: the floor drops ~$34/mo</b> (−$94 Smartlead, +$97 Instantly, −$37 the old Instantly estimate) until the first client signs. Instantly is also the thing that <i>finds</i> that client, so it pays for itself at roughly one.</li>
     </ul>
   </div>
 
@@ -227,7 +230,7 @@
   const $ = id => document.getElementById(id);
   const num = id => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : 0; };
 
-  const FIXED_IDS = ['f_servers','f_smartlead','f_hunter','f_claude','f_resend','f_instantly','f_zoho','f_domains'];
+  const FIXED_IDS = ['f_servers','f_smartlead','f_hunter','f_claude','f_resend','f_instantly','f_sendinfra','f_zoho','f_domains'];
   const VAR_IDS   = ['v_inbox','v_setup','v_pdl','v_pdlfloor','v_ratio','v_work','v_stripe','v_price'];
 
   const fmt  = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString();

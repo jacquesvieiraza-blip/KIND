@@ -60,7 +60,8 @@
 ### Ops · deploy · infra
 | Doc | Unique content | Update when |
 |-----|----------------|-------------|
-| [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md) | env-vars per service · Railway crons · DNS (website = Railway `KIND`; Cloudflare = DNS/CDN) | env / cron / deploy change |
+| [`ENVIRONMENT.md`](./ENVIRONMENT.md) | **every environment variable the three apps read (100)** — tier · what breaks when unset · which Railway service holds it. The written half of `startup-check.ts`; `env-doc-drift.test.ts` fails the gate on drift in either direction (#561) | a `process.env` read is added or removed · a variable changes service or tier |
+| [`DEPLOYMENT_GUIDE.md`](./DEPLOYMENT_GUIDE.md) | deploy steps · Railway crons · DNS (website = Railway `KIND`; Cloudflare = DNS/CDN). **Its env-var reference moved to `ENVIRONMENT.md` on 30 Jul** — it was a partial copy that had gone wrong | cron / deploy / DNS change |
 | [`SMOKE_TEST.md`](./SMOKE_TEST.md) | step-level T1–T10 (reveal-charge aware) | test flow change |
 | [`LIVE-FEATURE-WALK.md`](./LIVE-FEATURE-WALK.md) | the 🩷→🟢 verification checklist (28-Jun snapshot + banner) | as items are walked |
 | [`PINK-WALK-CHECKLIST.md`](./PINK-WALK-CHECKLIST.md) | founder self-walk aid (A–E groups) | as pinks are walked |

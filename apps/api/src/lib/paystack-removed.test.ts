@@ -44,9 +44,28 @@ describe('the charge path is gone', () => {
     expect(stripComments(api('../routes/figsy.ts'))).not.toContain('charge_authorization')
   })
 
-  it('the secret key is read by nothing', () => {
-    for (const f of ['../routes/figsy.ts', '../index.ts', './startup-check.ts']) {
+  it('the secret key is read by no code path', () => {
+    for (const f of ['../routes/figsy.ts', '../index.ts']) {
       expect(stripComments(api(f)), f).not.toContain('PAYSTACK_SECRET_KEY')
+    }
+  })
+
+  it('and startup-check may name it ONLY as parked — never as config to go and set', () => {
+    // TIGHTENED 30 JUL (#561). This used to assert the name appeared nowhere in
+    // startup-check.ts at all, and the environment sweep now lists all 83 API variables
+    // there — including this one, at the `parked` tier, whose description says **delete it
+    // from Railway**.
+    //
+    // The guard's real intent was never "the string must not appear"; it was "nothing may
+    // tell the founder to configure a payment path that was removed". So it now asserts
+    // that directly, which is STRICTER than the old version: the old one would have passed
+    // on `{ key: 'PAYSTACK_SECRET_KEY_V2', level: 'critical' }`, and this does not.
+    const sc = stripComments(api('./startup-check.ts'))
+    const entry = sc.match(/key:\s*'PAYSTACK_SECRET_KEY',\s*level:\s*'(\w+)'/)
+    expect(entry, 'PAYSTACK_SECRET_KEY must either be absent or listed as parked').toBeTruthy()
+    expect(entry![1]).toBe('parked')
+    for (const tier of ['critical', 'important', 'optional']) {
+      expect(sc).not.toContain(`key: 'PAYSTACK_SECRET_KEY',           level: '${tier}'`)
     }
   })
 

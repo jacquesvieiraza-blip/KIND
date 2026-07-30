@@ -405,55 +405,11 @@ Run through this checklist before going live with a real client.
 
 ## Environment Variable Reference
 
-### `apps/api` (Railway)
-
-```env
-PORT=4000
-PORTAL_URL=https://app.get-kind.com
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-PDL_API_KEY=your-pdl-key
-HUNTER_API_KEY=your-hunter-key
-APOLLO_API_KEY=                                      # optional / BYO — not used day-to-day
-STRIPE_SECRET_KEY=sk_live_xxxxx
-STRIPE_WEBHOOK_SECRET=whsec_xxxxx
-ANTHROPIC_API_KEY=sk-ant-xxxxx
-RESEND_API_KEY=re_xxxxx
-ADMIN_SECRET_KEY=your-random-secret-string
-FOUNDER_EMAIL=hello@get-kind.com
-FIGSY_REPLY_TO=replies@get-kind.com
-FIGSY_DAILY_SEND_LIMIT=20
-```
-
-> **Stripe bundle price IDs** (the 6 `NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100` + `..._FIGSY_20/40/100`) live on the **Portal** service, not the API. See Portal vars below.
-
-### `apps/portal` (Railway)
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app
-NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20=price_xxxxx
-NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_40=price_xxxxx
-NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_100=price_xxxxx
-NEXT_PUBLIC_STRIPE_PRICE_FIGSY_20=price_xxxxx
-NEXT_PUBLIC_STRIPE_PRICE_FIGSY_40=price_xxxxx
-NEXT_PUBLIC_STRIPE_PRICE_FIGSY_100=price_xxxxx
-```
-
-### `apps/admin` (Railway)
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-NEXT_PUBLIC_API_URL=https://kindapi-production-e64c.up.railway.app
-ADMIN_SECRET_KEY=your-random-secret-string
-```
-
-### `apps/website` (Railway)
-
-No environment variables needed. Static HTML.
+> **➡️ MOVED — the environment now has one home: [`ENVIRONMENT.md`](./ENVIRONMENT.md) (#561, 30 Jul).**
+>
+> What used to be here was a **partial copy that had gone wrong**, which is worse than no copy: it listed roughly 20 variables out of the **100** the three apps actually read, and it told you to set **`NEXT_PUBLIC_STRIPE_PRICE_LEADGEN_20/40/100` on the portal — three variables nothing in the codebase reads.** Anyone following it would have configured a deploy against a list that was both short and partly fictional, and had no way to know.
+>
+> `ENVIRONMENT.md` carries every variable, its tier, **what breaks when it is unset**, and which Railway service holds it — and a test (`env-doc-drift.test.ts`) fails the gate if a new `process.env` read appears that it does not list, or if it lists one nothing reads. That guard is why the fact lives there and is referenced here (RULEBOOK §10.1 — one owner per fact).
 
 ---
 

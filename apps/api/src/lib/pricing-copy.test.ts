@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
-import { PRICING } from '@kind/shared'
+import { PRICING, PRODUCTS } from '@kind/shared'
 import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD } from './onboarding-pack'
 
 // #414 — THE COPY OVERSOLD WHAT WE ACTUALLY DO.
@@ -100,5 +100,103 @@ describe('what this file records about #414 being only half-closable in code', (
     expect(src).toContain('THERE IS NO TRIAL')
     // Kept, not deleted — CORE-MAP rule 3 is founder-locked.
     expect(src).toContain('export const TRIAL_DAYS')
+  })
+})
+
+// ── #414's SIBLING: PRODUCTS STILL SOLD THE RETIRED SaaS ──────────────────────────────────
+//
+// One field up from the copy above, `PRODUCTS` described Milla as a $49/mo "AI Virtual
+// Assistant" and Vida as a $29/mo "AI Chatbot Agent". After the 22-Jul pivot Milla is the
+// CLIENT PORTAL and Vida is OUR OPERATOR CONSOLE — neither is a subscription, and neither is
+// for sale. Same defect class as the FIGSY description: a price and a product claim sitting in
+// the constants long after we stopped charging it.
+//
+// Marked LEGACY rather than deleted (CORE-MAP rule 3, founder-locked). These assertions read
+// the real file, so the marker cannot quietly disappear.
+describe('the retired SaaS products are marked LEGACY', () => {
+  const src = readFileSync(join(__dirname, '../../../../packages/shared/src/constants/index.ts'), 'utf8')
+  const header = src.slice(0, src.indexOf('export const PRODUCTS'))
+
+  it('a LEGACY marker sits immediately above the PRODUCTS block', () => {
+    // Sliced above the declaration on purpose: a marker further down the file would not be
+    // read by someone who lands on `PRODUCTS` and copies a price out of it.
+    expect(header).toContain('NONE OF THESE FOUR PRODUCTS IS CURRENTLY SOLD')
+  })
+
+  it('it says what Milla and Vida actually are now', () => {
+    expect(header).toContain('CLIENT PORTAL')
+    expect(header).toContain('OPERATOR CONSOLE')
+  })
+
+  it('it says the Stripe Price objects are dormant, not gone', () => {
+    // The dangerous half. `/stripe/subscribe` and the subscription webhook still work, so a
+    // live Price ID could take money for a product we do not sell — and that is a Stripe
+    // dashboard action, not something this file can fix.
+    expect(header).toContain('DORMANT')
+    expect(header).toContain('Stripe-dashboard action')
+  })
+
+  it('the block is KEPT, not deleted', () => {
+    expect(src).toContain('export const PRODUCTS')
+    expect(header).toContain('CORE-MAP rule 3')
+  })
+
+  it('the header contradicts every price still sitting in the block', () => {
+    // My first attempt at this policed the `name`/`description` strings for "AI Virtual
+    // Assistant" and "AI Chatbot Agent" — and it failed, correctly, against my own change:
+    // marking the block LEGACY does not rewrite the names inside it. Rewriting them was not
+    // an option either, because those labels mirror what the DORMANT Stripe Price objects are
+    // still called, and renaming here would not rename them (the same trap the FIGSY block
+    // above documents).
+    //
+    // So the guard is the reachable contradiction instead: every price a reader could copy
+    // out of this block must be named in the header as not-sold. `$49` and `$29` are the two
+    // that changed meaning at the pivot.
+    for (const price of ['$49', '$29']) {
+      expect(header, `header must contradict ${price}`).toContain(price)
+    }
+    expect(header).toContain('not on sale')
+  })
+
+  it('every PRODUCTS entry is still billed monthly in the data — which is WHY the header is needed', () => {
+    // Pinning the thing that cannot be fixed here. `billing: 'monthly'` and `price_usd` are
+    // the shape the Stripe subscription mapping mirrors, so they stay. That is precisely the
+    // reason a prose marker is the only available fix.
+    for (const [key, p] of Object.entries(PRODUCTS)) {
+      expect((p as { billing: string }).billing, key).toBe('monthly')
+    }
+  })
+})
+
+// The importer claim this file made in PR #1214 was wrong, and a test that asserts the
+// correction is the only thing that stops it being re-asserted next time.
+describe('the corrected record of who imports PRODUCTS', () => {
+  const root = join(__dirname, '../../../..')
+  const src = readFileSync(join(root, 'packages/shared/src/constants/index.ts'), 'utf8')
+
+  it('the file admits lib/stripe.ts does NOT read PRODUCTS', () => {
+    // #1214 wrote "the only importers are lib/stripe.ts …". stripe.ts imports PRICING only;
+    // STRIPE_SUBSCRIPTIONS is an independent literal. Which means the prices are duplicated
+    // in two files and can drift — the opposite of what the old note implied.
+    expect(src).toContain('imports `PRICING` only and never touches `PRODUCTS`')
+  })
+
+  it('the three dead PRODUCTS imports are gone', () => {
+    for (const f of [
+      'apps/admin/src/app/cockpit/page.tsx',
+      'apps/portal/src/app/(dashboard)/dashboard/chatbot/page.tsx',
+      'apps/portal/src/app/(dashboard)/dashboard/assistant/page.tsx',
+    ]) {
+      expect(readFileSync(join(root, f), 'utf8'), f).not.toContain("PRODUCTS } from '@kind/shared'")
+    }
+  })
+
+  it('marketplace — the one page that really renders these prices — still compiles against them', () => {
+    // Deliberately NOT cleaned: it uses PRODUCTS.*.price_usd for real. It is unreachable
+    // (middleware redirects clients out of (dashboard)), so it is stale copy rather than a
+    // live overcharge — but the import is load-bearing and must stay.
+    const mp = readFileSync(join(root, 'apps/portal/src/app/(dashboard)/dashboard/marketplace/page.tsx'), 'utf8')
+    expect(mp).toContain("import { PRODUCTS } from '@kind/shared'")
+    expect(mp).toContain('PRODUCTS.virtual_assistant.price_usd')
   })
 })

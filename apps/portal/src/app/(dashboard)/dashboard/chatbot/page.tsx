@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { MessageSquare } from 'lucide-react'
-import { PRODUCTS } from '@kind/shared'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

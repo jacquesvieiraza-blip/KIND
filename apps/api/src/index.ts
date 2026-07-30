@@ -104,6 +104,13 @@ app.use('/stripe/webhook',   express.raw({ type: 'application/json' }))
 // Resend inbound-reply webhook is signed (Svix) over the raw bytes — must receive
 // the raw body before express.json() so the signature can be verified.
 app.use('/figsy/replies/inbound', express.raw({ type: 'application/json' }))
+// Operator CSV import carries a whole file in the body. express.json() defaults to 100kb —
+// about 300 rows of an Apollo export — so without this a 1,000-row upload is rejected with a
+// bare 413 that reads like "the server broke", not "the file is too big". Mounted BEFORE the
+// global parser so it wins; body-parser skips a request another parser already read. The real
+// bound is MAX_IMPORT_ROWS, enforced in the route and stated on the screen — this is only the
+// transport ceiling, set well above it so the row cap is the thing that ever speaks.
+app.use('/operator/import-leads', express.json({ limit: '8mb' }))
 app.use(express.json())
 
 // Health probe for external uptime monitors (UptimeRobot/BetterStack).

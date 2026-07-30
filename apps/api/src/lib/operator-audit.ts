@@ -41,6 +41,13 @@ export type OperatorAction =
   | 'source_run'            // #498b — operator kicked a pool-first sourcing run (spends OUR PDL budget, fenced)
   | 'nexus_autotune_toggle' // #511g3 — enabled/disabled a client's Nexus auto-tune kill-switch
   | 'demo_reset'            // MBF — rebuilt the demo account to its fixed state (invented data, no money, no sends)
+  | 'import_leads'          // #549 — operator loaded a CSV of prospects onto a client. NO money:
+                            // imported leads land 'pending' exactly as sourced ones do, and the
+                            // charge still happens only at approve.
+  | 'import_leads_failed'   // the same action when the write stopped partway. Recorded as its OWN
+                            // action rather than a flag on the success row, because "we imported"
+                            // and "we imported 340 of 900 and stopped" are different events, and
+                            // the log that blurs them is the one that stops you looking (#564).
 
 export interface OperatorAuditEntry {
   operatorEmail: string

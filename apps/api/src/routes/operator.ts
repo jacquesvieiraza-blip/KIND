@@ -2731,3 +2731,160 @@ operatorRouter.get('/sending-health', async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to load sending health' })
   }
 })
+
+// ── CSV LEAD IMPORT (#549 amended 30 Jul) ───────────────────────────────────────────────
+//
+// Client Zero's prospects arrive as an Apollo CSV export from the founder's own account.
+// Our engine can only mail what is in our tables, so without this the leads exist in a
+// spreadsheet and nowhere the product can reach.
+//
+// ⚠️ WHY NOT REUSE `POST /figsy/webhook/enrol` (#250), the only other inbound lead path:
+// it authenticates with a per-CLIENT developer key, enrols straight into a campaign, and
+// **CHARGES on the way in** (`chargeFigsyEnroll`, charge-first #310/#332). Pushing a
+// thousand prospects through it would bill for a thousand leads nobody approved. Approve
+// is the only money event, and this route touches no money at all.
+//
+// The gates are NOT reimplemented here — the judgement lives in `lib/lead-import.ts`,
+// pure and unit-tested, and mirrors the pool-serve sequence in `routes/icps.ts`. This half
+// only reads the two sets from the database and writes the rows.
+operatorRouter.post('/import-leads', async (req: Request, res: Response) => {
+  try {
+    const {
+      MAX_IMPORT_ROWS, parseCsv, decideRows, toLeadRow, candidateEmails,
+    } = await import('../lib/lead-import')
+
+    const clientId = typeof req.body?.client_id === 'string' ? req.body.client_id.trim() : ''
+    const csv = typeof req.body?.csv === 'string' ? req.body.csv : ''
+    // A dry run answers "what would happen" before anything is written. For a thousand rows
+    // that is the difference between looking and hoping.
+    const dryRun = req.body?.dry_run === true
+
+    if (!clientId) { res.status(400).json({ success: false, error: 'client_id is required' }); return }
+    if (!csv.trim()) { res.status(400).json({ success: false, error: 'The file was empty — nothing to import.' }); return }
+
+    const { data: client, error: clientErr } = await db.from('clients')
+      .select('id, company_name, is_demo').eq('id', clientId).maybeSingle()
+    if (clientErr) { res.status(500).json({ success: false, error: `Could not read the client: ${clientErr.message}` }); return }
+    if (!client) { res.status(404).json({ success: false, error: 'No client with that id' }); return }
+
+    // DEMO CLIENTS REFUSE, and say why. A demo account exists to be shown to a prospect with
+    // fabricated data; putting real people into one means the next demo mails them.
+    if (client.is_demo === true) {
+      res.status(400).json({
+        success: false,
+        error: 'This is a DEMO client. Real people must never land in a demo account — the next demo would mail them. Pick the real client.',
+      })
+      return
+    }
+
+    const { headers, rows } = parseCsv(csv)
+    if (rows.length === 0) {
+      res.status(400).json({
+        success: false,
+        error: headers.length === 0
+          ? 'No rows found. The file did not parse as CSV.'
+          : `Found the header row (${headers.join(', ')}) but no data rows beneath it.`,
+      })
+      return
+    }
+    if (rows.length > MAX_IMPORT_ROWS) {
+      res.status(400).json({
+        success: false,
+        error: `${rows.length.toLocaleString()} rows — the cap is ${MAX_IMPORT_ROWS.toLocaleString()} per file. Split it and upload again.`,
+      })
+      return
+    }
+
+    // ── THE TWO READS THE DECISION NEEDS ────────────────────────────────────────────────
+    // Both are CHECKED. A failed read here is the #349 shape at its most expensive: an empty
+    // `owned` set silently duplicates the client's whole desk, and an empty `blocked` set
+    // imports people who opted out. Neither may be treated as "nothing found".
+    const { data: ownedRows, error: ownedErr } = await db.from('leads')
+      .select('email').eq('client_id', clientId).not('email', 'is', null)
+    if (ownedErr) {
+      res.status(500).json({ success: false, error: `Could not read this client's existing leads, so duplicates could not be ruled out — nothing was imported. (${ownedErr.message})` })
+      return
+    }
+    const owned = new Set(
+      (ownedRows ?? []).map((r: { email: string | null }) => (r.email ?? '').trim().toLowerCase()).filter(Boolean),
+    )
+
+    // Candidate emails, chunked into the blocklist lookup. A single `.in()` with a thousand
+    // addresses builds a URL long enough to be truncated by a proxy — and a truncated
+    // blocklist query returns FEWER blocked rows, which fails open.
+    const candidates = candidateEmails(rows)
+    const blocked = new Set<string>()
+    for (let i = 0; i < candidates.length; i += 200) {
+      const { data: blockedRows, error: blockedErr } = await db.from('opt_out_blocklist')
+        .select('email').is('opted_back_in_at', null).in('email', candidates.slice(i, i + 200))
+      if (blockedErr) {
+        res.status(500).json({ success: false, error: `Could not read the opt-out blocklist, so suppressed people could not be ruled out — nothing was imported. (${blockedErr.message})` })
+        return
+      }
+      for (const b of (blockedRows ?? []) as { email: string | null }[]) {
+        const e = (b.email ?? '').trim().toLowerCase()
+        if (e) blocked.add(e)
+      }
+    }
+
+    const { verdicts, tally } = decideRows({ rows, owned, blocked })
+
+    // Per-row outcomes, always — a partial import reporting only a success count is the #349
+    // defect in file form: 1,000 uploaded, "imported" shown, and nobody learns 300 were
+    // suppressed. Trimmed for transport, not for honesty: every skipped row is named.
+    const skipped = verdicts.flatMap((v, idx) =>
+      v.outcome === 'imported'
+        ? []
+        // +2 on the index: CSV lines are 1-based and line 1 is the header, so this is the
+        // number the operator will see in their spreadsheet.
+        : [{ line: idx + 2, outcome: v.outcome, email: 'email' in v ? v.email : null, why: v.why }],
+    )
+
+    if (dryRun) {
+      res.json({
+        success: true,
+        data: { dry_run: true, client: client.company_name ?? clientId, headers, total: rows.length, tally, skipped, inserted: 0 },
+      })
+      return
+    }
+
+    // ── THE WRITE ───────────────────────────────────────────────────────────────────────
+    // Chunked, and every chunk's error is checked. On a failure we report how many rows
+    // ACTUALLY landed rather than a total — the operator's next move is to re-upload the
+    // same file (duplicates are caught above, so a re-run is safe), and they can only decide
+    // that if the number is true.
+    const accepted = verdicts.filter(v => v.outcome === 'imported').map(v => toLeadRow(v.lead, clientId))
+    let inserted = 0
+    for (let i = 0; i < accepted.length; i += 250) {
+      const { data: ins, error: insErr } = await db.from('leads').insert(accepted.slice(i, i + 250)).select('id')
+      if (insErr) {
+        await writeOperatorAudit({
+          operatorEmail: operatorEmail(req), clientId, action: 'import_leads_failed',
+          subjectType: 'client', subjectId: clientId,
+          detail: { inserted, attempted: accepted.length, error: insErr.message },
+        })
+        res.status(500).json({
+          success: false,
+          error: `The import stopped partway: ${inserted} of ${accepted.length} rows were saved before the database refused the next batch. Re-uploading the same file is safe — the rows already saved will come back as duplicates. (${insErr.message})`,
+          data: { tally, inserted, skipped },
+        })
+        return
+      }
+      inserted += (ins ?? []).length
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId, action: 'import_leads',
+      subjectType: 'client', subjectId: clientId,
+      detail: { total: rows.length, inserted, ...tally },
+    })
+
+    res.json({
+      success: true,
+      data: { dry_run: false, client: client.company_name ?? clientId, headers, total: rows.length, tally, skipped, inserted },
+    })
+  } catch (err) {
+    console.error('[operator/import-leads]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The import failed' })
+  }
+})

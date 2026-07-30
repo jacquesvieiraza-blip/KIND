@@ -12,6 +12,7 @@
 // so there is NO gap) → ~day 29 switch branded live and release the pooled one.
 
 import { useCallback, useEffect, useState } from 'react'
+import ImportLeads from '@/components/ImportLeads'
 
 type Inbox = {
   id: string; client_id: string; company_name: string | null; email: string
@@ -263,6 +264,12 @@ export default function VidaEnginePage() {
 
       {error && <div className="text-[12.5px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 mb-4">{error}</div>}
       {!e && !error && <p className="text-[13px] text-[#9b8ec4] py-10 text-center">Loading…</p>}
+
+      {/* #549 — GETTING PROSPECTS IN. Rendered OUTSIDE the `{e && …}` block on purpose: it does
+          not depend on the engine snapshot, and a panel that disappears while inboxes are
+          loading is a control you cannot find when you need it (the migration-card lesson,
+          #564). Its own component because this page is already 700 lines. */}
+      <ImportLeads />
 
       {/* ── DATABASE — ALWAYS HERE ───────────────────────────────────────────────
           This control used to live inside the amber "inbox tracking is waiting on one

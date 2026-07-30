@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢92 · 🩷215 · 🟣2 · 🟡55 · 🔴208 · ⏸5 · **Σ577** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷215 · 🟣2 · 🟡56 · 🔴207 · ⏸5 · **Σ577** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -80,7 +80,7 @@
 | #567 🩷 | **A repeat purchase sources NOBODY** | `start-work.ts:97-99` counts every lead the client has **ever** held, so `sourceTarget` returns 0 once they hold 200 — a lifetime cap, not a top-up. The pack doesn't renew either. **A second $99 buys no people, no included leads, and (per #562) ~24 leads of wallet.** The cashflow says the repeat IS the business. **Founder-recommended 26 Jul: change no prices.** `sourceTarget` counts only leads *awaiting a decision*, so working through 100 makes them short 100 and we source 100 more off the allowance they already paid for. Renewing the pack each $99 was rejected on the numbers (≈$105 cost against $99 — a monthly loss); wallet top-ups yield **+$123 on $200**, which is the model already locked. Needs #366 too, or it re-serves the same page. | 🤝 |
 | #568 🩷 | **Three swallowed writes on the approve path — "$4 taken, nothing delivered"** | The **email write** (`approve-lead.ts:180`), the **enrol** (`:217`) and the **two surface updates** (`start-work.ts:151-152`) all discard their failure. Each one ends with the client charged and nothing to show for it — and ③ makes the operator's alert read *"sent 200 to them"* while the client's desk is empty | 🤖 |
 | #569 🩷 | **A re-approve of a FREE lead says "$4 charged"** | `approve-lead.ts:48` returns `charged: true` unconditionally on the idempotent path. #541 fixed this on the first-approval path and missed this one | 🤖 |
-| #570 🔴 | **Four gaps on the client's own desk** | `Promise.all` blanks the whole desk if either endpoint fails · `pass()` never reloads so the KPI stays stale · `/for-approval` is capped at 50 while the KPI counts more · the 402 message invents a figure client-side | 🤖 |
+| #570 🟡 | **Four gaps on the client's own desk** | `Promise.all` blanks the whole desk if either endpoint fails · `pass()` never reloads so the KPI stays stale · `/for-approval` is capped at 50 while the KPI counts more · the 402 message invents a figure client-side | 🤖 |
 | #571 🟡 | **Two silent caps in sourcing** | Only the **newest** active ICP is ever sourced from (a client with two gets one, silently) · `surfaceEverything` reads `.limit(1000)` inside a function whose job is "everyone" | 🤖 |
 
 ## 🅲 BLOCK C — MONEY + SAFETY BEFORE A REAL PROSPECT IS EMAILED

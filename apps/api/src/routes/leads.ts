@@ -307,9 +307,29 @@ leadRouter.get('/ledger', async (req: AuthRequest, res) => {
 
 // ── #503/#506/#510 MILLA DASHBOARD SUMMARY — the KPI cards, the real-data chat
 // opener and the recent-replies rail, all from LIVE tables. No fabricated numbers:
-// leads_awaiting mirrors /for-approval exactly (surfaced + within TTL + unrevealed +
-// not passed); meetings_booked is confirmed calendar_bookings this month; active_campaign
-// is the client's newest active campaign; recent_replies is the last handful of replies.
+// meetings_booked is confirmed calendar_bookings this month; active_campaign is the
+// client's newest active campaign; recent_replies is the last handful of replies.
+//
+// ⚠️ #570③ — THIS COMMENT USED TO CLAIM "leads_awaiting mirrors /for-approval exactly", AND
+// IT DOES NOT. The two queries share every FILTER (delivered · surfaced · unrevealed · not
+// passed) but not their SIZE: `leads_awaiting` below is an uncapped `count`, while
+// `/for-approval` returns `.limit(50)` rows. So a client with 200 undecided leads gets a KPI
+// of 200 beside a panel of 50 — by design, but not "exactly".
+//
+// That false sentence is why the mismatch read as already-fixed for weeks: anyone checking
+// found a comment asserting the thing they were there to verify. The lesson is the same one
+// three tests hit this week — a claim in a comment is not evidence, and this file is where the
+// claim lived.
+//
+// The DIFFERENCE IS DISCLOSED TO THE CLIENT rather than hidden: `deskCoverage()` in
+// @kind/shared renders "Showing the top 50 of 200. Approve or pass some to see the rest."
+// directly above the list (wired at milla/page.tsx:383, unit-tested in client-honesty.test.ts).
+// The 50 is the top 50 BY SCORE, and working through them surfaces the next batch — which is
+// the #567 model, not a truncation.
+//
+// STILL OPEN, and a founder call rather than a defect: whether 50 is the right window, or the
+// panel should page. Raising the limit is explicitly NOT the answer (#571: "a bigger limit is
+// the same bug with a later trigger").
 leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

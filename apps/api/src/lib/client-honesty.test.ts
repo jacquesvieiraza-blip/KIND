@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { packLine, deskCoverage, shortfallMessage } from '@kind/shared'
 
 // PROMPT 3, PR B — WHAT THE CLIENT IS TOLD ABOUT THEIR OWN MONEY AND THEIR OWN DESK.
@@ -97,5 +99,64 @@ describe('#570 — the 402 stops inventing a figure', () => {
     // A NaN or zero reaching a payment screen as "$NaN more" is worse than the fallback.
     expect(shortfallMessage({ count: 5, neededUsd: NaN })).toContain('$4 each')
     expect(shortfallMessage({ count: 5, neededUsd: 0 })).toContain('$4 each')
+  })
+})
+
+// ── #570③ — THE MISMATCH IS REAL, AND IT IS DISCLOSED. THE COMMENT WAS THE BUG. ──────────
+//
+// `/leads/for-approval` returns `.limit(50)`; the `leads_awaiting` KPI is an UNCAPPED count.
+// The row filed this as a silent discrepancy — a KPI of 200 beside a panel of 50, "with no
+// load more". Verified 29 Jul: it is NOT silent. `deskCoverage()` renders
+// "Showing the top 50 of 200. Approve or pass some to see the rest." directly above the list.
+//
+// What was actually broken was the COMMENT above the summary query, which asserted
+// "leads_awaiting mirrors /for-approval exactly". It does not — same filters, different size —
+// and that false sentence is why the mismatch read as already-fixed for weeks: anyone checking
+// found a comment asserting the very thing they came to verify.
+//
+// These guards exist so the disclosure cannot be quietly removed, and so the comment cannot go
+// back to lying. Comment lines are stripped before any source scan (the practice
+// `reply-routing.test.ts` established after three tests bound to a comment quoting old code).
+describe('the desk tells the client when it is showing a subset', () => {
+  const strip = (s: string) => s.split('\n')
+    .filter(l => !l.trim().startsWith('//') && !l.trim().startsWith('*') && !l.trim().startsWith('/*'))
+    .join('\n')
+  const desk = strip(readFileSync(join(__dirname, '../../../../apps/portal/src/app/(milla)/milla/page.tsx'), 'utf8'))
+  // STRIPPED, and this one caught itself: the replacement comment QUOTES the old false claim
+  // ("this comment used to say …"), so an unstripped `not.toContain` matched the quotation and
+  // failed. Fourth time this week a source scan bound to a comment — and the first time it
+  // failed loudly instead of passing falsely, which is the argument for the practice.
+  const routeRaw = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
+  const route = strip(routeRaw)
+
+  it('the coverage note is WIRED into the desk, not just exported', () => {
+    // A pure function nobody calls is the same as no function. This is the assertion that
+    // makes #570③ "disclosed" rather than "silent".
+    expect(desk).toContain('deskCoverage(')
+    expect(desk).toContain('leads_awaiting')
+  })
+
+  it('it compares the KPI against what is actually RENDERED, not against the cap', () => {
+    // Passing a hardcoded 50 would keep saying "top 50" on a page showing 12 after some were
+    // approved. It must read the real list length.
+    expect(desk).toMatch(/deskCoverage\(\{\s*awaiting:\s*summary\.leads_awaiting,\s*shown:\s*leads\.length/)
+  })
+
+  // TWO VIEWS OF THE SAME FILE, and the split is the point. A "no longer claims X" assertion
+  // must read the STRIPPED code, or the replacement comment quoting X breaks it. A "the file
+  // documents X" assertion must read the RAW text, because documentation is what comments are.
+  // Using one view for both is what made the first two attempts at this block fail.
+  it('the route no longer claims the count and the panel match EXACTLY — outside comments', () => {
+    expect(route).not.toContain('leads_awaiting mirrors /for-approval exactly')
+  })
+
+  it('and the file now DOCUMENTS the real relationship — same filters, different size', () => {
+    expect(routeRaw).toContain('uncapped')
+    expect(routeRaw).toContain('.limit(50)')
+  })
+
+  it('it records that raising the limit is NOT the fix', () => {
+    // #571's settled reasoning, written where the next person will be tempted.
+    expect(routeRaw).toContain('the same bug with a later trigger')
   })
 })

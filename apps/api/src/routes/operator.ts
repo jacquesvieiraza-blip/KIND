@@ -2626,3 +2626,108 @@ operatorRouter.get('/record', async (req: Request, res: Response) => {
     })
   } catch (err) { console.error('[operator/record]', err); res.status(500).json({ success: false, error: 'Failed to load record' }) }
 })
+
+// ── SENDING HEALTH — the one glance (#576/#553) ─────────────────────────────────────────
+//
+// Client Zero runs on OUR engine (#577 amended 30 Jul), so when a send breaks it is our
+// break to see. Founder's condition: *"we need a way to monitor the break."* The alerts are
+// the push; this is the pull.
+//
+// Read-only over writes that already happen — no new tables, no new crons. The judgement
+// (severity, expected-vs-quiet, what is unmeasurable) is pure and unit-tested in
+// `lib/sending-health.ts`; this half only fetches.
+//
+// ⚠️ FAILED SENDS ARE NOT COUNTED HERE, DELIBERATELY. `sendSequenceEmail` deletes the
+// `figsy_sent_emails` row when a send fails, so no row survives to count. Reporting 0 would
+// be stating an unmeasured fact — see FAILED_NOT_MEASURED for the sentence the UI renders.
+operatorRouter.get('/sending-health', async (req: Request, res: Response) => {
+  try {
+    const {
+      measured, NOT_MEASURED, FAILED_NOT_MEASURED, BOUNCE_REASONS, OPT_OUT_REASONS,
+      isSendingExpected, tallyClassifications,
+    } = await import('../lib/sending-health')
+
+    const clientId = String(req.query.client_id ?? '').trim() || null
+    const now = new Date()
+    const startOfToday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString()
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString()
+
+    // `figsy_sent_emails` carries no client_id — the join through leads is how the daily-cap
+    // counter already does it (figsy.ts). Same shape here so the two can never disagree.
+    const sentIn = async (since: string) => {
+      let q = db.from('figsy_sent_emails').select('id, leads!inner(client_id)', { count: 'exact', head: true }).gte('sent_at', since)
+      if (clientId) q = q.eq('leads.client_id', clientId)
+      const { count, error } = await q
+      if (error) throw new Error(`sent counts: ${error.message}`)
+      return count ?? 0
+    }
+
+    const repliesIn = async (since: string) => {
+      let q = db.from('figsy_replies').select('classification').gte('received_at', since)
+      if (clientId) q = q.eq('client_id', clientId)
+      const { data, error } = await q
+      if (error) throw new Error(`replies: ${error.message}`)
+      return (data ?? []) as { classification: string | null }[]
+    }
+
+    // The blocklist doubles as the bounce ledger: routes/figsy.ts upserts exactly
+    // 'hard_bounce' | 'spam_complaint' | 'list_unsubscribe' as the reason. NOT client-scoped —
+    // the blocklist is global by design (one opt-out protects every client), so these two
+    // numbers are house-wide even when a client filter is applied. Said on screen.
+    const blocklistIn = async (since: string, reasons: readonly string[]) => {
+      const { count, error } = await db.from('opt_out_blocklist')
+        .select('email', { count: 'exact', head: true })
+        .in('reason', [...reasons]).gte('created_at', since)
+      if (error) throw new Error(`blocklist (${reasons.join('/')}): ${error.message}`)
+      return count ?? 0
+    }
+
+    const windowFor = async (since: string) => {
+      const [sent, replyRows, bounced, optOuts] = await Promise.all([
+        sentIn(since), repliesIn(since),
+        blocklistIn(since, BOUNCE_REASONS), blocklistIn(since, OPT_OUT_REASONS),
+      ])
+      return {
+        sent: measured(sent),
+        failed: NOT_MEASURED(FAILED_NOT_MEASURED),
+        bounced: measured(bounced),
+        optOuts: measured(optOuts),
+        replies: measured(replyRows.length),
+        repliesByClass: tallyClassifications(replyRows),
+      }
+    }
+
+    // Is sending expected? Three reads, and every one of them is a reason the operator can act
+    // on rather than a bare boolean.
+    const [{ count: activeCampaigns }, { count: enrollmentsDue }] = await Promise.all([
+      db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      db.from('figsy_enrollments').select('id', { count: 'exact', head: true })
+        .in('status', ['enrolled', 'in_progress']).lte('next_send_at', now.toISOString()),
+    ])
+    const expected = isSendingExpected({
+      autoOutreachEnabled: process.env.AUTO_OUTREACH_ENABLED === 'true',
+      activeCampaigns: activeCampaigns ?? 0,
+      enrollmentsDue: enrollmentsDue ?? 0,
+    })
+
+    const [today, last7] = await Promise.all([windowFor(startOfToday), windowFor(sevenDaysAgo)])
+
+    res.json({
+      success: true,
+      data: {
+        today, last7,
+        // Empty until failures are recorded at all — NOT an assertion that none happened.
+        recentFailures: [],
+        sendingExpected: expected.expected,
+        sendingExpectedWhy: expected.why,
+        blocklistIsGlobal: true,
+        generated_at: now.toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[operator/sending-health]', err)
+    // A failed load must reach the UI as an ERROR, never as an empty report the panel would
+    // render as zeros (#565).
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to load sending health' })
+  }
+})

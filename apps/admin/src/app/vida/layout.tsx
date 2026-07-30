@@ -46,6 +46,11 @@ const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   // BOTH halves at once — and a control you cannot find is not a control (the migration-card
   // lesson, #564). Everything below it is a detail view of something this page summarises.
   { href: '/vida/system',     label: 'System',     icon: '🩺' },
+  // SECOND on purpose, and it is not the same question as System. System runs on a button and
+  // probes every integration — "is everything wired". This one is read-only over writes that
+  // already happened and answers "is outreach working RIGHT NOW", which is the question you ask
+  // daily once Client Zero is sending (#577/#553). A glance and a probe are different tools.
+  { href: '/vida/sending',    label: 'Sending',    icon: '📤' },
   { href: '/vida/engine',     label: 'Engine',     icon: '📡' },
   { href: '/vida/cockpit',    label: 'Cockpit',    icon: '📟' },
   // Was also labelled "Clients", identical to /vida in the menu above — two entries, same

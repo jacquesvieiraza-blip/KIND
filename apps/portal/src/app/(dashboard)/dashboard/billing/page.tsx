@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
-import { packLine, type PackView } from '@kind/shared'
+import { packLine, PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, type PackView } from '@kind/shared'
 import {
   Zap, TrendingUp, Loader2, Check,
   Shield, CreditCard,
@@ -65,7 +65,11 @@ interface CreditTransaction {
 // ── One wallet ────────────────────────────────────────────────────────────────
 // ONE wallet, one balance in dollars. $99 to start, then free top-ups of $40/$100/$200.
 // Each approved lead is a flat $4, final. Checkout takes { amount_usd } — no bundle SKUs.
-const WALLET_FIRST_PURCHASE_USD = 99
+// #563 — DERIVED, NOT TYPED. This was a hardcoded 99 sitting beside copy that hand-typed the
+// same number and the $4, which is how the starter card came to state two things that stopped
+// being true when #562 landed. The constants live in `@kind/shared` precisely so the client can
+// read the same figures the API charges from.
+const WALLET_FIRST_PURCHASE_USD = PACK_PRICE_USD
 const WALLET_TOPUP_AMOUNTS_USD = [40, 100, 200]
 
 
@@ -354,11 +358,18 @@ export default function BillingPage() {
         <p className="text-sm text-[#9B8EC4] mb-4">One wallet · Funds never expire · Billed in USD via Stripe · $4 per approved lead</p>
 
         {!hasPurchased ? (
-          /* First purchase — the $99 starter unlocks the wallet. */
+          /* #563 — THE FIRST-PURCHASE CARD. It used to read "Fund your wallet. Each approved
+             lead is a flat $4", and after #562 BOTH halves were false: the first payment does
+             NOT credit the wallet (it buys the pack — `isPackPurchase` skips `increment_wallet`),
+             and the first 100 approvals are NOT $4 each, they are included. That is the screen a
+             client reads immediately before entering a card. Every figure is now derived. */
           <div className="rounded-xl overflow-hidden border border-purple-100/60 max-w-md">
             <div className="bg-[#7C3AED] px-5 py-4 text-white">
               <p className="font-semibold">Get started — ${WALLET_FIRST_PURCHASE_USD}</p>
-              <p className="text-white/70 text-xs mt-0.5">Fund your wallet. Each approved lead is a flat $4.</p>
+              <p className="text-white/70 text-xs mt-0.5">
+                Your onboarding pack — <b>{PACK_LEADS} approved leads included</b>. Reviewing is always free;
+                after the {PACK_LEADS} are used, approvals are ${LEAD_PRICE_USD} each from your wallet.
+              </p>
             </div>
             <div className="bg-white px-5 py-5 space-y-4">
               <button

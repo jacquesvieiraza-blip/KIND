@@ -155,3 +155,30 @@ export const SCORE_THRESHOLDS = {
   high:   80,
   medium: 50,
 } as const
+
+// ── THE MONEY MODEL — ONE SOURCE OF TRUTH, READABLE FROM BOTH SIDES ─────────────────────────
+//
+// Founder-locked 24–25 Jul (ONE WALLET): the first purchase is **$99 = the onboarding pack
+// with 100 approved leads included**, then a flat **$4 per approved lead**. Reviewing is free.
+//
+// ⚠️ WHY THEY MOVED HERE (#563, 29 Jul). These three numbers used to live ONLY in
+// `apps/api/src/lib/onboarding-pack.ts` — which the portal cannot import, because it depends on
+// `@kind/shared` and nothing else. So every client-facing sentence about the money was
+// HAND-TYPED, and that is exactly how the $99 starter card came to read *"Fund your wallet.
+// Each approved lead is a flat $4"* — a sentence with two false halves, on the screen a client
+// reads immediately before paying: after #562 the $99 does not fund the wallet (it buys the
+// pack), and the first 100 approvals are not $4 (they are included).
+//
+// `onboarding-pack.ts` now RE-EXPORTS these rather than declaring its own, so the API and the
+// client can never disagree about the price. A copy in two places is how the last lie started.
+//
+// Cost basis behind $99 (docs/run-costs-and-cashflow.md §1): 200 records sourced at $0.28 =
+// $56 · working the 100 they approve ≈ $6 · Stripe $3.17 · first month of their inbox $4.50
+// ≈ $70, leaving ~$29.
+
+/** Approvals included in the first purchase. */
+export const PACK_LEADS = 100
+/** What the pack costs the client, in USD. */
+export const PACK_PRICE_USD = 99
+/** Flat price per approved lead once the pack is used up, in USD. */
+export const LEAD_PRICE_USD = 4

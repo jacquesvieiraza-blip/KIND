@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD, packLine } from '@kind/shared'
 
 // #563 — THE MONEY SCREEN COULD NOT TELL THE TRUTH.
 //
@@ -64,5 +65,65 @@ describe('the pack panel is not hidden behind a truthy-zero bug', () => {
     // `pack.left && ...` would print a literal 0. Gating on the composed sentence is what makes
     // "0 of 100 left" sayable.
     expect(code).toContain('{packLine(pack) && (')
+  })
+})
+
+// ── #563 REMAINDER — THE STARTER CARD LIED ABOUT THE $99 ─────────────────────────────────
+//
+// The pack PANEL was fixed (above). The **first-purchase card** was not: it read
+// *"Fund your wallet. Each approved lead is a flat $4."* — and after #562 both halves are false.
+// The first payment does NOT credit the wallet (`isPackPurchase` skips `increment_wallet`,
+// because the $99 buys the pack), and the first 100 approvals are NOT $4 each; they are
+// included. It is the screen a client reads immediately before entering a card.
+//
+// The guard is drift, not wording. Every figure now comes from `@kind/shared`, so a price change
+// cannot leave this sentence lying — which is precisely how it became a lie the first time.
+describe('the first-purchase card tells the truth about what $99 buys', () => {
+  it('does NOT claim the first payment funds the wallet', () => {
+    expect(code).not.toContain('Fund your wallet')
+  })
+
+  it('does NOT price the included leads at $4', () => {
+    // The specific falsehood: "Each approved lead is a flat $4" said to someone whose first
+    // hundred are free.
+    expect(code).not.toContain('Each approved lead is a flat')
+  })
+
+  it('says the pack is included, and that reviewing is free', () => {
+    expect(code).toContain('approved leads included')
+    expect(code.toLowerCase()).toContain('reviewing is always free')
+  })
+
+  it('derives every figure from the shared constants — no hand-typed 99, 100 or 4', () => {
+    // The drift guard. `PACK_PRICE_USD` etc. live in @kind/shared exactly so the client can read
+    // the same numbers the API charges from; hand-typing them is what broke this before.
+    expect(code).toContain('PACK_LEADS')
+    expect(code).toContain('LEAD_PRICE_USD')
+    expect(code).toContain('WALLET_FIRST_PURCHASE_USD = PACK_PRICE_USD')
+    expect(code).not.toMatch(/WALLET_FIRST_PURCHASE_USD = \d+/)
+  })
+})
+
+describe('the shared constants are the single source of truth', () => {
+  it('the API re-exports them rather than declaring its own', () => {
+    // Two declarations is how the API could charge $4 while the portal advertised something
+    // else, with nothing failing.
+    const pack = readFileSync(join(__dirname, './onboarding-pack.ts'), 'utf8')
+    expect(pack).toContain("from '@kind/shared'")
+    expect(pack).not.toMatch(/export const PACK_LEADS\s*=\s*\d+/)
+    expect(pack).not.toMatch(/export const LEAD_PRICE_USD\s*=\s*\d+/)
+  })
+
+  it('they still hold the founder-locked values', () => {
+    // Deriving from a constant is only safe if the constant is right.
+    expect(PACK_LEADS).toBe(100)
+    expect(PACK_PRICE_USD).toBe(99)
+    expect(LEAD_PRICE_USD).toBe(4)
+  })
+
+  it('packLine quotes the per-lead price from the constant, not a literal', () => {
+    // The exhausted-pack sentence hand-typed "$4" too.
+    expect(packLine({ active: true, included: 100, used: 100, left: 0 }))
+      .toContain(`$${LEAD_PRICE_USD} each`)
   })
 })

@@ -13,14 +13,14 @@
 // $0.28 = $56 · working the 100 they approve ≈ $6 · Stripe $3.17 · first month of their
 // inbox $4.50 ≈ $70, leaving ~$29 on the $99.
 
-/** Approvals included in the first purchase. */
-export const PACK_LEADS = 100
-/** What the pack costs the client. */
-export const PACK_PRICE_USD = 99
+// #563 — RE-EXPORTED, NOT REDECLARED. These three now live in `@kind/shared` so the CLIENT can
+// read them too: the portal cannot import from `apps/api`, so every client-facing sentence about
+// the money was hand-typed, and that is how the $99 starter card came to say "Fund your wallet.
+// Each approved lead is a flat $4" — both halves false after #562. One source, no drift.
+import { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD } from '@kind/shared'
+export { PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD }
 /** How many people we source to let them approve PACK_LEADS — they pass on roughly half. */
-export const PACK_SOURCE_TARGET = 200
-/** Flat price per approved lead once the pack is used up. */
-export const LEAD_PRICE_USD = 4
+export const PACK_SOURCE_TARGET = PACK_LEADS * 2
 
 /**
  * REAL MONEY IN — a client actually paid us. Drives revenue counting and the

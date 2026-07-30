@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import ImportLeads from '@/components/ImportLeads'
 import AddMailbox from '@/components/AddMailbox'
 import HouseClient from '@/components/HouseClient'
+import SchemaProbe from '@/components/SchemaProbe'
 
 type Inbox = {
   id: string; client_id: string; company_name: string | null; email: string
@@ -294,6 +295,10 @@ export default function VidaEnginePage() {
           OUTSIDE the `{e && …}` block for the same reason as the import panel: neither
           depends on the engine snapshot, and a control that is missing while the page loads
           is a control you cannot find when you need it (#564). */}
+      {/* #558 — mounted directly above the house-client card and near the migrations
+          control on purpose: its ledger count is what tells you whether "Run migrations" is
+          safe to press, and the pairing is the whole point. */}
+      <SchemaProbe />
       <HouseClient onDone={load} />
       <AddMailbox secretKeySet={e?.secret_key_set} onSaved={load} />
       <ImportLeads />

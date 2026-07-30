@@ -172,21 +172,42 @@ describe('② the columns nothing in the repo declares are pinned', () => {
     expect(read('apps/api/src/lib/schema-drift.ts')).toContain('never "no undeclared columns"')
   })
 
-  it('every undeclared column has a copy-pasteable query in the doc', () => {
-    // A finding with no next action is a finding that sits there. Each one gets the exact
-    // read-only SQL that settles it.
+  it('every undeclared column has a NEXT ACTION in the doc, not just a verdict', () => {
+    // A finding with no next action is a finding that sits there.
+    //
+    // ⚠️ REWRITTEN 30 Jul, and the reason is the point. This used to assert the doc contained
+    // specific SQL — and it passed while that SQL had NOWHERE TO RUN: the doc said "paste it
+    // into Vida → Engine → SQL", a screen that does not exist. A test bound to the presence
+    // of a query cannot tell whether the query is reachable. It is now bound to the ACTION,
+    // which is the thing that was actually missing.
     const doc = read('docs/SCHEMA-DRIFT.md')
     for (const t of Object.keys(undeclared)) expect(doc, t).toContain(t)
-    expect(doc).toContain("table_name='leads' and column_name='source'")
-    expect(doc).toContain("to_regclass('public.whatsapp_messages')")
-    expect(doc).toContain('information_schema.tables')
+    // Six are a button now …
+    expect(doc).toContain('Schema probe')
+    expect(doc).toContain('/vida/engine')
+    // … and the two that genuinely cannot be are marked blocked rather than dropped.
+    expect(doc).toContain('need a Postgres connection')
+    expect(doc).toContain('DATABASE_URL')
+  })
+
+  it('the doc does NOT send anyone to a screen that does not exist', () => {
+    // The only SQL path in the product is /operator/migrations/run, which executes reviewed
+    // constants and refuses anything else. There is no query runner, and saying there is
+    // turns a page of correct findings into a page of instructions nobody can follow.
+    const doc = read('docs/SCHEMA-DRIFT.md')
+    expect(doc).not.toMatch(/Engine\*\* → the SQL runner/)
+    expect(doc).not.toMatch(/paste (them )?into Vida → Engine → SQL/i)
   })
 
   it('the doc contains NO write to production', () => {
     // The prompt's hard rule and the right one: every query on that page is read-only, and
     // the one ALTER it mentions is explicitly called out as not-in-this-PR.
+    // WAS `>= 8`. Six of the eight became a button on 30 Jul (there was never a SQL runner
+    // to paste them into), so only the two that genuinely need a Postgres connection remain
+    // as SQL. The count is not the property worth guarding — that they are all SELECTs is,
+    // and that the two blocked ones are still NAMED is asserted separately above.
     const fences = [...read('docs/SCHEMA-DRIFT.md').matchAll(/```sql\n([\s\S]*?)```/g)].map(m => m[1])
-    expect(fences.length).toBeGreaterThanOrEqual(8)
+    expect(fences.length).toBeGreaterThanOrEqual(2)
     for (const q of fences) {
       expect(q.trim().toLowerCase().startsWith('select'), `not a SELECT: ${q.trim().slice(0, 60)}`).toBe(true)
       expect(q).not.toMatch(/\b(insert|update|delete|drop|alter|truncate|grant)\b/i)

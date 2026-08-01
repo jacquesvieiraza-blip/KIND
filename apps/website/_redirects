@@ -25,8 +25,6 @@
 
 # Nexus is the per-client learning brain: built, default-OFF and fenced (V2-TRACKER).
 # Selling it on the site is ahead of the product.
-/nexus            /milla        301
-/nexus.html       /milla        301
 
 # A status page with NOTHING monitoring production (#199 — the health probe exists and no
 # monitor points at it). A status page that cannot tell the truth is worse than none.

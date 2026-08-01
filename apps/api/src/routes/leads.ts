@@ -591,6 +591,139 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
   } catch (err) { console.error('[leads/coaching-brief]', err); res.status(500).json({ success: false, error: 'Failed to build the brief' }) }
 })
 
+// ── YOUR LEADS — what the client's own outcomes say (Coaching v2) ─────────────────────
+//
+// The tab no competitor can build: it runs on the approve/pass signal, the replies and the
+// bookings, and we only hold those because we sourced the leads and sent the mail.
+//
+// ⚠️ THE ARITHMETIC IS IN `lib/lead-patterns.ts`, PURE, AND NOT IN A MODEL. A model asked to
+// find a pattern finds one every time, including in noise, and phrases it with identical
+// confidence either way. Every threshold and every refusal is code that can be red-proved.
+// This route only fetches and hands over.
+//
+// Read-only. Nothing here spends money, sources anybody, or writes to a lead.
+leadRouter.get('/patterns', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { winningShape, approvalPattern, replyTrend } = await import('../lib/lead-patterns')
+
+    // Paged past the PostgREST 1000-row cap: a client who has worked a long desk is exactly
+    // the one with a pattern worth reading, and truncating them would answer from the oldest
+    // thousand leads while claiming to answer from all of them.
+    const leadRows: Record<string, unknown>[] = []
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await db.from('leads')
+        .select('id, job_title, industry, company_size, country, seniority, revealed_at, passed_at')
+        .eq('client_id', clientId).order('id', { ascending: true }).range(from, from + 999)
+      if (error) throw new Error(`leads: ${error.message}`)
+      const rows = (data ?? []) as Record<string, unknown>[]
+      leadRows.push(...rows)
+      if (rows.length < 1000) break
+    }
+
+    const ids = leadRows.map(l => l.id as string)
+    const chunk = <T,>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.length / n) }, (_, i) => xs.slice(i * n, i * n + n))
+    const contacted = new Set<string>(), replied = new Set<string>(), booked = new Set<string>()
+
+    for (const part of chunk(ids, 200)) {
+      if (part.length === 0) continue
+      const [sent, reps, books] = await Promise.all([
+        db.from('figsy_sent_emails').select('lead_id').in('lead_id', part),
+        db.from('figsy_replies').select('lead_id').eq('client_id', clientId).in('lead_id', part),
+        db.from('calendar_bookings').select('lead_id').eq('client_id', clientId).in('lead_id', part),
+      ])
+      // A read failure here would quietly shrink the winner population and change the answer,
+      // so it aborts rather than reporting a pattern computed from a partial picture (#349).
+      for (const [r, label] of [[sent, 'sends'], [reps, 'replies'], [books, 'bookings']] as const) {
+        if (r.error) throw new Error(`${label}: ${r.error.message}`)
+      }
+      for (const r of (sent.data ?? []) as { lead_id: string }[]) contacted.add(r.lead_id)
+      for (const r of (reps.data ?? []) as { lead_id: string }[]) replied.add(r.lead_id)
+      for (const r of (books.data ?? []) as { lead_id: string }[]) booked.add(r.lead_id)
+    }
+
+    const facts = leadRows.map(l => ({
+      job_title: l.job_title as string | null, industry: l.industry as string | null,
+      company_size: l.company_size as string | null, country: l.country as string | null,
+      seniority: l.seniority as string | null,
+      approved: l.revealed_at != null, passed: l.passed_at != null,
+      contacted: contacted.has(l.id as string),
+      replied: replied.has(l.id as string), booked: booked.has(l.id as string),
+    }))
+
+    // Two 30-day windows for the trend. `opened_at` is the split that separates "not landing"
+    // from "landing and being ignored" — two problems with opposite fixes.
+    const now = Date.now()
+    const at = (daysAgo: number) => new Date(now - daysAgo * 864e5).toISOString()
+    const windowCounts = async (fromIso: string, toIso: string) => {
+      const { data, error } = await db.from('figsy_sent_emails')
+        .select('lead_id, opened_at, leads!inner(client_id)')
+        .eq('leads.client_id', clientId).gte('sent_at', fromIso).lt('sent_at', toIso)
+      if (error) throw new Error(`send window: ${error.message}`)
+      const rows = (data ?? []) as { lead_id: string; opened_at: string | null }[]
+      return {
+        sends: rows.length,
+        opens: rows.filter(r => r.opened_at != null).length,
+        replies: rows.filter(r => replied.has(r.lead_id)).length,
+      }
+    }
+    const [recent, prior] = await Promise.all([
+      windowCounts(at(30), at(0)),
+      windowCounts(at(60), at(30)),
+    ])
+
+    res.json({ success: true, data: {
+      shape: winningShape(facts),
+      approvals: approvalPattern(facts),
+      trend: replyTrend(recent, prior),
+      totals: { leads: facts.length, contacted: contacted.size, replied: replied.size, booked: booked.size },
+      generated_at: new Date().toISOString(),
+    } })
+  } catch (err) {
+    console.error('[leads/patterns]', err)
+    // A failed read must reach the UI as an ERROR. An empty result would render as "no
+    // pattern yet", which is the one thing this tab must never say when it simply could not
+    // look (#565).
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not read your results' })
+  }
+})
+
+// "Find me more of the ones that worked" — REQUESTS a sourcing run, never triggers one.
+//
+// ⚠️ Sourcing spends OUR PDL budget against a monthly fence, and the model is managed. A
+// client button that quietly spends our money is the wrong shape whatever the label says. So
+// this writes into `client_messages`, the thread the client already uses to reach us, which
+// an operator already reads in the admin app. No new table, no new mechanism, no spend.
+leadRouter.post('/patterns/request-more', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { sourcingRequest } = await import('../lib/lead-patterns')
+    const body = (req.body ?? {}) as { shape?: unknown }
+    const s = body.shape as { winners?: number; silent?: number; traits?: unknown[]; nothingStandsOut?: boolean } | undefined
+    if (!s || typeof s.winners !== 'number') {
+      res.status(400).json({ success: false, error: 'Run the analysis first — there is nothing to ask for yet.' }); return
+    }
+
+    const content = sourcingRequest({
+      winners: s.winners, silent: typeof s.silent === 'number' ? s.silent : 0,
+      traits: (Array.isArray(s.traits) ? s.traits : []) as never,
+      nothingStandsOut: s.nothingStandsOut === true,
+    })
+    const { error } = await db.from('client_messages')
+      .insert({ client_id: clientId, content, sender_type: 'client' })
+    if (error) { res.status(500).json({ success: false, error: `We could not send that request: ${error.message}` }); return }
+
+    res.json({ success: true, data: { sent: true } })
+  } catch (err) {
+    console.error('[leads/patterns-request]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not send that request' })
+  }
+})
+
 leadRouter.get('/meetings', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)

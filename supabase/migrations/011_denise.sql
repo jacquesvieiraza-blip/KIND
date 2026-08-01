@@ -1,0 +1,61 @@
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- CONSOLIDATED HERE 31 Jul 2026 (#273) — original: packages/db/src/migrations/011_denise.sql
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- The SQL below this header is BYTE-IDENTICAL to the original. Nothing was rewritten,
+-- reordered or "fixed" on the way in: a migration that has (or has not) been applied to
+-- production is a historical fact, and editing it while copying would destroy the only
+-- record of what was actually run.
+--
+-- The original file still exists and carries a tombstone header pointing here. A test
+-- (`migration-home.test.ts`) asserts the two bodies stay identical, so editing one copy
+-- without the other fails the gate — which is the duplication risk turned into a guard.
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- Denise — The Closer (AI Account Executive) — migration 011
+-- Safe to re-run. Adds 'denise' as a sellable subscription product and a table
+-- to persist the drafts (follow-ups + proposals) Denise generates for clients.
+
+-- ─────────────────────────────────────────────
+-- 1. Allow 'denise' as a subscription product
+--    (the inline check from schema.sql only allowed lead_gen / lead_gen_figsy
+--     / virtual_assistant / chatbot)
+-- ─────────────────────────────────────────────
+alter table public.subscriptions
+  drop constraint if exists subscriptions_product_check;
+
+alter table public.subscriptions
+  add constraint subscriptions_product_check
+  check (product in (
+    'lead_gen', 'lead_gen_figsy', 'figsy_addon',
+    'virtual_assistant', 'chatbot', 'denise', 'denise_addon'
+  ));
+
+-- ─────────────────────────────────────────────
+-- 2. Denise drafts — every follow-up / proposal she writes for a client
+-- ─────────────────────────────────────────────
+create table if not exists public.denise_drafts (
+  id           uuid        primary key default gen_random_uuid(),
+  client_id    uuid        not null references public.clients(id) on delete cascade,
+  kind         text        not null check (kind in ('follow_up', 'proposal')),
+  -- the structured input the client gave Denise (prospect/company/call summary)
+  input        jsonb       not null default '{}'::jsonb,
+  -- the draft Denise produced
+  output       text        not null,
+  created_at   timestamptz not null default now()
+);
+
+create index if not exists idx_denise_drafts_client_id on public.denise_drafts(client_id);
+create index if not exists idx_denise_drafts_created_at on public.denise_drafts(created_at desc);
+
+alter table public.denise_drafts enable row level security;
+
+-- Clients can read their own drafts
+drop policy if exists denise_drafts_client_read on public.denise_drafts;
+create policy denise_drafts_client_read
+  on public.denise_drafts for select
+  using (client_id in (select id from public.clients where user_id = auth.uid()));
+
+-- Service role full access (the API writes drafts on the client's behalf)
+drop policy if exists denise_drafts_service_all on public.denise_drafts;
+create policy denise_drafts_service_all
+  on public.denise_drafts for all to service_role using (true) with check (true);

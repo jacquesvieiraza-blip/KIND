@@ -4,7 +4,7 @@
 // asks production what its policies actually ARE, rather than what the repo believes.
 //
 // That distinction is the whole point of the item. This repo has THREE migration directories
-// (`supabase/migrations/`, `packages/db/src/migrations/`, `apps/api/src/migrations/`) plus
+// (three until #273 consolidated them into `supabase/migrations/` on 31 Jul) plus
 // two whole-schema snapshots that disagree with each other, and #558 is the standing finding
 // that none of them describes the live database. A security audit that reports what a file
 // says is worth nothing.

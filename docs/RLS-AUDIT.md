@@ -14,6 +14,7 @@ production.
 
 There are **three separate migration directories** — `supabase/migrations/`,
 `packages/db/src/migrations/`, `apps/api/src/migrations/` — plus two whole-schema snapshots
+> **✅ 31 Jul (#273): the three directories are now ONE — `supabase/migrations/`.** The other two are tombstoned (kept, not deleted). File paths in this doc point at the canonical home; the two-snapshot problem is unchanged and lives in [`SCHEMA-DRIFT.md`](./SCHEMA-DRIFT.md).
 (`supabase/MASTER_SCHEMA.sql`, `supabase/staging-schema.sql`) that disagree with each other
 and with both. **#558 is the standing finding that the repo no longer describes the live
 database**: `subscriptions.status` is an enum in production and a `text`+CHECK in
@@ -97,10 +98,10 @@ is a **staging** snapshot. So unless someone removed them by hand, they are live
 | Table | Created by | What it holds |
 |---|---|---|
 | `lead_enrichment` | `supabase/migrations/20260527_lead_enrichment.sql` | **enrichment data on real people** — the closest thing here to `visitor_sessions` |
-| `partner_commissions` | `packages/db/src/migrations/005_partners.sql` | **what each partner is owed** |
-| `partner_referrals` | `packages/db/src/migrations/005_partners.sql` | who referred whom |
-| `partners` | `packages/db/src/migrations/005_partners.sql` | partner names and emails |
-| `figsy_calls` | `packages/db/src/migrations/006_voice_calls.sql` | call records |
+| `partner_commissions` | `supabase/migrations/005_partners.sql` | **what each partner is owed** |
+| `partner_referrals` | `supabase/migrations/005_partners.sql` | who referred whom |
+| `partners` | `supabase/migrations/005_partners.sql` | partner names and emails |
+| `figsy_calls` | `supabase/migrations/006_voice_calls.sql` | call records |
 | `webhook_triggers` | `supabase/MASTER_SCHEMA.sql` | *(snapshot only — may never have been applied)* |
 
 **Closed by `20260727_rls_close_public_policies`** (idempotent; run from Vida → Engine).

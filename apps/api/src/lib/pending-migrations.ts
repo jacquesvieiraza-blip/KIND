@@ -132,7 +132,7 @@ CREATE INDEX IF NOT EXISTS error_events_created_at_idx ON public.error_events(cr
     // cannot be run from Vida:
     //
     //   • `copilot_mode`        — supabase/migrations/20260531_copilot_mode.sql
-    //   • `approve_before_send` — apps/api/src/migrations/20260602_human_in_loop.sql, and
+    //   • `approve_before_send` — supabase/migrations/20260602_human_in_loop.sql, and
     //     also 20260603_schema_reconcile.sql, which carries a DO-NOT-RUN warning because
     //     re-running it would drop the hand-widened wallet constraint (#558) and break every
     //     wallet transaction. So the reconcile file is NOT the way to get this column.
@@ -227,7 +227,7 @@ end $$;
     //     plain, and ciphertext should never have been fetchable either.
     //
     //   ② app_migrations_applied — RLS OFF. Created as a side effect by
-    //     `apps/api/src/migrations/20260724_one_wallet.sql` via CREATE TABLE IF NOT EXISTS,
+    //     `supabase/migrations/20260724_one_wallet.sql` via CREATE TABLE IF NOT EXISTS,
     //     so it never went through any review that would have asked about RLS. Low
     //     sensitivity (migration keys), but it is internal bookkeeping and there is no
     //     reason for a browser to read it.

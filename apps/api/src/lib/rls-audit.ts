@@ -7,8 +7,8 @@
 // surface is five times bigger than the row claimed).
 //
 // But a verdict read off those files is a verdict about FILES. This repo has three separate
-// migration directories — `supabase/migrations/`, `packages/db/src/migrations/` and
-// `apps/api/src/migrations/` — plus two whole-schema snapshots that disagree with each
+// migration directories — consolidated into `supabase/migrations/` on 31 Jul (#273), the
+// other two tombstoned — plus two whole-schema snapshots that disagree with each
 // other, and #558 is the standing finding that the repo no longer describes the live
 // database. `subscriptions.status` is an enum in production and a text+CHECK in
 // `schema.sql`; `copilot_mode` was missing in production while the checklist showed green.

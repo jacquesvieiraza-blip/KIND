@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢92 · 🩷215 · 🟣2 · 🟡63 · 🔴202 · ⏸5 · **Σ579** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢92 · 🩷215 · 🟣2 · 🟡64 · 🔴202 · ⏸5 · **Σ580** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -46,11 +46,13 @@
 
 **Environment blockers, one root cause — the flagged GitHub account:**
 
-- **CI has never run.** All five workflows registered and `active`, **0 runs ever** (checked 27 Jul). `scripts/check.sh` is not a belt over CI — **it IS the only gate.**
+- **CI has never run.** All five workflows registered and `active`, **0 runs ever** — re-confirmed against the GitHub API on **1 Aug** (`doc-lint.yml` 0 · `test.yml` 0 · `inventory-autoflip.yml` 0). `scripts/check.sh` is not a belt over CI — **it IS the only gate.** *(1 Aug: `DOC-MAP.md` was still telling readers CI ran doc-lint on every docs PR — corrected in #602.)*
 - **Supabase dashboard unreachable.** Blocks the restore drill (#298), the Postgres password rotation, and forces every migration through Vida → Engine.
 - **`DATABASE_URL` is mangled** (a placeholder ref was pasted in). Breaks *Run migrations*, *RLS audit*, *Backup manifest*. **Nothing client-facing.** The error now names the right value.
 
 **Verified live in production on 27 Jul, not claimed:** RLS clean (82 tables read, no exposed tables · `client_inboxes` had **no RLS at all** and now does) · cron single-run guard in place · seed report reads MBF and K.I.N.D as protected, ACME eligible · 12/12 migrations applied.
+
+**⏸ WAITING ON THE FOUNDER — the doc audit (#602, 1 Aug).** All 579 inventory rows and 90 docs were audited and the deliverable is a **report, not a purge**: `docs/reports/PRODUCT-AUDIT-1AUG.md`. **57 items are flagged and NOT ONE was touched** — nothing removed, re-scoped, archived or re-dotted. It ends in a **13-line decision list** and nothing moves until those are ruled on. The two worth reading first: **#397** says `lib/hubspot.ts` is *"never called"* and offers *"wire or delete"*, but it is imported by `reply-pipeline.ts:34` and `internal.ts:24` — the cheap branch deletes live reply-path code; and **`trialing` is still a real state in production** (`auth.ts:191` on every signup, two crons daily at `cron.ts:281/290`) under a model whose only door is the $99 pack. The biggest single group is the **#420 family — 9 rows still marked M0 CRITICAL** describing the 8 Jul two-wallet price ladder that ONE WALLET superseded on 24 Jul.
 
 **So: the demo is sellable today. Delivery needs a mailbox, the ladder, and the bill.**
 

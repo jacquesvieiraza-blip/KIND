@@ -10,14 +10,20 @@
 
 | | Files | Lines | Share |
 |---|---:|---:|---:|
-| **CORE — reachable from an entry point** | **242** | **56,854** | **47%** |
-| FENCED — `.ts`/`.tsx` not reachable | 180 | 36,193 | 30% |
-| *(remainder: `.sql`, `.html`, and test files)* | 130 | 28,807 | 24% |
-| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 552 | **121,854** | 100% |
+| **CORE — reachable from an entry point** | **254** | **61,113** | **46%** |
+| FENCED — `.ts`/`.tsx` not reachable | 182 | 36,662 | 28% |
+| *(remainder: `.sql`, `.html`, and test files)* | 158 | 35,405 | 27% |
+| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 594 | **133,180** | 100% |
 
 **REASON FOR THIS REGENERATION, stated out loud because rule 1 below requires it — and because the first version of this update did not state it, which the founder caught.** Prompts 5–7 added code to the operational core: the RLS audit and its live reader, the backup manifest and its live reader, the constraint reader, the seed-wipe classification, the cron single-run guard, the PDL cursor, the subscription status + lapse logic, the Smartlead integration (map · network · hand-off) and the reply routing. Every one is reachable from a real entry point, so every one belongs inside the fence and inside the audit denominator. **Leaving the map stale would have fenced out the work of three prompts** — exactly the failure recorded in the ⚠️ note above, where the map fenced out the instruments it shipped beside.
 
 *Regenerated 27 Jul — `python3 scripts/build-core-map.py`, 57 seeds, **0 unresolved imports**, manifest rewritten in place.*
+
+*Regenerated **1 Aug** (doc audit) — same command, **58 seeds**, **0 unresolved imports**: `core files: 254 | core lines: 61113`. **The paragraphs below this line describe the 27 Jul regeneration and are kept as its record — the table above is the current count.***
+
+**REASON FOR THE 1 AUG REGENERATION.** No new decision — the map had simply gone stale by five days of building, and the audit found the doc (242) and the manifest on disk (247) disagreeing with each other *and* with the generator (254). Three numbers for one fact is the failure rule 1 exists to prevent, so both were rewritten from the script rather than reconciled by hand. The 12 new core files are the CSV lead importer, the house-client builder, the env scanner, the schema-drift map, the schema prober, the lead-pattern engine and the Vida surfaces that reach them — every one reachable from a real entry point.
+
+⚠️ **The repo total moved 552 → 594 and that is real growth, not a method change** — unlike the 26 Jul → 27 Jul move recorded below. Verified by replaying the same walk at the commit that wrote the old figure: `git ls-tree -r --name-only ffcb7767 -- apps packages` filtered to `.ts/.tsx/.sql/.html` outside `node_modules`/`dist`/`.next` returns **exactly 552**, and at HEAD it returns **594**. The method is unchanged; the repo grew.
 
 **The core GREW by 21 files and 5,384 lines this session**, and that is the map working rather than a problem: Prompts 5–7 added the RLS audit, the backup manifest, the seed report, the cron guard, the Smartlead integration and the reply routing — every one of them reachable from a real entry point, so every one of them is now inside the fence and inside the audit denominator.
 

@@ -3,6 +3,13 @@
 
 > The **single ledger of every external tool/vendor we run on** — so none goes missing (the "Zoho Mail wasn't logged" lesson, 22 Jun). Reference register, not a tracker (no status dots). **Seeds the Notion → Command Centre → "Tools" page (item 204).** Update whenever a tool is added/changed.
 
+> ## 🚨 STALE — THE SENDING ARCHITECTURE BELOW IS OUT OF DATE (flagged 1 Aug, doc audit)
+> **Three places in this register — the ⚙️ THE ENGINE line below, the Smartlead row in the vendor table, and the ⚙️ THE ENGINE row in the summary — still say *"Smartlead = THE ENGINE, the product's deliverability foundation"*, a decision taken 23 Jun.**
+>
+> **That is not the architecture.** #577 was **founder-locked 26 Jul** and amended 30 Jul, settled by two vendor answers in writing: *our product gives the orders, the vendors drive the van.* Instantly runs our own outreach (Client Zero); client sending is assigned per client. Smartlead is one vendor under that model, not the foundation of it.
+>
+> **Flagged, not rewritten** — this audit reports, it does not re-decide. Choosing the replacement wording is an architecture statement and belongs to the founder. **Until it is rewritten, read #577 in `PRODUCT-INVENTORY.md`, not the three lines below.** A vendor register that names the wrong engine is exactly the doc someone quotes in a client conversation.
+
 ## ✉️ EMAIL ARCHITECTURE — the part that's easy to get wrong
 Two **separate** systems, do not conflate:
 > ⚠️ **CORRECTED 23 Jun** — the earlier version of this section was wrong (it said Zoho receives the cold replies). The truth, verified in code:

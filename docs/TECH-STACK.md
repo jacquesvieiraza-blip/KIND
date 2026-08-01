@@ -34,19 +34,29 @@ Two **separate** systems, do not conflate:
 
 **Applied truth (what the DB actually is):** the live/staging Supabase database. `supabase/staging-schema.sql` is a **consolidated, idempotent snapshot** (generated 2026-06-12) that rebuilds a fresh Supabase project in one paste — use it as the diff baseline, but note it predates every migration dated after 2026-06-12.
 
-**Canonical dir going forward = `supabase/migrations/`.** It is the Supabase-CLI-convention folder, the most complete (60 files), and the only one still receiving new work (dated through 2026-07-02, incl. RLS, RPCs, billing-correctness). New migrations go here.
+**One home: `supabase/migrations/` — 127 files (#273, 31 Jul 2026).** The three-directory split is gone. Nothing was deleted (CORE-MAP rule 3): the other two are **tombstoned**, each file carrying a header pointing at its canonical copy, each directory a README explaining why it is there.
 
 | Folder | Role | Rule |
 |--------|------|------|
-| **`supabase/migrations/`** | **CANONICAL.** Date-prefixed (`YYYYMMDD_*.sql`), current, actively maintained. | All new migrations land here. |
-| `packages/db/src/migrations/` | **Legacy.** Numbered `001`–`013`, seeded the original core tables (figsy_*, milla_*, vida_*, denise_*, partners). Superseded for new work. | Keep (historical/applied); don't add to. |
-| `apps/api/src/migrations/` | **App-run set.** 7 files (2026-06-02 → 06-22). Hand-applied, tracked separately from the canonical dir. | Fold future changes into `supabase/migrations/`. |
+| **`supabase/migrations/`** | **THE home.** 127 files — the 94 already here, 32 consolidated in, 1 recovered from the runner. | Every migration lands here. |
+| `packages/db/src/migrations/` | 🪦 **Tombstoned.** 13 files, numbered `001`–`013`, the oldest set (figsy_*, milla_*, vida_*, denise_*, partners). ⚠️ **#554c found most of these tables were probably never created in production at all.** | Do not add. Do not edit. |
+| `apps/api/src/migrations/` | 🪦 **Tombstoned.** 19 files. | Do not add. Do not edit. |
 
-**Known discrepancies (as of 3 Jul 2026):**
-- **7 tables live ONLY in `apps/api/src/migrations/`** and are absent from `supabase/migrations/`: `calendar_bookings`, `figsy_chat_messages`, `figsy_approval_queue`, `figsy_linkedin_queue`, `push_subscriptions`, `outcome_events`, `webhook_endpoints`.
-- **`webhook_endpoints` is FLAGGED as not-yet-applied to the live DB** — see the note in `apps/api/src/routes/developer.ts` (`20260622_webhook_endpoints.sql`). Those routes degrade gracefully until it is run.
-- **`calendar_bookings`** is defined in **two** dirs (`packages/db/.../007_calendar.sql` and `apps/api/.../20260602_calendar_bookings.sql`) but not in the canonical dir.
-- **No exact-content duplicate files** exist across the three folders (verified by md5) — the overlaps are same-table / different-file, not literal copies.
+⚠️ **This row said "7 files" and there were 19.** A doc describing a directory that had almost tripled is how a stale mental model survives — it is the small version of the same defect #558 records at scale.
+
+**⚠️ Recording a migration and RUNNING one are two different acts.** Nothing applies this directory. There is no `supabase/config.toml`, so the Supabase CLI was never wired up, and the Supabase SQL editor is unreachable (flagged account). The only mechanism the product has is **`PENDING_MIGRATIONS`** in `apps/api/src/lib/pending-migrations.ts` — a TypeScript constant, deliberately not read from disk (`.sql` files are not copied into `dist/` by `tsc`). Vida → Engine → **Run migrations** executes that constant.
+
+| I want to… | Change |
+|---|---|
+| record a migration | `supabase/migrations/` |
+| make the product **run** it | `apps/api/src/lib/pending-migrations.ts` |
+
+Do **both** for anything that must reach production. `migration-home.test.ts` fails the gate if a runner entry has no canonical file, or if a tombstoned copy drifts from its canonical one.
+
+**Known state (31 Jul 2026):**
+- **One migration had no file at all.** `20260726_campaign_copilot_columns` existed only as a string inside `pending-migrations.ts` — the product could apply it to production while nothing in the migration record said it existed. Recovered verbatim.
+- **`webhook_endpoints` is still FLAGGED as not-yet-applied** to the live DB — see `apps/api/src/routes/developer.ts`. Those routes degrade gracefully until it runs.
+- **Which of the 127 production actually has is unknown**, and consolidating does not answer it — the three sets were hand-pasted over months in an unrecorded order. See **[`SCHEMA-DRIFT.md`](./SCHEMA-DRIFT.md)**, and Vida → Engine → **Schema probe (#558)** for the six questions that can be answered live.
 
 ## 🏢 BUSINESS / OPS STACK (the company layer)
 | Tool | Role | Status |

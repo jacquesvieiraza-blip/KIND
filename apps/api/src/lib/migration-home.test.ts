@@ -1,0 +1,177 @@
+import { describe, it, expect } from 'vitest'
+import { readFileSync, readdirSync } from 'fs'
+import { join } from 'path'
+
+// #273 — ONE HOME FOR MIGRATIONS, AND A GUARD THAT KEEPS IT ONE.
+//
+// There were three migration directories — `supabase/migrations` (94 files),
+// `apps/api/src/migrations` (19) and `packages/db/src/migrations` (13) — and **not one file
+// was in more than one of them**. So "where is the migration that created this table?"
+// depended on which directory you happened to open first, with nothing to tell you there
+// were two more. Every file now has a canonical copy in `supabase/migrations`.
+//
+// ── THE PREMISE THAT HAD TO BE CORRECTED FIRST ───────────────────────────────────────────
+//
+// #273 says to make `supabase/migrations` canonical "because it is what Vida → Engine runs".
+// **It is not.** Reading `operator.ts` → `runPendingMigrations` shows the runner executes
+// `PENDING_MIGRATIONS`, a TypeScript constant, and `pending-migrations.ts` says explicitly
+// why: `.sql` files are not copied into `dist/` by tsc, so a file read would work locally
+// and fail in production. **No directory has ever been applied to anything.** Two of the
+// runner's own twelve entries had their file in `apps/api/src/migrations`, so the premise
+// was not even true of the runner's contents.
+//
+// That makes RECORDING a migration and RUNNING one two different acts, and this file guards
+// the seam between them:
+//
+//   ① every runner entry has a canonical FILE — because one did not, and a statement the
+//      product can apply to production that no file describes is #558 in its purest form;
+//   ② a tombstoned original and its canonical copy stay byte-identical — because copying
+//      creates two files that can drift, and an unguarded copy is the disease, not the cure.
+
+const REPO = join(__dirname, '../../../..')
+const CANON = 'supabase/migrations'
+const TOMBSTONED = ['apps/api/src/migrations', 'packages/db/src/migrations']
+
+const sqlFiles = (dir: string) =>
+  readdirSync(join(REPO, dir)).filter(f => f.endsWith('.sql')).sort()
+const read = (dir: string, name: string) => readFileSync(join(REPO, dir, name), 'utf8')
+
+/** Everything after a leading `--` comment block: the SQL a database would actually see. */
+function body(text: string): string {
+  const lines = text.split('\n')
+  let i = 0
+  while (i < lines.length && (lines[i].trim().startsWith('--') || lines[i].trim() === '')) i++
+  return lines.slice(i).join('\n').trim()
+}
+
+const runnerKeys = (() => {
+  const src = readFileSync(join(REPO, 'apps/api/src/lib/pending-migrations.ts'), 'utf8')
+  return (src.match(/key:\s*'([^']+)'/g) ?? []).map(m => m.slice(m.indexOf("'") + 1, -1))
+})()
+
+describe('① every migration has a canonical file', () => {
+  it('the two other directories add nothing the canonical one lacks', () => {
+    // THE ASSERTION THIS FILE EXISTS FOR. Drop a new .sql into either stale directory and
+    // the gate goes red until it also exists in the one place people look.
+    const canon = new Set(sqlFiles(CANON))
+    const orphans = TOMBSTONED.flatMap(d => sqlFiles(d).filter(f => !canon.has(f)).map(f => `${d}/${f}`))
+    expect(orphans, `not in ${CANON}: ${orphans.join(', ')}`).toEqual([])
+  })
+
+  it('every entry the runner can apply has a file — one did not', () => {
+    // `20260726_campaign_copilot_columns` existed ONLY as a template string inside
+    // pending-migrations.ts. The product could apply it to production while nothing in the
+    // migration record said it existed. Recovered from the constant, verbatim.
+    const canon = new Set(sqlFiles(CANON))
+    const fileless = runnerKeys.filter(k => !canon.has(`${k}.sql`))
+    expect(fileless, `runner entries with no file in ${CANON}: ${fileless.join(', ')}`).toEqual([])
+    expect(runnerKeys).toHaveLength(12)
+  })
+
+  it('the recovered one says where it came from, and that the constant still rules', () => {
+    const f = read(CANON, '20260726_campaign_copilot_columns.sql')
+    expect(f).toContain('RECOVERED FROM THE RUNNER')
+    expect(f).toContain('copilot_mode')
+    expect(f).toContain('approve_before_send')
+  })
+})
+
+describe('② a copy that can drift is the disease, not the cure', () => {
+  it('every tombstoned file is byte-identical to its canonical copy', () => {
+    // Consolidating by COPY leaves two files that can drift — which is exactly the problem
+    // #273 is about. This turns that risk into a guard: edit one without the other and the
+    // gate fails, naming the pair.
+    const drifted: string[] = []
+    for (const dir of TOMBSTONED) {
+      for (const name of sqlFiles(dir)) {
+        if (body(read(dir, name)) !== body(read(CANON, name))) drifted.push(`${dir}/${name}`)
+      }
+    }
+    expect(drifted, `body differs from the canonical copy: ${drifted.join(', ')}`).toEqual([])
+  })
+
+  it('nothing was rewritten on the way in — 32 files moved, bodies untouched', () => {
+    const moved = TOMBSTONED.reduce((n, d) => n + sqlFiles(d).length, 0)
+    expect(moved).toBe(32)
+    // The canonical directory is the 94 that were there + 32 consolidated + 1 recovered.
+    expect(sqlFiles(CANON)).toHaveLength(127)
+  })
+
+  it('every consolidated file names its origin, and every original names its replacement', () => {
+    // A copy with no provenance is indistinguishable from a duplicate somebody made by
+    // accident — and the whole point is that you can trace it back.
+    for (const dir of TOMBSTONED) {
+      for (const name of sqlFiles(dir)) {
+        expect(read(CANON, name), `${CANON}/${name}`).toContain(`original: ${dir}/${name}`)
+        expect(read(dir, name), `${dir}/${name}`).toContain(`SUPERSEDED`)
+        expect(read(dir, name), `${dir}/${name}`).toContain(`supabase/migrations/${name}`)
+      }
+    }
+  })
+})
+
+describe('the READMEs say the thing that is easiest to get wrong', () => {
+  const readme = (dir: string) => readFileSync(join(REPO, dir, 'README.md'), 'utf8')
+
+  it('all three directories have one', () => {
+    for (const d of [CANON, ...TOMBSTONED]) expect(readme(d).length).toBeGreaterThan(400)
+  })
+
+  it('each stale one is marked historical and points at the canonical home', () => {
+    for (const d of TOMBSTONED) {
+      expect(readme(d)).toContain('do not add migrations here')
+      expect(readme(d)).toContain('supabase/migrations')
+      // Rule 3 is founder-locked and the reason these files still exist at all.
+      expect(readme(d)).toContain('nothing gets deleted')
+    }
+  })
+
+  it('all three say recording a migration is NOT running one', () => {
+    // The single most expensive misunderstanding available here: putting a file in the
+    // canonical directory and believing production will get it. Nothing reads the directory.
+    for (const d of [CANON, ...TOMBSTONED]) {
+      expect(readme(d), d).toContain('pending-migrations.ts')
+      expect(readme(d), d).toMatch(/TypeScript constant|the constant/)
+    }
+  })
+
+  it('the canonical README carries the #554c lesson that cost a production run', () => {
+    // DROP POLICY IF EXISTS guards the POLICY, not the TABLE — and one bad line rolls back
+    // the whole file, because node-postgres sends multi-statement SQL as one transaction.
+    const r = readme(CANON)
+    expect(r).toContain('guards the POLICY, not the TABLE')
+    expect(r).toContain('to_regclass')
+    // Case-insensitive on purpose. `expect(a) || expect(b)` does NOT work — expect THROWS on
+    // failure, so the right-hand side is dead code and only the first assertion runs. Written
+    // that way here first; caught by red-proving.
+    expect(r.toLowerCase()).toContain('idempotent')
+  })
+
+  it('the packages/db README carries its own warning — those tables may never have been created', () => {
+    // #554c's finding. Treating them as present is how a migration written against them
+    // fails in production.
+    const r = readme('packages/db/src/migrations')
+    expect(r).toContain('never created in production')
+    expect(r).toContain('unverified in production')
+    expect(r).toContain('#554c')
+  })
+})
+
+describe('the premise in #273 was wrong, and the correction is written down', () => {
+  it('the runner reads a constant, not a directory — asserted against the code', () => {
+    // If somebody ever DOES add a directory reader, this fails and the READMEs need
+    // rewriting — which is the correct outcome, not a nuisance.
+    const runner = readFileSync(join(REPO, 'apps/api/src/lib/pending-migrations.ts'), 'utf8')
+    expect(runner).toContain('NOT read from disk')
+    expect(runner).not.toMatch(/readdirSync|readFileSync\([^)]*migrations/)
+  })
+
+  it('two of the runner\'s twelve entries had their file OUTSIDE the canonical dir', () => {
+    // So "supabase/migrations is what Vida runs" was not even true of the runner's own
+    // contents. Both are canonical now; this pins that they stayed that way.
+    for (const k of ['20260726_inbox_smtp', '20260725_client_inboxes']) {
+      expect(sqlFiles(CANON)).toContain(`${k}.sql`)
+      expect(read(CANON, `${k}.sql`)).toContain('original: apps/api/src/migrations')
+    }
+  })
+})

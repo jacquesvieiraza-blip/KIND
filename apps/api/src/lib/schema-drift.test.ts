@@ -268,10 +268,20 @@ describe('the derivation itself', () => {
 })
 
 describe('the shape of the problem is recorded, so it cannot be re-discovered', () => {
-  it('126 migration files across three directories', () => {
+  it('127 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
+    // WAS "126 files across three directories". #273 consolidated on 31 Jul: the 32 files
+    // that lived only in the other two were copied in (bodies byte-identical, provenance
+    // headers added), and ONE more was recovered — `20260726_campaign_copilot_columns`
+    // existed only as a string in pending-migrations.ts, so the product could apply it to
+    // production while no file described it.
+    //
+    // The three directories still hold 159 files between them, because nothing was deleted
+    // (rule 3) — 127 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
+    // asserts each pair stays identical.
+    expect(sqlDir('supabase/migrations')).toHaveLength(127)
     const total = MIGRATION_DIRS.reduce((n, d) => n + sqlDir(d).length, 0)
-    expect(total).toBe(126)
-    expect(read('docs/SCHEMA-DRIFT.md')).toContain('126 migration files in three directories')
+    expect(total).toBe(159)
+    expect(read('docs/SCHEMA-DRIFT.md')).toContain('the three directories are now one home')
   })
 
   it('and one runner, which applies twelve of them', () => {

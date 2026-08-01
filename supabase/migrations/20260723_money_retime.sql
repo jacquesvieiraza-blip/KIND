@@ -1,0 +1,82 @@
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- CONSOLIDATED HERE 31 Jul 2026 (#273) — original: apps/api/src/migrations/20260723_money_retime.sql
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- The SQL below this header is BYTE-IDENTICAL to the original. Nothing was rewritten,
+-- reordered or "fixed" on the way in: a migration that has (or has not) been applied to
+-- production is a historical fact, and editing it while copying would destroy the only
+-- record of what was actually run.
+--
+-- The original file still exists and carries a tombstone header pointing here. A test
+-- (`migration-home.test.ts`) asserts the two bodies stay identical, so editing one copy
+-- without the other fails the gate — which is the duplication risk turned into a guard.
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+-- #492 — MONEY RE-TIME: $3 moves from client-approval to CONFIRMED BOOKING.
+--
+-- Locked model (founder, 23 Jul): the client's 👍 charges $1 (reveal) + HOLDS $3 (one
+-- FIGSY credit); the $3 is CAPTURED only when a meeting books; booked-then-no-show → up
+-- to 2 re-book attempts then the $3 is KEPT; never-books → the $3 is RELEASED; the $1 is
+-- never reversed; a 72h approval TTL then releases. Only the client's approval spends.
+--
+-- This migration adds the ledger state the code needs. It touches NO existing money RPC —
+-- the hold reuses the existing atomic try_charge_figsy_credit (take) and
+-- increment_figsy_credits (give back); credit_holds tracks the hold lifecycle so a hold
+-- can be captured or released exactly once.
+--
+-- Single-step, idempotent (IF NOT EXISTS throughout). Safe to re-run.
+
+-- ── credit_holds — one row per approved lead's held $3 ────────────────────────
+CREATE TABLE IF NOT EXISTS public.credit_holds (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id    uuid NOT NULL,
+  lead_id      uuid NOT NULL,
+  amount       integer NOT NULL DEFAULT 1,   -- 1 FIGSY credit == the $3 work charge
+  status       text NOT NULL DEFAULT 'held', -- held | captured | released
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  captured_at  timestamptz,
+  released_at  timestamptz
+);
+
+-- Honest status guard (idempotent add).
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'credit_holds_status_chk') THEN
+    ALTER TABLE public.credit_holds
+      ADD CONSTRAINT credit_holds_status_chk CHECK (status IN ('held','captured','released'));
+  END IF;
+END $$;
+
+-- At most ONE active (held) hold per (client, lead) — a double-approve can't double-hold.
+CREATE UNIQUE INDEX IF NOT EXISTS credit_holds_one_active
+  ON public.credit_holds (client_id, lead_id) WHERE status = 'held';
+CREATE INDEX IF NOT EXISTS credit_holds_lead_idx
+  ON public.credit_holds (lead_id, status);
+
+-- ── 72h approval TTL fields (enforcement wires in #488) ───────────────────────
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS surfaced_for_approval_at timestamptz;
+ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS approval_expires_at      timestamptz;
+
+-- ── no-show re-book counter (operator flow; max 2 before the $3 is kept) ───────
+ALTER TABLE public.calendar_bookings ADD COLUMN IF NOT EXISTS rebook_attempts integer NOT NULL DEFAULT 0;
+
+-- ── ledger types 'hold' + 'release' (else the hold/release rows are rejected) ──
+-- credit_transactions.type carries a CHECK (widened once before, 20260603). The new $3
+-- lifecycle writes type='hold' (−1, on approve) and type='release' (+1, never booked); a
+-- capture writes no new row (re-notes the hold). Without these two values the CHECK
+-- rejects the insert and the LEDGER silently diverges from the balance. Re-create the
+-- constraint with the full allowed set + the two new values. Idempotent.
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'credit_transactions_type_check') THEN
+    ALTER TABLE public.credit_transactions DROP CONSTRAINT credit_transactions_type_check;
+  END IF;
+END $$;
+
+ALTER TABLE public.credit_transactions
+  ADD CONSTRAINT credit_transactions_type_check
+  CHECK (type IN (
+    'purchase','credit_purchase',
+    'referral','referral_bonus',
+    'trial_bonus',
+    'consumed','usage',
+    'manual_grant','refund',
+    'hold','release'          -- #492 — the $3 hold / release lifecycle
+  ));

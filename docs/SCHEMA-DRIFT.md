@@ -8,14 +8,18 @@
 
 #558 says *"the migrations no longer describe the live database"* and gives one example (the `credit_transactions` type CHECK). The example is real, and it is a symptom of something larger:
 
-**The repo holds 126 migration files in three directories, and exactly one runner that applies twelve of them.**
+**The repo held 126 migration files in three directories, and exactly one runner that applies twelve of them.**
+
+> **✅ UPDATED 31 Jul (#273) — the three directories are now one home.** All 127 migrations live in **`supabase/migrations/`**; the other two are tombstoned, kept-not-deleted (rule 3), each file carrying a header pointing at its canonical copy and each directory a README. **One more was recovered in the process:** `20260726_campaign_copilot_columns` existed *only* as a string inside `pending-migrations.ts` — a statement the product could apply to production that **no file described**. The rest of this section is the finding as it stood, and the runner half of it is unchanged.
 
 | Directory | Files | Applied by |
 |---|--:|---|
-| `supabase/migrations` | 94 | nothing — there is **no `supabase/config.toml`**, so the Supabase CLI was never wired up |
-| `apps/api/src/migrations` | 19 | nothing |
-| `packages/db/src/migrations` | 13 | nothing |
+| **`supabase/migrations`** | **127** (94 + 32 consolidated + 1 recovered) | nothing — there is **no `supabase/config.toml`**, so the Supabase CLI was never wired up |
+| `apps/api/src/migrations` | 19 · 🪦 tombstoned | nothing, ever |
+| `packages/db/src/migrations` | 13 · 🪦 tombstoned | nothing, ever |
 | **`PENDING_MIGRATIONS`** (a TypeScript constant) | **12** | **Vida → Engine → Run migrations** — the only mechanism the product has |
+
+⚠️ **Consolidating fixes *where things live*, not *what production has*.** Recording a migration and running one are still two different acts: the runner reads the constant, never the directory.
 
 The other **114 were pasted into the Supabase SQL editor by hand**, in an unrecorded order, at unrecorded times, with no record of which ones took. That is the drift. **It is not that a column is wrong — it is that nothing in the repo knows what ran**, and now the editor that did the running cannot be opened.
 
@@ -76,8 +80,8 @@ Four migrations redefine `credit_transactions_type_check`, and they do not agree
 | Order | File | Types allowed | Runner |
 |--:|---|---|---|
 | 1 | `supabase/migrations/20260603_schema_reconcile.sql` | 9 base types | hand |
-| 2 | `apps/api/src/migrations/20260723_money_retime.sql` | + `hold`, `release` | hand |
-| 3 | `apps/api/src/migrations/20260724_one_wallet.sql` | + `wallet_topup/charge/reverse`, **keeps `hold`/`release`** *"so old rows validate"* | hand |
+| 2 | `apps/api/src/migrations/20260723_money_retime.sql` (now also `supabase/migrations/`) | + `hold`, `release` | hand |
+| 3 | `apps/api/src/migrations/20260724_one_wallet.sql` (now also `supabase/migrations/`) | + `wallet_topup/charge/reverse`, **keeps `hold`/`release`** *"so old rows validate"* | hand |
 | 4 | `supabase/migrations/20260726_wallet_tx_types.sql` | wallet types, **DROPS `hold`/`release`** | **`PENDING_MIGRATIONS`** ✅ |
 
 ⚠️ **Only #4 has a runner, and it is the one that removes `hold`/`release`.** `ALTER TABLE … ADD CONSTRAINT` **validates existing rows**, so if production holds a single `type='hold'` row — and #492's hold/release lifecycle was live before the one-wallet change — then pressing **Run migrations** in Vida **throws**, and #3's own comment says those rows were expected to exist. **Vida → Engine → Schema probe** answers it before you press the button — it counts those rows and says plainly whether Run migrations is safe.

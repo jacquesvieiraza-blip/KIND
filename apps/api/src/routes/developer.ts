@@ -105,7 +105,7 @@ router.delete('/keys/:id', requireAuth, async (req: AuthRequest, res) => {
 // lib/webhooks.ts deliverWebhooks() from the logOutcomeEvent chokepoint.
 //
 // NOTE: depends on the webhook_endpoints table — FLAGGED, not yet migrated on the
-// live DB (apps/api/src/migrations/20260622_webhook_endpoints.sql). Until that
+// live DB (supabase/migrations/20260622_webhook_endpoints.sql). Until that
 // migration runs these endpoints will return a 503-style error from the DB layer,
 // which the UI surfaces gracefully; delivery itself no-ops safely meanwhile.
 

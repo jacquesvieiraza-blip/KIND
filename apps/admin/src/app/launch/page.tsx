@@ -13,18 +13,23 @@ interface CheckItem {
 
 const SECTIONS: { title: string; items: CheckItem[] }[] = [
   {
+    // #273 (31 Jul) — every path below was rewritten to `supabase/migrations/`, the single
+    // home. The nine `001`–`009` files used to be listed under `packages/db/src/migrations/`;
+    // they are the same files, now at one address. ⚠️ This checklist predates Vida → Engine →
+    // Run migrations and describes pasting SQL into the Supabase dashboard — which is
+    // unreachable on this account. It is kept as the historical launch record.
     title: '1. Supabase — Migrations',
     items: [
       { id: 'sb-schema',      label: 'Run schema.sql',                            detail: 'packages/db/src/schema.sql → Supabase SQL Editor', critical: true },
-      { id: 'sb-001',         label: 'Run 001_icps_last_run_at.sql',               detail: 'packages/db/src/migrations/001_icps_last_run_at.sql', critical: true },
-      { id: 'sb-002',         label: 'Run 002_figsy.sql',                          detail: 'packages/db/src/migrations/002_figsy.sql', critical: true },
-      { id: 'sb-003',         label: 'Run 003_crm_integration.sql',                detail: 'packages/db/src/migrations/003_crm_integration.sql', critical: true },
-      { id: 'sb-004',         label: 'Run 004_figsy_crm_deal.sql',                 detail: 'packages/db/src/migrations/004_figsy_crm_deal.sql', critical: true },
-      { id: 'sb-005',         label: 'Run 005_partners.sql',                       detail: 'packages/db/src/migrations/005_partners.sql', critical: true },
-      { id: 'sb-006',         label: 'Run 006_voice_calls.sql',                    detail: 'packages/db/src/migrations/006_voice_calls.sql', critical: false },
-      { id: 'sb-007',         label: 'Run 007_calendar.sql',                       detail: 'packages/db/src/migrations/007_calendar.sql', critical: false },
-      { id: 'sb-008',         label: 'Run 008_milla.sql',                          detail: 'packages/db/src/migrations/008_milla.sql', critical: false },
-      { id: 'sb-009',         label: 'Run 009_vida.sql',                           detail: 'packages/db/src/migrations/009_vida.sql', critical: false },
+      { id: 'sb-001',         label: 'Run 001_icps_last_run_at.sql',               detail: 'supabase/migrations/001_icps_last_run_at.sql', critical: true },
+      { id: 'sb-002',         label: 'Run 002_figsy.sql',                          detail: 'supabase/migrations/002_figsy.sql', critical: true },
+      { id: 'sb-003',         label: 'Run 003_crm_integration.sql',                detail: 'supabase/migrations/003_crm_integration.sql', critical: true },
+      { id: 'sb-004',         label: 'Run 004_figsy_crm_deal.sql',                 detail: 'supabase/migrations/004_figsy_crm_deal.sql', critical: true },
+      { id: 'sb-005',         label: 'Run 005_partners.sql',                       detail: 'supabase/migrations/005_partners.sql', critical: true },
+      { id: 'sb-006',         label: 'Run 006_voice_calls.sql',                    detail: 'supabase/migrations/006_voice_calls.sql', critical: false },
+      { id: 'sb-007',         label: 'Run 007_calendar.sql',                       detail: 'supabase/migrations/007_calendar.sql', critical: false },
+      { id: 'sb-008',         label: 'Run 008_milla.sql',                          detail: 'supabase/migrations/008_milla.sql', critical: false },
+      { id: 'sb-009',         label: 'Run 009_vida.sql',                           detail: 'supabase/migrations/009_vida.sql', critical: false },
       { id: 'sb-credits',     label: 'Run 20260513_credit_transactions.sql',       detail: 'supabase/migrations/20260513_credit_transactions.sql', critical: true },
       { id: 'sb-referral',    label: 'Run 20260513_referral_credits.sql',          detail: 'supabase/migrations/20260513_referral_credits.sql', critical: true },
       { id: 'sb-terms',       label: 'Run 20260514_terms_acceptance.sql',          detail: 'supabase/migrations/20260514_terms_acceptance.sql', critical: true },

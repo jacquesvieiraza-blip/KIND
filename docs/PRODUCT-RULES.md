@@ -66,6 +66,7 @@
 | P9 | **If unsure, ask. Do not just build. Flag it.** | founder, standing |
 | P10 | **READ THE PATH END TO END. Do not grep and move on.** Grep can prove a thing exists; it can never prove a thing is **missing**. Before touching a path, read that whole file — not the function being edited. If grep was used, say so and say what it could not have shown. | founder, 26 Jul |
 | P11 | **Every prompt is answered with a CLAUSE TABLE — built before the work, reported after it.** See §5a. A prompt is never "done" without one. | founder, 26 Jul |
+| P12 | **🔒 THE WEBSITE DOES NOT CHANGE. EVER. Without the founder's explicit, clear command.** Verbatim: *"lock in the site does not change after this. without my command and clear command. if it in the future requires a website change you make it very clear then i approve."* Any future website change is (1) stated to the founder in plain words, (2) approved by him, and only then (3) built + `bash scripts/freeze-website.sh` rerun. **Enforced, not honorary:** `website-freeze.test.ts` hashes every file under `apps/website` against `scripts/website-freeze.json` and fails the gate on ANY drift — one whitespace character fails it. The rule exists because #560 shrank the site 28→12 pages under a launch-path item and the founder experienced his own website changing in ways he had not pictured (restored by #604). A red freeze test is the rule working — never regenerate the manifest to silence it. | **founder-locked 1 Aug (#605)** |
 
 ### 5a · THE CLAUSE TABLE — the rule that exists because I kept getting this wrong
 

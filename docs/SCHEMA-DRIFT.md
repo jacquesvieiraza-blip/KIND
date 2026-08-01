@@ -42,7 +42,7 @@ Writing *"agree"* where the truth is *"we cannot tell"* is the same failure as a
 
 I set that field in #599 after reading `routes/icps.ts:513`, which does write `source: 'pdl'` — **to `lead_pool`, a different table.** I read a column off the wrong table and carried it into a new write path. This sweep is what caught it.
 
-Both writers swallow the outcome. `vida.ts` destructures `{ data: row }` with no error check, so a missing column has been returning `leadId = null` silently; the CSV import checks its insert error, so it would report the failure — but only when somebody runs an import. **If the column does not exist, the CSV import (#600's whole point for Client Zero) fails on the first real Apollo file.** Query 1 below settles it in one paste.
+Both writers swallow the outcome. `vida.ts` destructures `{ data: row }` with no error check, so a missing column has been returning `leadId = null` silently; the CSV import checks its insert error, so it would report the failure — but only when somebody runs an import. **If the column does not exist, the CSV import (#600's whole point for Client Zero) fails on the first real Apollo file.** **Vida → Engine → Schema probe** settles it in one press.
 
 ### 2. `whatsapp_messages` — a table nothing in the repo creates
 
@@ -80,7 +80,7 @@ Four migrations redefine `credit_transactions_type_check`, and they do not agree
 | 3 | `apps/api/src/migrations/20260724_one_wallet.sql` | + `wallet_topup/charge/reverse`, **keeps `hold`/`release`** *"so old rows validate"* | hand |
 | 4 | `supabase/migrations/20260726_wallet_tx_types.sql` | wallet types, **DROPS `hold`/`release`** | **`PENDING_MIGRATIONS`** ✅ |
 
-⚠️ **Only #4 has a runner, and it is the one that removes `hold`/`release`.** `ALTER TABLE … ADD CONSTRAINT` **validates existing rows**, so if production holds a single `type='hold'` row — and #492's hold/release lifecycle was live before the one-wallet change — then pressing **Run migrations** in Vida **throws**, and #3's own comment says those rows were expected to exist. Query 2 below answers it before you press the button.
+⚠️ **Only #4 has a runner, and it is the one that removes `hold`/`release`.** `ALTER TABLE … ADD CONSTRAINT` **validates existing rows**, so if production holds a single `type='hold'` row — and #492's hold/release lifecycle was live before the one-wallet change — then pressing **Run migrations** in Vida **throws**, and #3's own comment says those rows were expected to exist. **Vida → Engine → Schema probe** answers it before you press the button — it counts those rows and says plainly whether Run migrations is safe.
 
 ## Table by table
 
@@ -172,56 +172,42 @@ Four migrations redefine `credit_transactions_type_check`, and they do not agree
 
 That matters for how you read the ✅ rows: **"agree" means "no undeclared column among the writes I can read"**, not "no undeclared columns". `leads.source` was caught only because a *second*, inline writer (`lib/vida.ts:187`) also sets it — had the CSV import been the only one, this page would have called `leads` clean.
 
-Which is the argument for query 8 below rather than a better parser: one paste of the live column list turns every ❓ **and** every unverified ✅ into a fact.
+Which is the argument for **blocked question B** below rather than a better parser: one paste of the live column census turns every ❓ **and** every unverified ✅ into a fact. It needs `DATABASE_URL` fixed.
 
-## 🧍 Founder checklist — the queries only production can answer
+## 🧍 Founder checklist — six answers are a button, two are still blocked
 
-Vida → **Engine** → the SQL runner. **All read-only.** One per line, copy-pasteable, and each says what to do with the answer.
+> **⚠️ CORRECTED 30 Jul.** This section used to say *"Vida → Engine → the SQL runner"* and list eight queries to paste. **That screen does not exist.** The only SQL path in the product is `POST /operator/migrations/run`, which executes the reviewed `PENDING_MIGRATIONS` constants and deliberately refuses anything else — correct, and not something to widen — and `DATABASE_URL` is mangled, so there is no Postgres connection either. Eight correct queries with nowhere to run them is a finding that sits there.
 
-**1. Does `leads.source` exist? (blocks #599's CSV import)**
-```sql
-select column_name, data_type from information_schema.columns where table_schema='public' and table_name='leads' and column_name='source';
-```
-*0 rows → the CSV import will fail on the first real file. The fix is one `ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS source text;` — deliberately NOT in this PR, because it is a write to production and the prompt asked for none.*
+### ✅ Six of them are now a button: **Vida → Engine → "Schema probe (#558)"**
 
-**2. Are there `hold`/`release` rows? (blocks Run migrations)**
-```sql
-select type, count(*) from public.credit_transactions group by type order by 2 desc;
-```
-*Any `hold` or `release` row → `20260726_wallet_tx_types` will throw when you press Run migrations. Tell me and I will re-issue the constraint keeping both, as `20260724_one_wallet.sql` intended.*
+`/vida/engine`, one press, no SQL. It asks the live database each question through the Supabase client we already have — **selecting a column that does not exist is an error with a specific code, and selecting one that does is a clean empty result**, so the request *is* the probe. Every call is `select … limit 0` with a head count: nothing is written, and no row is read.
 
-**3. What does the live `credit_transactions` CHECK actually allow?**
+| # | Question | If it comes back missing |
+|---|---|---|
+| 1 | Does `leads.source` exist? | **The one with a consequence today.** #599's CSV import writes it on every row — it fails on the first real Apollo file. `lib/vida.ts:187` swallows its insert error, so that path has been failing silently for weeks. Fix is one `ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS source text;` |
+| 2 | Does `opt_out_blocklist.whatsapp_number` exist? | WhatsApp is parked, so nothing breaks — but this is the suppression table every send passes through, and no migration in this repo created it |
+| 3 | Does `clients.last_low_credit_email_at` exist? | The low-credit warning can repeat |
+| 4 | Does the `whatsapp_messages` table exist? | Parked; the clearest illustration of the #558 problem |
+| 5 | Does the `subscribers` table exist? | Every marketing-playbook signup is silently lost |
+| 6 | Are there `hold`/`release` ledger rows? | **Do not press Run migrations.** `20260726_wallet_tx_types` drops those types from the CHECK and `ADD CONSTRAINT` validates existing rows — it throws. Tell me and I re-issue the constraint keeping them, as `20260724_one_wallet.sql` intended |
+
+**Every verdict is one of three: exists · missing · ❓ unknowable.** A bad key, a paused project or a dropped connection returns **unknowable**, never "missing" — reading an outage as an absent column would send you to add something that was there all along.
+
+### 🛑 Two are still blocked, and they are the valuable ones
+
+PostgREST exposes **tables, not the catalog**. There is no way to read `pg_constraint` or `information_schema` through it, so these two **need a Postgres connection** — which means `DATABASE_URL`, currently mangled (#558's own symptom).
+
+**A. What does the live `credit_transactions` CHECK actually allow?** — #558's literal example.
 ```sql
 select conname, pg_get_constraintdef(oid) from pg_constraint where conrelid='public.credit_transactions'::regclass;
 ```
-*This is #558's literal example. Paste the answer back and the four disagreeing migrations get reconciled to it.*
 
-**4. Does `opt_out_blocklist.whatsapp_number` exist?**
-```sql
-select column_name from information_schema.columns where table_schema='public' and table_name='opt_out_blocklist' order by 1;
-```
-
-**5. Does `clients.last_low_credit_email_at` exist, or only `low_credit_warned_at`?**
-```sql
-select column_name from information_schema.columns where table_schema='public' and table_name='clients' and column_name like '%low_credit%';
-```
-
-**6. Does `whatsapp_messages` exist at all?**
-```sql
-select to_regclass('public.whatsapp_messages') as exists_or_null;
-```
-
-**7. The full live table list — the one answer that ends the guessing**
-```sql
-select table_name from information_schema.tables where table_schema='public' order by 1;
-```
-*Paste this back and every ❓ in the table above becomes a ✅ or a fix. It is the single highest-value query on this page.*
-
-**8. Every live column, for a full diff against this doc**
+**B. The full live table and column census** — the single highest-value answer on this page. It turns every ❓ *and* every unverified ✅ in the table above into a fact.
 ```sql
 select table_name, column_name, data_type from information_schema.columns where table_schema='public' order by 1,2;
 ```
-*Large. Save it to a file and hand it over — the derivation in `schema-drift.ts` can then be run against reality instead of against the repo.*
+
+**Fixing `DATABASE_URL` in Railway → @kind/api unblocks both**, plus *Run migrations*, the RLS audit and the backup manifest. It is one paste of the correct Postgres password (a placeholder reference was pasted in) and it is the highest-leverage environment fix outstanding.
 
 ## What was fixed in this PR, and what was deliberately not
 
@@ -240,7 +226,7 @@ Those are the money column, the demo flag, and the timestamps the entire approve
 
 - **No writes to production.** Not one statement here runs against the live database. Every question that needs prod is a read-only query above.
 - **`schema.sql` still declares only 10 of 68 tables.** Making it complete is **#273** (schema-source consolidation), and this PR does not start it — it makes the four tables it *does* declare honest.
-- **The four disagreeing `credit_transactions` CHECKs are left as they are.** Reconciling them means choosing which one production has, and query 3 is how that gets chosen. Guessing would be how #558 happens again.
+- **The four disagreeing `credit_transactions` CHECKs are left as they are.** Reconciling them means choosing which one production has, and **blocked question A** is how that gets chosen — it needs `DATABASE_URL` fixed, because PostgREST cannot read `pg_constraint`. Guessing would be how #558 happens again.
 
 ## Related
 

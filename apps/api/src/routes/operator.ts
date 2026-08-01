@@ -3120,3 +3120,80 @@ operatorRouter.post('/house-client', async (req: Request, res: Response) => {
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Failed to set up the house client' })
   }
 })
+
+// ── SCHEMA PROBE — #558's questions, asked of the live database ─────────────────────────
+//
+// `docs/SCHEMA-DRIFT.md` shipped eight queries and told the founder to paste them into
+// "Vida → Engine → SQL". **That screen does not exist.** The only SQL path is
+// `/operator/migrations/run`, which runs reviewed constants and refuses anything else —
+// correct, and not something to widen — and `DATABASE_URL` is mangled, so there is no pg
+// connection either. Eight correct queries with nowhere to run them is a finding that sits
+// there, and that was my error to fix.
+//
+// This answers SIX of the eight with the supabase-js client we already have, and no SQL:
+// selecting a column that does not exist is an error with a specific code, and selecting one
+// that does is a clean empty result — so the request IS the probe.
+//
+// ⚠️ IT ACCEPTS NO INPUT, deliberately. A probe endpoint that took a table name would be the
+// arbitrary-read surface `pending-migrations.ts` refuses to be. The list is a constant.
+//
+// Read-only: every call is `select … limit 0` or a head count. Nothing is written, and
+// nothing is read either — only whether the request could be built at all.
+operatorRouter.get('/schema-probe', async (_req: Request, res: Response) => {
+  try {
+    const {
+      PROBES, NEEDS_PG_CONNECTION, LEDGER_TYPES_TO_COUNT,
+      classifyProbeError, migrationSafety,
+    } = await import('../lib/schema-probe')
+
+    const results = await Promise.all(PROBES.map(async spec => {
+      try {
+        // LIMIT 0 + head: PostgREST still parses and plans the select, so a missing column
+        // errors — but no row is read, so no row-level policy can turn a schema question
+        // into a permissions answer.
+        const column = spec.kind === 'column' ? spec.column : '*'
+        const { error } = await db.from(spec.table).select(column, { head: true, count: 'exact' }).limit(0)
+        const r = classifyProbeError(error, spec.kind)
+        return { ...spec, ...r }
+      } catch (err) {
+        // A throw is UNKNOWABLE, never missing. This is the branch that fires during an
+        // outage, and calling it "missing" would print a schema verdict about a database we
+        // could not reach (#565).
+        return { ...spec, verdict: 'unknowable' as const, code: null,
+          detail: err instanceof Error ? err.message : 'the probe threw and gave no reason' }
+      }
+    }))
+
+    // The ledger counts that decide whether Run migrations is safe. Head counts, so no row
+    // data leaves the database — only how many there are.
+    const counts: Record<string, { measured: true; value: number } | { measured: false; why: string }> = {}
+    for (const t of LEDGER_TYPES_TO_COUNT) {
+      try {
+        const { count, error } = await db.from('credit_transactions')
+          .select('id', { count: 'exact', head: true }).eq('type', t)
+        counts[t] = error
+          ? { measured: false, why: error.message }
+          : { measured: true, value: count ?? 0 }
+      } catch (err) {
+        counts[t] = { measured: false, why: err instanceof Error ? err.message : 'the count threw' }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: {
+        probes: results,
+        ledger_counts: counts,
+        migration_safety: migrationSafety(counts),
+        // Travels WITH the answers, so the gap is never discovered later.
+        needs_pg_connection: NEEDS_PG_CONNECTION,
+        generated_at: new Date().toISOString(),
+      },
+    })
+  } catch (err) {
+    console.error('[operator/schema-probe]', err)
+    // A failed probe run must reach the UI as an ERROR. An empty result set would render as
+    // "nothing wrong", which is the exact inversion this endpoint exists to prevent.
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The schema probe could not run' })
+  }
+})

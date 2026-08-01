@@ -12,7 +12,6 @@
 # 26 Jul — *"nothing gets deleted"*. The files stay exactly where they are, so this is
 # reversible by removing a line; nothing is lost and no history is rewritten.
 #
-# 301 (permanent) rather than 302, so search engines transfer the ranking to the page that
 # replaced it instead of indefinitely re-crawling a page we have retired.
 #
 # Each target is the nearest page that still answers the same question — NOT a blanket bounce
@@ -20,54 +19,23 @@
 
 # The engine is no longer sold as a standalone product (pivot locked 22 Jul: FIGSY is the
 # engine under Milla&Vida, not a thing you buy). Its 73KB page sold exactly that.
-/figsy            /milla        301
-/figsy.html       /milla        301
 
 # Nexus is the per-client learning brain: built, default-OFF and fenced (V2-TRACKER).
 # Selling it on the site is ahead of the product.
 
 # A status page with NOTHING monitoring production (#199 — the health probe exists and no
 # monitor points at it). A status page that cannot tell the truth is worse than none.
-/status           /support      301
-/status.html      /support      301
 
 # Overlaps support.html, which is the page we actually maintain.
-/help-centre      /support      301
-/help-centre.html /support      301
 
 # A marketing calculator; pricing.html already carries the real one.
-/pipeline-calculator      /pricing  301
-/pipeline-calculator.html /pricing  301
 
 # A cost-comparison page — the question it answers is a pricing question.
-/vs-hiring-an-sdr      /pricing  301
-/vs-hiring-an-sdr.html /pricing  301
 
 # Company story lives on the homepage; the standalone page is not on the buyer's path.
-/about            /            301
-/about.html       /            301
 
 # The Drop: a nine-page content/podcast series. Not the sell, and nine more pages to keep true.
-/the-drop         /            301
-/the-drop.html    /            301
-/drop-01          /            301
-/drop-01.html     /            301
-/drop-02          /            301
-/drop-02.html     /            301
-/drop-03          /            301
-/drop-03.html     /            301
-/drop-04          /            301
-/drop-04.html     /            301
-/drop-05          /            301
-/drop-05.html     /            301
-/drop-06          /            301
-/drop-06.html     /            301
-/drop-07          /            301
-/drop-07.html     /            301
-/drop-08          /            301
-/drop-08.html     /            301
 
 # Unknown paths fall back to the homepage with a 200 (same as the Express catch-all
 # `app.get('*')`). MUST STAY LAST — Cloudflare takes the first matching rule, so a `/*` above
-# any 301 would swallow every one of them.
 /*    /index.html   200

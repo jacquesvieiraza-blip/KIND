@@ -19,25 +19,11 @@ const PORT = process.env.PORT || 3000
 // Targets are the nearest page that answers the same question, never a blanket bounce home:
 // somebody who clicked "Pipeline Calculator" wants pricing, not a hero.
 const RETIRED = {
-  // The engine is no longer sold standalone (pivot locked 22 Jul: FIGSY is the engine UNDER
-  // Milla&Vida, not a thing you buy). Its page sold exactly that.
-  '/figsy': '/milla',
-  // A status page with NOTHING monitoring production (#199). One that cannot tell the truth
-  // is worse than none.
-  '/status': '/support',
-  // Overlaps support.html, which is the page we actually maintain.
-  '/help-centre': '/support',
-  // A marketing calculator; pricing.html already carries the real one.
-  '/pipeline-calculator': '/pricing',
-  // A cost comparison — the question it answers is a pricing question.
-  '/vs-hiring-an-sdr': '/pricing',
-  // The company story is on the homepage; the standalone page is not on the buyer's path.
-  '/about': '/',
-  // Nine pages of content/podcast series. Not the sell, and nine more pages to keep true.
-  '/the-drop': '/',
-  '/drop-01': '/', '/drop-02': '/', '/drop-03': '/', '/drop-04': '/',
-  '/drop-05': '/', '/drop-06': '/', '/drop-07': '/', '/drop-08': '/',
+  // EMPTIED 1 Aug — founder order: "you shrunk it. i want it back now." The full 28-page
+  // site is restored; every page #560 retired on 29 Jul is served again. The mechanism
+  // stays so a future retirement is still one line here + one in _redirects.
 }
+
 
 // BEFORE express.static, or static wins and serves the retired page anyway. Both the clean
 // URL and the .html form are matched, because `extensions: ['html']` below means the site has

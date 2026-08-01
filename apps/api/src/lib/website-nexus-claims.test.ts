@@ -94,11 +94,10 @@ describe('the page is reachable again, and honestly linked', () => {
     expect(readFileSync(join(WEB, '_redirects'), 'utf8')).not.toMatch(/^\/nexus/m)
   })
 
-  it('FIGSY is shown on it but NOT linked — its page is still retired', () => {
-    // A card that 301s mid-journey reads as a broken site; the homepage shows FIGSY the same
-    // way. Caught here as well as in website-redirects.test.ts because this is the one page
-    // where the temptation to re-link the whole old family is highest.
-    expect(nexus).not.toMatch(/href="\/?figsy(\.html)?["#]/)
+  it('FIGSY is shown on it', () => {
+    // #604 restored the full site, so figsy.html is a real page again and linking it is
+    // correct. (Under #603 this test asserted the opposite — FIGSY unlinked — because its
+    // page 301d then. The claim that changed is the site, not the standard.)
     expect(prose).toMatch(/FIGSY/)
   })
 })

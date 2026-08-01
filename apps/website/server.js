@@ -22,8 +22,6 @@ const RETIRED = {
   // The engine is no longer sold standalone (pivot locked 22 Jul: FIGSY is the engine UNDER
   // Milla&Vida, not a thing you buy). Its page sold exactly that.
   '/figsy': '/milla',
-  // Built, default-OFF and fenced (V2-TRACKER) — selling it is ahead of the product.
-  '/nexus': '/milla',
   // A status page with NOTHING monitoring production (#199). One that cannot tell the truth
   // is worse than none.
   '/status': '/support',

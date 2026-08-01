@@ -50,8 +50,11 @@ describe('the two front doors agree — the split this file exists to prevent', 
     for (const { from, to } of serverPaths) expect(cdn.get(from), from).toBe(to)
   })
 
-  it('sixteen pages are retired — the count the item names', () => {
-    expect(serverPaths).toHaveLength(16)
+  // 16 on 29 Jul (#560); 15 from 1 Aug — the founder asked for Nexus back, so `/nexus` was
+  // un-retired and the page rejoined KEPT below. The count is asserted rather than derived
+  // precisely so an un-retirement has to be a decision someone writes down, not a quiet edit.
+  it('fifteen pages are retired — one fewer since Nexus came back', () => {
+    expect(serverPaths).toHaveLength(15)
   })
 })
 
@@ -109,7 +112,7 @@ describe('the catch-all cannot swallow the redirects', () => {
 // "Nexus" in the nav and lands somewhere else, which reads as a broken site.
 describe('no kept page links to a retired one', () => {
   const KEPT = ['index', 'pricing', 'milla', 'vida', 'demo', 'solutions', 'support', 'trust',
-                'terms', 'privacy', 'dpa', 'dpa-us']
+                'terms', 'privacy', 'dpa', 'dpa-us', 'nexus']
   const retired = serverPaths.map(r => r.from.slice(1))
 
   for (const page of KEPT) {

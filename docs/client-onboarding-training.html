@@ -1,0 +1,393 @@
+<title>Your K.I.N.D onboarding — the 20-minute walkthrough</title>
+
+<style>
+  :root{
+    /* Brand tokens lifted from the product itself (portal + cashflow model), not invented. */
+    --violet:#7C3AED; --violet-deep:#6d28d9; --pink:#EC4899;
+    --ink:#1f1235; --body:#453a5e; --muted:#8579a8; --faint:#b3a9cc;
+    --line:#e9e2f6; --surface:#ffffff; --ground:#f8f6fd; --sunk:#f2eefb;
+    --good:#059669; --good-bg:#ecfdf5; --good-line:#a7f3d0;
+    --wait:#b45309; --wait-bg:#fffbeb; --wait-line:#fde68a;
+    --note:#1e3a8a; --note-bg:#eff6ff; --note-line:#bfdbfe;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --ink:#f4f0fb; --body:#cdc4e2; --muted:#9b8ec4; --faint:#7a6e9c;
+      --line:#2e2545; --surface:#1b1530; --ground:#120e21; --sunk:#231b3d;
+      --good:#6ee7b7; --good-bg:#07231a; --good-line:#155e46;
+      --wait:#fcd34d; --wait-bg:#2a2008; --wait-line:#78500a;
+      --note:#bfdbfe; --note-bg:#0f1e3d; --note-line:#1e40af;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#f4f0fb; --body:#cdc4e2; --muted:#9b8ec4; --faint:#7a6e9c;
+    --line:#2e2545; --surface:#1b1530; --ground:#120e21; --sunk:#231b3d;
+    --good:#6ee7b7; --good-bg:#07231a; --good-line:#155e46;
+    --wait:#fcd34d; --wait-bg:#2a2008; --wait-line:#78500a;
+    --note:#bfdbfe; --note-bg:#0f1e3d; --note-line:#1e40af;
+  }
+  :root[data-theme="light"]{
+    --ink:#1f1235; --body:#453a5e; --muted:#8579a8; --faint:#b3a9cc;
+    --line:#e9e2f6; --surface:#ffffff; --ground:#f8f6fd; --sunk:#f2eefb;
+    --good:#059669; --good-bg:#ecfdf5; --good-line:#a7f3d0;
+    --wait:#b45309; --wait-bg:#fffbeb; --wait-line:#fde68a;
+    --note:#1e3a8a; --note-bg:#eff6ff; --note-line:#bfdbfe;
+  }
+
+  body{
+    background:var(--ground); color:var(--body);
+    font:400 16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:940px;margin:0 auto;padding:32px 20px 90px}
+
+  h1{font-size:clamp(30px,5.2vw,42px);font-weight:800;letter-spacing:-.025em;color:var(--ink);
+     margin:0 0 10px;text-wrap:balance;line-height:1.12}
+  h2{font-size:clamp(21px,3vw,26px);font-weight:750;letter-spacing:-.015em;color:var(--ink);
+     margin:0 0 8px;text-wrap:balance;line-height:1.25}
+  h3{font-size:15px;font-weight:800;color:var(--ink);margin:0 0 6px}
+  p{margin:0 0 12px}
+  .lede{font-size:18px;color:var(--muted);max-width:62ch}
+  b,strong{color:var(--ink);font-weight:700}
+  a{color:var(--violet)}
+  code{font:600 .87em/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--sunk);
+       border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--ink)}
+
+  /* ── masthead ─────────────────────────────────────────── */
+  .top{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;
+       padding-bottom:22px;margin-bottom:26px;border-bottom:2px solid var(--line)}
+  .eyebrow{font-size:11.5px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;
+           color:var(--violet);margin:0 0 10px}
+  .stamp{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{font-size:12px;font-weight:700;border-radius:999px;padding:5px 12px;
+        background:var(--surface);border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+  .chip.hot{background:var(--violet);border-color:transparent;color:#fff}
+
+  /* ── what you bought ──────────────────────────────────── */
+  .bought{background:linear-gradient(135deg,var(--violet),var(--violet-deep));
+          border-radius:18px;padding:24px 26px;margin-bottom:14px;color:#e9defc}
+  .bought h2{color:#fff;margin-bottom:14px}
+  .bought .grid{display:grid;gap:14px;grid-template-columns:1fr}
+  @media(min-width:660px){.bought .grid{grid-template-columns:repeat(4,1fr)}}
+  .bought .cell .k{display:block;font-size:11px;font-weight:800;letter-spacing:.08em;
+                   text-transform:uppercase;color:#c9b4f5}
+  .bought .cell .v{display:block;font-size:26px;font-weight:800;color:#fff;line-height:1.15;
+                   font-variant-numeric:tabular-nums;margin-top:3px}
+  .bought .cell .s{display:block;font-size:13px;color:#c9b4f5;margin-top:2px}
+
+  /* ── the spine ────────────────────────────────────────── */
+  .step{display:grid;grid-template-columns:1fr;gap:0;
+        background:var(--surface);border:1px solid var(--line);border-radius:16px;
+        padding:22px 24px;margin-bottom:12px}
+  @media(min-width:720px){
+    .step{grid-template-columns:58px 1fr;column-gap:20px}
+  }
+  .num{font-size:13px;font-weight:800;color:var(--violet);font-variant-numeric:tabular-nums;
+       letter-spacing:.04em;padding-top:4px}
+  .num .who{display:block;font-size:10.5px;font-weight:800;letter-spacing:.09em;
+            text-transform:uppercase;margin-top:5px;color:var(--faint)}
+  .num .who.you{color:var(--good)}
+  .body-col{min-width:0}
+  .step h2{margin-bottom:10px}
+
+  .does{display:grid;gap:10px;grid-template-columns:1fr;margin:14px 0 0}
+  @media(min-width:620px){.does{grid-template-columns:1fr 1fr}}
+  .does > div{background:var(--sunk);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+  .does p:last-child{margin-bottom:0}
+  .does .lbl{font-size:10.5px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+             color:var(--faint);display:block;margin-bottom:5px}
+
+  .flag{border-radius:12px;padding:13px 16px;margin:14px 0 0;border:1px solid;font-size:14.5px}
+  .flag b{display:block;margin-bottom:3px}
+  .flag p:last-child{margin-bottom:0}
+  .flag.good{background:var(--good-bg);border-color:var(--good-line);color:var(--good)}
+  .flag.wait{background:var(--wait-bg);border-color:var(--wait-line);color:var(--wait)}
+
+  /* ── trainer notes (the toggle is the whole idea) ─────── */
+  .trainer{display:none;background:var(--note-bg);border:1px dashed var(--note-line);
+           border-radius:12px;padding:13px 16px;margin:14px 0 0;color:var(--note);font-size:14.5px}
+  .trainer b{display:block;margin-bottom:3px;color:var(--note)}
+  .trainer p:last-child{margin-bottom:0}
+  :root.coach .trainer{display:block}
+
+  .toggle{display:inline-flex;align-items:center;gap:9px;cursor:pointer;user-select:none;
+          background:var(--surface);border:1px solid var(--line);border-radius:999px;
+          padding:8px 15px;font-size:13.5px;font-weight:700;color:var(--body)}
+  .toggle input{accent-color:var(--violet);width:15px;height:15px;cursor:pointer;margin:0}
+  .toggle:focus-within{outline:2px solid var(--violet);outline-offset:2px}
+
+  /* ── closing bits ─────────────────────────────────────── */
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:16px;
+        padding:22px 24px;margin-bottom:12px}
+  .rule{font-size:12.5px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
+        color:var(--violet);margin:34px 0 12px}
+
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:13px;background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:520px}
+  th,td{text-align:left;padding:11px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+     font-weight:800;background:var(--sunk)}
+  tr:last-child td{border-bottom:0}
+  td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink);font-weight:700}
+
+  ul{margin:0 0 12px;padding-left:20px}
+  li{margin-bottom:7px}
+  .foot{color:var(--muted);font-size:13.5px;margin-top:26px;padding-top:18px;
+        border-top:1px solid var(--line)}
+
+  @media print{
+    body{background:#fff}
+    .step,.card,.scroll{break-inside:avoid;border-color:#ddd}
+    .toggle{display:none}
+    .bought{background:#6d28d9 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <p class="eyebrow">K.I.N.D · Onboarding &amp; training</p>
+      <h1>Everything you need to work your pipeline</h1>
+      <p class="lede" style="margin-bottom:0">Your walkthrough, and the page to come back to afterwards. About twenty minutes.</p>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="coach" />
+      Trainer notes
+    </label>
+  </div>
+
+  <!-- ── WHAT YOU BOUGHT ───────────────────────────────── -->
+  <div class="bought">
+    <h2>What your $299 covers</h2>
+    <div class="grid">
+      <div class="cell">
+        <span class="k">Approved leads</span>
+        <span class="v">100</span>
+        <span class="s">included, then $4 each</span>
+      </div>
+      <div class="cell">
+        <span class="k">Sending inbox</span>
+        <span class="v">Day 1</span>
+        <span class="s">warmed, ready to send</span>
+      </div>
+      <div class="cell">
+        <span class="k">Your own domain</span>
+        <span class="v">Yours</span>
+        <span class="s">built and warmed for you</span>
+      </div>
+      <div class="cell">
+        <span class="k">Reviewing leads</span>
+        <span class="v">Free</span>
+        <span class="s">always, no limit</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="flag good" style="margin-top:0;margin-bottom:26px">
+    <b>The one sentence that matters</b>
+    <p>Nothing costs you money until <b>you</b> tap approve. You can look at every lead we find, read why we picked them, and pass on as many as you like — free, forever. Approving is the only thing that ever spends.</p>
+  </div>
+
+  <p class="rule">The journey — in the order it happens</p>
+
+  <!-- 1 -->
+  <div class="step">
+    <div class="num">01<span class="who you">You</span></div>
+    <div class="body-col">
+      <h2>Tell us who your buyers are</h2>
+      <p>We start with your <b>targeting</b> — the kind of company you sell to, the job titles you need, the places they are. You describe it in plain language; you don't fill in a database form.</p>
+      <div class="does">
+        <div><span class="lbl">What you do</span><p>Talk us through your best customers. Who closes fastest? Who pays the most? Who did you wish you'd found sooner?</p></div>
+        <div><span class="lbl">What we do</span><p>Turn that into your targeting profile and show it back to you in writing before anything is bought.</p></div>
+      </div>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>Spend the most time here — everything downstream inherits it. Ask for three named customers they love and three deals they regret. Write the profile live on screen so they see it is theirs, not a template. Do not move on until they say "yes, that's who I want."</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2 -->
+  <div class="step">
+    <div class="num">02<span class="who">Us</span></div>
+    <div class="body-col">
+      <h2>We find your people</h2>
+      <p>We go and source roughly <b>200 people</b> who match. That's deliberately double what your pack includes — you should be choosing from a real shortlist, not accepting whatever turns up.</p>
+      <p>Everyone is checked before they reach you: verified contact details, screened against opt-outs, and de-duplicated so we never hand you someone already in your CRM.</p>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>The 200-for-100 ratio is worth saying out loud — it's the difference between a shortlist and a dump. If they ask how long: first names usually land within a day or two, the rest follows.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3 -->
+  <div class="step">
+    <div class="num">03<span class="who you">You</span></div>
+    <div class="body-col">
+      <h2>Your desk — approve or pass</h2>
+      <p>Leads arrive on your dashboard <b>masked</b>: you see the company, the role, the fit and our reasoning — but not the person's contact details. That's on purpose. Looking is free, so look at all of them.</p>
+      <div class="does">
+        <div><span class="lbl">👍 Approve</span><p>You want this one. Their contact details unlock and our team starts working them straight away.</p></div>
+        <div><span class="lbl">✕ Pass</span><p>Not for you. Costs nothing, and it teaches us what you don't want.</p></div>
+      </div>
+      <div class="flag good">
+        <b>Approving is the only money event</b>
+        <p>It draws from your included 100 first. After those, it's a flat $4 — one price that covers unmasking the contact <em>and</em> the whole outreach we run on them. And if an email turns out to be dead, you are never charged for it.</p>
+      </div>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>Do this live. Have them approve one and pass one while you watch, so the first tap happens with you in the room rather than alone at 11pm. Watch for the client who is scared to approve — that is the single biggest failure mode, and it comes from thinking browsing costs money. Say it twice.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4 -->
+  <div class="step">
+    <div class="num">04<span class="who">Us</span></div>
+    <div class="body-col">
+      <h2>We write the outreach</h2>
+      <p>For everyone you approve, we write the emails — the first message and the follow-ups — in your voice, referencing why that specific person was a fit.</p>
+      <p><b>You see the sequence before anything sends.</b> Nothing goes out over your name that you haven't read.</p>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>Show them a real sequence on screen. Ask what sounds unlike them and change one line while they watch — it converts "AI wrote it" into "we wrote it together" faster than any reassurance.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5 -->
+  <div class="step">
+    <div class="num">05<span class="who">Us</span></div>
+    <div class="body-col">
+      <h2>Your sending inbox</h2>
+      <p>Cold email only works from a mailbox with a good reputation, and reputation takes weeks to build. So we do two things at once:</p>
+      <ul>
+        <li><b>From day one</b> — you send from a warmed inbox we provide, so you're not waiting three weeks to start.</li>
+        <li><b>In the background</b> — we buy and warm a sending domain and mailbox that look like <em>your</em> company. Around week three or four, your outreach moves onto it.</li>
+      </ul>
+      <div class="flag wait">
+        <b>Why we never send from your main company address</b>
+        <p>Cold outreach attracts spam complaints — that's normal and unavoidable. If those land on the address you invoice from, your ordinary business email starts going to junk. Keeping the two separate protects the mailbox you can't afford to lose.</p>
+      </div>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>This is the part clients don't know they need, so it's where a lot of the $299 is justified. If they ask about ownership of the domain after they leave, say you'll confirm it in writing rather than answering on the spot — that policy is not settled.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6 -->
+  <div class="step">
+    <div class="num">06<span class="who">Us</span></div>
+    <div class="body-col">
+      <h2>Replies come back to one place</h2>
+      <p>When someone answers, it lands in your inbox inside the portal — the whole thread, next to the lead it belongs to. You're never digging through a personal mailbox to find out who said what.</p>
+      <p>We handle the ordinary back-and-forth: follow-ups, chasing the ones who went quiet, and getting to a time in the diary.</p>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>Agree the handover point explicitly: at what moment do you stop and they take over? Most clients want the call booked before they touch it. Get the answer written down today.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7 -->
+  <div class="step">
+    <div class="num">07<span class="who you">You</span></div>
+    <div class="body-col">
+      <h2>Meetings — and knowing where you stand</h2>
+      <p>Booked meetings show on your dashboard. Four numbers tell you everything:</p>
+      <div class="scroll" style="margin-top:12px">
+        <table>
+          <thead><tr><th>What it says</th><th>What it means</th></tr></thead>
+          <tbody>
+            <tr><td><b>Leads included</b></td><td>How many of your 100 are still free to approve</td></tr>
+            <tr><td><b>Leads awaiting you</b></td><td>People on your desk needing a yes or no — this is your to-do</td></tr>
+            <tr><td><b>Meetings booked</b></td><td>Conversations we got you this month</td></tr>
+            <tr><td><b>Active campaign</b></td><td>What's running right now, and against which targeting</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>Point at "Leads awaiting you" and call it the only number they must act on. Everything else is information; that one is a task.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8 -->
+  <div class="step">
+    <div class="num">08<span class="who you">You</span></div>
+    <div class="body-col">
+      <h2>After your first 100</h2>
+      <p>Once your included 100 are used, you top up your wallet whenever you choose and each approved lead draws a flat <b>$4</b>. No subscription, no retainer, no monthly minimum.</p>
+      <ul>
+        <li>Your balance never expires.</li>
+        <li>We never charge automatically — approving is always your action.</li>
+        <li>A dead email is never charged, ever.</li>
+      </ul>
+      <div class="trainer">
+        <b>Trainer note</b>
+        <p>Don't oversell the top-up. The honest line is that the pack is the door and the repeat is the relationship — if the first hundred don't produce conversations, that's our problem to fix, not their budget to stretch.</p>
+      </div>
+    </div>
+  </div>
+
+  <p class="rule">What we need from you</p>
+
+  <div class="card">
+    <h3>Approve in batches, not one at a time</h3>
+    <p>Outreach works on volume and rhythm. Approving twenty in one sitting beats approving two a day — it lets us build a proper sequence and gives the numbers a chance to mean something.</p>
+    <h3 style="margin-top:16px">Keep going for a few weeks</h3>
+    <p>A brand-new sending inbox starts gently and builds up. First replies usually arrive in the second or third week, not the first. The clients who do well are the ones who stayed in the habit past week one.</p>
+    <h3 style="margin-top:16px">Tell us when a lead is wrong</h3>
+    <p>Passing is useful; telling us <em>why</em> is far more useful. One sentence — "too small", "wrong country", "we already work with them" — and we tighten the targeting.</p>
+  </div>
+
+  <div class="flag wait">
+    <b>Two things to know up front, so they're never a surprise</b>
+    <p>Accounts that sit completely unused go dormant after about a month — nothing is lost and it's reversible, but we'd rather tell you now than have it surprise you. And there's a minimum number of approvals needed for outreach to be worth running at all; if you're approving fewer than about twenty a month, we should talk about whether the targeting is too narrow.</p>
+  </div>
+
+  <div class="trainer">
+    <b>Trainer note — how to close the session</b>
+    <p>Finish with three things in writing: (1) how many leads they intend to approve in the first fortnight, (2) the handover point on replies, (3) a date for the fifteen-minute check-in. If you leave without a number for the first, they will not start.</p>
+  </div>
+
+  <p class="rule">Your first week</p>
+
+  <div class="scroll">
+    <table>
+      <thead><tr><th>When</th><th>What happens</th><th style="text-align:right">Yours or ours</th></tr></thead>
+      <tbody>
+        <tr><td><b>Today</b></td><td>Targeting agreed, portal walkthrough, sending inbox set up</td><td class="n">Together</td></tr>
+        <tr><td><b>Day 1–2</b></td><td>Your first people are sourced, checked and land on your desk</td><td class="n">Ours</td></tr>
+        <tr><td><b>Day 2–4</b></td><td>You work through the desk — approve the ones you want</td><td class="n">Yours</td></tr>
+        <tr><td><b>Day 3–5</b></td><td>Sequences written for everyone you approved, sent to you to read</td><td class="n">Ours</td></tr>
+        <tr><td><b>From day 5</b></td><td>Outreach goes out; replies start landing in your inbox</td><td class="n">Ours</td></tr>
+        <tr><td><b>Week 2</b></td><td>Fifteen-minute check-in — what's landing, what needs tightening</td><td class="n">Together</td></tr>
+        <tr><td><b>Week 3–4</b></td><td>Your own branded sending domain takes over</td><td class="n">Ours</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="foot">
+    Questions between sessions go to <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> — or just message us in the portal, which is faster.
+    <br />Reviewing is always free. $4 per approved lead, and only when you say yes.
+  </p>
+
+</div>
+
+<script>
+  // The toggle is the point of this page: one file is the trainer's script during the
+  // call and the client's takeaway afterwards. Class on <html> so CSS does the rest.
+  (function () {
+    var box = document.getElementById('coach');
+    if (!box) return;
+    function sync() { document.documentElement.classList.toggle('coach', box.checked); }
+    box.addEventListener('change', sync);
+    sync();
+  })();
+</script>

@@ -65,7 +65,11 @@ describe('① every migration has a canonical file', () => {
     const canon = new Set(sqlFiles(CANON))
     const fileless = runnerKeys.filter(k => !canon.has(`${k}.sql`))
     expect(fileless, `runner entries with no file in ${CANON}: ${fileless.join(', ')}`).toEqual([])
-    expect(runnerKeys).toHaveLength(12)
+    // 12 at #273 (31 Jul); 13 from 1 Aug — #607 added `20260801_retire_trial_status`, which
+    // converts legacy `trialing` subscriptions to `paused`. The count is asserted rather than
+    // derived so that adding something the product can APPLY TO PRODUCTION is never a silent
+    // edit — if this number moved and you did not mean it to, a migration was added.
+    expect(runnerKeys).toHaveLength(13)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -93,8 +97,9 @@ describe('② a copy that can drift is the disease, not the cure', () => {
   it('nothing was rewritten on the way in — 32 files moved, bodies untouched', () => {
     const moved = TOMBSTONED.reduce((n, d) => n + sqlFiles(d).length, 0)
     expect(moved).toBe(32)
-    // The canonical directory is the 94 that were there + 32 consolidated + 1 recovered.
-    expect(sqlFiles(CANON)).toHaveLength(127)
+    // The canonical directory is the 94 that were there + 32 consolidated + 1 recovered
+    // = 127 at #273, + 1 added since (#607's 20260801_retire_trial_status) = 128.
+    expect(sqlFiles(CANON)).toHaveLength(128)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

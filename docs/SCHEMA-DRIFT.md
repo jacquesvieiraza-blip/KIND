@@ -10,11 +10,11 @@
 
 **The repo held 126 migration files in three directories, and exactly one runner that applies twelve of them.**
 
-> **✅ UPDATED 31 Jul (#273) — the three directories are now one home.** All 127 migrations live in **`supabase/migrations/`**; the other two are tombstoned, kept-not-deleted (rule 3), each file carrying a header pointing at its canonical copy and each directory a README. **One more was recovered in the process:** `20260726_campaign_copilot_columns` existed *only* as a string inside `pending-migrations.ts` — a statement the product could apply to production that **no file described**. The rest of this section is the finding as it stood, and the runner half of it is unchanged.
+> **✅ UPDATED 31 Jul (#273) — the three directories are now one home.** All migrations live in **`supabase/migrations/`** (127 at #273; **128** since #607 added `20260801_retire_trial_status` on 1 Aug); the other two are tombstoned, kept-not-deleted (rule 3), each file carrying a header pointing at its canonical copy and each directory a README. **One more was recovered in the process:** `20260726_campaign_copilot_columns` existed *only* as a string inside `pending-migrations.ts` — a statement the product could apply to production that **no file described**. The rest of this section is the finding as it stood, and the runner half of it is unchanged.
 
 | Directory | Files | Applied by |
 |---|--:|---|
-| **`supabase/migrations`** | **127** (94 + 32 consolidated + 1 recovered) | nothing — there is **no `supabase/config.toml`**, so the Supabase CLI was never wired up |
+| **`supabase/migrations`** | **128** (94 + 32 consolidated + 1 recovered + 1 added since: #607) | nothing — there is **no `supabase/config.toml`**, so the Supabase CLI was never wired up |
 | `apps/api/src/migrations` | 19 · 🪦 tombstoned | nothing, ever |
 | `packages/db/src/migrations` | 13 · 🪦 tombstoned | nothing, ever |
 | **`PENDING_MIGRATIONS`** (a TypeScript constant) | **12** | **Vida → Engine → Run migrations** — the only mechanism the product has |

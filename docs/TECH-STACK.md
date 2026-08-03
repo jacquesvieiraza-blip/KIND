@@ -34,11 +34,11 @@ Two **separate** systems, do not conflate:
 
 **Applied truth (what the DB actually is):** the live/staging Supabase database. `supabase/staging-schema.sql` is a **consolidated, idempotent snapshot** (generated 2026-06-12) that rebuilds a fresh Supabase project in one paste — use it as the diff baseline, but note it predates every migration dated after 2026-06-12.
 
-**One home: `supabase/migrations/` — 127 files (#273, 31 Jul 2026).** The three-directory split is gone. Nothing was deleted (CORE-MAP rule 3): the other two are **tombstoned**, each file carrying a header pointing at its canonical copy, each directory a README explaining why it is there.
+**One home: `supabase/migrations/` — 128 files** *(127 at #273, 31 Jul 2026; +1 on 1 Aug — #607's `20260801_retire_trial_status`)*. The three-directory split is gone. Nothing was deleted (CORE-MAP rule 3): the other two are **tombstoned**, each file carrying a header pointing at its canonical copy, each directory a README explaining why it is there.
 
 | Folder | Role | Rule |
 |--------|------|------|
-| **`supabase/migrations/`** | **THE home.** 127 files — the 94 already here, 32 consolidated in, 1 recovered from the runner. | Every migration lands here. |
+| **`supabase/migrations/`** | **THE home.** 128 files — the 94 already here, 32 consolidated in, 1 recovered from the runner, 1 added since (#607). | Every migration lands here. |
 | `packages/db/src/migrations/` | 🪦 **Tombstoned.** 13 files, numbered `001`–`013`, the oldest set (figsy_*, milla_*, vida_*, denise_*, partners). ⚠️ **#554c found most of these tables were probably never created in production at all.** | Do not add. Do not edit. |
 | `apps/api/src/migrations/` | 🪦 **Tombstoned.** 19 files. | Do not add. Do not edit. |
 

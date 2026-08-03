@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷218 · 🟣3 · 🟡71 · 🔴177 · ⏸5 · **Σ569** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷218 · 🟣3 · 🟡72 · 🔴177 · ⏸5 · **Σ570** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -51,6 +51,8 @@
 - **`DATABASE_URL` is mangled** (a placeholder ref was pasted in). Breaks *Run migrations*, *RLS audit*, *Backup manifest*. **Nothing client-facing.** The error now names the right value.
 
 **Verified live in production on 27 Jul, not claimed:** RLS clean (82 tables read, no exposed tables · `client_inboxes` had **no RLS at all** and now does) · cron single-run guard in place · seed report reads MBF and K.I.N.D as protected, ACME eligible · 12/12 migrations applied.
+
+**✅ 1 Aug — THE TRIAL IS GONE (#607).** Signup no longer writes a `trialing` subscription (it writes `paused` — dormant until the $99 lands), and the two daily trial crons are retired. The expiry one had been emailing real people *"Your K.I.N.D trial ends in 4 days — Subscribe now"*. **🧪 Your action: Vida → Engine → Run migrations** to convert the legacy `trialing` rows; `/status` shows `legacy_trialing` until it reads 0.
 
 **So: the demo is sellable today. Delivery needs a mailbox, the ladder, and the bill.**
 

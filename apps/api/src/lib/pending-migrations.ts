@@ -375,6 +375,23 @@ ALTER TABLE public.figsy_campaigns
   ADD COLUMN IF NOT EXISTS approve_before_send boolean NOT NULL DEFAULT false;
 `.trim(),
   },
+  {
+    // #607 — the grandfathering half of retiring the trial state. From 1 Aug a signup writes
+    // status='paused' (dormant until the $99 lands); this converts the rows written before
+    // that. Explicit by founder instruction — nothing is silently rewritten, and until this
+    // runs `statusGrantsAccess()` still honours 'trialing' so no existing account loses
+    // anything. /internal/status/snapshot reports the remaining count as `legacy_trialing`,
+    // so you can watch it reach zero instead of assuming it did.
+    // Canonical file: supabase/migrations/20260801_retire_trial_status.sql
+    key: '20260801_retire_trial_status',
+    title: 'Retire the trial state (#607) — convert legacy trialing subscriptions to paused and clear their trial end dates',
+    sql: `
+UPDATE public.subscriptions
+   SET status        = 'paused',
+       trial_ends_at = NULL
+ WHERE status = 'trialing';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

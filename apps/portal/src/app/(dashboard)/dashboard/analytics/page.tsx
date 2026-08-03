@@ -16,6 +16,7 @@ import {
 
 interface MonthPoint {
   month:      string
+  unsubscribed?: number   // #406 — REAL per-month opt-outs, counted server-side
   leads:      number
   emails:     number
   opened:     number
@@ -119,9 +120,12 @@ const METRICS = [
   { key: 'emails_sent',         label: 'Emails Sent',          color: '#2563EB' },
   { key: 'emails_opened',       label: 'Emails Opened',        color: '#0891B2' },
   { key: 'emails_replied',      label: 'Emails Replied',       color: '#059669' },
-  { key: 'bounced',             label: 'Bounced',              color: '#DC2626' },
-  { key: 'linkedin_connections',label: 'LinkedIn Connections', color: '#0A66C2' },
-  { key: 'linkedin_messages',   label: 'LinkedIn Messages',    color: '#1D4ED8' },
+  // #406 — these three have NO data source. They were selectable and drew a flat zero line
+  // labelled like a real measurement, which reads as "we sent 400 emails and none bounced"
+  // rather than "we do not track this". `unavailable` disables the chip and says which.
+  { key: 'bounced',             label: 'Bounced',              color: '#DC2626', unavailable: 'not tracked yet' },
+  { key: 'linkedin_connections',label: 'LinkedIn Connections', color: '#0A66C2', unavailable: 'LinkedIn not connected' },
+  { key: 'linkedin_messages',   label: 'LinkedIn Messages',    color: '#1D4ED8', unavailable: 'LinkedIn not connected' },
   { key: 'meetings_booked',     label: 'Meetings Booked',      color: '#D97706' },
   { key: 'unsubscribed',        label: 'Unsubscribed',         color: '#6B7280' },
 ]
@@ -188,16 +192,15 @@ export default function AnalyticsPage() {
     emails_opened:        m.opened ?? 0,  // REAL opens (opened_at pixel) — 0 when tracking off
     emails_replied:       m.replies,
     bounced:              0,  // not tracked per-month yet — never fabricate a bounce number
-    linkedin_connections: 0,  // placeholder
-    linkedin_messages:    0,  // placeholder
+    linkedin_connections: 0,  // no LinkedIn integration exists — the picker marks it unavailable
+    linkedin_messages:    0,  // ditto
     meetings_booked:      m.interested,
-    unsubscribed:         data.byMonth.indexOf(m) >= 0
-      ? replies.filter(r => {
-          const rMonth = r.created_at?.slice(0, 7)
-          // match same month — approximate using index
-          return r.classification === 'opt_out'
-        }).length > 0 ? Math.round(m.replies * 0.05) : 0
-      : 0,
+    // #406 — WAS `Math.round(m.replies * 0.05)`: an invented unsubscribe count, shown to the
+    // client on a chart, ONE LINE BELOW the comment "never fabricate a bounce number". The
+    // old code even computed `rMonth` and then ignored it — it could not have worked, because
+    // `m.month` is a display label ("Jan 26") and never equals a `YYYY-MM` slice. Now counted
+    // properly by the server, which is the only place that holds the month key.
+    unsubscribed:         m.unsubscribed ?? 0,
   }))
 
   // ── Prospect status breakdown from stats + replies ────────────────────────
@@ -285,13 +288,18 @@ export default function AnalyticsPage() {
           {METRICS.map(m => (
             <button
               key={m.key}
-              onClick={() => toggleMetric(m.key)}
+              onClick={() => { if (!m.unavailable) toggleMetric(m.key) }}
+              disabled={!!m.unavailable}
+              title={m.unavailable ? `${m.label} — ${m.unavailable}` : undefined}
+              aria-label={m.unavailable ? `${m.label} (${m.unavailable})` : m.label}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                activeMetrics.includes(m.key)
+                m.unavailable
+                  ? 'bg-gray-50 text-gray-400 border-gray-200 cursor-not-allowed'
+                  : activeMetrics.includes(m.key)
                   ? 'text-white border-transparent shadow-sm'
                   : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'
               }`}
-              style={activeMetrics.includes(m.key) ? { backgroundColor: m.color, borderColor: m.color } : {}}
+              style={!m.unavailable && activeMetrics.includes(m.key) ? { backgroundColor: m.color, borderColor: m.color } : {}}
             >
               <span
                 className="w-2 h-2 rounded-full inline-block shrink-0"

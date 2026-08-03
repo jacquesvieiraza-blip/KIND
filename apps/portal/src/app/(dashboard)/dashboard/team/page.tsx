@@ -402,16 +402,25 @@ export default function TeamsHubPage() {
         </div>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* #406 — was `onClick={() => alert('Create team — coming soon')}`. The words were
+              honest; a browser alert box in a paid product is not how we say them, and it was
+              the last alert() left in the portal. Disabled + labelled, matching how Settings
+              and Billing already render their unbuilt toggles. */}
           <button
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#7C3AED] text-[#7C3AED] text-sm font-medium hover:bg-purple-50 transition-colors"
-            onClick={() => alert('Create team — coming soon')}
+            disabled
+            title="Create team — coming soon"
+            aria-label="Create team (coming soon)"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-400 text-sm font-medium cursor-not-allowed"
           >
             <span className="text-base leading-none">+</span>
             Create team
+            <span className="ml-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Soon</span>
           </button>
           <button
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-sm font-medium hover:bg-[#6D28D9] transition-colors shadow-sm"
-            onClick={() => (window.location.href = '/dashboard/settings#team')}
+            /* #406 — was '/dashboard/settings#team', which only worked because middleware
+               rewrites it to /milla/settings. Point at the live route directly. */
+            onClick={() => (window.location.href = '/milla/settings#team')}
           >
             <UserPlus className="w-4 h-4" />
             Add member

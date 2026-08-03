@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
   Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow, GraduationCap,
-  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, Bell,
+  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown,
 } from 'lucide-react'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
@@ -93,7 +93,12 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
         </Link>
         <div className="ml-auto flex items-center gap-3.5">
           <span className="text-[14.5px] font-extrabold text-[#7C3AED]">${s ? s.wallet_balance_usd.toLocaleString() : '…'} <span className="text-[#9b8ec4] font-semibold text-[13px]">wallet</span></span>
-          <Bell className="w-4.5 h-4.5 text-[#9b8ec4]" style={{ width: 18, height: 18 }} />
+          {/* #406 — A BELL ICON USED TO SIT HERE. It had no onClick, no href, no badge and no
+              menu: a notification bell that could not be clicked and never showed a count, in
+              the top bar of every screen. There is no notification centre behind it — the
+              client's real signals are the rail's "Recent replies" and the FLOW badges above,
+              both of which are live. An icon that looks like a control and is not one is the
+              same defect as a button that lies, so it is removed rather than left decorative. */}
           <div className="relative" ref={menuRef}>
             <button onClick={() => setMenuOpen(o => !o)} className="flex items-center gap-2 h-8 rounded-full border border-[#ece5fb] bg-white pl-1.5 pr-3 text-[14px] font-extrabold hover:bg-[#f7f4fd]">
               <span className="w-6 h-6 rounded-full bg-gradient-to-br from-[#7C3AED] to-[#EC4899] text-white text-[11px] font-extrabold flex items-center justify-center">AC</span>

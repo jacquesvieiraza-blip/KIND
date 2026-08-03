@@ -1,5 +1,18 @@
 'use client'
 
+// #406 — WHAT THIS PAGE PROMISED AND WHAT THE BACKEND ACTUALLY PAYS.
+//
+// Every reward sentence here was wrong, in a currency and a flow we retired:
+//   • "earn FIGSY credits" / "15 FIGSY credits" ×3 — FIGSY credits were the WORK wallet of the
+//     retired two-wallet model. `routes/stripe.ts` pays `REFERRAL_BONUS_USD = 45` into the one
+//     wallet, and its own comment says so: "the referral bonus is paid in wallet dollars, not
+//     the retired [credits]". The backend was migrated; this page never was.
+//   • "starts their free trial" — there is no trial (#607, retired 1 Aug).
+//
+// So a client could read this, refer someone, and be paid something different from what they
+// were promised. It UNDER-sold too: $45 is both true and better than "15 credits", which a
+// client cannot price. Corrected against stripe.ts, not against memory.
+
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Gift, Copy, Check, Users, ArrowRight, Loader2 } from 'lucide-react'
@@ -81,9 +94,9 @@ export default function ReferralPage() {
     <div className="space-y-8 max-w-2xl">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Refer a business, earn FIGSY credits</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Refer a business, earn $45</h1>
         <p className="text-[#7B6FA0] text-sm mt-1">
-          Share your unique link. When a business you refer makes their first purchase, you get 15 FIGSY credits.
+          Share your unique link. When a business you refer makes their first purchase, we add $45 to your wallet.
         </p>
       </div>
 
@@ -100,12 +113,12 @@ export default function ReferralPage() {
             {
               step: '2',
               title: 'They sign up and buy',
-              description: 'Your referred business signs up using your link, starts their free trial, and makes their first purchase.',
+              description: 'Your referred business signs up using your link and makes their first purchase — the $99 onboarding pack.',
             },
             {
               step: '3',
-              title: 'You get 15 FIGSY credits',
-              description: 'The moment your referral makes their first purchase, 15 FIGSY credits are added to your account automatically.',
+              title: 'You get $45 in your wallet',
+              description: 'The moment your referral makes their first purchase, $45 is added to your wallet automatically — that is 11 approved leads on us.',
             },
           ].map((item, i) => (
             <div key={item.step} className="flex items-start gap-4">
@@ -132,7 +145,7 @@ export default function ReferralPage() {
           </div>
           <div>
             <p className="font-semibold text-sm">Your referral link</p>
-            <p className="text-white/60 text-xs">Share this link to earn credits for every successful referral</p>
+            <p className="text-white/60 text-xs">Share this link to earn $45 for every successful referral</p>
           </div>
         </div>
 

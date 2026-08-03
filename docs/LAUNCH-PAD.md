@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷219 · 🟣3 · 🟡72 · 🔴176 · ⏸5 · **Σ570** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷219 · 🟣3 · 🟡73 · 🔴175 · ⏸5 · **Σ570** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -131,7 +131,7 @@
 | #414 🟡 | **The Stripe product description oversells at the point of payment** | `packages/shared/src/constants/index.ts:29` — the last thing a client reads before their card is charged, describing something we do not do. | 🤖 |
 | #410 🟡 | **The legal pages name the WRONG data sub-processor** | `privacy.html` ×4, including the formal sub-processor list — it names a provider we do not use and omits the ones we do. | 🤖 |
 | #327 🟡 | **The website claims integrations that do not exist** | `pricing.html:491` "HubSpot & Salesforce integration" · `virtual-assistant.html:536` "Salesforce, Gmail, Outlook, Google". `lib/hubspot.ts` **is** called — the reply pipeline pushes interested replies into OUR HubSpot (#397, premise corrected 1 Aug) — but that is our CRM, not the client's, and nothing on the page is what a buyer would understand by "integration". Salesforce does not exist at all. | 🤖 |
-| #406 🔴 | **The portal has never had a full element sweep** | Every screen, tile, tab, button, toggle and modal on `apps/portal`, checked against what the backend actually does. The showroom strip (#478) took the worst offenders; the sweep itself was never finished, and it is exactly where "the button lies" bugs live. | 🤖 |
+| #406 🟡 | **The portal has never had a full element sweep** | Every screen, tile, tab, button, toggle and modal on `apps/portal`, checked against what the backend actually does. The showroom strip (#478) took the worst offenders; the sweep itself was never finished, and it is exactly where "the button lies" bugs live. | 🤖 |
 
 ## 🅳 BLOCK D — MAKE THE DOCS HOLD (done this session — this is what you are reading)
 

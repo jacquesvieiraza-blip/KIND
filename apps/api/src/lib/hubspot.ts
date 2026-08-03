@@ -4,6 +4,46 @@
  * All functions are no-ops if HUBSPOT_API_KEY is not set.
  * Uses HubSpot v3 API (https://api.hubapi.com)
  * Auth: Bearer token via HUBSPOT_API_KEY env var
+ *
+ * ── #397 — WHAT THIS FILE IS, AND WHAT WAS REMOVED FROM IT (1 Aug) ───────────────────────
+ *
+ * THE ITEM THAT SENT ME HERE WAS WRONG, AND WRONG IN THE EXPENSIVE DIRECTION. #397 read
+ * "HubSpot dead code — platform signup/payment sync functions written but never called
+ * (lib/hubspot.ts). Wire or delete." Two of the five exports are LIVE, and the cheap branch
+ * of that instruction would have deleted code that runs when a prospect replies:
+ *
+ *   syncFigsyInterestedToHubspot  ← lib/reply-pipeline.ts:34, CALLED at :278. The reply spine.
+ *   getHubspotPipelineView        ← routes/internal.ts:25, CALLED at :2581 (GET /hubspot/pipeline).
+ *
+ * The premise was corrected on the inventory row 1 Aug (#606) before any code was touched.
+ *
+ * THE THREE THAT REALLY WERE DEAD are gone, proved by reading every mention of each name
+ * across every app and package source tree — each appeared only in its own definition and its
+ * own error log, with no importer, no dynamic import and no call site anywhere:
+ *
+ *   syncNewSignupToHubspot   the platform SIGNUP sync — contact + company + a Deal at
+ *                            'appointmentscheduled'. Never called from routes/auth.ts or
+ *                            anywhere else; a signup has never reached HubSpot.
+ *   syncPaymentToHubspot     the platform PAYMENT sync — moved a deal to 'closedwon' and
+ *                            noted the amount. Never called from routes/stripe.ts. It also
+ *                            carried a hardcoded `amountZar / 19` ZAR→USD conversion, which
+ *                            is the same fossil #352 removed from the Paystack charge path.
+ *   syncClientToHubspot      the contact+company upsert the other two shared. Its ONLY caller
+ *                            was syncNewSignupToHubspot, so it died with it. Removing the
+ *                            caller and leaving this would have created NEW dead code —
+ *                            exactly the state #397 was filed about.
+ *
+ * Two private helpers went with them because nothing else used them: `upsertCompany` and
+ * `associateContactToCompany`. `upsertContact` and `addNoteToContact` STAY — they are shared
+ * with syncFigsyInterestedToHubspot, which is live.
+ *
+ * ⚠️ DO NOT CONFUSE THIS FILE WITH lib/crm.ts. This one is OUR platform HubSpot, authed with
+ * our own HUBSPOT_API_KEY env var. `lib/crm.ts` pushes into A CLIENT'S OWN CRM using
+ * `clients.crm_api_key` (HubSpot or Pipedrive, item #43) and is called from the same reply
+ * pipeline a few lines earlier. They share a vendor name and nothing else.
+ *
+ * hubspot-live-exports.test.ts pins the two live exports to their importers, so the next
+ * person reading "HubSpot dead code" cannot delete a reply-path dependency on a stale note.
  */
 
 const BASE = 'https://api.hubapi.com'
@@ -82,56 +122,6 @@ async function upsertContact(
   return (createRes.data as { id?: string })?.id ?? null
 }
 
-// ── UPSERT COMPANY ─────────────────────────────────────────────────────────────
-
-async function upsertCompany(
-  key: string,
-  name: string,
-  props: Record<string, string | undefined> = {},
-): Promise<string | null> {
-  const searchRes = await hubspotFetch(key, '/crm/v3/objects/companies/search', {
-    method: 'POST',
-    body: {
-      filterGroups: [{ filters: [{ propertyName: 'name', operator: 'EQ', value: name }] }],
-      properties: ['name'],
-      limit: 1,
-    },
-  })
-
-  const searchData = searchRes.data as { results?: { id: string }[] } | null
-  const existing = searchData?.results?.[0]
-
-  const body = { properties: { name, ...props } }
-
-  if (existing) {
-    await hubspotFetch(key, `/crm/v3/objects/companies/${existing.id}`, {
-      method: 'PATCH',
-      body,
-    })
-    return existing.id
-  }
-
-  const createRes = await hubspotFetch(key, '/crm/v3/objects/companies', {
-    method: 'POST',
-    body,
-  })
-
-  if (!createRes.ok) return null
-  return (createRes.data as { id?: string })?.id ?? null
-}
-
-// ── ASSOCIATE CONTACT TO COMPANY ───────────────────────────────────────────────
-
-async function associateContactToCompany(
-  key: string,
-  contactId: string,
-  companyId: string,
-): Promise<void> {
-  await hubspotFetch(key, `/crm/v3/objects/contacts/${contactId}/associations/companies/${companyId}/contact_to_company`, {
-    method: 'PUT',
-  })
-}
-
 // ── ADD NOTE ───────────────────────────────────────────────────────────────────
 
 async function addNoteToContact(
@@ -161,189 +151,6 @@ async function addNoteToContact(
 }
 
 // ── PUBLIC FUNCTIONS ───────────────────────────────────────────────────────────
-
-/**
- * Creates or updates a HubSpot Contact and Company for a KIND client, then
- * associates them. Returns { contactId, companyId } or null if HUBSPOT_API_KEY
- * is absent or if a fatal error occurs.
- */
-export async function syncClientToHubspot(client: {
-  id: string
-  email: string
-  company_name: string
-  plan?: string
-  created_at?: string
-}): Promise<{ contactId: string; companyId: string } | null> {
-  const key = apiKey()
-  if (!key) return null
-
-  try {
-    const contactId = await upsertContact(key, client.email, {
-      company:          client.company_name,
-      lifecyclestage:   'customer',
-      hs_lead_status:   'IN_PROGRESS',
-    })
-    if (!contactId) return null
-
-    const companyId = await upsertCompany(key, client.company_name)
-    if (!companyId) return null
-
-    await associateContactToCompany(key, contactId, companyId)
-
-    return { contactId, companyId }
-  } catch (err) {
-    console.error('[hubspot] syncClientToHubspot error:', err)
-    return null
-  }
-}
-
-/**
- * Syncs a new signup to HubSpot: creates/updates contact + company, then
- * creates a Deal in the default pipeline at the first stage. Returns dealId or null.
- */
-export async function syncNewSignupToHubspot(client: {
-  id: string
-  email: string
-  company_name: string
-  plan?: string
-  created_at?: string
-}): Promise<string | null> {
-  const key = apiKey()
-  if (!key) return null
-
-  try {
-    const synced = await syncClientToHubspot(client)
-    if (!synced) return null
-
-    const closeDate = new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0]
-
-    const dealRes = await hubspotFetch(key, '/crm/v3/objects/deals', {
-      method: 'POST',
-      body: {
-        properties: {
-          dealname:  `${client.company_name} — KIND AI`,
-          pipeline:  'default',
-          dealstage: 'appointmentscheduled',
-          amount:    '0',
-          closedate: closeDate,
-        },
-      },
-    })
-
-    if (!dealRes.ok) return null
-    const dealId = (dealRes.data as { id?: string })?.id
-    if (!dealId) return null
-
-    // Associate deal with contact
-    await hubspotFetch(
-      key,
-      `/crm/v3/objects/deals/${dealId}/associations/contacts/${synced.contactId}/deal_to_contact`,
-      { method: 'PUT' },
-    )
-
-    // Associate deal with company
-    await hubspotFetch(
-      key,
-      `/crm/v3/objects/deals/${dealId}/associations/companies/${synced.companyId}/deal_to_company`,
-      { method: 'PUT' },
-    )
-
-    return dealId
-  } catch (err) {
-    console.error('[hubspot] syncNewSignupToHubspot error:', err)
-    return null
-  }
-}
-
-/**
- * Updates the HubSpot deal for a client to 'closedwon' and adds a payment note.
- * Looks up the contact by client email (reads client record from db). No-op if
- * HUBSPOT_API_KEY is absent.
- */
-export async function syncPaymentToHubspot(
-  clientId: string,
-  amountZar: number,
-  plan: string,
-): Promise<void> {
-  const key = apiKey()
-  if (!key) return
-
-  try {
-    // Look up client email from db
-    const { db } = await import('@kind/db')
-    const { data: client } = await db.from('clients')
-      .select('company_name, user_id')
-      .eq('id', clientId)
-      .single()
-
-    if (!client?.user_id) return
-
-    const { data: { user } } = await db.auth.admin.getUserById(client.user_id)
-    const email = user?.email
-    if (!email) return
-
-    // Find the contact in HubSpot
-    const searchRes = await hubspotFetch(key, '/crm/v3/objects/contacts/search', {
-      method: 'POST',
-      body: {
-        filterGroups: [{ filters: [{ propertyName: 'email', operator: 'EQ', value: email }] }],
-        properties: ['email', 'associatedcompanyid'],
-        limit: 1,
-      },
-    })
-
-    const searchData = searchRes.data as { results?: { id: string }[] } | null
-    const contact = searchData?.results?.[0]
-    if (!contact) return
-
-    // Find associated deals
-    const dealsRes = await hubspotFetch(
-      key,
-      `/crm/v3/objects/contacts/${contact.id}/associations/deals`,
-    )
-
-    const dealsData = dealsRes.data as { results?: { id: string }[] } | null
-    const deals = dealsData?.results ?? []
-
-    // Update most recent deal to closedwon
-    if (deals.length > 0) {
-      const dealId = deals[0].id
-      await hubspotFetch(key, `/crm/v3/objects/deals/${dealId}`, {
-        method: 'PATCH',
-        body: {
-          properties: {
-            dealstage: 'closedwon',
-            amount:    String(Math.round(amountZar / 19)), // convert ZAR to USD approx
-          },
-        },
-      })
-
-      // Add note to deal
-      const noteRes = await hubspotFetch(key, '/crm/v3/objects/notes', {
-        method: 'POST',
-        body: {
-          properties: {
-            hs_note_body: `Payment received: R${amountZar} — ${plan}`,
-            hs_timestamp: new Date().toISOString(),
-          },
-        },
-      })
-      const noteId = (noteRes.data as { id?: string })?.id
-      if (noteId) {
-        await hubspotFetch(
-          key,
-          `/crm/v3/objects/notes/${noteId}/associations/deals/${dealId}/note_to_deal`,
-          { method: 'PUT' },
-        )
-      }
-    }
-
-    // Also add note to contact
-    await addNoteToContact(key, contact.id, `Payment received: R${amountZar} — ${plan}`)
-  } catch (err) {
-    console.error('[hubspot] syncPaymentToHubspot error:', err)
-  }
-}
 
 /**
  * Finds or creates a HubSpot Contact for a FIGSY interested lead (the prospect,

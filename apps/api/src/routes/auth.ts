@@ -4,7 +4,7 @@ import { db } from '@kind/db'
 import { sendWelcomeEmail } from '../lib/email'
 import { sendFounderAlert } from '../lib/alerts'
 import { rateLimit } from '../lib/rate-limit'
-import { signupSubscriptionRow, SIGNUP_SUBSCRIPTION_PRODUCT } from '../lib/signup-subscription'
+import { signupSubscriptionRow, signupSubscriptionRowCompat, isPeriodEndNotNullRejection, SIGNUP_SUBSCRIPTION_PRODUCT } from '../lib/signup-subscription'
 import { PACK_PRICE_USD } from '@kind/shared'
 
 export const authRouter = Router()
@@ -193,7 +193,16 @@ authRouter.post('/onboard', async (req, res) => {
       .select('id').eq('client_id', clientId).eq('product', SIGNUP_SUBSCRIPTION_PRODUCT).maybeSingle()
     if (!existingSub) {
       const { error: subErr } = await db.from('subscriptions').insert(signupSubscriptionRow(clientId, now))
-      if (subErr) throw new Error(`Subscription insert failed: ${subErr.message} (${subErr.code})`)
+      // 4 Aug — the live schema has NOT NULL on current_period_end and the relaxing migration
+      // cannot run, so the honest null bounced with 23502 and EVERY signup failed here for two
+      // days until the founder hit it himself. Honest write first, sentinel retry second: the
+      // day the constraint is relaxed, the first insert succeeds and this branch goes dormant.
+      if (isPeriodEndNotNullRejection(subErr)) {
+        const { error: retryErr } = await db.from('subscriptions').insert(signupSubscriptionRowCompat(clientId, now))
+        if (retryErr) throw new Error(`Subscription insert failed after sentinel retry: ${retryErr.message} (${retryErr.code})`)
+      } else if (subErr) {
+        throw new Error(`Subscription insert failed: ${subErr.message} (${subErr.code})`)
+      }
 
       // NO FREEBIES, AND NO GRANT HERE — founder-locked 24 Jul. A new client starts with a
       // $0 wallet and $0 sourcing allowance. Nothing can be sourced, approved or sent until

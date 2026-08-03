@@ -60,5 +60,16 @@ Before reporting the state of any previously-built deliverable (CSV list, file, 
 4. **Never say "we have X leads / Y rows / Z emails" without running the count live** — memory of a prior build is not evidence.
 This rule exists because the 2k pull was reported as "2,000 names" when it had **0 verified emails** — a useless file for outreach. The founder caught it. Never again.
 
+## The working method — EVERY model, every session (founder-locked 4 Aug)
+The founder is done switching models to get two behaviours. **One method, whoever is running:**
+1. **Verify, then speak.** No number, status, file fact or branch/PR state from memory — run the count, read the file, `git fetch` before naming any ref. *(Three stale-ref incidents and a "$138 · verified" line nobody had checked against a bill are why.)*
+2. **Read the function before describing it.** A rule remembered from a different context is not a fact about this one — #414's "no code can reach the checkout" was true of one checkout and false of the one that mattered.
+3. **Founder-plain language.** No jargon, no option-soups: one recommendation, then do it. Walkthroughs go ONE step at a time — give the step, wait for "done". Never assert the wall-clock time.
+4. **Status reports build nothing.** Report, then wait for the word.
+5. **Builds:** fresh branch off *current* `origin/main` · `check.sh` green both ends · red proof for every new guard · one PR per change · prove 0-behind/≥1-ahead after push · every report ends with the PR link + `cd ~/KIND && bash scripts/ship.sh`.
+6. **The founder's screenshots are production evidence.** A human walking the real path outranks the gate — the gate is necessary, never sufficient (4 Aug: one signup walk found two live bugs 1,604 tests missed).
+7. **Money sentences are interpolated, never typed.** Every price a client can read derives from the constants in `@kind/shared`.
+8. **When corrected, record it** — same session, in the session log, without ceremony.
+
 ## Session start
 Read in order: **LAUNCH-PAD → PRODUCT-INVENTORY → KIND-MASTER → V2-TRACKER**, then `docs/RULEBOOK.md`. Open with a one-line reconciled state (RULEBOOK §8).

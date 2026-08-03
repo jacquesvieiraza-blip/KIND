@@ -1015,18 +1015,42 @@ export async function refundFigsyEnroll(clientId: string, leadId?: string): Prom
   // give the reverse row a NULL reference so it can never collide with the unique
   // `lead:{id}` index (a same-reference reverse would block the retry-charge silently).
   if (leadId) {
-    await db.from('credit_transactions').delete()
-      .eq('client_id', clientId).eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge').then(() => {}, () => {})
+    // #349 — this delete swallowed its error. It frees the `lead:{id}` reference so a retry
+    // can charge again; if it fails silently the reference stays taken and the legitimate
+    // retry is blocked by the unique index — the client cannot be charged, so the lead is
+    // never worked, and nothing says why.
+    const { error: freeErr } = await db.from('credit_transactions').delete()
+      .eq('client_id', clientId).eq('reference', `lead:${leadId}`).eq('type', 'wallet_charge')
+    if (freeErr) {
+      console.error('[figsy] charge reference NOT freed — a retry cannot re-charge', clientId, leadId, freeErr.message)
+      void sendFounderAlert('api_down', 'Refund left the charge reference locked', [
+        `Client ${clientId}, lead ${leadId}: the $4 was returned but the ledger row \`lead:${leadId}\` could not be deleted (${freeErr.message}).`,
+        'The unique index still holds that reference, so a retry cannot charge for this lead and it will never be worked.',
+        'Fix: delete that credit_transactions row by hand.',
+      ])
+    }
     // NOTE: deliberately does NOT touch a `pack_` row. A pack approval took no money, so
     // there is nothing to reverse — and deleting the pack row would silently hand the
     // client back a slot out of their included 100 that they had already used.
   }
-  await db.from('credit_transactions').insert({
+  // #349 — the reverse row swallowed its error, and this is the one that makes the LEDGER
+  // DISAGREE WITH THE WALLET. By this point the $4 has already been put back by the RPC
+  // above; if this row never lands, the money moved and nothing records it, so the ledger
+  // under-reports the client's balance forever. That is precisely the drift #349 exists for.
+  const { error: reverseErr } = await db.from('credit_transactions').insert({
     client_id: clientId, amount: 4, type: 'wallet_reverse', plan: 'work_model',
     reference: null,
     note: leadId ? `Enrollment failed after charge — $4 returned (lead ${leadId})` : 'Enrollment failed after charge — $4 returned',
     created_at: new Date().toISOString(),
-  }).then(() => {}, () => {})
+  })
+  if (reverseErr) {
+    console.error('[figsy] REFUND NOT LEDGERED — wallet and ledger now disagree by $4', clientId, leadId, reverseErr.message)
+    void sendFounderAlert('api_down', 'Refund happened but was not recorded', [
+      `Client ${clientId}${leadId ? `, lead ${leadId}` : ''}: $4 was returned to the wallet, but the wallet_reverse ledger row failed to insert (${reverseErr.message}).`,
+      'The money moved and nothing records it — the ledger now under-reports this client by $4 and will not self-correct.',
+      'Fix: add the wallet_reverse row by hand so the ledger reconciles.',
+    ])
+  }
 }
 
 // Recompute a single campaign's denormalised counters from the authoritative

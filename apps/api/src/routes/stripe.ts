@@ -114,11 +114,24 @@ async function payReferrerOnFirstPurchase(referredClientId: string) {
 
   // Atomic claim: only the first winner flips the marker from null.
   const now = new Date().toISOString()
-  const { data: claimed } = await db.from('clients')
+  // #349 — THE CLAIM USED TO SWALLOW ITS ERROR, and that is the one failure this whole
+  // function is built to prevent. supabase-js RETURNS the error, so an errored UPDATE left
+  // `claimed` undefined — indistinguishable from losing the race — and the function returned
+  // silently. Everything below alerts loudly on failure; the step that decides whether any of
+  // it runs did not. A referrer would simply never be paid, with nothing to notice.
+  const { data: claimed, error: claimErr } = await db.from('clients')
     .update({ referral_bonus_paid_at: now })
     .eq('id', referredClientId)
     .is('referral_bonus_paid_at', null)
     .select('id')
+  if (claimErr) {
+    void sendFounderAlert('payment_failed', 'Referral payout NOT attempted', [
+      `Referrer: ${client.referred_by}`,
+      `Referred client ${referredClientId} made their first purchase, but claiming the payout marker failed: ${claimErr.message}`,
+      `Nothing was written and nobody was paid. The marker is still null, so a future purchase retries — but if this client never buys again, pay the referrer $${REFERRAL_BONUS_USD} by hand.`,
+    ])
+    return
+  }
   if (!claimed || claimed.length === 0) return // lost the race — someone else is paying
 
   // Ledger row first (audit trail), then the atomic FIGSY credit grant.
@@ -137,11 +150,18 @@ async function payReferrerOnFirstPurchase(referredClientId: string) {
     created_at: now,
   })
   if (ledgerErr) {
-    await db.from('clients').update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
+    // #349 — the reset's own error was swallowed, so the alert below promised "the marker was
+    // reset" whether or not it had been. A failed reset leaves the marker SET, which means the
+    // payout can never retry — and the operator has been told the opposite. Report what
+    // actually happened.
+    const { error: resetErr } = await db.from('clients')
+      .update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
     void sendFounderAlert('payment_failed', 'Referral payout failed', [
       `Referrer: ${client.referred_by}`,
       `Referred client ${referredClientId} made their first purchase, but writing the referral-bonus ledger row failed: ${ledgerErr.message}`,
-      `The payout marker was reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
+      resetErr
+        ? `⚠️ AND THE MARKER RESET ALSO FAILED (${resetErr.message}) — it is still set, so NO future purchase will retry this. Clear clients.referral_bonus_paid_at for ${referredClientId} by hand, then pay the referrer $${REFERRAL_BONUS_USD}.`
+        : `The payout marker was reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
     ])
     return
   }
@@ -150,12 +170,18 @@ async function payReferrerOnFirstPurchase(referredClientId: string) {
     p_amount:    REFERRAL_BONUS_USD,
   })
   if (rpcErr) {
-    await db.from('credit_transactions').delete().eq('reference', ledgerRef)
-    await db.from('clients').update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
+    // #349 — both rollbacks swallowed their errors. A failed ledger delete leaves a row
+    // claiming a $45 payout that never happened (the ledger lies about money); a failed marker
+    // reset stops any retry. Either way the alert must say so rather than assert a clean undo.
+    const { error: delErr } = await db.from('credit_transactions').delete().eq('reference', ledgerRef)
+    const { error: resetErr } = await db.from('clients')
+      .update({ referral_bonus_paid_at: null }).eq('id', referredClientId)
     void sendFounderAlert('payment_failed', 'Referral payout failed', [
       `Referrer: ${client.referred_by}`,
       `Referred client ${referredClientId} made their first purchase, but the wallet grant RPC failed: ${rpcErr.message}`,
-      `The ledger row was rolled back and the payout marker reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
+      delErr || resetErr
+        ? `⚠️ THE ROLLBACK DID NOT FULLY SUCCEED.${delErr ? ` The ledger row ${ledgerRef} could NOT be deleted (${delErr.message}) — it now claims a $${REFERRAL_BONUS_USD} payout that never happened.` : ''}${resetErr ? ` The payout marker could NOT be reset (${resetErr.message}) — no future purchase will retry.` : ''} Fix by hand before trusting the ledger.`
+        : `The ledger row was rolled back and the payout marker reset — a future purchase will retry. Add $${REFERRAL_BONUS_USD} to the referrer's wallet manually if needed.`,
     ])
     return
   }
@@ -390,8 +416,22 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           console.log(`[stripe] first purchase $${amountUsd} for ${clientId} — pack only, wallet NOT credited (the $99 buys the 100 included leads)`)
         }
         if (walletErr) {
-          await db.from('credit_transactions').delete().eq('reference', session.id)
+          // #349 — THIS DELETE SWALLOWED ITS ERROR, and it is the most expensive one in the
+          // file. The row is removed precisely so Stripe's webhook retry can re-grant; the
+          // replay is idempotent ON THIS REFERENCE, so if the delete fails the row survives,
+          // the retry sees it, decides the grant already happened and skips it. The client
+          // has PAID and is never credited — permanently, with the alert below cheerfully
+          // saying "Stripe will retry".
+          const { error: rollbackErr } = await db.from('credit_transactions').delete().eq('reference', session.id)
           console.error('[Stripe] wallet credit failed after payment — deleting ledger row for retry', walletErr.message, 'session', session.id)
+          if (rollbackErr) {
+            console.error('[Stripe] ROLLBACK FAILED — the retry will skip this grant and the client stays unpaid', rollbackErr.message, 'session', session.id)
+            void sendFounderAlert('payment_failed', 'PAID CLIENT WILL NOT BE CREDITED — rollback failed', [
+              `Session ${session.id}: the wallet credit failed AND the ledger rollback failed (${rollbackErr.message}).`,
+              'The ledger row survives, so Stripe\'s retry will treat this payment as already granted and skip it. The client has paid and will never receive the credit.',
+              `Fix NOW: delete the credit_transactions row with reference ${session.id}, then re-run the grant or credit the wallet by hand.`,
+            ])
+          }
           void sendFounderAlert('payment_failed', 'Wallet credit failed after payment — Stripe will retry', [
             `Client: ${clientId} paid $${amountUsd} (session ${session.id}).`,
             `The payment succeeded but crediting the wallet failed — the ledger row was rolled back so Stripe's retry can re-credit. Reason: ${walletErr.message}`,
@@ -498,7 +538,21 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // the founder, and return 500 so Stripe retries this webhook. DO NOT fall
           // through to the 200.
           console.error('[Stripe] credit grant RPC failed after payment — deleting ledger row for retry', rpcErr.message, 'session', session.id)
-          await db.from('credit_transactions').delete().eq('reference', session.id)
+          // #349 — THIS DELETE SWALLOWED ITS ERROR, and it is the most expensive one in the
+          // file. The row is removed precisely so Stripe's webhook retry can re-grant; the
+          // replay is idempotent ON THIS REFERENCE, so if the delete fails the row survives,
+          // the retry sees it, decides the grant already happened and skips it. The client
+          // has PAID and is never credited — permanently, with the alert below cheerfully
+          // saying "Stripe will retry".
+          const { error: rollbackErr } = await db.from('credit_transactions').delete().eq('reference', session.id)
+          if (rollbackErr) {
+            console.error('[Stripe] ROLLBACK FAILED — the retry will skip this grant and the client stays unpaid', rollbackErr.message, 'session', session.id)
+            void sendFounderAlert('payment_failed', 'PAID CLIENT WILL NOT BE CREDITED — rollback failed', [
+              `Session ${session.id}: the credit grant failed AND the ledger rollback failed (${rollbackErr.message}).`,
+              'The ledger row survives, so Stripe\'s retry will treat this payment as already granted and skip it. The client has paid and will never receive the credit.',
+              `Fix NOW: delete the credit_transactions row with reference ${session.id}, then re-run the grant or credit the wallet by hand.`,
+            ])
+          }
           void sendFounderAlert('payment_failed', 'Credit grant failed after payment — Stripe will retry', [
             `Client: ${clientId}`,
             `Purchased: ${credits} ${isFigsy ? 'FIGSY' : 'lead gen'} credits (session ${session.id}).`,

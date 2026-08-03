@@ -1,3 +1,4 @@
+import { sendFounderAlert } from './alerts'
 import { db } from '@kind/db'
 import { isDemoClient } from './demo'
 
@@ -49,18 +50,42 @@ export async function holdFigsyCredit(
   const { error: insErr } = await db.from('credit_holds')
     .insert({ client_id: clientId, lead_id: leadId, amount: 1, status: 'held', created_at: new Date().toISOString() })
   if (insErr) {
-    // The credit left but the hold row didn't land — return the credit so we never
-    // silently swallow it, and report failure (caller refunds the $1 + aborts).
-    await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 }).then(() => {}, () => {})
-    console.error('[credit-holds] hold insert failed after charge — credit returned, lead', leadId, insErr.message)
+    // The credit left but the hold row didn't land — return the credit and report failure
+    // (caller refunds the $1 + aborts).
+    //
+    // #349 — THE RETURN ITSELF WAS SWALLOWED, one line under a comment promising "we never
+    // silently swallow it". If this RPC fails the credit is gone AND no hold exists to
+    // reconcile it against: the client is charged for work that was never even held. The log
+    // below said "credit returned" unconditionally, so the record was wrong too.
+    const { error: giveBackErr } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 })
+    if (giveBackErr) {
+      console.error('[credit-holds] CREDIT NOT RETURNED — client charged with no hold, lead', leadId, giveBackErr.message)
+      void sendFounderAlert('api_down', 'Client charged with nothing held', [
+        `Lead ${leadId}, client ${clientId}: the hold row failed to insert (${insErr.message}) and returning the credit ALSO failed (${giveBackErr.message}).`,
+        'The credit has left the client and no hold exists to reconcile it against — they paid for work that was never held.',
+        'Fix: add 1 figsy credit back to this client by hand.',
+      ])
+    } else {
+      console.error('[credit-holds] hold insert failed after charge — credit returned, lead', leadId, insErr.message)
+    }
     return { ok: false, reason: 'error' }
   }
 
-  await db.from('credit_transactions').insert({
+  // #349 — the credit has already been taken by this point, so a swallowed failure here
+  // means the ledger never shows the debit and over-reports what the client still has.
+  const { error: holdLedgerErr } = await db.from('credit_transactions').insert({
     client_id: clientId, amount: -1, type: 'hold', plan: 'figsy',
     reference: `hold:${leadId}`, note: `$3 work held on approve: ${leadLabel(lead)}`,
     created_at: new Date().toISOString(),
-  }).then(() => {}, () => {})
+  })
+  if (holdLedgerErr) {
+    console.error('[credit-holds] HOLD NOT LEDGERED — the ledger over-reports this client', leadId, holdLedgerErr.message)
+    void sendFounderAlert('api_down', 'Credit held but not recorded', [
+      `Lead ${leadId}: a credit was held, but the ledger row failed (${holdLedgerErr.message}).`,
+      'The debit happened and nothing records it — the ledger shows this client holding more than they do.',
+      'Fix: add the hold row by hand so the ledger reconciles.',
+    ])
+  }
   return { ok: true }
 }
 
@@ -81,11 +106,27 @@ export async function captureFigsyHold(clientId: string, leadId: string): Promis
     return
   }
 
-  await db.from('credit_holds').update({ status: 'captured', captured_at: new Date().toISOString() }).eq('id', hold.id)
+  // #349 — unchecked, and this one can DOUBLE-CREDIT. The hold stays 'held' if this fails,
+  // so a later release path finds it and hands the credit back on work we already captured.
+  const { error: capErr } = await db.from('credit_holds')
+    .update({ status: 'captured', captured_at: new Date().toISOString() }).eq('id', hold.id)
+  if (capErr) {
+    console.error('[credit-holds] CAPTURE NOT RECORDED — the hold is still open and can be released again', leadId, capErr.message)
+    void sendFounderAlert('api_down', 'Credit hold captured but not marked', [
+      `Lead ${leadId}: the booking captured the held credit, but marking the hold 'captured' failed (${capErr.message}).`,
+      'The hold row still reads "held", so a later release would return a credit for work we already billed — a double credit.',
+      'Fix: set that credit_holds row to captured by hand.',
+    ])
+  }
   // Re-note the original hold ledger row so the founder sees "captured — booking" (the
   // -1 stays; no second debit). Best-effort.
-  await db.from('credit_transactions').update({ note: `$3 work captured — booking confirmed (lead ${leadId})` })
-    .eq('client_id', clientId).eq('reference', `hold:${leadId}`).eq('type', 'hold').then(() => {}, () => {})
+  // #349 — checked, but deliberately NOT alerted: this only rewrites a human-readable note on
+  // a row that already carries the correct amount. No money depends on it, so a log is the
+  // honest response — waking the founder for a cosmetic failure trains them to ignore alerts.
+  const { error: noteErr } = await db.from('credit_transactions')
+    .update({ note: `$3 work captured — booking confirmed (lead ${leadId})` })
+    .eq('client_id', clientId).eq('reference', `hold:${leadId}`).eq('type', 'hold')
+  if (noteErr) console.warn('[credit-holds] capture note not updated (cosmetic only), lead', leadId, noteErr.message)
 }
 
 // Convenience: release by ENROLLMENT id (the terminal transitions in the send loop carry
@@ -108,12 +149,33 @@ export async function releaseFigsyHold(clientId: string, leadId: string, reason:
   const { error } = await db.rpc('increment_figsy_credits', { p_client_id: clientId, p_amount: 1 })
   if (error) { console.error('[credit-holds] release increment failed for lead', leadId, error.message); return }
 
-  await db.from('credit_holds').update({ status: 'released', released_at: new Date().toISOString() }).eq('id', hold.id)
-  await db.from('credit_transactions').insert({
+  // #349 — both unchecked. The credit has ALREADY been returned by the RPC above, so:
+  // a failed status update leaves the hold open and it can be released a second time
+  // (another credit, for nothing); a failed ledger row means the credit moved and nothing
+  // records it, so the ledger under-reports this client permanently.
+  const { error: relErr } = await db.from('credit_holds')
+    .update({ status: 'released', released_at: new Date().toISOString() }).eq('id', hold.id)
+  if (relErr) {
+    console.error('[credit-holds] RELEASE NOT MARKED — the credit was returned and the hold is still open', leadId, relErr.message)
+    void sendFounderAlert('api_down', 'Credit released but the hold is still open', [
+      `Lead ${leadId}: the credit was returned, but marking the hold 'released' failed (${relErr.message}).`,
+      'The hold still reads "held", so this credit can be returned a second time.',
+      'Fix: set that credit_holds row to released by hand.',
+    ])
+  }
+  const { error: ledgerErr } = await db.from('credit_transactions').insert({
     client_id: clientId, amount: 1, type: 'release', plan: 'figsy',
     reference: `release:${leadId}`, note: `$3 work released — ${reason} (lead ${leadId})`,
     created_at: new Date().toISOString(),
-  }).then(() => {}, () => {})
+  })
+  if (ledgerErr) {
+    console.error('[credit-holds] RELEASE NOT LEDGERED — wallet and ledger now disagree', leadId, ledgerErr.message)
+    void sendFounderAlert('api_down', 'Credit released but not recorded', [
+      `Lead ${leadId}: a credit was returned to the client, but the release ledger row failed (${ledgerErr.message}).`,
+      'The credit moved and nothing records it — the ledger under-reports this client and will not self-correct.',
+      'Fix: add the release row by hand so the ledger reconciles.',
+    ])
+  }
 }
 
 // ── E1 · STALE-HOLD SWEEP (the backstop the send-loop comment promises) ─────────

@@ -12,6 +12,7 @@
 //     top-up both skip demos — MBF can sit for months and never cost a cent.
 
 import { db } from '@kind/db'
+import { PACK_PRICE_USD } from '@kind/shared'
 import {
   MBF_NAME, MBF_MARKER, MBF_CAST, MBF_ICP, MBF_SEQUENCE, MBF_REPLIES, castEmail, canAdoptAsMbf,
 } from './demo-mbf-data'
@@ -163,11 +164,15 @@ export async function seedMbf(clientId: string): Promise<SeedResult> {
     }
   }
 
-  // ── Paid, so nothing shows a $99 banner mid-demo ────────────────────────────────
-  // A manual_grant counts as paid everywhere (PAID_TX_TYPES) which activates the 100-lead
-  // pack — so every approval you make on stage reads "included", not "$4 charged".
+  // ── Paid, so nothing shows a go-live banner mid-demo ────────────────────────────
+  // A manual_grant counts as paid everywhere (PAID_TX_TYPES) which activates the included
+  // pack — so every approval you make on stage reads "included", not "charged".
+  //
+  // ⚠️ THE AMOUNT IS DERIVED. It was hardcoded 99, so after the 3-Aug move to $299 the demo
+  // would have shown the founder pitching a $299 pack over a ledger reading $99 in — on a
+  // screen whose entire job is to be believed by a prospect.
   await db.from('credit_transactions').insert({
-    client_id: clientId, type: 'manual_grant', amount: 99, plan: 'work_model',
+    client_id: clientId, type: 'manual_grant', amount: PACK_PRICE_USD, plan: 'work_model',
     reference: `mbf_demo_grant_${clientId}`,
     note: 'MBF demo account — onboarding pack, no money moved',
   })

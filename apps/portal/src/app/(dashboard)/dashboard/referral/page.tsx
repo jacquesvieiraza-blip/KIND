@@ -16,6 +16,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Gift, Copy, Check, Users, ArrowRight, Loader2 } from 'lucide-react'
+import { PACK_PRICE_USD } from '@kind/shared'
 
 interface Referral {
   id: string
@@ -113,7 +114,7 @@ export default function ReferralPage() {
             {
               step: '2',
               title: 'They sign up and buy',
-              description: 'Your referred business signs up using your link and makes their first purchase — the $99 onboarding pack.',
+              description: `Your referred business signs up using your link and makes their first purchase — the $${PACK_PRICE_USD} onboarding pack.`,
             },
             {
               step: '3',

@@ -259,14 +259,14 @@ export default function BillingPage() {
     <div className="space-y-8 max-w-3xl">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Billing & Wallet</h1>
-        <p className="text-[#7B6FA0] text-sm mt-1">One wallet. $99 to start, then top up any time. $4 per approved lead.</p>
+        <p className="text-[#7B6FA0] text-sm mt-1">One wallet. ${PACK_PRICE_USD} to start, then top up any time. ${LEAD_PRICE_USD} per approved lead.</p>
       </div>
 
       {/* NO FREEBIES — the paywall banner: a client who hasn't paid is sent here to load $99. */}
       {!hasPurchased && (
         <div className="rounded-xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4">
           <p className="font-bold text-[#5b21b6]">You're one step from live — load your wallet to begin.</p>
-          <p className="text-sm text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b>. It funds your wallet and starts your campaign — each approved lead is a flat $4. Nothing is charged until you approve.</p>
+          <p className="text-sm text-[#6b6088] mt-0.5">Your first purchase is <b>${PACK_PRICE_USD}</b> — the onboarding pack, which includes your first <b>{PACK_LEADS}</b> approved leads. It does NOT fund your wallet: it buys those approvals outright. Each approved lead after them is a flat $4. Nothing is charged until you approve.</p>
         </div>
       )}
 
@@ -291,7 +291,7 @@ export default function BillingPage() {
         {packLine(pack) && (
           <div className="px-6 pb-5 -mt-1">
             <div className="rounded-lg bg-white/10 px-4 py-3">
-              <p className="text-white/60 text-xs uppercase tracking-wide font-bold">Your $99 pack</p>
+              <p className="text-white/60 text-xs uppercase tracking-wide font-bold">Your ${PACK_PRICE_USD} pack</p>
               <p className="text-white text-[13.5px] mt-1">{packLine(pack)}</p>
             </div>
           </div>

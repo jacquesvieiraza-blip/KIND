@@ -23,6 +23,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { ExternalLink, Trash2, Loader2, RefreshCw, CheckCircle, AlertTriangle } from 'lucide-react'
+import { PACK_PRICE_USD } from '@kind/shared'
 
 interface Demo {
   id: string
@@ -154,7 +155,7 @@ export default function DemoPage() {
           <b className="text-[#1f1235]">What&apos;s in it:</b> 12 people already being worked · <b>22 waiting to be picked</b> (two
           more than the minimum-20 gate, so you can show the rule rather than watch it adapt down) · 6 passed, all visibly
           worse fits · 6 replies including a hot one, an objection and an opt-out · 2 meetings booked and still ahead ·
-          a ledger reading $99 in.
+          a ledger reading ${PACK_PRICE_USD} in.
           <div className="mt-2.5 text-[13px] text-[#8579a8]">
             Reset it before a demo, or the moment you break it mid-pitch. It rebuilds to exactly the same state every time.
           </div>

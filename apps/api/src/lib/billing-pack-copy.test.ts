@@ -117,7 +117,7 @@ describe('the shared constants are the single source of truth', () => {
   it('they still hold the founder-locked values', () => {
     // Deriving from a constant is only safe if the constant is right.
     expect(PACK_LEADS).toBe(100)
-    expect(PACK_PRICE_USD).toBe(99)
+    expect(PACK_PRICE_USD).toBe(299)
     expect(LEAD_PRICE_USD).toBe(4)
   })
 

@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
+import { PACK_PRICE_USD } from '@kind/shared'
 
 interface Props {
   clientId: string
@@ -41,7 +42,7 @@ export function OneWalletExplainer({ clientId, hasPurchase }: Props) {
       <div className="space-y-2 text-sm">
         <p className="flex items-start gap-2 text-gray-700">
           <span className="shrink-0">👛</span>
-          <span><span className="font-semibold text-[#7C3AED]">One wallet.</span> $99 to start, then free top-ups whenever you need them.</span>
+          <span><span className="font-semibold text-[#7C3AED]">One wallet.</span> ${PACK_PRICE_USD} to start, then free top-ups whenever you need them.</span>
         </p>
         <p className="flex items-start gap-2 text-gray-700">
           <span className="shrink-0">✅</span>

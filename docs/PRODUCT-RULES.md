@@ -12,12 +12,12 @@
 
 | # | Rule | Where it came from | Enforced by |
 |---|---|---|---|
-| M1 | **The $99 pack is 100 approvals included. Not 99, not 124.** | founder-locked 24 Jul, #541 | `PACK_LEADS = 100` |
+| M1 | **The $299 pack is 100 approvals included. Not 99, not 124.** *(price re-locked 3 Aug; the 100 never moved)* | founder-locked 24 Jul · price 3 Aug, #541 | `PACK_LEADS = 100` · `PACK_PRICE_USD = 299` |
 | M2 | **After the included 100, it is a flat $4 per approved lead. FINAL** — no $1/$3 split shown, no hold, no capture-at-booking. | founder-locked 24 Jul (supersedes the 23-Jul re-time) | `LEAD_PRICE_USD = 4` |
 | M3 | **The $99 buys the pack ONLY — never wallet credit as well.** One payment must not pay out twice. | #562 | `stripe.ts` skips `increment_wallet` on first purchase |
 | M4 | **ONE WALLET.** One dollar wallet per client. No parallel credit columns. | founder-locked 24–25 Jul, #492 | `wallet_balance_usd`, `try_charge_wallet` |
 | M5 | **A lead is charged at most once, ever.** | #566/#569 | the atomic `revealed_at` claim |
-| M6 | **Repeat business is wallet top-ups, not a second pack.** A renewing pack loses money at ~$105 against $99. | #567, costed 25 Jul | — |
+| M6 | **Repeat business is wallet top-ups, not a second pack.** *(Costed 25 Jul when a renewing pack lost money at ~$105 against $99. ⚠️ At the 3-Aug price of **$299** a second pack would no longer lose money — but the rule stands on its own logic: a repeat client already has a warmed inbox and a sourced pool, so charging them a second onboarding fee bills them for onboarding twice.)* | #567, costed 25 Jul · re-checked 3 Aug | — |
 | M7 | **Money the client is owed is never silently lost.** A failed write returns the money, releases the claim, and alerts. | #568 | rollback + alert on every money write |
 
 ## 2 · SAFETY — the rules that protect a real person

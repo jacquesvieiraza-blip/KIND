@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import { PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
 
 // #513/#514 — MILLA CONVERSATIONAL ONBOARDING. Milla-led, no forms: the client describes
 // who they want to reach, Milla (via /icps/builder/chat) proposes a structured ICP, we show
@@ -156,7 +157,7 @@ export default function MillaWelcomePage() {
                   screen is the $99 — because nothing sources until it lands. Promising
                   "start sourcing" here was a promise the money gate does not keep. */}
               <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : 'Approve this — then go live for $99'}</button>
-              <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">$99 includes your first <b className="text-[#5c5279]">100 approved leads</b> and your sender. Nothing sources until it lands.</div>
+              <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">${PACK_PRICE_USD} includes your first <b className="text-[#5c5279]">{PACK_LEADS} approved leads</b> and your sender. Nothing sources until it lands.</div>
               <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
               {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
             </div>

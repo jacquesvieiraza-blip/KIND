@@ -18,7 +18,7 @@ import {
   type SubscriptionProduct,
 } from '../lib/stripe'
 import { sendFounderAlert } from '../lib/alerts'
-import { PURCHASE_TX_TYPES } from '../lib/onboarding-pack'
+import { PURCHASE_TX_TYPES, PACK_PRICE_USD, PACK_LEADS } from '../lib/onboarding-pack'
 import { mapStripeStatus, isEnumRejection } from '../lib/subscription-status'
 
 // ── Auto-commission: if this client was referred by a partner, create a commission record ──
@@ -240,10 +240,26 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
       .eq('client_id', client.id).in('type', PURCHASE_TX_TYPES)
     const isFirst = (priorPurchases ?? 0) === 0
 
-    const FIRST_PURCHASE_USD = 99
+    // ⚠️ DERIVED FROM THE CONSTANT, NEVER TYPED — and this line is why the guard exists.
+    // It read `const FIRST_PURCHASE_USD = 99` while the portal's button already derived its
+    // amount from `PACK_PRICE_USD` (#563 fixed the client side and left the server side
+    // hardcoded). So the 3-Aug move to $299 would have had the portal POST 299 and this
+    // route reject it as `first_purchase_must_be_99`: **every first payment would have
+    // failed at the till**, on the one request that starts a client, and the only symptom
+    // would have been a 400 nobody was watching for. `pack-price-single-source.test.ts`
+    // now fails if either side is re-hardcoded.
+    const FIRST_PURCHASE_USD = PACK_PRICE_USD
     const TOPUP_PRESETS = [40, 100, 200]
     if (isFirst && amount_usd !== FIRST_PURCHASE_USD) {
-      res.status(400).json({ success: false, error: 'first_purchase_must_be_99', message: 'Your first purchase is $99 to load your wallet.' })
+      // The code is generic on purpose: `first_purchase_must_be_99` baked a price into an
+      // error name, so the name itself went stale the day the price moved.
+      res.status(400).json({
+        success: false,
+        error: 'first_purchase_amount_required',
+        // NOT "to load your wallet" — that was false after #562. The pack BUYS the included
+        // approvals; it does not credit the wallet.
+        message: `Your first purchase is $${FIRST_PURCHASE_USD} — the onboarding pack, which includes your first ${PACK_LEADS} approved leads.`,
+      })
       return
     }
     if (!isFirst && !TOPUP_PRESETS.includes(amount_usd) && amount_usd !== FIRST_PURCHASE_USD) {
@@ -413,7 +429,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           ? { error: null }
           : await db.rpc('increment_wallet', { p_client_id: clientId, p_amount: amountUsd })
         if (isPackPurchase) {
-          console.log(`[stripe] first purchase $${amountUsd} for ${clientId} — pack only, wallet NOT credited (the $99 buys the 100 included leads)`)
+          console.log(`[stripe] first purchase $${amountUsd} for ${clientId} — pack only, wallet NOT credited (the $${PACK_PRICE_USD} buys the ${PACK_LEADS} included leads)`)
         }
         if (walletErr) {
           // #349 — THIS DELETE SWALLOWED ITS ERROR, and it is the most expensive one in the

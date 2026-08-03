@@ -6,7 +6,7 @@
 >
 > **The floor is ~$146/month** (rebuilt 3 Aug off the actual invoices — see §5, NOW table). **The correction that matters:** the *Railway + Supabase + Cloudflare* row read **~$138** and was tagged **verified** against a real **$50.59** — overstated by **$87/mo** for weeks, because the number was never checked against a bill and the confident tag stopped anyone re-checking it. **The same day the founder cut what was not the launch** — Resend to free ($20), Apollo to its free plan from 3 Sep ($65, with 2,500 already-paid credits covering August), Claude Code downgraded (~$152 → ~$23) — and **deliberately kept the sending path**: Google Workspace **+$28** and Instantly Growth **$37**, because cutting those saves ~$65 and pushes first revenue further out. **~$134/mo once the failover dies; ~$157 all-in including Claude Code.** The history: a ~$190 figure omitted Smartlead, Instantly, Zoho and the Anthropic runtime; correcting that gave **~$457** (25 Jul); deferring Smartlead and pricing Instantly at its real tier gave **~$423** (30 Jul); the **idle-tools-bill-nothing** rule gave **~$283**; and the **Client Zero architecture lock** gave **~$223** — which the invoices then cut to **~$146**. It rises to **~$490** the day a client signs. PDL is modelled the way it is actually billed — a bought tier with a **$98 floor**, charged as `max(tier, names × $0.28)`, not double-counted as a fixed line *and* a per-name cost.
 >
-> **Two numbers out of it that changed how we sell:** ① at $40/client/month for their inbox, a client must approve **~13 leads a month just to pay for their own sender** — below that every extra client makes us poorer and **no amount of scale fixes it** (this is why the minimum-20 gate exists, #542); ② the **$99 pack is −$52 in month one** once $45 setup + $40 inbox are counted, recovering to **+$121 at 50 approvals in month two** — **the repeat is the business, the pack is the door.**
+> **Two numbers out of it that changed how we sell:** ① a client must approve **~3 leads a month just to pay for their own sender** (their own Google box is ~$8/mo, not the $40/mo this line used to assume) — the **minimum-20 gate (#542) still stands**, but it is now a commitment filter rather than the thin margin it was sold as; ② the **$299 pack clears ≈ +$165 in month one** against ~$134 of setup, and covers the ~$143 it cost to acquire them as well. ⚠️ **THIS LINE PREVIOUSLY SAID the $99 pack was −$52 in month one, and it was right** — that is exactly why the price moved on 3 Aug: at $99 the founder personally funded ~$78 of every engine-acquired client and ate it whole if they churned after month one.
 >
 > ⚠️ **One input still unresolved, founder's call:** *names sourced per approval.* Flow v2 says **2**, #415 measured **~7**. At 7 the model roughly halves. It stays an input box until the live measurement (now on Vida's worklist) settles it.
 
@@ -14,7 +14,7 @@
 
 ---
 
-## 1. THE MONEY MODEL — one wallet · $99 onboarding pack · then $4 a lead (LOCKED 25 Jul)
+## 1. THE MONEY MODEL — one wallet · $299 onboarding pack · then $4 a lead (PRICE RE-LOCKED 3 AUG)
 
 > ⚠️ **This section was stale until 25 Jul** — it still described the retired two-wallet model ($1 reveal into `credit_balance` + $3 work into `figsy_credits_remaining`). That was superseded by **#492 ONE WALLET** on 24 Jul and the doc never caught up. Corrected here; this is the pricing home, so nothing else should restate it.
 
@@ -31,7 +31,9 @@ Leads arrive **masked** — browsing and building the plan are free. There is **
 - We **refuse the charge outright** if there's no live campaign to work the lead — never take money for work that can't run.
 - A **no-show gets two attempts**; after that the client chooses to pursue it themselves or pay a fresh $4 for a re-run.
 
-**What the $99 pack costs us** (rates in §2): **200 records sourced** at $0.28 = **$56** (they pass on roughly half, so 200 gives them a real choice at 100 approvals) · 100 leads worked at ~$0.06 = **$6** · Stripe on the $99 = **$3.17** · their inbox, month 1 = **$4.50** → **≈ $70, leaving ≈ $29 (30%)**. A branded domain (~$13/yr) is separate and only on conversion.
+**What the $299 pack costs us** (rates in §2, re-derived 3 Aug against confirmed vendor prices): a **pre-warmed Smartlead mailbox $45** so they send on day one · **200 records sourced** at $0.28 = **$56** (they pass on roughly half, so 200 gives them a real choice at 100 approvals) · their own branded domain **$12/yr** and their own Google mailbox **$7/mo**, warming alongside · 100 leads worked at ~$0.07 = **$7** · Stripe on the $299 = **$10.50** → **≈ $134, leaving ≈ $165** against the **~$143** it cost to find them.
+
+⚠️ **THE OLD LINE IS KEPT AS THE RECORD OF THE ERROR** (CORE-MAP rule 3): *"$56 · $6 worked · $3.17 Stripe · their inbox month 1 **$4.50** ≈ $70, leaving ≈ $29 on the $99."* **That $4.50 inbox line was wrong by a factor of ten.** Confirmed 3 Aug: a warmed mailbox is **$45/month**, not $4.50 — and warmth cannot be bought any cheaper, because every mailbox starts cold and "pre-warmed" means somebody began warming it weeks earlier. Costing a warmed inbox at $4.50 is the single reason the $99 ever looked like it covered a client.
 
 > The $56 is the number to watch: **PDL is spent at sourcing whether the client approves or not.** Pool-first sourcing reduces it — anyone already in our pool is free — so $56 is the worst case, and it falls as the pool grows across clients in the same market.
 
@@ -140,7 +142,7 @@ Flat pricing, no volume discounts. **Signup grant (welcome mix, no expiry):** 20
 | **Anthropic** at client volume | +~$30 | scales with leads worked |
 | Instantly mailboxes (once purchased) | +~$23 | on purchase |
 | **PLATFORM FLOOR — FUTURE** | **~$490/mo** | |
-| *Client's own inbox + workspace* | *+$40 per client* | **paid out of THEIR $99** — never speculative |
+| *Client's own inbox* | *+$8 per client/month* | **paid out of THEIR $299** — never speculative. ⚠️ **This row said +$40**, an unconfirmed guess at a Smartlead workspace fee; the real ongoing cost is their own Google box ($7) + domain (~$1). The **$45 pre-warmed box is month ONE only** and transitions away at ~day 21–29 |
 
 **~$490 is covered at ~4 clients** averaging 50 approvals a month (~$121 contribution each). The failover is deliberately **not** added back at one client — it returns when an outage would cost real revenue.
 
@@ -193,7 +195,7 @@ The floors above are **rent**: what runs whether or not we are hunting. Finding 
 | Platform floor — **FUTURE** *(first client onward)* | ~$490 | **~4 clients** |
 | + Claude Code dev (**£119.99 ≈ $152**) | ~$642 | **~6 clients** |
 
-**Their first month is not where the money is.** The $99 pack costs us ~$56 sourcing (200 names) + ~$7 working + ~$3.50 Stripe + $45 setup + $40 inbox ≈ **$151 — so month one runs at about −$52.** Month two recovers it at 50 approvals. **The repeat is the business; the pack is the door.**
+**Their first month now pays for itself — that is what the 3-Aug price move bought.** The $299 pack costs us ~$56 sourcing (200 names) + ~$7 working + ~$10.50 Stripe + $45 pre-warmed inbox (month one only) + ~$15 their own domain and box ≈ **$134 — so month one clears about +$165**, enough to cover the ~$143 acquisition too. **Under the old $99 it ran at about −$52**, and the founder carried that loss outright whenever a client left after month one. Month two onward contributes ~$153 at 50 approvals. **The repeat is still the business; the pack is now a door that pays for itself.**
 
 > Interactive version, with every line editable: **`docs/CASHFLOW-LAB.html`**.
 

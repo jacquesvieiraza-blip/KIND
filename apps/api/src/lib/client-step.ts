@@ -9,15 +9,19 @@
 // tested rather than discovered in production.
 //
 // The steps mirror the founder's mapped flow (v2, 25 Jul):
-//   0 signed up + ICP approved · 2 waiting on the $99 · 3 paid → inbox + sourcing (automatic)
+//   0 signed up + ICP approved · 2 waiting on the pack payment · 3 paid → inbox + sourcing
 //   4 the client is picking people · 5 approve the sequence · 6 run it
 //   7 answer replies · 8 qualify + hand over · 9 live, nothing owed
+
+// The ONLY import, and it is a constant, not a dependency: `@kind/shared` is pure data, so
+// this module stays synchronous and DB-free while the price it quotes can never go stale.
+import { PACK_PRICE_USD } from '@kind/shared'
 
 export type Actor = 'you' | 'them' | 'engine'
 
 export type ClientFacts = {
   hasIcp: boolean
-  hasFunded: boolean          // the $99 landed
+  hasFunded: boolean          // the onboarding pack payment landed
   hasInbox: boolean           // a sender is assigned
   sourced: number             // people found for them, all-time
   withClient: number          // surfaced, awaiting their 👍, not expired
@@ -77,7 +81,7 @@ export function nextAction(f: ClientFacts): NextAction {
     // Money gates everything. We don't source and we don't buy them an inbox until it lands.
     return {
       step: 2, actor: 'them', urgency: 40,
-      label: 'Waiting on their $99',
+      label: `Waiting on their $${PACK_PRICE_USD}`,
       cta: { kind: 'chase', label: 'Remind them' },
     }
   }

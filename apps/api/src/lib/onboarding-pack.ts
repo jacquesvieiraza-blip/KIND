@@ -97,9 +97,16 @@ export function sourceTarget(awaitingDecision: number): number {
   return Math.max(0, PACK_SOURCE_TARGET - Math.max(0, Math.floor(awaitingDecision)))
 }
 
-/** What the client sees in Milla. Plain words — never a raw number on its own. */
+/**
+ * What the client sees in Milla. Plain words — never a raw number on its own.
+ *
+ * ⚠️ THE PRICE AND THE COUNT ARE INTERPOLATED FROM THE CONSTANTS, NOT TYPED. This line read
+ * `'Load $99 to start — 100 leads included'` with both numbers hand-typed, so the 3-Aug move
+ * to $299 would have left the one sentence a client reads before paying quoting the old
+ * price — the exact failure #563 records, in the exact file that records it.
+ */
 export function packLabel(s: PackState): string {
-  if (!s.active) return 'Load $99 to start — 100 leads included'
+  if (!s.active) return `Load $${PACK_PRICE_USD} to start — ${PACK_LEADS} leads included`
   if (s.left === 0) return `Pack used · $${LEAD_PRICE_USD} per approved lead from here`
   return `${s.left} of your ${s.included} included leads left`
 }

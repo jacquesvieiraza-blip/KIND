@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import { loadError, panelView, notice, noticeClass, noticeText, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, PACK_PRICE_USD, type Notice } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -96,7 +96,7 @@ type WorkRow = ClientRow & {
 }
 // The founder's mapped flow, as the rail across the top of the work column.
 const FLOW_STEPS: [number, string][] = [
-  [0, 'Signed up'], [2, 'Paid $99'], [3, 'Inbox + people'], [4, 'Client picks'],
+  [0, 'Signed up'], [2, `Paid $${PACK_PRICE_USD}`], [3, 'Inbox + people'], [4, 'Client picks'],
   [5, 'Sequence'], [6, 'Run'], [7, 'Replies'], [8, 'Book'], [9, 'Live'],
 ]
 // V4 — the pool the operator picks from.
@@ -590,7 +590,7 @@ export default function VidaConsolePage() {
       return
     }
     if (kind === 'inbox')      { window.location.href = '/vida/engine'; return }
-    if (kind === 'chase')      { setTab('Asks'); setAskInput('Quick nudge — your first $99 unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.'); return }
+    if (kind === 'chase')      { setTab('Asks'); setAskInput(`Quick nudge — your first $${PACK_PRICE_USD} unlocks the whole thing: we buy your sender, find your people and start work the moment you approve them.`); return }
   }
 
   // ── BOOKINGS: mark a no-show, give a goodwill rebook ──────────────────────────

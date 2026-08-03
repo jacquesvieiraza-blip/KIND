@@ -85,7 +85,7 @@ describe('terms §5 and §6 describe the charge the code actually makes', () => 
   it('the never-charged list includes the pack approvals', () => {
     // A client reading "the following never consume a credit" should find their first hundred
     // there. That list is the one place in the contract they will look.
-    expect(terms).toContain('first 100 approvals included in your $99 onboarding pack')
+    expect(terms).toContain('first 100 approvals included in your $299 onboarding pack')
   })
 
   it('§6 no longer describes a flat $4 with no pack', () => {

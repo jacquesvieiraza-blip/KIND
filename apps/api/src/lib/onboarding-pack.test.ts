@@ -6,10 +6,10 @@ import {
 } from './onboarding-pack'
 
 describe('the numbers are the founder-locked ones', () => {
-  it('100 leads for $99, then $4, sourcing 200', () => {
+  it('100 leads for $299, then $4, sourcing 200', () => {
     // Changing any of these changes what a client is owed — they are pinned deliberately.
     expect(PACK_LEADS).toBe(100)
-    expect(PACK_PRICE_USD).toBe(99)
+    expect(PACK_PRICE_USD).toBe(299)
     expect(PACK_SOURCE_TARGET).toBe(200)
     expect(LEAD_PRICE_USD).toBe(4)
   })
@@ -124,7 +124,7 @@ describe('sourceTarget — keeps the DESK stocked, not a lifetime cap', () => {
 
 describe('packLabel — what the client reads', () => {
   it('before they pay', () => {
-    expect(packLabel(packState(false, 0))).toBe('Load $99 to start — 100 leads included')
+    expect(packLabel(packState(false, 0))).toBe('Load $299 to start — 100 leads included')
   })
 
   it('mid-pack, in plain words', () => {

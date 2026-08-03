@@ -29,7 +29,29 @@
 - **#349 — the money-write remainder.** 11 more swallowed failures closed, including one where **a client who paid would never be credited**.
 - **#602/#606 — the doc audit and the founder's 48 rulings.** 14 items tombstoned, 14 redesignated to the ENGINE, 11 re-dotted, Apollo correctly relabelled **[OUR HUNTING]**.
 
-**⚠️ THE ARCHITECTURE (founder, 30 Jul, unchanged).** Of Instantly's bundle we lack exactly one thing — the **warmup network**. Its sequencer, sender and unibox duplicate what we built. So **Instantly drops to Growth (~$37), warmup only**, and **FIGSY + our send path + our unibox do the outreach**. Smartlead deferred until a client is in the works. Floor **~$223/mo**, rising to **~$490** the day a client signs.
+**⚠️ THE ARCHITECTURE (founder, 30 Jul, unchanged).** Of Instantly's bundle we lack exactly one thing — the **warmup network**. Its sequencer, sender and unibox duplicate what we built. So **Instantly drops to Growth (~$37), warmup only**, and **FIGSY + our send path + our unibox do the outreach**. Smartlead deferred until a client is in the works.
+
+### 💸 THE COST FLOOR — REBUILT 3 AUG FROM ACTUAL BILLS. **~$223 was wrong. It is ~$146.**
+
+The founder said ***"i cant afford 470/month… without income coming in this is impossible to maintain"***, and opening the real invoices found the model had been overstating the floor for weeks.
+
+**The error, and it is the biggest single number in this repo:** the *Servers + database* line read **$138** and was tagged **verified**. Actual: **Railway $15.59 + Supabase $35 = $50.59**. **Overstated by $87/mo.** Nothing changed at the vendors — the number was simply never checked against an invoice, and the "verified" tag stopped everyone who read it afterwards from checking. ⚠️ **A confident label on an unread number is worse than no number**, and this is the same defect the 29 Jun audit rule was written for.
+
+**Then the founder's cuts, made the same day** — note what was *not* cut:
+
+| Line | Was | Now | |
+|---|---:|---:|---|
+| Servers + database | $138 | **$51** | Railway $15.59 + Supabase $35, off the bills. ⚠️ Railway is **usage-based** — that is the idle rate, it climbs with traffic |
+| Resend | $20 | **$0** | free tier. ⚠️ ceiling not free lunch: ~3,000/mo and **~100/day** — the daily cap bites first when clients arrive |
+| Apollo | $65 | **$0** | drops to the free plan **3 Sep**. August is paid, so **2,500 credits are August's prospecting already bought** |
+| Claude Code | ~$152 | **~$23** | downgraded; current plan runs to **20 Aug** |
+| Google Workspace | — | **+$28** | **kept** |
+| Instantly Growth | $37 | **$37** | **kept** |
+| Failover | $12 | $12 → **$0** | teardown now worth doing under cost pressure |
+
+**Product floor ~$146/mo · ~$134 once the failover dies · ~$157 all-in including Claude Code.** Down from ~$470.
+
+**Nothing on the sending path was cut, deliberately.** Killing Google + Instantly saves ~$65 and pushes first revenue further out — which is the actual problem. **At $4/approved lead, ~$134/mo is ~34 approvals a month, or roughly ONE client.** That is the whole race: one client covers the platform, two make it a business.
 
 **The purchase order — do these in sequence, not at once.** ⚠️ **Founder status on all five is UNKNOWN to this doc** — nothing here can see your Google, Instantly or Apollo accounts. Tick them off when you do them.
 
@@ -41,11 +63,11 @@
 | ④ | **Founder-led outreach DURING the 3–4 week warmup** — 20 personal messages off the MBF demo. Fastest route to clients 1–3, costs nothing. | $0 | ❓ unknown |
 | ⑤ | **#553 first-send ladder on OUR boxes** when warm — test send lands in a real inbox, mail-tester ≥9/10, cap on, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. | $0 | ⛔ blocked on ① |
 
-**⏳ WHERE ① ACTUALLY STANDS (3 Aug) — the one thing the whole launch waits on.** The **two cold-send domains are bought**: `kindoutreach.com` and `trykind.org`, **£20.45 one-off at GoDaddy**, deliberately neither `get-kind.com` (carries invoices and client mail — a spam complaint there poisons the business) nor `gettingkind.com` (Resend send + inbound webhook only; **it has no mailbox and no password to give the engine**). Google Workspace is signed up on **`kindoutreach.com` as the primary** — `trykind.org` gets added afterwards as a **secondary domain inside the same subscription**, so it is one bill and one admin login, not two. **Google's domain verification takes ~48h, so ① and ② are parked until ~5 Aug.** Nothing on our side is blocked by us. Cost lands at **~$28/mo** (4 × ~$7 Business Starter) against the **~$25 estimated** — +$3, inside the noise, so the **~$223/mo floor stands and was not rewritten**. ⚠️ **When the boxes are created, each needs an App Password** (Google → Security → App Passwords), **not the login password** — Google blocks plain-password SMTP, and this is the step that silently defeats people.
+**⏳ WHERE ① ACTUALLY STANDS (3 Aug) — the one thing the whole launch waits on.** The **two cold-send domains are bought**: `kindoutreach.com` and `trykind.org`, **£20.45 one-off at GoDaddy**, deliberately neither `get-kind.com` (carries invoices and client mail — a spam complaint there poisons the business) nor `gettingkind.com` (Resend send + inbound webhook only; **it has no mailbox and no password to give the engine**). Google Workspace is signed up on **`kindoutreach.com` as the primary** — `trykind.org` gets added afterwards as a **secondary domain inside the same subscription**, so it is one bill and one admin login, not two. **Google's domain verification takes ~48h, so ① and ② are parked until ~5 Aug.** Nothing on our side is blocked by us. Cost lands at **~$28/mo** (4 × ~$7 Business Starter) against the **~$25 estimated** — +$3, inside the noise. *(The floor was rewritten the same day, but for an unrelated reason — see the cost-floor block above.)* ⚠️ **When the boxes are created, each needs an App Password** (Google → Security → App Passwords), **not the login password** — Google blocks plain-password SMTP, and this is the step that silently defeats people.
 
 **⚠️ APOLLO — the recorded price was wrong, corrected from the founder's billing screen (3 Aug).** This doc and the 1 Aug session log both say **$49**. The account actually shows **Basic Monthly at $65/mo**, 2,500 credits per month, **0 used**, renewing **3 Sep**. Both facts are kept rather than reconciled: a **$49 charge on 1 Aug** genuinely happened and a **$65/mo plan** is genuinely what renews — whichever way that resolves, **$65 is the number to budget**, and the 2,500 unused credits are prospecting we have already paid for and have not spent.
 
-**The fuel, separate from the rent:** ~**$127–137 per 1,000 prospects** ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting**. One client is worth $99 + ~$121/mo.
+**The fuel, separate from the rent:** ~**$130–145 per 1,000 prospects** (Apollo at its actual **$65**, corrected 3 Aug) ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting** — and **August's fuel is already paid**: 2,500 unused Apollo credits before the plan goes free on 3 Sep. One client is worth $99 + ~$121/mo.
 
 **💷 MONEY — the three founder checks, WORKED THROUGH 3 AUG:**
 
@@ -158,7 +180,7 @@
 | # | Item | What it is / why it blocks | Owner |
 |---|------|----------------------------|:-----:|
 | #555 🟡 | **BUILD-STATUS retired** | It was a **fifth status doc** and its summary line read *"the ONLY items not built: #515 + CI"* while the whole sending spine was 🔴. That one line is why the docs stopped being trustworthy. Moved to `docs/archive/`, marked historical, unlinked from here. Status has one home: PRODUCT-INVENTORY. | 🤖 |
-| #556 🟡 | **Cashflow model is canonical, in the repo** | `docs/CASHFLOW-LAB.html` — two needles at the top, every cost line an editable box. Honest platform floor **~$223/mo** (30 Jul — the **idle-tools-bill-nothing** rule plus the **Client Zero architecture lock**: Hunter, PDL and the failover $0 until they do work, Smartlead $0 until a client signs, Instantly down to **Growth $37 for warmup only** because our own engine sends. Rises to **~$490** at the first client; Claude Code is £119.99 ≈ $152 on top, a build tool not product infra). The old ~$190 left out Smartlead, Instantly, Zoho ~$3 and the Anthropic runtime. Two numbers that change how we sell: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack is −$52 in month one** — the repeat is the business, the pack is the door. | 🤖 |
+| #556 🟡 | **Cashflow model is canonical, in the repo** | `docs/CASHFLOW-LAB.html` — two needles at the top, every cost line an editable box. Honest platform floor **~$146/mo** — **rebuilt 3 Aug off the actual invoices, and the correction was large**: *Servers + database* had read **$138 tagged verified** against a real **$50.59** (Railway $15.59 + Supabase $35), overstating the floor by **$87/mo** for weeks because nobody opened a bill. Also that day: **Resend → free**, **Apollo → free plan 3 Sep**, **Claude Code downgraded** (~$152 → ~$23, current plan to 20 Aug), **Google Workspace +$28** and the failover teardown re-prioritised (**~$134** once dead). The 30 Jul **idle-tools-bill-nothing** rule still governs the $0 lines: Hunter and PDL until a sourcing run, Smartlead until a client signs. The old ~$190 left out Smartlead, Instantly, Zoho ~$3 and the Anthropic runtime. Two numbers that change how we sell: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack is −$52 in month one** — the repeat is the business, the pack is the door. | 🤖 |
 | #557 🟡 | **Stale flow + preview docs stamped** | `flows/new-client-flow.html` (built on the retired 14-day trial) · `flows/our-outreach-flow.html` (*"manual in Instantly, nothing to code"* — **overruled 26 Jul**) · `MILESTONE-0-CHECKLIST.md` (the retired $1/$3/$5/$6 ladder) · `mv-previews/flow-vida.html` + `home.html` (*"your own warmed inbox"* — describes #211, which is not built). Each now carries a correction banner rather than being silently deleted. | 🤖 |
 
 ## 🅴 BLOCK E — THE LIVE GATE (all of it walked, none of it remembered)

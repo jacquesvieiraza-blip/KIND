@@ -28,7 +28,7 @@ Two **separate** systems, do not conflate:
 | **Render** | warm standby / failover for the app (item 51) |
 | **Cloudflare** | DNS + CDN / load-balancer failover. **The website itself is hosted on Railway** (service `KIND`, `apps/website` Express) |
 | **Supabase** | Postgres database + auth (prod) + a sealed `kind-staging` project |
-| **Resend** | programmatic email **sending** (system + FIGSY cold *today*) + inbound webhook *(cold send migrating to the ENGINE — item 211)* |
+| **Resend** | programmatic email **sending** (system + FIGSY cold *today*) + inbound webhook *(cold send migrating to the ENGINE — item 211)*. **On the FREE tier from 3 Aug** (was $20 Pro) — ⚠️ that is a **volume ceiling, not a free lunch**: ~3,000 emails/month and **~100/day**, and the daily cap is what bites first the day client traffic starts |
 | **⚙️ Smartlead** | **THE ENGINE (item 211, decided 23 Jun)** — per-client warmed sending infrastructure: provision+warm mailboxes (SMB) · connect client's own (enterprise) · white-label + `client_id` isolation. The product's deliverability foundation. |
 | **Instantly** | cold-email warmup/send for **K.I.N.D's OWN outreach** now (item 198) · ENGINE fallback (no white-label) |
 | **Zoho Mail** | company **mailboxes** — MX/receiving + webmail + human send (`get-kind.com` only) |

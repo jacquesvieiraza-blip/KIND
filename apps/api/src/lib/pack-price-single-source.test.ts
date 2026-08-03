@@ -26,6 +26,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { PACK_PRICE_USD, PACK_LEADS, LEAD_PRICE_USD } from '@kind/shared'
+import { checkoutLineName } from './stripe'
 
 const src = (f: string) => readFileSync(join(__dirname, '..', f), 'utf8')
 
@@ -88,6 +89,30 @@ describe('both sides of the till derive the price — neither types it', () => {
     for (const f of files) {
       expect(stripComments(src(f)), `${f} still ships a literal $99`).not.toContain('$99')
     }
+  })
+})
+
+describe('the line the client reads on the Stripe payment page itself', () => {
+  // Found 4 Aug by the FOUNDER, from the dashboard: the catalogue has nine products and none
+  // is the pack, because this checkout builds its line item inline — and the inline name was
+  // 'K.I.N.D wallet top-up' for every purchase INCLUDING the first. The first purchase is the
+  // one thing that is NOT a wallet top-up (#562), and website-money-claims.test.ts forces the
+  // site and the Terms to say so in those words. The payment page was the last copy of the lie
+  // and the only surface no test pinned.
+  it('the first purchase is named as the pack, never as a top-up', () => {
+    const first = checkoutLineName(true, PACK_LEADS)
+    expect(first).toContain('onboarding pack')
+    expect(first).toContain(String(PACK_LEADS))
+    expect(first.toLowerCase()).not.toContain('top-up')
+  })
+  it('later purchases really are top-ups and say so', () => {
+    expect(checkoutLineName(false, PACK_LEADS)).toBe('K.I.N.D wallet top-up')
+  })
+  it('and the route passes isFirst through — the label cannot fork from the gate', () => {
+    // The defect was not the function (it did not exist); it was that the route KNEW isFirst
+    // and never told the checkout. Pin the wiring, not just the words.
+    const code = stripComments(src('routes/stripe.ts'))
+    expect(code).toContain('isFirstPurchase: isFirst')
   })
 })
 

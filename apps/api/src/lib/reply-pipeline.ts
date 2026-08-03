@@ -221,8 +221,20 @@ export async function processInboundReply(
 
   // Handle hot — pause sequence, bump stats, push deal to CRM
   if (classification === 'hot' && enrollment) {
-    await db.from('figsy_enrollments')
+    // #349 — unchecked, and the consequence is the one a prospect actually feels. This is
+    // what stops the sequence: if it fails silently the enrollment stays active and the next
+    // send cron mails somebody who has ALREADY REPLIED — the single most damaging thing cold
+    // outreach can do, to a person who has just engaged with our client.
+    const { error: repliedErr } = await db.from('figsy_enrollments')
       .update({ status: 'replied' }).eq('id', enrollment.id)
+    if (repliedErr) {
+      console.error('[reply-pipeline] REPLY NOT RECORDED — this prospect will be emailed again', enrollment.id, repliedErr.message)
+      void sendFounderAlert('sends_stalled', 'A prospect who replied is still in sequence', [
+        `Enrollment ${enrollment.id}: the reply was received but marking it 'replied' failed (${repliedErr.message}).`,
+        'The sequence is still active, so the next send cron will email someone who has already replied to our client.',
+        'Fix: set that figsy_enrollments row to status=replied now.',
+      ])
+    }
 
     // Web push — alert the client instantly on a hot reply (no-op if VAPID unset)
     sendPushToClient(lead.client_id, {

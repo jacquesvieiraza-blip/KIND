@@ -53,17 +53,16 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 **Nothing on the sending path was cut, deliberately.** Killing Google + Instantly saves ~$65 and pushes first revenue further out — which is the actual problem. **At $4/approved lead, ~$134/mo is ~34 approvals a month, or roughly ONE client.** That is the whole race: one client covers the platform, two make it a business.
 
-### 🧍 THE ONE THING BLOCKING MONEY RIGHT NOW — STRIPE (founder, ~5 min)
+### 🧍 STRIPE — SMALLER THAN THE BOARD CLAIMED (founder, ~5 min) — ⚠️ CORRECTED 4 AUG
 
-**#609 shipped the $299 everywhere except the one place that takes the card.** The site, the portal, both consoles and the API all read $299 off `PACK_PRICE_USD`. **Stripe does not**, because no code can reach it — the checkout renders the Stripe *product* behind the Price ID (#414's lesson).
+**The 3-Aug version of this block said the product "cannot take a payment at all" until a $299 price was created in Stripe. That was WRONG — corrected by reading `lib/stripe.ts:113-132` instead of assuming.** The pack checkout does not use a dashboard Price object: `createWalletCheckoutSession` builds the charge with **inline `price_data`** — the amount comes from the API at runtime, and the API derives it from `PACK_PRICE_USD`. So the moment #1253 deployed, **the checkout started charging $299 by itself.** There is **no price to create and no env var to point.** *(The "renders the dashboard product" rule — #414 — is true only of the dormant subscription checkout, which is not the pack path. Two checkouts, two rules; the 3-Aug block applied the wrong one.)*
 
-⚠️ **AND THE GATE NOW BITES.** `routes/stripe.ts` derives the required first-purchase amount from the constant, so a checkout still pointed at the **old $99 price is REJECTED**. Until the two steps below are done, **the product cannot take a payment at all.** That is deliberate — the alternative is charging someone the wrong price — but it means this is the single highest-priority founder action on this page.
+**What actually remains yours in Stripe, both small:**
 
 | ✓ | Do | Where |
 |---|---|---|
-| ⬜ | **Create the $299 price** and point the price env var at it | Stripe → Products, then Railway |
-| ⬜ | **Paste the new product description** — *"We run your outbound, fully onboarded: we find and score your buyers, you approve the ones you want, and we do the outreach — sending from day one on your own warmed inbox, which is yours to keep. Reviewing is free — $299 includes your first 100 approved leads, then $4 per approved lead."* | Stripe → Products |
-| ⬜ | **Then** the $299 test purchase on a real card | Milla, as a client |
+| ⬜ | **Fix the product description you pasted on 3 Aug** — it still says $99. Replace it with: *"We run your outbound, fully onboarded: we find and score your buyers, you approve the ones you want, and we do the outreach — sending from day one on your own warmed inbox, which is yours to keep. Reviewing is free — $299 includes your first 100 approved leads, then $4 per approved lead."* *(Cosmetic honesty — this text is NOT shown on the pack checkout, which displays only "K.I.N.D wallet top-up · $299" — but a dashboard product quoting a dead price is exactly the drift this repo hunts.)* | Stripe → Product catalogue |
+| ⬜ | **The $299 test purchase on a real card** — proves the derived gate, the pack counter (100), and that the wallet is NOT credited (#562) in one walk | Milla, as a client |
 
 **⚖️ ALSO OWED, NOT URGENT:** the marketing pages now promise the client's domain and mailbox are **"yours to keep"** and that onboarding includes **training**. **Neither is in the Terms**, deliberately — ownership-transfer-on-churn is an obligation nobody has decided (the domain sits on our registrar, the mailbox on our Workspace) and training is a service level. Decide both, then have counsel word them. Flagged in `terms.html`.
 

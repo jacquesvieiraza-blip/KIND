@@ -5,6 +5,7 @@ import { sendWelcomeEmail } from '../lib/email'
 import { sendFounderAlert } from '../lib/alerts'
 import { rateLimit } from '../lib/rate-limit'
 import { signupSubscriptionRow, SIGNUP_SUBSCRIPTION_PRODUCT } from '../lib/signup-subscription'
+import { PACK_PRICE_USD } from '@kind/shared'
 
 export const authRouter = Router()
 
@@ -214,7 +215,7 @@ authRouter.post('/onboard', async (req, res) => {
       void sendFounderAlert('new_signup', `New signup — ${profileFields.company_name}`, [
         `${profileFields.company_name} just completed onboarding (${user.email}).`,
         profileFields.country ? `Country: ${profileFields.country}.` : '',
-        `No freebies — they start at $0 and must load $99 to begin. Assign a pooled inbox once they've paid.`,
+        `No freebies — they start at $0 and must load $${PACK_PRICE_USD} to begin. Assign a pooled inbox once they've paid.`,
       ])
     }
     fetch(`${process.env.API_INTERNAL_URL || `http://localhost:${process.env.PORT || 4000}`}/founder/cs/followup`, {

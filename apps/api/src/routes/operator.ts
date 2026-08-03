@@ -3,7 +3,7 @@ import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
-import { PAID_TX_TYPES, packState, packLabel } from '../lib/onboarding-pack'
+import { PAID_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { namesPerApproval } from '../lib/money-path-math'
 import { coldState } from '../lib/cold-client'
 import type { InboxRow } from '../lib/sending-inbox'
@@ -2229,7 +2229,7 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
       .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
     if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
-      res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
+      res.status(402).json({ success: false, error: `They haven’t paid the $${PACK_PRICE_USD} yet — nothing sources until it lands.` }); return
     }
     const cid = client.id
     const want = Math.max(1, Math.min(200, parseInt(String(req.query.count ?? '20'), 10) || 20))
@@ -2355,7 +2355,7 @@ operatorRouter.post('/source', async (req: Request, res: Response) => {
       .eq('client_id', client.id).in('type', PAID_TX_TYPES)
     const { data: demoRow } = await db.from('clients').select('is_demo').eq('id', client.id).maybeSingle()
     if ((paid ?? 0) === 0 && demoRow?.is_demo !== true) {
-      res.status(402).json({ success: false, error: 'They haven’t paid the $99 yet — nothing sources until it lands.' }); return
+      res.status(402).json({ success: false, error: `They haven’t paid the $${PACK_PRICE_USD} yet — nothing sources until it lands.` }); return
     }
     if (confirm !== true) { res.status(400).json({ success: false, error: 'Sourcing spends our PDL budget — confirm required' }); return }
     const cid = client.id

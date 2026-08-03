@@ -62,7 +62,13 @@ export const PRICING = {
     // #414 — WAS: "FIGSY handles replies, objections, follow-ups and meeting booking."
     // We do not sell self-serve automation that handles objections. We run the outbound as a
     // managed service and the client approves each lead. One sentence, only what is true.
-    description: 'We run your outbound: we find and score your buyers, you approve the ones you want, and we do the outreach. Reviewing is free — $99 includes your first 100 approved leads, then $4 per approved lead.',
+    // ⚠️ "Reviewing is free" IS NOT OPTIONAL IN THIS SENTENCE, and the gate is what noticed.
+    // The 3-Aug rewrite to the $299 offer dropped it, and `pricing-copy.test.ts` failed with
+    // the reason attached: it is "the single most misread thing about the model" — leads
+    // arrive masked and cost nothing to look at, so a client who believes browsing costs
+    // money does not browse, and nothing downstream ever happens. Kept, and the founder's
+    // new wording kept around it.
+    description: 'We run your outbound, fully onboarded: we find and score your buyers, you approve the ones you want, and we do the outreach — sending from day one on your own warmed inbox, which is yours to keep. Reviewing is free — $299 includes your first 100 approved leads, then $4 per approved lead.',
     credit_rate_usd: 3.00,
     bundles: [
       { credits: 20,  price_usd: 60  },
@@ -84,8 +90,8 @@ export const PRICING = {
 //   • **Denise** ($39) and the **bundle** ($69) are likewise not on sale. Denise's code
 //     exists and is demoable; it returns as a per-lead layer in M4, not a subscription.
 //
-// What IS sold (locked 24 Jul, ONE WALLET): the managed outbound service — $99 includes the
-// first 100 approved leads, then $4 per approved lead. See `PRICING` above.
+// What IS sold (price re-locked 3 Aug): the managed outbound service, fully onboarded — $299
+// includes the first 100 approved leads, then $4 per approved lead. See `PRICING` above.
 //
 // THE STRIPE PRICE OBJECTS BEHIND THESE ARE DORMANT, NOT GONE. `lib/stripe.ts` exposes
 // `STRIPE_SUBSCRIPTIONS` keyed milla/vida/denise against `STRIPE_PRICE_*_MONTHLY` env vars,
@@ -158,8 +164,26 @@ export const SCORE_THRESHOLDS = {
 
 // ── THE MONEY MODEL — ONE SOURCE OF TRUTH, READABLE FROM BOTH SIDES ─────────────────────────
 //
-// Founder-locked 24–25 Jul (ONE WALLET): the first purchase is **$99 = the onboarding pack
-// with 100 approved leads included**, then a flat **$4 per approved lead**. Reviewing is free.
+// Founder-locked 3 Aug: the first purchase is **$299 = the fully-onboarded pack with 100
+// approved leads included**, then a flat **$4 per approved lead**. Reviewing is free.
+//
+// ⚠️ THE PRICE MOVED 99 → 299 ON 3 AUG, AND THE REASON IS THE WHOLE POINT. At $99 the founder
+// funded roughly **$78 of every engine-acquired client** and carried the churn bet personally:
+// acquiring one costs ~$143 (Apollo $65 + verification $8 + AI writing $70) and month-one
+// setup costs ~$134 (a pre-warmed Smartlead inbox at $45/MONTH so they send on day one, plus
+// 200 records sourced $56, their own domain $12/yr, their own Google mailbox $7/mo, AI $7 and
+// Stripe) — against $99 in. **A client who quit after month one cost him $78 in cash.** At
+// $299 the client funds their own acquisition, their own setup and the founder's onboarding
+// time: day-one position is **+$18.50 even after full acquisition cost**, a quitter costs
+// nothing, and a stayer is profitable from the first day rather than the second month.
+//
+// ⚠️ DISCOUNTS ARE FOUNDER DISCRETION AND LIVE ONLY IN STRIPE. $299 is the list price. The
+// founder may discount any individual client by hand in the Stripe dashboard. **No discount
+// logic belongs in code, on the website, or in the product** — a discount that ships as a
+// constant is a price change nobody decided.
+//
+// ⚠️ WHAT DID NOT MOVE: `PACK_LEADS` is still 100 and `LEAD_PRICE_USD` is still 4. Only the
+// door price changed. Anything that reads "100 included" or "$4 a lead" is still correct.
 //
 // ⚠️ WHY THEY MOVED HERE (#563, 29 Jul). These three numbers used to live ONLY in
 // `apps/api/src/lib/onboarding-pack.ts` — which the portal cannot import, because it depends on
@@ -172,13 +196,22 @@ export const SCORE_THRESHOLDS = {
 // `onboarding-pack.ts` now RE-EXPORTS these rather than declaring its own, so the API and the
 // client can never disagree about the price. A copy in two places is how the last lie started.
 //
-// Cost basis behind $99 (docs/run-costs-and-cashflow.md §1): 200 records sourced at $0.28 =
-// $56 · working the 100 they approve ≈ $6 · Stripe $3.17 · first month of their inbox $4.50
-// ≈ $70, leaving ~$29.
+// Cost basis behind $299 (docs/run-costs-and-cashflow.md §1, re-derived 3 Aug against
+// confirmed vendor prices): pre-warmed Smartlead inbox $45/mo so they send on day one · 200
+// records sourced at $0.28 = $56 · their own branded domain $12/yr · their own Google mailbox
+// $7/mo · working the 100 they approve ≈ $7 · Stripe $10.50 ≈ **$134**, leaving ~$165 against
+// the ~$143 it cost to find them.
+//
+// ⚠️ THE OLD BASIS IS KEPT, NOT DELETED (CORE-MAP rule 3): "$56 · working ≈ $6 · Stripe $3.17
+// · first month of their inbox $4.50 ≈ $70, leaving ~$29 on the $99." Its **$4.50 inbox line
+// was the error** — it assumed a warmed inbox could be had for $4.50/month. Confirmed 3 Aug
+// that a pre-warmed Smartlead mailbox is **$45/month**, ten times that, which is why the $99
+// never actually covered a client and why the transition onto their own $7 Google box at
+// ~day 21–29 exists: it caps the $45 to month one.
 
 /** Approvals included in the first purchase. */
 export const PACK_LEADS = 100
-/** What the pack costs the client, in USD. */
-export const PACK_PRICE_USD = 99
+/** What the pack costs the client, in USD. Founder-locked 3 Aug (was 99, 24–25 Jul). */
+export const PACK_PRICE_USD = 299
 /** Flat price per approved lead once the pack is used up, in USD. */
 export const LEAD_PRICE_USD = 4

@@ -82,7 +82,7 @@ describe('the copy cannot drift from the money', () => {
   it('and the numbers it quotes are the CURRENT ones, not the retired ladder', () => {
     // Pins the actual values, so changing PACK_LEADS to 50 fails here rather than silently
     // making the sentence a lie. 100 / $99 / $4, founder-locked (ONE WALLET, 24-25 Jul).
-    expect([PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD]).toEqual([100, 99, 4])
+    expect([PACK_LEADS, PACK_PRICE_USD, LEAD_PRICE_USD]).toEqual([100, 299, 4])
   })
 })
 

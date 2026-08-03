@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import { PACK_PRICE_USD, LEAD_PRICE_USD } from '@kind/shared'
 
 // #516 — MILLA CLIENT REPORT. The client-facing "what happened" page: meetings booked,
 // leads approved, spend, and a plain-language summary — all from LIVE data (summary +
@@ -81,7 +82,7 @@ export default function MillaReportsPage() {
               {/* The caption used to read "N leads approved × $4", which is only true once
                   the included pack is used up. It now says which regime they're in. */}
               <KPI k="Spend" v={spend == null ? '—' : `$${spend.toLocaleString()}`}
-                s={packLeft > 0 ? `your $99 — ${packLeft} included leads left` : `$99 pack + $4 per lead beyond it`} />
+                s={packLeft > 0 ? `your $${PACK_PRICE_USD} — ${packLeft} included leads left` : `$${PACK_PRICE_USD} pack + $${LEAD_PRICE_USD} per lead beyond it`} />
               <KPI k="Cost per meeting" v={costPerMeeting == null ? '—' : `$${costPerMeeting}`} s={meetingCount > 0 ? `across ${meetingCount} meeting${meetingCount === 1 ? '' : 's'}` : 'no meetings yet'} />
             </div>
 
@@ -107,8 +108,8 @@ export default function MillaReportsPage() {
                   {summary.active_campaign ? <>Your <b className="text-[#7C3AED]">{summary.active_campaign}</b> campaign is live. </> : <>Your campaign is being set up. </>}
                   You&apos;ve approved <b>{approved}</b> lead{approved === 1 ? '' : 's'}, {replies} repl{replies === 1 ? 'y has' : 'ies have'} come back, and <b>{summary.meetings_booked}</b> meeting{summary.meetings_booked === 1 ? '' : 's'} {summary.meetings_booked === 1 ? 'has' : 'have'} booked this month.{' '}
                   {packLeft > 0
-                    ? <>Your <b>$99</b> covers your first <b>{packIncluded}</b> approvals — <b>{packLeft}</b> still to use, so nothing extra has been charged.</>
-                    : <>Your <b>$99</b> covered the first <b>{packIncluded}</b>; it&apos;s a flat <b>$4</b> a lead after that. Total so far: <b>{spend == null ? '—' : `$${spend.toLocaleString()}`}</b>.</>}
+                    ? <>Your <b>${PACK_PRICE_USD}</b> covers your first <b>{packIncluded}</b> approvals — <b>{packLeft}</b> still to use, so nothing extra has been charged.</>
+                    : <>Your <b>${PACK_PRICE_USD}</b> covered the first <b>{packIncluded}</b>; it&apos;s a flat <b>${LEAD_PRICE_USD}</b> a lead after that. Total so far: <b>{spend == null ? '—' : `$${spend.toLocaleString()}`}</b>.</>}
                   {meetingCount > 0 && costPerMeeting != null && <> That&apos;s about <b>${costPerMeeting}</b> per meeting booked.</>}
                 </div>
               </div>

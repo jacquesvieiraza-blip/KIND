@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷231 · 🟣3 · 🟡64 · 🔴174 · ⏸5 · **Σ572** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷231 · 🟣3 · 🟡65 · 🔴174 · ⏸5 · **Σ573** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -67,7 +67,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 **⚠️ APOLLO — the recorded price was wrong, corrected from the founder's billing screen (3 Aug).** This doc and the 1 Aug session log both say **$49**. The account actually shows **Basic Monthly at $65/mo**, 2,500 credits per month, **0 used**, renewing **3 Sep**. Both facts are kept rather than reconciled: a **$49 charge on 1 Aug** genuinely happened and a **$65/mo plan** is genuinely what renews — whichever way that resolves, **$65 is the number to budget**, and the 2,500 unused credits are prospecting we have already paid for and have not spent.
 
-**The fuel, separate from the rent:** ~**$130–145 per 1,000 prospects** (Apollo at its actual **$65**, corrected 3 Aug) ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting** — and **August's fuel is already paid**: 2,500 unused Apollo credits before the plan goes free on 3 Sep. One client is worth $99 + ~$121/mo.
+**The fuel, separate from the rent:** ~**$130–145 per 1,000 prospects** (Apollo at its actual **$65**, corrected 3 Aug) ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting** — and **August's fuel is already paid**: 2,500 unused Apollo credits before the plan goes free on 3 Sep. One client is worth **$299 + ~$153/mo** (re-derived 3 Aug: the price moved to $299 and the per-client inbox line fell from a guessed $40/mo to a real ~$8/mo).
 
 **💷 MONEY — the three founder checks, WORKED THROUGH 3 AUG:**
 
@@ -187,7 +187,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 | # | Gate — live means every one of these was **walked**, on real data | Owner |
 |---|---|:-----:|
-| — | **Money walk to the cent:** real card → $99 lands → pack reads 100 → masked lead shows **no email** → pick 20 → 👍 → **$0 charged, counter reads 80** → 101st approval charges **$4** → ledger reconciles exactly · one dead email hands the pack slot back, never credits $4 | 🤝 |
+| — | **Money walk to the cent:** real card → $299 lands → pack reads 100 → masked lead shows **no email** → pick 20 → 👍 → **$0 charged, counter reads 80** → 101st approval charges **$4** → ledger reconciles exactly · one dead email hands the pack slot back, never credits $4 | 🤝 |
 | — | **Send walk:** a client's own assigned inbox sends · **no inbox = refused, visibly** · nothing falls back to our address · the reply comes back to **their** thread in the unibox · booking confirms | 🤝 |
 | — | **Client Zero fires:** our own ICP → sourced → we approve **in Milla as the client** → sends leave on our **Instantly** mailbox **through the product** → replies land in the unibox | 🤝 |
 | — | **Gates hold under a fetch, not just a click:** minimum-20 refused server-side on `/approve`, `/reveal`, `/approve-batch` · a 30-day-idle client is suspended and un-suspends on their **own** approval | 🤖 |
@@ -204,7 +204,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 | ⬜ | **Run migration `20260726_wallet_tx_types`** (#558 — makes the repo agree with the live wallet CHECK) ⚠️ **30 Jul — PRESS "SCHEMA PROBE (#558)" FIRST** (Vida → Engine; it counts the rows and tells you). That migration DROPS `hold`/`release` from the CHECK, and `ADD CONSTRAINT` validates existing rows — so if a single `type='hold'` ledger row exists (#492's lifecycle was live before one-wallet), pressing this **throws**. | Vida → Engine → Database migrations |
 | ✅ | ~~**Tick Stripe webhook events** `charge.refunded` · `charge.dispute.created` · `charge.dispute.closed`~~ (#317) — **DONE 3 Aug.** Refund and chargeback code that shipped months ago can finally fire for the first time | Stripe → Developers → Webhooks |
 | ✅ | ~~**Fix the CHECKOUT description in Stripe (#414)**~~ — **DONE 3 Aug, founder-confirmed.** No code change could ever reach it: checkout renders the Stripe *product* behind the Price ID, not anything in this repo | Stripe → Products |
-| ⬜ | **One $99 test purchase on a real card** — proves the pack, the counter and the ledger agree | Milla, as a client |
+| ⬜ | **One $299 test purchase on a real card** — proves the pack, the counter and the ledger agree. ⚠️ **Do this AFTER creating the $299 price in Stripe**: the API gate now derives the required first-purchase amount from `PACK_PRICE_USD`, so a checkout still pointed at the old $99 price is rejected | Milla, as a client |
 | ✅ | ~~**Set `INBOX_SECRET_KEY`**~~ — **DONE 3 Aug, verified on the Vida → Engine screen.** ⚠️ **How it was verified matters: absence is the pass.** There is no green tick — the screen shows a red *"Nothing can send — the API cannot read mailbox passwords"* box **only when the key is missing or malformed** (`inbox-secret.ts` demands exactly 64 hex chars and fails closed). No red box = set and valid. **Never re-generate it**: rotating the key makes every stored mailbox password undecryptable | Railway → @kind/api → Variables |
 | ⬜ | **SMTP details for a real mailbox** — the **4 Google boxes from ① are the plan** once Google verifies (~5 Aug); each needs an **App Password** (Google → Security → App Passwords), never the login password. **The $0 fallback if you want to prove a send sooner:** `hello@get-kind.com` on Zoho, already paid for — host `smtp.zoho.com` · port `465` · user `hello@get-kind.com` · password = a Zoho App Password (My Account → Security). ⚠️ Fallback **only for a one-off proof of the send path (#548)** — never for cold outreach, because a spam complaint on `get-kind.com` poisons the domain your invoices ride on. **The $45 Zapmail/SmartSenders pack stays off the critical path**: a client mailbox is bought when a client has paid their $99, out of *their* money, never speculatively | Google (pending) · Zoho (fallback) |
 | ⬜ | **Instantly: mailbox + how it sends** — SMTP credentials, and whether the rig is warm (#549) | Instantly |
@@ -260,7 +260,7 @@ Everything below left the launch pad this session. It is **not deleted** — it 
 
 ## 📌 Standing notes
 
-- **Money (current — ONE WALLET, founder-locked 24–25 Jul):** one dollar wallet per client · first purchase **$99 = the onboarding pack, 100 approved leads included**, then a flat **$4 per approved lead, FINAL** · **no time limit on paid leads** · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends — operators never**. **Two gates protect it:** at least **20** approvals the first time round, and **30 days with no approvals suspends them**. Full model + the cost floor → **`docs/CASHFLOW-LAB.html`** (canonical) · cost detail → `run-costs-and-cashflow.md`.
+- **Money (current — ONE WALLET, 24–25 Jul; PRICE RE-LOCKED 3 AUG):** one dollar wallet per client · first purchase **$299 = the fully-onboarded pack, 100 approved leads included**, then a flat **$4 per approved lead, FINAL** · **no time limit on paid leads** · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends — operators never**. **Two gates protect it:** at least **20** approvals the first time round, and **30 days with no approvals suspends them**. Full model + the cost floor → **`docs/CASHFLOW-LAB.html`** (canonical) · cost detail → `run-costs-and-cashflow.md`.
 - **Instantly is ours. Smartlead is the clients'.** Both run **inside the product** — we use our own product for our own outreach. No CSV hand-off.
 - **No new SQL** beyond committed, reviewed, **idempotent** migrations run from Vida → Engine. The Supabase SQL editor is unreachable (GitHub removed the Supabase OAuth app).
 - **Before any real send:** `/engine/env` must show `RESEND_API_KEY` · `ADMIN_SECRET_KEY` · `ANTHROPIC_API_KEY` · `RESEND_WEBHOOK_SECRET` · `FIGSY_COLD_FROM` · `TRACKING_URL` · `money_rpcs` installed — **plus** whatever #548 settles on for per-inbox credentials.

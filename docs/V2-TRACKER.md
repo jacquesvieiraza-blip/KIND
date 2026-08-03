@@ -21,7 +21,7 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 *Strategy and the decision itself live in **KIND-MASTER**; this is the future detail only.*
 
-**The shape that is locked:** two packages, **one engine**. Base is today's managed service — $99 onboarding pack with 100 approved leads included, then $4 per approved lead, reviewing free, approve as the only money event. Advanced is a second entitlement tier on the *same* pipeline.
+**The shape that is locked:** two packages, **one engine**. Base is today's managed service — $299 onboarding pack with 100 approved leads included, then $4 per approved lead, reviewing free, approve as the only money event. Advanced is a second entitlement tier on the *same* pipeline.
 
 **Sold before it is built, on purpose.** Advanced does not get constructed until a real buyer has said yes and a real price has survived a real conversation. Building it first is how you end up with a tier nobody asked for — and this repo already has an inventory full of that lesson.
 

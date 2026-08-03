@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
-import { shortfallMessage, deskCoverage } from '@kind/shared'
+import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -259,7 +259,7 @@ export default function MillaHomePage() {
   // What is actually happening with their sending, in the client's words. Ordered by what
   // matters most to them: unpaid beats paused, because paying is what unblocks it.
   const sendState = (() => {
-    if (needsGoLive) return { label: 'Not started — waiting on your $99', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
+    if (needsGoLive) return { label: `Not started — waiting on your $${PACK_PRICE_USD}`, tone: 'text-[#b45309]', dot: 'bg-amber-500' }
     const st = summary?.campaign_status
     if (st === 'active') return { label: 'Campaign live', tone: 'text-[#059669]', dot: 'bg-emerald-500' }
     if (st === 'paused' || st === 'paused_low_performance') return { label: 'Paused — we\u2019ll tell you why', tone: 'text-[#b45309]', dot: 'bg-amber-500' }
@@ -285,7 +285,7 @@ export default function MillaHomePage() {
           Steps whose element isn't on screen skip themselves, so a fresh account with an
           empty lead desk still gets a coherent tour. */}
       <ProductTour steps={[
-        { target: 'kpi-pack',  title: 'What you have', body: 'Your $99 includes 100 approved leads. This counts down as you approve — nothing else is charged until it runs out.' },
+        { target: 'kpi-pack',  title: 'What you have', body: `Your $${PACK_PRICE_USD} includes ${PACK_LEADS} approved leads. This counts down as you approve — nothing else is charged until it runs out.` },
         { target: 'leads',     title: 'This is your job', body: "Everyone we find lands here, scored and masked. Pick the ones worth talking to — we start work the moment you do. The first time round, choose 20 so there are enough people to run a real campaign." },
         { target: 'chat',      title: 'Milla, any time', body: "Ask for more people, change who we're targeting, or tell me a lead was wrong. I'm how you steer it — there are no forms." },
         { target: 'kpi-meetings', title: 'What it comes back as', body: 'Booked meetings. We answer the replies, qualify them and put the meeting in your calendar — you just turn up.' },
@@ -296,10 +296,10 @@ export default function MillaHomePage() {
         <a href="/milla/billing?start=1" className="block mb-4 rounded-2xl border border-[#7C3AED]/25 bg-gradient-to-r from-[#f3ecff] to-[#fdecf5] px-5 py-4 hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — your first 100 leads are $99</p>
-              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>$99</b> and it includes <b>100 approved leads</b>. Browsing and building your plan is free — nothing sources or sends until you go live. After the first 100 it&rsquo;s a flat $4 a lead.</p>
+              <p className="font-extrabold text-[#5b21b6] text-[16px]">Go live — your first {PACK_LEADS} leads are ${PACK_PRICE_USD}</p>
+              <p className="text-[14px] text-[#6b6088] mt-0.5">Your first purchase is <b>${PACK_PRICE_USD}</b> and it includes <b>{PACK_LEADS} approved leads</b>. Browsing and building your plan is free — nothing sources or sends until you go live. After the first 100 it&rsquo;s a flat $4 a lead.</p>
             </div>
-            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — $99 · 100 leads →</span>
+            <span className="shrink-0 text-[14px] font-bold text-white rounded-xl px-4 py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899]">Go live — ${PACK_PRICE_USD} · {PACK_LEADS} leads →</span>
           </div>
         </a>
       )}
@@ -317,7 +317,7 @@ export default function MillaHomePage() {
             and doing nothing in practice — nothing sources, nothing sends. Saying "—" here
             let a client sit for days assuming we were working. */}
         {needsGoLive && (summary?.icp_versions?.length ?? 0) > 0
-          ? <KPI k="Your targeting" v="Dormant" s="approved — waiting on your $99" tone="#b45309" />
+          ? <KPI k="Your targeting" v="Dormant" s={`approved — waiting on your $${PACK_PRICE_USD}`} tone="#b45309" />
           : <KPI k="Active campaign" v={summary?.active_campaign ?? '—'} s={summary?.icp_versions?.find(v => v.current)?.version ? `ICP ${summary.icp_versions.find(v => v.current)!.version}` : 'no campaign yet'} />}
       </div>
 

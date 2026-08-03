@@ -16,6 +16,7 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { db } from '@kind/db'
+import { PACK_PRICE_USD, PACK_LEADS, LEAD_PRICE_USD } from '@kind/shared'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
 import { sendWeeklyLeadsDigest, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail, lifecycleEmailsEnabled } from '../lib/email'
@@ -373,7 +374,7 @@ Output only the email body. No subject line. No placeholders.`
 internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => {
   res.status(410).json({
     success: false,
-    error: 'Retired (#607). There is no trial: the model is $99 for the onboarding pack, then $4 per approved lead. This endpoint used to email clients about a trial ending and it will not send anything.',
+    error: `Retired (#607). There is no trial: the model is $${PACK_PRICE_USD} for the onboarding pack, then $${LEAD_PRICE_USD} per approved lead. This endpoint used to email clients about a trial ending and it will not send anything.`,
   })
 })
 
@@ -634,7 +635,7 @@ internalRouter.get('/cro/churn-risk', async (_req: Request, res: Response) => {
 internalRouter.post('/ae/nurture', async (_req: Request, res: Response) => {
   res.status(410).json({
     success: false,
-    error: 'Retired (#607). There is no trial to nurture: the model is $99 for the onboarding pack, then $4 per approved lead. This endpoint used to email every new signup "your trial is live" and it will not send anything.',
+    error: `Retired (#607). There is no trial to nurture: the model is $${PACK_PRICE_USD} for the onboarding pack, then $${LEAD_PRICE_USD} per approved lead. This endpoint used to email every new signup "your trial is live" and it will not send anything.`,
   })
 })
 
@@ -1730,9 +1731,12 @@ internalRouter.post('/clients/chase-unpaid', async (_req: Request, res: Response
       if (!REMIND_ON_DAYS.includes(days)) continue
       await sendPushToClient(cid, {
         title: days >= 7 ? 'Your people are waiting' : 'One step left',
+        // Interpolated, not typed — this goes to a real person's phone, and a push
+        // notification quoting a price we no longer charge is a promise we cannot honour
+        // at the checkout it links to.
         body: days >= 7
-          ? "Your targeting is ready and nothing has started. $99 gets your sender and your first 100 approved leads."
-          : "Your targeting is approved — go live for $99 and we'll start finding your people today.",
+          ? `Your targeting is ready and nothing has started. $${PACK_PRICE_USD} gets your sender and your first ${PACK_LEADS} approved leads.`
+          : `Your targeting is approved — go live for $${PACK_PRICE_USD} and we'll start finding your people today.`,
         url: '/milla/billing?start=1',
       }).catch(() => {})
       reminded++

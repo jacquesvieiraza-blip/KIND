@@ -17,11 +17,11 @@ describe('the setup path, in order', () => {
     expect(n.actor).toBe('them')
   })
 
-  it('ICP but no money — waiting on the $99, and it is THEIR move', () => {
+  it('ICP but no money — waiting on the $299, and it is THEIR move', () => {
     const n = nextAction(f({ hasFunded: false, hasInbox: false, sourced: 0, approved: 0, withClient: 0 }))
     expect(n.step).toBe(2)
     expect(n.actor).toBe('them')
-    expect(n.label).toContain('$99')
+    expect(n.label).toContain('$299')
     expect(n.cta?.kind).toBe('chase')
   })
 

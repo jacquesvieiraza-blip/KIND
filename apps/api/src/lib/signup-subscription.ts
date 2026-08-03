@@ -115,6 +115,40 @@ export function signupSubscriptionRow(clientId: string, nowIso: string): SignupS
  * Used to keep the grandfathering visible in code rather than as a comment: anything this
  * returns true for is a value in production that this build will never write again.
  */
+// ── THE LIVE SCHEMA DISAGREES WITH THE HONEST ROW, AND MIGRATIONS CANNOT RUN ────────────────
+//
+// FOUND 4 AUG BY THE FOUNDER, AS THE FIRST PERSON TO SIGN UP SINCE #607 SHIPPED. The row above
+// writes `current_period_end: null` on purpose (see the field comment) — but the production
+// `subscriptions` table has a NOT NULL constraint on that column, so the insert died with
+// 23502 and **every new client signup failed at the front door for two days**. The schema is
+// frozen (no dashboard, no password, no runnable migrations), so the code adapts:
+//
+// Try the honest null FIRST. If the live schema refuses it, retry once with the sentinel
+// below. The day the constraint is relaxed, the honest write simply starts succeeding and
+// the sentinel stops being written — no second deploy needed. Same fail-open shape as
+// #342's `isEnumRejection` fallback, one file over.
+
+/**
+ * Far-future period end for schemas that refuse NULL. 2099 rather than a fabricated near
+ * date because `/status`'s at-risk query compares `current_period_end` against NOW — a
+ * realistic date would make every dormant signup read "at risk" the day it passed, which is
+ * the exact defect the null was chosen to avoid. 2099 is also this repo's established
+ * far-future sentinel (`subscription-lapse.test.ts` uses `2099-01-01`).
+ */
+export const PERIOD_END_SENTINEL = '2099-12-31T00:00:00.000Z'
+
+/** Postgres 23502 (not_null_violation) on the one column the live schema disputes. */
+export function isPeriodEndNotNullRejection(error: { code?: string | null; message?: string | null } | null): boolean {
+  if (!error) return false
+  const msg = error.message ?? ''
+  return error.code === '23502' && /current_period_end/i.test(msg)
+}
+
+/** The same row with the sentinel in place of the honest null — the retry, never the first try. */
+export function signupSubscriptionRowCompat(clientId: string, nowIso: string): Omit<SignupSubscriptionRow, 'current_period_end'> & { current_period_end: string } {
+  return { ...signupSubscriptionRow(clientId, nowIso), current_period_end: PERIOD_END_SENTINEL }
+}
+
 export function isLegacyStatus(status: string): boolean {
   return status === 'trialing'
 }

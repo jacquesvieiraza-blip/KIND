@@ -185,3 +185,41 @@ describe('the drip no longer halts on a trial that cannot exist', () => {
     expect(internal).toContain('3× free-leads cap')
   })
 })
+
+// ── 4 AUG — THE LIVE SCHEMA REFUSED THE HONEST ROW, AND THE FOUNDER WAS THE FIRST TO KNOW ──
+//
+// #607's row writes current_period_end: null on purpose. Production's subscriptions table has
+// NOT NULL on that column, the relaxing migration cannot run (schema frozen), and the insert
+// died 23502 — EVERY signup failed at the front door for two days until the founder signed up
+// himself and hit it. The claim "the code works with or without the migration" was false, and
+// nothing here tested it against a schema that refuses null. These pin the fallback.
+import {
+  PERIOD_END_SENTINEL, isPeriodEndNotNullRejection, signupSubscriptionRowCompat,
+} from './signup-subscription'
+
+describe('the schema-refuses-null fallback (found 4 Aug, by the founder, in production)', () => {
+  it('recognises exactly the rejection production threw', () => {
+    // The founder's screenshot, verbatim: code 23502, column current_period_end.
+    expect(isPeriodEndNotNullRejection({ code: '23502',
+      message: 'null value in column "current_period_end" of relation "subscriptions" violates not-null constraint' })).toBe(true)
+  })
+  it('and nothing else — any other failure must still surface loudly', () => {
+    expect(isPeriodEndNotNullRejection(null)).toBe(false)
+    expect(isPeriodEndNotNullRejection({ code: '23502', message: 'null value in column "client_id"' })).toBe(false)
+    expect(isPeriodEndNotNullRejection({ code: '22P02', message: 'current_period_end' })).toBe(false)
+  })
+  it('the retry row differs from the honest row in ONE field only', () => {
+    const honest = signupSubscriptionRow('c1', '2026-08-04T00:00:00.000Z')
+    const compat = signupSubscriptionRowCompat('c1', '2026-08-04T00:00:00.000Z')
+    expect(compat).toEqual({ ...honest, current_period_end: PERIOD_END_SENTINEL })
+  })
+  it('the sentinel is far-future — a near date would flag every dormant signup "at risk"', () => {
+    expect(new Date(PERIOD_END_SENTINEL).getFullYear()).toBeGreaterThanOrEqual(2099)
+  })
+  it('auth.ts tries honest-first and retries with the sentinel — the wiring, not just the parts', () => {
+    const src = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/auth.ts'), 'utf8'))
+    expect(src).toContain('isPeriodEndNotNullRejection(subErr)')
+    expect(src).toContain('signupSubscriptionRowCompat(clientId, now)')
+  })
+})
+

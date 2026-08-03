@@ -223,7 +223,7 @@
   <div class="section" id="data-we-collect">
     <h2>2. Data we collect</h2>
     <p><strong>Account data:</strong> name, email address, company name, country, and billing details. Collected when you sign up. Used to deliver the service and process payments.</p>
-    <p><strong>Lead data:</strong> B2B prospect names, work email addresses, job titles, company names, LinkedIn URLs, and country — sourced on clients' behalf from licensed B2B data providers: <strong>PeopleDataLabs</strong> (primary sourcing), <strong>Hunter</strong> (work-email verification) and <strong>Apollo.io</strong> (used only where configured). Processed only under client instruction and our <a href="dpa.html">DPA</a>.</p>
+    <p><strong>Lead data:</strong> B2B prospect names, work email addresses, job titles, company names, LinkedIn URLs, and country — sourced on clients' behalf from licensed B2B data providers: <strong>PeopleDataLabs</strong> (primary sourcing), <strong>Hunter</strong> (work-email verification) and <strong>Apollo.io</strong> (K.I.N.D’s own prospecting; applied to a client’s leads only where that client supplies their own Apollo key). Processed only under client instruction and our <a href="dpa.html">DPA</a>.</p>
     <p><strong>Usage data:</strong> platform activity (campaigns run, leads sourced, replies received), API call logs, feature usage patterns. Used to deliver and improve the service and for billing accuracy.</p>
     <p><strong>Communication data:</strong> email content sent through FIGSY campaigns, replies received, and opt-out requests. Stored for campaign performance tracking and POPIA audit trails.</p>
     <p><strong>Technical data:</strong> IP address, browser type, device type, referring URL. Collected automatically via server logs. Retained for 90 days.</p>
@@ -249,7 +249,7 @@
     <p><strong>US &amp; international clients:</strong> All client data is currently hosted in Cape Town (af-south-1). The United States imposes no data-residency requirement on B2B SaaS, and this hosting is fully compliant with the CCPA. Enterprise clients who require their data to be physically stored within the United States can request US data residency &mdash; contact <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> and we will provision a dedicated US-region instance.</p>
     <p><strong>Application hosting:</strong> The K.I.N.D platform (Portal, API, Admin) runs on <strong>Railway</strong>, which operates on SOC 2-audited infrastructure. No personal data is stored in Railway environment variables — only configuration keys.</p>
     <p><strong>Email delivery:</strong> Outbound emails are sent via <strong>Resend</strong>, which processes recipient email addresses to deliver messages. Resend is GDPR-compliant.</p>
-    <p><strong>Lead enrichment:</strong> Lead data is sourced from licensed B2B data providers — <strong>PeopleDataLabs</strong> (primary sourcing), <strong>Hunter</strong> (work-email verification) and <strong>Apollo.io</strong> (used only where configured). Each maintains its own consent infrastructure for B2B contact data. We process that data under lawful business purpose.</p>
+    <p><strong>Lead enrichment:</strong> Lead data is sourced from licensed B2B data providers — <strong>PeopleDataLabs</strong> (primary sourcing), <strong>Hunter</strong> (work-email verification) and <strong>Apollo.io</strong> (K.I.N.D’s own prospecting; applied to a client’s leads only where that client supplies their own Apollo key). Each maintains its own consent infrastructure for B2B contact data. We process that data under lawful business purpose.</p>
     <p><strong>AI processing:</strong> Natural language generation for email sequences and analysis uses <strong>Anthropic's Claude API</strong> (US-based). We do not include personal data (names, emails) in AI prompts.</p>
     <p><strong>Payments:</strong> Payment card data is processed by <strong>Stripe</strong> (PCI DSS Level 1 certified). K.I.N.D never stores card numbers.</p>
     <p><strong>International transfers:</strong> Where data is transferred outside South Africa or the UK, we apply appropriate safeguards — Standard Contractual Clauses for GDPR transfers, and POPIA section 72 conditions for cross-border transfers from South Africa.</p>
@@ -312,7 +312,7 @@
       <li><strong>Resend</strong> — email delivery — GDPR compliant</li>
       <li><strong>PeopleDataLabs</strong> — B2B contact data, primary lead sourcing — GDPR compliant; DPA and SCCs in place</li>
       <li><strong>Hunter</strong> — work-email verification — GDPR compliant; DPA and SCCs in place</li>
-      <li><strong>Apollo.io</strong> — B2B contact data, used only where a client configures it — GDPR compliant, US-based</li>
+      <li><strong>Apollo.io</strong> — B2B contact data. Used for K.I.N.D’s own prospecting; applied to a client’s leads only where that client supplies their own Apollo key — GDPR compliant, US-based</li>
       <li><strong>Anthropic</strong> — AI language model (no PII in prompts) — enterprise data agreements</li>
     </ul>
     <p>The full sub-processor list is also documented in our <a href="dpa.html">Data Processing Agreement</a>.</p>

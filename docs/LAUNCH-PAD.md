@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷231 · 🟣3 · 🟡65 · 🔴174 · ⏸5 · **Σ573** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷232 · 🟣3 · 🟡64 · 🔴174 · ⏸5 · **Σ573** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -52,6 +52,20 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 **Product floor ~$146/mo · ~$134 once the failover dies · ~$157 all-in including Claude Code.** Down from ~$470.
 
 **Nothing on the sending path was cut, deliberately.** Killing Google + Instantly saves ~$65 and pushes first revenue further out — which is the actual problem. **At $4/approved lead, ~$134/mo is ~34 approvals a month, or roughly ONE client.** That is the whole race: one client covers the platform, two make it a business.
+
+### 🧍 THE ONE THING BLOCKING MONEY RIGHT NOW — STRIPE (founder, ~5 min)
+
+**#609 shipped the $299 everywhere except the one place that takes the card.** The site, the portal, both consoles and the API all read $299 off `PACK_PRICE_USD`. **Stripe does not**, because no code can reach it — the checkout renders the Stripe *product* behind the Price ID (#414's lesson).
+
+⚠️ **AND THE GATE NOW BITES.** `routes/stripe.ts` derives the required first-purchase amount from the constant, so a checkout still pointed at the **old $99 price is REJECTED**. Until the two steps below are done, **the product cannot take a payment at all.** That is deliberate — the alternative is charging someone the wrong price — but it means this is the single highest-priority founder action on this page.
+
+| ✓ | Do | Where |
+|---|---|---|
+| ⬜ | **Create the $299 price** and point the price env var at it | Stripe → Products, then Railway |
+| ⬜ | **Paste the new product description** — *"We run your outbound, fully onboarded: we find and score your buyers, you approve the ones you want, and we do the outreach — sending from day one on your own warmed inbox, which is yours to keep. Reviewing is free — $299 includes your first 100 approved leads, then $4 per approved lead."* | Stripe → Products |
+| ⬜ | **Then** the $299 test purchase on a real card | Milla, as a client |
+
+**⚖️ ALSO OWED, NOT URGENT:** the marketing pages now promise the client's domain and mailbox are **"yours to keep"** and that onboarding includes **training**. **Neither is in the Terms**, deliberately — ownership-transfer-on-churn is an obligation nobody has decided (the domain sits on our registrar, the mailbox on our Workspace) and training is a service level. Decide both, then have counsel word them. Flagged in `terms.html`.
 
 **The purchase order — do these in sequence, not at once.** ⚠️ **Founder status on all five is UNKNOWN to this doc** — nothing here can see your Google, Instantly or Apollo accounts. Tick them off when you do them.
 

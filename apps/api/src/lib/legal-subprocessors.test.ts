@@ -105,9 +105,18 @@ describe('the pages describe each provider\'s ROLE, not just its name', () => {
     // startup-check.ts: "optional / BYO-key; not used in the day-to-day PDL+Hunter stack".
     // docs/legal.md: "K.I.N.D no longer uses Apollo." Listing it flatly as a live source
     // would be the same overclaim in the other direction.
+    //
+    // BROADENED 1 Aug (#410). This matched only the literal word "configure", which was the
+    // old phrasing — "used only where a Client configures it". That sentence was replaced
+    // because it framed Apollo as part of the standard client stack; the pages now say it is
+    // K.I.N.D's OWN prospecting, reaching a client's data only where that client supplies
+    // their own key. The qualification got STRONGER and the assertion still failed, which is
+    // the signature of a test pinned to a sentence rather than to what the sentence has to
+    // mean. Either wording satisfies the requirement: Apollo must never read as standard.
     for (const [name, html] of LEGAL) {
       const i = html.indexOf('Apollo')
-      expect(html.slice(Math.max(0, i - 200), i + 300), name).toMatch(/configure/i)
+      const around = html.slice(Math.max(0, i - 200), i + 300)
+      expect(around, `${name}: Apollo is not qualified as conditional`).toMatch(/configure|supplies their own Apollo key|own prospecting/i)
     }
   })
 })

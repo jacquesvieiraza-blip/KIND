@@ -114,7 +114,11 @@ describe('#327 — the CSV claim now matches what a client can actually do', () 
   it('KEEPS the CRM dedupe claim — that one is true', () => {
     // `crm_existing` really does stop a charge for a contact the client already holds
     // (approve-lead.ts step 3), so removing this would replace a false claim with a lost one.
-    expect(support).toContain('de-duplicate against your connected CRM')
+    // REWORDED 1 Aug (#327): the answer now names the two CRMs that actually exist
+    // (HubSpot, Pipedrive) and denies Salesforce/Zoho outright, so the sentence changed
+    // from "de-duplicate against your connected CRM" to "we de-duplicate against it".
+    // The CLAIM is what matters and it is unchanged — assert the claim, not the sentence.
+    expect(support).toMatch(/de-duplicate against (your connected CRM|it)/)
   })
 
   it('no page claims a native HubSpot or Salesforce integration', () => {

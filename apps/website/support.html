@@ -403,7 +403,7 @@
 
     <div class="faq-item">
       <button class="faq-q" onclick="toggleFaq(this)">How do I connect my CRM?<span class="fq-icon">&#x25BE;</span></button>
-      <div class="faq-a"><p>We de-duplicate against your connected CRM so you&rsquo;re never charged for a contact you already have. If you want your approved leads out as a CSV to import into your CRM (HubSpot, Pipedrive, Salesforce, Zoho, etc.), email <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> and we&rsquo;ll send it over &mdash; there is no self-serve export button yet.</p></div>
+      <div class="faq-a"><p>Connecting a CRM means <strong>HubSpot or Pipedrive</strong> &mdash; those are the two we integrate with. Connect one in Settings and we de-duplicate against it, so you&rsquo;re never charged for a contact you already have. <strong>We do not integrate with Salesforce or Zoho.</strong> If you use one of those &mdash; or any other CRM &mdash; email <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> and we&rsquo;ll send your approved leads as a CSV you can import anywhere; there is no self-serve export button yet.</p></div>
     </div>
 
   </div>
@@ -494,7 +494,7 @@
     document.getElementById('tab-signup').classList.toggle('active', mode === 'signup')
     document.getElementById('tab-login').classList.toggle('active', mode === 'login')
     document.getElementById('auth-title').textContent = mode === 'signup' ? 'Welcome to K.I.N.D' : 'Welcome back'
-    document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Free to start — you only pay per qualified lead. No card required.' : 'Log in to your dashboard.'
+    document.getElementById('auth-sub').textContent = mode === 'signup' ? 'Reviewing is always free. Your first purchase is $99 — the onboarding pack, with your first 100 approved leads included.' : 'Log in to your dashboard.'
     document.getElementById('auth-submit').textContent = mode === 'signup' ? 'Create account' : 'Log in'
     document.getElementById('forgot-link').style.display = mode === 'login' ? 'block' : 'none'
     document.getElementById('auth-msg').className = 'modal-msg'

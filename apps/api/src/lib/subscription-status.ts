@@ -103,6 +103,14 @@ export function mapStripeStatus(stripeStatus: string): StatusMapping {
  * applies (`.eq('status','active')` / `.in('status',['active','trialing'])`). Written as a
  * denylist, every status added later would default to granting access — which is precisely
  * how the ternary this file replaces behaved.
+ *
+ * ⚠️ #607 — `trialing` IS LEGACY TOLERANCE, NOT CURRENT BEHAVIOUR. Since 1 Aug nothing in this
+ * codebase creates a trialing subscription: a signup writes `paused` (dormant until the $99
+ * onboarding pack lands — see `lib/signup-subscription.ts`). It is still honoured here on
+ * purpose, so that rows written before that date do not lose access the instant this deploys.
+ * `supabase/migrations/20260801_retire_trial_status.sql` converts them; once
+ * `/internal/status/snapshot` reports `legacy_trialing: 0`, this branch is dead and can go.
+ * Do NOT read it as "we grant access during trials" — there are no trials.
  */
 export function statusGrantsAccess(status: string): boolean {
   return status === 'active' || status === 'trialing'

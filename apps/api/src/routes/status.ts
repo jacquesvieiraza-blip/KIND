@@ -37,6 +37,7 @@ statusRouter.post('/snapshot', async (_req, res) => {
       clientsRes,
       activeSubsRes,
       trialRes,
+      dormantRes,
       creditsRes,
       leadsRes,
       figsyCampaignRes,
@@ -47,21 +48,33 @@ statusRouter.post('/snapshot', async (_req, res) => {
     ] = await Promise.allSettled([
       db.from('clients').select('id', { count: 'exact', head: true }),
       db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+      // #607 — this counted "clients on trial". There is no trial. What it counts now is the
+      // GRANDFATHERED remainder: rows still carrying `trialing` from before 1 Aug, which the
+      // 20260801_retire_trial_status migration converts to `paused`. The founder asked for the
+      // grandfathering to be explicit, so the number stays on screen until it reaches zero
+      // rather than being assumed to have gone.
       db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'trialing'),
+      // Dormant: signed up, entitlement row exists, nothing bought yet (routes/auth.ts).
+      db.from('subscriptions').select('id', { count: 'exact', head: true }).eq('status', 'paused'),
       db.from('clients').select('credit_balance').gt('credit_balance', 0),
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
       db.from('figsy_sessions').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
       db.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
       db.from('credit_transactions').select('amount').eq('type', 'purchase').gte('created_at', ago7d),
+      // #607 — was `.in('status',['active','trialing'])`. A legacy trialing row past its end
+      // date is not a lapsed SUBSCRIPTION, and counting it here is what made "at risk" read
+      // as a billing problem when it was just an expired trial. At risk now means what the
+      // summary line below says it means: a PAID subscription past its period end.
       db.from('subscriptions').select('client_id', { count: 'exact', head: true })
-        .in('status', ['active', 'trialing'])
+        .eq('status', 'active')
         .lt('current_period_end', now.toISOString()),
     ])
 
     const totalClients   = clientsRes.status === 'fulfilled'     ? (clientsRes.value.count ?? 0) : 0
     const activeClients  = activeSubsRes.status === 'fulfilled'  ? (activeSubsRes.value.count ?? 0) : 0
-    const trialClients   = trialRes.status === 'fulfilled'       ? (trialRes.value.count ?? 0) : 0
+    const legacyTrialing = trialRes.status === 'fulfilled'       ? (trialRes.value.count ?? 0) : 0
+    const dormantClients = dormantRes.status === 'fulfilled'     ? (dormantRes.value.count ?? 0) : 0
     const leadsToday     = leadsRes.status === 'fulfilled'       ? (leadsRes.value.count ?? 0) : 0
     const activeCampaigns = figsyCampaignRes.status === 'fulfilled' ? (figsyCampaignRes.value.count ?? 0) : 0
     const figsyToday     = figsySessionRes.status === 'fulfilled' ? (figsySessionRes.value.count ?? 0) : 0
@@ -84,7 +97,10 @@ statusRouter.post('/snapshot', async (_req, res) => {
       clients: {
         total:         totalClients,
         active_paid:   activeClients,
-        trialing:      trialClients,
+        // #607 — `trialing` was renamed rather than kept, because a field named "trialing"
+        // reading 0 looks like "no trials right now" instead of "there are no trials".
+        dormant:          dormantClients,
+        legacy_trialing:  legacyTrialing,
         new_24h:       newSignups,
         at_risk:       atRisk,
         zero_credits:  zeroCredits,
@@ -105,7 +121,8 @@ statusRouter.post('/snapshot', async (_req, res) => {
     // ── Plain text summary ───────────────────────────────────────────────────
     const summary = [
       `K.I.N.D ${session} status — ${now.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`,
-      `Clients: ${totalClients} total (${activeClients} paid, ${trialClients} trial, ${newSignups} new today).`,
+      `Clients: ${totalClients} total (${activeClients} paid, ${dormantClients} dormant awaiting first purchase, ${newSignups} new today).`
+        + (legacyTrialing > 0 ? ` ⚠️ ${legacyTrialing} legacy 'trialing' row(s) remain — run the 20260801_retire_trial_status migration (#607).` : ''),
       `Leads: ${leadsToday} delivered in last 24h. ${totalCreditsHeld} credits held across platform.`,
       `FIGSY: ${activeCampaigns} active campaigns, ${figsyToday} sessions in last 24h.`,
       `Revenue: $${revenueWeek} in credit purchases (last 7 days).`,

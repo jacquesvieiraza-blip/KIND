@@ -4,6 +4,7 @@ import { db } from '@kind/db'
 import { sendWelcomeEmail } from '../lib/email'
 import { sendFounderAlert } from '../lib/alerts'
 import { rateLimit } from '../lib/rate-limit'
+import { signupSubscriptionRow, SIGNUP_SUBSCRIPTION_PRODUCT } from '../lib/signup-subscription'
 
 export const authRouter = Router()
 
@@ -177,44 +178,33 @@ authRouter.post('/onboard', async (req, res) => {
       }
     }
 
-    const trialEnd = new Date()
-    trialEnd.setDate(trialEnd.getDate() + 14)
-    // The subscriptions.product column is the product_type ENUM — its FIGSY value is
-    // 'lead_gen_figsy' (NOT 'figsy', which isn't in the enum → 22P02 on insert). This
-    // is also the value hasFigsy reads (isLive('lead_gen_figsy')), so the trialing row
-    // grants access. (clients.plan + credit_transactions.plan are separate TEXT fields
-    // where 'figsy' is correct — only this enum column uses 'lead_gen_figsy'.)
+    // #607 — THE ROW IS AN ENTITLEMENT, NOT A TRIAL. It used to be written with
+    // `status:'trialing'` and `trial_ends_at` 14 days out; two crons then acted on that every
+    // morning, one of them emailing the client "your trial ends in 4 days — subscribe now",
+    // about a product we do not sell. The money model has one event: $99, then $4 a lead.
+    // The row still exists and still carries the entitlement — it is now DORMANT until they
+    // pay. Full reasoning, and why `paused` rather than an invented value, in
+    // `lib/signup-subscription.ts`. (The subscriptions.product column is the product_type
+    // ENUM — its FIGSY value is 'lead_gen_figsy', NOT 'figsy', which isn't in the enum →
+    // 22P02 on insert. clients.plan + credit_transactions.plan are separate TEXT fields where
+    // 'figsy' is correct — only this enum column uses 'lead_gen_figsy'.)
     const { data: existingSub } = await db.from('subscriptions')
-      .select('id').eq('client_id', clientId).eq('product', 'lead_gen_figsy').maybeSingle()
+      .select('id').eq('client_id', clientId).eq('product', SIGNUP_SUBSCRIPTION_PRODUCT).maybeSingle()
     if (!existingSub) {
-      const { error: subErr } = await db.from('subscriptions').insert({
-        client_id: clientId, product: 'lead_gen_figsy', tier: 'starter', status: 'trialing',
-        billing_interval: 'monthly',
-        amount_usd: 0,
-        amount_zar: 0,
-        trial_ends_at: trialEnd.toISOString(),
-        current_period_start: now, current_period_end: trialEnd.toISOString(),
-      })
+      const { error: subErr } = await db.from('subscriptions').insert(signupSubscriptionRow(clientId, now))
       if (subErr) throw new Error(`Subscription insert failed: ${subErr.message} (${subErr.code})`)
 
-      // #425 — signup credit MIX for the two-charge model: under $1-reveal + $3-work
-      // a FIGSY-only grant is useless (the client can't reveal anything). Grant
-      // 20 reveal credits ($20 value) + 5 FIGSY work credits ($15 value) so a new
-      // client can experience the full ladder end-to-end: browse masked → reveal →
-      // FIGSY works the lead. (The legacy `subscriptions` trialing row above is
-      // #431 retirement scope — the grant itself no longer expires.)
-      // #349 (AR-12) — check the balance write. If the grant silently fails but the
-      // ledger rows below still insert, the ledger says "25 credits granted" while the
-      // wallet holds 0 — a drift that reads as free credits the client can't spend.
-      // Only write the ledger when the balance actually changed; alert on failure.
-      // #445 — seed the TRIAL sourcing pool alongside the welcome credits: 10 records
-      // at signup (trial_sourcing_granted tracks the 20-record lifetime cap; reveals
-      // drip +2 up to it). This is the ONLY non-purchase allowance grant — a never-paid
-      // client can source at most 20 records EVER (~$5.60 max exposure per free signup).
-      // NO FREEBIES (founder-locked 24 Jul) — a new client starts with a $0 wallet and
-      // $0 sourcing. Nothing can be sourced or approved until they make their $99 first
-      // purchase; that payment's Stripe webhook credits the wallet AND accrues the
-      // sourcing budget (k=2). This is how we guarantee the $99 lands before any cost to us.
+      // NO FREEBIES, AND NO GRANT HERE — founder-locked 24 Jul. A new client starts with a
+      // $0 wallet and $0 sourcing allowance. Nothing can be sourced, approved or sent until
+      // their $99 first purchase lands; that payment's Stripe webhook credits the wallet AND
+      // accrues the sourcing budget. This is what guarantees the $99 arrives before we spend
+      // a cent on them, and it is why the row above can be dormant without gating anything
+      // twice — the wallet already refuses every spend.
+      //
+      // #607 — the paragraph that stood here described the #425 trial credit MIX (20 reveal +
+      // 5 work credits) as though it ran. It has not run since 24 Jul: the line below is the
+      // whole branch. #425 was tombstoned by founder decision on 1 Aug (#606) along with the
+      // rest of the two-wallet ladder, so the description outlived the design it described.
       void now // (no signup grant — intentional)
     }
 

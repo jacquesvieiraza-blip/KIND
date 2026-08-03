@@ -447,6 +447,10 @@ export async function sendFirstLeadsReadyEmail(
 }
 
 // M-2 — Trial nurture sequence (day 1, 3, 5, 7, 10)
+// ⚠️ #607 — NOT CALLED. Its only caller was POST /internal/ae/nurture, retired 1 Aug: there
+// is no trial to nurture, and this template's first line was "Your K.I.N.D trial is live."
+// Kept, not deleted (CORE-MAP rule 3) — but it is a builder for a sequence we do not send.
+// If you are here to wire it up, the copy needs rewriting for the $99 pack model first.
 export async function sendNurtureEmail(
   to: string,
   companyName: string,

@@ -277,8 +277,13 @@ export function startCrons(): void {
     return
   }
 
-  // Daily 06:00 UTC — trial nurture (days 1/3/5/7/10)
-  cron.schedule('0 6 * * *', () => callInternal('/ae/nurture'), { timezone: 'UTC' })
+  // #607 — RETIRED 1 Aug: the 06:00 trial-nurture and 07:00 trial-expiry schedules are gone.
+  // Both drove client-facing email about a 14-day trial that the money model has not had
+  // since 24 Jul ($99 pack + $4 per approved lead, one money event). The expiry one was the
+  // worse of the two — it emailed real people "your trial ends in 4 days… Subscribe now".
+  // The handlers still exist and now refuse with 410 (see routes/internal.ts), so a stale
+  // scheduler or a hand-rolled POST cannot resurrect the sequence either.
+  // The PAID onboarding activation sequence below is NOT a trial and is untouched.
 
   // Daily 06:05 UTC — onboarding activation sequence for paid clients (days 0/3/7)
   cron.schedule('5 6 * * *', () => callInternal('/onboarding/activation-sequence'), { timezone: 'UTC' })
@@ -286,8 +291,7 @@ export function startCrons(): void {
   // Daily 06:15 UTC — at-risk client alert
   cron.schedule('15 6 * * *', () => callInternal('/ae/at-risk'), { timezone: 'UTC' })
 
-  // Daily 07:00 UTC — trial expiry sequence (day 10/12/14)
-  cron.schedule('0 7 * * *', () => callInternal('/ae/trial-expiry'), { timezone: 'UTC' })
+  // (07:00 trial-expiry retired — see the #607 note above.)
 
   // Daily 07:15 UTC — zero credits warning
   cron.schedule('15 7 * * *', () => callInternal('/ae/zero-credits'), { timezone: 'UTC' })

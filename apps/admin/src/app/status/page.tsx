@@ -9,7 +9,10 @@ interface StatusData {
   clients: {
     total: number
     active_paid: number
-    trialing: number
+    // #607 — was `trialing`. There is no trial; `dormant` = signed up, nothing bought yet.
+    // `legacy_trialing` is the pre-1-Aug remainder, shown until the migration clears it.
+    dormant: number
+    legacy_trialing: number
     new_24h: number
     at_risk: number
     zero_credits: number
@@ -142,7 +145,7 @@ export default async function StatusPage() {
           {/* Stats grid */}
           {d && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Stat icon={Users}      label="Total clients"     value={d.clients.total} sub={`${d.clients.active_paid} paid · ${d.clients.trialing} trial`} />
+              <Stat icon={Users}      label="Total clients"     value={d.clients.total} sub={`${d.clients.active_paid} paid · ${d.clients.dormant} dormant${d.clients.legacy_trialing > 0 ? ` · ⚠️ ${d.clients.legacy_trialing} legacy trial` : ''}`} />
               <Stat icon={CheckCircle} label="New signups (24h)" value={d.clients.new_24h} />
               <Stat icon={Zap}        label="Leads delivered (24h)" value={d.leads.delivered_24h} sub={`${d.leads.credits_held} credits held`} />
               <Stat icon={TrendingUp} label="FIGSY campaigns"   value={d.figsy.active_campaigns} sub={`${d.figsy.sessions_24h} sessions today`} />

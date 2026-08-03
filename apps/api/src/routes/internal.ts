@@ -6,7 +6,8 @@
  * Endpoints:
  *   POST /internal/digest/weekly          — D5: send weekly leads digest to all active clients
  *   POST /internal/ae/at-risk             — INT-2: detect and alert on at-risk clients
- *   POST /internal/ae/trial-expiry        — INT-4: send trial expiry emails (day 10/12/14)
+ *   POST /internal/ae/trial-expiry        — INT-4: RETIRED (#607) — refuses 410, sends nothing
+ *   POST /internal/ae/nurture             — M-2:  RETIRED (#607) — refuses 410, sends nothing
  *   GET  /internal/cro/dashboard          — INT-5: revenue + retention dashboard data
  *   POST /internal/cro/weekly-digest      — INT-6: send weekly founder digest email
  *   POST /internal/figsy/check-performance — pause active campaigns with reply rate < 1%
@@ -17,7 +18,7 @@ import crypto from 'crypto'
 import { db } from '@kind/db'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
-import { sendWeeklyLeadsDigest, sendNurtureEmail, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail, lifecycleEmailsEnabled } from '../lib/email'
+import { sendWeeklyLeadsDigest, sendZeroCreditsWarning, sendLowCreditsWarning, sendCampaignPausedEmail, isRealRecipient, sendOnboardingEmail, lifecycleEmailsEnabled } from '../lib/email'
 import { KIND_BRAND, findKindProspects } from '../lib/cmo'
 import { isPlaceholderEmail } from '../lib/email-hygiene'
 import { scoreLeadsForIcp } from '../lib/scoring'
@@ -35,7 +36,9 @@ import {
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM   = 'K.I.N.D <hello@get-kind.com>'
-const DASH   = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard`
+// #607 — DASH was the '/dashboard/billing' link in the trial-expiry email ('Subscribe now →')
+// and had no other consumer; retiring that handler left it unused. Note the URL it built was
+// already wrong: middleware redirects every signed-in client off /dashboard to /milla.
 
 export const internalRouter = Router()
 
@@ -357,116 +360,21 @@ Output only the email body. No subject line. No placeholders.`
   }
 })
 
-// ── INT-4 — TRIAL EXPIRY SEQUENCE ────────────────────────────────────────────
-// Call daily. Sends emails at day 10, 12, and 14 of trial.
+// ── INT-4 — TRIAL EXPIRY SEQUENCE — RETIRED (#607, 1 Aug) ────────────────────
+// This sent a real person: "Your K.I.N.D trial ends in 4 days… Subscribe now →", with a
+// button to /billing. There is no trial and there is no subscription — the money model has
+// been $99 for the onboarding pack then $4 per approved lead since 24 Jul. It ran daily at
+// 07:00 UTC against every row still carrying status='trialing'.
+//
+// It REFUSES rather than being deleted, because the danger was never the schedule alone: any
+// stale scheduler, run-book entry or hand-rolled POST could fire the sequence at a live
+// client. A 410 cannot send an email; a quietly-removed cron line can be re-added by someone
+// reading an old doc. The behaviour it used to have is in this file's history.
 internalRouter.post('/ae/trial-expiry', async (_req: Request, res: Response) => {
-  try {
-    // #480 — client lifecycle cron: skip entirely when the master switch is off, so
-    // no nudge fires AND no 'notified' state is stamped (it re-fires when re-enabled).
-    if (!lifecycleEmailsEnabled()) { res.json({ success: true, data: { skipped: true, reason: 'LIFECYCLE_EMAILS_ENABLED=false' } }); return }
-    const now = new Date()
-    const { data: trials } = await db.from('subscriptions')
-      .select('id, client_id, trial_ends_at, trial_expiry_notified_at, clients(company_name, user_id)')
-      .eq('status', 'trialing')
-      .not('trial_ends_at', 'is', null)
-
-    let sent = 0
-
-    for (const sub of trials ?? []) {
-      if (!sub.trial_ends_at) continue
-      const trialEnd  = new Date(sub.trial_ends_at)
-      const daysLeft  = Math.ceil((trialEnd.getTime() - now.getTime()) / 86400000)
-      if (!sub.clients) continue
-      const client    = Array.isArray(sub.clients) ? sub.clients[0] : sub.clients as any
-      if (!client?.user_id) continue
-
-      const { data: { user } } = await db.auth.admin.getUserById(client.user_id)
-      const email = user?.email
-      if (!email) continue
-
-      let subject = ''
-      let body    = ''
-
-      if (daysLeft === 4) { // day 10 of 14-day trial
-        subject = `Your K.I.N.D trial ends in 4 days — ${client.company_name}`
-        body = `
-          <p>Hi there,</p>
-          <p>Your K.I.N.D trial ends in <strong>4 days</strong>. Before it does, make sure you've:</p>
-          <ul>
-            <li>Built your ICP — it takes 60 seconds with our AI pre-fill</li>
-            <li>Reviewed your scored leads</li>
-            <li>Sent consent emails to your top prospects</li>
-          </ul>
-          <p>If you're seeing value, locking in now means your lead pipeline keeps running uninterrupted.</p>`
-      } else if (daysLeft === 2) { // day 12
-        subject = `2 days left on your trial — don't lose your leads`
-        body = `
-          <p>Hi there,</p>
-          <p>Just a quick heads up — your K.I.N.D trial ends in <strong>2 days</strong>.</p>
-          <p>Your leads, ICP, and pipeline data are all saved. Subscribing now takes 2 minutes and keeps everything running.</p>
-          <p>Any questions about pricing or what's included? Reply to this email — I'm here.</p>`
-      } else if (daysLeft <= 0) { // day 14+
-        // #353 (AR-15) — the "trial ended" branch is open-ended (fires every day the sub
-        // stays 'trialing' with a past end date). Send it ONCE: skip if we've already
-        // stamped trial_expiry_notified_at.
-        if (sub.trial_expiry_notified_at) continue
-        subject = `Your K.I.N.D trial has ended`
-        body = `
-          <p>Hi there,</p>
-          <p>Your free trial has ended. Your data is safe — your leads, ICP, and pipeline are all still there.</p>
-          <p>Subscribe to pick up right where you left off. Takes 2 minutes.</p>`
-      }
-
-      if (!subject) continue
-
-      // #353 — demo guard: never email synthetic/demo recipients (hard bounces).
-      if (!isRealRecipient(email)) continue
-
-      if (resend) {
-        await resend.emails.send({
-          from: FROM,
-          to:   email,
-          subject,
-          html: `
-            <div style="font-family:sans-serif;max-width:560px;margin:0 auto;color:#111">
-              ${body}
-              <a href="${DASH}/billing"
-                 style="display:inline-block;margin-top:16px;background:#7C3AED;color:#fff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:600">
-                Subscribe now →
-              </a>
-              <p style="color:#999;font-size:0.8rem;margin-top:24px">
-                Questions? Reply to this email or book a call — <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
-              </p>
-            </div>`,
-        })
-        sent++
-        // #353 — stamp the one-shot marker after the terminal (ended) email so it never
-        // repeats. Day-10/12 sends fire on an exact daysLeft match, so they're naturally
-        // once; only the open-ended <=0 branch needs the marker.
-        if (daysLeft <= 0) {
-          // #349 — this marker is the ONLY thing stopping the <=0 branch re-sending. The
-          // email has already gone out by the time we get here, so a swallowed failure
-          // means the same client is emailed again on every run until someone notices.
-          const { error: markErr } = await db.from('subscriptions')
-            .update({ trial_expiry_notified_at: new Date().toISOString() })
-            .eq('id', sub.id)
-          if (markErr) {
-            console.error('[ae/trial-expiry] marker not stamped — this client will be emailed again next run:', markErr.message)
-            void sendFounderAlert('api_down', 'Trial-expiry email will repeat', [
-              `The trial-expiry email was sent to ${email} and the one-shot marker failed to save: ${markErr.message}`,
-              'The open-ended (expired) branch re-sends on every run until this is stamped, so they will be emailed daily.',
-              'Fix: set subscriptions.trial_expiry_notified_at for this subscription, or pause the trial-expiry cron.',
-            ])
-          }
-        }
-      }
-    }
-
-    res.json({ success: true, data: { sent } })
-  } catch (err) {
-    console.error('[ae/trial-expiry]', err)
-    res.status(500).json({ success: false, error: 'Trial expiry run failed' })
-  }
+  res.status(410).json({
+    success: false,
+    error: 'Retired (#607). There is no trial: the model is $99 for the onboarding pack, then $4 per approved lead. This endpoint used to email clients about a trial ending and it will not send anything.',
+  })
 })
 
 // ── INT-5 — CRO DASHBOARD ─────────────────────────────────────────────────────
@@ -709,56 +617,25 @@ internalRouter.get('/cro/churn-risk', async (_req: Request, res: Response) => {
   }
 })
 
-// ── M-2 — TRIAL NURTURE SEQUENCE ─────────────────────────────────────────────
-// Call daily. Sends day-1/3/5/7/10 nurture emails to trial clients.
+// ── M-2 — TRIAL NURTURE SEQUENCE — RETIRED (#607, 1 Aug) ─────────────────────
+// Days 1/3/5/7/10 after signup, to anyone without an ACTIVE subscription. Its first line was
+// "Your K.I.N.D trial is live." — it was not; nothing is live until the $99 lands.
+//
+// TWO THINGS FOUND RETIRING IT, both worth recording rather than deleting quietly:
+//   • It never read status='trialing' at all — it read `clients.created_at` inside 14 days and
+//     skipped anyone with an active subscription. So it emailed EVERY new signup about a trial
+//     regardless of what their subscription row said, and retiring the status alone would have
+//     left it running.
+//   • Unlike the six other lifecycle crons it had NO `lifecycleEmailsEnabled()` gate, so the
+//     master kill-switch (#480) never covered it. Turning lifecycle email off did not turn
+//     this off.
+//
+// Refuses rather than deleted — same reasoning as INT-4 above.
 internalRouter.post('/ae/nurture', async (_req: Request, res: Response) => {
-  try {
-    const now = new Date()
-
-    const { data: clients } = await db.from('clients')
-      .select('id, company_name, user_id, created_at, first_icp_run_at')
-      .not('user_id', 'is', null)
-      .gte('created_at', new Date(now.getTime() - 14 * 86400000).toISOString())
-
-    const STAGES = [1, 3, 5, 7, 10] as const
-    let sent = 0
-
-    for (const client of clients ?? []) {
-      const daysOld = Math.floor((now.getTime() - new Date(client.created_at).getTime()) / 86400000)
-
-      if (!(STAGES as readonly number[]).includes(daysOld)) continue
-
-      // Skip if already on an active paid subscription
-      const { data: activeSub } = await db.from('subscriptions')
-        .select('id').eq('client_id', client.id).eq('status', 'active').maybeSingle()
-      if (activeSub) continue
-
-      try {
-        const { data: { user } } = await db.auth.admin.getUserById(client.user_id!)
-        const email = user?.email
-        if (!email) continue
-
-        const { count: leadCount } = await db.from('leads')
-          .select('id', { count: 'exact', head: true }).eq('client_id', client.id)
-        const { count: consentedCount } = await db.from('leads')
-          .select('id', { count: 'exact', head: true }).eq('client_id', client.id).eq('status', 'consent_given')
-
-        await sendNurtureEmail(email, client.company_name ?? '', daysOld as 1|3|5|7|10, {
-          has_icp:        !!client.first_icp_run_at,
-          lead_count:     leadCount ?? 0,
-          consented_count: consentedCount ?? 0,
-        })
-        sent++
-      } catch (err) {
-        console.error(`[ae/nurture] failed for client ${client.id}:`, err)
-      }
-    }
-
-    res.json({ success: true, data: { sent } })
-  } catch (err) {
-    console.error('[ae/nurture]', err)
-    res.status(500).json({ success: false, error: 'Nurture run failed' })
-  }
+  res.status(410).json({
+    success: false,
+    error: 'Retired (#607). There is no trial to nurture: the model is $99 for the onboarding pack, then $4 per approved lead. This endpoint used to email every new signup "your trial is live" and it will not send anything.',
+  })
 })
 
 // R6 (#32) — Onboarding activation sequence (days 0/3/7) for ACTIVATED (paid)
@@ -2010,34 +1887,31 @@ internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {
         // Can't deliver leads to a client with no credits in the relevant pool
         if (balance < 1) continue
 
-        // ── #331 — cap the free trial drip (FIGSY plan only; lead_gen untouched) ──
+        // ── #331 — cap the free-leads drip (FIGSY plan only; lead_gen untouched) ──
         if (normalizePlan(client.plan) === 'figsy') {
-          // (a) Trial-expired-unconverted halt: stop dripping free leads to a client
-          // whose trial lapsed without converting to a paying subscription. Deliver
-          // only when they have an ACTIVE subscription, or a still-valid trialing one.
-          const { data: subs } = await db.from('subscriptions')
-            .select('status, trial_ends_at, current_period_end')
-            .eq('client_id', client.id)
-          const nowMs = Date.now()
-          const hasActive = (subs ?? []).some((s: { status?: string | null }) => s.status === 'active')
-          const hasValidTrial = (subs ?? []).some((s: { status?: string | null; trial_ends_at?: string | null; current_period_end?: string | null }) =>
-            s.status === 'trialing' &&
-            ((s.trial_ends_at && new Date(s.trial_ends_at).getTime() > nowMs) ||
-             (s.current_period_end && new Date(s.current_period_end).getTime() > nowMs)))
-          // P2 — FIGSY clients convert by BUYING A CREDIT BUNDLE (a one-time checkout
-          // that creates NO subscription row), not only by holding an active/trialing
-          // subscription. Treating "converted" as subscription-only starves paying
-          // bundle-buyers of their leads. If the client has EVER purchased FIGSY
-          // credits, they are converted — never halt them (the 3× cap below still
-          // applies to everyone and self-relaxes as balance grows).
-          const { count: figsyPurchaseCount } = await db.from('credit_transactions')
-            .select('id', { count: 'exact', head: true })
-            .eq('client_id', client.id).eq('type', 'purchase').eq('plan', 'figsy')
-          const hasPurchased = (figsyPurchaseCount ?? 0) > 0
-          if (!hasActive && !hasValidTrial && !hasPurchased) {
-            console.log(`[leads/drip] skip client ${client.id} — FIGSY trial expired unconverted (no active/in-period trialing subscription and no FIGSY bundle purchase)`)
-            continue
-          }
+          // (a) THE TRIAL-EXPIRED-UNCONVERTED HALT WAS RETIRED HERE (#607, 1 Aug).
+          //
+          // It read the client's subscriptions and continued only on an ACTIVE sub, a
+          // still-in-period `trialing` sub, or a past FIGSY purchase. Removed for two
+          // reasons, and the second is the one that matters:
+          //
+          //   1. Its premise is gone. It existed to stop free TRIAL credits dripping leads
+          //      forever. Since 24 Jul a signup gets a $0 wallet and $0 sourcing (see
+          //      routes/auth.ts) — and `if (balance < 1) continue` on the line above already
+          //      refuses every unfunded client. With no freebies, a balance above zero means
+          //      someone paid or an operator deliberately comped them.
+          //
+          //   2. KEEPING IT WOULD HAVE BROKEN CLIENT ZERO. Our own house client (#600) is
+          //      comped by an operator so sourcing is not refused — it never buys anything,
+          //      so `hasPurchased` is false and `hasActive` is false. Its only qualifying
+          //      condition was the 14-day `trialing` row this change stops writing. Retire
+          //      the trial and leave this block, and our own outreach silently stops
+          //      dripping — on day 15 for the existing house client, immediately for a new
+          //      one. A halt whose last remaining branch is the thing being deleted is not a
+          //      safety net; it is a trap that springs a fortnight later.
+          //
+          // The wallet is the gate, and it is one line up. (b) below is independent of any of
+          // this — it bounds free (delivered-but-never-enrolled) leads against the balance.
 
           // (b) 3× free-leads cap: never let delivered-but-never-enrolled (free) leads
           // run more than 3× the client's current FIGSY balance ahead. A delivered

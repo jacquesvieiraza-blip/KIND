@@ -1,5 +1,5 @@
 import Stripe from 'stripe'
-import { PRICING } from '@kind/shared'
+import { PRICING, PACK_LEADS } from '@kind/shared'
 
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' as any })
@@ -101,12 +101,36 @@ export async function createCheckoutSession(params: {
 // ── ONE WALLET top-up checkout (dynamic amount, no pre-made SKU) ──────────────
 // The work model: a single dollar wallet. First purchase is $99; later top-ups are
 // any amount. We use Stripe price_data so we never need per-amount price IDs.
+/**
+ * What the client reads on the Stripe page, one click before their card is charged.
+ *
+ * ⚠️ THIS STRING WAS `'K.I.N.D wallet top-up'` FOR EVERY PURCHASE INCLUDING THE FIRST, and it
+ * was the last surviving copy of the #562 lie. The first purchase does NOT credit the wallet —
+ * it buys the included approvals outright — and `website-money-claims.test.ts` FORCES the
+ * website and the Terms to say *"not a wallet top-up"* in those words. So the site was guarded
+ * into honesty while the checkout, the very next screen, called it the one thing it is not.
+ *
+ * ⚠️ AND IT CORRECTS #414's PREMISE. #414 is filed as *"no code change can reach the checkout —
+ * it renders the Stripe dashboard product"*. That is true of `createSubscriptionCheckoutSession`
+ * below, which passes a dashboard `priceId`. **It is not true here.** This function builds the
+ * line item with inline `price_data`, so the name is ours and always was. Confirmed 4 Aug
+ * against the live dashboard: the catalogue holds nine products and **not one of them is the
+ * onboarding pack** — there is no dashboard product to edit, because this path never used one.
+ */
+export function checkoutLineName(isFirstPurchase: boolean, packLeads: number): string {
+  return isFirstPurchase
+    ? `K.I.N.D onboarding pack — ${packLeads} approved leads included`
+    : 'K.I.N.D wallet top-up'
+}
+
 export async function createWalletCheckoutSession(params: {
   clientId:    string
   amountUsd:   number
   successUrl:  string
   cancelUrl:   string
   clientEmail: string
+  /** First purchase buys the pack; later ones really are wallet top-ups. Changes the line name. */
+  isFirstPurchase?: boolean
 }): Promise<{ url: string | null; error?: string }> {
   if (!stripe) return { url: null, error: 'Stripe not configured' }
   try {
@@ -119,7 +143,7 @@ export async function createWalletCheckoutSession(params: {
         price_data: {
           currency:     'usd',
           unit_amount:  Math.round(params.amountUsd * 100), // dollars → cents
-          product_data: { name: 'K.I.N.D wallet top-up' },
+          product_data: { name: checkoutLineName(params.isFirstPurchase === true, PACK_LEADS) },
         },
       }],
       success_url: params.successUrl,

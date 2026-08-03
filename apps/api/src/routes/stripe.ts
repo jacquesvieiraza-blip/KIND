@@ -276,6 +276,9 @@ stripeRouter.post('/checkout', requireAuth, async (req: AuthRequest, res: Respon
       clientId:   client.id,
       amountUsd:  amount_usd,
       clientEmail,
+      // The route already knew this and simply never passed it, which is how the first
+      // purchase came to be labelled a wallet top-up on the payment page.
+      isFirstPurchase: isFirst,
       successUrl: `${portalUrl}/milla/billing?stripe=success`,
       cancelUrl:  `${portalUrl}/milla/billing?stripe=cancelled`,
     })

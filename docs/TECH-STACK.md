@@ -34,11 +34,13 @@ Two **separate** systems, do not conflate:
 | **Zoho Mail** | company **mailboxes** — MX/receiving + webmail + human send (`get-kind.com` only) |
 | **Stripe** | primary payments — per-qualified-lead credit purchases ($1 reveal · $3 FIGSY), invoices (USD). **No subscriptions** — legacy `_MONTHLY` price vars in `stripe.ts` pending removal (#431) |
 | **Stripe · Flutterwave** | payments — Stripe (US/EMEA, primary, USD) + Flutterwave (Africa). *Paystack KILLED 25 Jun (no ZAR).* |
-| **PDL Full (sourcing) + Hunter (reveal)** | the live data stack — Apollo retired from the data path (BYO/optional only; ⚠️ code still runs Apollo-primary in `enrichment.ts`/`apollo.ts`, cleanup owed). *Planned adds per item 243: Cognism · Clearbit · Lusha · RocketReach · Proxycurl + BetterContact aggregator.* |
+| **PDL Full (sourcing) + Hunter (reveal)** | the **CLIENT-facing** data stack (locked 30 Jul). Both confirmed **$0** on 3 Aug — but free PDL is ~100 records/month, **half of one client's 200-name pack**, so it is a volume ceiling, not a free lunch. *Planned adds per item 243: Cognism · Clearbit · Lusha · RocketReach · Proxycurl + BetterContact aggregator.* |
+| **Apollo** | **OUR hunting only** — the paid source we prospect with. **Basic Monthly, $65/mo**, 2,500 credits/month, **0 used**, renews 3 Sep. ⚠️ **THIS ROW ONCE SAID "RETIRED" AND THAT WAS WRONG** — the 1 Aug audit read *"retired from the client data path"* as *"retired"* and recommended deleting four inventory rows; the founder caught it. Apollo is live, paid and in use. *(⚠️ separately true: `enrichment.ts`/`apollo.ts` still run Apollo-primary in the **client** path, which the 30 Jul lock says should be PDL+Hunter — cleanup owed, tracked in the inventory.)* |
 | **Anthropic (Claude)** | the agents (FIGSY · Milla · Vida · Denise · **Tony**) + **Nora** (admin co-pilot) + **Alex** (partner). *Casey retired.* |
 | **Vapi** | voice agent infra — ⏸ **PARKED 25 Jun** (items 96/144/178; not on the revenue path) |
 | **HubSpot / Pipedrive** | CRM dedup + deal push integration (item 43, built) |
-| **Domains** | `get-kind.com` (product) · `gettingkind.com` (cold-send identity) |
+| **Domains** | `get-kind.com` (product — invoices, client mail, **never cold outreach**) · `gettingkind.com` (Resend cold-send identity; **send + inbound webhook only, no mailbox exists on it**) · **`kindoutreach.com` + `trykind.org`** — the two throwaway cold-send domains, **bought 3 Aug, £20.45 one-off at GoDaddy**. Two rather than one so a burned reputation on either does not cost another 2–3 week warmup from zero |
+| **Google Workspace** | the **4 sending mailboxes** the engine sends over SMTP from — **signed up 3 Aug on `kindoutreach.com` as primary**, with `trykind.org` added afterwards as a **secondary domain in the same subscription** (one bill, one admin login). ~$28/mo, Business Starter × 4. ⏳ **domain verification takes ~48h — pending until ~5 Aug.** ⚠️ **Bought direct from Google, never a vendor's done-for-you box**: #577 records both vendors confirming in writing that they keep the mailbox password, and our engine needs that password to send. ⚠️ Each box needs an **App Password**, not the login password |
 
 ## 🗄️ DATABASE MIGRATIONS — canonical source-of-truth (#273)
 > There are **three** migration folders + one consolidated snapshot, historically out of sync. This is the map. **Do NOT delete or move any migration** — several are already applied to prod; deleting them loses the audit trail. This is documentation only.
@@ -77,7 +79,7 @@ Do **both** for anything that must reach production. `migration-home.test.ts` fa
 | **Companies House / HMRC** | UK Ltd filings — corporation tax, annual accounts | active (UK Ltd) |
 | **ICO** | data-protection registration — done (C1959926) | ✅ |
 | **⚙️ THE ENGINE** | **Smartlead** (per-client warmed sending, item 211 — the product foundation) + **Instantly** (own-outreach warmup, item 198) | ✅ Instantly ordered (24h warm) · ✅ Smartlead key live + Phase 1 verified (24 Jun) → 🤖 Phase 2 next |
-| **Uptime monitor** | external monitor wired to `/health` (item 199) | 🧍 to wire |
+| **Uptime monitor** | **UptimeRobot free tier, wired to `/health`** (item 199) — a **keyword** monitor, not HTTP-status: `/health` always returns 200 by design so Railway's deploy check passes, and the real state is in the body | ✅ live 3 Aug |
 | **Business bank account** | UK Ltd banking | 🧍 confirm/record |
 
 ## 🧍 Open tool decisions (founder)

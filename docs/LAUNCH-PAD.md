@@ -4,55 +4,62 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷219 · 🟣3 · 🟡73 · 🔴175 · ⏸5 · **Σ570** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷228 · 🟣3 · 🟡66 · 🔴175 · ⏸5 · **Σ572** · live count: `scripts/count-inventory.sh`
 
 ---
 
-## 🛑 HONEST STATE — read this before anything else *(swept against the code 27 Jul, end of day)*
+## 🛑 HONEST STATE — read this before anything else *(re-swept against the code 2 Aug, #608)*
 
 > **If you have been away and remember nothing, read only this block.** It is rewritten at the end of every working session and it is the state of record for *what is left*. Status per item lives in PRODUCT-INVENTORY; why anything was decided lives in KIND-MASTER.
 
-**Where we actually are.** The product finds people, scores them, masks them, surfaces them, takes the client's 👍, charges for it, writes the sequence, routes replies to the right client and books the meeting. **Every code item in the sending spine is now built.** What it cannot do is send — because **no mailbox exists for any client** (`LIVE INBOXES · 0`). That is a purchase and a form, not a PR.
+**Where we actually are.** The product finds people, scores them, masks them, surfaces them, takes the client's 👍, charges for it, writes the sequence, routes replies to the right client and books the meeting. **Every code item in the sending spine is built.** What it cannot do is **send** — because **no mailbox exists for any client**. That is a purchase and a form, not a PR, and it is still the only thing between us and a paying client.
 
-**⚠️ THE ARCHITECTURE CHANGED — CLIENT ZERO RUNS ON OUR OWN ENGINE (founder, 30 Jul).** Walked point by point and locked: of Instantly's bundle we lack exactly **one** thing — the **warmup network**. Its sequencer, sender and unibox duplicate the product we built and are trying to prove, and the **$97 HyperGrowth tier was needed only for the API to integrate with a sender we no longer use**. So **Instantly drops to Growth (~$37), warmup only**, and **FIGSY + our send path + our unibox do the outreach**. Amends the founder's own #577 lock. Smartlead unchanged: deferred until a client is in the works. Floor **~$283 → ~$223/mo**. **30 Jul — and the missing door is now built:** our engine can only mail what is in our tables, and there was no way to put a list into them. **#599** is that door — Vida → Engine → **Import leads (CSV)**, so the Apollo export lands as ordinary pending leads and Client Zero runs through the same desk a paying client does.
+### 🔒 THE CONSTRAINT THAT GOVERNS EVERY FUTURE PROMPT — MIGRATIONS CANNOT RUN
 
-**The purchase order — do these in sequence, not at once:**
+**Do not build anything that ends with "now press Run migrations."** The Supabase dashboard is unreachable (GitHub OAuth, flagged account — a support ticket is open and unanswered), the founder does not have the Postgres password, and `DATABASE_URL` in Railway is a placeholder with no host in it, so the runner resolves nothing. **The schema is frozen for the foreseeable future.** Anything needing a schema change must either work without one or be declared NOT-POSSIBLE up front, before the work starts. *(#607's migration is registered and pending; the code was deliberately written to work with or without it, which is why nothing is blocked on it.)*
 
-| | What | $/mo | Note |
+### ✅ SHIPPED SINCE THE LAST SWEEP (27 Jul → 2 Aug) — merged to main, which on this repo IS live
+
+- **#607 — the trial is gone.** Signup wrote `status:'trialing'` with a 14-day clock and two crons acted on it daily; **one emailed real people *"Your K.I.N.D trial ends in 4 days — Subscribe now"*** about a product we do not sell. Signup now writes `paused` (dormant until the $99 lands) and **both crons are retired and their endpoints refuse 410** — verified: `auth.ts` calls `signupSubscriptionRow`, `cron.ts` schedules neither job.
+- **#604/#605 — the website is restored AND locked.** All **28 pages** serve again with the pre-shrink nav (verified on disk). The site is now **founder-frozen (PRODUCT-RULES P12)**: a manifest pins **110 files** and any change fails the gate until you approve it. **The site cannot change again without you saying so.**
+- **#603 — Nexus is back**, with its auto-tune promises corrected to what the code actually does.
+- **#406 — the portal sweep.** Four lies off the client's screens, the worst being **an invented unsubscribe number** (`replies × 0.05`) plotted on a chart. Verified: the dead notification bell is gone.
+- **#413/#410/#327 — the paper matches the product.** The signup pop-up on **9 pages** promised *"Free to start… No card required"* under a $99-first model; **0 pages say it now** (verified). Terms, sub-processor lists and the CRM claim all corrected.
+- **#397 — dead HubSpot code removed** (and the item's own "never called" premise was false — it runs in the reply pipeline).
+- **#349 — the money-write remainder.** 11 more swallowed failures closed, including one where **a client who paid would never be credited**.
+- **#602/#606 — the doc audit and the founder's 48 rulings.** 14 items tombstoned, 14 redesignated to the ENGINE, 11 re-dotted, Apollo correctly relabelled **[OUR HUNTING]**.
+
+**⚠️ THE ARCHITECTURE (founder, 30 Jul, unchanged).** Of Instantly's bundle we lack exactly one thing — the **warmup network**. Its sequencer, sender and unibox duplicate what we built. So **Instantly drops to Growth (~$37), warmup only**, and **FIGSY + our send path + our unibox do the outreach**. Smartlead deferred until a client is in the works. Floor **~$223/mo**, rising to **~$490** the day a client signs.
+
+**The purchase order — do these in sequence, not at once.** ⚠️ **Founder status on all five is UNKNOWN to this doc** — nothing here can see your Google, Instantly or Apollo accounts. Tick them off when you do them.
+
+| | What | $/mo | Done? |
 |---|------|:---:|---|
-| ① | **2 new domains + 4 Google mailboxes — BOUGHT DIRECT FROM GOOGLE.** ⚠️ **NOT Instantly's done-for-you boxes**: our engine sends over SMTP and needs `smtp_host`/`smtp_user`/`smtp_pass_enc`, and **#577 records in writing that vendor-provisioned mailboxes expose no SMTP credentials**. Their DFY box is $1 cheaper and **cannot be sent through by our engine at all**. Never on `get-kind.com` — a spam complaint must hit a throwaway domain, not the one carrying invoices. **30 Jul — the screen to enter them now exists: Vida → Engine → Add a mailbox (#600). Set up the house client there first.** | ~$25 | 🧍 |
-| ② | **Instantly Growth — connect the 4 boxes, enable warmup, CREATE NO CAMPAIGNS.** Vendor-confirmed 30 Jul that warmup runs on campaign-free and externally-hosted mailboxes. | ~$37 | 🧍 |
-| ③ | **Apollo — free tier now** (900 credits/yr). Basic **billed MONTHLY ~$59** only when sending starts; the $49 rate is $588 annual-upfront and waits until the channel proves itself. **Apollo is for OUR hunting only — PDL + Hunter stay the client-facing stack.** | $0 | 🧍 |
-| ④ | **Founder-led outreach DURING the 3–4 week warmup** — 20 personal messages off the MBF demo. The funnel maths says this is the fastest route to clients 1–3, and it costs nothing. | $0 | 🧍 |
-| ⑤ | **#553 first-send ladder on OUR boxes** when warm — test send lands in a real inbox, mail-tester ≥9/10, cap on, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. | $0 | 🧍 |
+| ① | **2 new domains + 4 Google mailboxes — BOUGHT DIRECT FROM GOOGLE.** ⚠️ **NOT Instantly's done-for-you boxes**: our engine sends over SMTP and needs `smtp_host`/`smtp_user`/`smtp_pass_enc`, and **#577 records in writing that vendor-provisioned mailboxes expose no SMTP credentials** — their box is $1 cheaper and **cannot be sent through at all**. Never on `get-kind.com`. Enter them at **Vida → Engine → Add a mailbox (#600)**; set up the house client there first. | ~$25 | ❓ unknown |
+| ② | **Instantly Growth — connect the 4 boxes, enable warmup, CREATE NO CAMPAIGNS.** Vendor-confirmed 30 Jul that warmup runs on campaign-free, externally-hosted mailboxes. | ~$37 | ❓ unknown |
+| ③ | **Apollo — for OUR hunting only** (PDL + Hunter stay the client-facing stack). Founder was charged **$49 on 1 Aug**, so this one IS live — worth confirming which plan that bought. | ~$49 | 🟡 paid, plan unconfirmed |
+| ④ | **Founder-led outreach DURING the 3–4 week warmup** — 20 personal messages off the MBF demo. Fastest route to clients 1–3, costs nothing. | $0 | ❓ unknown |
+| ⑤ | **#553 first-send ladder on OUR boxes** when warm — test send lands in a real inbox, mail-tester ≥9/10, cap on, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. | $0 | ⛔ blocked on ① |
 
-**The fuel, separate from the rent:** ~**$127–137 per 1,000 prospects** (Apollo + ~$8 verification + ~$70 AI writing; sending is $0 because it is ours) ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting**. One client is worth $99 + ~$121/mo.
+**The fuel, separate from the rent:** ~**$127–137 per 1,000 prospects** ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting**. One client is worth $99 + ~$121/mo.
 
-**💷 MONEY — three checks the founder owns, worth up to ~$220/mo (30 Jul, self-funded):**
-
-| | Do | Why |
-|---|---|---|
-| ① | **Check Hunter + PDL billing.** Both are on **free tiers** (founder-confirmed 30 Jul) — verify nothing has silently upgraded. | Confirmed $0. ⚠️ **But free tier is a VOLUME CEILING, not a free lunch**: free PDL is ~100 records/month, which is half of one client's 200-name pack. The paid tier switches on the month a real sourcing run happens. |
-| ② | **Failover teardown — IN THIS ORDER.** ⓐ repoint `api.get-kind.com` to a plain CNAME on Railway (`kindapi-production-e64c.up.railway.app`, proxied) and confirm the portal still loads · ⓑ delete the Cloudflare Load Balancer + its health monitor · ⓒ delete/suspend the Render `kind-api-standby` service. | **−$12/mo.** ⚠️ **Wrong order takes the live product down** — `api.get-kind.com` currently routes *through* the load balancer. Steps: `docs/render-cloudflare-failover.md`. Check Render's billing first: if it is already on a free tier only the $5 Cloudflare line is real. |
-| ③ | **GoDaddy audit.** List every domain on the account, confirm what each renews at, kill auto-renew on any we no longer use. | Retired pages are 301s now (#560) but **a domain nobody visits still renews** at ~$20/yr. |
+**💷 MONEY — founder-owned, worth up to ~$220/mo:** ① check Hunter + PDL are still on free tiers (a free tier is a **volume ceiling**, not a free lunch — free PDL is ~100 records/month, half of one client's pack) · ② **Failover teardown — IN THIS ORDER. ⚠️ The wrong order takes the live product down**, because `api.get-kind.com` currently routes *through* the load balancer: ⓐ **repoint** `api.get-kind.com` to a plain CNAME on Railway (`kindapi-production-e64c.up.railway.app`, proxied) and confirm the portal still loads · ⓑ **delete the Cloudflare** Load Balancer + its health monitor · ⓒ delete/suspend the Render `kind-api-standby` service. **−$12/mo.** Steps: `docs/render-cloudflare-failover.md`. Check Render's billing first — if it is already on a free tier, only the $5 Cloudflare line is real · ③ GoDaddy audit: a domain nobody visits still renews.
 
 **Built but NOT PROVEN — each needs real activity, not more code.** These are 🟡/🩷 and must not be read as working:
 
-- **#550 Smartlead** — built 27 Jul, key returns **401**. Nothing exercised against a live workspace. The sequence *step shape* is unverified (their docs 403 us) — **check it in Smartlead's UI after the first push.** ⏸ **Deliberately parked 30 Jul** — not bought until a client is in the works, so this stays unproven on purpose rather than by neglect.
+- **#550 Smartlead** — key returns **401**; nothing exercised against a live workspace. ⏸ Parked on purpose until a client is in the works.
 - **#366 PDL paging** — needs one ICP run twice with real credits to prove month two finds new people.
 - **#340 / #342 subscriptions** — need Stripe test-mode activity to exercise.
 - **#298 backup manifest** — built; **take one and save the JSON off this system.** Never done.
-- **#599 CSV lead import** — built 30 Jul, **never run against a real Apollo export.** 38 tests, but a real export's headers are the one thing tests cannot supply. First real use: press **Check the file** before **Import** — it writes nothing and tells you exactly which columns it read.
+- **#599 CSV lead import** — **never run against a real Apollo export.** Press **Check the file** before **Import**: it writes nothing and names every column it read.
+- **The 8 items flipped 🩷 on 2 Aug** — merged and live, **walked by nobody**. Each needs your eyes before it can go 🟢 (`FOUNDER_FLIP=1`, founder-only).
 
 **Environment blockers, one root cause — the flagged GitHub account:**
 
-- **CI has never run.** All five workflows registered and `active`, **0 runs ever** (checked 27 Jul). `scripts/check.sh` is not a belt over CI — **it IS the only gate.**
-- **Supabase dashboard unreachable.** Blocks the restore drill (#298), the Postgres password rotation, and forces every migration through Vida → Engine.
-- **`DATABASE_URL` is mangled** (a placeholder ref was pasted in). Breaks *Run migrations*, *RLS audit*, *Backup manifest*. **Nothing client-facing.** The error now names the right value.
+- **CI has never run.** Five workflows registered and `active`, **0 runs ever**. `scripts/check.sh` is not a belt over CI — **it IS the only gate**, and `scripts/ship.sh` is the only deploy.
+- **Supabase dashboard unreachable** → no password reset, no restore drill (#298), **no migrations** (see the constraint above). Ticket open, unanswered.
 
-**Verified live in production on 27 Jul, not claimed:** RLS clean (82 tables read, no exposed tables · `client_inboxes` had **no RLS at all** and now does) · cron single-run guard in place · seed report reads MBF and K.I.N.D as protected, ACME eligible · 12/12 migrations applied.
-
-**✅ 1 Aug — THE TRIAL IS GONE (#607).** Signup no longer writes a `trialing` subscription (it writes `paused` — dormant until the $99 lands), and the two daily trial crons are retired. The expiry one had been emailing real people *"Your K.I.N.D trial ends in 4 days — Subscribe now"*. **🧪 Your action: Vida → Engine → Run migrations** to convert the legacy `trialing` rows; `/status` shows `legacy_trialing` until it reads 0.
+**Verified live in production on 27 Jul, not claimed:** RLS clean (82 tables read, no exposed tables · `client_inboxes` had **no RLS at all** and now does) · cron single-run guard in place · 12/12 migrations applied *(the 13th, #607's, is pending and blocked — nothing depends on it)*.
 
 **So: the demo is sellable today. Delivery needs a mailbox, the ladder, and the bill.**
 
@@ -127,11 +134,11 @@
 
 | # | Item | What it is / why it blocks | Owner |
 |---|------|----------------------------|:-----:|
-| #413 🟡 | **Terms §5 contradicts the code, and itself, on when a credit is consumed** | The document that governs the money disagrees with the money. It is the one place a client will quote back at us. | 🤝 |
+| #413 🩷 | **Terms §5 contradicts the code, and itself, on when a credit is consumed** | The document that governs the money disagrees with the money. It is the one place a client will quote back at us. | 🤝 |
 | #414 🟡 | **The Stripe product description oversells at the point of payment** | `packages/shared/src/constants/index.ts:29` — the last thing a client reads before their card is charged, describing something we do not do. | 🤖 |
-| #410 🟡 | **The legal pages name the WRONG data sub-processor** | `privacy.html` ×4, including the formal sub-processor list — it names a provider we do not use and omits the ones we do. | 🤖 |
-| #327 🟡 | **The website claims integrations that do not exist** | `pricing.html:491` "HubSpot & Salesforce integration" · `virtual-assistant.html:536` "Salesforce, Gmail, Outlook, Google". `lib/hubspot.ts` **is** called — the reply pipeline pushes interested replies into OUR HubSpot (#397, premise corrected 1 Aug) — but that is our CRM, not the client's, and nothing on the page is what a buyer would understand by "integration". Salesforce does not exist at all. | 🤖 |
-| #406 🟡 | **The portal has never had a full element sweep** | Every screen, tile, tab, button, toggle and modal on `apps/portal`, checked against what the backend actually does. The showroom strip (#478) took the worst offenders; the sweep itself was never finished, and it is exactly where "the button lies" bugs live. | 🤖 |
+| #410 🩷 | **The legal pages name the WRONG data sub-processor** | `privacy.html` ×4, including the formal sub-processor list — it names a provider we do not use and omits the ones we do. | 🤖 |
+| #327 🩷 | **The website claims integrations that do not exist** | `pricing.html:491` "HubSpot & Salesforce integration" · `virtual-assistant.html:536` "Salesforce, Gmail, Outlook, Google". `lib/hubspot.ts` **is** called — the reply pipeline pushes interested replies into OUR HubSpot (#397, premise corrected 1 Aug) — but that is our CRM, not the client's, and nothing on the page is what a buyer would understand by "integration". Salesforce does not exist at all. | 🤖 |
+| #406 🩷 | **The portal has never had a full element sweep** | Every screen, tile, tab, button, toggle and modal on `apps/portal`, checked against what the backend actually does. The showroom strip (#478) took the worst offenders; the sweep itself was never finished, and it is exactly where "the button lies" bugs live. | 🤖 |
 
 ## 🅳 BLOCK D — MAKE THE DOCS HOLD (done this session — this is what you are reading)
 

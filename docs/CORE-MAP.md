@@ -10,12 +10,20 @@
 
 | | Files | Lines | Share |
 |---|---:|---:|---:|
-| **CORE — reachable from an entry point** | **242** | **56,854** | **47%** |
-| FENCED — `.ts`/`.tsx` not reachable | 180 | 36,193 | 30% |
-| *(remainder: `.sql`, `.html`, and test files)* | 130 | 28,807 | 24% |
-| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 552 | **121,854** | 100% |
+| **CORE — reachable from an entry point** | **255** | **61,089** | **45%** |
+| FENCED — `.ts`/`.tsx` not reachable | 182 | 36,727 | 27% |
+| *(remainder: `.sql`, `.html`, and test files)* | 165 | 36,569 | 27% |
+| **Repo total (ts/tsx/sql/html under `apps/` + `packages/`)** | 602 | **134,385** | 100% |
 
-**REASON FOR THIS REGENERATION, stated out loud because rule 1 below requires it — and because the first version of this update did not state it, which the founder caught.** Prompts 5–7 added code to the operational core: the RLS audit and its live reader, the backup manifest and its live reader, the constraint reader, the seed-wipe classification, the cron single-run guard, the PDL cursor, the subscription status + lapse logic, the Smartlead integration (map · network · hand-off) and the reply routing. Every one is reachable from a real entry point, so every one belongs inside the fence and inside the audit denominator. **Leaving the map stale would have fenced out the work of three prompts** — exactly the failure recorded in the ⚠️ note above, where the map fenced out the instruments it shipped beside.
+**— THE 27 JUL REGENERATION, KEPT AS ITS OWN RECORD (everything from here to the ⚠️ total note below describes THAT run, not the current table) —**
+
+**REASON FOR THAT REGENERATION, stated out loud because rule 1 below requires it — and because the first version of it did not state it, which the founder caught.** Prompts 5–7 added code to the operational core: the RLS audit and its live reader, the backup manifest and its live reader, the constraint reader, the seed-wipe classification, the cron single-run guard, the PDL cursor, the subscription status + lapse logic, the Smartlead integration (map · network · hand-off) and the reply routing. Every one is reachable from a real entry point, so every one belongs inside the fence and inside the audit denominator. **Leaving the map stale would have fenced out the work of three prompts** — exactly the failure recorded in the ⚠️ note above, where the map fenced out the instruments it shipped beside.
+
+*Regenerated **2 Aug** (#608) — `python3 scripts/build-core-map.py`, **58 seeds**, **0 unresolved imports**: `core files: 255 | core lines: 61089`. The table above is that run.*
+
+**⚠️ THESE NUMBERS WERE NEARLY COPIED INSTEAD OF MEASURED.** A doc-fix written on 1 Aug (PR #1240) carried **254 / 61,113 / 594 / 133,180**. Pasting those in would have looked identical to doing the work and been wrong in four places — six days of merges moved every figure. The rule the map already states is the one that saved it: *generated, not judged*. **Never transcribe a count from another branch; re-run the generator.**
+
+**REASON FOR THE 2 AUG REGENERATION.** No new decision — the map had gone stale against six days of shipped work (the trial retirement, the site restore and freeze, the portal sweep, the paper pass, the money-write remainder and their tests). Every new file is reachable from a real entry point, so every one belongs inside the fence and inside the audit denominator.
 
 *Regenerated 27 Jul — `python3 scripts/build-core-map.py`, 57 seeds, **0 unresolved imports**, manifest rewritten in place.*
 
@@ -31,7 +39,7 @@
 
 ## What this map does NOT prove — read this before trusting it
 
-- **Reachable ≠ used.** It proves a file is *imported* from an entry point, not that every function in it is called. Worked example: `lib/hubspot.ts` (458 lines) is **CORE** — `figsy.ts:15` and `internal.ts:24` import it — yet inventory **#397** says its functions are never actually called. Both can be true. **This map cannot settle dead-code questions; only reading can.**
+- **Reachable ≠ used.** It proves a file is *imported* from an entry point, not that every function in it is called. **The worked example resolved on 1 Aug, and it proves the point harder than the original guess did.** This doc used to say *"inventory #397 says its functions are never actually called"* — **#397's premise was FALSE**: reading `lib/hubspot.ts` end to end found **2 of its 5 exports live on the reply path** (`syncFigsyInterestedToHubspot` via `reply-pipeline.ts`, `getHubspotPipelineView` via `internal.ts`) and **3 genuinely dead**, which were removed. So a CORE file really did contain dead code — and it also contained code that a *"wire or delete"* instruction would have deleted out of the live reply pipeline. **This map cannot settle dead-code questions in either direction; only reading can.**
 - **Mounted ≠ intended.** `routes/voice.ts` and `routes/whatsapp.ts` are CORE because `index.ts` mounts them. They carry the known security holes #369 and #359 — and being in the core is exactly *why* those matter: they are reachable in production today, whatever the roadmap says about the agents being parked.
 - **Runtime-only references are invisible.** Anything reached by a string path, a route table or a DB value rather than an `import` will not appear here.
 - **`(dashboard)` is CORE, and that is not a mistake.** Eleven pages of the retired self-serve portal are imported directly by Milla's own pages — e.g. Milla's billing page is a 13-line wrapper around `(dashboard)/dashboard/billing/page.tsx`. **Deleting that tree would break Milla.**

@@ -17,6 +17,24 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 ---
 
+# ░ 💼 THE TWO-MODEL FUTURE — Base + Advanced on one engine (founder-locked 31 Jul · logged 2 Aug, #608) ░
+
+*Strategy and the decision itself live in **KIND-MASTER**; this is the future detail only.*
+
+**The shape that is locked:** two packages, **one engine**. Base is today's managed service — $99 onboarding pack with 100 approved leads included, then $4 per approved lead, reviewing free, approve as the only money event. Advanced is a second entitlement tier on the *same* pipeline.
+
+**Sold before it is built, on purpose.** Advanced does not get constructed until a real buyer has said yes and a real price has survived a real conversation. Building it first is how you end up with a tier nobody asked for — and this repo already has an inventory full of that lesson.
+
+**Candidate content for Advanced — NONE of it decided, all of it drawn from things the engine can already nearly do:**
+- a higher included-lead count, or a standing monthly allowance rather than a pack
+- **the brain** — the 14 items redesignated to THE BRAIN under the engine on 1 Aug (#606): doc-RAG, pgvector memory, the learning engine, per-client pattern recognition. This is the most defensible candidate because it compounds per client and cannot be copied by a competitor without the same history.
+- higher-touch operator time (a named operator, faster turnaround, strategy input)
+- Nexus auto-tuning switched on — currently built, fenced and default-deny per client
+
+**The open questions, all founder's:** the price points · whether Advanced is *more leads*, *more attention*, or *more intelligence* · whether Base keeps the pack shape or moves to a standing allowance. **Do not resolve these in code.**
+
+**⚠️ The constraint that shapes any answer:** revenue per client is a **throughput dial we operate** — approvals scale with what we surface and what the mailboxes can send. More approvals need more mailboxes (~$6/mo each), which is cheap and linear, so a client approving more is *good for us*, not a cost problem. Any Advanced design should lean on that rather than fight it.
+
 # ░ 🎯 AGENT CAPABILITY SPECS — the feature set per agent (founder-locked 9 Jul) ░
 
 > **Features only — pricing lives in the money model (#420).** This is the **MILESTONE 0** build scope for each agent's capabilities (founder-ruled 9 Jul: M/V/D features belong in M0): what each does today vs what it will do. FIGSY is the live qualification engine; **Milla · Denise · Vida capabilities are 🔴 M0 — #427/#428/#429 in LAUNCH-PAD Phase 2** (kept "coming soon" on the site until built one at a time; only the account-level agent products #2/#3/#4 stay parked M4). Inventory status items: **FIGSY** = M0 build · **Milla** #427 · **Denise** #428 · **Vida** #429. Nothing here changes a status dot.

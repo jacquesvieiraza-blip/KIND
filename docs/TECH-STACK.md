@@ -3,6 +3,17 @@
 
 > The **single ledger of every external tool/vendor we run on** — so none goes missing (the "Zoho Mail wasn't logged" lesson, 22 Jun). Reference register, not a tracker (no status dots). **Seeds the Notion → Command Centre → "Tools" page (item 204).** Update whenever a tool is added/changed.
 
+> ## 🚨 STALE — THE SENDING ARCHITECTURE IN THIS REGISTER IS OUT OF DATE (flagged 2 Aug, #608)
+> **Three places below still say *"Smartlead = THE ENGINE, the product's deliverability foundation"*** — the ⚙️ THE ENGINE line in the email-architecture section, the Smartlead row in the product-stack table, and the ⚙️ THE ENGINE row in the summary. That was **decided 23 Jun** and has been superseded **twice**:
+>
+> 1. **#577, founder-locked 26 Jul** — settled by two vendor answers in writing: *our product gives the orders, the vendors drive the van.* Smartlead is one vendor under that model, not its foundation.
+> 2. **The Client Zero lock, founder 30 Jul** — of Instantly's bundle we lack exactly one thing, the **warmup network**; its sequencer, sender and unibox duplicate the product we built. So **Instantly drops to Growth (~$37), warmup only**, and **FIGSY + our own send path + our own unibox do the outreach**. **Smartlead is deferred entirely until a client is in the works** — it is not bought, and its API key returns 401.
+>
+> **FLAGGED, DELIBERATELY NOT REWRITTEN.** Choosing the replacement wording is an architecture statement and belongs to the founder, not to a doc sync. **Until it is rewritten, read #577 and the 30 Jul lock (LAUNCH-PAD HONEST STATE), not the three lines below.** A vendor register that names the wrong engine is exactly the doc someone quotes in a client conversation.
+>
+> *(Also stale in the table below and left for the same reason: the **Stripe** row still describes "$1 reveal · $3 FIGSY" — the money model has been $99-pack + $4-per-approved since 24 Jul — and the **Stripe · Flutterwave** row names two processors that were both removed, Flutterwave in #314 and Paystack in #352.)*
+
+
 ## ✉️ EMAIL ARCHITECTURE — the part that's easy to get wrong
 Two **separate** systems, do not conflate:
 > ⚠️ **CORRECTED 23 Jun** — the earlier version of this section was wrong (it said Zoho receives the cold replies). The truth, verified in code:

@@ -1492,6 +1492,16 @@ leadRouter.get('/analytics', async (req: AuthRequest, res) => {
         opened:     mOpened.length,
         replies:    mReplies.length,
         interested: mInterested.length,
+        // #406 — REAL per-month unsubscribes, counted here because only the server has the
+        // month KEY. `month` above is the display label ("Jan 26"); the portal receives that
+        // and nothing else, so it could never match a reply's `YYYY-MM` timestamp against it.
+        // The analytics page had tried, given up, and fallen back to `replies * 0.05` — an
+        // invented unsubscribe count shown to the client, one line below a comment reading
+        // "never fabricate a bounce number". Counted properly it costs nothing: mReplies is
+        // already filtered to this month, and this matches the same classifications the
+        // page's own total uses.
+        unsubscribed: mReplies.filter((r: any) =>
+          r.classification === 'opt_out' || r.classification === 'unsubscribe').length,
       }
     })
 

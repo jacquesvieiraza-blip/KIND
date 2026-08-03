@@ -67,7 +67,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 **⚠️ APOLLO — the recorded price was wrong, corrected from the founder's billing screen (3 Aug).** This doc and the 1 Aug session log both say **$49**. The account actually shows **Basic Monthly at $65/mo**, 2,500 credits per month, **0 used**, renewing **3 Sep**. Both facts are kept rather than reconciled: a **$49 charge on 1 Aug** genuinely happened and a **$65/mo plan** is genuinely what renews — whichever way that resolves, **$65 is the number to budget**, and the 2,500 unused credits are prospecting we have already paid for and have not spent.
 
-**The fuel, separate from the rent:** ~**$127–137 per 1,000 prospects** ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting**. One client is worth $99 + ~$121/mo.
+**The fuel, separate from the rent:** ~**$130–145 per 1,000 prospects** (Apollo at its actual **$65**, corrected 3 Aug) ≈ **one client** at conservative reply rates, burned over ~6 weeks ≈ **~$85/mo while hunting** — and **August's fuel is already paid**: 2,500 unused Apollo credits before the plan goes free on 3 Sep. One client is worth $99 + ~$121/mo.
 
 **💷 MONEY — the three founder checks, WORKED THROUGH 3 AUG:**
 

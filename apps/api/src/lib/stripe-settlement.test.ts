@@ -124,9 +124,18 @@ describe('reconcileVerdict — a real discrepancy is found, an ordinary fee is n
 describe('the settlement read can never block a payment', () => {
   const src = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/stripe.ts'), 'utf8'))
 
-  it('every annotate call sits AFTER the ledger insert and the wallet credit', () => {
+  it('every annotate call sits AFTER its OWN path\'s ledger insert and error check', () => {
     // The property: by the time we ask Stripe anything, the client already has their money.
     // If this inverts, a Stripe outage becomes a failed payment.
+    //
+    // ⚠️ SCOPED PER PATH, and that is the whole test. The first version compared each call
+    // against the index of the FIRST `credit_transactions.insert` anywhere in the file — so
+    // moving a stamp above its own insert still left it "after" an unrelated earlier one, and
+    // the red proof stayed green. Third time this repo has been bitten by an index comparison
+    // that was not bounded by the thing it was asserting about (#612 twice, now this).
+    //
+    // Each call is checked against the window since the PREVIOUS call (or the branch start),
+    // so a stamp that jumps above its own insert leaves a window with no `if (ledgerErr)` in it.
     const calls: number[] = []
     let from = 0
     for (;;) {
@@ -136,10 +145,15 @@ describe('the settlement read can never block a payment', () => {
     }
     expect(calls, 'both payment paths stamp').toHaveLength(2)
 
-    const firstInsert = src.indexOf("db.from('credit_transactions').insert")
-    expect(firstInsert).toBeGreaterThan(-1)
+    const branchStart = src.indexOf("event.type === 'checkout.session.completed'")
+    expect(branchStart).toBeGreaterThan(-1)
+
+    let windowStart = branchStart
     for (const c of calls) {
-      expect(c, 'the stamp must come after a ledger insert exists').toBeGreaterThan(firstInsert)
+      const window = src.slice(windowStart, c)
+      expect(window, 'a ledger insert and its error check must precede this stamp in the same path')
+        .toContain('if (ledgerErr)')
+      windowStart = c
     }
   })
 

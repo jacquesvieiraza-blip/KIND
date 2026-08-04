@@ -3365,37 +3365,54 @@ operatorRouter.post('/house-audit/zero-wallet', async (req: Request, res: Respon
  */
 operatorRouter.post('/house-audit/grant', async (req: Request, res: Response) => {
   try {
-    const { HOUSE_HUNTING_BUDGET_USD } = await import('../lib/cleanup-guards')
+    const { HOUSE_HUNTING_BUDGET_USD, houseGrantNote, priorHouseGrant } = await import('../lib/cleanup-guards')
     const houseClientId = await resolveHouseClientId()
     if (!houseClientId) {
       res.status(404).json({ success: false, error: 'No house client is set up. Press "Set up the house client" first.' })
       return
     }
 
+    // ⚠️ ONCE. Without this check, every later press is another $4,000 — and we just built the
+    // endpoint above to REMOVE invented money from this account. The ledger is asked, not
+    // memory: it is the record that survives sessions. Answered from the rows' notes because
+    // the $100 comp grant is also a manual_grant and must not block this one.
+    const { data: grants, error: grErr } = await db.from('credit_transactions')
+      .select('note, created_at').eq('client_id', houseClientId).eq('type', 'manual_grant').limit(200)
+    if (grErr) {
+      res.status(500).json({ success: false, error: `Could not read the existing grants (${grErr.message}) — refusing to grant blind, because blind is how it gets granted twice.` })
+      return
+    }
+    const prior = priorHouseGrant((grants ?? []) as Array<{ note: string | null; created_at: string | null }>)
+    if (prior.granted) {
+      res.status(409).json({ success: false, error: `The hunting budget was already granted${prior.when ? ` on ${prior.when.slice(0, 10)}` : ''}. It goes on once — if the balance looks wrong, run the audit and read the ledger rather than pressing this again.` })
+      return
+    }
+
     const { error: gErr } = await db.from('credit_transactions').insert({
       client_id: houseClientId, type: 'manual_grant', amount: HOUSE_HUNTING_BUDGET_USD,
-      note: `[house hunting budget — #611, granted from Vida ${new Date().toISOString()}]`,
+      note: houseGrantNote(new Date().toISOString()),
     })
     if (gErr) { res.status(500).json({ success: false, error: `The grant did NOT go through: ${gErr.message}` }); return }
 
     // The ledger row is the entitlement; the balance column is what `approve-lead` spends, so
-    // both have to move or the grant is invisible to the thing it exists for.
-    const { data: c } = await db.from('clients').select('wallet_balance_usd').eq('id', houseClientId).maybeSingle()
-    const before = Number((c as { wallet_balance_usd: number | null } | null)?.wallet_balance_usd ?? 0)
-    const after = before + HOUSE_HUNTING_BUDGET_USD
-    const { error: bErr } = await db.from('clients').update({ wallet_balance_usd: after }).eq('id', houseClientId)
+    // both have to move or the grant is invisible to the thing it exists for. The write is the
+    // ATOMIC `increment_wallet` RPC — the same mechanism every other money path uses — rather
+    // than a read-then-write that can lose a concurrent update.
+    const { error: bErr } = await db.rpc('increment_wallet', { p_client_id: houseClientId, p_amount: HOUSE_HUNTING_BUDGET_USD })
     if (bErr) {
-      res.status(500).json({ success: false, error: `The ledger row was written but the balance was NOT updated (${bErr.message}). Do not press this again — the grant is recorded; fix the balance instead.` })
+      res.status(500).json({ success: false, error: `The ledger row was written but the balance was NOT updated (${bErr.message}). Do not press this again — the grant is recorded and the repeat-guard will refuse; fix the balance instead.` })
       return
     }
+    const { data: c } = await db.from('clients').select('wallet_balance_usd').eq('id', houseClientId).maybeSingle()
+    const after = Number((c as { wallet_balance_usd: number | null } | null)?.wallet_balance_usd ?? 0)
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: houseClientId, action: 'house_wallet_granted',
       subjectType: 'client', subjectId: houseClientId,
-      detail: { amount_usd: HOUSE_HUNTING_BUDGET_USD, from_usd: before, to_usd: after },
+      detail: { amount_usd: HOUSE_HUNTING_BUDGET_USD, to_usd: after },
     })
 
-    res.json({ success: true, data: { client_id: houseClientId, granted_usd: HOUSE_HUNTING_BUDGET_USD, from_usd: before, to_usd: after } })
+    res.json({ success: true, data: { client_id: houseClientId, granted_usd: HOUSE_HUNTING_BUDGET_USD, to_usd: after } })
   } catch (err) {
     console.error('[house-audit/grant]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not grant the budget' })

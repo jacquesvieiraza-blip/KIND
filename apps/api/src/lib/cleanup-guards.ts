@@ -34,6 +34,42 @@ export const ZERO_WALLET_CONFIRMATION = 'ZERO THE HOUSE WALLET'
  */
 export const HOUSE_HUNTING_BUDGET_USD = 4000
 
+/**
+ * The tag every hunting-budget grant carries in its ledger note — and the thing the
+ * repeat-press guard matches on.
+ *
+ * ⚠️ WHY A GUARD AT ALL. Fable's verify (4 Aug, same session) found the grant button had no
+ * "already granted" check: press it today, $4,000; press it again next week — after re-running
+ * the audit, or by mistake — another $4,000. The UI's `disabled={busy}` only blocks a
+ * double-click in the same moment, not a second deliberate press. We had just built an endpoint
+ * to REMOVE invented money from this account; a button that can quietly re-invent it is the
+ * same defect wearing a plus sign.
+ *
+ * The tag is matched with `includes`, so the timestamp suffix in the note never breaks it. The
+ * $100 comp grant from house-client setup says "house client comp — Client Zero" and does NOT
+ * match — the two grants are different decisions and must not block each other.
+ */
+export const HOUSE_GRANT_NOTE_TAG = 'house hunting budget — #611'
+
+export function houseGrantNote(nowIso: string): string {
+  return `[${HOUSE_GRANT_NOTE_TAG}, granted from Vida ${nowIso}]`
+}
+
+/**
+ * Has the hunting budget already been granted?
+ *
+ * Takes the house account's `manual_grant` rows and answers from the ledger — the one record
+ * that survives sessions, redeploys and memory. Returns WHEN so the refusal can say
+ * "already granted on <date>" instead of a bare no.
+ */
+export function priorHouseGrant(
+  rows: Array<{ note?: string | null; created_at?: string | null }>,
+): { granted: boolean; when: string | null } {
+  const hit = rows.find(r => (r.note ?? '').includes(HOUSE_GRANT_NOTE_TAG))
+  if (!hit) return { granted: false, when: null }
+  return { granted: true, when: hit.created_at ?? null }
+}
+
 export type GuardRefusal = { ok: false; why: string }
 
 /**

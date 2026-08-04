@@ -5,11 +5,14 @@
 // gate, and the house-refusal on the wipe — pointed at the house id, shown to fire.
 
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import {
-  ZERO_WALLET_CONFIRMATION, HOUSE_HUNTING_BUDGET_USD,
-  zeroWalletCheck, wipeClientCheck,
+  ZERO_WALLET_CONFIRMATION, HOUSE_HUNTING_BUDGET_USD, HOUSE_GRANT_NOTE_TAG,
+  zeroWalletCheck, wipeClientCheck, houseGrantNote, priorHouseGrant,
 } from './cleanup-guards'
 import { classify, type SeedCandidate } from './seed-wipe'
+import { stripCommentsForEnvScan } from './env-inventory'
 
 const HOUSE = 'house-client-id'
 const cand = (over: Partial<SeedCandidate> & { id: string }): SeedCandidate => ({
@@ -73,6 +76,66 @@ describe('zeroWalletCheck — the confirm-phrase gate', () => {
 
   it('the hunting budget is a constant, not caller input', () => {
     expect(HOUSE_HUNTING_BUDGET_USD).toBe(4000)
+  })
+})
+
+describe('priorHouseGrant — the budget goes on ONCE', () => {
+  // Fable's verify found the gap: no "already granted" check meant every later press was
+  // another $4,000, on the account we had just built an endpoint to remove invented money
+  // from. The guard answers from the LEDGER, the record that survives sessions.
+
+  it('recognises the note this codebase actually writes', () => {
+    // The guard and the note are built from the same tag, so they cannot drift apart — but
+    // this pins the round trip in case someone edits the note wording by hand.
+    const rows = [{ note: houseGrantNote('2026-08-04T19:00:00.000Z'), created_at: '2026-08-04T19:00:00.000Z' }]
+    const r = priorHouseGrant(rows)
+    expect(r.granted).toBe(true)
+    expect(r.when).toBe('2026-08-04T19:00:00.000Z')
+  })
+
+  it('a fresh account has no prior grant', () => {
+    expect(priorHouseGrant([])).toEqual({ granted: false, when: null })
+  })
+
+  it('the $100 comp grant does NOT block the hunting budget — different decisions', () => {
+    // This is the note `house-client.ts` writes when it entitles Client Zero to source. If
+    // this matched, the budget could never be granted at all on any adopted account.
+    const rows = [{ note: '[house client comp — Client Zero, opened from Vida 2026-08-01T10:00:00.000Z]', created_at: '2026-08-01T10:00:00.000Z' }]
+    expect(priorHouseGrant(rows).granted).toBe(false)
+  })
+
+  it('finds the grant among other manual_grant rows, wherever it sits', () => {
+    const rows = [
+      { note: '[house client comp — Client Zero, opened from Vida x]', created_at: '2026-08-01' },
+      { note: null, created_at: '2026-08-02' },
+      { note: houseGrantNote('2026-08-04T19:00:00.000Z'), created_at: '2026-08-04' },
+    ]
+    expect(priorHouseGrant(rows).granted).toBe(true)
+  })
+
+  it('a null or missing note is not a match', () => {
+    expect(priorHouseGrant([{ note: null }, {}]).granted).toBe(false)
+  })
+
+  it('the note carries the tag verbatim, so `includes` survives the timestamp suffix', () => {
+    expect(houseGrantNote('anything')).toContain(HOUSE_GRANT_NOTE_TAG)
+  })
+})
+
+describe('the grant route wires the guard — the two lines that make it real', () => {
+  // Source assertions, same pattern as inbox-rotation's: the guard existing in a lib file and
+  // the route calling it are different facts, and only the second one protects anybody.
+  const src = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8'))
+
+  it('asks priorHouseGrant before inserting', () => {
+    const guard = src.indexOf('priorHouseGrant(')
+    const insert = src.indexOf('houseGrantNote(')
+    expect(guard).toBeGreaterThan(-1)
+    expect(insert).toBeGreaterThan(guard)
+  })
+
+  it('moves the balance with the atomic increment_wallet RPC, not read-then-write', () => {
+    expect(src).toContain("db.rpc('increment_wallet', { p_client_id: houseClientId")
   })
 })
 

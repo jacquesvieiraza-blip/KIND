@@ -35,10 +35,15 @@ export default function HouseAudit() {
   const run = useCallback(async () => {
     setBusy(true); setError(null)
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL ?? ''
-      const r = await fetch(`${base}/operator/house-audit`, { credentials: 'include' })
+      // ⚠️ THROUGH THE PROXY, ALWAYS. This first shipped as a direct call to
+      // `${NEXT_PUBLIC_API_URL}/operator/house-audit` and would have 401'd on every load: every
+      // operator route requires an `x-admin-key`, and the ONLY thing that injects it is
+      // `app/api/proxy/[...path]/route.ts` — which also stamps `x-operator-email` from the
+      // verified session, so a direct call is both a guaranteed 401 AND a hole in the operator
+      // audit trail. `admin-proxy-only.test.ts` now fails any component that bypasses it.
+      const r = await fetch('/api/proxy/operator/house-audit')
       const j = await r.json()
-      if (!j.success) { setError(j.error ?? 'The audit could not run.'); setData(null) }
+      if (!j?.success) { setError(j?.error || `The audit could not run (${r.status}).`); setData(null) }
       else setData(j as Audit)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'The audit could not run.')

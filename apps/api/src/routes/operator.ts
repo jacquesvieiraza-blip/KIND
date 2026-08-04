@@ -454,6 +454,15 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
       return { ...rest, ...gates, copilot_mode: gates.review_required }
     }
 
+    // #612 — anything that puts this campaign LIVE passes the copy gate first. Checked on the
+    // patch's status rather than on the route, because this one endpoint both creates active
+    // campaigns and resumes paused ones.
+    const goesLive = b.campaign_id ? patch.status === 'active' : true
+    if (goesLive) {
+      const gate = await sequenceGateFor(client.id)
+      if (!gate.ok) { res.status(422).json({ success: false, error: gate.error, violations: gate.violations }); return }
+    }
+
     if (b.campaign_id) {
       // Read-merge-write: settings also carries send_days, send_hour_utc, ab_subject_b…e,
       // reply-branching steps and system_prompt. Replacing the object would drop them.
@@ -719,6 +728,41 @@ Rules:
   } catch (err) { console.error('[operator/icp-chat]', err); res.status(500).json({ success: false, error: 'Failed to work the ICP' }) }
 })
 
+// ── #612 — THE SEQUENCE QUALITY GATE, ASKED ONCE AND ASKED THE SAME WAY ─────────────────
+//
+// Founder-ruled 4 Aug: *"shit emails out = zero meetings booked. for all clients."* The four
+// Google boxes finish warming ~25 Aug, and the FIRST sends out of them set those domains'
+// reputation permanently — so the gate has to exist before the boxes do, not after.
+//
+// ⚠️ ONE HELPER, THREE ACTIVATION ROUTES. A campaign can be switched live from three separate
+// places (`/campaign/save` creating or patching to active, `/campaign/:id/status`, and
+// `/campaign/start`), and a gate wired into two of them is not a gate — it is a detour sign.
+// Every one calls THIS, so a fourth route added later fails the wiring test rather than
+// silently opening a hole.
+//
+// It reads the client's most recent sequence — the same row `smartlead-send.ts` and
+// `instantly-push.ts` read (`client_id`, newest first), because the copy that would actually
+// leave is the only copy worth judging.
+//
+// FAILS OPEN ON A READ ERROR, DELIBERATELY, and this is the one judgement call in the file:
+// if the sequence table cannot be READ we do not know the copy is bad, and refusing to start a
+// campaign because the database hiccuped would make an outage look like a copy problem — the
+// #565 shape. A missing sequence is likewise not this gate's business: `smartlead-send` already
+// refuses `no_sequence` at the point of sending, which is where that belongs.
+async function sequenceGateFor(clientId: string): Promise<{ ok: true } | { ok: false; error: string; violations: unknown[] }> {
+  const { lintSequence, refusalMessage } = await import('../lib/sequence-quality')
+  const { data, error } = await db.from('figsy_sequences')
+    .select('steps').eq('client_id', clientId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (error || !data) return { ok: true }
+  const steps = Array.isArray(data.steps) ? (data.steps as Record<string, unknown>[]) : []
+  if (steps.length === 0) return { ok: true }
+
+  const report = lintSequence(steps as never)
+  if (report.ok) return { ok: true }
+  return { ok: false, error: refusalMessage(report), violations: report.hardFails }
+}
+
 // V9 — AI PROPOSES A SEQUENCE, the operator approves it.
 // Drafted against a REAL top-scoring lead from this client's pool so the copy is honest,
 // then de-personalised back into {{tokens}} so it is reusable as a template.
@@ -762,11 +806,19 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
     }).filter(s => s.subject && s.body)
     if (steps.length === 0) { res.status(502).json({ success: false, error: 'Could not draft a sequence — try again.' }); return }
 
+    // #612 — THE AI'S OWN DRAFT GOES THROUGH THE SAME GATE. If FIGSY could propose copy the
+    // gate would later refuse, the operator would approve a draft that cannot be activated and
+    // find out one screen later — and worse, a draft arriving from "the AI" carries an
+    // authority a hand-typed one does not, which is exactly when a bad email gets waved past.
+    const { lintSequence } = await import('../lib/sequence-quality')
+    const quality = lintSequence(steps as never)
+
     res.json({
       success: true,
       data: {
         name: camp?.name ? `${camp.name} — 3 touches` : '3-touch sequence',
         steps,
+        quality,
         drafted_against: { first_name: sample.first_name, job_title: sample.job_title, company: sample.company },
       },
     })
@@ -801,7 +853,17 @@ operatorRouter.get('/sequence/:id/preview', async (req: Request, res: Response) 
       body: fillTokens(String(st.body ?? ''), lead, sender),
     }))
 
-    res.json({ success: true, data: { name: seq.name, steps: rendered, sample_lead: lead } })
+    // #612 — the verdict travels with the preview, because this is the screen an operator
+    // reads just before pressing Run.
+    //
+    // ⚠️ LINTED ON THE RAW STEPS, NOT ON `rendered`. The rendered copy has had its tokens
+    // FILLED from a sample lead, so "Hi {{first_name}}" has already become "Hi Alex" —
+    // linting that would report the template as un-personalised on every single preview, and a
+    // rule that cries wolf on correct copy is a rule the operator learns to ignore.
+    const { lintSequence } = await import('../lib/sequence-quality')
+    const quality = lintSequence(raw as never)
+
+    res.json({ success: true, data: { name: seq.name, steps: rendered, sample_lead: lead, quality } })
   } catch (err) { console.error('[operator/sequence-preview]', err); res.status(500).json({ success: false, error: 'Failed to preview the sequence' }) }
 })
 
@@ -1538,21 +1600,27 @@ operatorRouter.post('/sequence', async (req: Request, res: Response) => {
     }))
     const name = String(b.name ?? '').trim().slice(0, 120) || 'Sequence'
 
+    // #612 — SAVE IS NOT BLOCKED, ACTIVATION IS. An operator must be able to save work in
+    // progress; what they must not be able to do is put it in front of a stranger. So the
+    // verdict rides back on the response and the refusal happens at `sequenceGateFor`.
+    const { lintSequence } = await import('../lib/sequence-quality')
+    const quality = lintSequence(steps as never)
+
     if (b.sequence_id) {
       const { data, error } = await db.from('figsy_sequences')
         .update({ name, steps, updated_at: new Date().toISOString() })
         .eq('id', b.sequence_id).eq('client_id', client.id).select('id, name').maybeSingle()
       if (error) throw error
       if (!data) { res.status(404).json({ success: false, error: 'Sequence not found' }); return }
-      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_sequence', subjectType: 'sequence', subjectId: data.id, detail: { steps: steps.length } })
-      res.json({ success: true, data }); return
+      await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_sequence', subjectType: 'sequence', subjectId: data.id, detail: { steps: steps.length, hard_fails: quality.hardFails.length } })
+      res.json({ success: true, data, quality }); return
     }
 
     const { data, error } = await db.from('figsy_sequences')
       .insert({ client_id: client.id, name, steps }).select('id, name').single()
     if (error) throw error
-    await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_sequence', subjectType: 'sequence', subjectId: data.id, detail: { created: true, steps: steps.length } })
-    res.json({ success: true, data })
+    await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_sequence', subjectType: 'sequence', subjectId: data.id, detail: { created: true, steps: steps.length, hard_fails: quality.hardFails.length } })
+    res.json({ success: true, data, quality })
   } catch (err) { console.error('[operator/sequence]', err); res.status(500).json({ success: false, error: 'Failed to save sequence' }) }
 })
 
@@ -1743,6 +1811,13 @@ operatorRouter.post('/campaign/:id/status', async (req: Request, res: Response) 
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
 
+    // #612 — pressing Run is an activation. Pausing is never gated: stopping a campaign with
+    // bad copy is the thing we WANT to stay one click away.
+    if (status === 'active') {
+      const gate = await sequenceGateFor(client.id)
+      if (!gate.ok) { res.status(422).json({ success: false, error: gate.error, violations: gate.violations }); return }
+    }
+
     const { data: updated, error } = await db.from('figsy_campaigns')
       .update({ status }).eq('id', req.params.id).eq('client_id', client.id)
       .select('id, name, status').maybeSingle()
@@ -1781,6 +1856,13 @@ operatorRouter.post('/campaign/start', async (req: Request, res: Response) => {
       .select('id, name, status').eq('client_id', client.id).eq('status', 'active')
       .limit(1).maybeSingle()
     if (existing) { res.json({ success: true, data: existing, created: false }); return }
+
+    // #612 — this route creates the campaign ACTIVE (deliberately: a draft would leave the
+    // client just as blocked), so it is an activation and takes the gate. Checked AFTER the
+    // idempotent early-return above, so a client whose campaign already runs is not refused by
+    // a rule that would not change anything.
+    const gate = await sequenceGateFor(client.id)
+    if (!gate.ok) { res.status(422).json({ success: false, error: gate.error, violations: gate.violations }); return }
 
     const campaignName = (typeof name === 'string' && name.trim()) ? name.trim().slice(0, 120) : 'Outbound campaign'
     const { data: created, error } = await db.from('figsy_campaigns')

@@ -233,7 +233,19 @@ describe('#565 shape — a failed asks load is no longer "Nothing asked yet."', 
 
 describe('#564 residual — the audit row says START', () => {
   const route = readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')
-  const startRoute = route.slice(route.indexOf("post('/campaign/start'"), route.indexOf("post('/campaign/start'") + 1400)
+
+  // ⚠️ SLICED TO THE END OF THE ROUTE, NOT TO A FIXED CHARACTER COUNT.
+  //
+  // This read `+ 1400` and went red on 4 Aug when #612 inserted the copy-quality gate near the
+  // top of this handler — pushing `writeOperatorAudit` past the window. The audit call was
+  // still there and still correct; the WINDOW had moved off it. A fixed-width slice asserts
+  // "this appears within N characters", which is not the property anybody meant, and it fails
+  // on unrelated edits until somebody widens the magic number — or, worse, deletes the test.
+  // Bounded by the next route registration instead, so it covers exactly this handler however
+  // long it grows.
+  const start = route.indexOf("post('/campaign/start'")
+  const nextRoute = route.indexOf('operatorRouter.', start + 10)
+  const startRoute = route.slice(start, nextRoute > start ? nextRoute : undefined)
 
   it('the create path records start_campaign', () => {
     expect(startRoute).toContain("action: 'start_campaign'")

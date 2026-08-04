@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
 import { loadError, panelView, notice, noticeClass, noticeText, PACK_PRICE_USD, type Notice } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
@@ -214,7 +215,7 @@ export default function VidaConsolePage() {
   const [icpChat, setIcpChat] = useState<ChatTurn[]>([])
   const [icpInput, setIcpInput] = useState('')
   const [icpProposal, setIcpProposal] = useState<IcpDraft>(null)
-  const [seqPreview, setSeqPreview] = useState<{ name: string; steps: { step: number; day: number; subject: string; body: string }[]; sample_lead: Record<string, unknown> } | null>(null)
+  const [seqPreview, setSeqPreview] = useState<{ name: string; steps: { step: number; day: number; subject: string; body: string }[]; sample_lead: Record<string, unknown>; quality?: Quality } | null>(null)
   const [asks, setAsks] = useState<Ask[] | null>(null)
   // What the client said WITHOUT us asking — their one channel, previously invisible.
   const [fromClient, setFromClient] = useState<{ id: string; content: string; at: string }[]>([])
@@ -276,6 +277,9 @@ export default function VidaConsolePage() {
   // able to CHANGE the targeting and the messaging, which is our actual job in this model.
   const [icpEdit, setIcpEdit] = useState<Record<string, string> | null>(null)
   const [seqEdit, setSeqEdit] = useState<{ id?: string; name: string; steps: SeqStep[] } | null>(null)
+  // #612 — the copy verdict for whatever is currently in the editor. Cleared whenever the
+  // steps change, because a verdict about copy that has since been edited is a stale green.
+  const [seqQuality, setSeqQuality] = useState<Quality | null>(null)
   const [saveMsg, setSaveMsg] = useState<Notice | null>(null)
 
   const ICP_FIELDS: [string, string][] = [
@@ -353,6 +357,7 @@ export default function VidaConsolePage() {
 
   function openSeqEditor(sq?: { id: string; name: string; steps: unknown }) {
     setSaveMsg(null); setSeqPreview(null)
+    setSeqQuality(null)
     if (!sq) { setSeqEdit({ name: '', steps: [{ subject: '', body: '', wait_days: 0 }] }); return }
     const steps = Array.isArray(sq.steps)
       ? (sq.steps as Record<string, unknown>[]).map(st => ({ subject: String(st.subject ?? ''), body: String(st.body ?? ''), wait_days: Number(st.wait_days ?? 3) || 0 }))
@@ -376,6 +381,10 @@ export default function VidaConsolePage() {
         steps: (j.data.steps as { subject: string; body: string; wait_days: number }[])
           .map(s => ({ subject: s.subject, body: s.body, wait_days: s.wait_days })),
       })
+      // #612 — FIGSY's own draft is linted by the API before it is returned, so a proposal
+      // the gate would refuse arrives already carrying its objections rather than looking
+      // approved-by-the-AI.
+      setSeqQuality((j.data.quality as Quality) ?? null)
       const d = j.data.drafted_against as { first_name?: string; job_title?: string; company?: string } | undefined
       setSaveMsg(notice.ok(d?.first_name ? `Drafted against ${[d.first_name, d.job_title, d.company].filter(Boolean).join(' · ')} — read it, change it, then save.` : 'Draft ready — read it before you save.'))
     } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not draft a sequence'))) }
@@ -391,7 +400,19 @@ export default function VidaConsolePage() {
         body: JSON.stringify({ client_id: selected, sequence_id: seqEdit.id, name: seqEdit.name, steps: seqEdit.steps }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error)
-      setSeqEdit(null); setSaveMsg(notice.ok('Sequence saved.')); await loadCockpit(selected)
+      // #612 — SAVED, and the verdict comes back with it. A sequence that cannot go live is
+      // still saved (work in progress is allowed) but the editor STAYS OPEN carrying its
+      // objections: closing it on a hard fail would report "saved" over copy that the Run
+      // button is about to refuse, and the operator would meet the refusal one screen later
+      // with nothing on the page explaining it.
+      const q = (j.quality as Quality) ?? null
+      setSeqQuality(q)
+      if (q && !q.ok) {
+        setSaveMsg(notice.error(`Saved — but this cannot go live yet: ${q.hardFails.length} thing${q.hardFails.length === 1 ? '' : 's'} must be fixed first.`))
+        await loadCockpit(selected)
+      } else {
+        setSeqEdit(null); setSaveMsg(notice.ok('Sequence saved.')); await loadCockpit(selected)
+      }
     } catch (e) { setSaveMsg(notice.error(noticeText(e, 'Could not save the sequence'))) }
     setCockpitBusy(false)
   }
@@ -1834,6 +1855,10 @@ export default function VidaConsolePage() {
                       <button onClick={() => setSeqEdit(null)} className="border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] font-bold text-[#5c5279]">Cancel</button>
                     </div>
                     <p className="text-[12px] text-[#9b8ec4] mt-2">Nothing sends without the Send gate — saving does not start outreach.</p>
+                    {/* #612 — the copy verdict, on the screen where the sequence is approved.
+                        Red = cannot go live. Amber = craft, never blocking. A clean pass names
+                        what was checked rather than rendering as silence. */}
+                    <SequenceQuality quality={seqQuality} />
                   </div>
                 ) : seqPreview ? (
                   <div>
@@ -1850,6 +1875,10 @@ export default function VidaConsolePage() {
                         <p className="text-[12.5px] text-[#4c4368] leading-relaxed whitespace-pre-wrap">{s.body}</p>
                       </div>
                     ))}
+                    {/* #612 — the same verdict component as the editor, so the two screens can
+                        never disagree about whether this copy may go live. Judged on the RAW
+                        template, not on this token-filled render. */}
+                    <SequenceQuality quality={seqPreview.quality} />
                   </div>
                 ) : (<>
                   {cockpit.sequences.length === 0

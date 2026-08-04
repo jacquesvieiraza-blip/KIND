@@ -148,6 +148,45 @@ export const ADDABLE_KINDS = ['branded', 'pooled'] as const
  */
 export const DEFAULT_WARMUP_DAYS = 21
 
+/**
+ * HOW FAR THROUGH ITS WARM-UP IS THIS MAILBOX? — day, and the day it is counting TO.
+ *
+ * ⚠️ THE DENOMINATOR IS NOT 14. The Engine board rendered `warm-up {day}/14` and the route
+ * clamped the day to 14, both hardcoded — while `/inboxes/add` writes `warmup_ready_at` from
+ * whatever the operator chose, and this file's own constant is **21** for a Google box we
+ * bought ourselves with no reputation. The founder's four boxes are on 21. A fixed 14 would
+ * have shown **"14/14 · ready"** around 18 Aug — a full week before the ready date the row
+ * actually carries, on the one screen used to decide when sending starts.
+ *
+ * So the length is DERIVED from the row: `warmup_ready_at − warmup_started_at`. It is the same
+ * pair of dates the "ready" flag is computed from, which is the point — one source, so the
+ * fraction and the flag cannot tell different stories.
+ *
+ * `days: null` when the row has no ready date. The caller must render the day WITHOUT a
+ * fraction rather than substituting a default: a denominator we are guessing at is exactly the
+ * false precision this replaces.
+ */
+export function warmupProgress(
+  startedAt: string | null | undefined,
+  readyAt: string | null | undefined,
+  now: Date,
+): { day: number | null; days: number | null; ready: boolean | null } {
+  const started = startedAt ? new Date(startedAt).getTime() : NaN
+  const ready = readyAt ? new Date(readyAt).getTime() : NaN
+  const hasStart = Number.isFinite(started)
+  const hasReady = Number.isFinite(ready)
+
+  const days = hasStart && hasReady ? Math.max(1, Math.round((ready - started) / 864e5)) : null
+  let day: number | null = null
+  if (hasStart) {
+    const elapsed = Math.round((now.getTime() - started) / 864e5)
+    // Clamped to the row's OWN length, never a constant — an uncapped count reads "day 37 of
+    // 21" and a constant-capped one reads "ready" before it is.
+    day = Math.max(0, days == null ? elapsed : Math.min(days, elapsed))
+  }
+  return { day, days, ready: hasReady ? now.getTime() >= ready : null }
+}
+
 export type MailboxInput = {
   email?: unknown
   kind?: unknown

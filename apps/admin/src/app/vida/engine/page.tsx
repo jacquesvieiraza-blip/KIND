@@ -22,12 +22,20 @@ type Inbox = {
   id: string; client_id: string; company_name: string | null; email: string
   kind: 'pooled' | 'branded'; status: string; provider: string | null; daily_cap: number | null
   warmup_started_at: string | null; warmup_ready_at: string | null; warmup_day: number | null
+  // #611 — the warm-up LENGTH, derived from this row's own dates. Null when there is no ready
+  // date, and then the fraction is not rendered at all: a guessed denominator is the false
+  // precision that made a 21-day box read "14/14 · ready" a week early.
+  warmup_days: number | null
   warmup_ready: boolean | null; assigned_at: string | null
   // #552 — how this mailbox is reached. `smtp_secret` is a fingerprint, NEVER the password:
   // the API strips `smtp_pass_enc` before it leaves the process.
   from_name: string | null
   smtp_host: string | null; smtp_port: number | null; smtp_secure: boolean | null; smtp_user: string | null
   smtp_secret: string; has_smtp: boolean
+  // #611 — can THIS mailbox send, asked of `pickSendingInbox` itself. The chip used to render
+  // `has_smtp`, which is a different question: a warming box with credentials showed a green
+  // "can send" while the send path refused it.
+  can_send: boolean; send_block: string | null
 }
 /** #552 ③ — one client's send verdict, stated whether it passes or fails. */
 type Readiness = {
@@ -120,6 +128,11 @@ export default function VidaEnginePage() {
   // information, and this one is not reversible.
   const [seed, setSeed] = useState<SeedReport | null>(null)
   const [seedErr, setSeedErr] = useState<string | null>(null)
+  // #611 — which eligible row has its remove form open, and what has been typed into it.
+  const [wipeFor, setWipeFor] = useState<{ clientId: string; companyName: string } | null>(null)
+  const [wipeTyped, setWipeTyped] = useState('')
+  const [wipeMsg, setWipeMsg] = useState<string | null>(null)
+  const [wipeErr, setWipeErr] = useState<string | null>(null)
   // #298 — same separation again. A manifest that FAILED to build must never be saved as a
   // reference: an empty manifest makes an empty database compare clean, which is the exact
   // false all-clear a restore drill exists to prevent.
@@ -136,6 +149,25 @@ export default function VidaEnginePage() {
       setManErr(err instanceof Error ? err.message : 'Could not take a manifest')
     }
     setBusy(null)
+  }
+
+  // #611 — REMOVING A TEST ACCOUNT. The row being removed is held by id together with the
+  // name typed into the box, so an open form cannot be pointed at a different row by a
+  // re-render: the id and the confirmation travel as one object.
+  async function wipeClient(clientId: string, companyName: string) {
+    setBusy(`wipe-${clientId}`); setWipeErr(null); setWipeMsg(null)
+    try {
+      const j = await fetch('/api/proxy/operator/seed-data/wipe-client', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: clientId, confirm_company_name: wipeTyped }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The account was not removed.')
+      setWipeMsg(`${companyName} and every row it owned were deleted.`)
+      setWipeFor(null); setWipeTyped('')
+      await runSeedReport()
+    } catch (err) {
+      setWipeErr(err instanceof Error ? err.message : 'The account was not removed.')
+    } finally { setBusy(null) }
   }
 
   async function runSeedReport() {
@@ -474,11 +506,54 @@ export default function VidaEnginePage() {
                         </span>
                       </td>
                       <td className="py-1 text-[#5c5279] leading-relaxed">{v.reason}</td>
+                      {/* #611 — the remove control renders ONLY on an eligible row. A protected
+                          row has no button at all, rather than a button that refuses: a control
+                          you can press on the demo account is a control somebody presses. */}
+                      <td className="py-1 pl-3 align-top text-right whitespace-nowrap">
+                        {v.disposition === 'eligible' && (
+                          <button onClick={() => { setWipeFor({ clientId: v.clientId, companyName: v.companyName }); setWipeTyped(''); setWipeErr(null); setWipeMsg(null) }}
+                            className="text-[11px] font-bold text-red-700 border border-red-200 rounded-lg px-2 py-0.5 hover:bg-red-50">
+                            Remove
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+
+            {/* THE CONFIRMATION. Typed, not clicked — a dialog is dismissed by muscle memory
+                and a phrase has to be read. Same shape as SEED_WIPE_ARMED and FOUNDER_FLIP. */}
+            {wipeFor && (
+              <div className="border border-red-300 bg-red-50 rounded-lg px-3 py-2.5 mt-3">
+                <b className="text-[12.5px] text-red-900 block">
+                  Delete {wipeFor.companyName} — the account, its leads, its ledger and its login.
+                </b>
+                <p className="text-[11.5px] text-red-800 mt-0.5 leading-relaxed">
+                  This cannot be undone and there is no restore. The API re-checks the classification before it
+                  acts: a client with a real payment or real leads is refused, and the house and demo accounts are
+                  refused by id even if the classifier would have allowed them. Type the company name to confirm.
+                </p>
+                <div className="flex items-center gap-2 flex-wrap mt-2">
+                  <input value={wipeTyped} onChange={e => setWipeTyped(e.target.value)} placeholder={wipeFor.companyName}
+                    className="text-[12px] border border-red-300 rounded-lg px-2.5 py-1.5 w-[260px] max-w-full" />
+                  <button onClick={() => wipeClient(wipeFor.clientId, wipeFor.companyName)}
+                    disabled={busy === `wipe-${wipeFor.clientId}` || wipeTyped.trim().toLowerCase() !== wipeFor.companyName.trim().toLowerCase()}
+                    className="bg-red-700 hover:bg-red-800 text-white rounded-lg px-3 py-1.5 text-[12px] font-bold disabled:opacity-40">
+                    {busy === `wipe-${wipeFor.clientId}` ? 'Removing…' : 'Delete permanently'}
+                  </button>
+                  <button onClick={() => { setWipeFor(null); setWipeTyped('') }}
+                    className="text-[12px] font-bold text-[#1f1235] border border-[#e4dcf7] rounded-lg px-3 py-1.5 hover:bg-white">
+                    Cancel
+                  </button>
+                </div>
+                {wipeErr && <p className="text-[11.5px] font-semibold text-red-800 mt-2 leading-relaxed">{wipeErr}</p>}
+              </div>
+            )}
+            {wipeMsg && !wipeFor && (
+              <p className="text-[11.5px] font-semibold text-emerald-800 mt-2 leading-relaxed">{wipeMsg}</p>
+            )}
             <p className="text-[11px] text-[#8b82a8] mt-2">
               Plan and runbook: <code className="px-1 bg-[#f8f6fd] rounded">docs/SEED-WIPE-PLAN.md</code>. Execution needs{' '}
               <code className="px-1 bg-[#f8f6fd] rounded">SEED_WIPE_ARMED</code> set to today&apos;s UTC date AND a typed
@@ -703,15 +778,21 @@ export default function VidaEnginePage() {
                   <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${i.status === 'active' ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
                     {i.status}
                   </span>
+                  {/* #611 — the fraction counts to THIS row's ready date. It was hardcoded
+                      `/14` while these Google boxes warm for 21 days, so around 18 Aug it would
+                      have read "14/14 · ready" a full week before the row's own ready date. */}
                   {i.kind === 'branded' && i.warmup_day != null && (
                     <span className="shrink-0 text-[11.5px] font-bold text-[#5c5279]">
-                      warm-up {i.warmup_day}/14{i.warmup_ready ? ' · ready' : ''}
+                      warm-up {i.warmup_day}{i.warmup_days != null ? `/${i.warmup_days}` : ''}{i.warmup_ready ? ' · ready' : ''}
                     </span>
                   )}
-                  {/* #552 — can this mailbox actually send? "A row exists" is not the same
-                      question, and the board used to only answer that one. */}
-                  <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${i.has_smtp ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-red-700 bg-red-50 border-red-200'}`}>
-                    {i.has_smtp ? 'can send' : 'no SMTP details'}
+                  {/* #552/#611 — can this mailbox actually send? Asked of the SEND PATH, not of
+                      "does it have credentials". Those are different questions, and the chip
+                      answered the wrong one: a warming box with credentials saved rendered a
+                      green "can send" while `pickSendingInbox` refuses it outright, because
+                      sending on a warming mailbox is what un-warms it. */}
+                  <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${i.can_send ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : 'text-[#b45309] bg-[#fffbeb] border-[#fcd34d]'}`}>
+                    {i.can_send ? 'can send' : (i.send_block ?? 'cannot send')}
                   </span>
                   <div className="ml-auto shrink-0 flex items-center gap-2">
                     <button onClick={() => setCred({

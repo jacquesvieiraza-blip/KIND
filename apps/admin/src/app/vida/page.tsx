@@ -1823,26 +1823,26 @@ export default function VidaConsolePage() {
                             <label className="text-[12px] text-[#9b8ec4] flex items-center gap-1">
                               wait
                               <input type="number" min={0} max={60} value={st.wait_days}
-                                onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, wait_days: Number(e.target.value) || 0 }; setSeqEdit({ ...seqEdit, steps }) }}
+                                onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, wait_days: Number(e.target.value) || 0 }; setSeqEdit({ ...seqEdit, steps }); setSeqQuality(null) }}
                                 className="w-14 border border-[#ece5fb] rounded px-1.5 py-0.5 text-[12.5px] outline-none" />
                               days
                             </label>
                           )}
                           {seqEdit.steps.length > 1 && (
-                            <button onClick={() => setSeqEdit({ ...seqEdit, steps: seqEdit.steps.filter((_, n) => n !== i) })}
+                            <button onClick={() => { setSeqEdit({ ...seqEdit, steps: seqEdit.steps.filter((_, n) => n !== i) }); setSeqQuality(null) }}
                               className="ml-auto text-[12px] font-bold text-red-500">Remove</button>
                           )}
                         </div>
-                        <input value={st.subject} onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, subject: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
+                        <input value={st.subject} onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, subject: e.target.value }; setSeqEdit({ ...seqEdit, steps }); setSeqQuality(null) }}
                           placeholder="Subject line" className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] mb-1.5 outline-none focus:border-[#7C3AED]" />
                         <textarea value={st.body} rows={5}
-                          onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, body: e.target.value }; setSeqEdit({ ...seqEdit, steps }) }}
+                          onChange={e => { const steps = [...seqEdit.steps]; steps[i] = { ...st, body: e.target.value }; setSeqEdit({ ...seqEdit, steps }); setSeqQuality(null) }}
                           placeholder="Email body. Keep it short and specific. {{first_name}} · {{company}} · {{job_title}} are filled per prospect."
                           className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                       </div>
                     ))}
                     {seqEdit.steps.length < 10 && (
-                      <button onClick={() => setSeqEdit({ ...seqEdit, steps: [...seqEdit.steps, { subject: '', body: '', wait_days: 3 }] })}
+                      <button onClick={() => { setSeqEdit({ ...seqEdit, steps: [...seqEdit.steps, { subject: '', body: '', wait_days: 3 }] }); setSeqQuality(null) }}
                         className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 mb-3">+ Add step</button>
                     )}
                     <div className="flex gap-2">

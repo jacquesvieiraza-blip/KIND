@@ -14,6 +14,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
   lintSequence, readingGrade, syllables, wordCount, firstTwoLines, refusalMessage, MAX_STEPS,
+  enrolDraftGate,
   type QualityStep,
 } from './sequence-quality'
 import { hasProspectToken } from './sequence-tokens'
@@ -330,5 +331,187 @@ describe('the gate is CALLED, not merely available', () => {
     const nextRoute = src.indexOf('operatorRouter.', suggest + 10)
     expect(suggest).toBeGreaterThan(-1)
     expect(src.slice(suggest, nextRoute)).toContain('lintSequence')
+  })
+})
+
+// ═══ #612 PART B ═══════════════════════════════════════════════════════════════════════════
+//
+// Part A gated templates and the drafts an operator READS. It did not gate the copy stored on
+// the enrollment — which is the row the send loop actually emails from. Found by verifying the
+// shipped PR, not by anything going red: a green gate said nothing about the enrol path.
+
+describe('rendered mode — the trap that would have skipped every single lead', () => {
+  // `generateSequence` writes copy against ONE real person, so there are no {{tokens}} left,
+  // and our own system prompt tells it to put the booking link in step 1. Judged by the
+  // TEMPLATE rules, every draft the product writes fails on both — 100% of leads skipped, and
+  // reported as a copy problem. This block is the proof that does not happen.
+  const BOOKING = 'https://cal.kind.com/b/abc123'
+  const LEAD = { first_name: 'Sarah', last_name: 'Nkosi', job_title: 'Head of Ops', company: 'Rivo' }
+
+  const realDraft: QualityStep[] = [
+    { subject: 'Rivo + hiring ops',
+      body: `Hi Sarah,\nSaw Rivo opened two ops roles this month, which usually means the team is covering a lot by hand.\n\nWe find and qualify the people worth talking to, and you only pay for the ones you approve.\n\nGrab a slot if useful:\n${BOOKING}\n\nJacques\nReply stop and I will not write again.`,
+      wait_days: 0 },
+    { subject: 'One number, Sarah',
+      body: 'Hi Sarah, one number that might be useful either way: teams we work with approve about one in four of the people we surface, and the rest cost them nothing at all. That ratio is the whole model and it is why there is no retainer to argue about.',
+      wait_days: 4 },
+  ]
+
+  it('TEMPLATE rules reject this correct copy — the bug, proved', () => {
+    const wrong = lintSequence(realDraft)
+    expect(wrong.ok).toBe(false)
+    expect(wrong.hardFails.map(v => v.rule)).toContain('no_personalisation')
+    expect(wrong.hardFails.map(v => v.rule)).toContain('link_in_step_1')
+  })
+
+  it('RENDERED rules accept it — same copy, right question', () => {
+    const r = lintSequence(realDraft, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING })
+    expect(r.hardFails, JSON.stringify(r.hardFails, null, 2)).toEqual([])
+    expect(r.ok).toBe(true)
+  })
+
+  it('and the booking link is still SURFACED, as a warn — not silently forgiven', () => {
+    const r = lintSequence(realDraft, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING })
+    expect(r.warnings.map(v => v.rule)).toContain('booking_link_in_step_1')
+  })
+
+  it('a link that is NOT the booking url still hard-fails in rendered mode', () => {
+    const s = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
+    s[0].body = `${s[0].body}\nAlso see https://some-other-site.com/deck`
+    expect(lintSequence(s, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING }).hardFails.map(v => v.rule))
+      .toContain('link_in_step_1')
+  })
+
+  it('rendered copy that never names the person still fails', () => {
+    const s = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
+    s[0].subject = 'A note'
+    s[0].body = s[0].body!.replace('Hi Sarah,', 'Hi there,').replace('Saw Rivo opened', 'Saw you opened')
+    expect(lintSequence(s, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING }).hardFails.map(v => v.rule))
+      .toContain('no_personalisation')
+  })
+
+  it('every other rule is unchanged by the mode — spam and opt-out still bite', () => {
+    const s = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
+    s[0].body = s[0].body!.replace('Reply stop and I will not write again.', 'Act now, this is a limited time offer.')
+    s[1].body = 'Just bumping this.'
+    const r = lintSequence(s, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING })
+    const rules = r.hardFails.map(v => v.rule)
+    expect(rules).toContain('spam_vocabulary')
+    expect(rules).toContain('no_opt_out')
+    expect(rules).toContain('empty_followup')
+  })
+
+  it('a one-letter name cannot prove personalisation', () => {
+    const s = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
+    s[0].subject = 'A note'
+    s[0].body = 'Hi there,\nA generic opening with no detail at all about who this is for.\n\nReply stop to opt out.'
+    expect(lintSequence(s, { mode: 'rendered', renderedFor: { first_name: 'A', company: 'X' } }).hardFails.map(v => v.rule))
+      .toContain('no_personalisation')
+  })
+})
+
+describe('enrolDraftGate — the decision the enrol loop makes per lead', () => {
+  const LEAD = { first_name: 'Sarah', company: 'Rivo' }
+  const good: QualityStep[] = [
+    { subject: 'Rivo + ops', body: 'Hi Sarah,\nSaw Rivo is hiring in ops, which usually means a lot is being covered by hand right now.\n\nWe find the people worth talking to and you pay only for the ones you approve.\n\nWorth a look?\n\nReply stop and I will not write again.', wait_days: 0 },
+  ]
+  const bad: QualityStep[] = [
+    { subject: 'ACT NOW limited time', body: 'Dear friend, click here to buy now.', wait_days: 0 },
+  ]
+
+  it('allows good rendered copy', () => {
+    expect(enrolDraftGate({ steps: good, renderedFor: LEAD, isDemo: false }).allow).toBe(true)
+  })
+
+  it('refuses bad copy and NAMES the rules', () => {
+    const v = enrolDraftGate({ steps: bad, renderedFor: LEAD, isDemo: false })
+    expect(v.allow).toBe(false)
+    if (!v.allow) {
+      expect(v.rules).toContain('spam_vocabulary')
+      expect(v.rules).toContain('no_opt_out')
+      expect(v.reason).toMatch(/^copy_rejected:/)
+    }
+  })
+
+  it('de-duplicates the rules — one broken rule is one problem, not four', () => {
+    const v = enrolDraftGate({ steps: bad, renderedFor: LEAD, isDemo: false })
+    if (!v.allow) expect(v.rules.length).toBe(new Set(v.rules).size)
+  })
+
+  // ── RED PROOF ④ — THE DEMO PATH IS UNTOUCHED ────────────────────────────────────────────
+  it('DEMO is exempt — even copy this bad enrols, because a demo can never send', () => {
+    // #453 leaves `next_send_at` null on demo enrollments so the cron never fires them, and
+    // #329 already settled that breaking the demo removes the sales tool. Exempting a path
+    // that cannot reach a human costs nothing.
+    expect(enrolDraftGate({ steps: bad, renderedFor: LEAD, isDemo: true }).allow).toBe(true)
+  })
+})
+
+// ── RED PROOF ③ — THE ENROL-SITE WIRING ─────────────────────────────────────────────────
+describe('the enrol loops actually call the gate', () => {
+  const src = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/figsy.ts'), 'utf8'))
+
+  it('BOTH enrol loops gate the draft', () => {
+    const calls = src.split('enrolDraftGate({').length - 1
+    expect(calls, 'both enrol paths must gate — one covered and one not is not a gate').toBe(4)
+  })
+
+  it('the gate runs BEFORE the charge — no credit taken for a lead we then refuse', () => {
+    // The money rule. A charge-then-refuse churns the ledger for copy we already knew was bad.
+    //
+    // ⚠️ SCOPED TO EACH LOOP BODY, NOT TO THE WHOLE FILE. The first version split on
+    // `enrolDraftGate({` and compared indexes in slices that ran to the end of the source — so
+    // when I moved the charge ABOVE the gate to red-prove it, the comparison found the OTHER
+    // loop's charge hundreds of lines later and stayed green. An ordering assertion has to be
+    // bounded by the thing whose order it is asserting.
+    const bodies: string[] = []
+    let from = 0
+    for (;;) {
+      const start = src.indexOf('let didCharge = false', from)
+      if (start === -1) break
+      const charge = src.indexOf('chargeFigsyEnroll', start)
+      expect(charge, 'every enrol body reaches the charge').toBeGreaterThan(start)
+      bodies.push(src.slice(start, charge))
+      from = charge
+    }
+    expect(bodies, 'both enrol loops found').toHaveLength(2)
+    for (const body of bodies) {
+      expect(body, 'the gate must sit between the draft and the charge').toContain('enrolDraftGate({')
+      expect(body, 'a refused lead is skipped before any money moves').toContain('noteSkip(')
+    }
+  })
+
+  it('a refused lead is skipped with a NAMED reason, never silently', () => {
+    expect(src).toContain('noteSkip(skipReasons, verdict.reason)')
+    expect(src).toContain('skip_reasons: skipReasons')
+  })
+
+  it('the applied-sequence branch is NOT per-lead gated — it is already gated at save and activation', () => {
+    expect(src).toContain('if (!appliedSequence) {')
+  })
+})
+
+// ── RED PROOF ② — THE GATE JUDGES WHAT WILL ACTUALLY SEND ───────────────────────────────
+describe('the activation gate reads the APPLIED sequence, not the newest saved one', () => {
+  const src = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8'))
+
+  it('reads the campaign settings first and falls back to the newest row', () => {
+    const fn = src.slice(src.indexOf('async function sequenceGateFor'), src.indexOf('async function sequenceGateFor') + 1400)
+    expect(fn).toContain('figsy_campaigns')
+    expect(fn).toContain('sequence')
+    const campaignRead = fn.indexOf('figsy_campaigns')
+    const fallback = fn.indexOf('figsy_sequences')
+    expect(campaignRead).toBeLessThan(fallback)
+  })
+
+  it('the two routes that KNOW the campaign pass it', () => {
+    expect(src).toContain('sequenceGateFor(client.id, b.campaign_id as string | undefined)')
+    expect(src).toContain('sequenceGateFor(client.id, req.params.id)')
+  })
+
+  it('/campaign/start has no campaign yet, so it asks without one', () => {
+    const start = src.indexOf("post('/campaign/start'")
+    const next = src.indexOf('operatorRouter.', start + 10)
+    expect(src.slice(start, next)).toContain('sequenceGateFor(client.id)')
   })
 })

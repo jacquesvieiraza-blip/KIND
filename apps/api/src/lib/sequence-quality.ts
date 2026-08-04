@@ -223,7 +223,63 @@ const BUMP_MIN_NEW_WORDS = 25
 /** The founder's own boxes send at most a handful of touches; beyond this it is harassment. */
 export const MAX_STEPS = 7
 
-export function lintSequence(rawSteps: QualityStep[]): QualityReport {
+/**
+ * TEMPLATE vs RENDERED — and getting this wrong would have killed all outreach.
+ *
+ * A saved sequence is a TEMPLATE: it says "Hi {{first_name}}" and carries no link in step 1.
+ * The copy that is actually stored on an enrollment is RENDERED — `generateSequence` writes it
+ * against one real person, so it says "Hi Sarah", and our own system prompt **instructs it to
+ * put the client's booking link in step 1** (`figsy.ts`: *"include this exact booking link on
+ * its own line"*).
+ *
+ * ⚠️ SO THE TEMPLATE RULES APPLIED TO RENDERED COPY FAIL 100% OF IT — `no_personalisation`
+ * (there are no tokens, because the real name is already in there) and `link_in_step_1` (which
+ * our own product deliberately added). Wired that way, #612 Part B would have skipped every
+ * single lead and reported it as a copy problem. Found by reading `generateSequence` before
+ * wiring, not after.
+ *
+ * Rendered mode therefore changes exactly three things and nothing else:
+ *   ① personalisation is proved by the PERSON'S OWN DETAILS appearing in the opening, which is
+ *     the same property the token check exists to prove;
+ *   ② the client's own booking URL is not counted as a generic link — but its presence in step
+ *     1 is reported as a WARN, because it is still a first-touch link and the evidence says
+ *     those cost replies (see below);
+ *   ③ nothing else. Spam vocabulary, opt-out, bumps, spacing and every warn are identical.
+ *
+ * 🧍 FOUNDER RULING OWED, and it is a real product conflict, not a lint detail: #612's own rule
+ * says no link in the first touch, and `generateSequence` is instructed to put one there. One
+ * of the two is wrong. Silently exempting it here keeps outreach working today; it does not
+ * settle which behaviour we want on 25 Aug.
+ */
+export type RenderedFor = {
+  first_name?: string | null
+  last_name?: string | null
+  job_title?: string | null
+  company?: string | null
+}
+
+export type LintOptions = {
+  /** 'template' (default) judges {{token}} copy; 'rendered' judges copy already written for one person. */
+  mode?: 'template' | 'rendered'
+  /** Rendered mode only: the person this copy was written for. */
+  renderedFor?: RenderedFor
+  /** Rendered mode only: the client's own booking URL, which our own prompt places in step 1. */
+  bookingUrl?: string | null
+}
+
+/** Does this rendered copy actually name the person it was written for? */
+function namesTheProspect(text: string, who: RenderedFor | undefined): boolean {
+  if (!who) return false
+  const hay = text.toLowerCase()
+  // 2 characters minimum, same guard `detokenise` uses — a one-letter "name" would match
+  // everything and prove nothing.
+  return [who.first_name, who.company, who.job_title]
+    .map(v => String(v ?? '').trim().toLowerCase())
+    .filter(v => v.length > 1)
+    .some(v => hay.includes(v))
+}
+
+export function lintSequence(rawSteps: QualityStep[], opts?: LintOptions): QualityReport {
   const violations: Violation[] = []
   const passes: string[] = []
   const add = (rule: string, severity: Severity, step: number | null, why: string) =>
@@ -272,19 +328,43 @@ export function lintSequence(rawSteps: QualityStep[]): QualityReport {
   }
 
   // ── HARD ④ — step 1 must be personal in its opening lines ───────────────────────────────
+  //
+  // Rendered copy proves this with the person's OWN details rather than a token, because the
+  // token has already been replaced by the time this copy exists. Same property, different
+  // evidence — see the `LintOptions` header for why judging rendered copy by the template rule
+  // would fail every draft the product writes.
+  const rendered = opts?.mode === 'rendered'
   const opening = firstTwoLines(steps[0].body)
-  if (!hasProspectToken(opening) && !hasProspectToken(steps[0].subject)) {
-    add('no_personalisation', 'hard', 1, 'The first two lines of step 1 say nothing about the person reading them — no name, role, or company. That is the definition of a blast, and it is the first thing both a reader and a filter notice.')
+  const personal = rendered
+    ? namesTheProspect(opening, opts?.renderedFor) || namesTheProspect(steps[0].subject, opts?.renderedFor)
+    : hasProspectToken(opening) || hasProspectToken(steps[0].subject)
+  if (!personal) {
+    add('no_personalisation', 'hard', 1, rendered
+      ? 'The first two lines of step 1 never name this person, their role or their company. Copy written for one prospect that does not mention them is a blast with extra steps.'
+      : 'The first two lines of step 1 say nothing about the person reading them — no name, role, or company. That is the definition of a blast, and it is the first thing both a reader and a filter notice.')
   } else {
     passes.push('step 1 opens on something about the prospect')
   }
 
   // ── HARD ⑤ — no links or attachments in step 1 ──────────────────────────────────────────
-  const step1 = `${steps[0].subject}\n${steps[0].body}`
+  let step1 = `${steps[0].subject}\n${steps[0].body}`
+  // The client's OWN booking link is removed before the check and reported as a warn instead.
+  // It is there because `generateSequence` is told to put it there — refusing our own product's
+  // deliberate output would skip every lead and call it a copy problem. 🧍 Ruling owed on which
+  // of the two behaviours is right.
+  let bookingInStep1 = false
+  const booking = String(opts?.bookingUrl ?? '').trim()
+  if (rendered && booking && step1.includes(booking)) {
+    bookingInStep1 = true
+    step1 = step1.split(booking).join('')
+  }
   if (LINK_PATTERNS.some(re => re.test(step1))) {
     add('link_in_step_1', 'hard', 1, 'Step 1 contains a link or attachment. A first email to a stranger with a link in it is both a deliverability penalty and the wrong ask — the first touch earns interest, and the link goes in the reply once they have shown some.')
   } else {
     passes.push('step 1 carries no link or attachment')
+  }
+  if (bookingInStep1) {
+    add('booking_link_in_step_1', 'warn', 1, 'Step 1 carries the booking link. Our own drafting prompt asks for it, so this does not block the send — but a link in a first touch to a stranger costs deliverability, and the stronger play is to earn the reply first and send the link in it.')
   }
 
   // ── HARD ⑥ — a follow-up that adds nothing ──────────────────────────────────────────────
@@ -356,6 +436,46 @@ export function lintSequence(rawSteps: QualityStep[]): QualityReport {
   const hardFails = violations.filter(v => v.severity === 'hard')
   const warnings = violations.filter(v => v.severity === 'warn')
   return { violations, hardFails, warnings, passes, ok: hardFails.length === 0 }
+}
+
+/**
+ * #612 PART B — THE GATE ON THE COPY THAT ACTUALLY SENDS.
+ *
+ * Part A gated templates and the drafts an operator READS. It did not gate the copy stored on
+ * the enrollment, which is what the send loop actually emails: when a campaign has no applied
+ * sequence, `generateSequence` writes fresh copy per lead at enrol time and nothing looked at
+ * it. Found by verifying the shipped PR rather than by the gate going red — a green gate said
+ * nothing about the enrol path.
+ *
+ * ⚠️ DEMO IS EXEMPT, DELIBERATELY. `#453` demo enrollments are drafted-only: `next_send_at` is
+ * left null so the cron never fires them, so bad copy cannot reach a human. Refusing them would
+ * break the demo, and `#329` already settled that one — *"a wipe that removes the demo removes
+ * the sales tool."* Exempting a path that cannot send costs nothing; breaking the thing the
+ * product is sold with costs a client.
+ *
+ * Pure so the whole decision is provable without enrolling anybody.
+ */
+export function enrolDraftGate(a: {
+  steps: QualityStep[]
+  renderedFor?: RenderedFor
+  bookingUrl?: string | null
+  isDemo: boolean
+}): { allow: true } | { allow: false; rules: string[]; reason: string } {
+  if (a.isDemo) return { allow: true }
+  const report = lintSequence(a.steps, {
+    mode: 'rendered',
+    renderedFor: a.renderedFor,
+    bookingUrl: a.bookingUrl,
+  })
+  if (report.ok) return { allow: true }
+  // De-duplicated: the same rule can fire on several steps, and a reason that repeats a rule
+  // four times reads as four problems.
+  const rules = [...new Set(report.hardFails.map(v => v.rule))]
+  return {
+    allow: false,
+    rules,
+    reason: `copy_rejected:${rules.join(',')}`,
+  }
 }
 
 /**

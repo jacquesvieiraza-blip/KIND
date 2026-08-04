@@ -459,7 +459,7 @@ operatorRouter.post('/campaign/save', async (req: Request, res: Response) => {
     // campaigns and resumes paused ones.
     const goesLive = b.campaign_id ? patch.status === 'active' : true
     if (goesLive) {
-      const gate = await sequenceGateFor(client.id)
+      const gate = await sequenceGateFor(client.id, b.campaign_id as string | undefined)
       if (!gate.ok) { res.status(422).json({ success: false, error: gate.error, violations: gate.violations }); return }
     }
 
@@ -749,14 +749,35 @@ Rules:
 // campaign because the database hiccuped would make an outage look like a copy problem — the
 // #565 shape. A missing sequence is likewise not this gate's business: `smartlead-send` already
 // refuses `no_sequence` at the point of sending, which is where that belongs.
-async function sequenceGateFor(clientId: string): Promise<{ ok: true } | { ok: false; error: string; violations: unknown[] }> {
+// ⚠️ IT JUDGES THE APPLIED SEQUENCE, NOT THE NEWEST SAVED ONE (#612 Part B).
+//
+// This first shipped reading the client's most recent `figsy_sequences` row. But a campaign
+// carries an APPLIED sequence — `figsy.ts` writes `settings.sequence` + `applied_sequence_id`
+// when a sequence is put on a campaign — and the two are not the same row. Save a clean new
+// draft while an older bad one is still applied and the gate green-lit copy that was never
+// going to send, while the copy that WAS going to send went unread. The gate has to judge what
+// will actually leave.
+//
+// `campaignId` is optional because `/campaign/start` has no campaign yet; there the newest
+// saved row is the only thing to judge, and it is the right thing to judge.
+async function sequenceGateFor(clientId: string, campaignId?: string | null): Promise<{ ok: true } | { ok: false; error: string; violations: unknown[] }> {
   const { lintSequence, refusalMessage } = await import('../lib/sequence-quality')
-  const { data, error } = await db.from('figsy_sequences')
-    .select('steps').eq('client_id', clientId)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
-  if (error || !data) return { ok: true }
-  const steps = Array.isArray(data.steps) ? (data.steps as Record<string, unknown>[]) : []
-  if (steps.length === 0) return { ok: true }
+
+  let steps: Record<string, unknown>[] = []
+  if (campaignId) {
+    const { data: camp } = await db.from('figsy_campaigns')
+      .select('settings').eq('id', campaignId).eq('client_id', clientId).maybeSingle()
+    const applied = (camp?.settings as { sequence?: unknown } | null)?.sequence
+    if (Array.isArray(applied)) steps = applied as Record<string, unknown>[]
+  }
+
+  if (steps.length === 0) {
+    const { data, error } = await db.from('figsy_sequences')
+      .select('steps').eq('client_id', clientId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    if (error || !data) return { ok: true }
+    steps = Array.isArray(data.steps) ? (data.steps as Record<string, unknown>[]) : []
+  }
 
   const report = lintSequence(steps as never)
   if (report.ok) return { ok: true }
@@ -1814,7 +1835,7 @@ operatorRouter.post('/campaign/:id/status', async (req: Request, res: Response) 
     // #612 — pressing Run is an activation. Pausing is never gated: stopping a campaign with
     // bad copy is the thing we WANT to stay one click away.
     if (status === 'active') {
-      const gate = await sequenceGateFor(client.id)
+      const gate = await sequenceGateFor(client.id, req.params.id)
       if (!gate.ok) { res.status(422).json({ success: false, error: gate.error, violations: gate.violations }); return }
     }
 

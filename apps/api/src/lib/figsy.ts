@@ -1208,7 +1208,7 @@ export async function sendDay1OutreachBatch(
   // mid-loop, and a read per lead would be a query per prospect for no new information).
   // No mailbox = the batch does not run. Every lead stays 'scored' and is picked up on a
   // later run once an operator assigns one — nothing falls back to our shared address.
-  const { resolveSendingInbox, refusalLabel } = await import('./sending-inbox')
+  const { resolveSendingInbox, refusalLabel, sendablePool, nextFromRotation } = await import('./sending-inbox')
   const batchInbox = await resolveSendingInbox(clientId)
   if (!batchInbox.ok) {
     console.error(`[day1-outreach] NOT sending for client ${clientId} — ${refusalLabel(batchInbox.reason)}. ${batchInbox.detail}`)
@@ -1220,7 +1220,37 @@ export async function sendDay1OutreachBatch(
     ])
     return
   }
-  const sendingInbox = batchInbox.inbox
+  // ── #610 ROTATION — spread the batch across EVERY sendable box, not just the best one ──
+  //
+  // Founder-ruled 4 Aug: *"inbox x 2 yes for now but volume is key."* One box at a 30/day cap
+  // is 30/day however many boxes the client owns; two is 60. `resolveSendingInbox` above is
+  // kept as the gate (it produces the refusal message and the alert, already tested), and the
+  // pool below decides WHICH box carries each message once sending is allowed at all.
+  //
+  // ⚠️ THE COUNTS ARE PER-BATCH AND IN MEMORY, AND THAT IS A LIMIT, NOT A CHOICE.
+  // `figsy_sent_emails` has no column naming the mailbox that sent — so "sent today by this
+  // box" cannot be read back from the database, and adding it is a migration the frozen schema
+  // forbids. Within this run the spread and the per-box caps are exact; two runs in one day
+  // could put a box over its own cap, bounded still by the global `coldCapReached()`. #610
+  // carries the fix: one column, the day migrations return.
+  const poolRows = await (async () => {
+    const { data } = await db.from('client_inboxes')
+      .select('id, email, kind, status, provider, daily_cap, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name')
+      .eq('client_id', clientId).not('status', 'in', '("released","retired")')
+    return (data ?? []) as unknown as Parameters<typeof sendablePool>[0]
+  })()
+  const { secretState } = await import('./inbox-secret')
+  const pooled = sendablePool(poolRows, secretState().ok)
+  // A pool failure cannot happen here (resolveSendingInbox already said ok, and the pool
+  // reuses its verdict) — but falling back to the single box is the honest degradation if it
+  // ever does, rather than throwing away a batch that was cleared to send.
+  const rotation = pooled.ok && pooled.boxes.length > 0
+    ? pooled.boxes.map(b => ({ id: String(b.id), dailyCap: b.daily_cap ?? null, sentThisBatch: 0, row: b }))
+    : [{ id: String(batchInbox.inbox.id), dailyCap: batchInbox.inbox.daily_cap ?? null, sentThisBatch: 0, row: batchInbox.inbox }]
+  if (rotation.length > 1) {
+    console.log(`[day1-outreach] rotating across ${rotation.length} mailboxes for ${clientId}: ${rotation.map(r => r.row.email).join(', ')}`)
+  }
+
 
   const { data: leads } = await db.from('leads')
     .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')
@@ -1242,6 +1272,16 @@ export async function sendDay1OutreachBatch(
     const { data: blocked } = await db.from('opt_out_blocklist')
       .select('id').eq('email', lead.email).is('opted_back_in_at', null).maybeSingle()
     if (blocked) continue
+
+    // Which mailbox carries THIS message? Least-used first; null means every box is at its
+    // cap, which is a STOP — never a fall-back to a box that is already over its limit.
+    const pickedId = nextFromRotation(rotation)
+    if (!pickedId) {
+      console.warn('[day1-outreach] every mailbox has hit its daily cap — stopping batch early; remaining leads deferred.')
+      break
+    }
+    const slot = rotation.find(r => r.id === pickedId)!
+    const sendingInbox = slot.row
 
     try {
       const draft = await generateDay1Email(lead, clientCompanyName, client?.industry ?? null, senderName, clientKnowledge)
@@ -1273,6 +1313,12 @@ export async function sendDay1OutreachBatch(
         ])
         continue
       }
+
+      // ⚠️ THE TALLY IS THE ROTATION. Incremented ONLY after a confirmed send — a failed send
+      // must not consume a box's quota, and without this line every count stays 0, so
+      // `nextFromRotation` returns the same box forever and rotation is a silent no-op that
+      // looks implemented. Placed after the `!ok` continue above for exactly that reason.
+      slot.sentThisBatch += 1
 
       await db.from('figsy_sent_emails').insert({
         enrollment_id: null,

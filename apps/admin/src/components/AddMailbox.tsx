@@ -147,8 +147,15 @@ export default function AddMailbox({ secretKeySet, onSaved }: { secretKeySet?: b
           <label className={LABEL}>Kind</label>
           <select value={f.kind} onChange={ev => set('kind', ev.target.value)} className={FIELD}>
             <option value="branded">branded — their own domain</option>
-            <option value="pooled">pooled — ours, lent out</option>
+            <option value="pooled">pooled — the SECOND slot (see #610)</option>
           </select>
+          <p className="text-[10.5px] text-[#8579a8] mt-1 leading-relaxed">
+            ⚠️ <b>&ldquo;pooled&rdquo; was redefined 4 Aug (#610).</b> It used to mean a rented, recycled vendor box
+            lent to a client while their own domain warmed. It is now also <b>the second slot</b>: the schema allows
+            one live box per kind per client, so a client&apos;s SECOND mailbox goes here — even when it is our own
+            Google box on our own domain. Deliberate, founder-ruled, and recorded so nobody reads &ldquo;pooled&rdquo;
+            and assumes a vendor rental.
+          </p>
         </div>
         <div>
           <label className={LABEL}>Provider (label only)</label>

@@ -71,6 +71,85 @@ function hasCredentials(r: InboxRow): boolean {
  * `secretOk` is passed in rather than read from the environment here, because a resolver
  * that consults `process.env` cannot be tested for the missing-key path.
  */
+/**
+ * ROTATION — spread a batch across every sendable mailbox a client has (#610).
+ *
+ * WHY THIS EXISTS. `pickSendingInbox` below answers "which ONE box?" and is still the right
+ * answer for a single message. But a BATCH sent entirely from one box wastes the others and
+ * hits that box's cap at a fraction of the volume: the founder's 4-Aug ruling — *"inbox x 2
+ * yes for now but volume is key"* — is exactly this. Two boxes at 30/day is 60/day; one box is
+ * 30 however many boxes exist.
+ *
+ * ⚠️ WHAT THIS CAN AND CANNOT DO, STATED HERE BECAUSE THE LIMIT IS INVISIBLE OTHERWISE.
+ * `figsy_sent_emails` records `enrollment_id, campaign_id, lead_id, step, subject, body,
+ * resend_id` — **there is no column naming the mailbox that sent** (it has no `client_id`
+ * either; the counters join through `leads`). So "how many has THIS box sent today?" **cannot
+ * be answered from the database**, and answering it needs one migration
+ * (`figsy_sent_emails.inbox_id`) which the frozen schema forbids today.
+ *
+ * Therefore the counts here are **per-batch, held in memory by the caller**. Within one run the
+ * distribution and the per-box caps are exact. Across two runs in the same day, a box could
+ * exceed its daily cap — the global cold-send cap (`coldCapReached`) still bounds the day, so
+ * the exposure is "uneven between boxes", not "unbounded". Recorded on #610; the fix is one
+ * column, the day migrations return.
+ *
+ * PURE on purpose: the whole decision is testable without a database.
+ */
+export type RotationBox = {
+  id: string
+  /** null = no cap for this box. */
+  dailyCap: number | null
+  /** How many this box has sent SO FAR IN THIS BATCH (the caller's tally). */
+  sentThisBatch: number
+}
+
+/**
+ * Which box should send the next message?
+ *
+ * Least-used first, so a batch spreads evenly instead of draining one box then moving on.
+ * A box at its cap drops out. Ties break on `id` so the order is stable rather than
+ * dependent on however the rows arrived — an unstable order makes a bug unreproducible.
+ *
+ * Returns null when every box is at its cap: the caller must STOP, not fall back to a box
+ * that is over its limit.
+ */
+export function nextFromRotation(boxes: RotationBox[]): string | null {
+  const eligible = boxes.filter(b => b.dailyCap == null || b.sentThisBatch < b.dailyCap)
+  if (eligible.length === 0) return null
+  const best = [...eligible].sort((a, b) =>
+    a.sentThisBatch - b.sentThisBatch || a.id.localeCompare(b.id))[0]
+  return best.id
+}
+
+/**
+ * Every box a client could send from right now, ranked the same way `pickSendingInbox` ranks.
+ *
+ * Returns the SAME refusal reasons as the single-box path, so a client with no mailbox, only a
+ * warming one, no credentials or no secret key gets the identical (already-tested, already
+ * honest) message whichever path asked. Rotation must not invent a second vocabulary for the
+ * same failures.
+ */
+export function sendablePool(rows: InboxRow[], secretOk: boolean): { ok: true; boxes: InboxRow[] } | { ok: false; reason: RefusalReason; detail: string } {
+  const single = pickSendingInbox(rows, secretOk)
+  if (!single.ok) return { ok: false, reason: single.reason, detail: single.detail }
+
+  const live = (rows ?? []).filter(r => r && LIVE_STATUSES.has(String(r.status)))
+  const boxes = live
+    .filter(r => SENDABLE_STATUSES.has(String(r.status)))
+    .filter(hasCredentials)
+    // Same rank as the single picker: active before assigned, branded before pooled. A batch
+    // should lean on the client's own domain first and use the second box as spread, not as
+    // an equal-status coin toss.
+    .sort((a, b) => rank(a) - rank(b))
+
+  return { ok: true, boxes }
+}
+
+/** Shared rank so `pickSendingInbox` and `sendablePool` can never disagree about preference. */
+function rank(r: InboxRow): number {
+  return (String(r.status) === 'active' ? 0 : 1) * 10 + (String(r.kind) === 'branded' ? 0 : 1)
+}
+
 export function pickSendingInbox(rows: InboxRow[], secretOk: boolean): Resolution {
   const live = (rows ?? []).filter(r => r && LIVE_STATUSES.has(String(r.status)))
   if (live.length === 0) {
@@ -92,8 +171,9 @@ export function pickSendingInbox(rows: InboxRow[], secretOk: boolean): Resolutio
 
   // Branded-and-active beats pooled: it is the client's own domain, and once it is active
   // the pooled row is only still there to be released. Within a kind, prefer `active`.
-  const rank = (r: InboxRow) =>
-    (String(r.status) === 'active' ? 0 : 1) * 10 + (String(r.kind) === 'branded' ? 0 : 1)
+  // ⚠️ The rank function moved to module scope (#610) so `sendablePool` uses THE SAME one —
+  // two copies of a preference order is how the batch and the single send start disagreeing
+  // about which mailbox is "first" without anything failing.
   const ordered = [...sendable].sort((a, b) => rank(a) - rank(b))
 
   const usable = ordered.find(hasCredentials)

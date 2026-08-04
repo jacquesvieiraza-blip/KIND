@@ -3139,6 +3139,116 @@ operatorRouter.post('/house-client', async (req: Request, res: Response) => {
 //
 // Read-only: every call is `select … limit 0` or a head count. Nothing is written, and
 // nothing is read either — only whether the request could be built at all.
+// ── #611 — THE HOUSE-ACCOUNT AUDIT. READ-ONLY, AND THAT IS THE POINT ──────────────────────
+//
+// Client Zero was ADOPTED from the founder's existing account and inherited its history: a
+// multi-million-dollar test wallet, 159 approved leads, 263 enrollments, a "Suspended" badge.
+// On ~25 Aug real prospecting flows into it. Nobody could say which rows were real, because
+// there is NO SQL ACCESS — no dashboard, no password, `DATABASE_URL` is a placeholder. So the
+// audit is an instrument the founder runs rather than a query someone types.
+//
+// ⚠️ GET, AND IT MUST STAY GET. Every statement below is a `.select()`. This route exists to
+// let a human decide; it must never be the thing that acts. Phase B — if the founder wants one
+// — is a separate PR built against his rulings, with its own gate.
+operatorRouter.get('/house-audit', async (_req: Request, res: Response) => {
+  try {
+    const { decideHouseClient } = await import('../lib/house-client')
+    const { resolveHouseUserIds } = await import('../lib/real-clients')
+    const { auditRows, auditHeadline, coldCronWouldAct } = await import('../lib/house-audit')
+    const { secretState } = await import('../lib/inbox-secret')
+
+    // Resolved the SAME way the setup route resolves it — `decideHouseClient` — rather than by
+    // matching the display name. `house-client.ts` is explicit that the name is "A LABEL ONLY —
+    // nothing matches on it", and two resolvers that can disagree about which row is Client
+    // Zero is exactly the #584 shape this audit exists to clean up after.
+    const houseUserIds = [...await resolveHouseUserIds()]
+    const { data: clientRows } = await db.from('clients').select('id, user_id, company_name, is_demo')
+    const decision = decideHouseClient({
+      houseUserIds,
+      clients: (clientRows ?? []) as { id: string; user_id: string | null; company_name: string | null; is_demo: boolean | null }[],
+    })
+    if (decision.action !== 'adopt' || !decision.clientId) {
+      res.status(404).json({
+        success: false,
+        error: decision.action === 'refuse'
+          ? decision.why
+          : 'No house client is set up yet — press "Set up the house client" first, then run the audit.',
+      })
+      return
+    }
+    const clientId = decision.clientId
+
+    const [client, ledger, leads, enroll, sent, camps, inboxes] = await Promise.all([
+      db.from('clients').select('id, company_name, is_demo, wallet_balance_usd').eq('id', clientId).maybeSingle(),
+      db.from('credit_transactions').select('type, amount').eq('client_id', clientId).limit(2000),
+      db.from('leads').select('status, revealed_at, surfaced_for_approval_at, created_at').eq('client_id', clientId).limit(5000),
+      db.from('figsy_enrollments').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
+      db.from('figsy_campaigns').select('status').eq('client_id', clientId).limit(500),
+      db.from('client_inboxes').select('email, kind, status, smtp_host, smtp_user, smtp_pass_enc')
+        .eq('client_id', clientId).not('status', 'in', '("released","retired")').limit(50),
+    ])
+
+    const ledgerRows = (ledger.data ?? []) as Array<{ type: string; amount: number | null }>
+    const byType = new Map<string, { count: number; totalUsd: number }>()
+    for (const r of ledgerRows) {
+      const k = String(r.type ?? 'unknown')
+      const cur = byType.get(k) ?? { count: 0, totalUsd: 0 }
+      byType.set(k, { count: cur.count + 1, totalUsd: cur.totalUsd + Number(r.amount ?? 0) })
+    }
+
+    const leadRows = (leads.data ?? []) as Array<Record<string, unknown>>
+    const dates = leadRows.map(l => String(l.created_at ?? '')).filter(Boolean).sort()
+    const approvals = leadRows.map(l => String(l.revealed_at ?? '')).filter(Boolean).sort()
+
+    const campRows = (camps.data ?? []) as Array<{ status: string }>
+    const campByStatus = new Map<string, number>()
+    for (const c of campRows) campByStatus.set(String(c.status), (campByStatus.get(String(c.status)) ?? 0) + 1)
+
+    const c = (client.data ?? {}) as Record<string, unknown>
+    const facts = {
+      clientId,
+      companyName: (c.company_name as string | null) ?? null,
+      isDemo: (c.is_demo as boolean | null) ?? null,
+      walletBalanceUsd: Number((c.wallet_balance_usd as number | null) ?? 0),
+      ledger: [...byType.entries()].map(([type, v]) => ({ type, ...v })),
+      leadsTotal: leadRows.length,
+      leadsApproved: leadRows.filter(l => !!l.revealed_at).length,
+      leadsWithClient: leadRows.filter(l => !!l.surfaced_for_approval_at && !l.revealed_at && l.status !== 'passed').length,
+      leadsPassed: leadRows.filter(l => l.status === 'passed').length,
+      oldestLeadAt: dates[0] ?? null,
+      newestLeadAt: dates[dates.length - 1] ?? null,
+      enrollments: enroll.count ?? 0,
+      sentEmails: sent.count ?? 0,
+      campaigns: [...campByStatus.entries()].map(([status, count]) => ({ status, count })),
+      inboxes: ((inboxes.data ?? []) as Array<Record<string, unknown>>).map(i => ({
+        email: String(i.email), kind: String(i.kind), status: String(i.status),
+        hasSmtp: Boolean(i.smtp_host && i.smtp_user && i.smtp_pass_enc),
+      })),
+      lastApprovalAt: approvals[approvals.length - 1] ?? null,
+      // Read at request time so the panel shows the live truth, not a build-time snapshot.
+      autoOutreachEnabled: String(process.env.AUTO_OUTREACH_ENABLED ?? '').toLowerCase() === 'true',
+      secretKeySet: secretState().ok,
+    }
+
+    const now = new Date()
+    const rows = auditRows(facts, now)
+    res.json({
+      success: true,
+      client_id: clientId,
+      headline: auditHeadline(rows),
+      cold: coldCronWouldAct(facts, now),
+      facts,
+      rows,
+      // Said out loud on every response so nobody has to infer it from the verb.
+      read_only: 'This endpoint only reads. Nothing was changed by loading it.',
+    })
+  } catch (err) {
+    console.error('[house-audit]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'audit failed' })
+  }
+})
+
 operatorRouter.get('/schema-probe', async (_req: Request, res: Response) => {
   try {
     const {

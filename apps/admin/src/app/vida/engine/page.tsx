@@ -15,6 +15,7 @@ import { useCallback, useEffect, useState } from 'react'
 import ImportLeads from '@/components/ImportLeads'
 import AddMailbox from '@/components/AddMailbox'
 import HouseClient from '@/components/HouseClient'
+import HouseAudit from '@/components/HouseAudit'
 import SchemaProbe from '@/components/SchemaProbe'
 
 type Inbox = {
@@ -300,6 +301,9 @@ export default function VidaEnginePage() {
           safe to press, and the pairing is the whole point. */}
       <SchemaProbe />
       <HouseClient onDone={load} />
+      {/* #611 — mounted directly under the house card: the account this audits is the one the
+          card above sets up, and reading them apart is how the debris went unnoticed. */}
+      <HouseAudit />
       <AddMailbox secretKeySet={e?.secret_key_set} onSaved={load} />
       <ImportLeads />
 
@@ -685,6 +689,14 @@ export default function VidaEnginePage() {
                     <b className="text-[13px] block truncate">{i.company_name || 'Unnamed client'}</b>
                     <span className="text-[11.5px] text-[#9b8ec4] truncate block">{i.email}</span>
                   </div>
+                  {/* #610 — the per-box daily cap, shown on the row so the founder can see the
+                      rotation's arithmetic without opening the form. ⚠️ NOT "sent today": that
+                      cannot be shown, because `figsy_sent_emails` has no column naming the
+                      mailbox that sent it. Showing a today-count we cannot compute would be
+                      worse than showing none — see #610. */}
+                  <span className="shrink-0 text-[10.5px] font-bold rounded-full border border-[#ece5fb] bg-[#f8f6fd] text-[#5c5279] px-2 py-0.5">
+                    {i.daily_cap == null ? 'no cap' : `cap ${i.daily_cap}/day`}
+                  </span>
                   <span className={`shrink-0 text-[10.5px] font-extrabold rounded-full border px-2 py-0.5 ${i.kind === 'branded' ? 'text-[#7C3AED] bg-[#f3ecff] border-[#e4d4fb]' : 'text-[#0369a1] bg-[#e0f2fe] border-[#bae6fd]'}`}>
                     {i.kind}
                   </span>

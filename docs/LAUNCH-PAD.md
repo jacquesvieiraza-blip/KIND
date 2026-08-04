@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷232 · 🟣3 · 🟡64 · 🔴174 · ⏸5 · **Σ573** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷233 · 🟣3 · 🟡64 · 🔴173 · ⏸5 · **Σ573** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -70,8 +70,8 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 | | What | $/mo | Done? |
 |---|------|:---:|---|
-| ① | **2 new domains + 4 Google mailboxes — BOUGHT DIRECT FROM GOOGLE.** ✅ **DOMAINS DONE 4 Aug:** `kindoutreach.com` + `trykind.org` both verified in Google Workspace with the **full deliverability set each — MX, DKIM 2048, SPF, DMARC `p=none`**. ⚠️ **GoDaddy pre-seeds a `_dmarc` row** (`p=quarantine`, reporting to its own server): adding ours alongside left `kindoutreach.com` with **two, which means NO DMARC at all** — caught by counting rows, fixed. **EDIT that row on any future domain, never add.** ⬜ **STILL TO DO: rename admin `www@` → `jacques@`, then create the 4 mailboxes** (⚠️ that is where the ~$7/box billing starts; free trial runs to **18 Aug**). ⚠️ **NOT Instantly's done-for-you boxes** — #577 records in writing that vendor-provisioned mailboxes expose no SMTP credentials and our engine cannot send through them. Never on `get-kind.com`. Enter them at **Vida → Engine → Add a mailbox (#600)**. ⚠️ Each box needs an **App Password**, not the login password. | ~$28 | ⏳ **domains ✅ · mailboxes next** |
-| ② | **Instantly Growth — connect the 4 boxes, enable warmup, CREATE NO CAMPAIGNS.** Vendor-confirmed 30 Jul that warmup runs on campaign-free, externally-hosted mailboxes. | ~$37 | ⛔ blocked on ① — there are no boxes to connect yet |
+| ① | ✅ **DONE 4 Aug — 2 domains + 4 Google mailboxes, live.** `kindoutreach.com` + `trykind.org`, each with the full deliverability set (**MX · DKIM 2048 · SPF · DMARC**) in place *before* warmup started. 4 boxes: `jacques@` + `hello@` on each. ⚠️ **GoDaddy pre-seeds a `_dmarc` row** — adding ours alongside left one domain with **two, which means NO DMARC at all**; caught by counting rows. **EDIT that row on future domains, never add.** ⚠️ App Passwords saved for our engine (#600, step 7 pending). Free trial to **18 Aug**, then ~$28/mo. | ~$28 | ✅ **DONE** |
+| ② | ✅ **DONE 4 Aug — WARMUP IS RUNNING.** Growth bought (**not** HyperGrowth — that tier only buys a sending API our own engine replaces). All 4 boxes connected **by OAuth**, warmup ON, **zero campaigns**. Settings: +1/day · cap **25** (deliberately above Instantly's suggested 10 — see #198 for why) · reply 30% · weekdays-only · read-emulation on. ⚠️ OAuth needed a Workspace fix: **Security → API controls → trust Instantly's client ID**, org-level so it covered both domains. **CLOCK: 4 Aug → warm ~25 Aug.** | ~$37 | ✅ **DONE** |
 | ③ | **Apollo — for OUR hunting only** (PDL + Hunter stay the client-facing stack). | ~$65 | ✅ **CLOSED 3 Aug — Basic Monthly, $65/mo** |
 | ④ | **Founder-led outreach DURING the 3–4 week warmup** — 20 personal messages off the MBF demo. Fastest route to clients 1–3, costs nothing. | $0 | ❓ unknown |
 | ⑤ | **#553 first-send ladder on OUR boxes** when warm — test send lands in a real inbox, mail-tester ≥9/10, cap on, watched. **Then** flip `AUTO_OUTREACH_ENABLED`. | $0 | ⛔ blocked on ① |

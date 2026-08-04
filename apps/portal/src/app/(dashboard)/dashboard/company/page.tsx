@@ -67,7 +67,9 @@ interface Overview {
   can_manage: boolean
   seats: Seat[]
   pending_requests: CreditRequest[]
-  totals: { seats: number; active_seats: number; allocated: number; used: number; company_pool: number; pending_requests: number; total_leads?: number; total_deduped?: number; calendars_connected?: number }
+  // #616 — seat_cap and seats_used were RETURNED by /company/overview and undeclared here,
+  // so nothing could render them: the limit was enforced, invisible and unchangeable.
+  totals: { seats: number; active_seats: number; seat_cap?: number; seats_used?: number; allocated: number; used: number; company_pool: number; pending_requests: number; total_leads?: number; total_deduped?: number; calendars_connected?: number }
 }
 
 type Tab = 'command' | 'seats' | 'usage' | 'plays'

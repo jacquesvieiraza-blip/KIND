@@ -752,3 +752,4 @@ That + outbound + partners = the motion.
 - `portalv2preview.html` / `portal-v2-layout.md` — the 8 V2 cosmetic concepts
 - `SMOKE_TEST.md` — T1–T10 detail · `DEPLOY-CHECKLIST.md` — deploy steps · `legal.md` — legal pack
 - `MASTER_TODO.md` / `EVERYTHING.md` — **older/overlapping → fold into this tracker, then archive.**
+- **[4-Aug, #610] Multi-mailbox sending (4+ boxes/client):** blocked on the frozen schema (`client_inboxes_one_live_per_kind` + `kind` CHECK). The day migrations return: ONE migration widens the index, boxes 3+4 (already warm, App Passwords saved) plug in, rotation (built in Prompt 30) simply sees more boxes. Until then: 2 boxes + the cap ladder 30→50/day ≈ the modelled ~100/day.

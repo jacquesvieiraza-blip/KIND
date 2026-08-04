@@ -1,5 +1,6 @@
 export * from './types/index'
 export * from './constants/index'
+export * from './company-details'
 export * from './panel-state'
 export * from './client-honesty'
 export * from './notice'

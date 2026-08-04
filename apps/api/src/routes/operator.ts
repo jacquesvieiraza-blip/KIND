@@ -3627,6 +3627,91 @@ operatorRouter.post('/seed-data/wipe-client', async (req: Request, res: Response
   }
 })
 
+// ── #613 — WHAT THE BANK ACTUALLY RECEIVED ───────────────────────────────────────────────
+//
+// Every money figure in this console is the price we QUOTED. `routes/stripe.ts` writes
+// `amount` from the checkout metadata, and the subscription path writes a hardcoded constant —
+// nothing has ever read `balance_transaction`. So no number here reconciles to the bank, and
+// on a $299 sold in USD into a GBP account the gap is the card fee plus the currency
+// conversion: roughly £210–£213 arrives against a console that says $299.
+//
+// This route reads the OTHER number, live from Stripe, and puts the two side by side.
+// Read-only, no input but a limit, and it never writes.
+//
+// ⚠️ A FAILED READ IS `unknown`, NEVER `match`. If Stripe cannot be reached, the panel says so
+// — an unmeasured row rendered as reconciled is the calm-green-over-nothing failure this repo
+// has met four times (#565/#576/#581/#611).
+operatorRouter.get('/revenue/reconcile', async (req: Request, res: Response) => {
+  try {
+    const { listRecentSettlements } = await import('../lib/stripe')
+    const { majorUnits, reconcileVerdict } = await import('../lib/stripe-settlement')
+
+    const limit = Math.max(1, Math.min(50, Number(req.query.limit ?? 25) || 25))
+    const settlements = await listRecentSettlements(limit)
+    if (settlements === null) {
+      res.status(503).json({
+        success: false,
+        error: 'Stripe could not be read, so nothing was compared. This is NOT "everything reconciles" — it is "we could not look". Check STRIPE_SECRET_KEY and try again.',
+      })
+      return
+    }
+
+    const ids = settlements.map(x => x.sessionId)
+    const { data: rows, error } = ids.length > 0
+      ? await db.from('credit_transactions').select('reference, amount, type, note, created_at, client_id').in('reference', ids)
+      : { data: [], error: null }
+    if (error) { res.status(500).json({ success: false, error: `The ledger could not be read (${error.message}) — nothing was compared.` }); return }
+
+    const byRef = new Map((rows ?? []).map((r: Record<string, unknown>) => [String(r.reference), r]))
+    const out = settlements.map(s => {
+      const row = byRef.get(s.sessionId) as Record<string, unknown> | undefined
+      const cur = s.bt?.currency ?? null
+      const gross = s.bt ? majorUnits(s.bt.amount, cur) : null
+      const fee   = s.bt ? majorUnits(s.bt.fee, cur) : null
+      const net   = s.bt ? majorUnits(s.bt.net, cur) : null
+      const v = reconcileVerdict({
+        ledgerAmountUsd: row ? Number(row.amount) : null,
+        grossMajor: gross, netMajor: net, settlementCurrency: cur,
+      })
+      return {
+        session_id: s.sessionId,
+        created_at: s.created ? new Date(s.created * 1000).toISOString() : null,
+        paid_amount_usd: s.amountPaidMinor != null ? majorUnits(s.amountPaidMinor, s.currencyPaid) : null,
+        paid_currency: s.currencyPaid,
+        ledger_amount: row ? Number(row.amount) : null,
+        ledger_type: row ? String(row.type) : null,
+        in_ledger: !!row,
+        settlement_currency: cur,
+        gross, fee, net,
+        verdict: row ? v.verdict : 'unknown',
+        why: row ? v.why : 'This Stripe payment has no matching ledger row. Either it was a test, or a payment was taken and never recorded — read it.',
+      }
+    })
+
+    const counts = out.reduce((a, r) => { a[r.verdict] = (a[r.verdict] ?? 0) + 1; return a }, {} as Record<string, number>)
+    // Fees are only summable when they are all in one settlement currency; mixing GBP and USD
+    // into one total would be a number that means nothing.
+    const currencies = [...new Set(out.map(r => r.settlement_currency).filter(Boolean))]
+    const feeTotal = currencies.length === 1 ? out.reduce((a, r) => a + (r.fee ?? 0), 0) : null
+
+    res.json({
+      success: true,
+      data: {
+        rows: out,
+        counts,
+        fee_total: feeTotal,
+        fee_currency: currencies.length === 1 ? currencies[0] : null,
+        fee_note: currencies.length === 1 ? null : 'Payments settled in more than one currency, so the fees are not totalled — a mixed-currency sum would be a meaningless number.',
+        checked_at: new Date().toISOString(),
+        read_only: 'This endpoint only reads. Nothing was changed by loading it.',
+      },
+    })
+  } catch (err) {
+    console.error('[operator/revenue/reconcile]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not reconcile' })
+  }
+})
+
 operatorRouter.get('/schema-probe', async (_req: Request, res: Response) => {
   try {
     const {

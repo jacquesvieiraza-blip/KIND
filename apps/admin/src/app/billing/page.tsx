@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic'
 import { createClient } from '@supabase/supabase-js'
 import { Receipt, RotateCcw, CalendarClock, AlertTriangle } from 'lucide-react'
 import { getRevenueExclusions } from '../../lib/revenue-exclusions'
+import RevenueReconcile from '@/components/RevenueReconcile'
 
 /**
  * BILLING LEDGER (#295 invoices/receipts · #296 refunds · #297 renewals).
@@ -91,6 +92,9 @@ export default async function BillingPage() {
 
   return (
     <div className="px-8 py-6 max-w-6xl mx-auto space-y-6">
+      {/* #613 — the only figures on this page that come from the BANK rather than from our
+          own price table. Everything below is what we quoted; this is what arrived. */}
+      <RevenueReconcile />
       <div className="flex items-center gap-3">
         <Receipt className="w-6 h-6 text-[#7C3AED]" />
         <div>

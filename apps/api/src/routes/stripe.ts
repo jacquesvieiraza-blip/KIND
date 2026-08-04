@@ -13,6 +13,7 @@ import {
   constructWebhookEvent,
   getSessionMetaByPaymentIntent,
   getStripeSubscriptionPriceId,
+  annotateSettlement,
   STRIPE_SUBSCRIPTIONS,
   STRIPE_BUNDLES,
   type SubscriptionProduct,
@@ -498,6 +499,11 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           ]).catch(() => {})
         })().catch(e => console.error('[stripe] start-work failed (non-fatal):', e))
 
+        // #613 — STAMP WHAT THE BANK ACTUALLY RECEIVED. Runs AFTER the money is credited and
+        // after start-work is kicked, so a Stripe read failure costs an annotation and nothing
+        // else. `annotateSettlement` never throws; it returns false and logs.
+        await annotateSettlement(session.id)
+
         res.sendStatus(200); return
       } else if (meta.clientId && meta.credits && meta.creditType) {
         // Credit purchase
@@ -612,6 +618,10 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         // Fire-and-forget: a payout failure must never break the paid webhook.
         void payReferrerOnFirstPurchase(clientId).catch(err =>
           console.error('[Stripe] referral bonus payout failed (non-fatal):', err))
+
+        // #613 — the same settlement stamp on the credit-purchase path. LAST, after every
+        // money write has completed, so a Stripe read failure can cost nothing but a note.
+        await annotateSettlement(session.id)
       }
     }
 

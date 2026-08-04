@@ -1209,19 +1209,31 @@ operatorRouter.get('/engine', async (_req: Request, res: Response) => {
     // surface may show about it: "set · fingerprint a1b2c3d4". Enough to confirm one was
     // saved and to tell two apart; never enough to use.
     const { describeCipher, secretState } = await import('../lib/inbox-secret')
-    const { pickSendingInbox, refusalLabel } = await import('../lib/sending-inbox')
+    const { pickSendingInbox, refusalLabel, boxSendVerdict } = await import('../lib/sending-inbox')
+    const { warmupProgress } = await import('../lib/house-client')
     const secretOk = secretState().ok
 
     const rawRows = (inboxes.data ?? []) as Record<string, unknown>[]
+    const now = new Date()
     const rows: Record<string, unknown>[] = rawRows.map((i: Record<string, unknown>) => {
-      const ready = i.warmup_ready_at ? new Date(i.warmup_ready_at as string).getTime() : null
-      const started = i.warmup_started_at ? new Date(i.warmup_started_at as string).getTime() : null
-      let warmupDay: number | null = null
-      if (started) warmupDay = Math.max(0, Math.min(14, Math.round((Date.now() - started) / 864e5)))
+      // #611 — the fraction is DERIVED from this row's own dates. It used to clamp the day to
+      // a hardcoded 14 while the board wrote "/14" after it, so a 21-day Google box read
+      // "14/14 · ready" a week before its own ready date. See `warmupProgress`.
+      const warm = warmupProgress(
+        i.warmup_started_at as string | null,
+        i.warmup_ready_at as string | null,
+        now,
+      )
       const { smtp_pass_enc, ...safe } = i
+      // #611 — CAN THIS ONE MAILBOX SEND? Asked of the send path itself. The board used to
+      // answer a different question (`has_smtp`), which rendered a green "can send" on every
+      // warming box while `pickSendingInbox` refused all of them.
+      const verdict = boxSendVerdict(i as unknown as InboxRow, secretOk)
       return { ...safe, company_name: nameById.get(i.client_id as string) ?? null,
-        warmup_day: warmupDay, warmup_ready: ready ? Date.now() >= ready : null,
+        warmup_day: warm.day, warmup_days: warm.days, warmup_ready: warm.ready,
         smtp_secret: describeCipher(smtp_pass_enc as string | null),
+        can_send: verdict.canSend,
+        send_block: verdict.canSend ? null : verdict.label,
         has_smtp: Boolean(i.smtp_host && i.smtp_user && smtp_pass_enc) }
     })
 
@@ -3246,6 +3258,252 @@ operatorRouter.get('/house-audit', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('[house-audit]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'audit failed' })
+  }
+})
+
+// ── #611 PHASE B — THE ACTIONS THE FOUNDER RULED FOR ON 4 AUG ─────────────────────────────
+//
+// Phase A read and refused to act; its comment said any cleanup would be *"a separate,
+// deliberate piece of work"*. This is that work. All the judgement is in `cleanup-guards.ts`,
+// pure and tested; these routes do the reading, the writing and the logging around it.
+
+/**
+ * Resolve Client Zero the ONE permitted way, for the routes below.
+ *
+ * `decideHouseClient`, never a company-name match — `house-client.ts` is explicit that the
+ * name is *"A LABEL ONLY"*, and #584/#582 were both caused by matching on one. On a route that
+ * empties a wallet or refuses a delete, a second resolver that could disagree is the bug.
+ */
+async function resolveHouseClientId(): Promise<string | null> {
+  const { decideHouseClient } = await import('../lib/house-client')
+  const { resolveHouseUserIds } = await import('../lib/real-clients')
+  const houseUserIds = [...await resolveHouseUserIds()]
+  const { data } = await db.from('clients').select('id, user_id, company_name, is_demo')
+  const decision = decideHouseClient({
+    houseUserIds,
+    clients: (data ?? []) as { id: string; user_id: string | null; company_name: string | null; is_demo: boolean | null }[],
+  })
+  return decision.action === 'adopt' ? decision.clientId : null
+}
+
+/**
+ * ZERO THE HOUSE WALLET.
+ *
+ * The audit found `wallet_balance_usd = $3,999,038` on Client Zero against a ledger summing to
+ * **−$305** (trial_bonus $20 · usage −$525 · referral_bonus $100 · manual_grant $100). The
+ * balance is inherited test grants, and it is NOT cosmetic: once the onboarding pack is used,
+ * `approve-lead` spends the wallet, so real approvals on this account would draw on invented
+ * money and land in revenue figures.
+ *
+ * ⚠️ IT WRITES NO LEDGER ROW, AND THAT IS THE DESIGN. A `credit_transactions` entry for
+ * −$3,999,038 would be a fabricated event: no money ever moved, so recording a movement would
+ * put a lie in the one table that is supposed to be the audit trail. The balance column is
+ * CORRECTED; the history is left exactly as it is. The record that this happened is the
+ * `operator_audit_log` line, which is what that table is for.
+ */
+operatorRouter.post('/house-audit/zero-wallet', async (req: Request, res: Response) => {
+  try {
+    const { zeroWalletCheck } = await import('../lib/cleanup-guards')
+    const houseClientId = await resolveHouseClientId()
+    if (!houseClientId) {
+      res.status(404).json({ success: false, error: 'No house client is set up (or the login owns more than one). Press "Set up the house client" first — this endpoint will not guess which account is ours.' })
+      return
+    }
+
+    const { data: client, error: readErr } = await db.from('clients')
+      .select('id, company_name, wallet_balance_usd').eq('id', houseClientId).maybeSingle()
+    if (readErr || !client) {
+      res.status(500).json({ success: false, error: `Could not read the house account (${readErr?.message ?? 'no row'}) — refusing to write a balance without knowing the one it replaces.` })
+      return
+    }
+
+    const check = zeroWalletCheck({
+      houseClientId,
+      targetClientId: houseClientId,
+      balanceUsd: Number((client as { wallet_balance_usd: number | null }).wallet_balance_usd ?? 0),
+      typed: (req.body ?? {}).confirm,
+    })
+    if (!check.ok) { res.status(400).json({ success: false, error: check.why }); return }
+
+    // CHECKED, not swallowed (#349) — supabase-js returns `{ error }` rather than throwing, so
+    // an unchecked update here would report a zeroed wallet that is still $3,999,038.
+    const { error: wErr } = await db.from('clients')
+      .update({ wallet_balance_usd: 0 }).eq('id', houseClientId)
+    if (wErr) { res.status(500).json({ success: false, error: `The wallet was NOT zeroed: ${wErr.message}` }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: houseClientId, action: 'house_wallet_zeroed',
+      subjectType: 'client', subjectId: houseClientId,
+      detail: { from_usd: check.from, to_usd: 0, ledger_row_written: false },
+    })
+
+    res.json({
+      success: true,
+      data: {
+        client_id: houseClientId,
+        from_usd: check.from,
+        to_usd: 0,
+        note: 'The balance was corrected. NO ledger row was written — no money ever moved, and inventing a transaction would put a false event in the audit trail. This action is recorded in operator_audit_log.',
+      },
+    })
+  } catch (err) {
+    console.error('[house-audit/zero-wallet]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not zero the wallet' })
+  }
+})
+
+/**
+ * FUND THE HOUSE ACCOUNT — its hunting budget, through the mechanism that already exists.
+ *
+ * `manual_grant` is how a client is comped; it is already inside `PAID_TX_TYPES` for exactly
+ * that reason, and `house-client.ts` already uses it to entitle Client Zero to source. This
+ * adds the working budget on top rather than inventing a house-only money path.
+ *
+ * The amount is a CONSTANT, not a field on the request. An endpoint that takes an amount is a
+ * "give any client any money" surface; a constant is one reviewable decision (see
+ * `HOUSE_HUNTING_BUDGET_USD`).
+ */
+operatorRouter.post('/house-audit/grant', async (req: Request, res: Response) => {
+  try {
+    const { HOUSE_HUNTING_BUDGET_USD } = await import('../lib/cleanup-guards')
+    const houseClientId = await resolveHouseClientId()
+    if (!houseClientId) {
+      res.status(404).json({ success: false, error: 'No house client is set up. Press "Set up the house client" first.' })
+      return
+    }
+
+    const { error: gErr } = await db.from('credit_transactions').insert({
+      client_id: houseClientId, type: 'manual_grant', amount: HOUSE_HUNTING_BUDGET_USD,
+      note: `[house hunting budget — #611, granted from Vida ${new Date().toISOString()}]`,
+    })
+    if (gErr) { res.status(500).json({ success: false, error: `The grant did NOT go through: ${gErr.message}` }); return }
+
+    // The ledger row is the entitlement; the balance column is what `approve-lead` spends, so
+    // both have to move or the grant is invisible to the thing it exists for.
+    const { data: c } = await db.from('clients').select('wallet_balance_usd').eq('id', houseClientId).maybeSingle()
+    const before = Number((c as { wallet_balance_usd: number | null } | null)?.wallet_balance_usd ?? 0)
+    const after = before + HOUSE_HUNTING_BUDGET_USD
+    const { error: bErr } = await db.from('clients').update({ wallet_balance_usd: after }).eq('id', houseClientId)
+    if (bErr) {
+      res.status(500).json({ success: false, error: `The ledger row was written but the balance was NOT updated (${bErr.message}). Do not press this again — the grant is recorded; fix the balance instead.` })
+      return
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: houseClientId, action: 'house_wallet_granted',
+      subjectType: 'client', subjectId: houseClientId,
+      detail: { amount_usd: HOUSE_HUNTING_BUDGET_USD, from_usd: before, to_usd: after },
+    })
+
+    res.json({ success: true, data: { client_id: houseClientId, granted_usd: HOUSE_HUNTING_BUDGET_USD, from_usd: before, to_usd: after } })
+  } catch (err) {
+    console.error('[house-audit/grant]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not grant the budget' })
+  }
+})
+
+/**
+ * DELETE A TEST CLIENT — rows and all.
+ *
+ * ⚠️ THE FIRST DELETE OF A NON-DEMO CLIENT ROW IN THE PRODUCT. `purgeDemoClient` deletes
+ * clients today and refuses anything not flagged `is_demo` — its comment calls that check
+ * *"the whole safety of this function"*. Stripe Test and ACME are not demo rows, so that guard
+ * cannot be reused and a new one has to be at least as strong. There are four:
+ *
+ *   ① the classification from `seed-wipe.ts`, IMPORTED not re-implemented — real money outranks
+ *     every label, then real leads, then the house account, then the demo;
+ *   ② an explicit id refusal for the house account, which survives the classifier being fooled;
+ *   ③ an explicit id refusal for every `is_demo` row;
+ *   ④ the client's own company name, typed.
+ *
+ * And a fifth that is structural: the house account must RESOLVE before anything is deleted.
+ * If we cannot say which row is Client Zero, we are not in a position to delete anything.
+ */
+operatorRouter.post('/seed-data/wipe-client', async (req: Request, res: Response) => {
+  try {
+    const { classify } = await import('../lib/seed-wipe')
+    const { wipeClientCheck } = await import('../lib/cleanup-guards')
+    const { resolveHouseUserIds, HOUSE_ACCOUNT_EMAIL } = await import('../lib/real-clients')
+    const { PURCHASE_TX_TYPES } = await import('../lib/onboarding-pack')
+    const { wipeMbf } = await import('../lib/demo-mbf')
+
+    const clientId = String((req.body ?? {}).client_id ?? '').trim()
+    if (!clientId) { res.status(400).json({ success: false, error: 'client_id is required.' }); return }
+
+    const houseClientId = await resolveHouseClientId()
+    if (!houseClientId) {
+      res.status(409).json({ success: false, error: 'The house account could not be resolved, so nothing may be deleted. If we cannot say which row is Client Zero, we are not in a position to delete another one — set up the house client first.' })
+      return
+    }
+
+    const { data: client, error: cErr } = await db.from('clients')
+      .select('id, company_name, is_demo, user_id').eq('id', clientId).maybeSingle()
+    if (cErr || !client) { res.status(404).json({ success: false, error: `No such client (${cErr?.message ?? 'not found'}).` }); return }
+    const row = client as { id: string; company_name: string | null; is_demo: boolean | null; user_id: string | null }
+
+    // The SAME two facts `/seed-report` gathers, gathered the same way. A purchase-type ledger
+    // row carrying a provider reference is real money; a `manual_grant` is not, which is why a
+    // founder-granted credit cannot make a test account undeletable.
+    const houseIds = await resolveHouseUserIds()
+    const { count: paid } = await db.from('credit_transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).in('type', PURCHASE_TX_TYPES).not('reference', 'is', null)
+    const { count: realLeads } = await db.from('leads')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId).not('email', 'is', null).not('email', 'like', '%.invalid')
+
+    const classification = classify({
+      id: row.id,
+      company_name: row.company_name,
+      is_demo: row.is_demo,
+      email: row.user_id && houseIds.has(row.user_id) ? HOUSE_ACCOUNT_EMAIL : null,
+      realPayments: paid ?? 0,
+      realLeads: realLeads ?? 0,
+    }, new Set([HOUSE_ACCOUNT_EMAIL]))
+
+    const { data: demoRows } = await db.from('clients').select('id').eq('is_demo', true)
+    const check = wipeClientCheck({
+      classification,
+      houseClientId,
+      demoClientIds: ((demoRows ?? []) as { id: string }[]).map(d => d.id),
+      typedCompanyName: (req.body ?? {}).confirm_company_name,
+    })
+    if (!check.ok) { res.status(400).json({ success: false, error: check.why, classification }); return }
+
+    // ── PAST THE GUARDS. Everything below destroys data. ──────────────────────────────────
+    //
+    // `wipeMbf` is IMPORTED rather than re-listed. It already deletes every table a client owns
+    // in child-first order, and it is the list `purgeDemoClient` uses — a second copy here
+    // would silently fall behind the day a table is added, and the row it missed would be an
+    // orphan pointing at a client that no longer exists.
+    await wipeMbf(clientId)
+    for (const t of ['figsy_memory', 'client_inboxes', 'subscriptions', 'push_subscriptions', 'milla_messages', 'milla_sessions', 'operator_audit_log']) {
+      await db.from(t).delete().eq('client_id', clientId).then(() => {}, () => {})
+    }
+    const { error: dErr } = await db.from('clients').delete().eq('id', clientId)
+    if (dErr) { res.status(500).json({ success: false, error: `The owned rows were deleted but the client row was not: ${dErr.message}` }); return }
+
+    // The login goes too, so a deleted test account cannot be signed into and re-create itself
+    // — signing in to the portal mints a client row, which is how a "deleted" account comes back.
+    if (row.user_id) await db.auth.admin.deleteUser(row.user_id).then(() => {}, () => {})
+
+    // ⚠️ WRITTEN AFTER the wipe, and deliberately NOT scoped to the deleted client — the loop
+    // above clears `operator_audit_log` for that client_id, so a line written before the delete
+    // would delete itself. `client_id: null` keeps the record of the deletion alive.
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: 'seed_client_wiped',
+      subjectType: 'client', subjectId: clientId,
+      detail: {
+        company_name: row.company_name, disposition: classification.disposition,
+        reason: classification.reason, real_payments: paid ?? 0, real_leads: realLeads ?? 0,
+        auth_user_deleted: Boolean(row.user_id),
+      },
+    })
+
+    res.json({ success: true, data: { client_id: clientId, company_name: row.company_name, deleted: true } })
+  } catch (err) {
+    console.error('[seed-data/wipe-client]', err)
+    res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Could not remove the client' })
   }
 })
 

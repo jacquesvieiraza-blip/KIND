@@ -6,12 +6,16 @@
 // ~25 Aug real prospecting flows into it. There is no SQL access, so nobody could look — this
 // panel IS the looking. It reads and judges; the founder rules.
 //
-// ⚠️ NOTHING HERE WRITES. There is deliberately no button that acts on a finding: the whole
-// point of #611's Phase A is that the founder decides line by line first, and Phase B is a
-// separate PR built against those rulings. A "clean it up" button on this panel would make the
-// audit and the action one click apart, which is how the wrong row gets deleted at 11pm.
+// ⚠️ IT DOES NOT RUN ITSELF. This shipped with `useEffect(() => { void run() }, [run])`, so
+// opening Engine filled four screens with audit findings and the founder's reply was *"i didnt
+// run anything"* — correctly, because he hadn't. An audit that runs on page load makes "what
+// does it say" and "it has been run" the same event. The button is the only trigger.
+//
+// PHASE B — the two write actions below are the rulings the founder gave on 4 Aug, and they are
+// deliberately behind their own typed confirmation rather than a click. Phase A's rule still
+// holds for everything else: no button acts on a finding until it has been ruled on.
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useState } from 'react'
 
 type Verdict = 'REAL' | 'DEBRIS' | 'REVIEW'
 type Row = { what: string; value: string; verdict: Verdict; action: string; why: string }
@@ -19,7 +23,13 @@ type Cold = {
   exempt: boolean; daysIdle: number | null; hasActiveCampaign: boolean
   wouldPauseToday: boolean; wouldPauseOnceCampaignActive: boolean
 }
-type Audit = { headline: string; rows: Row[]; cold: Cold; client_id: string }
+type Audit = {
+  headline: string; rows: Row[]; cold: Cold; client_id: string
+  facts?: { walletBalanceUsd?: number }
+}
+
+const ZERO_PHRASE = 'ZERO THE HOUSE WALLET'
+const money = (n: number) => '$' + Math.round(n).toLocaleString()
 
 const TONE: Record<Verdict, string> = {
   REAL:   'bg-emerald-50 border-emerald-200 text-emerald-900',
@@ -31,6 +41,9 @@ export default function HouseAudit() {
   const [data, setData] = useState<Audit | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [typed, setTyped] = useState('')
+  const [actMsg, setActMsg] = useState<string | null>(null)
+  const [actErr, setActErr] = useState<string | null>(null)
 
   const run = useCallback(async () => {
     setBusy(true); setError(null)
@@ -50,16 +63,44 @@ export default function HouseAudit() {
     } finally { setBusy(false) }
   }, [])
 
-  useEffect(() => { void run() }, [run])
+  // Phase B. `act` is the ONE path both writes go through, so neither can quietly skip the
+  // re-read afterwards — a panel that acts and then shows its pre-action state is how you press
+  // a button twice.
+  const act = useCallback(async (path: string, body: Record<string, unknown>) => {
+    setBusy(true); setActErr(null); setActMsg(null)
+    try {
+      const r = await fetch(`/api/proxy/operator/${path}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+      })
+      const j = await r.json()
+      if (!j?.success) { setActErr(j?.error || `That did not go through (${r.status}).`); return false }
+      return true
+    } catch (e) {
+      setActErr(e instanceof Error ? e.message : 'That did not go through.')
+      return false
+    } finally { setBusy(false) }
+  }, [])
+
+  const zero = useCallback(async () => {
+    const ok = await act('house-audit/zero-wallet', { confirm: typed })
+    if (ok) { setTyped(''); setActMsg(`Wallet set to $0. No ledger row was written — no money ever moved, so inventing a transaction would put a false event in the audit trail.`); await run() }
+  }, [act, typed, run])
+
+  const grant = useCallback(async () => {
+    const ok = await act('house-audit/grant', {})
+    if (ok) { setActMsg('Granted $4,000 as a manual_grant — the same comp mechanism the house account is already entitled through.'); await run() }
+  }, [act, run])
+
+  const wallet = data?.facts?.walletBalanceUsd
 
   return (
     <div className="bg-white rounded-xl border border-[#ece5fb] p-4 mt-4">
       <b className="text-[13px] text-[#1f1235] block">House-account audit (#611)</b>
       <p className="text-[11.5px] text-[#5c5279] mt-0.5 leading-relaxed">
         What is actually inside Client Zero, and which of it is left over from testing. Client Zero was
-        <b> adopted</b> from an existing account, so it inherited that account&apos;s history. <b>This panel only reads</b> —
-        there is no button here that changes anything, on purpose: you rule on the rows first, and any cleanup
-        is a separate, deliberate piece of work.
+        <b> adopted</b> from an existing account, so it inherited that account&apos;s history. <b>Reading is read-only</b>,
+        and it does not run until you press the button. The only things on this panel that write are the two
+        wallet controls at the bottom, each behind its own typed confirmation.
       </p>
 
       <button onClick={run} disabled={busy}
@@ -111,9 +152,54 @@ export default function HouseAudit() {
             ))}
           </div>
 
+          {/* ── PHASE B: THE WALLET ──────────────────────────────────────────────────────
+              Its own bordered box, below the findings and visually separate from them, because
+              this is the only part of the panel that writes. */}
+          <div className="mt-4 border-t border-[#ece5fb] pt-3">
+            <b className="text-[12.5px] text-[#1f1235] block">Correct the wallet</b>
+            <p className="text-[11.5px] text-[#5c5279] mt-0.5 leading-relaxed">
+              The balance is inherited test grants. It is <b>not cosmetic</b>: once the onboarding pack is used,
+              approvals spend the wallet, so real approvals here would draw on invented money and land in the
+              revenue figures. Zeroing writes <b>no ledger row</b> — no money ever moved, and recording a
+              movement would put a false event in the one table that is the audit trail.
+            </p>
+
+            {wallet != null && (
+              <p className="text-[11.5px] text-[#5c5279] mt-1.5">
+                Balance now: <b className="font-mono">{money(wallet)}</b>
+              </p>
+            )}
+
+            <div className="flex items-center gap-2 flex-wrap mt-2">
+              <input value={typed} onChange={e => setTyped(e.target.value)} placeholder={ZERO_PHRASE}
+                className="text-[12px] font-mono border border-[#e4dcf7] rounded-lg px-2.5 py-1.5 w-[280px] max-w-full" />
+              <button onClick={zero} disabled={busy || typed.trim() !== ZERO_PHRASE}
+                className="bg-red-700 hover:bg-red-800 text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-40">
+                Zero the wallet
+              </button>
+              <button onClick={grant} disabled={busy}
+                className="text-[12.5px] font-bold text-[#1f1235] border border-[#e4dcf7] rounded-lg px-3 py-2 hover:bg-[#f7f4fd] disabled:opacity-50">
+                Grant $4,000 (hunting budget)
+              </button>
+            </div>
+            <p className="text-[11px] text-[#8579a8] mt-1.5 leading-relaxed">
+              Type the phrase exactly to enable the button. The $4,000 is the working budget: approvals draw the
+              onboarding pack first (100 included) and the wallet after it, so this is what stops the account
+              stalling part-way through its own ~1,000 leads. It goes on as a <code className="px-1 bg-[#f8f6fd] rounded">manual_grant</code> —
+              the same comp mechanism Client Zero is already entitled through.
+            </p>
+
+            {actErr && (
+              <p className="text-[11.5px] font-semibold text-red-700 mt-2 leading-relaxed">{actErr}</p>
+            )}
+            {actMsg && !actErr && (
+              <p className="text-[11.5px] font-semibold text-emerald-800 mt-2 leading-relaxed">{actMsg}</p>
+            )}
+          </div>
+
           <p className="text-[11px] text-[#8579a8] mt-3 leading-relaxed">
             Client <code className="px-1 bg-[#f8f6fd] rounded border border-[#ece5fb]">{data.client_id}</code> ·
-            nothing on this screen has been changed by reading it.
+            reading this panel changes nothing; only the two buttons above write.
           </p>
         </div>
       )}

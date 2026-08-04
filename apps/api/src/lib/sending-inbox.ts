@@ -150,6 +150,30 @@ function rank(r: InboxRow): number {
   return (String(r.status) === 'active' ? 0 : 1) * 10 + (String(r.kind) === 'branded' ? 0 : 1)
 }
 
+/**
+ * CAN **THIS ONE MAILBOX** SEND? — the question the Engine board was answering wrongly.
+ *
+ * The board's chip read `has_smtp ? 'can send' : 'no SMTP details'`, which is **status-blind**:
+ * a `warming` branded box with credentials saved rendered a green *"can send"* while
+ * `pickSendingInbox` refuses it outright, because *sending on a warming mailbox is what
+ * un-warms it*. So the one screen the founder checks before send-day said the opposite of what
+ * the send path would do — the #565/#576 shape again, a calm colour over an untested claim.
+ *
+ * ⚠️ IT DELEGATES RATHER THAN RE-DERIVING. A single row IS a client with one mailbox, so
+ * `pickSendingInbox([row])` is already the exact verdict — asking it keeps ONE rulebook. A
+ * second copy of "warming may not send" in a UI helper is how the board and the sender start
+ * disagreeing without anything failing.
+ */
+export type BoxVerdict =
+  | { canSend: true }
+  | { canSend: false; reason: RefusalReason; label: string }
+
+export function boxSendVerdict(row: InboxRow, secretOk: boolean): BoxVerdict {
+  const r = pickSendingInbox([row], secretOk)
+  if (r.ok) return { canSend: true }
+  return { canSend: false, reason: r.reason, label: refusalLabel(r.reason) }
+}
+
 export function pickSendingInbox(rows: InboxRow[], secretOk: boolean): Resolution {
   const live = (rows ?? []).filter(r => r && LIVE_STATUSES.has(String(r.status)))
   if (live.length === 0) {

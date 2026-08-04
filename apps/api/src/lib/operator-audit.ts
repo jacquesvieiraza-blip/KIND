@@ -48,6 +48,17 @@ export type OperatorAction =
   | 'import_leads'          // #549 — operator loaded a CSV of prospects onto a client. NO money:
                             // imported leads land 'pending' exactly as sourced ones do, and the
                             // charge still happens only at approve.
+  | 'house_wallet_zeroed'   // #611 — set the house wallet to 0 after the audit found $3,999,038
+                            // of inherited test grants. NO ledger row is written: the balance is
+                            // corrected, the history is not rewritten, and this log line is the
+                            // only record that the correction happened.
+  | 'house_wallet_granted'  // #611 — comped the house account its hunting budget via manual_grant.
+                            // Separate from the zero because "we emptied it" and "we funded it"
+                            // are different events, and a log that blurs them is the one that
+                            // stops you looking (#564).
+  | 'seed_client_wiped'     // #611/#329 — DELETED a test client and every row it owned. The first
+                            // delete of a non-demo client row in the product. Its own action, and
+                            // deliberately past tense: by the time this is written it is done.
   | 'import_leads_failed'   // the same action when the write stopped partway. Recorded as its OWN
                             // action rather than a flag on the success row, because "we imported"
                             // and "we imported 340 of 900 and stopped" are different events, and

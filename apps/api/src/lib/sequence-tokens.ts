@@ -69,6 +69,29 @@ export function fillTokens(text: string, lead: TokenLead, sender?: TokenSender):
 }
 
 /**
+ * Which tokens say something about THE PROSPECT, as opposed to about us.
+ *
+ * #612 needs this distinction and it is not a detail: `{{sender_name}}` and
+ * `{{sender_company}}` are also merge tokens, but an email that opens *"I'm Jacques from
+ * K.I.N.D"* is **not personalised to the person reading it** — it is personalised to the
+ * person sending it, which is the opposite. Only the four lead-backed tokens count.
+ *
+ * Derived from LEAD_TOKENS above rather than re-listed, so adding a lead token here makes it
+ * count as personalisation everywhere at once.
+ */
+export const PROSPECT_TOKEN_NAMES: string[] = LEAD_TOKENS.map(([field]) => String(field))
+
+/** Does this text address the PROSPECT by one of their own details? */
+export function hasProspectToken(text: string): boolean {
+  const re = /\{\{\s*([a-z_]+)\s*\}\}/gi
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    if (PROSPECT_TOKEN_NAMES.includes(m[1].toLowerCase())) return true
+  }
+  return false
+}
+
+/**
  * Running day-count for a step list: step 1 is day 0, and each later step adds its own
  * wait. Used by both the operator preview and the client's read-only view so "day 4" means
  * the same thing in both.

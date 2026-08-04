@@ -9,6 +9,7 @@ import { bookingUrlForLead } from '../lib/booking-token'
 import { canEnroll } from '../lib/billing-rules'
 import { isDemoClient } from '../lib/demo'
 import { buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailSteps, MAX_SEQUENCE_STEPS, type SequenceStep } from '../lib/sequence-apply'
+import { enrolDraftGate } from '../lib/sequence-quality'
 import { logOutcomeEvent } from '../lib/outcomes'
 import { verifyUnsubscribeToken, warmupRampCap, spamScore } from '../lib/deliverability'
 import { emitSignal } from './signals'
@@ -36,6 +37,14 @@ const TRANSPARENT_GIF = Buffer.from(
   'R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==',
   'base64'
 )
+
+// #612 Part B — a skip must SAY WHY. "3 skipped" with no cause reads as a data problem and
+// sends the reader hunting in the wrong place; `copy_rejected:no_opt_out` sends them to the
+// sequence. Counted by reason so one bad template does not look like thirty separate faults.
+function noteSkip(into: Record<string, number>, reason: string): void {
+  into[reason] = (into[reason] ?? 0) + 1
+}
+
 figsyRouter.get('/track/open/:emailId', async (req, res) => {
   res.set('Content-Type', 'image/gif')
   res.set('Cache-Control', 'no-cache, no-store, must-revalidate')
@@ -503,6 +512,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
 
     let enrolled = 0
     let skipped  = 0
+    const skipReasons: Record<string, number> = {}
     let insufficientCredits = false
 
     for (const lead of leads ?? []) {
@@ -521,13 +531,43 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
 
       let didCharge = false
       try {
-        const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrlForLead(client, lead.id, clientId), senderName, clientKnowledge)
+        const bookingUrl = bookingUrlForLead(client, lead.id, clientId)
+        let draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
 
         // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
-        const fullSteps = appliedSequence
+        let fullSteps = appliedSequence
           ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
           : draftToSteps(draft)
+
+        // ⚠️ #612 PART B — THE COPY THAT ACTUALLY SENDS IS GATED HERE, BEFORE THE CHARGE.
+        //
+        // Part A gated templates and the drafts an operator reads. It did not gate THIS: with no
+        // applied sequence, `generateSequence` writes fresh copy per lead and it went straight
+        // onto the enrollment, which is the row the send loop emails from. A gate that covers
+        // every path except the one that sends is not a gate.
+        //
+        // BEFORE `chargeFigsyEnroll` on purpose. #332's "charge first" means the charge gates the
+        // ENROL; it was never a reason to take a credit for a lead we are about to refuse. A
+        // charge-then-refuse would be correct-looking money that churns the ledger for nothing.
+        //
+        // ONE retry, then skip. The draft is non-deterministic, so a second attempt is worth
+        // having; a loop is not — it would burn AI spend per lead with no bound. A skip here is
+        // NAMED in `skipReasons`, never silent: "3 skipped" with no cause is the reading that
+        // sends somebody hunting a bug in the wrong place.
+        if (!appliedSequence) {
+          let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+          if (!verdict.allow) {
+            draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
+            fullSteps = draftToSteps(draft)
+            verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+          }
+          if (!verdict.allow) {
+            noteSkip(skipReasons, verdict.reason)
+            skipped++
+            continue
+          }
+        }
 
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
         // failure means the balance is gone — stop enrolling further leads. (F1) didCharge is
@@ -575,7 +615,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         .eq('id', campaign.id)
     }
 
-    res.json({ success: true, data: { enrolled, skipped, insufficient_credits: insufficientCredits } })
+    res.json({ success: true, data: { enrolled, skipped, skip_reasons: skipReasons, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[figsy/webhook/enrol]', err)
@@ -1529,6 +1569,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
 
     let enrolled = 0
     let skipped  = 0
+    const skipReasons: Record<string, number> = {}
     let insufficientCredits = false
 
     for (const lead of leads ?? []) {
@@ -1546,14 +1587,43 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
 
       let didCharge = false
       try {
-        // Item 187 — applied sequence's literal copy if present, else AI-generated.
-        const draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
-          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrlForLead(client, lead.id, clientId), senderName, clientKnowledge)
+        const bookingUrl = bookingUrlForLead(client, lead.id, clientId)
+        let draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
+          || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
 
         // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
-        const fullSteps = appliedSequence
+        let fullSteps = appliedSequence
           ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
           : draftToSteps(draft)
+
+        // ⚠️ #612 PART B — THE COPY THAT ACTUALLY SENDS IS GATED HERE, BEFORE THE CHARGE.
+        //
+        // Part A gated templates and the drafts an operator reads. It did not gate THIS: with no
+        // applied sequence, `generateSequence` writes fresh copy per lead and it went straight
+        // onto the enrollment, which is the row the send loop emails from. A gate that covers
+        // every path except the one that sends is not a gate.
+        //
+        // BEFORE `chargeFigsyEnroll` on purpose. #332's "charge first" means the charge gates the
+        // ENROL; it was never a reason to take a credit for a lead we are about to refuse. A
+        // charge-then-refuse would be correct-looking money that churns the ledger for nothing.
+        //
+        // ONE retry, then skip. The draft is non-deterministic, so a second attempt is worth
+        // having; a loop is not — it would burn AI spend per lead with no bound. A skip here is
+        // NAMED in `skipReasons`, never silent: "3 skipped" with no cause is the reading that
+        // sends somebody hunting a bug in the wrong place.
+        if (!appliedSequence) {
+          let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+          if (!verdict.allow) {
+            draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
+            fullSteps = draftToSteps(draft)
+            verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+          }
+          if (!verdict.allow) {
+            noteSkip(skipReasons, verdict.reason)
+            skipped++
+            continue
+          }
+        }
 
         // #332 — charge FIRST (the charge is the real gate). A mid-batch charge
         // failure means the balance is gone — stop enrolling further leads. (F1) didCharge is
@@ -1601,7 +1671,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         .eq('id', campaign.id)
     }
 
-    res.json({ success: true, data: { enrolled, skipped, insufficient_credits: insufficientCredits } })
+    res.json({ success: true, data: { enrolled, skipped, skip_reasons: skipReasons, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to enroll leads' })

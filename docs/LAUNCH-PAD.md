@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷251 · 🟣2 · 🟡64 · 🔴173 · ⏸5 · **Σ590** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷251 · 🟣2 · 🟡66 · 🔴173 · ⏸5 · **Σ592** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -66,13 +66,13 @@
 
 | # | Where it actually stands, in the code | Disposition |
 |---|---|---|
-| #547 | **BUILT.** The shared `const FROM = COLD_FROM` is gone — the sender resolves per client from `client_inboxes` (`lib/sending-inbox.ts`) and goes out over that mailbox's SMTP (`lib/mailer.ts`). A client with no mailbox **does not send**, with deliberately nothing to fall back to. | ✅ **superseded as a build** · proof rides **A14** send-day |
-| #551 | **BUILT.** `lib/smartlead-inbound.ts` + its route feed replies from a client's own mailbox into the unibox, routed on the **receiving mailbox** — `routes/smartlead-inbound.route.test.ts` pins the case that matters: two clients emailing the same prospect must never see each other's replies. | ✅ **superseded as a build** · proof rides **A18** |
-| #552 | **BUILT.** `sendReadiness()` (`lib/start-work.ts`) backs the Vida **"Cannot send"** panel, and the reason is never assumed to be "no mailbox". | ✅ **superseded as a build** |
-| #600 | **BUILT.** Client Zero is set up entirely from Vida — add a mailbox to any client any number of times, adopt the house account rather than minting a second (#584), send-readiness per client. No SQL anywhere. | ✅ **superseded as a build** |
-| #599 | **BUILT, NEVER RUN.** `POST /operator/import-leads` exists with two test files, and it has **never been pointed at a real Apollo export**. It is the only door Client Zero's list comes through. Press **Check the file** before **Import** — it writes nothing and names every column it read. | 🟠 **still open — as a PROOF**, not a build · 🧍 · before Client Zero sources |
-| #550 | **BUILT, UNPROVEN, PARKED ON PURPOSE.** `smartlead.ts` has the full campaign/sequence/lead API and `smartlead-send.ts` pushes an approved lead — but the key returns **401** and nothing has run against a live workspace. Parked until a client is actually in the works, which is the right call: it buys nothing before then. | ⚪ **still open, deliberately parked** · 🤝 · when a client signs |
-| #549 | **GENUINELY NOT DONE — and it is 🔴 for a real reason.** `instantly-push.ts` exists but is gated on `HOUSE_CLIENT_ID`, which **stays unset** (#593), and the vendor question underneath is unresolved: `lib/instantly.ts` reports API v2 needs Growth-or-above *from Instantly's own 402 body*, while Instantly's published plan table lists **API: No** on Growth — the tier the founder bought. **Running our own outreach inside the product may not be buyable at this tier at all.** | ⚪ **still open · UNCERTAIN — needs the founder** (see the PR body) |
+| #547 🟡 | **BUILT.** The shared `const FROM = COLD_FROM` is gone — the sender resolves per client from `client_inboxes` (`lib/sending-inbox.ts`) and goes out over that mailbox's SMTP (`lib/mailer.ts`). A client with no mailbox **does not send**, with deliberately nothing to fall back to. | ✅ **superseded as a build** · proof rides **A14** send-day |
+| #551 🟡 | **BUILT.** `lib/smartlead-inbound.ts` + its route feed replies from a client's own mailbox into the unibox, routed on the **receiving mailbox** — `routes/smartlead-inbound.route.test.ts` pins the case that matters: two clients emailing the same prospect must never see each other's replies. | ✅ **superseded as a build** · proof rides **A18** |
+| #552 🟡 | **BUILT.** `sendReadiness()` (`lib/start-work.ts`) backs the Vida **"Cannot send"** panel, and the reason is never assumed to be "no mailbox". | ✅ **superseded as a build** |
+| #600 🟡 | **BUILT.** Client Zero is set up entirely from Vida — add a mailbox to any client any number of times, adopt the house account rather than minting a second (#584), send-readiness per client. No SQL anywhere. | ✅ **superseded as a build** |
+| #599 🟡 | **BUILT, NEVER RUN.** `POST /operator/import-leads` exists with two test files, and it has **never been pointed at a real Apollo export**. It is the only door Client Zero's list comes through. Press **Check the file** before **Import** — it writes nothing and names every column it read. | 🟠 **still open — as a PROOF**, not a build · 🧍 · before Client Zero sources |
+| #550 🟡 | **BUILT, UNPROVEN, PARKED ON PURPOSE.** `smartlead.ts` has the full campaign/sequence/lead API and `smartlead-send.ts` pushes an approved lead — but the key returns **401** and nothing has run against a live workspace. Parked until a client is actually in the works, which is the right call: it buys nothing before then. | ⚪ **still open, deliberately parked** · 🤝 · when a client signs |
+| #549 🔴 | **GENUINELY NOT DONE — and it is 🔴 for a real reason.** `instantly-push.ts` exists but is gated on `HOUSE_CLIENT_ID`, which **stays unset** (#593), and the vendor question underneath is unresolved: `lib/instantly.ts` reports API v2 needs Growth-or-above *from Instantly's own 402 body*, while Instantly's published plan table lists **API: No** on Growth — the tier the founder bought. **Running our own outreach inside the product may not be buyable at this tier at all.** | ⚪ **still open · UNCERTAIN — needs the founder** (see the PR body) |
 
 ### ⚪ NOT LAUNCH-CRITICAL — dated so nothing goes missing
 

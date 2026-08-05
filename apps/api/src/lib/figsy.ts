@@ -241,7 +241,7 @@ Write a 3-email sequence:
 Step 1 (Day 0) — First touch:
 - MANDATORY: Open with a specific observation using the personalization signal provided above. If they use Salesforce, reference it. If they're in fintech, reference it. Make them feel like you actually looked them up — because we did.
 - One sentence on what ${senderCompanyName} does and why it matters to them specifically.
-- One soft CTA: ${bookingUrl ? `invite them to grab a 15-minute slot and include this exact booking link on its own line: ${bookingUrl}` : 'quick call, 15 minutes.'}
+- One soft, INTEREST-BASED CTA: ask whether it is worth a look, or whether this is already handled. NO LINK, NO ATTACHMENT AND NO BOOKING ASK in this email — a link to a stranger costs deliverability, and "book 15 minutes" is too large an ask from someone who has never heard of you. The booking link goes in the REPLY, once they have raised their hand. (Founder-ruled 5 Aug, Option A.)
 - Max 70 words. No subject line tricks. Subject should feel like a colleague's email.
 
 Step 2 (Day 4) — Follow-up:
@@ -1495,7 +1495,7 @@ ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(',
 
 Write a 3-email sequence that applies the lessons from Campaign Intelligence above.
 
-Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. ${bookingUrl ? `CTA: invite them to book a 15-min slot and include this exact link on its own line: ${bookingUrl}` : 'One soft CTA (quick 15-min call).'}
+Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. One soft, INTEREST-BASED CTA — ask if it is worth a look or if this is already handled. NO LINK, NO ATTACHMENT AND NO BOOKING ASK in this email (founder-ruled 5 Aug): the link goes in the reply, once they have raised their hand.
 Step 2 (Day 4): Follow-up — new angle, shorter. Acknowledge step 1 was sent.
 Step 3 (Day 9): Final — direct, no pressure, leave it open.${bookingUrl ? ` Include the booking link once more: ${bookingUrl}` : ''}
 

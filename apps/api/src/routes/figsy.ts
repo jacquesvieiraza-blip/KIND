@@ -556,11 +556,11 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         // NAMED in `skipReasons`, never silent: "3 skipped" with no cause is the reading that
         // sends somebody hunting a bug in the wrong place.
         if (!appliedSequence) {
-          let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+          let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, isDemo })
           if (!verdict.allow) {
             draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
             fullSteps = draftToSteps(draft)
-            verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+            verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, isDemo })
           }
           if (!verdict.allow) {
             noteSkip(skipReasons, verdict.reason)
@@ -1612,11 +1612,11 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         // NAMED in `skipReasons`, never silent: "3 skipped" with no cause is the reading that
         // sends somebody hunting a bug in the wrong place.
         if (!appliedSequence) {
-          let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+          let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, isDemo })
           if (!verdict.allow) {
             draft = await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
             fullSteps = draftToSteps(draft)
-            verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, bookingUrl, isDemo })
+            verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, isDemo })
           }
           if (!verdict.allow) {
             noteSkip(skipReasons, verdict.reason)

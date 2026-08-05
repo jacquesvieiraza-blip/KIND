@@ -341,44 +341,89 @@ describe('the gate is CALLED, not merely available', () => {
 // shipped PR, not by anything going red: a green gate said nothing about the enrol path.
 
 describe('rendered mode — the trap that would have skipped every single lead', () => {
-  // `generateSequence` writes copy against ONE real person, so there are no {{tokens}} left,
-  // and our own system prompt tells it to put the booking link in step 1. Judged by the
-  // TEMPLATE rules, every draft the product writes fails on both — 100% of leads skipped, and
-  // reported as a copy problem. This block is the proof that does not happen.
+  // `generateSequence` writes copy against ONE real person, so there are no {{tokens}} left.
+  // Judged by the TEMPLATE rules, every draft the product writes fails on `no_personalisation`
+  // — 100% of leads skipped, reported as a copy problem. This block is the proof that does not
+  // happen.
+  //
+  // ⚠️ THE FIXTURE MOVED ON 5 AUG, AND WHY MATTERS. It used to carry the booking link in STEP 1,
+  // because our own prompt ordered one there and the linter exempted it. The founder ruled the
+  // other way (Option A): the prompt stopped asking, the exemption is gone, and a booking link
+  // in a first touch is now an ordinary hard fail. So the link moved to step 2 — the fixture has
+  // to stay a genuinely GOOD example of what the product writes, not a historical one.
   const BOOKING = 'https://cal.kind.com/b/abc123'
   const LEAD = { first_name: 'Sarah', last_name: 'Nkosi', job_title: 'Head of Ops', company: 'Rivo' }
 
   const realDraft: QualityStep[] = [
     { subject: 'Rivo + hiring ops',
-      body: `Hi Sarah,\nSaw Rivo opened two ops roles this month, which usually means the team is covering a lot by hand.\n\nWe find and qualify the people worth talking to, and you only pay for the ones you approve.\n\nGrab a slot if useful:\n${BOOKING}\n\nJacques\nReply stop and I will not write again.`,
+      body: `Hi Sarah,\nSaw Rivo opened two ops roles this month, which usually means the team is covering a lot by hand.\n\nWe find and qualify the people worth talking to, and you only pay for the ones you approve.\n\nWorth a look, or is this handled?\n\nJacques\nReply stop and I will not write again.`,
       wait_days: 0 },
     { subject: 'One number, Sarah',
-      body: 'Hi Sarah, one number that might be useful either way: teams we work with approve about one in four of the people we surface, and the rest cost them nothing at all. That ratio is the whole model and it is why there is no retainer to argue about.',
+      body: `Hi Sarah, one number that might be useful either way: teams we work with approve about one in four of the people we surface, and the rest cost them nothing at all. That ratio is the whole model and it is why there is no retainer to argue about.\n\nIf it is worth a look, grab a slot:\n${BOOKING}`,
       wait_days: 4 },
   ]
 
   it('TEMPLATE rules reject this correct copy — the bug, proved', () => {
+    // The tokens have already been replaced by the time this copy exists, so the template rule
+    // sees a blast. (It no longer also trips `link_in_step_1` — since the 5 Aug ruling the
+    // fixture carries no step-1 link, because the product no longer writes one.)
     const wrong = lintSequence(realDraft)
     expect(wrong.ok).toBe(false)
     expect(wrong.hardFails.map(v => v.rule)).toContain('no_personalisation')
-    expect(wrong.hardFails.map(v => v.rule)).toContain('link_in_step_1')
   })
 
   it('RENDERED rules accept it — same copy, right question', () => {
-    const r = lintSequence(realDraft, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING })
+    const r = lintSequence(realDraft, { mode: 'rendered', renderedFor: LEAD })
     expect(r.hardFails, JSON.stringify(r.hardFails, null, 2)).toEqual([])
     expect(r.ok).toBe(true)
   })
 
-  it('and the booking link is still SURFACED, as a warn — not silently forgiven', () => {
-    const r = lintSequence(realDraft, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING })
-    expect(r.warnings.map(v => v.rule)).toContain('booking_link_in_step_1')
+  // ── THE 5 AUG RULING, PINNED ────────────────────────────────────────────────────────────
+  //
+  // This test used to assert the OPPOSITE: that a booking link in step 1 was allowed through as
+  // a `booking_link_in_step_1` WARN. That was not a bug — it was a deliberate exemption with a
+  // "ruling owed" note, because our own prompt ordered the link into step 1 and enforcing the
+  // rule would have skipped every lead. **The founder ruled the gate was right and the prompt
+  // was wrong** (Option A, 5 Aug): *"the first email's job is to earn a reply, not a booking."*
+  //
+  // Recorded rather than silently inverted, so the next reader does not conclude the old
+  // behaviour was a mistake. It was a superseded decision.
+  it('a booking link in step 1 is now an ORDINARY HARD FAIL — the exemption is gone', () => {
+    const withLinkInStep1 = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
+    withLinkInStep1[0].body = `${withLinkInStep1[0].body}\n\nGrab a slot if useful:\n${BOOKING}`
+    const r = lintSequence(withLinkInStep1, { mode: 'rendered', renderedFor: LEAD })
+    expect(r.ok).toBe(false)
+    expect(r.hardFails.map(v => v.rule)).toContain('link_in_step_1')
+  })
+
+  it('the booking_link_in_step_1 rule no longer exists in ANY report the linter can produce', () => {
+    // An exemption left behind as a dormant warn is an invitation to re-introduce it.
+    const withLinkInStep1 = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
+    withLinkInStep1[0].body = `${withLinkInStep1[0].body}\n${BOOKING}`
+    for (const report of [
+      lintSequence(realDraft, { mode: 'rendered', renderedFor: LEAD }),
+      lintSequence(withLinkInStep1, { mode: 'rendered', renderedFor: LEAD }),
+      lintSequence(realDraft),
+      lintSequence(GOOD),
+      lintSequence(BAD),
+    ]) {
+      expect(report.violations.map(v => v.rule)).not.toContain('booking_link_in_step_1')
+    }
+    // And the rule name is gone from the source, not merely unreachable.
+    const src = stripCommentsForEnvScan(readFileSync(join(__dirname, './sequence-quality.ts'), 'utf8'))
+    expect(src).not.toContain("'booking_link_in_step_1'")
+  })
+
+  it('the booking link in a LATER step is still fine — the ruling was about the first touch only', () => {
+    const r = lintSequence(realDraft, { mode: 'rendered', renderedFor: LEAD })
+    expect(r.hardFails, JSON.stringify(r.hardFails, null, 2)).toEqual([])
+    expect(realDraft[1].body).toContain(BOOKING)
   })
 
   it('a link that is NOT the booking url still hard-fails in rendered mode', () => {
     const s = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
     s[0].body = `${s[0].body}\nAlso see https://some-other-site.com/deck`
-    expect(lintSequence(s, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING }).hardFails.map(v => v.rule))
+    expect(lintSequence(s, { mode: 'rendered', renderedFor: LEAD }).hardFails.map(v => v.rule))
       .toContain('link_in_step_1')
   })
 
@@ -386,7 +431,7 @@ describe('rendered mode — the trap that would have skipped every single lead',
     const s = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
     s[0].subject = 'A note'
     s[0].body = s[0].body!.replace('Hi Sarah,', 'Hi there,').replace('Saw Rivo opened', 'Saw you opened')
-    expect(lintSequence(s, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING }).hardFails.map(v => v.rule))
+    expect(lintSequence(s, { mode: 'rendered', renderedFor: LEAD }).hardFails.map(v => v.rule))
       .toContain('no_personalisation')
   })
 
@@ -394,7 +439,7 @@ describe('rendered mode — the trap that would have skipped every single lead',
     const s = JSON.parse(JSON.stringify(realDraft)) as QualityStep[]
     s[0].body = s[0].body!.replace('Reply stop and I will not write again.', 'Act now, this is a limited time offer.')
     s[1].body = 'Just bumping this.'
-    const r = lintSequence(s, { mode: 'rendered', renderedFor: LEAD, bookingUrl: BOOKING })
+    const r = lintSequence(s, { mode: 'rendered', renderedFor: LEAD })
     const rules = r.hardFails.map(v => v.rule)
     expect(rules).toContain('spam_vocabulary')
     expect(rules).toContain('no_opt_out')
@@ -513,5 +558,58 @@ describe('the activation gate reads the APPLIED sequence, not the newest saved o
     const start = src.indexOf("post('/campaign/start'")
     const next = src.indexOf('operatorRouter.', start + 10)
     expect(src.slice(start, next)).toContain('sequenceGateFor(client.id)')
+  })
+})
+
+// ── THE 5 AUG RULING, ENFORCED AT THE SOURCE ─────────────────────────────────────────────
+//
+// The gate refusing a step-1 link is only half the ruling. The other half is that the product
+// must stop WRITING one — otherwise every draft hard-fails, the enrol path regenerates once and
+// then skips the lead, and send-day produces zero enrolments instead of emails.
+describe('generateSequence no longer asks for a link in the first touch', () => {
+  const src = stripCommentsForEnvScan(readFileSync(join(__dirname, './figsy.ts'), 'utf8'))
+
+  it('neither system prompt instructs a step-1 booking link', () => {
+    // Both phrasings the two prompt sites used, verbatim.
+    expect(src).not.toContain('invite them to grab a 15-minute slot and include this exact booking link')
+    expect(src).not.toContain('invite them to book a 15-min slot and include this exact link')
+  })
+
+  it('step 1 asks for an INTEREST-based CTA and says why, in the prompt itself', () => {
+    // The instruction carries its own reason: an LLM told "no link" without a reason is one
+    // rewrite away from helpfully adding one back.
+    expect(src).toContain('INTEREST-BASED CTA')
+    expect(src).toMatch(/NO LINK, NO ATTACHMENT AND NO BOOKING ASK/)
+  })
+
+  it('step 3 KEEPS the booking link — the ruling was about the first touch only', () => {
+    expect(src).toContain('Include the booking link once more')
+  })
+})
+
+// ⚠️ AN HONEST LIMIT, RECORDED RATHER THAN ASSUMED (#612 Part C, 5 Aug).
+//
+// When a draft is refused twice the lead is skipped and the reason is counted into
+// `skip_reasons` on the enrol response — `copy_rejected:link_in_step_1`. That is the right
+// shape: named, never silent.
+//
+// **But nothing renders it.** A grep of `apps/portal` and `apps/admin` for `skip_reasons`
+// returns ZERO hits, and the enrol endpoints are machine-facing (the CSV import and the
+// webhook), so the count reaches an HTTP response nobody reads.
+//
+// So on send-day a systematic refusal would look like "no enrolments happened" rather than
+// "every draft was refused for this rule". The reason exists in the response and in the server
+// log; it does not exist on a screen. Surfacing it is a follow-up, not something this PR
+// pretends to have done.
+describe('the skip reason exists in the response, and is NOT on any screen', () => {
+  it('the enrol response carries skip_reasons', () => {
+    const routes = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/figsy.ts'), 'utf8'))
+    expect(routes).toContain('skip_reasons: skipReasons')
+  })
+
+  it('and this test exists to record that no UI reads it yet', () => {
+    // If someone builds that surface, this assertion is the breadcrumb telling them the data
+    // was already there — and it should be deleted in the same PR that renders it.
+    expect(true).toBe(true)
   })
 })

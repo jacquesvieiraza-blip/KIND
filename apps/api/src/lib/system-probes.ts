@@ -404,7 +404,10 @@ async function vida(): Promise<Section> {
   //
   // Deliberately does NOT send or receive anything. It checks the three things that must be
   // true for an inbound reply to reach a desk, and says which one is missing.
-  rows.push(await probe('Reply path (inbound → client desk)', async () => {
+  // ONE label, defined once and used for both the probe and every verdict it returns — two
+  // copies of a row's name is how a rename leaves half the report talking about something else.
+  const replyLabel = 'Reply path (inbound → client desk)'
+  rows.push(await probe(replyLabel, async () => {
     // #624 — THIS ROW USED TO ANSWER HALF THE QUESTION. It checked the signing secret and
     // counted replies, and never asked WHERE replies are addressed. Outreach carries a
     // `Reply-To` from COLD_REPLY_TO (FIGSY_COLD_REPLY_TO → FIGSY_REPLY_TO → a silent hardcoded
@@ -413,7 +416,7 @@ async function vida(): Promise<Section> {
     // send-day. The judgement is pure (`replyPathVerdict`); this only gathers facts.
     const { replyPathVerdict } = await import('./reply-path')
     const { COLD_REPLY_TO } = await import('./deliverability')
-    const label = 'Reply path (inbound → client desk)'
+    const label = replyLabel
 
     const { error } = await db.from('figsy_replies').select('id', { count: 'exact', head: true })
     if (error) return unmeasured(label, `figsy_replies could not be read: ${error.message}`)

@@ -1620,7 +1620,30 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       campaign = newest ?? null
     }
 
-    if (!campaign) return // No active campaign — nothing to do
+    // ⚠️ #625 — THIS SILENT RETURN IS WHY TWO GUARDS BOTH MISSED. approve-lead wraps this call
+    // in a `.catch` that alerts on failure — but bailing here is a RETURN, not a throw, so the
+    // catch never ran and a lead came back "approved" having entered no sequence at all.
+    //
+    // `force` is the distinction. It means a HUMAN approval bought this work (approve-lead
+    // passes it on every explicit approval), so a client is now waiting on outreach that will
+    // never arrive — an event worth waking somebody for. The auto path (no force) runs on cron
+    // across the whole book, where a campaignless client is an ordinary state and not news;
+    // alerting there would train the founder to ignore the alert that matters.
+    //
+    // #625 also closed the door upstream, so approve-lead should never reach this branch. This
+    // stays as defence in depth for every OTHER forced caller, and because a guard that only
+    // works while a second guard is correct is not a guard.
+    if (!campaign) {
+      if (opts?.force) {
+        console.error('[figsy] autoEnrollLead: NO ACTIVE CAMPAIGN on a forced enrol — the lead will never be worked', clientId, leadId)
+        void sendFounderAlert('sends_stalled', 'An approved lead was never enrolled — no active campaign', [
+          `Client ${clientId}, lead ${leadId}.`,
+          'The approval went through but the client has NO active campaign, so the lead entered no sequence.',
+          'The lead is approved and revealed, but it is in no sequence — start their campaign in Vida and enrol it, or nothing will ever be sent.',
+        ]).catch(() => {})
+      }
+      return // No active campaign — nothing to do
+    }
 
     const { data: lead } = await db.from('leads')
       .select('id, first_name, last_name, email, job_title, company, industry, seniority, country, tech_stack, score, score_reasoning')

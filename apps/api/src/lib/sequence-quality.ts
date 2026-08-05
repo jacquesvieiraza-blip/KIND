@@ -238,18 +238,16 @@ export const MAX_STEPS = 7
  * single lead and reported it as a copy problem. Found by reading `generateSequence` before
  * wiring, not after.
  *
- * Rendered mode therefore changes exactly three things and nothing else:
- *   ① personalisation is proved by the PERSON'S OWN DETAILS appearing in the opening, which is
- *     the same property the token check exists to prove;
- *   ② the client's own booking URL is not counted as a generic link — but its presence in step
- *     1 is reported as a WARN, because it is still a first-touch link and the evidence says
- *     those cost replies (see below);
- *   ③ nothing else. Spam vocabulary, opt-out, bumps, spacing and every warn are identical.
+ * Rendered mode therefore changes exactly ONE thing and nothing else: personalisation is proved
+ * by the PERSON'S OWN DETAILS appearing in the opening, which is the same property the token
+ * check exists to prove. Spam vocabulary, opt-out, links, bumps, spacing and every warn are
+ * identical in both modes.
  *
- * 🧍 FOUNDER RULING OWED, and it is a real product conflict, not a lint detail: #612's own rule
- * says no link in the first touch, and `generateSequence` is instructed to put one there. One
- * of the two is wrong. Silently exempting it here keeps outreach working today; it does not
- * settle which behaviour we want on 25 Aug.
+ * ✅ RULED 5 AUG (Option A). It used to change a SECOND thing: the client's own booking URL was
+ * exempted from the step-1 link rule, because `generateSequence` was instructed to put one
+ * there and enforcing the rule would have skipped every lead. The founder resolved it the other
+ * way — the prompt stopped asking, so the exemption is gone and a booking link in a first touch
+ * is now an ordinary hard fail.
  */
 export type RenderedFor = {
   first_name?: string | null
@@ -263,8 +261,6 @@ export type LintOptions = {
   mode?: 'template' | 'rendered'
   /** Rendered mode only: the person this copy was written for. */
   renderedFor?: RenderedFor
-  /** Rendered mode only: the client's own booking URL, which our own prompt places in step 1. */
-  bookingUrl?: string | null
 }
 
 /** Does this rendered copy actually name the person it was written for? */
@@ -346,25 +342,28 @@ export function lintSequence(rawSteps: QualityStep[], opts?: LintOptions): Quali
     passes.push('step 1 opens on something about the prospect')
   }
 
-  // ── HARD ⑤ — no links or attachments in step 1 ──────────────────────────────────────────
-  let step1 = `${steps[0].subject}\n${steps[0].body}`
-  // The client's OWN booking link is removed before the check and reported as a warn instead.
-  // It is there because `generateSequence` is told to put it there — refusing our own product's
-  // deliberate output would skip every lead and call it a copy problem. 🧍 Ruling owed on which
-  // of the two behaviours is right.
-  let bookingInStep1 = false
-  const booking = String(opts?.bookingUrl ?? '').trim()
-  if (rendered && booking && step1.includes(booking)) {
-    bookingInStep1 = true
-    step1 = step1.split(booking).join('')
-  }
+  // ── HARD ⑤ — no links or attachments in step 1. NO EXCEPTIONS. ──────────────────────────
+  //
+  // ⚠️ FOUNDER-RULED 5 AUG, OPTION A — and this replaces an exemption, so the history matters.
+  //
+  // #612 Part B could not resolve a contradiction it found: this rule said *no link in a first
+  // touch*, while `generateSequence`'s own system prompt ORDERED the booking link into step 1.
+  // Enforcing the rule would have skipped every lead the product wrote for; so the client's own
+  // booking URL was stripped before the check and reported as a `booking_link_in_step_1` WARN,
+  // with a "ruling owed" note saying one of the two behaviours had to be wrong.
+  //
+  // **The founder ruled the GATE was right and the PROMPT was wrong:** *"the first email's job
+  // is to earn a reply, not a booking."* `figsy.ts` no longer asks for a link in step 1 (it
+  // still asks in step 3), so there is nothing left to exempt — a booking link in a first touch
+  // is now an ordinary link, and an ordinary link in step 1 is a hard fail.
+  //
+  // The `bookingUrl` lint option is GONE rather than left unused: an option nothing reads is an
+  // invitation to re-introduce the exemption by passing it again.
+  const step1 = `${steps[0].subject}\n${steps[0].body}`
   if (LINK_PATTERNS.some(re => re.test(step1))) {
-    add('link_in_step_1', 'hard', 1, 'Step 1 contains a link or attachment. A first email to a stranger with a link in it is both a deliverability penalty and the wrong ask — the first touch earns interest, and the link goes in the reply once they have shown some.')
+    add('link_in_step_1', 'hard', 1, 'Step 1 contains a link or attachment. A first email to a stranger with a link in it is both a deliverability penalty and the wrong ask — the first touch earns interest, and the link goes in the reply once they have shown some. This includes the booking link (founder-ruled 5 Aug).')
   } else {
     passes.push('step 1 carries no link or attachment')
-  }
-  if (bookingInStep1) {
-    add('booking_link_in_step_1', 'warn', 1, 'Step 1 carries the booking link. Our own drafting prompt asks for it, so this does not block the send — but a link in a first touch to a stranger costs deliverability, and the stronger play is to earn the reply first and send the link in it.')
   }
 
   // ── HARD ⑥ — a follow-up that adds nothing ──────────────────────────────────────────────
@@ -458,14 +457,12 @@ export function lintSequence(rawSteps: QualityStep[], opts?: LintOptions): Quali
 export function enrolDraftGate(a: {
   steps: QualityStep[]
   renderedFor?: RenderedFor
-  bookingUrl?: string | null
   isDemo: boolean
 }): { allow: true } | { allow: false; rules: string[]; reason: string } {
   if (a.isDemo) return { allow: true }
   const report = lintSequence(a.steps, {
     mode: 'rendered',
     renderedFor: a.renderedFor,
-    bookingUrl: a.bookingUrl,
   })
   if (report.ok) return { allow: true }
   // De-duplicated: the same rule can fire on several steps, and a reason that repeats a rule

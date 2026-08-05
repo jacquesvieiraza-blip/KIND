@@ -27,6 +27,79 @@ export type ApproveOutcome =
   | { status: 'no_campaign'; revealed: false }     // no active campaign → can't work it → NOT charged
   | { status: 'not_found'; revealed: false }
 
+// ── #625 — THE NO-CAMPAIGN RULE, IN ONE PLACE ─────────────────────────────────────────────
+//
+// Step 3c fails closed when a client has no active campaign: the $4 buys WORK, so if the work
+// cannot run we must not take the money. But the **#424 charge-once branch at step 3b sits
+// BEFORE that gate and returns early**, so a re-approved contact skipped it entirely —
+// revealed, never enrolled, and the caller told "approved".
+//
+// ⚠️ AND THE SAFETY NET UNDER IT DID NOT FIRE EITHER. 3b wraps `autoEnrollLead` in a `.catch`
+// that alerts — but `autoEnrollLead`'s no-campaign branch is a silent `return`, not a throw, so
+// the catch never ran. Two guards, both real, and the failure walked between them. The founder
+// hit it live on his own money walk: two approvals on Client Zero (no active campaign), stranded
+// with no error and no alert, surfaced only by the Integrity panel hours later.
+//
+// So the campaign question gets ONE answer that both doors ask. Copying the lookup into 3b
+// would have been the wrong fix twice over: it would have missed the paused-campaign RESUME
+// below, so a client coming back from a cold suspension would be refused at one door and
+// rescued at the other.
+
+/**
+ * The client's active campaign — resuming a paused one if that is the only reason there isn't
+ * one. Returns null when there is genuinely nothing to work the lead with.
+ *
+ * THE RESUME IS NOT A DETAIL. The 30-day cold check suspends by PAUSING campaigns, and
+ * approving is the signal a client is back — so approving must be able to un-suspend them, or
+ * they are locked out of the only action that revives them. Only `paused` is touched: a draft
+ * was never live and a completed one is finished; neither should spring back to sending because
+ * somebody clicked approve.
+ */
+async function resolveActiveCampaign(clientId: string): Promise<{ id: string } | null> {
+  const { data: active } = await db.from('figsy_campaigns')
+    .select('id').eq('client_id', clientId).eq('status', 'active').limit(1).maybeSingle()
+  if (active) return { id: active.id as string }
+
+  const { data: resumed } = await db.from('figsy_campaigns')
+    .update({ status: 'active' }).eq('client_id', clientId).eq('status', 'paused')
+    .select('id').limit(1)
+  if (resumed && resumed.length > 0) {
+    console.log('[approve] client', clientId, 'came back — resumed paused campaign(s)')
+    void sendFounderAlert('new_signup', 'A quiet client just came back', [
+      `Client ${clientId} approved someone, so their paused campaigns are live again.`,
+      'They suspended themselves by going quiet; approving is what brings them back.',
+    ]).catch(() => {})
+    return { id: resumed[0].id as string }
+  }
+  return null
+}
+
+/**
+ * Refuse an approval that has nowhere to run: un-claim the lead, tell the operator, and say so
+ * honestly to the caller.
+ *
+ * `wasFree` is TRUE on the charge-once door — that client paid for this contact on an EARLIER
+ * approval, so "they were not charged" is true of this request and would be a lie about their
+ * account. The alert says which, because an operator reading it needs to know whether money is
+ * sitting against a lead that never got worked.
+ */
+async function refuseNoCampaign(
+  // `unclaim` is a supabase thenable, not a real Promise — typed as PromiseLike so the caller
+  // can pass its own closure unchanged rather than wrapping it just to satisfy a signature.
+  clientId: string, leadId: string, unclaim: () => PromiseLike<void>, wasFree: boolean,
+): Promise<ApproveOutcome> {
+  await unclaim()
+  void sendFounderAlert('sends_stalled', 'Approve blocked — no active campaign', [
+    'A client tried to approve a lead but has NO active campaign, so no outreach could run.',
+    `Client: ${clientId} · Lead: ${leadId}`,
+    wasFree
+      ? 'Nothing was charged for this request — they had ALREADY paid for this contact (#424 charge-once), so the money moved on an earlier approval.'
+      : 'They were NOT charged.',
+    'Start their campaign in Vida (client → Start campaign) to unblock.',
+  ]).catch(() => {})
+  return { status: 'no_campaign', revealed: false }
+}
+
 export async function approveLead(leadId: string, clientId: string): Promise<ApproveOutcome> {
   const now = new Date().toISOString()
 
@@ -98,6 +171,16 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
       //
       // Found by a test harness, not by reading: returning `reveal_is_owned: true` sent an
       // assertion down this branch, where it passed while proving nothing.
+      //
+      // ⚠️ #625 — THE SAME GATE 3c APPLIES, APPLIED HERE TOO. This branch returns before 3c
+      // ever runs, so without this a re-approve on a client with no active campaign revealed
+      // the lead, enrolled nothing, and reported "approved". Free does not mean harmless: the
+      // client paid for this contact earlier, and a lead in no sequence is somebody waiting on
+      // outreach that will never arrive.
+      if (!(await resolveActiveCampaign(clientId))) {
+        return refuseNoCampaign(clientId, leadId, unclaim, true)
+      }
+
       await autoEnrollLead(leadId, clientId, { force: true, prepaid: true }).catch((e: unknown) => {
         console.error('[approve] ENROL FAILED on a re-approve of an already-paid contact — the lead will never be worked', clientId, leadId, e)
         void sendFounderAlert('sends_stalled', 'An already-paid lead was never enrolled — no outreach will run', [
@@ -119,39 +202,10 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   //     exactly like the insufficient-funds gate, and alert us so an operator starts the
   //     campaign in Vida. (Deliberately placed AFTER the free paths — demo / already-in-CRM
   //     / already-owned never charge, so they are unaffected.)
-  let { data: activeCampaign } = await db.from('figsy_campaigns')
-    .select('id').eq('client_id', clientId).eq('status', 'active').limit(1).maybeSingle()
-
-  // ── COMING BACK FROM A COLD SUSPENSION ──────────────────────────────────────────
-  // The 30-day cold check suspends a client by PAUSING their campaigns. Approving is the
-  // signal they're back — but approving fail-closes without an active campaign, so a
-  // suspended client would have been locked out of the only action that un-suspends them.
-  // A paused campaign therefore resumes here, on their own approval, with no operator in
-  // the loop. Only `paused` is touched: a draft campaign was never live and a completed one
-  // is finished, and neither should spring back to sending because someone clicked approve.
-  if (!activeCampaign) {
-    const { data: resumed } = await db.from('figsy_campaigns')
-      .update({ status: 'active' }).eq('client_id', clientId).eq('status', 'paused')
-      .select('id').limit(1)
-    if (resumed && resumed.length > 0) {
-      activeCampaign = { id: resumed[0].id as string }
-      console.log('[approve] client', clientId, 'came back — resumed paused campaign(s)')
-      void sendFounderAlert('new_signup', 'A quiet client just came back', [
-        `Client ${clientId} approved someone, so their paused campaigns are live again.`,
-        'They suspended themselves by going quiet; approving is what brings them back.',
-      ]).catch(() => {})
-    }
-  }
-
-  if (!activeCampaign) {
-    await unclaim()
-    void sendFounderAlert('sends_stalled', 'Approve blocked — no active campaign', [
-      `A client tried to approve a lead but has NO active campaign, so no outreach could run.`,
-      `Client: ${clientId} · Lead: ${leadId}`,
-      `They were NOT charged. Start their campaign in Vida (client → Start campaign) to unblock.`,
-    ]).catch(() => {})
-    return { status: 'no_campaign', revealed: false }
-  }
+  // #625 — one shared resolver (lookup + paused-campaign resume) so this door and the
+  // charge-once door at 3b can never disagree about whether a client has somewhere to run.
+  const activeCampaign = await resolveActiveCampaign(clientId)
+  if (!activeCampaign) return refuseNoCampaign(clientId, leadId, unclaim, false)
 
   // 4. Charge — unless this approval is still covered by the $99 onboarding pack.
   //

@@ -61,3 +61,54 @@ export function suspensionMessage(companyName: string | null | undefined): strin
   const who = companyName?.trim() || 'your account'
   return `We've paused sending for ${who}. Nobody has been approved in ${COLD_DAYS} days, and we keep a warmed sender running for you the whole time — so we pause rather than bill you for silence. Approve anyone from your list and you're straight back on; nothing has been lost and your included leads are still yours.`
 }
+
+// ── #618 — WHO THIS RULE IS NOT FOR (founder-ruled 5 Aug) ─────────────────────────────────
+//
+// ⚠️ THE COLLISION, AND IT WAS BUILT BY TWO INDIVIDUALLY CORRECT DECISIONS.
+//
+// This file's own header explains why the rule exists: *"a client's sender costs ~$40/month…
+// a bill we pay to keep an inbox warm for nobody."* It is a COST rule about a CLIENT who has
+// gone quiet while we carry their mailbox.
+//
+// `cold-check` skips `is_demo === true` and nothing else. And `house-client.ts` DELIBERATELY
+// un-demos Client Zero — its own comment: *"`is_demo` true would exclude it from every revenue
+// figure AND make the CSV import refuse it (#599)."* Both right. Together they leave **our own
+// account inside a rule written for other people's accounts.** We are the nobody, and we chose
+// our own bill.
+//
+// ⚠️ WHY THIS STOPPED BEING THEORETICAL ON 5 AUG. #611 called it *"a trap for the abnormal
+// order"*, reasoning that approvals precede a campaign and any approval resets the clock. The
+// founder then ruled (A4) that Client Zero's 159 approved leads are real prospects and stay —
+// and **they are already approved AND already enrolled.** So send-day needs no new approval:
+// on ~25 Aug a campaign goes active with the last approval ~59 days old, and the next 08:40 UTC
+// run pauses it and emails a churn-risk alert about our own account. After three weeks of
+// warming. The reasoning that made it low-risk died with that ruling.
+//
+// ⚠️ FAILS OPEN ON PURPOSE. When the house account cannot be resolved, `houseClientId` is null
+// and NOBODY gains an exemption — the cron behaves exactly as it does today. That direction is
+// deliberate: the cost of failing open is that OUR campaign might be paused (visible, alerted,
+// one click to undo), while failing closed would silently exempt everyone and quietly break a
+// rule that exists to stop us paying for senders nobody is using.
+
+export type ColdExemption = { exempt: boolean; why: string }
+
+/**
+ * Should `cold-check` skip this client entirely?
+ *
+ * Pure so the judgement is provable without a cron run, a database or a clock — the same reason
+ * `coldState` above is pure.
+ */
+export function coldCheckExempt(a: {
+  clientId: string
+  isDemo: boolean | null | undefined
+  /** Resolved by `decideHouseClient` — NEVER matched on company name (#584/#593). */
+  houseClientId: string | null
+}): ColdExemption {
+  if (a.isDemo === true) {
+    return { exempt: true, why: 'demo account — ours, not a client we carry a sender for' }
+  }
+  if (a.houseClientId && a.clientId === a.houseClientId) {
+    return { exempt: true, why: 'the house account (Client Zero) — this rule is about a CLIENT going quiet while we pay for their mailbox. Our own bill is our own choice, and there is no churn to warn about.' }
+  }
+  return { exempt: false, why: '' }
+}

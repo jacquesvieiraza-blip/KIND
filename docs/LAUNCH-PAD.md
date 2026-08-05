@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷240 · 🟣2 · 🟡65 · 🔴173 · ⏸5 · **Σ580** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷241 · 🟣2 · 🟡64 · 🔴173 · ⏸5 · **Σ580** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -217,7 +217,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 | # | Item · description | Owner | When |
 |---|---|---|---|
-| A1 | **Preview + merge PR #1269 (#615 VAT evidence at onboarding)** — client-facing: required company-details step, "not registered" is a recorded answer. ⚠️ It grew merge conflicts when the overnight batch merged first — **fixed 5 Aug, mergeable again**. Walk the 6 steps in the PR body, then merge | 🧍 | today |
+| ~~A1~~ | ~~**Preview + merge PR #1269 (#615)**~~ ✅ **DONE 5 Aug — merged to main, so it is LIVE.** ⚠️ Merged without the preview walk, so it went 🟡→🩷 (live, unverified) rather than 🟡→🟣→🩷. **The 6-step walk in the PR body is now a LIVE-site walk** — do it when convenient and it becomes part of the pink walk (A11). | 🧍 | ✅ done |
 | A2 | **Vida cleanup** — zero the house wallet (typed phrase) → grant $4,000 → remove Stripe Test + ACME. Shipped in #611; buttons wait in Vida → Engine | 🧍 | 10 min |
 | A3 | **Ruling: booking link in email 1** — the #612 gate says no link in a first touch; FIGSY's prompt orders one in. One of the two is wrong; currently allowed-but-flagged amber | 🧍 | before 25 Aug |
 | A4 | **Ruling: the 159 stale approved leads** — clearing them resets the house pack to 100 included approvals | 🧍 | before 25 Aug |

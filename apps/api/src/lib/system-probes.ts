@@ -8,6 +8,7 @@
 
 import { db } from '@kind/db'
 import { ok, broken, unmeasured, probe, type Row, type Section } from './system-check'
+import { PDL_MONTHLY_CAP_KEY } from './app-settings'
 
 /** Short timeout — a hanging provider must not hang the whole report. */
 const TIMEOUT_MS = 6000
@@ -341,7 +342,9 @@ async function vida(): Promise<Section> {
   rows.push(await probe('PDL spend against the monthly cap', async () => {
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
     const [capRow, ledger] = await Promise.all([
-      db.from('app_settings').select('value').eq('key', 'pdl_monthly_cap_usd').maybeSingle(),
+      // #626 — the key is a CONSTANT shared with the setter route. Two spellings of one key
+      // would let the founder set a cap this probe cannot see, silently.
+      db.from('app_settings').select('value').eq('key', PDL_MONTHLY_CAP_KEY).maybeSingle(),
       db.from('sourcing_ledger').select('cost_usd').gte('created_at', monthStart.toISOString()),
     ])
     const spent = ((ledger.data ?? []) as { cost_usd?: number | string }[])

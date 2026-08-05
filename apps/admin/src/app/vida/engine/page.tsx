@@ -197,6 +197,37 @@ export default function VidaEnginePage() {
   // The Supabase SQL editor is unreachable (GitHub OAuth + flagged account), so the
   // migration runs from here instead. Only reviewed, committed, idempotent statements —
   // the endpoint ignores any body, so this is not an arbitrary-SQL hole.
+  // #626 — the PDL monthly cap. The System check told the operator to set this and there was no
+  // way to: it needed SQL, and the Supabase dashboard is locked. Now it is an input box.
+  const [pdlCap, setPdlCap] = useState<number | null>(null)
+  const [pdlInput, setPdlInput] = useState('')
+  const [pdlMsg, setPdlMsg] = useState<string | null>(null)
+  const [pdlErr, setPdlErr] = useState<string | null>(null)
+
+  const loadPdlCap = useCallback(async () => {
+    try {
+      const j = await fetch('/api/proxy/operator/settings/pdl-cap').then(r => r.json())
+      if (j?.success) setPdlCap(j.data?.cap_usd ?? null)
+    } catch { /* the card renders "not set" — never a false number */ }
+  }, [])
+  useEffect(() => { void loadPdlCap() }, [loadPdlCap])
+
+  async function savePdlCap() {
+    setBusy('pdlcap'); setPdlMsg(null); setPdlErr(null)
+    try {
+      const j = await fetch('/api/proxy/operator/settings/pdl-cap', {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ cap_usd: pdlInput.trim() }),
+      }).then(r => r.json())
+      if (!j?.success) throw new Error(j?.error || 'The cap was not saved')
+      // Trust the DATABASE, not the echo — re-read before telling the founder it is set.
+      await loadPdlCap()
+      setPdlMsg(`Saved. Sourcing is now capped at $${j.data?.cap_usd} a month.`)
+      setPdlInput('')
+    } catch (e) { setPdlErr(e instanceof Error ? e.message : 'The cap was not saved') }
+    setBusy(null)
+  }
+
   async function runMigration(withPassword?: string) {
     setBusy('migration'); setMigMsg(null); setError(null)
     try {
@@ -373,6 +404,33 @@ export default function VidaEnginePage() {
           </ul>
         )}
         {migMsg && <p className="text-[11.5px] font-semibold text-[#5b21b6] mt-2 leading-relaxed">{migMsg}</p>}
+      </div>
+
+      {/* #626 — PDL MONTHLY CAP. Sits beside the migrations card because both are "things only
+          the founder can set, that the System check keeps asking for". A ceiling with no way to
+          set it is a instruction nobody can follow. */}
+      <div className="border border-[#e4dcf7] bg-white rounded-xl px-4 py-3 mb-4">
+        <div className="flex items-center gap-3 flex-wrap">
+          <div>
+            <b className="text-[13px] text-[#1f1235] block">PDL monthly spend cap</b>
+            <p className="text-[11.5px] text-[#5c5279] mt-0.5">
+              {pdlCap === null
+                ? 'Not set — only the code default guards sourcing spend.'
+                : `Currently $${pdlCap} a month. Sourcing is refused once the month's spend reaches it.`}
+            </p>
+          </div>
+          <div className="ml-auto flex gap-2 items-center">
+            <input value={pdlInput} onChange={ev => setPdlInput(ev.target.value)}
+              inputMode="decimal" placeholder="e.g. 100"
+              className="w-28 text-[12.5px] border border-[#ece5fb] rounded-lg px-2.5 py-1.5" />
+            <button onClick={savePdlCap} disabled={busy === 'pdlcap' || !pdlInput.trim()}
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white rounded-lg px-3.5 py-2 text-[12.5px] font-bold disabled:opacity-60">
+              {busy === 'pdlcap' ? 'Saving…' : 'Save cap'}
+            </button>
+          </div>
+        </div>
+        {pdlMsg && <p className="text-[11.5px] font-semibold text-[#5b21b6] mt-2">{pdlMsg}</p>}
+        {pdlErr && <p className="text-[11.5px] font-semibold text-red-700 mt-2">{pdlErr}</p>}
 
         {/* Only when the database actually rejected the stored password. */}
         {needsPw && (

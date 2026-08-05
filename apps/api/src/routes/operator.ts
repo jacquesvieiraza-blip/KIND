@@ -1342,6 +1342,61 @@ operatorRouter.get('/system', async (_req: Request, res: Response) => {
   }
 })
 
+// ── #626 — THE PDL MONTHLY CAP, SET FROM VIDA ─────────────────────────────────────────────
+//
+// The System check reported "no usable pdl_monthly_cap_usd setting exists" and told the operator
+// to set it — with no way to do so. It needed SQL, and the Supabase dashboard is locked. A screen
+// that names a fix nobody can perform is worse than one that stays quiet: it reads as neglect.
+//
+// A DATA write to a table that already exists. Migrations stay frozen. Admin-gated like every
+// route on this router (`adminKeyValid`, applied at the top).
+operatorRouter.get('/settings/pdl-cap', async (_req: Request, res: Response) => {
+  try {
+    const { PDL_MONTHLY_CAP_KEY } = await import('../lib/app-settings')
+    const { data, error } = await db.from('app_settings')
+      .select('value').eq('key', PDL_MONTHLY_CAP_KEY).maybeSingle()
+    if (error) { res.status(500).json({ success: false, error: `Could not read the cap: ${error.message}` }); return }
+    const raw = (data as { value?: unknown } | null)?.value
+    const n = Number(raw)
+    // A stored value that is not a usable number reads as UNSET here, exactly as the probe
+    // treats it — the screen and the check must never disagree about whether a cap exists.
+    res.json({ success: true, data: { cap_usd: Number.isFinite(n) && n > 0 ? n : null } })
+  } catch (err) {
+    console.error('[operator/settings/pdl-cap:get]', err)
+    res.status(500).json({ success: false, error: 'Could not read the PDL cap' })
+  }
+})
+
+operatorRouter.post('/settings/pdl-cap', async (req: Request, res: Response) => {
+  try {
+    const { PDL_MONTHLY_CAP_KEY, validateCapUsd } = await import('../lib/app-settings')
+    const verdict = validateCapUsd((req.body ?? {}).cap_usd)
+    if (!verdict.ok) { res.status(400).json({ success: false, error: verdict.error }); return }
+
+    // CHECKED, never swallowed (#349): reporting a cap saved that was never written would leave
+    // the founder believing sourcing is bounded when it is not.
+    const { error } = await db.from('app_settings')
+      .upsert({ key: PDL_MONTHLY_CAP_KEY, value: String(verdict.value) }, { onConflict: 'key' })
+    if (error) { res.status(500).json({ success: false, error: `The cap was NOT saved: ${error.message}` }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: 'set_pdl_cap',
+      subjectType: 'setting', subjectId: PDL_MONTHLY_CAP_KEY,
+      detail: { cap_usd: verdict.value },
+    })
+
+    // RE-READ rather than echo the input: the caller must see what the DATABASE holds, not what
+    // we hoped to put there. An echo would hide a write that silently landed as something else.
+    const { data } = await db.from('app_settings')
+      .select('value').eq('key', PDL_MONTHLY_CAP_KEY).maybeSingle()
+    const stored = Number((data as { value?: unknown } | null)?.value)
+    res.json({ success: true, data: { cap_usd: Number.isFinite(stored) ? stored : null } })
+  } catch (err) {
+    console.error('[operator/settings/pdl-cap:post]', err)
+    res.status(500).json({ success: false, error: 'Could not save the PDL cap' })
+  }
+})
+
 operatorRouter.get('/engine', async (_req: Request, res: Response) => {
   try {
     const since = new Date(Date.now() - 7 * 864e5).toISOString()

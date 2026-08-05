@@ -1762,7 +1762,7 @@ internalRouter.post('/clients/chase-unpaid', async (_req: Request, res: Response
 // a client with no active campaigns is already suspended and is skipped silently.
 internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) => {
   try {
-    const { coldState, suspensionMessage, COLD_DAYS } = await import('../lib/cold-client')
+    const { coldState, suspensionMessage, COLD_DAYS, coldCheckExempt } = await import('../lib/cold-client')
     const { sendFounderAlert } = await import('../lib/alerts')
     const { PAID_TX_TYPES } = await import('../lib/onboarding-pack')
 
@@ -1777,11 +1777,38 @@ internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) 
     const { data: clients } = await db.from('clients')
       .select('id, company_name, is_demo').in('id', paidIds)
 
+    // #618 — WHO THIS RULE IS NOT FOR. Resolved ONCE, before the loop, and the SAME way every
+    // other surface resolves it: `decideHouseClient`, never a company-name match (#584/#593
+    // were both caused by matching on a name a human can edit).
+    //
+    // FAILS OPEN: if the house account cannot be resolved this stays null and nobody gains an
+    // exemption, so the cron behaves exactly as it does today. Failing the other way would
+    // silently exempt everyone and break a rule that exists to stop us paying for idle senders.
+    let houseClientId: string | null = null
+    try {
+      const { decideHouseClient } = await import('../lib/house-client')
+      const { resolveHouseUserIds } = await import('../lib/real-clients')
+      const { data: allClients } = await db.from('clients').select('id, user_id, company_name, is_demo')
+      const decision = decideHouseClient({
+        houseUserIds: [...await resolveHouseUserIds()],
+        clients: (allClients ?? []) as { id: string; user_id: string | null; company_name: string | null; is_demo: boolean | null }[],
+      })
+      if (decision.action === 'adopt') houseClientId = decision.clientId
+      else console.log(`[cold-check] house account not resolved (${decision.action}) — no house exemption this run`)
+    } catch (err) {
+      console.error('[cold-check] house resolution failed — failing OPEN, no exemption:', err instanceof Error ? err.message : err)
+    }
+
     const now = new Date()
-    let warned = 0, suspended = 0
+    let warned = 0, suspended = 0, exempted = 0
     for (const c of (clients ?? []) as Array<Record<string, unknown>>) {
       const cid = c.id as string
-      if (c.is_demo === true) continue                       // demos are ours, not theirs
+      const skip = coldCheckExempt({ clientId: cid, isDemo: c.is_demo as boolean | null, houseClientId })
+      if (skip.exempt) {
+        exempted++
+        console.log(`[cold-check] skipped ${c.company_name ?? cid} — ${skip.why}`)
+        continue
+      }
 
       // Their last approval IS the newest revealed lead — no column to keep in sync.
       const { data: last } = await db.from('leads')
@@ -1811,7 +1838,7 @@ internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) 
       }
     }
 
-    res.json({ success: true, checked: (clients ?? []).length, warned, suspended })
+    res.json({ success: true, checked: (clients ?? []).length, warned, suspended, exempted })
   } catch (err) {
     console.error('[clients/cold-check]', err)
     res.status(500).json({ success: false, error: 'Cold check failed' })

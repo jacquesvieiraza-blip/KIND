@@ -139,18 +139,37 @@ export function coldEmailHtml(body: string, emailId: string | null = null): stri
   return `<div dir="ltr" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">${lines}${pixel}</div>`
 }
 
-// Warmup ramp schedule — given a YYYY-MM-DD start date, returns the cold-send cap
-// for "today" (day 1 = the start date): ≤10 days 1–3 · 20 day 4 · 30 days 5–6 ·
-// 40 days 7–8 · 50 day 9+. Pure, with an injectable clock so it's testable.
+// ── #622 THE CAP LADDER, AS NAMED STEPS ───────────────────────────────────────────────────
+//
+// A6's standing recommendation is "30 → 50/day", and until now those numbers existed only as
+// bare literals inside the function below — so the ladder the founder rules on and the ladder
+// the engine enforces were the same thing by coincidence, not by construction. Named here so
+// the runbook, the Vida chip and the send loop all quote ONE source.
+//
+// ⚠️ THIS IS A CEILING, NOT A TARGET. The engine sends what there is to send; the cap only ever
+// refuses. Raising the top step does not increase volume by itself.
+export const WARMUP_LADDER: ReadonlyArray<{ throughDay: number | null; cap: number }> = [
+  { throughDay: 3,    cap: 10 },   // days 1–3, and every day before the start date
+  { throughDay: 4,    cap: 20 },   // day 4
+  { throughDay: 6,    cap: 30 },   // days 5–6   ← A6's "30"
+  { throughDay: 8,    cap: 40 },   // days 7–8
+  { throughDay: null, cap: 50 },   // day 9+     ← A6's "50", the steady-state ceiling
+]
+
+/** The ladder's steady-state ceiling — what the cap becomes once warmup is complete. */
+export const WARMUP_STEADY_CAP = WARMUP_LADDER[WARMUP_LADDER.length - 1].cap
+
+// Warmup ramp schedule — given a YYYY-MM-DD start date, returns the cold-send cap for "today"
+// (day 1 = the start date), read off WARMUP_LADDER above. Pure, with an injectable clock so it
+// is testable without waiting nine days.
 export function warmupRampCap(startStr: string, now: number = Date.now()): number | null {
   const start = Date.parse(`${startStr}T00:00:00Z`)
   if (!Number.isFinite(start)) return null
   const day = Math.floor((now - start) / 86_400_000) + 1 // day 1 = start date
-  if (day <= 3) return 10   // includes pre-start days
-  if (day === 4) return 20
-  if (day <= 6) return 30
-  if (day <= 8) return 40
-  return 50                  // warmup complete → steady 50/day ceiling
+  for (const step of WARMUP_LADDER) {
+    if (step.throughDay === null || day <= step.throughDay) return step.cap
+  }
+  return WARMUP_STEADY_CAP
 }
 
 // D2 — derive a reasonable text/plain alternative from rich HTML (for transactional

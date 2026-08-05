@@ -17,6 +17,12 @@ export type OperatorAction =
   | 'surface_lead'          // #493 — sent a masked lead to the client for their 👍 (no spend)
   | 'reveal_lead'           // stand-alone reveal
   | 'enroll_lead'           // stand-alone enroll into a campaign
+  | 'enrol_skips'           // #620 — an enrol run REFUSED somebody. Written only when the run
+                            // skipped at least one lead, and it carries the named reasons. The
+                            // response already returned them and no screen rendered them, so a
+                            // systematic refusal (every draft rejected, every UK lead a sole
+                            // trader) read on the board as "nothing happening" — the one
+                            // reading that sends somebody hunting a bug in the wrong place.
   | 'send_now'              // forced a due send
   | 'pause_campaign'        // paused a campaign
   | 'resume_campaign'       // #564 — pressed RUN on an existing campaign. It used to record
@@ -116,4 +122,52 @@ export function campaignAuditAction(a: {
   // No status in the patch — the operator changed a name, a cap or a window. Recording a
   // start or a stop here is what made the log untrustworthy.
   return 'edit_campaign'
+}
+
+import { enrolSkipSummary } from './enrol-skips'
+export { enrolSkipSummary }
+
+// ── #620 — A REFUSED LEAD MUST NEVER LOOK LIKE SILENCE ────────────────────────────────────
+//
+// The enrol paths NAME every refusal — `copy_rejected:…` (#612), `pecr_individual_risk:…`
+// (#617) — and return them as `skip_reasons`. **No screen rendered them: zero hits across the
+// portal and the admin console.** So on send-day "every draft was refused" and "nothing
+// happened" are the same picture, and the operator goes hunting a bug in the wrong place.
+//
+// ⚠️ NO MIGRATION. The schema is frozen, so this reuses `operator_audit_log` — a table that
+// already exists, already has a JSON `detail` column, and is already the place we record what
+// an operator run did. A response-only surface would go blank on refresh and would never have
+// existed at all for a cron-triggered enrol.
+//
+// WRITTEN ONLY WHEN SOMEBODY WAS SKIPPED. A line for a clean run would bury the one that
+// matters — silence about nothing is correct.
+
+/**
+ * Record an enrol run that refused somebody.
+ *
+ * No-ops when nothing was skipped, so the trail stays readable. Never throws — `writeOperatorAudit`
+ * already swallows its own failures, because losing an audit line must not fail an enrol.
+ */
+export async function recordEnrolSkips(a: {
+  operatorEmail: string
+  clientId: string | null
+  campaignId: string | null
+  enrolled: number
+  skipped: number
+  reasons: Record<string, number>
+}): Promise<void> {
+  if (a.skipped <= 0) return
+  await writeOperatorAudit({
+    operatorEmail: a.operatorEmail,
+    clientId:      a.clientId,
+    action:        'enrol_skips',
+    subjectType:   'campaign',
+    subjectId:     a.campaignId,
+    detail: {
+      enrolled: a.enrolled,
+      skipped:  a.skipped,
+      reasons:  a.reasons,
+      summary:  enrolSkipSummary(a.reasons),
+    },
+  })
 }

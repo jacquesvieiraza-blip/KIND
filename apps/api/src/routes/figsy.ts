@@ -1,3 +1,5 @@
+import { pecrVerdict, pecrSkipReason } from '../lib/pecr'
+import { recordEnrolSkips } from '../lib/operator-audit'
 import { Router } from 'express'
 import crypto from 'crypto'
 import { z } from 'zod'
@@ -555,6 +557,32 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         // having; a loop is not — it would burn AI spend per lead with no bound. A skip here is
         // NAMED in `skipReasons`, never silent: "3 skipped" with no cause is the reading that
         // sends somebody hunting a bug in the wrong place.
+        // ⚠️ #617 PECR — WHO THE SUBSCRIBER IS, ASKED BEFORE THE CHARGE.
+        //
+        // UK PECR reg. 22 bans unsolicited marketing email to INDIVIDUAL subscribers. A limited
+        // company is exempt — that exemption is the whole legal basis for B2B cold email — but a
+        // UK SOLE TRADER is an individual subscriber, and nothing above this line ever asked
+        // whether "Sarah Jones Consulting" is a company or one person. Every other gate here is
+        // about the COPY or the CONTACT; this is the only one about WHO WE ARE ALLOWED TO WRITE TO.
+        //
+        // BEFORE `chargeFigsyEnroll`, for the same reason #612's gate is: a charge for a lead we
+        // are about to refuse is correct-looking money churning the ledger for nothing (#332).
+        //
+        // FAILS SAFE — a UK lead we cannot PROVE is corporate is refused. That is the opposite
+        // direction from #618's fail-open, deliberately: a wrongly-paused campaign is one click
+        // to undo, a wrongly-sent email is a breach that cannot be unsent.
+        const pecr = pecrVerdict({ country: lead.country, companyName: lead.company, isDemo })
+        if (!pecr.allow) {
+          noteSkip(skipReasons, pecrSkipReason(pecr))
+          skipped++
+          continue
+        }
+        if (pecr.class === 'unknown_country') {
+          // Named, not refused. Suppressing every lead with a missing country would delete most
+          // of the book on an enrichment gap — so it sends, and the count is visible.
+          console.warn(`[figsy] #617 enrolling ${lead.email} with no country — ${pecr.reason}`)
+        }
+
         if (!appliedSequence) {
           let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, isDemo })
           if (!verdict.allow) {
@@ -615,6 +643,12 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         .eq('id', campaign.id)
     }
 
+    // #620 — PERSIST THE REFUSALS. The response below already carried them and nothing rendered
+    // it, so a systematic refusal was indistinguishable from an idle run. No-ops on a clean run.
+    await recordEnrolSkips({
+      operatorEmail: 'system:figsy-enrol', clientId, campaignId: campaign.id,
+      enrolled, skipped, reasons: skipReasons,
+    })
     res.json({ success: true, data: { enrolled, skipped, skip_reasons: skipReasons, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -1611,6 +1645,32 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         // having; a loop is not — it would burn AI spend per lead with no bound. A skip here is
         // NAMED in `skipReasons`, never silent: "3 skipped" with no cause is the reading that
         // sends somebody hunting a bug in the wrong place.
+        // ⚠️ #617 PECR — WHO THE SUBSCRIBER IS, ASKED BEFORE THE CHARGE.
+        //
+        // UK PECR reg. 22 bans unsolicited marketing email to INDIVIDUAL subscribers. A limited
+        // company is exempt — that exemption is the whole legal basis for B2B cold email — but a
+        // UK SOLE TRADER is an individual subscriber, and nothing above this line ever asked
+        // whether "Sarah Jones Consulting" is a company or one person. Every other gate here is
+        // about the COPY or the CONTACT; this is the only one about WHO WE ARE ALLOWED TO WRITE TO.
+        //
+        // BEFORE `chargeFigsyEnroll`, for the same reason #612's gate is: a charge for a lead we
+        // are about to refuse is correct-looking money churning the ledger for nothing (#332).
+        //
+        // FAILS SAFE — a UK lead we cannot PROVE is corporate is refused. That is the opposite
+        // direction from #618's fail-open, deliberately: a wrongly-paused campaign is one click
+        // to undo, a wrongly-sent email is a breach that cannot be unsent.
+        const pecr = pecrVerdict({ country: lead.country, companyName: lead.company, isDemo })
+        if (!pecr.allow) {
+          noteSkip(skipReasons, pecrSkipReason(pecr))
+          skipped++
+          continue
+        }
+        if (pecr.class === 'unknown_country') {
+          // Named, not refused. Suppressing every lead with a missing country would delete most
+          // of the book on an enrichment gap — so it sends, and the count is visible.
+          console.warn(`[figsy] #617 enrolling ${lead.email} with no country — ${pecr.reason}`)
+        }
+
         if (!appliedSequence) {
           let verdict = enrolDraftGate({ steps: fullSteps, renderedFor: lead as any, isDemo })
           if (!verdict.allow) {
@@ -1671,6 +1731,12 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         .eq('id', campaign.id)
     }
 
+    // #620 — PERSIST THE REFUSALS. The response below already carried them and nothing rendered
+    // it, so a systematic refusal was indistinguishable from an idle run. No-ops on a clean run.
+    await recordEnrolSkips({
+      operatorEmail: 'system:figsy-enrol', clientId, campaignId: campaign.id,
+      enrolled, skipped, reasons: skipReasons,
+    })
     res.json({ success: true, data: { enrolled, skipped, skip_reasons: skipReasons, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { pecrVerdict } from './pecr'
 import { db } from '@kind/db'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
@@ -591,6 +592,30 @@ export async function sendSequenceEmail(
       'a prospect on the OPT-OUT blocklist was not marked opted_out — this step was suppressed, but the enrollment stays live and will keep trying')
     // ONE WALLET: opt-out moves no money — the $4 was final at approve.
     return 'suppressed'
+  }
+
+  // #617 PECR SAFETY NET — the same chokepoint, for the same reason the opt-out check is here.
+  //
+  // The enrol gate refuses a UK individual subscriber before we ever charge. This catches the
+  // rows that gate could never see: enrollments created BEFORE #617 shipped, and any lead that
+  // reaches an enrollment by a path the gate does not sit on. One check here covers every
+  // step-1/2/3 send, exactly as the opt-out net above does.
+  //
+  // NOT `deferred` — refusing this lead is permanent, not a pause. `next_send_at` is NULLed so
+  // the cron stops re-picking an enrollment that can never legally send; leaving it due would
+  // re-run this suppression on every send cycle forever (the #349/#453 lesson).
+  //
+  // ONE WALLET: no money moves — the $4 was final at approve, exactly as on the opt-out branch.
+  if (!opts?.isPreview) {
+    const pecr = pecrVerdict({ country: lead.country, companyName: lead.company })
+    if (!pecr.allow) {
+      console.warn(`[figsy] #617 sendSequenceEmail: ${lead.email} is a UK individual-subscriber risk — step ${step} NOT sent. ${pecr.reason}`)
+      if (enrollmentId) {
+        await updateEnrollmentState(enrollmentId, { next_send_at: null },
+          'a UK individual-subscriber risk (#617 PECR) was suppressed but not stood down — it stays due and will be re-processed on every send run')
+      }
+      return 'suppressed'
+    }
   }
 
   // #15 (AR / co-pilot) — HUMAN-IN-THE-LOOP REVIEW GATE. If the campaign is in co-pilot
@@ -1641,6 +1666,26 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       } catch (err) {
         console.warn(`[figsy] dedup: CRM check failed for lead ${leadId}, SKIPPING (fail-closed) —`, err instanceof Error ? err.message : err)
         return // fail-closed: don't enroll/charge when dedup is on but unverifiable
+      }
+    }
+
+    // ⚠️ #617 PECR — THE THIRD ENROL PATH, AND THE ONE THAT ACTUALLY RUNS ON SEND-DAY.
+    //
+    // The two `/figsy` enrol routes take this check before their charge. THIS function is the
+    // path a client's own approval takes (`approve-lead.ts` → here, `{ force: true, prepaid:
+    // true }`), so it is the one that matters most — and it charges a few lines below.
+    //
+    // Without this the send-time net would still stop the email, but the client would have been
+    // CHARGED for a lead we can never legally send to, and the enrollment would sit suppressed
+    // forever. That is the charge-then-refuse #332 forbids: correct-looking money for nothing.
+    //
+    // Placed with the other refusals (do-not-contact above, CRM dedup above) and BEFORE the
+    // billing gate, so it costs neither a credit nor a Claude draft.
+    if (!isDemo) {
+      const pecr = pecrVerdict({ country: lead.country, companyName: lead.company })
+      if (!pecr.allow) {
+        console.warn(`[figsy] #617 autoEnrollLead: lead ${leadId} not enrolled — ${pecr.reason}`)
+        return
       }
     }
 

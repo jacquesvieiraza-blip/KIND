@@ -667,6 +667,30 @@ operatorRouter.get('/people', async (req: Request, res: Response) => {
 })
 
 // V14 — who is actually IN this campaign, and where each of them is in the sequence.
+// ── #620 — THE LAST ENROL RUN, AND WHO IT REFUSED ─────────────────────────────────────────
+//
+// The enrol paths name every refusal and return it in their response. Nothing rendered it, so on
+// send-day "every draft was refused" and "nothing happened" looked identical on this board. A
+// toast is not enough: it is gone on refresh, and a cron-triggered enrol never showed one at all.
+// This reads the `enrol_skips` trail (#620) so the last run's refusals are on the screen the
+// operator actually watches.
+operatorRouter.get('/enrol-skips', async (req: Request, res: Response) => {
+  try {
+    const clientId = String(req.query.client_id ?? '').trim()
+    if (!clientId) { res.status(400).json({ success: false, error: 'client_id is required' }); return }
+    const { data, error } = await db.from('operator_audit_log')
+      .select('created_at, detail, subject_id')
+      .eq('client_id', clientId).eq('action', 'enrol_skips')
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    // A missing trail is NOT an error — most runs refuse nobody, and that is the good case.
+    if (error) { res.json({ success: true, data: null }); return }
+    res.json({ success: true, data: data ?? null })
+  } catch (err) {
+    console.error('[operator/enrol-skips]', err)
+    res.status(500).json({ success: false, error: 'Failed to read the enrol trail' })
+  }
+})
+
 operatorRouter.get('/campaign/:id/enrollments', async (req: Request, res: Response) => {
   try {
     const client = await requireClient(String(req.query.client_id ?? ''))

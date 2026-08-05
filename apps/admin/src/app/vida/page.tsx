@@ -93,6 +93,17 @@ type ColdState = {
   daysIdle: number | null; neverStarted: boolean; warn: boolean; cold: boolean; label: string
   exempt?: boolean; why?: string
 }
+/**
+ * #620 — what the last enrol run refused, and why.
+ *
+ * The enrol paths always NAMED their refusals and nothing rendered them, so a systematic refusal
+ * ("every draft rejected", "every UK lead a sole trader") read on this board as an idle run.
+ */
+type EnrolSkips = {
+  created_at: string
+  subject_id: string | null
+  detail: { enrolled?: number; skipped?: number; summary?: string; reasons?: Record<string, number> }
+}
 /** #619 — real money, a comp, or nothing. A comp ENTITLES; it is not a payment. */
 type FundedVia = 'real' | 'comp' | null
 type WorkRow = ClientRow & {
@@ -177,6 +188,9 @@ export default function VidaConsolePage() {
   const [selected, setSelected] = useState<string | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [work, setWork] = useState<WorkRow[] | null>(null)
+  // #620 — the last enrol run that REFUSED somebody, for the selected client. Null is the good
+  // case (nobody refused), which is why an empty trail is not an error.
+  const [enrolSkips, setEnrolSkips] = useState<EnrolSkips | null>(null)
   // Blended names-per-approval across the real book — the figure that belongs in the
   // cashflow lab, kept separate from the noisy per-client reading.
   const [bookRatio, setBookRatio] = useState<RatioReading | null>(null)
@@ -857,6 +871,18 @@ export default function VidaConsolePage() {
     loadBoard(selected)
   }, [selected, loadBoard])
 
+  // #620 — read the last enrol run that refused somebody. A null answer is the GOOD case
+  // (nobody was refused), so a failure here is swallowed rather than shown as an error: this
+  // line exists to surface a refusal, and it must never itself become noise on a healthy board.
+  useEffect(() => {
+    if (!selected) { setEnrolSkips(null); return }
+    setEnrolSkips(null)
+    fetch(`/api/proxy/operator/enrol-skips?client_id=${encodeURIComponent(selected)}`)
+      .then(r => r.json())
+      .then(j => { if (j?.success) setEnrolSkips(j.data ?? null) })
+      .catch(() => {})
+  }, [selected])
+
   // Lazy-load the tab's own data the first time it is opened. A status message belongs to
   // the tab that produced it — "3 added to campaign" must not follow you to the ICP tab.
   useEffect(() => {
@@ -1324,6 +1350,15 @@ export default function VidaConsolePage() {
                       {/* We carry a ~$40/month warmed sender for them whether they approve
                           anyone or not, so 30 days quiet pauses their campaigns. Approving
                           anyone brings them straight back — no operator needed. */}
+                      {/* #620 — WHAT THE LAST ENROL RUN REFUSED. Without this line, "every draft
+                          rejected" and "nothing happened" are the same picture on send-day. The
+                          reasons are shown IN WORDS, never as a bare count. */}
+                      {enrolSkips && (enrolSkips.detail?.skipped ?? 0) > 0 && (
+                        <span className="text-[#9d174d] font-semibold"
+                          title={Object.entries(enrolSkips.detail?.reasons ?? {}).map(([r, n]) => `${r} × ${n}`).join('\n')}>
+                          ⚠️ last enrol: {enrolSkips.detail?.enrolled ?? 0} enrolled · {enrolSkips.detail?.skipped} skipped — {enrolSkips.detail?.summary || 'reason not recorded'}
+                        </span>
+                      )}
                       <span title={selectedWork.cold.exempt ? selectedWork.cold.why : undefined}
                         className={selectedWork.cold.cold ? 'text-[#b91c1c] font-semibold' : selectedWork.cold.warn ? 'text-[#92400e] font-semibold' : selectedWork.cold.exempt ? 'text-[#8a82a3]' : ''}>
                         {selectedWork.cold.exempt ? '🏠' : selectedWork.cold.cold ? '🧊' : selectedWork.cold.warn ? '⏳' : '🕑'} {selectedWork.cold.label}

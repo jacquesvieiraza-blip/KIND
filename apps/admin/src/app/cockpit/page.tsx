@@ -6,6 +6,7 @@ import { Users, DollarSign, AlertCircle, Target, CheckCircle2,
 import Link from 'next/link'
 import { getZarPerUsd, zarToUsd, fxLabel, type FxRate } from '../../lib/fx'
 import { getRevenueExclusions } from '../../lib/revenue-exclusions'
+import { PER_CLIENT_MONTHLY_USD, TOTAL_FLOOR_USD, PLATFORM_FLOOR_USD, COMPANY_FLOOR_USD } from '@kind/shared'
 
 // ── Action Queue: at-risk clients are REAL (from /admin/churn-risk); the trigger
 // rows (signup→assign · payment→provision · day-29 switch · pool-low) are wired
@@ -339,17 +340,22 @@ function ActionQueue({ atRisk, pastDue }: { atRisk: ChurnRiskEntry[]; pastDue: P
 function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: number }) {
   // Revenue is REAL. Cost stack is an ESTIMATE until Xero connects — labelled as such.
   const perClientRev = activeSubs > 0 ? Math.round(mrrUsd / activeSubs) : 0
-  const estCostPerClient = 95 // branded inbox + data + AI + infra share (estimate)
+  // #614 — was `= 95`, a number typed into this page. The maintained model is
+  // docs/CASHFLOW-LAB.html and a drift test now binds the two.
+  const estCostPerClient = PER_CLIENT_MONTHLY_USD
   const estMarginPerClient = perClientRev - estCostPerClient
   const marginPct = perClientRev > 0 ? Math.round((estMarginPerClient / perClientRev) * 100) : 0
-  const estStack = 690 // monthly cost stack estimate
+  // #614 — was `= 690`. The real floor is the platform lines plus the UK-company lines
+  // (ICO, Companies House, accountant, accounting software, insurance), which had never been
+  // modelled anywhere in this repo until 4 Aug.
+  const estStack = TOTAL_FLOOR_USD
   const net = mrrUsd - estStack
   return (
     <div>
       <div className="flex items-center gap-2 pt-2 mb-3">
         <Target className="w-4 h-4 text-gray-400" />
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Unit economics</h2>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">cost = estimate until Xero connects</span>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">costs from docs/CASHFLOW-LAB · company lines unverified</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
@@ -361,7 +367,12 @@ function UnitEconomics({ mrrUsd, activeSubs }: { mrrUsd: number; activeSubs: num
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-brand-200/60 p-6">
           <h3 className="font-semibold text-gray-900 mb-3 text-sm">Aggregate</h3>
           <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">MRR</span><span className="font-semibold text-gray-900">${mrrUsd.toLocaleString()}</span></div>
-          <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">Est. monthly cost stack</span><span className="text-gray-400">– ${estStack}</span></div>
+          <div className="flex justify-between text-sm py-1 border-b border-dashed border-purple-50"><span className="text-gray-500">Monthly cost stack</span><span className="text-gray-400">– ${estStack}</span></div>
+          {/* #614 — the split, because "platform" and "the company itself" are different
+              decisions: one scales with product, the other is the price of existing as a
+              UK Ltd and had never been modelled anywhere until 4 Aug. */}
+          <div className="flex justify-between text-[11px] py-0.5"><span className="text-gray-400">· platform</span><span className="text-gray-400">${PLATFORM_FLOOR_USD}</span></div>
+          <div className="flex justify-between text-[11px] py-0.5 border-b border-dashed border-purple-50"><span className="text-gray-400">· company (ICO · Companies House · accountant · software · insurance)</span><span className="text-gray-400">${COMPANY_FLOOR_USD}</span></div>
           <div className="flex justify-between text-sm py-1"><span className="text-gray-900 font-semibold">Net</span><span className={`font-bold ${net >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{net >= 0 ? '+' : ''}${net.toLocaleString()} {net >= 0 ? '· profitable' : '· burning'}</span></div>
         </div>
       </div>

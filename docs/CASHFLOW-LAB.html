@@ -162,6 +162,25 @@
 
   <div class="scroll costs" style="margin-top:12px">
     <table>
+      <thead><tr><th>The company itself — UK Ltd compliance (added 4 Aug)</th><th>$ / month</th></tr></thead>
+      <tbody>
+        <tr><td>ICO data protection fee <span class="tag e">unverified — legally required</span><span class="sub"><b>£47/yr by direct debit (Tier 1)</b> ≈ $5/mo. <b>Legally required BEFORE processing prospect data</b> — a named person at a company is personal data even in B2B, and lead-gen is exactly the activity the fee covers. A <b>pre-launch</b> item, not a post-revenue one.</span></td>
+            <td class="n"><input type="number" id="c_ico" value="5" min="0" step="1"></td></tr>
+        <tr><td>Companies House — confirmation statement <span class="tag e">unverified</span><span class="sub"><b>£50/yr digital</b> ≈ $6/mo (rose from £34 on 1 Feb 2026). Annual accounts filing is free — but late is an <b>automatic £150–£1,500</b>, and it <b>doubles</b> if late two years running. First accounts are due <b>21 months after incorporation</b>; calendar it now.</span></td>
+            <td class="n"><input type="number" id="c_ch" value="6" min="0" step="1"></td></tr>
+        <tr><td>Accountant <span class="tag e">estimate — needed at first year-end regardless</span><span class="sub">Compliance-only package <b>£60–£90/mo</b> ≈ $100/mo (year-end accounts + CT600 + confirmation statement). Needed even pre-revenue — the first year-end filing happens whether money came in or not. One conversation also settles the three questions this page cannot: when to VAT-register, the salary/dividend split, and the year-end dates.</span></td>
+            <td class="n"><input type="number" id="c_acct" value="100" min="0" step="1"></td></tr>
+        <tr><td>Accounting software <span class="tag e">check FreeAgent first</span><span class="sub"><b>Xero Comprehensive £50/mo (£55 from 1 Sept)</b> ≈ $70/mo — the cheap tiers will not do, because billing USD and banking GBP forces <b>multi-currency</b>, which Xero only sells on Comprehensive and up. <b>⚠️ Before paying this: FreeAgent is FREE for life with a NatWest / RBS / Mettle business account.</b> If it handles multi-currency, this line is $0 — a £660/yr question that takes 20 minutes to answer.</span></td>
+            <td class="n"><input type="number" id="c_soft" value="70" min="0" step="1"></td></tr>
+        <tr><td>Professional indemnity insurance <span class="tag e">estimate — client-driven</span><span class="sub"><b>£150–£300/yr</b> ≈ $25/mo for £1m cover. Not legally required — but B2B clients routinely demand it in contract, so treat it as a cost of winning deals. <i>(Cyber cover £500–£1,500/yr is the sensible next add for a company holding prospect data — not defaulted here. Employers’ liability only becomes compulsory the day someone else joins the payroll: £2,500/day without it.)</i></span></td>
+            <td class="n"><input type="number" id="c_ins" value="25" min="0" step="1"></td></tr>
+        <tr class="total"><td>Company floor <span class="sub" style="display:inline;font-weight:400">— ⚠️ every line above is from secondary sources: gov.uk, ICO, Companies House, Xero and Stripe were all unreachable from the session that researched them (network policy). Converted at £1 = $1.34. Confirm each on the real site before trusting it — the 30-minute browser pass on the runlist.</span></td><td id="compFloor">—</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="scroll costs" style="margin-top:12px">
+    <table>
       <thead><tr><th>Scales with the work</th><th>$</th></tr></thead>
       <tbody>
         <tr><td>Per client, per month — their own inbox <span class="tag v">3 Aug</span><span class="sub"><b>$7/mo Google mailbox + ~$1/mo domain = ~$8</b>, on the client's OWN branded domain, built the same Google-direct way we built ours — our engine holds the password. ⚠️ <b>THIS LINE READ $40</b> (an unconfirmed guess at a Smartlead per-client workspace fee) and that single number is what made the old signup look like −$52: it was <b>five times</b> the real ongoing cost. The $45 pre-warmed Smartlead box is real but is <b>month one only</b> — see the setup line below.</span></td>
@@ -176,12 +195,35 @@
             <td class="n"><input type="number" id="v_ratio" value="2" min="1" step="0.1"></td></tr>
         <tr><td>Working one lead <span class="tag v">code</span><span class="sub">Verify $0.01 + AI write &amp; send $0.06.</span></td>
             <td class="n"><input type="number" id="v_work" value="0.07" min="0" step="0.001"></td></tr>
-        <tr><td>Stripe <span class="tag v">verified</span><span class="sub">% of every dollar in. ~3.5% on international cards.</span></td>
-            <td class="n"><input type="number" id="v_stripe" value="3.5" min="0" step="0.1"></td></tr>
+        <tr><td>Stripe — ALL-IN, card fee + currency conversion <span class="tag e">check your dashboard</span><span class="sub"><b>⚠️ THIS LINE READ 3.5% AND IGNORED FX ENTIRELY.</b> We charge in <b>USD</b> (<code>stripe.ts:144</code>) and bank in <b>GBP</b>, so every sale pays the card fee (1.5% UK · ~3.25% international) <b>plus</b> Stripe’s currency conversion (1% or 2% — even that digit is unverified). Realistic all-in: <b>4.3–6.0%</b>, i.e. roughly <b>£210–£213 of a $299 lands</b>. Default set to 5. The real FX % is in <b>your</b> Stripe dashboard → Settings → Payouts — a $3-a-sale question. (Refunds: Stripe keeps the fee. Chargebacks: ~£20 even if you win.)</span></td>
+            <td class="n"><input type="number" id="v_stripe" value="5" min="0" step="0.1"></td></tr>
         <tr><td>Price per approved lead <span class="tag v">locked</span><span class="sub">Founder-locked 25 Jul.</span></td>
             <td class="n"><input type="number" id="v_price" value="4" min="0" step="0.5"></td></tr>
       </tbody>
     </table>
+  </div>
+
+  <!-- ── VAT ───────────────────── -->
+  <h2>VAT — you probably charge almost nobody, and the trap runs the other way</h2>
+  <div class="card" style="font-size:14.5px">
+    <p><b>Not registered yet, and not required to be</b> until taxable turnover passes <b>£90,000</b> in any rolling 12 months. Once registered, who pays depends on where the client sits:</p>
+    <div class="scroll"><table style="min-width:520px">
+      <thead><tr><th>Client</th><th>Add VAT?</th><th>How</th></tr></thead>
+      <tbody>
+        <tr><td><b>UK business</b></td><td>Yes — 20% on top</td><td>normal UK VAT (only once registered)</td></tr>
+        <tr><td><b>EU business</b></td><td>No</td><td>reverse charge — the invoice must say so</td></tr>
+        <tr><td><b>US / rest of world</b></td><td>No</td><td>outside UK VAT entirely</td></tr>
+      </tbody>
+    </table></div>
+    <p style="margin-top:10px">VAT charged to UK clients goes <b>on top of</b> the $299 and straight through to HMRC — it never touches the margin on this page. What it does cost is admin, which is the accountant line above. <b>Evidence rule:</b> a client with no VAT/tax number on file is treated as a consumer and charged VAT — so capturing every client’s registration number at onboarding is not paperwork, it is what keeps their invoice VAT-free.</p>
+    <div class="note caution" style="margin:12px 0 4px"><b>⚠️ The reverse-charge trap — registration can be forced by your PURCHASES</b>
+      Services bought from overseas suppliers — Apollo, Anthropic, Railway, Supabase, Instantly, Google — <b>count toward the £90,000 threshold</b> under the same reverse-charge rule, even with zero sales. Watch it here:</div>
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:10px">
+      <label style="font-size:14px;font-weight:700;color:var(--ink)">Overseas software spend, $/mo</label>
+      <input type="number" id="c_overseas" value="150" min="0" step="10">
+      <span id="vatMeter" style="font-size:14.5px;font-variant-numeric:tabular-nums"></span>
+    </div>
+    <p class="foot" id="vatVerdict" style="margin-top:8px">—</p>
   </div>
 
   <!-- ── SCALE TABLE ─────────────────────────────────────── -->
@@ -190,7 +232,7 @@
   <div class="scroll">
     <table>
       <thead><tr>
-        <th>Clients</th><th>Revenue</th><th>Delivery</th><th>Fixed</th><th>Net / mo</th><th>Margin</th><th>Net / yr</th>
+        <th>Clients</th><th>Revenue</th><th>Delivery</th><th>Fixed</th><th>Net / mo</th><th>Margin</th><th>Net / yr</th><th>After UK corp tax / yr</th>
       </tr></thead>
       <tbody id="tbl"></tbody>
     </table>
@@ -225,6 +267,7 @@
       <li><b>3 Aug — THE COST-PRESSURE CUTS (founder: <i>"i cant afford 470/month… without income coming in this is impossible to maintain"</i>).</b> The response was not to cut the launch — it was to cut everything that was not the launch. <b>Resend Pro → free</b> ($20) · <b>Apollo → free plan from 3 Sep</b> ($65, with 2,500 already-paid credits usable through August) · <b>Claude Code downgraded</b> (~$130, current plan runs to 20 Aug) · and the <b>$138 servers line corrected to $51</b> (−$87, an error not a cut). <b>Nothing on the sending path was touched</b> — Google Workspace, Instantly Growth and the domains all stayed, because cutting those saves ~$65 and moves first revenue further away, which is the actual problem. <b>~$470 → ~$157/mo all-in.</b></li>
       <li><b>30 Jul — CLIENT ZERO RUNS ON OUR OWN ENGINE (founder decision, amending his own 26-Jul #577 lock).</b> Walked point by point: of Instantly's bundle we lack exactly <b>one</b> thing — the warmup network. The sequencer, sender and unibox duplicate the product we built and are trying to prove, and the <b>$97 HyperGrowth tier was needed only for the API to integrate with a sender we no longer use</b>. So Instantly drops to <b>Growth $37, warmup only</b>, and our engine does the sending. <b>⚠️ This makes the mailbox purchase specific, not optional: Google DIRECT (~$6/box), never Instantly's DFY boxes</b> — #577 records in writing that vendor-provisioned mailboxes expose no SMTP credentials, and our send path requires them. <b>The fuel, separate from the rent:</b> ~$130–145 per 1,000 prospects (Apollo <b>$65 actual</b>, corrected 3 Aug from ~$49–59 + ~$8 verification + ~$70 AI writing) ≈ <b>one client</b> at conservative reply rates, burned over ~6 weeks at 4 warm boxes — <b>and August's fuel is already paid: 2,500 Apollo credits sit unused before the plan drops to free on 3 Sep.</b> One client is worth $299 + ~$153/mo (re-derived 3 Aug at the new price and the corrected $8/mo client inbox) — <b>the acquisition maths works even at 1-in-1,000</b>.</li>
       <li><b>30 Jul — IDLE TOOLS BILL NOTHING (founder rule).</b> This is self-funded, so the defaults above are <b>what is actually being spent right now</b>, not what the model spends at client scale. A tool that is not doing work this month is set to <b>$0</b> and carries the trigger that switches it back on: <b>Hunter</b> and <b>PDL</b> the month a sourcing run happens · <b>Smartlead</b> the day a client signs · the <b>failover</b> when there are clients to feel an outage. Floor <b>$423 → $283</b>.</li>
+      <li><b>4 Aug — THE COMPANY ITSELF BECAME A COST LINE (founder request: “full audit of all expenses”).</b> Five UK-compliance lines added (~$206/mo at the defaults): ICO fee (legally required <i>before</i> processing prospect data), Companies House, accountant, accounting software (multi-currency forced — we bill USD and bank GBP), and professional indemnity. The <b>Stripe line was corrected 3.5% → 5% all-in</b>, because charging USD into a GBP account pays a currency conversion the old number ignored — roughly £210–£213 of a $299 lands. A <b>VAT card</b> states the three client rules and tracks the reverse-charge purchase trap, and the scale table gained an <b>after-UK-corp-tax</b> column (19% · 26.5% marginal · 25%). <b>⚠️ Every new figure is SECONDARY-SOURCE:</b> gov.uk, ICO, Companies House, Stripe, Xero and Wise were all unreachable from the research session (network-policy 403) — each carries an <i>estimate</i> tag until the founder’s 30-minute browser pass confirms it. £1 = $1.34 throughout. The $299 lock is unchanged — these lines say what the company costs around it.</li>
       <li><b>🪦 SUPERSEDED SAME DAY — "INSTANTLY-FIRST, HyperGrowth $97" (30 Jul, morning).</b> This list briefly carried both this decision and the Client Zero lock above, <b>which contradict each other</b> — HyperGrowth's API existed to let <i>Instantly</i> send, and the Client Zero walk (30 Jul, later the same day) established our own engine sends, so the API tier buys nothing. <b>The Client Zero bullet above is the truth: Growth $37, warmup only.</b> Kept as a tombstone because a deleted decision is how the same $60/mo gets re-argued in a month. <i>(Caught 3 Aug — the two bullets sat three lines apart for four days and the drift test pinned neither.)</i></li>
     </ul>
   </div>
@@ -238,6 +281,19 @@
   const num = id => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : 0; };
 
   const FIXED_IDS = ['f_servers','f_apollo','f_smartlead','f_hunter','f_claude','f_resend','f_instantly','f_sendinfra','f_zoho','f_domains','f_failover'];
+  // 4 Aug — the company is a cost too. UK compliance lines, £→$ at 1.34.
+  const COMP_IDS  = ['c_ico','c_ch','c_acct','c_soft','c_ins'];
+
+  // UK corporation tax on ANNUAL profit, $ at £1=$1.34: 19% to £50k ($67k), a 26.5%
+  // marginal band to £250k ($335k), 25% once past it. Pre-salary; secondary-source
+  // rates — the accountant owns the real number.
+  function ukCorpTax(annual){
+    if (annual <= 0) return 0;
+    const lo = 67000, hi = 335000;
+    if (annual <= lo) return annual * 0.19;
+    if (annual >= hi) return annual * 0.25;
+    return lo * 0.19 + (annual - lo) * 0.265;
+  }
   const VAR_IDS   = ['v_inbox','v_setup','v_pdl','v_pdlfloor','v_ratio','v_work','v_stripe','v_price'];
 
   const fmt  = n => (n < 0 ? '−$' : '$') + Math.abs(Math.round(n)).toLocaleString();
@@ -247,7 +303,9 @@
     const price = num('v_price'), ratio = num('v_ratio'), pdl = num('v_pdl');
     const work  = num('v_work'),  inbox = num('v_inbox'), stripePct = num('v_stripe') / 100;
 
-    const floor = FIXED_IDS.reduce((s, id) => s + num(id), 0);
+    const platform = FIXED_IDS.reduce((s, id) => s + num(id), 0);
+    const comp     = COMP_IDS.reduce((s, id) => s + num(id), 0);
+    const floor    = platform + comp;
 
     // Per client, per month
     const revPer     = leads * price;
@@ -268,7 +326,7 @@
     const net     = revenue - cogs - fixed;
 
     return { revenue, cogs, fixed, net, revPer, cogsPer, sourcePer, workPer, stripePer,
-             inbox, floor, namesTotal, pdlBilled, pdlExtra, price, ratio, pdl, work, stripePct,
+             inbox, floor, platform, comp, namesTotal, pdlBilled, pdlExtra, price, ratio, pdl, work, stripePct,
              margin: revenue > 0 ? net / revenue : 0,
              contribution: revPer - cogsPer };
   }
@@ -288,16 +346,18 @@
     $('leadsEcho').textContent = leads;
 
     const m = model(clients, leads);
-    $('fixedFloor').textContent = fmt(m.floor) + ' / mo';
+    $('fixedFloor').textContent = fmt(m.platform) + ' / mo';
+    $('compFloor').textContent  = fmt(m.comp) + ' / mo';
 
     $('rev').textContent  = fmt(m.revenue);
     $('revS').textContent = fmt(m.revPer) + ' per client';
     $('cogs').textContent = fmt(m.cogs);
     $('cogsS').textContent = fmt2(m.cogsPer) + ' per client' + (m.pdlExtra > 1 ? ' + unused PDL tier' : '');
     $('fix').textContent  = fmt(m.fixed);
-    $('fixS').textContent = 'platform floor';
+    $('fixS').textContent = fmt(m.platform) + ' platform + ' + fmt(m.comp) + ' company';
     $('net').textContent  = fmt(m.net);
-    $('netS').textContent = Math.round(m.margin * 100) + '% margin · ' + fmt(m.net * 12) + '/yr';
+    const yrNet = m.net * 12, afterTax = yrNet > 0 ? yrNet - ukCorpTax(yrNet) : yrNet;
+    $('netS').textContent = Math.round(m.margin * 100) + '% margin · ' + fmt(yrNet) + '/yr' + (yrNet > 0 ? ' · ~' + fmt(afterTax) + ' after UK corp tax' : '');
     $('netBox').className = 'o ' + (m.net < 0 ? 'loss' : 'big');
 
     // ── verdict: break-even in clients at this average ──
@@ -376,6 +436,7 @@
     $('tbl').innerHTML = [1,5,10,25,50,100,250,500,1000].map(n => {
       const x = model(n, leads);
       const bad = x.net < 0 ? ' bad' : '';
+      const xyr = x.net * 12, xat = xyr > 0 ? xyr - ukCorpTax(xyr) : xyr;
       return '<tr' + (n === clients ? ' class="mark"' : '') + '>' +
         '<td><b>' + n.toLocaleString() + '</b></td>' +
         '<td>' + fmt(x.revenue) + '</td>' +
@@ -383,7 +444,8 @@
         '<td>' + fmt(x.fixed) + '</td>' +
         '<td class="net' + bad + '">' + fmt(x.net) + '</td>' +
         '<td>' + Math.round(x.margin * 100) + '%</td>' +
-        '<td class="net' + bad + '">' + fmt(x.net * 12) + '</td></tr>';
+        '<td class="net' + bad + '">' + fmt(xyr) + '</td>' +
+        '<td class="net' + bad + '">' + fmt(xat) + '</td></tr>';
     }).join('');
 
     $('tierNote').innerHTML = 'At this average the book needs <b>' + Math.round(m.namesTotal).toLocaleString() +
@@ -392,7 +454,19 @@
       ' The platform floor above holds flat as clients grow; the per-client inbox does not, which is why delivery climbs in a straight line.';
   }
 
+  function vatMeterRender() {
+    const THRESHOLD = 120600;   // £90,000 at $1.34
+    const yr = num('c_overseas') * 12;
+    const pct = Math.min(999, Math.round(yr / THRESHOLD * 100));
+    $('vatMeter').innerHTML = '→ <b>' + fmt(yr) + '/yr</b> of reverse-charge purchases · <b>' + pct + '%</b> of the £90k threshold';
+    $('vatVerdict').textContent = pct >= 100
+      ? '⚠️ Over the threshold on purchases alone — VAT registration is compulsory. Talk to the accountant now.'
+      : pct >= 70
+        ? '⚠️ Approaching the threshold on purchases alone — plan the registration before it is forced. UK client revenue counts on top of this.'
+        : 'Comfortably under. UK client revenue counts toward the same £90k, so re-check when UK clients sign. Overseas B2B revenue never counts.';
+  }
   ['clients','leads'].forEach(id => $(id).addEventListener('input', render));
-  [...FIXED_IDS, ...VAR_IDS].forEach(id => $(id).addEventListener('input', render));
-  render();
+  [...FIXED_IDS, ...COMP_IDS, ...VAR_IDS].forEach(id => $(id).addEventListener('input', render));
+  $('c_overseas').addEventListener('input', vatMeterRender);
+  render(); vatMeterRender();
 </script>

@@ -219,7 +219,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 |---|---|---|---|
 | ~~A1~~ | ~~**Preview + merge PR #1269 (#615)**~~ ✅ **DONE 5 Aug — merged to main, so it is LIVE.** ⚠️ Merged without the preview walk, so it went 🟡→🩷 (live, unverified) rather than 🟡→🟣→🩷. **The 6-step walk in the PR body is now a LIVE-site walk** — do it when convenient and it becomes part of the pink walk (A11). | 🧍 | ✅ done |
 | ~~A2~~ | ~~**Vida cleanup**~~ ✅ **DONE 5 Aug, founder-walked.** House wallet **$3,999,038 → $0 → $4,000** (the balance reading exactly $4,000 is the proof both writes landed in the right order — a grant without the zero would read $4,003,038). Stripe Test and ACME **deleted**; MBF and Client Zero correctly showed **no Remove button**. **The audit also produced evidence, not assumption:** `figsy_sent_emails` = **0 rows** (nothing has ever been emailed from this account) · `AUTO_OUTREACH_ENABLED` **off** · `jacques@kindoutreach.com` **warming**, refused by the picker. ⚠️ **And it dated the landmine: cold-client clock reads 39 DAYS IDLE** — see A5, and note A4 interacts (approving anyone resets the clock to zero). | 🧍 | ✅ done |
-| A3 | **Ruling: booking link in email 1** — the #612 gate says no link in a first touch; FIGSY's prompt orders one in. One of the two is wrong; currently allowed-but-flagged amber | 🧍 | before 25 Aug |
+| ~~A3~~ | ~~**Ruling: booking link in email 1**~~ ✅ **RULED 5 Aug — Option A: the gate was right, the prompt was wrong.** *"The first email's job is to earn a reply, not a booking."* `generateSequence` no longer asks for a link in step 1 (step 3 keeps its link); the gate's exemption, its warn and the `bookingUrl` option are all removed, so a booking link in a first touch is now an ordinary hard fail. ⚠️ **Watch on the first real run:** a draft refused twice skips the lead with the reason named in `skip_reasons` — but **no screen renders it**, so a systematic refusal would read as *"no enrolments"* rather than *"every draft refused"*. Surfacing it is C8 below. | 🧍→🤖 | ✅ done |
 | A4 | **Ruling: the 159 stale approved leads** — clearing them resets the house pack to 100 included approvals | 🧍 | before 25 Aug |
 | A5 | **Ruling: cold-cron exemption for the house account** — the dated landmine; unruled it can pause our own campaign on send-day morning | 🧍 | before 25 Aug |
 | A6 | **Ruling: cap ladder 30→50/day on 2 boxes** — standing recommendation applies if silent | 🧍 | before Sep |
@@ -254,7 +254,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 | C5 | ⚠️ **Seat removal — HALF.** Dead "Add member" button fixed (merged). Delete-vs-deactivate is a founder decision; no delete exists | 🧍 ruling | with C4 |
 | C6 | 🔴 **D4 — Vida "no tax ID" badge** on the clients list — one line, lands after #1269 merges (uses its shared `vatBadge`) | 🤖 | after A1 |
 | C7 | 🔴 **#617-to-mint — PECR/GDPR pass on the outreach** — sole traders in a prospect list do NOT get the B2B corporate-subscriber exemption; review pass + suppression rule. **The only pre-25-Aug build item not yet started** | 🤝 | **before 25 Aug** |
-
+| C8 | 🔴 **Surface `skip_reasons` to the operator** — the enrol path names every refused lead (`copy_rejected:…`) and **nothing renders it**; zero hits across portal and admin. On send-day a systematic refusal would look like silence. Small: one panel or one line on the Engine board | 🤖 | before 25 Aug |
 ### D — Blocked / conditional
 
 | # | Item | Owner | When |

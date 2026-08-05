@@ -31,10 +31,13 @@ Replies are ingested **only** through Resend's inbound webhook (`POST /figsy/rep
 - `FIGSY_COLD_REPLY_TO` points at a mailbox nobody opens → replies arrive somewhere real and are never seen.
 - Inbound routing for that address is not wired to Resend → the webhook never fires, the Unibox stays empty, and it looks **exactly** like "nobody replied."
 
-- [ ] **`CHECK:` what `FIGSY_COLD_REPLY_TO` is set to** on the API service in Railway. Write it here: `________________`
-- [ ] **`CHECK:` that address is a real mailbox you can open** — and that you are actually opening it.
-- [ ] **`CHECK:` `RESEND_WEBHOOK_SECRET` is set** on the API service, or inbound rejects everything.
-- [ ] **`CHECK:` send a test, then REPLY to it from another address.** It must appear in the Unibox / "to triage" count. **This is the single most important pre-flight test on this page** — without a return path the campaign is a broadcast, and you would not discover it until send-day.
+- [ ] **Open Vida → System and read the *Reply path* row.** Since #624 it answers this for you, on screen: the **actual reply-to address**, which env var chose it, whether **Resend holds that domain**, and **how long since the last reply arrived**. No digging through Railway.
+  - **Green** → configured. Still not proof — see the live-fire test below.
+  - **Red "no reply-to is configured"** → replies are going to a hardcoded default nobody chose. Set `FIGSY_COLD_REPLY_TO` in Railway.
+  - **Red "<domain> is NOT a domain Resend holds"** → the inbound webhook can never fire. Every reply would be lost.
+  - **Amber / NOT-MEASURED** → Resend was unreachable. That is *not* a pass; re-run it.
+- [ ] **`CHECK:` the address that row shows is a mailbox you can actually open** — and that you are opening it.
+- [ ] **`CHECK:` send a test, then REPLY to it from another address.** It must appear in the Unibox / "to triage" count. **This is the single most important pre-flight test on this page — and #624's probe does NOT replace it.** A probe can prove the path is *configured*; only a real reply proves the loop actually closes — without a return path the campaign is a broadcast, and you would not discover it until send-day.
 
 *(Spam in a sending mailbox does NOT block replies — that mailbox is a sender, not the reply destination. Annoying, not dangerous.)*
 

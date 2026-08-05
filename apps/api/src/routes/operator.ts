@@ -3,7 +3,7 @@ import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
-import { PAID_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
+import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { namesPerApproval } from '../lib/money-path-math'
 import { coldView } from '../lib/cold-client'
 import type { InboxRow } from '../lib/sending-inbox'
@@ -84,11 +84,16 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
 
     const [icps, purchases, inboxes, leadsPaged, seqs, camps, queue, repliesPaged, approvalsPaged] = await Promise.all([
       db.from('icps').select('client_id').in('client_id', ids).eq('is_active', true),
-      // `type` and `reference` ride along on a query that was already being made — #619 needs
-      // to tell a payment from a comp, and a second query per client to learn it would be
-      // exactly the per-client round trip this endpoint is built to avoid.
-      db.from('credit_transactions').select('client_id, type, reference')
-        .in('client_id', ids).in('type', PAID_TX_TYPES),
+      // `type`, `reference` and `amount` ride along on a query that was already being made —
+      // #619 needs to tell a payment from a comp and #623 needs to SUM the real cash, and a
+      // second query per client to learn either would be exactly the per-client round trip
+      // this endpoint is built to avoid.
+      //
+      // #623 widened the type filter to CASH_TX_TYPES (PAID_TX_TYPES + 'refund'): without the
+      // refund rows a fully-refunded client would still read "$299 in", which is the same
+      // overstatement #623 exists to end.
+      db.from('credit_transactions').select('client_id, type, reference, amount')
+        .in('client_id', ids).in('type', CASH_TX_TYPES),
       inboxQ,
       // Passed leads are INCLUDED here (they used to be filtered out at the query) because
       // the names-per-approval ratio is meaningless without them: a client who passes on 190
@@ -125,7 +130,10 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     }
 
     const icpN   = countBy(icps)
-    const paidN  = countBy(purchases)
+    // #623 — the query now also returns `refund` rows, so this is scoped back to the types
+    // that mean ENTITLED. Without the predicate a refund row would count as funding, and
+    // `hasFunded` (which gates client-step) would start answering a different question.
+    const paidN  = countBy(purchases, r => PAID_TX_TYPES.includes(String(r.type ?? '')))
     const inboxN = countBy({ data: (inboxes as { data?: { client_id: string; status: string }[] }).data ?? [] },
                            r => ['assigned', 'warming', 'active'].includes(String(r.status)))
     const seqN   = countBy(seqs)
@@ -164,8 +172,8 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     // #619 — HOW each client was funded, not just whether. `manual_grant` is inside
     // PAID_TX_TYPES on purpose (it is what ENTITLES a comped account), so `hasFunded` below is
     // right to stay true for a comp — but the board must not print that as "Paid $299".
-    const { fundedVia } = await import('../lib/onboarding-pack')
-    const ledgerByClient = new Map<string, { type?: unknown; reference?: unknown }[]>()
+    const { fundedVia, moneyInUsd } = await import('../lib/onboarding-pack')
+    const ledgerByClient = new Map<string, { type?: unknown; reference?: unknown; amount?: unknown }[]>()
     for (const r of ((purchases as { data?: Record<string, unknown>[] })?.data ?? [])) {
       const k = r.client_id as string
       const list = ledgerByClient.get(k)
@@ -227,6 +235,10 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
         // this is the DISPLAY truth sitting next to it, so Vida can tick "Comped" instead of
         // claiming a payment nobody made.
         funded_via: fundedVia(ledgerByClient.get(id) ?? []),
+        // #623 — NET CASH RECEIVED, counted off the ledger. The board used to compute this as
+        // `$299 + (approved − 100) × $4`, so a free #424 charge-once approval printed money
+        // that never arrived. Counted, never calculated.
+        money_in_usd: moneyInUsd(ledgerByClient.get(id) ?? []),
         // 30 days without an approval and the nightly check suspends them — we carry a
         // warmed sender for them the whole time. Shown here so it's never a surprise.
         // Via `coldView`, NOT `coldState`: the exemption belongs to every surface that shows a

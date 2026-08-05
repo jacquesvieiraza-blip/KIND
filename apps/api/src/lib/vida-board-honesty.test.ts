@@ -219,17 +219,25 @@ describe('Vida renders the honest sentence', () => {
     expect(src).toContain("comped && done ? 'bg-[#f1f0f4]")
   })
 
-  it('THE PRICE IS INTERPOLATED, NEVER TYPED — the hand-typed 99 is gone', () => {
-    // Founder-locked: every price derives from the constants in @kind/shared. This line read
-    // `99 + … * 4` hand-typed, so it still quoted the OLD pack price after the 3-Aug move to
-    // $299 — the money figure on the operator's board was wrong by $200 a client.
+  it('THE PRICE IS NEVER HAND-TYPED — and #623 went further: it is no longer CALCULATED either', () => {
+    // ⚠️ THIS ASSERTION WAS REWRITTEN BY #623, NOT DELETED. #619 fixed a hand-typed `99 + … * 4`
+    // by interpolating the constants, and pinned that fix by asserting the arithmetic existed.
+    // #623 then found the deeper fault: the figure should not be arithmetic AT ALL. Cash in is
+    // now summed from the ledger, so asserting the old expression would pin the bug in place.
+    //
+    // The founder-locked invariant is unchanged and still asserted: no hand-typed price.
     expect(src).not.toMatch(/\?\s*99\s*\+/)
-    expect(src).toContain('PACK_PRICE_USD + Math.max(')
-    expect(src).toContain('* LEAD_PRICE_USD')
+    // And the stronger one #623 added: the money figure comes from the ledger, not from counts.
+    expect(src).toContain('money_in_usd')
   })
 
-  it('a comped account shows $0 in, because nothing came in', () => {
-    expect(src).toContain("selectedWork.funded_via === 'comp' ? 0")
+  it('a comped account still shows $0 in and says COMPED — now proven by the ledger, not a ternary', () => {
+    // #619 special-cased comp to 0 in the render. #623 made that special case redundant:
+    // `moneyInUsd` returns 0 for a manual_grant on its own, because a comp is not cash. The
+    // two agree independently (asserted in money-in.test.ts), which is stronger than a ternary
+    // — the render can no longer disagree with the ledger about what a comp is worth.
+    expect(src).toContain("funded_via === 'comp' &&")
+    expect(src).toContain('· comped')
   })
 
   it('the clients list shows the exemption instead of a red badge', () => {

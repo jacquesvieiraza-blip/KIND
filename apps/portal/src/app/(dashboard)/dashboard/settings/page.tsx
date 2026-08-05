@@ -131,14 +131,22 @@ function FigsyOutreachSettings() {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 flex items-center gap-2">
             Approve emails before sending
-            <span className="text-[10px] font-bold uppercase tracking-wide text-amber-600 bg-amber-50 border border-amber-100 rounded px-1.5 py-0.5">Soon</span>
+            <span className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-1.5 py-0.5">Available</span>
           </p>
-          {/* #326 — this was a live-looking toggle that only wrote localStorage; the
-              send path never read it, so FIGSY kept sending autonomously. Shown as an
-              honest "coming soon" so we never promise an approval gate that isn't
-              enforced. The real approval queue is tracked as #268. */}
+          {/* #326 made this honest when the gate genuinely did not exist — the toggle wrote
+              localStorage and the send path never read it. ⚠️ #628 — THE COPY OUTLIVED THE
+              PROBLEM AND BECAME THE OPPOSITE LIE. The hold is REAL now: when a campaign has
+              `settings.review_required`, `sendSequenceEmail` enqueues the draft into
+              figsy_approval_queue and PAUSES the enrollment instead of sending — verified in
+              figsy.ts, with the release queue built in Vida. Telling a client "FIGSY sends
+              autonomously; there is no approval hold" understates our own safety control, in
+              the one direction that costs trust.
+              THE TOGGLE STAYS UNWIRED HERE ON PURPOSE: the hold is PER CAMPAIGN
+              (PATCH /figsy/campaigns/:id takes review_required) and this switch is global, so
+              wiring it would mean inventing fan-out semantics across a client's campaigns —
+              on the send path, unasked. Tracked as its own item rather than half-built. */}
           <p className="text-xs text-[#9B8EC4]">
-            Coming soon — review each email before FIGSY sends it. For now FIGSY runs on Auto-Pilot (sends autonomously); there is no approval hold yet.
+            Available — every email can be held for your approval before it goes out, instead of FIGSY sending autonomously. It is set per campaign: ask us to switch yours to co-pilot and nothing sends without your yes.
           </p>
         </div>
         <button
@@ -874,7 +882,10 @@ export default function SettingsPage() {
           )}
         </div>
         <p className="text-sm text-[#9B8EC4] mb-5">
-          When FIGSY gets an interested reply, it can generate a calendar booking link to include in the AI reply suggestion.
+          {/* #628 — this said only "generate a calendar booking link", which undersold what is
+              actually built (gcal.ts): real free/busy, a public booking page, events.insert
+              into their own calendar, a Meet link and invites both ways. */}
+          Connect your calendar and prospects book straight into it — they see only your free slots, the meeting lands in your calendar with a Google Meet link, and you both get the invite. FIGSY shares the link when a reply comes in interested.
         </p>
         {calendarStatus?.connected ? (
           <div className="text-sm text-gray-600">
@@ -947,36 +958,32 @@ export default function SettingsPage() {
       {/* Notification Preferences */}
       <NotificationPreferences serverDailyBrief={dailyBriefEnabled} onDailyBriefToggle={handleDailyBriefToggle} />
 
-      {/* P2-12 — White-label / Agency Mode */}
+      {/* P2-12 — White-label / Agency Mode.
+          ⚠️ #628 — REWRITTEN 6 Aug, FOUNDER-RULED (Option B). This block advertised four
+          features with a live call-to-action and a COMMERCIAL NUMBER: "Revenue share — 30%
+          recurring on every client you onboard", under a "Scale plan" chip.
+          VERIFIED AGAINST THE CODE: none of it exists — no white-label, no sub-client portals,
+          no custom branding, no kit; "Scale plan" appears in no pricing constant; and the
+          partner system that DOES exist (routes/partners.ts) pays agency partners 25%, not 30%.
+          So a prospect could read a specific rate off a live client page, email the address
+          below, and reasonably believe they had been offered it — against a product that
+          cannot be delivered and a ledger that says a different number.
+          Same class as #619 (a comped account claiming a payment) and #623 (a board inflating
+          cash), except this one carried a percentage. The interest CTA is kept because the
+          demand is real; every claim and figure is gone. */}
       <div className="border-t border-gray-100 pt-6">
         <div className="flex items-center gap-2 mb-1">
           <span className="text-base">🏷️</span>
-          <h2 className="font-semibold">White-Label & Agency</h2>
-          <span className="ml-2 text-xs font-medium text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-100">
-            Scale plan
+          <h2 className="font-semibold">Agency &amp; white-label</h2>
+          <span className="ml-2 text-xs font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+            In development
           </span>
         </div>
-        <p className="text-sm text-[#9B8EC4] mb-4">
-          Run K.I.N.D under your own brand. Onboard your clients with your logo and domain — powered by KIND underneath.
+        <p className="text-sm text-[#9B8EC4] mb-3">
+          Running K.I.N.D for your own clients, under your own brand, is something we are building — it is not available yet.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[
-            { icon: '🎨', title: 'Custom branding', desc: 'Your logo, brand colours, and domain on every portal' },
-            { icon: '👥', title: 'Sub-client management', desc: 'Create and manage portals for each of your clients' },
-            { icon: '💰', title: 'Revenue share', desc: '30% recurring on every client you onboard' },
-            { icon: '📦', title: 'White-label kit', desc: 'Pre-built sales deck, pricing template, and onboarding guide' },
-          ].map(item => (
-            <div key={item.title} className="flex gap-3 p-4 rounded-xl border border-purple-50 bg-purple-50/30">
-              <span className="text-xl shrink-0">{item.icon}</span>
-              <div>
-                <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                <p className="text-xs text-[#9B8EC4] mt-0.5">{item.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-[#9B8EC4] mt-3">
-          Interested in the agency tier? Email <span className="text-[#7C3AED]">hello@get-kind.com</span> with subject "Agency partnership".
+        <p className="text-xs text-[#9B8EC4]">
+          Want to be told when it is ready? Email <span className="text-[#7C3AED]">hello@get-kind.com</span> with subject &quot;Agency partnership&quot; and we will come back to you with terms when there are terms to give.
         </p>
       </div>
 

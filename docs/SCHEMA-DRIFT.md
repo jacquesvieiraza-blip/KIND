@@ -35,7 +35,7 @@ On top of that, **three files each claim to be the schema**: `packages/db/src/sc
 
 Writing *"agree"* where the truth is *"we cannot tell"* is the same failure as a panel showing `failed: 0` for something never counted (#576) or a screen rendering a broken query as "nothing to do" (#565). So five rows say **unknowable** and mean it.
 
-## ⚠️ The five unknowables, worst first
+## ⚠️ The six unknowables, worst first
 
 ### 1. `leads.source` — and I introduced one of the two writers **yesterday**
 
@@ -63,6 +63,31 @@ The table is declared in `schema.sql` and `staging-schema.sql` and **created by 
 ### 5. `clients.last_low_credit_email_at`
 
 Written by the low-credit warning path; declared nowhere. Its sibling `low_credit_warned_at` **is** declared (`20260707_money_integrity.sql`), which suggests a rename that reached the code and never reached a migration. Low blast radius: a failed write means the warning email can repeat.
+
+
+### 6. `app_settings` — a table nothing in the repo creates, and #626 now WRITES to it
+
+**Added 5 Aug by #626.** The System check has read `app_settings` since it was built — key
+`pdl_monthly_cap_usd`, the monthly sourcing ceiling. Reading an undeclared table is a quiet bet;
+**writing** to one is a louder one, and #626 added the write: the founder can now set that cap
+from **Vida → Engine** instead of needing SQL he cannot run (the Supabase dashboard is locked
+behind the same account flag that has kept GitHub Actions at zero runs since July).
+
+Columns used: **`key`**, **`value`**. No migration in either directory creates this table, so it
+exists in production because somebody made it there — the same category as `whatsapp_messages`
+and `subscribers`.
+
+**Why it was accepted rather than avoided.** The alternative was leaving a screen that names a fix
+nobody can perform: the probe printed *"Set pdl_monthly_cap_usd before sourcing at volume"* with
+no path to doing so. The table already existed and was already being read; the write adds no new
+dependency, only a new direction on an existing one.
+
+**NEXT ACTION:** run the **Schema probe** on `/vida/engine` to capture `app_settings`' real shape,
+then commit a migration that declares it (`CREATE TABLE IF NOT EXISTS`, idempotent, safe to run
+against the live table). Until then the upsert is guarded the only way it can be — the write is
+**checked, never swallowed** (#349), so a missing table surfaces as *"The cap was NOT saved: …"*
+on the founder's screen rather than as a silent no-op that leaves sourcing unbounded while the
+card claims a ceiling.
 
 ## ⚠️ A bug in the instrument, found while building it
 

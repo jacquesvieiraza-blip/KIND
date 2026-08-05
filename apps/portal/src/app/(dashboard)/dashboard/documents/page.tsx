@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import CompanyDetailsCard from '@/components/CompanyDetailsCard'
 import { FileText, CheckCircle, Loader2, Shield, ExternalLink, Lock, Download, Receipt } from 'lucide-react'
 
 interface Subscription {
@@ -52,6 +53,7 @@ function productLabel(product: string, tier: string) {
 }
 
 export default function DocumentsPage() {
+  const [company, setCompany] = useState<{ company_name?: string | null; company_registration?: string | null; vat_number?: string | null } | undefined>(undefined)
   const supabase = createClient()
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([])
   const [invoices, setInvoices]           = useState<Invoice[]>([])
@@ -61,8 +63,14 @@ export default function DocumentsPage() {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!session) { setLoading(false); return }
       await Promise.all([
-        api.get<{ data: { subscriptions: Subscription[] } }>('/clients/me', session.access_token)
-          .then(res => setSubscriptions((res.data as any).subscriptions ?? []))
+        api.get<{ data: { subscriptions: Subscription[]; company_name?: string | null; company_registration?: string | null; vat_number?: string | null } }>('/clients/me', session.access_token)
+          .then(res => {
+            setSubscriptions((res.data as any).subscriptions ?? [])
+            // #615 — the same call already returns the client row; the company fields were
+            // simply never read off it.
+            const d = res.data as any
+            setCompany({ company_name: d?.company_name ?? null, company_registration: d?.company_registration ?? null, vat_number: d?.vat_number ?? null })
+          })
           .catch(() => {}),
         api.get<{ data: { invoices: Invoice[] } }>('/stripe/invoices', session.access_token)
           .then(res => setInvoices(res.data?.invoices ?? []))
@@ -86,6 +94,12 @@ export default function DocumentsPage() {
         <h1 className="text-2xl font-bold text-gray-900">Documents & Agreements</h1>
         <p className="text-[#7B6FA0] text-sm mt-1">Your legal agreements with K.I.N.D.</p>
       </div>
+
+      {/* #615 — the company details that decide how this client is invoiced. Surfaced HERE
+          because Documents is where a client looks for what we hold about them, and because a
+          registration number is evidence, not preference: without one on file the correct VAT
+          treatment is to charge it. */}
+      <CompanyDetailsCard initial={company} />
 
       {/* Acceptance record */}
       {activeSub ? (

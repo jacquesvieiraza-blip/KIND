@@ -104,6 +104,43 @@ clientRouter.get('/me/usage', async (req: AuthRequest, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to fetch usage' }) }
 })
 
+// ── #615 — THE COMPANY DETAILS STEP (VAT evidence) ───────────────────────────────────────
+//
+// Founder-ruled 4 Aug: *"as part of onboarding we capture their company information… all
+// clients."* We are a UK Ltd; for a BUSINESS customer the place of supply is where the customer
+// belongs, so an overseas business is outside UK VAT — **but only if we hold proof they are a
+// business.** No proof means consumer treatment, which means 20%.
+//
+// ⚠️ THIS GATES ONBOARDING COMPLETION AND NOTHING ELSE. It must never gate an approval, a
+// payment or a send: every client who signed up before this existed has empty fields, and
+// locking them out of the product they pay for over a form would be a far worse bug than the
+// one it fixes. Where enforcement goes beyond onboarding is a founder decision, deliberately
+// not taken in code.
+clientRouter.post('/company-details', async (req: AuthRequest, res) => {
+  try {
+    const { parseCompanyDetails } = await import('@kind/shared')
+    const parsed = parseCompanyDetails(req.body ?? {})
+    if (!parsed.ok) { res.status(400).json({ success: false, errors: parsed.errors }); return }
+
+    const { data: client } = await db.from('clients').select('id').eq('user_id', req.userId!).maybeSingle()
+    if (!client) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // CHECKED, not swallowed (#349) — an unchecked update here would report details saved that
+    // were never written, and the next invoice would be wrong for a reason nobody could see.
+    const { error } = await db.from('clients').update({
+      company_name:         parsed.value.company_name,
+      company_registration: parsed.value.company_registration,
+      vat_number:           parsed.value.vat_number,
+    }).eq('id', client.id)
+    if (error) { res.status(500).json({ success: false, error: `Your company details were NOT saved: ${error.message}` }); return }
+
+    res.json({ success: true, data: parsed.value })
+  } catch (err) {
+    console.error('[clients/company-details]', err)
+    res.status(500).json({ success: false, error: 'Could not save your company details' })
+  }
+})
+
 clientRouter.patch('/me', async (req: AuthRequest, res) => {
   try {
     const body = z.object({
@@ -112,6 +149,10 @@ clientRouter.patch('/me', async (req: AuthRequest, res) => {
       country:           z.string().optional(),
       website:           z.string().url().optional().or(z.literal('')),
       phone:             z.string().optional(),
+      // #615 — kept OPTIONAL on this general-purpose PATCH on purpose. The required-ness
+      // belongs to the ONBOARDING step (POST /clients/company-details), not to every partial
+      // settings save: making them mandatory here would break every existing client the first
+      // time they changed their phone number.
       company_registration: z.string().optional(),
       vat_number:           z.string().optional(),
       crm_type:          z.enum(['hubspot', 'pipedrive', 'none']).optional(),

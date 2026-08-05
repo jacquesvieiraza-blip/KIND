@@ -83,6 +83,67 @@ export function fundedVia(
   return funded ? 'comp' : null
 }
 
+// ── #623 — "$ IN" MEANS CASH RECEIVED, AND IT MUST BE COUNTED, NOT CALCULATED ──────────────
+//
+// Found by the founder's own money walk (A9 Walk 1, 5 Aug): he approved two leads and asked why
+// Vida did not show $8 more earned. It did not, and it was right not to — both contacts were
+// already paid for under **#424 charge-once**, so no money moved. But the board's *"$ in"* was
+// computed as `PACK_PRICE_USD + (approved − 100) × LEAD_PRICE_USD` — **arithmetic on the
+// approval COUNT** — so on any client with a repeat contact it prints cash that never arrived.
+//
+// That is #619's failure pointing the other way: #619 was a comped account claiming a payment;
+// this is a real client's board inflating what they paid us. The engine was never wrong — the
+// wallet, the pack counter and the charge are all honest. Only the DISPLAY did sums.
+//
+// ⚠️ NET OF REFUNDS, AND THAT IS NOT WHAT THE BRIEF ASKED FOR. Refunds are written as
+// `type: 'refund'` with a NEGATIVE amount (`routes/stripe.ts`), which sits outside
+// PURCHASE_TX_TYPES. Summing purchases alone would leave a fully-refunded client still reading
+// "$299 in" — the exact overstatement this function exists to end, one step down the road. So a
+// referenced refund subtracts. "Cash received" means what we actually kept.
+//
+// ⚠️ NOT CLAMPED AT ZERO. If refunds ever exceed purchases the figure goes negative, and it
+// should: that is a real anomaly (a double claw-back) and hiding it behind `Math.max(0, …)`
+// would be this same bug a third time, in the direction of looking tidy.
+
+/** Refund rows carry a negative amount and a `refund_<id>` reference. Not a purchase type. */
+const REFUND_TX_TYPE = 'refund'
+
+/** Every type `moneyInUsd` needs to see. Wider than PAID_TX_TYPES — it must fetch refunds too. */
+export const CASH_TX_TYPES: string[] = [...PAID_TX_TYPES, REFUND_TX_TYPE]
+
+/**
+ * NET CASH RECEIVED from this client, in dollars.
+ *
+ * Counted off the ledger, never derived from approval counts. Only rows that EVIDENCE money
+ * moving count — a purchase type (or a refund) carrying a provider reference, the same test
+ * `fundedVia` above and the wipe guard already apply.
+ *
+ * Deliberately excluded, each for its own reason:
+ *   • `manual_grant` — a comp. Entitles work; no cash arrived.
+ *   • `usage` $0      — a pack-covered approval. Already paid for by the $299.
+ *   • `wallet_charge` — the client spending money they already loaded. Not new cash.
+ *   • unreferenced purchase rows — hand-made, not evidenced (ambiguity resolves downward).
+ *
+ * Pure, so the figure is provable without a database — and it lives beside `fundedVia` so the
+ * two cannot drift apart while reading the same rows.
+ */
+export function moneyInUsd(
+  rows: ReadonlyArray<{ type?: unknown; reference?: unknown; amount?: unknown }> | null | undefined,
+): number {
+  let total = 0
+  for (const r of rows ?? []) {
+    const type = typeof r?.type === 'string' ? r.type : ''
+    if (!PURCHASE_TX_TYPES.includes(type) && type !== REFUND_TX_TYPE) continue
+    const ref = r?.reference
+    if (ref === null || ref === undefined || String(ref).trim() === '') continue
+    const amount = Number(r?.amount)
+    if (!Number.isFinite(amount)) continue
+    total += amount
+  }
+  // Round to cents — floating-point addition of money must not surface as $338.99999999.
+  return Math.round(total * 100) / 100
+}
+
 export type PackState = {
   /** They've bought the pack. */
   active: boolean

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
-import { loadError, panelView, notice, noticeClass, noticeText, PACK_PRICE_USD, LEAD_PRICE_USD, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, PACK_PRICE_USD, type Notice } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -112,6 +112,8 @@ type WorkRow = ClientRow & {
   ratio: RatioReading
   cold: ColdState
   funded_via?: FundedVia
+  /** #623 — NET CASH RECEIVED, summed from the ledger by the API. Never derived from counts. */
+  money_in_usd?: number
   next: NextAction
 }
 // The founder's mapped flow, as the rail across the top of the work column.
@@ -1328,16 +1330,17 @@ export default function VidaConsolePage() {
                       {/* Billed, NOT approved × $4 — the first 100 approvals are inside the
                           $99 pack, so multiplying every approval by $4 overstated what this
                           client has actually paid us by up to $400. */}
-                      {/* #619 — THE PRICE IS INTERPOLATED, NEVER TYPED (founder-locked). This
-                          read `99 + … * 4` hand-typed, so it was still quoting the OLD pack
-                          price after the 3-Aug move to $299 — the money figure on the operator's
-                          board was wrong by $200 a client. And a COMPED account shows $0 in,
-                          because nothing came in. */}
+                      {/* #623 — COUNTED, NEVER CALCULATED. This used to compute cash as
+                          `$299 + (approved − 100) × $4` — arithmetic on the approval COUNT —
+                          so the founder's own money walk asked why approving two leads did not
+                          add $8. It should not have: both contacts were already paid for under
+                          #424 charge-once, so no money moved. The engine was right and the
+                          board was doing sums. `money_in_usd` is now the SUM OF THE LEDGER —
+                          referenced purchases, net of referenced refunds. (#619 kept: a comp
+                          reads $0 · comped, and moneyInUsd independently agrees, because a
+                          manual_grant is not cash.) */}
                       <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${
-                        selectedWork.funded_via === 'comp' ? 0
-                        : selectedWork.pack.active
-                          ? PACK_PRICE_USD + Math.max(0, selectedWork.counts.approved - selectedWork.pack.included) * LEAD_PRICE_USD
-                          : 0
+                        (selectedWork.money_in_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })
                       }</b> in{selectedWork.funded_via === 'comp' && <span className="text-[#9b8ec4]"> · comped</span>}</span>
                       {selectedWork.pack.active && (
                         <span className={selectedWork.pack.left === 0 ? 'text-[#7C3AED] font-semibold' : ''}>{selectedWork.pack.label}</span>

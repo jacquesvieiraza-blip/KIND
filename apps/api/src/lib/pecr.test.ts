@@ -157,3 +157,30 @@ describe('the send-time safety net', () => {
     expect(window).toContain("return 'suppressed'")
   })
 })
+
+describe('the THIRD enrol path — autoEnrollLead, the one a client approval takes', () => {
+  const src = stripCommentsForEnvScan(readFileSync(join(__dirname, 'figsy.ts'), 'utf8'))
+  const fn = src.slice(src.indexOf('export async function autoEnrollLead'))
+  const body = fn.slice(0, fn.indexOf('export async function', 20))
+
+  it('asks PECR — found while wiring #620, and it charges', () => {
+    // approve-lead.ts calls this with { force: true, prepaid: true } when a CLIENT approves in
+    // Milla. It is THE production enrol path, and it was not covered by the two route gates.
+    expect(body).toContain('pecrVerdict({')
+  })
+
+  it('asks BEFORE the credit gate — a refused lead must cost neither a credit nor a draft', () => {
+    // Without this ordering the client is charged for a lead we can never legally email, and the
+    // enrollment sits suppressed forever: the charge-then-refuse #332 forbids.
+    const askAt = body.indexOf('pecrVerdict({')
+    const chargeGateAt = body.indexOf('canEnroll(client?.figsy_credits_remaining)')
+    expect(askAt).toBeGreaterThan(-1)
+    expect(chargeGateAt).toBeGreaterThan(-1)
+    expect(askAt, 'PECR must be asked before the billing gate').toBeLessThan(chargeGateAt)
+  })
+
+  it('leaves the do-not-contact and CRM-dedup refusals untouched', () => {
+    expect(body).toContain('isSuppressed({')
+    expect(body).toContain('crm_dedup_enabled')
+  })
+})

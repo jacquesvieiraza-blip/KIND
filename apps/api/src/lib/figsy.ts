@@ -1669,6 +1669,26 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       }
     }
 
+    // ⚠️ #617 PECR — THE THIRD ENROL PATH, AND THE ONE THAT ACTUALLY RUNS ON SEND-DAY.
+    //
+    // The two `/figsy` enrol routes take this check before their charge. THIS function is the
+    // path a client's own approval takes (`approve-lead.ts` → here, `{ force: true, prepaid:
+    // true }`), so it is the one that matters most — and it charges a few lines below.
+    //
+    // Without this the send-time net would still stop the email, but the client would have been
+    // CHARGED for a lead we can never legally send to, and the enrollment would sit suppressed
+    // forever. That is the charge-then-refuse #332 forbids: correct-looking money for nothing.
+    //
+    // Placed with the other refusals (do-not-contact above, CRM dedup above) and BEFORE the
+    // billing gate, so it costs neither a credit nor a Claude draft.
+    if (!isDemo) {
+      const pecr = pecrVerdict({ country: lead.country, companyName: lead.company })
+      if (!pecr.allow) {
+        console.warn(`[figsy] #617 autoEnrollLead: lead ${leadId} not enrolled — ${pecr.reason}`)
+        return
+      }
+    }
+
     // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =
     // one lead enrolled. Don't enroll (or spend a Claude draft) when the FIGSY pool
     // is empty; upstream delivery is already capped by this pool — this is the backstop.

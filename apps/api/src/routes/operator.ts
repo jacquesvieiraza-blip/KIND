@@ -65,7 +65,10 @@ operatorRouter.get('/clients', async (_req: Request, res: Response) => {
 operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
   try {
     const { data: clients } = await db.from('clients')
-      .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at')
+      // #626/C6 — `vat_number` rides the query that was already being made. It is the ONE field
+      // `vatBadge` needs (the sentinel NOT_REGISTERED lives in it, #615), and a second query per
+      // client to fetch it would be exactly the round trip this endpoint exists to avoid.
+      .select('id, company_name, industry, country, is_demo, wallet_balance_usd, created_at, vat_number')
       .order('created_at', { ascending: false }).limit(200)
     const rows = (clients ?? []) as Record<string, unknown>[]
     const ids = rows.map(c => c.id as string)
@@ -216,6 +219,9 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
         id, company_name: (c.company_name as string | null) ?? null,
         industry: c.industry ?? null, country: c.country ?? null,
         is_demo: isDemo, house_or_demo: isDemo || excluded.has(id),
+        // C6 — the raw field, not a pre-computed badge: `vatBadge` is shared, so the SCREEN
+        // decides how to say it and the API never grows a second opinion about VAT status.
+        vat_number: (c.vat_number as string | null) ?? null,
         wallet_balance_usd: Number((c.wallet_balance_usd as number | null) ?? 0),
         counts: {
           sourced: sourcedN.get(id) ?? 0,

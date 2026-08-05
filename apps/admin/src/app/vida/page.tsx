@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
-import { loadError, panelView, notice, noticeClass, noticeText, PACK_PRICE_USD, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, type Notice } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -26,6 +26,8 @@ type ClientRow = {
   is_demo: boolean | null
   wallet_balance_usd: number | null
   house_or_demo: boolean
+  /** C6 — raw, so the shared `vatBadge` decides how to say it and the API keeps no second opinion. */
+  vat_number?: string | null
 }
 
 type SourcedCard = { id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null; score: number | null; status: string | null; surfaced_for_approval_at: string | null; approval_expires_at: string | null }
@@ -1077,6 +1079,23 @@ export default function VidaConsolePage() {
                     )}
                   </span>
                 </span>
+                {/* C6 — VAT EVIDENCE, ON THE ROW. #615 shipped `vatBadge` and nothing rendered it,
+                    so "no tax ID" was a fact the operator could only find by opening the client.
+                    Amber = missing, grey = they declared not-registered (the NOT_REGISTERED
+                    sentinel), green = on file. The SHARED function decides — no local rule, and
+                    no special case for house/demo: whatever their record says is what shows. */}
+                {(() => {
+                  const b = vatBadge({ vat_number: c.vat_number ?? null })
+                  return (
+                    <span title={`VAT evidence: ${b.label}`}
+                      className={`text-[10px] font-bold uppercase tracking-wide rounded px-1.5 py-0.5 shrink-0 border ${
+                        b.tone === 'ok' ? 'text-emerald-700 bg-emerald-50 border-emerald-200'
+                        : b.tone === 'amber' ? 'text-amber-700 bg-amber-50 border-amber-200'
+                        : 'text-[#8a82a3] bg-[#f4f2f9] border-[#e4dcf7]'}`}>
+                      {b.label}
+                    </span>
+                  )
+                })()}
                 {c.house_or_demo && (
                   <span className="text-[10px] font-bold uppercase tracking-wide text-[#b3a9cc] bg-[#efeafc] rounded px-1.5 py-0.5 shrink-0">
                     {c.is_demo ? 'demo' : 'house'}

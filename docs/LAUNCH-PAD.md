@@ -236,7 +236,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 | # | Item · description | Owner | When |
 |---|---|---|---|
-| B1 | **ICO registration (~£47/yr by direct debit)** — LEGALLY REQUIRED before processing prospect data; a named person at a company is personal data even in B2B | 🧍 | **pre-launch** |
+| ~~B1~~ | ~~**ICO registration (~£47/yr by direct debit)**~~ ✅ **DONE 5 Aug — founder registered.** The legal floor for processing prospect data is in place; a named person at a company is personal data even in B2B, and the leads were already in the database, so this closed an exposure that was already running. Keep the confirmation email + the direct-debit reference with the company records (B3's accountant will want both). | 🧍 | ✅ done |
 | B2 | **The 30-min browser pass** — your Stripe dashboard FX % (Settings → Payouts) · Stripe intl 3.0 vs 3.25% · FreeAgent multi-currency (the £660/yr question) · Xero price-lock before 1 Sept · ICO fee page. Every "unverified" tag in the artifact + `cost-floor.ts` waits on this | 🧍 | this week |
 | B3 | **Get an accountant (~£60–90/mo compliance-only)** — settles VAT timing, salary/dividend split, year-end dates; needed at first year-end even at £0 revenue | 🧍 | before first revenue |
 | B4 | **Track overseas software spend monthly** — reverse-charge purchases count toward the £90k VAT threshold with ZERO sales; the meter lives in the cashflow artifact | 🧍 | monthly |

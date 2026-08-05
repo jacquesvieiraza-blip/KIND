@@ -17,6 +17,7 @@ export type OperatorAction =
   | 'surface_lead'          // #493 — sent a masked lead to the client for their 👍 (no spend)
   | 'reveal_lead'           // stand-alone reveal
   | 'enroll_lead'           // stand-alone enroll into a campaign
+  | 'set_pdl_cap'            // #626 — the founder set the monthly sourcing ceiling from Vida
   | 'enrol_skips'           // #620 — an enrol run REFUSED somebody. Written only when the run
                             // skipped at least one lead, and it carries the named reasons. The
                             // response already returned them and no screen rendered them, so a

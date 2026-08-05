@@ -84,6 +84,12 @@ export default function CompanyPage() {
   const [busy, setBusy] = useState<string | null>(null)
   const [topupBundle, setTopupBundle] = useState<number>(100)
   const [topupBusy, setTopupBusy] = useState(false)
+  // #616/C4 — the seat limit. The API has enforced it since #616 and NO screen could show or
+  // change it: a company hit a 409 at rep 26 with nothing having ever mentioned a limit.
+  const [capInput, setCapInput] = useState('')
+  const [capBusy, setCapBusy] = useState(false)
+  const [capMsg, setCapMsg] = useState<string | null>(null)
+  const [capErr, setCapErr] = useState<string | null>(null)
   const [topupError, setTopupError] = useState<string | null>(null)
 
   const [needsSetup, setNeedsSetup] = useState(false)
@@ -159,6 +165,30 @@ export default function CompanyPage() {
     } catch { /* ignore */ }
     setBusy(null)
   }
+  // #616/C4 — the owner sets the seat limit. The API's refusal is rendered VERBATIM: it explains
+  // that lowering a limit removes nobody and tells them to deactivate seats first, which is a
+  // better sentence than anything this page could invent about someone else's rule.
+  async function saveSeatCap() {
+    setCapBusy(true); setCapMsg(null); setCapErr(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      // Bail rather than cast: without a token the PATCH would 401 and the re-read below could
+      // not run, so the screen would show a stale limit next to "saved".
+      if (!token) { setCapErr('Your session expired — sign in again and retry.'); setCapBusy(false); return }
+      const n = Number(capInput.trim())
+      if (!Number.isInteger(n) || n < 1) { setCapErr('The seat limit must be a whole number of 1 or more.'); setCapBusy(false); return }
+      await api.patch('/company/seat-cap', { seat_cap: n }, token)
+      // Re-read the company rather than trusting the echo — the roster and the limit must agree.
+      await load(token)
+      setCapMsg(`Seat limit set to ${n}.`)
+      setCapInput('')
+    } catch (e) {
+      setCapErr((e as Error).message || 'The seat limit was not changed.')
+    }
+    setCapBusy(false)
+  }
+
   // #108 — owner deactivates / removes a rep seat (sets seat_active=false).
   async function deactivateRep(seat: Seat) {
     if (!token) return
@@ -448,6 +478,40 @@ export default function CompanyPage() {
       {tab === 'seats' && (
         <div className="space-y-4">
           <p className="text-sm text-gray-500">Each seat is one rep with their own autonomous FIGSY. One company payment. Adding a rep = one more line on the invoice.</p>
+
+          {/* #616/C4 — THE SEAT LIMIT, VISIBLE AND CHANGEABLE. It has been enforced since #616
+              with no screen able to show it, so a company met a 409 at rep 26 having never been
+              told a limit existed. OWNER ONLY, matching the API: a manager runs the reps, but
+              what the company pays for is the owner's call. */}
+          {isOwner && (
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5">
+              <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2"><Users className="w-4 h-4" style={{ color: BRAND }} /> Seat limit</h3>
+              <p className="text-sm text-gray-500 mb-3">
+                <b className="text-gray-900">{totals?.seats_used ?? 0}</b> of <b className="text-gray-900">{totals?.seat_cap ?? '—'}</b> rep seats in use.
+                Lowering the limit never removes anybody — it only stops the next invite.
+              </p>
+              {(totals?.seat_cap != null && (totals?.seats_used ?? 0) >= totals.seat_cap) && (
+                <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
+                  You are at your seat limit — the next invite will be refused until you raise it.
+                </p>
+              )}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input value={capInput} onChange={e => setCapInput(e.target.value)} inputMode="numeric"
+                  placeholder={String(totals?.seat_cap ?? 25)}
+                  className="w-full sm:w-40 rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:border-violet-400 focus:outline-none" />
+                <button onClick={saveSeatCap} disabled={capBusy || !capInput.trim()}
+                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50" style={{ background: BRAND }}>
+                  {capBusy ? 'Saving…' : 'Save limit'}
+                </button>
+              </div>
+              {capMsg && <p className="text-sm font-semibold text-violet-700 mt-2">{capMsg}</p>}
+              {/* The API's own words, not a paraphrase — it explains the fix better than we can. */}
+              {capErr && <p className="text-sm text-red-700 mt-2 leading-relaxed">{capErr}</p>}
+              <p className="text-xs text-gray-400 mt-3">
+                Removing a seat deactivates it and keeps its history. Permanent deletion is not offered — that ruling is still open.
+              </p>
+            </div>
+          )}
 
           {/* Invite a rep */}
           {can_manage && (

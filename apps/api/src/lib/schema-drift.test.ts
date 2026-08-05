@@ -118,15 +118,20 @@ describe('② the columns nothing in the repo declares are pinned', () => {
     return out
   })()
 
-  it('there are exactly five, and they are the five the doc explains', () => {
+  it('there are exactly six, and they are the six the doc explains', () => {
     // A SIXTH appearing means a new write path is betting on a column no migration creates —
     // which is how leads.source got here, and how it stayed invisible until this sweep.
     //
     // It was FOUR until the comment-stripper was fixed for nested template literals: the
     // broken version went blind mid-file and hid `subscribers.source` behind an invented
     // `figsy_enrollments.compat`. Pinning the list is what makes that visible next time.
+    //
+    // ⚠️ SIX SINCE 5 AUG. #626 added a WRITE to `app_settings` — a table the repo has read for
+    // months and never declared. The pin is raised deliberately, with the table documented and
+    // given a next action, which is exactly what this guard exists to force. Raising the number
+    // without writing the doc entry would be the failure it is designed to catch.
     expect(Object.keys(undeclared).sort()).toEqual(
-      ['clients', 'leads', 'opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
+      ['app_settings', 'clients', 'leads', 'opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
   })
 
   it('leads.source is one of them — I introduced a writer for it in #599', () => {

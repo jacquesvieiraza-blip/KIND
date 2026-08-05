@@ -19,6 +19,25 @@ Know these before anything else — every step below is one of them.
 | **`FIGSY_WARMUP_START`** | Railway → the API service → Variables | A date (`YYYY-MM-DD`). The cap then climbs on its own: **days 1–3 → 10/day · day 4 → 20 · days 5–6 → 30 · days 7–8 → 40 · day 9+ → 50 and stays there.** |
 | **Mailbox `status`** | Vida → the client → their inbox | Only `active` and `assigned` mailboxes send. **`warming` mailboxes are refused on purpose** — sending on a warming box is what un-warms it. |
 
+### ⚠️ WHERE REPLIES ACTUALLY GO — verify this BEFORE send-day
+
+**Your outreach is SENT from the warmed Google mailbox, but replies are NOT routed back to it.**
+
+Every sequence email carries a **`Reply-To:` header**, set from `FIGSY_COLD_REPLY_TO` (falling back to `FIGSY_REPLY_TO`, then a default of `hello@get-kind.com`). So when a prospect hits Reply, their answer goes to **that** address — **not** to the mailbox it was sent from.
+
+Replies are ingested **only** through Resend's inbound webhook (`POST /figsy/replies/inbound`, authenticated by `RESEND_WEBHOOK_SECRET`, which fails closed when unset). **There is no IMAP poller reading the Google mailboxes.** So a reply reaches the Unibox only if that reply-to address's inbound mail is routed to Resend.
+
+**Two ways this loses you every reply, both silent:**
+- `FIGSY_COLD_REPLY_TO` points at a mailbox nobody opens → replies arrive somewhere real and are never seen.
+- Inbound routing for that address is not wired to Resend → the webhook never fires, the Unibox stays empty, and it looks **exactly** like "nobody replied."
+
+- [ ] **`CHECK:` what `FIGSY_COLD_REPLY_TO` is set to** on the API service in Railway. Write it here: `________________`
+- [ ] **`CHECK:` that address is a real mailbox you can open** — and that you are actually opening it.
+- [ ] **`CHECK:` `RESEND_WEBHOOK_SECRET` is set** on the API service, or inbound rejects everything.
+- [ ] **`CHECK:` send a test, then REPLY to it from another address.** It must appear in the Unibox / "to triage" count. **This is the single most important pre-flight test on this page** — without a return path the campaign is a broadcast, and you would not discover it until send-day.
+
+*(Spam in a sending mailbox does NOT block replies — that mailbox is a sender, not the reply destination. Annoying, not dangerous.)*
+
 **The send loop itself runs every 2 hours** (`/figsy/send-due-all`, on the UTC clock). So after you flip the switch, **the first send happens on the next 2-hourly run, not instantly.** Do not panic in the first ten minutes and do not flip anything twice.
 
 **Two facts that matter and surprise people:**

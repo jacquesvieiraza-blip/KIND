@@ -405,23 +405,55 @@ async function vida(): Promise<Section> {
   // Deliberately does NOT send or receive anything. It checks the three things that must be
   // true for an inbound reply to reach a desk, and says which one is missing.
   rows.push(await probe('Reply path (inbound → client desk)', async () => {
-    const secret = process.env.RESEND_WEBHOOK_SECRET
-    const { count: replies, error } = await db.from('figsy_replies')
-      .select('id', { count: 'exact', head: true })
-    if (error) return unmeasured('Reply path (inbound → client desk)', `figsy_replies could not be read: ${error.message}`)
+    // #624 — THIS ROW USED TO ANSWER HALF THE QUESTION. It checked the signing secret and
+    // counted replies, and never asked WHERE replies are addressed. Outreach carries a
+    // `Reply-To` from COLD_REPLY_TO (FIGSY_COLD_REPLY_TO → FIGSY_REPLY_TO → a silent hardcoded
+    // default), so this row could report green while every reply went to a mailbox whose
+    // inbound was never wired to Resend — a campaign with no return path, invisible until
+    // send-day. The judgement is pure (`replyPathVerdict`); this only gathers facts.
+    const { replyPathVerdict } = await import('./reply-path')
+    const { COLD_REPLY_TO } = await import('./deliverability')
+    const label = 'Reply path (inbound → client desk)'
 
-    if (!secret) {
-      // Resend signs inbound webhooks over the raw body. No secret → every inbound reply is
-      // rejected at the door, silently, and the client's desk simply stays quiet.
-      return broken('Reply path (inbound → client desk)',
-        'RESEND_WEBHOOK_SECRET is NOT set, so every inbound reply is rejected unverified — a prospect can answer and nothing reaches the client. This is invisible to them: a lost reply looks identical to no reply.',
-        'Set RESEND_WEBHOOK_SECRET in Railway → @kind/api → Variables.')
+    const { error } = await db.from('figsy_replies').select('id', { count: 'exact', head: true })
+    if (error) return unmeasured(label, `figsy_replies could not be read: ${error.message}`)
+
+    // Newest reply, and whether anything has been sent — a zero reply count means opposite
+    // things before and after the first send, so the verdict needs both.
+    const [last, sent] = await Promise.all([
+      db.from('figsy_replies').select('received_at').order('received_at', { ascending: false }).limit(1).maybeSingle(),
+      db.from('figsy_sent_emails').select('id', { count: 'exact', head: true }),
+    ])
+
+    // Resend's domain list — the SAME free endpoint the Resend dependency row already calls.
+    // Never a paid call, never a send. Unreachable stays null, and null becomes NOT-MEASURED
+    // rather than a guess.
+    let resendDomains: string[] | null = null
+    const key = process.env.RESEND_API_KEY
+    if (key) {
+      try {
+        const r = await fetchWithTimeout('https://api.resend.com/domains', { headers: { Authorization: `Bearer ${key}` } })
+        if (r.ok) {
+          const body = await r.json() as { data?: { name?: string }[] }
+          resendDomains = (body?.data ?? []).map(d => String(d?.name ?? '')).filter(Boolean)
+        }
+      } catch { /* unreachable — stays null, reported as NOT-MEASURED */ }
     }
-    // The route is mounted with a raw-body parser ahead of express.json(); without it the
-    // signature can never verify. That is structural rather than runtime, so it is asserted
-    // where it can be — in the test — and reported here as configuration present.
-    return ok('Reply path (inbound → client desk)',
-      `Signing secret set and the inbound route is mounted with a raw-body parser (both required, or signatures never verify). ${replies ?? 0} reply/replies captured to date. NOT a proof that the last reply arrived — only that the path is configured to accept one.`)
+
+    const v = replyPathVerdict({
+      coldReplyTo: process.env.FIGSY_COLD_REPLY_TO,
+      replyTo: process.env.FIGSY_REPLY_TO,
+      resolved: COLD_REPLY_TO,
+      resendDomains,
+      lastReplyAt: (last.data as { received_at?: string } | null)?.received_at ?? null,
+      hasSent: (sent.count ?? 0) > 0,
+      secretSet: !!process.env.RESEND_WEBHOOK_SECRET,
+      now: new Date(),
+    })
+
+    if (v.state === 'ok') return ok(label, v.detail)
+    if (v.state === 'broken') return broken(label, v.detail, v.action)
+    return unmeasured(label, v.detail, v.action)
   }))
 
   // REPLICA COUNT — the founder's spec said "if readable". It is not, and that is the answer.

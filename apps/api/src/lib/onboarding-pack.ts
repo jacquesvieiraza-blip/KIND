@@ -40,6 +40,49 @@ export const PURCHASE_TX_TYPES: string[] = ['wallet_topup', 'purchase', 'credit_
  */
 export const PAID_TX_TYPES: string[] = [...PURCHASE_TX_TYPES, 'manual_grant']
 
+// ── #619 — ENTITLED IS NOT THE SAME SENTENCE AS "PAID US $299" ────────────────────────────
+//
+// The two lists above already say a comp is not a purchase. What was missing is the surface:
+// Vida's client board ticked **"Paid $299 ✓"** on the house account, which has never paid us
+// anything — it holds a `manual_grant`, which is inside `PAID_TX_TYPES` on purpose, because it
+// is ENTITLED. The board read entitlement and printed a payment. The founder caught it on the
+// live site, and it is the same class as #613: a money surface must never round up.
+//
+// This function exists so the distinction is made ONCE and provably, rather than inlined at
+// each surface — which is how the six inlined copies above came to disagree in the first place.
+
+export type FundedVia = 'real' | 'comp' | null
+
+/**
+ * How was this client funded — real money, a comp, or not at all?
+ *
+ * `'real'` requires BOTH a purchase type AND a provider reference, which is the rule the wipe
+ * guard already applies to decide whether an account has real money in it (`operator.ts`:
+ * *"a purchase-type ledger row carrying a provider reference is real money"*). Stripe always
+ * writes one (`reference: session.id`), so a purchase row without a reference is a hand-made
+ * row, not a payment we can evidence.
+ *
+ * ⚠️ AMBIGUITY RESOLVES DOWNWARD, DELIBERATELY. A funded client we cannot prove paid us reads
+ * as `'comp'`, never `'real'`. Understating what came in is a correctable annoyance; the board
+ * claiming money that never arrived is the exact failure this was built to end.
+ *
+ * Takes the client's ledger rows so it stays pure — no database, no client id, nothing to mock.
+ */
+export function fundedVia(
+  rows: ReadonlyArray<{ type?: unknown; reference?: unknown }> | null | undefined,
+): FundedVia {
+  let funded = false
+  for (const r of rows ?? []) {
+    const type = typeof r?.type === 'string' ? r.type : ''
+    if (!PAID_TX_TYPES.includes(type)) continue          // usage/charges/bonuses are not funding
+    funded = true
+    const ref = r?.reference
+    const hasReference = ref !== null && ref !== undefined && String(ref).trim() !== ''
+    if (PURCHASE_TX_TYPES.includes(type) && hasReference) return 'real'
+  }
+  return funded ? 'comp' : null
+}
+
 export type PackState = {
   /** They've bought the pack. */
   active: boolean

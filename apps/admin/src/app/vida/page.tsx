@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
-import { loadError, panelView, notice, noticeClass, noticeText, PACK_PRICE_USD, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, PACK_PRICE_USD, LEAD_PRICE_USD, type Notice } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -87,12 +87,20 @@ type NextAction = {
   urgency: number
 }
 type RatioReading = { sourced: number; approved: number; ratio: number | null; confident: boolean; label: string }
-type ColdState = { daysIdle: number | null; neverStarted: boolean; warn: boolean; cold: boolean; label: string }
+// `exempt` arrives from the API's `coldView` (#619) — this account is outside the 30-day rule
+// (the house account, a demo), so it must never be shown as suspended or going quiet.
+type ColdState = {
+  daysIdle: number | null; neverStarted: boolean; warn: boolean; cold: boolean; label: string
+  exempt?: boolean; why?: string
+}
+/** #619 — real money, a comp, or nothing. A comp ENTITLES; it is not a payment. */
+type FundedVia = 'real' | 'comp' | null
 type WorkRow = ClientRow & {
   counts: { sourced: number; with_client: number; approved: number }
   pack: { active: boolean; included: number; left: number; label: string }
   ratio: RatioReading
   cold: ColdState
+  funded_via?: FundedVia
   next: NextAction
 }
 // The founder's mapped flow, as the rail across the top of the work column.
@@ -100,6 +108,14 @@ const FLOW_STEPS: [number, string][] = [
   [0, 'Signed up'], [2, `Paid $${PACK_PRICE_USD}`], [3, 'Inbox + people'], [4, 'Client picks'],
   [5, 'Sequence'], [6, 'Run'], [7, 'Replies'], [8, 'Book'], [9, 'Live'],
 ]
+// #619 — STEP 2 IS A MONEY SENTENCE, AND ON A COMPED ACCOUNT IT WAS A FALSE ONE.
+// The rail ticked "Paid $299 ✓" for the house account, which has never paid us anything: it
+// holds a `manual_grant`, which is inside PAID_TX_TYPES on purpose because it ENTITLES. The
+// board read entitlement and printed a payment. Only step 2 changes — every other step means
+// the same thing however the account was funded.
+function flowStepLabel(step: number, label: string, via: FundedVia | undefined): string {
+  return step === 2 && via === 'comp' ? 'Comped' : label
+}
 // V4 — the pool the operator picks from.
 type Person = {
   id: string; first_name: string | null; last_name: string | null; job_title: string | null
@@ -1020,8 +1036,17 @@ export default function VidaConsolePage() {
                   <b className="text-[14px] block truncate">{c.company_name || 'Unnamed'}</b>
                   <span className={`text-[12.5px] block truncate ${you ? 'text-[#9d174d] font-semibold' : 'text-[#9b8ec4]'}`}>
                     {n?.label ?? ([c.industry, c.country].filter(Boolean).join(' · ') || '—')}
+                    {/* #619 — the API applies the exemption (`coldView`), so `.cold` and
+                        `.warn` are already false on an exempt account and these badges cannot
+                        fire on one. The neutral hint below says WHY, in grey, instead of the
+                        red SUSPEND the founder photographed on our own account. */}
                     {workById[c.id]?.cold?.cold && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wide text-white bg-[#b91c1c] rounded px-1.5 py-0.5">Suspended</span>}
                     {workById[c.id]?.cold?.warn && <span className="ml-1.5 text-[10px] font-extrabold uppercase tracking-wide text-[#92400e] bg-[#fef3c7] border border-[#fde68a] rounded px-1.5 py-0.5">Going quiet</span>}
+                    {workById[c.id]?.cold?.exempt && (
+                      <span title={workById[c.id]?.cold?.why} className="ml-1.5 text-[10px] font-semibold uppercase tracking-wide text-[#8a82a3]">
+                        cold-check exempt
+                      </span>
+                    )}
                   </span>
                 </span>
                 {c.house_or_demo && (
@@ -1237,13 +1262,19 @@ export default function VidaConsolePage() {
                     {FLOW_STEPS.map(([n, label], i) => {
                       const done = selectedWork.next.step > n
                       const now = selectedWork.next.step === n
+                      // #619 — a comped step 2 is NOT a green paid tick. Neutral slate, so the
+                      // operator can see at a glance that this account was let through rather
+                      // than that it paid.
+                      const comped = n === 2 && selectedWork.funded_via === 'comp'
                       return (
                         <span key={n} className="flex items-center gap-1 shrink-0">
-                          <span className={`w-[22px] h-[22px] rounded-lg text-[11.5px] font-extrabold flex items-center justify-center border ${
+                          <span title={comped ? 'Comped — a manual grant entitled this account. No money came in.' : undefined}
+                            className={`w-[22px] h-[22px] rounded-lg text-[11.5px] font-extrabold flex items-center justify-center border ${
                             now ? 'bg-[#7C3AED] text-white border-[#7C3AED]'
+                            : comped && done ? 'bg-[#f1f0f4] text-[#6b6480] border-[#ddd9e6]'
                             : done ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            : 'bg-white text-[#b3a9cc] border-[#ece5fb]'}`}>{done ? '✓' : n}</span>
-                          <span className={`text-[12px] whitespace-nowrap ${now ? 'font-extrabold text-[#1f1235]' : 'font-semibold text-[#b3a9cc]'}`}>{label}</span>
+                            : 'bg-white text-[#b3a9cc] border-[#ece5fb]'}`}>{done ? (comped ? '·' : '✓') : n}</span>
+                          <span className={`text-[12px] whitespace-nowrap ${now ? 'font-extrabold text-[#1f1235]' : 'font-semibold text-[#b3a9cc]'}`}>{flowStepLabel(n, label, selectedWork.funded_via)}</span>
                           {i < FLOW_STEPS.length - 1 && <span className="text-[#d9d0ee] px-0.5">›</span>}
                         </span>
                       )
@@ -1271,7 +1302,17 @@ export default function VidaConsolePage() {
                       {/* Billed, NOT approved × $4 — the first 100 approvals are inside the
                           $99 pack, so multiplying every approval by $4 overstated what this
                           client has actually paid us by up to $400. */}
-                      <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${selectedWork.pack.active ? 99 + Math.max(0, selectedWork.counts.approved - selectedWork.pack.included) * 4 : 0}</b> in</span>
+                      {/* #619 — THE PRICE IS INTERPOLATED, NEVER TYPED (founder-locked). This
+                          read `99 + … * 4` hand-typed, so it was still quoting the OLD pack
+                          price after the 3-Aug move to $299 — the money figure on the operator's
+                          board was wrong by $200 a client. And a COMPED account shows $0 in,
+                          because nothing came in. */}
+                      <span><b className="text-[#1f1235]">{selectedWork.counts.approved}</b> approved · <b className="text-[#1f1235]">${
+                        selectedWork.funded_via === 'comp' ? 0
+                        : selectedWork.pack.active
+                          ? PACK_PRICE_USD + Math.max(0, selectedWork.counts.approved - selectedWork.pack.included) * LEAD_PRICE_USD
+                          : 0
+                      }</b> in{selectedWork.funded_via === 'comp' && <span className="text-[#9b8ec4]"> · comped</span>}</span>
                       {selectedWork.pack.active && (
                         <span className={selectedWork.pack.left === 0 ? 'text-[#7C3AED] font-semibold' : ''}>{selectedWork.pack.label}</span>
                       )}
@@ -1283,8 +1324,9 @@ export default function VidaConsolePage() {
                       {/* We carry a ~$40/month warmed sender for them whether they approve
                           anyone or not, so 30 days quiet pauses their campaigns. Approving
                           anyone brings them straight back — no operator needed. */}
-                      <span className={selectedWork.cold.cold ? 'text-[#b91c1c] font-semibold' : selectedWork.cold.warn ? 'text-[#92400e] font-semibold' : ''}>
-                        {selectedWork.cold.cold ? '🧊' : selectedWork.cold.warn ? '⏳' : '🕑'} {selectedWork.cold.label}
+                      <span title={selectedWork.cold.exempt ? selectedWork.cold.why : undefined}
+                        className={selectedWork.cold.cold ? 'text-[#b91c1c] font-semibold' : selectedWork.cold.warn ? 'text-[#92400e] font-semibold' : selectedWork.cold.exempt ? 'text-[#8a82a3]' : ''}>
+                        {selectedWork.cold.exempt ? '🏠' : selectedWork.cold.cold ? '🧊' : selectedWork.cold.warn ? '⏳' : '🕑'} {selectedWork.cold.label}
                       </span>
                     </div>
 

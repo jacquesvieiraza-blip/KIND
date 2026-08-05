@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷249 · 🟣2 · 🟡65 · 🔴173 · ⏸5 · **Σ589** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷250 · 🟣2 · 🟡64 · 🔴173 · ⏸5 · **Σ589** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -228,9 +228,9 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 | A16 | **CONFIRM the Instantly mailbox count** — the System screen reads **9 mailboxes across 3 domains** (`kindoutreach.com`, `trykind.org`, **`nexttrygetkind.com`** — the third appears in no doc). Every plan and the cap ladder assumed **4 boxes on 2 domains**. Confirm which are intended senders; nobody should assume. | 🧍 | before 18 Aug |
 | A17 | **Set `pdl_monthly_cap_usd`** (app_settings) — currently absent, so only the code default guards sourcing spend. $2.80 spent this month against nothing to measure it by. | 🧍 | before sourcing at volume |
 | A8 | **Item 13 — Google "storage full / 30 GB" anomaly** — still unexplained; look in Google admin | 🧍 | 5 min |
-| A9 | **The two walks** — $0 manual-grant money walk · one fresh signup completing clean | 🧍 | 15 min |
+| A9 | **The two walks** — ⚠️ **WALK 1 PART-DONE 5 Aug and it EARNED ITS KEEP: it produced #623 and #625.** The founder approved 2 leads on Client Zero; the wallet did not move and nothing enrolled. Both were correct-by-design (#424 charge-once = free) but chasing *why* exposed the board calculating *"$ in"* instead of reading the ledger (**#623**) and the charge-once door skipping the no-campaign gate (**#625**). ⚠️ **STILL OWED: the $4 charge has never been seen move on screen** — every test lead was free. Proving it needs a contact this account has NEVER bought (source ~20 fresh leads, ≈$5.60 PDL). **WALK 2 (one fresh signup completing clean) NOT STARTED.** | 🧍 | 15 min |
 | A10 | **Monday Instantly glance** (4 health scores rising, zero disconnects) · **18 Aug Google charge (~$28) succeeds** | 🧍 | weekly · 18 Aug |
-| A11 | **Pink walk** — 🩷 → 🟢 on your "good". Now covers #591 too (its dot was corrected 5 Aug) plus the merged #611/#612/#613/#614/#616 | 🧍 | during warmup |
+| A11 | **Pink walk** — 🩷 → 🟢 on your "good". Covers #591 · the merged #611/#612/#613/#614/#616 · **and everything shipped 5 Aug: #617 #618 #619 #620 #621 #622 #623 #624 #625** (9 more). 250 pinks now stand unverified. | 🧍 | during warmup |
 | A12 | **Failover teardown** ($12/mo back) — pinned order in the runbook: DNS repoint FIRST | 🤝 | 10 min |
 | A13 | **Terms rulings** — "yours to keep" on churn · what "training" includes → counsel words the Terms | 🧍 | before client #1 |
 | A14 | **#553 — THE SEND LADDER** · ✅ **RUNBOOK WRITTEN 5 Aug (#621) → [`docs/SEND-DAY-RUNBOOK.md`](./SEND-DAY-RUNBOOK.md)** — every step read out of the live code, `CHECK:` marks anything the code couldn't confirm. Covers warmup week · pre-flight (**mail-tester ≥9/10 or DO NOT LAUNCH**) · the flip · first-hour watch · **3 tripwires each paired with its kill action** · the kill order · the money walk. ⚠️ **Executed FOUNDER-SOLO** — Claude access ends 18 Aug. | 🤖 written · 🧍 executes | **~25 Aug — the finish line** |
@@ -255,7 +255,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 | ~~C3~~ | ~~**#615 VAT onboarding**~~ ✅ **DONE — merged 5 Aug in PR #1269 (= A1).** The row said "awaiting the founder's preview" for a day after it had already shipped; corrected 5 Aug. | — | ✅ done |
 | C4 | ⚠️ **#616 seat cap — PARTIAL.** API control, owner-only rule, honest 409, warn-data: done, merged. **The screen where a sysadmin types the number does NOT exist yet** — one input + warn banner in Command Centre, client-facing → preview-first. Rides with C6 | 🤖 | next prompt |
 | C5 | ⚠️ **Seat removal — HALF.** Dead "Add member" button fixed (merged). Delete-vs-deactivate is a founder decision; no delete exists | 🧍 ruling | with C4 |
-| C6 | 🔴 **D4 — Vida "no tax ID" badge** on the clients list — one line, lands after #1269 merges (uses its shared `vatBadge`) | 🤖 | after A1 |
+| C6 | 🔴 **Vida "no tax ID" badge** on the clients list — one line, uses the `vatBadge` already shipped in #615. *(Row corrected 5 Aug: it said "lands after #1269 merges" — #1269 merged that morning, so the blocker is gone and this is simply unbuilt.)* | 🤖 | rides any Vida PR |
 | ~~C7~~ | ~~**PECR/GDPR pass on the outreach**~~ ✅ **BUILT 5 Aug (#617).** UK sole traders are individual subscribers — refused unless the company name carries a corporate marker, matched on **word boundaries** (a substring match hands a sole trader an exemption they don't have). **Fails SAFE**, the opposite of #618, deliberately. Asked at **THREE** enrol paths before the charge — both `/figsy` routes **and `autoEnrollLead`**, the third found while wiring #620 and the one a client's own approval takes. Plus a send-time net for rows enrolled earlier. 21 tests, red-proved 7 ways. | 🤖 | ✅ done |
 | ~~C8~~ | ~~**Surface `skip_reasons`**~~ ✅ **BUILT 5 Aug (#620).** Both enrol routes now persist refusals to `operator_audit_log` (**no migration** — schema frozen) and Vida's cockpit renders `⚠️ last enrol: N enrolled · M skipped — <reasons>` **in words**. Written only when somebody was skipped. 12 tests, red-proved 3 ways incl. the exact original bug (fetch it, never render it). | 🤖 | ✅ done |
 ### D — Blocked / conditional

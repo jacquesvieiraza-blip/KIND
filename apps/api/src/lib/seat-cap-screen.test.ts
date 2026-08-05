@@ -18,6 +18,21 @@ import { stripCommentsForEnvScan } from './env-inventory'
 
 const page = stripCommentsForEnvScan(
   readFileSync(join(__dirname, '../../../portal/src/app/(dashboard)/dashboard/company/page.tsx'), 'utf8'))
+
+/**
+ * The body of `saveSeatCap`, bounded by CODE.
+ *
+ * ⚠️ THE FIRST DRAFT SLICED TO A `// #108` COMMENT — and this file is read through
+ * `stripCommentsForEnvScan`, so that anchor was never there: `indexOf` returned -1, `slice(at, -1)`
+ * ran to the end of the file, and the "it re-reads after saving" test PASSED with the re-read
+ * deleted. Caught by the red proof, which is the entire reason red proofs exist.
+ */
+function saveSeatCapBody(): string {
+  const at = page.indexOf('async function saveSeatCap')
+  if (at < 0) return ''
+  const next = page.indexOf('async function ', at + 20)
+  return page.slice(at, next > at ? next : at + 1400)
+}
 const api = stripCommentsForEnvScan(readFileSync(join(__dirname, '../routes/company.ts'), 'utf8'))
 
 describe('the screen calls the REAL #616 route', () => {
@@ -62,21 +77,15 @@ describe('the refusal is rendered VERBATIM, not paraphrased', () => {
   it('the API error text is shown as-is', () => {
     // The 409 explains that lowering a limit removes nobody and says to deactivate first. Any
     // paraphrase on this page would be a second, worse copy of somebody else's rule.
-    const at = page.indexOf('async function saveSeatCap')
-    const body = page.slice(at, page.indexOf('// #108', at))
-    expect(body).toContain('(e as Error).message')
+    expect(saveSeatCapBody()).toContain('(e as Error).message')
   })
 
   it('and it RE-READS after saving rather than trusting the echo', () => {
-    const at = page.indexOf('async function saveSeatCap')
-    const body = page.slice(at, page.indexOf('// #108', at))
-    expect(body).toContain('await load(token)')
+    expect(saveSeatCapBody()).toContain('await load(token)')
   })
 
   it('it bails without a token instead of casting one — a 401 must not read as saved', () => {
-    const at = page.indexOf('async function saveSeatCap')
-    const body = page.slice(at, page.indexOf('// #108', at))
-    expect(body).toContain('if (!token)')
+    expect(saveSeatCapBody()).toContain('if (!token)')
   })
 })
 

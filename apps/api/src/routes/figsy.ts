@@ -1,4 +1,5 @@
 import { pecrVerdict, pecrSkipReason } from '../lib/pecr'
+import { recordEnrolSkips } from '../lib/operator-audit'
 import { Router } from 'express'
 import crypto from 'crypto'
 import { z } from 'zod'
@@ -642,6 +643,12 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         .eq('id', campaign.id)
     }
 
+    // #620 — PERSIST THE REFUSALS. The response below already carried them and nothing rendered
+    // it, so a systematic refusal was indistinguishable from an idle run. No-ops on a clean run.
+    await recordEnrolSkips({
+      operatorEmail: 'system:figsy-enrol', clientId, campaignId: campaign.id,
+      enrolled, skipped, reasons: skipReasons,
+    })
     res.json({ success: true, data: { enrolled, skipped, skip_reasons: skipReasons, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -1724,6 +1731,12 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         .eq('id', campaign.id)
     }
 
+    // #620 — PERSIST THE REFUSALS. The response below already carried them and nothing rendered
+    // it, so a systematic refusal was indistinguishable from an idle run. No-ops on a clean run.
+    await recordEnrolSkips({
+      operatorEmail: 'system:figsy-enrol', clientId, campaignId: campaign.id,
+      enrolled, skipped, reasons: skipReasons,
+    })
     res.json({ success: true, data: { enrolled, skipped, skip_reasons: skipReasons, insufficient_credits: insufficientCredits } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

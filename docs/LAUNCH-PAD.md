@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷235 · 🟣2 · 🟡69 · 🔴173 · ⏸5 · **Σ579** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷240 · 🟣2 · 🟡64 · 🔴173 · ⏸5 · **Σ579** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -209,33 +209,60 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 ---
 
-## 🎯 THE PLAN TO SEND-DAY — locked with the founder, 4 Aug evening. Urgent first, work top to bottom.
+## 🎯 THE RUNLIST — every live item · description · owner · when *(rewritten 5 Aug on the founder's order: "i work off launchpad — this table needs to be on the launchpad." Updated every session; this table IS the standings report.)*
 
-> **Selling is deliberately OFF this board** (founder, 4 Aug: *"i know how to sell. i can do this. i will use my own prices."*). This table is the machine's path to 25 Aug; the founder's outreach runs alongside it, his way.
+> **Selling stays OFF this board** (founder, 4 Aug: *"i know how to sell."*). Status of record per item lives in PRODUCT-INVENTORY — rows here reference ids and the dots are script-stamped.
 
-| # | Item | Owner | Timeline | Why this rank |
-|---|---|---|---|---|
-| ~~1~~ | ~~Merge the #610 record~~ | 🧍 | ✅ done 4 Aug | — |
-| 2 | **House-account hygiene (Prompt 29 → #611)** — audit the test debris on Client Zero ($3.99M wallet · 159 stale approved · "14 Sending" chip · the cold-client suspend badge), founder rules on the findings table line by line, THEN cleanup. **Read-only first, no writes without his ruling.** Item 13 (the Google "storage full" anomaly) rides in the same session | 🤖 Opus | ✅ **Phase A shipped · Phase B built 4 Aug (Prompt 31), pending merge** | our own prospecting lands in this account ~25 Aug; debris in it poisons the first real run |
-| 2b | **Phase B — the rulings, built (Prompt 31 → #611).** Three panel fixes (audit no longer self-runs · the `can send` chip asks the SEND PATH instead of `has_smtp`, so a warming box stops rendering green · the warm-up fraction counts to the row's own ready date instead of a hardcoded `/14`) + **zero the house wallet** (typed phrase, house-only, **no ledger row** — no money moved, so no transaction is invented) + **$4,000 hunting budget** via the existing `manual_grant` + **remove a test client** (Stripe Test, ACME). ⚠️ **The first delete of a non-demo client row in the product** — four guards, `seed-wipe.ts`'s classification imported not re-implemented | 🤖 Opus | **built 4 Aug — founder merges** | the wallet, the chip and the denominator all lie on the screen used to decide send-day |
-| 3 | **Two-box rotation (Prompt 30 → #610)** — founder-ruled 4 Aug: `hello@kindoutreach.com` takes the pooled slot as a **documented redefinition**, send loop distributes least-sent-first across both, per-box caps respected, warming still refused. Ships **dormant**; wakes on the 25 Aug ladder | 🤖 Opus | ✅ **shipped 4 Aug (PR #1265, merged)** — #610 is 🩷 | send-day capacity ~60/day; built early = tested before it matters |
-| 4 | **Volume beyond 2 boxes — NO workaround.** Standing recommendation (unruled = default): run September on 2 boxes and **raise per-box caps 30 → 50/day as sending history earns it** (= ~100/day, the modelled volume, no schema change, no lies). The day Supabase access returns, ONE migration widens the index and boxes 3+4 plug in — they warm as spares meanwhile | 🤖 design · 🧍 ruling | design rides with Prompt 30's docs | founder: *"volume is key"* — the cap ladder gets there without defeating the schema |
-| 4b | **THE SEQUENCE QUALITY GATE (Prompt 32 → #612) — ⚠️ MUST MERGE BEFORE THE 25 AUG LADDER.** Founder-ruled 4 Aug: *"shit emails out = zero meetings booked. for all clients."* A pure linter (`lib/sequence-quality.ts`) with **hard-fails that block activation** (no opt-out · spam vocabulary · a link in step 1 · no personalisation · a bare "just bumping" step · >7 steps · two steps the same day) and **warns that never block** (subject length, 50–125 words, one ask, reading grade ≤8, tired openers). Wired into **all three** activation routes; save is never blocked, activation is; FIGSY lints its own draft before returning it. | 🤖 Opus | **built 4 Aug — founder merges, before 25 Aug** | the first sends out of the warm boxes set the domain reputation permanently — a bad first batch burns three weeks of warming, and the 85M-email Gong dataset puts the top quartile at 4.3× the meetings from the same volume |
-| 4c | **OVERNIGHT BATCH, 4→5 Aug (#613 · #614 · #616).** ① **Revenue recorded honestly** — every money row held the price we QUOTED; nothing ever read Stripe's settlement, so no console figure reconciled to the bank (~£210–£213 of a $299 actually arrives). Settlement facts now stamped on each ledger row + a read-only reconcile panel. ② **The cost floor as code** — `estStack = 690` and `estCostPerClient = 95` were literals typed into a page; they now derive from `docs/CASHFLOW-LAB.html` with a **drift test** binding the two, and the five UK-company lines (ICO · Companies House · accountant · software · insurance) exist for the first time. ③ **The seat limit gets a control** — enforced at 25, invisible and unchangeable, with a 409 promising a control that did not exist. | 🤖 Opus | **built overnight — founder merges** | the console has to tell the truth about money before it is used to decide anything, and the seat model is what makes one company with 10 salespeople work |
-| 4d | **⚠️ VAT evidence at onboarding (#615) — CLIENT-FACING, awaiting founder preview.** Company legal name, registration number and VAT/tax ID (or an explicit *not registered*) captured as a required onboarding step, surfaced in Documents. **Not merged until the founder walks it.** ⚠️ **Finding: `staging` is 46 commits behind `main`**, so a preview branched off it would deploy a 46-commit-stale product — the founder rules on whether staging is refreshed from main first. | 🤖 Opus · 🧍 preview | **founder previews, then merges** | under the VAT evidence rule a client with no tax ID on file is treated as a consumer — and today nothing requires one |
-| 5 | **The two deferred walks** — ⓐ $0 `manual_grant` money walk (tiles: 100 included · wallet $0) · ⓑ one fresh signup completes with no red error | 🧍 | 15 min, this week | proves the money screens + the signup fix with the founder's own eyes |
-| 6 | **Stripe product description still says $99** (pasted 3 Aug, price moved same day) | 🧍 | 2 min, this week | a dead price on the dashboard |
-| 7 | **Weekly Instantly glance** — 4 health scores rising, zero disconnects | 🧍 | every Monday, 2 min | a silent disconnect STOPS warmup and tells nobody |
-| 8 | **18 Aug — Google Workspace trial converts (~$28/mo)** — confirm the charge succeeds | 🧍 | 18 Aug, calendared | a failed charge suspends the account and kills warmup mid-run |
-| 9 | **~25 Aug — THE SEND LADDER (#553 — its prompt gets written closer to the date; "Prompt 31" was reassigned to the panel fixes on 4 Aug)** — test send lands in a real inbox · mail-tester ≥9/10 · caps on · `AUTO_OUTREACH_ENABLED` flips, watched | 🤝 | 25 Aug | the finish line |
-| 10 | **Pink walk** — 8 shipped items → 🟢 on the founder's "good" | 🧍 | during warmup | board honesty, not launch-blocking |
-| 11 | **Failover teardown** ($12/mo back) — order matters, guide ready | 🤝 | during warmup, 10 min | see MONEY block ② below for the pinned order |
-| 12 | **Two rulings before the first client signs:** "yours to keep" on churn · what "training" includes → counsel words the Terms | 🧍 | before client #1 | promises already on the site are not yet in the contract |
-| 14 | **Boxes 3 + 4 into the engine** | 🤖 | after item 4 unblocks | they warm regardless; nothing lost waiting |
-| 15 | ⏸ Migrations ×2 · Postgres rotation (burned, in git history) · GitHub flag appeal | 🧍/external | blocked | Supabase/GitHub, out of our hands |
-| 16 | Railway replica re-check | — | **only if Railway ever goes Pro** | the 1-replica guard is the billing tier itself; Pro removes it silently |
+### A — The path to 25 Aug send-day
 
----
+| # | Item · description | Owner | When |
+|---|---|---|---|
+| A1 | **Preview + merge PR #1269 (#615 VAT evidence at onboarding)** — client-facing: required company-details step, "not registered" is a recorded answer. ⚠️ It grew merge conflicts when the overnight batch merged first — **fixed 5 Aug, mergeable again**. Walk the 6 steps in the PR body, then merge | 🧍 | today |
+| A2 | **Vida cleanup** — zero the house wallet (typed phrase) → grant $4,000 → remove Stripe Test + ACME. Shipped in #611; buttons wait in Vida → Engine | 🧍 | 10 min |
+| A3 | **Ruling: booking link in email 1** — the #612 gate says no link in a first touch; FIGSY's prompt orders one in. One of the two is wrong; currently allowed-but-flagged amber | 🧍 | before 25 Aug |
+| A4 | **Ruling: the 159 stale approved leads** — clearing them resets the house pack to 100 included approvals | 🧍 | before 25 Aug |
+| A5 | **Ruling: cold-cron exemption for the house account** — the dated landmine; unruled it can pause our own campaign on send-day morning | 🧍 | before 25 Aug |
+| A6 | **Ruling: cap ladder 30→50/day on 2 boxes** — standing recommendation applies if silent | 🧍 | before Sep |
+| A7 | **Stripe product description still says $99** — dead text on the dashboard | 🧍 | 2 min |
+| A8 | **Item 13 — Google "storage full / 30 GB" anomaly** — still unexplained; look in Google admin | 🧍 | 5 min |
+| A9 | **The two walks** — $0 manual-grant money walk · one fresh signup completing clean | 🧍 | 15 min |
+| A10 | **Monday Instantly glance** (4 health scores rising, zero disconnects) · **18 Aug Google charge (~$28) succeeds** | 🧍 | weekly · 18 Aug |
+| A11 | **Pink walk** — 🩷 → 🟢 on your "good". Now covers #591 too (its dot was corrected 5 Aug) plus the merged #611/#612/#613/#614/#616 | 🧍 | during warmup |
+| A12 | **Failover teardown** ($12/mo back) — pinned order in the runbook: DNS repoint FIRST | 🤝 | 10 min |
+| A13 | **Terms rulings** — "yours to keep" on churn · what "training" includes → counsel words the Terms | 🧍 | before client #1 |
+| A14 | **#553 — THE SEND LADDER** — test send lands in a real inbox · mail-tester ≥9/10 · caps on · `AUTO_OUTREACH_ENABLED` flips, watched. Prompt written near the date | 🤝 | **~25 Aug — the finish line** |
+
+### B — The company's nervous system (UK Ltd, from the 4 Aug expense audit)
+
+| # | Item · description | Owner | When |
+|---|---|---|---|
+| B1 | **ICO registration (~£47/yr by direct debit)** — LEGALLY REQUIRED before processing prospect data; a named person at a company is personal data even in B2B | 🧍 | **pre-launch** |
+| B2 | **The 30-min browser pass** — your Stripe dashboard FX % (Settings → Payouts) · Stripe intl 3.0 vs 3.25% · FreeAgent multi-currency (the £660/yr question) · Xero price-lock before 1 Sept · ICO fee page. Every "unverified" tag in the artifact + `cost-floor.ts` waits on this | 🧍 | this week |
+| B3 | **Get an accountant (~£60–90/mo compliance-only)** — settles VAT timing, salary/dividend split, year-end dates; needed at first year-end even at £0 revenue | 🧍 | before first revenue |
+| B4 | **Track overseas software spend monthly** — reverse-charge purchases count toward the £90k VAT threshold with ZERO sales; the meter lives in the cashflow artifact | 🧍 | monthly |
+| B5 | **Banking/FX route** — Stripe-settle-USD + Wise (~£3/sale saving); decide at ~20 sales/mo, not before | 🧍 | later |
+| B6 | **Insurance** — professional indemnity when a client contract demands it (~£150–300/yr) · employers' liability the day anyone joins payroll (£2,500/day without it) | 🧍 | triggered |
+
+### C — Build items (state after the 4→5 Aug overnight batch)
+
+| # | Item · description | Owner | When |
+|---|---|---|---|
+| C1 | ✅ **#613 revenue honesty — BUILT, merged.** Settlement stamped per payment + reconcile panel on Billing. Known limits: annotation not columns (schema frozen) · old rows stay list-price · **subscription path still hardcoded** (`stripe.ts:657`, dormant — first job the day subscriptions return) | — | done |
+| C2 | ✅ **#614 cost floor as code — BUILT, merged.** `estStack=690`/`95` literals dead; pages read `@kind/shared`; drift test binds `docs/CASHFLOW-LAB.html` to the code; 5 UK-company lines exist, every one tagged unverified until B2 | — | done |
+| C3 | 🟡 **#615 VAT onboarding — BUILT, awaiting the founder's preview** (= A1) | 🧍→ | today |
+| C4 | ⚠️ **#616 seat cap — PARTIAL.** API control, owner-only rule, honest 409, warn-data: done, merged. **The screen where a sysadmin types the number does NOT exist yet** — one input + warn banner in Command Centre, client-facing → preview-first. Rides with C6 | 🤖 | next prompt |
+| C5 | ⚠️ **Seat removal — HALF.** Dead "Add member" button fixed (merged). Delete-vs-deactivate is a founder decision; no delete exists | 🧍 ruling | with C4 |
+| C6 | 🔴 **D4 — Vida "no tax ID" badge** on the clients list — one line, lands after #1269 merges (uses its shared `vatBadge`) | 🤖 | after A1 |
+| C7 | 🔴 **#617-to-mint — PECR/GDPR pass on the outreach** — sole traders in a prospect list do NOT get the B2B corporate-subscriber exemption; review pass + suppression rule. **The only pre-25-Aug build item not yet started** | 🤝 | **before 25 Aug** |
+
+### D — Blocked / conditional
+
+| # | Item | Owner | When |
+|---|---|---|---|
+| D1 | Boxes 3+4 into the engine | 🤖 | after A6 |
+| D2 | ⏸ Migrations ×2 · Postgres rotation (burned, in git history) · GitHub flag appeal | external | blocked |
+| D3 | Railway replica re-check | — | only if ever Pro |
+| D4 | **Ruling: `staging` is 46 commits behind `main`** — refresh it from main, or keep previewing client-facing PRs from their branches | 🧍 | with A1 |
 
 ## 📤 MOVED OFF THIS PAGE (it was here, it does not get us live)
 

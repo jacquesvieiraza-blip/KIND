@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import { join } from 'path'
 import { permittedValues } from './constraint-live'
 import { refMismatch } from './db-connection'
+import { replyPathVerdict } from './reply-path'
 
 vi.mock('@kind/db', () => ({ db: { from: () => ({}) } }))
 
@@ -110,18 +111,38 @@ describe('③ the reply path has a row', () => {
     expect(src).toContain('Reply path (inbound → client desk)')
   })
 
+  // ⚠️ REWRITTEN BY #624, NOT WEAKENED. These two asserted their intent by scanning a
+  // FIXED-WIDTH WINDOW of system-probes.ts (`slice(i, i + 2200)`) — the exact anti-pattern
+  // that has produced self-inflicted guard bugs here before. #624 moved the judgement into a
+  // PURE function (`replyPathVerdict`), so the window stopped containing it and the tests
+  // failed on correct code. Asserting the BEHAVIOUR instead is strictly stronger: a window can
+  // pass on a string that is never evaluated; a verdict cannot.
   it('a missing signing secret is CHECKED-BROKEN, not a quiet omission', () => {
     // Without RESEND_WEBHOOK_SECRET every inbound reply is rejected unverified, and the
     // client cannot tell: a lost reply looks exactly like a prospect who never answered.
-    const i = src.indexOf('Reply path (inbound → client desk)')
-    const block = src.slice(i, i + 2200)
-    expect(block).toContain('RESEND_WEBHOOK_SECRET')
-    expect(block).toContain('broken(')
+    const v = replyPathVerdict({
+      coldReplyTo: 'replies@kindoutreach.com', replyTo: null, resolved: 'replies@kindoutreach.com',
+      resendDomains: ['kindoutreach.com'], lastReplyAt: null, hasSent: false,
+      secretSet: false, now: new Date('2026-08-05T12:00:00Z'),
+    })
+    expect(v.state).toBe('broken')
+    expect(v.detail).toContain('RESEND_WEBHOOK_SECRET')
+    // And the row still exists on the screen to carry it.
+    expect(src).toContain('replyPathVerdict({')
   })
 
   it('and it does NOT overclaim — configured is not the same as proven', () => {
-    const i = src.indexOf('Reply path (inbound → client desk)')
-    expect(src.slice(i, i + 2200)).toContain('NOT a proof')
+    // Resend lists domains verified for SENDING; receiving also needs MX pointed at Resend.
+    // So even the fully-green case must say it is not proof, and still send the operator to
+    // the live-fire test.
+    const v = replyPathVerdict({
+      coldReplyTo: 'replies@kindoutreach.com', replyTo: null, resolved: 'replies@kindoutreach.com',
+      resendDomains: ['kindoutreach.com'], lastReplyAt: null, hasSent: false,
+      secretSet: true, now: new Date('2026-08-05T12:00:00Z'),
+    })
+    expect(v.state).toBe('ok')
+    expect(v.detail).toContain('NOT proof')
+    expect(v.action).toContain('reply to it')
   })
 
   it('the raw-body parser it depends on is still mounted ahead of express.json()', () => {

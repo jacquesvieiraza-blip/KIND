@@ -11,11 +11,18 @@
 A restore drill is three steps: **take a backup → restore it somewhere → prove the result
 matches.**
 
-The middle step is impossible right now. **The Supabase dashboard is unreachable** — login is
-GitHub OAuth and the account is flagged (*"cannot authorize a third party application"*). So
-there is no way to browse the backups Supabase takes, trigger a point-in-time restore, or
-create the second project you would restore *into*. There is also no `psql`, no `pg_dump`,
-and by standing decision no new local tooling.
+The middle step was impossible when this was written. **⚠️ CORRECTED 6 Aug (#628) — the
+dashboard is REACHABLE again.** The founder got in on 5 Aug by an alternate login, bypassing the
+GitHub OAuth path that the flagged account blocks (*"cannot authorize a third party
+application"*). The original text said the dashboard was unreachable full stop, which stopped
+being true and would have kept this drill parked for a reason that had gone away.
+
+**What that changes, and what it does not.** Browsing the backups Supabase takes, triggering a
+point-in-time restore and creating the second project to restore *into* are all **dashboard
+actions, so they are now possible** — the drill is unblocked and owed. What has **not** changed:
+there is still no `psql`, no `pg_dump`, and by standing decision no new local tooling, so the
+*verification* half below still has to be done through the product's own read paths rather than
+at a shell. This remains a 🧍 job end to end; nothing here is automatable from this container.
 
 Writing a runbook full of dashboard clicks nobody can perform would be the exact class of
 document this project keeps catching: something that reads as done and cannot be executed.

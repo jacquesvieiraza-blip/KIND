@@ -11,10 +11,13 @@
 
 ---
 
-## 🟢 THE 4 CORE — one truth each (always current)
+## 🟢 THE 4 CANONICAL (CLAUDE.md) + 3 STANDING INSTRUMENTS — one truth each (always current)
+
+*⚠️ **Renamed 6 Aug (#628). This heading said "THE 4 CORE" over a table of SEVEN rows** — so the repo's own index of its docs could not count its own core, and a reader looking for the four canonical docs had to guess which three were the extras. **The four canonical docs are the ones `CLAUDE.md` names** — LAUNCH-PAD · PRODUCT-INVENTORY · KIND-MASTER · V2-TRACKER — and `CLAUDE.md` is founder-locked, so the four are not this doc's to redefine. **CASHFLOW-LAB · CORE-MAP · PRODUCT-RULES are standing instruments:** each owns a fact nothing else owns, none of them is a fifth status doc, and that distinction is exactly what rule 1 and the `BUILD-STATUS` retirement below are about.*
+
 | Doc | Owns | Open it for |
 |-----|------|-------------|
-| **[LAUNCH-PAD.md](./LAUNCH-PAD.md)** | today's + this week's execution (**no status dots** — 9 Jul) | "what do I do now?" |
+| **[LAUNCH-PAD.md](./LAUNCH-PAD.md)** | today's + this week's execution. **Structure (rebuilt 6 Aug, #628):** title → a **5-line honest state** → **THE RUNLIST** (visible inside the first ~30 lines) → legend → standing notes. ⚠️ **The "no status dots — 9 Jul" note here was WRONG and is corrected:** the page carries a dot beside every `#id`, and has since 5 Aug. They are **script-stamped** from the inventory by `scripts/mirror-launchpad.sh` (chained inside `update-board.sh`) and **never hand-typed** — the inventory remains the only status of record, and LAUNCH-PAD mirrors it so the two cannot drift. | "what do I do now?" |
 | **[PRODUCT-INVENTORY.md](./PRODUCT-INVENTORY.md)** | product STATUS — the script-counted board (the ONLY status home) | "what's built / live / left?" |
 | **[KIND-MASTER.md](./KIND-MASTER.md)** | strategy · decisions · history · session log | "why did we decide X?" |
 | **[V2-TRACKER.md](./V2-TRACKER.md)** | future detail · roadmap · risks · steals | "the longer-term plan" |

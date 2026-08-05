@@ -112,3 +112,60 @@ export function coldCheckExempt(a: {
   }
   return { exempt: false, why: '' }
 }
+
+// ── #619 — THE EXEMPTION HAS TO REACH THE SCREEN, NOT JUST THE CRON ───────────────────────
+//
+// #618 fixed the cron and stopped there, so the exemption existed in exactly one place while
+// THREE surfaces still asked `coldState` on its own and got "Suspended" back. The founder saw
+// the result on the live board: a red SUSPEND badge on our own account, which is not suspended
+// and never will be. #618's own test file left the warning in writing — *"two copies of who is
+// exempt"* — and this is that debt coming due.
+//
+// So the combination gets ONE home. Any surface that shows a human a cold verdict calls this,
+// never `coldState` raw, and a fourth surface added next month inherits the exemption instead
+// of re-deriving it. (The cron is the one deliberate exception: it checks `coldCheckExempt`
+// BEFORE reading the database at all, which is strictly better than reading and discarding.)
+
+export type ColdView = ColdState & {
+  /** This account is outside the rule — never show it as suspended or going quiet. */
+  exempt: boolean
+  /** Why, in words, for the operator. Empty when not exempt. */
+  why: string
+}
+
+/**
+ * The cold verdict as a HUMAN should see it: the clock, with the exemption already applied.
+ *
+ * Pure, for the same reason `coldState` and `coldCheckExempt` are — the judgement is provable
+ * without a cron run, a database or a clock.
+ *
+ * Fails open exactly as `coldCheckExempt` does: `houseClientId: null` exempts nobody, so an
+ * unresolvable house account shows the ordinary verdict rather than silently exempting the
+ * whole book.
+ */
+export function coldView(a: {
+  lastApprovalAt: string | Date | null | undefined
+  now: Date
+  clientId: string
+  isDemo: boolean | null | undefined
+  houseClientId: string | null
+}): ColdView {
+  const state = coldState(a.lastApprovalAt, a.now)
+  const ex = coldCheckExempt({ clientId: a.clientId, isDemo: a.isDemo, houseClientId: a.houseClientId })
+  if (!ex.exempt) return { ...state, exempt: false, why: '' }
+
+  // `warn` and `cold` are forced false rather than left for each caller to remember, because
+  // "remember to check exempt before you read .cold" is precisely the instruction three call
+  // sites already failed to follow. The day count is KEPT — it is true and it is useful; it is
+  // only the verdict drawn from it that does not apply here.
+  return {
+    ...state,
+    warn: false,
+    cold: false,
+    exempt: true,
+    why: ex.why,
+    label: state.daysIdle === null
+      ? 'Cold-check exempt — this rule is not for our own account'
+      : `Cold-check exempt · last approval ${state.daysIdle}d ago`,
+  }
+}

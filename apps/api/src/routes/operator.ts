@@ -5,7 +5,7 @@ import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { namesPerApproval } from '../lib/money-path-math'
-import { coldState } from '../lib/cold-client'
+import { coldView } from '../lib/cold-client'
 import type { InboxRow } from '../lib/sending-inbox'
 
 // #483–#487 — VIDA OPERATOR CONSOLE API.
@@ -84,7 +84,10 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
 
     const [icps, purchases, inboxes, leadsPaged, seqs, camps, queue, repliesPaged, approvalsPaged] = await Promise.all([
       db.from('icps').select('client_id').in('client_id', ids).eq('is_active', true),
-      db.from('credit_transactions').select('client_id')
+      // `type` and `reference` ride along on a query that was already being made — #619 needs
+      // to tell a payment from a comp, and a second query per client to learn it would be
+      // exactly the per-client round trip this endpoint is built to avoid.
+      db.from('credit_transactions').select('client_id, type, reference')
         .in('client_id', ids).in('type', PAID_TX_TYPES),
       inboxQ,
       // Passed leads are INCLUDED here (they used to be filtered out at the query) because
@@ -158,6 +161,30 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
     }
     const coldNow = new Date()
 
+    // #619 — HOW each client was funded, not just whether. `manual_grant` is inside
+    // PAID_TX_TYPES on purpose (it is what ENTITLES a comped account), so `hasFunded` below is
+    // right to stay true for a comp — but the board must not print that as "Paid $299".
+    const { fundedVia } = await import('../lib/onboarding-pack')
+    const ledgerByClient = new Map<string, { type?: unknown; reference?: unknown }[]>()
+    for (const r of ((purchases as { data?: Record<string, unknown>[] })?.data ?? [])) {
+      const k = r.client_id as string
+      const list = ledgerByClient.get(k)
+      if (list) list.push(r); else ledgerByClient.set(k, [r])
+    }
+
+    // #619 — the house account resolved ONCE, before the loop, the one permitted way
+    // (`decideHouseClient`, never a company-name match — #584/#593). FAILS OPEN: if it cannot
+    // be resolved this stays null, `coldCheckExempt` exempts nobody, and the board shows
+    // exactly what it shows today. The cron already does this; the SCREEN did not, which is
+    // why the founder was looking at a red SUSPEND badge on an account that is exempt.
+    let houseClientId: string | null = null
+    try {
+      houseClientId = await resolveHouseClientId()
+    } catch (err) {
+      console.error('[operator/worklist] house resolution failed — failing OPEN, no exemption:',
+        err instanceof Error ? err.message : err)
+    }
+
     const { nextAction, sortByUrgency } = await import('../lib/client-step')
     const excluded = await getExcludedClientIds()
 
@@ -195,9 +222,23 @@ operatorRouter.get('/worklist', async (_req: Request, res: Response) => {
         // cashflow model rests on — and it stays honestly "too early" until there is enough
         // of it to trust.
         ratio: namesPerApproval(allLeadsN.get(id) ?? 0, approvedN.get(id) ?? 0),
+        // #619 — REAL MONEY, A COMP, OR NOTHING. `hasFunded` above stays as it is (a comp
+        // entitles, and flipping it would send the house account back to "chase their $299");
+        // this is the DISPLAY truth sitting next to it, so Vida can tick "Comped" instead of
+        // claiming a payment nobody made.
+        funded_via: fundedVia(ledgerByClient.get(id) ?? []),
         // 30 days without an approval and the nightly check suspends them — we carry a
         // warmed sender for them the whole time. Shown here so it's never a surprise.
-        cold: coldState(lastApproval.get(id) ?? null, coldNow),
+        // Via `coldView`, NOT `coldState`: the exemption belongs to every surface that shows a
+        // human a verdict, and this endpoint feeding the raw clock to the board is what put a
+        // SUSPEND badge on our own exempt account (#619).
+        cold: coldView({
+          lastApprovalAt: lastApproval.get(id) ?? null,
+          now: coldNow,
+          clientId: id,
+          isDemo,
+          houseClientId,
+        }),
         pack: (() => {
           const st = packState((paidN.get(id) ?? 0) > 0, approvedN.get(id) ?? 0)
           return { active: st.active, included: st.included, left: st.left, label: packLabel(st) }

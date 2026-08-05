@@ -190,14 +190,34 @@ async function clients(): Promise<Section> {
   const { pickSendingInbox } = await import('./sending-inbox')
   const { secretState } = await import('./inbox-secret')
   const { packState } = await import('./onboarding-pack')
-  const { PAID_TX_TYPES } = await import('./onboarding-pack')
+  const { PAID_TX_TYPES, fundedVia } = await import('./onboarding-pack')
+  const { coldView } = await import('./cold-client')
   const secretOk = secretState().ok
+
+  // #619 — the house account, resolved ONCE for the whole sweep and the one permitted way
+  // (`decideHouseClient`, never a company name — #584/#593). Without it this probe called
+  // `coldState` raw and reported our own exempt account as BROKEN: *"COLD — 59 days"*, with
+  // an instruction to go and contact ourselves. FAILS OPEN — unresolvable leaves it null and
+  // nobody is exempt, which is exactly today's behaviour.
+  let houseClientId: string | null = null
+  try {
+    const { decideHouseClient } = await import('./house-client')
+    const { resolveHouseUserIds } = await import('./real-clients')
+    const { data: allClients } = await db.from('clients').select('id, user_id, company_name, is_demo')
+    const decision = decideHouseClient({
+      houseUserIds: [...await resolveHouseUserIds()],
+      clients: (allClients ?? []) as { id: string; user_id: string | null; company_name: string | null; is_demo: boolean | null }[],
+    })
+    if (decision.action === 'adopt') houseClientId = decision.clientId
+  } catch { /* fails open — no exemption */ }
 
   for (const c of (cs ?? []) as { id: string; company_name: string | null; is_demo: boolean | null }[]) {
     const name = c.company_name || c.id.slice(0, 8)
     rows.push(await probe(name, async () => {
-      const [{ count: paid }, { count: approved }, { count: awaiting }, boxes, camp, last] = await Promise.all([
-        db.from('credit_transactions').select('id', { count: 'exact', head: true }).eq('client_id', c.id).in('type', PAID_TX_TYPES),
+      const [{ data: ledger }, { count: approved }, { count: awaiting }, boxes, camp, last] = await Promise.all([
+        // Rows, not a bare count — #619 needs to tell a payment from a comp, and the rows
+        // answer both questions in the one query the count already cost.
+        db.from('credit_transactions').select('type, reference').eq('client_id', c.id).in('type', PAID_TX_TYPES),
         db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', c.id).not('revealed_at', 'is', null),
         db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', c.id).is('revealed_at', null).neq('status', 'passed'),
         db.from('client_inboxes').select('id, email, kind, status, smtp_host, smtp_port, smtp_secure, smtp_user, smtp_pass_enc, from_name').eq('client_id', c.id),
@@ -208,17 +228,23 @@ async function clients(): Promise<Section> {
         db.from('leads').select('revealed_at').eq('client_id', c.id)
           .not('revealed_at', 'is', null).order('revealed_at', { ascending: false }).limit(1).maybeSingle(),
       ])
-      const hasPaid = (paid ?? 0) > 0
+      const via = fundedVia((ledger ?? []) as { type?: unknown; reference?: unknown }[])
+      const hasPaid = via !== null
       const pack = packState(hasPaid, approved ?? 0)
       const send = pickSendingInbox((boxes.data ?? []) as never, secretOk)
-      // Reuse the SHIPPED rule rather than re-deriving "30 days" here. `coldState` already
-      // carries the warn/cold thresholds AND the guard that an unparseable date must never
-      // read as "30 days idle" and suspend a paying client (#538).
-      const { coldState } = await import('./cold-client')
-      const cold = coldState((last.data as { revealed_at?: string } | null)?.revealed_at, new Date())
+      // Reuse the SHIPPED rule rather than re-deriving "30 days" here. `coldView` carries the
+      // warn/cold thresholds, the guard that an unparseable date must never read as "30 days
+      // idle" and suspend a paying client (#538), AND the exemption (#618/#619) — reading the
+      // clock without the exemption is what made this probe call our own account broken.
+      const cold = coldView({
+        lastApprovalAt: (last.data as { revealed_at?: string } | null)?.revealed_at,
+        now: new Date(), clientId: c.id, isDemo: c.is_demo, houseClientId,
+      })
       const approvalAge = cold.label
       const facts = [
-        hasPaid ? 'paid' : 'NOT paid',
+        // #619 — "paid" and "comped" are different sentences and this probe used to say the
+        // first for both. Entitlement is not evidence that money arrived.
+        via === 'real' ? 'paid' : via === 'comp' ? 'comped (no money in)' : 'NOT paid',
         `${approved ?? 0} approved`,
         pack.active ? `${pack.left}/${pack.included} included left` : 'no pack',
         `${awaiting ?? 0} awaiting a decision`,
@@ -230,10 +256,10 @@ async function clients(): Promise<Section> {
       if (!hasPaid) return ok(name, `${facts} — nothing owed to them yet.`)
       if (!send.ok) {
         const { refusalLabel } = await import('./sending-inbox')
-        return broken(name, `PAID BUT CANNOT SEND — ${refusalLabel(send.reason)}. ${facts}`, send.detail)
+        return broken(name, `${via === 'real' ? 'PAID' : 'FUNDED'} BUT CANNOT SEND — ${refusalLabel(send.reason)}. ${facts}`, send.detail)
       }
       if ((awaiting ?? 0) === 0 && hasPaid) {
-        return broken(name, `Paid, can send, but has NOBODY left to approve. ${facts}`, 'Source more for them — a paying client with an empty desk cannot spend.')
+        return broken(name, `${via === 'real' ? 'Paid' : 'Funded'}, can send, but has NOBODY left to approve. ${facts}`, 'Source more for them — a client with an empty desk cannot spend.')
       }
       if (cold.cold) {
         return broken(name, `COLD — ${cold.daysIdle} days since their last approval. ${facts}`,

@@ -418,9 +418,11 @@ export default function TeamsHubPage() {
           </button>
           <button
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#7C3AED] text-white text-sm font-medium hover:bg-[#6D28D9] transition-colors shadow-sm"
-            /* #406 — was '/dashboard/settings#team', which only worked because middleware
-               rewrites it to /milla/settings. Point at the live route directly. */
-            onClick={() => (window.location.href = '/milla/settings#team')}
+            /* #616 — this pointed at '/milla/settings#team'. That page handles no `#team`
+               section at all, so "Add member" navigated to a settings screen and did nothing —
+               a button whose only effect was to make the user think they had missed something.
+               The REAL invite flow (a seat, an email, a token) is the Command Centre. */
+            onClick={() => (window.location.href = '/milla/command-centre')}
           >
             <UserPlus className="w-4 h-4" />
             Add member

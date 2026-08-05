@@ -35,6 +35,7 @@ async function getNps(): Promise<NpsData | null> {
 import { getZarPerUsd, zarToUsd, fxLabel } from '../../lib/fx'
 import { getRevenueExclusions } from '../../lib/revenue-exclusions'
 import MrrOverTime from './MrrOverTime'
+import { ALL_FIXED_LINES, TOTAL_FLOOR_USD, basisLabel } from '@kind/shared'
 
 const MONTHLY_TARGETS = [
   { month: 'May 2026',  mrrTarget: 500,    clientTarget: 8   },
@@ -462,16 +463,16 @@ export default async function RevenuePage() {
       {/* Cost stack — money out */}
       <div className="bg-white/80 backdrop-blur-sm border border-brand-200/60 rounded-xl p-6">
         <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Cost stack — money out</h2>
-        <p className="text-xs text-gray-400 mb-4">~$690/mo · estimate until Xero connects</p>
+        <p className="text-xs text-gray-400 mb-4">${TOTAL_FLOOR_USD}/mo · from <code>docs/CASHFLOW-LAB.html</code>, bound by a drift test (#614). Lines tagged <b>unverified</b> were researched from search results, not the vendor&apos;s own page.</p>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead><tr className="border-b border-gray-200">{['Item', 'Monthly', 'Notes'].map(h => <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">{h}</th>)}</tr></thead>
             <tbody className="divide-y divide-gray-100">
-              {[['Infra (Railway / Supabase / Cloudflare)', '~$138', 'fixed'],
-                ['Smartlead inboxes (pool + branded)', '~$220', 'scales with clients'],
-                ['Data credits (Apollo / PDL / Hunter / Clearbit)', '~$180', 'per-lead, variable'],
-                ['Claude (AI) + Resend', '~$150', 'per-send, variable']].map(r => (
-                <tr key={r[0]}><td className="px-3 py-3 text-gray-900">{r[0]}</td><td className="px-3 py-3 font-medium text-gray-700">{r[1]}</td><td className="px-3 py-3 text-gray-500">{r[2]}</td></tr>
+              {/* #614 — these four rows were hardcoded STRINGS ('~$138', '~$220', '~$180',
+                  '~$150') summing to a $690 that appeared nowhere else. The $138 is the exact
+                  number the founder caught on 3 Aug as overstated by $87/mo. Now derived. */}
+              {ALL_FIXED_LINES.filter(l => l.usdPerMonth > 0).map(l => (
+                <tr key={l.id}><td className="px-3 py-3 text-gray-900">{l.label}</td><td className="px-3 py-3 font-medium text-gray-700">${l.usdPerMonth}</td><td className="px-3 py-3 text-gray-500">{basisLabel(l.basis)}</td></tr>
               ))}
             </tbody>
           </table>

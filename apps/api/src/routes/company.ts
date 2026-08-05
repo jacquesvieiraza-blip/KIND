@@ -21,6 +21,18 @@ companyRouter.use(requireAuth)
 
 const canManage = (role: string) => role === 'owner' || role === 'manager'
 
+/**
+ * The seat limit a company gets if its row carries none.
+ *
+ * ⚠️ #616 — THIS WAS THE WHOLE PROBLEM. `companies.seat_cap` has a DB default of 25 and, until
+ * now, **no write path anywhere in the product**: not a route, not a Vida control, not an admin
+ * screen. Every company on the platform sat at exactly 25 forever, the number was never
+ * displayed, and the 409 at rep 26 told the operator to "raise the cap" — a control that did
+ * not exist. Enforced, invisible, and unchangeable is the worst of the three states.
+ */
+export const DEFAULT_SEAT_CAP = 25
+export const MAX_SEAT_CAP = 100
+
 interface Ctx { companyId: string; clientId: string | null; role: string; isOwner: boolean }
 
 // Resolve the caller → their company + role. Auto-provisions a company for a
@@ -150,7 +162,10 @@ companyRouter.get('/overview', async (req: AuthRequest, res) => {
     const totals = {
       seats:            repOut.length,
       active_seats:     repOut.filter(s => s.seat_active && s.accepted_at).length,
-      seat_cap:         (company as any)?.seat_cap ?? 25,
+      seat_cap:         (company as any)?.seat_cap ?? DEFAULT_SEAT_CAP,
+      // #616 — so the UI can warn BEFORE the wall. A company used to hit a 409 at rep 26 with
+      // nothing on screen having ever mentioned a limit.
+      seats_used:       repOut.length,
       allocated:        repOut.reduce((n, s) => n + s.credit_budget, 0),
       used:             repOut.reduce((n, s) => n + s.credits_used, 0),
       company_pool:     (company as any)?.credit_pool ?? 0,
@@ -294,6 +309,66 @@ companyRouter.post('/provision', async (req: AuthRequest, res) => {
 })
 
 // ── POST /company/seats — invite a rep (creates their workspace seat) ────────
+/**
+ * #616 — RAISE OR LOWER THE SEAT LIMIT. The control the 409 has always promised.
+ *
+ * ⚠️ OWNER ONLY, deliberately stricter than `canManage`. The founder's model is that a
+ * **sysadmin / billing contact** decides how many people the company pays to have on the
+ * platform — a manager runs reps day to day but must not be able to change what the company is
+ * committed to. `canManage` would have let a manager do it, which is the wrong shape.
+ *
+ * ⚠️ REFUSES A CAP BELOW THE SEATS ALREADY IN USE, and names the count. Silently accepting it
+ * would leave a company over its own limit with no way to see why the next invite fails — the
+ * enforcement is a `>=` at invite time, so a cap of 3 against 7 live reps does not remove
+ * anybody, it just makes the next invite refuse for a reason nothing on screen explains.
+ * Deactivate seats first, then lower the cap: that order is a decision a human takes, never a
+ * side effect of typing a smaller number.
+ *
+ * No migration: `companies.seat_cap` already exists (20260612_company_engine.sql:15).
+ */
+companyRouter.patch('/seat-cap', async (req: AuthRequest, res) => {
+  try {
+    const ctx = await resolveContext(req.userId!)
+    if (!ctx) { res.status(404).json({ success: false, error: 'No company found' }); return }
+    if (!ctx.isOwner) {
+      res.status(403).json({ success: false, error: 'Only the company owner can change the seat limit — a manager runs the reps, but what the company pays for is the owner\'s call.' }); return
+    }
+
+    const { seat_cap } = z.object({
+      seat_cap: z.number().int().min(1).max(MAX_SEAT_CAP),
+    }).parse(req.body)
+
+    const { count } = await db.from('clients').select('id', { count: 'exact', head: true })
+      .eq('company_id', ctx.companyId).eq('seat_role', 'rep')
+    const inUse = count ?? 0
+    if (seat_cap < inUse) {
+      res.status(409).json({
+        success: false,
+        error: `You have ${inUse} rep seat${inUse === 1 ? '' : 's'} and asked for a limit of ${seat_cap}. Lowering the limit does not remove anybody — it would only make the next invite fail for a reason nothing on screen explains. Deactivate the seats you do not need first, then lower the limit.`,
+        seats_used: inUse,
+      }); return
+    }
+
+    // CHECKED, not swallowed (#349) — supabase-js returns { error } rather than throwing, so an
+    // unchecked update here would report a new limit that was never written.
+    const { error } = await db.from('companies').update({ seat_cap }).eq('id', ctx.companyId)
+    if (error) { res.status(500).json({ success: false, error: `The seat limit was NOT changed: ${error.message}` }); return }
+
+    // No company-side audit table exists (checked — `operator_audit_log` is operator actions on
+    // clients, not a client's own admin acting on their company). Logged loudly rather than
+    // inventing a table the schema freeze forbids.
+    console.log(`[company/seat-cap] company ${ctx.companyId} seat limit -> ${seat_cap} (was in use: ${inUse}) by client ${ctx.clientId}`)
+
+    res.json({ success: true, data: { seat_cap, seats_used: inUse } })
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      res.status(400).json({ success: false, error: `The seat limit must be a whole number between 1 and ${MAX_SEAT_CAP}.` }); return
+    }
+    console.error('[company/seat-cap]', err)
+    res.status(500).json({ success: false, error: 'Failed to change the seat limit' })
+  }
+})
+
 companyRouter.post('/seats', async (req: AuthRequest, res) => {
   try {
     const ctx = await resolveContext(req.userId!)
@@ -305,12 +380,19 @@ companyRouter.post('/seats', async (req: AuthRequest, res) => {
       budget: z.number().int().min(0).max(1_000_000).optional(),
     }).parse(req.body)
 
-    // Seat-cap guard.
+    // Seat-cap guard. #616 — the refusal now names the ACTUAL cap and points at the control
+    // that raises it. It used to say "raise the cap to add more reps" while **no way to raise
+    // it existed anywhere in the product** — a promise the software could not keep.
     const { count } = await db.from('clients').select('id', { count: 'exact', head: true })
       .eq('company_id', ctx.companyId).eq('seat_role', 'rep')
     const { data: company } = await db.from('companies').select('name, seat_cap, credit_pool').eq('id', ctx.companyId).maybeSingle()
-    if ((count ?? 0) >= ((company as any)?.seat_cap ?? 25)) {
-      res.status(409).json({ success: false, error: 'Seat cap reached — raise the cap to add more reps' }); return
+    const cap = Number((company as any)?.seat_cap ?? DEFAULT_SEAT_CAP)
+    if ((count ?? 0) >= cap) {
+      res.status(409).json({
+        success: false,
+        error: `Seat cap reached — this company is set to ${cap} rep seat${cap === 1 ? '' : 's'} and ${count ?? 0} are in use. The owner can raise it in the Command Centre (Seats → seat limit).`,
+        seat_cap: cap, seats_used: count ?? 0,
+      }); return
     }
 
     const token = crypto.randomBytes(32).toString('hex')

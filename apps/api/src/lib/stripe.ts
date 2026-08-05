@@ -35,6 +35,92 @@ export const STRIPE_SUBSCRIPTIONS = {
   denise: { priceEnvVar: 'STRIPE_PRICE_DENISE_MONTHLY', product: 'denise',            label: 'Denise — AI Account Executive', priceUsd: 39 },
 } as const
 
+
+// ── #613 — READ WHAT STRIPE ACTUALLY SETTLED ─────────────────────────────────────────────
+//
+// The ledger records the price we quoted. This reads the other number: gross, Stripe's fee,
+// and the net that reaches the bank — in the SETTLEMENT currency, which for a UK account
+// selling in USD is GBP, so the two figures are not even in the same money.
+//
+// ⚠️ RETURNS NULL RATHER THAN THROWING, ALWAYS. Every caller runs AFTER the client's money has
+// been credited. A Stripe outage, a rate limit or an expand that comes back shallow must cost
+// us an annotation, never a payment.
+export async function readSettlement(sessionId: string): Promise<import('./stripe-settlement').BalanceTxLike | null> {
+  if (!stripe) return null
+  try {
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent.latest_charge.balance_transaction'],
+    })
+    const pi = (session as any)?.payment_intent
+    const charge = pi && typeof pi === 'object' ? pi.latest_charge : null
+    const bt = charge && typeof charge === 'object' ? charge.balance_transaction : null
+    if (!bt || typeof bt !== 'object') return null
+    return bt as import('./stripe-settlement').BalanceTxLike
+  } catch (err) {
+    // LOUD, because a persistent failure here means the reconcile panel is blind and nobody
+    // would otherwise find out — but never rethrown.
+    console.error('[stripe/settlement] could not read settlement for', sessionId, err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+/**
+ * Stamp the settlement facts onto a ledger row that has ALREADY been written.
+ *
+ * Best-effort by construction: reads the row, appends, writes back. Idempotent — a webhook
+ * retry finds "[settled:" already present and leaves it alone.
+ */
+export async function annotateSettlement(reference: string): Promise<boolean> {
+  try {
+    const { settlementNote, appendSettlement } = await import('./stripe-settlement')
+    const bt = await readSettlement(reference)
+    const note = settlementNote(bt)
+    if (!note) return false
+
+    const { db } = await import('@kind/db')
+    const { data: row, error: readErr } = await db.from('credit_transactions')
+      .select('id, note').eq('reference', reference).limit(1).maybeSingle()
+    if (readErr || !row) return false
+
+    const next = appendSettlement((row as { note: string | null }).note, note)
+    if (next === (row as { note: string | null }).note) return false
+
+    const { error: wErr } = await db.from('credit_transactions')
+      .update({ note: next }).eq('id', (row as { id: string }).id)
+    if (wErr) { console.error('[stripe/settlement] annotation write failed', reference, wErr.message); return false }
+    return true
+  } catch (err) {
+    console.error('[stripe/settlement] annotation threw (payment unaffected)', reference, err instanceof Error ? err.message : err)
+    return false
+  }
+}
+
+/** Recent checkout sessions with their settlement, for the operator reconcile panel. ONE API call. */
+export async function listRecentSettlements(limit: number): Promise<Array<{ sessionId: string; bt: import('./stripe-settlement').BalanceTxLike | null; created: number; currencyPaid: string | null; amountPaidMinor: number | null }> | null> {
+  if (!stripe) return null
+  try {
+    const list = await stripe.checkout.sessions.list({
+      limit: Math.max(1, Math.min(50, limit)),
+      expand: ['data.payment_intent.latest_charge.balance_transaction'],
+    })
+    return (list.data ?? []).map((s: any) => {
+      const pi = s?.payment_intent
+      const charge = pi && typeof pi === 'object' ? pi.latest_charge : null
+      const bt = charge && typeof charge === 'object' ? charge.balance_transaction : null
+      return {
+        sessionId: String(s.id),
+        bt: (bt && typeof bt === 'object' ? bt : null) as import('./stripe-settlement').BalanceTxLike | null,
+        created: Number(s.created ?? 0),
+        currencyPaid: s.currency ? String(s.currency) : null,
+        amountPaidMinor: s.amount_total != null ? Number(s.amount_total) : null,
+      }
+    })
+  } catch (err) {
+    console.error('[stripe/settlement] list failed', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
 export type SubscriptionProduct = keyof typeof STRIPE_SUBSCRIPTIONS
 
 export function getStripePriceId(creditType: 'lead_gen' | 'figsy', credits: number): string | null {

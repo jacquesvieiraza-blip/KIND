@@ -213,59 +213,57 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 > **Selling stays OFF this board** (founder, 4 Aug: *"i know how to sell."*). Status of record per item lives in PRODUCT-INVENTORY — rows here reference ids and the dots are script-stamped.
 
-### A — The path to 25 Aug send-day
+### ✅ CLOSED — done and verified *(collapsed; full detail lives in the inventory rows + KIND-MASTER session log)*
 
-| # | Item · description | Owner | When |
-|---|---|---|---|
-| ~~A1~~ | ~~**Preview + merge PR #1269 (#615)**~~ ✅ **DONE 5 Aug — merged to main, so it is LIVE.** ⚠️ Merged without the preview walk, so it went 🟡→🩷 (live, unverified) rather than 🟡→🟣→🩷. **The 6-step walk in the PR body is now a LIVE-site walk** — do it when convenient and it becomes part of the pink walk (A11). | 🧍 | ✅ done |
-| ~~A2~~ | ~~**Vida cleanup**~~ ✅ **DONE 5 Aug, founder-walked.** House wallet **$3,999,038 → $0 → $4,000** (the balance reading exactly $4,000 is the proof both writes landed in the right order — a grant without the zero would read $4,003,038). Stripe Test and ACME **deleted**; MBF and Client Zero correctly showed **no Remove button**. **The audit also produced evidence, not assumption:** `figsy_sent_emails` = **0 rows** (nothing has ever been emailed from this account) · `AUTO_OUTREACH_ENABLED` **off** · `jacques@kindoutreach.com` **warming**, refused by the picker. ⚠️ **And it dated the landmine: cold-client clock reads 39 DAYS IDLE** — see A5, and note A4 interacts (approving anyone resets the clock to zero). | 🧍 | ✅ done |
-| ~~A3~~ | ~~**Ruling: booking link in email 1**~~ ✅ **RULED 5 Aug — Option A: the gate was right, the prompt was wrong.** *"The first email's job is to earn a reply, not a booking."* `generateSequence` no longer asks for a link in step 1 (step 3 keeps its link); the gate's exemption, its warn and the `bookingUrl` option are all removed, so a booking link in a first touch is now an ordinary hard fail. ⚠️ **Watch on the first real run:** a draft refused twice skips the lead with the reason named in `skip_reasons` — but **no screen renders it**, so a systematic refusal would read as *"no enrolments"* rather than *"every draft refused"*. Surfacing it is C8 below. | 🧍→🤖 | ✅ done |
-| ~~A4~~ | ~~**Ruling: the 159 stale approved leads**~~ ✅ **RULED 5 Aug — KEEP THEM.** Founder: *"no they potential clients."* They are real prospects worth working, not test residue, so no clearing build is needed. **Two consequences, both accepted:** ① the onboarding pack stays **used**, so every approval draws the wallet at $4 — funded by the $4,000 granted in A2 (~1,000 approvals). ② **The 39-day cold clock STAYS**, which makes A5 urgent rather than theoretical — see A5. | 🧍 | ✅ ruled |
-| ~~A5~~ | ~~**Ruling: cold-cron exemption for the house account**~~ ✅ **RULED AND BUILT 5 Aug (#618).** Founder: *"do a5 i have no idea but do it."* Option ⓐ taken — the house account is now skipped by `cold-check`, resolved by `decideHouseClient` (never by name), decided in ONE pure function the cron asks. **Fails open:** if the house cannot be resolved nobody is exempted and the cron behaves as today. Demo exemption unchanged; a real client on the identical clock is still suspended (asserted by test). ⓑ stays free on the day — approving anyone resets the clock anyway. | 🤖 | ✅ done |
-| ~~A6~~ | ~~**Ruling: cap ladder 30→50/day**~~ ✅ **APPLIED BY RULE 5 Aug (#622)** — the standing recommendation stood because the founder stayed silent. **The ladder was already enforced and already topped out at exactly 50/day**; what was missing is that the steps were bare literals, so the ladder ruled on and the ladder enforced matched by coincidence. Now named (`WARMUP_LADDER`), behaviour byte-identical. **Override any time.** | 🧍→🤖 | ✅ done |
-| ~~A7~~ | ~~**Stripe: the stale $99 product**~~ ✅ **VOID 5 Aug — founder's catalogue screenshot is the evidence: there is no $99 product and never was.** 9 active products, 0 archived, and every price matches the nine env vars exactly ($20/$40/$100 Lead Gen · $60/$120/$300 FIGSY · $49/$29/$39 subs). Nothing to archive, nothing to edit. The "$99 description" claim was carried forward from a 3-Aug note that his own dashboard now disproves — and even if stray text existed, the pack checkout renders **no dashboard product at all** (inline `price_data`), so no client could ever see it at pay time. **Top-ups verified the same session:** first purchase $299 (server-enforced, derived from `PACK_PRICE_USD` both ends), then bundle top-ups **$40 / $100 / $200** on the billing page → `/stripe/checkout` validates against `TOPUP_PRESETS`, webhook credits the wallet ledger-first. No dashboard SKU involved — by design (*"no bundle SKUs"*). | 🧍 | ✅ void |
-| A15 | 🔴 **RUN THE `20260727_cron_claims` MIGRATION** — **Vida → Engine → Database migrations**. The System screen is CHECKED-BROKEN on it: *"MISSING in production — without it two replicas double every email and every charge."* A founder click, no Supabase access needed. **Do before send-day** — a doubled send is unrecoverable reputation damage and a doubled charge is a refund conversation. | 🧍 | **today** |
-| A16 | **CONFIRM the Instantly mailbox count** — the System screen reads **9 mailboxes across 3 domains** (`kindoutreach.com`, `trykind.org`, **`nexttrygetkind.com`** — the third appears in no doc). Every plan and the cap ladder assumed **4 boxes on 2 domains**. Confirm which are intended senders; nobody should assume. | 🧍 | before 18 Aug |
-| A17 | **Set `pdl_monthly_cap_usd`** (app_settings) — currently absent, so only the code default guards sourcing spend. $2.80 spent this month against nothing to measure it by. | 🧍 | before sourcing at volume |
-| A8 | **Item 13 — Google "storage full / 30 GB" anomaly** — still unexplained; look in Google admin | 🧍 | 5 min |
-| A9 | **The two walks** — ⚠️ **WALK 1 PART-DONE 5 Aug and it EARNED ITS KEEP: it produced #623 and #625.** The founder approved 2 leads on Client Zero; the wallet did not move and nothing enrolled. Both were correct-by-design (#424 charge-once = free) but chasing *why* exposed the board calculating *"$ in"* instead of reading the ledger (**#623**) and the charge-once door skipping the no-campaign gate (**#625**). ⚠️ **STILL OWED: the $4 charge has never been seen move on screen** — every test lead was free. Proving it needs a contact this account has NEVER bought (source ~20 fresh leads, ≈$5.60 PDL). **WALK 2 (one fresh signup completing clean) NOT STARTED.** | 🧍 | 15 min |
-| A10 | **Monday Instantly glance** (4 health scores rising, zero disconnects) · **18 Aug Google charge (~$28) succeeds** | 🧍 | weekly · 18 Aug |
-| A11 | **Pink walk** — 🩷 → 🟢 on your "good". Covers #591 · the merged #611/#612/#613/#614/#616 · **and everything shipped 5 Aug: #617 #618 #619 #620 #621 #622 #623 #624 #625** (9 more). 250 pinks now stand unverified. | 🧍 | during warmup |
-| A12 | **Failover teardown** ($12/mo back) — pinned order in the runbook: DNS repoint FIRST | 🤝 | 10 min |
-| A13 | **Terms rulings** — "yours to keep" on churn · what "training" includes → counsel words the Terms | 🧍 | before client #1 |
-| A14 | **#553 — THE SEND LADDER** · ✅ **RUNBOOK WRITTEN 5 Aug (#621) → [`docs/SEND-DAY-RUNBOOK.md`](./SEND-DAY-RUNBOOK.md)** — every step read out of the live code, `CHECK:` marks anything the code couldn't confirm. Covers warmup week · pre-flight (**mail-tester ≥9/10 or DO NOT LAUNCH**) · the flip · first-hour watch · **3 tripwires each paired with its kill action** · the kill order · the money walk. ⚠️ **Executed FOUNDER-SOLO** — Claude access ends 18 Aug. | 🤖 written · 🧍 executes | **~25 Aug — the finish line** |
+| # | Item | Outcome |
+|---|---|---|
+| A1–A7 | #615 merge · Vida cleanup · Option A ruling · the 159 stay · #618 · cap ladder #622 (D1 = a status flip on the day, in the runbook) · $99-product VOID | ✅ all closed 5 Aug |
+| B1 | ICO registration (~£47/yr) | ✅ **founder registered 5 Aug** — keep the confirmation for the accountant |
+| C3 · C7 · C8 | #615 shipped · PECR pass #617 · skip_reasons surfaced #620 | ✅ built + merged 5 Aug |
+| A14→runbook | [`docs/SEND-DAY-RUNBOOK.md`](./SEND-DAY-RUNBOOK.md) (#621) — every step code-verified | ✅ written; execution stays below |
+| #619 #623 #624 #625 | Board honesty · "$ in" from the ledger · reply-path probe · stranded-lead fix | ✅ built + merged 5 Aug — three of the four found by the founder's own walks |
+| — | 5 Aug totals | **9 builds · 11 PRs merged · 1,995 tests green · 44 red proofs** |
 
-### B — The company's nervous system (UK Ltd, from the 4 Aug expense audit)
+### 🔴 CRITICAL TO LAUNCH-DAY LIVE — these must be nailed, in this order
 
-| # | Item · description | Owner | When |
-|---|---|---|---|
-| ~~B1~~ | ~~**ICO registration (~£47/yr by direct debit)**~~ ✅ **DONE 5 Aug — founder registered.** The legal floor for processing prospect data is in place; a named person at a company is personal data even in B2B, and the leads were already in the database, so this closed an exposure that was already running. Keep the confirmation email + the direct-debit reference with the company records (B3's accountant will want both). | 🧍 | ✅ done |
-| B2 | **The 30-min browser pass** — your Stripe dashboard FX % (Settings → Payouts) · Stripe intl 3.0 vs 3.25% · FreeAgent multi-currency (the £660/yr question) · Xero price-lock before 1 Sept · ICO fee page. Every "unverified" tag in the artifact + `cost-floor.ts` waits on this | 🧍 | this week |
-| B3 | **Get an accountant (~£60–90/mo compliance-only)** — settles VAT timing, salary/dividend split, year-end dates; needed at first year-end even at £0 revenue | 🧍 | before first revenue |
-| B4 | **Track overseas software spend monthly** — reverse-charge purchases count toward the £90k VAT threshold with ZERO sales; the meter lives in the cashflow artifact | 🧍 | monthly |
-| B5 | **Banking/FX route** — Stripe-settle-USD + Wise (~£3/sale saving); decide at ~20 sales/mo, not before | 🧍 | later |
-| B6 | **Insurance** — professional indemnity when a client contract demands it (~£150–300/yr) · employers' liability the day anyone joins payroll (£2,500/day without it) | 🧍 | triggered |
+| # | Item · what it is | Why critical | Owner | Deadline |
+|---|---|---|---|---|
+| **A15** | **Run the `20260727_cron_claims` migration** — Vida → Engine → Database migrations, one click. The System screen is CHECKED-BROKEN on it | Without it, 2 replicas **double every email and every charge** | 🧍 | **TODAY** |
+| **A18** | **Live-fire reply test** — test send to yourself → reply from another address → it must appear in the Unibox / "to triage" | The only proof of the return path. A dead one reads exactly like "nobody replied" — discovered on send-day otherwise | 🧍 | this week |
+| **A16** | **Confirm the mailbox count** — Instantly shows **9 boxes / 3 domains** incl. `nexttrygetkind.com` (in no plan); the ladder maths assumed 4 on 2 | Sending from a box you did not mean to warm burns a domain | 🧍 tell the agent | before 18 Aug |
+| **A9** | **The two walks** — ⚠️ Walk 1 half-done (it produced #623 + #625; **the $4 charge has never been seen move on screen** — needs "Source 20 leads" ≈$5.60, then approve ONE fresh lead: $4,000 → $3,996) · Walk 2 = one fresh signup completing clean, not started | Proves the client path end-to-end before a stranger walks it | 🧍 | before 18 Aug |
+| **A19** | **Till walk** — Milla → Billing → the $299 button → Stripe page must show **$299** → cancel at the card screen. Free | First real payment must not fail silently | 🧍 | before 18 Aug |
+| **A10** | **Monday Instantly glance** (health scores rising, zero disconnects) · **18 Aug Google ~$28 charge succeeds** | Inboxes die quietly if the card fails | 🧍 | Mondays · 18 Aug |
+| **A14** | **SEND-DAY — execute the runbook, alone** | The finish line | 🧍 | **~25 Aug** |
 
-### C — Build items (state after the 4→5 Aug overnight batch)
+### 🟠 IMPORTANT, NOT SEND-BLOCKING — but 🤖 items die on 18 Aug
 
-| # | Item · description | Owner | When |
-|---|---|---|---|
-| C1 | ✅ **#613 revenue honesty — BUILT, merged.** Settlement stamped per payment + reconcile panel on Billing. Known limits: annotation not columns (schema frozen) · old rows stay list-price · **subscription path still hardcoded** (`stripe.ts:657`, dormant — first job the day subscriptions return) | — | done |
-| C2 | ✅ **#614 cost floor as code — BUILT, merged.** `estStack=690`/`95` literals dead; pages read `@kind/shared`; drift test binds `docs/CASHFLOW-LAB.html` to the code; 5 UK-company lines exist, every one tagged unverified until B2 | — | done |
-| ~~C3~~ | ~~**#615 VAT onboarding**~~ ✅ **DONE — merged 5 Aug in PR #1269 (= A1).** The row said "awaiting the founder's preview" for a day after it had already shipped; corrected 5 Aug. | — | ✅ done |
-| C4 | ⚠️ **#616 seat cap — PARTIAL.** API control, owner-only rule, honest 409, warn-data: done, merged. **The screen where a sysadmin types the number does NOT exist yet** — one input + warn banner in Command Centre, client-facing → preview-first. Rides with C6 | 🤖 | next prompt |
-| C5 | ⚠️ **Seat removal — HALF.** Dead "Add member" button fixed (merged). Delete-vs-deactivate is a founder decision; no delete exists | 🧍 ruling | with C4 |
-| C6 | 🔴 **Vida "no tax ID" badge** on the clients list — one line, uses the `vatBadge` already shipped in #615. *(Row corrected 5 Aug: it said "lands after #1269 merges" — #1269 merged that morning, so the blocker is gone and this is simply unbuilt.)* | 🤖 | rides any Vida PR |
-| ~~C7~~ | ~~**PECR/GDPR pass on the outreach**~~ ✅ **BUILT 5 Aug (#617).** UK sole traders are individual subscribers — refused unless the company name carries a corporate marker, matched on **word boundaries** (a substring match hands a sole trader an exemption they don't have). **Fails SAFE**, the opposite of #618, deliberately. Asked at **THREE** enrol paths before the charge — both `/figsy` routes **and `autoEnrollLead`**, the third found while wiring #620 and the one a client's own approval takes. Plus a send-time net for rows enrolled earlier. 21 tests, red-proved 7 ways. | 🤖 | ✅ done |
-| ~~C8~~ | ~~**Surface `skip_reasons`**~~ ✅ **BUILT 5 Aug (#620).** Both enrol routes now persist refusals to `operator_audit_log` (**no migration** — schema frozen) and Vida's cockpit renders `⚠️ last enrol: N enrolled · M skipped — <reasons>` **in words**. Written only when somebody was skipped. 12 tests, red-proved 3 ways incl. the exact original bug (fetch it, never render it). | 🤖 | ✅ done |
-### D — Blocked / conditional
+| # | Item | Status now | Owner | Deadline |
+|---|---|---|---|---|
+| B2 | 30-min browser pass — Stripe FX % · intl 3.0/3.25% · FreeAgent multi-currency · **Xero price-lock before 1 Sept** · ICO fee page. The agent writes the verified numbers into `cost-floor.ts` | ⬜ not started | 🧍→🤖 | before 18 Aug |
+| A17 | Set `pdl_monthly_cap_usd` (app_settings) — only the code default guards sourcing spend | ⬜ | 🧍 | before volume |
+| C4 | Seat-cap screen — API done (#616), **no UI exists** for the sysadmin to type the number; client-facing → preview-first | 🔴 not started | 🤖 | by 18 Aug or it waits for a future plan |
+| C5 | Seat delete-vs-deactivate ruling | 🧍 ruling owed | 🧍→🤖 | with C4 |
+| C6 | Vida "no tax ID" badge — one line, `vatBadge` (#615) shipped and waiting | 🔴 | 🤖 | rides any Vida PR |
+| D4 | Ruling: `staging` is 46 commits behind `main` — refresh it, or keep previewing client-facing PRs from branches? | 🧍 say the word | 🧍→🤖 | by 18 Aug |
+| A12 | Failover teardown ($12/mo back) — pinned order in the runbook: DNS repoint FIRST | ⬜ | 🤝 | by 18 Aug |
+| A8 | Google "storage full / 30 GB" anomaly — Google Admin, 5 min | ⬜ | 🧍 | 5 min |
+| A13 | Terms rulings — "yours to keep" on churn · what "training" includes → counsel words the Terms | ⬜ | 🧍 | before client #1 |
+| A11 | Pink walk — 🩷 → 🟢 on your "good". **250 pinks stand unverified**, incl. all 9 shipped 5 Aug. After 18 Aug flip yourself: `FOUNDER_FLIP=1 bash scripts/flip-dots.sh 🟢 <id>` | ⬜ | 🧍 | during warmup |
+
+### ⚪ NOT LAUNCH-CRITICAL — dated so nothing goes missing
 
 | # | Item | Owner | When |
 |---|---|---|---|
-| ~~D1~~ | ~~**Boxes 3+4 into the engine**~~ ✅ **NOT A BUILD — corrected 5 Aug (#622).** There is **no two-box limit in the code**: the engine already uses every sendable, credentialled mailbox, spreading least-used-first. Boxes 3+4 are held out by one thing — **status `warming`** — and that guard is CORRECT (sending on a warming box un-warms it). **So this is a status flip on the mailbox rows when warmup finishes — a founder action on the day, now in the runbook.** | 🧍 | ✅ ruled |
+| B3 | Accountant (~£60–90/mo, compliance-only) | 🧍 | before first revenue |
+| B4 | Track overseas software spend monthly (reverse-charge counts toward the £90k VAT threshold; meter in the cashflow artifact) | 🧍 | monthly |
+| B5 | Banking/FX — Stripe-settle-USD + Wise (~£3/sale) | 🧍 | at ~20 sales/mo |
+| B6 | Insurance — PI when a contract demands it · EL the day anyone joins payroll | 🧍 | triggered |
 | D2 | ⏸ Migrations ×2 · Postgres rotation (burned, in git history) · GitHub flag appeal | external | blocked |
 | D3 | Railway replica re-check | — | only if ever Pro |
-| D4 | **Ruling: `staging` is 46 commits behind `main`** — refresh it from main, or keep previewing client-facing PRs from their branches | 🧍 | with A1 |
+| — | Subscription path hardcoded price (`stripe.ts:657`, dormant) | 🤖 | the day subscriptions return |
+| — | Dead `handleSubscribe` (#563/#431) | 🤖 | with subscriptions |
+
 
 ## 📤 MOVED OFF THIS PAGE (it was here, it does not get us live)
 

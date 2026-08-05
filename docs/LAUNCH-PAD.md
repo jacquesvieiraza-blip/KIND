@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work. Rows are worked top to bottom inside each block; blocks are worked A → E.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷250 · 🟣2 · 🟡64 · 🔴173 · ⏸5 · **Σ589** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷250 · 🟣2 · 🟡65 · 🔴173 · ⏸5 · **Σ590** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -241,10 +241,10 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 |---|---|---|---|---|
 | A15 | ⏸ **`cron_claims` migration — ATTEMPTED 5 Aug, BLOCKED, and DOWNGRADED.** The run failed before touching anything: `DATABASE_URL` resolves to a host literally named **`base`**, so the service cannot reach Postgres at all. Our own error names the fix — it must be Supabase's **SESSION POOLER** string (`postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432`), because Supabase's direct host is IPv6-only and Railway has no IPv6 route. ⚠️ **Likely blocked on the locked Supabase dashboard** (same account flag that keeps GitHub Actions dead) — that is where the pooler string lives. **WHY IT IS NO LONGER 🔴:** the founder confirmed **Railway replicas = 1**, and the guard only matters with 2+. **It becomes urgent the moment replicas ever go above 1** — and nothing warns you when that happens, so treat any scale-up as gated on this. | 🧍 | before scaling past 1 replica |
 | B2 | 30-min browser pass — Stripe FX % · intl 3.0/3.25% · FreeAgent multi-currency · **Xero price-lock before 1 Sept** · ICO fee page. The agent writes the verified numbers into `cost-floor.ts` | ⬜ not started | 🧍→🤖 | before 18 Aug |
-| A17 | Set `pdl_monthly_cap_usd` (app_settings) — only the code default guards sourcing spend | ⬜ | 🧍 | before volume |
-| C4 | Seat-cap screen — API done (#616), **no UI exists** for the sysadmin to type the number; client-facing → preview-first | 🔴 not started | 🤖 | by 18 Aug or it waits for a future plan |
-| C5 | Seat delete-vs-deactivate ruling | 🧍 ruling owed | 🧍→🤖 | with C4 |
-| C6 | Vida "no tax ID" badge — one line, `vatBadge` (#615) shipped and waiting | 🔴 | 🤖 | rides any Vida PR |
+| A17 | **Set the PDL monthly cap — NOW ONE CLICK.** ✅ Built 5 Aug (#626): **Vida → Engine → "PDL monthly spend cap"** → type a number (e.g. `100`) → **Save cap**. It reads back from the database, so what you see is what is stored. Previously this needed SQL nobody could run. ⚠️ **$0 is refused on purpose** — the System check reads 0 as "unset", so it would look capped while the check said otherwise; use the kill-switch to stop sourcing. | 🧍 | **2 min — do it whenever** |
+| C4 | ⚠️ **#616 seat cap — SCREEN BUILT 5 Aug, PREVIEW-FIRST PENDING YOU (RULEBOOK §11).** The Command Centre → Seats tab now shows seats-in-use of the cap, warns before the wall, and lets the **owner** (not a manager) change it; the API's refusal renders verbatim. **CLIENT-FACING, so it has NOT been merged to live on my own say-so** — your call in the morning: preview from the branch, or authorise straight-to-live with an immediate walk (the A1/#615 precedent). | 🧍 decides · 🤖 built | **your call** |
+| C5 | ⚠️ **Seat removal — SAFE DEFAULT SHIPPED, RULING STILL OWED.** No delete was built: delete-vs-deactivate is your open decision, and building the destructive half of an undecided question is how it gets decided by accident. The card says removal deactivates and keeps history, and that the ruling is open. **One word from you settles it** — my recommendation stays *deactivate only*. | 🧍 one word | with C4 |
+| ~~C6~~ | ~~**Vida "no tax ID" badge**~~ ✅ **BUILT 5 Aug (night batch).** The clients list now carries `vatBadge` in all three tones — amber *no tax ID* · grey *not VAT registered (declared)* · green *tax ID on file* — rendered from the SHARED function with no local rule and no house/demo special case. `vat_number` rides the worklist query that was already being made. 4 of the 18 tests cover it. | 🤖 | ✅ done |
 | D4 | Ruling: `staging` is 46 commits behind `main` — refresh it, or keep previewing client-facing PRs from branches? | 🧍 say the word | 🧍→🤖 | by 18 Aug |
 | A12 | Failover teardown ($12/mo back) — pinned order in the runbook: DNS repoint FIRST | ⬜ | 🤝 | by 18 Aug |
 | A8 | Google "storage full / 30 GB" anomaly — Google Admin, 5 min | ⬜ | 🧍 | 5 min |

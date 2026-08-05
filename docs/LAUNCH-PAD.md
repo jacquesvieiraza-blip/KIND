@@ -228,7 +228,6 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 | # | Item · what it is | Why critical | Owner | Deadline |
 |---|---|---|---|---|
-| **A15** | **Run the `20260727_cron_claims` migration** — Vida → Engine → Database migrations, one click. The System screen is CHECKED-BROKEN on it | Without it, 2 replicas **double every email and every charge** | 🧍 | **TODAY** |
 | **A18** | **Live-fire reply test** — test send to yourself → reply from another address → it must appear in the Unibox / "to triage" | The only proof of the return path. A dead one reads exactly like "nobody replied" — discovered on send-day otherwise | 🧍 | this week |
 | **A16** | **Confirm the mailbox count** — Instantly shows **9 boxes / 3 domains** incl. `nexttrygetkind.com` (in no plan); the ladder maths assumed 4 on 2 | Sending from a box you did not mean to warm burns a domain | 🧍 tell the agent | before 18 Aug |
 | **A9** | **The two walks** — ⚠️ Walk 1 half-done (it produced #623 + #625; **the $4 charge has never been seen move on screen** — needs "Source 20 leads" ≈$5.60, then approve ONE fresh lead: $4,000 → $3,996) · Walk 2 = one fresh signup completing clean, not started | Proves the client path end-to-end before a stranger walks it | 🧍 | before 18 Aug |
@@ -240,6 +239,7 @@ The founder said ***"i cant afford 470/month… without income coming in this is
 
 | # | Item | Status now | Owner | Deadline |
 |---|---|---|---|---|
+| A15 | ⏸ **`cron_claims` migration — ATTEMPTED 5 Aug, BLOCKED, and DOWNGRADED.** The run failed before touching anything: `DATABASE_URL` resolves to a host literally named **`base`**, so the service cannot reach Postgres at all. Our own error names the fix — it must be Supabase's **SESSION POOLER** string (`postgres.<ref>@aws-0-<region>.pooler.supabase.com:5432`), because Supabase's direct host is IPv6-only and Railway has no IPv6 route. ⚠️ **Likely blocked on the locked Supabase dashboard** (same account flag that keeps GitHub Actions dead) — that is where the pooler string lives. **WHY IT IS NO LONGER 🔴:** the founder confirmed **Railway replicas = 1**, and the guard only matters with 2+. **It becomes urgent the moment replicas ever go above 1** — and nothing warns you when that happens, so treat any scale-up as gated on this. | 🧍 | before scaling past 1 replica |
 | B2 | 30-min browser pass — Stripe FX % · intl 3.0/3.25% · FreeAgent multi-currency · **Xero price-lock before 1 Sept** · ICO fee page. The agent writes the verified numbers into `cost-floor.ts` | ⬜ not started | 🧍→🤖 | before 18 Aug |
 | A17 | Set `pdl_monthly_cap_usd` (app_settings) — only the code default guards sourcing spend | ⬜ | 🧍 | before volume |
 | C4 | Seat-cap screen — API done (#616), **no UI exists** for the sysadmin to type the number; client-facing → preview-first | 🔴 not started | 🤖 | by 18 Aug or it waits for a future plan |

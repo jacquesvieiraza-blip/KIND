@@ -20,7 +20,10 @@ const GROUPS: Group[] = [
   {
     heading: 'Account',
     links: [
-      { href: '/dashboard/settings',  label: 'My profile', icon: User },
+      // #628 — the SECOND place that called this page "My profile". The founder went looking
+      // for Settings on his own product and could not find it, because neither entry point
+      // used the word. The page holds account settings, not a profile — both say so now.
+      { href: '/dashboard/settings',  label: 'Settings',   icon: User },
       { href: '/dashboard/billing',   label: 'Billing',    icon: CreditCard },
       { href: '/dashboard/usage',     label: 'Usage',      icon: BarChart2 },
       { href: '/dashboard/documents', label: 'Documents',  icon: FileText },

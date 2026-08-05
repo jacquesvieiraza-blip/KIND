@@ -478,6 +478,44 @@ async function vida(): Promise<Section> {
     return unmeasured(label, v.detail, v.action)
   }))
 
+  // CALENDAR BOOKING — #628, and it is the #624 lesson applied one step further down the funnel.
+  //
+  // The whole point of the reply path is that an interested prospect books a meeting. That last
+  // step had NO row: the three Google OAuth vars are `level: 'optional'` at boot, so nothing
+  // complains when they are absent, and with them absent no client can connect a calendar and
+  // every booking link resolves to nothing — silently, exactly as a dead reply path did.
+  //
+  // Env + storage only. No Google call: hitting Google would require a client's refresh token,
+  // which means acting on a client's account to draw a picture on our own screen, and this file's
+  // standing rule is never a paid call and never a send. The verdict says which question it
+  // answered, so "configured" is never mistaken for "a booking would succeed today".
+  rows.push(await probe('Calendar booking (Google OAuth)', async () => {
+    const { calendarBookingVerdict } = await import('./calendar-probe')
+    const label = 'Calendar booking (Google OAuth)'
+
+    // The refresh token is the one durable artefact of a COMPLETED OAuth flow, and the column
+    // every booking route already gates on. An unreadable count stays null and becomes
+    // NOT-MEASURED — never a rendered zero, which would look calm and mean nothing (#565).
+    const c = await db.from('clients')
+      .select('id', { count: 'exact', head: true })
+      .not('google_calendar_refresh_token', 'is', null)
+
+    const v = calendarBookingVerdict({
+      env: {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri: process.env.GOOGLE_REDIRECT_URI,
+        portalUrl: process.env.PORTAL_URL,
+      },
+      connections: c.error ? null : (c.count ?? 0),
+      countError: c.error?.message ?? null,
+    })
+
+    if (v.state === 'ok') return ok(label, v.detail)
+    if (v.state === 'broken') return broken(label, v.detail, v.action)
+    return unmeasured(label, v.detail, v.action)
+  }))
+
   // REPLICA COUNT — the founder's spec said "if readable". It is not, and that is the answer.
   //
   // What CHANGED with #343 is what the unreadable number means. It used to be the whole

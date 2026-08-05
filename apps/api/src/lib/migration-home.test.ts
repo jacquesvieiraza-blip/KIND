@@ -69,7 +69,14 @@ describe('① every migration has a canonical file', () => {
     // converts legacy `trialing` subscriptions to `paused`. The count is asserted rather than
     // derived so that adding something the product can APPLY TO PRODUCTION is never a silent
     // edit — if this number moved and you did not mean it to, a migration was added.
-    expect(runnerKeys).toHaveLength(13)
+    //
+    // 14 from 6 Aug — #627 added `20260806_app_settings`, which CREATES the table the System
+    // check and the PDL-cap card had both been reading for months and which existed nowhere.
+    // The founder pressed Save and got "Could not find the table 'public.app_settings'". Note
+    // where this entry sits: the `fileless` assertion above passed on the first run, because
+    // the file and the runner entry were written together. That is the whole discipline of
+    // this test, working in the intended direction rather than catching a miss.
+    expect(runnerKeys).toHaveLength(14)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -96,10 +103,14 @@ describe('② a copy that can drift is the disease, not the cure', () => {
 
   it('nothing was rewritten on the way in — 32 files moved, bodies untouched', () => {
     const moved = TOMBSTONED.reduce((n, d) => n + sqlFiles(d).length, 0)
+    // THIS is the number that must never move. The tombstoned directories are frozen: new
+    // migrations land in the canonical directory ONLY, so 32 stays 32 forever while the
+    // canonical count below grows.
     expect(moved).toBe(32)
     // The canonical directory is the 94 that were there + 32 consolidated + 1 recovered
-    // = 127 at #273, + 1 added since (#607's 20260801_retire_trial_status) = 128.
-    expect(sqlFiles(CANON)).toHaveLength(128)
+    // = 127 at #273, + 1 (#607's 20260801_retire_trial_status) + 1 (#627's
+    // 20260806_app_settings) = 129.
+    expect(sqlFiles(CANON)).toHaveLength(129)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

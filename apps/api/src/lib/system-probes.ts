@@ -349,12 +349,28 @@ async function vida(): Promise<Section> {
     ])
     const spent = ((ledger.data ?? []) as { cost_usd?: number | string }[])
       .reduce((s, r) => s + Number(r.cost_usd ?? 0), 0)
+    // ⚠️ #627 — TWO DIFFERENT PROBLEMS USED TO SHARE ONE SENTENCE. This block treated a missing
+    // TABLE and a missing ROW identically and said "set pdl_monthly_cap_usd" for both — telling
+    // the operator to set a value in a table that does not exist. It said that for months. The
+    // founder found it by pressing Save on the #626 card and getting the real error, which the
+    // write surfaced only because that write is checked (#349).
+    const { isMissingTable } = await import('./schema-probe')
+    if (isMissingTable(capRow.error as never)) {
+      return broken('PDL spend against the monthly cap',
+        `$${spent.toFixed(2)} spent this month, and the app_settings table DOES NOT EXIST — so no cap can be stored and nothing is guarding sourcing spend but the code default. This row previously said "no usable setting exists", which read as "nobody has set one yet" rather than "there is nowhere to set one".`,
+        'Run the 20260806_app_settings migration from Vida → Engine → Run migrations. That needs DATABASE_URL to be the Supabase SESSION POOLER string first (runlist A15).')
+    }
+    if (capRow.error) {
+      return unmeasured('PDL spend against the monthly cap',
+        `$${spent.toFixed(2)} spent this month, but app_settings could not be read (${capRow.error.message}), so whether a cap exists was NOT established.`,
+        'Re-run once the database answers.')
+    }
     const capRaw = (capRow.data as { value?: unknown } | null)?.value
     const cap = Number(capRaw)
     if (!capRow.data || !Number.isFinite(cap) || cap <= 0) {
       return unmeasured('PDL spend against the monthly cap',
         `$${spent.toFixed(2)} spent this month, but no usable pdl_monthly_cap_usd setting exists, so there is nothing to measure it against — the code default applies.`,
-        'Set pdl_monthly_cap_usd before sourcing at volume.')
+        'Set it in Vida → Engine → PDL monthly spend cap.')
     }
     const pct = Math.round((spent / cap) * 100)
     if (spent >= cap) {

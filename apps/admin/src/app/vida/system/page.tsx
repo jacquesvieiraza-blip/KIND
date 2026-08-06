@@ -63,6 +63,21 @@ const SIDE_LABEL: Record<Section['side'], string> = {
 
 export default function VidaSystemPage() {
   const [report, setReport] = useState<Report | null>(null)
+  // #631 — the stranded-lead rescue, driven from the row that reports it.
+  const [enrolBusy, setEnrolBusy] = useState<string | null>(null)
+  const [enrolMsg, setEnrolMsg] = useState<Record<string, string>>({})
+
+  async function enrolStranded(clientId: string) {
+    setEnrolBusy(clientId)
+    try {
+      const r = await fetch(`/api/proxy/operator/clients/${clientId}/enrol-stranded`, { method: 'POST' }).then(x => x.json())
+      // The API's own sentence is rendered verbatim — it is the one that knows whether a row
+      // actually appeared. Inventing a cheerful summary here is how a screen starts lying.
+      setEnrolMsg(m => ({ ...m, [clientId]: r?.success ? (r.data?.headline ?? 'Done.') : `FAILED: ${r?.error ?? 'unknown error'}` }))
+    } catch (e) {
+      setEnrolMsg(m => ({ ...m, [clientId]: `FAILED: ${e instanceof Error ? e.message : 'request failed'}` }))
+    } finally { setEnrolBusy(null) }
+  }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -158,6 +173,22 @@ export default function VidaSystemPage() {
                       </p>
                     )}
                     <p className="text-[10.5px] text-[#b3a9cc] mt-1">from {c.defect}</p>
+                    {/* #631 — THE ROW THAT NAMES THE PROBLEM NOW CARRIES THE FIX. Both alerts in
+                        approve-lead.ts end "enrol it from Vida" and no operator control existed
+                        — a screen naming a fix nobody can perform (#626's defect). Only on this
+                        check, and only when it is actually dirty. No charge: these leads were
+                        paid for at approve (M2/#424). */}
+                    {c.key === 'paid_never_enrolled' && c.count > 0 && c.affected.map(cid => (
+                      <div key={cid} className="mt-2 flex items-center gap-2 flex-wrap">
+                        <button onClick={() => enrolStranded(cid)} disabled={enrolBusy === cid}
+                          className="text-[11.5px] font-bold text-white bg-[#1f1235] hover:bg-[#312150] rounded-lg px-3 py-1.5 disabled:opacity-60">
+                          {enrolBusy === cid ? 'Enrolling…' : 'Enrol this client\u2019s stranded leads'}
+                        </button>
+                        {enrolMsg[cid] && (
+                          <span className="text-[11px] font-semibold text-[#5c5279] leading-relaxed">{enrolMsg[cid]}</span>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

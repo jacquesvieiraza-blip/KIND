@@ -172,6 +172,18 @@ Confirm you have read this, then wait for my next message.
 | **A9** | ⚠️ **NOT A RULING — an agent working practice, recorded here so it is never mistaken for one.** *"Trust screens, not files"* (Vida → System probes the live product; agent reports are live-counted; the docs are the archive) was **proposed by me** on 6 Aug and the founder **did not explicitly rule on it**. It stands as my operating default until he does. | none — the founder has not ruled | nothing — and it is not a rule |
 
 
+### 7b · THE 6 AUGUST RULINGS, PART TWO — four open questions closed in one message
+
+> **The founder, 6 Aug:** *"all with your recomendfaion. lets close these off."* Four questions that had each been open for days or weeks. His word closed all four; the reasoning below each is mine, recorded so it can be argued with later.
+
+| # | Ruling | What it amends |
+|---|---|---|
+| **A10** | **THE SEQUENCE CAP IS 7.** The 8-Jul lock said 10 (*"no it is 10. we know this"*). The 7 came from deliverability practice and has been the enforced number since 4 Aug; the 10 predates the **22-Jul managed-service pivot** (AR1) and was written for a product we no longer sell. **The #612 gate's HARD block IS the enforcement — there is no separate cap to build.** | ⛓️ chains **D14** · supersedes **#426** · the Vida editor now stops at 7 too, bound by test |
+| **A11** | **THE 2 STRANDED PAID LEADS GET ENROLLED** — *"enrol — they were paid for."* Approved on Client Zero during the 5-Aug walk, charged, never enrolled, because #625's gate did not yet exist. ⚠️ **And the alert telling us to fix it named a control that did not exist** — both messages end *"enrol it from Vida"* and no operator enrol route was ever built (#626's defect, again). Now built (#631), through the **same `autoEnrollLead` machinery** as a real approval, charging nothing. | closes the register's open item · builds **#631** |
+| **A12** | **#301 IS MOOT.** The Denise $39-vs-$99 conflict has been open since **3 Jul**, waiting on a price for a product that stopped having one when Denise stopped being sold (**AR1**, 22 Jul · **AR2**, 1 Aug). | ⛓️ closes **#301** — kept as history, not deleted |
+| **A13** | **#630 goes 🩷** — the probe fix is live and verified on the founder's own System screen (`cron_claims.job` CHECKED-OK). | bookkeeping |
+
+
 ## 8 · ARCHITECTURE — *(new 6 Aug: this section did not exist)*
 
 | # | Rule | The founder's words | Source | Enforced by |
@@ -241,8 +253,6 @@ Written down rather than assumed, per P9.
 - **Is 50 the right lead-desk window, or should the panel page?** (#570) — *"a founder call, not code"*, and the only thing keeping that row 🟡.
 - **The share-link generator** (#560) — retiring it would break links clients have already sent.
 - **A paid PDL plan** (#444) — *"founder money call, pending."*
-- **The Denise price conflict** (#301) — $39/mo in the portal vs $99/mo on the site, and Denise is absent from the LOCKED `packages/shared` PRICING. Flagged 3 Jul, never formally ruled. Overtaken by AR1/AR2 (Denise is not sold) but the row is still open.
-- **⚠️ 2 paid leads sit in NO sequence** — the integrity panel's HIGH row, 6 Aug: *"2 paid lead(s) across 1 client(s) are in NO sequence — charged for work that never started."* The #625 class. The row itself says leads approved while the kill-switch is off will appear here **and that is expected right now** — but they must be enrolled or refunded **before send-day**, not after.
 - **Instantly Growth mailbox cap — UNVERIFIED.** "Unlimited warmup" is our own 26-Jul research note, not a vendor confirmation. If Growth caps warmed mailboxes, that cap is the client ceiling and nothing in the product would warn us. One founder glance before client #1.
 - **Where this page lives.** It is a *product* rules page, so it does not clash with the four-doc status contract — but the founder may want it merged into `RULEBOOK.md` instead of standing alone.
 

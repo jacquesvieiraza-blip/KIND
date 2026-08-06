@@ -73,10 +73,10 @@ flowchart TD
 
 **Entry point: get-kind.com**
 
-1. Client visits get-kind.com, clicks "Start free trial"
+1. Client visits get-kind.com, clicks the signup CTA *(this said "Start free trial" — the trial was retired 1 Aug, #607; signup now writes `paused` with a $0 wallet)*
 2. Redirected to app.get-kind.com/login → signs up with email + password
 3. **No email confirmation required** — lands directly on /onboard
-4. Fills in company name, industry, country, phone, website → "Start free trial"
+4. Fills in company name, industry, country, phone, website → creates the account *(no trial — #607)*
 
 **What happens in the background:**
 - Client record created in DB with pay-per-qualified-lead wallets (no trial subscription) — ⚠️ code still grants a 14-day trial (`auth.ts`) until #425/#431 land
@@ -179,7 +179,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     %% ── ENTRY POINTS ──
-    WEB([get-kind.com\nStart free trial]) --> SIGNUP
+    WEB([get-kind.com\nSign up]) --> SIGNUP
     AE_SEND([AE sends client\nto get-kind.com]) --> SIGNUP
     AE_DEMO([AE goes to\nadmin.get-kind.com]) --> DEMO_FORM
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { notifyCreditNudge } from '@/lib/onboarding-nudge'
+import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 import { useParams, useRouter } from 'next/navigation'
 import {
   ArrowLeft, Zap, Mail, Clock, ChevronRight, Edit3,
@@ -809,7 +810,7 @@ export default function CampaignDetailPage() {
           </div>
 
           {/* Add step */}
-          {steps.length < 7 && (
+          {steps.length < MAX_SEQUENCE_STEPS && (
             <button
               onClick={addStep}
               className="mt-6 w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-purple-100/80 rounded-xl text-sm font-medium text-[#9B8EC4] hover:border-[#7C3AED]/40 hover:text-[#7C3AED] transition-all"

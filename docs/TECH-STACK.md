@@ -28,7 +28,7 @@
 >
 > **FLAGGED, DELIBERATELY NOT REWRITTEN.** Choosing the replacement wording is an architecture statement and belongs to the founder, not to a doc sync. **Until it is rewritten, read #577 and the 30 Jul lock (LAUNCH-PAD HONEST STATE), not the three lines below.** A vendor register that names the wrong engine is exactly the doc someone quotes in a client conversation.
 >
-> *(Also stale in the table below and left for the same reason: the **Stripe** row still describes "$1 reveal · $3 FIGSY" — the money model has been $99-pack + $4-per-approved since 24 Jul — and the **Stripe · Flutterwave** row names two processors that were both removed, Flutterwave in #314 and Paystack in #352.)*
+> *(Also stale in the table below and left for the same reason: the **Stripe** row still describes "$1 reveal · $3 FIGSY" — the money model has been pack + $4-per-approved since 24 Jul, and the pack has been **$299 since 3 Aug** (it was $99 when this line was written) — and the **Stripe · Flutterwave** row names two processors that were both removed, Flutterwave in #314 and Paystack in #352.)*
 
 
 ## ✉️ EMAIL ARCHITECTURE — the part that's easy to get wrong
@@ -49,7 +49,7 @@ Two **separate** systems, do not conflate:
 | **⚙️ Smartlead** | **THE ENGINE (item 211, decided 23 Jun)** — per-client warmed sending infrastructure: provision+warm mailboxes (SMB) · connect client's own (enterprise) · white-label + `client_id` isolation. The product's deliverability foundation. |
 | **Instantly** | cold-email warmup/send for **K.I.N.D's OWN outreach** now (item 198) · ENGINE fallback (no white-label) |
 | **Zoho Mail** | company **mailboxes** — MX/receiving + webmail + human send (`get-kind.com` only) |
-| **Stripe** | primary payments — per-qualified-lead credit purchases ($1 reveal · $3 FIGSY), invoices (USD). **No subscriptions** — legacy `_MONTHLY` price vars in `stripe.ts` pending removal (#431) |
+| **Stripe** | primary payments — the **$299 onboarding pack** then **$4 per approved lead**, invoices (USD). *(Read "per-qualified-lead credit purchases ($1 reveal · $3 FIGSY)" until 6 Aug — the ladder retired 24 Jul.)* **No subscriptions** — legacy `_MONTHLY` price vars in `stripe.ts` pending removal (#431) |
 | **Stripe · Flutterwave** | payments — Stripe (US/EMEA, primary, USD) + Flutterwave (Africa). *Paystack KILLED 25 Jun (no ZAR).* |
 | **PDL Full (sourcing) + Hunter (reveal)** | the **CLIENT-facing** data stack (locked 30 Jul). Both confirmed **$0** on 3 Aug — but free PDL is ~100 records/month, **half of one client's 200-name pack**, so it is a volume ceiling, not a free lunch. *Planned adds per item 243: Cognism · Clearbit · Lusha · RocketReach · Proxycurl + BetterContact aggregator.* |
 | **Apollo** | **OUR hunting only** — the paid source we prospect with. **Basic Monthly, $65/mo**, 2,500 credits/month, **0 used**, renews 3 Sep. ⚠️ **THIS ROW ONCE SAID "RETIRED" AND THAT WAS WRONG** — the 1 Aug audit read *"retired from the client data path"* as *"retired"* and recommended deleting four inventory rows; the founder caught it. Apollo is live, paid and in use. *(⚠️ separately true: `enrichment.ts`/`apollo.ts` still run Apollo-primary in the **client** path, which the 30 Jul lock says should be PDL+Hunter — cleanup owed, tracked in the inventory.)* |

@@ -221,7 +221,12 @@ function matchCount(text: string, patterns: RegExp[]): number {
 const BUMP_MIN_NEW_WORDS = 25
 
 /** The founder's own boxes send at most a handful of touches; beyond this it is harassment. */
-export const MAX_STEPS = 7
+// #426→R3 — THE NUMBER MOVED TO `@kind/shared` (6 Aug). It is re-exported here so every
+// existing import keeps working, but there is now exactly ONE definition: the admin app
+// cannot import from `apps/api` (#563/#614), so while this file owned the digit the editors
+// hard-coded their own copies and the operator save path kept a third value of 10.
+export { MAX_SEQUENCE_STEPS as MAX_STEPS } from '@kind/shared'
+import { MAX_SEQUENCE_STEPS as MAX_STEPS } from '@kind/shared'
 
 /**
  * TEMPLATE vs RENDERED — and getting this wrong would have killed all outreach.

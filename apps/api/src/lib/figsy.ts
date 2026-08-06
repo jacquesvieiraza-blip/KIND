@@ -1835,7 +1835,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
         // #453 — demo enrollments never send, so leave next_send_at null (the cron
         // gates on next_send_at) so a demo enrollment is drafted-only and inert.
         next_send_at:   isDemo ? null : new Date().toISOString(), // send step 1 immediately
-        // #212 — full ≤10-step sequence walked by the send engine.
+        // #212 — full ≤7-step sequence walked by the send engine.
         steps:          fullSteps.length > 0 ? fullSteps : null,
         total_steps:    fullSteps.length > 0 ? fullSteps.length : null,
         // Back-compat: first 3 steps mirrored to the legacy columns (voice.ts, A/B view).

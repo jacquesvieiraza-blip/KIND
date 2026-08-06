@@ -75,7 +75,17 @@ fi
 
 # ── 5. Banned stale claims (tight patterns; history-marked lines exempt) ──────
 # A line is exempt when it is clearly marked as history/defect-description:
-HISTORY_RE='RETIRED|STALE|SUPERSEDED|superseded|retired|history|~~|no longer|was \$|kept as|dead|DEAD|defect|bug|conflict|false|WRONG|wrong|hunt|reword|remove'
+# ⚠️ 6 Aug — three additions, each earned by a TRUE line the new patterns flagged:
+#   • `NOT SOLD`      — an env row may name a retired product's price while saying it is dead
+#   • `no "free..."`  — the truth banner literally says there is **no** "free to start"
+#   • `No trial`      — same banner, same sentence
+# A lint that fails on the sentence CORRECTING a claim teaches people to delete the lint.
+HISTORY_RE='RETIRED|STALE|SUPERSEDED|superseded|retired|history|~~|no longer|was \$|kept as|dead|DEAD|defect|bug|conflict|false|WRONG|wrong|hunt|reword|remove|NOT SOLD|no "free to start"|No trial, no freebies|banner added|PREVIOUSLY SAID|Original text|RETIRED FRAMING'
+# A DATED SESSION-LOG ENTRY IS HISTORY BY DEFINITION. `KIND-MASTER`'s log records what was
+# true on the day — a 21-Jul entry describing the $1/$3 ladder is CORRECT, and "fixing" it
+# would destroy the record the chain rule exists to protect. Matched against the
+# `<lineno>:- **21 Jul` shape grep -n produces, since the ^ anchor sees the line number.
+DATED_LOG_RE='^[0-9]+:[-|] \*\*[0-9]{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)'
 # Tight patterns — stale CLAIMS only, not mentions:
 BANNED=(
   'Start (your )?14-day( free)? trial'          # trial CTA (model has no trials)
@@ -85,14 +95,37 @@ BANNED=(
   'Denise[^|]*\$39/mo(nth)?[^|]*(price|sub|bill)'
   '250M\+? (verified )?(B2B )?contacts'          # the false database claim
   'blended ARPU|Blended ARPU'                    # subscription-era revenue framing
+  # ── Added 6 Aug (R11). Every one of these was LIVE in a doc on the day it was added,
+  #    and the first two were in `sales-playbook.md` — the document the founder sells from.
+  '\$1 reveal'                                   # the per-qualified-lead ladder, retired 24 Jul
+  '\$1 per lead revealed'                        # same ladder, the customer-facing phrasing
+  '\$99 (onboarding )?pack|pack[^|]{0,20}\$99'   # the pack price, re-locked to $299 on 3 Aug (#609)
+  'Start free trial|Start your free trial'       # the trial, retired 1 Aug (#607)
+  'free to start'                                # no-freebies lock, 24 Jul
+  'no card required'                             # same lock — signup takes no card, but nothing RUNS free
 )
 # Pre-existing hits ride here until the reconciliation pass clears them
 # (format: file:regex). EMPTY this list in Move 2 — do not add to it.
 KNOWN_DIRTY=(
 )  # emptied 9 Jul (Move 2 reconciliation) — do not add entries; fix the doc instead
-DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md)
+# ⚠️ WIDENED 6 Aug (R11). This list held six docs, and `sales-playbook.md` was not one of
+# them — which is exactly why a header labelled "PRICING (locked)" sat there quoting the
+# RETIRED ladder for two weeks. A lint that only reads the docs already being maintained
+# checks the ones least likely to be wrong.
+DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md docs/sales-playbook.md docs/client-flow-sop.md docs/CORE-MAP.md docs/TECH-STACK.md docs/ENVIRONMENT.md)
 for f in "${DOCS[@]}"; do
   [ -f "$f" ] || continue
+  # ── A FILE MARKED HISTORICAL AT THE TOP IS EXEMT FROM STALE-CLAIM CHECKS ──────
+  # Added 6 Aug (R11). Some docs ARE the record of a finished phase — the M0 checklist
+  # and the pink-walk list quote the retired per-qualified-lead ladder because that is
+  # what the work was priced at. Rewriting them would destroy the record; leaving them
+  # unmarked let them read as current. So the banner is now load-bearing: it exempts the
+  # file, and the exemption is ANNOUNCED rather than silent, because an invisible skip is
+  # how a lint quietly stops checking anything.
+  if head -20 "$f" | grep -q '⚠️ \*\*HISTORICAL'; then
+    say "  note: $f is marked HISTORICAL at the top — stale-claim patterns skipped for it"
+    continue
+  fi
   for pat in "${BANNED[@]}"; do
     skip=""
     # BASH 3.2 SAFE — expanding an EMPTY array under `set -u` is an "unbound variable"
@@ -103,7 +136,7 @@ for f in "${DOCS[@]}"; do
       [ "$kd" = "$f:$pat" ] && skip=1
     done
     [ -n "$skip" ] && continue
-    if hits="$(grep -nE "$pat" "$f" | grep -vE "$HISTORY_RE")" && [ -n "$hits" ]; then
+    if hits="$(grep -nE "$pat" "$f" | grep -vE "$HISTORY_RE" | grep -vE "$DATED_LOG_RE")" && [ -n "$hits" ]; then
       say "FAIL [stale-claim] $f matches banned pattern '$pat' on a non-history line:"
       echo "$hits" | head -5 | sed 's/^/  /' >&2
       FAIL=1

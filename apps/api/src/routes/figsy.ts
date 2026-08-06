@@ -537,7 +537,7 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
         let draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
           || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
 
-        // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
+        // #212 — full ≤7-step sequence (client copy carries its own cadence; AI is 3-step).
         let fullSteps = appliedSequence
           ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
           : draftToSteps(draft)
@@ -1209,7 +1209,7 @@ figsyRouter.post('/campaigns/:id/send-now', async (req: AuthRequest, res) => {
     for (const enrollment of due ?? []) {
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
-      // #212 — walk the full ≤10-step sequence via enrollmentStep (jsonb `steps`,
+      // #212 — walk the full ≤7-step sequence via enrollmentStep (jsonb `steps`,
       // else legacy step1-3 columns). null = past the last usable step.
       const nextStep = enrollment.current_step + 1
       const stepView = enrollmentStep(enrollment, nextStep)
@@ -1634,7 +1634,7 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
         let draft = (appliedSequence && buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null))
           || await generateSequence(lead as any, client?.company_name ?? '', client?.industry ?? null, undefined, bookingUrl, senderName, clientKnowledge)
 
-        // #212 — full ≤10-step sequence (client copy carries its own cadence; AI is 3-step).
+        // #212 — full ≤7-step sequence (client copy carries its own cadence; AI is 3-step).
         let fullSteps = appliedSequence
           ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
           : draftToSteps(draft)
@@ -1870,7 +1870,7 @@ figsyRouter.post('/send-due', rateLimit({ limit: 30, windowMs: 60_000, key: 'fig
     for (const enrollment of due ?? []) {
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
-      // #212 — walk the full ≤10-step sequence via enrollmentStep (jsonb `steps`,
+      // #212 — walk the full ≤7-step sequence via enrollmentStep (jsonb `steps`,
       // else legacy step1-3 columns). null = past the last usable step.
       const nextStep = enrollment.current_step + 1
       const stepView = enrollmentStep(enrollment, nextStep)

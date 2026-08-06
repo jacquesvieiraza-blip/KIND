@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import SequenceQuality, { type Quality } from '@/components/SequenceQuality'
-import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, type Notice } from '@kind/shared'
+import { loadError, panelView, notice, noticeClass, noticeText, vatBadge, PACK_PRICE_USD, MAX_SEQUENCE_STEPS, type Notice } from '@kind/shared'
 
 // #483–#485 — VIDA OPERATOR CONSOLE (working area).
 // Renders inside the Vida shell (app/vida/layout.tsx owns the top bar + rail): Clients
@@ -1940,16 +1940,20 @@ export default function VidaConsolePage() {
                           className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                       </div>
                     ))}
-                    {/* #612/D14 — 7, NOT 10. FOUNDER-RULED 6 Aug.
-                        This editor offered a 10th step while `sequence-quality.ts` HARD-BLOCKS
-                        activation above MAX_STEPS = 7 — so an operator could build an 8-step
-                        sequence, save it (save is deliberately never gated), and only discover
-                        the refusal when they tried to make it live. A control that invites work
-                        the product will reject is the same defect class as a button that lies.
-                        ⚠️ THE NUMBER IS DUPLICATED HERE BECAUSE apps/admin CANNOT IMPORT FROM
-                        apps/api — `sequence-cap-agreement.test.ts` fails the gate if these two
-                        ever disagree, which is the only thing making the copy safe. */}
-                    {seqEdit.steps.length < 7 && (
+                    {/* #612/D14/R3 — the cap is MAX_SEQUENCE_STEPS, imported, never typed.
+                        This editor once offered a tenth step while activation hard-blocked
+                        above seven, so an operator could build a long sequence, save it, and
+                        only meet the refusal on going live — a control that invites work the
+                        product will reject.
+                        ⚠️ CORRECTED 6 Aug: the note here previously said the number HAD to be
+                        duplicated because apps/admin cannot import from apps/api, and cited
+                        `sequence-cap-agreement.test.ts` as "the only thing making the copy
+                        safe". THAT FILE HAS NEVER EXISTED — a safety net claimed in a comment
+                        and never built, found by the guard that replaced it. The constant now
+                        lives in `@kind/shared`, which all four apps can read, and
+                        `website-step-claims.test.ts` fails the build on any hard-coded digit
+                        or any step-count claim that disagrees with it. */}
+                    {seqEdit.steps.length < MAX_SEQUENCE_STEPS && (
                       <button onClick={() => { setSeqEdit({ ...seqEdit, steps: [...seqEdit.steps, { subject: '', body: '', wait_days: 3 }] }); setSeqQuality(null) }}
                         className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 mb-3">+ Add step</button>
                     )}

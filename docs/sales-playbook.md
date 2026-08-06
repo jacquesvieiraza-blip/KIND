@@ -17,7 +17,7 @@
 
 
 
-> ⚠️ **PRICING (locked):** per **qualified lead**, no subscriptions. Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; Vida inbound $3 (+$1/+$1 → $4/$5). The $1/$3-credit, bundle and monthly-sub lines below are historical; pricing source of truth = `run-costs-and-cashflow.md` §3.
+> ⚠️ **PRICING (locked 24–25 Jul, price re-locked 3 Aug):** the first purchase is the **$299 onboarding pack — 100 approved leads included** — then a flat **$4 per approved lead**. **ONE WALLET**, no subscriptions, reviewing is free. ⛓️ *This line read "$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6; Vida inbound $3" until 6 Aug — the per-qualified-lead LADDER, which the founder replaced on 24 Jul and which was still sitting in the selling document under the word "locked". Milla, Vida and Denise are NOT SOLD.*
 > Version 1.0 — May 2026 · For internal use only
 > `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat**, $3/qualified inbound lead — WhatsApp is NOT a cold channel) · Denise (Closer, +$1/qualified lead) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
 > 🌍 **GTM = TWO-TRACK (25 Jun):** **US/UK/EMEA via OUR OWN outreach** (dogfood FIGSY) + **Africa via DIRECT (data, item 243) + partners** — supersedes the old "Africa-first." Cold legal in US/UK/IE/FR/NL (avoid DE/PL).
@@ -240,7 +240,7 @@ Navigate to: **Billing**
 
 *Show the credit bundle tiers.*
 
-"It's free to start — no card, no subscription; you pay $299 for the onboarding pack (100 approved leads included), then $4 per approved lead. Most clients on 5–50 leads per week run on the Starter pack. I'll include the right pack in the proposal based on what you've told me today."
+"There's no card to sign up and no subscription; you pay $299 for the onboarding pack (100 approved leads included), then $4 per approved lead. Most clients on 5–50 leads per week run on the Starter pack. I'll include the right pack in the proposal based on what you've told me today."
 
 ---
 
@@ -266,7 +266,7 @@ Navigate to: **Billing**
 
 **"We don't have budget."**
 
-"I hear you. Can I ask — what are you currently spending on your sales effort? Even if it's just your own time? Because at your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in the first month. Our Starter pack is [X credits / $[price]] — that's less than one client acquisition on the old way. And it's free to start — no card, no subscription, just $1 per lead revealed — so you can prove the ROI before you commit to any volume."
+"I hear you. Can I ask — what are you currently spending on your sales effort? Even if it's just your own time? Because at your billing rate, if KIND saves you 5 hours a week of manual prospecting, it pays for itself in the first month. The onboarding pack is $299 and includes 100 approved leads — that's less than one client acquisition on the old way. No subscription, and you only pay $4 for a lead after you've approved it, so you see every person before a penny moves."
 
 ---
 
@@ -347,7 +347,7 @@ Based on our discovery conversation, here's what we recommend:
 | Starter | 500 credits | 5–15 leads/week | $[X] |
 | Growth | 1,500 credits | 15–40 leads/week | $[X] |
 | Pro | 5,000 credits | 40+ leads/week | $[X] |
-*(Pricing is per qualified lead, no subscriptions: $1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6; Vida inbound $3. Map recommended volumes accordingly — `run-costs-and-cashflow.md` §3.)*
+*(Pricing: the $299 onboarding pack, 100 approved leads included, then $4 per approved lead — one wallet, no subscriptions. Map recommended volumes accordingly — `run-costs-and-cashflow.md` is the model of record.)*
 
 **Recommended for [Company]:** [Tier] — [reason based on their target volume from discovery].
 
@@ -359,7 +359,7 @@ Credits are flexible — top up as needed, never expire, no long-term contract.
 
 | Day | Action |
 |---|---|
-| Day 1 | You sign up — free to start, no card, pay per lead |
+| Day 1 | You sign up — no card to sign up, no subscription; the $299 pack starts the work |
 | Day 2–3 | 30-min onboarding call — we configure your ICP, set up FIGSY |
 | Day 3–5 | First batch of scored leads delivered to your dashboard |
 | Day 5–7 | First campaign launched, sequences running |
@@ -369,7 +369,7 @@ Credits are flexible — top up as needed, never expire, no long-term contract.
 
 ### Risk Reversal
 
-- Free to start — no card required, no subscription; pay $1 per lead revealed / $4 fully worked
+- No card to sign up, no subscription — the first purchase is the **$299 onboarding pack (100 approved leads included)**, then **$4 per approved lead**. *(This line quoted the retired $1-reveal / $3-FIGSY ladder, killed 24 Jul; the pack has been $299 since 3 Aug.)*
 - Credit model — you pay per use, no monthly lock-in, credits never expire
 - No subscription, no long-term contract
 - If your first leads don't meet your ICP standards, we'll work with you to rebuild the ICP
@@ -378,7 +378,7 @@ Credits are flexible — top up as needed, never expire, no long-term contract.
 
 ### Next Step
 
-**One action:** Click the link below to sign up — free to start, no card, pay per lead — and book your onboarding call.
+**One action:** Click the link below to sign up — no card to sign up — and book your onboarding call.
 
 → [KIND sign-up link]
 → Or reply to this email and I'll set it up with you on a call.

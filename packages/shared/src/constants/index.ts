@@ -2,17 +2,19 @@
 // K.I.N.D Pricing — LOCKED. Never change without authorisation.
 // Lead Gen:   $1/credit flat (no volume discounts — annual plans only)
 // FIGSY:      $3/outreach-credit flat (no volume discounts — annual plans only)
-// Milla VA:   $49/month flat
-// Vida Chat:  $29/month flat
-// Bundle:     $69/month (Milla + Vida)
+// Milla VA:   $49/month flat   ⚠️ NOT SOLD — see #414 below; kept as the historic ladder only
+// Vida Chat:  $29/month flat   ⚠️ NOT SOLD
+// Bundle:     $69/month (Milla + Vida)   ⚠️ NOT SOLD
 // ─────────────────────────────────────────────────────────────────────────────
 //
 // ⚠️ #414 — WHAT IS CURRENTLY SOLD, AND WHAT THE BLOCKS BELOW ACTUALLY ARE.
 //
 // **The model, founder-locked 24–25 Jul (ONE WALLET):** one dollar wallet per client · the
-// first purchase is **$99 = the onboarding pack with 100 approved leads included**, then a
-// flat **$4 per approved lead** · reviewing is FREE (leads arrive masked; only the client's
-// 👍 ever spends) · no time limit on paid leads · a dead email is never charged.
+// first purchase is **the onboarding pack with `PACK_LEADS` approved leads included** — the
+// price is `PACK_PRICE_USD`, **$299 since 3 Aug** (this comment said $99 until 6 Aug, which
+// is the retired figure and exactly the drift R11 exists to stop) — then a flat
+// `LEAD_PRICE_USD` per approved lead · reviewing is FREE (leads arrive masked; only the
+// client's 👍 ever spends) · no time limit on paid leads · a dead email is never charged.
 //
 // The `figsy.description` below read *"FIGSY handles replies, objections, follow-ups and
 // meeting booking"* — describing self-serve automation we do not sell, on a per-credit model
@@ -215,3 +217,29 @@ export const PACK_LEADS = 100
 export const PACK_PRICE_USD = 299
 /** Flat price per approved lead once the pack is used up, in USD. */
 export const LEAD_PRICE_USD = 4
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEQUENCE LENGTH — ONE NUMBER, FOUR APPS
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// Founder-locked **7** (6 Aug, register R3/R10 — the earlier #426 asked for 10 and was
+// superseded). It lives HERE rather than in `apps/api` because the admin app cannot import
+// from the API (#563/#614) and the portal should not either — and the audit that produced
+// this constant found the cost of that gap: **four different limits were live at once.**
+//
+//   • `sequence-quality.ts` blocked ACTIVATION at 7
+//   • `operator.ts` let an operator SAVE 10 — so you could build an 8-step sequence, save it
+//     happily, and only meet the wall when you pressed activate (#626's shape exactly)
+//   • the Vida editor and the client's own editor each hard-coded a bare `7`, correct today
+//     and silently wrong the day this number moves
+//   • the client-facing Sequences page — linked in BOTH portal sidebars — capped at 3 and
+//     told the client *"(max 3)"*
+//
+// while the website promised **10** on five pages. A client could read 10, be shown 3, and
+// have 7 enforced. Nothing agreed with anything.
+//
+// ⚠️ IMPORT IT. Never re-type the digit — a literal is how this drifted the first time, and
+// `website-step-claims.test.ts` now fails the build on a step-count claim that is not this
+// number.
+/** The most email steps a sequence may contain. Founder-locked 6 Aug (R3). */
+export const MAX_SEQUENCE_STEPS = 7

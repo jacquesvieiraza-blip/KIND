@@ -943,7 +943,7 @@ internalRouter.post('/figsy/send-due-all', async (_req: Request, res: Response) 
       if (sent >= remaining) break   // shared daily budget spent
       const lead = Array.isArray(enrollment.leads) ? enrollment.leads[0] : enrollment.leads
       if (!lead?.email) continue
-      // #212 — walk the full ≤10-step sequence via enrollmentStep (jsonb `steps`,
+      // #212 — walk the full ≤7-step sequence via enrollmentStep (jsonb `steps`,
       // else legacy step1-3 columns). null = past the last usable step (skip).
       const nextStep = enrollment.current_step + 1
       const stepView = enrollmentStep(enrollment, nextStep)

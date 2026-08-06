@@ -24,14 +24,20 @@ describe('the sequence cap is 7 — and the editor and the gate agree about it',
   })
 
   it('THE AGREEMENT: the Vida editor stops at the same number the gate blocks at', () => {
-    // ⚠️ THIS IS THE WHOLE POINT OF THIS TEST. `apps/admin` cannot import from `apps/api`, so the
-    // number is necessarily duplicated in the editor. Before 6 Aug the editor offered a 10th
-    // step while the gate HARD-blocked above 7 — an operator could build an 8-step sequence,
-    // save it (save is deliberately never gated) and only discover the refusal at activation.
-    // A control that invites work the product will reject is a button that lies.
+    // ⚠️ REWRITTEN 6 Aug, AND THE REASON IS THE POINT (O8 — a guard must assert the INTENT,
+    // not the literal). This test used to demand the exact string `seqEdit.steps.length < 7`.
+    // That was right while the number HAD to be duplicated — `apps/admin` cannot import from
+    // `apps/api`. The R3 audit removed the duplication entirely by moving the constant to
+    // `@kind/shared`, which all four apps can read… and this test went RED for the fix,
+    // because it was pinned to the workaround rather than to the agreement.
+    //
+    // A test that fails when the defect is properly cured is worse than no test: it argues
+    // for keeping the defect. So it now asserts what actually matters — the editor reads the
+    // ONE constant, and no digit is typed anywhere near the comparison.
     const vida = read('../../../admin/src/app/vida/page.tsx')
-    expect(vida, 'the add-step control must stop at MAX_STEPS').toContain(`seqEdit.steps.length < ${MAX_STEPS}`)
-    expect(vida, 'the old 10-step limit must be gone').not.toContain('seqEdit.steps.length < 10')
+    expect(vida, 'the add-step control must read the shared constant').toContain('seqEdit.steps.length < MAX_SEQUENCE_STEPS')
+    expect(vida, 'the constant must actually be imported, not shadowed').toMatch(/import\s*\{[^}]*MAX_SEQUENCE_STEPS[^}]*\}\s*from\s*'@kind\/shared'/)
+    expect(vida, 'no hard-coded step limit may survive — that is how it drifted').not.toMatch(/steps\.length\s*[<>]=?\s*(?:3|7|10)\b/)
   })
 
   it('the gate HARD-blocks rather than warning — a warning would not have prevented anything', () => {

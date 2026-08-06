@@ -4,6 +4,7 @@ import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
+import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 import { namesPerApproval } from '../lib/money-path-math'
 import { coldView } from '../lib/cold-client'
 import type { InboxRow } from '../lib/sending-inbox'
@@ -1760,7 +1761,14 @@ operatorRouter.post('/sequence', async (req: Request, res: Response) => {
     const client = await requireClient(b.client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     if (!Array.isArray(b.steps) || b.steps.length === 0) { res.status(400).json({ success: false, error: 'At least one step is required' }); return }
-    if (b.steps.length > 10) { res.status(400).json({ success: false, error: 'Maximum 10 steps' }); return }
+    // R3 — WAS `> 10`, AND THE GATE HAS BEEN 7 SINCE THE FOUNDER RULED IT. So an operator
+    // could build an 8-, 9- or 10-step sequence, save it with no complaint, and only meet the
+    // wall on pressing activate — a screen that lets you do what the system will refuse
+    // (#626's shape). The error names the real number so the fix is obvious from the message.
+    if (b.steps.length > MAX_SEQUENCE_STEPS) {
+      res.status(400).json({ success: false, error: `Maximum ${MAX_SEQUENCE_STEPS} steps — past that, persistence reads as pestering and activation will refuse it.` })
+      return
+    }
 
     const steps = (b.steps as Record<string, unknown>[]).map((st, i) => ({
       step: i + 1,

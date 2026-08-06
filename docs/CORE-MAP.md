@@ -164,7 +164,7 @@
 | `apps/api/src/lib/money-path-math.ts` | 107 | SPRINT 8a·③ (#448/#449) — Money Path arithmetic, DB-free so it can be unit-tested. |
 | `apps/api/src/lib/nexus-guard.ts` | 69 | #511 NEXUS · Phase 3 — GUARDRAILS. Pure, dependency-free, unit-testable. These land BEFORE |
 | `apps/api/src/lib/nexus.ts` | 135 | #511 NEXUS · Phase 0/1 — the per-client learning brain (compute + read). |
-| `apps/api/src/lib/onboarding-pack.ts` | 116 | THE $99 ONBOARDING PACK — 100 approvals included, then $4 a lead. |
+| `apps/api/src/lib/onboarding-pack.ts` | 116 | THE $299 ONBOARDING PACK — 100 approvals included, then $4 a lead. *(Was $99 until the founder re-locked the price on 3 Aug, #609.)* |
 | `apps/api/src/lib/operator-audit.ts` | 60 | #486 — the one place an operator action gets written to operator_audit_log. |
 | `apps/api/src/lib/operator-queue.ts` | 103 | #487 — Vida operator draft-queue actions (the "Needs approval" column). |
 | `apps/api/src/lib/outcomes.ts` | 65 | THE DATA FLOOR (EVERYTHING.md #17b). |

@@ -24,7 +24,7 @@ Leads arrive **masked** — browsing and building the plan are free. There is **
 
 | Step | Charge | What happens |
 |---|---|---|
-| **Onboarding pack** | **$99 → 100 leads** (99c each) | the first purchase. Nothing sources or sends until it lands — the ICP stays dormant |
+| **Onboarding pack** | **$299 → 100 leads** ($2.99 each) *(was $99 until the 3-Aug re-lock, #609)* | the first purchase. Nothing sources or sends until it lands — the ICP stays dormant |
 | **Each approved lead** | **$4, flat and final** | the client's 👍 on a scored person. That's when we start working them |
 | **Top-ups after the pack** | any amount, $4 a lead | |
 
@@ -70,7 +70,7 @@ Leads arrive **masked** — browsing and building the plan are free. There is **
 
 > **The bundle is load-bearing.** Credits are sold in $20/$40/$100 packs, so Stripe's fixed 30¢ amortises to ~4.4%. A per-lead $1 card charge would lose 33¢/dollar to Stripe — **never move billing to per-lead charges.**
 
-> ⚠️ **The one cost that lands BEFORE revenue: PDL sourcing.** Every $0.28 record is spent whether the client reveals it or not. This is fenced (§10) so it can never run unfunded — but the **sourced-vs-revealed ratio is the number to watch**: a client must reveal ≥ 1-in-~3.5 sourced records for the $1 reveals alone to cover their PDL.
+> ⚠️ **The one cost that lands BEFORE revenue: PDL sourcing.** Every $0.28 record is spent whether the client reveals it or not. This is fenced (§10) so it can never run unfunded — but the **sourced-vs-approved ratio is the number to watch**: a client must approve enough of what we source for the $4-per-approved revenue to cover their PDL spend. *(Read "reveal ≥ 1-in-~3.5 … for the $1 reveals" until 6 Aug — the $1 reveal was retired 24 Jul.)*
 
 ---
 
@@ -292,7 +292,16 @@ The floors above are **rent**: what runs whether or not we are hunting. Finding 
 The rest of this doc uses **one** client shape (~$80/mo). Reality is a **range**. Here's the same business run three ways — cautious · expected · optimistic — all on **one blended product**, so you see the floor and the ceiling, not a single guess. **Same 10 logos, same fixed stack — only client behaviour changes.**
 
 ### What "blended product" means
-No client buys pure $1 reveals *or* pure $4 fully-worked leads — they buy a **MIX**. Two dials set it:
+> ⚠️ **RETIRED FRAMING, corrected 6 Aug (R11) — kept because the scenario maths below is still
+> built on it and rewriting the model without re-deriving the numbers would be worse than
+> saying so.** This section modelled the **per-qualified-lead ladder** — $1 to reveal, +$3 to
+> work — which the founder replaced on **24 Jul** with ONE WALLET: the **$299 onboarding pack
+> (100 approved leads included), then a flat $4 per approved lead**. RETIRED: there is no $1 reveal and
+> no separate work charge any more; the "two dials" below are volume and nothing else.
+> **The envelope's shape still holds** — it is a range of monthly approval volumes — but every
+> figure in 8B should be re-derived against $299 + $4 before it is quoted to anyone.
+
+*(Original text, kept as the record:)* No client buys pure $1 reveals *or* pure $4 fully-worked leads — they buy a **MIX**. Two dials set it:
 - **Volume** — how many leads they reveal per month (each costs them **$1**).
 - **Work-attach** — of those revealed, what % they let FIGSY work (**+$3 → $4** all-in).
 

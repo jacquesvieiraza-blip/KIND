@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 import { Mail, Plus, Trash2, Loader2, Send, Check, X, Library, ArrowRight } from 'lucide-react'
 
 interface EmailStep { subject: string; body: string; wait_days: number; on_reply: 'stop' | 'skip_next' | 'continue' }
@@ -66,7 +67,11 @@ export default function SequencesPage() {
     setSteps(prev => prev.map((s, idx) => idx === i ? { ...s, ...patch } : s))
   }
   function addStep() {
-    if (steps.length >= 3) return // email-first v1 supports up to 3 email steps
+    // R3 — WAS 3, WITH THE COMMENT "email-first v1 supports up to 3 email steps". This page
+    // is linked in BOTH portal sidebars, so a client reading the website's "10 steps" was
+    // shown a builder that stopped at 3 while the system enforced 7. Three numbers, one
+    // product. The cap is now the single shared constant.
+    if (steps.length >= MAX_SEQUENCE_STEPS) return
     setSteps(prev => [...prev, blankStep(4)])
   }
   function removeStep(i: number) { setSteps(prev => prev.filter((_, idx) => idx !== i)) }
@@ -166,8 +171,8 @@ export default function SequencesPage() {
             </div>
           ))}
           <div className="flex items-center justify-between">
-            <button onClick={addStep} disabled={steps.length >= 3} className="inline-flex items-center gap-1.5 text-sm font-medium text-purple-700 disabled:text-gray-300">
-              <Plus className="w-4 h-4" /> Add email step {steps.length >= 3 && '(max 3)'}
+            <button onClick={addStep} disabled={steps.length >= MAX_SEQUENCE_STEPS} className="inline-flex items-center gap-1.5 text-sm font-medium text-purple-700 disabled:text-gray-300">
+              <Plus className="w-4 h-4" /> Add email step {steps.length >= MAX_SEQUENCE_STEPS && `(max ${MAX_SEQUENCE_STEPS})`}
             </button>
             <span className="text-xs text-gray-400">LinkedIn · voice · WhatsApp steps — coming soon</span>
           </div>

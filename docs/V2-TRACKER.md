@@ -172,7 +172,7 @@ The 22-Jul 5-block roadmap is superseded as the *organizing frame*, but its Bloc
 ## Decisions (2026-07-11)
 - **Layer onto the existing 50-page portal — no conversation-first rewrite.**
 - **Spec now; build Vida after the first paying Milla client** (no supply to match against before then). Don't stall the sprint.
-- **Billing:** Vida side free always. Milla pays per **accepted** Vida match (premium reveal, existing credit rails, charge-on-accept — a bad match must never auto-charge). FIGSY outbound unchanged ($1 reveal / $3 work). No success-based billing yet.
+- **Billing:** Vida side free always. Milla pays per **accepted** Vida match (premium reveal, existing credit rails, charge-on-accept — a bad match must never auto-charge). FIGSY outbound unchanged — the **$299 pack then $4 per approved lead** *(this said "$1 reveal / $3 work", the ladder retired 24 Jul)*. No success-based billing yet.
 - **Honesty guardrail (the 3,341 lesson):** never claim "a database of X problems" until counted live; sell FIGSY (real today), pitch Vida matches as *filling*, not full.
 - **Success metric:** time-to-first-good-match.
 

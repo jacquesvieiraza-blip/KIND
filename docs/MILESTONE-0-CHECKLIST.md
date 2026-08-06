@@ -1,9 +1,11 @@
 # ✅ MILESTONE 0 — MASTER CHECKLIST (the FIGSY + Lead-Gen punch-list)
 
+> ⚠️ **HISTORICAL (July M0 working list) — the pricing in this file is the RETIRED per-qualified-lead ladder ($1 reveal + $3 FIGSY).** The founder replaced it on 24 Jul with ONE WALLET: the **$299 pack, 100 approvals included, then $4 per approved lead** (price re-locked 3 Aug). Kept as the record of what M0 was, not as current pricing. *(Banner added 6 Aug, R11.)*
+
 > # 🛑 SUPERSEDED 26 Jul 2026 — THE MONEY LADDER BELOW IS RETIRED (inventory #557)
 > **This doc still prices the product on the retired ladder** — `$1 reveal + $3 work = $4`, then `+$1 Milla = $5`, `+$1 Denise = $6`, `Vida inbound $3` — with a hold, a capture-on-booking, a release and a 72h TTL. **None of that is how we charge.**
 >
-> **Current money model (founder-locked 24–25 Jul · #492/#541):** one dollar wallet per client · first purchase **$99 = the onboarding pack, 100 approved leads included** · then a flat **$4 per approved lead, FINAL** — no split shown, no hold, no capture, no release, **no expiry** · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends**. Two gates: **minimum 20 approvals** first time round, and **30 days idle suspends** them.
+> **Current money model (founder-locked 24–25 Jul · #492/#541):** one dollar wallet per client · first purchase **$299 = the onboarding pack, 100 approved leads included** *(price re-locked 3 Aug, #609 — was $99 when this was written; the 100 never moved)* · then a flat **$4 per approved lead, FINAL** — no split shown, no hold, no capture, no release, **no expiry** · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends**. Two gates: **minimum 20 approvals** first time round, and **30 days idle suspends** them.
 >
 > **Money model of record → [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html)** · cost detail → `run-costs-and-cashflow.md` · execution → `LAUNCH-PAD.md` · status → `PRODUCT-INVENTORY.md` · why → `KIND-MASTER.md`. **Everything below is the M0 punch-list as it stood; read the honesty/reliability work as record and ignore every price.**
 

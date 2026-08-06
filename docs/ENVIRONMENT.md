@@ -119,8 +119,8 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `SMARTLEAD_BASE_URL` | api | ⚪ optional | Smartlead API base; defaults in code | Railway → **@kind/api** |
 | `SMARTLEAD_WEBHOOK_SECRET` | api | ⚪ optional | Verifies Smartlead inbound. Unset until a client sends through Smartlead — but it MUST be set before the first campaign, or inbound replies arrive unverified | Railway → **@kind/api** |
 | `STRIPE_PRICE_DENISE_MONTHLY` | api | ⚪ optional | Stripe price ID — Denise AE $39/mo | Railway → **@kind/api** |
-| `STRIPE_PRICE_MILLA_MONTHLY` | api | ⚪ optional | Stripe price ID — Milla VA $49/mo | Railway → **@kind/api** |
-| `STRIPE_PRICE_VIDA_MONTHLY` | api | ⚪ optional | Stripe price ID — Vida chatbot $29/mo | Railway → **@kind/api** |
+| `STRIPE_PRICE_MILLA_MONTHLY` | api | ⚪ optional | Stripe price ID — Milla VA $49/mo. ⚠️ **NOT SOLD** — the subscription ladder was retired for the one-wallet model (24–25 Jul); the var is kept because the code path still reads it. | Railway → **@kind/api** |
+| `STRIPE_PRICE_VIDA_MONTHLY` | api | ⚪ optional | Stripe price ID — Vida chatbot $29/mo. ⚠️ **NOT SOLD** — same retirement as Milla above. | Railway → **@kind/api** |
 | `SUPPRESSED_DOMAINS` | api | ⚪ optional | EXTRA do-not-contact domains. The employer floor is hard-coded and cannot be switched off from here | Railway → **@kind/api** |
 | `TEST_INBOX_EMAIL` | api | ⚪ optional | Destination for the #553 ladder test send | Railway → **@kind/api** |
 | `VAPID_PRIVATE_KEY` | api | ⚪ optional | Web-push private key | Railway → **@kind/api** |

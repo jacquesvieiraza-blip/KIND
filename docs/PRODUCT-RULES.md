@@ -140,6 +140,23 @@ Confirm you have read this, then wait for my next message.
 | O7 | **A failed check must never render as a pass.** Not an empty list, not a calm zero, not silence. Five instances this week: `count-inventory --check` exiting 0 without running · the ledger row advising a migration already run · eleven applied migrations shown as one failure · an RLS verdict from stale files · **CI reporting nothing because it has never run.** | 27 Jul, standing |
 | O8 | **A guard asserts the INTENT, not the literal.** A test pinned the exact SQL of a migration; fixing the migration broke the test written to protect it. A guard that freezes the defect is worse than none. | 27 Jul, #554c |
 
+## 7 · THE 6 AUGUST RULINGS — captured the same session, per ritual 4b
+
+*Every row below was ruled by the founder in chat on 6 Aug. **Where the words are his, they are quoted. Where a formulation is mine, it says so** — his ruling and my summary of it are not the same artifact, and confusing the two is the failure this whole page exists to stop.*
+
+| # | Rule | The founder's words | Enforced by |
+|---|---|---|---|
+| **A1** | **NOTHING about how we work changes before live.** The GitHub board/issues migration was examined at length on 6 Aug and **parked whole** — no process change, no tooling change, until the product is live. | *"i say dont change how we work at all till we go live."* | nothing — words only |
+| **A2** | **The company-GitHub migration is the FIRST post-live project.** An org owned by the Ltd, work as issues/board/milestones, knowledge docs retained. Full plan: **V2-TRACKER → "PROJECT 1 POST-LIVE"**. | *"on the 26 August I want to run this like a PRO. and the system with 4 docs is insane. so i want to migrate post live."* · and the reason: *"the docs drift and i have to constantly remind you to fix the docs. i have not read a doc for 2 weeks because i dont trust it."* | V2-TRACKER section |
+| **A3** | **18 Aug is an ACCESS CHECKPOINT, not a cliff.** Agent access can be renewed. **No deadline pressure may be derived from that date** — LAUNCH-PAD's "🤖 items die on 18 Aug" framing was wrong and is corrected. | *"if i need you i keep you. this is not hard rule i can pay for you to stay."* | LAUNCH-PAD 🟠 band heading |
+| **A4** | **D2 — the GitHub flag appeal is a DEAD END. Nothing may queue behind it.** Support is unresponsive and the problem is not ours alone. The escape route (a company org) is **post-live only**, because re-authorizing Railway's deploy connection is exactly what the flag blocks. | *"github does not respond at all… ive been on comunity boards and over 3000 people have the same issue."* | LAUNCH-PAD D2 row |
+| **A5** | **C5 — seat removal DEACTIVATES. Permanently. No delete will ever be built.** A seat's sent mail, replies and meetings are the client's own record and are never destroyed. | *"lets go through C5 - dactivate."* | `seat-cap-screen.test.ts` asserts no delete endpoint exists **and** that the client-facing card states the policy |
+| **A6** | **A16 — CLOSED, no risk.** The 9 Instantly mailboxes are **4 Google on 2 domains warming** (the ladder's) **+ 5 older AirMail boxes, paused**. The ladder maths was right all along. The paused set is never picked for a send. | *"on a16 the other inboxes were the airtable. they are paused no concern. close off."* | nothing — words only · the paused state lives in Instantly, which no code can see |
+| **A7** | **Growth is sufficient, and Instantly is load-bearing for clients — permanently.** See **D1**, where the full chain lives. Raised by the founder *from memory* against a merged PR that said otherwise; he was right. | *"we use instantly even later for clients because of the way we set up. you confirmed to me growth was enough. this was a lcoked decision. i need the truth please."* | D1 chain · #577 |
+| **A8** | **Docs keep a place — for KNOWLEDGE, not status.** Things with a finish line become work items; things you consult but never finish stay documents (the cashflow model, competitive research, steal analysis, runbooks). | *"i think again the items worth stealing become actual items. but things like cashflow etc they cant live as items. so docs have a place."* ⚠️ **The shorthand *"if it has a done it's a card; if it has no done it's a doc"* is MY formulation of his ruling, not his words** — it is used in V2-TRACKER as the migration's sorting rule, and it is recorded as mine so nobody later quotes it back to him as his. | V2-TRACKER sorting rule |
+| **A9** | ⚠️ **NOT A RULING — an agent working practice, recorded here so it is never mistaken for one.** *"Trust screens, not files"* (Vida → System probes the live product; agent reports are live-counted; the docs are the archive) was **proposed by me** on 6 Aug and the founder **did not explicitly rule on it**. It stands as my operating default until he does. | none — the founder has not ruled | nothing — and it is not a rule |
+
+
 ---
 
 ## Open — the founder has not ruled on these
@@ -147,7 +164,11 @@ Confirm you have read this, then wait for my next message.
 Written down rather than assumed, per P9.
 
 - ~~**Paystack**~~ — **RULED 27 Jul: *"I confirm: yes, remove."*** Removed (#352). It charged in **ZAR at a hardcoded rate of 19**, its cooldown counted rows and then charged (a real double charge), it could never succeed (needed an auth code #325 made unobtainable), and nothing received the result. The client's saved `auto_topup_*` preferences and all billing history were **kept** — the removal was the charge path only.
+- ~~**C5 — seat removal: delete or deactivate?**~~ — **RULED 6 Aug: deactivate only, permanently.** See §7 A5.
+- ~~**D4 — refresh `staging`, or keep previewing from branches?**~~ — **RULED 6 Aug: refresh.** `staging` was 131 commits behind and is now level with `main`.
 - **The three security holes in disabled agent routes** — #359, #369, #360. Delete, or keep disabled?
+- **#549 — the dogfooding item.** Its original form (push our leads into an Instantly campaign by API) was superseded by the 30-Jul amendment, not blocked. Retire it, or pay for HyperGrowth to dogfood? *Agent recommendation: retire after launch, keep the code parked as the revival path.* ⚠️ **Retiring the ITEM never means retiring Instantly** — see D1.
+- **Instantly Growth mailbox cap — UNVERIFIED.** "Unlimited warmup" is our own 26-Jul research note, not a vendor confirmation. If Growth caps warmed mailboxes, that cap is the client ceiling and nothing in the product would warn us. One founder glance before client #1.
 - **Where this page lives.** It is a *product* rules page, so it does not clash with the four-doc status contract — but the founder may want it merged into `RULEBOOK.md` instead of standing alone.
 
 ---

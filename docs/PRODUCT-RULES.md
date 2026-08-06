@@ -238,6 +238,28 @@ Confirm you have read this, then wait for my next message.
 | **O14** | **The failover teardown is PARKED, founder-agreed** — $12/mo against a launch blocked on mailboxes, and step ⓐ risks dropping the portal mid-DNS-edit. Safe to park because #199 monitoring landed the same day. **DNS repoint FIRST, always.** | none | 3 Aug | a test asserts the three steps stay in DNS-first order |
 
 
+## 11 · REPORTING — the standings report is a LOCKED FORMAT *(founder-locked 6 Aug)*
+
+> **What earned this.** On 6 Aug the morning standings report had one shape and the evening one had another — sections renamed, tables missing their Owner and When columns, items dropped between reports. The founder: *"i need a full detailed breakwon. and here i am seeing 2 columns with no owner or timeline either. this is not good enough. and we working one way at one point and changing another. again. we have rules in place… i cant trust the docs at the moment. and i cant trust this source. so give me a way to work."* Then, on the proposed rules: **"lock this."** A report whose shape drifts is a report the founder has to re-learn how to read every time — which is the same defect as a doc that drifts.
+
+| # | Rule | The founder's words | Source | Enforced by |
+|---|---|---|---|---|
+| **RPT1** | **One report shape, forever.** The standings report is ALWAYS the same template — numbered sections (✅ shipped & closed · 🔴 critical band · 🚶 walks owed · 🙋 rulings queue · 👁 watch · ⚪ open-not-blocking · 📅 dates · bottom line), and **every table ends in Owner · When. No exceptions, no redesigns.** A report missing either column is defective and the founder should reject it on sight. | *"lock this."* | 6 Aug | nothing — words only, so every model must re-read this section before writing a standings report (the citation law) |
+| **RPT2** | **The report states what is on `main` versus what is waiting on the founder** — two board lines. Nothing pushed counts as done until his merge, and no report may lead with "merge this" ahead of the report itself. | *"im not merging anything"* (6 Aug, after a report led with a merge ask) | 6 Aug | nothing — words only |
+| **RPT3** | **No item ever silently disappears between reports.** Anything in the previous report appears in the next — closed, moved, or still open — until the founder says drop it. | *"there is a lot more items sorry"* | 6 Aug | nothing — words only |
+| **RPT4** | **The founder's saved prompt below IS the request** — when he pastes it, RPT1–RPT3 bind the answer, and every number in it is verified live (`git fetch` before any ref, `list_pull_requests` before naming any PR, counts run fresh) — nothing from memory, per the working method. | — | 6 Aug | this row is what the prompt cites |
+
+**THE SAVED PROMPT (RPT4) — the founder pastes exactly this:**
+
+```
+FULL STANDINGS REPORT — locked format, register §11 (RPT1–RPT4, 6 Aug).
+Sections 1–9, every table ends Owner · When. Two board lines: on main vs
+awaiting my merge. Carry every item from the previous report — closed, moved,
+or open. Verify everything live before writing: git fetch, real counts, PR
+states via list_pull_requests. Nothing from memory. End with the bottom line
+and my next steps.
+```
+
 ---
 
 ## Open — the founder has not ruled on these

@@ -2,7 +2,7 @@
 
 > **What the repo can PROVE about the database, and what it cannot.**
 > `Last-checked: 30 Jul 2026` — derived from source by `apps/api/src/lib/schema-drift.ts`, not from memory.
-> ⚠️ **Nothing here was checked against production.** The Supabase dashboard is unreachable (the flagged GitHub account) and `DATABASE_URL` is mangled (#558's own symptom), so there is no introspection to fall back on. Every claim below is a claim about the **repo**. The queries that would settle the rest are at the bottom, ready to paste into Vida → Engine.
+> ⚠️ ~~**Nothing here was checked against production.**~~ **CORRECTED 6 Aug — production HAS now answered, twice.** A15 fixed `DATABASE_URL` (session pooler) and the founder pressed **Vida → Engine → Schema probe**: ten named questions answered from the live database — `leads.source` and all five audit columns EXIST (created by the 6-Aug migrations, 16/16 applied), **`whatsapp_messages` and `subscribers` EXIST** (hand-created in the SQL-editor era — the ❓ on both resolves to a fact), and exactly ONE row could not be answered (`opt_out_blocklist.whatsapp_number` — an error with no message, honestly NOT read as absence). Claims below not covered by those ten rows remain claims about the **repo**.
 
 ## The finding, in one paragraph
 
@@ -80,15 +80,15 @@ I set that field in #599 after reading `routes/icps.ts:513`, which does write `s
 
 Both writers swallow the outcome. `vida.ts` destructures `{ data: row }` with no error check, so a missing column has been returning `leadId = null` silently; the CSV import checks its insert error, so it would report the failure — but only when somebody runs an import. **If the column does not exist, the CSV import (#600's whole point for Client Zero) fails on the first real Apollo file.** **Vida → Engine → Schema probe** settles it in one press.
 
-### 2. `whatsapp_messages` — a table nothing in the repo creates
+### 2. `whatsapp_messages` — a table nothing in the repo creates — ✅ **PROBED 6 Aug: it EXISTS in production.** The Schema probe answered EXISTS from the live database, so it was hand-created in the SQL-editor era. The ❓ resolves to a fact: production has it, the repo still never declares it, and it stays on the guard's allowlist until a migration does.
 
 Ten columns written by `lib/whatsapp.ts`, and **no `CREATE TABLE` anywhere** — not in 126 migrations, not in any of the three snapshots. WhatsApp is parked (`WHATSAPP_TOKEN` is optional, #561), so nothing depends on it today. It is here because it is the clearest possible illustration: **a table the product writes to that the repo has never described.**
 
-### 3. `opt_out_blocklist.whatsapp_number` — on the table every send checks
+### 3. `opt_out_blocklist.whatsapp_number` — on the table every send checks — ⚠️ **PROBED 6 Aug: COULD NOT TELL.** The probe reached an error with no message — honestly reported as not-evidence-of-absence (#565's rule), the ONLY row of ten that could not be answered. WhatsApp is parked, so this is a note, not a blocker; re-press after the next deploy.
 
 The table is declared in `schema.sql` and `staging-schema.sql` and **created by no migration**; the code writes a `whatsapp_number` column neither declares. The blocklist is the suppression gate every send passes through, and #599's CSV import reads it. It demonstrably works in production (the sending panel counts bounces out of it), so **production has this table and the repo never described how it got there.**
 
-### 4. `subscribers` — another table nothing in the repo creates
+### 4. `subscribers` — another table nothing in the repo creates — ✅ **PROBED 6 Aug: it EXISTS in production.** Hand-created in the SQL-editor era, so **no signup was ever being lost** — the risk this entry named turned out not to be live. Still on the guard's allowlist: production has it, the repo still never declares it.
 
 `routes/subscribe.ts:24` inserts `{ name, email, company, source }` into a `subscribers` table that no migration and no snapshot declares. It is the marketing-playbook signup, so the stakes are low — but it is the second table in this list that the product writes to and the repo has never described.
 

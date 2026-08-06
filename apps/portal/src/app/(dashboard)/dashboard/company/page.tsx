@@ -508,7 +508,11 @@ export default function CompanyPage() {
               {/* The API's own words, not a paraphrase — it explains the fix better than we can. */}
               {capErr && <p className="text-sm text-red-700 mt-2 leading-relaxed">{capErr}</p>}
               <p className="text-xs text-gray-400 mt-3">
-                Removing a seat deactivates it and keeps its history. Permanent deletion is not offered — that ruling is still open.
+                {/* C5 — FOUNDER-RULED 6 Aug: deactivate only, permanently. This sentence used to
+                    end "that ruling is still open", which told a client we had not decided how
+                    their team data is handled. We have: history is never destroyed. A seat's
+                    sent mail, replies and meetings are the client's own record and stay theirs. */}
+                Removing a seat deactivates it and keeps its history — their past leads, replies and meetings stay on your account. Permanent deletion is not offered.
               </p>
             </div>
           )}

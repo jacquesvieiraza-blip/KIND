@@ -380,6 +380,7 @@ alter table public.clients
   add column if not exists calendar_booking_enabled         boolean NOT NULL DEFAULT false,
   add column if not exists company_id                       uuid,  -- FK to public.companies omitted: that table is not declared in this file
   add column if not exists company_registration             TEXT,
+  add column if not exists contact_email                    text,
   add column if not exists contact_name                     text,
   add column if not exists credit_balance                   integer NOT NULL DEFAULT 0,
   add column if not exists crm_api_key                      text,
@@ -401,6 +402,9 @@ alter table public.clients
   add column if not exists invite_token                     text,
   add column if not exists invited_email                    text,
   add column if not exists is_demo                          BOOLEAN DEFAULT FALSE,
+  add column if not exists last_low_credit_email_at         timestamptz,
+  add column if not exists last_seen_at                     timestamptz,
+  add column if not exists leads_per_run                    integer,
   add column if not exists low_credit_warned_at             timestamptz,
   add column if not exists nexus_autotune_enabled           boolean not null default false,
   add column if not exists onboarding_completed             text[] DEFAULT '{}',

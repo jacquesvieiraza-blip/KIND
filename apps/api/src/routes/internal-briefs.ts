@@ -65,7 +65,13 @@ async function fetchOttoData() {
     db.from('clients').select('id, company_name, created_at'),
     db.from('subscriptions').select('client_id, status, amount_zar, product'),
     db.from('clients').select('id, company_name').gte('created_at', weekAgo),
-    db.from('figsy_campaigns').select('client_id, status, reply_count, enrolled_count'),
+    // #638 — `reply_count` / `enrolled_count` ARE NOT COLUMNS. The maintained counters are
+    // `replies_total` / `leads_enrolled` (002_figsy.sql:29-31), kept fresh by
+    // `recomputeCampaignCounters`. The wrong names rejected the query outright, so every
+    // brief reported a 0% reply rate across the whole platform — a confident number derived
+    // from nothing. Renamed rather than created: inventing the columns would have frozen the
+    // mistake and left two counters per campaign to drift apart (O8).
+    db.from('figsy_campaigns').select('client_id, status, replies_total, leads_enrolled'),
   ])
 
   // Revenue-honesty: exclude demo + house (founder testing) from MRR + client counts.
@@ -74,8 +80,8 @@ async function fetchOttoData() {
   const pastDueSubs = (subs || []).filter(s => s.status === 'past_due' && isReal(s.client_id))
   const mrr = activeSubs.reduce((sum, s) => sum + (Number(s.amount_zar) || 0), 0)
 
-  const totalEnrolled = (figsyCampaigns || []).reduce((s, c) => s + (Number(c.enrolled_count) || 0), 0)
-  const totalReplies  = (figsyCampaigns || []).reduce((s, c) => s + (Number(c.reply_count) || 0), 0)
+  const totalEnrolled = (figsyCampaigns || []).reduce((s, c) => s + (Number(c.leads_enrolled) || 0), 0)
+  const totalReplies  = (figsyCampaigns || []).reduce((s, c) => s + (Number(c.replies_total) || 0), 0)
   const replyRate = totalEnrolled > 0 ? ((totalReplies / totalEnrolled) * 100).toFixed(1) : '0'
 
   return {
@@ -132,7 +138,10 @@ async function fetchCmoData() {
     getClientExclusions(),
     db.from('clients').select('id, company_name, industry, country, created_at').gte('created_at', weekAgo),
     db.from('credit_transactions').select('client_id, amount, created_at').eq('type', 'purchase').gte('created_at', weekAgo),
-    db.from('icps').select('client_id, job_titles, industries, locations, created_at'),
+    // #638 — `locations` is not a column; the ICP's territory list is `geographies`
+    // (schema.sql:67). The wrong name rejected the query, so "top ICP locations" in the CMO
+    // brief has always been empty — which reads as "no targeting pattern yet", not as an error.
+    db.from('icps').select('client_id, job_titles, industries, geographies, created_at'),
   ])
 
   // Revenue-honesty: purchase count excludes demo + house (founder testing) accounts.
@@ -148,7 +157,7 @@ async function fetchCmoData() {
   // ICP targeting patterns
   const locationCount: Record<string, number> = {}
   for (const icp of (icps || [])) {
-    const locs: string[] = Array.isArray(icp.locations) ? icp.locations : []
+    const locs: string[] = Array.isArray(icp.geographies) ? icp.geographies : []
     for (const loc of locs) locationCount[loc] = (locationCount[loc] || 0) + 1
   }
   const topLocations = Object.entries(locationCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
@@ -165,7 +174,7 @@ async function fetchCmoData() {
 async function fetchCtoData() {
   const [{ data: recentLeads }, { data: figsyCampaigns }] = await Promise.all([
     db.from('leads').select('id, created_at').order('created_at', { ascending: false }).limit(100),
-    db.from('figsy_campaigns').select('id, status, enrolled_count, reply_count'),
+    db.from('figsy_campaigns').select('id, status, leads_enrolled, replies_total'),   // #638 — same wrong names as Otto's above
   ])
 
   const errorsInLast24h = (recentLeads || []).filter(l => {

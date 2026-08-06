@@ -482,14 +482,20 @@ leadRouter.get('/pipeline', async (req: AuthRequest, res) => {
     const safeIds = approvedIds.length ? approvedIds : ['00000000-0000-0000-0000-000000000000']
 
     const [enrolled, replies, bookings] = await Promise.all([
-      db.from('figsy_enrollments').select('lead_id, emails_sent, status').in('lead_id', safeIds),
+      // #638 — `emails_sent` IS NOT A COLUMN ON THIS TABLE. It lives on `figsy_campaigns`
+      // (002_figsy.sql:30); a name carried in from the wrong table, exactly like `why_fits`
+      // in #599. Postgres rejected the whole query and `.data ?? []` below turned that into
+      // an empty map, so EVERY approved lead rendered as never-contacted — including ones
+      // mid-sequence. `current_step` is the honest source and always was: its own schema
+      // comment reads "0 = not started, 1 = step 1 sent, etc."
+      db.from('figsy_enrollments').select('lead_id, current_step, status').in('lead_id', safeIds),
       db.from('figsy_replies').select('lead_id, classification, received_at, meeting_booked_at')
         .eq('client_id', clientId).in('lead_id', safeIds),
       db.from('calendar_bookings').select('lead_id, start_time, status')
         .eq('client_id', clientId).in('lead_id', safeIds),
     ])
 
-    const contactedIds = new Set((enrolled.data ?? []).filter((e: { emails_sent?: number }) => (e.emails_sent ?? 0) > 0).map((e: { lead_id: string }) => e.lead_id))
+    const contactedIds = new Set((enrolled.data ?? []).filter((e: { current_step?: number }) => (e.current_step ?? 0) > 0).map((e: { lead_id: string }) => e.lead_id))
     const repliedMap = new Map((replies.data ?? []).map((r: { lead_id: string }) => [r.lead_id, r]))
     const bookedMap = new Map((bookings.data ?? []).map((b: { lead_id: string }) => [b.lead_id, b]))
 

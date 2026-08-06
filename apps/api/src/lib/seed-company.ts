@@ -118,7 +118,13 @@ export async function seedDemoCompany(
         subject: 'Quick question re: sales growth', body: 'Hi — worth a quick chat this week?',
         status: 'sent', sent_at: daysAgo(Math.floor(Math.random() * 7)),
       }))
-      if (sentRows.length) await db.from('figsy_sent_emails').insert(sentRows)
+      if (sentRows.length) {
+        // #349/#639 — the seeders write `status`, a column no migration created until 6 Aug,
+        // so a rejected insert left the seeded company with campaigns and zero sent mail and
+        // said nothing. A demo that silently seeds half an account is worse than one that fails.
+        const { error: sentErr } = await db.from('figsy_sent_emails').insert(sentRows)
+        if (sentErr) console.error(`[seed-company] ${sentRows.length} sent-email rows were NOT seeded — this account will show zero sends:`, sentErr.message)
+      }
 
       const replyRows = Array.from({ length: Math.min(p.replies, leadIds.length) }, (_, j) => ({
         campaign_id: campId, lead_id: leadIds[j], client_id: repId,

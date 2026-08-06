@@ -2733,8 +2733,12 @@ figsyRouter.post('/suggest-campaign', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     // Fetch ICP data for context
+    // #638 — `description` is not a column on icps (schema.sql:59-75) and never has been.
+    // The select was rejected, `icps` came back undefined, and suggest-campaign has been
+    // prompting Claude with NO ICP context at all — producing a generic campaign suggestion
+    // that looks personalised. Removed rather than created: nothing writes it.
     const { data: icps } = await db.from('icps')
-      .select('name, description, industries, job_titles, geographies, seniority_levels')
+      .select('name, industries, job_titles, geographies, seniority_levels')
       .eq('client_id', clientId)
       .limit(1)
 

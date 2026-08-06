@@ -754,6 +754,13 @@ export async function sendSequenceEmail(
   const { data: emailRecord } = await db.from('figsy_sent_emails').insert({
     enrollment_id: enrollmentId,
     campaign_id:   campaignId,
+    // #637 — WHOSE SEND IS THIS. Five surfaces read `figsy_sent_emails.client_id` — the
+    // CLIENT'S OWN dashboard sent-counter and 7-day sparkline, the admin clients page and
+    // CMO memory — and nothing has ever written it. Every one of them would have read 0
+    // forever once sending started, which to a paying client reads as "KIND does nothing".
+    // Taken from the lead we already hold; no extra lookup, and it is the same value
+    // `inboxFor` above already resolved the sending mailbox from.
+    client_id:     lead.client_id ?? null,
     lead_id:       lead.id,
     step,
     subject,
@@ -1348,6 +1355,11 @@ export async function sendDay1OutreachBatch(
       await db.from('figsy_sent_emails').insert({
         enrollment_id: null,
         campaign_id:   null,
+        // #637 — the day-1 path carries NO campaign, so the backfill (campaign_id →
+        // figsy_campaigns.client_id) can never reach these rows. Without this line every
+        // day-1 send would stay invisible to the client's own counter permanently, and it is
+        // the FIRST email any prospect ever receives.
+        client_id:     lead.client_id ?? null,
         lead_id:       lead.id,
         step:          1,
         subject:       draft.subject,

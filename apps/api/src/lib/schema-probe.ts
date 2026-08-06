@@ -206,6 +206,40 @@ export const PROBES: ProbeSpec[] = [
     question: 'Does the subscribers table exist?',
     ifMissing: 'routes/subscribe.ts writes the marketing-playbook signup here. Nothing in the repo creates it, so every playbook signup would be silently lost.',
   },
+
+  // ── #643 — THE AUDIT COLUMNS. Added 6 Aug after the full-repo sweep that produced
+  // #637–#641. Every one of these is READ by live code, was created by no migration, and
+  // failed SILENTLY: supabase-js returns { error }, the call sites read `.data ?? []`, and a
+  // rejected query renders exactly like an empty one.
+  //
+  // `20260806_audit_columns` creates them all. These rows are how you PROVE production
+  // converged after pressing Run migrations, instead of assuming it did — the same reason
+  // #558's probe exists at all. A probe that cannot run reports NOT-MEASURED, never "missing".
+  {
+    kind: 'column', id: 'figsy_sent_emails.client_id', table: 'figsy_sent_emails', column: 'client_id',
+    question: 'Does figsy_sent_emails.client_id exist?',
+    ifMissing: 'THE WORST ONE. The client\'s OWN dashboard sent-counter and 7-day sparkline, the admin clients page and CMO memory all read it, and no send path wrote it until 6 Aug. Today it reads 0 and 0 is true — after send-day it stays 0 while real mail goes out, which to a paying client reads as "KIND does nothing". Fix: run 20260806_audit_columns (it also backfills from campaign_id).',
+  },
+  {
+    kind: 'column', id: 'figsy_sent_emails.status', table: 'figsy_sent_emails', column: 'status',
+    question: 'Does figsy_sent_emails.status exist?',
+    ifMissing: 'The demo seeders write it. Without it a seeded demo account shows campaigns and ZERO sent mail — a half-seeded demo shown to a prospect. Fix: 20260806_audit_columns.',
+  },
+  {
+    kind: 'column', id: 'clients.leads_per_run', table: 'clients', column: 'leads_per_run',
+    question: 'Does clients.leads_per_run exist?',
+    ifMissing: 'icps.ts reads it with .single(), and is_demo rides the SAME query — so a missing column nulls BOTH, and the demo check in the sourcing path reads false. Spend is still fenced by try_spend_sourcing, but verify the demo path before any demo run. Fix: 20260806_audit_columns.',
+  },
+  {
+    kind: 'column', id: 'clients.last_seen_at', table: 'clients', column: 'last_seen_at',
+    question: 'Does clients.last_seen_at exist?',
+    ifMissing: 'Churn-risk scoring reads it (falling back to auth last_sign_in_at). Without it the whole select fails and every client scores as if never seen. Fix: 20260806_audit_columns.',
+  },
+  {
+    kind: 'column', id: 'clients.contact_email', table: 'clients', column: 'contact_email',
+    question: 'Does clients.contact_email exist?',
+    ifMissing: 'routes/lookalike.ts selects it and THROWS on error, so the admin "Clone my best client" button returns 500. The only one of these that fails loudly. Fix: 20260806_audit_columns.',
+  },
 ]
 
 /**

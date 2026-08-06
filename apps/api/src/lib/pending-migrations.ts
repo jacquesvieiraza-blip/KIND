@@ -443,6 +443,51 @@ COMMENT ON COLUMN public.leads.source IS
   'Provenance of the row: ''csv_import'' for an operator upload, NULL for anything written before this column existed (August 2026). Never defaulted — an unverified provenance must read as unknown, not as a claim.';
 `.trim(),
   },
+  {
+    // #637/#641 — THE AUDIT COLUMNS. The 6-Aug full-repo sweep compared every column the
+    // code names against every migration; these are read (some written) by live code and
+    // created by nothing. Every failure was silent — `.data ?? []` renders a REJECTED query
+    // exactly like an empty one (#349/#565).
+    //
+    // The worst is `figsy_sent_emails.client_id`: the client's own dashboard sent-counter and
+    // 7-day sparkline, the admin clients page and CMO memory all read it, and NO send path
+    // writes it. Today every one shows 0 and 0 is TRUE, so it is invisible — on send-day it
+    // stays 0 forever while real mail goes out, which reads to a paying client as "KIND does
+    // nothing." `clients.last_low_credit_email_at` is next: the low-credit cron reads AND
+    // writes it, so its whole select fails and NO client is ever warned.
+    //
+    // ⚠️ DELIBERATELY NOT HERE: figsy_campaigns.reply_count/enrolled_count and
+    // icps.description/locations. Reading those handlers showed they are WRONG-NAME selects —
+    // the maintained columns are replies_total/leads_enrolled and geographies. Creating dead
+    // columns would freeze the mistake (O8: assert the intent, not the literal); the queries
+    // are fixed instead.
+    //
+    // IF NOT EXISTS + nullable + no defaults: the hand-paste era may have made some already,
+    // and a DEFAULT would stamp historic rows with a claim nobody checked (#599 precedent).
+    // Canonical file: supabase/migrations/20260806_audit_columns.sql
+    key: '20260806_audit_columns',
+    title: 'Audit columns (#637/#641) — the columns live readers need and no migration ever created, + client_id backfill',
+    sql: `
+ALTER TABLE public.figsy_sent_emails
+  ADD COLUMN IF NOT EXISTS client_id uuid,
+  ADD COLUMN IF NOT EXISTS status    text;
+
+UPDATE public.figsy_sent_emails se
+   SET client_id = fc.client_id
+  FROM public.figsy_campaigns fc
+ WHERE se.campaign_id = fc.id
+   AND se.client_id IS NULL;
+
+CREATE INDEX IF NOT EXISTS figsy_sent_emails_client_id_idx
+  ON public.figsy_sent_emails(client_id);
+
+ALTER TABLE public.clients
+  ADD COLUMN IF NOT EXISTS last_low_credit_email_at timestamptz,
+  ADD COLUMN IF NOT EXISTS last_seen_at             timestamptz,
+  ADD COLUMN IF NOT EXISTS leads_per_run            integer,
+  ADD COLUMN IF NOT EXISTS contact_email            text;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

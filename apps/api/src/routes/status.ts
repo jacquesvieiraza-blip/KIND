@@ -59,7 +59,14 @@ statusRouter.post('/snapshot', async (_req, res) => {
       db.from('clients').select('credit_balance').gt('credit_balance', 0),
       db.from('leads').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
       db.from('figsy_campaigns').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      db.from('figsy_sessions').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
+      // #641⑦ — `figsy_sessions` IS NOT A TABLE. Nothing in 130 migrations or three schema
+      // snapshots creates it, and nothing writes it: FIGSY's history lives in
+      // `figsy_chat_messages` (20260602_figsy_chat_history.sql). The count was rejected on
+      // every request, `.count ?? 0` turned that into 0, and the status page has reported
+      // "0 sessions today" since it was built — indistinguishable from a genuinely quiet day.
+      // Distinct clients who sent a FIGSY chat message in 24h IS a session count; bounded so
+      // this can never become an unbounded scan on the status page.
+      db.from('figsy_chat_messages').select('client_id').gte('created_at', ago24h).limit(2000),
       db.from('clients').select('id', { count: 'exact', head: true }).gte('created_at', ago24h),
       db.from('credit_transactions').select('amount').eq('type', 'purchase').gte('created_at', ago7d),
       // #607 — was `.in('status',['active','trialing'])`. A legacy trialing row past its end
@@ -77,7 +84,9 @@ statusRouter.post('/snapshot', async (_req, res) => {
     const dormantClients = dormantRes.status === 'fulfilled'     ? (dormantRes.value.count ?? 0) : 0
     const leadsToday     = leadsRes.status === 'fulfilled'       ? (leadsRes.value.count ?? 0) : 0
     const activeCampaigns = figsyCampaignRes.status === 'fulfilled' ? (figsyCampaignRes.value.count ?? 0) : 0
-    const figsyToday     = figsySessionRes.status === 'fulfilled' ? (figsySessionRes.value.count ?? 0) : 0
+    const figsyToday     = figsySessionRes.status === 'fulfilled'
+      ? new Set(((figsySessionRes.value.data ?? []) as { client_id: string }[]).map(r => r.client_id)).size
+      : 0
     const newSignups     = newSignupsRes.status === 'fulfilled'  ? (newSignupsRes.value.count ?? 0) : 0
     const atRisk         = atRiskRes.status === 'fulfilled'      ? (atRiskRes.value.count ?? 0) : 0
 

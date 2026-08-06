@@ -60,7 +60,12 @@ formsRouter.post('/:clientId/submit', async (req, res) => {
       .select('id').eq('client_id', clientId).eq('email', emailLower).maybeSingle()
 
     if (!existing) {
-      await db.from('leads').insert({
+      // #349/#639 — CHECKED, NOT SWALLOWED. This was a bare `await …insert({…})`. It writes
+      // `source` below — a column no migration created until 6 Aug — so EVERY submission of
+      // the website lead-capture form was rejected by Postgres, the route answered
+      // `{ success: true }`, and the visitor saw a thank-you. The third writer of the same
+      // missing column, and the third to lose real people silently (see lib/vida.ts).
+      const { error: leadErr } = await db.from('leads').insert({
         client_id:       clientId,
         first_name:      firstName || 'Web',
         last_name:       rest.join(' ') || 'Lead',
@@ -73,6 +78,9 @@ formsRouter.post('/:clientId/submit', async (req, res) => {
         scored_at:       new Date().toISOString(),
         source:          'web_form',
       })
+      if (leadErr) {
+        console.error(`[forms/submit] A WEBSITE FORM SUBMISSION WAS NOT SAVED — ${emailLower} is lost unless someone reads this line:`, leadErr.message)
+      }
     }
 
     res.json({ success: true })

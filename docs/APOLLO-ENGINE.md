@@ -49,7 +49,7 @@ Apollo's sequence engine ships their best practice as defaults:
 - **Tone** setting: Direct / Formal / Casual.
 - **Create inactive → review → activate** (human gate).
 - **K.I.N.D today:** FIGSY = **3-step, email-only**.
-- **→ build:** this IS the rewrite spec for **item 212 (3→ client-built ≤10-step)**.
+- **→ build:** this IS the rewrite spec for **item 212 (3→ client-built, multi-step)**. ⚠️ *Corrected 6 Aug: the "≤10-step" target is superseded — the founder ruled the cap is **7**, enforced by `sequence-quality.ts`'s `MAX_STEPS`. The line above describes **Apollo's** product, not ours.*
 
 ### ④ SEND — *deliverability is operational, not magic*
 - **Multi-mailbox rotation** · **send-schedules** (business-hours/weekday windows, timezone) · **per-mailbox daily caps** (`email_daily_limit`) · verify-before-enroll.

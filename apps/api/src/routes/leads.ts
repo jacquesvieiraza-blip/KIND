@@ -532,7 +532,11 @@ leadRouter.get('/coaching', async (req: AuthRequest, res) => {
     const leadIds = Array.from(new Set((bookings ?? []).map((b: { lead_id: string }) => b.lead_id).filter(Boolean)))
     const safe = leadIds.length ? leadIds : ['00000000-0000-0000-0000-000000000000']
     const [leads, replies] = await Promise.all([
-      db.from('leads').select('id, first_name, last_name, job_title, company, industry, score, why_fits, score_reasoning').in('id', safe),
+      // `why_fits` is NOT a column and never has been — it is the name of a RESPONSE field,
+      // built in /for-approval by scrubbing `score_reasoning` (#492/F2). Selecting it made
+      // Postgres reject the whole query, and `.data ?? []` turned that into an empty map:
+      // every booked meeting rendered as "Prospect" with no title, company, score or reason.
+      db.from('leads').select('id, first_name, last_name, job_title, company, industry, score, score_reasoning').in('id', safe),
       db.from('figsy_replies').select('lead_id, body_text, body, classification').eq('client_id', clientId).in('lead_id', safe),
     ])
     const leadById = new Map((leads.data ?? []).map((l: Record<string, unknown>) => [l.id as string, l]))
@@ -546,7 +550,10 @@ leadRouter.get('/coaching', async (req: AuthRequest, res) => {
         name: l ? [l.first_name, l.last_name].filter(Boolean).join(' ').trim() || 'Prospect' : 'Prospect',
         job_title: l?.job_title ?? null, company: l?.company ?? null, industry: l?.industry ?? null,
         score: l?.score ?? null,
-        why_fits: (l?.why_fits ?? l?.score_reasoning ?? null) as string | null,
+        // The RESPONSE keeps the key `why_fits` — that is the contract the portal reads.
+        // Unscrubbed on purpose: this lead is past reveal (they booked a meeting), so the
+        // client already has the name — the object above returns it two lines up.
+        why_fits: (l?.score_reasoning ?? null) as string | null,
         their_words: ((r?.body_text ?? r?.body ?? null) as string | null)?.slice(0, 600) ?? null,
         signal: (r?.classification ?? null) as string | null,
       }
@@ -563,7 +570,10 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
     if (!process.env.ANTHROPIC_API_KEY) { res.status(503).json({ success: false, error: 'Coaching is not configured yet' }); return }
 
     const { data: lead } = await db.from('leads')
-      .select('id, first_name, last_name, job_title, company, industry, why_fits, score_reasoning')
+      // Same non-existent column as /coaching above, and WORSE here: `.maybeSingle()` turns
+      // the rejected query into `lead = null`, so this endpoint answered 404 "Lead not found"
+      // for every lead that exists. The prep brief has never once been generated.
+      .select('id, first_name, last_name, job_title, company, industry, score_reasoning')
       .eq('id', req.params.leadId).eq('client_id', clientId).maybeSingle()
     if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
 
@@ -580,7 +590,7 @@ leadRouter.post('/coaching/:leadId/brief', async (req: AuthRequest, res) => {
         `Prepare ${me?.company_name ?? 'a seller'} for a first sales call.\n\n` +
         `THEM: ${[lead.first_name, lead.last_name].filter(Boolean).join(' ')} — ${lead.job_title ?? 'unknown role'} at ${lead.company ?? 'unknown company'}` +
         `${lead.industry ? ` (${lead.industry})` : ''}.\n` +
-        `${lead.why_fits || lead.score_reasoning ? `WHY THEY FIT: ${lead.why_fits || lead.score_reasoning}\n` : ''}` +
+        `${lead.score_reasoning ? `WHY THEY FIT: ${lead.score_reasoning}\n` : ''}` +
         `${reply ? `THEIR OWN WORDS: "${(reply.body_text ?? reply.body ?? '').slice(0, 800)}"\n` : ''}\n` +
         `Give exactly four short sections with these headings and nothing else:\n` +
         `WHAT THEY LIKELY CARE ABOUT\nTHREE QUESTIONS TO ASK\nTHE OBJECTION TO EXPECT\nHOW TO CLOSE THE NEXT STEP\n` +

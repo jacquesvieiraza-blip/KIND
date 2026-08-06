@@ -17,8 +17,10 @@ import { isScannableFile } from './env-inventory'
 //      two timestamps the whole approve → surface → charge loop turns on. Anyone standing a
 //      database up from that file got one the product could not use.
 //   ② The set of columns the code writes that NOTHING in the repo declares is pinned. Those
-//      four are the honest ❓ rows in docs/SCHEMA-DRIFT.md, and a FIFTH appearing is news —
-//      it means a new write path is betting on a column no migration creates.
+//      are the honest ❓ rows in docs/SCHEMA-DRIFT.md, and a NEW one appearing is news — it
+//      means a new write path is betting on a column no migration creates. The count has only
+//      ever been allowed to FALL when a column was actually created (#627 app_settings,
+//      #599 leads.source), never when one was excused.
 //
 // ⚠️ Nothing here claims production has anything. That is the point of the third verdict.
 
@@ -85,13 +87,15 @@ describe('① schema.sql declares every column its own migrations add', () => {
     // never be the thing that drops a column.
     // Comments stripped FIRST — the block's own header says "ADD COLUMN IF NOT EXISTS
     // only", and counting that sentence made the tally 77 for 76 columns. Sixth time.
+    // 76 → 77 on 6 Aug: `leads.source` (#599). See ② — it left the undeclared list by being
+    // CREATED, so the reconciliation block now carries one more column.
     const sql = read('packages/db/src/schema.sql')
     const block = stripSqlComments(sql.slice(sql.indexOf('RECONCILIATION')))
     expect(block).not.toMatch(/drop\s+(column|table)/i)
     const adds = block.match(/add column/gi) ?? []
     const guarded = block.match(/add column if not exists/gi) ?? []
     expect(guarded.length).toBe(adds.length)
-    expect(adds.length).toBe(76)
+    expect(adds.length).toBe(77)
   })
 
   it('every ADD COLUMN in the block is balanced SQL', () => {
@@ -118,7 +122,7 @@ describe('② the columns nothing in the repo declares are pinned', () => {
     return out
   })()
 
-  it('there are exactly six, and they are the six the doc explains', () => {
+  it('there are exactly four, and they are the four the doc explains', () => {
     // A SIXTH appearing means a new write path is betting on a column no migration creates —
     // which is how leads.source got here, and how it stayed invisible until this sweep.
     //
@@ -138,17 +142,46 @@ describe('② the columns nothing in the repo declares are pinned', () => {
     // nowhere, and the founder's first Save proved it. So a table sitting in this list is not
     // evidence that it is fine in production — it is evidence that we do not know. The
     // correction is written up in `SCHEMA-DRIFT.md` under the entry itself.
+    // ⚠️ FOUR ON 6 AUG — `leads` left, and again for the only good reason: it is now
+    // DECLARED. `20260806_leads_source` (#599) creates the column, so the two writers that
+    // bet on it are no longer betting.
     expect(Object.keys(undeclared).sort()).toEqual(
-      ['clients', 'leads', 'opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
+      ['clients', 'opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
   })
 
-  it('leads.source is one of them — I introduced a writer for it in #599', () => {
-    // Read off routes/icps.ts:513, which writes `source` to LEAD_POOL, a different table.
-    // A column read from the wrong table and carried into a new write path.
-    expect(undeclared.leads).toEqual(['source'])
+  it('leads.source is DECLARED now — the prediction in this file came true first', () => {
+    // This entry used to read "I introduced a writer for it in #599", and the doc warned:
+    // *"If the column does not exist, the CSV import fails on the first real Apollo file."*
+    //
+    // On 6 Aug it did. The founder ran the importer on a real file for A18 and got
+    // "Could not find the 'source' column of 'leads' in the schema cache" — 0 of 1 rows.
+    // The second writer, `lib/vida.ts`, had been failing SILENTLY for weeks: it swallowed
+    // the insert error, so every inbound website-chat visitor who typed in their email
+    // failed to become a lead and nothing anywhere said so.
+    //
+    // So this is not a pin being relaxed. It is a ❓ resolving to a fact.
+    expect(undeclared.leads, 'leads is undeclared again').toBeUndefined()
+    expect(declared.get('leads')!.has('source'), 'leads.source is not declared').toBe(true)
+
     const doc = read('docs/SCHEMA-DRIFT.md')
-    expect(doc).toContain('lead_pool`, a different table')
+    expect(doc).toContain('lead_pool`, a different table')   // how it got here, kept
     expect(doc).toContain('csv_import')
+    expect(doc).toContain('20260806_leads_source')           // and how it was fixed
+  })
+
+  it('both writers of leads.source are still accounted for', () => {
+    // The column was created because TWO paths depend on it. If a future edit drops one, the
+    // count here changes and somebody has to say which and why — rather than the column
+    // quietly becoming unused and a later sweep proposing to remove it.
+    const writers = [
+      ['lib/lead-import.ts', 'csv_import'],
+      ['lib/vida.ts', 'vida_chat'],
+    ] as const
+    for (const [file, value] of writers) {
+      expect(read(`apps/api/src/${file}`), `${file} no longer writes source: '${value}'`)
+        .toContain(`source:`)
+      expect(read(`apps/api/src/${file}`)).toContain(value)
+    }
   })
 
   it('the nested-template bug that hid one of them is recorded, not quietly patched', () => {
@@ -281,28 +314,30 @@ describe('the derivation itself', () => {
 })
 
 describe('the shape of the problem is recorded, so it cannot be re-discovered', () => {
-  it('129 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
+  it('130 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
     // WAS "126 files across three directories". #273 consolidated on 31 Jul: the 32 files
     // that lived only in the other two were copied in (bodies byte-identical, provenance
     // headers added), and ONE more was recovered — `20260726_campaign_copilot_columns`
     // existed only as a string in pending-migrations.ts, so the product could apply it to
     // production while no file described it.
     //
-    // The three directories still hold 160 files between them, because nothing was deleted
-    // (rule 3) — 128 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
+    // The three directories still hold 162 files between them, because nothing was deleted
+    // (rule 3) — 130 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
     // asserts each pair stays identical.
     //
-    // 127/159 at #273 (31 Jul). Two canonical files added since: #607's
-    // `20260801_retire_trial_status` and #627's `20260806_app_settings`. New migrations land
-    // ONLY in the canonical directory — the tombstoned 32 are frozen, so the SECOND number
-    // moves in lockstep with the first and their DIFFERENCE (32) is what must never change.
-    expect(sqlDir('supabase/migrations')).toHaveLength(129)
+    // 127/159 at #273 (31 Jul). Three canonical files added since: #607's
+    // `20260801_retire_trial_status`, #627's `20260806_app_settings` and #599's
+    // `20260806_leads_source`. New migrations land ONLY in the canonical directory — the
+    // tombstoned 32 are frozen, so the SECOND number moves in lockstep with the first and
+    // their DIFFERENCE (32) is what must never change.
+    expect(sqlDir('supabase/migrations')).toHaveLength(130)
     const total = MIGRATION_DIRS.reduce((n, d) => n + sqlDir(d).length, 0)
-    expect(total).toBe(161)
+    expect(total).toBe(162)
+    expect(total - sqlDir('supabase/migrations').length, 'the 32 tombstoned copies are frozen').toBe(32)
     expect(read('docs/SCHEMA-DRIFT.md')).toContain('the three directories are now one home')
   })
 
-  it('and one runner, which applies fourteen of them', () => {
+  it('and one runner, which applies fifteen of them', () => {
     // This is the actual finding. Everything else was pasted into a SQL editor by hand, in
     // an unrecorded order — and that editor cannot be opened any more.
     //
@@ -311,7 +346,7 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // string with no file, the mirror image of the same gap. #627 wrote BOTH homes for that
     // reason: the file is the canonical record, this array is what actually runs.
     const keys = read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []
-    expect(keys.length).toBe(14)   // 12 at #273; +1 #607 (retire_trial_status); +1 #627 (app_settings)
+    expect(keys.length).toBe(15)   // 12 at #273; +1 #607 (retire_trial_status); +1 #627 (app_settings); +1 #599 (leads_source)
   })
 
   it('the three schema snapshots disagree about how many tables exist', () => {

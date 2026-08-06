@@ -741,6 +741,15 @@ figsyRouter.get('/activity', async (req: AuthRequest, res) => {
         .limit(limit),
     ])
 
+    // #349 — CHECKED, NOT SWALLOWED. Both reads are consumed as `.data ?? []` below, which
+    // makes a REJECTED query indistinguishable from a genuinely empty one. That is not
+    // hypothetical: the duplicate of this handler deleted further down selected a `leads`
+    // column that never existed, and the only reason nobody ever saw the error is that a
+    // rejected query and a quiet week render identically. A client concludes nothing
+    // happened. Non-fatal on purpose — half a feed still beats a blank panel.
+    const { reportFailedReads } = await import('../lib/read-errors')
+    reportFailedReads('figsy/activity', { sent: sentRes, replies: repliesRes })
+
     type Event = { type: 'sent' | 'reply' | 'meeting'; title: string; subtitle: string; at: string; tone: 'neutral' | 'positive' | 'warn' }
     const events: Event[] = []
 
@@ -2696,106 +2705,21 @@ figsyRouter.delete('/chat/history', async (req: AuthRequest, res) => {
   }
 })
 
-// ── ACTIVITY FEED ─────────────────────────────────────────────────────────────
-figsyRouter.get('/activity', async (req: AuthRequest, res) => {
-  try {
-    const clientId = await getClientId(req.userId!)
-    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const limit = Math.min(parseInt(String(req.query.limit ?? '20')), 50)
-    const campaignIds = await getClientCampaignIds(clientId)
-
-    const [sentRes, repliesRes, campaignsRes, leadsRes] = await Promise.all([
-      db.from('figsy_sent_emails')
-        .select('id, sent_at, step, leads(first_name, last_name, company)')
-        .in('campaign_id', campaignIds)
-        .order('sent_at', { ascending: false })
-        .limit(limit),
-      db.from('figsy_replies')
-        .select('id, processed_at, received_at, classification, from_name, from_email, leads(first_name, last_name)')
-        .eq('client_id', clientId)
-        .order('processed_at', { ascending: false })
-        .limit(limit),
-      db.from('figsy_campaigns')
-        .select('id, name, created_at, status')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
-        .limit(10),
-      db.from('leads')
-        .select('id, created_at, source')
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false })
-        .limit(limit),
-    ])
-
-    type ActivityEvent = {
-      id: string
-      type: 'email_sent' | 'reply_received' | 'campaign_created' | 'lead_added'
-      description: string
-      timestamp: string
-    }
-
-    const events: ActivityEvent[] = []
-
-    for (const row of sentRes.data ?? []) {
-      const lead = (row as any).leads
-      const name = lead ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim() : 'a lead'
-      const company = lead?.company ? ` at ${lead.company}` : ''
-      events.push({
-        id: `sent-${row.id}`,
-        type: 'email_sent',
-        description: `FIGSY sent Day ${row.step ?? 1} email to ${name}${company}`,
-        timestamp: row.sent_at ?? new Date().toISOString(),
-      })
-    }
-
-    for (const row of repliesRes.data ?? []) {
-      const lead = (row as any).leads
-      const name = lead ? `${lead.first_name ?? ''} ${lead.last_name ?? ''}`.trim()
-        : (row.from_name ?? row.from_email ?? 'Unknown')
-      const label = row.classification === 'hot' ? 'Hot reply' :
-        row.classification === 'warm' ? 'Warm reply' :
-        row.classification === 'opt_out' ? 'Opt-out' : 'Reply'
-      events.push({
-        id: `reply-${row.id}`,
-        type: 'reply_received',
-        description: `${label} from ${name}`,
-        timestamp: row.received_at ?? row.processed_at ?? new Date().toISOString(),
-      })
-    }
-
-    for (const row of campaignsRes.data ?? []) {
-      events.push({
-        id: `campaign-${row.id}`,
-        type: 'campaign_created',
-        description: `Campaign "${row.name}" created`,
-        timestamp: row.created_at ?? new Date().toISOString(),
-      })
-    }
-
-    // Group leads by day to avoid 25 separate "lead added" events
-    const leadsByDay: Record<string, number> = {}
-    for (const row of leadsRes.data ?? []) {
-      const day = (row.created_at ?? '').slice(0, 10)
-      if (day) leadsByDay[day] = (leadsByDay[day] ?? 0) + 1
-    }
-    for (const [day, count] of Object.entries(leadsByDay)) {
-      events.push({
-        id: `leads-${day}`,
-        type: 'lead_added',
-        description: `${count} lead${count === 1 ? '' : 's'} added`,
-        timestamp: `${day}T12:00:00.000Z`,
-      })
-    }
-
-    // Sort by timestamp descending, cap at limit
-    events.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-
-    res.json({ success: true, data: events.slice(0, limit) })
-  } catch (err) {
-    console.error(err)
-    res.status(500).json({ success: false, error: 'Failed to fetch activity' })
-  }
-})
+// ── ACTIVITY FEED — REMOVED (was a SHADOWED DUPLICATE) ───────────────────────
+//
+// A second `figsyRouter.get('/activity')` lived here, ~110 lines, registered AFTER the real
+// one at the top of this file. Express matches the FIRST route that matches and this one
+// always responded, so the second was UNREACHABLE — every request has always been served by
+// the handler above.
+//
+// It was found while fixing a query in it that selected `leads.source`, a column that has
+// never existed. The bug was real; the code was dead. That is the trap a shadowed route
+// sets: it reads as live, it can be edited, tested and reasoned about, and none of it
+// reaches production. `no-duplicate-routes.test.ts` now fails the build if a path is
+// registered twice on the same router and method, so this cannot recur silently.
+//
+// Nothing is lost by deleting it. Its extra event types (campaign_created, lead_added) were
+// never rendered anywhere, because no response ever carried them.
 
 // Export for use in icps.ts (S5 — FIGSY auto-start)
 export { autoEnrollLead }

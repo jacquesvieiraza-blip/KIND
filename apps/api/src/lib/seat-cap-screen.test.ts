@@ -96,14 +96,30 @@ describe('C5 — the safe default: no delete was built', () => {
     expect(card).toContain('deactivates it and keeps its history')
   })
 
-  it('it does NOT claim the ruling is settled', () => {
+  it('the ruling is SETTLED and the card no longer says otherwise', () => {
+    // ⚠️ REWRITTEN 6 Aug, NOT DELETED. This asserted `toContain('still open')` — correct while
+    // C5 was undecided, and it would have failed the day the founder ruled, which is exactly
+    // what a pin is for. He ruled DEACTIVATE ONLY, permanently, so the honest assertion is the
+    // mirror image: a client must not be told we are still deciding how their team data is
+    // handled, because we are not.
     const at = page.indexOf('Seat limit</h3>')
     const card = page.slice(at, at + 2400)
-    expect(card).toContain('still open')
+    expect(card).not.toContain('still open')
+    expect(card).toContain('Permanent deletion is not offered')
   })
 
-  it('no destructive seat endpoint was added to satisfy the card', () => {
-    // Building the destructive half of an undecided question is how it gets decided by accident.
+  it('and it says what SURVIVES a removal, not just what does not happen', () => {
+    // "Deactivated" alone leaves the client wondering whether their rep's history went with
+    // them. The ruling is that it never does — so the card has to say so.
+    const at = page.indexOf('Seat limit</h3>')
+    const card = page.slice(at, at + 2400)
+    expect(card).toContain('stay on your account')
+  })
+
+  it('no destructive seat endpoint exists — the ruling is enforced in code, not just copy', () => {
+    // Under the old ruling this guarded an UNDECIDED question. Under the new one it guards a
+    // DECIDED one, and it matters more: the copy promises deletion is not offered, and this is
+    // what stops a future session quietly building it and making that promise false.
     expect(api).not.toContain("companyRouter.delete('/seats")
   })
 })

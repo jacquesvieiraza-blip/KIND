@@ -52,6 +52,11 @@ export type OperatorAction =
                             // Its own action rather than a generic edit, because "who turned
                             // our own outreach account on, and when" is a question the audit
                             // log should answer without reading a detail blob.
+  | 'enrol_stranded'        // #631 — operator rescued a PAID lead that entered no sequence. NO
+                            // money moves: the client already paid at approve, so this passes
+                            // `prepaid` and charges nothing. It has its own action because
+                            // "who repaired a charged-but-unworked lead, and when" is a money
+                            // question the log must answer without reading a detail blob.
   | 'import_leads'          // #549 — operator loaded a CSV of prospects onto a client. NO money:
                             // imported leads land 'pending' exactly as sourced ones do, and the
                             // charge still happens only at approve.

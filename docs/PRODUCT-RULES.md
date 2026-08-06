@@ -172,6 +172,18 @@ Confirm you have read this, then wait for my next message.
 | **A9** | ⚠️ **NOT A RULING — an agent working practice, recorded here so it is never mistaken for one.** *"Trust screens, not files"* (Vida → System probes the live product; agent reports are live-counted; the docs are the archive) was **proposed by me** on 6 Aug and the founder **did not explicitly rule on it**. It stands as my operating default until he does. | none — the founder has not ruled | nothing — and it is not a rule |
 
 
+### 7b · THE 6 AUGUST RULINGS, PART TWO — four open questions closed in one message
+
+> **The founder, 6 Aug:** *"all with your recomendfaion. lets close these off."* Four questions that had each been open for days or weeks. His word closed all four; the reasoning below each is mine, recorded so it can be argued with later.
+
+| # | Ruling | What it amends |
+|---|---|---|
+| **A10** | **THE SEQUENCE CAP IS 7.** The 8-Jul lock said 10 (*"no it is 10. we know this"*). The 7 came from deliverability practice and has been the enforced number since 4 Aug; the 10 predates the **22-Jul managed-service pivot** (AR1) and was written for a product we no longer sell. **The #612 gate's HARD block IS the enforcement — there is no separate cap to build.** | ⛓️ chains **D14** · supersedes **#426** · the Vida editor now stops at 7 too, bound by test |
+| **A11** | **THE 2 STRANDED PAID LEADS GET ENROLLED** — *"enrol — they were paid for."* Approved on Client Zero during the 5-Aug walk, charged, never enrolled, because #625's gate did not yet exist. ⚠️ **And the alert telling us to fix it named a control that did not exist** — both messages end *"enrol it from Vida"* and no operator enrol route was ever built (#626's defect, again). Now built (#631), through the **same `autoEnrollLead` machinery** as a real approval, charging nothing. | closes the register's open item · builds **#631** |
+| **A12** | **#301 IS MOOT.** The Denise $39-vs-$99 conflict has been open since **3 Jul**, waiting on a price for a product that stopped having one when Denise stopped being sold (**AR1**, 22 Jul · **AR2**, 1 Aug). | ⛓️ closes **#301** — kept as history, not deleted |
+| **A13** | **#630 goes 🩷** — the probe fix is live and verified on the founder's own System screen (`cron_claims.job` CHECKED-OK). | bookkeeping |
+
+
 ## 8 · ARCHITECTURE — *(new 6 Aug: this section did not exist)*
 
 | # | Rule | The founder's words | Source | Enforced by |
@@ -198,7 +210,7 @@ Confirm you have read this, then wait for my next message.
 | **D11** | **Instantly connects by OAuth, NOT App Password** — reversing my advice. App passwords are *"more prone to disconnects"*, and a silent disconnect stops warm-up without pausing it. App Passwords are what OUR engine uses; the two connections are independent. | Instantly's note: *"more prone to disconnects"* | 4 Aug | Instantly's client ID trusted at Google org level |
 | **D12** | ⛓️ **The booking link LEAVES email 1 — Option A: the gate is right, the prompt was wrong.** The repo carried two live opposite instructions. **Step 3 keeps its link.** | *"the first email's job is to earn a reply, not a booking."* | ruled 5 Aug · #612B | both prompt sites changed **with the reason carried in the instruction**; the tests that pinned the old ruling were **rewritten, not silently flipped** |
 | **D13** | **"Our sequence and outreach must be world class."** A copy gate before a warm box ever sends. HARD rules block **activation** (not saving); WARN never blocks; pausing is never gated; fails OPEN on a read error. | *"our sequence and outreach must be world class. shit emails out = zero meetings booked. for all clients"* | 4 Aug · #612 | `lib/sequence-quality.ts` · `sequenceGateFor` at all three activation routes · 75 tests |
-| **D14** | ⚠️ **UNRECONCILED — needs a founder glance.** The locked sequence cap is **10 steps** (8 Jul, *"no it is 10. we know this"*). The quality gate HARD-blocks at **>7**. **Nothing reconciles them.** | *"no it is 10. we know this"* | 8 Jul vs 4 Aug | `#426` still 🔴 (cap never enforced) vs `#612` enforcing 7 |
+| **D14** | ⛓️ **RULED 6 Aug — THE CAP IS 7.** ~~*8 Jul: "sequences cap at 10 email steps" — the founder's own words, "no it is 10. we know this", set when we sold FIGSY as a standalone product and the concern was per-lead work cost (~$0.06/step).*~~ → **6 Aug, founder-ruled: 7, and the #612 quality gate's HARD block IS the enforcement — there is no separate cap to build.** Two reasons recorded: the 7 came from deliverability practice (beyond a handful of touches it reads as harassment, and these are boxes we are warming to a permanent reputation), and the 10 predates the **22-Jul managed-service pivot** (AR1) — it was written for a product we no longer sell. **This closes the only live contradiction the 6-Aug register sweep found:** the locked number and the enforced number had disagreed since 4 Aug and nothing reconciled them. | founder, 6 Aug: *"all with your recomendfaion"* | 8 Jul → **ruled 6 Aug** · #426 superseded, #612 enforces | `MAX_STEPS = 7` in `sequence-quality.ts` · HARD-blocks activation · 75 tests |
 | **D15** | **A reply belongs to the mailbox that received it.** An unknown inbox falls back to the fan-out; a **known** inbox with no matching lead **alerts** rather than falling back — falling back hands one client's mail to another. | none | 27 Jul · #551 | `smartlead-inbound` route test pins the two-clients-one-prospect case |
 | **D16** | **Build reply/opt-out logic PROVIDER-AGNOSTIC**, in a shared spine — otherwise each provider grows its own copy of the same five bugs. | *"build them provider-agnostic"* | ~27 Jul · #589 | `lib/reply-pipeline.ts` · a test asserts the route DELEGATES rather than re-inlining |
 
@@ -241,9 +253,6 @@ Written down rather than assumed, per P9.
 - **Is 50 the right lead-desk window, or should the panel page?** (#570) — *"a founder call, not code"*, and the only thing keeping that row 🟡.
 - **The share-link generator** (#560) — retiring it would break links clients have already sent.
 - **A paid PDL plan** (#444) — *"founder money call, pending."*
-- **The Denise price conflict** (#301) — $39/mo in the portal vs $99/mo on the site, and Denise is absent from the LOCKED `packages/shared` PRICING. Flagged 3 Jul, never formally ruled. Overtaken by AR1/AR2 (Denise is not sold) but the row is still open.
-- **⚠️ 2 paid leads sit in NO sequence** — the integrity panel's HIGH row, 6 Aug: *"2 paid lead(s) across 1 client(s) are in NO sequence — charged for work that never started."* The #625 class. The row itself says leads approved while the kill-switch is off will appear here **and that is expected right now** — but they must be enrolled or refunded **before send-day**, not after.
-- **⚠️ D14 — the sequence cap: 10 (locked 8 Jul) vs 7 (enforced by the #612 gate).** Nothing reconciles them. **This is a live contradiction, not a stale note.**
 - **Instantly Growth mailbox cap — UNVERIFIED.** "Unlimited warmup" is our own 26-Jul research note, not a vendor confirmation. If Growth caps warmed mailboxes, that cap is the client ceiling and nothing in the product would warn us. One founder glance before client #1.
 - **Where this page lives.** It is a *product* rules page, so it does not clash with the four-doc status contract — but the founder may want it merged into `RULEBOOK.md` instead of standing alone.
 

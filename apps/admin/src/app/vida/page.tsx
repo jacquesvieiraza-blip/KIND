@@ -1940,7 +1940,16 @@ export default function VidaConsolePage() {
                           className="w-full border border-[#ece5fb] rounded-lg px-3 py-2 text-[13.5px] leading-relaxed outline-none focus:border-[#7C3AED]" />
                       </div>
                     ))}
-                    {seqEdit.steps.length < 10 && (
+                    {/* #612/D14 — 7, NOT 10. FOUNDER-RULED 6 Aug.
+                        This editor offered a 10th step while `sequence-quality.ts` HARD-BLOCKS
+                        activation above MAX_STEPS = 7 — so an operator could build an 8-step
+                        sequence, save it (save is deliberately never gated), and only discover
+                        the refusal when they tried to make it live. A control that invites work
+                        the product will reject is the same defect class as a button that lies.
+                        ⚠️ THE NUMBER IS DUPLICATED HERE BECAUSE apps/admin CANNOT IMPORT FROM
+                        apps/api — `sequence-cap-agreement.test.ts` fails the gate if these two
+                        ever disagree, which is the only thing making the copy safe. */}
+                    {seqEdit.steps.length < 7 && (
                       <button onClick={() => { setSeqEdit({ ...seqEdit, steps: [...seqEdit.steps, { subject: '', body: '', wait_days: 3 }] }); setSeqQuality(null) }}
                         className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1 mb-3">+ Add step</button>
                     )}

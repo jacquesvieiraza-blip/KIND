@@ -1,5 +1,22 @@
 # KIND Sales Playbook
 
+> # ⚠️ TRUTH BANNER — 6 Aug 2026 (#629). READ BEFORE YOU QUOTE ANYTHING FROM THIS PAGE.
+>
+> A full sweep of this document against the code on 6 Aug found **15 of 22 factual claims FALSE**. They are being corrected in place, but **this page has been wrong for weeks and may still be wrong in places the sweep missed.**
+>
+> **The facts that override anything below:**
+> | Topic | THE TRUTH (source of record) |
+> |---|---|
+> | **Price** | **$299** first purchase = the onboarding pack, **100 approved leads included**, then **$4 per approved lead**. Reviewing is FREE. → `packages/shared/src/constants/index.ts` |
+> | **No trial, no freebies** | Signup writes `paused` with a **$0 wallet and $0 sourcing allowance**. Nothing sources, approves or sends until the $299 lands. There is **no "free to start"**, no card-free trial, no 14-day clock. → `auth.ts` (#607, 1 Aug) |
+> | **The retired ladder** | *$1 reveal → +$3 FIGSY → +$1 Milla → +$1 Denise → Vida $3* is **DEAD** (superseded 24 Jul, price re-locked 3 Aug). Any page still quoting it is describing a model we do not sell. |
+> | **Who sends** | **OUR OWN ENGINE**, over SMTP — `figsy.ts` → `lib/mailer.ts` → the inbox from `lib/sending-inbox.ts`. **Instantly = warm-up utility only** (Growth tier). **Smartlead = client sending, deferred and unproven** (key 401s). Resend now carries system mail + the inbound reply webhook only. |
+> | **Flutterwave / Paystack** | **Never wired / removed.** Stripe only. |
+>
+> **Why this banner exists.** The founder, 6 Aug: *"i have not read a doc for 2 weeks because i dont trust it… things slip far to often."* He was right. Locks and rulings now live in **[`PRODUCT-RULES.md`](./PRODUCT-RULES.md)** — read that first, always.
+
+
+
 > ⚠️ **PRICING (locked):** per **qualified lead**, no subscriptions. Ladder: **$1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6**; Vida inbound $3 (+$1/+$1 → $4/$5). The $1/$3-credit, bundle and monthly-sub lines below are historical; pricing source of truth = `run-costs-and-cashflow.md` §3.
 > Version 1.0 — May 2026 · For internal use only
 > `Last-checked: 25 Jun 2026` — **Currency = USD** (locked; the R[ZAR] placeholders below are now $[USD]). **5 agents:** FIGSY (AI SDR) · Milla (Brain) · Vida (Connector, **website chat**, $3/qualified inbound lead — WhatsApp is NOT a cold channel) · Denise (Closer, +$1/qualified lead) · **Casey (onboarding agent — gets the client live)**. Pricing source of truth = `run-costs-and-cashflow.md` §3.
@@ -145,7 +162,7 @@ That's exactly what KIND was built to solve. Let me show you what your platform 
 
 *(Handle objections — see Section 4.)*
 
-"Here's what I'd suggest as a next step: we get you set up — it's free to start, no card, no subscription. You pay $1 per lead revealed, $4 fully worked, and credits never expire. I'll send you a short proposal with exactly what we'd recommend based on what you've told me today. Can we get that sorted now or do you need a day to check in with someone?"
+"Here's what I'd suggest as a next step: we get you set up — it's $299 to start — the onboarding pack, 100 approved leads included. You pay $299 for the onboarding pack (100 approved leads included), then $4 per approved lead, and credits never expire. I'll send you a short proposal with exactly what we'd recommend based on what you've told me today. Can we get that sorted now or do you need a day to check in with someone?"
 
 If they want time: "Of course. When specifically would be a good time for me to follow up — tomorrow morning or Thursday?"
 
@@ -223,7 +240,7 @@ Navigate to: **Billing**
 
 *Show the credit bundle tiers.*
 
-"It's free to start — no card, no subscription; you pay $1 per lead revealed, $4 fully worked. Most clients on 5–50 leads per week run on the Starter pack. I'll include the right pack in the proposal based on what you've told me today."
+"It's free to start — no card, no subscription; you pay $299 for the onboarding pack (100 approved leads included), then $4 per approved lead. Most clients on 5–50 leads per week run on the Starter pack. I'll include the right pack in the proposal based on what you've told me today."
 
 ---
 

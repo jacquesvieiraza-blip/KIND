@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷251 · 🟣2 · 🟡66 · 🔴173 · ⏸5 · **Σ592** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷253 · 🟣2 · 🟡64 · 🔴173 · ⏸5 · **Σ592** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -13,7 +13,7 @@
 1. **The product works end to end and cannot send yet.** It sources, scores, masks, surfaces, takes the client's 👍, charges $4, writes the sequence, routes the reply and books the meeting into the client's own calendar. **Nothing has ever been sent** — three independent locks (warming status refused by the picker · `AUTO_OUTREACH_ENABLED` unset · the ladder itself) and the counter reads 0.
 2. **The clock is the mailboxes.** Warming since 4 Aug in Instantly → **~Tue 25 Aug**, which is send-day. ⚠️ Instantly shows **9 boxes across 3 domains** and the ladder maths assumed 4 on 2 — **A16 confirms the real count**, and it is not optional: sending from a box you did not mean to warm burns a domain.
 3. **The cost floor is $352/mo all-in**, not the ~$146 that headlined this page for weeks — that figure is the **PLATFORM** half only ($146 platform + $206 company = $352, `packages/shared/src/cost-floor.ts`). *(Company lines are `unverified-secondary` until **B2** checks them in a browser.)* At $4/approved lead, the platform half alone is ~37 approvals a month — roughly **one client**.
-4. **Nothing runs but `scripts/check.sh`.** GitHub Actions has **never executed** on this repo (five workflows registered and `active`, 0 runs ever) — so the local gate is not a belt over CI, it **is** the only gate, and `scripts/ship.sh` is the only deploy. The Supabase **dashboard is reachable again** (5 Aug, alternate login), but **migrations still cannot run** until `DATABASE_URL` is the session-pooler string — that is **A15**, and it now also blocks the `app_settings` table (#627).
+4. **Nothing runs but `scripts/check.sh`.** ⚠️ *Corrected 6 Aug:* Actions **did** run — **788 runs, 25 May → 3 Jul** — then the account flag killed it dead (the old "0 runs ever" claim came from a blind API check that reads 0 where the founder's Actions tab shows 788). Nothing has run since 3 Jul and **GitHub support is unresponsive** (3,000+ users report the same flag), so the operative truth stands and is permanent: the local gate **is** the only gate, `scripts/ship.sh` the only deploy. The Supabase **dashboard is reachable again** (5 Aug, alternate login), but **migrations still cannot run** until `DATABASE_URL` is the session-pooler string — that is **A15**, and it now also blocks the `app_settings` table (#627).
 5. **251 items are 🩷 — live and walked by nobody.** A 🩷 is not a working feature, it is a merged one. Only the founder flips 🟢, and only on his own eyes (`FOUNDER_FLIP=1`).
 
 ---
@@ -44,7 +44,7 @@
 | **A10** | **Monday Instantly glance** (health scores rising, zero disconnects) · **18 Aug Google ~$28 charge succeeds** | Inboxes die quietly if the card fails | 🧍 | Mondays · 18 Aug |
 | **A14** | **SEND-DAY — execute the runbook, alone** | The finish line | 🧍 | **~25 Aug** |
 
-### 🟠 IMPORTANT, NOT SEND-BLOCKING — but 🤖 items die on 18 Aug
+### 🟠 IMPORTANT, NOT SEND-BLOCKING — 18 Aug is the 🤖 access checkpoint *(founder-ruled 6 Aug: "i can pay for you to stay" — a renewal decision, NOT a cliff. The "die on 18 Aug" framing that stood here was wrong.)*
 
 | # | Item | Status now | Owner | Deadline |
 |---|---|---|---|---|
@@ -82,7 +82,7 @@
 | B4 | Track overseas software spend monthly (reverse-charge counts toward the £90k VAT threshold; meter in the cashflow artifact) | 🧍 | monthly |
 | B5 | Banking/FX — Stripe-settle-USD + Wise (~£3/sale) | 🧍 | at ~20 sales/mo |
 | B6 | Insurance — PI when a contract demands it · EL the day anyone joins payroll | 🧍 | triggered |
-| D2 | ⏸ **Postgres password rotation** (burned, in git history) · **GitHub flag appeal** — the flag is what keeps GitHub Actions at **0 runs, ever**. ⚠️ **Supabase access is NO LONGER part of this row:** the dashboard was reachable again from 5 Aug by an alternate login, so migrations are blocked on **A15** (a Railway variable), not on Supabase. | external | blocked |
+| D2 | ⏸ **Postgres password rotation** (burned, in git history) · **GitHub flag appeal — ruled a DEAD END 6 Aug.** The flag killed Actions on **3 Jul** (788 runs before it, zero since) and blocks third-party OAuth (the Supabase login path). **Support is unresponsive — 3,000+ users report the same flag on community boards. Nothing may queue behind this appeal.** The escape route, post-live: a company GitHub org + the 30-min scratch test (does the flag follow?), then transfer — parked deliberately because re-authorizing Railway's deploy connection on a new org is exactly what the flag blocks, and a broken deploy link mid-sprint stalls the launch. ⚠️ Also noted: the Cloudflare Pages website-failover copy stopped updating 3 Jul — **≥34 days stale, predates the 2 Aug site restore + freeze**; if DNS ever flips to it, it serves a July site. | external | dead end — plan around it |
 | D3 | Railway replica re-check | — | only if ever Pro |
 | — | Subscription path hardcoded price (`stripe.ts:657`, dormant) | 🤖 | the day subscriptions return |
 | — | Dead `handleSubscribe` (#563/#431) | 🤖 | with subscriptions |

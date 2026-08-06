@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
+// #628 — the all-in floor now has to agree too. The three documents agreed perfectly on $146
+// while the real floor was $352, because the total was never one of the compared quantities.
+import { PLATFORM_FLOOR_USD, COMPANY_FLOOR_USD, TOTAL_FLOOR_USD } from '@kind/shared'
 
 // THE PLATFORM FLOOR IS STATED IN THREE PLACES, AND IT HAS DRIFTED FIVE TIMES.
 //
@@ -21,6 +24,8 @@ const docs = (f: string) => readFileSync(join(__dirname, '../../../../docs', f),
 const lab = docs('CASHFLOW-LAB.html')
 const runCosts = docs('run-costs-and-cashflow.md')
 const launchPad = docs('LAUNCH-PAD.md')
+/** #628 — history's home. Facts retired off LAUNCH-PAD land here, and must still be findable. */
+const kindMaster = docs('KIND-MASTER.md')
 
 /** Every fixed-cost input the page renders, as id → dollars. */
 function fixedInputs(): Record<string, number> {
@@ -75,16 +80,40 @@ describe('all three documents agree on the floor', () => {
   })
 
   it('and in its opening summary line', () => {
-    const lede = runCosts.split('\n').find(l => l.startsWith('> **The floor is'))
-    expect(lede, 'the opening floor claim must exist').toBeTruthy()
+    // ⚠️ RE-ANCHORED 6 Aug (#628). This looked for a line starting `> **The floor is`, and that
+    // wording was itself the bug: the sentence said "the floor" and gave the PLATFORM half.
+    // The lede now says "The PLATFORM floor is", which is both true and what this test is for.
+    const lede = runCosts.split('\n').find(l => l.startsWith('> **The platform floor is'))
+    expect(lede, 'the opening platform-floor claim must exist').toBeTruthy()
     expect(lede).toContain(`$${floor}`)
   })
 
+  it('and the doc does NOT let the platform half stand in for the all-in floor', () => {
+    // THE DEFECT THIS TEST DID NOT CATCH, ADDED 6 Aug (#628). Everything above pins the three
+    // documents to each other and to the model — and all three agreed on $146 while the ALL-IN
+    // floor was $352, because `TOTAL_FLOOR_USD` was never one of the things being compared.
+    // Perfect agreement on the wrong quantity. The company lines landed on 4 Aug and the prose
+    // never followed, so the biggest number in the repo was understated by $206 for three days
+    // with a green gate over it.
+    const lede = runCosts.split('\n').find(l => l.includes('all-in'))
+    expect(lede, 'the doc must state an all-in figure, not only the platform half').toBeTruthy()
+    expect(lede).toContain(`$${TOTAL_FLOOR_USD}`)
+    // Both halves named, so the total can be argued with rather than taken on trust.
+    expect(lede).toContain(`$${PLATFORM_FLOOR_USD}`)
+    expect(lede).toContain(`$${COMPANY_FLOOR_USD}`)
+  })
+
   it('LAUNCH-PAD states the same figure', () => {
-    // LAUNCH-PAD mirrors the model in #556. When the two disagree the founder reads whichever
-    // they opened, which is exactly how "we're at 50%" arguments start.
-    const row = launchPad.split('\n').find(l => l.includes('Honest platform floor'))
-    expect(row, 'LAUNCH-PAD #556 must state the floor').toBeTruthy()
+    // LAUNCH-PAD mirrors the model. When the two disagree the founder reads whichever they
+    // opened, which is exactly how "we're at 50%" arguments start.
+    //
+    // ⚠️ RE-ANCHORED 6 Aug (#628). This read the `Honest platform floor` phrase out of the #556
+    // row, which lived in LAUNCH-PAD's BLOCK M — retired to KIND-MASTER when the runlist was dug
+    // out from under 200 lines of superseded prose. The FACT did not change home: the inventory
+    // row still carries it and this now reads the live honest-state line, which names both halves.
+    const row = launchPad.split('\n').find(l => l.includes('The cost floor is'))
+    expect(row, 'LAUNCH-PAD must state the floor in its honest state').toBeTruthy()
+    expect(row).toContain(`$${TOTAL_FLOOR_USD}`)
     expect(row).toContain(`$${floor}`)
   })
 
@@ -181,10 +210,30 @@ describe('the failover teardown records the order that does not break production
     expect(lab).toContain('STAY in the repo')
   })
 
-  it('LAUNCH-PAD spells the three steps out in order for the founder', () => {
-    const block = launchPad.slice(launchPad.indexOf('Failover teardown'), launchPad.indexOf('Failover teardown') + 700)
+  it('the ordered three steps are spelled out for the founder, wherever they live', () => {
+    // ⚠️ RE-HOMED 6 Aug (#628). This read LAUNCH-PAD's 3-Aug money block, which was retired to
+    // KIND-MASTER with the rest of the superseded prose; LAUNCH-PAD's A12 row now carries the
+    // one-line version (`pinned order in the runbook: DNS repoint FIRST`) and the runbook has
+    // the detail. The ORDER is the thing that must survive a doc move, not the paragraph — so
+    // this reads whichever living doc holds it rather than a fixed page.
+    //
+    // It also no longer slices a fixed 700 characters. That window overran its own subject twice
+    // in this codebase; the block is bounded by the next table row instead.
+    const doc = [kindMaster, launchPad].find(d => d.includes('delete the Cloudflare'))
+    expect(doc, 'the ordered teardown must exist in a living doc').toBeTruthy()
+    const at = doc!.indexOf('Failover teardown')
+    const end = doc!.indexOf('\n|', doc!.indexOf('delete the Cloudflare'))
+    const block = doc!.slice(at, end > at ? end : undefined)
     expect(block).toContain('repoint')
     expect(block.indexOf('repoint')).toBeLessThan(block.indexOf('delete the Cloudflare'))
     expect(block.indexOf('delete the Cloudflare')).toBeLessThan(block.indexOf('Render `kind-api-standby`'))
+  })
+
+  it('and LAUNCH-PAD still tells the founder the order matters, even in one line', () => {
+    // The detail moved; the warning must not. A12 is a row he reads while deciding what to do
+    // today, and the wrong order takes the live API down.
+    const row = launchPad.split('\n').find(l => l.includes('Failover teardown'))
+    expect(row, 'A12 must still be on the runlist').toBeTruthy()
+    expect(row).toMatch(/DNS repoint FIRST/i)
   })
 })

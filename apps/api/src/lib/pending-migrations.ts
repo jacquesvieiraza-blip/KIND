@@ -298,6 +298,33 @@ ALTER TYPE subscription_status ADD VALUE IF NOT EXISTS 'lapsed';
 `.trim(),
   },
   {
+    // #627 — THE TABLE EVERY READER ASSUMED AND NOBODY CREATED.
+    //
+    // The System check has read `app_settings` for months (key `pdl_monthly_cap_usd`) and
+    // reported "no usable setting exists — set it". That instruction pointed at a table that
+    // does not exist anywhere: the read errored, the probe treated the error as "no row", and
+    // the screen said something false in a calm voice.
+    //
+    // It surfaced the first time anything WROTE to it — the founder pressed Save on the #626
+    // cap card and got "Could not find the table 'public.app_settings' in the schema cache",
+    // because that write is CHECKED rather than swallowed (#349). A swallowed error would have
+    // left him believing sourcing was capped while nothing was.
+    key: '20260806_app_settings',
+    title: 'Operator settings table (#627 — read for months, created by nobody)',
+    sql: `
+CREATE TABLE IF NOT EXISTS public.app_settings (
+  key        text        PRIMARY KEY,
+  value      text        NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE public.app_settings IS
+  'Operator-set global settings, one row per key. Written by Vida (operator, admin-gated) and read by the System check. First key: pdl_monthly_cap_usd — the monthly PDL sourcing ceiling (#626/#627).';
+
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+`.trim(),
+  },
+  {
     // #343 — THE CRON SINGLETON. `startCrons()` ran on every API process with no gate, so
     // two replicas doubled every email, every charge and every digest, silently, on a
     // schedule. The env var (`RUN_CRONS`) is a kill switch, NOT a singleton: Railway sets

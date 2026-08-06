@@ -126,12 +126,20 @@ describe('② the columns nothing in the repo declares are pinned', () => {
     // broken version went blind mid-file and hid `subscribers.source` behind an invented
     // `figsy_enrollments.compat`. Pinning the list is what makes that visible next time.
     //
-    // ⚠️ SIX SINCE 5 AUG. #626 added a WRITE to `app_settings` — a table the repo has read for
-    // months and never declared. The pin is raised deliberately, with the table documented and
-    // given a next action, which is exactly what this guard exists to force. Raising the number
-    // without writing the doc entry would be the failure it is designed to catch.
+    // It went to SIX on 5 Aug when #626 added a WRITE to `app_settings`, a table the repo had
+    // read for months and never declared.
+    //
+    // ⚠️ BACK TO FIVE ON 6 AUG, AND THIS IS THE ONLY GOOD REASON THIS NUMBER EVER FALLS: the
+    // table is now DECLARED. `20260806_app_settings` (#627) creates it, so `app_settings` is no
+    // longer an undeclared write — it left this list by being fixed, not by being excused.
+    //
+    // The 5 Aug entry for it also turned out to be WRONG in a way worth keeping in mind here:
+    // it claimed the table "exists in production because somebody made it there". It existed
+    // nowhere, and the founder's first Save proved it. So a table sitting in this list is not
+    // evidence that it is fine in production — it is evidence that we do not know. The
+    // correction is written up in `SCHEMA-DRIFT.md` under the entry itself.
     expect(Object.keys(undeclared).sort()).toEqual(
-      ['app_settings', 'clients', 'leads', 'opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
+      ['clients', 'leads', 'opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
   })
 
   it('leads.source is one of them — I introduced a writer for it in #599', () => {
@@ -273,7 +281,7 @@ describe('the derivation itself', () => {
 })
 
 describe('the shape of the problem is recorded, so it cannot be re-discovered', () => {
-  it('128 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
+  it('129 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
     // WAS "126 files across three directories". #273 consolidated on 31 Jul: the 32 files
     // that lived only in the other two were copied in (bodies byte-identical, provenance
     // headers added), and ONE more was recovered — `20260726_campaign_copilot_columns`
@@ -284,25 +292,34 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // (rule 3) — 128 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
     // asserts each pair stays identical.
     //
-    // 127/159 at #273 (31 Jul). One canonical file added since: #607's
-    // `20260801_retire_trial_status`. New migrations land ONLY in the canonical directory —
-    // the tombstoned 32 are frozen, so that count must never move again.
-    expect(sqlDir('supabase/migrations')).toHaveLength(128)
+    // 127/159 at #273 (31 Jul). Two canonical files added since: #607's
+    // `20260801_retire_trial_status` and #627's `20260806_app_settings`. New migrations land
+    // ONLY in the canonical directory — the tombstoned 32 are frozen, so the SECOND number
+    // moves in lockstep with the first and their DIFFERENCE (32) is what must never change.
+    expect(sqlDir('supabase/migrations')).toHaveLength(129)
     const total = MIGRATION_DIRS.reduce((n, d) => n + sqlDir(d).length, 0)
-    expect(total).toBe(160)
+    expect(total).toBe(161)
     expect(read('docs/SCHEMA-DRIFT.md')).toContain('the three directories are now one home')
   })
 
-  it('and one runner, which applies thirteen of them', () => {
+  it('and one runner, which applies fourteen of them', () => {
     // This is the actual finding. Everything else was pasted into a SQL editor by hand, in
     // an unrecorded order — and that editor cannot be opened any more.
+    //
+    // THE RUNNER IS THE ONLY LIST THAT EXECUTES. A .sql file with no entry here is a file
+    // nobody runs — which is how `20260726_campaign_copilot_columns` came to exist as a
+    // string with no file, the mirror image of the same gap. #627 wrote BOTH homes for that
+    // reason: the file is the canonical record, this array is what actually runs.
     const keys = read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []
-    expect(keys.length).toBe(13)   // 12 at #273; +1 from #607 (20260801_retire_trial_status)
+    expect(keys.length).toBe(14)   // 12 at #273; +1 #607 (retire_trial_status); +1 #627 (app_settings)
   })
 
   it('the three schema snapshots disagree about how many tables exist', () => {
     expect(snapshots.map(s => s.size)).toEqual([10, 54, 13])
-    expect(migrations.size).toBe(68)
+    // 68 → 69: #627's `app_settings`, the first genuinely NEW table declared since this pin
+    // was set. The snapshots did not move — they are hand-maintained and this table is not in
+    // them, which is the same divergence this whole describe block exists to keep visible.
+    expect(migrations.size).toBe(69)
   })
 
   it('#558\'s own example is traced to four disagreeing migrations', () => {

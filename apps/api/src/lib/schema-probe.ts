@@ -48,6 +48,24 @@ export type DbError = { code?: string | null; message?: string | null; details?:
 
 /** Postgres + PostgREST codes for "no such relation". */
 export const MISSING_TABLE_CODES = ['42P01', 'PGRST205'] as const
+
+/**
+ * Is this supabase error "the table is not there"?
+ *
+ * #627 — HOISTED SO A THIRD COPY CANNOT APPEAR. `cron-guard.ts` had its own inline version and
+ * the PDL-cap probe was about to need a second, which is exactly how two call sites come to
+ * disagree about what "missing" means. Matches the CODE first (authoritative) and falls back to
+ * the message, because PostgREST does not always populate `code` on a schema-cache miss — the
+ * founder's own failure read "Could not find the table 'public.app_settings' in the schema
+ * cache", which is the message path, not the code path.
+ */
+export function isMissingTable(error: DbError): boolean {
+  if (!error) return false
+  const code = String(error.code ?? '')
+  if ((MISSING_TABLE_CODES as readonly string[]).includes(code)) return true
+  const msg = String(error.message ?? '')
+  return /relation .* does not exist|could not find the table|schema cache/i.test(msg)
+}
 /** Postgres + PostgREST codes for "no such column". */
 export const MISSING_COLUMN_CODES = ['42703', 'PGRST204'] as const
 

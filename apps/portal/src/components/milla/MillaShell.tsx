@@ -69,7 +69,10 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
   )
 
   const ACCOUNT: [string, string, React.ElementType][] = [
-    ['/milla/settings', 'My profile', User], ['/milla/billing', 'Billing', CreditCard],
+    // #628 — this row read 'My profile'. The founder went looking for Settings on his own
+    // product and could not find it: the page at /milla/settings holds account settings, not a
+    // profile, and the rail was the only place that named it. Named for what it is.
+    ['/milla/settings', 'Settings', User], ['/milla/billing', 'Billing', CreditCard],
     ['/milla/usage', 'Usage', Gauge], ['/milla/referral', 'Referral', Gift],
   ]
   // The ROI / insights surface lives in the top-right dropdown (not the left rail) so the

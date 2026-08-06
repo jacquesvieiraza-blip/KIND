@@ -73,21 +73,50 @@ Written by the low-credit warning path; declared nowhere. Its sibling `low_credi
 from **Vida → Engine** instead of needing SQL he cannot run (the Supabase dashboard is locked
 behind the same account flag that has kept GitHub Actions at zero runs since July).
 
-Columns used: **`key`**, **`value`**. No migration in either directory creates this table, so it
-exists in production because somebody made it there — the same category as `whatsapp_messages`
-and `subscribers`.
+Columns used: **`key`**, **`value`**.
 
 **Why it was accepted rather than avoided.** The alternative was leaving a screen that names a fix
 nobody can perform: the probe printed *"Set pdl_monthly_cap_usd before sourcing at volume"* with
-no path to doing so. The table already existed and was already being read; the write adds no new
-dependency, only a new direction on an existing one.
+no path to doing so. The write adds no new dependency, only a new direction on an existing one.
 
-**NEXT ACTION:** run the **Schema probe** on `/vida/engine` to capture `app_settings`' real shape,
-then commit a migration that declares it (`CREATE TABLE IF NOT EXISTS`, idempotent, safe to run
-against the live table). Until then the upsert is guarded the only way it can be — the write is
-**checked, never swallowed** (#349), so a missing table surfaces as *"The cap was NOT saved: …"*
-on the founder's screen rather than as a silent no-op that leaves sourcing unbounded while the
-card claims a ceiling.
+---
+
+#### ⚠️ CORRECTION — 6 Aug. The entry above was wrong, and it was wrong in my own words.
+
+**What this entry said on 5 Aug:** *"No migration in either directory creates this table, so it
+exists in production because somebody made it there — the same category as `whatsapp_messages`
+and `subscribers`."*
+
+**What is actually true:** the table **did not exist anywhere.** Not in the repo, not in
+production, not made by anybody. The founder pressed **Save** on the new PDL-cap card on 6 Aug and
+got back, verbatim: *"Could not find the table 'public.app_settings' in the schema cache"*.
+
+**The clause "so it exists in production" was inferred, not verified — and it was false.** The
+observable fact was only ever the first half: no migration declares it. I reasoned from "the probe
+reads it and the screen has never shown an error" to "therefore it is there", and the reasoning
+does not hold: the probe treated **every** failure to find a cap as *"no usable setting exists"*,
+so a missing table and a missing row produced the identical calm sentence. The check that would
+have caught it was the one thing making the wrong answer look right. That is the #565 class — a
+broken check rendering as a clean answer — landing in a doc rather than on a screen.
+
+**The write is what exposed it, and only because the write is checked (#349).** A read had been
+swallowing this for months; the first *checked* write surfaced it on its first use, immediately and
+in the founder's own words. The guard earned its keep — six days after the entry claiming the table
+was fine was written by the same session that added the guard.
+
+**Recorded as a correction, not a rewrite.** The original claim is quoted above rather than deleted,
+because a doc that silently repairs itself teaches nothing about how the mistake was made. The
+lesson is the one this file exists for: *an undeclared table is unknowable, and "the code reads it
+without complaining" is not evidence that it is there.*
+
+**NEXT ACTION — the migration now exists.** `20260806_app_settings` is committed to both real homes
+(`supabase/migrations/20260806_app_settings.sql` and the inline entry in
+`apps/api/src/lib/pending-migrations.ts`, which is the only one the runner reads). It is
+`CREATE TABLE IF NOT EXISTS`, idempotent and safe against a live table. It **cannot be run yet**:
+`POST /operator/migrations/run` needs `DATABASE_URL` to be the Supabase **session-pooler** string,
+which is runlist item **A15**. So the order is **A15 → Vida → Engine → Run migrations → the cap
+becomes settable**, and until then both surfaces now say *that* rather than "set a value" in a table
+with nowhere to put it (#627).
 
 ## ⚠️ A bug in the instrument, found while building it
 

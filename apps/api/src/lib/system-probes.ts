@@ -349,12 +349,28 @@ async function vida(): Promise<Section> {
     ])
     const spent = ((ledger.data ?? []) as { cost_usd?: number | string }[])
       .reduce((s, r) => s + Number(r.cost_usd ?? 0), 0)
+    // ⚠️ #627 — TWO DIFFERENT PROBLEMS USED TO SHARE ONE SENTENCE. This block treated a missing
+    // TABLE and a missing ROW identically and said "set pdl_monthly_cap_usd" for both — telling
+    // the operator to set a value in a table that does not exist. It said that for months. The
+    // founder found it by pressing Save on the #626 card and getting the real error, which the
+    // write surfaced only because that write is checked (#349).
+    const { isMissingTable } = await import('./schema-probe')
+    if (isMissingTable(capRow.error as never)) {
+      return broken('PDL spend against the monthly cap',
+        `$${spent.toFixed(2)} spent this month, and the app_settings table DOES NOT EXIST — so no cap can be stored and nothing is guarding sourcing spend but the code default. This row previously said "no usable setting exists", which read as "nobody has set one yet" rather than "there is nowhere to set one".`,
+        'Run the 20260806_app_settings migration from Vida → Engine → Run migrations. That needs DATABASE_URL to be the Supabase SESSION POOLER string first (runlist A15).')
+    }
+    if (capRow.error) {
+      return unmeasured('PDL spend against the monthly cap',
+        `$${spent.toFixed(2)} spent this month, but app_settings could not be read (${capRow.error.message}), so whether a cap exists was NOT established.`,
+        'Re-run once the database answers.')
+    }
     const capRaw = (capRow.data as { value?: unknown } | null)?.value
     const cap = Number(capRaw)
     if (!capRow.data || !Number.isFinite(cap) || cap <= 0) {
       return unmeasured('PDL spend against the monthly cap',
         `$${spent.toFixed(2)} spent this month, but no usable pdl_monthly_cap_usd setting exists, so there is nothing to measure it against — the code default applies.`,
-        'Set pdl_monthly_cap_usd before sourcing at volume.')
+        'Set it in Vida → Engine → PDL monthly spend cap.')
     }
     const pct = Math.round((spent / cap) * 100)
     if (spent >= cap) {
@@ -455,6 +471,44 @@ async function vida(): Promise<Section> {
       hasSent: (sent.count ?? 0) > 0,
       secretSet: !!process.env.RESEND_WEBHOOK_SECRET,
       now: new Date(),
+    })
+
+    if (v.state === 'ok') return ok(label, v.detail)
+    if (v.state === 'broken') return broken(label, v.detail, v.action)
+    return unmeasured(label, v.detail, v.action)
+  }))
+
+  // CALENDAR BOOKING — #628, and it is the #624 lesson applied one step further down the funnel.
+  //
+  // The whole point of the reply path is that an interested prospect books a meeting. That last
+  // step had NO row: the three Google OAuth vars are `level: 'optional'` at boot, so nothing
+  // complains when they are absent, and with them absent no client can connect a calendar and
+  // every booking link resolves to nothing — silently, exactly as a dead reply path did.
+  //
+  // Env + storage only. No Google call: hitting Google would require a client's refresh token,
+  // which means acting on a client's account to draw a picture on our own screen, and this file's
+  // standing rule is never a paid call and never a send. The verdict says which question it
+  // answered, so "configured" is never mistaken for "a booking would succeed today".
+  rows.push(await probe('Calendar booking (Google OAuth)', async () => {
+    const { calendarBookingVerdict } = await import('./calendar-probe')
+    const label = 'Calendar booking (Google OAuth)'
+
+    // The refresh token is the one durable artefact of a COMPLETED OAuth flow, and the column
+    // every booking route already gates on. An unreadable count stays null and becomes
+    // NOT-MEASURED — never a rendered zero, which would look calm and mean nothing (#565).
+    const c = await db.from('clients')
+      .select('id', { count: 'exact', head: true })
+      .not('google_calendar_refresh_token', 'is', null)
+
+    const v = calendarBookingVerdict({
+      env: {
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri: process.env.GOOGLE_REDIRECT_URI,
+        portalUrl: process.env.PORTAL_URL,
+      },
+      connections: c.error ? null : (c.count ?? 0),
+      countError: c.error?.message ?? null,
     })
 
     if (v.state === 'ok') return ok(label, v.detail)

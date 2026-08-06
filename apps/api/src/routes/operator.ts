@@ -1355,7 +1355,18 @@ operatorRouter.get('/settings/pdl-cap', async (_req: Request, res: Response) => 
     const { PDL_MONTHLY_CAP_KEY } = await import('../lib/app-settings')
     const { data, error } = await db.from('app_settings')
       .select('value').eq('key', PDL_MONTHLY_CAP_KEY).maybeSingle()
-    if (error) { res.status(500).json({ success: false, error: `Could not read the cap: ${error.message}` }); return }
+    if (error) {
+      // #627 — the table missing is a DIFFERENT problem from the database being unwell, and the
+      // card must say which: one is "run a migration", the other is "try again".
+      const { isMissingTable } = await import('../lib/schema-probe')
+      res.status(500).json({
+        success: false,
+        error: isMissingTable(error as never)
+          ? 'The app_settings table does not exist yet — run the 20260806_app_settings migration from Vida → Engine (needs DATABASE_URL fixed first, runlist A15).'
+          : `Could not read the cap: ${error.message}`,
+      })
+      return
+    }
     const raw = (data as { value?: unknown } | null)?.value
     const n = Number(raw)
     // A stored value that is not a usable number reads as UNSET here, exactly as the probe

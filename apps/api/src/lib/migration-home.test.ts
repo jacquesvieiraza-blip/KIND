@@ -76,7 +76,7 @@ describe('① every migration has a canonical file', () => {
     // where this entry sits: the `fileless` assertion above passed on the first run, because
     // the file and the runner entry were written together. That is the whole discipline of
     // this test, working in the intended direction rather than catching a miss.
-    expect(runnerKeys).toHaveLength(14)
+    expect(runnerKeys).toHaveLength(15)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -109,8 +109,8 @@ describe('② a copy that can drift is the disease, not the cure', () => {
     expect(moved).toBe(32)
     // The canonical directory is the 94 that were there + 32 consolidated + 1 recovered
     // = 127 at #273, + 1 (#607's 20260801_retire_trial_status) + 1 (#627's
-    // 20260806_app_settings) = 129.
-    expect(sqlFiles(CANON)).toHaveLength(129)
+    // 20260806_app_settings) = 129; +1 (20260806_leads_source, #599) = 130.
+    expect(sqlFiles(CANON)).toHaveLength(130)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

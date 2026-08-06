@@ -175,7 +175,13 @@ export async function speedToLeadHandoff(params: {
       leadId = (existing as { id?: string } | null)?.id ?? null
     }
     if (!leadId) {
-      const { data: row } = await db.from('leads').insert({
+      // #349 — CHECKED, NOT SWALLOWED. This was `const { data: row }` with the error thrown
+      // away, and it cost weeks: `source` below is a column no migration had ever created, so
+      // Postgres rejected every one of these inserts, `row` came back null, and `leadId` fell
+      // through as null with nothing logged. An inbound visitor who typed their email into
+      // the website chat — the warmest lead there is — simply never became a lead, and the
+      // failure was indistinguishable from nobody having visited.
+      const { data: row, error: insertErr } = await db.from('leads').insert({
         client_id:      clientId,
         first_name:     firstName || 'Website',
         last_name:      lastName  || 'Visitor',
@@ -186,6 +192,9 @@ export async function speedToLeadHandoff(params: {
         scored_at:      new Date().toISOString(),
         source:         'vida_chat',
       }).select('id').single()
+      if (insertErr) {
+        console.error('[vida/chat] an inbound website-chat visitor could NOT be saved as a lead — they are lost unless someone reads this line:', insertErr.message)
+      }
       leadId = (row as { id?: string } | null)?.id ?? null
     }
 

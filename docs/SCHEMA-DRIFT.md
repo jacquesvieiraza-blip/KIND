@@ -35,9 +35,41 @@ On top of that, **three files each claim to be the schema**: `packages/db/src/sc
 
 Writing *"agree"* where the truth is *"we cannot tell"* is the same failure as a panel showing `failed: 0` for something never counted (#576) or a screen rendering a broken query as "nothing to do" (#565). So five rows say **unknowable** and mean it.
 
-## ⚠️ The six unknowables, worst first
+## ⚠️ The unknowables, worst first
 
-### 1. `leads.source` — and I introduced one of the two writers **yesterday**
+### 1. ~~`leads.source`~~ — ✅ **RESOLVED 6 Aug. It did not exist, and the prediction below came true first.**
+
+> **This entry ended in a guess and the guess was right, which is the whole argument for writing
+> the guess down.** It said: *"If the column does not exist, the CSV import fails on the first
+> real Apollo file."* On **6 Aug** the founder ran the importer on a real file during A18 and got
+> `Could not find the 'source' column of 'leads' in the schema cache` — **0 of 1 rows saved.**
+>
+> **Fixed by `supabase/migrations/20260806_leads_source.sql` + the same entry in
+> `pending-migrations.ts`** (`ALTER TABLE public.leads ADD COLUMN IF NOT EXISTS source text` —
+> nullable, no default, because every existing row's provenance is genuinely unknown and a
+> DEFAULT would stamp them all with a claim nobody checked). `packages/db/src/schema.sql`
+> declares it. `leads` has left the undeclared list **by being fixed, not by being excused.**
+>
+> **The expensive half was the silent one.** `lib/vida.ts` destructured `{ data: row }` with no
+> error check, so the rejected insert returned `leadId = null` and **every inbound website-chat
+> visitor who typed in their email failed to become a lead — for weeks, with nothing logged.**
+> Those are hand-raisers: the warmest leads in the funnel. That insert is now error-checked.
+>
+> Two further queries named the same missing column, and neither was found by anything except
+> reading: `routes/leads.ts` `/coaching` (rendered every booked meeting as *"Prospect"* with no
+> title, company or score) and `/coaching/:leadId/brief` (answered **404 "Lead not found" for
+> every lead that exists** — the prep brief had never once been generated). Both selected
+> `why_fits`, which is not a column at all: it is the name of a RESPONSE field built by
+> scrubbing `score_reasoning` (#492/F2). Fixed by not selecting it.
+>
+> **What none of this had was a check.** Every gate stayed green the whole time, because nothing
+> compared a query's column names to the schema. `apps/api/src/lib/leads-column-truth.test.ts`
+> now does, generically — for every column `toLeadRow` writes and every column any `leads` query
+> selects. A third guard, `no-duplicate-routes.test.ts`, exists because the hunt also turned up a
+> **shadowed duplicate `figsyRouter.get('/activity')`** ~2,000 lines below the live one; Express
+> never reached it, and I edited it for ten minutes believing I was fixing production.
+
+**The original entry, kept because how it got here is the useful part:**
 
 **No migration and no snapshot in this repo declares `leads.source`.** Two code paths write it:
 

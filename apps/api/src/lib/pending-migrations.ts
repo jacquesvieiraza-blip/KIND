@@ -419,6 +419,30 @@ UPDATE public.subscriptions
  WHERE status = 'trialing';
 `.trim(),
   },
+  {
+    // #599 — THE CSV IMPORTER HAS NEVER WORKED. `toLeadRow` has written `source:
+    // 'csv_import'` since it was authored and this column was never created, so every import
+    // died with "Could not find the 'source' column of 'leads' in the schema cache". Found by
+    // running it on a real file for the first time during A18 — no test caught it, because
+    // no test compared a query's column names to the schema. `leads-column-truth.test.ts`
+    // now does.
+    //
+    // NULLABLE AND NO DEFAULT, deliberately. Every row already in the table was written
+    // before this column existed and we genuinely do not know where it came from; a
+    // DEFAULT would stamp all of them with a provenance nobody verified, which is the
+    // "reads as done, was never checked" failure this project keeps catching. NULL means
+    // exactly what it says — unknown.
+    // Canonical file: supabase/migrations/20260806_leads_source.sql
+    key: '20260806_leads_source',
+    title: 'leads.source — where a lead came from (#599 — the column the CSV importer has always written and never had)',
+    sql: `
+ALTER TABLE public.leads
+  ADD COLUMN IF NOT EXISTS source text;
+
+COMMENT ON COLUMN public.leads.source IS
+  'Provenance of the row: ''csv_import'' for an operator upload, NULL for anything written before this column existed (August 2026). Never defaulted — an unverified provenance must read as unknown, not as a claim.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

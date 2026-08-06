@@ -147,14 +147,32 @@ describe('the probe list is fixed, and covers what the doc asked', () => {
     expect(handler.slice(0, 4000)).not.toMatch(/req\.(query|body|params)/)
   })
 
-  it('probes exactly the five schema questions #558 left open', () => {
+  it('probes the schema questions #558 left open, plus #643s audit columns', () => {
+    // Five at #558. The 6-Aug full-repo audit (#637–#641) found five more columns that live
+    // code reads and no migration created — every one silent, because supabase-js returns
+    // { error } and the call sites read `.data ?? []`. `20260806_audit_columns` creates them;
+    // these rows are how production is PROVEN to have converged rather than assumed to have.
     expect(PROBES.map(p => p.id).sort()).toEqual([
+      'clients.contact_email',
       'clients.last_low_credit_email_at',
+      'clients.last_seen_at',
+      'clients.leads_per_run',
+      'figsy_sent_emails.client_id',
+      'figsy_sent_emails.status',
       'leads.source',
       'opt_out_blocklist.whatsapp_number',
       'subscribers',
       'whatsapp_messages',
     ])
+  })
+
+  it('every audit column the migration creates has a probe row — no silent gaps', () => {
+    // A column fixed by the migration but absent here is a column nobody can verify landed.
+    const ids = new Set(PROBES.map(p => p.id))
+    for (const id of [
+      'figsy_sent_emails.client_id', 'figsy_sent_emails.status',
+      'clients.leads_per_run', 'clients.last_seen_at', 'clients.contact_email',
+    ]) expect(ids.has(id), `${id} is created by 20260806_audit_columns but has no probe`).toBe(true)
   })
 
   it('leads.source names the thing it actually blocks', () => {

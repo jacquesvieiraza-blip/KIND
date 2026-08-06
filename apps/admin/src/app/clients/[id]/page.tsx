@@ -89,7 +89,12 @@ export default function ClientDetailPage({ params }: { params: { id: string } })
         fetch(`/api/proxy/figsy/campaigns?client_id=${params.id}`).then(r => r.json()),
         fetch(`/api/proxy/icps?client_id=${params.id}`).then(r => r.json()),
         fetch(`/api/proxy/leads?client_id=${params.id}&limit=50`).then(r => r.json()),
-        proxyGet(`admin/clients/${params.id}/usage`),
+        // #640 — was `admin/clients/…`, and `proxyGet` ALREADY prefixes `/api/proxy/admin/`.
+        // The request went to `/admin/admin/clients/:id/usage`, which no router serves, so
+        // `usage` stayed null and the whole Usage-trend chart below is conditional on it —
+        // the failure rendered as no chart at all (#565), on a page linked from Revenue,
+        // Cockpit and Activation. The route is `adminRouter.get('/clients/:id/usage')`.
+        proxyGet(`clients/${params.id}/usage`),
       ])
       if (clientRes.success) {
         setClient(clientRes.data)

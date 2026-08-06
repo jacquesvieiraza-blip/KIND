@@ -2435,8 +2435,14 @@ internalRouter.post('/figsy/adaptive-send-check', async (_req: Request, res: Res
 // After 48h + ≥5 sends per variant, picks winner by open rate across all variants (A-E).
 internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Response) => {
   try {
+    // #638 — `step1_subject` lives on `figsy_enrollments` (002_figsy.sql:61), not on
+    // campaigns, AND this handler never reads it: variants come from `settings.ab_subject_*`
+    // and are matched against each sent email's own subject. So a column name from the wrong
+    // table, selected for nothing, rejected the whole query — the A/B winner check has never
+    // examined a single campaign. Same shape as the dead `source` select in #599's activity
+    // feed: dead weight in a select list is not free.
     const { data: campaigns } = await db.from('figsy_campaigns')
-      .select('id, settings, step1_subject')
+      .select('id, settings')
       .eq('status', 'active')
       .not('settings->ab_subject_b', 'is', null)
 

@@ -89,13 +89,16 @@ describe('① schema.sql declares every column its own migrations add', () => {
     // only", and counting that sentence made the tally 77 for 76 columns. Sixth time.
     // 76 → 77 on 6 Aug: `leads.source` (#599). See ② — it left the undeclared list by being
     // CREATED, so the reconciliation block now carries one more column.
+    // 77 → 81 the same day: the four `clients` columns of #641 (`contact_email`,
+    // `last_low_credit_email_at`, `last_seen_at`, `leads_per_run`), created by
+    // `20260806_audit_columns`. Same reason — declared because they now exist, not excused.
     const sql = read('packages/db/src/schema.sql')
     const block = stripSqlComments(sql.slice(sql.indexOf('RECONCILIATION')))
     expect(block).not.toMatch(/drop\s+(column|table)/i)
     const adds = block.match(/add column/gi) ?? []
     const guarded = block.match(/add column if not exists/gi) ?? []
     expect(guarded.length).toBe(adds.length)
-    expect(adds.length).toBe(77)
+    expect(adds.length).toBe(81)
   })
 
   it('every ADD COLUMN in the block is balanced SQL', () => {
@@ -122,7 +125,7 @@ describe('② the columns nothing in the repo declares are pinned', () => {
     return out
   })()
 
-  it('there are exactly four, and they are the four the doc explains', () => {
+  it('there are exactly three, and they are the three the doc explains', () => {
     // A SIXTH appearing means a new write path is betting on a column no migration creates —
     // which is how leads.source got here, and how it stayed invisible until this sweep.
     //
@@ -145,8 +148,13 @@ describe('② the columns nothing in the repo declares are pinned', () => {
     // ⚠️ FOUR ON 6 AUG — `leads` left, and again for the only good reason: it is now
     // DECLARED. `20260806_leads_source` (#599) creates the column, so the two writers that
     // bet on it are no longer betting.
+    //
+    // ⚠️ THREE LATER THE SAME DAY — `clients` left too, and this one was found by the
+    // founder-ordered full-repo audit rather than by anything failing: four columns live code
+    // read that no migration created, including the one the low-credit warning cron writes.
+    // `20260806_audit_columns` (#641) creates them. Still the only good reason.
     expect(Object.keys(undeclared).sort()).toEqual(
-      ['clients', 'opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
+      ['opt_out_blocklist', 'subscribers', 'whatsapp_messages'])
   })
 
   it('leads.source is DECLARED now — the prediction in this file came true first', () => {
@@ -314,15 +322,15 @@ describe('the derivation itself', () => {
 })
 
 describe('the shape of the problem is recorded, so it cannot be re-discovered', () => {
-  it('130 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
+  it('131 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
     // WAS "126 files across three directories". #273 consolidated on 31 Jul: the 32 files
     // that lived only in the other two were copied in (bodies byte-identical, provenance
     // headers added), and ONE more was recovered — `20260726_campaign_copilot_columns`
     // existed only as a string in pending-migrations.ts, so the product could apply it to
     // production while no file described it.
     //
-    // The three directories still hold 162 files between them, because nothing was deleted
-    // (rule 3) — 130 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
+    // The three directories still hold 163 files between them, because nothing was deleted
+    // (rule 3) — 131 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
     // asserts each pair stays identical.
     //
     // 127/159 at #273 (31 Jul). Three canonical files added since: #607's
@@ -330,14 +338,14 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // `20260806_leads_source`. New migrations land ONLY in the canonical directory — the
     // tombstoned 32 are frozen, so the SECOND number moves in lockstep with the first and
     // their DIFFERENCE (32) is what must never change.
-    expect(sqlDir('supabase/migrations')).toHaveLength(130)
+    expect(sqlDir('supabase/migrations')).toHaveLength(131)
     const total = MIGRATION_DIRS.reduce((n, d) => n + sqlDir(d).length, 0)
-    expect(total).toBe(162)
+    expect(total).toBe(163)
     expect(total - sqlDir('supabase/migrations').length, 'the 32 tombstoned copies are frozen').toBe(32)
     expect(read('docs/SCHEMA-DRIFT.md')).toContain('the three directories are now one home')
   })
 
-  it('and one runner, which applies fifteen of them', () => {
+  it('and one runner, which applies sixteen of them', () => {
     // This is the actual finding. Everything else was pasted into a SQL editor by hand, in
     // an unrecorded order — and that editor cannot be opened any more.
     //
@@ -346,7 +354,7 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // string with no file, the mirror image of the same gap. #627 wrote BOTH homes for that
     // reason: the file is the canonical record, this array is what actually runs.
     const keys = read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []
-    expect(keys.length).toBe(15)   // 12 at #273; +1 #607 (retire_trial_status); +1 #627 (app_settings); +1 #599 (leads_source)
+    expect(keys.length).toBe(16)   // 12 at #273; +1 #607; +1 #627 (app_settings); +1 #599 (leads_source); +1 #637/#641 (audit_columns)
   })
 
   it('the three schema snapshots disagree about how many tables exist', () => {

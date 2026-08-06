@@ -3047,66 +3047,75 @@ operatorRouter.get('/sending-health', async (req: Request, res: Response) => {
 // NO MONEY MOVES: `prepaid: true` skips the charge (the client paid at approve — M2/#424, the
 // charge-once law). `force: true` matches the approve path: it enrols while the kill-switch is
 // off, and the SEND still defers because `sendSequenceEmail` has its own check (S2 stands).
-operatorRouter.post('/leads/:leadId/enrol-stranded', async (req: Request, res: Response) => {
-  const leadId = req.params.leadId
-  const clientId = typeof (req.body ?? {}).client_id === 'string' ? (req.body as { client_id: string }).client_id : ''
-  if (!clientId) { res.status(400).json({ success: false, error: 'client_id is required.' }); return }
-
+operatorRouter.post('/clients/:clientId/enrol-stranded', async (req: Request, res: Response) => {
+  const clientId = req.params.clientId
   try {
     const { mayEnrolStranded, describeEnrolOutcome } = await import('../lib/stranded-leads')
 
-    // ── facts BEFORE, each read checked (#349) ──────────────────────────────────────────
-    const [leadRow, clientRow, enrolBefore] = await Promise.all([
-      db.from('leads').select('id, revealed_at').eq('id', leadId).eq('client_id', clientId).maybeSingle(),
-      db.from('clients').select('is_demo').eq('id', clientId).maybeSingle(),
-      db.from('figsy_enrollments').select('id').eq('lead_id', leadId).eq('client_id', clientId).limit(1).maybeSingle(),
-    ])
-    if (leadRow.error || clientRow.error || enrolBefore.error) {
-      const why = leadRow.error?.message || clientRow.error?.message || enrolBefore.error?.message
-      res.status(500).json({ success: false, error: `Could not read the current state, so nothing was attempted: ${why}` })
+    // ⚠️ CLIENT-SCOPED, NOT LEAD-SCOPED, BECAUSE THAT IS WHAT THE PANEL KNOWS. The integrity
+    // check reports `affected` as CLIENT ids (it counts orphan leads but lists the clients), so
+    // a per-lead button cannot be rendered from that row without inventing data the screen does
+    // not have. This finds the same leads the check finds, the same way it finds them.
+    const client = await db.from('clients').select('is_demo').eq('id', clientId).maybeSingle()
+    if (client.error) { res.status(500).json({ success: false, error: `Could not read the client: ${client.error.message}` }); return }
+    if (!client.data) { res.status(404).json({ success: false, error: 'No such client.' }); return }
+
+    const leads = await db.from('leads').select('id, revealed_at')
+      .eq('client_id', clientId).not('revealed_at', 'is', null).not('email', 'is', null).limit(1000)
+    if (leads.error) { res.status(500).json({ success: false, error: `Could not read the leads: ${leads.error.message}` }); return }
+    const rows = (leads.data ?? []) as { id: string; revealed_at: string | null }[]
+
+    const enrolled = rows.length
+      ? await db.from('figsy_enrollments').select('lead_id').eq('client_id', clientId).in('lead_id', rows.map(r => r.id))
+      : { data: [] as { lead_id: string }[], error: null }
+    if (enrolled.error) { res.status(500).json({ success: false, error: `Could not read enrollments: ${enrolled.error.message}` }); return }
+    const has = new Set((enrolled.data ?? []).map((e: { lead_id: string }) => e.lead_id))
+    const stranded = rows.filter(r => !has.has(r.id))
+
+    if (stranded.length === 0) {
+      res.json({ success: true, data: { attempted: 0, enrolled: 0, results: [], headline: 'Nothing stranded — every paid lead for this client is already in a sequence.' } })
       return
     }
 
-    const verdict = mayEnrolStranded({
-      exists: !!leadRow.data,
-      isDemo: clientRow.data?.is_demo === true,
-      approved: !!(leadRow.data as { revealed_at?: string | null } | null)?.revealed_at,
-      alreadyEnrolled: !!enrolBefore.data,
-    })
-    if (!verdict.ok) {
-      // A refusal is a 200 with a reason, not a 500 — "already enrolled" is a correct outcome
-      // the operator should read calmly, not an error to escalate.
-      res.json({ success: true, data: { state: 'refused', code: verdict.code, detail: verdict.reason } })
-      return
-    }
-
-    // ── the attempt ─────────────────────────────────────────────────────────────────────
     const { autoEnrollLead } = await import('../lib/figsy')
-    let threw: string | null = null
-    try {
-      await autoEnrollLead(leadId, clientId, { force: true, prepaid: true })
-    } catch (e) {
-      threw = e instanceof Error ? e.message : String(e)
-    }
+    const results: { lead_id: string; state: string; detail: string; action?: string }[] = []
+    let ok = 0
 
-    // ── facts AFTER — the only thing that decides the verdict ────────────────────────────
-    const [enrolAfter, campaign] = await Promise.all([
-      db.from('figsy_enrollments').select('id').eq('lead_id', leadId).eq('client_id', clientId).limit(1).maybeSingle(),
-      db.from('figsy_campaigns').select('id').eq('client_id', clientId).eq('status', 'active').limit(1).maybeSingle(),
-    ])
-    const outcome = describeEnrolOutcome({
-      enrolledAfter: !!enrolAfter.data,
-      hasActiveCampaign: !!campaign.data,
-      threw,
-    })
+    for (const lead of stranded) {
+      const verdict = mayEnrolStranded({
+        exists: true, isDemo: client.data.is_demo === true,
+        approved: !!lead.revealed_at, alreadyEnrolled: false,
+      })
+      if (!verdict.ok) { results.push({ lead_id: lead.id, state: 'refused', detail: verdict.reason }); continue }
+
+      let threw: string | null = null
+      try { await autoEnrollLead(lead.id, clientId, { force: true, prepaid: true }) }
+      catch (e) { threw = e instanceof Error ? e.message : String(e) }
+
+      // ⚠️ VERIFIED, NEVER ASSUMED. `autoEnrollLead` returns void and its no-campaign branch
+      // RETURNS rather than throwing — reporting success off the absence of an exception is
+      // exactly how #625 told the founder a lead was approved when it had entered nothing.
+      const [after, campaign] = await Promise.all([
+        db.from('figsy_enrollments').select('id').eq('lead_id', lead.id).eq('client_id', clientId).limit(1).maybeSingle(),
+        db.from('figsy_campaigns').select('id').eq('client_id', clientId).eq('status', 'active').limit(1).maybeSingle(),
+      ])
+      const outcome = describeEnrolOutcome({ enrolledAfter: !!after.data, hasActiveCampaign: !!campaign.data, threw })
+      if (outcome.state === 'enrolled') ok++
+      results.push({ lead_id: lead.id, state: outcome.state, detail: outcome.detail, ...('action' in outcome ? { action: outcome.action } : {}) })
+    }
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId, action: 'enrol_stranded',
-      subjectType: 'lead', subjectId: leadId,
-      detail: { outcome: outcome.state, charged: false, had_active_campaign: !!campaign.data },
+      subjectType: 'client', subjectId: clientId,
+      detail: { attempted: stranded.length, enrolled: ok, charged: false },
     })
 
-    res.json({ success: true, data: outcome })
+    res.json({ success: true, data: {
+      attempted: stranded.length, enrolled: ok, results,
+      headline: ok === stranded.length
+        ? `${ok} of ${stranded.length} enrolled. NO charge — these were already paid for. NOTHING has been sent: the kill-switch and the warming-mailbox guard both still sit in front of every send.`
+        : `${ok} of ${stranded.length} enrolled — the rest are STILL stranded. Read each reason below; do not treat this as done.`,
+    } })
   } catch (err) {
     console.error('[operator/enrol-stranded]', err)
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'Enrol failed' })

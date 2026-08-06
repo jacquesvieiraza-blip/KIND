@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢95 · 🩷273 · 🟣2 · 🟡46 · 🔴173 · ⏸5 · **Σ594** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢95 · 🩷274 · 🟣2 · 🟡46 · 🔴173 · ⏸5 · **Σ595** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -90,6 +90,15 @@
 | — | `figsy_campaigns.copilot_mode` + `approve_before_send` — both halves of the human-in-the-loop gate the first paying client needs |
 
 ⚠️ **None of these flips a dot to 🟢.** The migration means the schema is right; the walk is what proves the behaviour.
+
+### 🧭 RULED 6 AUG (SECOND ROUND) — the last four open questions closed
+
+| # | Ruling | State |
+|---|---|---|
+| **Sequence cap** | **7, not 10.** The 8-Jul lock (*"no it is 10. we know this"*) predates the 22-Jul pivot; the #612 gate has HARD-blocked above 7 since 4 Aug. **#426 superseded — nothing to build.** The Vida editor offered a 10th step it would then refuse to activate; now capped at 7, and a test binds the two numbers | ✅ closed |
+| **2 stranded paid leads** | **Enrol — they were paid for.** Built as **#631**: an operator button on the integrity row that reports them. ⚠️ Until now that alert said *"enrol it from Vida"* and **no such control existed** | ✅ built · 🧍 press it |
+| **#301 Denise price** | **Moot.** Open since 3 Jul waiting on a price for a product that is not sold | ✅ closed |
+| **#630** | Flipped 🩷 — verified live on the System page | ✅ done |
 
 ### 🧭 RULED 6 AUG — decisions closed, nothing left hanging
 

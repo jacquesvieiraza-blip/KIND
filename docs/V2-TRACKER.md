@@ -102,8 +102,48 @@ The whole point of the model: **the product never changes, only *who clicks 👍
 ## 2. Nexus auto-tuning — the per-client brain that sharpens itself
 Nexus (per-client, private, never shared across clients — the #476 unified-data-layer thesis, scoped to one tenant) starts in the 14-day build as **read + surface** (why this lead fits, what's converting). Post-build it earns **auto-tuning**: every 👍/✕ and every reply teaches that client's Nexus which angle/subject/persona/timing lands, and it re-tunes *that client's* sourcing + sequences automatically (the Luna-style self-optimise loop from #439/#440, fenced to one client). **The dogfood flywheel:** our own Client-Zero approvals sharpen our own Nexus → better outreach → more clients → their approvals sharpen theirs. Cost model first (per-interaction LLM spend vs the $4/lead margin — same guard as #440).
 
+---
+
+## 🏢 PROJECT 1 POST-LIVE — MIGRATE TO A COMPANY GITHUB ORG *(founder-ruled 6 Aug; this is the only full home for it)*
+
+> **Founder's ruling, 6 Aug:** *"on the 26 August I want to run this like a PRO. and the system with 4 docs is insane. so i want to migrate post live."* And the reason, in his words: *"the docs drift and i have to constantly remind you to fix the docs. i have not read a doc for 2 weeks because i dont trust it."*
+>
+> **⚠️ Ruled the same day: NOTHING about how we work changes before live.** The board/issues idea was examined at length on 6 Aug and parked whole. This section is a plan, not a queue — nothing here starts before send-day.
+
+### Why an ORG and not this account
+Two reasons, both independent of workflow:
+1. **The company should own its own asset.** The entire codebase currently sits on a personal login that is **flagged and getting no support response**. If GitHub ever escalates that flag, the business loses access to its own product with no recourse. This is the founder's own `jacques@kindoutreach.com` logic applied to the repo — *"i paid for it. i need it."*
+2. **A fresh org is the only remaining chance of reviving CI.** The flag killed Actions on 3 Jul (788 runs before it, zero since) and support is unresponsive — **D2 is ruled a dead end**. Whether the flag follows an org is **unknown and must be tested, not assumed**.
+
+### The 30-minute scratch test — FIRST, before anything real moves
+New org → scratch repo → one hello-world workflow → one scratch Railway connection. This answers **both** unknowns before a single byte of the real repo moves: does Actions run, and can Railway re-authorize on an org.
+- **Flag does not follow** → migrate; the five dead robots come back (tests-on-PR, doc-lint, autoflip, audits, website failover).
+- **Flag follows** → the org still buys reason ① above; decide then whether it is worth it for ownership alone.
+
+### ⚠️ Why the repo transfer is PARKED until after live
+A transfer requires **re-authorizing Railway's GitHub connection on the new org — and third-party app authorization is exactly what the flag blocks** (it is the same error that locked the Supabase dashboard). If that link breaks, **merging stops deploying** and we cannot ship a fix to the live product until it is rewired. That is the one failure mode that can stall the launch itself. Not caution — evidence.
+
+### The target shape
+| Layer | Home | Note |
+|---|---|---|
+| **Work** — builds, bugs, walks, rulings, steals | **Issues** + a board (Backlog · Next · Current · In progress · In review · Done) | Capturable from the founder's phone in ~20 seconds, which is the gap nothing currently fills |
+| **Deadlines** | **Milestones** with progress bars | Nothing like it exists today |
+| **Status ladder** | **Labels** — incl. `live-unverified` vs `verified` | GitHub's "Done" only means *merged*; 🩷-vs-🟢 must survive the move or the whole ladder is lost |
+| **Knowledge** | **A docs library** — cashflow, research, runbooks, decisions | See the sorting rule below |
+
+### The sorting rule — the founder's own words, 6 Aug
+> **"if it has a done it's a card; if it has no done it's a doc."**
+
+Work has a finish line and becomes an **issue**. Knowledge is consulted, never finished, and stays a **doc**: the cashflow model, competitive research and steal analysis, the send-day runbook, the decisions log. **The docs that kept burning us were the STATUS docs** — hand-maintained copies of "where things stand." Those are what the migration kills. The knowledge docs were never the problem, and the best of them are code-bound already (`cost-floor.ts` ↔ the cashflow drift test).
+
+### Migration order
+1. The 30-minute scratch test (above) — **the gate on everything else**
+2. Transfer the repo to the org — PRs, commits and issues all move with it
+3. **Only OPEN work becomes cards.** Not 592 rows of history — the four docs are archived in the repo, frozen and readable forever
+4. One week running both, then the status-doc machinery retires
+
 ## 3. Sending — ⚠️ NO LONGER FUTURE. It is the launch blocker. *(corrected 26 Jul)*
-> **🛑 This section was wrong and it cost us weeks.** It said the operator would send from **Smartlead's own UI** while API automation waited for "the future" — so sending never got built, and the docs read as though that was a plan rather than a hole. **Founder overruled it 26 Jul:** *"instantly smartlead getting clients is everything… inbox the full way"* and *"we use our own product for us."* **Sending is not future detail — it is LAUNCH-PAD Block A**, tracked as **#211 → #547–#553** in PRODUCT-INVENTORY. **Instantly is OURS, Smartlead is the CLIENTS', and both run inside the product.**
+> **🛑 This section was wrong and it cost us weeks.** It said the operator would send from **Smartlead's own UI** while API automation waited for "the future" — so sending never got built, and the docs read as though that was a plan rather than a hole. **Founder overruled it 26 Jul:** *"instantly smartlead getting clients is everything… inbox the full way"* and *"we use our own product for us."* **Sending is not future detail — it is LAUNCH-PAD Block A**, tracked as **#211 → #547–#553** in PRODUCT-INVENTORY. **Instantly is OURS, Smartlead is the CLIENTS', and both run inside the product.** ⚠️ **SUPERSEDED 30 Jul — the founder amended #577 after walking the Instantly bundle.** **OUR OWN ENGINE sends our outreach** (FIGSY writes, `mailer.ts` + `sending-inbox.ts` deliver over SMTP, our unibox catches replies); **Instantly is demoted to a WARMUP UTILITY on the Growth tier** — HyperGrowth's API was only ever needed to drive a sender we no longer use. Smartlead-for-clients is unchanged. Kept, not deleted, because the chain is the record: see PRODUCT-RULES → the #577 chain.
 >
 > What genuinely remains future once Block A lands: per-client inbox **pool management and reporting depth** inside Vida (stock, provisioning queue, day-29 branded-inbox switches — #280), multi-provider routing beyond Smartlead+Instantly, and automated warmup orchestration. **Phase 1 (done)** = key live + read-only connectivity, admin-gated, zero sending. Everything past that is now launch work, not roadmap.
 

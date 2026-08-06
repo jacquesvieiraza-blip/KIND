@@ -1,10 +1,21 @@
-# 📜 THE PRODUCT RULES — one page, the founder's word
+# 📜 THE REGISTER OF LOCKS — every ruling the founder has made, one page
 
-> **What this is.** The non-negotiables the product must obey. Not strategy, not a roadmap, not status — those have their own homes. This exists so nobody has to guess and the founder does not have to re-explain the same rule every session.
+> **READ THIS FIRST, EVERY SESSION** (CLAUDE.md § Session start). This is the founder's memory, externalised. It exists because on **6 Aug** he said: *"i cant remember everything fable. and i am struggling here. because things slip far to often."*
 >
-> **Every line below is taken from a decision the founder has already made.** Each rule names where it came from and, where it is enforced in code, the constant that enforces it. **Cut, correct and add.** Nothing here is agreed until the founder says so.
+> **What this is.** Every decision the founder has locked, with **his own words where they exist**, the source it came from, and — stated honestly — what actually enforces it. Not strategy, not a roadmap, not status: those have their own homes. A rule nobody enforces is a wish, and this page says which is which.
 >
-> **The rule about these rules:** if a rule here and the code disagree, that is a bug — fix one of them the same session. A rule nobody enforces is a wish.
+> ## ⛓️ THE CHAIN RULE — the one that earned this rewrite
+> **A superseded decision is NEVER deleted. It is chained: `old → amended`, both dated, and the LATEST WINS.**
+>
+> On 6 Aug I contradicted the founder's own #577 amendment within hours of him relying on it — and **the cause was sitting on this very page**: rule **D1** still read *"Instantly sends for US… by API"*, the **26-Jul** lock, with no sign that the founder had amended it on **30 Jul**. I read the stale half, paraphrased it, and it merged. Every automated check stayed green, because doc-lint verifies counts and copies, **never whether a sentence is true**. The only check that fired was the founder's memory — which is precisely the thing this page is meant to replace.
+>
+> **So: an un-chained supersession on this page is a live trap.** If you amend a rule, the old text stays, struck and dated, directly above the new one.
+>
+> ## The rules about these rules
+> 1. **Cite by date.** No sentence about a locked decision may be written anywhere — doc, PR body or chat — without re-reading the lock here and citing its date (CLAUDE.md, the citation law).
+> 2. **This is a REGISTER, not a new home for truth.** Every row cites its source. **Status lives only in PRODUCT-INVENTORY.** If a row here and its source disagree, that is a bug — fix it at the source, the same session.
+> 3. **Same-session capture.** A ruling the founder makes in chat becomes a row here **that session** (CLAUDE.md ritual 4b). A ruling that lives only in a transcript is a ruling that will be contradicted — transcripts are not read at session start and cannot be grepped.
+> 4. **Verbatim beats paraphrase.** Where the founder's words exist, they are quoted. My summary of his words is not his ruling.
 
 ---
 
@@ -14,11 +25,26 @@
 |---|---|---|---|
 | M1 | **The $299 pack is 100 approvals included. Not 99, not 124.** *(price re-locked 3 Aug; the 100 never moved)* | founder-locked 24 Jul · price 3 Aug, #541 | `PACK_LEADS = 100` · `PACK_PRICE_USD = 299` |
 | M2 | **After the included 100, it is a flat $4 per approved lead. FINAL** — no $1/$3 split shown, no hold, no capture-at-booking. | founder-locked 24 Jul (supersedes the 23-Jul re-time) | `LEAD_PRICE_USD = 4` |
-| M3 | **The $99 buys the pack ONLY — never wallet credit as well.** One payment must not pay out twice. | #562 | `stripe.ts` skips `increment_wallet` on first purchase |
+| M3 | **The pack purchase buys the pack ONLY — never wallet credit as well.** One payment must not pay out twice. ⛓️ *Written 26 Jul as "the $99"; the price became **$299** on 3 Aug (M1). The RULE never changed — only the figure in its wording, which is why it is now stated without a number.* | #562 · re-worded 6 Aug | `stripe.ts` skips `increment_wallet` on first purchase |
 | M4 | **ONE WALLET.** One dollar wallet per client. No parallel credit columns. | founder-locked 24–25 Jul, #492 | `wallet_balance_usd`, `try_charge_wallet` |
 | M5 | **A lead is charged at most once, ever.** | #566/#569 | the atomic `revealed_at` claim |
 | M6 | **Repeat business is wallet top-ups, not a second pack.** *(Costed 25 Jul when a renewing pack lost money at ~$105 against $99. ⚠️ At the 3-Aug price of **$299** a second pack would no longer lose money — but the rule stands on its own logic: a repeat client already has a warmed inbox and a sourced pool, so charging them a second onboarding fee bills them for onboarding twice.)* | #567, costed 25 Jul · re-checked 3 Aug | — |
 | M7 | **Money the client is owed is never silently lost.** A failed write returns the money, releases the claim, and alerts. | #568 | rollback + alert on every money write |
+
+## 1b · PRICING — *(new 6 Aug: this section did not exist, and the $299 lock was nowhere on this page)*
+
+| # | Rule | The founder's words | Source | Enforced by |
+|---|---|---|---|---|
+| **PR1** | ⛓️ **The first purchase is $299** — the fully-onboarded pack, 100 approved leads included, then $4 each. ~~*24–25 Jul: $99*~~ → **3 Aug: $299**. At $99 he personally funded ~$78 of every engine-acquired client and carried the churn bet; at $299 day one is +$18.50 after full CAC. He chose $299 over $199 deliberately. | *"you can always discount down from $299 in your own mouth; you cannot quietly raise from $199 without punishing the early clients who took the risk on you"* (his reasoning, recorded) | 3 Aug · #609 | `PACK_PRICE_USD` · `pack-price-single-source.test.ts` · `pricing-copy.test.ts` |
+| **PR2** | **Discounts are founder discretion, by hand in Stripe — NEVER in code, on the site, or in the product.** | none | 3 Aug | nothing — words only |
+| **PR3** | **Base + Advanced — two packages, ONE engine.** Not two products, not two codebases; what differs is entitlement and attention. **Advanced is sold before it is built, deliberately.** ⚠️ **Price points and the feature split are explicitly NOT decided** — the 31-Jul sketch figures are brainstorming, and he said so at the time. | *"I know from my own sales experience selling a 1 product model is not strong enough… I think we need to have 2 offerings min."* · *"Do not just agree with me"* | locked 31 Jul, logged 2 Aug · #608 | nothing — words only |
+| **PR4** | **Coaching stays as-is and stays FREE** — a value-add on a booked meeting, which makes it a retention lever rather than another thing to price. #601 is parked on founder hold: not cancelled, not merged. | none | 31 Jul / 2 Aug · #601 | nothing — words only |
+| **PR5** | **The funnel model stays at 1,000:1** contacts-to-win. It does not move on vendor marketing (Apollo's 50,000 is one rep's sends; Alta's 159 is "influenced", not closed-won). | none | 4 Aug · #612 | nothing — words only |
+| **PR6** | **`CASHFLOW-LAB.html` is the money model of record**, in the repo — two needles at the top, every cost line an editable box. If it and the workings disagree, **the lab wins**. | *"we can refine numbers but the layout I understand."* | 25 Jul · #556 | `cost-floor-drift.test.ts` binds it to `cost-floor.ts` |
+| **PR7** | ⛓️ **The cost floor: what was cut, and what deliberately was NOT.** Resend → free · Apollo → free from 3 Sep · Claude Code downgraded (~$152 → ~$23). **Google Workspace ($28) and Instantly Growth ($37) kept on purpose** — cutting the sending path saves ~$65 and pushes first revenue further away. ⛓️ *Floor chain: $138 "verified" (never checked against a bill; real $50.59) → … → ~$146 (3 Aug) → **corrected 6 Aug: $146 is the PLATFORM half; all-in is $352**.* | *"i cant afford 470/month… without income coming in this is impossible to maintain"* | 3 Aug · corrected 6 Aug | `cost-floor.ts` · `cost-floor-drift.test.ts` |
+| **PR8** | **NO real-money $299 walkthrough.** The money walk splits: a $0 `manual_grant` proves the pack tiles, the wallet staying $0 and the sourcing gate; the live Stripe webhook is proven by the first real client's $299. | *"i am not running the real money walkthrough as i dont have that money"* · *"i am not buying $299 now."* | 4–5 Aug | `manual_grant` in `PAID_TX_TYPES` |
+| **PR9** | **A7 is VOID — there is no Stripe dashboard product to fix.** His own catalogue screenshot: 9 active products, 0 archived, **nothing at $99**. The pack checkout renders no dashboard product at all (inline `price_data`). | *"we never did it and never had to do it"* | 5 Aug · #619 | `lib/stripe.ts:113-132` |
+| **PR10** | **Partner comp: 20% acquisition + 5% retention = 25%.** ⚠️ The retired Settings page advertised **"30% recurring"** against this ledger — a number a prospect could have quoted back at us (#628, removed 6 Aug). | none | 19 Jun | `docs/hiring/KIND-PARTNER-COMP-PLAN.md` · `routes/partners.ts` |
 
 ## 2 · SAFETY — the rules that protect a real person
 
@@ -35,7 +61,7 @@
 
 | # | Rule | Where it came from |
 |---|---|---|
-| D1 | **Instantly sends for US** — our own outreach, from the 5 already-warm mailboxes, by API. | founder-locked 26 Jul, #577 |
+| D1 | ⛓️ **CHAINED — read the whole chain before writing one word about Instantly.** ~~**26 Jul:** *Instantly sends for US — our own outreach, from the 5 already-warm mailboxes, by API.*~~ → **30 Jul, AMENDED BY THE FOUNDER (this is the live rule):** **OUR OWN ENGINE sends our outreach** — FIGSY writes, `mailer.ts` + `sending-inbox.ts` deliver over SMTP, our unibox catches replies. **Instantly is a WARMUP UTILITY on the GROWTH tier** — and Growth is **sufficient**, permanently: *"the $97 HyperGrowth tier was required only for the API to integrate with a sender we no longer use."* **⚠️ Instantly is LOAD-BEARING FOR CLIENTS, not just for us** — client mailboxes are Google-direct (our engine needs SMTP credentials; vendor boxes expose none) and start **cold**, so the Growth warm-up network warms them too. That is why the per-client cost carries no separate warm-up line. **⚠️ THIS ROW IS WHY THE WHOLE PAGE WAS REWRITTEN:** it stood un-chained until 6 Aug and I paraphrased the dead 26-Jul half into a merged PR. | founder-locked 26 Jul → **founder-amended 30 Jul**, #577 · chained 6 Aug |
 | D2 | **Smartlead sends for CLIENTS** — mailbox bought per client **only when they pay**. **Built 27 Jul (#550) and NOT PROVEN**: the key returns 401 and the sequence *step shape* is unverified. Check it in Smartlead's UI after the first push. | founder-locked 26 Jul, #577 |
 | D6 | **The two routes are mutually exclusive by construction.** `canPushToInstantly` refuses anything that is not the house account; `canPushToSmartlead` refuses anything that is. A test asserts at most one route accepts any lead — so the money path attempts both with no `if/else`, keeping routing out of the money path. | 27 Jul, #550 |
 | D7 | **A reply belongs to the mailbox that received it.** Routing is inbox → client → lead → thread. An unknown inbox falls back to the fan-out; a known inbox with no matching lead alerts rather than falling back, because falling back hands one client's mail to another. | 27 Jul, #551 |
@@ -121,13 +147,84 @@ Confirm you have read this, then wait for my next message.
 | # | Rule | Where it came from |
 |---|---|---|
 | O1 | **Deploy is always `bash scripts/ship.sh`.** Merging does not deploy; Railway is not automatic. | verified 26 Jul |
-| O2 | **A red gate cannot deploy.** `check.sh` runs first and refuses. **And it is the ONLY gate — CI has never run.** All five GitHub workflows are registered and `active` with **0 runs, ever** (checked 27 Jul); almost certainly the same account flag that locks Supabase. `check.sh` is not a belt over CI. | #574, confirmed 27 Jul |
+| O2 | **A red gate cannot deploy.** `check.sh` runs first and refuses, and **it is the ONLY gate.** ⛓️ ~~*27 Jul: "CI has never run — 0 runs, ever."*~~ → **6 Aug, CORRECTED:** Actions ran **788 times from 25 May to 3 Jul**, then the account flag killed it; the 27-Jul check that minted the old claim was **blind** (the API returns 0 where the founder's own Actions tab shows 788). **The operative truth is unchanged and permanent** — nothing has run since 3 Jul and GitHub support is unresponsive (D2 = dead end). `check.sh` is not a belt over CI. | #574 · corrected 6 Aug |
 | O3 | **No new SQL** beyond committed, reviewed, **idempotent** migrations run from Vida → Engine. | founder-locked (the SQL editor is unreachable) |
 | O4 | **Secrets go in Railway, never pasted in chat.** | founder, standing |
 | O5 | **Nothing shows green unless it was actually probed.** NOT-MEASURED is a real answer; treating it as green is the failure this exists to stop. | #576 |
 | O6 | **Check the live database, not the repo.** Three migration directories and two schema snapshots disagree with each other and none describes production (#558). A verdict read off a file is a verdict about a file — the RLS audit predicted five exposed tables, production had three, and **none of them were the five**. | 27 Jul, #554b |
 | O7 | **A failed check must never render as a pass.** Not an empty list, not a calm zero, not silence. Five instances this week: `count-inventory --check` exiting 0 without running · the ledger row advising a migration already run · eleven applied migrations shown as one failure · an RLS verdict from stale files · **CI reporting nothing because it has never run.** | 27 Jul, standing |
 | O8 | **A guard asserts the INTENT, not the literal.** A test pinned the exact SQL of a migration; fixing the migration broke the test written to protect it. A guard that freezes the defect is worse than none. | 27 Jul, #554c |
+
+## 7 · THE 6 AUGUST RULINGS — captured the same session, per ritual 4b
+
+*Every row below was ruled by the founder in chat on 6 Aug. **Where the words are his, they are quoted. Where a formulation is mine, it says so** — his ruling and my summary of it are not the same artifact, and confusing the two is the failure this whole page exists to stop.*
+
+| # | Rule | The founder's words | Enforced by |
+|---|---|---|---|
+| **A1** | **NOTHING about how we work changes before live.** The GitHub board/issues migration was examined at length on 6 Aug and **parked whole** — no process change, no tooling change, until the product is live. | *"i say dont change how we work at all till we go live."* | nothing — words only |
+| **A2** | **The company-GitHub migration is the FIRST post-live project.** An org owned by the Ltd, work as issues/board/milestones, knowledge docs retained. Full plan: **V2-TRACKER → "PROJECT 1 POST-LIVE"**. | *"on the 26 August I want to run this like a PRO. and the system with 4 docs is insane. so i want to migrate post live."* · and the reason: *"the docs drift and i have to constantly remind you to fix the docs. i have not read a doc for 2 weeks because i dont trust it."* | V2-TRACKER section |
+| **A3** | **18 Aug is an ACCESS CHECKPOINT, not a cliff.** Agent access can be renewed. **No deadline pressure may be derived from that date** — LAUNCH-PAD's "🤖 items die on 18 Aug" framing was wrong and is corrected. | *"if i need you i keep you. this is not hard rule i can pay for you to stay."* | LAUNCH-PAD 🟠 band heading |
+| **A4** | **D2 — the GitHub flag appeal is a DEAD END. Nothing may queue behind it.** Support is unresponsive and the problem is not ours alone. The escape route (a company org) is **post-live only**, because re-authorizing Railway's deploy connection is exactly what the flag blocks. | *"github does not respond at all… ive been on comunity boards and over 3000 people have the same issue."* | LAUNCH-PAD D2 row |
+| **A5** | **C5 — seat removal DEACTIVATES. Permanently. No delete will ever be built.** A seat's sent mail, replies and meetings are the client's own record and are never destroyed. | *"lets go through C5 - dactivate."* | `seat-cap-screen.test.ts` asserts no delete endpoint exists **and** that the client-facing card states the policy |
+| **A6** | **A16 — CLOSED, no risk.** The 9 Instantly mailboxes are **4 Google on 2 domains warming** (the ladder's) **+ 5 older AirMail boxes, paused**. The ladder maths was right all along. The paused set is never picked for a send. | *"on a16 the other inboxes were the airtable. they are paused no concern. close off."* | nothing — words only · the paused state lives in Instantly, which no code can see |
+| **A7** | **Growth is sufficient, and Instantly is load-bearing for clients — permanently.** See **D1**, where the full chain lives. Raised by the founder *from memory* against a merged PR that said otherwise; he was right. | *"we use instantly even later for clients because of the way we set up. you confirmed to me growth was enough. this was a lcoked decision. i need the truth please."* | D1 chain · #577 |
+| **A8** | **Docs keep a place — for KNOWLEDGE, not status.** Things with a finish line become work items; things you consult but never finish stay documents (the cashflow model, competitive research, steal analysis, runbooks). | *"i think again the items worth stealing become actual items. but things like cashflow etc they cant live as items. so docs have a place."* ⚠️ **The shorthand *"if it has a done it's a card; if it has no done it's a doc"* is MY formulation of his ruling, not his words** — it is used in V2-TRACKER as the migration's sorting rule, and it is recorded as mine so nobody later quotes it back to him as his. | V2-TRACKER sorting rule |
+| **A9** | ⚠️ **NOT A RULING — an agent working practice, recorded here so it is never mistaken for one.** *"Trust screens, not files"* (Vida → System probes the live product; agent reports are live-counted; the docs are the archive) was **proposed by me** on 6 Aug and the founder **did not explicitly rule on it**. It stands as my operating default until he does. | none — the founder has not ruled | nothing — and it is not a rule |
+
+
+## 8 · ARCHITECTURE — *(new 6 Aug: this section did not exist)*
+
+| # | Rule | The founder's words | Source | Enforced by |
+|---|---|---|---|---|
+| **AR1** | ⛓️ **The company trades as Milla&Vida — one engine, two portals.** K.I.N.D is the registered company. **FIGSY is the ENGINE** under it (no longer sold standalone), **Milla = the client portal**, **Vida = our operator console**. Neither is a subscription. ⛓️ *Supersedes the FIGSY-as-product model and the 9-Jul "sell FIGSY only" reset.* | *"we cant look cheap"* | founder-locked 22 Jul | nothing — words only |
+| **AR2** | **Milla and Vida are CONSOLES; the intelligence belongs to FIGSY.** 14 agent-era brain items moved into THE BRAIN under THE ENGINE. | *"Milla and Vida are console chats… the brain, the tool we need to develop for FIGSY"* | 1 Aug · #606 | inventory structure |
+| **AR3** | 🔒 **THE NEXUS LOCK — no cross-client learning, EVER.** What one client's data teaches may never reach another. #150 arrived scope-cut to per-client only; the cross-client half is dead unless he re-opens it. | none | standing, re-applied 1 Aug | `nexus-guard.assertSameClient` throws `NexusFenceError` |
+| **AR4** | **Nexus auto-tune is DEFAULT-DENY, per client** — and even enabled, needs a confident profile (3+ booked meetings, 40+ worked leads). The website's five "gets sharper" claims were rewritten to what it does: **it remembers**. | gate's own words: *"auto-tune off for this client (default — founder must enable)"* | 1 Aug · #603 | `nexusTuneGate` · 11 tests bind site copy to the gate two-way |
+| **AR5** | ⚠️ **Apollo is OURS. PDL + Hunter are the CLIENTS'.** The same mirror as Instantly/Smartlead. A 1-Aug audit tagged Apollo "retired" and he **overruled it** — rows relabelled **[OUR HUNTING]** so no future audit repeats the mistake. | none | locked 30 Jul, re-affirmed 1 Aug · #606 | `[OUR HUNTING]` labels · a guard pins the legal-page wording |
+| **AR6** | 🔒 **THE SCHEMA IS FROZEN — never build anything that ends "now press Run migrations."** Declare it NOT-POSSIBLE before starting. *(6 Aug: partially eased — the Supabase dashboard is reachable again; `DATABASE_URL` still needs the session-pooler string, runlist A15.)* | the flag error: *"cannot authorize a third party application"* | 30 Jul, standing | `PENDING_MIGRATIONS` is the only runner · `migration-home.test.ts` |
+| **AR7** | **THE CORE MAP — work happens inside the core, and coverage is stated as % of it.** Fenced code is not in play: never deleted, never edited without a stated reason. | *"nothing gets deleted"* | founder-locked 26 Jul · #573 | `scripts/build-core-map.py` → `CORE-MAP.md` · `scripts/core-files.txt` |
+| **AR8** | **Every PDL dollar is pre-funded by collected cash.** Sourcing spends only against an allowance accrued from money actually banked (k=2, accrued at the Stripe webhook only, never at spend). | none | founder-locked 10 Jul · #445 | `try_spend_sourcing` / `add_sourcing_allowance` · `money_settings` $300/mo cap |
+| **AR9** | **The client revises their own ICP with NO gate** — it goes live immediately, but alerts us, because anyone already enrolled was picked against the old profile. | *"no gate on their own change"* | founder-locked 25 Jul · #536 | shipped |
+| **AR10** | ⚖️ **Build the lead pool now, WITHOUT waiting for the PDL-licence legal review.** Risk accepted deliberately — **revisit at the first paid client.** | none | founder ruling 10 Jul · #449 | nothing legal — words only. Time-bound by decision |
+| **AR11** | **Jack&Jill patterns: STEAL ONLY, do not build.** Logged as 7 red items + a STEALS CATALOG line. | none | 10 Jul | STEALS CATALOG in the inventory |
+
+## 9 · MORE SENDING — the rules that were never on this page
+
+| # | Rule | The founder's words | Source | Enforced by |
+|---|---|---|---|---|
+| **D8** | 🔒 **Option B: WE press send, through the mailbox the provider warmed.** He overruled my Option-A recommendation and was right — warming is a property of the **mailbox**, not of who presses send, and A would put a second brain in charge of *when* mail goes out. It also wins the client who says *"use my own Google Workspace"*. | (my wrong advice, recorded) *"A, because deliverability is reputation and theirs is warm"* | founder chose 26 Jul · #548 | `mailer.ts` (per-send transport) · `inbox-secret.ts` AES-256-GCM · **`INBOX_SECRET_KEY` unset = no send, by design** |
+| **D9** | ⚠️ **NO CAMPAIGNS IN INSTANTLY. EVER.** It is a warm-up utility. A campaign there sends outside our engine, our approval gate, our opt-out list and our record. | none | 4 Aug | nothing — words only |
+| **D10** | **Warm-up daily cap is 25, deliberately ABOVE Instantly's suggested 10.** A box warmed to 10/day has reputation for 10/day; the jump to ~30 real sends is the spike that flags a domain. | none | 4 Aug | recorded as *"the first number to revisit"* if deliverability disappoints |
+| **D11** | **Instantly connects by OAuth, NOT App Password** — reversing my advice. App passwords are *"more prone to disconnects"*, and a silent disconnect stops warm-up without pausing it. App Passwords are what OUR engine uses; the two connections are independent. | Instantly's note: *"more prone to disconnects"* | 4 Aug | Instantly's client ID trusted at Google org level |
+| **D12** | ⛓️ **The booking link LEAVES email 1 — Option A: the gate is right, the prompt was wrong.** The repo carried two live opposite instructions. **Step 3 keeps its link.** | *"the first email's job is to earn a reply, not a booking."* | ruled 5 Aug · #612B | both prompt sites changed **with the reason carried in the instruction**; the tests that pinned the old ruling were **rewritten, not silently flipped** |
+| **D13** | **"Our sequence and outreach must be world class."** A copy gate before a warm box ever sends. HARD rules block **activation** (not saving); WARN never blocks; pausing is never gated; fails OPEN on a read error. | *"our sequence and outreach must be world class. shit emails out = zero meetings booked. for all clients"* | 4 Aug · #612 | `lib/sequence-quality.ts` · `sequenceGateFor` at all three activation routes · 75 tests |
+| **D14** | ⚠️ **UNRECONCILED — needs a founder glance.** The locked sequence cap is **10 steps** (8 Jul, *"no it is 10. we know this"*). The quality gate HARD-blocks at **>7**. **Nothing reconciles them.** | *"no it is 10. we know this"* | 8 Jul vs 4 Aug | `#426` still 🔴 (cap never enforced) vs `#612` enforcing 7 |
+| **D15** | **A reply belongs to the mailbox that received it.** An unknown inbox falls back to the fan-out; a **known** inbox with no matching lead **alerts** rather than falling back — falling back hands one client's mail to another. | none | 27 Jul · #551 | `smartlead-inbound` route test pins the two-clients-one-prospect case |
+| **D16** | **Build reply/opt-out logic PROVIDER-AGNOSTIC**, in a shared spine — otherwise each provider grows its own copy of the same five bugs. | *"build them provider-agnostic"* | ~27 Jul · #589 | `lib/reply-pipeline.ts` · a test asserts the route DELEGATES rather than re-inlining |
+
+## 10 · MORE SAFETY, PROCESS & OPERATIONS
+
+| # | Rule | The founder's words | Source | Enforced by |
+|---|---|---|---|---|
+| **S7** | **PECR — never cold-email a UK sole trader.** A UK lead that cannot be **proven** corporate is refused. **Fails SAFE** (the opposite direction from the cold-check, deliberately): over-suppressing loses a prospect, under-suppressing is a legal breach. | *"Salted Foods"* (the failure case — must not pass on `ltd`) | 5 Aug · #617 | pure `lib/pecr.ts`, asked at **all three** enrol paths, every one **before the charge** |
+| **S8** | **VAT + company registration captured at onboarding, for ALL clients.** "Not registered" is an **explicit recorded answer**, not a blank — an invented tax ID is worse than a blank. **It gates onboarding completion and NOTHING else.** | *"as part of onboarding we capture their company information… all clients."* | ruled 4 Aug · #615 | `NOT_REGISTERED` sentinel · **a test enforces that no approval, payment or send consults it** |
+| **S9** | **Remove ALL speed and time-to-result promises. No "guarantee".** No replacement number until one is proven. | *"remove all — we have not proofed this, so how do we know"* | founder-locked 8 Jul · #411/#348 | website freeze manifest |
+| **S10** | **No fake logos, quotes or numbers ship.** The whole social-proof system ships **hidden** until real data exists. Unbuilt features are labelled *"coming soon"* — **never deleted, never faked**. | none | 8 Jul / 28 Jun · #253/#405 | the hide itself |
+| **S11** | **Honest-label beats fake capability.** Where the portal claimed what it could not do, he chose **labelling it honestly** over building it. | none — recorded as *"Founder chose honest-label"* | 6 Jul · #318 | diff-verified |
+| **S12** | **Admin gets a real auth gate** — Supabase login + founder-email allowlist, on **both** the pages and the `/api/proxy` route. Admin had no auth at all. | none | 6 Jul · #308 | `ADMIN_ALLOWED_EMAILS` · `admin-proxy-only.test.ts` sweeps for direct `/operator/` fetches |
+| **S13** | **The go-live seed wipe is FOUNDER-ONLY, and exclusion beats deletion.** Four protections checked in order — **real money outranks `is_demo`** — and MBF is kept deliberately: a literal wipe at go-live deletes the sales tool on the day it is most needed. | *"executed only on my go"* · *"when we flip over live we clean everything"* | 7/27 Jul · #329 | `SEED_WIPE_ARMED` = today's UTC date **plus** a typed phrase (`FOUNDER_FLIP=1` explicitly ruled insufficient — "fine for a reversible dot, this is not reversible") |
+| **P13** | **Report, don't purge. Nothing gets actioned until I say go.** The 1-Aug audit read 579 rows and 90 docs, re-verified 31 claims against code, and **changed nothing**. | *"noting gets actioned until i say go and remove"* | 1 Aug · #602 | discipline only — it held |
+| **P14** | **Don't report back unless it's green.** Fixes are proven, not claimed — red-proved against the old code first. | *"do not report back unless all are green"* · *"you claim stuff but it is never done"* | 26 Jul · #598/#580 | red-proof discipline in every row since |
+| **P15** | **A change to a fenced file needs its reason stated OUT LOUD, before the change.** | *"before you change it the reason needs to be stated and you didnt do this. so stop."* | 27 Jul | nothing — words only |
+| **P16** | **One method for every model.** The Fable/Opus split is retired; the discipline lives in CLAUDE.md for whoever runs. ⚠️ Includes: **the founder's screenshots are production evidence and outrank the gate.** | *"i am tired of working in fable. give opus the correct method for this in the future."* | 4 Aug | CLAUDE.md agent config |
+| **P17** | **"I will not merge any open PR until I can measure the product."** BLOCK M's four instruments came first. **Discharged** — all four built and in daily use. | *"I will not merge any open PR until I can measure the product."* | 26 Jul | `/vida/system` (#576) — nothing green unless probed |
+| **O9** | **31 Aug is the outside edge.** | *"on 31 aug if this is not all done i stop."* | founder-locked 26 Jul | nothing — words only |
+| **O10** | **Selling is the founder's, and it stays OFF the board.** Not forgotten — deliberately absent. He uses his own prices. | *"leave the 20 messages out of this list all together. i know how to sell. i will use my own prices"* | 4 Aug | nothing — words only |
+| **O11** | **IDLE TOOLS BILL NOTHING.** The cost register records **actual current spend**, and every $0 line carries the trigger that switches it back on — because *a $0 line with no trigger reads as "this tool is free."* | *"IDLE TOOLS BILL NOTHING"* | 30 Jul · #556 | 17 drift tests |
+| **O12** | **Railway `@kind/api` runs 1 replica** — guarded by the billing tier, not by discipline. **Re-check the day Railway goes Pro.** | Railway's screen: *"Multi-region replicas are only available on the Pro plan."* | 4 Aug | the plan tier · recorded **with its own expiry** |
+| **O13** | **DNS: EDIT the existing `_dmarc` record, never ADD a second.** GoDaddy pre-seeds one, and a domain publishing two has **NO DMARC at all**. Found only by counting rows rather than trusting the save. | none | 4 Aug | nothing — words only |
+| **O14** | **The failover teardown is PARKED, founder-agreed** — $12/mo against a launch blocked on mailboxes, and step ⓐ risks dropping the portal mid-DNS-edit. Safe to park because #199 monitoring landed the same day. **DNS repoint FIRST, always.** | none | 3 Aug | a test asserts the three steps stay in DNS-first order |
+
 
 ---
 
@@ -136,7 +233,17 @@ Confirm you have read this, then wait for my next message.
 Written down rather than assumed, per P9.
 
 - ~~**Paystack**~~ — **RULED 27 Jul: *"I confirm: yes, remove."*** Removed (#352). It charged in **ZAR at a hardcoded rate of 19**, its cooldown counted rows and then charged (a real double charge), it could never succeed (needed an auth code #325 made unobtainable), and nothing received the result. The client's saved `auto_topup_*` preferences and all billing history were **kept** — the removal was the charge path only.
+- ~~**C5 — seat removal: delete or deactivate?**~~ — **RULED 6 Aug: deactivate only, permanently.** See §7 A5.
+- ~~**D4 — refresh `staging`, or keep previewing from branches?**~~ — **RULED 6 Aug: refresh.** `staging` was 131 commits behind and is now level with `main`.
 - **The three security holes in disabled agent routes** — #359, #369, #360. Delete, or keep disabled?
+- **#549 — the dogfooding item.** Its original form (push our leads into an Instantly campaign by API) was superseded by the 30-Jul amendment, not blocked. Retire it, or pay for HyperGrowth to dogfood? *Agent recommendation: retire after launch, keep the code parked as the revival path.* ⚠️ **Retiring the ITEM never means retiring Instantly** — see D1.
+- **Does VAT evidence gate anything BEYOND onboarding?** (#615) — deliberately not taken in code.
+- **Is 50 the right lead-desk window, or should the panel page?** (#570) — *"a founder call, not code"*, and the only thing keeping that row 🟡.
+- **The share-link generator** (#560) — retiring it would break links clients have already sent.
+- **A paid PDL plan** (#444) — *"founder money call, pending."*
+- **The Denise price conflict** (#301) — $39/mo in the portal vs $99/mo on the site, and Denise is absent from the LOCKED `packages/shared` PRICING. Flagged 3 Jul, never formally ruled. Overtaken by AR1/AR2 (Denise is not sold) but the row is still open.
+- **⚠️ D14 — the sequence cap: 10 (locked 8 Jul) vs 7 (enforced by the #612 gate).** Nothing reconciles them. **This is a live contradiction, not a stale note.**
+- **Instantly Growth mailbox cap — UNVERIFIED.** "Unlimited warmup" is our own 26-Jul research note, not a vendor confirmation. If Growth caps warmed mailboxes, that cap is the client ceiling and nothing in the product would warn us. One founder glance before client #1.
 - **Where this page lives.** It is a *product* rules page, so it does not clash with the four-doc status contract — but the founder may want it merged into `RULEBOOK.md` instead of standing alone.
 
 ---

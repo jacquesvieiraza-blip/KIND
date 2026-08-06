@@ -1,10 +1,21 @@
-# 📜 THE PRODUCT RULES — one page, the founder's word
+# 📜 THE REGISTER OF LOCKS — every ruling the founder has made, one page
 
-> **What this is.** The non-negotiables the product must obey. Not strategy, not a roadmap, not status — those have their own homes. This exists so nobody has to guess and the founder does not have to re-explain the same rule every session.
+> **READ THIS FIRST, EVERY SESSION** (CLAUDE.md § Session start). This is the founder's memory, externalised. It exists because on **6 Aug** he said: *"i cant remember everything fable. and i am struggling here. because things slip far to often."*
 >
-> **Every line below is taken from a decision the founder has already made.** Each rule names where it came from and, where it is enforced in code, the constant that enforces it. **Cut, correct and add.** Nothing here is agreed until the founder says so.
+> **What this is.** Every decision the founder has locked, with **his own words where they exist**, the source it came from, and — stated honestly — what actually enforces it. Not strategy, not a roadmap, not status: those have their own homes. A rule nobody enforces is a wish, and this page says which is which.
 >
-> **The rule about these rules:** if a rule here and the code disagree, that is a bug — fix one of them the same session. A rule nobody enforces is a wish.
+> ## ⛓️ THE CHAIN RULE — the one that earned this rewrite
+> **A superseded decision is NEVER deleted. It is chained: `old → amended`, both dated, and the LATEST WINS.**
+>
+> On 6 Aug I contradicted the founder's own #577 amendment within hours of him relying on it — and **the cause was sitting on this very page**: rule **D1** still read *"Instantly sends for US… by API"*, the **26-Jul** lock, with no sign that the founder had amended it on **30 Jul**. I read the stale half, paraphrased it, and it merged. Every automated check stayed green, because doc-lint verifies counts and copies, **never whether a sentence is true**. The only check that fired was the founder's memory — which is precisely the thing this page is meant to replace.
+>
+> **So: an un-chained supersession on this page is a live trap.** If you amend a rule, the old text stays, struck and dated, directly above the new one.
+>
+> ## The rules about these rules
+> 1. **Cite by date.** No sentence about a locked decision may be written anywhere — doc, PR body or chat — without re-reading the lock here and citing its date (CLAUDE.md, the citation law).
+> 2. **This is a REGISTER, not a new home for truth.** Every row cites its source. **Status lives only in PRODUCT-INVENTORY.** If a row here and its source disagree, that is a bug — fix it at the source, the same session.
+> 3. **Same-session capture.** A ruling the founder makes in chat becomes a row here **that session** (CLAUDE.md ritual 4b). A ruling that lives only in a transcript is a ruling that will be contradicted — transcripts are not read at session start and cannot be grepped.
+> 4. **Verbatim beats paraphrase.** Where the founder's words exist, they are quoted. My summary of his words is not his ruling.
 
 ---
 
@@ -14,7 +25,7 @@
 |---|---|---|---|
 | M1 | **The $299 pack is 100 approvals included. Not 99, not 124.** *(price re-locked 3 Aug; the 100 never moved)* | founder-locked 24 Jul · price 3 Aug, #541 | `PACK_LEADS = 100` · `PACK_PRICE_USD = 299` |
 | M2 | **After the included 100, it is a flat $4 per approved lead. FINAL** — no $1/$3 split shown, no hold, no capture-at-booking. | founder-locked 24 Jul (supersedes the 23-Jul re-time) | `LEAD_PRICE_USD = 4` |
-| M3 | **The $99 buys the pack ONLY — never wallet credit as well.** One payment must not pay out twice. | #562 | `stripe.ts` skips `increment_wallet` on first purchase |
+| M3 | **The pack purchase buys the pack ONLY — never wallet credit as well.** One payment must not pay out twice. ⛓️ *Written 26 Jul as "the $99"; the price became **$299** on 3 Aug (M1). The RULE never changed — only the figure in its wording, which is why it is now stated without a number.* | #562 · re-worded 6 Aug | `stripe.ts` skips `increment_wallet` on first purchase |
 | M4 | **ONE WALLET.** One dollar wallet per client. No parallel credit columns. | founder-locked 24–25 Jul, #492 | `wallet_balance_usd`, `try_charge_wallet` |
 | M5 | **A lead is charged at most once, ever.** | #566/#569 | the atomic `revealed_at` claim |
 | M6 | **Repeat business is wallet top-ups, not a second pack.** *(Costed 25 Jul when a renewing pack lost money at ~$105 against $99. ⚠️ At the 3-Aug price of **$299** a second pack would no longer lose money — but the rule stands on its own logic: a repeat client already has a warmed inbox and a sourced pool, so charging them a second onboarding fee bills them for onboarding twice.)* | #567, costed 25 Jul · re-checked 3 Aug | — |
@@ -35,7 +46,7 @@
 
 | # | Rule | Where it came from |
 |---|---|---|
-| D1 | **Instantly sends for US** — our own outreach, from the 5 already-warm mailboxes, by API. | founder-locked 26 Jul, #577 |
+| D1 | ⛓️ **CHAINED — read the whole chain before writing one word about Instantly.** ~~**26 Jul:** *Instantly sends for US — our own outreach, from the 5 already-warm mailboxes, by API.*~~ → **30 Jul, AMENDED BY THE FOUNDER (this is the live rule):** **OUR OWN ENGINE sends our outreach** — FIGSY writes, `mailer.ts` + `sending-inbox.ts` deliver over SMTP, our unibox catches replies. **Instantly is a WARMUP UTILITY on the GROWTH tier** — and Growth is **sufficient**, permanently: *"the $97 HyperGrowth tier was required only for the API to integrate with a sender we no longer use."* **⚠️ Instantly is LOAD-BEARING FOR CLIENTS, not just for us** — client mailboxes are Google-direct (our engine needs SMTP credentials; vendor boxes expose none) and start **cold**, so the Growth warm-up network warms them too. That is why the per-client cost carries no separate warm-up line. **⚠️ THIS ROW IS WHY THE WHOLE PAGE WAS REWRITTEN:** it stood un-chained until 6 Aug and I paraphrased the dead 26-Jul half into a merged PR. | founder-locked 26 Jul → **founder-amended 30 Jul**, #577 · chained 6 Aug |
 | D2 | **Smartlead sends for CLIENTS** — mailbox bought per client **only when they pay**. **Built 27 Jul (#550) and NOT PROVEN**: the key returns 401 and the sequence *step shape* is unverified. Check it in Smartlead's UI after the first push. | founder-locked 26 Jul, #577 |
 | D6 | **The two routes are mutually exclusive by construction.** `canPushToInstantly` refuses anything that is not the house account; `canPushToSmartlead` refuses anything that is. A test asserts at most one route accepts any lead — so the money path attempts both with no `if/else`, keeping routing out of the money path. | 27 Jul, #550 |
 | D7 | **A reply belongs to the mailbox that received it.** Routing is inbox → client → lead → thread. An unknown inbox falls back to the fan-out; a known inbox with no matching lead alerts rather than falling back, because falling back hands one client's mail to another. | 27 Jul, #551 |
@@ -121,7 +132,7 @@ Confirm you have read this, then wait for my next message.
 | # | Rule | Where it came from |
 |---|---|---|
 | O1 | **Deploy is always `bash scripts/ship.sh`.** Merging does not deploy; Railway is not automatic. | verified 26 Jul |
-| O2 | **A red gate cannot deploy.** `check.sh` runs first and refuses. **And it is the ONLY gate — CI has never run.** All five GitHub workflows are registered and `active` with **0 runs, ever** (checked 27 Jul); almost certainly the same account flag that locks Supabase. `check.sh` is not a belt over CI. | #574, confirmed 27 Jul |
+| O2 | **A red gate cannot deploy.** `check.sh` runs first and refuses, and **it is the ONLY gate.** ⛓️ ~~*27 Jul: "CI has never run — 0 runs, ever."*~~ → **6 Aug, CORRECTED:** Actions ran **788 times from 25 May to 3 Jul**, then the account flag killed it; the 27-Jul check that minted the old claim was **blind** (the API returns 0 where the founder's own Actions tab shows 788). **The operative truth is unchanged and permanent** — nothing has run since 3 Jul and GitHub support is unresponsive (D2 = dead end). `check.sh` is not a belt over CI. | #574 · corrected 6 Aug |
 | O3 | **No new SQL** beyond committed, reviewed, **idempotent** migrations run from Vida → Engine. | founder-locked (the SQL editor is unreachable) |
 | O4 | **Secrets go in Railway, never pasted in chat.** | founder, standing |
 | O5 | **Nothing shows green unless it was actually probed.** NOT-MEASURED is a real answer; treating it as green is the failure this exists to stop. | #576 |

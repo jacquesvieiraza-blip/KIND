@@ -1,0 +1,22 @@
+# .railwayignore — what `railway up` must NOT upload.
+#
+# WHY THIS EXISTS (6 Aug). Every `railway up` archives the working tree and ships it to
+# Railway's snapshot endpoint — once PER SERVICE, so one `ship.sh` run uploads the repo FOUR
+# times. The tracked tree is ~137MB, and Railway's ingest intermittently times out on it:
+# "Failed to create code snapshot. Please review your last commit, or try again." — which
+# reads like a git problem and is actually a payload problem. Two deploys failed this way on
+# 6 Aug alone (portal, website), each silently leaving the OLD version serving.
+#
+# `docs/` is 25MB of that and NO deploy has ever needed it — docs don't deploy (CLAUDE.md:
+# "Docs don't deploy → no preview needed"). Cutting it saves ~100MB per ship.
+#
+# ⚠️ WHAT MUST NEVER GO IN HERE: anything a BUILD reads. `packages/` (both apps import
+# @kind/shared), `supabase/` (small, and pending-migrations.ts cites its files), app assets
+# (`apps/website`'s 65MB of images ARE the website). When a deploy breaks mysteriously after
+# an edit to this file, this file is the first suspect.
+#
+# (`node_modules` and build output are already excluded via .gitignore, which the Railway
+# CLI also respects. `.git` is never uploaded.)
+
+docs/
+.github/

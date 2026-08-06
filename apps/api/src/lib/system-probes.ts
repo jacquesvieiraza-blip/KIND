@@ -162,7 +162,13 @@ const REQUIRED_SCHEMA: Array<{ table: string; column?: string; why: string; migr
   // to be short. Every one of these is a migration whose absence is SILENT in normal use —
   // which is exactly the kind this section exists to catch.
   { table: 'icps', column: 'pdl_scroll_token', why: 'where PDL paging got to — without it every run re-reads page one and a repeat client sources ZERO new people', migration: '20260727_pdl_cursor' },
-  { table: 'cron_claims', why: 'the cron single-run guard — without it two replicas double every email and every charge', migration: '20260727_cron_claims' },
+  // ⚠️ #630 — `column: 'job'` IS LOAD-BEARING, DO NOT DROP IT BACK TO THE DEFAULT.
+  // `cron_claims` has a composite primary key `(job, slot)` and **no `id` column** at all, so the
+  // `req.column ?? 'id'` default below asks for a column that cannot exist. PostgREST answers
+  // that with a COLUMN error — and the old failure branch called every error "MISSING in
+  // production". The founder ran all 14 migrations on 6 Aug, watched them succeed, and this row
+  // still told him the double-send guard was absent.
+  { table: 'cron_claims', column: 'job', why: 'the cron single-run guard — without it two replicas double every email and every charge', migration: '20260727_cron_claims' },
 ]
 
 async function schema(): Promise<Section> {
@@ -172,8 +178,36 @@ async function schema(): Promise<Section> {
     rows.push(await probe(label, async () => {
       const { error } = await db.from(req.table).select(req.column ?? 'id', { count: 'exact', head: true }).limit(1)
       if (!error) return ok(label, `Present — ${req.why}.`)
-      return broken(label, `MISSING in production: ${error.message}. Consequence: ${req.why}.`,
-        `Run migration ${req.migration} from Vida → Engine → Database migrations.`)
+
+      // ⚠️ #630 — THIS BRANCH USED TO CALL EVERY ERROR "MISSING IN PRODUCTION".
+      //
+      // One `if`, one verdict: any error at all — a missing COLUMN, a timeout, an auth failure,
+      // a blank message — rendered as *"MISSING in production: . Consequence: …"* with a
+      // migration to run. That is the exact law this file's sibling states at the top of
+      // `schema-probe.ts`: **a probe that could not run returns UNKNOWABLE, never "missing"** —
+      // *"reading any error as 'the column is absent' would turn an outage into a confident,
+      // wrong schema verdict."* The #565 class, living on the one page built to end it.
+      //
+      // It cost a real hour on 6 Aug: 14/14 migrations applied and this row still reported the
+      // #343 double-send guard missing. The page even contradicted itself — the replica-count
+      // probe asks the SAME table for a column that exists and printed *"the cron_claims
+      // single-run guard is in place"* four sections further down.
+      //
+      // `isMissingTable` is IMPORTED, never re-implemented: #627 hoisted it out of cron-guard's
+      // inline copy for precisely this reason, and a third copy is how two call sites come to
+      // disagree about what "missing" means.
+      const { isMissingTable } = await import('./schema-probe')
+      if (isMissingTable(error as never)) {
+        return broken(label, `MISSING in production: ${error.message}. Consequence: ${req.why}.`,
+          `Run migration ${req.migration} from Vida → Engine → Database migrations.`)
+      }
+      // NOT a missing table. Say what actually came back and refuse to guess — an empty message
+      // is reported as empty rather than dressed up, because "the database said nothing" is a
+      // different problem from "the table is not there" and only one of them is fixed by a
+      // migration.
+      return unmeasured(label,
+        `Could NOT establish whether this is present — the check errored, and the error is not "no such table": ${error.message || '(the database returned an error with no message)'}. This is NOT evidence it is absent, and it is NOT a pass. Consequence if it IS absent: ${req.why}.`,
+        `Re-run once the database answers. Only run ${req.migration} if a later check actually reports the table missing.`)
     }))
   }
   return { title: 'Database — which migrations are ACTUALLY applied in production', side: 'both', rows }

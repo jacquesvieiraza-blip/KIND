@@ -2,6 +2,17 @@
 
 > **The index of every doc in the repo.** Three tiers: **LIVING** (maintained — must always match code + the locked model), **ARTIFACT** (dated one-offs — frozen, never updated, read as history), **ARCHIVE** (superseded — do not use). If a doc isn't listed here, it isn't tracked — add it.
 > `Last-restructured: 9 Jul 2026` (doc-management reset: status stripped from non-inventory docs, doc-lint firewall added, dead docs archived). Sweep history lives in the KIND-MASTER session log, not here.
+> `Last-reconciled: 11 Aug 2026` — see the box below.
+
+> ### ⚠️ RECONCILED 11 AUG — this page was missing 9 docs and 5 folders, and carried a false price
+> The founder asked whether this map actually held *"all relevant docs and links"*. Audited by script rather than by eye — every `.md`/`.html` in `docs/` compared against every link on this page:
+>
+> - **9 docs existed and were listed nowhere**, including **[`SEND-DAY-RUNBOOK.md`](./SEND-DAY-RUNBOOK.md) — the document the founder executes alone on send-day (A14)**, plus the backup drill, the RLS audit and the seed-wipe plan. All added below.
+> - **5 folders were unlisted**: `marketing/` · `design-reference/` · `mv-previews/` · `reports/` · `assets/`.
+> - **The `run-costs-and-cashflow.md` row said the money model was a `$99` onboarding pack** — it has been **$299 since 3 Aug** (PR1 · #609), and the target doc's own §1 has said `$299` the whole time. **This page was describing a price the repo abandoned five weeks ago.**
+> - ✅ **0 broken links** — every target on the page resolves.
+>
+> **Why it rotted: `DOC-MAP.md` was not in `doc-lint`'s `DOCS[]` list.** That is the identical failure to `sales-playbook.md` on 6 Aug (R11) — the index of every doc was itself unchecked. **Added to the lint in the same commit.** A map nothing verifies is a map that quietly stops matching the territory.
 
 ## How docs stay honest (the freshness system — RULEBOOK §10)
 1. **One owner of truth per fact.** Status → PRODUCT-INVENTORY · today → LAUNCH-PAD · strategy/history → KIND-MASTER · future → V2-TRACKER · pricing → `packages/shared/src/constants/index.ts` mirrored once in `run-costs-and-cashflow.md` §0. A sub-doc may *explain* a fact, never *own* it.
@@ -34,10 +45,21 @@
 ## 🔵 LIVING SUPPORT — maintained; each owns unique content
 *Columns: unique content · update-when trigger.*
 
+### Marketing *(new 11 Aug — #632, the id R6 reserved. Operational docs, not a fifth core doc)*
+| Doc | Unique content | Update when |
+|-----|----------------|-------------|
+| [`marketing/MARKETING-PLAN.md`](./marketing/MARKETING-PLAN.md) | ⭐ **the marketing master** — strategy, the growth loop, the **daily/weekly/monthly action tables**, and the two locks that gate the public half (R1 · R2/R20) | a lock changes · a channel is added/killed · monthly review |
+| [`marketing/README-marketing.md`](./marketing/README-marketing.md) | what each marketing file is for · reading order · revisit cadence | a file is added/retired |
+| [`marketing/founder-led-marketing-system.md`](./marketing/founder-led-marketing-system.md) | the strategy in plain language + the 30-day plan | strategy genuinely changes |
+| [`marketing/beehiiv-setup-checklist.md`](./marketing/beehiiv-setup-checklist.md) | tickable beehiiv build — publication · landing page · welcome sequence · weekly template. ⚠️ carries the two hard rules: **never authenticate the warming domains · never touch `gettingkind.com` MX** | beehiiv setup changes |
+| [`marketing/founder-content-playbook.md`](./marketing/founder-content-playbook.md) | POV · four pillars · **the content bank** · 10 post ideas · newsletter template. Public half 🔒 R2 | R2 lifts · a pillar dies |
+| [`marketing/paid-ads-phase-plan.md`](./marketing/paid-ads-phase-plan.md) | 🔒 gated on R2+R7 — prerequisites · Meta-first reasoning · 4-week test · kill rules | the gates open |
+| [`marketing/marketing-metrics-and-iteration.md`](./marketing/marketing-metrics-and-iteration.md) | the 7 metrics · the Monday review · More→Better→New · kill/double-down rules | a metric is added/dropped |
+
 ### Money & sales
 | Doc | Unique content | Update when |
 |-----|----------------|-------------|
-| [`run-costs-and-cashflow.md`](./run-costs-and-cashflow.md) | **the financial model** — §1 = the locked money model (**one wallet · $99 onboarding pack · then $4 per approved lead**, founder-locked 25 Jul) + real PDL/Hunter unit economics; §16 company ops. *(Corrected 2 Aug: this row said "§0 = the locked per-qualified-lead ladder" — that two-wallet ladder was superseded on 24 Jul and the target doc's own §1 has said so since.)* | pricing · data stack · billing changes |
+| [`run-costs-and-cashflow.md`](./run-costs-and-cashflow.md) | **the financial model** — §1 = the locked money model (**one wallet · $299 onboarding pack, 100 leads included · then $4 per approved lead**) + real PDL/Hunter unit economics; §16 company ops. ⚠️ **CORRECTED 11 Aug: this row said `$99` and called it "founder-locked 25 Jul".** The price was **re-locked to $299 on 3 Aug** (PR1 · #609) and the target doc's own §1 heading has read `$299` ever since — so the index was contradicting the document it indexes. *(Also corrected 2 Aug: it previously said "§0 = the locked per-qualified-lead ladder" — that two-wallet ladder was superseded 24 Jul.)* **The cost floor is `cost-floor.ts`; [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html) wins any disagreement.** | pricing · data stack · billing changes |
 | [`sales-playbook.md`](./sales-playbook.md) | the sales manual — qualification · discovery · objections · proposals (per-lead framing) | agents · pricing · positioning change |
 | [`PARTNER-BRIEF.md`](./PARTNER-BRIEF.md) | partner one-pager — trade playbooks · per-lead pricing · 20%+5% terms | pricing / partner terms change |
 | [`SALARY-BREAKEVEN-PLAN.md`](./SALARY-BREAKEVEN-PLAN.md) | founder break-even on per-lead revenue; retention treadmill | targets · headcount change |
@@ -56,6 +78,10 @@
 | [`RECORDING-SHOOTING-SCRIPT.md`](./RECORDING-SHOOTING-SCRIPT.md) · [`demo-walkthrough-script.html`](./demo-walkthrough-script.html) | recording bible + verbatim demo script | UI / pricing in-script change |
 | [`drafts/`](./drafts/) (3 specs) | positioning hero (LOCKED) · GTM funnel instrumentation (#131) · onboarding V2 | when each ships |
 | [`portal-v2-layout.md`](./portal-v2-layout.md) | Portal V2 layout direction (post-launch) | V2 direction change |
+| [`onboarding-tour-buildplan.md`](./onboarding-tour-buildplan.md) | the onboarding-tour build plan | the tour ships or changes |
+| [`client-onboarding-training.html`](./client-onboarding-training.html) | client onboarding training deck | onboarding flow changes |
+| [`DESIGN-REFERENCE.md`](./DESIGN-REFERENCE.md) + [`design-reference/`](./design-reference/) (12 screenshots) | how K.I.N.D looks — locked 9 Jul; the screenshots are the visual record | a founder-approved redesign lands |
+| [`mv-previews/`](./mv-previews/) (README + 3 flow HTMLs) | the Milla/Vida pivot flow previews | pivot flows change |
 | [`content/`](./content/) (5 packs) | blog posts · LinkedIn playbook · our US/UK outreach pack · video plans | content cadence |
 | [`AFRICA-PLAYBOOK.md`](./AFRICA-PLAYBOOK.md) | Africa GTM — direct-data + partners motion | GTM change |
 | [`art-of-possible.md`](./art-of-possible.md) | inspiration log ("nothing built unless marked") | an idea graduates to a 🔴 item |
@@ -70,6 +96,11 @@
 | [`SMOKE_TEST.md`](./SMOKE_TEST.md) | step-level T1–T10 (reveal-charge aware) | test flow change |
 | [`LIVE-FEATURE-WALK.md`](./LIVE-FEATURE-WALK.md) | the 🩷→🟢 verification checklist (28-Jun snapshot + banner) | as items are walked |
 | [`PINK-WALK-CHECKLIST.md`](./PINK-WALK-CHECKLIST.md) | founder self-walk aid (A–E groups) | as pinks are walked |
+| [`SEND-DAY-RUNBOOK.md`](./SEND-DAY-RUNBOOK.md) | ⭐ **the send-day script (#621 · A14)** — every step the founder executes alone on ~25 Aug, code-verified. *(Was missing from this map entirely — the most execution-critical doc in the repo, unlisted. Added 11 Aug.)* | the send path changes · after each dry-run finding |
+| [`BACKUP-RESTORE-DRILL.md`](./BACKUP-RESTORE-DRILL.md) | the backup/restore drill plan (#298) — the monthly manifest that has never been taken (LAUNCH-PAD's monthly ops row owes it) | the drill runs · backup infra changes |
+| [`RLS-AUDIT.md`](./RLS-AUDIT.md) | RLS verdict per table (#554) — first answered against production 6 Aug via A15: *"No exposed tables. 39 deny-all · 43 scoped · 82 read"* | a table is added · a policy changes |
+| [`SEED-WIPE-PLAN.md`](./SEED-WIPE-PLAN.md) | the seed-data wipe plan (#329) — what demo/seed rows exist and the order they die before real clients | seed data changes · the wipe runs |
+| [`AUDIT-PROMPT.md`](./AUDIT-PROMPT.md) | the deep-audit prompt — pasted when a real audit is wanted; produced the 6-Aug batch (#637–#643) | the audit method improves |
 | [`render-cloudflare-failover.md`](./render-cloudflare-failover.md) · [`portal-admin-failover.md`](./portal-admin-failover.md) | failover runbooks (Render standby + Cloudflare LB) | failover infra change |
 | [`DATA-RESIDENCY-PLAYBOOK.md`](./DATA-RESIDENCY-PLAYBOOK.md) | same-day US/UK go-live runbook (#258) | residency framework change |
 | [`DELIVERABILITY-D9-CHECKLIST.md`](./DELIVERABILITY-D9-CHECKLIST.md) | D9 mail-tester readiness | deliverability change |
@@ -93,6 +124,9 @@
 | [`kind-pitch-deck.html`](./kind-pitch-deck.html) · [`KIND_DECK.html`](./KIND_DECK.html) | pitch decks (point-in-time) |
 | [`previews/`](./previews/) (25) · [`setup-dashboard-preview.html`](./setup-dashboard-preview.html) · [`portal-v2-preview.html`](./portal-v2-preview.html) · [`pwa-mockup.html`](./pwa-mockup.html) | UI mockups / design snapshots |
 | [`MCP-EXPLAINED.html`](./MCP-EXPLAINED.html) | static explainer |
+| [`reports/PRODUCT-AUDIT-1AUG.md`](./reports/PRODUCT-AUDIT-1AUG.md) | the 1-Aug product audit — frozen snapshot; findings live on as inventory items |
+| [`assets/`](./assets/) | doc images (currently one: the 75k you-vs-partner chart) |
+| *this file* — [`DOC-MAP.md`](./DOC-MAP.md) | the index itself. In `doc-lint`'s DOCS list since 11 Aug — an unchecked index is how it carried a five-week-dead price |
 
 ---
 

@@ -112,7 +112,11 @@ KNOWN_DIRTY=(
 # them — which is exactly why a header labelled "PRICING (locked)" sat there quoting the
 # RETIRED ladder for two weeks. A lint that only reads the docs already being maintained
 # checks the ones least likely to be wrong.
-DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md docs/sales-playbook.md docs/client-flow-sop.md docs/CORE-MAP.md docs/TECH-STACK.md docs/ENVIRONMENT.md)
+# ⚠️ WIDENED AGAIN 11 Aug (#632) — the seven marketing docs were added to this list ON THE
+# DAY THEY WERE WRITTEN, not later. Marketing docs are almost entirely price, offer and
+# claim copy, which is the exact category that goes stale, and the 6-Aug lesson above is
+# that an unlinted doc rots unnoticed. They get linted from birth.
+DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md docs/sales-playbook.md docs/client-flow-sop.md docs/CORE-MAP.md docs/TECH-STACK.md docs/ENVIRONMENT.md docs/marketing/MARKETING-PLAN.md docs/marketing/founder-led-marketing-system.md docs/marketing/beehiiv-setup-checklist.md docs/marketing/founder-content-playbook.md docs/marketing/paid-ads-phase-plan.md docs/marketing/marketing-metrics-and-iteration.md docs/marketing/README-marketing.md)
 for f in "${DOCS[@]}"; do
   [ -f "$f" ] || continue
   # ── A FILE MARKED HISTORICAL AT THE TOP IS EXEMT FROM STALE-CLAIM CHECKS ──────

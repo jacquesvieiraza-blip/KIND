@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢96 · 🩷281 · 🟣2 · 🟡45 · 🔴172 · ⏸6 · **Σ602** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢96 · 🩷282 · 🟣2 · 🟡45 · 🔴172 · ⏸6 · **Σ603** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -116,6 +116,7 @@
 
 | # | Item | Owner | When |
 |---|---|---|---|
+| **#632** | **MARKETING — the plan and its daily/weekly/monthly actions now have a home: [`docs/marketing/`](./marketing/README-marketing.md).** Founder-ordered 11 Aug. **Not launch-blocking and deliberately so** — R20 (11 Aug) keeps R2 in force, so the public half ships switched off and **warm outreach runs first**: $0, no ruling needed, and the only channel that can produce a paying client inside 20 days. ⚠️ **Actions live in `MARKETING-PLAN.md` §3, not here** — this row is a pointer, because daily execution for *launch* is what this page governs. ⚠️ **Two rules worth reading before touching beehiiv:** never authenticate the warming domains, never change `gettingkind.com` MX. | 🧍 | **warm outreach: now** · public: gated on client #1 + A11 money walks |
 | B3 | Accountant (~£60–90/mo, compliance-only) | 🧍 | before first revenue |
 | B4 | Track overseas software spend monthly (reverse-charge counts toward the £90k VAT threshold; meter in the cashflow artifact) | 🧍 | monthly |
 | B5 | Banking/FX — Stripe-settle-USD + Wise (~£3/sale) | 🧍 | at ~20 sales/mo |

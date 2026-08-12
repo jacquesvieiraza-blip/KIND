@@ -6,38 +6,24 @@
 
 ---
 
-## 1 · The number that decides everything
+## 1 · The money — four numbers, from the founder's own lab
 
-Every figure below is derived from code constants — `LEAD_PRICE_USD`, `PER_CLIENT_MONTHLY_USD`, `cost-floor.ts` — never typed from memory. Contribution per accepted lead is **$3.17** ($4 − $0.56 PDL − $0.06 work − $0.01 reveal − $0.20 Stripe).
+**`docs/CASHFLOW-LAB.html` is the money model of record (PR6, founder-locked 25 Jul). This section quotes it; it never competes with it.** Drag the lab's two needles to any scenario below and it produces the same four boxes: **Revenue · Cost to deliver · Fixed · Net.**
 
-### 💰 The money model — the founder's frame, which is the correct one *(re-written 12 Aug after "$468" confused him twice — the word "floor" was wrong both times)*
+| Scenario | Revenue / mo | Cost to deliver | Fixed / mo | **Net / month** |
+|---|---:|---:|---:|---:|
+| 10 clients × 20 approvals | $800 | $246 | $352 | **+$202** |
+| 1 client × 200 approvals | $800 | $174 | $352 | **+$274** |
+| 4 clients × 200 | $3,200 | $696 | $352 | **+$2,152** |
+| 10 clients × 200 | $8,000 | $1,740 | $352 | **+$5,908** |
 
-**There is ONE floor: what the company burns with zero clients — $352/mo today, ~$340 once the failover dies (A12).** Everything else is client-funded:
+*Revenue = clients × approvals × $4 · Deliver = approvals × $0.83 + $8/mo per client inbox · Fixed = the lab's floor at its defaults (idle tools $0, the founder's 30-Jul rule). The month Smartlead (+$94) and Hunter (+$34) switch on, type them into the lab's boxes — Net moves by −$128 and nothing else changes. That footnote is the entirety of the "$468" that confused two drafts of this page; the word "floor" for it is retired.*
 
-| | They pay | It costs us | We keep |
-|---|---:|---:|---:|
-| Setup pack | **$299** | ~$134 (their inbox + domain, 200 names sourced, working, Stripe) | **~$165** |
-| Each extra approved lead | **$4** | $0.83 | **$3.17** |
-| Their inbox, ongoing | — | $8/mo | out of their lead flow |
+**The line the strategy hangs on** (pure contribution — no floor in it at all):
 
-Two vendor bills switch on at client #1 and are **paid by client money, never by the founder**: Smartlead ~$94/mo (one account serving ALL clients — one pack's $165 margin covers its first six weeks alone) and Hunter ~$34 in sourcing months. The tables below charge those bills against client revenue — which is why their "net" column is real take-home, not gross.
+> **Taking ONE client from 20 → 200 approvals adds $571/mo. A NEW client at the 20-minimum adds $55/mo. Deepening is worth 10× acquiring.**
 
-| Shape | Gross/mo | **Net/mo** | Net per client |
-|---|---:|---:|---:|
-| 10 clients × 20 accepted | $800 | **+$86** | $9 |
-| 1 client × 200 accepted | $800 | **+$158** | $158 |
-| 4 clients × 200 | $3,200 | **+$2,036** | $509 |
-| 10 clients × 200 | $8,000 | **+$5,792** | $579 |
-
-Same gross in the first two rows. **Nearly double the net, on one tenth the work.** Per-client cost scales with *logos*; contribution scales with *leads*.
-
-Now the line this whole strategy hangs on:
-
-> **Taking ONE existing client from 20 accepted to 200 adds $571/mo.**
-> **Winning a NEW client who accepts 20 adds $55/mo.**
-> **Deepening is worth 10× acquiring.**
-
-**So this is not a normal GTM.** Most plans are 90% acquisition. Ours is two engines, and the second is where the money is.
+Same $800 gross in rows 1 and 2 — nearly $75/mo more net from ONE deep client than from ten shallow ones, on a tenth of the work. Per-client costs scale with logos; contribution scales with approvals.
 
 ---
 

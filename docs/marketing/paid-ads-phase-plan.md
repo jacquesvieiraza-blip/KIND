@@ -169,3 +169,10 @@ Written in advance because in the moment you will want to give a losing ad "one 
 - ✅ Ad budget is money you can lose without it mattering
 
 **Until then this document sits here, finished, costing nothing.** That is its job.
+
+
+---
+
+## Appendix — the Cowork bundle's £400/mo lean plan (absorbed 12 Aug, GATED per R24)
+
+> The parallel session produced a concrete execution plan: **retargeting first, Meta-first, ~£400/mo, three phases** with tracking setup, budget split and guardrails — the same channel order this document already commits to. The full detail is parked verbatim at [`bundle-source/paid-ads-plan.html`](./bundle-source/paid-ads-plan.html). **R24 (12 Aug): parked until revenue — R7 stands.** When §1's prerequisites are all ticked, start from that file; its phase structure slots into §4's four-week test as the Meta execution layer. ⚠️ Its tracking to-do (Meta Pixel + Google tag on the site) is ALSO gated — the site is founder-locked (P12), and a pixel is a website change.

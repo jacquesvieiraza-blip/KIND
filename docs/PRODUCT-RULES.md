@@ -304,6 +304,19 @@ and my next steps.
 
 ---
 
+## 14 · THE 12 AUGUST RULINGS — the Cowork marketing bundle reconciled *(captured same-session, ritual 4b)*
+
+> The founder ran a parallel marketing build in another chat weeks earlier and brought the bundle home. It was verified against this register — the other chat had never read it — and four collisions went to the founder. His answers, verbatim.
+
+| # | Rule | The founder's words | Source | Enforced by |
+|---|---|---|---|---|
+| **R21** | **R1 STANDS — the free-10 is discretionary, personal, and stays OFF the site.** The bundle's public free-10 landing page does not go live as designed; the free offer remains something the founder deploys by hand when luring a specific person. ⚠️ The landing page itself is KEPT (parked in the repo as source material) — the design is good; only the public offer is vetoed. | *"the free offer is my call when i need it. dont change anthing. i am trying to lure people in is all. an attempty"* | 12 Aug | R1 + the `doc-lint` banned-claims list ("no card required" is on it) |
+| **R22** | ⛓️ **THE BRAND HIERARCHY, SETTLED THE OTHER WAY UP: M&V sits UNDER K.I.N.D.** R9 (6 Aug, *"kill it"*) killed the *"K.I.N.D, an M&V company"* framing — M&V on top. The bundle assumed M&V as the public brand (14 mentions). The founder's ruling inverts it: **K.I.N.D leads all public copy; M&V exists as a brand beneath it.** All bundle copy gets re-led with K.I.N.D before use. The 24-Jul M&V logo lock is untouched. | *"M&V is the brand under KIND."* | 12 Aug | `website-step-claims`-class copy tests on the site; marketing docs linted |
+| **R23** | **THE LAUNCH ICP IS GLOBAL** — US/UK primary, agencies & consultancies ~5–30 staff, referral-dependent. Supersedes the UK-only table in `MARKETING-PLAN.md` §1 (now corrected) and aligns with the 25-Jun two-track GTM ruling and the founder's own *"no we go international."* | *"Global"* | 12 Aug | MARKETING-PLAN §1 (corrected this session) |
+| **R24** | **PAID ADS AND THE ACTRESS ARE PARKED UNTIL REVENUE — R7 stands.** The bundle's ~£400/mo plan and on-camera actress wait for the existing gates (client #1+, floor covered, message proven). The plan's detail is merged into the GATED `paid-ads-phase-plan.md` so nothing is lost and nothing is spent. | chose *"Park both until revenue"* | 12 Aug | R7 · the gates in `paid-ads-phase-plan.md` |
+
+---
+
 ## Open — the founder has not ruled on these
 
 Written down rather than assumed, per P9.

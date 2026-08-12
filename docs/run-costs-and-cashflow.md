@@ -291,15 +291,74 @@ The floors above are **rent**: what runs whether or not we are hunting. Finding 
 
 The rest of this doc uses **one** client shape (~$80/mo). Reality is a **range**. Here's the same business run three ways — cautious · expected · optimistic — all on **one blended product**, so you see the floor and the ceiling, not a single guess. **Same 10 logos, same fixed stack — only client behaviour changes.**
 
+### ✅ RE-DERIVED 11 AUG AGAINST $299 + $4 — the banner is discharged
+
+*The 6-Aug banner said every figure here "should be re-derived against $299 + $4 before it is quoted to anyone." That has now been done, from code constants only, and the numbers below replace the retired ladder maths. **The retired model is kept beneath, per the chain rule** — it is not deleted, it is superseded.*
+
+**One dial now, not two.** The ladder had volume × work-attach. The wallet model has **volume, and nothing else**: every approved lead is $4, flat (M2, founder-locked 24 Jul).
+
+#### The per-lead contribution, derived not quoted
+
+| Line | $ | Source |
+|---|---:|---|
+| Approved lead price | **4.00** | `LEAD_PRICE_USD` |
+| − PDL sourcing | −0.56 | $0.28/record × ~2 sourced per approved |
+| − Working the lead | −0.06 | |
+| − Reveal | −0.01 | |
+| − Stripe | −0.20 | `STRIPE_ALL_IN_PCT = 5` |
+| **= Contribution / approved lead** | **3.17** | |
+
+Two costs sit **outside** that figure and are subtracted separately below, because they scale with *logos*, not leads: the client's own inbox at **$8/client/mo** (`PER_CLIENT_MONTHLY_USD`) and the fixed floor at **$352/mo today, $468 once live** (`cost-floor.ts`).
+
+⚠️ **The $299 pack is an onboarding fee, not a monthly line.** It covers the client's **first 100 approvals** (M1: `PACK_PRICE_USD` / `PACK_LEADS`). The envelope below models **steady state** — a client past their included 100, paying $4 a lead. A client's first months are *better* than these numbers, not worse.
+
+#### The envelope — 10 clients, steady state, against the once-live floor
+
+| /mo, 10 clients | 🟦 Conservative | 🟩 Middle | 🟪 Higher |
+|---|---|---|---|
+| Approved leads / client / mo | **20** *(= `MIN_BATCH_APPROVALS`, the gate's floor)* | **45** | **100** *(= `PACK_LEADS`)* |
+| Revenue | $800 | $1,800 | $4,000 |
+| Contribution @ $3.17 | $634 | $1,427 | $3,170 |
+| − Client inboxes (10 × $8) | −$80 | −$80 | −$80 |
+| − Fixed floor (once live) | −$468 | −$468 | −$468 |
+| **NET / mo** | **≈ +$86** | **≈ +$879** | **≈ +$2,622** |
+| Margin on revenue | ~11% | ~49% | ~66% |
+
+⚠️ **The Conservative line is FAR thinner than the retired model claimed.** The old table showed **+$240/mo at ~43% margin** for its cautious case; re-derived at $299 + $4 the true floor case is **+$86/mo at ~11%**. Every scenario is still net-positive at ten clients — but the safety net is roughly **one third** of what this section used to promise, and that gap is the single most important thing the re-derivation changed.
+
+#### Break-even — the number that actually governs
+
+| At | Floor | Approved/mo across the book | Per client |
+|---|---|---|---|
+| 3 clients | $352 (today) | 119 | **39.5 each** |
+| 3 clients | $468 (live) | 155 | **51.7 each** |
+| 10 clients | $352 (today) | 136 | **13.6 each** |
+| 10 clients | $468 (live) | 173 | **17.3 each** |
+
+> **The structural fact this exposes:** at ten clients, break-even is **17.3 approved leads per client per month**, and the product's own hard gate — **`MIN_BATCH_APPROVALS = 20`** — sits *just above it*. A client who does the bare minimum the system will accept clears the floor by a hair. **The gate is not a sales target; it is very nearly the break-even line**, and nothing in the product says so.
+
+#### Why depth beats breadth, in one row
+
+⛓️ *Stated per **R19** (11 Aug) and using its corrected arithmetic — the earlier "ten at 20 loses money" claim was **refuted on 11 Aug** and is not repeated here.*
+
+| Shape | Gross | Contribution | − inboxes | Net vs $468 floor |
+|---|---|---|---|---|
+| **10 clients × 20 approved** | $800 | $634 | −$80 | **+$86** |
+| **1 client × 200 approved** | $800 | $634 | −$8 | **+$158** |
+| **3 clients × 20 approved** | $240 | $190 | −$24 | **−$302** |
+
+**Identical gross, nearly double the net** — because per-client cost scales with logos and contribution scales with leads. And **three clients at the minimum do not come close**: $240 of gross against a $352 floor.
+
+---
+
+<details><summary>⛓️ <b>The RETIRED per-qualified-lead model — kept as the record, superseded 11 Aug. Do not quote.</b></summary>
+
 ### What "blended product" means
-> ⚠️ **RETIRED FRAMING, corrected 6 Aug (R11) — kept because the scenario maths below is still
-> built on it and rewriting the model without re-deriving the numbers would be worse than
-> saying so.** This section modelled the **per-qualified-lead ladder** — $1 to reveal, +$3 to
+> ⚠️ **RETIRED FRAMING, corrected 6 Aug (R11), superseded by the re-derivation above on 11 Aug.**
+> This section modelled the **per-qualified-lead ladder** — $1 to reveal, +$3 to
 > work — which the founder replaced on **24 Jul** with ONE WALLET: the **$299 onboarding pack
 > (100 approved leads included), then a flat $4 per approved lead**. RETIRED: there is no $1 reveal and
-> no separate work charge any more; the "two dials" below are volume and nothing else.
-> **The envelope's shape still holds** — it is a range of monthly approval volumes — but every
-> figure in 8B should be re-derived against $299 + $4 before it is quoted to anyone.
+> no separate work charge any more.
 
 *(Original text, kept as the record:)* No client buys pure $1 reveals *or* pure $4 fully-worked leads — they buy a **MIX**. Two dials set it:
 - **Volume** — how many leads they reveal per month (each costs them **$1**).
@@ -351,6 +410,7 @@ All three beat the healthy **3:1** benchmark — even the cautious floor.
 
 > **One line:** the floor is profitable, the expected case funds the founder conversation at ten logos, and the ceiling is a ~74%-margin machine — all on the same cost base. The work is moving clients *up the blend*, not adding logos.
 
+</details>
 ---
 
 ## 9. GROWTH SHAPE (illustrative — re-based to Month-0 = first paying client)

@@ -312,7 +312,9 @@ Two costs sit **outside** that figure and are subtracted separately below, becau
 
 ⚠️ **The $299 pack is an onboarding fee, not a monthly line.** It covers the client's **first 100 approvals** (M1: `PACK_PRICE_USD` / `PACK_LEADS`). The envelope below models **steady state** — a client past their included 100, paying $4 a lead. A client's first months are *better* than these numbers, not worse.
 
-#### The envelope — 10 clients, steady state, against the once-live floor
+#### The envelope — 10 clients, steady state, with Smartlead + Hunter switched ON
+
+*Basis, stated so it can never confuse again: this table types $94 (Smartlead) and $34 (Hunter) into the lab's fixed boxes and removes the $12 failover — the with-clients month. The lab at its committed defaults (idle tools $0) shows every net $128 higher. Same lab, same formula (`CASHFLOW-LAB.html`, PR6 — the model of record), two settings of its boxes.*
 
 | /mo, 10 clients | 🟦 Conservative | 🟩 Middle | 🟪 Higher |
 |---|---|---|---|

@@ -17,7 +17,7 @@
 | 4 clients × 200 | $3,200 | $696 | $352 | **+$2,152** |
 | 10 clients × 200 | $8,000 | $1,740 | $352 | **+$5,908** |
 
-*Revenue = clients × approvals × $4 · Deliver = approvals × $0.83 + $8/mo per client inbox · Fixed = the lab's floor at its defaults (idle tools $0, the founder's 30-Jul rule). The month Smartlead (+$94) and Hunter (+$34) switch on, type them into the lab's boxes — Net moves by −$128 and nothing else changes. That footnote is the entirety of the "$468" that confused two drafts of this page; the word "floor" for it is retired.*
+*Revenue = clients × approvals × $4 · Deliver = approvals × $0.83 + $8/mo per client inbox, and sourcing is billed at least $98/mo (the PDL tier) whenever sourcing runs — the lab's `max(tier, names)` rule; every scenario above clears it · Fixed = the lab's floor at its defaults (idle tools $0, the founder's 30-Jul rule). The month Smartlead (+$94) and Hunter (+$34) switch on, type them into the lab's boxes — Net moves by −$128 and nothing else changes. That footnote is the entirety of the "$468" that confused two drafts of this page; the word "floor" for it is retired.*
 
 **The line the strategy hangs on** (pure contribution — no floor in it at all):
 
@@ -66,7 +66,7 @@ Control means approving. Depth means approving **200 times a month**. So:
 > **Approval is not a gate. It is the engagement metric — and the revenue.**
 > The thing that differentiates us and the thing that pays us are the *same action*.
 
-That is a rare and strong position, but it inverts badly: **any friction in approving kills the promise and the revenue at once.** If a client finds approving tedious, they drift to the 20-lead minimum, sit near break-even (17.3 at ten clients), hit the 30-day cold check, and suspend.
+That is a rare and strong position, but it inverts badly: **any friction in approving kills the promise and the revenue at once.** If a client finds approving tedious, they drift to the 20-lead minimum, sit near break-even (13.6 approvals/client at ten clients on the lab's defaults; 17.3 the month Smartlead + Hunter run), hit the 30-day cold check, and suspend.
 
 **Therefore the single most important job after a client pays is building an approval habit in week one.** Not onboarding. Not training. Habit.
 
@@ -103,9 +103,9 @@ The mailboxes warm, and **FIGSY starts prospecting agency founders for M&V.** Th
 
 ### Stage 2 · client 4 → client 10 — hire the depth
 
-First hire is **customer success** (R16), because CS *is* Engine 2. At four clients you are at **+$2,036/mo** if they're deep — that funds help.
+First hire is **customer success** (R16), because CS *is* Engine 2. At four clients you are at **+$2,152/mo** if they're deep (lab defaults; −$128 the month Smartlead + Hunter switch on) — that funds help.
 
-### Stage 3 · 10 deep clients — $8,000/mo, +$5,792 net
+### Stage 3 · 10 deep clients — $8,000/mo, +$5,908 net (lab defaults)
 
 The decision point in the hiring plan. **Not 100 clients. Ten, deep.**
 

@@ -155,6 +155,8 @@ This is the part that makes the plan a system instead of a document. **These slo
 
 **Nothing below requires writing anything.** Every post is finished in [`founder-content-playbook.md`](./founder-content-playbook.md) §6b with its link and image already attached; every image is the episode's own artwork, already live on our site — **the feed and the site stay one brand by construction.** The daily D1–D4 block (5 warm messages · log reasons · bank evidence · answer inbound) runs underneath every day and is not repeated in the rows.
 
+⚠️ **R29 (12 Aug, ruled AFTER this calendar was written, and it wins):** the newsletter is **PARKED** (*"beehiv wait. i need to build it"* — the founder builds it himself, when he chooses) and the channel direction is **YouTube** (the DROP as video). So in every row below: **skip the beehiiv build and every "newsletter" cell — do the post only.** The freed Friday/Thursday time goes to the carousels and clips instead. The rows are kept unedited per the chain rule; this note supersedes them.
+
 ### Week 1 · Wed 13 – Sat 16 Aug — exist by Friday
 
 | Day | Do | Asset | Time |

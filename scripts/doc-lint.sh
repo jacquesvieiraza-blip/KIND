@@ -120,7 +120,7 @@ KNOWN_DIRTY=(
 #    "$99 onboarding pack" as the CURRENT money model five weeks after the 3-Aug re-lock —
 #    while correctly describing, in another row, how a different doc had made the same
 #    mistake. The map that catalogues the docs gets linted like one.
-DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md docs/sales-playbook.md docs/client-flow-sop.md docs/CORE-MAP.md docs/TECH-STACK.md docs/ENVIRONMENT.md docs/DOC-MAP.md docs/marketing/MARKETING-PLAN.md docs/marketing/founder-led-marketing-system.md docs/marketing/beehiiv-setup-checklist.md docs/marketing/founder-content-playbook.md docs/marketing/paid-ads-phase-plan.md docs/marketing/marketing-metrics-and-iteration.md docs/marketing/README-marketing.md docs/marketing/voice.md docs/marketing/warm-outreach-kit.md docs/marketing/bundle-source/README.md)
+DOCS=(docs/LAUNCH-PAD.md docs/PRODUCT-INVENTORY.md docs/KIND-MASTER.md docs/V2-TRACKER.md docs/run-costs-and-cashflow.md docs/MILESTONE-0-CHECKLIST.md docs/sales-playbook.md docs/client-flow-sop.md docs/CORE-MAP.md docs/TECH-STACK.md docs/ENVIRONMENT.md docs/DOC-MAP.md docs/marketing/GTM-STRATEGY.md docs/marketing/MARKETING-PLAN.md docs/marketing/founder-led-marketing-system.md docs/marketing/beehiiv-setup-checklist.md docs/marketing/founder-content-playbook.md docs/marketing/paid-ads-phase-plan.md docs/marketing/marketing-metrics-and-iteration.md docs/marketing/README-marketing.md docs/marketing/voice.md docs/marketing/warm-outreach-kit.md docs/marketing/bundle-source/README.md)
 for f in "${DOCS[@]}"; do
   [ -f "$f" ] || continue
   # ── A FILE MARKED HISTORICAL AT THE TOP IS EXEMT FROM STALE-CLAIM CHECKS ──────

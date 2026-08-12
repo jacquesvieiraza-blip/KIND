@@ -13,6 +13,7 @@
 | **3** | [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md) | Tickable build steps: publication, landing page, welcome sequence, weekly template | While you build it. ~3 hours |
 | **4** | [`founder-content-playbook.md`](./founder-content-playbook.md) | POV, four pillars, **the content bank**, weekly rhythm, 10 post ideas, newsletter template | §1–3 today. §5–9 when R2 lifts |
 | **5** | [`paid-ads-phase-plan.md`](./paid-ads-phase-plan.md) | 🔒 Prerequisites, channel choice, 4-week test, kill rules | **Not yet.** When R2 *and* R7 both open |
+| **0** | [`GTM-STRATEGY.md`](./GTM-STRATEGY.md) | ⭐ **THE STRATEGY** — the two engines (acquisition + depth), the 10× arithmetic, the control wedge, evidence-triggered stages, both floors derived in the open | First, and at every stage exit |
 | **7** | [`voice.md`](./voice.md) | ⭐ **THE brand voice** — locked facts, banned words, pillars, output specs, the DROP Show. Absorbed 12 Aug from the Cowork bundle (R21–R24). Anything that writes public copy reads this first | Before writing any public word |
 | **8** | [`warm-outreach-kit.md`](./warm-outreach-kit.md) | The actual messages — openers, follow-ups, referral ask (personal, free-10 allowed) + 3 brand posts (public, free-10 CTA removed per R21) | This week, when sending |
 | **9** | [`bundle-source/`](./bundle-source/README.md) | ⚠️ HISTORICAL — the raw Cowork bundle, parked. Includes the free-10 landing page (R21-parked) and the DNS warning | Only when reviving a parked piece |

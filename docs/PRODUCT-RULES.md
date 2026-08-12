@@ -315,6 +315,9 @@ and my next steps.
 | **R23** | **THE LAUNCH ICP IS GLOBAL** — US/UK primary, agencies & consultancies ~5–30 staff, referral-dependent. Supersedes the UK-only table in `MARKETING-PLAN.md` §1 (now corrected) and aligns with the 25-Jun two-track GTM ruling and the founder's own *"no we go international."* | *"Global"* | 12 Aug | MARKETING-PLAN §1 (corrected this session) |
 | **R24** | **PAID ADS AND THE ACTRESS ARE PARKED UNTIL REVENUE — R7 stands.** The bundle's ~£400/mo plan and on-camera actress wait for the existing gates (client #1+, floor covered, message proven). The plan's detail is merged into the GATED `paid-ads-phase-plan.md` so nothing is lost and nothing is spent. | chose *"Park both until revenue"* | 12 Aug | R7 · the gates in `paid-ads-phase-plan.md` |
 
+| **R25** | **DAY 1 A CLIENT USES THE SYSTEM — FULL STOP. #550 IS UN-PARKED.** The month-one rented Smartlead box is the sending path for every new client while their own box warms (~day 29 switch), and *"whatever is needed to unlock the smartlead connection is needed."* The unlock has two halves: **🧍 the founder buys the Smartlead plan WITH API access + sets `SMARTLEAD_API_KEY` in Railway** (the current key 401s — key or plan tier is the blocker), and **🤖 the code side is built and red-proved NOW with mocks** so the day the key goes live it is turn-key: buy/assign the pooled pre-warmed box → push month-one approvals through Smartlead → day-29 switch to the client's own Google box on our engine (the 1-Jul onboarding lock, unchanged). ⚠️ **Purchase timing keeps R7 intact: the plan is bought THE DAY A CLIENT IS IN THE WORKS, before they pay** — day 1 works, and no $94/mo leaks pre-revenue. | *"fuck. i thought we settled this. day 1 a client needs to use the system. full stop. so whatever is needed to unlock the smartlead connection is needed. the rented box works."* | 12 Aug | the System page's "Smartlead — is it answering?" probe goes green the day the key works |
+| **R26** | **#444 SETTLED THE SAME WAY: the PDL $98/mo tier (~350 names), bought THE SAME DAY as Smartlead — the day a client is in the works.** A new client's pack sources 200 names on day 1, which no free key covers, so the tier is part of the same day-1 promise. Until that day the existing key stays as-is and months with no sourcing cost $0. The A17 spend cap ($100/mo) already fences it. The lab's `max($98, names × $0.28)` line is now the RULED billing model, not an assumption. | *"and 2 - what the fuck. i thought we settled this too. so lets settle PDL too"* — settled with the same one trigger | 12 Aug | `app_settings.pdl_monthly_cap_usd` (A17) + the lab's pdl-floor box |
+
 ---
 
 ## Open — the founder has not ruled on these
@@ -329,7 +332,7 @@ Written down rather than assumed, per P9.
 - **Does VAT evidence gate anything BEYOND onboarding?** (#615) — deliberately not taken in code.
 - **Is 50 the right lead-desk window, or should the panel page?** (#570) — *"a founder call, not code"*, and the only thing keeping that row 🟡.
 - **The share-link generator** (#560) — retiring it would break links clients have already sent.
-- **A paid PDL plan** (#444) — *"founder money call, pending."*
+- ~~**A paid PDL plan** (#444)~~ — **RULED 12 Aug (R26): the $98/mo tier, bought the day a client is in the works.**
 - **Instantly Growth mailbox cap — UNVERIFIED.** "Unlimited warmup" is our own 26-Jul research note, not a vendor confirmation. If Growth caps warmed mailboxes, that cap is the client ceiling and nothing in the product would warn us. One founder glance before client #1.
 - **Where this page lives.** It is a *product* rules page, so it does not clash with the four-doc status contract — but the founder may want it merged into `RULEBOOK.md` instead of standing alone.
 

@@ -147,11 +147,13 @@ Written for a founder with no audience — every one works at 40 followers.
 
 ⚠️ **Two rules that govern every post here.** ① **No claim that our system found the reader** — it has not sent anything yet (**R27**, 12 Aug: the homepage's version of that claim stays, but new copy must not repeat it). ② **No results, no stats, no client names** — we have none verified, and an unverified number is a future correction (R11).
 
-⚠️ **Check the links before the first post.** The pattern is `https://get-kind.com/drop-0N.html`, taken from how `the-drop.html` links to its own episodes. **I could not open the live site from the build environment** (the agent proxy refuses our own domains), so click one before you paste — a broken link in a launch post is an own goal.
+⚠️ **The links are now concrete and in the CLEAN form — `https://get-kind.com/drop-02`, no `.html`.** Verified against the site's own server (`apps/website/server.js`: `extensions: ['html']` serves `/drop-02` → `drop-02.html`; the retired-pages map is empty since 1 Aug, so every episode routes). The first draft of this section gave a *pattern* with an `N` in it instead of real links — that is what "the link does not work" was (founder, 12 Aug). Every post below now carries its real URL and its real image. **One human click on the first link before the first post** — the container cannot reach our own domain, so the final click is yours.
 
 ---
 
-### 1 · The hour you never get back · *Pillar: Problem* · → `/drop-02.html`
+### 1 · The hour you never get back · *Pillar: Problem* · → `https://get-kind.com/drop-02`
+
+**Attach:** [`gen-drop-02-hero.png`](https://get-kind.com/gen-drop-02-hero.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > The sharpest hour of your day is going into list-building.
 >
@@ -165,13 +167,15 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > The fix is not working harder at the top of the funnel. It is not being the one who does that part.
 >
-> We wrote the whole thing up here: [link]
+> We wrote the whole thing up here: https://get-kind.com/drop-02
 >
 > #agencygrowth #leadgeneration #outbound
 
 ---
 
-### 2 · Every reply, answered · *Pillar: Problem → Mechanism* · → `/drop-05.html`
+### 2 · Every reply, answered · *Pillar: Problem → Mechanism* · → `https://get-kind.com/drop-05`
+
+**Attach:** [`gen-drop-05-f0.png`](https://get-kind.com/gen-drop-05-f0.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > A prospect is at their warmest the second they hit send.
 >
@@ -185,13 +189,15 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > So the answer is not a faster human. It is something that never stops watching the inbox, drafts the reply, and hands it to a human to approve.
 >
-> Full piece: [link]
+> Full piece: https://get-kind.com/drop-05
 >
 > #b2bsales #agencygrowth #outbound
 
 ---
 
-### 3 · Pay for results, not promises · *Pillar: Proof & POV* · → `/drop-03.html`
+### 3 · Pay for results, not promises · *Pillar: Proof & POV* · → `https://get-kind.com/drop-03`
+
+**Attach:** [`gen-drop-03-hero.png`](https://get-kind.com/gen-drop-03-hero.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > Most sales tools bill you the same whether they work or not.
 >
@@ -203,13 +209,15 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > That is not generosity. It is the only honest position for anyone claiming their outreach is any good.
 >
-> Here is the argument in full: [link]
+> Here is the argument in full: https://get-kind.com/drop-03
 >
 > #b2bsales #leadgeneration #consultancy
 
 ---
 
-### 4 · Why your emails never arrived · *Pillar: Problem* · → `/drop-04.html`
+### 4 · Why your emails never arrived · *Pillar: Problem* · → `https://get-kind.com/drop-04`
+
+**Attach:** [`gen-drop-04-hero.png`](https://get-kind.com/gen-drop-04-hero.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > You can write the perfect email to the perfect prospect and still lose.
 >
@@ -223,13 +231,15 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > Deliverability is infrastructure, not wording. Warmed mailboxes, sane volumes, clean data, proper authentication. Unglamorous, and it decides everything that happens after.
 >
-> We wrote up what actually causes it: [link]
+> We wrote up what actually causes it: https://get-kind.com/drop-04
 >
 > #outbound #b2bsales #leadgeneration
 
 ---
 
-### 5 · Your data is lying to you · *Pillar: Problem* · → `/drop-07.html`
+### 5 · Your data is lying to you · *Pillar: Problem* · → `https://get-kind.com/drop-07`
+
+**Attach:** [`gen-drop-07-hero.png`](https://get-kind.com/gen-drop-07-hero.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > Most pipelines run on numbers nobody actually checks.
 >
@@ -243,13 +253,15 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > A prospect was contacted. A human replied. A meeting exists in a calendar. Everything else is decoration.
 >
-> More here: [link]
+> More here: https://get-kind.com/drop-07
 >
 > #b2bsales #agencygrowth #consultancy
 
 ---
 
-### 6 · Compliant by default, not by accident · *Pillar: Mechanism* · → `/drop-08.html`
+### 6 · Compliant by default, not by accident · *Pillar: Mechanism* · → `https://get-kind.com/drop-08`
+
+**Attach:** [`gen-drop-08-f0.png`](https://get-kind.com/gen-drop-08-f0.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > For a regulated business, outbound is a minefield.
 >
@@ -263,13 +275,15 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > Do that and compliance stops being the thing you hope holds up. It becomes the thing that is true whether or not anyone is watching.
 >
-> The full breakdown: [link]
+> The full breakdown: https://get-kind.com/drop-08
 >
 > #outbound #consultancy #b2bsales
 
 ---
 
-### 7 · Filling roles while you sleep · *Pillar: Problem* · → `/drop-01.html` · ⚠️ **recruitment**
+### 7 · Filling roles while you sleep · *Pillar: Problem* · → `https://get-kind.com/drop-01` · ⚠️ **recruitment**
+
+**Attach:** [`gen-drop-01-hero.png`](https://get-kind.com/gen-drop-01-hero.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > The candidate who is perfect for the role is browsing jobs at 9pm.
 >
@@ -281,7 +295,7 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > Speed is the whole product in recruitment, and speed is exactly what a human working office hours cannot give you.
 >
-> More on how we think about it: [link]
+> More on how we think about it: https://get-kind.com/drop-01
 >
 > #leadgeneration #outbound
 
@@ -289,7 +303,9 @@ Written for a founder with no audience — every one works at 40 followers.
 
 ---
 
-### 8 · From cold list to booked viewing · *Pillar: Problem* · → `/drop-06.html` · ⚠️ **property**
+### 8 · From cold list to booked viewing · *Pillar: Problem* · → `https://get-kind.com/drop-06` · ⚠️ **property**
+
+**Attach:** [`gen-drop-06-f0.png`](https://get-kind.com/gen-drop-06-f0.png) — the episode's own artwork, so the feed and the site look like one brand. Save it from that URL and upload it native.
 
 > Most property teams sit on a list of names they know they should call.
 >
@@ -301,7 +317,7 @@ Written for a founder with no audience — every one works at 40 followers.
 >
 > Nothing about that is a motivation problem. It is arithmetic: the work that pays this month always beats the work that pays next quarter, until something else is doing the second job.
 >
-> Written up here: [link]
+> Written up here: https://get-kind.com/drop-06
 >
 > #leadgeneration #outbound
 

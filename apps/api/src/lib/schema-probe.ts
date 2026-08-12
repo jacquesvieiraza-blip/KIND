@@ -70,6 +70,23 @@ export function isMissingTable(error: DbError): boolean {
 export const MISSING_COLUMN_CODES = ['42703', 'PGRST204'] as const
 
 /**
+ * Postgres + PostgREST codes for "no such function".
+ *
+ * #383 — ADDED 12 Aug, AND THE REASON IS THE WHOLE POINT OF THIS FILE. The atomic send-counter
+ * RPC `increment_figsy_emails_sent` was written as a .sql file on 10 Jul, never added to
+ * PENDING_MIGRATIONS, and therefore never created in production — for a month. Nothing caught
+ * it because this probe could ask "does this TABLE exist" and "does this COLUMN exist" and had
+ * no way to ask "does this FUNCTION exist". A missing function is exactly as silent as a
+ * missing column and exactly as expensive: the send path fell through to a racy fallback and
+ * undercounted every campaign.
+ *
+ * `42883` is Postgres `undefined_function`. `PGRST202` is PostgREST failing to find the
+ * function in its schema cache — the same shape as the `PGRST205` table miss that the
+ * founder's own `app_settings` failure produced, which is why the message path matters too.
+ */
+export const MISSING_FUNCTION_CODES = ['42883', 'PGRST202'] as const
+
+/**
  * Turn a supabase-js error into a verdict.
  *
  * PURE, because this is the whole judgement and it must be provable without a database —
@@ -81,7 +98,7 @@ export const MISSING_COLUMN_CODES = ['42703', 'PGRST204'] as const
  * question as `unknowable` after a dependency bump would be useless in exactly the quiet way
  * this file exists to avoid. Codes first, wording second, and anything else is unknowable.
  */
-export function classifyProbeError(error: DbError, kind: 'table' | 'column'): ProbeResult {
+export function classifyProbeError(error: DbError, kind: 'table' | 'column' | 'function'): ProbeResult {
   if (!error) return { verdict: 'exists', detail: null, code: null }
 
   const code = (error.code ?? '').trim()
@@ -94,6 +111,21 @@ export function classifyProbeError(error: DbError, kind: 'table' | 'column'): Pr
   const missingColumn =
     (MISSING_COLUMN_CODES as readonly string[]).includes(code) ||
     /column .* does not exist|could not find the '.*' column/i.test(message)
+
+  const missingFunction =
+    (MISSING_FUNCTION_CODES as readonly string[]).includes(code) ||
+    /function .* does not exist|could not find the function/i.test(message)
+
+  // #383 — a function probe answers only the function question. It deliberately does NOT
+  // fall through to the table/column branches: an RPC that fails because a table inside it is
+  // gone is a different fault from the function being absent, and reporting "run the migration
+  // that creates this function" when the function exists would send someone to fix the wrong
+  // thing. Anything that is not unambiguously "no such function" drops to unknowable below.
+  if (kind === 'function') {
+    return missingFunction
+      ? { verdict: 'missing', detail: message, code: code || null }
+      : { verdict: 'unknowable', detail: message, code: code || null }
+  }
 
   // A column probe on a table that is itself absent answers the column question too — the
   // column cannot exist. Reported as missing with the table's error attached, because "the

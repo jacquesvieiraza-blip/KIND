@@ -879,12 +879,36 @@ export async function sendSequenceEmail(
     // so the fallback only runs on a genuine RPC failure.
     const { error: rpcErr } = await db.rpc('increment_figsy_emails_sent', { campaign_id: campaignId })
     if (rpcErr) {
-      const { data } = await db.from('figsy_campaigns')
-        .select('emails_sent').eq('id', campaignId).single()
-      if (data) {
-        await db.from('figsy_campaigns')
-          .update({ emails_sent: ((data as { emails_sent?: number }).emails_sent ?? 0) + 1 })
-          .eq('id', campaignId)
+      // #383 — THE FALLBACK NO LONGER INCREMENTS; IT RECOMPUTES.
+      //
+      // It used to read `emails_sent` and write back `+1`. That is a read-then-write race:
+      // two sends running concurrently both read N and both write N+1, so two emails move
+      // the counter by one. The RPC above was written on 10 Jul to make this atomic — but it
+      // was never added to PENDING_MIGRATIONS, so it has never existed in production and
+      // THIS path has run for every send since. The counter has been undercounting silently.
+      //
+      // Counting the send log is race-free by construction: `figsy_sent_emails` already has
+      // one row per send (inserted above, gated on emailId), so the count IS the truth and
+      // recomputing it is idempotent — concurrent writers converge instead of colliding. It
+      // also structurally enforces this function's own stated invariant, that the counter
+      // "can never exceed the send log", rather than hoping arithmetic keeps them in step.
+      const { count, error: countErr } = await db.from('figsy_sent_emails')
+        .select('id', { count: 'exact', head: true }).eq('campaign_id', campaignId)
+
+      // #349 — CHECKED, NOT SWALLOWED. The old code ignored the update's error entirely, so
+      // a failed counter write was indistinguishable from a successful one. A wrong number on
+      // a client's dashboard must be loud: we would rather leave the counter stale and say so
+      // than write a figure nobody can trust.
+      if (countErr || count === null) {
+        console.error('[figsy] SEND COUNTER NOT UPDATED — the email WAS sent, the counter was not:',
+          campaignId, countErr?.message ?? 'no count returned')
+      } else {
+        const { error: setErr } = await db.from('figsy_campaigns')
+          .update({ emails_sent: count }).eq('id', campaignId)
+        if (setErr) {
+          console.error('[figsy] SEND COUNTER NOT UPDATED — the email WAS sent, the counter was not:',
+            campaignId, setErr.message)
+        }
       }
     }
   }

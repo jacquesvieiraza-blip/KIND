@@ -7,7 +7,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import {
   Sparkles, CalendarCheck, Target, FileBarChart, LogOut, TrendingUp, LineChart, Gem, Crosshair, Workflow, GraduationCap,
-  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown,
+  LayoutGrid, Users, Star, User, CreditCard, Gauge, FileText, Gift, ChevronDown, MessageSquare,
 } from 'lucide-react'
 
 // #490/#510 — the Milla client shell (docs/mv-previews/milla2.html): slim top bar (brand +
@@ -158,6 +158,12 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
             {link('/milla/pipeline', 'Pipeline', Workflow, pathname.startsWith('/milla/pipeline'))}
             {link('/milla/meetings', 'Meetings', CalendarCheck, pathname.startsWith('/milla/meetings'), s?.meetings_booked || undefined)}
             {link('/milla/campaign', 'My campaign', Target, pathname.startsWith('/milla/campaign'))}
+            {/* #644 — THE RAIL HAD NO WAY TO REACH A REPLY. The client could see that a
+                prospect had replied (the Recent replies list below) and could not open it:
+                that list was plain text, and no rail entry led anywhere near the inbox. The
+                reply is the outcome the client is paying for, so it gets a permanent home
+                here, badged with the same live count the list is built from. */}
+            {link('/milla/replies', 'Replies', MessageSquare, pathname.startsWith('/milla/replies'), s?.recent_replies?.length || undefined)}
             {/* #512 ICP approval + Documents were reachable only from a single link on the
                 home page / the account menu — they are part of the client's actual workspace
                 (approve the plan, keep their material current), so they belong in the rail. */}
@@ -172,11 +178,18 @@ export function MillaShell({ children }: { children: React.ReactNode }) {
           {section('Recent replies')}
           <div className="px-1">
             {s && s.recent_replies.length === 0 && <div className="text-[12.5px] text-[#b3a9cc] px-2 py-1">No replies yet.</div>}
+            {/* #644 — THESE WERE <div>s. Not styled-to-look-unclickable — actually inert: no
+                Link, no href, no onClick, no route. A client saw "someone replied · interested"
+                and had nowhere to press. Now every entry opens the reply screen. */}
             {(s?.recent_replies ?? []).map((r, i) => (
-              <div key={i} className="flex items-start gap-2 px-2 py-1.5 text-[13px]">
+              <Link
+                key={i}
+                href="/milla/replies"
+                className="flex items-start gap-2 px-2 py-1.5 text-[13px] rounded-lg hover:bg-[#f6f1ff] transition-colors"
+              >
                 <Star className="w-3.5 h-3.5 text-[#EC4899] shrink-0 mt-0.5" />
                 <div className="min-w-0"><b className="font-bold">{r.name}</b> <span className="text-[#9b8ec4]">· {REPLY_TONE[r.classification] ?? r.classification}</span></div>
-              </div>
+              </Link>
             ))}
           </div>
           <div className="mt-auto pt-4 text-[12px] text-[#b3a9cc] px-2 leading-relaxed">We run your outbound. You just approve the leads worth pursuing.</div>

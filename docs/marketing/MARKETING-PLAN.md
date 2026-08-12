@@ -36,7 +36,7 @@ Written down, cited by date, because a plan that quietly walks through a lock is
 
 ⚠️ **Your own M&V playbook contradicts this and it predates the ruling.** Section 06 calls the free-10 *"Locked: one free allocation of 10 researched prospects inside Milla"* and Section 03 says *"run all channels into the same entry offer."* **R1 (6 Aug) narrows that.** The playbook is not wrong — it was written first. R1 wins.
 
-**How this plan honours both:** the **public** magnet is the newsletter. The **free-10 stays the sales tool** — offered by you, in a reply or a call, to a named person. That is R1 read exactly as written, and it costs nothing: a stranger who signs up to a newsletter is not a client, and the free-10 was never meant to convert strangers.
+**How this plan honours both:** ⛓️ *this read "the public magnet is the newsletter" — corrected 12 Aug, R29: the newsletter is parked.* **The public magnet is the LinkedIn company page feeding the site.** The **free-10 stays the sales tool** — offered by you, in a reply or a call, to a named person. That is R1 read exactly as written, and it costs nothing: a stranger who signs up to a newsletter is not a client, and the free-10 was never meant to convert strangers.
 
 ### Two more, smaller
 
@@ -59,7 +59,7 @@ Written down, cited by date, because a plan that quietly walks through a lock is
 | **LinkedIn company page** | ✅ **LIVE** *(founder-confirmed 12 Aug)* | R2 permits the company page. **An empty company page reads as a dead company** — filling it is the single highest-leverage credibility action available, and it is free and ungated |
 | **The message** | ✅ **CONSISTENT** | Site H1 *"We find your leads. You approve. That's it."* = the GTM wedge = `voice.md`'s one-liner. Site, strategy and voice agree — **do not rewrite it, reuse it** |
 | **Social proof** | ✅ **CLEAN** | Checked 12 Aug: **no invented testimonials, no fake logos, no unbacked stats.** Whatever credibility gets built here is real |
-| **beehiiv newsletter** | 🔴 **NOT BUILT** | Entry tier $0. ~3 hours: [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md). **The only owned audience surface we lack** |
+| **beehiiv newsletter** | ⏸ **PARKED (R29, 12 Aug)** | *"beehiv wait. i need to build it."* The founder builds it if and when he chooses. **Nothing in this plan schedules it, and no CTA points at it.** The channel direction is **YouTube** — the DROP as video |
 | **Anything ever sent** | 🔴 **ZERO** | Send-day ~25 Aug. See **R27** — the homepage's "our own system found you" claim is false until then, the founder has ruled the site unchanged, and **new copy must not repeat it** |
 
 ### 🎯 The existence list — in order, all free, none gated by R2/R7
@@ -70,13 +70,13 @@ Written down, cited by date, because a plan that quietly walks through a lock is
 | **2** | **Build beehiiv** (~3 hrs, $0) | It is the CTA `voice.md` mandates for public posts, and the one audience we would own rather than rent | 🧍 |
 | **3** | **Warm outreach continues underneath both** — 5 named people a day | It is the only channel that can pay this month. Steps 1–2 exist so that when they check us, we are there | 🧍 |
 
-⚠️ **Order matters and it is not obvious:** posting comes before the newsletter because the page is already live and empty, and empty is actively worse than absent. **Nothing here needs R2 lifted** — every action is brand-voiced on a company page, which R2 explicitly permits.
+⚠️ **Order matters and it is not obvious:** posting comes first because the page is already live and empty, and empty is actively worse than absent. *(The newsletter step that used to sit second here is **parked** — R29.)* **Nothing here needs R2 lifted** — every action is brand-voiced on a company page, which R2 explicitly permits.
 
 ---
 
 ## 1 · The strategy in one paragraph
 
-You are pre-revenue with almost no traffic, and the thing you sell — a pipeline you did not have to build yourself — is **easiest to prove by doing it, not describing it.** So the system is: **be useful in public (or in private, per R2), collect emails into one place you own, and make the ask personally.** The newsletter is the asset that compounds; the warm list is what pays this month. Paid ads buy more of a message that is already working — never before.
+You are pre-revenue with almost no traffic, and the thing you sell — a pipeline you did not have to build yourself — is **easiest to prove by doing it, not describing it.** So the system is: **be useful in public (or in private, per R2), collect emails into one place you own, and make the ask personally.** ⛓️ *This read "the newsletter is the asset that compounds" — corrected 12 Aug (R29).* **The company page and the site are the compounding assets; the warm list is what pays this month.** Paid ads buy more of a message that is already working — never before.
 
 **One audience. One painful problem. One entry offer. One conversion path.** *(Your playbook's own opening line, and it is right.)*
 
@@ -85,7 +85,7 @@ You are pre-revenue with almost no traffic, and the thing you sell — a pipelin
 | **Market** | **GLOBAL — US/UK primary** (R23, 12 Aug: *"Global"*; supersedes the UK-only row that stood here) · agencies and consultancies, 5–30 staff, referral-dependent |
 | **Problem** | Senior people are split between billable delivery and business development |
 | **Outcome** | More qualified conversations, a more predictable pipeline |
-| **Public magnet** | The **newsletter** — a weekly, short, specific email |
+| **Public magnet** | The **LinkedIn company page** → the site. ⛓️ *Was "the newsletter"; parked 12 Aug, R29* |
 | **Sales offer** | *"Want me to run your first 10?"* — **by you, to a named person** (R1) |
 | **Conversion** | Review the 10 in Milla → activate → $299 pack, then $4 per approved lead |
 | **Improve** | More → Better → New, in that order |
@@ -132,7 +132,7 @@ This is the part that makes the plan a system instead of a document. **These slo
 
 | # | Action | Why | Owner | When |
 |---|---|---|---|---|
-| W1 | **Send the newsletter + the DROP Show post** (Problem → Impact → Solution → ROI — the week's anchor, absorbed 12 Aug) | Consistency beats brilliance. Missing a week costs more than a weak issue | 🧍 | Thu (pick one, never move it) |
+| W1 | **The two weekly posts — Tue + Thu** (R31). Thursday is the **DROP anchor**: Problem → Impact → Solution → ROI. ⛓️ *Read "send the newsletter + the DROP post" until 12 Aug; the newsletter is parked (R29) and the cadence is now two posts* | Consistency beats brilliance. Missing a week costs more than a weak post | 🧍 | Tue + Thu (never moved) |
 | W2 | **Write next week's issue from the bank** | 45 min if the bank is fed; 3 hours if it isn't | 🧍 | Sat block |
 | W3 | **Top up the warm list to 100 live names** | The list is consumed by D1 — it must be refilled | 🧍 | Sat block |
 | W4 | **The weekly review** — [`marketing-metrics-and-iteration.md`](./marketing-metrics-and-iteration.md) | Decide what changes. Nothing changes mid-week | 🧍 | Mon, 20 min |
@@ -148,6 +148,7 @@ This is the part that makes the plan a system instead of a document. **These slo
 | M3 | **Prune the list** — remove hard bounces and 90-day non-openers | A list you don't clean is a deliverability problem waiting | 🧍 | monthly |
 | M4 | **Check marketing spend against the cost floor** | The floor is **$352/mo** (the lab's fixed boxes at its defaults). beehiiv's entry tier is $0 — keep it that way until revenue | 🧍 | monthly, with CFO hat |
 | M5 | **One conversation with a non-buyer** — why not? | The most valuable 20 minutes in the month | 🧍 | monthly |
+| **M6** | **THE MONTHLY STATS POST** (R31) — the one recurring slot allowed to carry numbers. ⚠️ **Every figure must come from the founder or from Claude Code as a fact (R30). The marketing Project never generates, computes or estimates a number** | Real numbers are the one thing competitors cannot copy — and the one thing a made-up number destroys permanently | 🧍 supplies/asks 🤖 · Project writes it | monthly, one post |
 
 ---
 
@@ -155,7 +156,9 @@ This is the part that makes the plan a system instead of a document. **These slo
 
 **Nothing below requires writing anything.** Every post is finished in [`founder-content-playbook.md`](./founder-content-playbook.md) §6b with its link and image already attached; every image is the episode's own artwork, already live on our site — **the feed and the site stay one brand by construction.** The daily D1–D4 block (5 warm messages · log reasons · bank evidence · answer inbound) runs underneath every day and is not repeated in the rows.
 
-⚠️ **R29 (12 Aug, ruled AFTER this calendar was written, and it wins):** the newsletter is **PARKED** (*"beehiv wait. i need to build it"* — the founder builds it himself, when he chooses) and the channel direction is **YouTube** (the DROP as video). So in every row below: **skip the beehiiv build and every "newsletter" cell — do the post only.** The freed Friday/Thursday time goes to the carousels and clips instead. The rows are kept unedited per the chain rule; this note supersedes them.
+**THE RULED CADENCE (R31, 12 Aug): two posts a week — Tuesday and Thursday — plus ONE stats post a month.** Thursday is the DROP anchor. The monthly stats post is the only recurring slot that may carry numbers, and every number in it comes from the founder or from Claude Code as a fact (**R30**) — the marketing Project never generates one.
+
+⚠️ **The newsletter is PARKED (R29)** — *"beehiv wait. i need to build it."* The rows below were written before that ruling; their newsletter and beehiiv cells have been struck through in place per the chain rule. The freed time goes to carousels and clips.
 
 ### Week 1 · Wed 13 – Sat 16 Aug — exist by Friday
 
@@ -163,8 +166,8 @@ This is the part that makes the plan a system instead of a document. **These slo
 |---|---|---|---|
 | **Wed 13** | **Dress the LinkedIn page** (it is live — make it look alive): banner = `mv-milla-portal.png` from the site · tagline = the site H1 *"We find your leads. You approve. That's it."* · about = `voice.md`'s one-liner. Then **paste POST 1** (*The hour you never get back*) | `gen-drop-02-hero.png` + `get-kind.com/drop-02` | 30 min |
 | **Thu 14** | **POST 2** (*Every reply, answered*) — Thursday is the anchor day (W1) and stays the anchor day forever | `gen-drop-05-f0.png` + `get-kind.com/drop-05` | 10 min |
-| **Fri 15** | **Build beehiiv** — [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md). ⚠️ Sending domain = `news.get-kind.com` or beehiiv's own — **never** `kindoutreach.com`/`trykind.org` (the warming ladder), never touch `gettingkind.com` MX | — | ~3 hrs |
-| **Sat 16** | W2 + W3: draft newsletter #1 from the bank · top the warm list back to 100 | — | Sat block |
+| **Fri 15** | ~~Build beehiiv~~ **PARKED (R29)** — the founder builds it if and when he chooses. **Instead: produce a carousel** (8 slides, spec in `voice.md`) | carousel | 30 min |
+| **Sat 16** | W2 + W3: ~~draft newsletter #1~~ → **bank next week's two posts** from the reply reasons · top the warm list back to 100 | — | Sat block |
 
 ### Week 2 · Mon 18 – Sat 23 Aug — add the moving pictures
 
@@ -172,7 +175,7 @@ This is the part that makes the plan a system instead of a document. **These slo
 |---|---|---|---|
 | **Mon 18** | W4 review (20 min). Then **preview `get-kind.com/figsy.mp4`** — a ~0.9MB clip that sits on the site linked from nowhere. Good? **Post it native** with one line: *"This is FIGSY researching a prospect."* Not good? Skip — clip 1 replaces it Friday | `figsy.mp4` | 30 min |
 | **Tue 19** | **POST 3** (*Pay for results, not promises*) | `gen-drop-03-hero.png` + `get-kind.com/drop-03` | 10 min |
-| **Thu 21** | **POST 4** (*Why your emails never arrived*) + **send newsletter #1** (welcome + the same piece — one idea, two surfaces, zero extra writing) | `gen-drop-04-hero.png` + `get-kind.com/drop-04` | 30 min |
+| **Thu 21** | **POST 4** (*Why your emails never arrived*) ~~+ send newsletter #1~~ (parked, R29) | `gen-drop-04-hero.png` + `get-kind.com/drop-04` | 10 min |
 | **Fri 22** | **Record CLIP 1 — the approve moment.** 30–60s silent screen capture of Milla: lead card → 👍 → "in sequence". Caption overlay, no face, no voice (R2), **no claim anything was sent** (R27). This is the demo-video programme: one clip a week, the product doing the thing the posts describe | your screen | 30 min |
 | **Sat 23** | W2 + W3 | — | Sat block |
 
@@ -182,7 +185,7 @@ This is the part that makes the plan a system instead of a document. **These slo
 |---|---|---|---|
 | **Mon 25** | W4 review. *(A14 send-day is product-side — the calendar's only job this week is to keep publishing while it happens)* | — | 20 min |
 | **Tue 26** | **POST 5** (*Your data is lying to you*) | `gen-drop-07-hero.png` + `get-kind.com/drop-07` | 10 min |
-| **Thu 28** | **POST 6** (*Compliant by default*) + **newsletter #2** | `gen-drop-08-f0.png` + `get-kind.com/drop-08` | 30 min |
+| **Thu 28** | **POST 6** (*Compliant by default*) ~~+ newsletter #2~~ (parked, R29) | `gen-drop-08-f0.png` + `get-kind.com/drop-08` | 10 min |
 | **Fri 29** | **CLIP 2 — the reply moment.** Unibox: reply arrives → drafted answer → human approves it. Same rules as clip 1 | your screen | 30 min |
 | **Sat 30** | W2 + W3 | — | Sat block |
 
@@ -191,7 +194,7 @@ This is the part that makes the plan a system instead of a document. **These slo
 | Day | Do | Asset | Time |
 |---|---|---|---|
 | **Tue 2** | **POST 7** (*Filling roles while you sleep* — recruitment vertical) — or hold it and repost the best performer so far; your call on the day | `gen-drop-01-hero.png` + `get-kind.com/drop-01` | 10 min |
-| **Thu 4** | **POST 8** (*From cold list to booked viewing* — property vertical) + **newsletter #3** | `gen-drop-06-f0.png` + `get-kind.com/drop-06` | 30 min |
+| **Thu 4** | **POST 8** (*From cold list to booked viewing* — property vertical) ~~+ newsletter #3~~ (parked, R29). **Then the MONTHLY STATS POST (R31)** — ask the founder or Claude Code for the figures; never invent them (R30) | `gen-drop-06-f0.png` + `get-kind.com/drop-06` | 30 min |
 | **Fri 5** | **CLIP 3 — the research card.** FIGSY's why-this-company reasoning on one (anonymised) prospect. Same rules | your screen | 30 min |
 | **Sat 6** | **MONTHLY block (M1–M5)** + refill the bank: §6's ideas take over — **idea 1 (*"would you approve this prospect?"*) becomes available the moment real prospects flow**, and it is the strongest post on the page | — | Sat block |
 
@@ -213,11 +216,11 @@ This is the part that makes the plan a system instead of a document. **These slo
 
 | ☐ | Action | Owner | When |
 |---|---|---|---|
-| ☐ | Create the beehiiv publication — [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md) | 🧍 | **still owed** |
+| ~~☐~~ | ~~Create the beehiiv publication~~ — ⏸ **PARKED 12 Aug (R29)**, founder's call if ever | 🧍 | ⏸ parked |
 | ☐ | ⚠️ **Sending domain: use `news.get-kind.com` or beehiiv's own.** NEVER authenticate `kindoutreach.com` or `trykind.org` — those are the warming ladder and a newsletter blast through them destroys three weeks of work | 🧍 | with beehiiv |
 | ☐ | ⚠️ **Never touch `gettingkind.com` MX** — that is Resend inbound reply-capture (A18) | 🧍 | standing |
-| ☐ | Landing page live with ONE ask: subscribe | 🧍 | with beehiiv |
-| ☐ | Write the 4-email welcome sequence | 🧍 | with beehiiv |
+| ~~☐~~ | ~~Landing page live with ONE ask: subscribe~~ — ⏸ parked with beehiiv (R29) | 🧍 | ⏸ parked |
+| ~~☐~~ | ~~Write the 4-email welcome sequence~~ — ⏸ parked with beehiiv (R29) | 🧍 | ⏸ parked |
 | ☐ | Build the warm-100 list | 🧍 | **still owed** |
 | ~~☐~~ | ~~LinkedIn **company** page (R2 allows this)~~ — ✅ **LIVE** (founder-confirmed 12 Aug) | 🧍 | ✅ done |
 

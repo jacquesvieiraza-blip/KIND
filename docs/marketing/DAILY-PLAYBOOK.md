@@ -8,7 +8,9 @@
 
 **Nothing below requires writing anything.** Every post is finished in [`founder-content-playbook.md`](./founder-content-playbook.md) §6b with its link and image already attached; every image is the episode's own artwork, already live on our site — **the feed and the site stay one brand by construction.** The daily D1–D4 block (5 warm messages · log reasons · bank evidence · answer inbound) runs underneath every day and is not repeated in the rows.
 
-⚠️ **R29 (12 Aug, ruled AFTER this calendar was written, and it wins):** the newsletter is **PARKED** (*"beehiv wait. i need to build it"* — the founder builds it himself, when he chooses) and the channel direction is **YouTube** (the DROP as video). So in every row below: **skip the beehiiv build and every "newsletter" cell — do the post only.** The freed Friday/Thursday time goes to the carousels and clips instead. The rows are kept unedited per the chain rule; this note supersedes them.
+**THE RULED CADENCE (R31, 12 Aug): two posts a week — Tuesday and Thursday — plus ONE stats post a month.** Thursday is the DROP anchor. The monthly stats post is the only recurring slot that may carry numbers, and every number in it comes from the founder or from Claude Code as a fact (**R30**) — the marketing Project never generates one.
+
+⚠️ **The newsletter is PARKED (R29)** — *"beehiv wait. i need to build it."* The rows below were written before that ruling; their newsletter and beehiiv cells have been struck through in place per the chain rule. The freed time goes to carousels and clips.
 
 ### Week 1 · Wed 13 – Sat 16 Aug — exist by Friday
 
@@ -16,8 +18,8 @@
 |---|---|---|---|
 | **Wed 13** | **Dress the LinkedIn page** (it is live — make it look alive): banner = `mv-milla-portal.png` from the site · tagline = the site H1 *"We find your leads. You approve. That's it."* · about = `voice.md`'s one-liner. Then **paste POST 1** (*The hour you never get back*) | `gen-drop-02-hero.png` + `get-kind.com/drop-02` | 30 min |
 | **Thu 14** | **POST 2** (*Every reply, answered*) — Thursday is the anchor day (W1) and stays the anchor day forever | `gen-drop-05-f0.png` + `get-kind.com/drop-05` | 10 min |
-| **Fri 15** | **Build beehiiv** — [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md). ⚠️ Sending domain = `news.get-kind.com` or beehiiv's own — **never** `kindoutreach.com`/`trykind.org` (the warming ladder), never touch `gettingkind.com` MX | — | ~3 hrs |
-| **Sat 16** | W2 + W3: draft newsletter #1 from the bank · top the warm list back to 100 | — | Sat block |
+| **Fri 15** | ~~Build beehiiv~~ **PARKED (R29)** — the founder builds it if and when he chooses. **Instead: produce a carousel** (8 slides, spec in `voice.md`) | carousel | 30 min |
+| **Sat 16** | W2 + W3: ~~draft newsletter #1~~ → **bank next week's two posts** from the reply reasons · top the warm list back to 100 | — | Sat block |
 
 ### Week 2 · Mon 18 – Sat 23 Aug — add the moving pictures
 
@@ -25,7 +27,7 @@
 |---|---|---|---|
 | **Mon 18** | W4 review (20 min). Then **preview `get-kind.com/figsy.mp4`** — a ~0.9MB clip that sits on the site linked from nowhere. Good? **Post it native** with one line: *"This is FIGSY researching a prospect."* Not good? Skip — clip 1 replaces it Friday | `figsy.mp4` | 30 min |
 | **Tue 19** | **POST 3** (*Pay for results, not promises*) | `gen-drop-03-hero.png` + `get-kind.com/drop-03` | 10 min |
-| **Thu 21** | **POST 4** (*Why your emails never arrived*) + **send newsletter #1** (welcome + the same piece — one idea, two surfaces, zero extra writing) | `gen-drop-04-hero.png` + `get-kind.com/drop-04` | 30 min |
+| **Thu 21** | **POST 4** (*Why your emails never arrived*) ~~+ send newsletter #1~~ (parked, R29) | `gen-drop-04-hero.png` + `get-kind.com/drop-04` | 10 min |
 | **Fri 22** | **Record CLIP 1 — the approve moment.** 30–60s silent screen capture of Milla: lead card → 👍 → "in sequence". Caption overlay, no face, no voice (R2), **no claim anything was sent** (R27). This is the demo-video programme: one clip a week, the product doing the thing the posts describe | your screen | 30 min |
 | **Sat 23** | W2 + W3 | — | Sat block |
 
@@ -35,7 +37,7 @@
 |---|---|---|---|
 | **Mon 25** | W4 review. *(A14 send-day is product-side — the calendar's only job this week is to keep publishing while it happens)* | — | 20 min |
 | **Tue 26** | **POST 5** (*Your data is lying to you*) | `gen-drop-07-hero.png` + `get-kind.com/drop-07` | 10 min |
-| **Thu 28** | **POST 6** (*Compliant by default*) + **newsletter #2** | `gen-drop-08-f0.png` + `get-kind.com/drop-08` | 30 min |
+| **Thu 28** | **POST 6** (*Compliant by default*) ~~+ newsletter #2~~ (parked, R29) | `gen-drop-08-f0.png` + `get-kind.com/drop-08` | 10 min |
 | **Fri 29** | **CLIP 2 — the reply moment.** Unibox: reply arrives → drafted answer → human approves it. Same rules as clip 1 | your screen | 30 min |
 | **Sat 30** | W2 + W3 | — | Sat block |
 
@@ -44,7 +46,7 @@
 | Day | Do | Asset | Time |
 |---|---|---|---|
 | **Tue 2** | **POST 7** (*Filling roles while you sleep* — recruitment vertical) — or hold it and repost the best performer so far; your call on the day | `gen-drop-01-hero.png` + `get-kind.com/drop-01` | 10 min |
-| **Thu 4** | **POST 8** (*From cold list to booked viewing* — property vertical) + **newsletter #3** | `gen-drop-06-f0.png` + `get-kind.com/drop-06` | 30 min |
+| **Thu 4** | **POST 8** (*From cold list to booked viewing* — property vertical) ~~+ newsletter #3~~ (parked, R29). **Then the MONTHLY STATS POST (R31)** — ask the founder or Claude Code for the figures; never invent them (R30) | `gen-drop-06-f0.png` + `get-kind.com/drop-06` | 30 min |
 | **Fri 5** | **CLIP 3 — the research card.** FIGSY's why-this-company reasoning on one (anonymised) prospect. Same rules | your screen | 30 min |
 | **Sat 6** | **MONTHLY block (M1–M5)** + refill the bank: §6's ideas take over — **idea 1 (*"would you approve this prospect?"*) becomes available the moment real prospects flow**, and it is the strongest post on the page | — | Sat block |
 

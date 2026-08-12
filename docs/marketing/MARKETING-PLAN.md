@@ -63,7 +63,7 @@ You are pre-revenue with almost no traffic, and the thing you sell — a pipelin
 | **Sales offer** | *"Want me to run your first 10?"* — **by you, to a named person** (R1) |
 | **Conversion** | Review the 10 in Milla → activate → $299 pack, then $4 per approved lead |
 | **Improve** | More → Better → New, in that order |
-| **Public brand** | **K.I.N.D leads; M&V is a brand under it** (R22, 12 Aug: *"M&V is the brand under KIND."*) |
+| **Public brand** | **M&V (Milla & Vida) — the trading brand, as the live site masthead has it.** K.I.N.D Technologies is the registered company. (R22 corrected 12 Aug: *"registered as KIND Technologies but trade as Milla and Vida"* — my first write-up had this upside down) |
 | **Voice** | ONE voice for everything public — [`voice.md`](./voice.md) (absorbed 12 Aug from the Cowork bundle, its best asset) |
 
 ---

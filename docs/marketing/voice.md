@@ -1,6 +1,6 @@
-# The Brand Voice — how K.I.N.D sounds in public
+# The Brand Voice — how M&V sounds in public
 
-> **Origin:** distilled 12 Aug from the Cowork bundle's `SKILL.md` — the strongest single asset the parallel marketing session produced. Re-led per **R22** (*"M&V is the brand under KIND"* — K.I.N.D leads all public copy) and bound to **R21** (the free-10 is never a public CTA; it is the founder's personal offer). The Cowork daily agent, if ever un-paused, must read THIS file — the bundle copy of the skill is superseded by it.
+> **Origin:** distilled 12 Aug from the Cowork bundle's `SKILL.md` — the strongest single asset the parallel marketing session produced. Bound to **R22 as corrected 12 Aug** (M&V is the TRADING brand the public sees; K.I.N.D Technologies is the registered company) and to **R21** (the free-10 is never a public CTA; it is the founder's personal offer). The Cowork daily agent, if ever un-paused, must read THIS file — the bundle copy of the skill is superseded by it.
 >
 > **This is the one voice for everything public:** LinkedIn, newsletter, cold outreach (post-warmup), ad copy (when R7 opens). One voice, whoever — or whatever — is writing.
 
@@ -8,9 +8,9 @@
 
 ## Locked brand facts (never contradict)
 
-- **Brand:** **K.I.N.D** leads all public copy. M&V is a brand under it (R22, 12 Aug) — never the public lead.
+- **Brand:** **M&V (Milla & Vida)** is the trading brand — the name and logo the public sees, exactly as the live site masthead has it. **K.I.N.D Technologies** is the registered company; use it where the *company* is named (legal, "About", footer). (R22 as corrected, 12 Aug: *"registered as KIND Technologies but trade as Milla and Vida."*)
 - **Products:** **FIGSY** = the AI prospector (finds, researches, scores, works prospects). **Milla** = the client portal where leads land and the client approves/passes. **Vida** = internal operator room — never customer-facing, never in public copy.
-- **One-liner:** *K.I.N.D builds your pipeline. FIGSY does the heavy lifting. You stay in control inside Milla.*
+- **One-liner:** *M&V builds your pipeline. FIGSY does the heavy lifting. You stay in control inside Milla.* — the bundle had this right.
 - **ICP (R23, 12 Aug — GLOBAL):** founders of agencies and consultancies, US/UK primary, ~5–30 staff, referral-dependent, wanting a consistent, predictable pipeline.
 - **The problem:** the people best at winning new work are buried in delivery, so BD becomes whoever has a spare hour. Pipeline goes quiet when they get busy; referrals are unpredictable; hiring an SDR is slow and expensive.
 - **The mechanism:** you tell FIGSY your ideal client → it finds and researches matching companies (decision-maker, why they fit, how to approach) → they land in Milla → approve or pass with a tap → FIGSY writes, sends, follows up, books. **Nothing goes out without the client's approval.**
@@ -23,7 +23,7 @@
 |---|---|
 | A public free-10 offer, on any page or post | **R1 + R21** — *"my call when i need it"*. The free-10 is offered by the founder, personally, to a named person |
 | The no-card reassurance line, the free-to-start framing, any trial promise | The no-freebies lock (24 Jul) — these are on `doc-lint`'s banned list |
-| M&V as the lead brand | **R22** — K.I.N.D leads; M&V sits under it |
+| K.I.N.D as the public masthead brand | **R22 corrected 12 Aug** — the public trades as **M&V**; K.I.N.D Technologies is the registered company named in legal/company contexts |
 | The founder's name, or anything tying a person to the company | **R2** — stealth: brand-voiced always; the anonymity guardrail below |
 | Unverified stats, named prospects/clients, competitor bashing | R11 — a claim nobody verified is a future correction |
 

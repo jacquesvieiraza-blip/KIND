@@ -10,14 +10,17 @@
 
 Every figure below is derived from code constants — `LEAD_PRICE_USD`, `PER_CLIENT_MONTHLY_USD`, `cost-floor.ts` — never typed from memory. Contribution per accepted lead is **$3.17** ($4 − $0.56 PDL − $0.06 work − $0.01 reveal − $0.20 Stripe).
 
-### ⚠️ The two floors — because "$468" confused the founder on first read, and rightly
+### 💰 The money model — the founder's frame, which is the correct one *(re-written 12 Aug after "$468" confused him twice — the word "floor" was wrong both times)*
 
-| Floor | Amount | When it applies |
-|---|---|---|
-| **The LOCKED floor (PR7)** | **$352/mo** | **Today, pre-revenue.** Platform $146 + company $206 |
-| **The derived with-clients floor** | **$468/mo** | Only once clients exist: Smartlead returns **+$94** (the code's own note: *"deferred until a client is in the works"*), Hunter **+$34** (*"the month a sourcing run happens"*), failover **−$12** (being cancelled, A12) |
+**There is ONE floor: what the company burns with zero clients — $352/mo today, ~$340 once the failover dies (A12).** Everything else is client-funded:
 
-**$468 is not a locked number and never applies while income is $0** — the two lines that create it switch on to serve paying clients, whose revenue arrives in the same month. *(And it is NOT the "~$470" the founder ruled he could not afford on 3 Aug — that was the old pre-revenue burn, which was cut to $352 as ordered.)* The tables below use $468 because they model months where clients exist; on the $352 floor the nets are +$202 · +$274 · +$2,152 · +$5,908 — **the ranking, the break-even shape and the 10× conclusion do not move on either floor.**
+| | They pay | It costs us | We keep |
+|---|---:|---:|---:|
+| Setup pack | **$299** | ~$134 (their inbox + domain, 200 names sourced, working, Stripe) | **~$165** |
+| Each extra approved lead | **$4** | $0.83 | **$3.17** |
+| Their inbox, ongoing | — | $8/mo | out of their lead flow |
+
+Two vendor bills switch on at client #1 and are **paid by client money, never by the founder**: Smartlead ~$94/mo (one account serving ALL clients — one pack's $165 margin covers its first six weeks alone) and Hunter ~$34 in sourcing months. The tables below charge those bills against client revenue — which is why their "net" column is real take-home, not gross.
 
 | Shape | Gross/mo | **Net/mo** | Net per client |
 |---|---:|---:|---:|

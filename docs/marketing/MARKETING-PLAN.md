@@ -56,13 +56,15 @@ You are pre-revenue with almost no traffic, and the thing you sell — a pipelin
 
 | Decision | The answer, until data changes it |
 |---|---|
-| **Market** | UK agencies and consultancies, 5–30 employees, referral-dependent |
+| **Market** | **GLOBAL — US/UK primary** (R23, 12 Aug: *"Global"*; supersedes the UK-only row that stood here) · agencies and consultancies, 5–30 staff, referral-dependent |
 | **Problem** | Senior people are split between billable delivery and business development |
 | **Outcome** | More qualified conversations, a more predictable pipeline |
 | **Public magnet** | The **newsletter** — a weekly, short, specific email |
 | **Sales offer** | *"Want me to run your first 10?"* — **by you, to a named person** (R1) |
 | **Conversion** | Review the 10 in Milla → activate → $299 pack, then $4 per approved lead |
 | **Improve** | More → Better → New, in that order |
+| **Public brand** | **M&V (Milla & Vida) — the trading brand, as the live site masthead has it.** K.I.N.D Technologies is the registered company. (R22 corrected 12 Aug: *"registered as KIND Technologies but trade as Milla and Vida"* — my first write-up had this upside down) |
+| **Voice** | ONE voice for everything public — [`voice.md`](./voice.md) (absorbed 12 Aug from the Cowork bundle, its best asset) |
 
 ---
 
@@ -104,7 +106,7 @@ This is the part that makes the plan a system instead of a document. **These slo
 
 | # | Action | Why | Owner | When |
 |---|---|---|---|---|
-| W1 | **Send the newsletter** — same day, same time, every week | Consistency beats brilliance. Missing a week costs more than a weak issue | 🧍 | Thu (pick one, never move it) |
+| W1 | **Send the newsletter + the DROP Show post** (Problem → Impact → Solution → ROI — the week's anchor, absorbed 12 Aug) | Consistency beats brilliance. Missing a week costs more than a weak issue | 🧍 | Thu (pick one, never move it) |
 | W2 | **Write next week's issue from the bank** | 45 min if the bank is fed; 3 hours if it isn't | 🧍 | Sat block |
 | W3 | **Top up the warm list to 100 live names** | The list is consumed by D1 — it must be refilled | 🧍 | Sat block |
 | W4 | **The weekly review** — [`marketing-metrics-and-iteration.md`](./marketing-metrics-and-iteration.md) | Decide what changes. Nothing changes mid-week | 🧍 | Mon, 20 min |

@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M&V — The Free-10 Landing Page & Claim Video</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Arimo:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1b1b3a;
+    --magenta:#c71d86;
+    --pink-do:#e11d6a;
+    --purple:#9a27c9;
+    --blue:#4b2ce0;
+    --grey:#4a4a55;
+    --row:#fdf2f8;
+    --line:#e7d6e6;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#5a5a66;font-family:'Arimo',Arial,Helvetica,sans-serif;color:var(--ink);}
+  .page{
+    width:210mm;min-height:297mm;background:#fff;margin:0 auto 10mm;
+    padding:16mm 15mm 14mm;position:relative;
+  }
+  @page{size:A4;margin:0;}
+  @media print{
+    body{background:#fff;}
+    .page{margin:0;box-shadow:none;page-break-after:always;}
+    .page:last-child{page-break-after:auto;}
+  }
+  /* header */
+  .head{display:flex;align-items:flex-start;gap:12px;margin-bottom:2px;}
+  .logo{
+    width:46px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    font-family:'Quicksand',sans-serif;font-weight:700;font-size:15px;
+    background:#f6f2f7;
+    -webkit-background-clip:text;
+  }
+  .logo span{
+    background:linear-gradient(100deg,#e5188a 0%,#9a27c9 55%,#4b2ce0 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;letter-spacing:-.5px;
+  }
+  .head .pb{font-size:9.5px;font-weight:700;letter-spacing:.6px;color:#8a8a95;margin-top:9px;}
+  .part{font-size:9.5px;font-weight:700;letter-spacing:.8px;color:var(--magenta);margin:10px 0 0 58px;}
+  h1.section{font-size:27px;font-weight:700;color:var(--ink);margin:2px 0 3px 58px;letter-spacing:-.3px;}
+  .subtitle{font-style:italic;color:#7c7c88;font-size:12.5px;margin:0 0 8px 58px;}
+  .rule{height:6px;border-radius:3px;margin:2px 0 16px;
+    background:linear-gradient(90deg,#e5188a 0%,#9a27c9 45%,#4b2ce0 100%);}
+  .note{font-size:11px;color:#5a5a66;margin:-6px 0 14px;line-height:1.45;}
+  .note b{color:var(--magenta);}
+  /* box table */
+  table.box{width:100%;border-collapse:collapse;margin-bottom:14px;}
+  table.box td{vertical-align:top;padding:9px 10px;font-size:11.5px;line-height:1.4;border-bottom:1px solid var(--line);}
+  table.box tr:first-child td{border-top:1px solid var(--line);}
+  td.label{width:150px;color:var(--magenta);font-weight:700;font-size:10px;letter-spacing:.4px;text-transform:uppercase;}
+  td.val{color:var(--grey);}
+  table.box tr:nth-child(odd) td{background:var(--row);}
+  /* bullets */
+  ul.mv{list-style:none;margin:2px 0 16px;padding:0;}
+  ul.mv li{position:relative;padding:3.5px 0 3.5px 18px;font-size:12px;color:#33333d;line-height:1.4;}
+  ul.mv li::before{content:"";position:absolute;left:0;top:8px;width:6px;height:6px;background:var(--magenta);}
+  ul.mv li b{color:var(--ink);}
+  /* banner */
+  .banner{
+    background:linear-gradient(90deg,#b81fae 0%,#9a27c9 50%,#7a2be0 100%);
+    color:#fff;text-align:center;font-weight:700;letter-spacing:.4px;
+    padding:15px 18px;font-size:13px;border-radius:2px;margin:6px 0 18px;line-height:1.4;
+    text-transform:uppercase;
+  }
+  /* do this now */
+  h2.do{font-family:'Quicksand',sans-serif;color:var(--pink-do);font-size:16px;font-weight:700;
+    letter-spacing:.5px;margin:6px 0 8px;text-transform:uppercase;}
+  .check{display:flex;align-items:flex-start;gap:9px;padding:7px 8px;font-size:12px;color:#33333d;line-height:1.35;}
+  .check:nth-child(odd){background:var(--row);}
+  .check .bx{width:12px;height:12px;border:1.5px solid #b98fb0;border-radius:2px;flex:0 0 auto;margin-top:1px;}
+  /* footer */
+  .foot{position:absolute;left:15mm;right:15mm;bottom:8mm;display:flex;justify-content:space-between;
+    font-size:8.5px;color:#a09aa5;letter-spacing:.4px;border-top:1px solid #eee;padding-top:5px;}
+  /* anatomy / script tables */
+  table.grid{width:100%;border-collapse:collapse;margin:4px 0 16px;font-size:11px;}
+  table.grid th{background:var(--ink);color:#fff;text-align:left;padding:8px 10px;font-size:10px;
+    letter-spacing:.5px;text-transform:uppercase;font-weight:700;}
+  table.grid td{border-bottom:1px solid var(--line);padding:9px 10px;vertical-align:top;line-height:1.4;color:#3a3a44;}
+  table.grid tr:nth-child(even) td{background:var(--row);}
+  td.stage{color:var(--magenta);font-weight:700;width:150px;font-size:10.5px;text-transform:uppercase;letter-spacing:.3px;}
+  td.tm{color:var(--purple);font-weight:700;width:60px;white-space:nowrap;}
+  .beat b{color:var(--ink);}
+  .say{color:#1b1b3a;}
+  .say .q{display:block;margin-top:2px;}
+  .osn{display:block;margin-top:5px;font-size:9.5px;color:#8a7d90;font-style:italic;}
+  .lead{font-size:12px;color:#4a4a55;line-height:1.5;margin:0 0 12px;}
+  .kicker{font-family:'Quicksand',sans-serif;color:var(--magenta);font-weight:700;font-size:13px;
+    letter-spacing:.6px;text-transform:uppercase;margin:4px 0 6px;}
+</style>
+</head>
+<body>
+
+<!-- ========================= PAGE 1 ========================= -->
+<div class="page">
+  <div class="head">
+    <div class="logo"><span>M&amp;V</span></div>
+    <div class="pb">M&amp;V LEAD GENERATION MASTER PLAYBOOK</div>
+  </div>
+  <div class="part">PART II – THE CORE FOUR</div>
+  <h1 class="section">12A&nbsp;&nbsp;The Free-10 Landing Page &amp; Claim Video</h1>
+  <div class="subtitle">One page. One video. One promise: see the quality before you pay.</div>
+  <div class="rule"></div>
+
+  <div class="note"><b>Framework note.</b> This is the shared conversion destination for all Core Four traffic (see Section 03). It sits between Section 06 (The Offer) and Section 07 (Milla), and uses a problem→solution video in the manner of publicly described Alex Hormozi / Acquisition.com lead-magnet concepts. Not affiliated with or endorsed by $100M Leads.</div>
+
+  <table class="box">
+    <tr><td class="label">Purpose</td><td class="val">Turn attention from any channel into a claimed free-10, using one page and one short video that names the problem and shows the mechanism — with no call required.</td></tr>
+    <tr><td class="label">How to do it</td><td class="val">Point warm, content, cold and paid traffic at the same URL. Lead with the painful problem, present the free 10 as the solution, let the video do the selling, and ask only for the minimum to start.</td></tr>
+    <tr><td class="label">Best method</td><td class="val">One promise above the fold, one video that carries the argument, one button. Every other block only supports the claim. The page is the ad; the video is the salesperson.</td></tr>
+    <tr><td class="label">What to avoid</td><td class="val">Explaining FIGSY or 'AI' before the problem, stacking multiple offers, long forms, pricing tables, or a different landing page for every channel.</td></tr>
+    <tr><td class="label">Success signal</td><td class="val">A cold visitor understands the offer and claims the free 10 without talking to anyone, and arrives in Milla already knowing what to expect.</td></tr>
+  </table>
+
+  <ul class="mv">
+    <li><b>Above the fold:</b> one-line promise, the video, one CTA — nothing else competes.</li>
+    <li><b>Problem:</b> senior people are split between billable delivery and business development.</li>
+    <li><b>Solution:</b> 10 researched prospects, free, waiting inside Milla — no card, no calls.</li>
+    <li><b>Mechanism:</b> FIGSY does the chasing; you approve or reject inside Milla (Section 07).</li>
+    <li><b>Proof:</b> one sample prospect card or a short before/after (Section 30).</li>
+    <li><b>Objections handled on the page:</b> no card, no outreach without approval, you own the data (Section 29).</li>
+    <li><b>Next step:</b> claim leads straight into the Milla experience, then to paid activation (Section 28).</li>
+  </ul>
+
+  <div class="banner">One page. One video. One promise — see the quality before you pay.</div>
+
+  <h2 class="do">Do This Now</h2>
+  <div class="check"><div class="bx"></div><div>Write the one-line promise: ICP + outcome + the word 'free'.</div></div>
+  <div class="check"><div class="bx"></div><div>Record the 90-second claim video from the script on page 3.</div></div>
+  <div class="check"><div class="bx"></div><div>Build the page with one CTA and a short form: name, work email, company, 'who do you sell to?'.</div></div>
+  <div class="check"><div class="bx"></div><div>Point every Core Four channel at this single URL — no per-channel pages.</div></div>
+  <div class="check"><div class="bx"></div><div>Fire a 'claimed free-10' event into analytics and Vida (Sections 03 &amp; 05).</div></div>
+
+  <div class="foot"><span>M&amp;V &nbsp;|&nbsp; K.I.N.D. &nbsp;|&nbsp; FIGSY &nbsp;|&nbsp; Milla &nbsp;|&nbsp; Vida</span><span>12A</span></div>
+</div>
+
+<!-- ========================= PAGE 2 ========================= -->
+<div class="page">
+  <div class="head">
+    <div class="logo"><span>M&amp;V</span></div>
+    <div class="pb">M&amp;V LEAD GENERATION MASTER PLAYBOOK</div>
+  </div>
+  <div class="part">PART II – THE CORE FOUR</div>
+  <h1 class="section">12A&nbsp;&nbsp;Landing Page Anatomy</h1>
+  <div class="subtitle">Top to bottom: name the pain, show the mechanism, remove the risk, ask once.</div>
+  <div class="rule"></div>
+
+  <p class="lead">Build the page in this order. The visitor should be able to scroll and, at every block, feel the argument move one step forward: <b>I have this problem → there's a way out → it's real → it's free → I'll claim it.</b> Copy below is the M&amp;V default; edit the words, not the sequence.</p>
+
+  <table class="grid">
+    <tr><th style="width:150px;">Block</th><th>What goes there (M&amp;V default copy)</th></tr>
+    <tr><td class="stage">1 · Above the fold</td><td><b>Headline:</b> "Get 10 researched prospects for your agency — free, inside Milla." &nbsp; <b>Subhead:</b> "FIGSY finds and researches companies that fit your ideal client. You approve who gets contacted. No card, no calls." &nbsp; <b>+ the video + one button:</b> 'Get my first 10 free'.</td></tr>
+    <tr><td class="stage">2 · The video</td><td>The 90-second claim video (page 3). Auto-thumbnail with a play button and a caption: "Watch: how the free 10 works · 90 sec." This block does the selling.</td></tr>
+    <tr><td class="stage">3 · Problem</td><td>"Sound familiar?" — three lines: pipeline goes quiet the moment delivery gets busy; referrals are great until they dry up; hiring a prospector is slow and expensive.</td></tr>
+    <tr><td class="stage">4 · Solution</td><td>"Meet FIGSY." One paragraph: an AI prospector that does the chasing your senior people don't have time for — finds the fit, researches the decision-maker, hands you the shortlist.</td></tr>
+    <tr><td class="stage">5 · How it works</td><td>Three steps: <b>1. You tell us your ideal client. 2. FIGSY researches 10 matching prospects. 3. You approve or reject each one inside Milla</b> — nothing goes out without your say-so.</td></tr>
+    <tr><td class="stage">6 · Proof</td><td>One sample researched prospect card (company, decision-maker, why they fit, suggested approach) so the visitor sees the quality before claiming. Add a founder line or number when available (Section 30).</td></tr>
+    <tr><td class="stage">7 · Objection strip</td><td>Four reassurances in a row: <b>No card required · No sales call · No outreach without your approval · You own the data.</b></td></tr>
+    <tr><td class="stage">8 · Final CTA + form</td><td>Repeat the promise. Short form: name, work email, company, 'who do you sell to?'. Button: 'Get my first 10 free'. Micro-copy: "Your 10 will be waiting in Milla."</td></tr>
+    <tr><td class="stage">9 · Footer</td><td>M&amp;V one-liner (Section 02): "M&amp;V builds your pipeline. FIGSY does the heavy lifting. You stay in control inside Milla." Minimal links only.</td></tr>
+  </table>
+
+  <div class="banner">Every block moves one step: I have this problem → there's a way out → it's real → it's free → I'll claim it.</div>
+
+  <div class="foot"><span>M&amp;V &nbsp;|&nbsp; K.I.N.D. &nbsp;|&nbsp; FIGSY &nbsp;|&nbsp; Milla &nbsp;|&nbsp; Vida</span><span>12A</span></div>
+</div>
+
+<!-- ========================= PAGE 3 ========================= -->
+<div class="page">
+  <div class="head">
+    <div class="logo"><span>M&amp;V</span></div>
+    <div class="pb">M&amp;V LEAD GENERATION MASTER PLAYBOOK</div>
+  </div>
+  <div class="part">PART II – THE CORE FOUR</div>
+  <h1 class="section">12A&nbsp;&nbsp;The Claim Video — Full Script</h1>
+  <div class="subtitle">≈100 seconds. Problem → solution → mechanism → offer → risk reversal → ask. Read it founder to founder.</div>
+  <div class="rule"></div>
+
+  <p class="lead">Shoot it simple: you, to camera, one take. No slides needed. The on-screen notes in grey are optional captions/B-roll. Speak plainly — this is one founder telling another how to get their pipeline back.</p>
+
+  <table class="grid">
+    <tr><th>Beat</th><th style="width:60px;">Time</th><th>What you say</th></tr>
+
+    <tr>
+      <td class="stage">Hook</td><td class="tm">0:00–0:10</td>
+      <td class="say beat"><span class="q">"If you run an agency or consultancy, you already know the trap: the people best at winning new work are the same people buried in delivery."</span>
+      <span class="osn">On screen: your face, plus caption — "For agency &amp; consultancy founders."</span></td>
+    </tr>
+
+    <tr>
+      <td class="stage">Problem (agitate)</td><td class="tm">0:10–0:30</td>
+      <td class="say beat"><span class="q">"So business development becomes whoever happens to have a spare hour. The pipeline goes quiet the moment you get busy. You lean on referrals — and referrals are brilliant, right up until they dry up. And hiring someone to prospect is slow, expensive, and now you're managing them instead of your clients."</span>
+      <span class="osn">On screen: three quick captions — "Pipeline goes quiet" · "Referrals dry up" · "Hiring is slow."</span></td>
+    </tr>
+
+    <tr>
+      <td class="stage">Solution (the turn)</td><td class="tm">0:30–0:48</td>
+      <td class="say beat"><span class="q">"So we built FIGSY. FIGSY is an AI prospector that does the chasing your senior people don't have time for. It finds companies that match your ideal client, researches each one — who the decision-maker is, why they're a fit, and how to approach them — and puts a shortlist in front of you."</span>
+      <span class="osn">On screen: the word FIGSY, then a prospect card animating in.</span></td>
+    </tr>
+
+    <tr>
+      <td class="stage">Mechanism (how)</td><td class="tm">0:48–1:05</td>
+      <td class="say beat"><span class="q">"You review them inside Milla — your private portal. One click to approve, one to reject. Nothing goes out without your say-so. You stay in control; FIGSY does the legwork."</span>
+      <span class="osn">On screen: Milla approve / reject buttons.</span></td>
+    </tr>
+
+    <tr>
+      <td class="stage">Offer</td><td class="tm">1:05–1:25</td>
+      <td class="say beat"><span class="q">"Here's what I'll do. Tell me who your ideal client is, and I'll research your first 10 prospects — completely free, sat waiting inside Milla. No card. No sales call. Nothing sent until you approve it. You see the exact quality of the research before you ever pay a penny."</span>
+      <span class="osn">On screen: "10 researched prospects · Free · No card."</span></td>
+    </tr>
+
+    <tr>
+      <td class="stage">Risk reversal</td><td class="tm">1:25–1:38</td>
+      <td class="say beat"><span class="q">"If the 10 are good, you'll want the engine running. If they're not, you've lost nothing — and you've seen exactly what your pipeline could look like."</span>
+      <span class="osn">On screen: calm hold on your face.</span></td>
+    </tr>
+
+    <tr>
+      <td class="stage">Call to action</td><td class="tm">1:38–1:50</td>
+      <td class="say beat"><span class="q">"Click the button below, tell us who you sell to, and your first 10 researched prospects will be ready inside Milla. That's it."</span>
+      <span class="osn">On screen: arrow down to the button — "Get my first 10 free."</span></td>
+    </tr>
+  </table>
+
+  <div class="banner">The video sells; the page just holds the button. If someone only watches this, they should still want the 10.</div>
+
+  <div class="foot"><span>M&amp;V &nbsp;|&nbsp; K.I.N.D. &nbsp;|&nbsp; FIGSY &nbsp;|&nbsp; Milla &nbsp;|&nbsp; Vida</span><span>12A</span></div>
+</div>
+
+</body>
+</html>

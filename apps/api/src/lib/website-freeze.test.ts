@@ -41,12 +41,30 @@ function walk(dir: string): string[] {
   return out
 }
 
+// ⏱️ WHY THESE TESTS CARRY AN EXPLICIT TIMEOUT (added 11 Aug)
+//
+// This suite hashes EVERY file under apps/website — measured 11 Aug at 110 files / 68.1 MB,
+// taking ~1,240 ms on an IDLE container. Vitest's default per-test budget is 5,000 ms, so the
+// margin was only ~4×. `scripts/check.sh` runs this alongside two `next build`s and 124 other
+// test files, and under that contention the sweep intermittently blew the 5 s budget and died
+// with "Test timed out in 5000ms" — NOT an assertion failure.
+//
+// That made the guard on a FOUNDER-LOCKED rule flaky, which is worse than a slow guard: a test
+// that fails randomly teaches everyone to re-run it until it goes green, and on 11 Aug that is
+// exactly what happened — it went red in the gate, passed on a quiet re-run, and shipped. The
+// next time it goes red it might be a real website change, and by then the habit is to shrug.
+//
+// A timeout is the correct fix because the assertions are unaffected: a REAL drift fails fast
+// with a diff, and only the I/O sweep is slow. 60 s is ~48× the idle cost — generous enough to
+// absorb any contention, and it can never mask a genuine failure.
+const SWEEP_TIMEOUT_MS = 60_000
+
 describe('#605 — the website is frozen to the founder-approved state', () => {
   const files = walk(WEB).map(p => relative(WEB, p))
 
   it('no file has been added or removed', () => {
     expect([...files].sort()).toEqual(Object.keys(MANIFEST).sort())
-  })
+  }, SWEEP_TIMEOUT_MS)
 
   it('no file content has changed', () => {
     const drifted = files.filter(rel => {
@@ -58,5 +76,5 @@ describe('#605 — the website is frozen to the founder-approved state', () => {
       `WEBSITE CHANGED WITHOUT FOUNDER APPROVAL: ${drifted.join(', ')} — ` +
         `the site is founder-locked (1 Aug). Get explicit approval, then bash scripts/freeze-website.sh`,
     ).toEqual([])
-  })
+  }, SWEEP_TIMEOUT_MS)
 })

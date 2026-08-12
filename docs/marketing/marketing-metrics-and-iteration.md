@@ -135,7 +135,7 @@ Once a month, 45 minutes, different questions to the weekly.
 | ☐ | Is the message still right? What words do *they* use? |
 | ☐ | Re-read the one-page plan (`MARKETING-PLAN.md` §1). **Change it here or not at all** |
 | ☐ | Prune the list — hard bounces, 90-day non-openers |
-| ☐ | Marketing spend vs the cost floor (**$352/mo today, $468 once live**) |
+| ☐ | Marketing spend vs the cost floor (**$352/mo**) |
 | ☐ | **One conversation with someone who didn't buy.** Ask why. ⭐ Best 20 minutes of the month |
 
 ---

@@ -2,7 +2,7 @@
 
 > **Origin:** distilled 12 Aug from the Cowork bundle's `SKILL.md` — the strongest single asset the parallel marketing session produced. Bound to **R22 as corrected 12 Aug** (M&V is the TRADING brand the public sees; K.I.N.D Technologies is the registered company) and to **R21** (the free-10 is never a public CTA; it is the founder's personal offer). The Cowork daily agent, if ever un-paused, must read THIS file — the bundle copy of the skill is superseded by it.
 >
-> **This is the one voice for everything public:** LinkedIn, newsletter, cold outreach (post-warmup), ad copy (when R7 opens). One voice, whoever — or whatever — is writing.
+> **This is the one voice for everything public:** LinkedIn, cold outreach (post-warmup), video scripts, ad copy (when R7 opens). One voice, whoever — or whatever — is writing. *(A newsletter is **parked** — R29, 12 Aug. When one exists it uses this same voice.)*
 
 ---
 
@@ -50,10 +50,33 @@ All public content is published **as the brand**, never as a named individual. N
 ## Output specifications
 
 ### LinkedIn post *(from the company page — R2 allows it)*
-1-line hook → short body, one idea per line, whitespace → soft CTA. 120–200 words. 2–3 hashtags from: #leadgeneration #agencygrowth #b2bsales #outbound #consultancy. Label the pillar. **CTA is the newsletter or the site — never the free-10 (R21).**
+1-line hook → short body, one idea per line, whitespace → soft CTA. 120–200 words. 2–3 hashtags from: #leadgeneration #agencygrowth #b2bsales #outbound #consultancy. Label the pillar. **CTA is the SITE — `get-kind.com` (R29, 12 Aug: the newsletter is parked, and a CTA must never point at something that does not exist).** ⛓️ *This line read "the newsletter or the site" and was corrected 12 Aug.* Never the free-10 (R21).
 
-### Email / newsletter
+### Email / newsletter *(⏸ PARKED — R29, 12 Aug. Spec kept for the day one exists)*
 Subject, preview text, 150–250 word body, one CTA. One clear idea.
+
+### 📊 The monthly stats post *(R31 — MONTHLY, never weekly)*
+The **only** recurring post allowed to carry numbers.
+
+**Shape:** one number as the hook → what it actually measures, in a plain sentence → why it is true (the mechanism, not a boast) → what it means for the reader → soft CTA to the site. 120–200 words.
+
+⚠️ **Where the numbers come from — this is the whole rule (R30):** the founder supplies them, or Claude Code generates them as facts read from the code, the ledger or the lab. **The marketing Project never generates, computes or estimates a number** — no percentages, no benchmarks, no *"agencies typically see…"*. If a figure is wanted and none has been supplied, ask for it; do not fill the gap.
+
+⚠️ Until real client numbers exist, the honest stats are about **the product and the method** (what it checks before a prospect is surfaced, what a client controls, what the pack includes), never about results. **No result may be implied that has not happened** (R27).
+
+### 🎠 The LinkedIn carousel *(document post — the no-camera format)*
+**Exactly 8 slides. One thought per slide. No paragraphs.**
+
+| Slide | Content |
+|---|---|
+| **1** | The hook — the sharpest version of the problem, in the reader's own words |
+| **2–7** | The argument, one beat at a time. Around slide 4 name the turn (*"this isn't a discipline problem"*) |
+| **8** | Always: **"We find your leads. You approve. That's it."** + `get-kind.com` |
+
+Slide text is short enough to read at a glance — aim under 15 words a slide. Pair each carousel with a matching post as the caption. **Visuals default to the site's own library (R32);** new imagery only when the founder says so for that piece.
+
+### 🎬 Video script *(R33)*
+30–60 seconds. On-screen captions carry the message — assume it plays silent. **A third-party voiceover is allowed (R33); the WORDS are not free:** brand voice, **no founder name, no first-person build story**, nothing tying a real person to the company (R2/R20). Show the product doing the thing the posts describe. ⚠️ **No clip may claim anyone was contacted, emailed or found by our system until they actually were (R27).**
 
 ### Cold outreach *(runs only after the warmup ends ~25 Aug, through our own engine)*
 Subject + 60–90 word message + one soft CTA. Tokens: [First name], [Company], [trigger/why-them]. Human, not templated. 3 variants when asked. Sent as the company — never the founder's name.
@@ -63,7 +86,7 @@ Primary text ≤120 words, headline ≤40 chars, description ≤30 chars. One co
 
 ## The DROP Show *(weekly format — absorbed from the bundle)*
 
-One structured drop a week, **Thursdays** (the newsletter day): **Problem → Impact → Solution → ROI.** As a written post now; as a 30-second video script the day R24 opens video. This is the week's anchor piece — the daily pillars rotate around it.
+One structured drop a week, **Thursdays** (the anchor day — ⛓️ *called "the newsletter day" until 12 Aug; R29 parked the newsletter, the Thursday anchor stays*): **Problem → Impact → Solution → ROI.** As a written post now; as a 30-second video script the day R24 opens video. This is the week's anchor piece — the daily pillars rotate around it.
 
 ## Weekly rotation (when a daily cadence runs)
 

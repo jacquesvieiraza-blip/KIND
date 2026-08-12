@@ -162,7 +162,7 @@ Written in advance because in the moment you will want to give a losing ad "one 
 **Not a date — a condition.** All of these, together:
 
 - ✅ 3+ paying clients
-- ✅ Revenue covers the cost floor (**$468/mo once live**)
+- ✅ Revenue covers the cost floor (**$352/mo**, plus whatever client-triggered tools are switched on that month)
 - ✅ A11 money journeys walked
 - ✅ An organic message that reliably produces replies
 - ✅ Landing page converting ≥20%

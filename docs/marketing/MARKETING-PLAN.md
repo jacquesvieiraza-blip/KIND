@@ -42,9 +42,35 @@ Written down, cited by date, because a plan that quietly walks through a lock is
 
 | Lock | Effect here |
 |---|---|
-| **R9** *(6 Aug)* — the M&V brand hierarchy is **killed** | The playbook's Section 02 (*"M&V is the brand"*) is **superseded**. Public copy says **K.I.N.D**. Do not rebuild the hierarchy. |
+| ~~**R9** *(6 Aug)* — the M&V brand hierarchy is **killed**~~ ⛓️ **CORRECTED 12 Aug — this row said the opposite of the truth** | ⚠️ It read *"Public copy says **K.I.N.D**. Do not rebuild the hierarchy."* **That is wrong and it contradicted the live site for six days.** **R22 as corrected (12 Aug):** **M&V (Milla & Vida) is the TRADING brand the public sees** — the masthead is `logo-mv-v2.png`, alt "M&V" — and **K.I.N.D Technologies is the REGISTERED COMPANY**, named in legal, About and footer contexts. The founder: *"registered as KIND Technologies but trade as Milla and Vida."* **The playbook's M&V-led copy was right all along.** Voice of record: [`voice.md`](./voice.md). |
 | **P12** — the website is founder-locked | The playbook's *"update all public copy"* actions **cannot be done** without your command. beehiiv is outside the freeze; `get-kind.com` is not. |
 | **R7** *(6 Aug)* — real money waits | Paid ads are **gated on revenue**, not on a date. See [`paid-ads-phase-plan.md`](./paid-ads-phase-plan.md). |
+
+---
+
+## 0 · WHAT IS ACTUALLY LIVE — and the one thing missing *(the honest inventory, 12 Aug)*
+
+**"Nobody knows we exist" is not a content problem. It is a distribution problem.** Everything below is built and reachable today; almost nothing points at it.
+
+| Surface | State | Note |
+|---|---|---|
+| **The website** — 28 pages | ✅ **LIVE** | Homepage, FIGSY, Milla, Vida, pricing, about, trust, DPA/privacy/terms, **vs-hiring-an-SDR**, pipeline calculator, help centre, status |
+| **The DROP Show — 8 episodes** | ✅ **LIVE, all marked Live** | `drop-01`…`drop-08`. **This is a content bank we already own** — eight finished pieces, pain-first and on-voice. The launch posts in [`founder-content-playbook.md`](./founder-content-playbook.md) §6b are built from them |
+| **LinkedIn company page** | ✅ **LIVE** *(founder-confirmed 12 Aug)* | R2 permits the company page. **An empty company page reads as a dead company** — filling it is the single highest-leverage credibility action available, and it is free and ungated |
+| **The message** | ✅ **CONSISTENT** | Site H1 *"We find your leads. You approve. That's it."* = the GTM wedge = `voice.md`'s one-liner. Site, strategy and voice agree — **do not rewrite it, reuse it** |
+| **Social proof** | ✅ **CLEAN** | Checked 12 Aug: **no invented testimonials, no fake logos, no unbacked stats.** Whatever credibility gets built here is real |
+| **beehiiv newsletter** | 🔴 **NOT BUILT** | Entry tier $0. ~3 hours: [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md). **The only owned audience surface we lack** |
+| **Anything ever sent** | 🔴 **ZERO** | Send-day ~25 Aug. See **R27** — the homepage's "our own system found you" claim is false until then, the founder has ruled the site unchanged, and **new copy must not repeat it** |
+
+### 🎯 The existence list — in order, all free, none gated by R2/R7
+
+| # | Do this | Why it is first | Owner |
+|---|---|---|---|
+| **1** | **Post to the LinkedIn company page from the launch bank** — §6b of the content playbook, eight posts ready to paste, each linking to its own live DROP episode | The page exists and is empty. A warm contact who checks us finds a company that publishes, and every post has a real destination on a real site | 🧍 |
+| **2** | **Build beehiiv** (~3 hrs, $0) | It is the CTA `voice.md` mandates for public posts, and the one audience we would own rather than rent | 🧍 |
+| **3** | **Warm outreach continues underneath both** — 5 named people a day | It is the only channel that can pay this month. Steps 1–2 exist so that when they check us, we are there | 🧍 |
+
+⚠️ **Order matters and it is not obvious:** posting comes before the newsletter because the page is already live and empty, and empty is actively worse than absent. **Nothing here needs R2 lifted** — every action is brand-voiced on a company page, which R2 explicitly permits.
 
 ---
 
@@ -120,7 +146,7 @@ This is the part that makes the plan a system instead of a document. **These slo
 | M1 | **One deeper piece** — a teardown, a benchmark, a real case study | The asset that outlives the week and earns links | 🧍 | last Sat |
 | M2 | **Re-read the one-page plan (§1 table). Change it only here** | Prevents channel drift — *"change the one-page plan only in the weekly review, not ad hoc"* | 🧍 | monthly |
 | M3 | **Prune the list** — remove hard bounces and 90-day non-openers | A list you don't clean is a deliverability problem waiting | 🧍 | monthly |
-| M4 | **Check marketing spend against the cost floor** | The floor is **$352/mo today, $468 once live**. beehiiv's entry tier is $0 — keep it that way until revenue | 🧍 | monthly, with CFO hat |
+| M4 | **Check marketing spend against the cost floor** | The floor is **$352/mo** (the lab's fixed boxes at its defaults). beehiiv's entry tier is $0 — keep it that way until revenue | 🧍 | monthly, with CFO hat |
 | M5 | **One conversation with a non-buyer** — why not? | The most valuable 20 minutes in the month | 🧍 | monthly |
 
 ---
@@ -129,17 +155,19 @@ This is the part that makes the plan a system instead of a document. **These slo
 
 **Everything in Weeks 1–3 runs regardless of R2.** Only Week 4's public step is gated.
 
-### Week 1 — build the machine (nobody sees anything)
+### ⚠️ Week 1 was written when none of this existed. It does now — read §0 first.
+
+**The machine is built.** Week 1's original list below is kept per the chain rule, with the two items that are actually done struck; the live sequence is **§0's existence list**, because the job changed from *building assets* to *pointing at the ones we have*.
 
 | ☐ | Action | Owner | When |
 |---|---|---|---|
-| ☐ | Create the beehiiv publication — [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md) | 🧍 | Day 1 |
-| ☐ | ⚠️ **Sending domain: use `news.get-kind.com` or beehiiv's own.** NEVER authenticate `kindoutreach.com` or `trykind.org` — those are the warming ladder and a newsletter blast through them destroys three weeks of work | 🧍 | Day 1 |
+| ☐ | Create the beehiiv publication — [`beehiiv-setup-checklist.md`](./beehiiv-setup-checklist.md) | 🧍 | **still owed** |
+| ☐ | ⚠️ **Sending domain: use `news.get-kind.com` or beehiiv's own.** NEVER authenticate `kindoutreach.com` or `trykind.org` — those are the warming ladder and a newsletter blast through them destroys three weeks of work | 🧍 | with beehiiv |
 | ☐ | ⚠️ **Never touch `gettingkind.com` MX** — that is Resend inbound reply-capture (A18) | 🧍 | standing |
-| ☐ | Landing page live with ONE ask: subscribe | 🧍 | Day 2 |
-| ☐ | Write the 4-email welcome sequence | 🧍 | Day 3 |
-| ☐ | Build the warm-100 list | 🧍 | Day 4–5 |
-| ☐ | LinkedIn **company** page (R2 allows this) | 🧍 | Day 5 |
+| ☐ | Landing page live with ONE ask: subscribe | 🧍 | with beehiiv |
+| ☐ | Write the 4-email welcome sequence | 🧍 | with beehiiv |
+| ☐ | Build the warm-100 list | 🧍 | **still owed** |
+| ~~☐~~ | ~~LinkedIn **company** page (R2 allows this)~~ — ✅ **LIVE** (founder-confirmed 12 Aug) | 🧍 | ✅ done |
 
 ### Week 2 — warm outreach, the only channel that pays this month
 
@@ -196,7 +224,7 @@ Written down so it does not get re-proposed every month.
 | beehiiv entry tier | **$0** | Free to a few thousand subscribers. Stays $0 until revenue |
 | LinkedIn company page | **$0** | |
 | Your time | **~30 min/day + one Saturday block** | Already in the operating rhythm |
-| **Total added to the cost floor** | **$0** | Deliberate. The floor stays $352/mo today, $468 once live |
+| **Total added to the cost floor** | **$0** | Deliberate. The floor stays **$352/mo** — nothing here adds to it |
 | Paid ads | **£0 until gated open** | R7 |
 
 ---

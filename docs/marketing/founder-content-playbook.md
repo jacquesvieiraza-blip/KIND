@@ -139,6 +139,184 @@ Written for a founder with no audience — every one works at 40 followers.
 
 ---
 
+## 6b · 🚀 THE LAUNCH BANK — eight finished posts, ready to paste *(added 12 Aug)*
+
+**These are not ideas. They are posts.** Each one is built from a **DROP episode that is already live on our own site**, so every post has a real destination instead of a dead CTA — and eight of them is roughly two months of weekly posting that requires no new writing.
+
+**How to use them:** paste into the **LinkedIn company page** (R2 permits the company page; no personal posting). One a week. Put the episode link in the **first comment** if you would rather not have an outbound link in the post body — LinkedIn tends to show link-free posts to more people.
+
+⚠️ **Two rules that govern every post here.** ① **No claim that our system found the reader** — it has not sent anything yet (**R27**, 12 Aug: the homepage's version of that claim stays, but new copy must not repeat it). ② **No results, no stats, no client names** — we have none verified, and an unverified number is a future correction (R11).
+
+⚠️ **Check the links before the first post.** The pattern is `https://get-kind.com/drop-0N.html`, taken from how `the-drop.html` links to its own episodes. **I could not open the live site from the build environment** (the agent proxy refuses our own domains), so click one before you paste — a broken link in a launch post is an own goal.
+
+---
+
+### 1 · The hour you never get back · *Pillar: Problem* · → `/drop-02.html`
+
+> The sharpest hour of your day is going into list-building.
+>
+> Not strategy. Not the pitch. Not the call that actually closes something.
+>
+> Building lists and writing cold emails — work that never feels finished, and never moves the needle on its own.
+>
+> And by the time prospecting is "done", the energy you needed for the work only you can do is gone. Tomorrow it resets to zero.
+>
+> This is the quiet reason agency pipelines run hot and cold. It is not a discipline problem. The people best at winning work are the same people delivering it, so business development becomes whoever has a spare hour — and nobody has a spare hour in a good month.
+>
+> The fix is not working harder at the top of the funnel. It is not being the one who does that part.
+>
+> We wrote the whole thing up here: [link]
+>
+> #agencygrowth #leadgeneration #outbound
+
+---
+
+### 2 · Every reply, answered · *Pillar: Problem → Mechanism* · → `/drop-05.html`
+
+> A prospect is at their warmest the second they hit send.
+>
+> Every minute after that, the temperature drops.
+>
+> Most teams measure their response time in hours. Some in days. The lead raised their hand and everyone was in a meeting, asleep, or twelve emails deep in an inbox.
+>
+> By the time someone replies, the moment has gone — and often so has the prospect, off talking to whoever answered first.
+>
+> The uncomfortable part: this has nothing to do with how good your team is. It is a coverage problem. Nobody can staff every hour a prospect might reply in.
+>
+> So the answer is not a faster human. It is something that never stops watching the inbox, drafts the reply, and hands it to a human to approve.
+>
+> Full piece: [link]
+>
+> #b2bsales #agencygrowth #outbound
+
+---
+
+### 3 · Pay for results, not promises · *Pillar: Proof & POV* · → `/drop-03.html`
+
+> Most sales tools bill you the same whether they work or not.
+>
+> You pay per seat for the promise of pipeline, and you carry all the risk if it never shows up.
+>
+> It looked great in the demo, so you signed for a year. Six months later you are still paying for something nobody opens. The cost was fixed. The outcome never was.
+>
+> We think that is backwards, and we built our side of it differently: you approve a prospect, and that is the only thing that ever costs anything. No approval, no charge. The risk sits with the people who said it would work.
+>
+> That is not generosity. It is the only honest position for anyone claiming their outreach is any good.
+>
+> Here is the argument in full: [link]
+>
+> #b2bsales #leadgeneration #consultancy
+
+---
+
+### 4 · Why your emails never arrived · *Pillar: Problem* · → `/drop-04.html`
+
+> You can write the perfect email to the perfect prospect and still lose.
+>
+> Because it quietly lands in spam, and you never get the bounce, the reply, or the warning.
+>
+> It is the most demoralising kind of failure: invisible. The campaign "sent". The dashboard says delivered. The silence feels like rejection.
+>
+> Really, nobody ever saw it.
+>
+> Delivered is not the same as read, and the gap between them is where most outbound programmes quietly die. Teams respond by rewriting the copy — when the copy was never the problem.
+>
+> Deliverability is infrastructure, not wording. Warmed mailboxes, sane volumes, clean data, proper authentication. Unglamorous, and it decides everything that happens after.
+>
+> We wrote up what actually causes it: [link]
+>
+> #outbound #b2bsales #leadgeneration
+
+---
+
+### 5 · Your data is lying to you · *Pillar: Problem* · → `/drop-07.html`
+
+> Most pipelines run on numbers nobody actually checks.
+>
+> Stale stages. "Qualified" leads that are not. Forecasts built on hope.
+>
+> The dashboard looks confident. The data underneath is not.
+>
+> And you make real decisions on those numbers — hiring, spend, targets. When they are wrong, you do not find out at the dashboard. You find out at the end of the quarter, when the pipeline that looked healthy does not close.
+>
+> The honest version is less comfortable and more useful: fewer numbers, each one traceable to something that actually happened.
+>
+> A prospect was contacted. A human replied. A meeting exists in a calendar. Everything else is decoration.
+>
+> More here: [link]
+>
+> #b2bsales #agencygrowth #consultancy
+
+---
+
+### 6 · Compliant by default, not by accident · *Pillar: Mechanism* · → `/drop-08.html`
+
+> For a regulated business, outbound is a minefield.
+>
+> One non-compliant campaign — wrong consent, wrong data source, no opt-out — and the fine dwarfs any deal it could have won.
+>
+> So many firms do the safest thing available: nothing.
+>
+> That fear is rational. It is also expensive in a quieter way. The pipeline stays small, and the growth that compliant outreach could have brought never happens.
+>
+> The way out is not courage. It is defaults. Lawful basis recorded, opt-out in every message, data sourced somewhere you can actually name, and a human approving each prospect before anyone is contacted.
+>
+> Do that and compliance stops being the thing you hope holds up. It becomes the thing that is true whether or not anyone is watching.
+>
+> The full breakdown: [link]
+>
+> #outbound #consultancy #b2bsales
+
+---
+
+### 7 · Filling roles while you sleep · *Pillar: Problem* · → `/drop-01.html` · ⚠️ **recruitment**
+
+> The candidate who is perfect for the role is browsing jobs at 9pm.
+>
+> By the time anyone reaches out at 10am, they have already replied to someone faster.
+>
+> The list is long, the day is short, and the outreach that should have gone out last night did not — because there was nobody to send it.
+>
+> Roles stay open. Good candidates are gone before you ever spoke to them. And the reason is almost never the quality of the recruiter; it is that the window closed while the office was shut.
+>
+> Speed is the whole product in recruitment, and speed is exactly what a human working office hours cannot give you.
+>
+> More on how we think about it: [link]
+>
+> #leadgeneration #outbound
+
+⚠️ **Vertical post — recruitment, not the agency ICP (R23).** Use it when talking to recruiters, or when the pipeline needs range. Do not lead the company page with it.
+
+---
+
+### 8 · From cold list to booked viewing · *Pillar: Problem* · → `/drop-06.html` · ⚠️ **property**
+
+> Most property teams sit on a list of names they know they should call.
+>
+> And never do — because showing the properties they already have leaves no time to open new conversations.
+>
+> The list is not the problem. The hours are.
+>
+> Prospecting is the first thing dropped when a viewing runs long or a deal needs chasing. So the cold list stays cold, week after week, while everyone agrees it is where the next quarter comes from.
+>
+> Nothing about that is a motivation problem. It is arithmetic: the work that pays this month always beats the work that pays next quarter, until something else is doing the second job.
+>
+> Written up here: [link]
+>
+> #leadgeneration #outbound
+
+⚠️ **Vertical post — property, not the agency ICP (R23).** Same rule as post 7.
+
+---
+
+### After the eight
+
+**Posts 1–6 are the ICP posts** — lead with those, weekly, in that order. **7 and 8 are range**, for when you are talking to those verticals.
+
+When the bank runs low, §6's ten ideas are next, and **idea 1 — *"would you approve this prospect?"* — is still the strongest thing on this page**, because it needs no audience, produces comments, and every comment is a warm lead. It only becomes available once real prospects are flowing.
+
+---
+
 ## 7 · The weekly newsletter template
 
 ```

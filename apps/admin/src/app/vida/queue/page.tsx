@@ -70,13 +70,13 @@ export default function VidaQueuePage() {
     <div className="h-full overflow-y-auto px-6 py-6">
       <div className="max-w-4xl">
         <h1 className="text-2xl font-bold text-[#1f1235]">Lead queue</h1>
-        <p className="text-sm text-[#7c6f9b] mt-0.5">Every draft FIGSY wrote, across all clients, waiting on your yes · read it, then Approve &amp; send or Reject</p>
+        <p className="text-sm text-[#7c6f9b] mt-0.5">Every draft FIGSY wrote, across all clients, waiting on your yes (this is NOT the client-approval queue — that count lives on the System page) · read it, then Approve &amp; send or Reject</p>
 
         {note && <div className="mt-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5">{note}</div>}
         {error && <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
         {!drafts && !error && <p className="text-sm text-[#9b8ec4] mt-4">Loading queue…</p>}
         {drafts && drafts.length === 0 && (
-          <div className="mt-4 text-sm text-[#9b8ec4] bg-white border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">Nothing awaiting approval. The queue is clear. 🎉</div>
+          <div className="mt-4 text-sm text-[#9b8ec4] bg-white border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No drafts awaiting YOUR approval. The queue is clear. 🎉</div>
         )}
 
         <div className="mt-4 space-y-2.5">

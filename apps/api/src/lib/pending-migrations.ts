@@ -488,6 +488,36 @@ ALTER TABLE public.clients
   ADD COLUMN IF NOT EXISTS contact_email            text;
 `.trim(),
   },
+  {
+    // Canonical file: supabase/migrations/20260710_increment_emails_sent.sql
+    //
+    // #383 — THE SEND COUNTER'S ATOMIC RPC. The .sql file has existed since 10 Jul and was
+    // never added HERE, which is the only list that executes (O3). So the function has never
+    // been created in production, every send has fallen through to the fallback in
+    // `figsy.ts:sendSequenceEmail`, and that fallback was a read-then-write: two concurrent
+    // sends both read N and both write N+1, losing a count.
+    //
+    // ⚠️ THE REASON THIS WENT UNSEEN FOR A MONTH: the item was marked 🩷 and then briefly 🟢,
+    // so nothing re-examined it — a file in `supabase/migrations/` LOOKS applied. Recording a
+    // migration is not running one; only this array runs.
+    //
+    // The fallback is now recomputed from the send log rather than incremented (see figsy.ts),
+    // so the counter is correct with or without this function. This makes it atomic in ONE
+    // statement rather than merely correct in two.
+    key: '20260710_increment_emails_sent',
+    title: 'Atomic send-counter RPC (#383) — the .sql existed since 10 Jul but was never in the runner, so it never ran',
+    sql: `
+CREATE OR REPLACE FUNCTION public.increment_figsy_emails_sent(campaign_id uuid)
+RETURNS integer
+LANGUAGE sql
+AS $$
+  UPDATE public.figsy_campaigns
+     SET emails_sent = COALESCE(emails_sent, 0) + 1
+   WHERE id = campaign_id
+  RETURNING emails_sent;
+$$;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

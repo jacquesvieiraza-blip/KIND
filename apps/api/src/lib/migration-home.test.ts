@@ -76,7 +76,14 @@ describe('① every migration has a canonical file', () => {
     // where this entry sits: the `fileless` assertion above passed on the first run, because
     // the file and the runner entry were written together. That is the whole discipline of
     // this test, working in the intended direction rather than catching a miss.
-    expect(runnerKeys).toHaveLength(16)
+    // 17 from 12 Aug — #383 added `20260710_increment_emails_sent`, and this counter is the
+    // reason that defect is fixed rather than still hiding. The .sql file was written on
+    // 10 Jul and never added here, so the atomic send-counter RPC was never created in
+    // production and every send fell through to a racy fallback for a month. The file
+    // existing made it LOOK applied. This number moving is what "a migration was added"
+    // means — and its NOT moving, for 33 days, is what "a migration was written and never
+    // run" looks like. Nothing here can catch that second case; only reading the runner can.
+    expect(runnerKeys).toHaveLength(17)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {

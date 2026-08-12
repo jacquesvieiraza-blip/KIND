@@ -171,6 +171,27 @@ const REQUIRED_SCHEMA: Array<{ table: string; column?: string; why: string; migr
   { table: 'cron_claims', column: 'job', why: 'the cron single-run guard — without it two replicas double every email and every charge', migration: '20260727_cron_claims' },
 ]
 
+/**
+ * A uuid that matches no row, used to prove a function EXISTS without changing anything.
+ * The all-zero uuid is valid syntax and can never be a real primary key.
+ */
+const NO_SUCH_ROW_UUID = '00000000-0000-0000-0000-000000000000'
+
+/**
+ * Functions the product calls at runtime and cannot see the absence of.
+ *
+ * #383 — this list exists because a missing FUNCTION was undetectable here while a missing
+ * table or column was caught immediately. That asymmetry hid a real defect for a month.
+ */
+const REQUIRED_FUNCTIONS: { name: string; arg: string; why: string; migration: string }[] = [
+  {
+    name: 'increment_figsy_emails_sent',
+    arg: 'campaign_id',
+    why: "the atomic send counter — without it every send falls through to a fallback, and the client's 'emails sent' figure is computed the slow way",
+    migration: '20260710_increment_emails_sent',
+  },
+]
+
 async function schema(): Promise<Section> {
   const rows: Row[] = []
   for (const req of REQUIRED_SCHEMA) {
@@ -210,6 +231,36 @@ async function schema(): Promise<Section> {
         `Re-run once the database answers. Only run ${req.migration} if a later check actually reports the table missing.`)
     }))
   }
+
+  // ── FUNCTIONS ────────────────────────────────────────────────────────────────
+  // #383 — ADDED 12 Aug BECAUSE A MISSING FUNCTION WAS INVISIBLE TO THIS PAGE FOR A MONTH.
+  // Every row above asks about a TABLE or a COLUMN. `increment_figsy_emails_sent` was written
+  // as a .sql file on 10 Jul, never added to PENDING_MIGRATIONS, and so never created — and
+  // nothing here could ask the question. The send path fell through to a racy fallback and
+  // undercounted every campaign, silently, on every send this product has ever made.
+  //
+  // Probed by CALLING it with a uuid that matches no campaign: the function's UPDATE affects
+  // zero rows and returns nothing, which is a successful call and proves existence, while
+  // changing no data. A read-only existence check that cannot mutate anything.
+  for (const fn of REQUIRED_FUNCTIONS) {
+    rows.push(await probe(fn.name, async () => {
+      const { error } = await db.rpc(fn.name, { [fn.arg]: NO_SUCH_ROW_UUID })
+      const { classifyProbeError } = await import('./schema-probe')
+      const verdict = classifyProbeError(error as never, 'function')
+
+      if (verdict.verdict === 'exists') return ok(fn.name, `Present — ${fn.why}.`)
+      if (verdict.verdict === 'missing') {
+        return broken(fn.name, `MISSING in production: ${verdict.detail}. Consequence: ${fn.why}.`,
+          `Run migration ${fn.migration} from Vida → Engine → Database migrations.`)
+      }
+      // Same law as the schema rows above: a probe that could not run says so. An RLS refusal,
+      // a paused project or a timeout must never be printed as "run this migration".
+      return unmeasured(fn.name,
+        `Could NOT establish whether this function exists — the call errored and the error is not "no such function": ${verdict.detail || '(no message)'}. This is NOT evidence it is absent. Consequence if it IS absent: ${fn.why}.`,
+        `Re-run once the database answers. Only run ${fn.migration} if a later check reports it actually missing.`)
+    }))
+  }
+
   return { title: 'Database — which migrations are ACTUALLY applied in production', side: 'both', rows }
 }
 
@@ -282,7 +333,14 @@ async function clients(): Promise<Section> {
         via === 'real' ? 'paid' : via === 'comp' ? 'comped (no money in)' : 'NOT paid',
         `${approved ?? 0} approved`,
         pack.active ? `${pack.left}/${pack.included} included left` : 'no pack',
-        `${awaiting ?? 0} awaiting a decision`,
+        // #648 — RENAMED 12 Aug. This said "awaiting a decision" while the operator's Lead
+        // queue says "awaiting approval" — two operator screens, near-identical wording,
+        // entirely different queues. THIS counts LEADS the CLIENT has not yet approved
+        // (`leads.revealed_at is null`); the Lead queue counts EMAIL DRAFTS awaiting the
+        // OPERATOR (`listPendingDrafts`). During the 12-Aug walk the founder read "5
+        // awaiting a decision" here, opened the Lead queue, found it empty, and we lost a
+        // step establishing that neither screen was wrong. Named for WHO decides.
+        `${awaiting ?? 0} awaiting the CLIENT's approval`,
         camp.data ? 'campaign active' : 'NO active campaign',
         approvalAge,
       ].join(' · ')

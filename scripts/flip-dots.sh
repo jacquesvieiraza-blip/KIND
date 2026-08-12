@@ -33,8 +33,29 @@ for id in "$@"; do
   fi
   cur="$(printf '%s\n' "$before" | grep -oE '🟢|🩷|🟣|🟡|🔴|⏸' | head -1 || true)"
   if [ "$cur" = "$DOT" ]; then continue; fi
-  if [ "$DOT" = "🩷" ] && { [ "$cur" = "🟢" ] || [ "$cur" = "🩷" ]; }; then
-    continue  # never downgrade
+  # ── THE RATCHET, AND ITS ONE NAMED EXCEPTION ────────────────────────────────
+  # 🟢 → 🩷 is refused by default: a walked item does not quietly become unwalked, and
+  # an accidental re-run must never erase the founder's own verification.
+  #
+  # ⚠️ FOUNDER_UNFLIP=1 ADDED 12 Aug, and it exists because of a real event, not a
+  # hypothetical. On 12 Aug five items were flipped 🟢 during the first A11 walk. Three
+  # (#376 #383 #473) were awarded on the walk-list's claim that the System page measured
+  # them — it does not measure any of the three. A 🟢 is "the founder verified this with
+  # his own eyes", so three items were wearing a verification nobody performed, and a 🟢
+  # item is never walked again: the error would have been permanent and invisible. One of
+  # them (#383) was sitting on a live send-path defect.
+  #
+  # So reverting a wrongly-awarded green must be POSSIBLE, and must be as deliberate and
+  # as auditable as awarding one. Same shape as FOUNDER_FLIP: a named variable, refused
+  # by default, and the reason belongs in the row's chain and the session log.
+  if [ "$DOT" = "🩷" ] && [ "$cur" = "🟢" ] && [ "${FOUNDER_UNFLIP:-}" != "1" ]; then
+    echo "flip-dots: REFUSED — #$id is 🟢 and 🟢 does not go backwards. If a green was awarded" >&2
+    echo "           on a claim that turned out to be wrong, set FOUNDER_UNFLIP=1 and chain the" >&2
+    echo "           reason in the row. Never revert a green silently." >&2
+    continue
+  fi
+  if [ "$DOT" = "🩷" ] && [ "$cur" = "🩷" ]; then
+    continue  # already there
   fi
   # Format A (dot in col 2) then Format B (dot in col 3) — first match wins.
   sed -i -E "s%^(\| ?${id}[a-z]? ?\| ?)(🟢|🩷|🟣|🟡|🔴|⏸)( ?\|)%\1${DOT}\3%" "$INV"

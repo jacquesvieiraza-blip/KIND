@@ -83,6 +83,13 @@ describe('no probe may write, spend, or move money', () => {
   it('every probed money function passes a zero amount or an unmatchable id', () => {
     // The two safe shapes, and nothing else: a guard clause that returns before any write,
     // or a WHERE that matches no row.
+    //
+    // ⚠️ HARDENED ON VERIFICATION, 13 Aug — the first version sliced a flat 500 characters
+    // after the entry's name, which BLED INTO THE NEXT ENTRY: weakening try_charge_wallet's
+    // probe to `p_amount: 1` still passed, because increment_wallet's `p_amount: 0` sat
+    // inside the window. The slice now ends at the next `name:` line, so each entry is
+    // judged on its own args and nothing else. (Red-proved: `p_amount: 1` on
+    // try_charge_wallet now fails THIS test by name.)
     for (const [fn, needle] of [
       ['try_charge_wallet', 'p_amount: 0'],
       ['increment_wallet', 'p_amount: 0'],
@@ -94,7 +101,9 @@ describe('no probe may write, spend, or move money', () => {
     ] as const) {
       const i = PROBES.indexOf(`name: '${fn}'`)
       expect(i, `${fn} not in REQUIRED_FUNCTIONS`).toBeGreaterThan(-1)
-      expect(PROBES.slice(i, i + 500), `${fn} must be probed with ${needle}`).toContain(needle)
+      const next = PROBES.indexOf("name: '", i + 1)
+      const entry = PROBES.slice(i, next === -1 ? i + 500 : next)
+      expect(entry, `${fn} must be probed with ${needle}`).toContain(needle)
     }
   })
 

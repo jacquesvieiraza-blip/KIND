@@ -140,8 +140,24 @@ const MAX_TURN_CHARS = 4000
 export async function chat(params: ChatParams): Promise<ChatResult> {
   const { clientId, userMessage, messageHistory } = params
 
-  // Fetch relevant context chunks
-  const chunks = await searchChunks(clientId, userMessage)
+  // ── 12 Aug (same day as the snapshot fix): BOTH lookups run in PARALLEL ──────
+  // The portal aborts any API call at 15s (apps/portal/src/lib/api.ts), and this
+  // route answers un-streamed — chunk search + model call already lived near that
+  // edge. Adding the snapshot SERIALLY pushed first questions over it, and the
+  // client saw "I hit a snag reaching the engine". Parallel = the snapshot costs
+  // ~nothing; the model swap below buys the rest of the margin back.
+  const [chunks, snapshot] = await Promise.all([
+    searchChunks(clientId, userMessage),
+    (async (): Promise<import('./milla-chat-system').MillaSnapshot | null> => {
+      try {
+        const { buildMillaSummaryData } = await import('./milla-summary')
+        return await buildMillaSummaryData(clientId)
+      } catch (e) {
+        console.error('[milla/chat] snapshot lookup failed — answering without live numbers', e)
+        return null
+      }
+    })(),
+  ])
 
   const hasContext = chunks.length > 0
 
@@ -158,14 +174,6 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
   // the chat can never disagree with the KPIs beside it. FAIL-SOFT: if the lookup
   // throws, she gets an explicit "numbers unavailable — never invent" block instead;
   // a chat that answers without numbers beats a chat that is down.
-  let snapshot = null as import('./milla-chat-system').MillaSnapshot | null
-  try {
-    const { buildMillaSummaryData } = await import('./milla-summary')
-    snapshot = await buildMillaSummaryData(clientId)
-  } catch (e) {
-    console.error('[milla/chat] snapshot lookup failed — answering without live numbers', e)
-  }
-
   const { buildMillaChatSystem } = await import('./milla-chat-system')
   const systemPrompt =
     buildMillaChatSystem(snapshot) +
@@ -193,9 +201,12 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
     content: `Context from documents:\n${contextText}\n\nQuestion: ${userMessage.slice(0, MAX_TURN_CHARS)}`,
   })
 
+  // Haiku, same as the stateless panel: with the client's numbers injected the desk
+  // chat is short factual Q&A (the prompt caps it at 2–4 sentences), and Sonnet's
+  // extra latency was most of the 15s budget. One model on both doors.
   const response = await anthropic.messages.create({
-    model:      'claude-sonnet-4-6',
-    max_tokens: 1024,
+    model:      'claude-haiku-4-5-20251001',
+    max_tokens: 600,
     system:     systemPrompt,
     messages:   history,
   })

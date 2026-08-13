@@ -134,6 +134,20 @@ describe('both doors actually use the shared prompt (wiring, not intent)', () =>
     expect(src).not.toMatch(/suggest they upload the relevant document/)
   })
 
+  it('the desk chat stays inside the portal 15s window: parallel lookups, fast model', () => {
+    // 12 Aug, second finding: the portal aborts at 15s (apps/portal/src/lib/api.ts) and
+    // this route answers un-streamed. The snapshot fetch added SERIAL latency and first
+    // questions started timing out as "I hit a snag reaching the engine". Pins: the two
+    // lookups run in ONE Promise.all, and the model is the fast one on both doors.
+    const src = readFileSync(join(__dirname, 'milla.ts'), 'utf8')
+    const parallel = src.indexOf('Promise.all')
+    expect(parallel).toBeGreaterThan(-1)
+    expect(src.slice(parallel, parallel + 400)).toContain('searchChunks')
+    expect(src.slice(parallel, parallel + 400)).toContain('buildMillaSummaryData')
+    expect(src).not.toMatch(/claude-sonnet/)
+    expect(src).toContain('claude-haiku-4-5')
+  })
+
   it('the summary route delegates to the SAME builder the chats read', () => {
     const src = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
     expect(src).toContain("await import('../lib/milla-summary')")

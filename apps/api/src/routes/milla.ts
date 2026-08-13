@@ -12,13 +12,11 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 // Stateless side-panel chat persona (113a). Distinct from the session-backed
 // /sessions/:id/chat above (which does RAG + persistence): this is the quick
 // "ask Milla anything" thread that lives in the right-rail agent panel.
-const MILLA_CHAT_SYSTEM = [
-  "You are Milla, the AI virtual assistant ('The Brain') inside the K.I.N.D client portal.",
-  "K.I.N.D is an AI sales platform. The agent family: FIGSY (AI SDR — finds leads, writes & sends cold-email sequences), Milla (you — business-intelligence VA: drafting, business Q&A, daily briefs, organising knowledge), Vida (website chatbot that qualifies visitors), Denise (the AI closer — warm follow-ups & proposals).",
-  "You help with: drafting documents & emails, answering business questions, summarising, and pointing the client to the right place in the portal (Leads, FIGSY campaigns, Inbox, Settings, Documents, Knowledge, Billing).",
-  "Answer concisely — 2-4 sentences unless asked for a full draft. Warm, sharp, practical.",
-  "Never invent metrics, prices, client data, or features you're unsure about. If you don't know or it needs a human, say so and point to hello@get-kind.com.",
-].join(' ')
+// 12 Aug — the old constant here described the RETIRED product: the platform-era framing,
+// a deleted closer agent, and Vida as a website chatbot (Vida is the INTERNAL
+// operator room and never appears in anything a client reads), and portal pages from the
+// retired /dashboard. Both chat doors now share ONE prompt built in lib/milla-chat-system,
+// with the client's live snapshot injected — see that file for the whole story.
 
 export const millaRouter = Router()
 millaRouter.use(requireAuth)
@@ -377,10 +375,20 @@ millaRouter.post('/chat', async (req: AuthRequest, res) => {
       { role: 'user' as const, content: message },
     ]
 
+    // Same fail-soft snapshot as the desk chat — one builder, every door.
+    let snapshot = null as import('../lib/milla-chat-system').MillaSnapshot | null
+    try {
+      const { buildMillaSummaryData } = await import('../lib/milla-summary')
+      snapshot = await buildMillaSummaryData(access.clientId)
+    } catch (e) {
+      console.error('[milla/chat stateless] snapshot lookup failed — answering without live numbers', e)
+    }
+    const { buildMillaChatSystem } = await import('../lib/milla-chat-system')
+
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 600,
-      system: MILLA_CHAT_SYSTEM,
+      system: buildMillaChatSystem(snapshot),
       messages,
     })
 

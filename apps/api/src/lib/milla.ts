@@ -149,25 +149,35 @@ export async function chat(params: ChatParams): Promise<ChatResult> {
     ? chunks.map((c, i) => `[${i + 1}] (${c.document_name})\n${c.content}`).join('\n\n')
     : 'No relevant documents found.'
 
+  // ── 12 Aug — MILLA NOW SEES THE CLIENT'S OWN NUMBERS ────────────────────────
+  // Found on the founder's screenshot: asked "How is my ROI looking?" she answered
+  // "I don't have access to your specific ROI data … share or upload your relevant
+  // data" — while the SAME SCREEN showed every number she disclaimed, and the old
+  // prompt below this comment literally instructed the upload-request behaviour.
+  // The snapshot is the same builder /leads/milla-summary feeds the desk from, so
+  // the chat can never disagree with the KPIs beside it. FAIL-SOFT: if the lookup
+  // throws, she gets an explicit "numbers unavailable — never invent" block instead;
+  // a chat that answers without numbers beats a chat that is down.
+  let snapshot = null as import('./milla-chat-system').MillaSnapshot | null
+  try {
+    const { buildMillaSummaryData } = await import('./milla-summary')
+    snapshot = await buildMillaSummaryData(clientId)
+  } catch (e) {
+    console.error('[milla/chat] snapshot lookup failed — answering without live numbers', e)
+  }
+
+  const { buildMillaChatSystem } = await import('./milla-chat-system')
   const systemPrompt =
-    'You are Milla, the AI virtual assistant for K.I.N.D — a platform that helps businesses ' +
-    'with lead generation, sales outreach, and growth (including the FIGSY lead-gen tool). ' +
-    'You are a knowledgeable business and sales assistant. You can help with lead-generation ' +
-    'strategy, defining and refining an Ideal Customer Profile (ICP), how FIGSY works and how to ' +
-    'set it up, cold outreach and email best practices, and general business and sales questions — ' +
-    'drawing on your general expertise.\n\n' +
+    buildMillaChatSystem(snapshot) +
+    '\n\n' +
     (hasContext
-      ? 'The user has uploaded business documents, and relevant excerpts are provided below as context. ' +
+      ? 'The client has uploaded business documents, and relevant excerpts are provided below. ' +
         'When the answer is found in those documents, ground your response in them and prefer that ' +
-        'information over general knowledge. If part of the answer is in the documents and part is not, ' +
-        'use the documents for the client-specific facts and your general expertise for the rest.'
-      : 'No relevant uploaded documents were found for this question. Still be genuinely helpful: ' +
-        'answer using your general K.I.N.D business and sales expertise (lead-gen strategy, ICP guidance, ' +
-        'how FIGSY works, outreach best practices, etc.). Do NOT refuse simply because there are no ' +
-        'documents. Do not invent client-specific facts, numbers, or data you do not actually have — ' +
-        'if the user asks about their specific leads/data and you have none, say you do not have that ' +
-        'data yet and suggest they upload the relevant document, but still offer useful general guidance.') +
-    '\n\nKeep responses professional, clear, and concise.'
+        'information over general knowledge.'
+      : 'No uploaded documents matched this question. Still be genuinely helpful with general ' +
+        'lead-gen, ICP and outreach guidance — but never invent client-specific facts, and never ' +
+        'ask the client to upload data the product already shows (their live numbers are above; ' +
+        'anything beyond them lives on the Reports page).')
 
   // Build message history for Claude (last N turns already filtered by caller)
   const history: Anthropic.Messages.MessageParam[] = messageHistory

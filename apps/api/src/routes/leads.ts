@@ -8,7 +8,6 @@ import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
 import { scoreLeadsForIcp } from '../lib/scoring'
-import { PAID_TX_TYPES, PACK_PRICE_USD, LEAD_PRICE_USD } from '../lib/onboarding-pack'
 import type { BatchCheck } from '../lib/approval-batch'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
@@ -334,98 +333,10 @@ leadRouter.get('/milla-summary', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const now = new Date()
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
-
-    const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases] = await Promise.all([
-      db.from('clients').select('wallet_balance_usd').eq('id', clientId).maybeSingle(),
-      // mirrors /for-approval — the exact set of masked cards the client can act on
-      db.from('leads').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId).not('delivered_at', 'is', null)
-        .not('surfaced_for_approval_at', 'is', null)   // no TTL — see /for-approval above
-        .is('revealed_at', null).neq('status', 'passed'),
-      db.from('calendar_bookings').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId).eq('status', 'confirmed').gte('start_time', monthStart),
-      // Name AND status of the newest campaign, whatever state it is in. Filtering to
-      // status='active' meant a paused or cold-suspended client was indistinguishable from
-      // one with no campaign at all — and Milla told both of them "Campaign live".
-      db.from('figsy_campaigns').select('name, status').eq('client_id', clientId)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle(),
-      db.from('figsy_replies').select('from_name, from_email, classification, received_at')
-        .eq('client_id', clientId).order('received_at', { ascending: false }).limit(4),
-      // #495 — each icps row is a version; oldest = v1. Real history, no fabrication.
-      db.from('icps').select('name, industries, geographies, seniority_levels, company_sizes, job_titles, created_at')
-        .eq('client_id', clientId).order('created_at', { ascending: true }).limit(12),
-      // (audit fix) REAL all-time counts for the report — the reports page was deriving these
-      // from a 50-row ledger slice / a 4-row replies rail, so healthy accounts under-counted.
-      db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('revealed_at', 'is', null),
-      db.from('figsy_replies').select('id', { count: 'exact', head: true }).eq('client_id', clientId),
-      db.from('calendar_bookings').select('id', { count: 'exact', head: true }).eq('client_id', clientId).eq('status', 'confirmed'),
-      // NO FREEBIES — has this client EVER paid? (any wallet top-up / purchase). Drives the
-      // $99 paywall: no purchase → the client is gated until they load their wallet.
-      db.from('credit_transactions').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId).in('type', PAID_TX_TYPES),
-    ])
-
-    // Pack state: bought it? how many of the 100 have they used? Both derived from rows that
-    // already exist, so there is no column to keep in sync.
-    const { packState } = await import('../lib/onboarding-pack')
-    const { count: approvedEver } = await db.from('leads').select('id', { count: 'exact', head: true })
-      .eq('client_id', clientId).not('revealed_at', 'is', null)
-    const pack = packState((purchases.count ?? 0) > 0, approvedEver ?? 0)
-
-    const icpRows = (icps.data ?? []) as Array<Record<string, unknown>>
-    const arr = (v: unknown): string[] => Array.isArray(v) ? (v as string[]).filter(Boolean) : []
-    const icp_versions = icpRows.map((r, i) => ({
-      version: `v${i + 1}`,
-      current: i === icpRows.length - 1,
-      name: (r.name as string | null) ?? `ICP v${i + 1}`,
-      summary: [
-        arr(r.seniority_levels).join(' / ') || null,
-        arr(r.industries).join(', ') || null,
-        arr(r.geographies).join(', ') || null,
-        arr(r.company_sizes).length ? `${arr(r.company_sizes)[0]}–${arr(r.company_sizes).slice(-1)[0]} staff` : null,
-      ].filter(Boolean).join(' · '),
-      created_at: (r.created_at as string | null) ?? null,
-    }))
-
-    res.json({
-      success: true,
-      data: {
-        wallet_balance_usd: Number((client as Record<string, number> | null)?.wallet_balance_usd ?? 0),
-        // NO FREEBIES — true once the client has made their first ($99) purchase. The Milla
-        // dashboard gates on this: no purchase → paywall to Billing.
-        has_funded: (purchases.count ?? 0) > 0,
-        // THE $99 PACK — 100 approvals included, counted rather than faked into the wallet.
-        pack,
-        leads_awaiting:  awaiting.count ?? 0,
-        meetings_booked: meetings.count ?? 0,
-        // Real all-time totals + true $ spend.
-        //
-        // ⚠️ NOT `approved × $4`. The first 100 approvals are INSIDE the $99 pack, so a
-        // client who used their included hundred was shown "$400 spent" against a $99
-        // payment — a 4× overstatement, on the client's own Reports page. Same bug was
-        // fixed on the Vida side and missed here, which is the worse of the two: they read
-        // this one. Spend = the pack they bought + $4 for each approval BEYOND it.
-        leads_approved_total: approvedTotal.count ?? 0,
-        replies_total:        repliesTotal.count ?? 0,
-        meetings_total:       meetingsTotal.count ?? 0,
-        spend_usd:            pack.active
-          ? PACK_PRICE_USD + Math.max(0, (approvedTotal.count ?? 0) - pack.included) * LEAD_PRICE_USD
-          : (approvedTotal.count ?? 0) * LEAD_PRICE_USD,
-        // active_campaign stays "the name of a LIVE campaign" so existing readers are
-        // unchanged; campaign_status is the new, honest one.
-        active_campaign: (campaign.data as { status?: string } | null)?.status === 'active'
-          ? ((campaign.data as { name?: string } | null)?.name ?? null) : null,
-        campaign_name:   (campaign.data as { name?: string } | null)?.name ?? null,
-        campaign_status: (campaign.data as { status?: string } | null)?.status ?? null,
-        recent_replies:  (replies.data ?? []).map((r: Record<string, unknown>) => ({
-          name: (r.from_name as string | null) ?? (r.from_email as string | null) ?? 'Reply',
-          classification: (r.classification as string | null) ?? 'reply',
-        })),
-        icp_versions,
-      },
-    })
+    // Extracted 12 Aug to lib/milla-summary so Milla's CHAT speaks from the same numbers
+    // this endpoint feeds the desk — one builder, every door, nothing to drift.
+    const { buildMillaSummaryData } = await import('../lib/milla-summary')
+    res.json({ success: true, data: await buildMillaSummaryData(clientId) })
   } catch (err) { console.error('[leads/milla-summary]', err); res.status(500).json({ success: false, error: 'Failed to load summary' }) }
 })
 

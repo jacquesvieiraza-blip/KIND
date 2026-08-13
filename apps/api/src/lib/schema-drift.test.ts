@@ -354,7 +354,7 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // string with no file, the mirror image of the same gap. #627 wrote BOTH homes for that
     // reason: the file is the canonical record, this array is what actually runs.
     const keys = read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []
-    expect(keys.length).toBe(17)   // 12 at #273; +1 #607; +1 #627 (app_settings); +1 #599 (leads_source); +1 #637/#641 (audit_columns); +1 #383 (increment_emails_sent — the .sql existed since 10 Jul and was never in the runner)
+    expect(keys.length).toBe(18)   // 12 at #273; +1 #607; +1 #627 (app_settings); +1 #599 (leads_source); +1 #637/#641 (audit_columns); +1 #383 (increment_emails_sent — the .sql existed since 10 Jul and was never in the runner); +1 #316/#372 (pool_atomic — same gap again, .sql from 6 Jul, never in the runner, found by auditing every runtime RPC)
   })
 
   it('the three schema snapshots disagree about how many tables exist', () => {

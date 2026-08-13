@@ -83,7 +83,15 @@ describe('① every migration has a canonical file', () => {
     // existing made it LOOK applied. This number moving is what "a migration was added"
     // means — and its NOT moving, for 33 days, is what "a migration was written and never
     // run" looks like. Nothing here can catch that second case; only reading the runner can.
-    expect(runnerKeys).toHaveLength(17)
+    //
+    // 18 from 13 Aug — the SECOND instance of the very same gap, found by auditing every
+    // runtime RPC rather than waiting for a symptom: `20260706_pool_atomic` had sat as a .sql
+    // file since 6 Jul carrying the line "NOT auto-applied — the founder runs this by hand in
+    // the Supabase SQL editor", while that editor has been unreachable the whole time. Both
+    // its functions are called by routes/company.ts, which fails soft — so their absence read
+    // as "not enough in the pool" rather than as an error. Added to the runner, and #372 (the
+    // destroyed-credits bug inside that SQL) fixed in the same entry.
+    expect(runnerKeys).toHaveLength(18)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {

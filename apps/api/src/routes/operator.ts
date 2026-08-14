@@ -1628,6 +1628,38 @@ operatorRouter.post('/inboxes/:id/verify', async (req: Request, res: Response) =
   } catch (err) { console.error('[operator/inbox-verify]', err); res.status(500).json({ success: false, error: 'Failed to check the mailbox' }) }
 })
 
+// ── A22 / R25 — THE UNLOCK-DAY BACKFILL ─────────────────────────────────────────────
+// Re-offers leads that were approved BEFORE the Smartlead key existed. Without this, every
+// lead approved before unlock day stays un-pushed forever — charged, revealed, enrolled and
+// never in the client's campaign — which would make "day 1 a client uses the system" (R25)
+// true only for leads approved after the purchase. Operator-triggered, never automatic:
+// a backfill that fires on its own lands a month of leads in a campaign nobody was watching.
+// Every gate re-runs per lead because it calls the same push the money path calls.
+operatorRouter.post('/smartlead/backfill', async (req: Request, res: Response) => {
+  try {
+    const { client_id, limit } = (req.body ?? {}) as { client_id?: string; limit?: number }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    const { backfillSmartleadForClient, backfillSummary, BACKFILL_DEFAULT_LIMIT } =
+      await import('../lib/smartlead-backfill')
+    const capped = Math.min(Number(limit) > 0 ? Number(limit) : BACKFILL_DEFAULT_LIMIT, BACKFILL_DEFAULT_LIMIT)
+    const outcome = await backfillSmartleadForClient(client.id, capped)
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'assign_inbox',
+      subjectType: 'inbox', subjectId: 'smartlead-backfill',
+      detail: { found: outcome.found, pushed: outcome.pushed, refused: outcome.refused, halted: outcome.haltedBefore ?? null },
+    })
+    // 200 even when nothing was pushed: "we asked and every gate said no" is a successful
+    // check, not a server error — the summary is where the operator reads the verdict.
+    res.json({ success: true, data: { ...outcome, summary: backfillSummary(outcome) } })
+  } catch (err) {
+    console.error('[operator/smartlead-backfill]', err)
+    res.status(500).json({ success: false, error: 'Failed to run the backfill' })
+  }
+})
+
 // ── V9 #270 — assign a PRE-WARMED POOLED inbox (instant; client sends day 1) ────────
 operatorRouter.post('/inboxes/assign', async (req: Request, res: Response) => {
   try {
@@ -1635,6 +1667,19 @@ operatorRouter.post('/inboxes/assign', async (req: Request, res: Response) => {
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
     if (!email || !email.includes('@')) { res.status(400).json({ success: false, error: 'A pooled inbox email is required' }); return }
+
+    // ⚠️ A22 — CHECK FIRST, DO NOT LEAN ON THE INDEX. `client_inboxes_one_live_per_kind`
+    // (migration 20260725_client_inboxes) is the backstop and it does hold — but a raw
+    // constraint violation surfaces here as a 500 "Failed to assign inbox", which tells the
+    // operator nothing and looks like a broken server rather than a second pooled box.
+    const { data: existingPooled } = await db.from('client_inboxes')
+      .select('id, email').eq('client_id', client.id).eq('kind', 'pooled')
+      .in('status', ['assigned', 'warming', 'active']).maybeSingle()
+    if (existingPooled) {
+      res.status(409).json({ success: false,
+        error: `This client already has a live pooled mailbox (${(existingPooled as { email?: string }).email ?? 'unknown'}). Release that one first, or record the client's own branded mailbox instead — a second pooled box would give them two senders and no rule for which one sends.` })
+      return
+    }
 
     const { data, error } = await db.from('client_inboxes').insert({
       client_id: client.id, email: email.trim().toLowerCase(), kind: 'pooled',

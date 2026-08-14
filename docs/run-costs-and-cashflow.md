@@ -308,13 +308,17 @@ The rest of this doc uses **one** client shape (~$80/mo). Reality is a **range**
 | − Stripe | −0.20 | `STRIPE_ALL_IN_PCT = 5` |
 | **= Contribution / approved lead** | **3.17** | |
 
-Two costs sit **outside** that figure and are subtracted separately below, because they scale with *logos*, not leads: the client's own inbox at **$8/client/mo** (`PER_CLIENT_MONTHLY_USD`) and the fixed floor at **$352/mo today, $468 once live** (`cost-floor.ts`).
+Two costs sit **outside** that figure and are subtracted separately below, because they scale with *logos*, not leads: the client's own inbox at **$8/client/mo** (`PER_CLIENT_MONTHLY_USD`) and **the fixed floor of $352/mo** (`cost-floor.ts` — $146 platform + $206 company, at the lab's committed defaults).
+
+⛓️ **CORRECTED 13 Aug — this line said "$352/mo today, $468 once live".** Per **R19's chain note (12 Aug)**: *"the phrase 'once-live floor' is RETIRED … $468 is the lab's fixed boxes with Smartlead+Hunter typed in, not a floor; the founder was thrown by the word twice and the lab's four-box view is the format of record."* **There is one floor and it is $352.** Smartlead (+$94) and Hunter (+$34) are **client-triggered** costs that switch on the month a client is in the works (R25/R26) — you type them into the lab's boxes and read the new Net. They are never a floor, because at zero clients they are zero.
 
 ⚠️ **The $299 pack is an onboarding fee, not a monthly line.** It covers the client's **first 100 approvals** (M1: `PACK_PRICE_USD` / `PACK_LEADS`). The envelope below models **steady state** — a client past their included 100, paying $4 a lead. A client's first months are *better* than these numbers, not worse.
 
 #### The envelope — 10 clients, steady state, with Smartlead + Hunter switched ON
 
-*Basis, stated so it can never confuse again: this table types $94 (Smartlead) and $34 (Hunter) into the lab's fixed boxes and removes the $12 failover — the with-clients month. The lab at its committed defaults (idle tools $0) shows every net $128 higher. Same lab, same formula (`CASHFLOW-LAB.html`, PR6 — the model of record), two settings of its boxes.*
+*Basis: the **floor is $352** (lab defaults, idle tools $0). The row beneath each Net shows the same book in **the month the client-triggered tools run** — Smartlead $94 + Hunter $34 typed into the lab's boxes, failover $12 removed. Same lab, same formula (`CASHFLOW-LAB.html`, PR6 — the model of record), two settings of its boxes.*
+
+⛓️ **CORRECTED 13 Aug — this note said the defaults show every net "$128 higher". It is $116.** $94 + $34 is $128, but the same basis also *removes* the $12 failover, so the two bases differ by **$468 − $352 = $116**. Re-derived from the lab's own default values, not from memory.
 
 | /mo, 10 clients | 🟦 Conservative | 🟩 Middle | 🟪 Higher |
 |---|---|---|---|
@@ -322,20 +326,25 @@ Two costs sit **outside** that figure and are subtracted separately below, becau
 | Revenue | $800 | $1,800 | $4,000 |
 | Contribution @ $3.17 | $634 | $1,427 | $3,170 |
 | − Client inboxes (10 × $8) | −$80 | −$80 | −$80 |
-| − Fixed floor (once live) | −$468 | −$468 | −$468 |
-| **NET / mo** | **≈ +$86** | **≈ +$879** | **≈ +$2,622** |
-| Margin on revenue | ~11% | ~49% | ~66% |
+| − **The floor** | −$352 | −$352 | −$352 |
+| **NET / mo** | **≈ +$202** | **≈ +$994** | **≈ +$2,738** |
+| Margin on revenue | ~25% | ~55% | ~68% |
+| *…in a month Smartlead + Hunter run (−$116)* | *≈ +$86* | *≈ +$878* | *≈ +$2,622* |
 
-⚠️ **The Conservative line is FAR thinner than the retired model claimed.** The old table showed **+$240/mo at ~43% margin** for its cautious case; re-derived at $299 + $4 the true floor case is **+$86/mo at ~11%**. Every scenario is still net-positive at ten clients — but the safety net is roughly **one third** of what this section used to promise, and that gap is the single most important thing the re-derivation changed.
+⛓️ **CORRECTED 13 Aug.** The floor row read **−$468 "once live"** on all three columns, so the headline Net was the *with-tools* month presented as the ordinary one. The floor is **$352**; the with-tools month is now the italic row beneath, where it belongs. **The old numbers are not lost — they are that italic row** (+$86 / ≈+$878 / +$2,622), so anything you remember still reconciles. *(The middle column reads $878 rather than the previous $879: the old figure rounded contribution to $1,427 before subtracting; this one carries it unrounded.)*
+
+⚠️ **The Conservative line is FAR thinner than the retired model claimed.** The old table showed **+$240/mo at ~43% margin** for its cautious case; re-derived at $299 + $4 the true floor case is **+$202/mo at ~25%** — and **+$86 in a month Smartlead and Hunter are running**. Every scenario is still net-positive at ten clients, but the safety net is a fraction of what this section used to promise, and that gap remains the single most important thing the re-derivation changed. ⛓️ *13 Aug: previously stated as "+$86 at ~11%", which quoted the with-tools month as though it were the floor case.*
 
 #### Break-even — the number that actually governs
 
-| At | Floor | Approved/mo across the book | Per client |
+| At | Basis | Approved/mo across the book | Per client |
 |---|---|---|---|
-| 3 clients | $352 (today) | 119 | **39.5 each** |
-| 3 clients | $468 (live) | 155 | **51.7 each** |
-| 10 clients | $352 (today) | 136 | **13.6 each** |
-| 10 clients | $468 (live) | 173 | **17.3 each** |
+| 1 client | the $352 floor | 123 | **123** |
+| 3 clients | the $352 floor | 129 | **43 each** |
+| 10 clients | the $352 floor | 150 | **15 each** |
+| 10 clients | + Smartlead & Hunter running | 180 | **18 each** |
+
+⛓️ **CORRECTED 13 Aug, twice over.** ① The "$468 (live)" rows are gone — there is one floor, $352 (R19, 12 Aug); the with-tools month is the last row, named for what it is. ② **Every figure here understated break-even, because the table ignored the PDL tier.** Sourcing bills **at least $98/mo in any month it runs** (`max($98, names × $0.28)` — the lab's own rule, ruled as the billing model by **R26**, 12 Aug), and at low volume that minimum bites: three clients at 43 approvals each buy only ~$72 of names, so ~$26 of unused tier is still paid. Re-derived from the lab's `model()` **with the tier included**: 3 clients need **43 each**, not 39.5; ten need **15 each**, not 13.6.
 
 > **The structural fact this exposes:** at ten clients, break-even is **17.3 approved leads per client per month**, and the product's own hard gate — **`MIN_BATCH_APPROVALS = 20`** — sits *just above it*. A client who does the bare minimum the system will accept clears the floor by a hair. **The gate is not a sales target; it is very nearly the break-even line**, and nothing in the product says so.
 
@@ -343,13 +352,15 @@ Two costs sit **outside** that figure and are subtracted separately below, becau
 
 ⛓️ *Stated per **R19** (11 Aug) and using its corrected arithmetic — the earlier "ten at 20 loses money" claim was **refuted on 11 Aug** and is not repeated here.*
 
-| Shape | Gross | Contribution | − inboxes | Net vs $468 floor |
-|---|---|---|---|---|
-| **10 clients × 20 approved** | $800 | $634 | −$80 | **+$86** |
-| **1 client × 200 approved** | $800 | $634 | −$8 | **+$158** |
-| **3 clients × 20 approved** | $240 | $190 | −$24 | **−$302** |
+| Shape | Gross | Contribution | − inboxes | − unused PDL tier | **Net vs the $352 floor** |
+|---|---|---|---|---|---|
+| **10 clients × 20 approved** | $800 | $634 | −$80 | $0 | **+$202** |
+| **1 client × 200 approved** | $800 | $634 | −$8 | $0 | **+$274** |
+| **3 clients × 20 approved** | $240 | $190 | −$24 | −$64 | **−$250** |
 
-**Identical gross, nearly double the net** — because per-client cost scales with logos and contribution scales with leads. And **three clients at the minimum do not come close**: $240 of gross against a $352 floor.
+**Identical gross, $72 more net from ONE deep client than from ten shallow ones** — because per-client cost scales with logos and contribution scales with leads. And **three clients at the minimum do not come close**: $240 of gross against a $352 floor, before the sourcing tier is even paid.
+
+⛓️ **CORRECTED 13 Aug.** The column read *"Net vs $468 floor"* — the retired label (R19, 12 Aug). Re-derived against the real floor with the lab's `model()`, **including the $98 sourcing tier** (R26) that the old rows ignored: the first two shapes buy enough names that the tier never bites, but three clients at the minimum source only ~$34 of names and still pay the $98, which is the extra −$64 and most of why that row is worse than it looked. ✅ **These two figures now match `GTM-STRATEGY.md` exactly (+$202 and +$274)** — the same two scenarios stated in both docs, from the same lab, agreeing for the first time.
 
 ---
 

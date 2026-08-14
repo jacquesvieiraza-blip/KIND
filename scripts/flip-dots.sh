@@ -58,10 +58,18 @@ for id in "$@"; do
     continue  # already there
   fi
   # Format A (dot in col 2) then Format B (dot in col 3) — first match wins.
-  sed -i -E "s%^(\| ?${id}[a-z]? ?\| ?)(🟢|🩷|🟣|🟡|🔴|⏸)( ?\|)%\1${DOT}\3%" "$INV"
+  # ⚠️ 13 Aug — perl, not `sed -i`: the founder's first local run died on BSD sed, which
+  # eats the argument after -i as a backup suffix ("\1 not defined in the RE" was exactly
+  # that — the -E fell into the suffix and the pattern parsed as basic-regex). Same macOS
+  # class as #578/#579. perl behaves identically on his Mac and in the container.
+  # (And one perl trap, hit on the first try: `$ENV{X}[a-z]` parses as a SUBSCRIPT, not
+  # interpolation followed by a character class — the (?:…) wrapper is what breaks the
+  # ambiguity. Under `set -e` that syntax error killed the loop SILENTLY, which is why
+  # the failure looked like a clean no-op: test the flip by watching a dot actually move.)
+  KIND_ID="$id" KIND_DOT="$DOT" perl -i -pe 's%^(\| ?$ENV{KIND_ID}(?:[a-z]?) ?\| ?)(🟢|🩷|🟣|🟡|🔴|⏸)( ?\|)%${1}$ENV{KIND_DOT}${3}%' "$INV"
   after="$(grep -E "^\| ?${id}[a-z]? ?\|" "$INV" | head -1)"
   if [ "$after" = "$before" ]; then
-    sed -i -E "s%^(\| ?${id}[a-z]? ?\|[^|]*\| ?)(🟢|🩷|🟣|🟡|🔴|⏸)( ?\|)%\1${DOT}\3%" "$INV"
+    KIND_ID="$id" KIND_DOT="$DOT" perl -i -pe 's%^(\| ?$ENV{KIND_ID}(?:[a-z]?) ?\|[^|]*\| ?)(🟢|🩷|🟣|🟡|🔴|⏸)( ?\|)%${1}$ENV{KIND_DOT}${3}%' "$INV"
     after="$(grep -E "^\| ?${id}[a-z]? ?\|" "$INV" | head -1)"
   fi
   if [ "$after" != "$before" ]; then

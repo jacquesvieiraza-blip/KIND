@@ -518,6 +518,98 @@ AS $$
 $$;
 `.trim(),
   },
+  {
+    // ── #316 + #372 — THE COMPANY CREDIT POOL, AND THE SECOND #383 ──────────────────
+    // `20260706_pool_atomic.sql` has existed since 6 Jul carrying the line "NOT auto-applied
+    // — the founder runs this by hand in the Supabase SQL editor". The Supabase dashboard has
+    // been unreachable that entire time (the GitHub OAuth account flag), so "by hand" has
+    // meant "never". Both call sites — `routes/company.ts:526/539` — fail SOFT:
+    //
+    //     if (error) { console.error(...); return false }
+    //
+    // so a missing function is indistinguishable from a genuine refusal, and the owner is
+    // told "Not enough in the company pool, or seat not found" when the truth is that the
+    // function does not exist. This is #383's shape exactly: a .sql file that LOOKS applied,
+    // a fail-soft caller, and nothing that can ask the question.
+    //
+    // ⚠️ AND THE SQL ITSELF CARRIED A MONEY BUG (#372), FIXED HERE.
+    // `allocate_pool_to_rep` debited the pool, then updated the rep with NO row-count check
+    // and returned `true` regardless. A bad or cross-company seat id destroyed the credits:
+    // pool down, nobody up, screen says success. Returning `false` would not have saved them
+    // — the debit is already written by that point. So the two writes are now ONE unit via a
+    // subtransaction (`begin … exception when sqlstate 'KIND1'`): raising rolls the debit
+    // back, and the handler returns the same `false` the caller already renders as "pool
+    // short or seat not found".
+    //
+    // Idempotent (CREATE OR REPLACE), and the canonical copy in supabase/migrations/ is
+    // updated to match — both homes, the 20260806_audit_columns precedent.
+    key: '20260706_pool_atomic',
+    title: 'Company pool moves, atomic + #372 fixed (#316) — the .sql existed since 6 Jul but was never in the runner, so it never ran',
+    sql: `
+create or replace function allocate_pool_to_rep(p_company_id uuid, p_rep_id uuid, p_amount int)
+returns boolean
+language plpgsql
+as $$
+declare
+  v_rows int;
+begin
+  if p_amount is null or p_amount <= 0 then
+    return false;
+  end if;
+
+  begin
+    update companies
+       set credit_pool = credit_pool - p_amount
+     where id = p_company_id
+       and coalesce(credit_pool, 0) >= p_amount;
+    get diagnostics v_rows = row_count;
+
+    if v_rows = 0 then
+      return false;
+    end if;
+
+    update clients
+       set seat_budget    = coalesce(seat_budget, 0)    + p_amount,
+           credit_balance = coalesce(credit_balance, 0) + p_amount
+     where id = p_rep_id and company_id = p_company_id;
+    get diagnostics v_rows = row_count;
+
+    if v_rows = 0 then
+      raise exception 'allocate_pool_to_rep: seat % is not a member of company %', p_rep_id, p_company_id
+        using errcode = 'KIND1';
+    end if;
+
+    return true;
+  exception when sqlstate 'KIND1' then
+    return false;
+  end;
+end;
+$$;
+
+create or replace function return_rep_to_pool(p_company_id uuid, p_rep_id uuid)
+returns int
+language plpgsql
+as $$
+declare
+  v_amount int := 0;
+begin
+  select coalesce(credit_balance, 0) into v_amount
+    from clients
+   where id = p_rep_id and company_id = p_company_id
+   for update;
+
+  if v_amount is null or v_amount <= 0 then
+    return 0;
+  end if;
+
+  update clients  set credit_balance = 0                                   where id = p_rep_id and company_id = p_company_id;
+  update companies set credit_pool   = coalesce(credit_pool, 0) + v_amount where id = p_company_id;
+
+  return v_amount;
+end;
+$$;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

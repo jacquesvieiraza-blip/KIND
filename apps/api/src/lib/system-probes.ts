@@ -183,12 +183,123 @@ const NO_SUCH_ROW_UUID = '00000000-0000-0000-0000-000000000000'
  * #383 — this list exists because a missing FUNCTION was undetectable here while a missing
  * table or column was caught immediately. That asymmetry hid a real defect for a month.
  */
-const REQUIRED_FUNCTIONS: { name: string; arg: string; why: string; migration: string }[] = [
+type FunctionProbe = {
+  name: string
+  why: string
+  migration: string
+  /** Provably no-op arguments. Null = this function CANNOT be called safely; see `unprobeable`. */
+  args: Record<string, unknown> | null
+  /** Set when args is null: the reason, printed to the reader instead of a verdict. */
+  unprobeable?: string
+}
+
+/**
+ * EVERY function the product calls at runtime — all 13, verified by grepping `db.rpc(`
+ * across apps/api/src on 13 Aug.
+ *
+ * ⚠️ THIS LIST WAS ONE ENTRY LONG UNTIL TODAY, AND THAT WAS THE WHOLE PROBLEM.
+ * #383 added the send counter here after a missing function shipped undetected for 33 days —
+ * but the other twelve, including **every function that moves a client's money**, stayed
+ * invisible in exactly the same way. Twelve of the thirteen were also never in the runner
+ * (`pending-migrations.ts`), so their presence in production rests on manual applies nobody
+ * can now verify. This page is where that question gets asked.
+ *
+ * ── HOW EACH PROBE WAS CHOSEN: I read the function's SQL and picked arguments that cannot
+ * write. Two safe shapes, and nothing else was accepted:
+ *   1. A GUARD CLAUSE that returns before any write — `IF p_amount <= 0 THEN RETURN` is the
+ *      function's own first statement, so 0 can never reach an UPDATE.
+ *   2. A WHERE that matches no row — the all-zeros uuid exists nowhere, so the UPDATE affects
+ *      zero rows. A successful call proves existence; nothing changes.
+ * A function that satisfies neither is NOT probed. It gets a row saying so, following the PDL
+ * precedent on this same page ("this report will not spend to prove a key works"). A health
+ * check that writes rows or moves money is not a health check.
+ */
+const REQUIRED_FUNCTIONS: FunctionProbe[] = [
+  // ── The send path ────────────────────────────────────────────────────────────────
   {
     name: 'increment_figsy_emails_sent',
-    arg: 'campaign_id',
+    args: { campaign_id: NO_SUCH_ROW_UUID },              // WHERE id = nothing → 0 rows
     why: "the atomic send counter — without it every send falls through to a fallback, and the client's 'emails sent' figure is computed the slow way",
     migration: '20260710_increment_emails_sent',
+  },
+  // ── The money path. These are the ones that were invisible. ──────────────────────
+  {
+    name: 'try_charge_figsy_credit',
+    args: { p_client_id: NO_SUCH_ROW_UUID },              // UPDATE … WHERE id = nothing → false
+    why: 'the atomic enrol charge — the decrement IS the gate, and without it a lead can be enrolled without being paid for',
+    migration: '20260707_money_integrity',
+  },
+  {
+    name: 'increment_figsy_credits',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_amount: 0 }, // no matching row, and +0 is identity
+    why: 'grants and reversals of FIGSY credits — without it a refund silently does nothing',
+    migration: '20260616_billing_correctness',
+  },
+  {
+    name: 'try_charge_wallet',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_amount: 0 }, // guard: `p_amount <= 0 → RETURN false`
+    why: "the $4 approval charge — the guarded decrement that stops a client being charged more than their wallet holds. This is the function the client's money actually moves through",
+    migration: '20260724_one_wallet',
+  },
+  {
+    name: 'increment_wallet',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_amount: 0 }, // guard: `p_amount = 0 → RETURN`
+    why: 'wallet top-ups and reversals — without it a refund never reaches the balance the client reads',
+    migration: '20260724_one_wallet',
+  },
+  {
+    name: 'record_reveal_or_refund',
+    args: null,
+    unprobeable:
+      'Its FIRST statement is an INSERT with no guard, and the conflict branch credits a wallet. ' +
+      'There is no argument set that proves it exists without writing a row — so this report does not call it. ' +
+      'Same rule as the PDL key below: a check that spends or writes is not a check.',
+    why: 'the charge-once ledger for revealed contacts — it decides whether a $4 stands or is returned',
+    migration: '20260710_charge_once',
+  },
+  {
+    name: 'reveal_is_owned',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_email_norm: 'probe@system-probe.invalid' },
+    why: 'the "have they already paid for this contact?" check — without it a client can be charged twice for the same person',
+    migration: '20260710_charge_once',
+  },
+  // ── The sourcing fences — what stops PDL spend running away ──────────────────────
+  {
+    name: 'try_spend_sourcing',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_requested: 0 },  // guard: `p_requested <= 0 → RETURN 0`
+    why: 'the fail-closed sourcing gate — every PDL record we buy passes through it, and without it the monthly cap is unenforced',
+    migration: '20260711_sourcing_fences',
+  },
+  {
+    name: 'add_sourcing_allowance',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_records: 0 },    // guard: `p_records <= 0 → RETURN 0`
+    why: 'the accrual side of the same fence — without it a paying client never earns the allowance their payment bought',
+    migration: '20260711_sourcing_fences',
+  },
+  {
+    name: 'grant_first_run_credits',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_amount: 0, p_max_balance: 0, p_claim_first_run: false },
+    why: 'the first-run credit grant — guarded twice here: no matching row, and a zero ceiling',
+    migration: '20260710_grant_first_run_credits',
+  },
+  // ── Campaigns and seats ──────────────────────────────────────────────────────────
+  {
+    name: 'figsy_merge_settings',
+    args: { p_campaign_id: NO_SUCH_ROW_UUID, p_patch: {} },   // no matching row, and an empty patch
+    why: 'the atomic campaign-settings merge — without it concurrent edits overwrite each other',
+    migration: '20260710_figsy_merge_settings',
+  },
+  {
+    name: 'allocate_pool_to_rep',
+    args: { p_company_id: NO_SUCH_ROW_UUID, p_rep_id: NO_SUCH_ROW_UUID, p_amount: 0 }, // guard: `p_amount <= 0 → false`
+    why: "moves credits from a company pool to a seat. Its absence is INVISIBLE at the call site — company.ts fails soft and tells the owner 'not enough in the pool', which is a wrong answer, not an error",
+    migration: '20260706_pool_atomic',
+  },
+  {
+    name: 'return_rep_to_pool',
+    args: { p_company_id: NO_SUCH_ROW_UUID, p_rep_id: NO_SUCH_ROW_UUID },  // SELECT finds nothing → returns 0
+    why: 'reclaims a deactivated seat\'s credits back into the company pool — its absence silently reclaims nothing',
+    migration: '20260706_pool_atomic',
   },
 ]
 
@@ -242,22 +353,43 @@ async function schema(): Promise<Section> {
   // Probed by CALLING it with a uuid that matches no campaign: the function's UPDATE affects
   // zero rows and returns nothing, which is a successful call and proves existence, while
   // changing no data. A read-only existence check that cannot mutate anything.
+  // ⚠️ THE FIX INSTRUCTION MUST BE TRUE, AND FOR MOST OF THESE IT WAS NOT.
+  // "Run migration X from Vida → Engine → Database migrations" only works for a migration
+  // that is actually IN `PENDING_MIGRATIONS` — that array is the only thing Vida executes.
+  // Eleven of these thirteen functions live in .sql files that were applied by hand long ago
+  // and are NOT in the runner, so telling the founder to run them from Vida sends him to a
+  // button that will never list them. The list is read at runtime rather than hardcoded, so
+  // this can never drift from the runner again.
+  const { PENDING_MIGRATIONS } = await import('./pending-migrations')
+  const runnerKeys = new Set(PENDING_MIGRATIONS.map(m => m.key))
+  const howToFix = (migration: string) => runnerKeys.has(migration)
+    ? `Run migration ${migration} from Vida → Engine → Database migrations.`
+    : `⚠️ ${migration} is NOT in the migration runner, so Vida cannot apply it — it was a manual apply. Add it to PENDING_MIGRATIONS (one entry, idempotent) and then run it from Vida.`
+
   for (const fn of REQUIRED_FUNCTIONS) {
     rows.push(await probe(fn.name, async () => {
-      const { error } = await db.rpc(fn.name, { [fn.arg]: NO_SUCH_ROW_UUID })
+      // A function we refuse to call. Reported as NOT MEASURED — never as OK, because we do
+      // not know, and never as BROKEN, because we have no evidence it is missing.
+      if (fn.args === null) {
+        return unmeasured(fn.name,
+          `NOT CHECKED, deliberately: ${fn.unprobeable} Consequence if it IS absent: ${fn.why}.`,
+          `Verify by hand when the database is reachable: \\df ${fn.name}. ${howToFix(fn.migration)}`)
+      }
+
+      const { error } = await db.rpc(fn.name, fn.args)
       const { classifyProbeError } = await import('./schema-probe')
       const verdict = classifyProbeError(error as never, 'function')
 
       if (verdict.verdict === 'exists') return ok(fn.name, `Present — ${fn.why}.`)
       if (verdict.verdict === 'missing') {
         return broken(fn.name, `MISSING in production: ${verdict.detail}. Consequence: ${fn.why}.`,
-          `Run migration ${fn.migration} from Vida → Engine → Database migrations.`)
+          howToFix(fn.migration))
       }
       // Same law as the schema rows above: a probe that could not run says so. An RLS refusal,
       // a paused project or a timeout must never be printed as "run this migration".
       return unmeasured(fn.name,
         `Could NOT establish whether this function exists — the call errored and the error is not "no such function": ${verdict.detail || '(no message)'}. This is NOT evidence it is absent. Consequence if it IS absent: ${fn.why}.`,
-        `Re-run once the database answers. Only run ${fn.migration} if a later check reports it actually missing.`)
+        `Re-run once the database answers. Only act if a later check reports it actually missing — then: ${howToFix(fn.migration)}`)
     }))
   }
 

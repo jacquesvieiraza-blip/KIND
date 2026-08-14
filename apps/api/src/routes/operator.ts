@@ -1681,9 +1681,18 @@ operatorRouter.post('/inboxes/assign', async (req: Request, res: Response) => {
       return
     }
 
+    // ⚠️ 13 Aug — `provider` MUST be set here, and it took a hard verify to see why. The
+    // month-one push gate (`hasSmartleadInbox`) requires provider = SMARTLEAD_SENDING_MODE
+    // ('smartlead-api'), but this insert predates that mode and leaned on the column default
+    // ('smartlead') — so a pooled box assigned from Vida NEVER satisfied the gate. On unlock
+    // day the key would be green, the box assigned exactly per the runbook, and every push
+    // AND the whole backfill would still refuse 'no_smartlead_inbox' — quietly, because that
+    // refusal is one of the expected-not-news five. The pooled box IS the Smartlead-rented,
+    // API-driven mailbox; it must say so.
+    const { SMARTLEAD_SENDING_MODE } = await import('../lib/smartlead-map')
     const { data, error } = await db.from('client_inboxes').insert({
       client_id: client.id, email: email.trim().toLowerCase(), kind: 'pooled',
-      status: 'active', daily_cap: daily_cap ?? null,
+      status: 'active', daily_cap: daily_cap ?? null, provider: SMARTLEAD_SENDING_MODE,
     }).select('id, email, kind, status').single()
     if (error) throw error
 

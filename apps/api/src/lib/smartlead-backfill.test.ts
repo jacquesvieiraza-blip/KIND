@@ -144,6 +144,27 @@ describe('the summary makes failure loud', () => {
   })
 })
 
+describe('the pooled box the operator assigns actually satisfies the push gate', () => {
+  // Found on hard verification, 13 Aug: `hasSmartleadInbox` requires provider =
+  // SMARTLEAD_SENDING_MODE, but the Vida assign insert leaned on the column default
+  // ('smartlead') — so every pooled box ever assigned failed the gate, and on unlock day the
+  // key would be green while every push and the whole backfill refused 'no_smartlead_inbox'.
+  // RED PROOF: remove `provider: SMARTLEAD_SENDING_MODE` from the insert → this fails by name.
+  it("the assign endpoint stamps provider with the constant the gate checks", () => {
+    const src = readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')
+    const i = src.indexOf("kind: 'pooled',")
+    expect(i).toBeGreaterThan(-1)
+    expect(src.slice(i, src.indexOf('.single()', i))).toContain('provider: SMARTLEAD_SENDING_MODE')
+    // and the constant is imported from the one place it is defined, never retyped
+    expect(src.slice(0, i)).toContain("import('../lib/smartlead-map')")
+  })
+
+  it('the gate and the insert agree on the SAME constant', () => {
+    const gate = readFileSync(join(__dirname, 'smartlead-send.ts'), 'utf8')
+    expect(gate).toContain("eq('provider', SMARTLEAD_SENDING_MODE)")
+  })
+})
+
 describe('the design decisions that keep this safe', () => {
   const src = readFileSync(join(__dirname, 'smartlead-backfill.ts'), 'utf8')
 

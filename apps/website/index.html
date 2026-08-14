@@ -1434,6 +1434,14 @@
   .nh .nh-frame-bar i{width:11px;height:11px;border-radius:50%;background:#e0d8f2;display:block}
   .nh .nh-url{margin-left:12px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--nh-soft)}
   .nh .nh-shot{width:100%;height:auto;display:block}
+  /* Hover-to-play overlay on the hero still — the image never changes; the link opens the demo video (founder-ordered 14 Aug) */
+  .nh .nh-playlink{position:relative;display:block;cursor:pointer}
+  .nh .nh-playlink .nh-playveil{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(23,15,45,0);opacity:0;transition:opacity .25s ease,background .25s ease}
+  .nh .nh-playlink:hover .nh-playveil,.nh .nh-playlink:focus-visible .nh-playveil{opacity:1;background:rgba(23,15,45,.38)}
+  .nh .nh-playbtn{width:84px;height:84px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 40px rgba(0,0,0,.35);transform:scale(.92);transition:transform .25s ease}
+  .nh .nh-playlink:hover .nh-playbtn,.nh .nh-playlink:focus-visible .nh-playbtn{transform:scale(1)}
+  .nh .nh-playbtn svg{display:block;margin-left:6px}
+  @media (hover:none){.nh .nh-playlink .nh-playveil{opacity:1;background:rgba(23,15,45,.16)}}
 
   .nh .nh-section{padding:88px 0}
   .nh .nh-center{text-align:center}
@@ -1550,7 +1558,10 @@
 
     <div class="nh-frame">
       <div class="nh-frame-bar"><i></i><i></i><i></i><span class="nh-url">app.get-kind.com — your Milla portal</span></div>
-      <img class="nh-shot" src="mv-milla-portal.png" alt="The Milla portal — masked leads waiting for your approve or pass">
+      <a class="nh-playlink" href="https://youtu.be/Cx5-PjxjGFI" target="_blank" rel="noopener" aria-label="Watch the product demo video">
+        <img class="nh-shot" src="mv-milla-portal.png" alt="The Milla portal — masked leads waiting for your approve or pass">
+        <span class="nh-playveil"><span class="nh-playbtn"><svg width="30" height="34" viewBox="0 0 30 34" aria-hidden="true"><path d="M2 2.6c0-1.6 1.7-2.5 3-1.7l24 14.4c1.3.8 1.3 2.6 0 3.4L5 33.1c-1.3.8-3-.1-3-1.7V2.6z" fill="#7C3AED"/></svg></span></span>
+      </a>
     </div>
     <p class="nh-cap" style="margin-top:14px">Your <b>Milla</b> portal — every lead we source lands here masked. You tap <b>👍 approve</b> to pursue or <b>✕ pass</b>. Nothing is charged until you approve.</p>
   </header>

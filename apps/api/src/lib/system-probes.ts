@@ -67,6 +67,27 @@ async function dependencies(): Promise<Section> {
       'Vida → Engine has a read-only PDL test that spends nothing.')
   }))
 
+  // R26 (12 Aug) — the $98/mo tier is bought THE SAME DAY as Smartlead: "a new client's pack
+  // sources 200 names on day 1, which no free key covers". This row cannot detect a plan tier
+  // without spending, so it never claims to — it states the rule and where the fence is, which
+  // is the honest half. Same discipline as the PDL key row above it.
+  rows.push(await probe('PDL tier (R26 — unlock day)', async () => {
+    // Read the cap the way every other reader does — the app_settings row, by the shared key
+    // constant. (First draft of this row called a `getPdlMonthlyCapUsd()` helper that does not
+    // exist: a function name asserted from memory, which is the exact failure the working
+    // method forbids and the type-check caught immediately.)
+    const { data: capRow } = await db.from('app_settings')
+      .select('value').eq('key', PDL_MONTHLY_CAP_KEY).maybeSingle()
+    const capRaw = (capRow as { value?: unknown } | null)?.value
+    const cap = typeof capRaw === 'number' ? capRaw : (typeof capRaw === 'string' ? Number(capRaw) : null)
+    const capLine = cap === null || Number.isNaN(cap)
+      ? 'The A17 monthly spend cap could not be read from app_settings, so the fence state is unknown on this row.'
+      : `The A17 monthly spend cap reads $${cap} — that fence is live and independent of the tier.`
+    return unmeasured('PDL tier (R26 — unlock day)',
+      `Whether the paid $98/mo tier is active CANNOT be established without making a billable request, so this report does not try. ${capLine} R26: the tier is bought the same day as Smartlead — the day a client is in the works — because a new client's pack sources 200 names on day 1 and no free key covers that.`,
+      'On unlock day: docs/UNLOCK-DAY-RUNBOOK.md. Confirm the tier on the PDL dashboard — this page will not spend to find out.')
+  }))
+
   rows.push(await probe('Hunter (email fallback)', async () => {
     const key = process.env.HUNTER_API_KEY
     if (!key) return unmeasured('Hunter', 'HUNTER_API_KEY is not set. Hunter is the fallback when PDL has no email — without it, some approvals will find no address.', 'Optional, but it lowers the dead-email rate.')
@@ -118,13 +139,25 @@ async function dependencies(): Promise<Section> {
 
   rows.push(await probe('Smartlead (CLIENT sending)', async () => {
     const key = process.env.SMARTLEAD_API_KEY
+    // ⚠️ 13 Aug — R25 SUPERSEDED THIS ROW'S TRIGGER. It said "not purchased until a client
+    // PAYS (founder-decided 26 Jul)". R25 (12 Aug) moved it earlier and made it unconditional:
+    // *"day 1 a client needs to use the system. full stop"* — the plan is bought THE DAY A
+    // CLIENT IS IN THE WORKS, before they pay, so month one can send at all.
     if (!key) return unmeasured('Smartlead (CLIENT sending)',
-      'SMARTLEAD_API_KEY is not set. Founder-decided 26 Jul: not purchased until a client pays — so this is expected, not a fault.',
-      'Nothing to do until the first paying client.')
+      'SMARTLEAD_API_KEY is not set. Expected until unlock day, not a fault: R25 (12 Aug) buys the plan the day a client is IN THE WORKS — before they pay — so nothing leaks pre-revenue.',
+      'On unlock day: docs/UNLOCK-DAY-RUNBOOK.md. ⚠️ Buy the tier WITH API access — the previous key 401d, and a 401 here means the plan, not the key.')
     const base = process.env.SMARTLEAD_BASE_URL || 'https://server.smartlead.ai/api/v1'
     const r = await fetchWithTimeout(`${base}/email-accounts?api_key=${encodeURIComponent(key)}&limit=1`)
-    return r.ok ? ok('Smartlead (CLIENT sending)', 'Key is live and Smartlead answered.')
-      : broken('Smartlead (CLIENT sending)', `Smartlead rejected the key (HTTP ${r.status}).`, 'Check the key.')
+    if (r.ok) return ok('Smartlead (CLIENT sending)', 'Key is live and Smartlead answered — month-one client sending can run.')
+    // 401 is the DIAGNOSTIC case, not a generic failure: the key exists but the plan tier does
+    // not carry API access, which is exactly what blocked #550 and what R25 tells the founder
+    // to buy past. Saying "check the key" would send him to re-copy a key that is already right.
+    if (r.status === 401 || r.status === 403) {
+      return broken('Smartlead (CLIENT sending)',
+        `Smartlead refused the key (HTTP ${r.status}). A key IS set, so this is almost certainly the PLAN TIER, not a typo — API access is a paid tier and the old key failed this exact way.`,
+        'Upgrade to the Smartlead tier WITH API access, then re-paste the key into Railway → @kind/api → SMARTLEAD_API_KEY. Steps: docs/UNLOCK-DAY-RUNBOOK.md.')
+    }
+    return broken('Smartlead (CLIENT sending)', `Smartlead rejected the key (HTTP ${r.status}).`, 'Check the key in Smartlead → Settings → API.')
   }))
 
   return { title: 'Dependencies — is every service we rely on actually answering?', side: 'both', rows }

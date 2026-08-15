@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-0BCMTW9HSK"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-0BCMTW9HSK');
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drop 09 — The follow-up that knows the date · The Drop · K.I.N.D</title>
+  <meta name="description" content="Seat-based tools bill you whether they work or not. Outcome pricing flips the risk." />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --blue: #7c3aed; --dark: #0a0a0a; --ink2:#1E1152; --border: rgba(0,0,0,0.08); --light:#f5f5f7; }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #fff; color: var(--dark); line-height: 1.6; overflow-x: hidden; }
+    nav { display: flex; align-items: center; justify-content: space-between; padding: 0 48px; height: 64px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(255,255,255,0.92); backdrop-filter: blur(16px); z-index: 200; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-mark { width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg,#7c3aed,#a78bfa); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:800; }
+    .logo-text { font-weight: 800; font-size: 1rem; color: var(--dark); letter-spacing: -0.01em; }
+    .nav-links { display: flex; align-items: center; gap: 2px; }
+    .nav-link { color: rgba(0,0,0,0.5); font-size: 0.875rem; text-decoration: none; padding: 6px 14px; border-radius: 8px; transition: all .2s; }
+    .nav-link:hover { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .btn-nav-primary { background: var(--dark); color: #fff; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px 18px; border-radius: 20px; }
+
+    .back { max-width: 1180px; margin: 0 auto; padding: 24px 48px 0; }
+    .back a { font-size: 0.85rem; color: rgba(0,0,0,0.45); text-decoration: none; font-weight: 600; }
+    .back a:hover { color: var(--blue); }
+
+    /* HERO (Glean image-2 style) */
+    .hero { max-width: 1180px; margin: 0 auto; padding: 28px 48px 48px; display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .hero-copy .pill { display: inline-block; font-size: 0.65rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--blue); background: rgba(124,58,237,0.1); padding: 5px 14px; border-radius: 100px; margin-bottom: 18px; }
+    .hero-copy h1 { font-size: clamp(2.6rem, 5.5vw, 4.4rem); font-weight: 900; letter-spacing: -0.05em; line-height: 0.98; color: var(--ink2); }
+    .hero-copy h1 .yr { display:inline-block; font-size: 0.45em; vertical-align: middle; font-weight: 800; color:#fff; background: linear-gradient(120deg,#f59e0b,#ec4899,#a78bfa); padding: 6px 16px; border-radius: 100px; margin-left: 12px; letter-spacing: 0; }
+    .hero-copy p { font-size: 1.05rem; color: rgba(0,0,0,0.55); line-height: 1.7; margin: 20px 0 24px; max-width: 460px; }
+    .hero-copy .readblog { display: inline-flex; align-items: center; gap: 8px; font-size: 0.95rem; font-weight: 700; color: var(--dark); text-decoration: none; }
+    .hero-copy .readblog:hover { color: var(--blue); gap: 12px; }
+    /* hero visual — gradient + drop icon */
+    .hero-card { border-radius: 24px; aspect-ratio: 16/10; position: relative; overflow: hidden; display: grid; place-items: center; box-shadow: 0 24px 60px rgba(30,17,82,0.18); }
+    .hero-card::after { content:''; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.14) 1px, transparent 1px); background-size: 16px 16px; }
+    .hero-icon { position: relative; z-index: 1; font-size: 6rem; filter: drop-shadow(0 14px 28px rgba(0,0,0,0.22)); }
+    .hero-label { position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 1; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #fff; background: rgba(255,255,255,0.2); padding: 6px 16px; border-radius: 100px; backdrop-filter: blur(6px); }
+    .f-visual.gico { display:grid; place-items:center; }
+    .f-visual.gico::after { content:''; position:absolute; inset:0; background-image: radial-gradient(rgba(255,255,255,0.16) 1px, transparent 1px); background-size: 14px 14px; }
+    .f-visual .gemoji { position:relative; z-index:1; font-size: 3.4rem; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.2)); }
+
+    /* FEATURE BLOCKS (Glean image-3 style) */
+    .blocks { max-width: 1180px; margin: 0 auto; padding: 20px 48px 30px; }
+    .blocks-label { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(0,0,0,0.35); margin-bottom: 28px; }
+    .feature { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; margin-bottom: 56px; }
+    .feature:nth-child(even) .f-visual { order: 2; }
+    .f-visual { border-radius: 20px; aspect-ratio: 4/3; overflow: hidden; position: relative; background: var(--light); }
+    .f-visual img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+    .f-visual .tag { position: absolute; bottom: 16px; left: 16px; font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #fff; padding: 6px 14px; border-radius: 100px; backdrop-filter: blur(6px); }
+    .f-copy .eyebrow { font-size: 0.66rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: var(--blue); margin-bottom: 12px; }
+    .f-copy h2 { font-size: 1.7rem; font-weight: 900; letter-spacing: -0.03em; line-height: 1.12; color: var(--ink2); margin-bottom: 14px; }
+    .f-copy p { font-size: 0.95rem; color: rgba(0,0,0,0.55); line-height: 1.75; margin-bottom: 18px; }
+    .f-copy a { display: inline-flex; align-items: center; gap: 7px; font-size: 0.9rem; font-weight: 700; color: var(--dark); text-decoration: none; }
+    .f-copy a:hover { color: var(--blue); gap: 11px; }
+
+    /* BLOG CTA */
+    .blog-cta { max-width: 1180px; margin: 0 auto 90px; padding: 0 48px; }
+    .blog-inner { background: var(--dark); border-radius: 24px; padding: 48px 40px; text-align: center; }
+    .blog-inner h2 { font-size: 1.6rem; font-weight: 900; letter-spacing: -0.03em; color: #fff; margin-bottom: 10px; }
+    .blog-inner p { font-size: 0.95rem; color: rgba(255,255,255,0.55); max-width: 440px; margin: 0 auto 22px; }
+    .blog-inner a { display: inline-block; background: var(--blue); color: #fff; font-size: 0.9rem; font-weight: 700; text-decoration: none; padding: 13px 28px; border-radius: 100px; }
+
+    footer { border-top: 1px solid var(--border); padding: 40px 48px; }
+    .footer-bottom { max-width: 1180px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+    .footer-links { display: flex; gap: 20px; flex-wrap: wrap; }
+    .footer-links a { font-size: 0.75rem; color: rgba(0,0,0,0.35); text-decoration: none; }
+
+    @media (max-width: 860px) {
+      nav { padding: 0 20px; } .nav-links { display: none; }
+      .hero, .feature { grid-template-columns: 1fr; gap: 28px; }
+      .hero { padding: 20px 24px 36px; } .back { padding: 20px 24px 0; }
+      .blocks { padding: 12px 24px; } .feature:nth-child(even) .f-visual { order: 0; }
+      .blog-cta { padding: 0 24px; } footer { padding: 32px 24px; }
+    }
+  
+    /* ── real hero visuals (added) ── */
+    .hero-card.hero-agent { display:block; padding:0; }
+    .hero-agent .hero-cut { position:absolute; bottom:0; left:50%; transform:translateX(-50%); height:106%; width:auto; max-width:none; object-fit:contain; filter:drop-shadow(0 18px 40px rgba(0,0,0,0.30)); z-index:1; }
+    .hero-agent .anno { position:absolute; z-index:2; font-size:0.6rem; font-weight:800; letter-spacing:0.07em; text-transform:uppercase; color:#fff; background:rgba(255,255,255,0.16); border:1px solid rgba(255,255,255,0.30); padding:7px 13px; border-radius:100px; backdrop-filter:blur(8px); white-space:nowrap; box-shadow:0 8px 24px rgba(0,0,0,0.18); }
+    .hero-agent .a1 { top:13%; left:5%; }
+    .hero-agent .a2 { top:27%; right:4%; }
+    .hero-agent .a3 { bottom:22%; left:3%; }
+    .hero-agent .a4 { bottom:13%; right:6%; }
+    .hero-card.hero-mock { display:grid; place-items:center; }
+    .mock { position:relative; z-index:1; width:74%; max-width:340px; }
+    .mock-bar { height:13px; border-radius:7px; background:rgba(255,255,255,0.9); margin:0 0 12px; width:58%; box-shadow:0 6px 18px rgba(0,0,0,0.12); }
+    .mock-card { background:rgba(255,255,255,0.97); border-radius:16px; padding:18px 20px; box-shadow:0 22px 50px rgba(0,0,0,0.22); }
+    .mock-row { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
+    .mock-row:last-child { margin-bottom:0; }
+    .mock-dot { width:34px; height:34px; border-radius:10px; flex-shrink:0; }
+    .mock-lines { flex:1; }
+    .mock-l { height:9px; border-radius:5px; background:rgba(0,0,0,0.12); margin-bottom:7px; }
+    .mock-l.short { width:55%; background:rgba(0,0,0,0.07); margin-bottom:0; }
+    /* feature-tile polish: emoji sits on a glass tile, not bare placeholder */
+    .f-visual.gico .gemoji { font-size:2.6rem; }
+    .f-visual.gico::before { content:''; position:absolute; width:98px; height:98px; border-radius:24px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.32); z-index:0; }
+
+  
+    /* feature visual upgrades (added) */
+    .f-visual.fmock { display:grid; place-items:center; }
+    .fm { width:72%; max-width:300px; position:relative; z-index:1; }
+    .fm-bar { height:11px; width:52%; border-radius:6px; background:rgba(255,255,255,0.92); margin-bottom:11px; box-shadow:0 5px 14px rgba(0,0,0,0.12); }
+    .fm-card { background:#fff; border-radius:14px; padding:15px 16px; box-shadow:0 18px 40px rgba(0,0,0,0.2); }
+    .fm-row { display:flex; align-items:center; gap:11px; margin-bottom:12px; }
+    .fm-row:last-child { margin-bottom:0; }
+    .fm-dot { width:30px; height:30px; border-radius:9px; flex-shrink:0; background:linear-gradient(135deg,#e9d5ff,#a78bfa); }
+    .fm-lines { flex:1; }
+    .fm-l { height:8px; border-radius:4px; background:rgba(0,0,0,0.12); margin-bottom:6px; }
+    .fm-l.short { width:55%; background:rgba(0,0,0,0.07); margin-bottom:0; }
+
+  
+    /* canonical nav dropdowns */
+    .nav-item { position: relative; }
+    .chevron { font-size: 0.55rem; opacity: 0.4; transition: transform .2s, opacity .2s; display: inline-block; margin-top: 1px; }
+    .nav-item.is-open > .nav-link .chevron { transform: rotate(180deg); opacity: 0.8; }
+    .nav-item.is-open > .nav-link { color: var(--dark); background: rgba(0,0,0,0.04); }
+    .nav-dropdown {
+      opacity: 0; visibility: hidden; pointer-events: none;
+      position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+      background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 16px;
+      padding: 8px; min-width: 240px; box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+      z-index: 300; transition: opacity .15s, visibility .15s;
+    }
+    .nav-item.is-open .nav-dropdown { opacity: 1; visibility: visible; pointer-events: auto; }
+    .dd-link { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 10px; text-decoration: none; transition: background .15s; }
+    .dd-link:hover { background: rgba(0,0,0,0.04); }
+    .dd-icon { font-size: 1.05rem; line-height: 1; margin-top: 2px; flex-shrink: 0; }
+    .dd-title { font-size: 0.83rem; font-weight: 600; color: rgba(0,0,0,0.8); display: block; }
+    .dd-sub { font-size: 0.72rem; color: rgba(0,0,0,0.38); display: block; margin-top: 2px; line-height: 1.4; }
+    .dd-link:hover .dd-title { color: var(--dark); }
+    .dd-divider { height: 1px; background: rgba(0,0,0,0.06); margin: 6px 4px; }
+
+  
+    /* canonical footer */
+    footer { border-top: 1px solid rgba(0,0,0,0.08); padding: 64px 48px 40px; background:#fff; }
+    .footer-inner { max-width: 1080px; margin: 0 auto; }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 64px; }
+    .footer-brand p { font-size: 0.83rem; color: rgba(0,0,0,0.38); line-height: 1.7; margin-top: 14px; max-width: 260px; }
+    .footer-col h4 { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(0,0,0,0.3); margin-bottom: 16px; }
+    .footer-col a { display: block; font-size: 0.85rem; color: rgba(0,0,0,0.5); text-decoration: none; margin-bottom: 10px; transition: color .15s; }
+    .footer-col a:hover { color: var(--dark); }
+    .footer-bottom { display: flex; align-items: center; justify-content: space-between; padding-top: 32px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 12px; }
+    .footer-bottom p { font-size: 0.75rem; color: rgba(0,0,0,0.25); }
+
+  
+    /* canonical nav promo */
+    .dd-promo {
+      background: var(--dark); border-radius: 12px;
+      padding: 14px 16px; margin: 4px;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .dd-promo-text { font-size: 0.75rem; color: rgba(255,255,255,0.55); line-height: 1.5; }
+    .dd-promo-text strong { color: #fff; display: block; }
+    .dd-promo-cta {
+      font-size: 0.72rem; font-weight: 700; color: #fff;
+      background: rgba(255,255,255,0.12); padding: 7px 13px;
+      border-radius: 8px; text-decoration: none; white-space: nowrap;
+      transition: background .2s; flex-shrink: 0;
+    }
+    .dd-promo-cta:hover { background: rgba(255,255,255,0.22); }
+
+
+  </style>
+  <!-- Shared K.I.N.D design system (loaded last so it wins) -->
+  <link rel="stylesheet" href="kind.css" />
+</head>
+<body>
+<nav>
+  <a href="/" class="logo" aria-label="K.I.N.D home">
+    <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
+  </a>
+  <div class="nav-links">
+    <a href="nexus.html" class="nav-link nav-nexus" aria-label="Nexus"><img src="Nexus.png" alt="" class="nexus-nav-logo">Nexus<span class="mm-new">NEW</span></a>
+    <div class="nav-item">
+      <a href="figsy.html" class="nav-link">Product <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown mm" style="min-width:600px">
+        <div class="mm-head">The product &middot; your AI agents</div>
+        <div class="mm-grid c2f">
+          <div><a href="figsy.html" class="mm-link"><span class="mm-ic face pink"><img src="figsy-cut.png" alt=""></span><span><span class="mm-tt">FIGSY <span class="mm-tag live">Live</span></span><span class="mm-ss">The engine &mdash; finds, writes, follows up &amp; books</span></span></a>
+            <a href="milla.html" class="mm-link"><span class="mm-ic face "><img src="milla-cut.png" alt=""></span><span><span class="mm-tt">Milla</span><span class="mm-ss">Your portal &mdash; review &amp; approve every lead</span></span></a></div>
+          <div><a href="vida.html" class="mm-link"><span class="mm-ic face blue"><img src="vida-cut.png" alt=""></span><span><span class="mm-tt">Vida</span><span class="mm-ss">Your operator team &mdash; we run it end to end</span></span></a></div>
+          <a href="demo.html" class="mm-feat"><span class="mm-faces"><span class="f"><img src="figsy-cut.png" alt="FIGSY"></span></span><span class="fe">Managed</span><h4>We run it. You approve.</h4><p>You only pay $4 when you approve a lead. Reviewing is always free.</p><span class="go">Book a walkthrough &rarr;</span></a>
+        </div>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="solutions.html" class="nav-link">Solutions<span class="mm-new">NEW</span> <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown mm" style="min-width:560px">
+        <div class="mm-head">Solutions &middot; built for your world</div>
+        <div class="mm-grid c2"><a href="solutions.html#fintech" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3.5" y="6" width="17" height="13" rx="2"/><path d="M3.5 10h17M7 15h4"/></svg></span><span><span class="mm-tt">Fintech &amp; Payments </span><span class="mm-ss">Trust-first outreach to finance buyers</span></span></a>
+          <a href="solutions.html#saas" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M13 3L5 13.5h5.5L11 21l8-10.5h-5.5z"/></svg></span><span><span class="mm-tt">SaaS &amp; Technology </span><span class="mm-ss">The funnel stays full while you ship</span></span></a>
+          <a href="solutions.html#agencies" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg></span><span><span class="mm-tt">Agencies </span><span class="mm-ss">New business without senior hours</span></span></a>
+          <a href="solutions.html#recruiting" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="2.8"/><path d="M3.5 19c0-3 2.4-4.8 5.5-4.8s5.5 1.8 5.5 4.8M16 5.5a2.8 2.8 0 0 1 0 5.6M17.5 14.4c1.9.6 3 2 3 4.6"/></svg></span><span><span class="mm-tt">Recruiting &amp; Staffing </span><span class="mm-ss">Win accounts while recruiters place</span></span></a>
+          <a href="solutions.html#services" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 19h16M6 16v-5M11 16V7M16 16v-8"/></svg></span><span><span class="mm-tt">Professional Services </span><span class="mm-ss">Expertise into steady conversations</span></span></a>
+          <a href="solutions.html#b2b" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3 20V9l9-5 9 5v11M8 20v-6h8v6"/></svg></span><span><span class="mm-tt">B2B &amp; Wholesale </span><span class="mm-ss">The right buyers in new markets</span></span></a></div>
+        <div class="mm-foot"><span>Each card flips to problem, impact &amp; ROI.</span><a href="solutions.html">See all solutions &rarr;</a></div>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="the-drop.html" class="nav-link">Resources <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown mm" style="min-width:520px">
+        <div class="mm-head">Resources</div>
+        <div class="mm-grid c2"><a href="the-drop.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 8l8-4 8 4v8l-8 4-8-4z"/><path d="M4 8l8 4 8-4M12 12v8"/></svg></span><span><span class="mm-tt">The Drop </span><span class="mm-ss">What we just shipped</span></span></a>
+          <a href="pipeline-calculator.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 20V11M10 20V5M15 20v-6M20 20V8"/></svg></span><span><span class="mm-tt">Pipeline Calculator </span><span class="mm-ss">Estimate the meetings we add</span></span></a>
+          <a href="help-centre.html" class="mm-link"><span class="mm-ic pink"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M6 6l3.5 3.5M18 6l-3.5 3.5M18 18l-3.5-3.5M6 18l3.5-3.5"/></svg></span><span><span class="mm-tt">Help Centre <span class="mm-tag soon">New</span></span><span class="mm-ss">Guides, answers &amp; support</span></span></a>
+          <a href="support.html#faq" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.5A2.5 2.5 0 1 1 12 12.6v1.2"/><circle cx="12" cy="16.6" r=".4" fill="currentColor"/></svg></span><span><span class="mm-tt">FAQs </span><span class="mm-ss">Quick answers, no fluff</span></span></a></div>
+      </div>
+    </div>
+    <div class="nav-item">
+      <a href="about.html" class="nav-link">Company <span class="chevron">&#x25BE;</span></a>
+      <div class="nav-dropdown mm" style="min-width:420px">
+        <div class="mm-head">Company</div>
+        <div class="mm-grid c2"><a href="about.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/></svg></span><span><span class="mm-tt">About K.I.N.D </span><span class="mm-ss">Why we built FIGSY</span></span></a>
+          <a href="nexus.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></span><span><span class="mm-tt">The Family </span><span class="mm-ss">FIGSY, Milla &amp; Vida</span></span></a>
+          <a href="trust.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></span><span><span class="mm-tt">Trust &amp; Security </span><span class="mm-ss">GDPR &amp; POPIA compliant</span></span></a>
+          <a href="status.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"/></svg></span><span><span class="mm-tt">System Status </span><span class="mm-ss">Live uptime</span></span></a></div>
+      </div>
+    </div>
+    <a href="pricing.html" class="nav-link">Pricing</a>
+  </div>
+  <div class="nav-right">
+    <a href="https://app.get-kind.com/login" class="btn-nav-ghost">Client login</a>
+    <a href="demo.html" class="btn-nav-primary">Book a walkthrough</a>
+  </div>
+</nav>
+
+<div class="back"><a href="the-drop.html">&larr; Back to all drops</a></div>
+
+<section class="hero">
+  <div class="hero-copy">
+    <span class="pill">Drop 09 &middot; Platform</span>
+    <h1>The follow-up that knows the date<span class="yr">Live</span></h1>
+    <p>A sequence written to book a meeting is not the sequence that fills a room. Follow-ups now carry a purpose, a depth you choose, and &mdash; new &mdash; a real date to work back from.</p>
+    <a href="figsy.html" class="readblog">See how FIGSY works &rarr;</a>
+  </div>
+  <div class="hero-card"><img src="gen-arch-4.png" alt="The follow-up that knows the date" style="width:100%;height:100%;object-fit:cover;display:block" /></div>
+</section>
+
+<section class="blocks">
+  <div class="blocks-label">From the problem to the fix</div>
+  <div class="feature">
+    <div class="f-visual"><img src="gen-arch-1.png" alt="One shape for every campaign" style="width:100%;height:100%;object-fit:cover;display:block" /></div>
+    <div class="f-copy">
+      <div class="eyebrow">The pain</div>
+      <h2>One shape for every campaign</h2>
+      <p>Every campaign got the same follow-up shape, whatever it was for. An invitation to an event and an introduction to a stranger are not the same conversation, and writing them the same way asks the reader to do the translating.</p>
+    </div>
+  </div>
+  <div class="feature">
+    <div class="f-visual"><img src="gen-arch-3.png" alt="A sequence with a purpose" style="width:100%;height:100%;object-fit:cover;display:block" /></div>
+    <div class="f-copy">
+      <div class="eyebrow">What changed</div>
+      <h2>A sequence with a purpose</h2>
+      <p>A follow-up sequence now says what it is for: booking a meeting, inviting someone to an event, or reopening a conversation that went quiet. The shape, the ask and the ending all follow from that choice.</p>
+    </div>
+  </div>
+  <div class="feature">
+    <div class="f-visual"><img src="gen-arch-6.png" alt="Three, five or seven touches" style="width:100%;height:100%;object-fit:cover;display:block" /></div>
+    <div class="f-copy">
+      <div class="eyebrow">Depth, on purpose</div>
+      <h2>Three, five or seven touches</h2>
+      <p>Some campaigns deserve a light touch and some need persistence. Depth is now set per campaign at three, five or seven emails, with five as the standard. A shorter sequence still opens and closes properly rather than stopping halfway through a longer one.</p>
+    </div>
+  </div>
+  <div class="feature">
+    <div class="f-visual"><img src="gen-arch-9.png" alt="Counting backwards from the day it matters" style="width:100%;height:100%;object-fit:cover;display:block" /></div>
+    <div class="f-copy">
+      <div class="eyebrow">The date</div>
+      <h2>Counting backwards from the day it matters</h2>
+      <p>Give an event campaign its date and the whole sequence is timed backwards from it. The last email always lands before the day arrives, never after it. If the run-up is too short for the depth chosen, that is flagged before anything is written rather than discovered afterwards.</p>
+    </div>
+  </div>
+  <div class="feature">
+    <div class="f-visual"><img src="gen-arch-2.png" alt="You still approve every person" style="width:100%;height:100%;object-fit:cover;display:block" /></div>
+    <div class="f-copy">
+      <div class="eyebrow">What has not changed</div>
+      <h2>You still approve every person</h2>
+      <p>None of this changes the part that matters most: nothing goes out until you approve the person it is going to. A better follow-up is only worth building on top of a decision that is still yours.</p>
+    </div>
+  </div>
+</section>
+
+<div class="blog-cta">
+  <div class="blog-inner">
+    <h2>The story behind Drop 09</h2>
+    <p>See how the sourcing, the approval and the follow-up fit together.</p>
+    <a href="figsy.html">See how FIGSY works &rarr;</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-strip" style="height:5px;background:linear-gradient(90deg,#FFD4B2 0%,#F9C8FF 34%,#C4B5FD 68%,#7C3AED 100%)"></div>
+  <div class="footer-inner">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="/" class="logo">
+          <div class="logo-icon" style="height:34px;width:auto;background:none;border-radius:0;display:flex;align-items:center;flex-shrink:0;"><img src="logo-mv-v2.png" alt="M&amp;V" style="height:26px;width:auto;object-fit:contain;display:block;" /></div>
+          
+        </a>
+        <p>The managed lead service that finds your customers, gets your approval, and books your meetings. Reviewing is free &mdash; you only pay $4 when you approve a lead. No subscriptions.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="figsy.html">FIGSY</a>
+        <a href="milla.html">Milla</a>
+        <a href="vida.html">Vida</a>
+        <a href="pricing.html">Pricing</a>
+      </div>
+      <div class="footer-col">
+        <h4>Explore</h4>
+        <a href="nexus.html">Nexus</a>
+        <a href="solutions.html">Solutions</a>
+        <a href="the-drop.html">The Drop</a>
+        <a href="pipeline-calculator.html">Pipeline calculator</a>
+        <a href="vs-hiring-an-sdr.html">vs. hiring an SDR</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="about.html">About</a>
+        <a href="trust.html">Trust &amp; Security</a>
+        <a href="help-centre.html">Help Centre</a>
+        <a href="status.html">System status</a>
+      </div>
+      <div class="footer-col">
+        <h4>Get in touch</h4>
+        <a href="mailto:hello@get-kind.com">hello@get-kind.com</a>
+        <a href="https://app.get-kind.com/login">Client login</a>
+        <a href="support.html">Support</a>
+        <!-- SOCIAL:START (scripts/add-social-footer.sh — R28) -->
+        <a href="https://www.linkedin.com/company/millaandvida" target="_blank" rel="noopener">LinkedIn</a>
+        <!-- SOCIAL:END -->
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 K.I.N.D. All rights reserved.</p>
+      <div class="footer-legal">
+        <a href="terms.html">Terms of Service</a>
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="dpa.html">POPIA &amp; GDPR</a>
+      </div>
+    </div>
+  </div>
+</footer>
+<script>
+(function(){
+  fetch('https://kindapi-production-e64c.up.railway.app/track/visit', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({page_url:location.href, referrer:document.referrer, user_agent:navigator.userAgent})
+  }).catch(function(){})
+})()
+</script>
+
+<script>
+(function(){document.querySelectorAll(".nav-item").forEach(function(item){var t;item.addEventListener("mouseenter",function(){clearTimeout(t);item.classList.add("is-open")});item.addEventListener("mouseleave",function(){t=setTimeout(function(){item.classList.remove("is-open")},200)})})})();
+</script>
+<script>
+/* Auth buttons redirect to the portal login (the auth modal on index/about/
+   pricing/support ends here too). Fixes dead Log in / Get started free
+   buttons on pages without the modal. */
+function openAuth(){location.href='https://app.get-kind.com/login'}
+</script>
+</body>
+</html>

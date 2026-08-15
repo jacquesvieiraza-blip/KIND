@@ -26,6 +26,9 @@ _Last updated: **15 Aug 2026** (docs audit — THE POST-LAUNCH BUILD PHASES adde
 > ### 📣 EVERY FINISHED PHASE IS A DROP — R37, the shout-out-loud rule
 > **Founder-ruled 15 Aug:** *"we need to shout out loud about the things we do. and this is the reason for the part of the site called The Drop… when we launch and finish a full phase we write about it. we link it to the site. this is such good food for marketing."* So: **launch itself, and each phase completion below, ships with a Drop write-up** — the Project writes it (brand-voiced, R27/R30 rules apply), a Drop card lands on `the-drop.html` (site edit = founder-worded per P12, freeze refreshed per R28's pattern), and the LinkedIn post + future YouTube/TikTok clip point at it. One shipping moment = three content pieces — the flywheel the 11 Jun GTM section below already named, now bound to the phase ladder.
 
+## Phase 0 — THE CURRENT VERSION'S OWN WORK (not a phase gate — it ships before/with client #1)
+**#651 — the industry/purpose sequencing engine.** R38-amended + R39: sequencing is **core to all three products and serves the client**, never an add-on and never operator-only tooling. v1 = templates by industry AND purpose (meeting-gen · event invite · reactivation) · **date-aware cadence that counts BACK from an event date** · per-campaign depth 3/5/7 (5 only as the default). Later rungs: winning-plays-feed-templates (needs live send data), call/LinkedIn steps as those channels unlock (#475/#388), auto-tuned depth (P2's Nexus), the visual flow builder (P3's client surface).
+
 ## Phase 1 — PROVE IT · trigger: client #1 in the works → paying
 The unlock chain A22→A23→#550 (runbooked) · **#452/#450/#451 multi-engine sourcing** (line-11 ruling: "fires the moment line 10 ticks") · **flip `TRAINING_LIVE`** (#346/#74 — backend built, UI disabled, outreach generic until it flips) · #192 activation instrumentation + stall rescue (churn plan wave 1) · #28b real-money walk + #559 sales walk · billing truth #341/#357 **via #431's ruling (mostly a DELETE — retire subscription machinery)** · #647 MRR-ZAR settle · **referral/partner money bugs #479/#355/#351/#370 BEFORE the first partner or referral exists** · free reach #142/#49/#50 (G2 · Capterra · Product Hunt) · #415's doc rebuild on real rates. Riding along, no build: A11 walks resume ~25 Aug; the 20→200 depth test on client 1 ("the first thing to test").
 
@@ -46,9 +49,23 @@ Advanced tier price/shape (safely held by "sell before build") · R2 public post
 
 ---
 
-# ░ 💼 THE TWO-MODEL FUTURE — Base + Advanced on one engine (founder-locked 31 Jul · logged 2 Aug, #608) ░
+# ░ 💼 THE THREE-PRODUCT FUTURE — one engine, three ways to pay (R39, founder-ruled 15 Aug) ░
 
-*Strategy and the decision itself live in **KIND-MASTER**; this is the future detail only.*
+> ⛓️ **This section was "THE TWO-MODEL FUTURE — Base + Advanced" (founder-locked 31 Jul, #608). R39 (15 Aug) did not replace that lock — it FILLED it.** Advanced was a locked shape with deliberately empty contents; it is now **P2 Coaching**, and a third product joined the ladder. The 31-Jul text is kept verbatim below because its candidate list already named what P2 turned out to be ("higher-touch operator time", "the brain"). Full ruling + the founder's words → `PRODUCT-RULES.md` R39.
+>
+> | | **P1 · MANAGED** *(live)* | **P2 · COACHING** *(the second paid product)* | **P3 · FULL SaaS** *(later)* |
+> |---|---|---|---|
+> | **Price** | $4/approved lead · $299 start incl. 100 | Everything in P1 + added items at a **higher set per-lead price** ($8 is the founder's EXAMPLE, not locked) | **Monthly + a usage rate** — the one subscription in the model |
+> | **Billing shape** | Usage only, never monthly | **Usage only, never monthly** | Subscription + usage |
+> | **Who operates** | We do (Vida); client approves in Milla | Same, **plus a named operator close to the business** | **The client operates it themselves** |
+> | **Sequencing** | Full engine (#651), we wield it | Full engine + **Nexus auto-tuning ON** (it learns their best depth/cadence) | Full engine, **client-wielded** — the Alta-style visual flow is P3's surface |
+> | **Coaching** | Free layer as today (Coaching page · Milla chat · help-me-reply) | **The product** — plays delivered, industry best practice, strategy input | Self-guided: plays library in the tool |
+> | **Client touches sequences?** | **No — locked** | **No — locked** | **Yes — that is the unlock** |
+>
+> **The one philosophy across all three: the client pays when they approve.** P3's subscription is the single deliberate exception, and only because the client is running the machine themselves.
+> **Not a product:** white-label for agencies is a **channel** (how others sell P1). **Launch marketing:** P2 and P3 each ship with their own Drop write-up in Resources (R37 as extended 15 Aug).
+
+*Strategy and the decision itself live in **KIND-MASTER**; this is the future detail only. The 31-Jul two-model text follows, unedited:*
 
 **The shape that is locked:** two packages, **one engine**. Base is today's managed service — $299 onboarding pack with 100 approved leads included, then $4 per approved lead, reviewing free, approve as the only money event. Advanced is a second entitlement tier on the *same* pipeline.
 

@@ -28,6 +28,12 @@ export type CampaignGates = {
   send_days?: string[] | null
   /** earliest UTC hour to send (0–23); null = any hour. */
   send_hour_utc?: number | null
+  /** #651 — what this campaign's sequence is FOR: 'meeting' (default) · 'event' · 'reactivation'. */
+  sequence_purpose?: string | null
+  /** #651 — ISO date; only meaningful with purpose 'event'. The cadence counts BACK from it. */
+  sequence_event_date?: string | null
+  /** #651 — 3 · 5 · 7. Null/absent means the default depth. */
+  sequence_depth?: number | null
   /** A/B subject variants B–E; null clears one. */
   ab_subject_b?: string | null
   ab_subject_c?: string | null
@@ -65,6 +71,9 @@ export function readCampaignGates(settings: unknown): {
   ab_subject_c: string | null
   ab_subject_d: string | null
   ab_subject_e: string | null
+  sequence_purpose: string | null
+  sequence_event_date: string | null
+  sequence_depth: number | null
 } {
   const s = (settings && typeof settings === 'object') ? settings as Record<string, unknown> : {}
   const cap = s.daily_send_limit
@@ -81,6 +90,9 @@ export function readCampaignGates(settings: unknown): {
     send_hour_utc: (typeof hour === 'number' && Number.isInteger(hour) && hour >= 0 && hour <= 23) ? hour : null,
     ab_subject_b: str(s.ab_subject_b), ab_subject_c: str(s.ab_subject_c),
     ab_subject_d: str(s.ab_subject_d), ab_subject_e: str(s.ab_subject_e),
+    sequence_purpose: str(s.sequence_purpose),
+    sequence_event_date: str(s.sequence_event_date),
+    sequence_depth: typeof s.sequence_depth === 'number' ? s.sequence_depth : null,
   }
 }
 
@@ -122,6 +134,11 @@ export function mergeCampaignGates(existing: unknown, gates: CampaignGates): Rec
     const h = gates.send_hour_utc
     base.send_hour_utc = (typeof h === 'number' && Number.isInteger(h) && h >= 0 && h <= 23) ? h : null
   }
+  // #651 — the sequence plan rides the same JSONB as the gates, so no migration is needed
+  // and the whole plan travels with the campaign row the send path already reads.
+  if (gates.sequence_purpose !== undefined) base.sequence_purpose = gates.sequence_purpose
+  if (gates.sequence_event_date !== undefined) base.sequence_event_date = gates.sequence_event_date
+  if (gates.sequence_depth !== undefined) base.sequence_depth = gates.sequence_depth
   for (const k of ['ab_subject_b', 'ab_subject_c', 'ab_subject_d', 'ab_subject_e'] as const) {
     if (gates[k] !== undefined) {
       const v = gates[k]

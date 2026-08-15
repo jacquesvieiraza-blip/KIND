@@ -392,24 +392,41 @@ export default function VidaConsolePage() {
   function openSeqEditor(sq?: { id: string; name: string; steps: unknown }) {
     setSaveMsg(null); setSeqPreview(null)
     setSeqQuality(null)
-    if (!sq) { setSeqEdit({ name: '', steps: [{ subject: '', body: '', wait_days: 0 }] }); return }
+    if (!sq) { setSeqEdit({ name: '', steps: [{ subject: '', body: '', wait_days: 4 }] }); return }
     const steps = Array.isArray(sq.steps)
       ? (sq.steps as Record<string, unknown>[]).map(st => ({ subject: String(st.subject ?? ''), body: String(st.body ?? ''), wait_days: Number(st.wait_days ?? 3) || 0 }))
-      : [{ subject: '', body: '', wait_days: 0 }]
+      : [{ subject: '', body: '', wait_days: 4 }]
     setSeqEdit({ id: sq.id, name: sq.name, steps })
   }
 
   // V9 — Vida drafts the sequence against a real prospect, then de-personalises it into a
   // template. It lands in the editor as a PROPOSAL: the operator approves by saving.
+  // #651 — the operator's sequence plan. Defaults reproduce the previous behaviour exactly
+  // (a meeting sequence at the default depth), so Draft still works without touching these.
+  const [seqPurpose, setSeqPurpose] = useState<'meeting' | 'event' | 'reactivation'>('meeting')
+  const [seqDepth, setSeqDepth] = useState<3 | 5 | 7>(5)
+  const [seqEventDate, setSeqEventDate] = useState('')
+  const [seqEventWarn, setSeqEventWarn] = useState<string | null>(null)
+
   async function suggestSequence() {
     if (!selected) return
     setCockpitBusy(true); setSaveMsg(null)
     try {
       const j = await fetch('/api/proxy/operator/sequence/suggest', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ client_id: selected, campaign_id: activeCampaign?.id }),
+        body: JSON.stringify({
+          client_id: selected, campaign_id: activeCampaign?.id,
+          purpose: seqPurpose, depth: seqDepth,
+          event_date: seqPurpose === 'event' && seqEventDate ? seqEventDate : undefined,
+        }),
       }).then(r => r.json())
       if (!j?.success) throw new Error(j?.error || 'Could not draft a sequence')
+      // An event sequence that cannot fit its own depth before the date must SAY so — the
+      // operator changes the depth or the date, rather than mailing people after the event.
+      const ev = j.data.event as { days_until_event?: number; fits?: boolean; last_send_in_days?: number } | null
+      setSeqEventWarn(ev && ev.fits === false
+        ? `⚠️ ${seqDepth} touches will not fit before this event (${ev.days_until_event} day(s) away) — the last email would land too late. Use fewer touches or an earlier start.`
+        : null)
       setSeqEdit({
         name: j.data.name,
         steps: (j.data.steps as { subject: string; body: string; wait_days: number }[])
@@ -1399,6 +1416,33 @@ export default function VidaConsolePage() {
                           const steps = Array.isArray(sq?.steps) ? (sq!.steps as Record<string, unknown>[]) : []
                           if (!sq || steps.length === 0) {
                             return (
+                              <>
+                              <div className="flex items-center gap-2 flex-wrap mb-2 p-2 rounded-lg bg-[#faf7ff] border border-[#ece5fb]">
+                                <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#9b8ec4]">Plan</span>
+                                <select value={seqPurpose} onChange={e => setSeqPurpose(e.target.value as 'meeting' | 'event' | 'reactivation')}
+                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
+                                  <option value="meeting">Book a meeting</option>
+                                  <option value="event">Event invite</option>
+                                  <option value="reactivation">Reactivation</option>
+                                </select>
+                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5 | 7)}
+                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
+                                  <option value={3}>3 touches</option>
+                                  <option value={5}>5 touches</option>
+                                  <option value={7}>7 touches</option>
+                                </select>
+                                {seqPurpose === 'event' && (
+                                  <label className="text-[12px] text-[#5c5279] flex items-center gap-1">
+                                    event date
+                                    <input type="date" value={seqEventDate} onChange={e => setSeqEventDate(e.target.value)}
+                                      className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]" />
+                                  </label>
+                                )}
+                                <span className="text-[11.5px] text-[#9b8ec4]">the cadence follows the plan{seqPurpose === 'event' ? ' and counts back from the date' : ''}</span>
+                              </div>
+                              {seqEventWarn && (
+                                <div className="mb-2 text-[12.5px] text-[#b3261e] bg-[#fdecea] border border-[#f2c4bf] rounded-lg px-3 py-2">{seqEventWarn}</div>
+                              )}
                               <div className="flex items-center gap-3 flex-wrap">
                                 <span className="text-[13.5px] text-[#5c5279]">Nothing drafted yet — Vida writes it against their highest-scoring approved lead.</span>
                                 <button onClick={suggestSequence} disabled={cockpitBusy}
@@ -1406,11 +1450,38 @@ export default function VidaConsolePage() {
                                   {cockpitBusy ? 'Writing…' : '✨ Draft the sequence'}
                                 </button>
                               </div>
+                              </>
                             )
                           }
                           let day = 0
                           return (
                             <>
+                              <div className="flex items-center gap-2 flex-wrap mb-2 p-2 rounded-lg bg-[#faf7ff] border border-[#ece5fb]">
+                                <span className="text-[11.5px] font-bold uppercase tracking-wide text-[#9b8ec4]">Plan</span>
+                                <select value={seqPurpose} onChange={e => setSeqPurpose(e.target.value as 'meeting' | 'event' | 'reactivation')}
+                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
+                                  <option value="meeting">Book a meeting</option>
+                                  <option value="event">Event invite</option>
+                                  <option value="reactivation">Reactivation</option>
+                                </select>
+                                <select value={seqDepth} onChange={e => setSeqDepth(Number(e.target.value) as 3 | 5 | 7)}
+                                  className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]">
+                                  <option value={3}>3 touches</option>
+                                  <option value={5}>5 touches</option>
+                                  <option value={7}>7 touches</option>
+                                </select>
+                                {seqPurpose === 'event' && (
+                                  <label className="text-[12px] text-[#5c5279] flex items-center gap-1">
+                                    event date
+                                    <input type="date" value={seqEventDate} onChange={e => setSeqEventDate(e.target.value)}
+                                      className="text-[12.5px] rounded-md border border-[#e4d4fb] px-2 py-1 bg-white text-[#1f1235]" />
+                                  </label>
+                                )}
+                                <span className="text-[11.5px] text-[#9b8ec4]">the cadence follows the plan{seqPurpose === 'event' ? ' and counts back from the date' : ''}</span>
+                              </div>
+                              {seqEventWarn && (
+                                <div className="mb-2 text-[12.5px] text-[#b3261e] bg-[#fdecea] border border-[#f2c4bf] rounded-lg px-3 py-2">{seqEventWarn}</div>
+                              )}
                               <div className="flex items-center gap-2 flex-wrap mb-2">
                                 <b className="text-[13.5px] text-[#1f1235]">{sq.name || 'Sequence'}</b>
                                 <span className="text-[12px] text-[#9b8ec4]">{steps.length} email{steps.length === 1 ? '' : 's'} · read it properly before you approve</span>

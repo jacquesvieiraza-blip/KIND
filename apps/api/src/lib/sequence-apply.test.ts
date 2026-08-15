@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { applyTokens, emailSteps, buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailWaitDays, MAX_SEQUENCE_STEPS, type SequenceStep } from './sequence-apply'
+import { sequencePlan, DEFAULT_SEQUENCE_DEPTH } from './sequence-templates'
 
 const lead = { first_name: 'Lerato', last_name: 'Dlamini', company: 'Yoco', job_title: 'Head of Sales', industry: 'Fintech' }
 
@@ -139,16 +140,26 @@ describe('R38 source pins — both generators write the 5-step sequence, threade
   const figsy = readFileSync(join(__dirname, 'figsy.ts'), 'utf8')
   const seqApply = readFileSync(join(__dirname, 'sequence-apply.ts'), 'utf8')
 
-  it('both AI prompts ask for a 5-email sequence, not 3', () => {
-    expect(figsy.match(/5-email sequence/g)?.length).toBe(2)
-    expect(figsy).not.toMatch(/3-email sequence/)
+  // ⛓️ #651 (15 Aug) — these two pins used to grep figsy.ts for the literal "5-email
+  // sequence" and `"step5"`. The prompt is no longer hard-coded: both generators now build
+  // their step brief from the template engine (`sequencePlan`). The GUARANTEE is unchanged
+  // and is asserted at its real source instead of at a string that moved.
+  it('BOTH generators build their brief from the ONE plan engine — neither hard-codes a depth', () => {
+    expect(figsy.match(/const plan = sequencePlan\(/g)?.length).toBe(2)
+    expect(figsy.match(/\$\{planBlock\}/g)?.length).toBe(2)
+    expect(figsy).not.toMatch(/Write a \d-email sequence:/)   // no literal depth left behind
   })
-  it('both prompts return step4 and step5 in their JSON contract', () => {
-    expect(figsy.match(/"step5"/g)?.length).toBeGreaterThanOrEqual(2)
+  it('the default depth is still 5, and the JSON contract follows the plan', () => {
+    expect(DEFAULT_SEQUENCE_DEPTH).toBe(5)
+    expect(sequencePlan({}).gaps).toEqual([4, 5, 5, 7, 0])
+    // Both prompts emit exactly `plan.depth` step keys rather than a fixed list.
+    expect(figsy.match(/length: plan\.depth/g)?.length).toBe(2)
   })
   it('every follow-up is threaded — including steps 4 and 5, on BOTH generator paths', () => {
     // The memory path previously skipped threading entirely; both paths now share it.
     expect(figsy.match(/threadFollowUps\(/g)?.length).toBeGreaterThanOrEqual(3) // def + 2 call sites
+    // #651 — depth 7 means steps 6 and 7 must thread too, or a deep sequence breaks the thread.
+    expect(figsy).toContain("'step6', 'step7'")
   })
   it('THE CAP HAS ONE HOME: sequence-apply re-exports @kind/shared, no local "= 10" (A21 class)', () => {
     // Found 15 Aug: this file declared its own MAX_SEQUENCE_STEPS = 10 while the ruled

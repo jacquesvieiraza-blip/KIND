@@ -33,6 +33,8 @@ describe('readCampaignGates', () => {
         review_required: false, daily_send_limit: null,
         send_days: [], send_hour_utc: null,
         ab_subject_b: null, ab_subject_c: null, ab_subject_d: null, ab_subject_e: null,
+        // #651 — the sequence plan rides the same JSONB; absent means "the default plan".
+        sequence_purpose: null, sequence_event_date: null, sequence_depth: null,
       })
     }
   })

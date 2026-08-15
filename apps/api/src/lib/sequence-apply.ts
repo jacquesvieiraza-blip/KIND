@@ -20,10 +20,12 @@ export interface SequenceDraft {
   step1: DraftStep
   step2: DraftStep
   step3: DraftStep
-  /** R38 (15 Aug) — the default AI sequence deepened 3 → 5. Optional so an older
-   *  3-step draft (or a model that returns fewer) still converts cleanly. */
+  /** R38 (15 Aug) — the default AI sequence deepened 3 → 5, and #651 allows an operator
+   *  to choose 7. All optional so an older 3-step draft still converts cleanly. */
   step4?: DraftStep
   step5?: DraftStep
+  step6?: DraftStep
+  step7?: DraftStep
 }
 
 /**
@@ -141,10 +143,13 @@ export function buildDraftStepsFromSequence(
  * wait AFTER each step; the last step's value is never read). A 3-step draft from older
  * stored data still converts — missing steps are simply skipped.
  */
-export function draftToSteps(draft: SequenceDraft): DraftStepFull[] {
+export function draftToSteps(draft: SequenceDraft, gaps?: number[]): DraftStepFull[] {
   const out: DraftStepFull[] = []
-  const defaults = [4, 5, 5, 7, 0]
-  for (const [i, key] of (['step1', 'step2', 'step3', 'step4', 'step5'] as const).entries()) {
+  // #651 — the cadence is passed in when the caller planned one (purpose/depth, or an event
+  // date counted backwards). The literal below is the R38 meeting-at-5 fallback, kept so an
+  // un-planned call behaves exactly as it did before this file learned about purposes.
+  const defaults = gaps && gaps.length > 0 ? gaps : [4, 5, 5, 7, 0]
+  for (const [i, key] of (['step1', 'step2', 'step3', 'step4', 'step5', 'step6', 'step7'] as const).entries()) {
     const s = draft[key]
     if (s && (s.subject || '').trim() && (s.body || '').trim()) {
       out.push({ subject: s.subject, body: s.body, wait_days: defaults[i] ?? 4 })

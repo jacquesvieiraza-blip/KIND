@@ -17,6 +17,35 @@ _Last updated: 25 Jun 2026 (POST-LAUNCH — product live since 18 Jun) — **25 
 
 ---
 
+# ░ 🗺️ THE POST-LAUNCH BUILD PHASES — every future item, phased by EVIDENCE (founder-ordered 15 Aug: "log it in V2") ░
+
+> Compiled 15 Aug from a full sweep of every doc in the repo — the four core docs, all 13 marketing docs, the strategy/ops/reference docs, all 172 🔴 inventory items and the steals ledger. **Nothing below is invented: every item and every gate is quoted from its own doc.** Status of record stays in PRODUCT-INVENTORY; this section is the ORDER. The full annotated version lives in the "The Next Builds" artifact (15 Aug).
+>
+> **The one law:** phases are **triggered by evidence, never by date** (the GTM-STRATEGY rule, applied to builds). A phase starts when its trigger fires.
+>
+> ### 📣 EVERY FINISHED PHASE IS A DROP — R37, the shout-out-loud rule
+> **Founder-ruled 15 Aug:** *"we need to shout out loud about the things we do. and this is the reason for the part of the site called The Drop… when we launch and finish a full phase we write about it. we link it to the site. this is such good food for marketing."* So: **launch itself, and each phase completion below, ships with a Drop write-up** — the Project writes it (brand-voiced, R27/R30 rules apply), a Drop card lands on `the-drop.html` (site edit = founder-worded per P12, freeze refreshed per R28's pattern), and the LinkedIn post + future YouTube/TikTok clip point at it. One shipping moment = three content pieces — the flywheel the 11 Jun GTM section below already named, now bound to the phase ladder.
+
+## Phase 1 — PROVE IT · trigger: client #1 in the works → paying
+The unlock chain A22→A23→#550 (runbooked) · **#452/#450/#451 multi-engine sourcing** (line-11 ruling: "fires the moment line 10 ticks") · **flip `TRAINING_LIVE`** (#346/#74 — backend built, UI disabled, outreach generic until it flips) · #192 activation instrumentation + stall rescue (churn plan wave 1) · #28b real-money walk + #559 sales walk · billing truth #341/#357 **via #431's ruling (mostly a DELETE — retire subscription machinery)** · #647 MRR-ZAR settle · **referral/partner money bugs #479/#355/#351/#370 BEFORE the first partner or referral exists** · free reach #142/#49/#50 (G2 · Capterra · Product Hunt) · #415's doc rebuild on real rates. Riding along, no build: A11 walks resume ~25 Aug; the 20→200 depth test on client 1 ("the first thing to test").
+
+## Phase 2 — DEEPEN IT · trigger: client #1 retained, proof accumulating
+#191 value dashboard ("here's your return") · #190 pause-instead-of-cancel + win-back · **WhatsApp client pings (§2b below — opt-in clients only, never prospects)** · **#212 sequence rebuild** ("rebuild before we scale sends", cap stays 7) · #437 why-now + #438 conversational ICP intake (the two cheapest Jack&Jill steals; #440+ stay cost-modelled-first) · onboarding tour phases 0–4 + 6 Learning Centre (planned to the line; founder input = record 6 videos, unlisted YouTube) · #233 partner-list sourcing through our own engine (openers drafted, brand-sent) · **Advanced tier #608 — SOLD BEFORE BUILT, unchanged** · marketing gates: the R2 decision (its own gate: client #1 + A11 money walks), the 3 demo clips, the first R31 monthly stats post.
+
+## Phase 3 — COMPOUND IT · trigger: 4 clients · ~400 approvals/mo (the R15/R16 line)
+**First hire = customer success (R16)** → #276 per-staff logins + #204 Notion trigger · **Lena pulled forward** #145/#293 (both the churn plan and the salary plan name her the priority agent) · **Nexus auto-tuning ON** (§2 below — cost-model first) · **the paid-ads gate opens** (R24/R7: 3+ clients · floor covered · message proven · tracking installed — the 4-week Meta plan is pre-written) · **the company GitHub org migration** (scratch test first; the founder's 26 Aug intent) · seller engine wiring #203/#200/#202 (comp engine built+tested, unwired; agreements before any seat) · the glide path's co-pilot stage.
+
+## Phase 4 — SCALE IT · trigger: ~10 clients, real outcome data flowing
+The intelligence layer #37–53/#143/#120 (RAG → evals → outcome feedback → contextual bandit → pgvector — the reward signal is already logged) · **#476 the unified agent brain ("THE moat"), per-client-fenced** · #141/#59 context-backed MCP server (the Glean 2.5× insight; directory listing = distribution) · the 15 Pieces in their pre-ranked order (status bar → notification centre → Kanban → Cmd+K) · #160/#217 white-label ("never build without a waiting customer") · **#258 data residency — pre-build the region resolver, provision same-day on the first US/UK client** · #475 voice (per-minute cost model first) · #181/#151 enterprise pack · the glide path's self-serve stage.
+
+## The clean-up shelf — settle, don't build (raises doc-trust, the org-migration's own goal)
+Deletes wearing red dots: #431's subscription retirement · #404 lena.ts (mount or delete) · the parked WhatsApp/Vapi routes whose deletion closes security holes #359/#369 for free. Doc-truth: four docs (PARTNER-BRIEF · sales-playbook · client-flow-sop · SALARY-BREAKEVEN) still carry the retired ladder/trial in their bodies; GTM-ONE-PAGE + founder-led-system still treat the newsletter as live vs R29; README-marketing carries pre-R22 naming; the paid-ads landing target is the parked beehiiv page. Orphans to re-home: Meeting-Prep agent · custom lead fields · analytics-provider decision · inbox pool buffer model · the "time saved per rep" owner KPI.
+
+## Decisions only the founder can make (each blocks one phase item, none block launch)
+Advanced tier price/shape (safely held by "sell before build") · R2 public posting + channel · analytics provider (or log-to-DB until volume) · inbox pool on-demand vs standing buffer · client-API-key vs vendor data agreements (#432 rides it) · B2's 30-min cost-floor verification.
+
+---
+
 # ░ 💼 THE TWO-MODEL FUTURE — Base + Advanced on one engine (founder-locked 31 Jul · logged 2 Aug, #608) ░
 
 *Strategy and the decision itself live in **KIND-MASTER**; this is the future detail only.*

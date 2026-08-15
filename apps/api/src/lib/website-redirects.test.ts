@@ -36,9 +36,24 @@ describe('the full site is restored — founder order, 1 Aug', () => {
     expect(redirectPairs).toHaveLength(0)
   })
 
-  it('all 28 pages are on disk — the shrink never deleted, so the restore is complete', () => {
-    const onDisk = readdirSync(WEB).filter(f => f.endsWith('.html'))
-    expect(onDisk).toHaveLength(28)
+  // ⛓️ 15 Aug — this asserted `toHaveLength(28)`, which made ADDING a page fail a guard whose
+  // subject is DELETION. The restore guarantee is "none of the 28 ever disappeared again", so
+  // it is now named rather than counted: every restored page must still be on disk, and new
+  // pages (Drop episodes, new surfaces) are free to arrive without tripping it.
+  const RESTORED_1_AUG = [
+    'about.html', 'demo.html', 'dpa-us.html', 'dpa.html',
+    'drop-01.html', 'drop-02.html', 'drop-03.html', 'drop-04.html',
+    'drop-05.html', 'drop-06.html', 'drop-07.html', 'drop-08.html',
+    'figsy.html', 'help-centre.html', 'index.html', 'milla.html', 'nexus.html',
+    'pipeline-calculator.html', 'pricing.html', 'privacy.html', 'solutions.html',
+    'status.html', 'support.html', 'terms.html', 'the-drop.html', 'trust.html',
+    'vida.html', 'vs-hiring-an-sdr.html',
+  ]
+
+  it('every one of the 28 restored pages is STILL on disk — the shrink never deleted', () => {
+    const onDisk = new Set(readdirSync(WEB).filter(f => f.endsWith('.html')))
+    expect(RESTORED_1_AUG).toHaveLength(28)
+    for (const page of RESTORED_1_AUG) expect(onDisk.has(page), `${page} has gone missing`).toBe(true)
   })
 })
 

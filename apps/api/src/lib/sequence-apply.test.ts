@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 import { applyTokens, emailSteps, buildDraftFromSequence, buildDraftStepsFromSequence, draftToSteps, emailWaitDays, MAX_SEQUENCE_STEPS, type SequenceStep } from './sequence-apply'
 
 const lead = { first_name: 'Lerato', last_name: 'Dlamini', company: 'Yoco', job_title: 'Head of Sales', industry: 'Fintech' }
@@ -86,18 +88,41 @@ describe('buildDraftStepsFromSequence (#212 — full ≤10-step walk)', () => {
   })
 })
 
-describe('draftToSteps (#212 — AI 3-step draft → full-step array)', () => {
-  it('emits present steps with the 4/5/0 default cadence', () => {
+describe('draftToSteps (#212/R38 — the AI draft → full-step array, default depth 5)', () => {
+  // R38 (15 Aug): "sequence and campaigns is what is the converter to meetings booked" —
+  // the default was 3 emails against a ruled cap of 7; the converter ran at half depth.
+  // RED PROOF: revert draftToSteps to the 3-key loop → the first pin fails by name.
+  it('emits a full 5-step draft on the Day 0·4·9·14·21 cadence', () => {
+    const out = draftToSteps({
+      step1: { subject: 's1', body: 'b1' },
+      step2: { subject: 's2', body: 'b2' },
+      step3: { subject: 's3', body: 'b3' },
+      step4: { subject: 's4', body: 'b4' },
+      step5: { subject: 's5', body: 'b5' },
+    })
+    expect(out).toEqual([
+      { subject: 's1', body: 'b1', wait_days: 4 },
+      { subject: 's2', body: 'b2', wait_days: 5 },
+      { subject: 's3', body: 'b3', wait_days: 5 },
+      { subject: 's4', body: 'b4', wait_days: 7 },
+      { subject: 's5', body: 'b5', wait_days: 0 },
+    ])
+  })
+  it('the default depth stays UNDER the ruled cap — client-built sequences keep headroom', () => {
+    const out = draftToSteps({
+      step1: { subject: 's', body: 'b' }, step2: { subject: 's', body: 'b' },
+      step3: { subject: 's', body: 'b' }, step4: { subject: 's', body: 'b' },
+      step5: { subject: 's', body: 'b' },
+    })
+    expect(out.length).toBeLessThan(MAX_SEQUENCE_STEPS)
+  })
+  it('an older 3-step draft (no step4/step5) still converts — nothing stored breaks', () => {
     const out = draftToSteps({
       step1: { subject: 's1', body: 'b1' },
       step2: { subject: 's2', body: 'b2' },
       step3: { subject: 's3', body: 'b3' },
     })
-    expect(out).toEqual([
-      { subject: 's1', body: 'b1', wait_days: 4 },
-      { subject: 's2', body: 'b2', wait_days: 5 },
-      { subject: 's3', body: 'b3', wait_days: 0 },
-    ])
+    expect(out).toHaveLength(3)
   })
   it('skips empty steps', () => {
     const out = draftToSteps({
@@ -107,6 +132,30 @@ describe('draftToSteps (#212 — AI 3-step draft → full-step array)', () => {
     })
     expect(out).toHaveLength(1)
     expect(out[0].subject).toBe('s1')
+  })
+})
+
+describe('R38 source pins — both generators write the 5-step sequence, threaded, one cap', () => {
+  const figsy = readFileSync(join(__dirname, 'figsy.ts'), 'utf8')
+  const seqApply = readFileSync(join(__dirname, 'sequence-apply.ts'), 'utf8')
+
+  it('both AI prompts ask for a 5-email sequence, not 3', () => {
+    expect(figsy.match(/5-email sequence/g)?.length).toBe(2)
+    expect(figsy).not.toMatch(/3-email sequence/)
+  })
+  it('both prompts return step4 and step5 in their JSON contract', () => {
+    expect(figsy.match(/"step5"/g)?.length).toBeGreaterThanOrEqual(2)
+  })
+  it('every follow-up is threaded — including steps 4 and 5, on BOTH generator paths', () => {
+    // The memory path previously skipped threading entirely; both paths now share it.
+    expect(figsy.match(/threadFollowUps\(/g)?.length).toBeGreaterThanOrEqual(3) // def + 2 call sites
+  })
+  it('THE CAP HAS ONE HOME: sequence-apply re-exports @kind/shared, no local "= 10" (A21 class)', () => {
+    // Found 15 Aug: this file declared its own MAX_SEQUENCE_STEPS = 10 while the ruled
+    // cap is 7 — so the save endpoints accepted sequences activation would refuse.
+    expect(seqApply).not.toMatch(/MAX_SEQUENCE_STEPS\s*=\s*\d/)
+    expect(seqApply).toContain("export { MAX_SEQUENCE_STEPS } from '@kind/shared'")
+    expect(MAX_SEQUENCE_STEPS).toBe(7)
   })
 })
 

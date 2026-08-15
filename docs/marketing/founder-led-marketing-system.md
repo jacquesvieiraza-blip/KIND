@@ -69,6 +69,8 @@ That last row is the one nobody thinks about. **281 features are live and unwalk
 
 ### Part B — beehiiv: the list you own *(running now)*
 
+> ⛓️ **Corrected 15 Aug (docs audit): NOT running — R29 (12 Aug) parked the newsletter** (*"beehiv wait. i need to build it"*; channel = YouTube). This whole Part is kept as the build plan for the day the founder revives it. Until then no CTA points at a newsletter (voice.md rule).
+
 **Job: stop renting your audience.**
 
 Followers belong to a platform that can change its algorithm on a Tuesday. **Email addresses belong to you.** beehiiv is where the list lives, and it does three jobs:

@@ -106,7 +106,7 @@ Paid ads **buy more of a message that already works.** They do not find the mess
 | **Creative** | 3 angles × static image or 15s founder video |
 | **Copy** | Problem first line · one specific claim · one CTA |
 | **CTA button** | **Subscribe** or **Learn More.** Never "Sign Up" — it implies an account |
-| **Landing** | The beehiiv page. **Never the homepage** |
+| **Landing** | The beehiiv page. **Never the homepage** ⛓️ *(15 Aug: beehiiv is PARKED — R29. If the ads gate opens while it still is, a landing page must be chosen/built FIRST; this row cannot point at a page that does not exist)* |
 
 ⚠️ **Meta needs ~50 conversions/week per ad set to optimise properly.** At small budgets you won't hit that, so **judge on cost-per-subscriber, not on Meta's own optimisation** — it is guessing at your volume too.
 

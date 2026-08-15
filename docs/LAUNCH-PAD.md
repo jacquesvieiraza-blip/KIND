@@ -8,7 +8,7 @@
 
 ---
 
-## 🛑 HONEST STATE — five lines, rewritten every session *(11 Aug 2026)*
+## 🛑 HONEST STATE — five lines, rewritten every session *(re-verified 15 Aug 2026 — all five checked true against the board and the code in the docs audit)*
 
 1. **The product works end to end and cannot send yet.** It sources, scores, masks, surfaces, takes the client's 👍, charges $4, writes the sequence, routes the reply and books the meeting into the client's own calendar. **Nothing has ever been sent** — three independent locks (warming status refused by the picker · `AUTO_OUTREACH_ENABLED` unset · the ladder itself) and the counter reads 0.
 2. **The clock is the mailboxes.** Warming since 4 Aug in Instantly → **~Tue 25 Aug**, which is send-day. ✅ *Closed 11 Aug (R14 — **"ignore airmail. not relevant"**):* **only the 4 Google ladder boxes count** — `jacques@` + `hello@` on `kindoutreach.com` and `trykind.org`. The other boxes Instantly shows are out of scope and no longer get reconciled. They **cannot** be sent through in any case: our path reads `client_inboxes` and requires SMTP credentials (`sending-inbox.ts:63`) that vendor-provisioned boxes do not expose. **Founder-verified 11 Aug:** all four at **100% health, zero disconnects, `0 of 30` sent** — which is a fourth, vendor-side confirmation of line 1.

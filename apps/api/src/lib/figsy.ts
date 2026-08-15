@@ -132,6 +132,10 @@ interface SequenceDraft {
   step1: EmailStep
   step2: EmailStep
   step3: EmailStep
+  // R38 (15 Aug) — default depth 3 -> 5: "sequence and campaigns is what is the
+  // converter to meetings booked." Optional so an older/short draft still parses.
+  step4?: EmailStep
+  step5?: EmailStep
 }
 
 // R9 (Apollo) — "Why FIGSY wrote this": the exact personalization hooks FIGSY
@@ -237,7 +241,7 @@ ${clientKnowledge ? `
 What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use these facts to make the SOLUTION half of each email specific ("this is YOUR problem, and here's how ${senderCompanyName} solves it"):
 ${clientKnowledge}
 ` : ''}
-Write a 3-email sequence:
+Write a 5-email sequence (R38 — persistence converts; most replies come on touches 2–5):
 
 Step 1 (Day 0) — First touch:
 - MANDATORY: Open with a specific observation using the personalization signal provided above. If they use Salesforce, reference it. If they're in fintech, reference it. Make them feel like you actually looked them up — because we did.
@@ -251,9 +255,18 @@ Step 2 (Day 4) — Follow-up:
 - Keep it shorter than Step 1. Lighter. No pressure.
 - Max 60 words.
 
-Step 3 (Day 9) — Final touch:
+Step 3 (Day 9) — The value email:
+- No ask at all. Give something genuinely useful for someone in their role: a sharp observation about their industry, a pattern you've seen, a question worth thinking about.
+- This email earns the right to keep going. Max 60 words.
+
+Step 4 (Day 14) — The direct question:
+- One short, specific question that is easy to answer in one line — e.g. is this a priority this quarter, or should you stop?
+- No recap of previous emails, no summary of the product. Shortest email of the sequence.
+- Max 40 words.
+
+Step 5 (Day 21) — The breakup:
 - Be direct: this is the last email.
-- Leave it genuinely open — no guilt, no urgency tactics.${extraSignals.length ? '\n- If it fits naturally, ground the close in a real signal not yet used in Steps 1–2.' : ''}
+- Leave it genuinely open — no guilt, no urgency tactics.
 ${bookingUrl ? `- Include the booking link once more on its own line: ${bookingUrl}` : ''}
 - 3–4 sentences max.
 
@@ -274,12 +287,16 @@ Return ONLY valid JSON, no markdown:
 {
   "step1": {"subject": "...", "body": "..."},
   "step2": {"subject": "...", "body": "..."},
-  "step3": {"subject": "...", "body": "..."}
+  "step3": {"subject": "...", "body": "..."},
+  "step4": {"subject": "...", "body": "..."},
+  "step5": {"subject": "...", "body": "..."}
 }`
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1024,
+    // 5 emails + JSON overhead no longer fit the old 1024 — a truncated response
+    // here silently becomes a parse failure and a thrown enrolment.
+    max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   })
 
@@ -291,13 +308,21 @@ Return ONLY valid JSON, no markdown:
     console.error('[figsy] generateSequence JSON parse failed, raw:', raw.slice(0, 200))
     throw new Error('Failed to generate email sequence — Claude returned invalid JSON')
   }
-  // Thread steps 2 & 3 as replies so they land in the same Gmail thread
+  return threadFollowUps(draft)
+}
+
+/**
+ * Thread every follow-up as a reply so the whole sequence lands in ONE Gmail thread.
+ * Shared by both generators — the memory path previously skipped threading entirely,
+ * so its follow-ups arrived as disconnected new threads (found 15 Aug building R38).
+ */
+function threadFollowUps(draft: SequenceDraft): SequenceDraft {
   const baseSubject = draft.step1.subject
-  if (!draft.step2.subject.toLowerCase().startsWith('re:')) {
-    draft.step2.subject = `Re: ${baseSubject}`
-  }
-  if (!draft.step3.subject.toLowerCase().startsWith('re:')) {
-    draft.step3.subject = `Re: ${baseSubject}`
+  for (const key of ['step2', 'step3', 'step4', 'step5'] as const) {
+    const s = draft[key]
+    if (s && (s.subject || '').trim() && !s.subject.toLowerCase().startsWith('re:')) {
+      s.subject = `Re: ${baseSubject}`
+    }
   }
   return draft
 }
@@ -1554,11 +1579,13 @@ Lead details:
 ${memBestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${memBestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
 
-Write a 3-email sequence that applies the lessons from Campaign Intelligence above.
+Write a 5-email sequence that applies the lessons from Campaign Intelligence above (R38 — persistence converts; most replies come on touches 2–5).
 
 Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. One soft, INTEREST-BASED CTA — ask if it is worth a look or if this is already handled. NO LINK, NO ATTACHMENT AND NO BOOKING ASK in this email (founder-ruled 5 Aug): the link goes in the reply, once they have raised their hand.
 Step 2 (Day 4): Follow-up — new angle, shorter. Acknowledge step 1 was sent.
-Step 3 (Day 9): Final — direct, no pressure, leave it open.${bookingUrl ? ` Include the booking link once more: ${bookingUrl}` : ''}
+Step 3 (Day 9): The value email — no ask at all; give one genuinely useful observation for someone in their role. Under 60 words.
+Step 4 (Day 14): The direct question — one short, specific question answerable in one line. Shortest email of the sequence, under 40 words.
+Step 5 (Day 21): The breakup — direct, no pressure, leave it open.${bookingUrl ? ` Include the booking link once more: ${bookingUrl}` : ''}
 
 Hard rules:
 - Never say "Hope this finds you well", "I wanted to reach out", "touch base", "synergy", "leverage", "game-changer"
@@ -1571,19 +1598,21 @@ Hard rules:
 ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a real first name that fits the sender\'s region and industry'}
 
 Return ONLY valid JSON:
-{"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."}}`
+{"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."},"step4":{"subject":"...","body":"..."},"step5":{"subject":"...","body":"..."}}`
 
   const selectedModel = MODEL_MAP[modelPreference ?? 'haiku'] ?? MODEL_MAP.haiku
 
   const message = await anthropic.messages.create({
     model: selectedModel,
-    max_tokens: 1024,
+    // 5 emails + JSON overhead no longer fit the old 1024 (a truncation = parse
+    // failure = silent fallback to the non-memory generator on every call).
+    max_tokens: 2048,
     messages: [{ role: 'user', content: prompt }],
   })
 
   const raw = (message.content[0] as { type: string; text: string }).text.trim()
   try {
-    return JSON.parse(stripJson(raw)) as SequenceDraft
+    return threadFollowUps(JSON.parse(stripJson(raw)) as SequenceDraft)
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
     return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge)
@@ -1803,14 +1832,14 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     const step1Subject = allVariants[Math.floor(Math.random() * allVariants.length)]
 
     // #212 — build the FULL ordered step array (≤10). A client-built sequence carries
-    // its own copy + per-step cadence; the AI path is the 3-step draft. The first step's
+    // its own copy + per-step cadence; the AI path is the 5-step draft (R38). The first step's
     // subject is overwritten with the A/B-selected variant so what we STORE equals what
     // we SEND. The step1-3 columns below are still written (first 3) for legacy readers.
     const fullSteps = (usingSequence && appliedSequence)
       ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
       : draftToSteps(draft)
     if (fullSteps.length > 0) fullSteps[0] = { ...fullSteps[0], subject: step1Subject }
-    const totalSteps = fullSteps.length > 0 ? fullSteps.length : 3
+    const totalSteps = fullSteps.length > 0 ? fullSteps.length : 5
 
     // #302 — idempotency guard. Without it a retried autoEnrollLead (webhook re-fire,
     // cron overlap, manual re-run) inserts a SECOND enrollment for the same lead AND

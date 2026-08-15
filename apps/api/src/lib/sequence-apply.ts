@@ -20,10 +20,21 @@ export interface SequenceDraft {
   step1: DraftStep
   step2: DraftStep
   step3: DraftStep
+  /** R38 (15 Aug) — the default AI sequence deepened 3 → 5. Optional so an older
+   *  3-step draft (or a model that returns fewer) still converts cleanly. */
+  step4?: DraftStep
+  step5?: DraftStep
 }
 
-/** #212/#426 — the max email steps a single sequence may run. */
-export const MAX_SEQUENCE_STEPS = 10
+/**
+ * #212/#426/#612 — the max email steps a single sequence may run.
+ * ⚠️ RE-EXPORTED from @kind/shared, never declared here. This file carried its own
+ * `= 10` while the ruled cap (6 Aug) is 7 — so the save endpoints accepted a
+ * sequence the activation gate would then refuse: the exact "four limits live at
+ * once" drift A21 cured elsewhere, alive in a second home. Found 15 Aug building R38.
+ */
+export { MAX_SEQUENCE_STEPS } from '@kind/shared'
+import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 
 /** A ready-to-send step: tokenised copy + the wait before the NEXT step fires. */
 export interface DraftStepFull { subject: string; body: string; wait_days: number }
@@ -103,7 +114,7 @@ export function emailWaitDays(steps: SequenceStep[]): number[] {
 }
 
 /**
- * #212 — builds the FULL ordered step array (up to MAX_SEQUENCE_STEPS = 10) from a
+ * #212 — builds the FULL ordered step array (up to MAX_SEQUENCE_STEPS, the shared cap) from a
  * client-built sequence's email steps, tokens substituted. `wait_days` is the delay
  * before the NEXT step (default 4 if unset). Returns [] if no usable email step.
  * This is what an enrollment stores in its `steps` jsonb — the send engine walks it.
@@ -123,11 +134,17 @@ export function buildDraftStepsFromSequence(
     }))
 }
 
-/** Turn a 3-step AI draft into the same full-step array shape (default cadence 4/5). */
+/**
+ * Turn the AI draft into the full-step array shape.
+ * R38 (15 Aug — *"sequence and campaigns is what is the converter to meetings booked"*):
+ * the default depth is 5 emails on a Day 0 · 4 · 9 · 14 · 21 cadence (wait_days is the
+ * wait AFTER each step; the last step's value is never read). A 3-step draft from older
+ * stored data still converts — missing steps are simply skipped.
+ */
 export function draftToSteps(draft: SequenceDraft): DraftStepFull[] {
   const out: DraftStepFull[] = []
-  const defaults = [4, 5, 0]
-  for (const [i, key] of (['step1', 'step2', 'step3'] as const).entries()) {
+  const defaults = [4, 5, 5, 7, 0]
+  for (const [i, key] of (['step1', 'step2', 'step3', 'step4', 'step5'] as const).entries()) {
     const s = draft[key]
     if (s && (s.subject || '').trim() && (s.body || '').trim()) {
       out.push({ subject: s.subject, body: s.body, wait_days: defaults[i] ?? 4 })

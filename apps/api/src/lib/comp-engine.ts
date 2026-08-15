@@ -48,6 +48,12 @@ export const RATES = {
   PARTNER_ACQUISITION: 0.2,
   /** Partner retention — recurring, 5% of the partner's active book. */
   PARTNER_RETENTION: 0.05,
+  /**
+   * R40 (15 Aug) — the Client Partner seat: *"8% retain is good.more she earns more she
+   * brings in. happy."* Higher than a referral partner's 5% because this seat also runs
+   * customer success, so keeping a client alive IS the job the rate is paying for.
+   */
+  CLIENT_PARTNER_RETENTION: 0.08,
 } as const
 
 /** AE ramp guarantee schedule (months 1-4) as a fraction of monthly variable. */
@@ -239,6 +245,13 @@ export interface PartnerMonthlyInput {
   newClientMrr: number
   /** The partner's active (collected) book MRR (USD). */
   activeBookMrr: number
+  /**
+   * R40 (15 Aug) — THE RETAIN RATE LIVES ON THE SEAT, not in this file.
+   * A Client Partner earns 8% because they also run customer success; a legacy referral
+   * partner earns the plan's 5%. Omit it and the plan default applies, so every existing
+   * partner keeps exactly the deal they already had.
+   */
+  retainRate?: number
 }
 
 export interface PartnerMonthlyResult {
@@ -253,7 +266,8 @@ export interface PartnerMonthlyResult {
 /**
  * Partner monthly commission:
  *   acquisition = 20% × new-client first-month MRR (one-time)
- *   retention   = 5%  × active book MRR (recurring)
+ *   retention   = the SEAT's rate × active book MRR (recurring; 5% default, 8% for a
+ *                 Client Partner under R40)
  *   totalPay    = acquisition + retention   (no base, ever)
  */
 export function partnerMonthlyPay(
@@ -263,7 +277,7 @@ export function partnerMonthlyPay(
     input.newClientMrr * RATES.PARTNER_ACQUISITION,
   )
   const retentionCommission = roundUsd(
-    input.activeBookMrr * RATES.PARTNER_RETENTION,
+    input.activeBookMrr * (input.retainRate ?? RATES.PARTNER_RETENTION),
   )
   const totalPay = roundUsd(acquisitionCommission + retentionCommission)
   return { acquisitionCommission, retentionCommission, totalPay }

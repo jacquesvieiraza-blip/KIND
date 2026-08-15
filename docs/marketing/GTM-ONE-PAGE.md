@@ -39,7 +39,7 @@ Competitors sell volume — more sends, faster. **They cannot offer approval wit
 |---|---|---|---|
 | 1 | **Warm outreach** | **5 personally-written messages a day** to named people you already know | **ON — this is the whole game right now** |
 | 2 | **Cold outreach** | FIGSY prospects agency founders for M&V — us, using our own product | **ON when the mailboxes finish warming** |
-| 3 | **Content** | beehiiv weekly · LinkedIn **company** page · Thursday DROP Show. Brand-voiced, never personal *(R2, 6 Aug · R20, 11 Aug)* | **ON — company page only** |
+| 3 | **Content** | beehiiv weekly *(⛓️ superseded — R29, 12 Aug: newsletter PARKED, channel = YouTube; CTA = the site)* · LinkedIn **company** page · Thursday DROP Show. Brand-voiced, never personal *(R2, 6 Aug · R20, 11 Aug)* | **ON — company page only** |
 | 4 | **Paid ads** | — | **PARKED until revenue** *(R24, 12 Aug · R7, 6 Aug)* |
 
 **Our rule of 100 is 100 PEOPLE, not 100 a day.** Five a day, each written by hand, reaches 100 named humans in a month. Hormozi's number assumes templates; ours assumes you actually know them — which is the only reason warm works at all.
@@ -58,7 +58,7 @@ Competitors sell volume — more sends, faster. **They cannot offer approval wit
 | Reply **reasons** logged — every no, in their words | **every one** |
 | Free-10 offered, when a conversation earns it | your call |
 
-**Every week:** one newsletter · one DROP Show · one look at the number below.
+**Every week:** ~~one newsletter~~ *(R29 — parked)* · one DROP Show · one look at the number below. ⛓️ *Cadence of record is R31 (12 Aug): two posts a week + one monthly stats post.*
 
 ### ⭐ The one metric — accepted leads per client per month
 

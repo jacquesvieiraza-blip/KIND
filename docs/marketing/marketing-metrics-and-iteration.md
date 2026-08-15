@@ -10,6 +10,8 @@
 
 Seven, because you will actually look at seven. Twenty becomes a dashboard nobody opens.
 
+> ⛓️ *15 Aug (docs audit): metrics 3–5 are newsletter numbers — **gated by R29** (newsletter parked). They activate only if the founder revives beehiiv; until then the live metrics are 1–2 and 6–7.*
+
 | # | Metric | Where from | Week 4 target | What it tells you |
 |---|---|---|---|---|
 | **1** | **Warm messages sent** | Your count | 100 | ⭐ The only input **entirely** in your control. If this is low, nothing else matters |

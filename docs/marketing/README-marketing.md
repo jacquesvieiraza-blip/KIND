@@ -80,7 +80,7 @@ Repeated here because they are the expensive ones and they live in a checklist y
 ## Where this came from
 
 - **The founder's M&V Lead Generation Master Playbook** (36pp) — Core Four, More/Better/New, Rule of 100, the one-page plan, the scripts. An M&V adaptation of publicly described Alex Hormozi / Acquisition.com lead-generation concepts; **not affiliated with, endorsed by, or a reproduction of $100M Leads.**
-- ⚠️ **Two of its sections are superseded by later founder rulings** and are marked in `MARKETING-PLAN.md`: **§02 Brand Architecture** (R9 killed the M&V hierarchy — public copy says **K.I.N.D**) and **§06 The Offer** (R1 made the free-10 a sales tool, never a public offer). *The playbook is not wrong — it was written before the rulings.*
+- ⚠️ **Two of its sections are superseded by later founder rulings** and are marked in `MARKETING-PLAN.md`: **§02 Brand Architecture** (R9 killed the M&V hierarchy — public copy says **K.I.N.D**) and **§06 The Offer** (R1 made the free-10 a sales tool, never a public offer). *The playbook is not wrong — it was written before the rulings.* ⛓️ *Corrected 15 Aug (docs audit): the R9 parenthetical above is itself superseded — **R22 (12 Aug) made Milla&Vida the trading brand the public reads**; K.I.N.D is the company/system name. The sentence stands unedited per the chain rule; R22 governs.*
 - **The founder's beehiiv / Big Desk Energy / Morning Brew brief**, 11 Aug.
 
 ## One unverified number

@@ -1,5 +1,5 @@
 # 💷 Salary & Break-Even Plan — ~£75k / ~$95k a year (You vs a Partner)
-> ⚠️ Re-based 9 Jul to the per-qualified-lead model (no subscriptions/MRR) — mechanics kept, denominations changed.
+> ⚠️ Re-based 9 Jul to the per-qualified-lead model (no subscriptions/MRR) — mechanics kept, denominations changed. ⛓️ **15 Aug (docs audit): the £-ladder figures in the body below are the RETIRED pricing — price of record is $299 pack + $4 per approved lead (24 Jul, re-locked 3 Aug). Read the shape of the plan here, never a number.**
 `Last-checked: 24 Jun 2026` _(audit: comp model verified vs `comp-engine.ts` 20%/5% — clean)_
 
 > **💵 CURRENCY (locked 22 Jun, "we are USD"):** the **business bills USD**. The **client-pricing** figures below are legacy £ — read them as their **USD-equivalent per-lead spend bands** in `run-costs-and-cashflow.md` §5a (all client spend = leads/mo × the $1→$6 per-lead ladder; e.g. £60→$60 ≈ 20 leads worked · **£155 ≈ $160 Growth blend** · £190 ≈ $199 heavier volume + layers). The **£75k is your personal UK take-home target** (≈ $95k) — that one stays a £ goal because it's personal income; everything that drives it is USD revenue. *The maths (clients-needed, churn treadmill, retention = salary) is unchanged — only the currency label moves.*

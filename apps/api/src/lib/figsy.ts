@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { pecrVerdict } from './pecr'
 import { db } from '@kind/db'
+import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, type SequenceDepth } from './sequence-templates'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
 import { isSuppressed } from './suppression'
@@ -133,9 +134,12 @@ interface SequenceDraft {
   step2: EmailStep
   step3: EmailStep
   // R38 (15 Aug) — default depth 3 -> 5: "sequence and campaigns is what is the
-  // converter to meetings booked." Optional so an older/short draft still parses.
+  // converter to meetings booked." #651 adds 6–7 for the deep option. All optional so an
+  // older/short draft still parses.
   step4?: EmailStep
   step5?: EmailStep
+  step6?: EmailStep
+  step7?: EmailStep
 }
 
 // R9 (Apollo) — "Why FIGSY wrote this": the exact personalization hooks FIGSY
@@ -209,6 +213,21 @@ export async function getClientKnowledgeForOutreach(clientId: string): Promise<s
   }
 }
 
+/**
+ * #651 — the sequence brief. Optional and trailing, so every existing call site keeps the
+ * R38 default (meeting · depth 5) byte-for-byte. Pass a purpose/depth/eventDate to get the
+ * industry-and-purpose-aware shape instead.
+ */
+export type SequenceOptions = {
+  purpose?: SequencePurpose
+  depth?: SequenceDepth
+  /** Only meaningful with purpose 'event' — the cadence then counts BACK from this date. */
+  eventDate?: Date | null
+  /** The PROSPECT's industry drives the flavour note; falls back to the lead's own field. */
+  industry?: string | null
+  now?: Date
+}
+
 export async function generateSequence(
   lead: Lead,
   senderCompanyName: string,
@@ -217,6 +236,7 @@ export async function generateSequence(
   bookingUrl?: string | null,
   senderName?: string | null,
   clientKnowledge?: string,
+  opts?: SequenceOptions,
 ): Promise<SequenceDraft> {
   // ── Signal detection — pick the best personalization hook ─────────────────
   const signals = personalizationSignals(lead)
@@ -224,6 +244,24 @@ export async function generateSequence(
   // #212 — the remaining hooks feed later steps so each follow-up opens on a
   // fresh, real angle rather than re-using the Step-1 opener.
   const extraSignals = signals.slice(1)
+
+  // #651 — the shape comes from the template engine, not from a hard-coded block, so
+  // purpose (meeting · event · reactivation), depth (3/5/7) and a real event DATE all reach
+  // the model. With no opts this renders R38's shipped meeting-at-depth-5 brief.
+  const plan = sequencePlan({
+    purpose: opts?.purpose, depth: opts?.depth,
+    industry: opts?.industry ?? lead.industry ?? null,
+    eventDate: opts?.eventDate ?? null, now: opts?.now,
+  })
+  const planBlock = [
+    `Write a ${plan.depth}-email sequence (persistence converts; most replies come on the middle touches).`,
+    plan.event
+      ? `⚠️ THIS IS AN EVENT SEQUENCE AND THE DATE IS FIXED. Every email must make sense on the day it lands, and the LAST one sends ${plan.event.daysUntilEvent - plan.dayOffsets[plan.depth - 1]} day(s) before the event. Never write as though the event has already happened, and never promise anything about who else attends.`
+      : '',
+    '',
+    ...plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`),
+    bookingUrl ? `\nIf a link is appropriate for a step (never step 1), use exactly: ${bookingUrl}` : '',
+  ].filter(Boolean).join('\n')
 
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
 
@@ -241,34 +279,7 @@ ${clientKnowledge ? `
 What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use these facts to make the SOLUTION half of each email specific ("this is YOUR problem, and here's how ${senderCompanyName} solves it"):
 ${clientKnowledge}
 ` : ''}
-Write a 5-email sequence (R38 — persistence converts; most replies come on touches 2–5):
-
-Step 1 (Day 0) — First touch:
-- MANDATORY: Open with a specific observation using the personalization signal provided above. If they use Salesforce, reference it. If they're in fintech, reference it. Make them feel like you actually looked them up — because we did.
-- One sentence on what ${senderCompanyName} does and why it matters to them specifically.
-- One soft, INTEREST-BASED CTA: ask whether it is worth a look, or whether this is already handled. NO LINK, NO ATTACHMENT AND NO BOOKING ASK in this email — a link to a stranger costs deliverability, and "book 15 minutes" is too large an ask from someone who has never heard of you. The booking link goes in the REPLY, once they have raised their hand. (Founder-ruled 5 Aug, Option A.)
-- Max 70 words. No subject line tricks. Subject should feel like a colleague's email.
-
-Step 2 (Day 4) — Follow-up:
-- Acknowledge you sent something already — don't pretend this is the first email.
-- Add a new angle: a question, a stat, a short insight relevant to their industry.${extraSignals.length ? ' Open on a DIFFERENT real signal from the list above than Step 1 used.' : ''}
-- Keep it shorter than Step 1. Lighter. No pressure.
-- Max 60 words.
-
-Step 3 (Day 9) — The value email:
-- No ask at all. Give something genuinely useful for someone in their role: a sharp observation about their industry, a pattern you've seen, a question worth thinking about.
-- This email earns the right to keep going. Max 60 words.
-
-Step 4 (Day 14) — The direct question:
-- One short, specific question that is easy to answer in one line — e.g. is this a priority this quarter, or should you stop?
-- No recap of previous emails, no summary of the product. Shortest email of the sequence.
-- Max 40 words.
-
-Step 5 (Day 21) — The breakup:
-- Be direct: this is the last email.
-- Leave it genuinely open — no guilt, no urgency tactics.
-${bookingUrl ? `- Include the booking link once more on its own line: ${bookingUrl}` : ''}
-- 3–4 sentences max.
+${planBlock}
 
 Hard rules (violating any of these makes the email useless):
 - Never say "Hope this finds you well", "I wanted to reach out", "touch base", "synergy", "leverage", "game-changer", or "revolutionary"
@@ -283,14 +294,8 @@ ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent, shorten, o
 ${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.` : ''}
-Return ONLY valid JSON, no markdown:
-{
-  "step1": {"subject": "...", "body": "..."},
-  "step2": {"subject": "...", "body": "..."},
-  "step3": {"subject": "...", "body": "..."},
-  "step4": {"subject": "...", "body": "..."},
-  "step5": {"subject": "...", "body": "..."}
-}`
+Return ONLY valid JSON, no markdown, with EXACTLY ${plan.depth} steps:
+{${Array.from({ length: plan.depth }, (_, i) => `"step${i + 1}": {"subject": "...", "body": "..."}`).join(', ')}}`
 
   const message = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -318,7 +323,7 @@ Return ONLY valid JSON, no markdown:
  */
 function threadFollowUps(draft: SequenceDraft): SequenceDraft {
   const baseSubject = draft.step1.subject
-  for (const key of ['step2', 'step3', 'step4', 'step5'] as const) {
+  for (const key of ['step2', 'step3', 'step4', 'step5', 'step6', 'step7'] as const) {
     const s = draft[key]
     if (s && (s.subject || '').trim() && !s.subject.toLowerCase().startsWith('re:')) {
       s.subject = `Re: ${baseSubject}`
@@ -1455,6 +1460,7 @@ export async function generateSequenceWithMemory(
   senderIndustry: string | null,
   campaignIntent?: string,
   modelPreference?: string,
+  opts?: SequenceOptions,
 ): Promise<SequenceDraft> {
   // last_winning_angle added via migration 20260525_fix_leads_status_and_figsy_memory.sql
   // Try with last_winning_angle; if column missing, retry without it (graceful degradation)
@@ -1558,6 +1564,22 @@ export async function generateSequenceWithMemory(
   }
   const memBestSignal = memSignals[0] ?? null
 
+  // #651 — same plan engine as the non-memory path, so both write the same shape.
+  const plan = sequencePlan({
+    purpose: opts?.purpose, depth: opts?.depth,
+    industry: opts?.industry ?? lead.industry ?? null,
+    eventDate: opts?.eventDate ?? null, now: opts?.now,
+  })
+  const planBlock = [
+    `Write a ${plan.depth}-email sequence that applies the lessons from Campaign Intelligence above.`,
+    plan.event
+      ? `⚠️ EVENT SEQUENCE — the date is fixed. Every email must make sense on the day it lands and the last sends before the event. Never write as though it has already happened.`
+      : '',
+    '',
+    ...plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`),
+    bookingUrl ? `\nIf a link is appropriate for a step (never step 1), use exactly: ${bookingUrl}` : '',
+  ].filter(Boolean).join('\n')
+
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person — not an AI.
 
 FIGSY Campaign Intelligence (use this to improve your writing):
@@ -1579,13 +1601,7 @@ Lead details:
 ${memBestSignal ? `- Best personalization signal (USE THIS to open Step 1): ${memBestSignal}` : ''}
 ${lead.tech_stack?.length ? `- Tech stack: ${lead.tech_stack.slice(0, 5).join(', ')}` : ''}
 
-Write a 5-email sequence that applies the lessons from Campaign Intelligence above (R38 — persistence converts; most replies come on touches 2–5).
-
-Step 1 (Day 0): First touch — under 70 words. MANDATORY: Open with the personalization signal above. One soft, INTEREST-BASED CTA — ask if it is worth a look or if this is already handled. NO LINK, NO ATTACHMENT AND NO BOOKING ASK in this email (founder-ruled 5 Aug): the link goes in the reply, once they have raised their hand.
-Step 2 (Day 4): Follow-up — new angle, shorter. Acknowledge step 1 was sent.
-Step 3 (Day 9): The value email — no ask at all; give one genuinely useful observation for someone in their role. Under 60 words.
-Step 4 (Day 14): The direct question — one short, specific question answerable in one line. Shortest email of the sequence, under 40 words.
-Step 5 (Day 21): The breakup — direct, no pressure, leave it open.${bookingUrl ? ` Include the booking link once more: ${bookingUrl}` : ''}
+${planBlock}
 
 Hard rules:
 - Never say "Hope this finds you well", "I wanted to reach out", "touch base", "synergy", "leverage", "game-changer"
@@ -1598,7 +1614,7 @@ Hard rules:
 ${senderName ? `- Sign off as exactly "${senderName}". Do NOT invent or use any other name.` : '- Sign with a real first name that fits the sender\'s region and industry'}
 
 Return ONLY valid JSON:
-{"step1":{"subject":"...","body":"..."},"step2":{"subject":"...","body":"..."},"step3":{"subject":"...","body":"..."},"step4":{"subject":"...","body":"..."},"step5":{"subject":"...","body":"..."}}`
+{${Array.from({ length: plan.depth }, (_, i) => `"step${i + 1}":{"subject":"...","body":"..."}`).join(',')}}`
 
   const selectedModel = MODEL_MAP[modelPreference ?? 'haiku'] ?? MODEL_MAP.haiku
 
@@ -1615,7 +1631,7 @@ Return ONLY valid JSON:
     return threadFollowUps(JSON.parse(stripJson(raw)) as SequenceDraft)
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge, opts)
   }
 }
 
@@ -1806,6 +1822,18 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       ? buildDraftFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
       : null
     const usingSequence = sequenceDraft !== null
+    // #651 — the campaign's own sequence plan (purpose · depth · event date), stored in the
+    // settings JSONB by Vida. Absent = the R38 meeting-at-5 default, unchanged.
+    const storedPurpose = normalisePurpose(settings.sequence_purpose)
+    const storedDepth = settings.sequence_depth != null ? normaliseDepth(settings.sequence_depth) : undefined
+    const storedEventDate = (storedPurpose === 'event' && typeof settings.sequence_event_date === 'string')
+      ? new Date(settings.sequence_event_date) : null
+    const seqOpts: SequenceOptions = {
+      purpose: storedPurpose,
+      depth: storedDepth,
+      eventDate: storedEventDate && !Number.isNaN(storedEventDate.getTime()) ? storedEventDate : null,
+      industry: (lead as any).industry ?? null,
+    }
     const draft = sequenceDraft ?? await generateSequenceWithMemory(
       lead as Lead,
       clientId,
@@ -1813,6 +1841,7 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
       client?.industry ?? null,
       (campaign as any).campaign_intent ?? undefined,
       (campaign as any).model_preference ?? 'haiku',
+      seqOpts,
     )
 
     // P2-3: A/Z multi-variant subject line testing — pick one at random from all non-null
@@ -1837,7 +1866,10 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
     // we SEND. The step1-3 columns below are still written (first 3) for legacy readers.
     const fullSteps = (usingSequence && appliedSequence)
       ? buildDraftStepsFromSequence(appliedSequence, lead as any, client?.company_name ?? null)
-      : draftToSteps(draft)
+      : draftToSteps(draft, sequencePlan({
+          purpose: seqOpts.purpose, depth: seqOpts.depth,
+          industry: seqOpts.industry, eventDate: seqOpts.eventDate,
+        }).gaps)
     if (fullSteps.length > 0) fullSteps[0] = { ...fullSteps[0], subject: step1Subject }
     const totalSteps = fullSteps.length > 0 ? fullSteps.length : 5
 

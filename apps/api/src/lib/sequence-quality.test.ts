@@ -567,7 +567,14 @@ describe('the activation gate reads the APPLIED sequence, not the newest saved o
 // must stop WRITING one — otherwise every draft hard-fails, the enrol path regenerates once and
 // then skips the lead, and send-day produces zero enrolments instead of emails.
 describe('generateSequence no longer asks for a link in the first touch', () => {
-  const src = stripCommentsForEnvScan(readFileSync(join(__dirname, './figsy.ts'), 'utf8'))
+  // #651 (15 Aug) — the per-step brief moved OUT of figsy.ts into the template engine, so
+  // this guard reads both homes. That makes it stronger, not weaker: the 5 Aug ruling must
+  // hold wherever the instruction lives, and a future third home would have to be added
+  // here to pass.
+  const src = [
+    stripCommentsForEnvScan(readFileSync(join(__dirname, './figsy.ts'), 'utf8')),
+    stripCommentsForEnvScan(readFileSync(join(__dirname, './sequence-templates.ts'), 'utf8')),
+  ].join('\n')
 
   it('neither system prompt instructs a step-1 booking link', () => {
     // Both phrasings the two prompt sites used, verbatim.
@@ -582,8 +589,11 @@ describe('generateSequence no longer asks for a link in the first touch', () => 
     expect(src).toMatch(/NO LINK, NO ATTACHMENT AND NO BOOKING ASK/)
   })
 
-  it('step 3 KEEPS the booking link — the ruling was about the first touch only', () => {
-    expect(src).toContain('Include the booking link once more')
+  it('a LATER step still carries the link — the ruling was about the first touch only', () => {
+    // #651 made this purpose-aware: the meeting brief still offers the link on a later step
+    // and the event brief puts the RSVP link on step 2. What must never happen is step 1.
+    expect(src).toMatch(/If a link is appropriate for a step \(never step 1\)/)
+    expect(src).toMatch(/now include the joining\/RSVP link/i)
   })
 })
 

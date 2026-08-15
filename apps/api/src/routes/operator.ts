@@ -873,7 +873,8 @@ async function sequenceGateFor(clientId: string, campaignId?: string | null): Pr
 // then de-personalised back into {{tokens}} so it is reusable as a template.
 operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => {
   try {
-    const { client_id, campaign_id } = (req.body ?? {}) as { client_id?: string; campaign_id?: string }
+    const { client_id, campaign_id, purpose: rawPurpose, depth: rawDepth, event_date } =
+      (req.body ?? {}) as { client_id?: string; campaign_id?: string; purpose?: string; depth?: number; event_date?: string }
     const client = await requireClient(client_id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
 
@@ -888,11 +889,23 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
       .eq('client_id', client.id).order('score', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
     if (!sample) { res.status(409).json({ success: false, error: 'No people sourced yet — source someone first so the draft is written against a real prospect.' }); return }
 
+    // #651 — the operator's choice of purpose · depth · event date drives the plan. With
+    // none of them supplied this is byte-identical to the R38 meeting-at-5 default.
+    const { normalisePurpose, normaliseDepth, sequencePlan } = await import('../lib/sequence-templates')
+    const purpose = normalisePurpose(rawPurpose)
+    const depth = normaliseDepth(rawDepth)
+    const eventDate = (purpose === 'event' && event_date) ? new Date(event_date) : null
+    if (eventDate && Number.isNaN(eventDate.getTime())) {
+      res.status(400).json({ success: false, error: 'event_date is not a readable date' }); return
+    }
+    const plan = sequencePlan({ purpose, depth, industry: sample.industry ?? c?.industry ?? null, eventDate })
+
     const { generateSequence, getClientKnowledgeForOutreach } = await import('../lib/figsy')
     const knowledge = await getClientKnowledgeForOutreach(client.id).catch(() => undefined)
     const draft = await generateSequence(
       sample as never, c?.company_name ?? '', c?.industry ?? null,
       camp?.campaign_intent ?? undefined, c?.booking_url ?? null, c?.signer_name ?? null, knowledge as never,
+      { purpose, depth, eventDate, industry: sample.industry ?? c?.industry ?? null },
     ) as unknown as Record<string, { subject?: string; body?: string }>
 
     // Put the tokens back so this reads as a template, not one person's email. Shared with
@@ -900,13 +913,21 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
     const { detokenise } = await import('../lib/sequence-tokens')
     const lead = sample as { first_name?: string | null; last_name?: string | null; job_title?: string | null; company?: string | null }
 
-    const steps = [1, 2, 3].map(n => {
+    // ⚠️ TWO BUGS FIXED HERE (found 15 Aug building #651, both live before this):
+    //   1. `[1,2,3]` TRUNCATED the draft — R38 deepened the generator to 5 steps on 15 Aug,
+    //      and this endpoint silently threw steps 4–5 away, so every operator-suggested
+    //      sequence was 3 emails no matter what the model wrote.
+    //   2. The cadence used the WRONG CONVENTION. `wait_days` is the delay AFTER a step
+    //      (the send engine does `next_send_at = now + steps[n].wait_days`), but this wrote
+    //      step 1 = 0 — "send step 2 immediately". A suggested-and-saved sequence therefore
+    //      fired steps 1 and 2 on the SAME DAY, to a cold prospect. Now taken from the plan.
+    const steps = Array.from({ length: plan.depth }, (_, i) => i + 1).map(n => {
       const st = draft[`step${n}`]
       return {
         step: n,
         subject: detokenise(String(st?.subject ?? ''), lead),
         body: detokenise(String(st?.body ?? ''), lead),
-        wait_days: n === 1 ? 0 : n === 2 ? 4 : 7,
+        wait_days: plan.gaps[n - 1] ?? 4,
       }
     }).filter(s => s.subject && s.body)
     if (steps.length === 0) { res.status(502).json({ success: false, error: 'Could not draft a sequence — try again.' }); return }
@@ -921,9 +942,17 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
     res.json({
       success: true,
       data: {
-        name: camp?.name ? `${camp.name} — 3 touches` : '3-touch sequence',
+        name: camp?.name ? `${camp.name} — ${plan.template.name}` : plan.template.name,
         steps,
         quality,
+        purpose: plan.purpose,
+        depth: plan.depth,
+        // The operator must SEE when a date cannot hold the chosen depth — never silently
+        // compress a sequence past the event it is inviting people to.
+        event: plan.event
+          ? { days_until_event: plan.event.daysUntilEvent, fits: plan.event.fits,
+              last_send_in_days: plan.event.lastSendOffsetDays }
+          : null,
         drafted_against: { first_name: sample.first_name, job_title: sample.job_title, company: sample.company },
       },
     })
@@ -1828,7 +1857,10 @@ operatorRouter.post('/sequence', async (req: Request, res: Response) => {
       step: i + 1,
       subject: String(st.subject ?? '').slice(0, 200),
       body: String(st.body ?? '').slice(0, 5000),
-      wait_days: Number(st.wait_days ?? (i === 0 ? 0 : 3)) || 0,
+      // #651 — `wait_days` is the delay AFTER this step. The old default (`i === 0 ? 0 : 3`)
+      // used the opposite convention, so a step saved without one told the engine to send
+      // the NEXT email immediately. 4 days is the meeting-cadence default.
+      wait_days: Number(st.wait_days ?? 4) || 0,
     }))
     const name = String(b.name ?? '').trim().slice(0, 120) || 'Sequence'
 

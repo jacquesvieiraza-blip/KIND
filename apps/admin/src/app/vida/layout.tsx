@@ -72,7 +72,13 @@ const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   // replaced. So the only way to reach the screen that creates a person's login was to
   // already know the URL. A control you cannot find is not a control.
   // (It sits outside the /vida shell, hence the bare path — the screen is unchanged.)
-  { href: '/partners',        label: 'Partners',   icon: '🤝' },
+  // ⛓️ And the first fix was half a fix: it pointed at `/partners`, the OLD admin console —
+  // one click and the operator was out of the Vida shell entirely, into a different nav with
+  // Nora's panel. The founder caught it within a minute of the walk: *"i click partners in
+  // the vida and it takes me to the old version this needs to stay on the new version."*
+  // This is now a Vida-NATIVE page. The old console still exists for commission detail,
+  // deals and payout history; the seat work lives here.
+  { href: '/vida/partners',   label: 'Partners',   icon: '🤝' },
 ]
 
 function initials(email: string): string {

@@ -1,0 +1,195 @@
+'use client'
+
+// Vida PARTNERS — the seller seats, INSIDE the Vida console.
+//
+// ⚠️ Why this page exists at all. The seat-creation card first shipped on `/partners`, the
+// OLD admin console — a different shell, different nav, Nora's panel. Clicking "Partners" in
+// the Vida menu threw the operator out of Vida entirely, which the founder hit within a
+// minute of the walk starting: *"i click partners in the vida and it takes me to the old
+// version this needs to stay on the new version."* The old page still exists and still
+// works; this is the Vida-native surface for the thing an operator actually does here —
+// create a Client Partner seat (R40) and see who holds what.
+//
+// R40 shapes what is shown: land 20% once, retain per SEAT (a Client Partner earns 8%
+// because she also runs customer success; a legacy referral partner earns 5%). Rates are
+// read from the row, never typed here.
+
+import { useEffect, useState, useCallback } from 'react'
+
+type Partner = {
+  id: string
+  name: string | null
+  company: string | null
+  email: string | null
+  seat_type?: string | null
+  retain_rate?: number | null
+  commission_rate?: number | null
+  referral_code: string | null
+  status: string | null
+  referral_count?: number | null
+}
+
+function pct(v: number | null | undefined, fallback: number): string {
+  const n = Number(v)
+  return `${Math.round((Number.isFinite(n) && n > 0 ? n : fallback) * 100)}%`
+}
+
+export default function VidaPartnersPage() {
+  const [partners, setPartners] = useState<Partner[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch('/api/proxy/partners/admin/list')
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json?.error || `Failed to load partners (${res.status})`)
+      setPartners((json.partners ?? json.data ?? json) as Partner[])
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load partners')
+    }
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  async function createSeat() {
+    if (!name.trim() || !email.trim()) { setMsg({ ok: false, text: 'A name and an email address are both required.' }); return }
+    setBusy(true); setMsg(null)
+    try {
+      const res = await fetch('/api/proxy/operator/seats/client-partner', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!json?.success) throw new Error(json?.error || `Seat not created (${res.status})`)
+      setMsg({
+        ok: true,
+        text: `Seat created — referral code ${json.data.referral_code}. She sets her own password with "forgot password" on the portal sign-in page.`,
+      })
+      setName(''); setEmail('')
+      void load()
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : 'Seat not created' })
+    }
+    setBusy(false)
+  }
+
+  const seats = partners ?? []
+  const clientPartners = seats.filter(p => p.seat_type === 'client_partner')
+
+  return (
+    <div className="h-full overflow-y-auto px-6 py-6">
+      <div className="max-w-4xl">
+        <h1 className="text-2xl font-bold text-[#1f1235]">Partners</h1>
+        <p className="text-sm text-[#7c6f9b] mt-0.5">
+          Seller seats · a Client Partner sells <em>and</em> runs customer success, from their own network
+        </p>
+
+        {error && <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
+
+        {/* ── create a seat ─────────────────────────────────────────────── */}
+        <div className="mt-5 bg-white border border-[#ece5fb] rounded-2xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-[#f3eefe] flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-[#1f1235]">New Client Partner seat</span>
+            <span className="ml-auto text-[12px] text-[#9b8ec4]">20% land · 8% retain · own network only</span>
+          </div>
+          <div className="p-5 flex flex-wrap gap-3 items-end">
+            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
+              Name
+              <input value={name} onChange={e => setName(e.target.value)} placeholder="Full name"
+                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[190px]" />
+            </label>
+            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
+              Email
+              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com"
+                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[230px]" />
+            </label>
+            <button onClick={createSeat} disabled={busy}
+              className="text-sm font-bold text-white bg-[#7C3AED] rounded-lg px-4 py-2 disabled:opacity-50">
+              {busy ? 'Creating…' : 'Create seat'}
+            </button>
+            {msg && (
+              <p className={`text-[12.5px] basis-full ${msg.ok ? 'text-emerald-700' : 'text-red-600'}`}>{msg.text}</p>
+            )}
+          </div>
+          <div className="px-5 pb-4 text-[12px] text-[#9b8ec4]">
+            Creating a seat mints a login that can read commission money — it is written to the audit log.
+            Her documents are uploaded to the seat once it exists.
+          </div>
+        </div>
+
+        {/* ── the seats ─────────────────────────────────────────────────── */}
+        <div className="mt-4 bg-white border border-[#ece5fb] rounded-2xl overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-[#f3eefe] flex items-center gap-2">
+            <span className="text-sm font-bold text-[#1f1235]">Seats</span>
+            <span className="ml-auto text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">
+              {clientPartners.length} client partner{clientPartners.length === 1 ? '' : 's'} · {seats.length} total
+            </span>
+          </div>
+
+          {!partners && !error && <p className="px-5 py-6 text-sm text-[#9b8ec4]">Loading…</p>}
+          {partners && seats.length === 0 && (
+            <p className="px-5 py-8 text-sm text-[#9b8ec4] text-center">No seats yet — create the first one above.</p>
+          )}
+
+          {seats.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-[13.5px]">
+                <thead>
+                  <tr className="text-[10.5px] font-bold uppercase tracking-wider text-[#9b8ec4]">
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Seat</th>
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Type</th>
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Referral code</th>
+                    <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Land</th>
+                    <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Retain</th>
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {seats.map(p => {
+                    const isCp = p.seat_type === 'client_partner'
+                    return (
+                      <tr key={p.id}>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd]">
+                          <div className="font-semibold text-[#1f1235]">{p.name || '—'}</div>
+                          <div className="text-[12px] text-[#9b8ec4]">{p.email || p.company || ''}</div>
+                        </td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd]">
+                          <span className={`inline-block text-[10.5px] font-bold rounded-full px-2.5 py-1 ${
+                            isCp ? 'bg-[#f3ecff] text-[#7C3AED]' : 'bg-[#eef2f7] text-[#5c5279]'}`}>
+                            {isCp ? 'Client Partner' : 'Referral partner'}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd]">
+                          <code className="text-[12px] bg-[#faf7ff] border border-[#ece5fb] rounded px-2 py-0.5">{p.referral_code || '—'}</code>
+                        </td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd] text-right tabular-nums">{pct(p.commission_rate, 0.2)}</td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd] text-right tabular-nums font-semibold text-[#0b7a55]">
+                          {pct(p.retain_rate, 0.05)}
+                        </td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd]">
+                          <span className={`inline-block text-[10.5px] font-bold rounded-full px-2.5 py-1 ${
+                            p.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#efeafc] text-[#5c5279]'}`}>
+                            {p.status === 'active' ? 'Active' : (p.status || '—')}
+                          </span>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <p className="mt-4 text-[12px] text-[#9b8ec4]">
+          Commission detail, deals and payout history remain on the full partner console.
+        </p>
+      </div>
+    </div>
+  )
+}

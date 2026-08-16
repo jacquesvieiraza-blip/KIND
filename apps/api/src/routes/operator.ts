@@ -971,11 +971,27 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
 // is what every access check keys on: this seat can never reach sourcing or lead tools.
 operatorRouter.post('/seats/client-partner', async (req: Request, res: Response) => {
   try {
-    const { name, email, company } = (req.body ?? {}) as { name?: string; email?: string; company?: string }
+    const { name, email, company, address, country, phone } = (req.body ?? {}) as {
+      name?: string; email?: string; company?: string; address?: string; country?: string; phone?: string
+    }
     const cleanEmail = String(email ?? '').trim().toLowerCase()
     const cleanName = String(name ?? '').trim()
+    // Captured HERE because this is the only moment anyone is filling a form about this
+    // person. The document pack interpolates them straight into the party line and the date,
+    // so a seat created without them produces a contract carrying [ADDRESS] — which is why
+    // they are required rather than optional (founder, 16 Aug: "i should not need to fill
+    // anything out").
+    const cleanAddress = String(address ?? '').trim()
+    const cleanCountry = String(country ?? '').trim()
+    const cleanPhone = String(phone ?? '').trim()
     if (!cleanName || !cleanEmail || !cleanEmail.includes('@')) {
       res.status(400).json({ success: false, error: 'A name and a real email address are required.' }); return
+    }
+    if (!cleanAddress || !cleanCountry || !cleanPhone) {
+      res.status(400).json({
+        success: false,
+        error: 'An address, a country and a mobile number are required — the contracts are generated from them.',
+      }); return
     }
 
     // One seat per address — the identity fix (#370) is worthless if two seats can share an
@@ -1006,12 +1022,15 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
       name: cleanName,
       email: cleanEmail,
       company: String(company ?? '').trim() || null,
+      address: cleanAddress,
+      country: cleanCountry,
+      phone: cleanPhone,
       seat_type: 'client_partner',
       commission_rate: RATES.PARTNER_ACQUISITION,
       retain_rate: RATES.CLIENT_PARTNER_RETENTION,
       referral_code,
       status: 'active',
-    }).select('id, name, email, referral_code, seat_type, retain_rate').single()
+    }).select('id, name, email, referral_code, seat_type, retain_rate, country').single()
 
     if (seatErr || !seat) {
       res.status(500).json({ success: false, error: `Seat not created: ${seatErr?.message ?? 'unknown error'}` }); return

@@ -430,7 +430,7 @@ partnersRouter.get('/documents', requireAuth, async (req: AuthRequest, res: Resp
 
     const { data: partner, error } = await db
       .from('partners')
-      .select('name, seat_type, retain_rate')
+      .select('name, seat_type, retain_rate, address, country, phone, created_at')
       .eq('email', normaliseSeatEmail(userEmail))
       .maybeSingle()
 
@@ -441,6 +441,10 @@ partnersRouter.get('/documents', requireAuth, async (req: AuthRequest, res: Resp
         seatType: partner.seat_type,
         retainRate: partner.retain_rate,
         name: partner.name,
+        address: partner.address,
+        country: partner.country,
+        phone: partner.phone,
+        dated: String(partner.created_at ?? '').slice(0, 10) || null,
       }),
     })
   } catch (err) {
@@ -454,7 +458,7 @@ partnersRouter.get('/admin/:partnerId/documents', requireAdminKey, async (req: R
   try {
     const { data: partner, error } = await db
       .from('partners')
-      .select('id, name, email, seat_type, retain_rate')
+      .select('id, name, email, seat_type, retain_rate, address, country, phone, created_at')
       .eq('id', req.params.partnerId)
       .maybeSingle()
 
@@ -466,6 +470,10 @@ partnersRouter.get('/admin/:partnerId/documents', requireAdminKey, async (req: R
         seatType: partner.seat_type,
         retainRate: partner.retain_rate,
         name: partner.name,
+        address: partner.address,
+        country: partner.country,
+        phone: partner.phone,
+        dated: String(partner.created_at ?? '').slice(0, 10) || null,
       }),
     })
   } catch (err) {

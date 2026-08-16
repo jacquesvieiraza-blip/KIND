@@ -25,6 +25,7 @@ type Partner = {
   retain_rate?: number | null
   commission_rate?: number | null
   referral_code: string | null
+  country?: string | null
   status: string | null
   referral_count?: number | null
 }
@@ -55,6 +56,9 @@ export default function VidaPartnersPage() {
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [address, setAddress] = useState('')
+  const [country, setCountry] = useState('')
+  const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -88,12 +92,20 @@ export default function VidaPartnersPage() {
   }
 
   async function createSeat() {
-    if (!name.trim() || !email.trim()) { setMsg({ ok: false, text: 'A name and an email address are both required.' }); return }
+    // Every one of these lands in the contracts. A seat created without them generates an
+    // agreement carrying [ADDRESS] and [COUNTRY], which somebody then fills in by hand — the
+    // exact thing this form exists to prevent.
+    if (!name.trim() || !email.trim() || !address.trim() || !country.trim() || !phone.trim()) {
+      setMsg({ ok: false, text: 'Name, email, address, country and mobile are all required — the contracts are generated from them.' }); return
+    }
     setBusy(true); setMsg(null)
     try {
       const res = await fetch('/api/proxy/operator/seats/client-partner', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
+        body: JSON.stringify({
+          name: name.trim(), email: email.trim(),
+          address: address.trim(), country: country.trim(), phone: phone.trim(),
+        }),
       })
       const json = await res.json().catch(() => ({}))
       if (!json?.success) throw new Error(json?.error || `Seat not created (${res.status})`)
@@ -101,7 +113,7 @@ export default function VidaPartnersPage() {
         ok: true,
         text: `Seat created — referral code ${json.data.referral_code}. She sets her own password with "forgot password" on the portal sign-in page.`,
       })
-      setName(''); setEmail('')
+      setName(''); setEmail(''); setAddress(''); setCountry(''); setPhone('')
       void load()
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : 'Seat not created' })
@@ -139,6 +151,21 @@ export default function VidaPartnersPage() {
               <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com"
                 className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[230px]" />
             </label>
+            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
+              Address
+              <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Street, city, postcode"
+                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[260px]" />
+            </label>
+            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
+              Country
+              <input value={country} onChange={e => setCountry(e.target.value)} placeholder="South Africa"
+                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[170px]" />
+            </label>
+            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
+              Mobile
+              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+27 ..."
+                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[170px]" />
+            </label>
             <button onClick={createSeat} disabled={busy}
               className="text-sm font-bold text-white bg-[#7C3AED] rounded-lg px-4 py-2 disabled:opacity-50">
               {busy ? 'Creating…' : 'Create seat'}
@@ -149,7 +176,7 @@ export default function VidaPartnersPage() {
           </div>
           <div className="px-5 pb-4 text-[12px] text-[#9b8ec4]">
             Creating a seat mints a login that can read commission money — it is written to the audit log.
-            Her documents are uploaded to the seat once it exists.
+            Her contracts are generated from these details, so nothing is filled in by hand afterwards.
           </div>
         </div>
 
@@ -174,6 +201,7 @@ export default function VidaPartnersPage() {
                   <tr className="text-[10.5px] font-bold uppercase tracking-wider text-[#9b8ec4]">
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Seat</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Type</th>
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Country</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Referral code</th>
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Land</th>
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Retain</th>
@@ -196,6 +224,7 @@ export default function VidaPartnersPage() {
                             {isCp ? 'Client Partner' : 'Referral partner'}
                           </span>
                         </td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd] text-[#5c5279]">{p.country || '—'}</td>
                         <td className="px-5 py-3 border-b border-[#f6f2fd]">
                           <code className="text-[12px] bg-[#faf7ff] border border-[#ece5fb] rounded px-2 py-0.5">{p.referral_code || '—'}</code>
                         </td>

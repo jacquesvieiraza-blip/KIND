@@ -61,6 +61,12 @@ export function partnerDocuments(opts: {
   seatType?: string | null
   retainRate?: number | null
   name?: string | null
+  /** Captured when the seat is created, so nothing is hand-filled afterwards (16 Aug). */
+  address?: string | null
+  country?: string | null
+  phone?: string | null
+  /** The seat's creation date, ISO yyyy-mm-dd — the date the agreement is dated. */
+  dated?: string | null
 } = {}): PartnerDocument[] {
   const isClientPartner = opts.seatType === 'client_partner'
   const land = RATES.PARTNER_ACQUISITION
@@ -70,6 +76,14 @@ export function partnerDocuments(opts: {
   const pack = PACK_PRICE_USD
   const who = opts.name?.trim() || '[FULL NAME]'
   const role = isClientPartner ? 'Client Partner' : 'Partner'
+
+  // A MISSING FIELD KEEPS ITS BRACKET. Legacy referral seats predate this capture, and a
+  // guessed address on a contract is worse than a visible blank: the blank is obviously
+  // unfinished, the guess reads as agreed. So no invented defaults here, ever.
+  const address = opts.address?.trim() || '[ADDRESS]'
+  const country = opts.country?.trim() || '[COUNTRY]'
+  const phone = opts.phone?.trim() || ''
+  const dated = opts.dated?.trim() || '[DATE]'
 
   const landOnPack = pack * land
 
@@ -82,7 +96,7 @@ export function partnerDocuments(opts: {
       updated: '2026-08-15',
       signatureRequired: true,
       summary: `Commission-only contractor agreement — ${pct(land)} land, ${pct(retain)} retain, own network only.`,
-      body: commissionAgreement({ who, role, land, retain, pack }),
+      body: commissionAgreement({ who, role, land, retain, pack, address, country, phone, dated }),
     },
     {
       id: 'nda',
@@ -92,7 +106,7 @@ export function partnerDocuments(opts: {
       updated: '2026-08-16',
       signatureRequired: true,
       summary: 'What must stay confidential, for how long, and what is explicitly hers to keep.',
-      body: nda({ who, role }),
+      body: nda({ who, role, address, country, dated }),
     },
     {
       id: 'ip-assignment',
@@ -102,7 +116,7 @@ export function partnerDocuments(opts: {
       updated: '2026-08-16',
       signatureRequired: true,
       summary: 'Work created for the Company belongs to the Company; her own network and prior work stay hers.',
-      body: ipAssignment({ who, role }),
+      body: ipAssignment({ who, role, address, country, dated }),
     },
     {
       id: 'comp-plan',
@@ -130,16 +144,17 @@ export function partnerDocuments(opts: {
 
 // ── the documents ───────────────────────────────────────────────────────────────────────
 
-function commissionAgreement(o: { who: string; role: string; land: number; retain: number; pack: number }): string {
+function commissionAgreement(o: { who: string; role: string; land: number; retain: number; pack: number; address: string; country: string; phone: string; dated: string }): string {
   return `# ${o.role} — commission agreement (DRAFT)
 
 ${DISCLAIMER}
 >
-> ⚠️ **The single biggest risk this draft tries to manage:** in South Africa, someone paid only
-> in commission who works set hours, under supervision, using the company's tools, can be found
-> to be an **employee** regardless of what a contract calls them — which brings tax, UIF and
-> unfair-dismissal exposure. The clauses below are written to keep the relationship a genuine
-> contractor one, but only a South African employment lawyer can confirm it.
+> ⚠️ **The single biggest risk this draft tries to manage:** in many countries — South Africa,
+> where the first seat is based, is a clear example — someone paid only in commission who works
+> set hours, under supervision, using the company's tools, can be found to be an **employee**
+> regardless of what a contract calls them, bringing tax, social-security and unfair-dismissal
+> exposure. The clauses below are written to keep the relationship a genuine contractor one, but
+> only an employment lawyer in the country where THIS partner actually works can confirm it.
 
 ---
 
@@ -150,9 +165,9 @@ ${DISCLAIMER}
 
 **and**
 
-**${o.who}**, of [ADDRESS], South Africa ("the ${o.role}")
+**${o.who}**, of ${o.address}, ${o.country} ("the ${o.role}")${o.phone ? `\n\nContact: ${o.phone}` : ''}
 
-Dated: [DATE]
+Dated: ${o.dated}
 
 ---
 
@@ -174,8 +189,8 @@ partnership, agency or a joint venture.
 equipment, and is free to work for others, including in the same industry, provided clause 6
 (confidentiality) is observed.
 
-2.3 The ${o.role} is responsible for **their own taxes and any statutory contributions** in
-South Africa. The Company deducts nothing and withholds nothing.
+2.3 The ${o.role} is responsible for **their own taxes and any statutory contributions** in the
+country where they are resident and work. The Company deducts nothing and withholds nothing.
 
 2.4 The ${o.role} has **no authority to bind the Company** — not to a price, a discount, a
 delivery promise, a contract term, or anything else. Pricing is fixed and published.
@@ -204,8 +219,9 @@ mechanism the Company provides. Where attribution is unclear the parties will ag
 before the client's first payment.
 
 3.6 **Payment.** Commission accrued in a calendar month is paid in the following month, against
-an invoice from the ${o.role}, by Wise transfer in South African rand at the prevailing rate on
-the day of payment. The Company will provide a statement showing how each amount was calculated.
+an invoice from the ${o.role}, by Wise transfer in the ${o.role}'s local currency at the
+prevailing rate on the day of payment. The Company will provide a statement showing how each
+amount was calculated.
 
 3.7 **No cap.** There is no ceiling on commission.
 
@@ -220,10 +236,10 @@ how the product works.
 5.1 The ${o.role} may see the names of their own clients and how those clients are progressing.
 The ${o.role} will **not** be given the spending figures of any client.
 
-5.2 The ${o.role} will handle any personal information they encounter in line with the Protection
-of Personal Information Act (POPIA) and the Company's own obligations under UK and EU data
-protection law: used only to do this job, never copied to personal systems, never shared, and
-deleted or returned when this agreement ends.
+5.2 The ${o.role} will handle any personal information they encounter in line with the data
+protection law of the country where they work (for a ${o.role} in South Africa, POPIA) and the
+Company's own obligations under UK and EU data protection law: used only to do this job, never
+copied to personal systems, never shared, and deleted or returned when this agreement ends.
 
 5.3 The ${o.role} will not export, download or retain any client list or contact data.
 
@@ -271,9 +287,10 @@ anything discussed beforehand.
 10.2 Any change must be in writing and signed by both.
 
 10.3 **Governing law:** the laws of England and Wales, with the courts of England and Wales having
-jurisdiction. [⚠️ REVIEW: the ${o.role} performs this work in South Africa. South African law may
-apply to aspects of the relationship regardless of this clause, and a South African forum may be
-more practical for both sides. This is the clause most likely to need changing.]
+jurisdiction. [⚠️ REVIEW: the ${o.role} performs this work in their own country, and that
+country's law may apply to aspects of the relationship regardless of this clause — a local forum
+may also be more practical for both sides. This is the clause most likely to need changing, and
+it should be reviewed PER COUNTRY as seats are added.]
 
 ---
 
@@ -283,24 +300,25 @@ Name: [    ]  ·  Signature: [    ]  ·  Date: [    ]
 
 **Signed by the ${o.role}**
 
-Name: [    ]  ·  Signature: [    ]  ·  Date: [    ]
+Name: ${o.who}  ·  Signature: [    ]  ·  Date: [    ]
 
 ---
 
 ### Open points for the reviewing lawyer
 
-1. **Contractor vs employee status under South African law** — clause 2. The commission-only
-   structure is the sensitive part.
-2. **Governing law and forum** — clause 10.3, given the work is performed in South Africa.
+1. **Contractor vs employee status under the law of the ${o.role}'s country** — clause 2. The
+   commission-only structure is the sensitive part.
+2. **Governing law and forum** — clause 10.3, given the work is performed outside England and
+   Wales.
 3. **Whether any restraint is wanted at all** — clause 9 currently imposes none, deliberately.
 4. **Chargeback treatment** — clause 3.4 is the only circumstance in which earned commission
    reverses; confirm that is the intent and that it is expressed enforceably.
-5. **POPIA sufficiency** — clause 5, particularly whether a separate data-processing schedule is
-   needed rather than a clause.
+5. **Data-protection sufficiency** — clause 5, particularly whether a separate data-processing
+   schedule is needed rather than a clause, under the law of the ${o.role}'s country.
 `
 }
 
-function nda(o: { who: string; role: string }): string {
+function nda(o: { who: string; role: string; address: string; country: string; dated: string }): string {
   return `# Non-disclosure agreement (DRAFT)
 
 ${DISCLAIMER}
@@ -310,9 +328,9 @@ ${DISCLAIMER}
 **Between** **KIND Technologies Ltd**, a company registered in England and Wales, trading as
 Milla&Vida ("the Company")
 
-**and** **${o.who}** ("the Recipient"), engaged as a ${o.role}.
+**and** **${o.who}**, of ${o.address}, ${o.country} ("the Recipient"), engaged as a ${o.role}.
 
-Dated: [DATE]
+Dated: ${o.dated}
 
 ---
 
@@ -375,8 +393,8 @@ it is lawful to do so, so the Company can respond.
 ## 6 · Personal information
 
 Where confidential information includes personal data, the Recipient will also comply with the
-Protection of Personal Information Act (POPIA) and with the Company's obligations under UK and EU
-data protection law. This is a legal duty in its own right and is not softened by anything in
+data protection law of the country where they work (for a Recipient in South Africa, POPIA) and
+with the Company's obligations under UK and EU data protection law. This is a legal duty in its own right and is not softened by anything in
 this agreement.
 
 ## 7 · When the engagement ends
@@ -395,7 +413,7 @@ their own invoices and tax records.
 remains a trade secret or the data protection law applies — there is no expiry.
 
 [⚠️ REVIEW: three years is a common and defensible period for commercial information. A reviewing
-lawyer should confirm it is right for this business and enforceable in South Africa, where the
+lawyer should confirm it is right for this business and enforceable in the country where the
 Recipient works.]
 
 ## 9 · What happens if this is broken
@@ -412,8 +430,8 @@ intellectual property. That is dealt with separately.
 10.2 Any change must be in writing and signed by both.
 
 10.3 **Governing law:** the laws of England and Wales. [⚠️ REVIEW: same point as the commission
-agreement — the Recipient performs the work in South Africa, and an SA court may be the practical
-forum.]
+agreement — the Recipient performs the work in their own country, and a local court may be the
+practical forum.]
 
 ---
 
@@ -423,11 +441,11 @@ Name: [    ]  ·  Signature: [    ]  ·  Date: [    ]
 
 **Signed by the Recipient**
 
-Name: [    ]  ·  Signature: [    ]  ·  Date: [    ]
+Name: ${o.who}  ·  Signature: [    ]  ·  Date: [    ]
 `
 }
 
-function ipAssignment(o: { who: string; role: string }): string {
+function ipAssignment(o: { who: string; role: string; address: string; country: string; dated: string }): string {
   return `# Intellectual property agreement (DRAFT)
 
 ${DISCLAIMER}
@@ -442,9 +460,9 @@ ${DISCLAIMER}
 **Between** **KIND Technologies Ltd**, a company registered in England and Wales, trading as
 Milla&Vida ("the Company")
 
-**and** **${o.who}** ("the Contributor"), engaged as a ${o.role}.
+**and** **${o.who}**, of ${o.address}, ${o.country} ("the Contributor"), engaged as a ${o.role}.
 
-Dated: [DATE]
+Dated: ${o.dated}
 
 ---
 
@@ -473,8 +491,8 @@ Work Product.
 
 2.4 The Contributor **waives moral rights** in the Work Product to the extent the law allows —
 so the Company can edit, adapt, extend and publish it without further permission. [⚠️ REVIEW:
-moral rights and their waiver work differently in England and in South Africa; confirm the wording
-carries in both.]
+moral rights and their waiver work differently from country to country; confirm the wording
+carries in England and in the Contributor's country.]
 
 ## 3 · What stays the Contributor's
 
@@ -525,7 +543,7 @@ Where any of them conflict on intellectual property, **this one governs**.
 7.2 Any change must be in writing and signed by both.
 
 7.3 **Governing law:** the laws of England and Wales. [⚠️ REVIEW: as with the other documents —
-the work is performed in South Africa.]
+the work is performed in the Contributor's own country.]
 
 ---
 
@@ -535,7 +553,7 @@ Name: [    ]  ·  Signature: [    ]  ·  Date: [    ]
 
 **Signed by the Contributor**
 
-Name: [    ]  ·  Signature: [    ]  ·  Date: [    ]
+Name: ${o.who}  ·  Signature: [    ]  ·  Date: [    ]
 
 ---
 
@@ -607,7 +625,7 @@ a reading of any real client's account, and nothing here is a promise of earning
 ## How and when you are paid
 
 Commission accrued in a calendar month is paid **the following month**, against your invoice, by
-Wise transfer in South African rand at the rate on the day of payment. Your portal shows every
+Wise transfer in your local currency at the rate on the day of payment. Your portal shows every
 amount and how it was calculated, and your payout statement is generated from those same rows —
 the number in your portal and the number on your statement cannot disagree, because they are the
 same data.

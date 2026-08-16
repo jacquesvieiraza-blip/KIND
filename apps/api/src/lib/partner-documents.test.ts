@@ -92,6 +92,91 @@ describe('no document may contradict the engine that pays the money', () => {
   })
 })
 
+describe('tailored from seat onboarding — nobody fills in a contract by hand', () => {
+  // Founder review of the pack, 16 Aug: "when we sign up a partner. they give us their
+  // address, mobile number etc and when we sign them up each document is tailored to them.
+  // i should not need to fill anything out."
+  const tailored = partnerDocuments({
+    seatType: 'client_partner', retainRate: 0.08, name: 'Test Walk',
+    address: '12 Loop Street, Cape Town, 8001', country: 'South Africa',
+    phone: '+27 82 000 0000', dated: '2026-08-16',
+  })
+  const signable = (pack: ReturnType<typeof partnerDocuments>) => pack.filter(d => !d.live)
+
+  it('the party line, the date and the signature block carry the real details', () => {
+    // The three SIGNED documents name the parties. The comp plan is a reference sheet with no
+    // parties and no signature block, so it carries no address — asserting one there would be
+    // asserting a bug.
+    for (const doc of tailored.filter(d => d.signatureRequired)) {
+      expect(doc.body, `${doc.id} is missing the address`).toContain('12 Loop Street, Cape Town, 8001')
+      expect(doc.body, `${doc.id} is missing the country`).toContain('South Africa')
+    }
+    const agreement = tailored.find(d => d.id === 'commission-agreement')!
+    expect(agreement.body).toContain('Dated: 2026-08-16')
+    expect(agreement.body).toContain('Contact: +27 82 000 0000')
+    expect(agreement.body).toContain('Name: Test Walk')
+  })
+
+  it('and NO bracket placeholder survives in a tailored document', () => {
+    // The whole point: a placeholder left in a generated contract is a blank somebody has to
+    // fill in, which is what the founder asked to stop.
+    for (const doc of signable(tailored)) {
+      expect(doc.body, `${doc.id} still carries a placeholder`).not.toMatch(/\[ADDRESS\]|\[COUNTRY\]|\[DATE\]|\[FULL NAME\]/)
+    }
+  })
+
+  it('a LEGACY seat with no details keeps the brackets — a guessed address is worse than a blank', () => {
+    // Referral partners predate this capture. Inventing an address for a contract would read
+    // as agreed; an obvious blank reads as unfinished, which is the honest state.
+    const legacy = partnerDocuments({ seatType: 'partner', name: 'Demmy Oshodi' })
+    const agreement = legacy.find(d => d.id === 'commission-agreement')!
+    expect(agreement.body).toContain('[ADDRESS]')
+    expect(agreement.body).toContain('[COUNTRY]')
+    expect(agreement.body).toContain('Dated: [DATE]')
+  })
+
+  it('an empty-string detail is treated as missing, not written into the contract', () => {
+    const blank = partnerDocuments({ seatType: 'client_partner', name: 'X', address: '  ', country: '' })
+    expect(blank.find(d => d.id === 'nda')!.body).toContain('[ADDRESS]')
+  })
+})
+
+describe('country-neutral — not every partner is in South Africa', () => {
+  // Founder, 16 Aug: "so just a head up not every partner will be in south africa".
+  const inNigeria = partnerDocuments({
+    seatType: 'client_partner', retainRate: 0.08, name: 'A Partner',
+    address: '5 Marina Road, Lagos', country: 'Nigeria', phone: '+234 000', dated: '2026-08-16',
+  })
+
+  it('no document pays anyone in rand — the currency follows the partner', () => {
+    for (const doc of inNigeria.filter(d => !d.live)) {
+      expect(doc.body.toLowerCase(), `${doc.id} still mentions rand`).not.toMatch(/\brand\b/)
+    }
+    expect(inNigeria.find(d => d.id === 'commission-agreement')!.body).toContain('local currency')
+  })
+
+  it('tax and data-protection duties follow the country where the partner works', () => {
+    const agreement = inNigeria.find(d => d.id === 'commission-agreement')!
+    expect(agreement.body).toContain('country where they are resident and work')
+    expect(agreement.body).toContain('data\nprotection law of the country where they work')
+  })
+
+  it('South Africa survives ONLY as a named example, never as the assumed jurisdiction', () => {
+    const agreement = inNigeria.find(d => d.id === 'commission-agreement')!
+    // It may be cited as an example of the employment risk and of a named privacy law...
+    expect(agreement.body).toContain('South Africa,\n> where the first seat is based, is a clear example')
+    // ...but the partner's own country is what the contract binds to.
+    expect(agreement.body).toContain('of 5 Marina Road, Lagos, Nigeria')
+    expect(agreement.body).not.toContain('performs this work in South Africa')
+  })
+
+  it('the lawyer open points ask per-country questions', () => {
+    const agreement = inNigeria.find(d => d.id === 'commission-agreement')!
+    expect(agreement.body).toContain("reviewed PER COUNTRY as seats are added")
+    expect(agreement.body).not.toContain('under South African law')
+  })
+})
+
 describe('the documents are reachable — the bug was a menu with nothing behind it', () => {
   it('the seat can fetch her own pack', () => {
     expect(routes).toContain("partnersRouter.get('/documents', requireAuth")

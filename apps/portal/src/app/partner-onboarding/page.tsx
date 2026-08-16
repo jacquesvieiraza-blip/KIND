@@ -201,9 +201,13 @@ function OnboardingFlow() {
       {step === 1 && hasSession && (
         <>
           <h2 className="text-lg font-bold text-[#1E0A5C] mb-1">Welcome{invite ? `, ${invite.name}` : ''}</h2>
-          <p className="text-sm text-[#7B6FA0] mb-5">Choose a password to get started. You will use it with {invite?.email ?? 'your email address'}.</p>
+          {/* Signing up, not recovering anything. An invited partner has never had a password
+              here and should never see language that suggests otherwise. */}
+          <p className="text-sm text-[#7B6FA0] mb-5">
+            Create a password for your account. You will sign in with {invite?.email ?? 'your email address'} from now on.
+          </p>
           <form onSubmit={setPasswordStep} className="space-y-4">
-            <Field label="Password"><input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={MIN_PASSWORD} className={INPUT} placeholder="••••••••" /></Field>
+            <Field label="Create a password"><input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={MIN_PASSWORD} className={INPUT} placeholder="••••••••" /></Field>
             <Field label="Confirm password"><input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} required minLength={MIN_PASSWORD} className={INPUT} placeholder="••••••••" /></Field>
             {error && <Err>{error}</Err>}
             <Submit busy={busy}>Continue</Submit>

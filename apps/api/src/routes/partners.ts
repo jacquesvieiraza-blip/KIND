@@ -961,13 +961,17 @@ partnersRouter.post('/admin/:partnerId/resend-invite', requireAdminKey, async (r
     const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
     const packPath = `/partner-onboarding?token=${seat.invite_token}`
     let inviteUrl = `${portalUrl}${packPath}`
-    try {
-      const { data: link } = await (db as any).auth.admin.generateLink({
-        type: 'recovery', email: seat.email,
-        options: { redirectTo: `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}` },
-      })
-      if (link?.properties?.action_link) inviteUrl = link.properties.action_link
-    } catch (e) { console.error('[partners/resend-invite] generateLink failed:', e) }
+    // Same order as seat creation: an invitation for somebody who has never had a password,
+    // recovery only if the address already has an account.
+    const redirectTo = `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}`
+    for (const linkType of ['invite', 'recovery'] as const) {
+      try {
+        const { data: link, error: linkErr } = await (db as any).auth.admin.generateLink({
+          type: linkType, email: seat.email, options: { redirectTo },
+        })
+        if (!linkErr && link?.properties?.action_link) { inviteUrl = link.properties.action_link; break }
+      } catch (e) { console.error(`[partners/resend-invite] generateLink(${linkType}) failed:`, e) }
+    }
 
     const r = await sendPartnerInvite({ name: seat.name ?? '', email: seat.email ?? '', inviteUrl })
     await db.from('partners').update({ invite_sent_at: new Date().toISOString() }).eq('id', seat.id)

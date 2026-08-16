@@ -994,15 +994,8 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
 
     const { RATES } = await import('../lib/comp-engine')
 
-    // ⚠️ NO ACCOUNT IS PRE-CREATED WITH A THROWAWAY PASSWORD. The first version made an auth
-    // user with a random password nobody was ever told, then emailed a password-RECOVERY link
-    // — a reset flow wearing an invitation's clothes. The founder's words (16 Aug): "a partner
-    // should recieve the link. and sign up. not have to set a new password. they would never
-    // know." An invited person has never had a password; there is nothing to recover.
-    //
-    // The account is created BY the invitation itself, further down, so the link they receive
-    // is a genuine invite and choosing a password IS signing up.
-    const userId: string | null = null
+    // The account and the email are both handled by invitePartner below — see that file for
+    // why this is the only path standing, and what was tried before it.
 
     const base = cleanName.toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) || 'partner'
     const referral_code = `${base}${Math.random().toString(36).slice(2, 6)}`
@@ -1057,6 +1050,7 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
     const inviteSent = invite.sent
     const inviteError = invite.error
     const inviteUrl = invite.inviteUrl
+    const userId = invite.userId
     const inviteCarriesSession = inviteUrl.includes('/auth/v1/verify')
 
     await writeOperatorAudit({

@@ -26,15 +26,19 @@ const menuHrefs = [...layout.matchAll(/href:\s*'([^']+)'/g)].map(m => m[1])
 
 describe('the Vida menu can reach every operator screen that exists', () => {
   it('PARTNERS is in the menu — it creates logins that read commission money (R40)', () => {
-    expect(menuHrefs).toContain('/partners')
+    expect(menuHrefs).toContain('/vida/partners')
   })
 
-  it('and the page it points at is really there', () => {
-    expect(existsSync(join(ADMIN, 'app/partners/page.tsx'))).toBe(true)
+  // ⛓️ The first fix pointed the menu at `/partners`, the OLD console — one click and the
+  // operator left the Vida shell. A menu entry that ejects you from the console it belongs
+  // to is the same class of miss as one that isn't there at all.
+  it('EVERY menu entry stays inside the Vida console', () => {
+    const escapes = menuHrefs.filter(h => h.startsWith('/') && !h.startsWith('/vida'))
+    expect(escapes, `menu entries that leave Vida: ${escapes.join(', ')}`).toEqual([])
   })
 
-  it('the seat-creation card is on that page, so the menu entry leads somewhere useful', () => {
-    const page = readFileSync(join(ADMIN, 'app/partners/page.tsx'), 'utf8')
+  it('the seat-creation card is on the Vida page, so the entry leads somewhere useful', () => {
+    const page = readFileSync(join(ADMIN, 'app/vida/partners/page.tsx'), 'utf8')
     expect(page).toContain('New Client Partner seat')
     expect(page).toContain('/api/proxy/operator/seats/client-partner')
   })

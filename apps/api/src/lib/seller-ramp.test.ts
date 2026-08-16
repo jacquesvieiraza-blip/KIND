@@ -143,6 +143,18 @@ describe('the scoreboard cannot be typed', () => {
     expect(patch).not.toMatch(/b\.ask_sent_at|body\.timestamp|req\.body\.at\b/)
   })
 
+  it('HER OWN ramp route derives its counts too — not just the operator list', () => {
+    // Found by attacking this file rather than the code (16 Aug): replacing the counts at
+    // /me/ramp with fabricated numbers passed all 29 tests, because the only "uses
+    // rampCountsFor" pin watched the ADMIN list. The seller-facing route is the one whose
+    // honesty she actually experiences — a ramp that congratulates her for work she has not
+    // done is worse than no ramp.
+    const ramp = routes.slice(routes.indexOf("partnersRouter.get('/me/ramp'"), routes.indexOf("partnersRouter.get('/me/playbook'"))
+    expect(ramp).toContain('await rampCountsFor(seat.id)')
+    expect(ramp, 'the ramp route is building counts by hand instead of deriving them')
+      .not.toMatch(/counts\s*=\s*\{/)
+  })
+
   it('an unrecognised event is refused rather than silently ignored', () => {
     const patch = routes.slice(routes.indexOf("partnersRouter.patch('/me/contacts/:id'"), routes.indexOf("partnersRouter.get('/admin/list'"))
     expect(patch).toMatch(/Say what happened/)

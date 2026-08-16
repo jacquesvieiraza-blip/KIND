@@ -22,6 +22,8 @@ import { adminKeyValid } from './admin'
 import { sendFounderAlert } from '../lib/alerts'
 import { partnerDocuments, type PartnerDocument } from '../lib/partner-documents'
 import { sendCountersignAlert, sendPartnerLiveEmail } from '../lib/partner-invite-email'
+import { rampFor, rampSummary, type RampCounts } from '../lib/seller-ramp'
+import { sellerPlaybook } from '../lib/seller-playbook'
 import { writeOperatorAudit } from '../lib/operator-audit'
 import { RATES } from '../lib/comp-engine'
 
@@ -43,7 +45,13 @@ function requireAdminKey(req: Request, res: Response, next: () => void) {
 
 // ── Sandbox helpers ───────────────────────────────────────────────────────────
 
-async function provisionPartnerSandbox(partner: { id: string; name: string; email: string; referral_code: string | null }) {
+async function provisionPartnerSandbox(partner: { id: string; name: string; email: string; referral_code: string | null; country?: string | null }) {
+  // #654 — the demo geography follows the SELLER. This was hard-coded to South Africa, which
+  // was right when every partner was South African and wrong the moment one is not: a demo
+  // full of Johannesburg companies in front of a prospect in Lagos reads as a product that
+  // does not know where it is. Falls back to South Africa because that is where the first
+  // seat is, not because it is an assumption anyone should keep.
+  const demoGeography = (partner.country ?? '').trim() || 'South Africa'
   const suffix = Math.random().toString(36).slice(2, 10)
   const sandboxEmail    = `sandbox-${partner.referral_code ?? suffix}@kind-demo.internal`
   const sandboxPassword = `Demo${suffix}!`
@@ -59,7 +67,7 @@ async function provisionPartnerSandbox(partner: { id: string; name: string; emai
     user_id:            userId,
     company_name:       `K.I.N.D Demo — ${partner.name}`,
     industry:           'SaaS',
-    country:            'South Africa',
+    country:            demoGeography,
     credit_balance:     100,
     onboarded_at:       new Date().toISOString(),
     is_demo:            true,
@@ -90,9 +98,9 @@ async function provisionPartnerSandbox(partner: { id: string; name: string; emai
 
   const { data: icp, error: icpErr } = await db.from('icps').insert({
     client_id:       clientId,
-    name:            'Demo ICP — SaaS Decision Makers',
+    name:            `Demo — ${partner.name}`,
     industries:      ['SaaS'],
-    geographies:     ['South Africa'],
+    geographies:     [demoGeography],
     seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
     company_sizes:   ['11–50', '51–200', '201–500'],
     job_titles:      [],
@@ -115,7 +123,12 @@ async function provisionPartnerSandbox(partner: { id: string; name: string; emai
   return { clientId, userId, sandboxEmail, expiresAt }
 }
 
-async function sendSandboxReadyEmail(partner: { name: string; email: string }, expiresAt: string) {
+async function sendSandboxReadyEmail(partner: { name: string; email: string; seat_type?: string | null }, expiresAt: string) {
+  // #654 — SEND THEM TO THEIR OWN CONSOLE. This linked every partner to /dashboard/partner,
+  // the legacy hub — which for a Client Partner (R40) is somebody else's screen entirely.
+  // That is the same wrong-console bug the founder caught in Vida on 16 Aug; it is one line
+  // and it is fixed here before anybody walks into it.
+  const hubPath = partner.seat_type === 'client_partner' ? '/dashboard/client-partner' : '/dashboard/partner'
   if (!resend) return
   const PARTNERS_FROM = 'K.I.N.D Partners <partners@get-kind.com>'
   const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
@@ -149,8 +162,8 @@ async function sendSandboxReadyEmail(partner: { name: string; email: string }, e
               <td style="padding:10px 16px;font-size:0.9rem">${expiryLabel} (90 days)</td>
             </tr>
           </table>
-          <a href="${portalUrl}/dashboard/partner" style="display:inline-block;background:#7C3AED;color:#fff;font-size:0.9rem;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none;margin-bottom:24px">
-            Go to Partner Hub →
+          <a href="${portalUrl}${hubPath}" style="display:inline-block;background:#7C3AED;color:#fff;font-size:0.9rem;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none;margin-bottom:24px">
+            Open your portal →
           </a>
           <p style="font-size:0.85rem;color:#aaa;border-top:1px solid #f0f0f0;padding-top:16px;margin:0">
             In your Partner Hub you'll find a "Demo Sandbox" section with a one-click login link to show prospects the full K.I.N.D experience.
@@ -627,6 +640,137 @@ partnersRouter.put('/me/pack', requireAuth, async (req: AuthRequest, res: Respon
   }
 })
 
+// ── THE SELLER RAMP (#654) ────────────────────────────────────────────────────
+//
+// A seller's own notebook plus the scoreboard built from it. R40 governs everything here:
+// these are people SHE already knows, typed by her. Nothing in this block sources, enriches
+// or buys a name — it is a notebook, never lead-gen.
+
+/** Her counts, tolerating the pre-migration world where the table does not exist yet. */
+async function rampCountsFor(partnerId: string): Promise<RampCounts> {
+  const empty: RampCounts = { contacts: 0, asksSent: 0, conversations: 0, demosBooked: 0, clientsLive: 0 }
+  const { data, error } = await db
+    .from('partner_ramp_contacts')
+    .select('ask_sent_at, conversation_at, demo_booked_at')
+    .eq('partner_id', partnerId)
+  if (error) return empty          // table not migrated yet → an empty ramp, never a 500
+
+  const rows = (data ?? []) as { ask_sent_at: string | null; conversation_at: string | null; demo_booked_at: string | null }[]
+  const { count: liveClients } = await db
+    .from('partner_referrals')
+    .select('id', { count: 'exact', head: true })
+    .eq('partner_id', partnerId)
+    .eq('status', 'active')
+
+  return {
+    contacts:      rows.length,
+    asksSent:      rows.filter(r => !!r.ask_sent_at).length,
+    conversations: rows.filter(r => !!r.conversation_at).length,
+    demosBooked:   rows.filter(r => !!r.demo_booked_at).length,
+    clientsLive:   liveClients ?? 0,
+  }
+}
+
+// GET /partners/me/ramp — the gates, derived fresh every time. No stored current_gate to
+// drift out of step with the rows it is supposed to describe.
+partnersRouter.get('/me/ramp', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const seat = await seatForUser(req.userId!)
+    if (!seat) { res.status(404).json({ success: false, error: 'Not a partner account' }); return }
+    const counts = await rampCountsFor(seat.id)
+    res.json({ success: true, data: { ...rampFor(counts), counts } })
+  } catch (err) {
+    console.error('[partners/me/ramp]', err)
+    res.status(500).json({ success: false, error: 'Could not load your ramp' })
+  }
+})
+
+// GET /partners/me/playbook — the words, at the gate that needs them.
+partnersRouter.get('/me/playbook', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const seat = await seatForUser(req.userId!)
+    if (!seat) { res.status(404).json({ success: false, error: 'Not a partner account' }); return }
+    res.json({ success: true, data: sellerPlaybook() })
+  } catch (err) {
+    console.error('[partners/me/playbook]', err)
+    res.status(500).json({ success: false, error: 'Could not load the playbook' })
+  }
+})
+
+// GET /partners/me/contacts — HERS alone, resolved from her own session.
+partnersRouter.get('/me/contacts', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const seat = await seatForUser(req.userId!)
+    if (!seat) { res.status(404).json({ success: false, error: 'Not a partner account' }); return }
+    const { data, error } = await db
+      .from('partner_ramp_contacts')
+      .select('id, name, company, note, ask_sent_at, conversation_at, demo_booked_at, created_at')
+      .eq('partner_id', seat.id)
+      .order('created_at', { ascending: true })
+    if (error) { res.json({ success: true, data: [] }); return }   // unmigrated → empty, not an error
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) {
+    console.error('[partners/me/contacts]', err)
+    res.status(500).json({ success: false, error: 'Could not load your list' })
+  }
+})
+
+// POST /partners/me/contacts — she adds a person she already knows.
+partnersRouter.post('/me/contacts', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const seat = await seatForUser(req.userId!)
+    if (!seat) { res.status(404).json({ success: false, error: 'Not a partner account' }); return }
+
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const name = String(b.name ?? '').trim()
+    if (!name) { res.status(400).json({ success: false, error: 'A name is needed — even just a first name.' }); return }
+
+    // NAME_YOUR_NETWORK is a FLOOR, not a cap: there is no upper limit here on purpose.
+    const { data, error } = await db.from('partner_ramp_contacts').insert({
+      partner_id: seat.id,
+      name,
+      company: String(b.company ?? '').trim() || null,
+      note: String(b.note ?? '').trim() || null,
+    }).select('id, name, company, note, ask_sent_at, conversation_at, demo_booked_at, created_at').single()
+
+    if (error) { res.status(500).json({ success: false, error: `Could not add them: ${error.message}` }); return }
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error('[partners/me/contacts POST]', err)
+    res.status(500).json({ success: false, error: 'Could not add them' })
+  }
+})
+
+// PATCH /partners/me/contacts/:id — stamp what happened.
+partnersRouter.patch('/me/contacts/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const seat = await seatForUser(req.userId!)
+    if (!seat) { res.status(404).json({ success: false, error: 'Not a partner account' }); return }
+
+    const { event } = (req.body ?? {}) as { event?: string }
+    const COLUMN: Record<string, string> = {
+      ask: 'ask_sent_at', conversation: 'conversation_at', demo: 'demo_booked_at',
+    }
+    const column = COLUMN[String(event ?? '')]
+    if (!column) { res.status(400).json({ success: false, error: 'Say what happened: ask, conversation or demo.' }); return }
+
+    // ⚠️ THE TIMESTAMP IS OURS, NEVER THE BROWSER'S. A stamp the client can supply is a
+    // scoreboard anybody can type — and a ramp built on typed numbers coaches nobody.
+    const patch: Record<string, string> = { [column]: new Date().toISOString() }
+
+    // Scoped to HER partner_id as well as the row id: an id from someone else's list must
+    // not be stampable just because it was guessed.
+    const { error } = await db.from('partner_ramp_contacts')
+      .update(patch).eq('id', req.params.id).eq('partner_id', seat.id)
+    if (error) { res.status(500).json({ success: false, error: `Could not save that: ${error.message}` }); return }
+
+    res.json({ success: true, data: { counts: await rampCountsFor(seat.id) } })
+  } catch (err) {
+    console.error('[partners/me/contacts PATCH]', err)
+    res.status(500).json({ success: false, error: 'Could not save that' })
+  }
+})
+
 // POST /partners/me/sign — she signs one document. The body she signed is FROZEN here.
 partnersRouter.post('/me/sign', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
@@ -692,7 +836,7 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
     if (!typed) { res.status(400).json({ success: false, error: 'Type your full name to counter-sign.' }); return }
 
     const { data: seat, error: seatErr } = await db.from('partners')
-      .select('id, name, email, referral_code, seat_type, retain_rate, address, country, phone, created_at, onboarding_state')
+      .select('id, name, email, referral_code, seat_type, retain_rate, address, country, phone, created_at, onboarding_state, demo_env_id')
       .eq('id', req.params.partnerId).maybeSingle()
     if (seatErr || !seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
 
@@ -733,12 +877,34 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
       .update({ onboarding_state: 'active' }).eq('id', seat.id)
     if (upErr) { res.status(500).json({ success: false, error: `Counter-signed, but the seat did not go live: ${upErr.message}` }); return }
 
+    // #654 — HER DEMO ENVIRONMENT, at the moment she goes live. It was already built
+    // (provisionPartnerSandbox) and fired only on the LEGACY approval path, so a Client
+    // Partner had never seen the product she was selling. It costs nothing: a demo client is
+    // is_demo, and #453 makes demo sourcing pool-only at $0 — no PDL search, no spend.
+    //
+    // It must never block activation. She has signed, he has signed, the seat is live; a
+    // sandbox that failed to build is a thing to retry, not a reason to hold up the money.
+    let sandboxReady = !!(seat as { demo_env_id?: string }).demo_env_id
+    if (!sandboxReady) {
+      try {
+        await provisionPartnerSandbox({
+          id: seat.id, name: seat.name ?? '', email: seat.email ?? '',
+          referral_code: seat.referral_code ?? null,
+          country: (seat as { country?: string | null }).country ?? null,
+        })
+        sandboxReady = true
+      } catch (e) {
+        console.error('[partners/countersign] sandbox not provisioned:', e)
+      }
+    }
+
     let liveEmailSent = false
     try {
       liveEmailSent = await sendPartnerLiveEmail({
         name: seat.name ?? '', email: seat.email ?? '',
         referralLink: `https://get-kind.com?ref=${seat.referral_code}`,
         portalUrl: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/client-partner`,
+        sandboxReady,
       })
     } catch (e) { console.error('[partners/countersign] live email failed:', e) }
 
@@ -746,10 +912,18 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
       operatorEmail: String(req.headers['x-operator-email'] ?? 'unknown-operator'),
       clientId: null, action: 'client_partner_countersigned',
       subjectType: 'partner', subjectId: seat.id,
-      detail: { signed_name: typed, live_email_sent: liveEmailSent },
+      detail: { signed_name: typed, live_email_sent: liveEmailSent, sandbox_ready: sandboxReady },
     })
 
-    res.json({ success: true, data: { onboarding_state: 'active', live_email_sent: liveEmailSent } })
+    res.json({
+      success: true,
+      data: {
+        onboarding_state: 'active',
+        live_email_sent: liveEmailSent,
+        sandbox_ready: sandboxReady,
+        note: sandboxReady ? undefined : 'The seat is LIVE, but their demo environment did not build — retry it from the partner console.',
+      },
+    })
   } catch (err) {
     console.error('[partners/countersign]', err)
     res.status(500).json({ success: false, error: 'Could not counter-sign' })
@@ -846,10 +1020,18 @@ partnersRouter.get('/admin/list', requireAdminKey, async (_req: Request, res: Re
           0,
         )
 
+        // #654 — the ramp, for coaching. ⚠️ COUNTS ONLY, NEVER NAMES. R40 says a seller
+        // works their own network, which means the network is THEIRS: the operator is here
+        // to see whether someone has gone quiet, not to read their address book. The names
+        // never leave `/partners/me/contacts`, which resolves from the seller's own session.
+        const rampCounts = await rampCountsFor(String(p.id))
+
         return {
           ...p,
           referral_count:   referralsRes.count ?? 0,
           total_paid_zar:   totalPaidZar,
+          ramp_summary:     rampSummary(rampCounts),
+          ramp_counts:      rampCounts,
         }
       }),
     )
@@ -1031,7 +1213,7 @@ partnersRouter.post('/admin/:partnerId/provision-sandbox', requireAdminKey, asyn
 
     const { data: partner, error } = await db
       .from('partners')
-      .select('id, name, email, referral_code, demo_env_id, status')
+      .select('id, name, email, referral_code, demo_env_id, status, seat_type, country')
       .eq('id', partnerId)
       .single()
 

@@ -18,6 +18,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
+import { SellerRamp } from './SellerRamp'
+import { DemoEnvironmentCard } from './DemoEnvironmentCard'
 import { PACK_PRICE_USD } from '@kind/shared'
 import {
   Loader2, ChevronDown, FileText, ShieldCheck, Wallet, Receipt, Landmark, LogOut, X,
@@ -200,6 +202,12 @@ export default function ClientPartnerPage() {
           )}
         </div>
       </header>
+
+      {/* #654 — the ramp leads until the first client is live, because until then the money
+          numbers below are all zero and a screen of zeros reads as failure. */}
+      <SellerRamp />
+
+      <DemoEnvironmentCard />
 
       {/* the four numbers */}
       <div className="grid gap-3 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(200px,1fr))' }}>

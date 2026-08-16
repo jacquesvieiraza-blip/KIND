@@ -84,7 +84,7 @@ export async function sendCountersignAlert(o: { partnerName: string; vidaUrl: st
   return true
 }
 
-export async function sendPartnerLiveEmail(o: { name: string; email: string; referralLink: string; portalUrl: string }): Promise<boolean> {
+export async function sendPartnerLiveEmail(o: { name: string; email: string; referralLink: string; portalUrl: string; sandboxReady?: boolean }): Promise<boolean> {
   if (!resend) return false
   await resend.emails.send({
     from: PARTNERS_FROM,
@@ -105,6 +105,11 @@ export async function sendPartnerLiveEmail(o: { name: string; email: string; ref
         Your portal shows every client you hold, what you have earned and what is due — and
         your signed documents are in the menu under your name.
       </p>
+      ${o.sandboxReady ? `<p style="font-size:0.95rem;color:#444;margin:0 0 24px">
+        <strong>Your demo environment is ready too.</strong> It is in your portal — a full working
+        version of the product, loaded with example leads, so you can show somebody exactly what
+        they would be buying instead of describing it.
+      </p>` : ''}
       <p style="margin:0">${button(o.portalUrl, 'Open your portal →')}</p>`),
   })
   return true

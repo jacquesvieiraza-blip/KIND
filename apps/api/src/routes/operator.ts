@@ -959,6 +959,83 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
   } catch (err) { console.error('[operator/sequence-suggest]', err); res.status(500).json({ success: false, error: 'Failed to draft a sequence' }) }
 })
 
+// ── R40 — CREATE A CLIENT PARTNER SEAT ──────────────────────────────────────────────
+//
+// The founder creates her seat here when she actually starts (15 Aug: "she will start
+// later"). It reuses the auth path every other account uses — an auth user plus a password
+// reset link she follows to set her own password. No new auth system, no password ever
+// typed by an operator, nothing emailed from here that isn't already emailed elsewhere.
+//
+// The seat carries its OWN retain rate (R40 = 8%) because the comp engine reads the rate
+// from the seat rather than hard-coding a person's pay, and `seat_type = 'client_partner'`
+// is what every access check keys on: this seat can never reach sourcing or lead tools.
+operatorRouter.post('/seats/client-partner', async (req: Request, res: Response) => {
+  try {
+    const { name, email, company } = (req.body ?? {}) as { name?: string; email?: string; company?: string }
+    const cleanEmail = String(email ?? '').trim().toLowerCase()
+    const cleanName = String(name ?? '').trim()
+    if (!cleanName || !cleanEmail || !cleanEmail.includes('@')) {
+      res.status(400).json({ success: false, error: 'A name and a real email address are required.' }); return
+    }
+
+    // One seat per address — the identity fix (#370) is worthless if two seats can share an
+    // email, because "exact match" would then be ambiguous again.
+    const { data: existing } = await db.from('partners').select('id').eq('email', cleanEmail).maybeSingle()
+    if (existing) {
+      res.status(409).json({ success: false, error: 'A seat already exists for that email address.' }); return
+    }
+
+    const { RATES } = await import('../lib/comp-engine')
+
+    let userId: string | null = null
+    const { data: userData, error: userErr } = await db.auth.admin.createUser({
+      email: cleanEmail, email_confirm: true,
+      password: `Kp${Math.random().toString(36).slice(2, 12)}!${Math.random().toString(36).slice(2, 6)}`,
+    })
+    if (userErr) {
+      // An existing auth user is fine — she may already have signed in somewhere.
+      console.warn('[operator/seats] auth user not created (may already exist):', userErr.message)
+    } else {
+      userId = userData.user?.id ?? null
+    }
+
+    const base = cleanName.toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) || 'partner'
+    const referral_code = `${base}${Math.random().toString(36).slice(2, 6)}`
+
+    const { data: seat, error: seatErr } = await db.from('partners').insert({
+      name: cleanName,
+      email: cleanEmail,
+      company: String(company ?? '').trim() || null,
+      seat_type: 'client_partner',
+      commission_rate: RATES.PARTNER_ACQUISITION,
+      retain_rate: RATES.CLIENT_PARTNER_RETENTION,
+      referral_code,
+      status: 'active',
+    }).select('id, name, email, referral_code, seat_type, retain_rate').single()
+
+    if (seatErr || !seat) {
+      res.status(500).json({ success: false, error: `Seat not created: ${seatErr?.message ?? 'unknown error'}` }); return
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: null, action: 'client_partner_seat_created',
+      subjectType: 'partner', subjectId: seat.id, detail: { email: cleanEmail, retain_rate: seat.retain_rate },
+    })
+
+    res.json({
+      success: true,
+      data: {
+        ...seat,
+        user_created: !!userId,
+        next: 'She sets her own password with the "forgot password" link on the portal sign-in page. Her documents are uploaded to this seat from Vida.',
+      },
+    })
+  } catch (err) {
+    console.error('[operator/seats/client-partner]', err)
+    res.status(500).json({ success: false, error: 'Failed to create the seat' })
+  }
+})
+
 // V11 — PREVIEW A SAVED SEQUENCE as a real prospect will receive it (tokens filled from a
 // real lead in this client's pool). Read-only: it renders, it never sends.
 operatorRouter.get('/sequence/:id/preview', async (req: Request, res: Response) => {

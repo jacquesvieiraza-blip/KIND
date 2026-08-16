@@ -302,6 +302,19 @@ partnersRouter.post('/apply', async (req: Request, res: Response) => {
   }
 })
 
+/**
+ * #370 — THE ONE WAY a logged-in user becomes a partner seat.
+ *
+ * Every one of these lookups used `.ilike('email', …)`. The audit row named a single line;
+ * there were FOUR, all on authenticated paths. `ilike` gives `%` wildcard meaning, so an
+ * address containing one matched an arbitrary seat — reading their commissions and, on the
+ * sandbox route, logging in as them. Exact match on a normalised address, in one function,
+ * so a fifth copy cannot drift back in.
+ */
+function normaliseSeatEmail(email: string): string {
+  return String(email ?? '').trim().toLowerCase()
+}
+
 // ── GET /partners/me — must be BEFORE /ref/:code to avoid param shadowing ────
 
 partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
@@ -310,23 +323,36 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
     const userEmail = userResp?.user?.email
     if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
+    // ⚠️ #370 — THIS LINE WAS `.ilike('email', userEmail)`, ON THE LOGIN PATH.
+    // `ilike` treats `%` as a wildcard, so an account registered as `%@x.com` matched an
+    // ARBITRARY partner row and logged in as them — their book, their commissions, their
+    // clients. Identity is now an exact match on a normalised address; a `%` in an email
+    // is just a character with no meaning, and matches nothing.
     const { data: partner, error } = await db
       .from('partners')
       .select('*')
-      .ilike('email', userEmail)
-      .single()
+      .eq('email', normaliseSeatEmail(userEmail))
+      .maybeSingle()
 
     if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
 
+    // R40 — "her cut only". A Client Partner runs customer success, so she sees WHICH
+    // clients are hers and how they are doing; she must never see what a client SPENDS.
+    // `credit_balance` is a client's money, so it is selected only for legacy partners.
+    const isClientPartner = partner.seat_type === 'client_partner'
+    const referralFields = isClientPartner
+      ? 'id, client_id, status, first_payment_at, created_at, clients(company_name)'
+      : 'id, client_id, status, first_payment_at, created_at, clients(company_name, contact_name, credit_balance)'
+
     const { data: referrals } = await db
       .from('partner_referrals')
-      .select('id, client_id, status, first_payment_at, created_at, clients(company_name, contact_name, credit_balance)')
+      .select(referralFields)
       .eq('partner_id', partner.id)
       .order('created_at', { ascending: false })
 
     const { data: commissions } = await db
       .from('partner_commissions')
-      .select('id, period_month, amount_zar, amount_usd, status, paid_at')
+      .select('id, period_month, amount_usd, amount_zar, commission_type, client_id, status, paid_at')
       .eq('partner_id', partner.id)
       .order('created_at', { ascending: false })
       .limit(24)
@@ -338,7 +364,16 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
       .order('created_at', { ascending: false })
 
     const allComms = commissions || []
-    const totalEarned   = allComms.filter((c: any) => c.status === 'paid').reduce((s: number, c: any) => s + Number(c.amount_zar), 0)
+    // USD is the currency of record (#238). The rand figures below are legacy readers.
+    const usd = (c: any) => Number(c.amount_usd ?? 0)
+    const thisMonth = new Date().toISOString().slice(0, 7)
+    const earnedThisMonth = allComms.filter((c: any) => c.period_month === thisMonth).reduce((s: number, c: any) => s + usd(c), 0)
+    const recurringThisMonth = allComms
+      .filter((c: any) => c.period_month === thisMonth && c.commission_type === 'retain')
+      .reduce((s: number, c: any) => s + usd(c), 0)
+    const totalEarnedUsd  = allComms.filter((c: any) => c.status === 'paid').reduce((s: number, c: any) => s + usd(c), 0)
+    const totalPendingUsd = allComms.filter((c: any) => c.status !== 'paid' && c.status !== 'cancelled').reduce((s: number, c: any) => s + usd(c), 0)
+    const totalEarned   = allComms.filter((c: any) => c.status === 'paid').reduce((s: number, c: any) => s + Number(c.amount_zar ?? 0), 0)
     const totalPending  = allComms.filter((c: any) => c.status !== 'paid' && c.status !== 'cancelled').reduce((s: number, c: any) => s + Number(c.amount_zar), 0)
 
     res.json({
@@ -346,8 +381,14 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
       referrals:   referrals || [],
       commissions: allComms,
       deals:       deals || [],
+      seat_type:   partner.seat_type ?? 'partner',
       stats: {
         total_clients:     (referrals || []).length,
+        clients_held:      (referrals || []).filter((r: any) => r.status === 'active').length,
+        earned_this_month_usd:    earnedThisMonth,
+        recurring_this_month_usd: recurringThisMonth,
+        total_earned_usd:  totalEarnedUsd,
+        total_pending_usd: totalPendingUsd,
         total_earned_zar:  totalEarned,
         total_pending_zar: totalPending,
         active_deals:      (deals || []).filter((d: any) => d.status === 'pending' || d.status === 'approved').length,
@@ -825,7 +866,7 @@ partnersRouter.post('/deals', requireAuth, async (req: AuthRequest, res: Respons
     const userEmail = userResp?.user?.email
     if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { data: partner } = await db.from('partners').select('id').ilike('email', userEmail).single()
+    const { data: partner } = await db.from('partners').select('id').eq('email', normaliseSeatEmail(userEmail)).maybeSingle()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
 
     const { company_name, contact_name, contact_email, company_size, industry, country, estimated_value, notes } = req.body
@@ -865,8 +906,8 @@ partnersRouter.get('/me/sandbox', requireAuth, async (req: AuthRequest, res: Res
     const { data: partner } = await db
       .from('partners')
       .select('id, name, referral_code, demo_env_id, status')
-      .ilike('email', userEmail)
-      .single()
+      .eq('email', normaliseSeatEmail(userEmail))
+      .maybeSingle()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
     if (partner.status !== 'active') { res.json({ provisioned: false, reason: 'pending_approval' }); return }
 
@@ -907,8 +948,8 @@ partnersRouter.post('/me/sandbox-login', requireAuth, async (req: AuthRequest, r
     const { data: partner } = await db
       .from('partners')
       .select('id, demo_env_id, status')
-      .ilike('email', userEmail)
-      .single()
+      .eq('email', normaliseSeatEmail(userEmail))
+      .maybeSingle()
     if (!partner) { res.status(403).json({ error: 'Not a partner account' }); return }
     if (!partner.demo_env_id) { res.status(404).json({ error: 'Sandbox not provisioned yet' }); return }
 

@@ -71,7 +71,9 @@
 | [`PARTNER-BRIEF.md`](./PARTNER-BRIEF.md) | partner one-pager — trade playbooks · per-lead pricing · 20%+5% terms | pricing / partner terms change |
 | [`SALARY-BREAKEVEN-PLAN.md`](./SALARY-BREAKEVEN-PLAN.md) | founder break-even on per-lead revenue; retention treadmill | targets · headcount change |
 | [`CHURN-PREVENTION-PLAN.md`](./CHURN-PREVENTION-PLAN.md) | retention levers (190–193, Lena 145) | churn strategy change |
-| [`hiring/`](./hiring/) (4 md + 3 calculators) | AE + partner comp (collected-revenue denominated) · Claude-Code brief · seller-engine map | comp / seller-engine change |
+| [`hiring/`](./hiring/) (6 md + 3 calculators) | AE + partner comp (collected-revenue denominated) · Claude-Code brief · seller-engine map | comp / seller-engine change |
+| [`hiring/CLIENT-PARTNER-JD.md`](./hiring/CLIENT-PARTNER-JD.md) | The Client Partner role (R40) — sells from her own network, onboards, retains. No demos; the founder demos. | 15 Aug |
+| [`hiring/CLIENT-PARTNER-AGREEMENT-DRAFT.md`](./hiring/CLIENT-PARTNER-AGREEMENT-DRAFT.md) | ⚠️ **DRAFT, not legal advice** — commission agreement written without counsel at the founder's instruction (R40). Lawyer review before signature. | 15 Aug |
 
 ### Product flow · demo · onboarding
 | Doc | Unique content | Update when |

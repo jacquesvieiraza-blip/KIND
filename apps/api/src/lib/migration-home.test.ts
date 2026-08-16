@@ -91,7 +91,7 @@ describe('① every migration has a canonical file', () => {
     // its functions are called by routes/company.ts, which fails soft — so their absence read
     // as "not enough in the pool" rather than as an error. Added to the runner, and #372 (the
     // destroyed-credits bug inside that SQL) fixed in the same entry.
-    expect(runnerKeys).toHaveLength(18)
+    expect(runnerKeys).toHaveLength(19)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -125,8 +125,9 @@ describe('② a copy that can drift is the disease, not the cure', () => {
     // The canonical directory is the 94 that were there + 32 consolidated + 1 recovered
     // = 127 at #273, + 1 (#607's 20260801_retire_trial_status) + 1 (#627's
     // 20260806_app_settings) = 129; +1 (20260806_leads_source, #599) = 130;
-    // +1 (20260806_audit_columns, #637/#641) = 131.
-    expect(sqlFiles(CANON)).toHaveLength(131)
+    // +1 (20260806_audit_columns, #637/#641) = 131; +1 (20260815_client_partner_seat,
+    // R40 — the Client Partner seat + commission types + the #351 unique) = 132.
+    expect(sqlFiles(CANON)).toHaveLength(132)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

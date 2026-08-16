@@ -21,14 +21,31 @@ import {
 import { sendFounderAlert } from '../lib/alerts'
 import { PURCHASE_TX_TYPES, PACK_PRICE_USD, PACK_LEADS } from '../lib/onboarding-pack'
 import { mapStripeStatus, isEnumRejection } from '../lib/subscription-status'
+// #351 — the commission maths lives in ONE place. Statically imported: it is a pure module
+// with no dependencies of its own, and a dynamic import inside the money path adds a tick.
+import { RATES, roundUsd } from '../lib/comp-engine'
 
-// ── Auto-commission: if this client was referred by a partner, create a commission record ──
-async function maybeCreatePartnerCommission(clientId: string, amountUsd: number) {
+// ── Auto-commission (#351 + R40) ────────────────────────────────────────────────────
+//
+// ⚠️ WHAT WAS BROKEN, AND WHY IT MATTERED MORE THAN IT LOOKED:
+// This function applied the partner's rate to EVERY payment, so a partner earned 20% of
+// everything forever instead of 20% once and their retention rate thereafter — the deal in
+// both comp plans and in `comp-engine.ts`, which sat built, tested and never called. On a
+// client spending $400/month that is ~$60/month over-paid, silently, per client, forever.
+//
+// Three further faults went with it, all fixed here:
+//   • the idempotency key had no TYPE, so month one could only ever hold ONE row — the
+//     landing fee and that month's retention could not both exist;
+//   • the check was app-level only, so two concurrent webhooks both passed it (the DB
+//     unique index added in 20260815_client_partner_seat.sql is the real guard now);
+//   • `commissionZar = commissionUsd * 19` hard-coded an exchange rate into stored money.
+//     USD is the currency of record; the rand figure is a DISPLAY concern and is no longer
+//     written as though it were a fact (method rule 7).
+async function maybeCreatePartnerCommission(clientId: string, amountUsd: number, stripeRef: string) {
   try {
-    // Find if this client has a partner referral
     const { data: referral } = await db
       .from('partner_referrals')
-      .select('id, partner_id, partners(commission_rate, tier)')
+      .select('id, partner_id, first_payment_at, partners(commission_rate, retain_rate, seat_type)')
       .eq('client_id', clientId)
       .eq('status', 'active')
       .single()
@@ -38,56 +55,71 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
     const partner = Array.isArray(referral.partners) ? referral.partners[0] : referral.partners
     if (!partner) return
 
-    const commissionRate = Number(partner.commission_rate) || 0.20
-    const commissionUsd = amountUsd * commissionRate
-    const commissionZar = commissionUsd * 19 // ~R19 per $1
-
     const periodMonth = new Date().toISOString().slice(0, 7) // "2026-06"
 
-    // Check if commission already recorded for this period (idempotency)
-    const { data: existing } = await db
+    // LAND or RETAIN? The landing fee is earned once, on the client's FIRST payment. Every
+    // payment after that earns the seat's retention rate. `first_payment_at` is stamped by
+    // the referral flow; a referral with no stamp yet is this client's first money.
+    const { data: priorLand } = await db
       .from('partner_commissions')
       .select('id')
       .eq('partner_id', referral.partner_id)
       .eq('client_id', clientId)
-      .eq('period_month', periodMonth)
-      .single()
+      .eq('commission_type', 'land')
+      .maybeSingle()
+    const commissionType: 'land' | 'retain' = priorLand ? 'retain' : 'land'
 
-    if (existing) return // Already recorded
+    // R40 — the retain rate lives on the SEAT. Never hard-code a person's pay here.
+    const seatRetainRate = Number(partner.retain_rate) > 0
+      ? Number(partner.retain_rate)
+      : RATES.PARTNER_RETENTION
+    const landRate = Number(partner.commission_rate) || RATES.PARTNER_ACQUISITION
+    const rate = commissionType === 'land' ? landRate : seatRetainRate
+    const commissionUsd = roundUsd(amountUsd * rate)
+
+    // ⛓️ Fable verification (16 Aug): the identity of a commission is THE PAYMENT that
+    // earned it, not the month — a client tops the wallet up mid-month and every payment
+    // after the first must STILL pay her retain. One row per Stripe reference; a replayed
+    // webhook is stopped by the partial unique on (partner_id, stripe_ref), and this check
+    // is only the fast path in front of it.
+    const { data: existing } = await db
+      .from('partner_commissions')
+      .select('id')
+      .eq('partner_id', referral.partner_id)
+      .eq('stripe_ref', stripeRef)
+      .maybeSingle()
+
+    if (existing) return // This exact payment already earned its commission
 
     // #349 — a swallowed failure here is a partner who is never paid. Nothing else
-    // recreates this row: the idempotency check above reads `partner_commissions`, so
-    // a failed insert isn't retried on the next invoice — it's simply gone, and the
-    // partner is short a month's commission with no trace anywhere.
+    // recreates this row, so the failure is alerted rather than logged and lost.
     const { error: commErr } = await db.from('partner_commissions').insert({
       partner_id: referral.partner_id,
       partner_referral_id: referral.id,
       client_id: clientId,
-      amount_zar: commissionZar,
       amount_usd: commissionUsd,
+      commission_type: commissionType,
       period_month: periodMonth,
+      stripe_ref: stripeRef,
       status: 'pending',
     })
     if (commErr) {
+      // A unique violation here is the guard doing its job against a replayed webhook —
+      // expected, not news. Anything else is a partner silently going unpaid.
+      const isDuplicate = /duplicate key|unique constraint/i.test(commErr.message)
+      if (isDuplicate) return
       console.error('[partner-commission] commission row FAILED — partner will not be paid:', commErr.message)
       void sendFounderAlert('charge_failed', 'Partner commission was NOT recorded', [
-        `Client ${clientId} paid $${amountUsd} and partner ${referral.partner_id} earned $${commissionUsd.toFixed(2)} for ${periodMonth}.`,
+        `Client ${clientId} paid $${amountUsd} and partner ${referral.partner_id} earned $${commissionUsd.toFixed(2)} (${commissionType}) for ${periodMonth}.`,
         `The commission row failed to write: ${commErr.message}`,
         'Nothing retries this — the next invoice sees no row for this period and will not backfill it.',
         'Fix: add the commission by hand in Vida → Partners before the payout run.',
       ])
     }
-
-    // Update first_payment_at if not set. Only a reporting stamp (the partner dashboard's
-    // "first payment" column), so a failure is logged rather than alerted.
-    const { error: stampErr } = await db.from('partner_referrals')
-      .update({ first_payment_at: new Date().toISOString() })
-      .eq('id', referral.id)
-      .is('first_payment_at', null)
-    if (stampErr) console.error('[partner-commission] first_payment_at not stamped:', stampErr.message)
-
   } catch (err) {
-    console.error('[partner-commission]', err) // non-blocking — never throws
+    // Never let a commission failure break a payment webhook — Stripe would retry a
+    // payment that already succeeded.
+    console.error('[partner-commission]', err)
   }
 }
 
@@ -458,7 +490,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           ])
           res.status(500).json({ error: 'wallet credit failed — retry' }); return
         }
-        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
+        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd, session.id)
         // #445 — sourcing-allowance accrual, k=2: +2 records of PDL budget per $1 collected.
         const { error: allowErr } = await db.rpc('add_sourcing_allowance', { p_client_id: clientId, p_records: Math.round(amountUsd * 2), p_trial: false })
         if (allowErr) {
@@ -592,7 +624,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         const bundleList = STRIPE_BUNDLES[creditType as 'lead_gen' | 'figsy'] as readonly { credits: number; price: number }[]
         const bundle = bundleList.find(b => b.credits === credits)
         const amountUsd = bundle?.price ?? 0
-        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
+        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd, session.id)
 
         // #445 — sourcing-allowance accrual. THIS is the ONLY place a paid client's
         // PDL budget grows: coverage k=2 → +2 records of sourcing allowance per $1
@@ -803,7 +835,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // Look up USD price from STRIPE_SUBSCRIPTIONS by product name
           const subConfig = Object.values(STRIPE_SUBSCRIPTIONS).find(s => s.product === sub.product)
           const amountUsd = subConfig?.priceUsd ?? 0
-          if (amountUsd > 0) void maybeCreatePartnerCommission(sub.client_id, amountUsd)
+          if (amountUsd > 0) void maybeCreatePartnerCommission(sub.client_id, amountUsd, String((invoice as { id?: string }).id ?? invoice.subscription ?? 'renewal'))
         }
       }
     }

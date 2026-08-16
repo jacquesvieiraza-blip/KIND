@@ -140,6 +140,29 @@ export default function PartnersPage() {
   const [deals, setDeals] = useState<Deal[]>([])
   const [commissions, setCommissions] = useState<Commission[]>([])
   const [loading, setLoading] = useState(true)
+  // R40 — create a Client Partner seat. The founder does this when she actually starts.
+  const [seatName, setSeatName] = useState('')
+  const [seatEmail, setSeatEmail] = useState('')
+  const [seatBusy, setSeatBusy] = useState(false)
+  const [seatMsg, setSeatMsg] = useState<string | null>(null)
+
+  async function createClientPartnerSeat() {
+    if (!seatName.trim() || !seatEmail.trim()) { setSeatMsg('A name and an email address are both required.'); return }
+    setSeatBusy(true); setSeatMsg(null)
+    try {
+      const r = await fetch('/api/proxy/operator/seats/client-partner', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: seatName.trim(), email: seatEmail.trim() }),
+      }).then(res => res.json())
+      if (!r?.success) throw new Error(r?.error || 'Seat not created')
+      setSeatMsg(`Seat created — referral code ${r.data.referral_code}. She sets her own password with "forgot password" on the portal sign-in page.`)
+      setSeatName(''); setSeatEmail('')
+    } catch (e) {
+      setSeatMsg(e instanceof Error ? e.message : 'Seat not created')
+    }
+    setSeatBusy(false)
+  }
+
   const [migrationError, setMigrationError] = useState<string | null>(null)
   const [toast, setToast] = useState<ToastState | null>(null)
 
@@ -452,6 +475,32 @@ export default function PartnersPage() {
               </div>
             </div>
           )}
+
+          {/* R40 — Client Partner seat creation */}
+          <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden mb-5">
+            <div className="px-5 py-4 border-b border-purple-50 flex items-center gap-2">
+              <Handshake className="w-4 h-4 text-[#7C3AED]" />
+              <h2 className="text-sm font-semibold text-gray-800">New Client Partner seat</h2>
+              <span className="ml-auto text-xs text-gray-400">20% land · 8% retain · own network only</span>
+            </div>
+            <div className="p-5 flex flex-wrap gap-3 items-end">
+              <label className="text-xs text-gray-500 flex flex-col gap-1">
+                Name
+                <input value={seatName} onChange={e => setSeatName(e.target.value)} placeholder="Full name"
+                  className="text-sm border border-purple-100 rounded-lg px-3 py-2 min-w-[180px]" />
+              </label>
+              <label className="text-xs text-gray-500 flex flex-col gap-1">
+                Email
+                <input value={seatEmail} onChange={e => setSeatEmail(e.target.value)} placeholder="name@example.com"
+                  className="text-sm border border-purple-100 rounded-lg px-3 py-2 min-w-[220px]" />
+              </label>
+              <button onClick={createClientPartnerSeat} disabled={seatBusy}
+                className="text-sm font-bold text-white bg-[#7C3AED] rounded-lg px-4 py-2 disabled:opacity-50">
+                {seatBusy ? 'Creating…' : 'Create seat'}
+              </button>
+              {seatMsg && <p className="text-xs text-gray-600 basis-full">{seatMsg}</p>}
+            </div>
+          </div>
 
           {/* Active partners table */}
           <div className="bg-white rounded-2xl border border-purple-100 shadow-sm overflow-hidden">

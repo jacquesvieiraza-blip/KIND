@@ -322,15 +322,15 @@ describe('the derivation itself', () => {
 })
 
 describe('the shape of the problem is recorded, so it cannot be re-discovered', () => {
-  it('131 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
+  it('132 migrations, and every one of them has a home in supabase/migrations (#273)', () => {
     // WAS "126 files across three directories". #273 consolidated on 31 Jul: the 32 files
     // that lived only in the other two were copied in (bodies byte-identical, provenance
     // headers added), and ONE more was recovered — `20260726_campaign_copilot_columns`
     // existed only as a string in pending-migrations.ts, so the product could apply it to
     // production while no file described it.
     //
-    // The three directories still hold 163 files between them, because nothing was deleted
-    // (rule 3) — 131 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
+    // The three directories still hold 164 files between them, because nothing was deleted
+    // (rule 3) — 132 canonical + 32 tombstoned copies of the same SQL. `migration-home.test.ts`
     // asserts each pair stays identical.
     //
     // 127/159 at #273 (31 Jul). Three canonical files added since: #607's
@@ -338,9 +338,9 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // `20260806_leads_source`. New migrations land ONLY in the canonical directory — the
     // tombstoned 32 are frozen, so the SECOND number moves in lockstep with the first and
     // their DIFFERENCE (32) is what must never change.
-    expect(sqlDir('supabase/migrations')).toHaveLength(131)
+    expect(sqlDir('supabase/migrations')).toHaveLength(132)   // +1 R40 (20260815_client_partner_seat)
     const total = MIGRATION_DIRS.reduce((n, d) => n + sqlDir(d).length, 0)
-    expect(total).toBe(163)
+    expect(total).toBe(164)   // 132 canonical (+1 R40) + 32 tombstoned
     expect(total - sqlDir('supabase/migrations').length, 'the 32 tombstoned copies are frozen').toBe(32)
     expect(read('docs/SCHEMA-DRIFT.md')).toContain('the three directories are now one home')
   })
@@ -354,7 +354,7 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // string with no file, the mirror image of the same gap. #627 wrote BOTH homes for that
     // reason: the file is the canonical record, this array is what actually runs.
     const keys = read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []
-    expect(keys.length).toBe(18)   // 12 at #273; +1 #607; +1 #627 (app_settings); +1 #599 (leads_source); +1 #637/#641 (audit_columns); +1 #383 (increment_emails_sent — the .sql existed since 10 Jul and was never in the runner); +1 #316/#372 (pool_atomic — same gap again, .sql from 6 Jul, never in the runner, found by auditing every runtime RPC)
+    expect(keys.length).toBe(19)   // 12 at #273; +1 #607; +1 #627 (app_settings); +1 #599 (leads_source); +1 #637/#641 (audit_columns); +1 #383 (increment_emails_sent — the .sql existed since 10 Jul and was never in the runner); +1 #316/#372 (pool_atomic — same gap again, .sql from 6 Jul, never in the runner, found by auditing every runtime RPC) +1 #651/R40 (client_partner seat + commission types + the #351 unique).
   })
 
   it('the three schema snapshots disagree about how many tables exist', () => {

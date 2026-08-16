@@ -122,21 +122,29 @@ describe('the invite actually lets her IN — Fable verification, 16 Aug', () =>
     // generated as an INVITE, with recovery kept only as the fallback for an address that
     // already has an account. What this test protects is unchanged: the email must carry a
     // link that establishes a session, not a bare page URL.
-    expect(seatRoute.slice(0, 8000)).toContain('generateLink(')
-    expect(seatRoute.slice(0, 8000)).toMatch(/\['invite', 'recovery'\] as const/)
-    expect(seatRoute.slice(0, 8000)).toContain('properties?.action_link')
+    // ⛓️ RE-POINTED AGAIN 16 Aug (third time in one evening, and the reason is recorded each
+    // time). The link is no longer built inside this route: the invitation is sent by Supabase
+    // from lib/partner-invite.ts, which also returns the link. What this test protects has not
+    // changed — the email must carry a link that establishes a session, never a bare page URL.
+    expect(seatRoute.slice(0, 9000)).toContain('invitePartner(')
+    expect(seatRoute.slice(0, 9000)).toMatch(/const inviteUrl = invite\.inviteUrl/)
     // ⚠️ AND THE RESULT IS ACTUALLY USED. Asserting only that generateLink is CALLED is a
     // placebo — a red proof that disabled the assignment left every check above green while
     // the emailed link quietly went back to the dead page URL. What matters is that the
     // action link becomes the link she is actually sent.
-    expect(seatRoute.slice(0, 8000)).toMatch(/if \(!linkErr && actionLink\) \{ inviteUrl = actionLink; inviteCarriesSession = true; break \}/)
+    // and the session-carrying link is what is reported, not assumed
+    expect(seatRoute.slice(0, 9000)).toMatch(/inviteUrl\.includes\('\/auth\/v1\/verify'\)/)
   })
 
   it('and it returns through the callback that exchanges the code — not straight to the page', () => {
     // /auth/callback is the handler that already turns Supabase's one-time code into cookies
     // and already honours ?next=. Pointing the email at the page directly is the exact bug
     // that made every password reset in this product 404 for its entire life.
-    expect(seatRoute.slice(0, 8000)).toMatch(/\/auth\/callback\?next=\$\{encodeURIComponent\(packPath\)\}/)
+    // ⛓️ RE-POINTED 16 Aug: the redirect is built inside invitePartner now. Asserted at its
+    // new home — and partner-invite.test.ts proves it by READING the call Supabase receives,
+    // which is a stronger check than matching this string ever was.
+    const inviteLib = read('apps/api/src/lib/partner-invite.ts')
+    expect(inviteLib).toMatch(/\/auth\/callback\?next=\$\{encodeURIComponent\(o\.packPath\)\}/)
   })
 
   it('a degraded link (no action link) is REPORTED, never passed off as a working invite', () => {
@@ -184,7 +192,8 @@ describe('the person is actually told — three emails, none of them silent', ()
     // ⛓️ WINDOW WIDENED 16 Aug: removing the pre-created throwaway account and adding the
     // invite/recovery loop moved these further down the route. The assertions are unchanged —
     // only the slice that has to reach them.
-    expect(seatRoute.slice(0, 9000)).toContain('sendPartnerInvite(')
+    // ⛓️ RE-POINTED 16 Aug: sendPartnerInvite (Resend) is no longer on this path.
+    expect(seatRoute.slice(0, 9000)).toContain('invitePartner(')
     expect(seatRoute.slice(0, 9000)).toContain('invite_token: inviteToken')
   })
 

@@ -428,11 +428,25 @@ partnersRouter.get('/documents', requireAuth, async (req: AuthRequest, res: Resp
     const userEmail = userResp?.user?.email
     if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
 
-    const { data: partner, error } = await db
+    // ⚠️ THE CONTACT COLUMNS MAY NOT EXIST YET. address/country/phone arrive with
+    // 20260816_partner_contact_details, and on this repo a migration only runs when an
+    // operator presses "Run migrations". Naming a column that is not there yet fails the
+    // WHOLE query — which turned "Open pack" into a button that did nothing, on a page that
+    // otherwise loaded fine because the seats list uses select('*'). A pack rendered with
+    // [ADDRESS] in it is a far better answer than no pack at all, so the query falls back.
+    let { data: partner, error } = await db
       .from('partners')
       .select('name, seat_type, retain_rate, address, country, phone, created_at')
       .eq('email', normaliseSeatEmail(userEmail))
       .maybeSingle()
+
+    if (error) {
+      ;({ data: partner, error } = await db
+        .from('partners')
+        .select('name, seat_type, retain_rate, created_at')
+        .eq('email', normaliseSeatEmail(userEmail))
+        .maybeSingle())
+    }
 
     if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
 
@@ -456,11 +470,22 @@ partnersRouter.get('/documents', requireAuth, async (req: AuthRequest, res: Resp
 // GET /partners/admin/:partnerId/documents — the same pack, read by an operator in Vida.
 partnersRouter.get('/admin/:partnerId/documents', requireAdminKey, async (req: Request, res: Response) => {
   try {
-    const { data: partner, error } = await db
+    // Same fallback as the seat route above — see the note there. Without it, an unrun
+    // migration makes this endpoint 404 with "Seat not found" about a seat that plainly
+    // exists in the table right above the button.
+    let { data: partner, error } = await db
       .from('partners')
       .select('id, name, email, seat_type, retain_rate, address, country, phone, created_at')
       .eq('id', req.params.partnerId)
       .maybeSingle()
+
+    if (error) {
+      ;({ data: partner, error } = await db
+        .from('partners')
+        .select('id, name, email, seat_type, retain_rate, created_at')
+        .eq('id', req.params.partnerId)
+        .maybeSingle())
+    }
 
     if (error || !partner) { res.status(404).json({ error: 'Seat not found' }); return }
 

@@ -52,6 +52,10 @@ export default function VidaPartnersPage() {
 
   const [docsFor, setDocsFor] = useState<{ seat: Partner; documents: PartnerDoc[] } | null>(null)
   const [docsBusy, setDocsBusy] = useState<string | null>(null)
+  // A row action's failure belongs NEXT TO THE ROW. This used to reuse the page-level
+  // `error`, which renders under the heading — so a failed "Open pack" looked, from where
+  // the operator was actually looking, like a button that did nothing at all.
+  const [docsError, setDocsError] = useState<string | null>(null)
   const [openDoc, setOpenDoc] = useState<PartnerDoc | null>(null)
 
   const [name, setName] = useState('')
@@ -79,14 +83,14 @@ export default function VidaPartnersPage() {
   // stored per seat, because the retain rate belongs to the SEAT (R40) and a stored file
   // cannot follow a rate change.
   async function openDocuments(seat: Partner) {
-    setDocsBusy(seat.id)
+    setDocsBusy(seat.id); setDocsError(null)
     try {
       const res = await fetch(`/api/proxy/partners/admin/${seat.id}/documents`)
       const json = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(json?.error || `Could not load documents (${res.status})`)
       setDocsFor({ seat, documents: json.documents ?? [] })
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load documents')
+      setDocsError(`${seat.name || seat.email || 'This seat'}: ${e instanceof Error ? e.message : 'Could not load documents'}`)
     }
     setDocsBusy(null)
   }
@@ -192,6 +196,15 @@ export default function VidaPartnersPage() {
           {!partners && !error && <p className="px-5 py-6 text-sm text-[#9b8ec4]">Loading…</p>}
           {partners && seats.length === 0 && (
             <p className="px-5 py-8 text-sm text-[#9b8ec4] text-center">No seats yet — create the first one above.</p>
+          )}
+
+          {docsError && (
+            <div className="mx-5 mt-3 text-[12.5px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+              {docsError}
+              <span className="block text-[11.5px] text-red-500/90 mt-1">
+                If this says the seat was not found, run the migrations first: Vida → Engine → Run migrations (should read 20 of 20), then reload.
+              </span>
+            </div>
           )}
 
           {seats.length > 0 && (

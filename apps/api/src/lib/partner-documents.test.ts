@@ -186,6 +186,32 @@ describe('the documents are reachable — the bug was a menu with nothing behind
     expect(routes).toContain("partnersRouter.get('/admin/:partnerId/documents', requireAdminKey")
   })
 
+  it('NEITHER route dies when the contact migration has not been run yet', () => {
+    // The founder pressed "Open pack" and nothing happened (16 Aug). The page itself was
+    // fine — the seats list uses select('*') — but these routes NAMED address/country/phone,
+    // and naming a column that does not exist yet fails the whole query, so the endpoint
+    // 404'd about a seat sitting visibly in the table. Both routes now retry without the
+    // contact columns, because a pack carrying [ADDRESS] beats no pack at all.
+    const seatRoute = routes.slice(routes.indexOf("partnersRouter.get('/documents'"), routes.indexOf("partnersRouter.get('/admin/:partnerId/documents'"))
+    const adminRoute = routes.slice(routes.indexOf("partnersRouter.get('/admin/:partnerId/documents'"))
+    for (const [name, block] of [['seat', seatRoute], ['operator', adminRoute.slice(0, 2000)]] as const) {
+      expect(block, `the ${name} route has no fallback select`)
+        .toMatch(/select\('[^']*seat_type[^']*'\)[\s\S]{0,400}?if \(error\)[\s\S]{0,200}?select\('[^']*'\)/)
+      expect(block, `the ${name} fallback still asks for the contact columns`)
+        .not.toMatch(/if \(error\)[\s\S]{0,200}?select\('[^']*address[^']*'\)/)
+    }
+  })
+
+  it('a failed pack load is reported NEXT TO the seat, not at the top of the page', () => {
+    const vida = readFileSync(
+      join(__dirname, '../../../admin/src/app/vida/partners/page.tsx'), 'utf8')
+    expect(vida).toContain('setDocsError')
+    // The old code called the page-level setError from the row action — which rendered the
+    // failure under the heading, out of sight of the button that had just been pressed.
+    const opener = vida.slice(vida.indexOf('async function openDocuments'), vida.indexOf('async function createSeat'))
+    expect(opener).not.toContain('setError(')
+  })
+
   it('the seat route resolves the seat by EXACT identity, like every other seat lookup (#370)', () => {
     const block = routes.slice(routes.indexOf("partnersRouter.get('/documents'"))
     expect(block.slice(0, 1200)).toContain('normaliseSeatEmail(userEmail)')

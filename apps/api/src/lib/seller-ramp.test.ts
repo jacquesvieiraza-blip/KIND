@@ -92,6 +92,32 @@ describe('R40 — a notebook, never lead-gen, and her network stays hers', () =>
     expect(vida).not.toMatch(/ramp_contacts|contact_names|contacts:\s*Contact\[\]/)
   })
 
+  it('THE OPERATOR PAYLOAD ITSELF carries no contact names — pinned at the route', () => {
+    // ⚠️ WHY THIS PIN EXISTS AND THE OTHER TWO WERE NOT ENOUGH. Fable's verification injected
+    // her contact NAMES into /partners/admin/list — server-side, exactly where a leak would
+    // really happen — and all 27 tests stayed green. The counts-only pins watched the Vida
+    // PAGE and the summary STRING; neither watches the payload the API actually sends. That
+    // is the same placebo shape as asserting a function was called rather than that its
+    // result was used: the assertion described the intention, not the effect.
+    const start = routes.indexOf("partnersRouter.get('/admin/list'")
+    const block = routes.slice(start, routes.indexOf("partnersRouter.patch('/admin/:partnerId/approve'"))
+    expect(block.length).toBeGreaterThan(400)      // the slice actually found the route
+
+    // rampCountsFor is the ONE legal reader of that table on this path: it selects timestamps
+    // and returns numbers. The enrichment must go through it and never read the table itself.
+    expect(block).toContain('rampCountsFor(')
+    expect(block, 'the operator route reads the contacts table directly — only rampCountsFor may')
+      .not.toContain("from('partner_ramp_contacts')")
+    expect(block, 'a contacts payload is being built for the operator')
+      .not.toMatch(/ramp_contacts|contact_names|contacts:/)
+  })
+
+  it('and the one legal reader selects timestamps, never a name', () => {
+    const helper = routes.slice(routes.indexOf('async function rampCountsFor'), routes.indexOf("partnersRouter.get('/me/ramp'"))
+    expect(helper).toMatch(/select\('ask_sent_at, conversation_at, demo_booked_at'\)/)
+    expect(helper, 'the counts helper is selecting names it does not need').not.toMatch(/select\('[^']*\bname\b/)
+  })
+
   it('NOTHING on the seller path sources a lead', () => {
     // The whole point of R40: a partner works people they already know. If runIcpJob were
     // ever called from a /partners/me route, the product would be sourcing on her behalf.

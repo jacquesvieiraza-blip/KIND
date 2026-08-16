@@ -102,7 +102,9 @@ describe('① every migration has a canonical file', () => {
     // entry written together. It carries the states that decide whether a referral code
     // resolves at all, so a .sql sitting unrun here would mean a partner who has signed
     // everything still cannot go live.
-    expect(runnerKeys).toHaveLength(21)
+    //
+    // 22 from 17 Aug — `20260817_seller_ramp` (#654). File and entry written together again.
+    expect(runnerKeys).toHaveLength(22)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -141,8 +143,9 @@ describe('② a copy that can drift is the disease, not the cure', () => {
     // +1 (20260816_partner_contact_details, #202 — address/country/phone, so the document
     // pack is tailored at seat creation instead of carrying [ADDRESS] placeholders) = 133;
     // +1 (20260816_partner_onboarding_flow, R42 — the invite→sign→counter-sign states and
-    // the frozen signed-document table) = 134.
-    expect(sqlFiles(CANON)).toHaveLength(134)
+    // the frozen signed-document table) = 134;
+    // +1 (20260817_seller_ramp, #654 — the seller's own contact notebook behind the ramp) = 135.
+    expect(sqlFiles(CANON)).toHaveLength(135)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

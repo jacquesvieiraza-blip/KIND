@@ -759,6 +759,30 @@ create index if not exists partner_signed_documents_partner_idx
   on public.partner_signed_documents (partner_id);
 `.trim(),
   },
+  {
+    key: '20260817_seller_ramp',
+    title: 'The seller ramp (#654): partner_ramp_contacts — the seller\'s OWN network, typed by them, and the scoreboard the ramp gates are derived from. Founder 16 Aug: "getting someone to sign up to sell is easy. keeping them enagged and selling is another thing." Canonical .sql: supabase/migrations/20260817_seller_ramp.sql — BOTH HOMES (O3). ⚠️ A NOTEBOOK, NEVER LEAD-GEN (R40), and personal data: the operator console shows counts only, never names.',
+    sql: `
+create table if not exists public.partner_ramp_contacts (
+  id               uuid primary key default gen_random_uuid(),
+  partner_id       uuid not null references public.partners(id) on delete cascade,
+  name             text not null,
+  company          text,
+  note             text,
+  -- The stamps are the scoreboard. Each is set server-side with now() when the seller says
+  -- the thing happened — never a timestamp supplied by the browser, or the ramp becomes a
+  -- number anybody can type rather than a record of work done.
+  ask_sent_at      timestamptz,
+  conversation_at  timestamptz,
+  demo_booked_at   timestamptz,
+  became_client_id uuid,
+  created_at       timestamptz not null default now()
+);
+
+create index if not exists partner_ramp_contacts_partner_idx
+  on public.partner_ramp_contacts (partner_id);
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

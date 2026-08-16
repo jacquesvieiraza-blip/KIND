@@ -27,6 +27,10 @@ type Partner = {
   referral_code: string | null
   country?: string | null
   onboarding_state?: string | null
+  // #654 — the ramp, for coaching. COUNTS ONLY: the seller's contact NAMES never reach this
+  // console (R40 — her network is hers). Seeing that someone has gone quiet needs a number,
+  // not an address book.
+  ramp_summary?: string | null
   status: string | null
   referral_count?: number | null
 }
@@ -270,6 +274,7 @@ export default function VidaPartnersPage() {
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Land</th>
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Retain</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Onboarding</th>
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Ramp</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Status</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Documents</th>
                   </tr>
@@ -298,6 +303,7 @@ export default function VidaPartnersPage() {
                           {pct(p.retain_rate, 0.05)}
                         </td>
                         <td className="px-5 py-3 border-b border-[#f6f2fd]"><StatePill state={p.onboarding_state} /></td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd] text-[12.5px] text-[#5c5279]">{p.ramp_summary || '—'}</td>
                         <td className="px-5 py-3 border-b border-[#f6f2fd]">
                           <span className={`inline-block text-[10.5px] font-bold rounded-full px-2.5 py-1 ${
                             p.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#efeafc] text-[#5c5279]'}`}>

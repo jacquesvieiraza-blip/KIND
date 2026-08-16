@@ -148,8 +148,14 @@ describe('the invite actually lets her IN — Fable verification, 16 Aug', () =>
   })
 
   it('a degraded link (no action link) is REPORTED, never passed off as a working invite', () => {
-    expect(seatRoute.slice(0, 9000)).toContain('inviteCarriesSession')
-    expect(seatRoute.slice(0, 9000)).toMatch(/the sign-in link could not be generated/)
+    // ⛓️ RE-POINTED 16 Aug. This asserted `inviteCarriesSession`, which conflated two facts:
+    // whether the EMAIL sent (it is a Supabase password link and always signs her in) and
+    // whether the COPYABLE link could be generated (best effort; degrades to the plain page
+    // URL). Reporting the second as the first told the operator "her link does not sign her
+    // in" about an email that works. What this test protects is unchanged — a degraded link
+    // must be reported — only the field it is reported in, and the sentence, are now honest.
+    expect(seatRoute.slice(0, 9000)).toContain('copyLinkSignsIn')
+    expect(seatRoute.slice(0, 9000)).toMatch(/only the page address this time/)
   })
 
   it('with NO session the page offers a fresh link — it never shows a form that cannot work', () => {
@@ -160,6 +166,60 @@ describe('the invite actually lets her IN — Fable verification, 16 Aug', () =>
     // the password form must be behind the session check, not rendered regardless
     const noSessionBlock = page.slice(page.indexOf('step === 1 && !hasSession'), page.indexOf('step === 1 && hasSession'))
     expect(noSessionBlock).not.toContain('setPasswordStep')
+  })
+})
+
+describe('the emailed link arrives as a FRAGMENT, and something has to read it', () => {
+  // ── THE BUG THIS PR SHIPPED WITH, FOUND BY READING THE SDK (16 Aug, second pass) ────────
+  //
+  // The founder refused to merge without a code-level verification. This is what it found,
+  // and every test above was green while it was true.
+  //
+  // Supabase's link shape is decided by WHICH CLIENT asked for the email, not by the kind of
+  // email. `@supabase/ssr`'s browser client defaults to flowType "pkce" → `?code=`, which is
+  // what /auth/callback exchanges, and which is the founder's one working walk. But the API
+  // sends this invitation from `@kind/db`, which is plain `@supabase/supabase-js` — whose
+  // DEFAULT_OPTIONS are flowType "implicit". `resetPasswordForEmail` then posts
+  // `code_challenge: null`, and the link comes back as `#access_token=…`.
+  //
+  // A FRAGMENT IS NEVER SENT TO A SERVER. /auth/callback is a route handler; it reads
+  // `?code=` and cannot see a hash. So the invitation would have arrived, been clicked, and
+  // dumped her at "confirmation failed" — the identical failure `inviteUserByEmail` produced
+  // two hours earlier, for the identical reason. The mechanism changed; the defect did not.
+  const hashLib = read('apps/portal/src/lib/supabase/hash-session.ts')
+  const callback = read('apps/portal/src/app/auth/callback/route.ts')
+  const page = read('apps/portal/src/app/partner-onboarding/page.tsx')
+
+  it('the landing page ADOPTS a fragment session — nothing else in the chain can', () => {
+    // ⚠️ THE CALL, NOT THE IMPORT. A first version asserted `toContain('adoptSessionFromHash')`
+    // and then compared indexOf against getSession — and stayed GREEN with the call deleted,
+    // because the import line still carried the name and a missing call indexes at -1, which
+    // is "before" everything. A red proof caught it. Assert the call exists, THEN the order.
+    const called = page.indexOf('await adoptSessionFromHash()')
+    const read = page.indexOf('auth.getSession()')
+    expect(called).toBeGreaterThan(-1)
+    // and it runs BEFORE the session is read, or it reads the absence it was meant to fix
+    expect(called).toBeLessThan(read)
+  })
+
+  it('it adopts them EXPLICITLY with setSession — auto-detection refuses this link', () => {
+    // `detectSessionInUrl` throws AuthPKCEGrantCodeExchangeError("Not a valid PKCE flow url")
+    // on an implicit fragment when the client is PKCE, which ours is. Relying on it would be
+    // relying on a code path that is written to reject exactly this input.
+    expect(hashLib).toMatch(/auth\.setSession\(\{ access_token, refresh_token \}\)/)
+  })
+
+  it('and the tokens are stripped from the address bar afterwards', () => {
+    // They are credentials. Left in the URL they survive a screenshot, a bookmark and history.
+    expect(hashLib).toContain('window.history.replaceState')
+  })
+
+  it('a fragment link is FORWARDED by the callback, not dead-ended at a login she cannot pass', () => {
+    expect(callback).toMatch(/if \(explicitNext\) \{[\s\S]{0,120}?redirect\(`\$\{origin\}\$\{explicitNext\}`\)/)
+  })
+
+  it('but `next` may only be a path on THIS site — a sign-in that forwards off-origin is phishing', () => {
+    expect(callback).toMatch(/rawNext\.startsWith\('\/'\) && !rawNext\.startsWith\('\/\/'\)/)
   })
 })
 

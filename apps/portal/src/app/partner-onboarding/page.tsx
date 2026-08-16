@@ -25,6 +25,7 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { adoptSessionFromHash } from '@/lib/supabase/hash-session'
 import { api } from '@/lib/api'
 import { Loader2, Check, FileText, ShieldCheck, Landmark, ChevronRight } from 'lucide-react'
 
@@ -67,6 +68,20 @@ function OnboardingFlow() {
   useEffect(() => {
     let live = true
     ;(async () => {
+      // ⚠️ HER LINK CARRIES THE SESSION IN THE FRAGMENT, AND ONLY THIS PAGE CAN SEE IT.
+      // The invitation is sent by the API's SERVER Supabase client, which is `implicit` flow
+      // (auth-js DEFAULT_OPTIONS), so the tokens come back as `#access_token=…` rather than
+      // `?code=…`. A fragment never reaches a server, so `/auth/callback` cannot exchange it —
+      // that is precisely how `inviteUserByEmail` bounced the founder to "confirmation failed"
+      // earlier the same evening. See lib/supabase/hash-session.ts for the full why.
+      const adopted = await adoptSessionFromHash()
+      if (!live) return
+      // A dead token is NOT an invalid invitation — she has a real seat and a real invite
+      // token, the one-time sign-in link simply timed out or was already used. So the reason
+      // goes on the inline error line ABOVE "Send me a fresh link", never into `inviteError`,
+      // which renders a dead end whose only button is a sign-in she has no password for.
+      if (adopted.kind === 'error') setError(adopted.message)
+
       const { data } = await createClient().auth.getSession()
       if (!live) return
       setHasSession(!!data.session)

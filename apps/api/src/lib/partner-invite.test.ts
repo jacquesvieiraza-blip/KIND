@@ -149,6 +149,20 @@ describe('ONE mechanism — no second path may grow back', () => {
     expect(resendRoute).toContain('invitePartner(')
   })
 
+  it('the EMAIL and the COPY LINK are reported as separate facts', () => {
+    // Conflating them told the operator a lie: the emailed link is a Supabase password link
+    // and always signs her in when it sends, while the copyable link degrades to the plain
+    // page URL if generateLink fails. Reporting the second as the first would have said "her
+    // link does not sign her in" about an email that works — after an evening lost to being
+    // told an email had sent when it had not, that is the last thing this should do.
+    const operator = read('apps/api/src/routes/operator.ts')
+    const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"), operator.indexOf("operatorRouter.post('/seats/client-partner'") + 9000)
+    expect(seatRoute).toContain('copyLinkSignsIn')
+    expect(seatRoute).not.toContain('inviteCarriesSession')
+    // the success message must describe the EMAIL, not gate itself on the copy link
+    expect(seatRoute).toMatch(/next: !inviteSent[\s\S]{0,400}?'Emailed\./)
+  })
+
   it('the operator still gets the reason and the link', () => {
     const operator = read('apps/api/src/routes/operator.ts')
     const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"), operator.indexOf("operatorRouter.post('/seats/client-partner'") + 9000)

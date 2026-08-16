@@ -127,6 +127,14 @@ describe('#220 — a monthly statement is derivable, so the portal is not a fake
   })
 })
 
+// Her page MOVED on 16 Aug — out of `(dashboard)` (the CLIENT shell) and into `(seat)`,
+// because the client layout wrapped her portal in a wallet, a "no credits — top up" banner
+// and the FIGSY panel. The URL is unchanged; only the shell is. These two pins broke on the
+// move and are re-pointed rather than deleted — what they assert about her page is exactly
+// as true in the new shell, and a pin that gets dropped the first time a file moves was
+// never a pin.
+const HER_PAGE = '../../../portal/src/app/(seat)/dashboard/client-partner/page.tsx'
+
 describe('R40 — "her cut only": her seat can never read what a client spends', () => {
   it('a client_partner select omits credit_balance; the legacy partner select keeps it', () => {
     expect(partners).toContain('const isClientPartner')
@@ -137,12 +145,12 @@ describe('R40 — "her cut only": her seat can never read what a client spends',
     expect(clientPartnerBranch).not.toContain('credit_balance')
   })
   it('her portal page has no client-spend column at all', () => {
-    const page = codeOf(readFileSync(join(__dirname, '../../../portal/src/app/(dashboard)/dashboard/client-partner/page.tsx'), 'utf8'))
+    const page = codeOf(readFileSync(join(__dirname, HER_PAGE), 'utf8'))
     expect(page).not.toMatch(/credit_balance/)
     expect(page).toMatch(/Your share this month/)
   })
   it('and no money is typed into her page — the pack price is imported', () => {
-    const page = readFileSync(join(__dirname, '../../../portal/src/app/(dashboard)/dashboard/client-partner/page.tsx'), 'utf8')
+    const page = readFileSync(join(__dirname, HER_PAGE), 'utf8')
     expect(page).toContain("import { PACK_PRICE_USD } from '@kind/shared'")
     expect(page).not.toMatch(/\$299|\$59\.80/)
   })

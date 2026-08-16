@@ -100,8 +100,26 @@ describe('a Client Partner can reach her own portal', () => {
   })
 
   it('her page exists at the path the KEEP set protects', () => {
-    expect(existsSync(join(APP, '(dashboard)/dashboard/client-partner/page.tsx'))).toBe(true)
+    expect(existsSync(join(APP, '(seat)/dashboard/client-partner/page.tsx'))).toBe(true)
     expect(routes).toContain('/dashboard/client-partner')
+  })
+
+  it('her portal is NOT inside the CLIENT shell — it showed her a wallet and FIGSY', () => {
+    // The founder signed in as her and got the client chrome wrapped around her page:
+    // a wallet balance, a red "no credits — top up" banner, and the FIGSY panel. Two are
+    // client money ("her cut only") and the third is the sourcing tool ("her own network
+    // only"). The client layout already carries four `!isPartner` guards and still missed
+    // these three, which is the argument against a shared shell rather than for a fifth
+    // guard: every new client feature is one more thing that must remember she exists.
+    expect(existsSync(join(APP, '(dashboard)/dashboard/client-partner'))).toBe(false)
+  })
+
+  it('the seat shell renders no client money and no sourcing tool', () => {
+    const shell = readFileSync(join(APP, '(seat)/layout.tsx'), 'utf8')
+    const code = shell.split('\n').filter(l => !/^\s*(\*|\/\*|\/\/)/.test(l)).join('\n')
+    for (const forbidden of ['AgentColumn', 'LowCreditsNotice', 'creditBalance', 'wallet', 'Sidebar']) {
+      expect(code, `the seat shell references ${forbidden} — that is client surface`).not.toContain(forbidden)
+    }
   })
 
   it('signing in sends a client_partner seat to HER page, not the legacy partner dashboard', () => {

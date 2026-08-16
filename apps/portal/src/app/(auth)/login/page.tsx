@@ -125,10 +125,16 @@ function LoginForm() {
           const res = await fetch(`${apiBase}/clients/me`, { headers })
 
           if (res.status === 404) {
-            // No client row — check if this is a partner account before sending to onboard
+            // No client row — check if this is a partner account before sending to onboard.
+            // A CLIENT PARTNER (R40) has her own portal and must not be dropped on the legacy
+            // partner dashboard: the two show different money, and hers is the one bound by
+            // "her cut only".
             const partnerRes = await fetch(`${apiBase}/partners/me`, { headers })
             if (partnerRes.ok) {
-              router.push('/dashboard/partner')
+              const partnerBody = await partnerRes.json().catch(() => ({}))
+              router.push(partnerBody?.seat_type === 'client_partner'
+                ? '/dashboard/client-partner'
+                : '/dashboard/partner')
             } else {
               router.push('/onboard')
             }
@@ -152,8 +158,13 @@ function LoginForm() {
   async function handlePasswordReset(e: React.FormEvent) {
     e.preventDefault()
     setResetLoading(true)
+    // Via the CALLBACK, not straight to /auth/reset. Supabase hands back a one-time code
+    // that has to be exchanged for a session before anyone can change a password, and
+    // `/auth/callback` already does exactly that and already honours `?next=`. Pointing the
+    // email at /auth/reset directly is what shipped originally — at a page that did not
+    // exist — so every reset link in the product's history 404'd (found 16 Aug).
     const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-      redirectTo: `${window.location.origin}/auth/reset`,
+      redirectTo: `${window.location.origin}/auth/callback?next=/auth/reset`,
     })
     if (error) { setError(error.message) } else { setResetSent(true) }
     setResetLoading(false)

@@ -10,8 +10,11 @@ import { NextResponse, type NextRequest } from 'next/server'
 // exposed to the internet exactly that way.
 //
 // So the list is written down. A route that is not gated below must appear HERE with a
-// reason, and `middleware.public-routes.test.ts` enumerates the app directory and FAILS if a
-// route is neither gated nor listed. A new public page cannot be added silently again.
+// reason, and `apps/api/src/lib/portal-public-routes.test.ts` enumerates the app directory
+// and FAILS if a route is neither gated nor listed. A new public page cannot be added
+// silently again. *(The filename in this comment used to be `middleware.public-routes.test.ts`,
+// which is not a file that exists — a pointer to a missing test is worse than none, because it
+// reads as proof the check is there.)*
 //
 // This block is DECLARATIVE — it deliberately does not short-circuit the middleware. An
 // early return would skip the session lookup, and `/` and `/login` genuinely need it (a
@@ -24,6 +27,7 @@ export const PUBLIC_ROUTES: { path: string; why: string }[] = [
   { path: '/terms',       why: 'Legal. A client must be able to read the terms before they have an account, and after they have lost access to it.' },
   { path: '/privacy',     why: 'Legal, same reason.' },
   { path: '/offline',     why: 'The PWA offline fallback. It renders when there is no network, so it cannot depend on a session lookup.' },
+  { path: '/auth/reset',  why: 'Setting a new password. The person arriving here is BY DEFINITION someone who cannot sign in, so a session gate would lock the door and put the key behind it. The credential is the one-time code in the emailed link, which /auth/callback exchanges for a session before this page renders; with no session the page says the link expired rather than 404ing, which is what it did before it was built (16 Aug).' },
   { path: '/book/[token]', why: 'A PROSPECT books a meeting from a link in a cold email (#361/#368). They have no account. The 90-day per-lead booking token is HMAC-signed and carries a type claim so it cannot be replayed as an OAuth state, and the requested slot must match one the server actually offered. Same shape as /consent: the token is the credential.' },
 
   // ── The three #560 asked about, each decided rather than assumed ──────────────────────
@@ -141,7 +145,12 @@ export async function middleware(request: NextRequest) {
   // The partner + developer sub-trees are separate personas → left reachable.
   if (user && (pathname === '/dashboard' || pathname.startsWith('/dashboard/'))) {
     const seg = pathname.split('/')[2] || ''            // /dashboard/<seg>/...
-    const KEEP = new Set(['partner', 'developer'])
+    // ⚠️ `client-partner` was MISSING here and it made her portal unreachable (found on the
+    // founder's walk, 16 Aug). The seat, the API and the page all shipped and were tested —
+    // then this line redirected her to /milla, the CLIENT lead desk, which is the one surface
+    // R40 says she must never see. A persona list that is not updated when a persona is added
+    // does not fail loudly; it silently sends the new person somewhere they do not belong.
+    const KEEP = new Set(['partner', 'developer', 'client-partner'])
     if (!KEEP.has(seg)) {
       const MAP: Record<string, string> = {
         '':           '/milla',              // old portal home → New leads

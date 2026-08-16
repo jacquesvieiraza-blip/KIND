@@ -29,6 +29,17 @@ type Partner = {
   referral_count?: number | null
 }
 
+type PartnerDoc = {
+  id: string
+  title: string
+  version: string
+  updated: string
+  signatureRequired: boolean
+  summary: string
+  body: string
+  live?: boolean
+}
+
 function pct(v: number | null | undefined, fallback: number): string {
   const n = Number(v)
   return `${Math.round((Number.isFinite(n) && n > 0 ? n : fallback) * 100)}%`
@@ -37,6 +48,10 @@ function pct(v: number | null | undefined, fallback: number): string {
 export default function VidaPartnersPage() {
   const [partners, setPartners] = useState<Partner[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const [docsFor, setDocsFor] = useState<{ seat: Partner; documents: PartnerDoc[] } | null>(null)
+  const [docsBusy, setDocsBusy] = useState<string | null>(null)
+  const [openDoc, setOpenDoc] = useState<PartnerDoc | null>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -55,6 +70,22 @@ export default function VidaPartnersPage() {
   }, [])
 
   useEffect(() => { void load() }, [load])
+
+  // #202 — the seat's paperwork, read from Vida. The pack is generated per seat rather than
+  // stored per seat, because the retain rate belongs to the SEAT (R40) and a stored file
+  // cannot follow a rate change.
+  async function openDocuments(seat: Partner) {
+    setDocsBusy(seat.id)
+    try {
+      const res = await fetch(`/api/proxy/partners/admin/${seat.id}/documents`)
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json?.error || `Could not load documents (${res.status})`)
+      setDocsFor({ seat, documents: json.documents ?? [] })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load documents')
+    }
+    setDocsBusy(null)
+  }
 
   async function createSeat() {
     if (!name.trim() || !email.trim()) { setMsg({ ok: false, text: 'A name and an email address are both required.' }); return }
@@ -147,6 +178,7 @@ export default function VidaPartnersPage() {
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Land</th>
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Retain</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Status</th>
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Documents</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -177,6 +209,12 @@ export default function VidaPartnersPage() {
                             {p.status === 'active' ? 'Active' : (p.status || '—')}
                           </span>
                         </td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd]">
+                          <button onClick={() => openDocuments(p)} disabled={docsBusy === p.id}
+                            className="text-[12.5px] font-bold text-[#7C3AED] hover:underline disabled:opacity-50">
+                            {docsBusy === p.id ? 'Opening…' : 'Open pack'}
+                          </button>
+                        </td>
                       </tr>
                     )
                   })}
@@ -185,6 +223,71 @@ export default function VidaPartnersPage() {
             </div>
           )}
         </div>
+
+        {/* ── the seat's document pack ──────────────────────────────────── */}
+        {docsFor && (
+          <div className="mt-4 bg-white border border-[#ece5fb] rounded-2xl overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#f3eefe] flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-bold text-[#1f1235]">Documents — {docsFor.seat.name || docsFor.seat.email}</span>
+              <button onClick={() => setDocsFor(null)}
+                className="ml-auto text-[12px] font-bold text-[#9b8ec4] hover:text-[#1f1235]">Close</button>
+            </div>
+            <div className="divide-y divide-[#f6f2fd]">
+              {docsFor.documents.map(d => (
+                <div key={d.id} className="px-5 py-3.5 flex items-start gap-3 flex-wrap">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[13.5px] font-semibold text-[#1f1235]">{d.title}</span>
+                      {d.signatureRequired && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#b9781f] bg-[#fdf3e2] rounded-full px-2 py-0.5">to sign</span>
+                      )}
+                      {d.live && (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#0b7a55] bg-[#e7f7f0] rounded-full px-2 py-0.5">live</span>
+                      )}
+                    </div>
+                    <p className="text-[12px] text-[#9b8ec4] mt-0.5">{d.summary}</p>
+                  </div>
+                  {d.live ? (
+                    <span className="text-[12px] text-[#9b8ec4] self-center">Generated from her commission rows</span>
+                  ) : (
+                    <button onClick={() => setOpenDoc(d)}
+                      className="text-[12.5px] font-bold text-[#7C3AED] hover:underline self-center">Read</button>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="px-5 py-3.5 text-[12px] text-[#9b8ec4] border-t border-[#f3eefe]">
+              These are drafts written by Claude Code, not by a lawyer, and are not legal advice —
+              each document says so in its own text. Signed copies are not stored here yet.
+            </div>
+          </div>
+        )}
+
+        {openDoc && (
+          <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 sm:p-8 overflow-y-auto"
+            role="dialog" aria-modal="true" aria-label={openDoc.title} onClick={() => setOpenDoc(null)}>
+            <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-start gap-3 px-6 py-4 border-b border-[#eee9f7] sticky top-0 bg-white rounded-t-2xl">
+                <div className="min-w-0">
+                  <h2 className="text-base font-bold text-[#1f1235] truncate">{openDoc.title}</h2>
+                  <p className="text-[12px] text-[#9b8ec4]">Version {openDoc.version}{openDoc.updated ? ` · ${openDoc.updated}` : ''}</p>
+                </div>
+                <button onClick={() => setOpenDoc(null)} aria-label="Close"
+                  className="ml-auto shrink-0 text-[#9b8ec4] hover:text-[#1f1235] p-1 text-lg leading-none">×</button>
+              </div>
+              {/* The stored text, rendered exactly as stored — no markdown transformation
+                  between what a person signs and what a person reads. */}
+              <div className="px-6 py-5">
+                <pre className="whitespace-pre-wrap font-sans text-[13.5px] leading-relaxed text-[#2c2440]">{openDoc.body}</pre>
+              </div>
+              <div className="px-6 py-4 border-t border-[#eee9f7] flex flex-wrap gap-3 items-center">
+                <button onClick={() => window.print()}
+                  className="text-[13px] font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] rounded-lg px-4 py-2">Print</button>
+                <span className="text-[12px] text-[#9b8ec4]">Print to send for signature.</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         <p className="mt-4 text-[12px] text-[#9b8ec4]">
           Commission detail, deals and payout history remain on the full partner console.

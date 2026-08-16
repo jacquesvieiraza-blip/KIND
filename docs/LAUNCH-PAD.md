@@ -4,7 +4,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢104 · 🩷281 · 🟣2 · 🟡50 · 🔴169 · ⏸6 · **Σ612** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢104 · 🩷285 · 🟣2 · 🟡46 · 🔴169 · ⏸6 · **Σ612** · live count: `scripts/count-inventory.sh`
 
 ---
 

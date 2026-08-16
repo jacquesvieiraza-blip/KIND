@@ -21,7 +21,8 @@ import { runIcpJob } from './icps'
 import { adminKeyValid } from './admin'
 import { sendFounderAlert } from '../lib/alerts'
 import { partnerDocuments, type PartnerDocument } from '../lib/partner-documents'
-import { sendCountersignAlert, sendPartnerLiveEmail, sendPartnerInvite } from '../lib/partner-invite-email'
+import { sendCountersignAlert, sendPartnerLiveEmail } from '../lib/partner-invite-email'
+import { invitePartner } from '../lib/partner-invite'
 import { rampFor, rampSummary, type RampCounts } from '../lib/seller-ramp'
 import { sellerPlaybook } from '../lib/seller-playbook'
 import { writeOperatorAudit } from '../lib/operator-audit'
@@ -958,22 +959,10 @@ partnersRouter.post('/admin/:partnerId/resend-invite', requireAdminKey, async (r
     if (error || !seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
     if (!seat.invite_token) { res.status(400).json({ success: false, error: 'This seat has no invitation to resend.' }); return }
 
-    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const packPath = `/partner-onboarding?token=${seat.invite_token}`
-    let inviteUrl = `${portalUrl}${packPath}`
-    // Same order as seat creation: an invitation for somebody who has never had a password,
-    // recovery only if the address already has an account.
-    const redirectTo = `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}`
-    for (const linkType of ['invite', 'recovery'] as const) {
-      try {
-        const { data: link, error: linkErr } = await (db as any).auth.admin.generateLink({
-          type: linkType, email: seat.email, options: { redirectTo },
-        })
-        if (!linkErr && link?.properties?.action_link) { inviteUrl = link.properties.action_link; break }
-      } catch (e) { console.error(`[partners/resend-invite] generateLink(${linkType}) failed:`, e) }
-    }
-
-    const r = await sendPartnerInvite({ name: seat.name ?? '', email: seat.email ?? '', inviteUrl })
+    // Same mailer as seat creation — see lib/partner-invite.ts.
+    const invite = await invitePartner({ email: seat.email ?? '', packPath: `/partner-onboarding?token=${seat.invite_token}` })
+    const inviteUrl = invite.inviteUrl
+    const r = { ok: invite.sent, error: invite.error }
     await db.from('partners').update({ invite_sent_at: new Date().toISOString() }).eq('id', seat.id)
 
     await writeOperatorAudit({

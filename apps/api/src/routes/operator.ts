@@ -6,7 +6,7 @@ import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 import { namesPerApproval } from '../lib/money-path-math'
-import { sendPartnerInvite } from '../lib/partner-invite-email'
+import { invitePartner } from '../lib/partner-invite'
 import { coldView } from '../lib/cold-client'
 import type { InboxRow } from '../lib/sending-inbox'
 
@@ -1045,43 +1045,19 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
     // So the button is a Supabase RECOVERY action link that redirects through
     // `/auth/callback?next=…` — the handler that already exchanges the code for cookies and
     // already honours `next`. She lands on the onboarding page signed in, and step one works.
-    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
-    const packPath = `/partner-onboarding?token=${inviteToken}`
-    const redirectTo = `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}`
-    let inviteUrl = `${portalUrl}${packPath}`
-    let inviteCarriesSession = false
-
-    // AN INVITATION, NOT A RECOVERY. `type: 'invite'` creates the auth account as part of
-    // generating the link, which is what an invitation actually is. Recovery stays only as the
-    // fallback for an address that ALREADY has an account (she signed up for something else
-    // before, or the seat is being re-invited) — there, a recovery link is the correct
-    // primitive, because an account with a password really is being recovered.
-    for (const linkType of ['invite', 'recovery'] as const) {
-      try {
-        const { data: link, error: linkErr } = await (db as any).auth.admin.generateLink({
-          type: linkType, email: cleanEmail, options: { redirectTo },
-        })
-        const actionLink = link?.properties?.action_link
-        if (!linkErr && actionLink) { inviteUrl = actionLink; inviteCarriesSession = true; break }
-        console.warn(`[operator/seats] ${linkType} link not generated:`, linkErr?.message)
-      } catch (e) {
-        console.error(`[operator/seats] generateLink(${linkType}) threw:`, e)
-      }
-    }
-    // A failed email must not roll back the seat — it can be resent. But it must be REPORTED
-    // WITH ITS REASON, or the operator believes she was told when she was not. That is exactly
-    // what happened on 16 Aug: "Invited" on screen, no email anywhere, and the reason thrown
-    // away by a sender that never read Resend's response.
-    let inviteSent = false
-    let inviteError: string | undefined
-    try {
-      const r = await sendPartnerInvite({ name: cleanName, email: cleanEmail, inviteUrl })
-      inviteSent = r.ok
-      inviteError = r.error
-    } catch (e) {
-      inviteError = e instanceof Error ? e.message : String(e)
-      console.error('[operator/seats] invite email failed:', inviteError)
-    }
+    // THE INVITATION — sent by Supabase, which is the mailer with evidence behind it. See
+    // lib/partner-invite.ts for what that evidence is. One call creates the account and sends
+    // the email, so choosing a password IS signing up: "a partner should recieve the link. and
+    // sign up. not have to set a new password. they would never know" (founder, 16 Aug).
+    //
+    // A failed send must never roll back the seat — it can be re-sent, and the copyable link
+    // comes back either way. But it must be REPORTED WITH ITS REASON, or the operator is told
+    // "Invited" about an email that does not exist. That happened, and this is the fix.
+    const invite = await invitePartner({ email: cleanEmail, packPath: `/partner-onboarding?token=${inviteToken}` })
+    const inviteSent = invite.sent
+    const inviteError = invite.error
+    const inviteUrl = invite.inviteUrl
+    const inviteCarriesSession = inviteUrl.includes('/auth/v1/verify')
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'client_partner_seat_created',

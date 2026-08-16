@@ -86,45 +86,29 @@ describe('a sender reports only what Resend actually accepted', () => {
 })
 
 describe('it is an INVITATION, not a password reset in disguise', () => {
-  // Founder, 16 Aug: "a partner should recieve the link. and sign up. not have to set a new
-  // password. they would never know."
+  // ⛓️ RE-POINTED 16 Aug, later the same evening. These pinned the invite/recovery loop that
+  // lived in operator.ts and generated a link for RESEND to email. The founder then received
+  // nothing for a third seat, and reading the code showed why: every email he had actually
+  // received all day came from Supabase, and this path's only email was a Resend send from
+  // partners@get-kind.com — an address used by nothing but a partner programme never run.
   //
-  // The mechanism was wrong, not just the wording: seat creation made an auth account with a
-  // random password nobody was ever told, then emailed a RECOVERY link. An invited person has
-  // never had a password here, so there is nothing to recover — and the first thing they were
-  // asked to do was recover it.
-  const operator = readFileSync(join(REPO, 'apps/api/src/routes/operator.ts'), 'utf8')
-  const routes = readFileSync(join(REPO, 'apps/api/src/routes/partners.ts'), 'utf8')
+  // The invitation now goes through Supabase itself (lib/partner-invite.ts), so what these
+  // tests protected — an invitation rather than a password recovery, and no throwaway account
+  // — is asserted at the new home in partner-invite.test.ts. What remains here is the part
+  // that is still about THIS file: the page must ask her to create a password, not reset one.
   const page = readFileSync(join(REPO, 'apps/portal/src/app/partner-onboarding/page.tsx'), 'utf8')
-  const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"), operator.indexOf("operatorRouter.post('/seats/client-partner'") + 12000)
 
   it('NO account is pre-created with a throwaway password', () => {
-    // The random password was the tell: an account nobody can sign into, needing recovery.
+    const operator = readFileSync(join(REPO, 'apps/api/src/routes/operator.ts'), 'utf8')
+    const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"), operator.indexOf("operatorRouter.post('/seats/client-partner'") + 12000)
     expect(seatRoute).not.toMatch(/auth\.admin\.createUser\(/)
     expect(seatRoute).not.toMatch(/password: `Kp\$\{Math\.random/)
   })
 
-  it('the link is generated as an INVITE, and recovery is only the fallback', () => {
-    expect(seatRoute).toMatch(/\['invite', 'recovery'\] as const/)
-    // order matters: invite must be tried first, or an existing-account path would win
-    expect(seatRoute.indexOf("'invite'")).toBeLessThan(seatRoute.indexOf("'recovery'"))
-  })
-
-  it('and it STOPS at the first link that works — it does not overwrite a good invite', () => {
-    const loop = seatRoute.slice(seatRoute.indexOf("for (const linkType of"))
-    expect(loop.slice(0, 900)).toMatch(/inviteCarriesSession = true; break/)
-  })
-
-  it('the resend path invites the same way — not one door invite and the other recovery', () => {
-    const resend = routes.slice(routes.indexOf("partnersRouter.post('/admin/:partnerId/resend-invite'"))
-    expect(resend.slice(0, 3000)).toMatch(/\['invite', 'recovery'\] as const/)
-  })
-
   it('the page asks her to CREATE a password — never to reset or recover one', () => {
-    // ⚠️ Comments stripped first. The block carries a comment explaining that this is NOT a
-    // recovery, and the word "recovering" inside it failed the assertion — a check that
-    // forbids you from describing what you fixed is a bad check (the same lesson as the
-    // audit pins that matched their own explanatory comments).
+    // Comments stripped first: the block explains that this is NOT a recovery, and the word
+    // "recovering" inside that explanation failed the assertion. A check that forbids you from
+    // describing what you fixed is a bad check.
     const raw = page.slice(page.indexOf('step === 1 && hasSession'), page.indexOf('step === 2 || step === 3'))
     const step1 = raw.split('\n').filter(l => {
       const t = l.trim()
@@ -144,7 +128,10 @@ describe('the operator is told WHY, and always has a way in', () => {
     const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"))
     expect(seatRoute.slice(0, 10000)).toContain('invite_error: inviteError')
     expect(seatRoute.slice(0, 10000)).toMatch(/invite_url: inviteUrl/)
-    expect(seatRoute.slice(0, 10000)).toMatch(/inviteError = r\.error/)
+    // ⛓️ RE-POINTED 16 Aug: the reason now arrives from invitePartner (Supabase) rather than
+    // from the Resend sender's result. What is asserted is unchanged — the reason must reach
+    // the operator — only where it comes from moved.
+    expect(seatRoute.slice(0, 10000)).toMatch(/const inviteError = invite\.error/)
   })
 
   it('the counter-signature does the same for the "you are live" email', () => {

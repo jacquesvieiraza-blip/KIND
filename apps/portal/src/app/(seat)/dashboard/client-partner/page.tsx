@@ -51,10 +51,13 @@ type PartnerDoc = {
   summary: string
   body: string
   live?: boolean
+  /** Set once a frozen snapshot exists for her side — see withSignedSnapshots on the API. */
+  signedByPartner?: boolean
 }
 type Me = {
   partner: { id: string; name: string; email: string; referral_code: string; retain_rate: number | null }
   seat_type: string
+  onboarding_state?: string
   /** Rates travel with the seat so this page never types a percentage (method rule 7). */
   land_rate?: number
   retain_rate?: number
@@ -192,6 +195,11 @@ export default function ClientPartnerPage() {
                     // to open — it is the table already on this page.
                     setMenuOpen(false)
                     if (d.live) { document.getElementById('payout-statements')?.scrollIntoView({ behavior: 'smooth' }); return }
+                    // ⚠️ A "TO SIGN" badge that opens a read-only viewer is a dead end. Found on
+                    // the founder's walk (16 Aug): the menu correctly said three documents were
+                    // unsigned and offered no way to sign them. Signing lives on the onboarding
+                    // page, which is where an unsigned document must send her.
+                    if (d.signatureRequired && !d.signedByPartner) { window.location.href = '/partner-onboarding'; return }
                     setOpenDoc(d)
                   }}
                 />
@@ -202,6 +210,34 @@ export default function ClientPartnerPage() {
           )}
         </div>
       </header>
+
+      {/* ⚠️ THE WAY BACK IN. Her setup is finished on /partner-onboarding, and until now the
+          ONLY route there was the invite email — so if that email failed, or she simply came
+          back another day, her portal showed her three documents marked "to sign" and no way
+          to sign them. Nobody should have to know a URL exists (founder, 16 Aug: "how does the
+          partner know to go to that link. thats a different link and you confusing me"). */}
+      {me.onboarding_state && me.onboarding_state !== 'active' && me.onboarding_state !== 'archived' && (
+        <div className="rounded-2xl border border-[#f5d9a0] bg-[#fff6e5] px-5 py-4 mb-6 flex items-start gap-4 flex-wrap">
+          <div className="min-w-0 flex-1">
+            <h2 className="text-[15px] font-bold text-[#7a4b00]">
+              {me.onboarding_state === 'awaiting_countersign'
+                ? 'You have signed — we are counter-signing now'
+                : 'Finish setting up your seat'}
+            </h2>
+            <p className="text-[13px] text-[#8a6320] leading-relaxed mt-0.5">
+              {me.onboarding_state === 'awaiting_countersign'
+                ? 'Nothing to do. You will get an email the moment your seat is live, with your referral link.'
+                : 'A few details and three documents to sign. It takes about five minutes, and nothing is live until it is done.'}
+            </p>
+          </div>
+          {me.onboarding_state !== 'awaiting_countersign' && (
+            <a href="/partner-onboarding"
+              className="bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-4 py-2.5 text-sm shrink-0">
+              Continue setup →
+            </a>
+          )}
+        </div>
+      )}
 
       {/* #654 — the ramp leads until the first client is live, because until then the money
           numbers below are all zero and a screen of zeros reads as failure. */}

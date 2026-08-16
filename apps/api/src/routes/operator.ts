@@ -1063,19 +1063,29 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
     } catch (e) {
       console.error('[operator/seats] generateLink threw:', e)
     }
+    // A failed email must not roll back the seat — it can be resent. But it must be REPORTED
+    // WITH ITS REASON, or the operator believes she was told when she was not. That is exactly
+    // what happened on 16 Aug: "Invited" on screen, no email anywhere, and the reason thrown
+    // away by a sender that never read Resend's response.
     let inviteSent = false
+    let inviteError: string | undefined
     try {
-      inviteSent = await sendPartnerInvite({ name: cleanName, email: cleanEmail, inviteUrl })
+      const r = await sendPartnerInvite({ name: cleanName, email: cleanEmail, inviteUrl })
+      inviteSent = r.ok
+      inviteError = r.error
     } catch (e) {
-      // A failed email must not roll back the seat — the operator can resend. But it must be
-      // REPORTED, or he believes she was told when she was not.
-      console.error('[operator/seats] invite email failed:', e)
+      inviteError = e instanceof Error ? e.message : String(e)
+      console.error('[operator/seats] invite email failed:', inviteError)
     }
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'client_partner_seat_created',
       subjectType: 'partner', subjectId: seat.id,
-      detail: { email: cleanEmail, retain_rate: seat.retain_rate, invite_sent: inviteSent, invite_carries_session: inviteCarriesSession },
+      detail: {
+        email: cleanEmail, retain_rate: seat.retain_rate,
+        invite_sent: inviteSent, invite_carries_session: inviteCarriesSession,
+        ...(inviteError ? { invite_error: inviteError } : {}),
+      },
     })
 
     res.json({
@@ -1085,8 +1095,10 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
         user_created: !!userId,
         invite_sent: inviteSent,
         invite_carries_session: inviteCarriesSession,
+        invite_url: inviteUrl,
+        invite_error: inviteError,
         next: !inviteSent
-          ? 'SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND. Send her the invite link yourself, or delete the seat and try again.'
+          ? `SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND${inviteError ? ` — ${inviteError}` : ''}. Copy the invite link below and send it to her yourself, or press Resend.`
           : inviteCarriesSession
             ? 'Invite emailed. She sets her own password, completes her details, and signs — then it comes back to you to counter-sign before the seat goes live.'
             : 'Invite emailed, BUT the sign-in link could not be generated — her link opens the page without signing her in, so she will have to use "send me a fresh link" on it. Worth checking the API logs.',

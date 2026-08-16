@@ -21,7 +21,7 @@ import { runIcpJob } from './icps'
 import { adminKeyValid } from './admin'
 import { sendFounderAlert } from '../lib/alerts'
 import { partnerDocuments, type PartnerDocument } from '../lib/partner-documents'
-import { sendCountersignAlert, sendPartnerLiveEmail } from '../lib/partner-invite-email'
+import { sendCountersignAlert, sendPartnerLiveEmail, sendPartnerInvite } from '../lib/partner-invite-email'
 import { rampFor, rampSummary, type RampCounts } from '../lib/seller-ramp'
 import { sellerPlaybook } from '../lib/seller-playbook'
 import { writeOperatorAudit } from '../lib/operator-audit'
@@ -399,6 +399,11 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
       commissions: allComms,
       deals:       deals || [],
       seat_type:   partner.seat_type ?? 'partner',
+      // So her own portal can carry an unfinished setup forward. Without this the portal
+      // shows a ramp and three unsigned documents and no way to finish — and the only route
+      // to the onboarding page is a URL nobody would ever guess (founder, 16 Aug: "how does
+      // the partner know to go to that link").
+      onboarding_state: (partner as { onboarding_state?: string }).onboarding_state ?? 'active',
       // The rates travel WITH the seat so no screen has to type a percentage. Her page used
       // `PACK_PRICE_USD * 0.2` and printed "20% land" as text — correct today, and exactly
       // the shape that goes wrong the day a rate moves (method rule 7).
@@ -555,6 +560,7 @@ async function withSignedSnapshots(partnerId: string, docs: PartnerDocument[]): 
       version: source.doc_version,
       body: source.body_snapshot,
       signatures: rows.map(r => ({ role: r.signed_role, name: r.signed_name, at: r.signed_at })),
+      signedByPartner: !!partner,
       fullyExecuted: !!partner && !!company,
     } as PartnerDocument & { signatures: unknown; fullyExecuted: boolean }
   })
@@ -899,20 +905,29 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
     }
 
     let liveEmailSent = false
+    let liveEmailError: string | undefined
     try {
-      liveEmailSent = await sendPartnerLiveEmail({
+      const r = await sendPartnerLiveEmail({
         name: seat.name ?? '', email: seat.email ?? '',
         referralLink: `https://get-kind.com?ref=${seat.referral_code}`,
         portalUrl: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/client-partner`,
         sandboxReady,
       })
-    } catch (e) { console.error('[partners/countersign] live email failed:', e) }
+      liveEmailSent = r.ok
+      liveEmailError = r.error
+    } catch (e) {
+      liveEmailError = e instanceof Error ? e.message : String(e)
+      console.error('[partners/countersign] live email failed:', liveEmailError)
+    }
 
     await writeOperatorAudit({
       operatorEmail: String(req.headers['x-operator-email'] ?? 'unknown-operator'),
       clientId: null, action: 'client_partner_countersigned',
       subjectType: 'partner', subjectId: seat.id,
-      detail: { signed_name: typed, live_email_sent: liveEmailSent, sandbox_ready: sandboxReady },
+      detail: {
+        signed_name: typed, live_email_sent: liveEmailSent, sandbox_ready: sandboxReady,
+        ...(liveEmailError ? { live_email_error: liveEmailError } : {}),
+      },
     })
 
     res.json({
@@ -920,6 +935,7 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
       data: {
         onboarding_state: 'active',
         live_email_sent: liveEmailSent,
+        live_email_error: liveEmailError,
         sandbox_ready: sandboxReady,
         note: sandboxReady ? undefined : 'The seat is LIVE, but their demo environment did not build — retry it from the partner console.',
       },
@@ -927,6 +943,48 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
   } catch (err) {
     console.error('[partners/countersign]', err)
     res.status(500).json({ success: false, error: 'Could not counter-sign' })
+  }
+})
+
+// POST /partners/admin/:partnerId/resend-invite — because an email that did not arrive used
+// to be a dead end. She cannot reach the "send me a fresh link" screen without a link, so if
+// the invite failed there was no way in at all except the operator digging a token out of the
+// database. Found the hard way on 16 Aug.
+partnersRouter.post('/admin/:partnerId/resend-invite', requireAdminKey, async (req: Request, res: Response) => {
+  try {
+    const { data: seat, error } = await db.from('partners')
+      .select('id, name, email, invite_token, onboarding_state')
+      .eq('id', req.params.partnerId).maybeSingle()
+    if (error || !seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
+    if (!seat.invite_token) { res.status(400).json({ success: false, error: 'This seat has no invitation to resend.' }); return }
+
+    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
+    const packPath = `/partner-onboarding?token=${seat.invite_token}`
+    let inviteUrl = `${portalUrl}${packPath}`
+    try {
+      const { data: link } = await (db as any).auth.admin.generateLink({
+        type: 'recovery', email: seat.email,
+        options: { redirectTo: `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}` },
+      })
+      if (link?.properties?.action_link) inviteUrl = link.properties.action_link
+    } catch (e) { console.error('[partners/resend-invite] generateLink failed:', e) }
+
+    const r = await sendPartnerInvite({ name: seat.name ?? '', email: seat.email ?? '', inviteUrl })
+    await db.from('partners').update({ invite_sent_at: new Date().toISOString() }).eq('id', seat.id)
+
+    await writeOperatorAudit({
+      operatorEmail: String(req.headers['x-operator-email'] ?? 'unknown-operator'),
+      clientId: null, action: 'client_partner_invite_resent',
+      subjectType: 'partner', subjectId: seat.id,
+      detail: { email: seat.email, sent: r.ok, ...(r.error ? { error: r.error } : {}) },
+    })
+
+    // The link comes back either way. If the email failed again, the operator can still hand
+    // it over by WhatsApp — which is the whole point of this endpoint.
+    res.json({ success: true, data: { sent: r.ok, error: r.error, invite_url: inviteUrl } })
+  } catch (err) {
+    console.error('[partners/resend-invite]', err)
+    res.status(500).json({ success: false, error: 'Could not resend the invitation' })
   }
 })
 

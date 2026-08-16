@@ -699,7 +699,8 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
     // She signs first. Counter-signing an unsigned pack would produce a half-executed
     // agreement and a live referral code with nothing behind it.
     const { data: hers } = await db.from('partner_signed_documents')
-      .select('doc_id').eq('partner_id', seat.id).eq('signed_role', 'partner')
+      .select('doc_id, doc_version, body_snapshot')
+      .eq('partner_id', seat.id).eq('signed_role', 'partner')
     const pack = partnerDocuments({
       seatType: seat.seat_type, retainRate: seat.retain_rate, name: seat.name,
       address: seat.address, country: seat.country, phone: seat.phone,
@@ -711,10 +712,20 @@ partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req
       res.status(409).json({ success: false, error: 'They have not signed everything yet — you cannot counter-sign first.' }); return
     }
 
-    for (const doc of required) {
+    // ⚠️ COUNTER-SIGN THE TEXT SHE SIGNED, NOT A FRESH RENDER. Fable's verification caught
+    // this: the first version re-generated the pack at counter-signature time and froze THAT.
+    // The pack is built from the billing constants and her own details, so anything that moved
+    // between her signature and his — a rate, a corrected address — would leave the two halves
+    // of one agreement frozen with different texts. Her copy is the agreement; his signature
+    // goes onto the same words.
+    for (const row of (hers ?? []) as { doc_id: string; doc_version: string; body_snapshot: string }[]) {
       await db.from('partner_signed_documents').insert({
-        partner_id: seat.id, doc_id: doc.id, doc_version: doc.version,
-        body_snapshot: doc.body, signed_name: typed, signed_role: 'company',
+        partner_id: seat.id,
+        doc_id: row.doc_id,
+        doc_version: row.doc_version,
+        body_snapshot: row.body_snapshot,
+        signed_name: typed,
+        signed_role: 'company',
       })
     }
 

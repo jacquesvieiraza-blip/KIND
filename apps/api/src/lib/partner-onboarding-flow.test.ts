@@ -105,6 +105,71 @@ describe('the money gate — no live partner without both signatures', () => {
   })
 })
 
+describe('the invite actually lets her IN — Fable verification, 16 Aug', () => {
+  // THE BLOCKER THIS PINS: the first version emailed a bare page link. The page's first step
+  // calls updateUser({ password }), which needs an EXISTING session — and an invitee has none,
+  // because her auth user was created with a random password nobody is told. She would have
+  // been stuck on screen one with "Auth session missing", and the whole suite stayed green,
+  // because every test in this file reads source rather than walking the flow.
+  const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"))
+  const page = read('apps/portal/src/app/partner-onboarding/page.tsx')
+
+  it('the invite link is a Supabase action link, not a bare page URL', () => {
+    expect(seatRoute.slice(0, 8000)).toContain('generateLink(')
+    expect(seatRoute.slice(0, 8000)).toMatch(/type: 'recovery'/)
+    expect(seatRoute.slice(0, 8000)).toContain('properties?.action_link')
+    // ⚠️ AND THE RESULT IS ACTUALLY USED. Asserting only that generateLink is CALLED is a
+    // placebo — a red proof that disabled the assignment left every check above green while
+    // the emailed link quietly went back to the dead page URL. What matters is that the
+    // action link becomes the link she is actually sent.
+    expect(seatRoute.slice(0, 8000)).toMatch(/if \(!linkErr && actionLink\) \{ inviteUrl = actionLink/)
+  })
+
+  it('and it returns through the callback that exchanges the code — not straight to the page', () => {
+    // /auth/callback is the handler that already turns Supabase's one-time code into cookies
+    // and already honours ?next=. Pointing the email at the page directly is the exact bug
+    // that made every password reset in this product 404 for its entire life.
+    expect(seatRoute.slice(0, 8000)).toMatch(/\/auth\/callback\?next=\$\{encodeURIComponent\(packPath\)\}/)
+  })
+
+  it('a degraded link (no action link) is REPORTED, never passed off as a working invite', () => {
+    expect(seatRoute.slice(0, 9000)).toContain('inviteCarriesSession')
+    expect(seatRoute.slice(0, 9000)).toMatch(/the sign-in link could not be generated/)
+  })
+
+  it('with NO session the page offers a fresh link — it never shows a form that cannot work', () => {
+    expect(page).toContain('async function resendLink')
+    expect(page).toContain('resetPasswordForEmail')
+    expect(page).toMatch(/step === 1 && !hasSession/)
+    expect(page).toMatch(/step === 1 && hasSession/)
+    // the password form must be behind the session check, not rendered regardless
+    const noSessionBlock = page.slice(page.indexOf('step === 1 && !hasSession'), page.indexOf('step === 1 && hasSession'))
+    expect(noSessionBlock).not.toContain('setPasswordStep')
+  })
+})
+
+describe('both signatures land on the SAME words — Fable verification, 16 Aug', () => {
+  it('the counter-signature copies HER frozen body, it does not re-render the pack', () => {
+    // The first version generated the documents fresh at counter-signature time. Anything that
+    // moved in between — a rate, a corrected address — would have frozen the two halves of one
+    // agreement with different texts.
+    const counter = routes.slice(
+      routes.indexOf("partnersRouter.post('/admin/:partnerId/countersign'"),
+      routes.indexOf("partnersRouter.post('/admin/:partnerId/archive'"))
+    expect(counter).toContain('body_snapshot: row.body_snapshot')
+    expect(counter).toContain('doc_version: row.doc_version')
+    expect(counter).not.toContain('body_snapshot: doc.body')
+  })
+
+  it('and it reads her stored bodies to do it', () => {
+    const counter = routes.slice(
+      routes.indexOf("partnersRouter.post('/admin/:partnerId/countersign'"),
+      routes.indexOf("partnersRouter.post('/admin/:partnerId/archive'"))
+    expect(counter).toMatch(/select\('doc_id, doc_version, body_snapshot'\)/)
+    expect(counter).toMatch(/eq\('signed_role', 'partner'\)/)
+  })
+})
+
 describe('the person is actually told — three emails, none of them silent', () => {
   it('creating a seat sends the invitation', () => {
     expect(emails).toContain('export async function sendPartnerInvite')

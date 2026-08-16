@@ -1036,7 +1036,33 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
 
     // The invite. Before this existed, a seat was created and the person was never told —
     // she could only get in via a "forgot password" nobody had mentioned to her.
-    const inviteUrl = `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/partner-onboarding?token=${inviteToken}`
+    //
+    // ⚠️ THE LINK MUST CARRY A SESSION, NOT JUST A PAGE. Fable's verification caught the
+    // first version of this dead on arrival: the onboarding page's very first step calls
+    // `updateUser({ password })`, which requires an EXISTING session — and an invitee has
+    // none, because her auth user was created with a random password nobody is ever told.
+    // She would have been stuck on screen one with "Auth session missing", and no test
+    // could see it, because every test here reads source rather than walking the flow.
+    //
+    // So the button is a Supabase RECOVERY action link that redirects through
+    // `/auth/callback?next=…` — the handler that already exchanges the code for cookies and
+    // already honours `next`. She lands on the onboarding page signed in, and step one works.
+    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
+    const packPath = `/partner-onboarding?token=${inviteToken}`
+    let inviteUrl = `${portalUrl}${packPath}`
+    let inviteCarriesSession = false
+    try {
+      const { data: link, error: linkErr } = await (db as any).auth.admin.generateLink({
+        type: 'recovery',
+        email: cleanEmail,
+        options: { redirectTo: `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}` },
+      })
+      const actionLink = link?.properties?.action_link
+      if (!linkErr && actionLink) { inviteUrl = actionLink; inviteCarriesSession = true }
+      else console.warn('[operator/seats] no action link generated:', linkErr?.message)
+    } catch (e) {
+      console.error('[operator/seats] generateLink threw:', e)
+    }
     let inviteSent = false
     try {
       inviteSent = await sendPartnerInvite({ name: cleanName, email: cleanEmail, inviteUrl })
@@ -1049,7 +1075,7 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'client_partner_seat_created',
       subjectType: 'partner', subjectId: seat.id,
-      detail: { email: cleanEmail, retain_rate: seat.retain_rate, invite_sent: inviteSent },
+      detail: { email: cleanEmail, retain_rate: seat.retain_rate, invite_sent: inviteSent, invite_carries_session: inviteCarriesSession },
     })
 
     res.json({
@@ -1058,9 +1084,12 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
         ...seat,
         user_created: !!userId,
         invite_sent: inviteSent,
-        next: inviteSent
-          ? 'Invite emailed. She sets her own password, completes her details, and signs — then it comes back to you to counter-sign before the seat goes live.'
-          : 'SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND. Send her the invite link yourself, or delete the seat and try again.',
+        invite_carries_session: inviteCarriesSession,
+        next: !inviteSent
+          ? 'SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND. Send her the invite link yourself, or delete the seat and try again.'
+          : inviteCarriesSession
+            ? 'Invite emailed. She sets her own password, completes her details, and signs — then it comes back to you to counter-sign before the seat goes live.'
+            : 'Invite emailed, BUT the sign-in link could not be generated — her link opens the page without signing her in, so she will have to use "send me a fresh link" on it. Worth checking the API logs.',
       },
     })
   } catch (err) {

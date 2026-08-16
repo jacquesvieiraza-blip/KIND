@@ -62,6 +62,7 @@ function OnboardingFlow() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [step, setStep] = useState(1)
+  const [resendSent, setResendSent] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -69,7 +70,9 @@ function OnboardingFlow() {
       const { data } = await createClient().auth.getSession()
       if (!live) return
       setHasSession(!!data.session)
-      if (data.session) setStep(2)
+      // A session means she arrived through the invite's action link (or is coming back).
+      // She still sets a password first — that is step 1 — so do NOT skip ahead here; the
+      // earlier version jumped to step 2 and left her without a password she could reuse.
       if (token) {
         try {
           const res = await api.get<{ success: boolean; data: { name: string; email: string; state: string } }>(`/partners/invite/${token}`)
@@ -88,6 +91,26 @@ function OnboardingFlow() {
     const t = data.session?.access_token
     const res = await api.get<{ documents: PartnerDoc[] }>('/partners/documents', t)
     setDocs((res.documents ?? []).filter(d => d.signatureRequired))
+  }
+
+  // ⚠️ NO SESSION = THE PASSWORD FORM CANNOT WORK. `updateUser` needs one, so showing the
+  // form to somebody whose link has expired would fail with "Auth session missing" and leave
+  // them stuck on screen one with no way forward. Offer them a fresh link instead — the same
+  // reset flow that is already live in the product.
+  async function resendLink() {
+    if (!invite?.email) { setError('We cannot tell who this invitation is for. Ask for a new one.'); return }
+    setBusy(true); setError('')
+    try {
+      const next = encodeURIComponent(`/partner-onboarding?token=${token}`)
+      const { error: err } = await createClient().auth.resetPasswordForEmail(invite.email, {
+        redirectTo: `${window.location.origin}/auth/callback?next=${next}`,
+      })
+      if (err) setError(err.message)
+      else setResendSent(true)
+    } catch {
+      setError('We could not send a new link just now. Try again in a moment.')
+    }
+    setBusy(false)
   }
 
   async function setPasswordStep(e: React.FormEvent) {
@@ -154,7 +177,28 @@ function OnboardingFlow() {
     <Shell wide={step === 4 || step === 5}>
       <Steps step={step} />
 
-      {step === 1 && (
+      {step === 1 && !hasSession && (
+        <>
+          <h2 className="text-lg font-bold text-[#1E0A5C] mb-1">Your sign-in link has expired</h2>
+          <p className="text-sm text-[#7B6FA0] mb-5">
+            Invitation links only work once and time out. Send yourself a fresh one
+            {invite?.email ? ` — it goes to ${invite.email}` : ''} and carry on where you left off.
+          </p>
+          {resendSent
+            ? <p className="text-sm text-green-600 font-medium bg-green-50 rounded-xl px-3 py-2.5">New link sent — check your inbox.</p>
+            : (
+              <>
+                {error && <div className="mb-3"><Err>{error}</Err></div>}
+                <button onClick={resendLink} disabled={busy}
+                  className="w-full bg-[#7C3AED] hover:bg-[#6D28D9] text-white font-semibold rounded-xl px-4 py-2.5 text-sm disabled:opacity-60">
+                  {busy ? 'Sending…' : 'Send me a fresh link'}
+                </button>
+              </>
+            )}
+        </>
+      )}
+
+      {step === 1 && hasSession && (
         <>
           <h2 className="text-lg font-bold text-[#1E0A5C] mb-1">Welcome{invite ? `, ${invite.name}` : ''}</h2>
           <p className="text-sm text-[#7B6FA0] mb-5">Choose a password to get started. You will use it with {invite?.email ?? 'your email address'}.</p>

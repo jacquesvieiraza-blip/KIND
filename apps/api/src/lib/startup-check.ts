@@ -61,6 +61,7 @@ const REQUIRED_VARS: VarSpec[] = [
 
   // App URLs
   { key: 'PORTAL_URL',                level: 'important', description: 'Portal URL — used in email links and CORS' },
+  { key: 'ADMIN_URL',                 level: 'optional',  description: 'Vida console URL — only used to build the "counter-sign this partner" link in an alert email (R42). Unset falls back to the production console, so the email still works; set it on staging so the link does not point at production.' },
 
   // WhatsApp (optional until approved)
   { key: 'WHATSAPP_TOKEN',            level: 'optional',  description: 'WhatsApp Cloud API — Vida chatbot (apply at developers.facebook.com)' },

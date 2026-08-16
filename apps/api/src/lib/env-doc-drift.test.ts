@@ -65,9 +65,13 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // Pinned so a silent collapse in the scanner (an exclusion that eats a whole tree, a
     // stripper regression) shows up as a failure rather than as a suspiciously clean sweep.
     // A scanner that finds NOTHING passes every "is it documented?" assertion below.
-    expect(ALL.size).toBe(100)
-    expect(API_VARS.length).toBe(83)
-    expect(doc()).toContain('**100 distinct variables**')
+    // 100 → 101 (16 Aug, R42): ADMIN_URL, read only to build the "counter-sign this
+    // partner" link in the alert email. Documented in ENVIRONMENT.md and given a tier in
+    // startup-check in the same change — an undocumented variable is precisely the drift
+    // this file exists to catch, and it caught this one.
+    expect(ALL.size).toBe(101)
+    expect(API_VARS.length).toBe(84)
+    expect(doc()).toContain('**101 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {

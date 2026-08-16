@@ -20,7 +20,9 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { runIcpJob } from './icps'
 import { adminKeyValid } from './admin'
 import { sendFounderAlert } from '../lib/alerts'
-import { partnerDocuments } from '../lib/partner-documents'
+import { partnerDocuments, type PartnerDocument } from '../lib/partner-documents'
+import { sendCountersignAlert, sendPartnerLiveEmail } from '../lib/partner-invite-email'
+import { writeOperatorAudit } from '../lib/operator-audit'
 import { RATES } from '../lib/comp-engine'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -450,17 +452,16 @@ partnersRouter.get('/documents', requireAuth, async (req: AuthRequest, res: Resp
 
     if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
 
-    res.json({
-      documents: partnerDocuments({
-        seatType: partner.seat_type,
-        retainRate: partner.retain_rate,
-        name: partner.name,
-        address: partner.address,
-        country: partner.country,
-        phone: partner.phone,
-        dated: String(partner.created_at ?? '').slice(0, 10) || null,
-      }),
+    const generated = partnerDocuments({
+      seatType: partner.seat_type,
+      retainRate: partner.retain_rate,
+      name: partner.name,
+      address: (partner as { address?: string }).address,
+      country: (partner as { country?: string }).country,
+      phone: (partner as { phone?: string }).phone,
+      dated: String(partner.created_at ?? '').slice(0, 10) || null,
     })
+    res.json({ documents: await withSignedSnapshots((partner as { id?: string }).id ?? '', generated) })
   } catch (err) {
     console.error('[partners/documents]', err)
     res.status(500).json({ error: 'Failed to load documents' })
@@ -491,19 +492,277 @@ partnersRouter.get('/admin/:partnerId/documents', requireAdminKey, async (req: R
 
     res.json({
       partner: { id: partner.id, name: partner.name, email: partner.email, seat_type: partner.seat_type },
-      documents: partnerDocuments({
+      documents: await withSignedSnapshots(partner.id, partnerDocuments({
         seatType: partner.seat_type,
         retainRate: partner.retain_rate,
         name: partner.name,
-        address: partner.address,
-        country: partner.country,
-        phone: partner.phone,
+        address: (partner as { address?: string }).address,
+        country: (partner as { country?: string }).country,
+        phone: (partner as { phone?: string }).phone,
         dated: String(partner.created_at ?? '').slice(0, 10) || null,
-      }),
+      })),
     })
   } catch (err) {
     console.error('[partners/admin/documents]', err)
     res.status(500).json({ error: 'Failed to load documents' })
+  }
+})
+
+/**
+ * Replace generated bodies with what was actually SIGNED, wherever a signature exists.
+ *
+ * The pack is generated from the billing constants — correct right up to the moment somebody
+ * signs, and wrong for ever afterwards. If a rate moved, a regenerated document would silently
+ * change under an existing signature and nobody could prove what was agreed. So once a
+ * snapshot exists it is the document, and the live generator never speaks for it again.
+ */
+async function withSignedSnapshots(partnerId: string, docs: PartnerDocument[]): Promise<PartnerDocument[]> {
+  const { data, error } = await db
+    .from('partner_signed_documents')
+    .select('doc_id, doc_version, body_snapshot, signed_name, signed_role, signed_at')
+    .eq('partner_id', partnerId)
+  // Pre-migration the table does not exist. A pack with live bodies is the honest fallback —
+  // there cannot be a signature to honour if there is nowhere to have stored one.
+  if (error || !data?.length) return docs
+
+  const byDoc = new Map<string, { body_snapshot: string; doc_version: string; signed_name: string; signed_role: string; signed_at: string }[]>()
+  for (const row of data as any[]) {
+    if (!byDoc.has(row.doc_id)) byDoc.set(row.doc_id, [])
+    byDoc.get(row.doc_id)!.push(row)
+  }
+
+  return docs.map(doc => {
+    const rows = byDoc.get(doc.id)
+    if (!rows?.length) return doc
+    const partner = rows.find(r => r.signed_role === 'partner')
+    const company = rows.find(r => r.signed_role === 'company')
+    const source = partner ?? rows[0]
+    return {
+      ...doc,
+      version: source.doc_version,
+      body: source.body_snapshot,
+      signatures: rows.map(r => ({ role: r.signed_role, name: r.signed_name, at: r.signed_at })),
+      fullyExecuted: !!partner && !!company,
+    } as PartnerDocument & { signatures: unknown; fullyExecuted: boolean }
+  })
+}
+
+// ── THE ONBOARDING FLOW (R42) ─────────────────────────────────────────────────
+//
+// invite → she completes her pack → she signs → he counter-signs → live. Every state change
+// is one of the routes below, and the referral code stays dead until the last one.
+
+/** Her own seat, resolved from the auth session. Tolerates the pre-migration shape. */
+async function seatForUser(userId: string) {
+  const { data: userResp } = await (db as any).auth.admin.getUserById(userId)
+  const email = userResp?.user?.email
+  if (!email) return null
+  const cols = 'id, name, email, seat_type, retain_rate, address, country, phone, payout_details, onboarding_state, referral_code, created_at'
+  let { data, error } = await db.from('partners').select(cols).eq('email', normaliseSeatEmail(email)).maybeSingle()
+  if (error) {
+    ;({ data } = await db.from('partners').select('id, name, email, seat_type, retain_rate, created_at')
+      .eq('email', normaliseSeatEmail(email)).maybeSingle())
+  }
+  return data ?? null
+}
+
+// GET /partners/invite/:token — who is this invite for? The token is the credential here
+// because she has no account yet; it stops being one the moment she sets a password.
+partnersRouter.get('/invite/:token', async (req: Request, res: Response) => {
+  try {
+    const { data: partner, error } = await db
+      .from('partners')
+      .select('name, email, onboarding_state')
+      .eq('invite_token', req.params.token)
+      .maybeSingle()
+
+    // An expired or already-used link gets a real answer, never a dead end — the lesson of
+    // the reset screen that 404'd for the whole life of the product (16 Aug).
+    if (error || !partner) {
+      res.status(404).json({ success: false, error: 'This invitation link is not valid any more. Ask for a new one and it will arrive in a moment.' })
+      return
+    }
+    res.json({ success: true, data: { name: partner.name, email: partner.email, state: partner.onboarding_state } })
+  } catch (err) {
+    console.error('[partners/invite]', err)
+    res.status(500).json({ success: false, error: 'Could not check that invitation' })
+  }
+})
+
+// PUT /partners/me/pack — she fills in her own details. This is the step that used to be the
+// operator typing a person's address for them.
+partnersRouter.put('/me/pack', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const seat = await seatForUser(req.userId!)
+    if (!seat) { res.status(404).json({ success: false, error: 'Not a partner account' }); return }
+
+    const b = (req.body ?? {}) as Record<string, unknown>
+    const address = String(b.address ?? '').trim()
+    const country = String(b.country ?? '').trim()
+    const phone = String(b.phone ?? '').trim()
+    const payoutMethod = String(b.payout_method ?? '').trim()
+    const payoutAccount = String(b.payout_account ?? '').trim()
+    const invoiceName = String(b.invoice_name ?? '').trim()
+
+    if (!address || !country || !phone) {
+      res.status(400).json({ success: false, error: 'Your address, country and mobile number are all needed — your agreement is written from them.' }); return
+    }
+    if (!payoutMethod || !payoutAccount || !invoiceName) {
+      res.status(400).json({ success: false, error: 'We need to know how to pay you: a method, the account details, and the name to invoice from.' }); return
+    }
+
+    const { error } = await db.from('partners').update({
+      address, country, phone,
+      payout_details: { method: payoutMethod, account: payoutAccount, invoice_name: invoiceName },
+      // Only advance an invited seat. A live partner editing their address must NOT be
+      // knocked back into onboarding — and must not lose their referral code by doing it.
+      ...(seat.onboarding_state === 'invited' ? { onboarding_state: 'pack_pending' } : {}),
+    }).eq('id', seat.id)
+
+    if (error) { res.status(500).json({ success: false, error: `Could not save your details: ${error.message}` }); return }
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[partners/me/pack]', err)
+    res.status(500).json({ success: false, error: 'Could not save your details' })
+  }
+})
+
+// POST /partners/me/sign — she signs one document. The body she signed is FROZEN here.
+partnersRouter.post('/me/sign', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const seat = await seatForUser(req.userId!)
+    if (!seat) { res.status(404).json({ success: false, error: 'Not a partner account' }); return }
+
+    const { doc_id, signed_name } = (req.body ?? {}) as { doc_id?: string; signed_name?: string }
+    const typed = String(signed_name ?? '').trim()
+    if (!typed) { res.status(400).json({ success: false, error: 'Type your full name to sign.' }); return }
+
+    const pack = partnerDocuments({
+      seatType: seat.seat_type, retainRate: seat.retain_rate, name: seat.name,
+      address: seat.address, country: seat.country, phone: seat.phone,
+      dated: String(seat.created_at ?? '').slice(0, 10) || null,
+    })
+    const doc = pack.find(d => d.id === doc_id && d.signatureRequired)
+    if (!doc) { res.status(400).json({ success: false, error: 'That is not a document you can sign.' }); return }
+
+    // ⚠️ THE SNAPSHOT IS THE POINT. The pack is generated from the billing constants, which is
+    // right up to the moment of signing and wrong for ever after: a rate change must never
+    // alter a document somebody has already signed. What she signed is copied verbatim here.
+    const { error } = await db.from('partner_signed_documents').insert({
+      partner_id: seat.id,
+      doc_id: doc.id,
+      doc_version: doc.version,
+      body_snapshot: doc.body,
+      signed_name: typed,
+      signed_role: 'partner',
+    })
+    if (error && !/duplicate key|unique constraint/i.test(error.message)) {
+      res.status(500).json({ success: false, error: `Could not record your signature: ${error.message}` }); return
+    }
+
+    // All three signed → it is his turn. Nothing is live yet.
+    const required = pack.filter(d => d.signatureRequired).map(d => d.id)
+    const { data: signed } = await db.from('partner_signed_documents')
+      .select('doc_id').eq('partner_id', seat.id).eq('signed_role', 'partner')
+    const done = new Set((signed ?? []).map((r: { doc_id: string }) => r.doc_id))
+    const allSigned = required.every(id => done.has(id))
+
+    if (allSigned && seat.onboarding_state !== 'active') {
+      await db.from('partners').update({ onboarding_state: 'awaiting_countersign' }).eq('id', seat.id)
+      try {
+        await sendCountersignAlert({
+          partnerName: seat.name ?? seat.email ?? 'A partner',
+          vidaUrl: `${process.env.ADMIN_URL || 'https://kindadmin-production.up.railway.app'}/vida/partners`,
+        })
+      } catch (e) { console.error('[partners/sign] countersign alert failed:', e) }
+    }
+
+    res.json({ success: true, data: { all_signed: allSigned, signed: [...done] } })
+  } catch (err) {
+    console.error('[partners/me/sign]', err)
+    res.status(500).json({ success: false, error: 'Could not record your signature' })
+  }
+})
+
+// POST /partners/admin/:partnerId/countersign — HE signs, and only then does the seat go live.
+partnersRouter.post('/admin/:partnerId/countersign', requireAdminKey, async (req: Request, res: Response) => {
+  try {
+    const { signed_name } = (req.body ?? {}) as { signed_name?: string }
+    const typed = String(signed_name ?? '').trim()
+    if (!typed) { res.status(400).json({ success: false, error: 'Type your full name to counter-sign.' }); return }
+
+    const { data: seat, error: seatErr } = await db.from('partners')
+      .select('id, name, email, referral_code, seat_type, retain_rate, address, country, phone, created_at, onboarding_state')
+      .eq('id', req.params.partnerId).maybeSingle()
+    if (seatErr || !seat) { res.status(404).json({ success: false, error: 'Seat not found' }); return }
+
+    // She signs first. Counter-signing an unsigned pack would produce a half-executed
+    // agreement and a live referral code with nothing behind it.
+    const { data: hers } = await db.from('partner_signed_documents')
+      .select('doc_id').eq('partner_id', seat.id).eq('signed_role', 'partner')
+    const pack = partnerDocuments({
+      seatType: seat.seat_type, retainRate: seat.retain_rate, name: seat.name,
+      address: seat.address, country: seat.country, phone: seat.phone,
+      dated: String(seat.created_at ?? '').slice(0, 10) || null,
+    })
+    const required = pack.filter(d => d.signatureRequired)
+    const done = new Set((hers ?? []).map((r: { doc_id: string }) => r.doc_id))
+    if (!required.every(d => done.has(d.id))) {
+      res.status(409).json({ success: false, error: 'They have not signed everything yet — you cannot counter-sign first.' }); return
+    }
+
+    for (const doc of required) {
+      await db.from('partner_signed_documents').insert({
+        partner_id: seat.id, doc_id: doc.id, doc_version: doc.version,
+        body_snapshot: doc.body, signed_name: typed, signed_role: 'company',
+      })
+    }
+
+    const { error: upErr } = await db.from('partners')
+      .update({ onboarding_state: 'active' }).eq('id', seat.id)
+    if (upErr) { res.status(500).json({ success: false, error: `Counter-signed, but the seat did not go live: ${upErr.message}` }); return }
+
+    let liveEmailSent = false
+    try {
+      liveEmailSent = await sendPartnerLiveEmail({
+        name: seat.name ?? '', email: seat.email ?? '',
+        referralLink: `https://get-kind.com?ref=${seat.referral_code}`,
+        portalUrl: `${process.env.PORTAL_URL || 'https://app.get-kind.com'}/dashboard/client-partner`,
+      })
+    } catch (e) { console.error('[partners/countersign] live email failed:', e) }
+
+    await writeOperatorAudit({
+      operatorEmail: String(req.headers['x-operator-email'] ?? 'unknown-operator'),
+      clientId: null, action: 'client_partner_countersigned',
+      subjectType: 'partner', subjectId: seat.id,
+      detail: { signed_name: typed, live_email_sent: liveEmailSent },
+    })
+
+    res.json({ success: true, data: { onboarding_state: 'active', live_email_sent: liveEmailSent } })
+  } catch (err) {
+    console.error('[partners/countersign]', err)
+    res.status(500).json({ success: false, error: 'Could not counter-sign' })
+  }
+})
+
+// POST /partners/admin/:partnerId/archive — the exit. Never a delete: commission history has
+// to survive, and a deleted partner with paid commissions is an orphaned money record.
+partnersRouter.post('/admin/:partnerId/archive', requireAdminKey, async (req: Request, res: Response) => {
+  try {
+    const { error } = await db.from('partners')
+      .update({ onboarding_state: 'archived', archived_at: new Date().toISOString() })
+      .eq('id', req.params.partnerId)
+    if (error) { res.status(500).json({ success: false, error: `Could not archive: ${error.message}` }); return }
+
+    await writeOperatorAudit({
+      operatorEmail: String(req.headers['x-operator-email'] ?? 'unknown-operator'),
+      clientId: null, action: 'client_partner_archived',
+      subjectType: 'partner', subjectId: req.params.partnerId, detail: {},
+    })
+    res.json({ success: true })
+  } catch (err) {
+    console.error('[partners/archive]', err)
+    res.status(500).json({ success: false, error: 'Could not archive' })
   }
 })
 
@@ -512,13 +771,29 @@ partnersRouter.get('/admin/:partnerId/documents', requireAdminKey, async (req: R
 partnersRouter.get('/ref/:code', async (req: Request, res: Response) => {
   try {
     const { code } = req.params
-    const { data: partner, error } = await db
+    // ⚠️ THE MONEY GATE (R42, 16 Aug). A referral code is what attributes a paying client to
+    // a partner, so this is the line that decides whether an unsigned partner can earn.
+    // Founder: "they sign. i recieve docs i sign and they then go live on partner."
+    let { data: partner, error } = await db
       .from('partners')
-      .select('name, company, status')
+      .select('name, company, status, onboarding_state')
       .eq('referral_code', code)
-      .single()
+      .maybeSingle()
 
-    if (error || !partner || partner.status !== 'active') {
+    if (error) {
+      // The column arrives with 20260816_partner_onboarding_flow. Between deploy and "Run
+      // migrations" it does not exist — and failing CLOSED here would switch off every
+      // working referral code on the strength of an unrun migration. Fall back to the old
+      // shape and treat it as the grandfathered 'active'.
+      ;({ data: partner, error } = await db
+        .from('partners')
+        .select('name, company, status')
+        .eq('referral_code', code)
+        .maybeSingle())
+    }
+
+    const state = (partner as { onboarding_state?: string } | null)?.onboarding_state ?? 'active'
+    if (error || !partner || partner.status !== 'active' || state !== 'active') {
       res.json({ valid: false })
       return
     }

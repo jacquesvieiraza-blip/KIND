@@ -25,6 +25,8 @@ export type OperatorAction =
                             // trader) read on the board as "nothing happening" — the one
                             // reading that sends somebody hunting a bug in the wrong place.
   | 'client_partner_seat_created'  // R40 — a Client Partner seat was created from Vida.
+  | 'client_partner_countersigned' // R42 — the founder counter-signed; THIS is what makes a seat live and its referral code resolve.
+  | 'client_partner_archived'     // R42 — a seat was archived (never deleted: commission history has to survive).
                             // Audited because it mints a login that can read commission
                             // money, and because the seat carries its own pay rate.
   | 'send_now'              // forced a due send

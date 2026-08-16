@@ -6,7 +6,7 @@
 
 ## The number
 
-**100 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **83** read by the API, **17** read only by the portal or the admin app.
+**101 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **84** read by the API, **17** read only by the portal or the admin app.
 
 **#561 recorded 69, and that figure was wrong twice over.** The first was method: a `process.env.X` grep cannot see the **12 variables this repo reaches by indirection** —
 
@@ -71,6 +71,7 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `INBOX_SECRET_KEY` | api | 🟠 important | Mailbox password key (64 hex) — unset = saved SMTP passwords cannot be read, so NOTHING sends and the add-mailbox form refuses | Railway → **@kind/api** |
 | `PDL_API_KEY` | api | 🟠 important | People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads | Railway → **@kind/api** |
 | `PORTAL_URL` | api | 🟠 important | Portal URL — used in email links and CORS | Railway → **@kind/api** |
+| `ADMIN_URL` | api | ⚪ optional | Vida console URL, used only for the "counter-sign this partner" link in the R42 alert email. Unset falls back to the production console — the email still works, it just always points at production, which is why staging should set it. | Railway → **@kind/api** |
 | `RESEND_WEBHOOK_SECRET` | api | 🟠 important | Resend inbound webhook — unset = client replies rejected (no reply capture) | Railway → **@kind/api** |
 | `STRIPE_PRICE_FIGSY_100` | api | 🟠 important | Stripe price ID — FIGSY 100 bundle | Railway → **@kind/api** |
 | `STRIPE_PRICE_FIGSY_20` | api | 🟠 important | Stripe price ID — FIGSY 20 bundle | Railway → **@kind/api** |

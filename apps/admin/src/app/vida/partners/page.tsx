@@ -26,6 +26,7 @@ type Partner = {
   commission_rate?: number | null
   referral_code: string | null
   country?: string | null
+  onboarding_state?: string | null
   status: string | null
   referral_count?: number | null
 }
@@ -39,6 +40,21 @@ type PartnerDoc = {
   summary: string
   body: string
   live?: boolean
+}
+
+// R42 — where a seat is in the flow. 'active' is also what every LEGACY row reads, because
+// the migration defaults to it: those partners predate this flow and must not be switched off.
+const STATE_LABEL: Record<string, { label: string; cls: string }> = {
+  invited:              { label: 'Invited',          cls: 'bg-[#eef2f7] text-[#5c5279]' },
+  pack_pending:         { label: 'Completing pack',  cls: 'bg-[#f3ecff] text-[#7C3AED]' },
+  awaiting_countersign: { label: 'Awaiting you',     cls: 'bg-[#fff6e5] text-[#7a4b00]' },
+  active:               { label: 'Live',             cls: 'bg-emerald-50 text-emerald-700' },
+  archived:             { label: 'Archived',         cls: 'bg-[#f1f1f4] text-[#8b8b95]' },
+}
+
+function StatePill({ state }: { state?: string | null }) {
+  const s = STATE_LABEL[state ?? 'active'] ?? STATE_LABEL.active
+  return <span className={`inline-block text-[10.5px] font-bold rounded-full px-2.5 py-1 ${s.cls}`}>{s.label}</span>
 }
 
 function pct(v: number | null | undefined, fallback: number): string {
@@ -57,12 +73,12 @@ export default function VidaPartnersPage() {
   // the operator was actually looking, like a button that did nothing at all.
   const [docsError, setDocsError] = useState<string | null>(null)
   const [openDoc, setOpenDoc] = useState<PartnerDoc | null>(null)
+  const [showArchived, setShowArchived] = useState(false)
+  const [countersignName, setCountersignName] = useState('')
+  const [actionBusy, setActionBusy] = useState<string | null>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
-  const [address, setAddress] = useState('')
-  const [country, setCountry] = useState('')
-  const [phone, setPhone] = useState('')
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
@@ -95,29 +111,61 @@ export default function VidaPartnersPage() {
     setDocsBusy(null)
   }
 
+  // R42 — THE ONLY THING THAT MAKES A SEAT LIVE. Until this runs, her referral code does not
+  // resolve, so an unsigned partner cannot land a client.
+  async function countersign(seat: Partner) {
+    if (!countersignName.trim()) { setDocsError('Type your full name to counter-sign.'); return }
+    setActionBusy(seat.id); setDocsError(null)
+    try {
+      const res = await fetch(`/api/proxy/partners/admin/${seat.id}/countersign`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ signed_name: countersignName.trim() }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!json?.success) throw new Error(json?.error || `Could not counter-sign (${res.status})`)
+      setCountersignName(''); setDocsFor(null); void load()
+    } catch (e) {
+      setDocsError(e instanceof Error ? e.message : 'Could not counter-sign')
+    }
+    setActionBusy(null)
+  }
+
+  // Archive, never delete: a partner who has ever earned has commission rows, and deleting the
+  // seat would orphan them.
+  async function archive(seat: Partner) {
+    setActionBusy(seat.id); setDocsError(null)
+    try {
+      const res = await fetch(`/api/proxy/partners/admin/${seat.id}/archive`, { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      if (!json?.success) throw new Error(json?.error || `Could not archive (${res.status})`)
+      void load()
+    } catch (e) {
+      setDocsError(e instanceof Error ? e.message : 'Could not archive')
+    }
+    setActionBusy(null)
+  }
+
   async function createSeat() {
-    // Every one of these lands in the contracts. A seat created without them generates an
-    // agreement carrying [ADDRESS] and [COUNTRY], which somebody then fills in by hand — the
-    // exact thing this form exists to prevent.
-    if (!name.trim() || !email.trim() || !address.trim() || !country.trim() || !phone.trim()) {
-      setMsg({ ok: false, text: 'Name, email, address, country and mobile are all required — the contracts are generated from them.' }); return
+    // R42 — name and email are all HE needs. She supplies her own address, mobile and payout
+    // details when she completes her pack, because she is the one who knows them.
+    if (!name.trim() || !email.trim()) {
+      setMsg({ ok: false, text: 'A name and an email address are both required.' }); return
     }
     setBusy(true); setMsg(null)
     try {
       const res = await fetch('/api/proxy/operator/seats/client-partner', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(), email: email.trim(),
-          address: address.trim(), country: country.trim(), phone: phone.trim(),
-        }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
       })
       const json = await res.json().catch(() => ({}))
       if (!json?.success) throw new Error(json?.error || `Seat not created (${res.status})`)
       setMsg({
         ok: true,
-        text: `Seat created — referral code ${json.data.referral_code}. She sets her own password with "forgot password" on the portal sign-in page.`,
+        text: json.data.invite_sent
+          ? `Invited — referral code ${json.data.referral_code}. She completes her own details and signs; it comes back to you to counter-sign before the seat goes live.`
+          : `Seat created (code ${json.data.referral_code}) BUT THE INVITE EMAIL DID NOT SEND. She has not been told. Send her the link yourself or remove the seat.`,
       })
-      setName(''); setEmail(''); setAddress(''); setCountry(''); setPhone('')
+      setName(''); setEmail('')
       void load()
     } catch (e) {
       setMsg({ ok: false, text: e instanceof Error ? e.message : 'Seat not created' })
@@ -125,8 +173,11 @@ export default function VidaPartnersPage() {
     setBusy(false)
   }
 
-  const seats = partners ?? []
+  const all = partners ?? []
+  const seats = showArchived ? all : all.filter(p => p.onboarding_state !== 'archived')
+  const archivedCount = all.filter(p => p.onboarding_state === 'archived').length
   const clientPartners = seats.filter(p => p.seat_type === 'client_partner')
+  const awaiting = all.filter(p => p.onboarding_state === 'awaiting_countersign')
 
   return (
     <div className="h-full overflow-y-auto px-6 py-6">
@@ -138,11 +189,19 @@ export default function VidaPartnersPage() {
 
         {error && <div className="mt-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</div>}
 
+        {awaiting.length > 0 && (
+          <div className="mt-3 text-sm text-[#7a4b00] bg-[#fff6e5] border border-[#f5d9a0] rounded-xl px-4 py-3">
+            <strong>{awaiting.length} seat{awaiting.length === 1 ? '' : 's'} awaiting your signature.</strong>{' '}
+            {awaiting.map(a => a.name || a.email).join(', ')} — they have signed everything. Open their pack below and
+            counter-sign; nothing of theirs is live until you do.
+          </div>
+        )}
+
         {/* ── create a seat ─────────────────────────────────────────────── */}
         <div className="mt-5 bg-white border border-[#ece5fb] rounded-2xl overflow-hidden">
           <div className="px-5 py-3.5 border-b border-[#f3eefe] flex items-center gap-2 flex-wrap">
             <span className="text-sm font-bold text-[#1f1235]">New Client Partner seat</span>
-            <span className="ml-auto text-[12px] text-[#9b8ec4]">20% land · 8% retain · own network only</span>
+            <span className="ml-auto text-[12px] text-[#9b8ec4]">invite only · nothing is live until both sides sign</span>
           </div>
           <div className="p-5 flex flex-wrap gap-3 items-end">
             <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
@@ -155,21 +214,7 @@ export default function VidaPartnersPage() {
               <input value={email} onChange={e => setEmail(e.target.value)} placeholder="name@example.com"
                 className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[230px]" />
             </label>
-            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
-              Address
-              <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Street, city, postcode"
-                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[260px]" />
-            </label>
-            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
-              Country
-              <input value={country} onChange={e => setCountry(e.target.value)} placeholder="South Africa"
-                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[170px]" />
-            </label>
-            <label className="text-[12px] text-[#7c6f9b] flex flex-col gap-1">
-              Mobile
-              <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="+27 ..."
-                className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[170px]" />
-            </label>
+
             <button onClick={createSeat} disabled={busy}
               className="text-sm font-bold text-white bg-[#7C3AED] rounded-lg px-4 py-2 disabled:opacity-50">
               {busy ? 'Creating…' : 'Create seat'}
@@ -179,8 +224,8 @@ export default function VidaPartnersPage() {
             )}
           </div>
           <div className="px-5 pb-4 text-[12px] text-[#9b8ec4]">
-            Creating a seat mints a login that can read commission money — it is written to the audit log.
-            Her contracts are generated from these details, so nothing is filled in by hand afterwards.
+            Creating a seat emails an invitation. She sets her own password, fills in her details and payout
+            method, then signs — and the seat only goes live when you counter-sign below. Written to the audit log.
           </div>
         </div>
 
@@ -191,6 +236,12 @@ export default function VidaPartnersPage() {
             <span className="ml-auto text-[11px] font-bold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">
               {clientPartners.length} client partner{clientPartners.length === 1 ? '' : 's'} · {seats.length} total
             </span>
+            {archivedCount > 0 && (
+              <button onClick={() => setShowArchived(v => !v)}
+                className="text-[11.5px] font-semibold text-[#9b8ec4] hover:text-[#5c5279] hover:underline">
+                {showArchived ? 'Hide' : 'Show'} {archivedCount} archived
+              </button>
+            )}
           </div>
 
           {!partners && !error && <p className="px-5 py-6 text-sm text-[#9b8ec4]">Loading…</p>}
@@ -218,6 +269,7 @@ export default function VidaPartnersPage() {
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Referral code</th>
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Land</th>
                     <th className="text-right px-5 py-2.5 border-b border-[#f3eefe]">Retain</th>
+                    <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Onboarding</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Status</th>
                     <th className="text-left px-5 py-2.5 border-b border-[#f3eefe]">Documents</th>
                   </tr>
@@ -245,6 +297,7 @@ export default function VidaPartnersPage() {
                         <td className="px-5 py-3 border-b border-[#f6f2fd] text-right tabular-nums font-semibold text-[#0b7a55]">
                           {pct(p.retain_rate, 0.05)}
                         </td>
+                        <td className="px-5 py-3 border-b border-[#f6f2fd]"><StatePill state={p.onboarding_state} /></td>
                         <td className="px-5 py-3 border-b border-[#f6f2fd]">
                           <span className={`inline-block text-[10.5px] font-bold rounded-full px-2.5 py-1 ${
                             p.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-[#efeafc] text-[#5c5279]'}`}>
@@ -256,6 +309,12 @@ export default function VidaPartnersPage() {
                             className="text-[12.5px] font-bold text-[#7C3AED] hover:underline disabled:opacity-50">
                             {docsBusy === p.id ? 'Opening…' : 'Open pack'}
                           </button>
+                          {p.onboarding_state !== 'archived' && (
+                            <button onClick={() => archive(p)} disabled={actionBusy === p.id}
+                              className="ml-3 text-[12.5px] text-[#9b8ec4] hover:text-[#5c5279] hover:underline disabled:opacity-50">
+                              {actionBusy === p.id ? '…' : 'Archive'}
+                            </button>
+                          )}
                         </td>
                       </tr>
                     )
@@ -298,9 +357,35 @@ export default function VidaPartnersPage() {
                 </div>
               ))}
             </div>
-            <div className="px-5 py-3.5 text-[12px] text-[#9b8ec4] border-t border-[#f3eefe]">
+            {/* R42 — the counter-signature. This is the last gate before a referral code works. */}
+            {docsFor.seat.onboarding_state === 'awaiting_countersign' ? (
+              <div className="px-5 py-4 border-t border-[#f3eefe] bg-[#fffdf7]">
+                <p className="text-[13px] font-bold text-[#7a4b00] mb-1">They have signed. Your signature makes this live.</p>
+                <p className="text-[12px] text-[#9b8ec4] mb-3">
+                  Read their signed copies above first — those are frozen exactly as they signed them.
+                  Counter-signing activates their referral code and emails them their link.
+                </p>
+                <div className="flex flex-wrap gap-3 items-center">
+                  <input value={countersignName} onChange={e => setCountersignName(e.target.value)}
+                    placeholder="Type your full name"
+                    className="text-sm border border-[#ece5fb] rounded-lg px-3 py-2 min-w-[230px]" />
+                  <button onClick={() => countersign(docsFor.seat)} disabled={actionBusy === docsFor.seat.id}
+                    className="text-sm font-bold text-white bg-[#7C3AED] rounded-lg px-4 py-2 disabled:opacity-50">
+                    {actionBusy === docsFor.seat.id ? 'Signing…' : 'Counter-sign and go live'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-5 py-3.5 text-[12px] text-[#9b8ec4] border-t border-[#f3eefe]">
+                {docsFor.seat.onboarding_state === 'active'
+                  ? 'This seat is live — its referral code resolves and it can be paid.'
+                  : 'Nothing here is live yet. They must complete their pack and sign before you can counter-sign.'}
+              </div>
+            )}
+
+            <div className="px-5 pb-4 text-[12px] text-[#9b8ec4]">
               These are drafts written by Claude Code, not by a lawyer, and are not legal advice —
-              each document says so in its own text. Signed copies are not stored here yet.
+              each document says so in its own text.
             </div>
           </div>
         )}

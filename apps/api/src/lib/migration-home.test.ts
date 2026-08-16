@@ -97,7 +97,12 @@ describe('① every migration has a canonical file', () => {
     // two findings above were arguing for. It carries address/country/phone so a partner's
     // contract is TAILORED when the seat is created rather than hand-filled afterwards —
     // the founder's review of the pack: "i should not need to fill anything out."
-    expect(runnerKeys).toHaveLength(20)
+    //
+    // 21 from 16 Aug — `20260816_partner_onboarding_flow` (R42). Same shape again: file and
+    // entry written together. It carries the states that decide whether a referral code
+    // resolves at all, so a .sql sitting unrun here would mean a partner who has signed
+    // everything still cannot go live.
+    expect(runnerKeys).toHaveLength(21)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -134,8 +139,10 @@ describe('② a copy that can drift is the disease, not the cure', () => {
     // +1 (20260806_audit_columns, #637/#641) = 131; +1 (20260815_client_partner_seat,
     // R40 — the Client Partner seat + commission types + the #351 unique) = 132;
     // +1 (20260816_partner_contact_details, #202 — address/country/phone, so the document
-    // pack is tailored at seat creation instead of carrying [ADDRESS] placeholders) = 133.
-    expect(sqlFiles(CANON)).toHaveLength(133)
+    // pack is tailored at seat creation instead of carrying [ADDRESS] placeholders) = 133;
+    // +1 (20260816_partner_onboarding_flow, R42 — the invite→sign→counter-sign states and
+    // the frozen signed-document table) = 134.
+    expect(sqlFiles(CANON)).toHaveLength(134)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

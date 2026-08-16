@@ -6,6 +6,7 @@ import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { MAX_SEQUENCE_STEPS } from '@kind/shared'
 import { namesPerApproval } from '../lib/money-path-math'
+import { sendPartnerInvite } from '../lib/partner-invite-email'
 import { coldView } from '../lib/cold-client'
 import type { InboxRow } from '../lib/sending-inbox'
 
@@ -971,27 +972,17 @@ operatorRouter.post('/sequence/suggest', async (req: Request, res: Response) => 
 // is what every access check keys on: this seat can never reach sourcing or lead tools.
 operatorRouter.post('/seats/client-partner', async (req: Request, res: Response) => {
   try {
-    const { name, email, company, address, country, phone } = (req.body ?? {}) as {
-      name?: string; email?: string; company?: string; address?: string; country?: string; phone?: string
+    // ⛓️ 16 Aug — CREATION IS NOW AN INVITE, NOT A COMPLETED RECORD (R42). It used to demand
+    // address, country and mobile here, which meant the OPERATOR typed a person's own details
+    // for them. The founder's flow inverts that: "they then sign up and complete their
+    // information pack." She knows her own address; he should only need her name and email.
+    const { name, email, company } = (req.body ?? {}) as {
+      name?: string; email?: string; company?: string
     }
     const cleanEmail = String(email ?? '').trim().toLowerCase()
     const cleanName = String(name ?? '').trim()
-    // Captured HERE because this is the only moment anyone is filling a form about this
-    // person. The document pack interpolates them straight into the party line and the date,
-    // so a seat created without them produces a contract carrying [ADDRESS] — which is why
-    // they are required rather than optional (founder, 16 Aug: "i should not need to fill
-    // anything out").
-    const cleanAddress = String(address ?? '').trim()
-    const cleanCountry = String(country ?? '').trim()
-    const cleanPhone = String(phone ?? '').trim()
     if (!cleanName || !cleanEmail || !cleanEmail.includes('@')) {
       res.status(400).json({ success: false, error: 'A name and a real email address are required.' }); return
-    }
-    if (!cleanAddress || !cleanCountry || !cleanPhone) {
-      res.status(400).json({
-        success: false,
-        error: 'An address, a country and a mobile number are required — the contracts are generated from them.',
-      }); return
     }
 
     // One seat per address — the identity fix (#370) is worthless if two seats can share an
@@ -1017,28 +1008,74 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
 
     const base = cleanName.toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) || 'partner'
     const referral_code = `${base}${Math.random().toString(36).slice(2, 6)}`
+    // The invite link's credential. Long and random because it is the only thing standing
+    // between the internet and the start of somebody's onboarding; it stops being the
+    // credential the moment she sets a password (auth takes over from there).
+    const inviteToken = `${Math.random().toString(36).slice(2)}${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
 
     const { data: seat, error: seatErr } = await db.from('partners').insert({
       name: cleanName,
       email: cleanEmail,
       company: String(company ?? '').trim() || null,
-      address: cleanAddress,
-      country: cleanCountry,
-      phone: cleanPhone,
       seat_type: 'client_partner',
       commission_rate: RATES.PARTNER_ACQUISITION,
       retain_rate: RATES.CLIENT_PARTNER_RETENTION,
       referral_code,
       status: 'active',
-    }).select('id, name, email, referral_code, seat_type, retain_rate, country').single()
+      // R42 — the seat exists, the code exists, and NEITHER earns anything yet. `invited` is
+      // what /partners/ref/:code refuses to resolve, so an unsigned partner cannot land a
+      // client. Existing rows default to 'active' in the migration and are untouched.
+      onboarding_state: 'invited',
+      invite_token: inviteToken,
+      invite_sent_at: new Date().toISOString(),
+    }).select('id, name, email, referral_code, seat_type, retain_rate, onboarding_state').single()
 
     if (seatErr || !seat) {
       res.status(500).json({ success: false, error: `Seat not created: ${seatErr?.message ?? 'unknown error'}` }); return
     }
 
+    // The invite. Before this existed, a seat was created and the person was never told —
+    // she could only get in via a "forgot password" nobody had mentioned to her.
+    //
+    // ⚠️ THE LINK MUST CARRY A SESSION, NOT JUST A PAGE. Fable's verification caught the
+    // first version of this dead on arrival: the onboarding page's very first step calls
+    // `updateUser({ password })`, which requires an EXISTING session — and an invitee has
+    // none, because her auth user was created with a random password nobody is ever told.
+    // She would have been stuck on screen one with "Auth session missing", and no test
+    // could see it, because every test here reads source rather than walking the flow.
+    //
+    // So the button is a Supabase RECOVERY action link that redirects through
+    // `/auth/callback?next=…` — the handler that already exchanges the code for cookies and
+    // already honours `next`. She lands on the onboarding page signed in, and step one works.
+    const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
+    const packPath = `/partner-onboarding?token=${inviteToken}`
+    let inviteUrl = `${portalUrl}${packPath}`
+    let inviteCarriesSession = false
+    try {
+      const { data: link, error: linkErr } = await (db as any).auth.admin.generateLink({
+        type: 'recovery',
+        email: cleanEmail,
+        options: { redirectTo: `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}` },
+      })
+      const actionLink = link?.properties?.action_link
+      if (!linkErr && actionLink) { inviteUrl = actionLink; inviteCarriesSession = true }
+      else console.warn('[operator/seats] no action link generated:', linkErr?.message)
+    } catch (e) {
+      console.error('[operator/seats] generateLink threw:', e)
+    }
+    let inviteSent = false
+    try {
+      inviteSent = await sendPartnerInvite({ name: cleanName, email: cleanEmail, inviteUrl })
+    } catch (e) {
+      // A failed email must not roll back the seat — the operator can resend. But it must be
+      // REPORTED, or he believes she was told when she was not.
+      console.error('[operator/seats] invite email failed:', e)
+    }
+
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'client_partner_seat_created',
-      subjectType: 'partner', subjectId: seat.id, detail: { email: cleanEmail, retain_rate: seat.retain_rate },
+      subjectType: 'partner', subjectId: seat.id,
+      detail: { email: cleanEmail, retain_rate: seat.retain_rate, invite_sent: inviteSent, invite_carries_session: inviteCarriesSession },
     })
 
     res.json({
@@ -1046,7 +1083,13 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
       data: {
         ...seat,
         user_created: !!userId,
-        next: 'She sets her own password with the "forgot password" link on the portal sign-in page. Her documents are uploaded to this seat from Vida.',
+        invite_sent: inviteSent,
+        invite_carries_session: inviteCarriesSession,
+        next: !inviteSent
+          ? 'SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND. Send her the invite link yourself, or delete the seat and try again.'
+          : inviteCarriesSession
+            ? 'Invite emailed. She sets her own password, completes her details, and signs — then it comes back to you to counter-sign before the seat goes live.'
+            : 'Invite emailed, BUT the sign-in link could not be generated — her link opens the page without signing her in, so she will have to use "send me a fresh link" on it. Worth checking the API logs.',
       },
     })
   } catch (err) {

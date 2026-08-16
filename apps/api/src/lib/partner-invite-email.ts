@@ -13,12 +13,53 @@ import { Resend } from 'resend'
 //   2. sendCountersignAlert    → him: she has signed, it is your turn
 //   3. sendPartnerLiveEmail    → her: you are live, here is your link
 //
-// Every one returns a BOOLEAN rather than throwing, and the caller records what actually
-// happened. A silent email failure on this path means somebody is waiting for a message that
-// is never coming, and neither side knows.
+// Every one reports WHAT ACTUALLY HAPPENED and the caller records it. A silent email failure
+// on this path means somebody is waiting for a message that is never coming, and neither side
+// knows.
+//
+// ⚠️ 16 Aug — THIS FILE SHIPPED WITH THE EXACT BUG IT CLAIMED TO PREVENT. The first version
+// called `await resend.emails.send(...)` and then `return true`. Resend does NOT throw when it
+// rejects a send — an unverified sender, a bad address or a rate limit come back as
+// `{ data: null, error }` in the RETURN VALUE. So the boolean meant "we called the API and it
+// did not crash", never "the email was accepted", and the founder created a seat, was told
+// "Invited", and no email existed anywhere.
+//
+// `alerts.ts` in this same codebase already did it correctly, with a comment spelling out the
+// trap: "supabase-js-style clients and Resend RETURN their error — they don't throw it." One
+// helper below is now the only place any of these emails are sent, so there is one thing to
+// get right instead of three.
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const PARTNERS_FROM = 'K.I.N.D Partners <partners@get-kind.com>'
+
+export type SendResult = { ok: boolean; error?: string }
+
+/**
+ * The ONE place these emails are actually sent. Reads Resend's returned error rather than
+ * assuming silence means success, and reports the reason so an operator is never told
+ * "invited" about an email that does not exist.
+ */
+async function send(fn: string, to: string, subject: string, html: string): Promise<SendResult> {
+  if (!resend) return { ok: false, error: 'RESEND_API_KEY is not set on the API' }
+  try {
+    const { data, error } = await resend.emails.send({ from: PARTNERS_FROM, to, subject, html })
+    if (error) {
+      const reason = (error as { message?: string })?.message ?? JSON.stringify(error)
+      console.error(`[${fn}] Resend REJECTED the send to ${to}:`, reason)
+      return { ok: false, error: reason }
+    }
+    if (!data?.id) {
+      // Accepted with no id is not a send we can claim happened.
+      console.error(`[${fn}] Resend returned no message id for ${to}`)
+      return { ok: false, error: 'Resend returned no message id' }
+    }
+    return { ok: true }
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e)
+    console.error(`[${fn}] send threw for ${to}:`, reason)
+    return { ok: false, error: reason }
+  }
+}
 
 /** The house style already used by the approved-partner email — kept identical on purpose. */
 function shell(headline: string, body: string): string {
@@ -38,13 +79,9 @@ function button(href: string, label: string): string {
   return `<a href="${href}" style="display:inline-block;background:#7C3AED;color:#fff;font-size:0.9rem;font-weight:600;padding:12px 24px;border-radius:8px;text-decoration:none">${label}</a>`
 }
 
-export async function sendPartnerInvite(o: { name: string; email: string; inviteUrl: string }): Promise<boolean> {
-  if (!resend) return false
-  await resend.emails.send({
-    from: PARTNERS_FROM,
-    to: o.email,
-    subject: 'Your K.I.N.D Client Partner invitation',
-    html: shell(`Hi ${o.name}, welcome aboard.`, `
+export async function sendPartnerInvite(o: { name: string; email: string; inviteUrl: string }): Promise<SendResult> {
+  return send('partner-invite', o.email, 'Your K.I.N.D Client Partner invitation',
+    shell(`Hi ${o.name}, welcome aboard.`, `
       <p style="font-size:0.95rem;color:#444;margin:0 0 20px">
         You have been invited to join K.I.N.D as a <strong>Client Partner</strong>. Setting up
         takes a few minutes: choose a password, tell us where to send your money, then read and
@@ -58,19 +95,15 @@ export async function sendPartnerInvite(o: { name: string; email: string; invite
       <p style="font-size:0.82rem;color:#888;margin:0;border-top:1px solid #f0f0f0;padding-top:16px">
         This link is personal to you. If it stops working, reply to this email and we will send
         a new one.
-      </p>`),
-  })
-  return true
+      </p>`))
 }
 
-export async function sendCountersignAlert(o: { partnerName: string; vidaUrl: string }): Promise<boolean> {
+export async function sendCountersignAlert(o: { partnerName: string; vidaUrl: string }): Promise<SendResult> {
   const founderEmail = process.env.FOUNDER_EMAIL
-  if (!resend || !founderEmail) return false
-  await resend.emails.send({
-    from: PARTNERS_FROM,
-    to: founderEmail,
-    subject: `${o.partnerName} has signed — your counter-signature is the last step`,
-    html: shell('Awaiting your signature', `
+  if (!founderEmail) return { ok: false, error: 'FOUNDER_EMAIL is not set on the API' }
+  return send('countersign-alert', founderEmail,
+    `${o.partnerName} has signed — your counter-signature is the last step`,
+    shell('Awaiting your signature', `
       <p style="font-size:0.95rem;color:#444;margin:0 0 20px">
         <strong>${o.partnerName}</strong> has completed their information pack and signed all
         three documents.
@@ -79,18 +112,12 @@ export async function sendCountersignAlert(o: { partnerName: string; vidaUrl: st
         Nothing is live until you counter-sign: their referral code does not resolve, so they
         cannot land a client yet.
       </p>
-      <p style="margin:0">${button(o.vidaUrl, 'Review and counter-sign →')}</p>`),
-  })
-  return true
+      <p style="margin:0">${button(o.vidaUrl, 'Review and counter-sign →')}</p>`))
 }
 
-export async function sendPartnerLiveEmail(o: { name: string; email: string; referralLink: string; portalUrl: string; sandboxReady?: boolean }): Promise<boolean> {
-  if (!resend) return false
-  await resend.emails.send({
-    from: PARTNERS_FROM,
-    to: o.email,
-    subject: "You're live — your K.I.N.D referral link is ready",
-    html: shell(`${o.name}, you're live.`, `
+export async function sendPartnerLiveEmail(o: { name: string; email: string; referralLink: string; portalUrl: string; sandboxReady?: boolean }): Promise<SendResult> {
+  return send('partner-live', o.email, "You're live — your K.I.N.D referral link is ready",
+    shell(`${o.name}, you're live.`, `
       <p style="font-size:0.95rem;color:#444;margin:0 0 20px">
         Both signatures are in and your seat is active. Anyone who signs up through your link
         is attributed to you from this moment.
@@ -110,7 +137,5 @@ export async function sendPartnerLiveEmail(o: { name: string; email: string; ref
         version of the product, loaded with example leads, so you can show somebody exactly what
         they would be buying instead of describing it.
       </p>` : ''}
-      <p style="margin:0">${button(o.portalUrl, 'Open your portal →')}</p>`),
-  })
-  return true
+      <p style="margin:0">${button(o.portalUrl, 'Open your portal →')}</p>`))
 }

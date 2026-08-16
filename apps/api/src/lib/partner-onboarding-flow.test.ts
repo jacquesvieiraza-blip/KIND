@@ -115,14 +115,21 @@ describe('the invite actually lets her IN — Fable verification, 16 Aug', () =>
   const page = read('apps/portal/src/app/partner-onboarding/page.tsx')
 
   it('the invite link is a Supabase action link, not a bare page URL', () => {
+    // ⛓️ RE-POINTED 16 Aug (later the same day). This pinned `type: 'recovery'`, which was the
+    // mechanism at the time and was WRONG: it emailed a password-recovery link to somebody who
+    // had never had a password. The founder named it — "a partner should recieve the link. and
+    // sign up. not have to set a new password. they would never know." The link is now
+    // generated as an INVITE, with recovery kept only as the fallback for an address that
+    // already has an account. What this test protects is unchanged: the email must carry a
+    // link that establishes a session, not a bare page URL.
     expect(seatRoute.slice(0, 8000)).toContain('generateLink(')
-    expect(seatRoute.slice(0, 8000)).toMatch(/type: 'recovery'/)
+    expect(seatRoute.slice(0, 8000)).toMatch(/\['invite', 'recovery'\] as const/)
     expect(seatRoute.slice(0, 8000)).toContain('properties?.action_link')
     // ⚠️ AND THE RESULT IS ACTUALLY USED. Asserting only that generateLink is CALLED is a
     // placebo — a red proof that disabled the assignment left every check above green while
     // the emailed link quietly went back to the dead page URL. What matters is that the
     // action link becomes the link she is actually sent.
-    expect(seatRoute.slice(0, 8000)).toMatch(/if \(!linkErr && actionLink\) \{ inviteUrl = actionLink/)
+    expect(seatRoute.slice(0, 8000)).toMatch(/if \(!linkErr && actionLink\) \{ inviteUrl = actionLink; inviteCarriesSession = true; break \}/)
   })
 
   it('and it returns through the callback that exchanges the code — not straight to the page', () => {
@@ -174,8 +181,11 @@ describe('the person is actually told — three emails, none of them silent', ()
   it('creating a seat sends the invitation', () => {
     expect(emails).toContain('export async function sendPartnerInvite')
     const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"))
-    expect(seatRoute.slice(0, 6000)).toContain('sendPartnerInvite(')
-    expect(seatRoute.slice(0, 6000)).toContain('invite_token: inviteToken')
+    // ⛓️ WINDOW WIDENED 16 Aug: removing the pre-created throwaway account and adding the
+    // invite/recovery loop moved these further down the route. The assertions are unchanged —
+    // only the slice that has to reach them.
+    expect(seatRoute.slice(0, 9000)).toContain('sendPartnerInvite(')
+    expect(seatRoute.slice(0, 9000)).toContain('invite_token: inviteToken')
   })
 
   it('the invite link carries the token — without it the page cannot identify her', () => {

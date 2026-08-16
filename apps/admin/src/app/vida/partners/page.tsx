@@ -31,6 +31,7 @@ type Partner = {
   // console (R40 — her network is hers). Seeing that someone has gone quiet needs a number,
   // not an address book.
   ramp_summary?: string | null
+  invite_sent_at?: string | null
   status: string | null
   referral_count?: number | null
 }
@@ -80,6 +81,9 @@ export default function VidaPartnersPage() {
   const [showArchived, setShowArchived] = useState(false)
   const [countersignName, setCountersignName] = useState('')
   const [actionBusy, setActionBusy] = useState<string | null>(null)
+  // The invite link, kept where the operator can copy it. An email that does not arrive used
+  // to be a dead end — she cannot reach the "send me a fresh link" screen without a link.
+  const [inviteLink, setInviteLink] = useState<{ id: string; url: string; sent: boolean; error?: string } | null>(null)
 
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -149,6 +153,20 @@ export default function VidaPartnersPage() {
     setActionBusy(null)
   }
 
+  async function resendInvite(seat: Partner) {
+    setActionBusy(seat.id); setDocsError(null)
+    try {
+      const res = await fetch(`/api/proxy/partners/admin/${seat.id}/resend-invite`, { method: 'POST' })
+      const json = await res.json().catch(() => ({}))
+      if (!json?.success) throw new Error(json?.error || `Could not resend (${res.status})`)
+      setInviteLink({ id: seat.id, url: json.data.invite_url, sent: json.data.sent, error: json.data.error })
+      void load()
+    } catch (e) {
+      setDocsError(e instanceof Error ? e.message : 'Could not resend the invitation')
+    }
+    setActionBusy(null)
+  }
+
   async function createSeat() {
     // R42 — name and email are all HE needs. She supplies her own address, mobile and payout
     // details when she completes her pack, because she is the one who knows them.
@@ -167,8 +185,11 @@ export default function VidaPartnersPage() {
         ok: true,
         text: json.data.invite_sent
           ? `Invited — referral code ${json.data.referral_code}. She completes her own details and signs; it comes back to you to counter-sign before the seat goes live.`
-          : `Seat created (code ${json.data.referral_code}) BUT THE INVITE EMAIL DID NOT SEND. She has not been told. Send her the link yourself or remove the seat.`,
+          : `Seat created (code ${json.data.referral_code}) BUT THE INVITE EMAIL DID NOT SEND${json.data.invite_error ? ` — ${json.data.invite_error}` : ''}. She has not been told. Copy the link below and send it to her yourself.`,
       })
+      if (json.data.invite_url) {
+        setInviteLink({ id: json.data.id, url: json.data.invite_url, sent: !!json.data.invite_sent, error: json.data.invite_error })
+      }
       setName(''); setEmail('')
       void load()
     } catch (e) {
@@ -232,6 +253,27 @@ export default function VidaPartnersPage() {
             method, then signs — and the seat only goes live when you counter-sign below. Written to the audit log.
           </div>
         </div>
+
+        {/* ── the invite link — the door that does not depend on email ────── */}
+        {inviteLink && (
+          <div className={`mt-3 rounded-2xl px-5 py-4 border ${inviteLink.sent ? 'bg-[#f6fbf8] border-[#cfe9dc]' : 'bg-[#fff6e5] border-[#f5d9a0]'}`}>
+            <p className="text-[13px] font-bold text-[#1f1235]">
+              {inviteLink.sent ? 'Invitation emailed — and here is the same link' : 'The email did NOT send — use this link'}
+            </p>
+            {inviteLink.error && <p className="text-[12px] text-[#7a4b00] mt-0.5">Reason: {inviteLink.error}</p>}
+            <p className="text-[12px] text-[#7c6f9b] mt-1 mb-2">
+              Send it to her yourself (WhatsApp is fine). It signs her in and opens her onboarding.
+            </p>
+            <div className="flex gap-2 flex-wrap items-center">
+              <input readOnly value={inviteLink.url} onFocus={e => e.currentTarget.select()}
+                className="flex-1 min-w-[260px] text-[12px] font-mono border border-[#ece5fb] rounded-lg px-3 py-2 bg-white" />
+              <button onClick={() => { void navigator.clipboard?.writeText(inviteLink.url) }}
+                className="text-[12.5px] font-bold text-white bg-[#7C3AED] rounded-lg px-3.5 py-2">Copy</button>
+              <button onClick={() => setInviteLink(null)}
+                className="text-[12.5px] font-bold text-[#9b8ec4] hover:text-[#1f1235]">Dismiss</button>
+            </div>
+          </div>
+        )}
 
         {/* ── the seats ─────────────────────────────────────────────────── */}
         <div className="mt-4 bg-white border border-[#ece5fb] rounded-2xl overflow-hidden">
@@ -315,6 +357,13 @@ export default function VidaPartnersPage() {
                             className="text-[12.5px] font-bold text-[#7C3AED] hover:underline disabled:opacity-50">
                             {docsBusy === p.id ? 'Opening…' : 'Open pack'}
                           </button>
+                          {p.onboarding_state === 'invited' && (
+                            <button onClick={() => resendInvite(p)} disabled={actionBusy === p.id}
+                              className="ml-3 text-[12.5px] font-bold text-[#7C3AED] hover:underline disabled:opacity-50"
+                              title={p.invite_sent_at ? `Last sent ${new Date(p.invite_sent_at).toLocaleString('en-GB')}` : undefined}>
+                              {actionBusy === p.id ? '…' : 'Resend invite'}
+                            </button>
+                          )}
                           {p.onboarding_state !== 'archived' && (
                             <button onClick={() => archive(p)} disabled={actionBusy === p.id}
                               className="ml-3 text-[12.5px] text-[#9b8ec4] hover:text-[#5c5279] hover:underline disabled:opacity-50">

@@ -994,17 +994,15 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
 
     const { RATES } = await import('../lib/comp-engine')
 
-    let userId: string | null = null
-    const { data: userData, error: userErr } = await db.auth.admin.createUser({
-      email: cleanEmail, email_confirm: true,
-      password: `Kp${Math.random().toString(36).slice(2, 12)}!${Math.random().toString(36).slice(2, 6)}`,
-    })
-    if (userErr) {
-      // An existing auth user is fine — she may already have signed in somewhere.
-      console.warn('[operator/seats] auth user not created (may already exist):', userErr.message)
-    } else {
-      userId = userData.user?.id ?? null
-    }
+    // ⚠️ NO ACCOUNT IS PRE-CREATED WITH A THROWAWAY PASSWORD. The first version made an auth
+    // user with a random password nobody was ever told, then emailed a password-RECOVERY link
+    // — a reset flow wearing an invitation's clothes. The founder's words (16 Aug): "a partner
+    // should recieve the link. and sign up. not have to set a new password. they would never
+    // know." An invited person has never had a password; there is nothing to recover.
+    //
+    // The account is created BY the invitation itself, further down, so the link they receive
+    // is a genuine invite and choosing a password IS signing up.
+    const userId: string | null = null
 
     const base = cleanName.toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) || 'partner'
     const referral_code = `${base}${Math.random().toString(36).slice(2, 6)}`
@@ -1049,33 +1047,50 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
     // already honours `next`. She lands on the onboarding page signed in, and step one works.
     const portalUrl = process.env.PORTAL_URL || 'https://app.get-kind.com'
     const packPath = `/partner-onboarding?token=${inviteToken}`
+    const redirectTo = `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}`
     let inviteUrl = `${portalUrl}${packPath}`
     let inviteCarriesSession = false
-    try {
-      const { data: link, error: linkErr } = await (db as any).auth.admin.generateLink({
-        type: 'recovery',
-        email: cleanEmail,
-        options: { redirectTo: `${portalUrl}/auth/callback?next=${encodeURIComponent(packPath)}` },
-      })
-      const actionLink = link?.properties?.action_link
-      if (!linkErr && actionLink) { inviteUrl = actionLink; inviteCarriesSession = true }
-      else console.warn('[operator/seats] no action link generated:', linkErr?.message)
-    } catch (e) {
-      console.error('[operator/seats] generateLink threw:', e)
+
+    // AN INVITATION, NOT A RECOVERY. `type: 'invite'` creates the auth account as part of
+    // generating the link, which is what an invitation actually is. Recovery stays only as the
+    // fallback for an address that ALREADY has an account (she signed up for something else
+    // before, or the seat is being re-invited) — there, a recovery link is the correct
+    // primitive, because an account with a password really is being recovered.
+    for (const linkType of ['invite', 'recovery'] as const) {
+      try {
+        const { data: link, error: linkErr } = await (db as any).auth.admin.generateLink({
+          type: linkType, email: cleanEmail, options: { redirectTo },
+        })
+        const actionLink = link?.properties?.action_link
+        if (!linkErr && actionLink) { inviteUrl = actionLink; inviteCarriesSession = true; break }
+        console.warn(`[operator/seats] ${linkType} link not generated:`, linkErr?.message)
+      } catch (e) {
+        console.error(`[operator/seats] generateLink(${linkType}) threw:`, e)
+      }
     }
+    // A failed email must not roll back the seat — it can be resent. But it must be REPORTED
+    // WITH ITS REASON, or the operator believes she was told when she was not. That is exactly
+    // what happened on 16 Aug: "Invited" on screen, no email anywhere, and the reason thrown
+    // away by a sender that never read Resend's response.
     let inviteSent = false
+    let inviteError: string | undefined
     try {
-      inviteSent = await sendPartnerInvite({ name: cleanName, email: cleanEmail, inviteUrl })
+      const r = await sendPartnerInvite({ name: cleanName, email: cleanEmail, inviteUrl })
+      inviteSent = r.ok
+      inviteError = r.error
     } catch (e) {
-      // A failed email must not roll back the seat — the operator can resend. But it must be
-      // REPORTED, or he believes she was told when she was not.
-      console.error('[operator/seats] invite email failed:', e)
+      inviteError = e instanceof Error ? e.message : String(e)
+      console.error('[operator/seats] invite email failed:', inviteError)
     }
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'client_partner_seat_created',
       subjectType: 'partner', subjectId: seat.id,
-      detail: { email: cleanEmail, retain_rate: seat.retain_rate, invite_sent: inviteSent, invite_carries_session: inviteCarriesSession },
+      detail: {
+        email: cleanEmail, retain_rate: seat.retain_rate,
+        invite_sent: inviteSent, invite_carries_session: inviteCarriesSession,
+        ...(inviteError ? { invite_error: inviteError } : {}),
+      },
     })
 
     res.json({
@@ -1085,8 +1100,10 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
         user_created: !!userId,
         invite_sent: inviteSent,
         invite_carries_session: inviteCarriesSession,
+        invite_url: inviteUrl,
+        invite_error: inviteError,
         next: !inviteSent
-          ? 'SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND. Send her the invite link yourself, or delete the seat and try again.'
+          ? `SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND${inviteError ? ` — ${inviteError}` : ''}. Copy the invite link below and send it to her yourself, or press Resend.`
           : inviteCarriesSession
             ? 'Invite emailed. She sets her own password, completes her details, and signs — then it comes back to you to counter-sign before the seat goes live.'
             : 'Invite emailed, BUT the sign-in link could not be generated — her link opens the page without signing her in, so she will have to use "send me a fresh link" on it. Worth checking the API logs.',

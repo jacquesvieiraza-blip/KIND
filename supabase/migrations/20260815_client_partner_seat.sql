@@ -60,10 +60,27 @@ begin
 end $$;
 
 -- ── the double-pay guard (#351) ─────────────────────────────────────────────────────
--- One commission of each TYPE per partner, per client, per month. Concurrent webhooks now
--- lose at the database rather than both writing.
-create unique index if not exists partner_commissions_once_per_period
-  on public.partner_commissions (partner_id, client_id, period_month, commission_type);
+-- ⛓️ Re-designed during Fable verification (16 Aug), before this ever ran anywhere.
+-- The first design was UNIQUE (partner, client, period, type) — one commission row per
+-- month. But the checkout handler serves wallet TOP-UPS as well as the pack, so a client
+-- can legitimately pay several times in a month, and one-row-per-month silently dropped
+-- the retain on every payment after the first: the over-pay became an under-pay.
+--
+-- The real identity of a commission is THE PAYMENT THAT EARNED IT. So:
+--   • one row per Stripe payment, deduped by its reference — a replayed webhook hits the
+--    partial unique below and loses at the database, which is the actual #351 guard;
+--   • months are derived by summing rows per period (the portal already does);
+--   • the landing fee is DB-enforced once per client, ever, by its own partial unique.
+alter table public.partner_commissions
+  add column if not exists stripe_ref text;
+
+create unique index if not exists partner_commissions_once_per_payment
+  on public.partner_commissions (partner_id, stripe_ref)
+  where stripe_ref is not null;
+
+create unique index if not exists partner_commissions_land_once
+  on public.partner_commissions (partner_id, client_id)
+  where commission_type = 'land';
 
 -- Statements are read per seat per month; this is the index that query rides.
 create index if not exists partner_commissions_seat_period

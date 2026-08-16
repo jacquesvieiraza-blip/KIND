@@ -41,7 +41,7 @@ import { RATES, roundUsd } from '../lib/comp-engine'
 //   • `commissionZar = commissionUsd * 19` hard-coded an exchange rate into stored money.
 //     USD is the currency of record; the rand figure is a DISPLAY concern and is no longer
 //     written as though it were a fact (method rule 7).
-async function maybeCreatePartnerCommission(clientId: string, amountUsd: number) {
+async function maybeCreatePartnerCommission(clientId: string, amountUsd: number, stripeRef: string) {
   try {
     const { data: referral } = await db
       .from('partner_referrals')
@@ -77,18 +77,19 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
     const rate = commissionType === 'land' ? landRate : seatRetainRate
     const commissionUsd = roundUsd(amountUsd * rate)
 
-    // Fast path only — the DB unique index (partner_id, client_id, period_month,
-    // commission_type) is what actually prevents a double-pay under concurrency.
+    // ⛓️ Fable verification (16 Aug): the identity of a commission is THE PAYMENT that
+    // earned it, not the month — a client tops the wallet up mid-month and every payment
+    // after the first must STILL pay her retain. One row per Stripe reference; a replayed
+    // webhook is stopped by the partial unique on (partner_id, stripe_ref), and this check
+    // is only the fast path in front of it.
     const { data: existing } = await db
       .from('partner_commissions')
       .select('id')
       .eq('partner_id', referral.partner_id)
-      .eq('client_id', clientId)
-      .eq('period_month', periodMonth)
-      .eq('commission_type', commissionType)
+      .eq('stripe_ref', stripeRef)
       .maybeSingle()
 
-    if (existing) return // Already recorded for this period and type
+    if (existing) return // This exact payment already earned its commission
 
     // #349 — a swallowed failure here is a partner who is never paid. Nothing else
     // recreates this row, so the failure is alerted rather than logged and lost.
@@ -99,6 +100,7 @@ async function maybeCreatePartnerCommission(clientId: string, amountUsd: number)
       amount_usd: commissionUsd,
       commission_type: commissionType,
       period_month: periodMonth,
+      stripe_ref: stripeRef,
       status: 'pending',
     })
     if (commErr) {
@@ -488,7 +490,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           ])
           res.status(500).json({ error: 'wallet credit failed — retry' }); return
         }
-        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
+        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd, session.id)
         // #445 — sourcing-allowance accrual, k=2: +2 records of PDL budget per $1 collected.
         const { error: allowErr } = await db.rpc('add_sourcing_allowance', { p_client_id: clientId, p_records: Math.round(amountUsd * 2), p_trial: false })
         if (allowErr) {
@@ -622,7 +624,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         const bundleList = STRIPE_BUNDLES[creditType as 'lead_gen' | 'figsy'] as readonly { credits: number; price: number }[]
         const bundle = bundleList.find(b => b.credits === credits)
         const amountUsd = bundle?.price ?? 0
-        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd)
+        if (amountUsd > 0) void maybeCreatePartnerCommission(clientId, amountUsd, session.id)
 
         // #445 — sourcing-allowance accrual. THIS is the ONLY place a paid client's
         // PDL budget grows: coverage k=2 → +2 records of sourcing allowance per $1
@@ -833,7 +835,7 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
           // Look up USD price from STRIPE_SUBSCRIPTIONS by product name
           const subConfig = Object.values(STRIPE_SUBSCRIPTIONS).find(s => s.product === sub.product)
           const amountUsd = subConfig?.priceUsd ?? 0
-          if (amountUsd > 0) void maybeCreatePartnerCommission(sub.client_id, amountUsd)
+          if (amountUsd > 0) void maybeCreatePartnerCommission(sub.client_id, amountUsd, String((invoice as { id?: string }).id ?? invoice.subscription ?? 'renewal'))
         }
       }
     }

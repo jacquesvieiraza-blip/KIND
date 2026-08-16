@@ -59,13 +59,27 @@ describe('#351 — 20% is paid ONCE, then the seat rate, and never twice', () =>
     // the old bug: one rate on every payment
     expect(stripe).not.toMatch(/const commissionRate = Number\(partner\.commission_rate\) \|\| 0\.20\n\s*const commissionUsd = amountUsd \* commissionRate/)
   })
-  it('THE DATABASE is the guard against a double-pay, not just the app check', () => {
-    expect(migration).toMatch(/create unique index if not exists partner_commissions_once_per_period/)
-    expect(migration).toMatch(/\(partner_id, client_id, period_month, commission_type\)/)
+  // ⛓️ Fable verification, 16 Aug: the first design was one-row-per-MONTH, which silently
+  // dropped the retain on every wallet top-up after a month's first payment — the over-pay
+  // became an under-pay. A commission's identity is THE PAYMENT that earned it.
+  // RED PROOF: remove `stripe_ref` from the insert → "every payment carries its ref" fails.
+  it('THE DATABASE is the guard against a replayed webhook — one row per PAYMENT', () => {
+    expect(migration).toMatch(/create unique index if not exists partner_commissions_once_per_payment/)
+    expect(migration).toMatch(/\(partner_id, stripe_ref\)/)
+    expect(migration).not.toMatch(/once_per_period/)   // the month-keyed design must not return
   })
-  it('the unique key includes TYPE — month one legitimately holds a land AND a retain row', () => {
-    const idx = migration.slice(migration.indexOf('partner_commissions_once_per_period'))
-    expect(idx).toContain('commission_type')
+  it('a SECOND payment in the same month still earns retain — dedupe is by ref, never by month', () => {
+    const fn = stripe.slice(stripe.indexOf('async function maybeCreatePartnerCommission'))
+    expect(fn).toContain(".eq('stripe_ref', stripeRef)")
+    expect(fn).not.toMatch(/\.eq\('period_month', periodMonth\)\s*\n\s*\.eq\('commission_type'/)
+  })
+  it('every payment carries its ref, and every call site passes one', () => {
+    expect(stripe).toContain('stripe_ref: stripeRef')
+    expect((stripe.match(/maybeCreatePartnerCommission\([^)]+,\s*[^)]+,\s*[^)]+\)/g) ?? []).length).toBeGreaterThanOrEqual(3)
+  })
+  it('the landing fee is DB-enforced ONCE PER CLIENT, ever — its own partial unique', () => {
+    expect(migration).toMatch(/partner_commissions_land_once/)
+    expect(migration).toMatch(/where commission_type = 'land'/)
   })
   it('a duplicate-key error is treated as the guard working, not as a lost payout', () => {
     expect(stripe).toMatch(/isDuplicate/)
@@ -141,7 +155,7 @@ describe('the migration lives in BOTH homes (O3) — only the runner ever execut
   })
   it('the runner copy carries the real statements, not a stub', () => {
     const entry = runner.slice(runner.indexOf("key: '20260815_client_partner_seat'"))
-    expect(entry).toContain('partner_commissions_once_per_period')
+    expect(entry).toContain('partner_commissions_once_per_payment')
     expect(entry).toContain('client_partner')
   })
   it('it is idempotent — running it twice must not fail', () => {

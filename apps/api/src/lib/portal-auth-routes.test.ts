@@ -114,6 +114,25 @@ describe('a Client Partner can reach her own portal', () => {
     expect(existsSync(join(APP, '(dashboard)/dashboard/client-partner'))).toBe(false)
   })
 
+  it('a seat holder is never left standing in the CLIENT console', () => {
+    // The walk: she opened /dashboard/leads, the middleware rewrote it to /milla (it cannot
+    // tell her apart without a lookup), and she landed in the client console being told about
+    // her $299 pack. Nothing leaked — the API resolves the client from her token, so the page
+    // could only say "Client not found" — but R40 keeps her off client surfaces entirely.
+    const milla = readFileSync(join(APP, '(milla)/layout.tsx'), 'utf8')
+    expect(milla).toContain('/partners/me')
+    expect(milla).toContain("'/dashboard/client-partner'")
+    expect(milla).toContain("'/dashboard/partner'")
+  })
+
+  it('and Milla only redirects on a CONFIRMED-empty client lookup, never a failed one', () => {
+    // Treating a query error as "no account" is what caused the documented onboard⇄dashboard
+    // loop. Someone who IS a client (including anyone who is also a partner) must never be
+    // moved off Milla.
+    const milla = readFileSync(join(APP, '(milla)/layout.tsx'), 'utf8')
+    expect(milla).toMatch(/if \(!clientRow && !error\)/)
+  })
+
   it('the seat shell renders no client money and no sourcing tool', () => {
     const shell = readFileSync(join(APP, '(seat)/layout.tsx'), 'utf8')
     const code = shell.split('\n').filter(l => !/^\s*(\*|\/\*|\/\/)/.test(l)).join('\n')

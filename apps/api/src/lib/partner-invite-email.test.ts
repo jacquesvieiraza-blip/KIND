@@ -85,6 +85,56 @@ describe('a sender reports only what Resend actually accepted', () => {
   })
 })
 
+describe('it is an INVITATION, not a password reset in disguise', () => {
+  // Founder, 16 Aug: "a partner should recieve the link. and sign up. not have to set a new
+  // password. they would never know."
+  //
+  // The mechanism was wrong, not just the wording: seat creation made an auth account with a
+  // random password nobody was ever told, then emailed a RECOVERY link. An invited person has
+  // never had a password here, so there is nothing to recover — and the first thing they were
+  // asked to do was recover it.
+  const operator = readFileSync(join(REPO, 'apps/api/src/routes/operator.ts'), 'utf8')
+  const routes = readFileSync(join(REPO, 'apps/api/src/routes/partners.ts'), 'utf8')
+  const page = readFileSync(join(REPO, 'apps/portal/src/app/partner-onboarding/page.tsx'), 'utf8')
+  const seatRoute = operator.slice(operator.indexOf("operatorRouter.post('/seats/client-partner'"), operator.indexOf("operatorRouter.post('/seats/client-partner'") + 12000)
+
+  it('NO account is pre-created with a throwaway password', () => {
+    // The random password was the tell: an account nobody can sign into, needing recovery.
+    expect(seatRoute).not.toMatch(/auth\.admin\.createUser\(/)
+    expect(seatRoute).not.toMatch(/password: `Kp\$\{Math\.random/)
+  })
+
+  it('the link is generated as an INVITE, and recovery is only the fallback', () => {
+    expect(seatRoute).toMatch(/\['invite', 'recovery'\] as const/)
+    // order matters: invite must be tried first, or an existing-account path would win
+    expect(seatRoute.indexOf("'invite'")).toBeLessThan(seatRoute.indexOf("'recovery'"))
+  })
+
+  it('and it STOPS at the first link that works — it does not overwrite a good invite', () => {
+    const loop = seatRoute.slice(seatRoute.indexOf("for (const linkType of"))
+    expect(loop.slice(0, 900)).toMatch(/inviteCarriesSession = true; break/)
+  })
+
+  it('the resend path invites the same way — not one door invite and the other recovery', () => {
+    const resend = routes.slice(routes.indexOf("partnersRouter.post('/admin/:partnerId/resend-invite'"))
+    expect(resend.slice(0, 3000)).toMatch(/\['invite', 'recovery'\] as const/)
+  })
+
+  it('the page asks her to CREATE a password — never to reset or recover one', () => {
+    // ⚠️ Comments stripped first. The block carries a comment explaining that this is NOT a
+    // recovery, and the word "recovering" inside it failed the assertion — a check that
+    // forbids you from describing what you fixed is a bad check (the same lesson as the
+    // audit pins that matched their own explanatory comments).
+    const raw = page.slice(page.indexOf('step === 1 && hasSession'), page.indexOf('step === 2 || step === 3'))
+    const step1 = raw.split('\n').filter(l => {
+      const t = l.trim()
+      return !t.startsWith('//') && !t.startsWith('*') && !t.startsWith('{/*') && !t.startsWith('/*')
+    }).join('\n')
+    expect(step1).toMatch(/Create a password/)
+    expect(step1).not.toMatch(/reset|recover|Choose a password to get started/i)
+  })
+})
+
 describe('the operator is told WHY, and always has a way in', () => {
   const operator = read('apps/api/src/routes/operator.ts')
   const routes = read('apps/api/src/routes/partners.ts')

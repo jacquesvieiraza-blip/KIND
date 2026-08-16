@@ -338,14 +338,14 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // `20260806_leads_source`. New migrations land ONLY in the canonical directory — the
     // tombstoned 32 are frozen, so the SECOND number moves in lockstep with the first and
     // their DIFFERENCE (32) is what must never change.
-    expect(sqlDir('supabase/migrations')).toHaveLength(132)   // +1 R40 (20260815_client_partner_seat)
+    expect(sqlDir('supabase/migrations')).toHaveLength(133)   // +1 R40 (20260815_client_partner_seat); +1 16 Aug (20260816_partner_contact_details — the address/country/phone that let a contract be tailored instead of hand-filled)
     const total = MIGRATION_DIRS.reduce((n, d) => n + sqlDir(d).length, 0)
-    expect(total).toBe(164)   // 132 canonical (+1 R40) + 32 tombstoned
+    expect(total).toBe(165)   // 133 canonical (+1 R40, +1 partner contact details) + 32 tombstoned
     expect(total - sqlDir('supabase/migrations').length, 'the 32 tombstoned copies are frozen').toBe(32)
     expect(read('docs/SCHEMA-DRIFT.md')).toContain('the three directories are now one home')
   })
 
-  it('and one runner, which applies seventeen of them', () => {
+  it('and one runner, which applies twenty of them', () => {
     // This is the actual finding. Everything else was pasted into a SQL editor by hand, in
     // an unrecorded order — and that editor cannot be opened any more.
     //
@@ -354,7 +354,7 @@ describe('the shape of the problem is recorded, so it cannot be re-discovered', 
     // string with no file, the mirror image of the same gap. #627 wrote BOTH homes for that
     // reason: the file is the canonical record, this array is what actually runs.
     const keys = read('apps/api/src/lib/pending-migrations.ts').match(/key:\s*'[^']+'/g) ?? []
-    expect(keys.length).toBe(19)   // 12 at #273; +1 #607; +1 #627 (app_settings); +1 #599 (leads_source); +1 #637/#641 (audit_columns); +1 #383 (increment_emails_sent — the .sql existed since 10 Jul and was never in the runner); +1 #316/#372 (pool_atomic — same gap again, .sql from 6 Jul, never in the runner, found by auditing every runtime RPC) +1 #651/R40 (client_partner seat + commission types + the #351 unique).
+    expect(keys.length).toBe(20)   // 12 at #273; +1 #607; +1 #627 (app_settings); +1 #599 (leads_source); +1 #637/#641 (audit_columns); +1 #383 (increment_emails_sent — the .sql existed since 10 Jul and was never in the runner); +1 #316/#372 (pool_atomic — same gap again, .sql from 6 Jul, never in the runner, found by auditing every runtime RPC) +1 #651/R40 (client_partner seat + commission types + the #351 unique); +1 16 Aug #202 (partner_contact_details — address/country/phone, captured at seat creation so no document is ever hand-filled).
   })
 
   it('the three schema snapshots disagree about how many tables exist', () => {

@@ -20,7 +20,7 @@ import { createClient } from '@/lib/supabase/client'
 import { api } from '@/lib/api'
 import { PACK_PRICE_USD } from '@kind/shared'
 import {
-  Loader2, ChevronDown, FileText, ShieldCheck, Wallet, Receipt, Landmark, LogOut,
+  Loader2, ChevronDown, FileText, ShieldCheck, Wallet, Receipt, Landmark, LogOut, X,
 } from 'lucide-react'
 
 type Referral = {
@@ -40,9 +40,22 @@ type Commission = {
   status: string
   paid_at: string | null
 }
+type PartnerDoc = {
+  id: string
+  title: string
+  version: string
+  updated: string
+  signatureRequired: boolean
+  summary: string
+  body: string
+  live?: boolean
+}
 type Me = {
   partner: { id: string; name: string; email: string; referral_code: string; retain_rate: number | null }
   seat_type: string
+  /** Rates travel with the seat so this page never types a percentage (method rule 7). */
+  land_rate?: number
+  retain_rate?: number
   referrals: Referral[]
   commissions: Commission[]
   stats: {
@@ -67,6 +80,8 @@ export default function ClientPartnerPage() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [docs, setDocs] = useState<PartnerDoc[]>([])
+  const [openDoc, setOpenDoc] = useState<PartnerDoc | null>(null)
 
   // Forecaster inputs. The spend figure is an ASSUMPTION and is labelled as one — she
   // cannot see real client spend, so this must never look like a reading of live data.
@@ -82,6 +97,12 @@ export default function ClientPartnerPage() {
         const token = session?.access_token
         const data = await api.get<Me>('/partners/me', token)
         setMe(data)
+        // Her document pack. A failure here must never take down her earnings page — the
+        // menu simply says the documents could not be loaded.
+        try {
+          const pack = await api.get<{ documents: PartnerDoc[] }>('/partners/documents', token)
+          setDocs(pack.documents ?? [])
+        } catch { setDocs([]) }
       } catch {
         setErr('We could not load your earnings just now. Refresh in a moment, or tell us if it keeps happening.')
       } finally {
@@ -90,8 +111,9 @@ export default function ClientPartnerPage() {
     })()
   }, [])
 
-  const retainRate = Number(me?.partner?.retain_rate) || 0
-  const landPerClose = PACK_PRICE_USD * 0.2
+  const retainRate = Number(me?.retain_rate ?? me?.partner?.retain_rate) || 0
+  const landRate = Number(me?.land_rate) || 0
+  const landPerClose = PACK_PRICE_USD * landRate
 
   // Her 8% per client this month, derived from HER commission rows — never from client spend.
   const retainByClient = useMemo(() => {
@@ -140,6 +162,7 @@ export default function ClientPartnerPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-5 pb-24">
+      {openDoc && <DocumentReader doc={openDoc} onClose={() => setOpenDoc(null)} />}
       {/* header + her document vault */}
       <header className="flex items-center gap-4 flex-wrap pt-7 pb-5">
         <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#5b21b6] bg-[#f1ebff] rounded-full px-3 py-1.5">Client Partner</span>
@@ -153,11 +176,24 @@ export default function ClientPartnerPage() {
           {menuOpen && (
             <div className="absolute right-0 top-[calc(100%+8px)] min-w-[292px] bg-white border border-[#e7e2ef] rounded-2xl shadow-xl p-2 z-20">
               <div className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-[#a9a1ba] px-2.5 pt-2 pb-1.5">Your documents</div>
-              <VaultItem icon={<FileText className="w-3.5 h-3.5" />} label="Commission agreement" />
-              <VaultItem icon={<ShieldCheck className="w-3.5 h-3.5" />} label="NDA" />
-              <VaultItem icon={<Wallet className="w-3.5 h-3.5" />} label={`Comp plan — 20% land · ${Math.round(retainRate * 100)}% retain`} />
-              <VaultItem icon={<Receipt className="w-3.5 h-3.5" />} label="Payout statements" />
-              <VaultItem icon={<Landmark className="w-3.5 h-3.5" />} label="Payment & invoice details" />
+              {docs.length === 0 && (
+                <div className="px-2.5 py-2.5 text-[12.5px] text-[#9b8ec4]">Your documents could not be loaded just now.</div>
+              )}
+              {docs.map(d => (
+                <VaultItem
+                  key={d.id}
+                  icon={ICON_FOR[d.id] ?? <FileText className="w-3.5 h-3.5" />}
+                  label={d.title}
+                  note={d.signatureRequired ? 'to sign' : undefined}
+                  onClick={() => {
+                    // A statement is derived from her commission rows, so it is not a document
+                    // to open — it is the table already on this page.
+                    setMenuOpen(false)
+                    if (d.live) { document.getElementById('payout-statements')?.scrollIntoView({ behavior: 'smooth' }); return }
+                    setOpenDoc(d)
+                  }}
+                />
+              ))}
               <div className="h-px bg-[#e7e2ef] my-1.5 mx-1" />
               <VaultItem icon={<LogOut className="w-3.5 h-3.5" />} label="Profile & sign out" />
             </div>
@@ -255,7 +291,7 @@ export default function ClientPartnerPage() {
       </div>
 
       {/* statements */}
-      <h2 className="text-[16px] font-bold text-[#1E0A5C] mt-8 mb-3">Payout statements</h2>
+      <h2 id="payout-statements" className="text-[16px] font-bold text-[#1E0A5C] mt-8 mb-3 scroll-mt-6">Payout statements</h2>
       <div className="overflow-x-auto bg-white border border-[#e7e2ef] rounded-2xl">
         <table className="w-full min-w-[520px] text-[13.5px]">
           <thead>
@@ -335,11 +371,55 @@ function Out({ label, value, sub, hero }: { label: string; value: string; sub?: 
   )
 }
 
-function VaultItem({ icon, label }: { icon: React.ReactNode; label: string }) {
+const ICON_FOR: Record<string, React.ReactNode> = {
+  'commission-agreement': <FileText className="w-3.5 h-3.5" />,
+  'nda':                  <ShieldCheck className="w-3.5 h-3.5" />,
+  'ip-assignment':        <ShieldCheck className="w-3.5 h-3.5" />,
+  'comp-plan':            <Wallet className="w-3.5 h-3.5" />,
+  'payout-statements':    <Receipt className="w-3.5 h-3.5" />,
+  'payment-details':      <Landmark className="w-3.5 h-3.5" />,
+}
+
+function VaultItem({ icon, label, note, onClick }: {
+  icon: React.ReactNode; label: string; note?: string; onClick?: () => void
+}) {
   return (
-    <div className="flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-semibold text-[#1E0A5C] hover:bg-[#faf7ff] cursor-pointer">
+    <button type="button" onClick={onClick}
+      className="w-full text-left flex items-center gap-2.5 px-2.5 py-2.5 rounded-lg text-[13px] font-semibold text-[#1E0A5C] hover:bg-[#faf7ff] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7C3AED]/40">
       <span className="w-6.5 h-6.5 rounded-lg bg-[#f1ebff] text-[#5b21b6] flex items-center justify-center shrink-0 p-1.5">{icon}</span>
-      {label}
+      <span className="flex-1">{label}</span>
+      {note && <span className="text-[10px] font-bold uppercase tracking-wider text-[#b9781f] bg-[#fdf3e2] rounded-full px-2 py-0.5">{note}</span>}
+    </button>
+  )
+}
+
+// The document reader. The body is rendered as the exact text that is stored — no markdown
+// transformation between what a person signs and what a person reads. For a contract that is
+// a feature, not a shortcut.
+function DocumentReader({ doc, onClose }: { doc: PartnerDoc; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 sm:p-8 overflow-y-auto"
+      role="dialog" aria-modal="true" aria-label={doc.title} onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl max-w-3xl w-full my-4" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start gap-3 px-6 py-4 border-b border-[#eee9f7] sticky top-0 bg-white rounded-t-2xl">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-[#1E0A5C] truncate">{doc.title}</h2>
+            <p className="text-[12px] text-[#9b8ec4]">
+              Version {doc.version}{doc.updated ? ` · ${doc.updated}` : ''}{doc.signatureRequired ? ' · needs signing' : ''}
+            </p>
+          </div>
+          <button onClick={onClose} aria-label="Close"
+            className="ml-auto shrink-0 text-[#9b8ec4] hover:text-[#1E0A5C] p-1"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="px-6 py-5">
+          <pre className="whitespace-pre-wrap font-sans text-[13.5px] leading-relaxed text-[#2c2440]">{doc.body}</pre>
+        </div>
+        <div className="px-6 py-4 border-t border-[#eee9f7] flex flex-wrap gap-3 items-center">
+          <button onClick={() => window.print()}
+            className="text-[13px] font-bold text-white bg-[#7C3AED] hover:bg-[#6D28D9] rounded-lg px-4 py-2">Print</button>
+          <span className="text-[12px] text-[#9b8ec4]">Printing gives you a copy to sign and return.</span>
+        </div>
+      </div>
     </div>
   )
 }

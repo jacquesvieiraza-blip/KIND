@@ -680,6 +680,20 @@ create index if not exists partner_commissions_seat_period
   on public.partner_commissions (partner_id, period_month);
 `,
   },
+  {
+    key: '20260816_partner_contact_details',
+    title: 'Partner contact details (address, country, phone) so the document pack is TAILORED at seat creation instead of hand-filled. Founder review 16 Aug: "i should not need to fill anything out." Canonical .sql: supabase/migrations/20260816_partner_contact_details.sql — BOTH HOMES (O3). All nullable: legacy seats keep the bracket placeholder rather than a guessed address.',
+    sql: `
+alter table public.partners
+  add column if not exists address text;
+
+alter table public.partners
+  add column if not exists country text;
+
+alter table public.partners
+  add column if not exists phone text;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

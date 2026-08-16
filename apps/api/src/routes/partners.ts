@@ -20,6 +20,8 @@ import { requireAuth, AuthRequest } from '../middleware/auth'
 import { runIcpJob } from './icps'
 import { adminKeyValid } from './admin'
 import { sendFounderAlert } from '../lib/alerts'
+import { partnerDocuments } from '../lib/partner-documents'
+import { RATES } from '../lib/comp-engine'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM   = 'K.I.N.D <hello@get-kind.com>'
@@ -382,6 +384,13 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
       commissions: allComms,
       deals:       deals || [],
       seat_type:   partner.seat_type ?? 'partner',
+      // The rates travel WITH the seat so no screen has to type a percentage. Her page used
+      // `PACK_PRICE_USD * 0.2` and printed "20% land" as text — correct today, and exactly
+      // the shape that goes wrong the day a rate moves (method rule 7).
+      land_rate:   RATES.PARTNER_ACQUISITION,
+      retain_rate: Number(partner.retain_rate) > 0
+        ? Number(partner.retain_rate)
+        : (partner.seat_type === 'client_partner' ? RATES.CLIENT_PARTNER_RETENTION : RATES.PARTNER_RETENTION),
       stats: {
         total_clients:     (referrals || []).length,
         clients_held:      (referrals || []).filter((r: any) => r.status === 'active').length,
@@ -397,6 +406,79 @@ partnersRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) =
   } catch (err: any) {
     console.error('[partners/me]', err)
     res.status(500).json({ error: err.message })
+  }
+})
+
+// ── THE DOCUMENT PACK (#202) ──────────────────────────────────────────────────
+//
+// Her vault menu named five documents and opened none of them — `VaultItem` was a hover
+// state with no link behind it. These two routes are what put a document behind each label:
+// one for the seat holder reading her own pack, one for the operator reading a seat's pack
+// from Vida.
+//
+// The pack is generated per seat rather than stored per seat, because the rate belongs to
+// the seat (R40: she retains at a different rate to a legacy referral partner) and a stored
+// PDF cannot follow a rate change. A SIGNED copy is a different artefact and is not built
+// yet — see the inventory note on #202.
+
+// GET /partners/documents — the signed-in seat's own pack.
+partnersRouter.get('/documents', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { data: userResp } = await (db as any).auth.admin.getUserById(req.userId!)
+    const userEmail = userResp?.user?.email
+    if (!userEmail) { res.status(401).json({ error: 'Unauthorized' }); return }
+
+    const { data: partner, error } = await db
+      .from('partners')
+      .select('name, seat_type, retain_rate, address, country, phone, created_at')
+      .eq('email', normaliseSeatEmail(userEmail))
+      .maybeSingle()
+
+    if (error || !partner) { res.status(404).json({ error: 'Not a partner account' }); return }
+
+    res.json({
+      documents: partnerDocuments({
+        seatType: partner.seat_type,
+        retainRate: partner.retain_rate,
+        name: partner.name,
+        address: partner.address,
+        country: partner.country,
+        phone: partner.phone,
+        dated: String(partner.created_at ?? '').slice(0, 10) || null,
+      }),
+    })
+  } catch (err) {
+    console.error('[partners/documents]', err)
+    res.status(500).json({ error: 'Failed to load documents' })
+  }
+})
+
+// GET /partners/admin/:partnerId/documents — the same pack, read by an operator in Vida.
+partnersRouter.get('/admin/:partnerId/documents', requireAdminKey, async (req: Request, res: Response) => {
+  try {
+    const { data: partner, error } = await db
+      .from('partners')
+      .select('id, name, email, seat_type, retain_rate, address, country, phone, created_at')
+      .eq('id', req.params.partnerId)
+      .maybeSingle()
+
+    if (error || !partner) { res.status(404).json({ error: 'Seat not found' }); return }
+
+    res.json({
+      partner: { id: partner.id, name: partner.name, email: partner.email, seat_type: partner.seat_type },
+      documents: partnerDocuments({
+        seatType: partner.seat_type,
+        retainRate: partner.retain_rate,
+        name: partner.name,
+        address: partner.address,
+        country: partner.country,
+        phone: partner.phone,
+        dated: String(partner.created_at ?? '').slice(0, 10) || null,
+      }),
+    })
+  } catch (err) {
+    console.error('[partners/admin/documents]', err)
+    res.status(500).json({ error: 'Failed to load documents' })
   }
 })
 

@@ -66,6 +66,13 @@ const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   { href: '/vida/founder',    label: 'Founder',    icon: '👑' },
   { href: '/vida/outreach',   label: 'Outreach',   icon: '🎯' },
   { href: '/vida/compliance', label: 'Compliance', icon: '🛡' },
+  // ⚠️ SAME BUG AS /vida/demo ABOVE, found by the founder 16 Aug the day the seat shipped:
+  // /partners is a real, working screen — it holds the partner book AND the "New Client
+  // Partner seat" card (R40) — but it lived only in the OLD AdminSidebar, which this menu
+  // replaced. So the only way to reach the screen that creates a person's login was to
+  // already know the URL. A control you cannot find is not a control.
+  // (It sits outside the /vida shell, hence the bare path — the screen is unchanged.)
+  { href: '/partners',        label: 'Partners',   icon: '🤝' },
 ]
 
 function initials(email: string): string {

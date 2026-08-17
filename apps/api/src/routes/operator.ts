@@ -994,15 +994,8 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
 
     const { RATES } = await import('../lib/comp-engine')
 
-    // ⚠️ NO ACCOUNT IS PRE-CREATED WITH A THROWAWAY PASSWORD. The first version made an auth
-    // user with a random password nobody was ever told, then emailed a password-RECOVERY link
-    // — a reset flow wearing an invitation's clothes. The founder's words (16 Aug): "a partner
-    // should recieve the link. and sign up. not have to set a new password. they would never
-    // know." An invited person has never had a password; there is nothing to recover.
-    //
-    // The account is created BY the invitation itself, further down, so the link they receive
-    // is a genuine invite and choosing a password IS signing up.
-    const userId: string | null = null
+    // The account and the email are both handled by invitePartner below — see that file for
+    // why this is the only path standing, and what was tried before it.
 
     const base = cleanName.toLowerCase().replace(/[^a-z]/g, '').slice(0, 6) || 'partner'
     const referral_code = `${base}${Math.random().toString(36).slice(2, 6)}`
@@ -1057,14 +1050,20 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
     const inviteSent = invite.sent
     const inviteError = invite.error
     const inviteUrl = invite.inviteUrl
-    const inviteCarriesSession = inviteUrl.includes('/auth/v1/verify')
+    const userId = invite.userId
+    // ⚠️ TWO DIFFERENT FACTS, and conflating them told the operator a lie. The EMAIL is a
+    // Supabase password link and always signs her in when it sends. The COPYABLE link is a
+    // best-effort extra for handing over by WhatsApp; if generateLink fails it degrades to the
+    // plain page URL, which does not sign anyone in. Reporting the second as if it described
+    // the first would have said "her link does not sign her in" about an email that works.
+    const copyLinkSignsIn = inviteUrl.includes('/auth/v1/verify')
 
     await writeOperatorAudit({
       operatorEmail: operatorEmail(req), clientId: null, action: 'client_partner_seat_created',
       subjectType: 'partner', subjectId: seat.id,
       detail: {
         email: cleanEmail, retain_rate: seat.retain_rate,
-        invite_sent: inviteSent, invite_carries_session: inviteCarriesSession,
+        invite_sent: inviteSent, copy_link_signs_in: copyLinkSignsIn,
         ...(inviteError ? { invite_error: inviteError } : {}),
       },
     })
@@ -1075,14 +1074,13 @@ operatorRouter.post('/seats/client-partner', async (req: Request, res: Response)
         ...seat,
         user_created: !!userId,
         invite_sent: inviteSent,
-        invite_carries_session: inviteCarriesSession,
+        copy_link_signs_in: copyLinkSignsIn,
         invite_url: inviteUrl,
         invite_error: inviteError,
         next: !inviteSent
-          ? `SEAT CREATED BUT THE INVITE EMAIL DID NOT SEND${inviteError ? ` — ${inviteError}` : ''}. Copy the invite link below and send it to her yourself, or press Resend.`
-          : inviteCarriesSession
-            ? 'Invite emailed. She sets her own password, completes her details, and signs — then it comes back to you to counter-sign before the seat goes live.'
-            : 'Invite emailed, BUT the sign-in link could not be generated — her link opens the page without signing her in, so she will have to use "send me a fresh link" on it. Worth checking the API logs.',
+          ? `SEAT CREATED BUT THE EMAIL DID NOT SEND${inviteError ? ` — ${inviteError}` : ''}. Copy the link below and send it to her yourself, or press Resend.`
+          : 'Emailed. She sets her own password, completes her details, and signs — then it comes back to you to counter-sign before the seat goes live.'
+            + (copyLinkSignsIn ? '' : ' (The copyable link below is only the page address this time — the emailed link is the one that signs her in.)'),
       },
     })
   } catch (err) {

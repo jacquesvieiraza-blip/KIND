@@ -1,9 +1,37 @@
-// PENDING MIGRATIONS — runnable from Vida, because the Supabase SQL editor is unreachable.
+// PENDING MIGRATIONS — the only sanctioned way to execute schema changes, run from Vida.
 //
+// ⛓️ THE ORIGINAL HEADLINE — was true until 19 Aug 2026:
+//     "runnable from Vida, because the Supabase SQL editor is unreachable."
+// It is no longer the reason. See the correction below the next paragraph.
+//
+// ⛓️ WAS TRUE UNTIL 19 AUG 2026:
 // Supabase login is GitHub OAuth and the founder's GitHub account is flagged ("cannot
 // authorize a third party application"), so the dashboard cannot be opened at all. No psql,
 // no Homebrew, and deliberately no new tooling. What we DO have is this API — which already
 // holds DATABASE_URL — and Vida, which already talks to it behind the admin key.
+//
+// ── THE CURRENT TRUTH (19 Aug 2026) ──────────────────────────────────────────
+//
+// THE DASHBOARD IS REACHABLE. The founder opened it repeatedly on 19 Aug and screenshotted
+// it — the Advisor, the Table Editor, and the `app_migrations_applied` rows. The paragraph
+// above describes a constraint that no longer holds.
+//
+// Stated precisely, because this file is the wrong place to guess: what is PROVEN is that the
+// dashboard opens. Whether the GitHub account flag was lifted, or Supabase login simply
+// works by another route, is NOT established here — GitHub Actions remains dead from that
+// same flag. So this comment claims the dashboard, and nothing about the vendor's account.
+//
+// ⚠️ NOTHING ABOUT THE DESIGN CHANGES, AND THE REASON IS NOT THE ONE ABOVE.
+//
+// The runner remains the ONLY sanctioned way to execute a migration. O3 stands: no ad-hoc
+// SQL, ever — not in the dashboard's SQL editor, not anywhere. A reachable SQL editor is a
+// place to LOOK, never a place to RUN.
+//
+// This design is kept because these statements are REVIEWED, COMMITTED and IDEMPOTENT —
+// not because the dashboard is unreachable. That was always the real justification; the
+// unreachable dashboard was only what forced us to notice it. SQL typed into an editor is
+// unreviewed, uncommitted, unrepeatable and invisible to every check in this repo, and it
+// would be exactly as forbidden if the dashboard had been reachable the whole time.
 //
 // So the SQL lives here as a string constant (NOT read from disk: .sql files are not copied
 // into dist/ by tsc, so a file read would work locally and fail in production), and an

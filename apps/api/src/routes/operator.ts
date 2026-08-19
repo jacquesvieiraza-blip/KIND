@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
+import { normalizeRevealEmails } from '../lib/billing-rules'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
@@ -2783,8 +2784,11 @@ operatorRouter.get('/source-preview', async (req: Request, res: Response) => {
       const { isSuppressed } = await import('../lib/suppression')
       const { data: ownedRows } = await db.from('leads').select('email').eq('client_id', cid).not('email', 'is', null)
       const owned = new Set(((ownedRows ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
+      // HC-1 — normalise the PROBE. `allCand` carried raw candidate addresses, so this
+      // preview could show a blocklisted person as servable.
       const blockedRows = allCand.length > 0
-        ? (await db.from('opt_out_blocklist').select('email').is('opted_back_in_at', null).in('email', allCand)).data
+        ? (await db.from('opt_out_blocklist').select('email').is('opted_back_in_at', null)
+            .in('email', normalizeRevealEmails(allCand))).data
         : []
       const blocked = new Set(((blockedRows ?? []) as { email: string | null }[]).map(r => (r.email ?? '').trim().toLowerCase()).filter(Boolean))
 
@@ -3414,8 +3418,11 @@ operatorRouter.post('/import-leads', async (req: Request, res: Response) => {
     const candidates = candidateEmails(rows)
     const blocked = new Set<string>()
     for (let i = 0; i < candidates.length; i += 200) {
+      // HC-1 — normalise the PROBE (the returned rows were already lowercased below, which
+      // on its own does nothing).
       const { data: blockedRows, error: blockedErr } = await db.from('opt_out_blocklist')
-        .select('email').is('opted_back_in_at', null).in('email', candidates.slice(i, i + 200))
+        .select('email').is('opted_back_in_at', null)
+        .in('email', normalizeRevealEmails(candidates.slice(i, i + 200)))
       if (blockedErr) {
         res.status(500).json({ success: false, error: `Could not read the opt-out blocklist, so suppressed people could not be ruled out — nothing was imported. (${blockedErr.message})` })
         return

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
+import { normalizeRevealEmail, normalizeRevealEmails } from '../lib/billing-rules'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import Anthropic from '@anthropic-ai/sdk'
@@ -59,8 +60,12 @@ leadRouter.post('/public/consent', async (req, res) => {
       res.json({ success: true, status: 'consent_given' })
     } else {
       if (lead.email) {
+        // HC-1 — NORMALISE BEFORE WRITING. `leads.email` is stored raw (icps.ts says so in
+        // its own comment), so a decline from `John@Acme.com` used to land a raw row that no
+        // send-path probe could match. This person has just REFUSED consent; a row nobody
+        // matches is the same as no row at all.
         await db.from('opt_out_blocklist').upsert({
-          email:                lead.email,
+          email:                normalizeRevealEmail(lead.email),
           linkedin_url:         lead.linkedin_url,
           full_name:            `${lead.first_name} ${lead.last_name}`.trim(),
           reason:               'lead_declined_consent',
@@ -572,8 +577,9 @@ leadRouter.post('/', rateLimit({ limit: 60, windowMs: 60_000, key: 'leads-create
 
     // Blocklist check
     if (body.email) {
+      // HC-1 — probe with the NORMALISED address.
       const { data: blocked } = await db.from('opt_out_blocklist')
-        .select('id').eq('email', body.email).is('opted_back_in_at', null).maybeSingle()
+        .select('id').eq('email', normalizeRevealEmail(body.email)).is('opted_back_in_at', null).maybeSingle()
       if (blocked) {
         res.status(409).json({ success: false, error: 'Lead is on the opt-out blocklist', code: 'BLOCKLISTED' })
         return
@@ -732,8 +738,11 @@ leadRouter.post('/:id/optout', async (req: AuthRequest, res) => {
 
     // Add to blocklist
     if (lead.email) {
+      // HC-1 — NORMALISE BEFORE WRITING. Manual block: a human pressed the button meaning
+      // "never contact this person". Storing the raw mixed-case address made that intent
+      // unmatchable by every send-path probe.
       await db.from('opt_out_blocklist').upsert({
-        email:                 lead.email,
+        email:                 normalizeRevealEmail(lead.email),
         linkedin_url:          lead.linkedin_url,
         full_name:             `${lead.first_name} ${lead.last_name}`.trim(),
         reason,
@@ -1599,9 +1608,11 @@ leadRouter.post('/import/linkedin', async (req: AuthRequest, res) => {
     }
 
     // Fetch blocklist
+    // HC-1 — normalise the PROBE, not just the answer. This site already lowercased the rows
+    // it got back, which does nothing: a row that fails to match is never returned.
     const { data: blocklisted } = await db.from('opt_out_blocklist')
-      .select('email').in('email', emails)
-    const blockSet = new Set((blocklisted ?? []).map((r: any) => r.email?.toLowerCase()))
+      .select('email').in('email', normalizeRevealEmails(emails))
+    const blockSet = new Set(normalizeRevealEmails((blocklisted ?? []).map((r: any) => r.email)))
 
     let created = 0, skipped = 0, errors = 0
     const insertedIds: string[] = []
@@ -1766,11 +1777,13 @@ leadRouter.post('/find-at-companies', async (req: AuthRequest, res) => {
     const contactEmails = contacts.map(c => c.email).filter(Boolean) as string[]
     const { data: existing } = await db.from('leads')
       .select('email').eq('client_id', clientId).in('email', contactEmails)
+    // HC-1 — normalise the PROBE. Same wrong-side normalisation as the CSV path above.
+    // (This reader was not in the prompt's list; found by enumerating every call site.)
     const { data: blocklisted } = await db.from('opt_out_blocklist')
-      .select('email').in('email', contactEmails)
+      .select('email').in('email', normalizeRevealEmails(contactEmails))
     const existingSet = new Set([
-      ...(existing ?? []).map((r: any) => r.email?.toLowerCase()),
-      ...(blocklisted ?? []).map((r: any) => r.email?.toLowerCase()),
+      ...normalizeRevealEmails((existing ?? []).map((r: any) => r.email)),
+      ...normalizeRevealEmails((blocklisted ?? []).map((r: any) => r.email)),
     ])
 
     let created = 0, skipped = 0

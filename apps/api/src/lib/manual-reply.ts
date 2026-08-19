@@ -1,4 +1,5 @@
 import { db } from '@kind/db'
+import { normalizeRevealEmail } from './billing-rules'
 import { isDemoClient } from './demo'
 import { outreachEnabled } from './figsy'
 
@@ -59,8 +60,10 @@ export async function sendManualReply(
   }
 
   // #468 (1) — never email someone who opted out.
+  // HC-1 — probe with the NORMALISED address. The From header preserves whatever case the
+  // sender typed, so a human clicking reply could reach someone who had opted out.
   const { data: blocked } = await db.from('opt_out_blocklist')
-    .select('email').eq('email', reply.from_email).maybeSingle()
+    .select('email').eq('email', normalizeRevealEmail(reply.from_email)).maybeSingle()
   if (blocked) return { ok: false, status: 409, error: 'This contact opted out — you can’t reply to them.' }
 
   // #468 (2) — a deliberate kill-switch OFF means OFF, even for a human click.

@@ -11,7 +11,7 @@ import { suggestIcpFromWebsite } from '../lib/scrape'
 import { autoEnrollLead, sendDay1OutreachBatch } from '../lib/figsy'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { enrichAndDeliverLeads } from '../lib/lead-delivery'
-import { deliveryCapBalance, normalizePlan, normalizeRevealEmail } from '../lib/billing-rules'
+import { deliveryCapBalance, normalizePlan, normalizeRevealEmail, normalizeRevealEmails } from '../lib/billing-rules'
 import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
@@ -219,9 +219,13 @@ async function servePoolLeads(
     if (!candidates || candidates.length === 0) return { insertedIds: [], served: 0 }
 
     const norm = (e: string | null | undefined) => normalizeRevealEmail(e)
-    const candEmails = candidates
-      .map((c: { email_norm?: string | null }) => c.email_norm)
-      .filter((e): e is string => !!e)
+    // HC-1 — these come from `lead_pool.email_norm`, which is written normalised, so this
+    // wrap changes no value today. It is here so that EVERY blocklist probe in the codebase
+    // passes through the one normaliser with no exceptions: the guard test can then assert
+    // that flatly, and the day something writes an un-normalised `email_norm` this still holds.
+    const candEmails = normalizeRevealEmails(
+      candidates.map((c: { email_norm?: string | null }) => c.email_norm),
+    )
     if (candEmails.length === 0) return { insertedIds: [], served: 0 }
 
     // Anti-dup — exclude any email this client already has in leads (normalise both
@@ -458,8 +462,11 @@ export async function runIcpJob(
         }
 
         if (contact.email) {
+          // HC-1 — probe with the NORMALISED address. (The pool probe above already sends
+          // normalised values because they come from `lead_pool.email_norm`; this PDL path
+          // sent the provider's raw address straight through.)
           const { data: blocked } = await db.from('opt_out_blocklist')
-            .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
+            .select('id').eq('email', normalizeRevealEmail(contact.email)).is('opted_back_in_at', null).maybeSingle()
           if (blocked) { skipped++; continue }
         }
 

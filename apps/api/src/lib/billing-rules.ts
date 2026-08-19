@@ -87,6 +87,27 @@ export function normalizeRevealEmail(email: string | null | undefined): string |
   return e.length > 0 ? e : null
 }
 
+// HC-1 — the BATCH form, and it lives here because there must be exactly one
+// definition of "the same email" in this codebase. Six blocklist probes ask the
+// question `.in('email', […])` rather than `.eq`, and each was building its own
+// raw candidate list. Set-backed so a batch carrying both `John@Acme.com` and
+// `john@acme.com` probes once, not twice.
+//
+// Why this matters more than a tidier call site: the opt-out blocklist is the
+// table that decides whether a person who said STOP gets emailed again. Five
+// probes ALREADY lowercased — but they lowercased the rows the database RETURNED,
+// which does nothing at all: a row that fails to match is never returned. The
+// normalisation has to happen on the value we send, and the stored column has to
+// already be normalised, or the match is a coin toss on letter case.
+export function normalizeRevealEmails(emails: readonly (string | null | undefined)[]): string[] {
+  const out = new Set<string>()
+  for (const e of emails) {
+    const k = normalizeRevealEmail(e)
+    if (k) out.add(k)
+  }
+  return [...out]
+}
+
 // record_reveal_or_refund returns 'charged' (first time — the $1 stands) or
 // 'refunded' (already owned — the $1 was returned). The client nets a charge only
 // when the outcome is NOT a refund.

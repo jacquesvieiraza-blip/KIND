@@ -3,6 +3,7 @@
 import { Router } from 'express'
 import { z } from 'zod'
 import { db } from '@kind/db'
+import { normalizeRevealEmail } from '../lib/billing-rules'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { sendTextMessage, classifyAndRespond } from '../lib/whatsapp'
 
@@ -94,15 +95,22 @@ whatsappRouter.post('/webhook', async (req, res) => {
           const isOptOut = /\bSTOP\b/i.test(messageBody) || /\bunsubscribe\b/i.test(messageBody)
           if (isOptOut) {
             try {
+              // HC-1 — normalised for CONSISTENCY, not because a defect lives here. This
+              // column holds a phone number, so trim+lowercase changes nothing about what
+              // matches. It is normalised anyway so that every write to this table goes
+              // through one shape and the guard test below can say so without exceptions —
+              // an exception in a suppression guard is where the next hole hides.
               await db.from('opt_out_blocklist').upsert({
-                whatsapp_number: from,
+                whatsapp_number: String(from ?? '').trim(),
                 reason: 'whatsapp_stop',
               }, { onConflict: 'whatsapp_number', ignoreDuplicates: false })
             } catch {
-              // whatsapp_number column may not exist — use email field with a note
+              // whatsapp_column may not exist — fall back to the email field with a prefix.
+              // Also a no-op for case (`whatsapp:+27…` has no letters that vary), normalised
+              // for the same one-shape reason.
               try {
                 await db.from('opt_out_blocklist').upsert({
-                  email:  `whatsapp:${from}`,
+                  email:  normalizeRevealEmail(`whatsapp:${from}`),
                   reason: 'whatsapp_stop',
                 }, { onConflict: 'email', ignoreDuplicates: false })
               } catch (optOutErr) {

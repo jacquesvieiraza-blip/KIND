@@ -16,6 +16,7 @@
 import { Router, Request, Response } from 'express'
 import crypto from 'crypto'
 import { db } from '@kind/db'
+import { normalizeRevealEmail } from '../lib/billing-rules'
 import { PACK_PRICE_USD, PACK_LEADS, LEAD_PRICE_USD } from '@kind/shared'
 import Anthropic from '@anthropic-ai/sdk'
 import { Resend } from 'resend'
@@ -1566,8 +1567,9 @@ internalRouter.post('/cmo/self-outreach', async (_req: Request, res: Response) =
       if ((existing ?? 0) > 0) { skipped++; continue }
 
       // Check opt-out blocklist
+      // HC-1 — probe with the NORMALISED address.
       const { data: blocked } = await db.from('opt_out_blocklist')
-        .select('id').eq('email', contact.email).is('opted_back_in_at', null).maybeSingle()
+        .select('id').eq('email', normalizeRevealEmail(contact.email)).is('opted_back_in_at', null).maybeSingle()
       if (blocked) { skipped++; continue }
 
       try {

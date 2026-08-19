@@ -2,6 +2,7 @@ import { pecrVerdict, pecrSkipReason } from '../lib/pecr'
 import { recordEnrolSkips } from '../lib/operator-audit'
 import { Router } from 'express'
 import crypto from 'crypto'
+import { normalizeRevealEmail, normalizeRevealEmails } from '../lib/billing-rules'
 import { z } from 'zod'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
@@ -491,12 +492,17 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
       .in('id', lead_ids).eq('client_id', clientId)
 
     // POPIA: never enrol anyone on the opt-out blocklist.
-    const batchEmails = (leads ?? []).map((l: { email: string | null }) => l.email).filter(Boolean) as string[]
+    // HC-1 — normalise BOTH sides. The probe list was raw `leads.email` values, so a
+    // blocklisted person with a mixed-case address was enrolled anyway.
+    const batchEmails = normalizeRevealEmails((leads ?? []).map((l: { email: string | null }) => l.email))
     const blocked = new Set<string>()
     if (batchEmails.length > 0) {
       const { data: blockRows } = await db.from('opt_out_blocklist')
         .select('email').in('email', batchEmails).is('opted_back_in_at', null)
-      for (const r of blockRows ?? []) blocked.add((r as { email: string }).email)
+      for (const r of blockRows ?? []) {
+        const k = normalizeRevealEmail((r as { email: string }).email)
+        if (k) blocked.add(k)
+      }
     }
 
     // #310 — charge + gate the webhook enrol path too (it enrolled + sent for free).
@@ -1588,12 +1594,17 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
 
     // POPIA: never enrol anyone on the opt-out blocklist. Pull the blocklisted
     // emails for this batch up front so we can skip them.
-    const batchEmails = (leads ?? []).map((l: { email: string | null }) => l.email).filter(Boolean) as string[]
+    // HC-1 — normalise BOTH sides. The probe list was raw `leads.email` values, so a
+    // blocklisted person with a mixed-case address was enrolled anyway.
+    const batchEmails = normalizeRevealEmails((leads ?? []).map((l: { email: string | null }) => l.email))
     const blocked = new Set<string>()
     if (batchEmails.length > 0) {
       const { data: blockRows } = await db.from('opt_out_blocklist')
         .select('email').in('email', batchEmails).is('opted_back_in_at', null)
-      for (const r of blockRows ?? []) blocked.add((r as { email: string }).email)
+      for (const r of blockRows ?? []) {
+        const k = normalizeRevealEmail((r as { email: string }).email)
+        if (k) blocked.add(k)
+      }
     }
 
     // #310 — FIGSY is charged at enrollment (1 credit = 1 lead enrolled). Read the

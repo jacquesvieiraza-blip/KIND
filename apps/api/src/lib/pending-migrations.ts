@@ -783,6 +783,57 @@ create index if not exists partner_ramp_contacts_partner_idx
   on public.partner_ramp_contacts (partner_id);
 `.trim(),
   },
+  {
+    // HC-7 — THE FOUR CRITICAL ERRORS SUPABASE'S OWN ADVISOR REPORTED ON PRODUCTION,
+    // 19 Aug 2026. Found by the founder opening the dashboard, not by anything we own.
+    //
+    // Four errors, three objects: `lead_pool_pnl` raises both "Exposed Auth Users" and
+    // "Security Definer View"; `partner_ramp_contacts` and `partner_signed_documents`
+    // each raise "RLS Disabled in Public".
+    //
+    // WHY IT IS REAL: apps/portal ships NEXT_PUBLIC_SUPABASE_ANON_KEY to every browser
+    // (apps/portal/src/lib/supabase/client.ts). Anything PostgREST exposes with RLS off is
+    // readable by anyone who lifts that key. `lead_pool_pnl` carries prospect `email_norm`
+    // AND `acquisition_cost`/`revenue_usd`/`roi` — PII and our own margins.
+    //
+    // WHY IT CANNOT BREAK US: packages/db/src/client.ts builds the API's only client with
+    // SUPABASE_SERVICE_ROLE_KEY and throws at boot without it. The service role bypasses
+    // RLS. Every reader is server-side on that client — money-path.ts:240 for the view,
+    // routes/partners.ts for the tables. Same reasoning and same shape as
+    // `20260727_rls_live_findings`, which is what this entry deliberately mirrors.
+    //
+    // `error_events` is NOT advisor-flagged and is here on the founder's explicit choice
+    // (19 Aug, option (a)): the runner CREATEs it and never enables RLS, so the guard added
+    // with this migration counts it — correctly. Enabling it is a no-op if production
+    // already has it and a real fix if it does not. He chose that over allowlisting a belief.
+    //
+    // ⚠️ PG15+ — `ALTER VIEW … SET (security_invoker = true)` needs PostgreSQL 15. Each
+    // entry is sent as ONE multi-statement query = one implicit transaction, so on PG14
+    // that line would roll the RLS lines back with it. NOT silently: the runner records
+    // {key, ok:false, error} per migration and Vida shows it. If the run reports an error
+    // naming security_invoker, split this entry — the REVOKE and the three ALTER TABLEs
+    // stand perfectly well on their own.
+    key: '20260819_rls_advisor_fixes',
+    title: 'HC-7: RLS on the two partner tables + error_events, and lead_pool_pnl stops running as its creator (Supabase Security Advisor, 4 criticals, 19 Aug). Canonical .sql: supabase/migrations/20260819_rls_advisor_fixes.sql — BOTH HOMES (O3). ⚠️ security_invoker needs PG15; a failure here is reported per-key by the runner, never silent.',
+    sql: `
+-- ① ② The view: revoke the grant AND stop it running with its creator's rights.
+--     The SELECT is untouched — 20260717's definition stays byte-identical, because
+--     redefining it here could silently undo the house/demo revenue exclusion.
+ALTER VIEW public.lead_pool_pnl SET (security_invoker = true);
+REVOKE ALL ON public.lead_pool_pnl FROM anon, authenticated;
+
+-- ③ The seller's own network contacts — real people, typed by her.
+ALTER TABLE IF EXISTS public.partner_ramp_contacts ENABLE ROW LEVEL SECURITY;
+
+-- ④ The frozen signed partner contracts (R42) — address, country, mobile, payout
+--    details once a real seat signs. Empty today; that is the only reason this is a
+--    near-miss rather than a breach.
+ALTER TABLE IF EXISTS public.partner_signed_documents ENABLE ROW LEVEL SECURITY;
+
+-- ⑤ Not advisor-flagged; founder-approved for completeness. Idempotent either way.
+ALTER TABLE IF EXISTS public.error_events ENABLE ROW LEVEL SECURITY;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

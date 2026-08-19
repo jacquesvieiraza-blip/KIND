@@ -104,7 +104,14 @@ describe('① every migration has a canonical file', () => {
     // everything still cannot go live.
     //
     // 22 from 17 Aug — `20260817_seller_ramp` (#654). File and entry written together again.
-    expect(runnerKeys).toHaveLength(22)
+    //
+    // 23 from 19 Aug — `20260819_rls_advisor_fixes` (HC-7). File and entry written together.
+    // This one is different in kind from every entry above it: it was not prompted by a
+    // build, a test or a review, but by the FOUNDER opening Supabase's Security Advisor and
+    // finding four CRITICAL errors on production — two of them tables created by the 16–17
+    // Aug partner arc that shipped with row-level security off. Nothing we owned asked that
+    // question, which is why describe ③ below now asks it of every future table.
+    expect(runnerKeys).toHaveLength(23)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -145,7 +152,9 @@ describe('② a copy that can drift is the disease, not the cure', () => {
     // +1 (20260816_partner_onboarding_flow, R42 — the invite→sign→counter-sign states and
     // the frozen signed-document table) = 134;
     // +1 (20260817_seller_ramp, #654 — the seller's own contact notebook behind the ramp) = 135.
-    expect(sqlFiles(CANON)).toHaveLength(135)
+    // +1 (20260819_rls_advisor_fixes, HC-7 — RLS on the two partner tables and error_events,
+    // and lead_pool_pnl stops running with its creator's rights) = 136.
+    expect(sqlFiles(CANON)).toHaveLength(136)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {
@@ -223,6 +232,62 @@ describe('the premise in #273 was wrong, and the correction is written down', ()
     for (const k of ['20260726_inbox_smtp', '20260725_client_inboxes']) {
       expect(sqlFiles(CANON)).toContain(`${k}.sql`)
       expect(read(CANON, `${k}.sql`)).toContain('original: apps/api/src/migrations')
+    }
+  })
+})
+
+// ── ③ A NEW TABLE SHIPS WITH RLS ON, OR THE GATE GOES RED ───────────────────────────────
+//
+// HC-7 (19 Aug): Supabase's own Security Advisor reported four CRITICAL errors on
+// production — two of them "RLS Disabled in Public" on `partner_ramp_contacts` and
+// `partner_signed_documents`. Both were created by the 16–17 Aug partner arc. Both went
+// through review, tests and a green gate. Nothing we own asked the one question that
+// mattered: does this new table ship with row-level security on?
+//
+// It was found by the FOUNDER opening a dashboard. That is the gap this guard closes.
+//
+// WHY THIS IS THE RIGHT SHAPE. The 27-Jul hardening (`20260727_rls_close_public_policies`,
+// `20260727_rls_live_findings`) enumerated the tables that existed THEN. An enumeration
+// cannot protect a table created later, so the same hole reopens on the next CREATE TABLE
+// — including the governed-document vault that is already drafted. A rule about the SHAPE
+// of a migration protects tables nobody has thought of yet.
+//
+// O8 — the guard asserts the INTENT (a created table is RLS-protected), never the literal
+// SQL of any one migration. Rewrite these migrations however you like; the assertion only
+// cares that the pairing holds.
+describe('③ every table the runner creates also gets RLS', () => {
+  const runnerSrc = readFileSync(join(REPO, 'apps/api/src/lib/pending-migrations.ts'), 'utf8')
+
+  /** Table names in `CREATE TABLE [IF NOT EXISTS] public.<name>`, however spaced or cased. */
+  const created = new Set(
+    [...runnerSrc.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?public\.([a-z_]+)/gi)]
+      .map(m => m[1].toLowerCase()),
+  )
+
+  /** Table names in `ALTER TABLE [IF EXISTS] public.<name> ENABLE ROW LEVEL SECURITY`. */
+  const secured = new Set(
+    [...runnerSrc.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?public\.([a-z_]+)\s+enable\s+row\s+level\s+security/gi)]
+      .map(m => m[1].toLowerCase()),
+  )
+
+  it('no table is created without row-level security in the same runner', () => {
+    const unprotected = [...created].filter(t => !secured.has(t)).sort()
+    expect(
+      unprotected,
+      `created by PENDING_MIGRATIONS with no ENABLE ROW LEVEL SECURITY anywhere in it: ` +
+      `${unprotected.join(', ')}. A table exposed to PostgREST with RLS off is readable by ` +
+      `anyone holding the public anon key — apps/portal ships that key to every browser.`,
+    ).toEqual([])
+  })
+
+  it('the three HC-7 tables are the ones this was written for', () => {
+    // Named so a future reader knows which real finding produced the rule. partner_ramp_contacts
+    // and partner_signed_documents were advisor-flagged; error_events was not, and is here on
+    // the founder's explicit 19-Aug choice — the runner creates it and never secured it, so the
+    // guard counted it correctly and he chose to close it rather than allowlist a belief.
+    for (const t of ['partner_ramp_contacts', 'partner_signed_documents', 'error_events']) {
+      expect(created, `${t} should be created by the runner`).toContain(t)
+      expect(secured, `${t} must be RLS-protected by the runner`).toContain(t)
     }
   })
 })

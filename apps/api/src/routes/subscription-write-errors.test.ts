@@ -247,7 +247,18 @@ describe('invoice.payment_failed — the dunning alert must not lie', () => {
   })
 })
 
-describe('the partner commission on a renewal', () => {
+describe('the partner commission on a renewal — ⛓️ NOW ZERO, founder-ruled 19 Aug', () => {
+  // ⛓️ AMENDED 19 Aug 2026. These three tests asserted that a renewal WRITES a commission row
+  // and alerts if that write fails. Both were true and are now wrong: the founder ruled
+  // commission is earned on the $4 lead sale and on nothing else —
+  //
+  //   *"she earns on leads purchased not when they top up. because our calulators on leads
+  //     not money in. we earn money when they buy leads. so thye need to be managing their
+  //     customers to buy leads."*
+  //
+  // A renewal is money arriving. So the assertion inverts, and the inverted form is a STRONGER
+  // test of the ruling than the original was of the old behaviour: not "it pays a smaller
+  // amount" but "this path cannot pay at all".
   beforeEach(() => {
     state.sub = { client_id: 'client-1', product: 'virtual_assistant' }
     state.referral = { id: 'ref-1', partner_id: 'partner-1', partners: { commission_rate: 0.25, tier: 'agency' } }
@@ -257,33 +268,25 @@ describe('the partner commission on a renewal', () => {
     }
   })
 
-  it('ALERTS when the commission row fails — nothing else ever recreates it', async () => {
-    // The idempotency guard reads partner_commissions, so a failed insert is not retried on
-    // the next invoice: it finds no row for the period and does not backfill. The partner is
-    // simply short a month, with no trace in the system anywhere.
+  it('a renewal writes NO commission row — even for a partner-attributed client', async () => {
+    await post('/webhook', {})
+    await settle()
+    expect(state.commissionInserts, 'money arriving is not a lead being bought').toHaveLength(0)
+  })
+
+  it('and raises no commission alert either — there is nothing to fail', async () => {
+    // The old code alerted when the commission insert errored. With no insert attempted there
+    // is no failure mode left on this path, so silence here is correctness, not a swallow.
     state.commissionError = { message: 'violates foreign key constraint' }
     await post('/webhook', {})
     await settle()
-    const alert = state.alerts.find(a => a.subject.includes('commission'))
-    expect(alert).toBeDefined()
-    expect(alert!.lines.join(' ')).toContain('partner-1')
-    expect(alert!.lines.join(' ')).toContain('Nothing retries this')
+    expect(state.alerts.find(a => a.subject.includes('commission'))).toBeUndefined()
   })
 
-  it('names the amount owed, so it can be added by hand before the payout run', async () => {
-    state.commissionError = { message: 'boom' }
+  it('the renewal itself still works — the ruling removed a payout, not the product', async () => {
     await post('/webhook', {})
     await settle()
-    const alert = state.alerts.find(a => a.subject.includes('commission'))!
-    // $99/month × 25% = $24.75
-    expect(alert.lines.join(' ')).toContain('24.75')
-  })
-
-  it('stays quiet when the commission lands', async () => {
-    await post('/webhook', {})
-    await settle()
-    expect(state.alerts).toHaveLength(0)
-    expect(state.commissionInserts).toHaveLength(1)
+    expect(state.alerts, 'a healthy renewal is quiet').toHaveLength(0)
   })
 })
 

@@ -218,6 +218,36 @@ export const PACK_PRICE_USD = 299
 /** Flat price per approved lead once the pack is used up, in USD. */
 export const LEAD_PRICE_USD = 4
 
+/**
+ * PARTNER COMMISSION — 25% of paid LEAD SALES. Founder-locked 19 Aug 2026.
+ *
+ * His words, verbatim, because a paraphrase is a guess wearing a lock's authority:
+ *
+ *   • *"no 25% does not include the $299 nor the 100 leads we give. its everything after
+ *      this or above this"*
+ *   • *"lifetime. if they looking after their client its theirs."*
+ *   • *"she earns on leads purchased not when they top up. because our calulators on leads
+ *      not money in. we earn money when they buy leads. so thye need to be managing their
+ *      customers to buy leads."*
+ *
+ * So the base is the $4 approval charge, GROSS — before card fees — and NOTHING else:
+ * not the $299 pack, not the 100 approvals it includes, not a wallet top-up, not a
+ * subscription renewal. Money arriving is not the event; a lead being bought is.
+ *
+ * ⚠️ THIS REPLACED THE OPPOSITE BEHAVIOUR. Until 19 Aug the commission fired on every
+ * Stripe payment — the pack paid 20% and lead approvals paid nothing, the exact inverse of
+ * the ruling. No commission row had ever been written (no client has ever paid), so nothing
+ * needed unwinding; the three Stripe triggers were removed and one lead-sale trigger added.
+ *
+ * The rate is flat and lifetime, so it is a constant here rather than a per-seat column.
+ * `partners.retain_rate` (R40's 8%/5%) still exists and is untouched — it governs the
+ * legacy MRR model in `comp-engine.ts`, which nothing in the current money model calls.
+ */
+export const PARTNER_COMMISSION_PCT = 25
+
+/** What one approved lead pays a partner, in USD. Derived — never type $1.00 anywhere. */
+export const PARTNER_COMMISSION_PER_LEAD_USD = (LEAD_PRICE_USD * PARTNER_COMMISSION_PCT) / 100
+
 // ─────────────────────────────────────────────────────────────────────────────
 // SEQUENCE LENGTH — ONE NUMBER, FOUR APPS
 // ─────────────────────────────────────────────────────────────────────────────

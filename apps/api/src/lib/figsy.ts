@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { pecrVerdict } from './pecr'
 import { db } from '@kind/db'
+import { normalizeRevealEmail } from './billing-rules'
 import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, type SequenceDepth } from './sequence-templates'
 import { Resend } from 'resend'
 import { logOutcomeEvent } from './outcomes'
@@ -614,8 +615,10 @@ export async function sendSequenceEmail(
   // through, so one check here closes the gap where someone opts out via one campaign
   // but still has an active enrollment in another: the inbound webhook only marks the
   // single matched enrollment opted_out, not every enrollment for that email.
+  // HC-1 — probe with the NORMALISED address. `leads.email` is stored raw, the blocklist is
+  // stored normalised, so an exact compare between the two is a coin toss on letter case.
   const { data: blocked } = await db.from('opt_out_blocklist')
-    .select('id').eq('email', lead.email).is('opted_back_in_at', null).maybeSingle()
+    .select('id').eq('email', normalizeRevealEmail(lead.email)).is('opted_back_in_at', null).maybeSingle()
   if (blocked) {
     console.warn(`[figsy] sendSequenceEmail: ${lead.email} is on the opt-out blocklist — step ${step} NOT sent; marking enrollment opted_out.`)
     await updateEnrollmentState(enrollmentId, { status: 'opted_out' },
@@ -1355,8 +1358,9 @@ export async function sendDay1OutreachBatch(
     // DO-NOT-CONTACT: never day-1 email anyone connected to the founder's employer.
     if (isSuppressed({ email: lead.email, company: lead.company })) continue
 
+    // HC-1 — probe with the NORMALISED address (see sendSequenceEmail).
     const { data: blocked } = await db.from('opt_out_blocklist')
-      .select('id').eq('email', lead.email).is('opted_back_in_at', null).maybeSingle()
+      .select('id').eq('email', normalizeRevealEmail(lead.email)).is('opted_back_in_at', null).maybeSingle()
     if (blocked) continue
 
     // Which mailbox carries THIS message? Least-used first; null means every box is at its

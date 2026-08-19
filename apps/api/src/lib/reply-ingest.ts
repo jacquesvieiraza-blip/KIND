@@ -27,6 +27,7 @@
 
 import { db } from '@kind/db'
 import { sendFounderAlert } from './alerts'
+import { normalizeRevealEmail } from './billing-rules'
 
 /** What every provider adapter must produce. Nothing below cares which one it was. */
 export type InboundReply = {
@@ -132,8 +133,14 @@ export async function suppressOptOut(
 ): Promise<OptOutResult> {
   const failures: string[] = []
 
+  // HC-1 — NORMALISE BEFORE WRITING. This is the reply-STOP path: the address arrives as the
+  // sending server wrote it in the From header, and mail servers preserve the case the sender
+  // typed. Someone who replied "STOP" from `John@Acme.com` used to get a raw row that no
+  // send-path probe matched — the single worst instance of this defect, because replying STOP
+  // is the clearest opt-out a person can give us.
+  const blockKey = normalizeRevealEmail(email)
   const { error: blockErr } = await db.from('opt_out_blocklist')
-    .upsert({ email, reason }, { onConflict: 'email', ignoreDuplicates: false })
+    .upsert({ email: blockKey, reason }, { onConflict: 'email', ignoreDuplicates: false })
   if (blockErr) failures.push(`blocklist: ${blockErr.message}`)
 
   if (enrollmentIds.length > 0) {

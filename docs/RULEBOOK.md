@@ -133,5 +133,25 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 13.7 **Brand / consistency locks** — purple `#7c3aed` only (zero stray blues)? Agent images Pixar-3D not photorealistic? Calendly consistent? No Vercel-as-current-fact?
 13.8 **Report format — every audit ends with three explicit lists:** ✅ LIVE & VERIFIED (checked on disk/main) · 🛑 STOPPED / NOT BUILT (with the reason) · ⏳ PENDING (split founder-action vs Claude-build-queue). Never present "what I built" as a complete audit.
 
+## 14. 🤖 HOW THE FOUNDER RUNS OPUS WHEN FABLE IS AWAY (founder-locked 19 Aug)
+> Added 19 Aug 2026. Fable's availability is roughly weekly; the week runs on Opus. This section exists so the founder never has to hold the method in his head — *"opus does heavy lifting. you are reassurance."*
+
+**THE SPLIT.** Opus does the heavy lifting — builds, doc chores, bounded mechanical verification. Fable is reassurance — architecture truth, compliance interpretation, independent review of Opus's work, launch-critical calls. Fable is available ~weekly; the week runs on Opus under this protocol.
+
+**THE FIVE STANDING RULES (existing locks, one place):**
+1. **R44:** Opus builds only on an explicit instruction to build. A report is a report; "go" after a report is not authorisation — Opus states what it intends to build and gets a yes first.
+2. **R41:** verification requests go to the Fable queue unless bounded and mechanical; Opus never self-certifies its own build.
+3. **P11:** every prompt gets a clause table, quoted from the founder's words, shown BEFORE building.
+4. **THE EVIDENCE BAR** — no Opus work is accepted without all seven: the clause table · pasted red-proof output (not a claim of one) · pasted `check.sh` 6/6 · pasted 0 behind / ≥1 ahead of `origin/main` · the PR link · every file touched, listed · **RUNTIME PROOF where applicable** — anything touching migrations, Railway secrets, OAuth, Smartlead, Supabase region or real mail sending is not done at merge: the migration is seen applied in production, the secret is seen SET (never its value), the integration actually connects, the region is visually confirmed. Code truth and runtime truth are different truths (O5/O6). Any file outside the named scope = rejected unread.
+5. **One prompt = one bounded change**, with named no-touch zones (default: `apps/website` (P12) · `docs/PRODUCT-RULES.md` · anything money-path unless named).
+
+**THE FABLE QUEUE.** Anything Opus flags as uncertain, architectural, compliance-interpretive or contradictory goes into a running list at the top of LAUNCH-PAD (**"🔮 FOR FABLE"**) — not into action. Fable clears it each Wednesday. If it cannot wait a week, the founder decides with Opus's uncertainty stated in the FIRST line — never buried.
+
+**THE DAILY LOOP.** ① founder states the goal in his own words → ② Opus returns the clause table + what it will touch → ③ founder says yes → ④ Opus builds, red-proves, runs the gate → ⑤ Opus reports against the clause table with the evidence bar → ⑥ founder merges → ⑦ same session: dot flip, LAUNCH-PAD, session-log line (one sentence = the commit message), rulings quoted verbatim into the register.
+
+**THE TRIPWIRES — Opus stops and asks, never proceeds, when:** a fix wants to touch a second file class · a test needs weakening to pass · a doc contradicts the code · the instruction is one word · anything wants to write to `PRODUCT-RULES.md` or the frozen site.
+
+**THE PRIVACY-CHANGE GATE (adopted 19 Aug).** Any prompt that introduces a new data source, new purpose, new recipient, new country, new channel, new provider, new FIGSY inference class or new autonomous Vida action triggers this checklist BEFORE the clause table: new data? → new purpose? → new recipient? → new country/transfer? → new lawful basis or channel rule? → DPIA impact? → privacy-notice update? → retention entry? → contract/vendor permission? Opus answers each in one line and the founder sees the answers before any yes.
+
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

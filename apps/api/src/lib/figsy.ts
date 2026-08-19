@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import { pecrVerdict } from './pecr'
+import { pecrVerdict, pecrSkipReason } from './pecr'
 import { db } from '@kind/db'
 import { normalizeRevealEmail } from './billing-rules'
 import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, type SequenceDepth } from './sequence-templates'
@@ -1384,6 +1384,26 @@ export async function sendDay1OutreachBatch(
     const { data: blocked } = await db.from('opt_out_blocklist')
       .select('id').eq('email', normalizeRevealEmail(lead.email)).is('opted_back_in_at', null).maybeSingle()
     if (blocked) continue
+
+    // #617 PECR — THE GATE THIS PATH NEVER HAD.
+    //
+    // Day-1 outreach is the fallback for a client with no active campaign, and it is the FIRST
+    // email a prospect ever receives from us. It honoured the kill-switch, the demo lock, the
+    // do-not-contact list and the opt-out blocklist — and asked nothing about PECR, while
+    // sending through `sendAs` directly rather than the guarded chokepoint every other send
+    // funnels through. A UK sole trader landing here was cold-emailed with no lawful basis.
+    //
+    // SKIPPED, not deferred: a refusal here is permanent, not a pause. There is no enrollment
+    // to stand down on this path (day-1 sends carry no campaign and no enrollment), so `continue`
+    // is the whole of it — the lead stays 'scored' and simply is never day-1 mailed.
+    //
+    // Named through `pecrSkipReason` so this gate and the two enrol gates cannot word the same
+    // refusal three different ways — which is how one gate's counts stop reconciling with another's.
+    const pecr = pecrVerdict({ country: lead.country, companyName: lead.company })
+    if (!pecr.allow) {
+      console.warn(`[day1-outreach] ${lead.email} NOT day-1 emailed — ${pecrSkipReason(pecr)}`)
+      continue
+    }
 
     // Which mailbox carries THIS message? Least-used first; null means every box is at its
     // cap, which is a STOP — never a fall-back to a box that is already over its limit.

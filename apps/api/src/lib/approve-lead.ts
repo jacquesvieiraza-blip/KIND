@@ -5,6 +5,7 @@ import { normalizeRevealEmail } from './billing-rules'
 import { isDemoClient } from './demo'
 import { sendFounderAlert } from './alerts'
 import { PAID_TX_TYPES } from './onboarding-pack'
+import { recordLeadSaleCommission } from './lead-sale-commission'
 
 // ONE WALLET — the work model (founder-locked 24 Jul, supersedes #492).
 // APPROVE is the ONLY money event: the client's 👍 (in Milla) or an operator
@@ -352,6 +353,21 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
       'This lead now reads as UNPAID to the enrol guard, so it could be charged a second time. Check credit_transactions_type_check allows wallet_charge (migration 20260726_wallet_tx_types).',
     ]).catch(() => {})
   }
+
+  // PARTNER COMMISSION (founder-locked 19 Aug) — *"she earns on leads purchased not when
+  // they top up."* 25% of this $4, once per lead, for the lifetime of the account.
+  //
+  // PLACED HERE DELIBERATELY, AFTER THE LEDGER ROW. Everything that can undo the charge has
+  // already returned above: a dead email refunds the $4 (step 6) and a failed email write
+  // refunds it too (step 7), and both `return` before reaching this line. So arriving here
+  // means the money moved and stayed moved.
+  //
+  // `moneyMoved` is false for a pack-covered approval, which is how *"nor the 100 leads we
+  // give"* is honoured — the included 100 never charge, so they never commission.
+  //
+  // Fire-and-forget: a commission problem is ours, never the client's. It cannot fail, delay
+  // or alter this approval; the founder is alerted instead.
+  void recordLeadSaleCommission(clientId, claim.id, moneyMoved)
 
   // W5 — TRIAL sourcing drip: a real reveal unlocks +2 more sourced records (our PDL
   // budget), so a trial client learns the loop by playing it. The RPC caps lifetime

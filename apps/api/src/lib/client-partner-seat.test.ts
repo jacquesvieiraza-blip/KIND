@@ -52,47 +52,52 @@ describe('#370 — a login path may never match a seat by wildcard', () => {
   })
 })
 
-describe('#351 — 20% is paid ONCE, then the seat rate, and never twice', () => {
-  it('the commission writer decides land vs retain instead of applying one rate to everything', () => {
-    expect(stripe).toMatch(/commissionType: 'land' \| 'retain'/)
-    expect(stripe).toContain("commission_type: commissionType")
-    // the old bug: one rate on every payment
-    expect(stripe).not.toMatch(/const commissionRate = Number\(partner\.commission_rate\) \|\| 0\.20\n\s*const commissionUsd = amountUsd \* commissionRate/)
-  })
-  // ⛓️ Fable verification, 16 Aug: the first design was one-row-per-MONTH, which silently
-  // dropped the retain on every wallet top-up after a month's first payment — the over-pay
-  // became an under-pay. A commission's identity is THE PAYMENT that earned it.
-  // RED PROOF: remove `stripe_ref` from the insert → "every payment carries its ref" fails.
-  it('THE DATABASE is the guard against a replayed webhook — one row per PAYMENT', () => {
+describe('#351 — the double-pay guard, and where it protects now', () => {
+  // ⛓️ AMENDED 19 Aug 2026. This block used to assert the Stripe-payment commission writer:
+  // land-vs-retain on `maybeCreatePartnerCommission`, its ref dedupe, its duplicate handling.
+  // Every one of those assertions was TRUE and is now obsolete, because the founder ruled
+  // commission is earned on the $4 LEAD SALE and on nothing else — *"she earns on leads
+  // purchased not when they top up"* — so that writer was deleted and the three Stripe call
+  // sites with it.
+  //
+  // The tests are rewritten rather than removed: what #351 actually protected — one payout
+  // per earning event, enforced by the DATABASE and not by a read-then-write — still matters
+  // exactly as much, it just guards a different event now.
+
+  it('the DATABASE is still the guard — one row per earning event, not per month', () => {
     expect(migration).toMatch(/create unique index if not exists partner_commissions_once_per_payment/)
     expect(migration).toMatch(/\(partner_id, stripe_ref\)/)
     expect(migration).not.toMatch(/once_per_period/)   // the month-keyed design must not return
   })
-  it('a SECOND payment in the same month still earns retain — dedupe is by ref, never by month', () => {
-    const fn = stripe.slice(stripe.indexOf('async function maybeCreatePartnerCommission'))
-    expect(fn).toContain(".eq('stripe_ref', stripeRef)")
-    expect(fn).not.toMatch(/\.eq\('period_month', periodMonth\)\s*\n\s*\.eq\('commission_type'/)
+
+  it('the lead-sale writer reuses that index rather than inventing a second guard', () => {
+    // `lead:<id>` goes into stripe_ref precisely so the existing partial unique keeps working.
+    const lsc = readFileSync(join(__dirname, 'lead-sale-commission.ts'), 'utf8')
+    expect(lsc).toContain('stripe_ref:')
+    expect(lsc).toContain('leadCommissionRef')
+    expect(lsc).toContain('return `lead:${leadId}`')
   })
-  it('every payment carries its ref, and every call site passes one', () => {
-    expect(stripe).toContain('stripe_ref: stripeRef')
-    expect((stripe.match(/maybeCreatePartnerCommission\([^)]+,\s*[^)]+,\s*[^)]+\)/g) ?? []).length).toBeGreaterThanOrEqual(3)
+
+  it('a duplicate key is still read as the guard working, not as a lost payout', () => {
+    const lsc = readFileSync(join(__dirname, 'lead-sale-commission.ts'), 'utf8')
+    expect(lsc).toMatch(/duplicate key\|unique constraint/)
   })
+
   it('the landing fee is DB-enforced ONCE PER CLIENT, ever — its own partial unique', () => {
     expect(migration).toMatch(/partner_commissions_land_once/)
     expect(migration).toMatch(/where commission_type = 'land'/)
   })
-  it('a duplicate-key error is treated as the guard working, not as a lost payout', () => {
-    expect(stripe).toMatch(/isDuplicate/)
-    expect(stripe).toMatch(/duplicate key\|unique constraint/)
+
+  it('NO Stripe payment writes a commission any more — the pack, top-ups and renewals pay $0', () => {
+    // The founder's ruling, asserted at its strongest: not "the pack pays a lower rate" but
+    // "no payment event calls a commission writer at all".
+    expect(stripe).not.toContain('async function maybeCreatePartnerCommission')
+    expect(stripe).not.toContain('maybeCreatePartnerCommission(')
+    expect(stripe, 'and the removal is explained where it stood').toContain('COMMISSION REMOVED HERE 19 Aug 2026')
   })
+
   it('the hard-coded rand rate is gone — USD is the currency of record', () => {
     expect(codeOf(stripe)).not.toMatch(/commissionUsd \* 19/)
-  })
-  it('it uses the comp engine rather than re-implementing the maths', () => {
-    // Statically imported, not dynamically: a dynamic import inside the money path costs a
-    // tick, and the renewal-alert test flushes exactly one.
-    expect(stripe).toContain("import { RATES, roundUsd } from '../lib/comp-engine'")
-    expect(stripe).toContain('roundUsd(amountUsd * rate)')
   })
 })
 

@@ -28,11 +28,68 @@ if (process.env.NODE_ENV === 'production' && !process.env.FIGSY_COLD_FROM) {
   )
 }
 
-const UNSUB_SECRET =
-  process.env.UNSUBSCRIBE_SECRET ||
-  process.env.ADMIN_SECRET_KEY ||
-  process.env.RESEND_API_KEY ||
-  'kind-unsub-dev-secret'
+// ── HC-2 — THE UNSUBSCRIBE SIGNING KEY ────────────────────────────────────────
+//
+// This secret signs the token in every unsubscribe link we send. Forge it and you can
+// suppress anybody in the book; lose it and every link already in somebody's inbox stops
+// verifying. It used to fall through to a string published in this repository.
+//
+// ⚠️ WHAT THE ORIGINAL HARD-CHECK WRITE-UP GOT WRONG, corrected 19 Aug rather than repeated:
+// HC-2 was logged as "tokens may be signed with a string anyone can read". Reading the whole
+// chain, that end of the fallback is effectively UNREACHABLE in production — it needs
+// UNSUBSCRIBE_SECRET, ADMIN_SECRET_KEY *and* RESEND_API_KEY all unset, and RESEND_API_KEY is
+// boot-critical, so the API would not be running at all. The REAL defect is the middle of the
+// chain: with UNSUBSCRIBE_SECRET unset, the ADMIN key silently becomes the signing key — one
+// secret doing two jobs, so rotating the admin key invalidates every unsubscribe link ever
+// sent, and anybody holding the admin key can mint them. That is what this closes.
+const DEV_UNSUB_SECRET = 'kind-unsub-dev-secret'
+
+/**
+ * Is this a real production API, as opposed to local, test or staging?
+ *
+ * Staging is deliberately excluded: `startup-check.ts` already downgrades every critical var
+ * except the two Supabase ones when `IS_STAGING` is set, and a preview deploy that refuses to
+ * send is a preview deploy nobody can walk (RULEBOOK §11 — client-facing work is previewed
+ * FIRST, so the preview has to work).
+ */
+function isProductionApi(): boolean {
+  return process.env.NODE_ENV === 'production' && process.env.IS_STAGING !== 'true'
+}
+
+/**
+ * Resolve the signing secret, and say which rung of the ladder it came from.
+ *
+ * Read per call rather than frozen in a module constant. The constant form could not be tested
+ * — the value was baked at import, so no test could show the production refusal actually
+ * firing, and an untested refusal is a comment, not a guard.
+ */
+export function resolveUnsubSecret(): { secret: string; source: 'dedicated' | 'admin_key' | 'resend_key' | 'dev_fallback' } {
+  if (process.env.UNSUBSCRIBE_SECRET) return { secret: process.env.UNSUBSCRIBE_SECRET, source: 'dedicated' }
+  if (process.env.ADMIN_SECRET_KEY)   return { secret: process.env.ADMIN_SECRET_KEY,   source: 'admin_key' }
+  if (process.env.RESEND_API_KEY)     return { secret: process.env.RESEND_API_KEY,     source: 'resend_key' }
+  return { secret: DEV_UNSUB_SECRET, source: 'dev_fallback' }
+}
+
+/**
+ * The secret to SIGN with — and in production it refuses rather than signs.
+ *
+ * FAILS CLOSED, founder-ruled 19 Aug. `unsubscribeHeaders()` is called inside the send path
+ * (figsy.ts:830 and :1390), so throwing here stops the send. That is deliberate: cold mail
+ * without a working one-click unsubscribe breaks Gmail/Yahoo bulk-sender rules on its own, so
+ * "send anyway with a link nobody can verify" is not the safer half — it is the same
+ * violation with the evidence hidden.
+ */
+function signingSecret(): string {
+  const { secret, source } = resolveUnsubSecret()
+  if (source === 'dev_fallback' && isProductionApi()) {
+    throw new Error(
+      'UNSUBSCRIBE_SECRET is not set on this production API, and the only remaining fallback is ' +
+      'the development constant published in this repository. Refusing to sign an unsubscribe ' +
+      'link nobody could trust — set UNSUBSCRIBE_SECRET in Railway → @kind/api.',
+    )
+  }
+  return secret
+}
 
 // Public base URL for unsubscribe links. Unlike the tracking pixel, the unsubscribe
 // endpoint MUST resolve even if only the platform host is configured — a working
@@ -71,14 +128,18 @@ export function trackingPixelHtml(emailId: string | null): string {
 // signature without a DB lookup and the token is not enumerable/guessable.
 export function unsubscribeToken(email: string): string {
   const data = Buffer.from(email.trim().toLowerCase()).toString('base64url')
-  const sig = crypto.createHmac('sha256', UNSUB_SECRET).update(data).digest('base64url').slice(0, 24)
+  const sig = crypto.createHmac('sha256', signingSecret()).update(data).digest('base64url').slice(0, 24)
   return `${data}.${sig}`
 }
 
 export function verifyUnsubscribeToken(token: string): string | null {
   const [data, sig] = (token || '').split('.')
   if (!data || !sig) return null
-  const expected = crypto.createHmac('sha256', UNSUB_SECRET).update(data).digest('base64url').slice(0, 24)
+  // VERIFY does NOT go through signingSecret(). Signing refuses in production; verifying must
+  // not, or a link already sitting in somebody's inbox would stop working the moment the env
+  // changed — and the person on the other end of that link is trying to OPT OUT. Refusing to
+  // honour an opt-out is the one failure this whole file exists to prevent.
+  const expected = crypto.createHmac('sha256', resolveUnsubSecret().secret).update(data).digest('base64url').slice(0, 24)
   try {
     if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null
   } catch {

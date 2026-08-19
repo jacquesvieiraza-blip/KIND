@@ -52,6 +52,7 @@ The second was subtler and worth recording, because it is the same defect this r
 | `SUPABASE_ANON_KEY` | api | 🔴 **required** | Supabase anon key — middleware/auth.ts builds a client at import; unset = the API does not boot at all | Railway → **@kind/api** |
 | `SUPABASE_SERVICE_ROLE_KEY` | admin·api | 🔴 **required** | Supabase service role key | Railway → **@kind/admin** + Railway → **@kind/api** |
 | `SUPABASE_URL` | api | 🔴 **required** | Supabase project URL | Railway → **@kind/api** |
+| `UNSUBSCRIBE_SECRET` | api | 🔴 **required** | Signs every unsubscribe link — REQUIRED in production; unset means the admin key silently becomes the signing key | Railway → **@kind/api** |
 
 ### 🟠 Important — the API starts, and something is silently degraded
 
@@ -82,7 +83,6 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `STRIPE_SECRET_KEY` | api | 🟠 important | Stripe — unset = no checkout, customers cannot pay | Railway → **@kind/api** |
 | `STRIPE_WEBHOOK_SECRET` | api | 🟠 important | Stripe webhook — unset = customer charged but NEVER credited | Railway → **@kind/api** |
 | `TRACKING_URL` | api | 🟠 important | Base URL for the tracking pixel and click links — unset falls back to API_URL, then to nothing (no opens, no clicks) | Railway → **@kind/api** |
-| `UNSUBSCRIBE_SECRET` | api | 🟠 important | Signs unsubscribe links — unset = a fallback secret is used and old links stop verifying on rotation | Railway → **@kind/api** |
 
 ### ⚪ Optional — unset is a legitimate "off"
 

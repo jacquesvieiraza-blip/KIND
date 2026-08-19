@@ -661,8 +661,30 @@ export async function sendSequenceEmail(
   // lead is never queued, and BEFORE the caps + atomic claim (those are send-time concerns
   // the approval re-entry re-checks). Skipped for the preview/test path and the re-entry.
   if (!opts?.isPreview && !opts?.skipReview) {
-    const { data: camp } = await db.from('figsy_campaigns')
+    // C7 — FAIL CLOSED WHEN THE REVIEW REQUIREMENT CANNOT BE ESTABLISHED.
+    //
+    // This read used to discard its error. A rejected query returns `data: null`, which made
+    // `reviewRequired` false, which fell straight through to the send — so a database hiccup
+    // SILENTLY DISABLED the human-review gate and a co-pilot client's step went out unreviewed.
+    // Nothing logged it, because from the code's point of view nothing had gone wrong.
+    //
+    // ⚠️ THE DISTINCTION THAT MATTERS, and it is easy to get backwards: `maybeSingle()` returns
+    // `{ data: null, error: null }` when the campaign row simply DOES NOT EXIST. That is not a
+    // failure — it is a legitimate "no settings, therefore no review", and it must keep sending.
+    // Only a real `error` fails closed. Failing closed on `!camp` instead would defer every send
+    // whose campaign row is missing, forever.
+    const { data: camp, error: campErr } = await db.from('figsy_campaigns')
       .select('settings').eq('id', campaignId).maybeSingle()
+    if (campErr) {
+      // Same shape as the queue-insert failure twenty lines below: do NOT send, do NOT pause
+      // (leave the enrollment due so a later cron retries), and say so loudly.
+      console.error(
+        `[figsy] sendSequenceEmail: could not read campaign settings for ${campaignId} (enrollment ${enrollmentId} step ${step}) — ` +
+        'cannot establish whether human review is required, so NOT sending (fail-closed)',
+        campErr.message,
+      )
+      return 'deferred'
+    }
     const reviewRequired = (camp?.settings as { review_required?: boolean } | null)?.review_required === true
     if (reviewRequired) {
       // Resolve client_id (approval_queue.client_id is NOT NULL). Prefer the lead's own;

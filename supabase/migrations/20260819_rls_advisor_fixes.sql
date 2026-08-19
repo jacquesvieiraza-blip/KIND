@@ -18,6 +18,17 @@
 -- title, `acquisition_cost`, reveals, works, `revenue_usd` and `roi`: prospect
 -- email addresses AND our own per-record margins.
 --
+-- ⛓️ CORRECTED 19 Aug, SAME DAY, BY 20260819_pool_pnl_service_role_grant.
+-- The sentence below about the service role keeping "every underlying right
+-- (including auth.users)" under `security_invoker` IS FALSE. It was reasoned
+-- from how Supabase roles usually behave and never verified against this
+-- database. Turning on invoker rights made the view run as `service_role`,
+-- which has NO SELECT on `auth.users` — and the view joins that table twice —
+-- so Vida → Money Path's pool section broke within minutes of the deploy. The
+-- RLS half of this migration was correct and is untouched; the grant migration
+-- restores the view. Kept verbatim, struck rather than rewritten, because this
+-- is what actually ran in production.
+--
 -- ── WHY ENABLING RLS CANNOT BREAK THE PRODUCT ───────────────────────────────
 -- `packages/db/src/client.ts` builds the API's only client with
 -- SUPABASE_SERVICE_ROLE_KEY, and throws at boot without it. The service role

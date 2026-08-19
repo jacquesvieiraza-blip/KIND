@@ -1,0 +1,49 @@
+-- ============================================================================
+-- THE CORRECTION TO 20260819_rls_advisor_fixes, WRITTEN THE SAME HOUR IT BROKE
+-- SOMETHING. Chained, not hidden: that migration stays exactly as it was run.
+--
+-- WHAT BROKE. `20260819_rls_advisor_fixes` set `security_invoker = true` on
+-- `public.lead_pool_pnl` to clear the advisor's "Security Definer View" error.
+-- It cleared it. It also stopped our OWN reader working: Vida → Money Path's
+-- "The lead pool · records as inventory" section went to its fallback,
+-- "Pool data unavailable", within minutes of the deploy.
+--
+-- WHY. The view's live definition (20260717_pool_pnl_exclude_house_demo) joins
+-- `auth.users` TWICE — that is how it excludes the founder's own house account
+-- from pool revenue. Under SECURITY DEFINER the view ran with its creator's
+-- rights, which reach the auth schema. Under `security_invoker` it runs with
+-- the CALLER's rights, and the caller is `service_role`, which does not have
+-- SELECT on `auth.users` by default in Supabase. So the view lost access to
+-- its own join.
+--
+-- ⚠️ THE CLAIM THAT WAS WRONG, RECORDED SO IT IS NOT INHERITED. The comment in
+-- 20260819_rls_advisor_fixes reads "with invoker rights the service role still
+-- has every underlying right (including auth.users) so money-path keeps
+-- working". THAT SENTENCE IS FALSE. It was asserted from reasoning about how
+-- Supabase roles usually work, never verified against this database, and it is
+-- the only sentence in that migration nobody checked. The header of that file
+-- now carries the same correction.
+--
+-- WHY THIS GRANT IS NOT AN ESCALATION. `service_role` is the key the API
+-- already authenticates with (packages/db/src/client.ts) and it already
+-- bypasses RLS on every table in `public`. Reading `auth.users` adds nothing it
+-- could not already reach by other means. What matters is the pairing: with
+-- `security_invoker` ON and anon/authenticated REVOKED (both from the previous
+-- migration, both still in force), a browser holding the public key now needs
+-- its own `auth.users` grant to get anything — and has none. The invoker model
+-- plus the revoke is the secure combination; this grant only restores OUR side.
+--
+-- THE ROOT FIX IS NOT THIS. A pool P&L view has no business reading the auth
+-- schema at all. `clients.contact_email` exists (schema-probed 19 Aug) and
+-- would do the same job without touching `auth`. That is a change to the view's
+-- SELECT, which the founder's no-touch explicitly forbade for this work, so it
+-- is queued for Fable rather than smuggled in here.
+--
+-- PROOF IS RUNTIME, NOT RED-GREEN. A grant against a live database has no code
+-- path to red-prove. The proof is Vida → Money Path rendering the pool section.
+-- ============================================================================
+
+-- Usage first: a grant on a table in a schema the role cannot enter is useless.
+-- Both statements are idempotent — re-granting is a no-op.
+GRANT USAGE ON SCHEMA auth TO service_role;
+GRANT SELECT ON TABLE auth.users TO service_role;

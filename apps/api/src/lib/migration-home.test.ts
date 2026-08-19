@@ -111,7 +111,13 @@ describe('① every migration has a canonical file', () => {
     // finding four CRITICAL errors on production — two of them tables created by the 16–17
     // Aug partner arc that shipped with row-level security off. Nothing we owned asked that
     // question, which is why describe ③ below now asks it of every future table.
-    expect(runnerKeys).toHaveLength(23)
+    //
+    // 24 from 19 Aug, the same day — `20260819_pool_pnl_service_role_grant`, the CORRECTION
+    // to the entry above. security_invoker cleared the advisor error and simultaneously took
+    // auth.users away from the view's own reader, so Money Path's pool section broke on
+    // deploy. Chained rather than amended: the first entry stays exactly as it ran in
+    // production, and the correction is a separate, dated, readable act.
+    expect(runnerKeys).toHaveLength(24)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -154,7 +160,8 @@ describe('② a copy that can drift is the disease, not the cure', () => {
     // +1 (20260817_seller_ramp, #654 — the seller's own contact notebook behind the ramp) = 135.
     // +1 (20260819_rls_advisor_fixes, HC-7 — RLS on the two partner tables and error_events,
     // and lead_pool_pnl stops running with its creator's rights) = 136.
-    expect(sqlFiles(CANON)).toHaveLength(136)
+    // +1 (20260819_pool_pnl_service_role_grant — the same-day correction) = 137.
+    expect(sqlFiles(CANON)).toHaveLength(137)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

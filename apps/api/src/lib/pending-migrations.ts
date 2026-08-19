@@ -796,6 +796,11 @@ create index if not exists partner_ramp_contacts_partner_idx
     // readable by anyone who lifts that key. `lead_pool_pnl` carries prospect `email_norm`
     // AND `acquisition_cost`/`revenue_usd`/`roi` — PII and our own margins.
     //
+    // ⛓️ CORRECTED SAME DAY by 20260819_pool_pnl_service_role_grant (below): the claim in
+    // this block that the service role keeps every underlying right under security_invoker
+    // is FALSE — it has no SELECT on auth.users, which this view joins twice, and Money
+    // Path's pool section broke on deploy. The RLS half was correct and is untouched.
+    //
     // WHY IT CANNOT BREAK US: packages/db/src/client.ts builds the API's only client with
     // SUPABASE_SERVICE_ROLE_KEY and throws at boot without it. The service role bypasses
     // RLS. Every reader is server-side on that client — money-path.ts:240 for the view,
@@ -832,6 +837,47 @@ ALTER TABLE IF EXISTS public.partner_signed_documents ENABLE ROW LEVEL SECURITY;
 
 -- ⑤ Not advisor-flagged; founder-approved for completeness. Idempotent either way.
 ALTER TABLE IF EXISTS public.error_events ENABLE ROW LEVEL SECURITY;
+`.trim(),
+  },
+  {
+    // ⛓️ THE CORRECTION TO THE ENTRY ABOVE, written the same hour it broke something.
+    // Chained, never hidden: that migration stays exactly as it was run in production.
+    //
+    // WHAT BROKE: `security_invoker = true` cleared the advisor's "Security Definer View"
+    // error AND stopped our own reader working. Vida → Money Path's "The lead pool ·
+    // records as inventory" section fell to its "Pool data unavailable" fallback within
+    // minutes of the deploy.
+    //
+    // WHY: the view's live definition (20260717) joins `auth.users` TWICE to exclude the
+    // house account from pool revenue. Under SECURITY DEFINER it ran with its creator's
+    // rights, which reach the auth schema. Under invoker rights it runs as the CALLER —
+    // `service_role` — which has no SELECT on `auth.users` by default in Supabase.
+    //
+    // ⚠️ THE FALSE SENTENCE, NAMED SO IT IS NOT INHERITED: the entry above says "with
+    // invoker rights the service role still has every underlying right (including
+    // auth.users) so money-path keeps working". That is WRONG. It was reasoned from how
+    // Supabase roles usually behave and never verified against this database — the one
+    // sentence in that migration nobody checked, and the one that cost a working screen.
+    //
+    // NOT AN ESCALATION: service_role is the key the API already authenticates with
+    // (packages/db/src/client.ts) and already bypasses RLS across `public`. What keeps the
+    // fix intact is the pairing — invoker ON plus anon/authenticated REVOKED, both still in
+    // force from the entry above — so a browser holding the public key would now need its
+    // own auth.users grant, and has none. This restores only our side.
+    //
+    // THE ROOT FIX IS NOT THIS: a P&L view should not read the auth schema at all;
+    // `clients.contact_email` exists and would do the same job. That changes the view's
+    // SELECT, which the founder's no-touch forbade for this work — queued for Fable.
+    //
+    // PROOF IS RUNTIME: a grant has no code path to red-prove. Vida → Money Path rendering
+    // the pool section is the proof.
+    key: '20260819_pool_pnl_service_role_grant',
+    title: 'Restore Money Path\'s pool P&L: grant service_role read on auth.users, which security_invoker took away from lead_pool_pnl. Canonical .sql: supabase/migrations/20260819_pool_pnl_service_role_grant.sql — BOTH HOMES (O3). ⛓️ Corrects a FALSE claim in 20260819_rls_advisor_fixes; the four advisor errors stay closed.',
+    sql: `
+-- Usage first: a grant on a table in a schema the role cannot enter is useless.
+-- Both statements are idempotent — re-granting is a no-op.
+GRANT USAGE ON SCHEMA auth TO service_role;
+GRANT SELECT ON TABLE auth.users TO service_role;
 `.trim(),
   },
 ]

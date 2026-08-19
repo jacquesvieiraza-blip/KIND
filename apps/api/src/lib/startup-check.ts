@@ -88,7 +88,11 @@ const REQUIRED_VARS: VarSpec[] = [
   { key: 'FIGSY_COLD_REPLY_TO',       level: 'important', description: 'Reply-To on cold mail — unset = replies land nowhere we read' },
   { key: 'FIGSY_REPLY_TO',            level: 'important', description: 'Reply-To on sequence mail' },
   { key: 'FIGSY_UNSUB_MAILTO',        level: 'important', description: 'List-Unsubscribe mailto — unset = the one-click header is absent and Gmail penalises the domain' },
-  { key: 'UNSUBSCRIBE_SECRET',        level: 'important', description: 'Signs unsubscribe links — unset = a fallback secret is used and old links stop verifying on rotation' },
+  // HC-2 (19 Aug) — raised important → critical on the founder's ruling. Unset, the ladder in
+  // deliverability.ts hands the ADMIN key to the unsubscribe signer: one secret doing two jobs,
+  // so rotating the admin key invalidates every unsubscribe link ever sent. The signer now
+  // refuses in production, which stops sends — so a silent warning at boot was the wrong tier.
+  { key: 'UNSUBSCRIBE_SECRET',        level: 'critical',  description: 'Signs every unsubscribe link — REQUIRED in production; unset means the admin key silently becomes the signing key' },
   { key: 'TRACKING_URL',              level: 'important', description: 'Base URL for the tracking pixel and click links — unset falls back to API_URL, then to nothing (no opens, no clicks)' },
   { key: 'FOUNDER_EMAIL',             level: 'important', description: 'Where every alert goes — unset falls back to hello@get-kind.com' },
   { key: 'API_URL',                   level: 'important', description: 'Public API base — tracking/unsubscribe links and the MCP manifest' },

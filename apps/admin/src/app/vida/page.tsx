@@ -106,6 +106,19 @@ type EnrolSkips = {
   subject_id: string | null
   detail: { enrolled?: number; skipped?: number; summary?: string; reasons?: Record<string, number> }
 }
+/**
+ * How many of this client's leads we can actually send to today.
+ *
+ * ⚠️ NOT the same question as `EnrolSkips`, and that is why it is a second reading rather than
+ * one more reason on that chip. Enrol-skips is the LAST RUN; this is the BOOK. With outreach
+ * still switched off, no run has ever happened — so the skip chip renders nothing and would go
+ * on rendering nothing until send-day, while this answers the question now.
+ */
+type CountryCoverage = {
+  total: number; missing: number; sendable: number; held: number; capped: boolean; line: string
+  /** Decided by the API, never here — see the render comment below. */
+  chip?: { show: boolean; stop?: boolean; text?: string; title?: string }
+}
 /** #619 — real money, a comp, or nothing. A comp ENTITLES; it is not a payment. */
 type FundedVia = 'real' | 'comp' | null
 type WorkRow = ClientRow & {
@@ -195,6 +208,9 @@ export default function VidaConsolePage() {
   // #620 — the last enrol run that REFUSED somebody, for the selected client. Null is the good
   // case (nobody refused), which is why an empty trail is not an error.
   const [enrolSkips, setEnrolSkips] = useState<EnrolSkips | null>(null)
+  // How much of the selected client's book is sendable today. Null = not read yet or unreadable;
+  // an unreadable count must never render as "all clear".
+  const [coverage, setCoverage] = useState<CountryCoverage | null>(null)
   // Blended names-per-approval across the real book — the figure that belongs in the
   // cashflow lab, kept separate from the noisy per-client reading.
   const [bookRatio, setBookRatio] = useState<RatioReading | null>(null)
@@ -902,6 +918,14 @@ export default function VidaConsolePage() {
       .then(r => r.json())
       .then(j => { if (j?.success) setEnrolSkips(j.data ?? null) })
       .catch(() => {})
+    // Rides the same client selection. Kept as its own request rather than folded into the
+    // skips route, because the two answer different questions and one going quiet must not
+    // take the other's number off the screen with it.
+    setCoverage(null)
+    fetch(`/api/proxy/operator/country-coverage?client_id=${encodeURIComponent(selected)}`)
+      .then(r => r.json())
+      .then(j => { if (j?.success) setCoverage(j.data ?? null) })
+      .catch(() => {})
   }, [selected])
 
   // Lazy-load the tab's own data the first time it is opened. A status message belongs to
@@ -1392,6 +1416,23 @@ export default function VidaConsolePage() {
                       {/* #620 — WHAT THE LAST ENROL RUN REFUSED. Without this line, "every draft
                           rejected" and "nothing happened" are the same picture on send-day. The
                           reasons are shown IN WORDS, never as a bare count. */}
+                      {/* HOW MUCH OF THE BOOK CAN ACTUALLY BE SENT TO.
+                          `pecr.ts` claimed the unknown-country volume was "counted so it is
+                          visible". It never was — the class is an ALLOW, so nothing called
+                          noteSkip and the only trace was a console.warn. This is that number,
+                          and it reads BEFORE any enrol run has happened, which matters because
+                          none ever has.
+                          ⚠️ THE DECISION AND THE WORDS ARE THE API'S (lib/country-coverage.ts),
+                          not this file's. `apps/admin` cannot import from `apps/api` (#563/#614),
+                          so any rule re-implemented here would be a second copy with no test on
+                          it. This renders `chip` and decides nothing. */}
+                      {coverage?.chip?.show && (
+                        <span
+                          className={coverage.chip.stop ? 'text-[#b91c1c] font-semibold' : 'text-[#92400e] font-semibold'}
+                          title={coverage.chip.title}>
+                          {coverage.chip.text}
+                        </span>
+                      )}
                       {enrolSkips && (enrolSkips.detail?.skipped ?? 0) > 0 && (
                         <span className="text-[#9d174d] font-semibold"
                           title={Object.entries(enrolSkips.detail?.reasons ?? {}).map(([r, n]) => `${r} × ${n}`).join('\n')}>

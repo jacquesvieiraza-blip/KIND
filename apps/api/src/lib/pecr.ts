@@ -34,7 +34,25 @@ export type PecrClass =
   | 'individual_risk'
   /** Not a UK lead. PECR is UK law; this lead is governed elsewhere. Send. */
   | 'out_of_scope'
-  /** No usable country. Sends, but is NAMED so the volume is visible rather than assumed. */
+  /**
+   * No usable country. Sends, as far as PECR is concerned.
+   *
+   * ⛓️ CORRECTED 20 Aug — this read *"Sends, but is NAMED so the volume is visible rather than
+   * assumed."* **It was not visible and never had been.** This class is an ALLOW, so `noteSkip`
+   * is never called for it, nothing reaches `enrol_skips`, and the only trace it ever left was
+   * a `console.warn` nobody reads. The sentence described an intention as though it were a
+   * mechanism — and it stood for two months.
+   *
+   * It is visible NOW, and not through this class: `/operator/country-coverage` counts the
+   * BOOK — how many of a client's leads have no country — which is the question actually being
+   * asked, and one the enrol-skip trail cannot answer (it reads the LAST RUN, and with outreach
+   * off no run has ever happened).
+   *
+   * ⚠️ AND THE PRACTICAL EFFECT OF THIS CLASS CHANGED THE SAME MORNING. PECR still allows a
+   * blank country — deliberately; see `pecrVerdict` — but the launch allowlist (R50) sits
+   * directly behind this gate and HOLDS one. So a lead reaching this branch is allowed here and
+   * stopped one line later. Both are correct: this is a legal test, that is a commercial one.
+   */
   | 'unknown_country'
 
 export type PecrVerdict = {
@@ -114,7 +132,10 @@ export function pecrVerdict(a: {
     return {
       allow: true,
       class: 'unknown_country',
-      reason: 'no country on the lead — cannot tell whether PECR applies; sending, and counted so the volume is visible',
+      // ⛓️ 20 Aug — was "…sending, and counted so the volume is visible". Nothing counted it.
+      // This says what actually happens: PECR allows it, and the launch allowlist behind this
+      // gate is what decides whether it sends.
+      reason: 'no country on the lead — cannot tell whether PECR applies, so PECR allows it; whether it SENDS is decided by the launch allowlist behind this gate',
     }
   }
 

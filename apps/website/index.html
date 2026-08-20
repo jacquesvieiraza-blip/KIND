@@ -1454,15 +1454,23 @@
   .gp-video{
     display:block;
     margin-top:40px;
-    aspect-ratio:16/8.8;
+    aspect-ratio:16/9;
     border-radius:20px;
     overflow:hidden;
     position:relative;
-    background:
-      radial-gradient(circle at 50% 48%, rgba(124,58,237,.22), transparent 28%),
-      linear-gradient(135deg,#151122 0%,#08080a 58%,#0c0c10 100%);
+    cursor:pointer;
+    background:#0b0910;
     border:1px solid #202027;
   }
+  .gp-video-still{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+  .gp-playveil{position:absolute;inset:0;background:rgba(15,10,30,.18);transition:background .25s ease}
+  .gp-video:hover .gp-playveil{background:rgba(15,10,30,.34)}
+  /* the box the click-swap script inserts — SAME size and shape as the frame it replaces.
+     This rule was missing on first ship, so the iframe fell back to the browser default
+     300x150: the founder pressed play and got a tiny video. */
+  .nh-videobox{position:relative;display:block;margin-top:40px;aspect-ratio:16/9;border-radius:20px;overflow:hidden;background:#000}
+  .nh-videobox iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+
 .gp-video:before{
     content:"";
     position:absolute;inset:0;
@@ -1810,7 +1818,8 @@ nav, nav *, footer, footer *{font-family:'Plus Jakarta Sans',-apple-system,Blink
         </div>
 
         <a class="gp-video nh-playlink" href="https://youtu.be/Cx5-PjxjGFI" target="_blank" rel="noopener" aria-label="Play the product demo">
-          <span class="gp-sound">🔇 Tap to unmute</span>
+          <img class="gp-video-still" src="mv-milla-portal.png" alt="The Milla portal — masked leads waiting for your approve or pass">
+          <span class="gp-playveil"></span>
           <span class="gp-play" aria-hidden="true"></span>
           <span class="gp-video-label">The product demo</span>
         </a>

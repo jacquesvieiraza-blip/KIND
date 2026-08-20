@@ -37,6 +37,47 @@ The date is unconditional (R57). Anything that misses the 25th lands HERE, docum
 - **Google OAuth verification, the post-submission half** — L2/P47 (pre-25) gets the domain moved and the submission in; Google's review lands on its own clock. Completing verification, removing the test-user bridge, and the 100-user cap retirement are post-launch by nature. R55 context: #684. 🤝
 - **`/health` commit check → ship ritual** — #673 built it; fold `curl /health | jq .commit` vs `git rev-parse --short origin/main` into `ship.sh` so every deploy self-verifies. Small. 🤖
 
+### ⛓️ 20 AUG — FIGSY OBSERVABILITY + MODEL ROUTING (R58, founder-ruled post-launch: *"none of this is live now. all post launch for review"*)
+
+Three documents drove this: an M&V routing brief, the Founder-Operator OS, and a **challenge brief** that ordered the first review re-audited rather than accepted. The founder then ran a second challenge himself. **Everything below was designed, three items were built and REVERTED unbuilt on his ruling** — nothing here is live, and the sequence is a proposal for post-launch review, not a queue.
+
+**The finding that reorders the whole thesis.** The problem is not that model costs go unlogged. It is that **the decision which produced a booked meeting is destroyed by the next rescore** (`scoring.ts:173` — single mutable columns, overwritten in place). Metering an implementation that cannot remember its own decisions instruments the wrong thing. The founder's words: *"That is much more strategically important than token metering."*
+
+**The immutable chain, and what a rescore does to it.**
+
+```text
+leads                          ← current_decision_id (convenience, mutable)
+  ├─► lead_decisions           IMMUTABLE, insert-only. Rescore INSERTS B; A untouched.
+  │     score · reasoning · model · prompt_version · evidence_version · run_id
+  │        │ decision_id  [FK, ON DELETE RESTRICT — never SET NULL]
+  │        ▼
+  ├─► approvals / figsy_enrollments   ← decision_id PINNED AT APPROVAL, never recomputed
+  │        │ enrollment_id  [FK, RESTRICT]
+  │        ▼
+  │     figsy_replies          ← needs enrollment_id ADDED; today it has none
+  │        ▼
+  │     calendar_bookings → MEETING_BOOKED
+  └─► model_runs (run_id)      ← cost/latency, joined via run_id, never on this path
+```
+
+Under this shape a rescore between approval and booking is harmless: the enrolment still points at A because the pin was taken at approval and nothing rewrites it, so the meeting attributes to A while the lead's *current* view correctly shows B. **Both answers true, no collision.** Three properties carry it, and each is a place it fails silently: the pin is never recomputed · FKs `RESTRICT` not `SET NULL` · `figsy_replies` gains `enrollment_id`.
+
+**The sequence — for review, not authorised.**
+
+| Order | Items | Gate |
+|---|---|---|
+| First (smallest, no model touched) | **#686** website release proof · **#687** single `$4` source · **#688** A2a additive lineage | Founder review |
+| Then, one pass | **#690** registry + adapter · **#691** durable `model_runs` | #692 settled first |
+| Then | **#689** A2b full history · **#693** approve/reject attribution | Reason taxonomy is a product decision |
+| Evidence | **#695** shadow evaluation | Needs #688–#691 live |
+| Last | **#696** dynamic routing | Founder approval **task by task** — it changes which leads a client is charged $4 for |
+
+**Decisions only the founder can make:** #692 (is `outcome_events` a ledger or a log — it currently claims both) · #693's reason taxonomy (six chips vs ten, on the screen where clients spend money) · #696's per-task quality floors · #689's `evidence_snapshot` vs hash, which needs a real row-size measurement first.
+
+**Two things already true that must not be rebuilt:** evidence-before-model is the existing pattern, and suppression/jurisdiction/country checks are already deterministic with no LLM. **And Nexus is not the router** — see #694; they are opposites on the tenant fence and must never share a table.
+
+**From the Founder-Operator OS, separately:** §09 *founder absence mode* is a page of writing with no code (deputy · technical guardian · continuity runbook) and is the section whose absence costs something if he is unavailable — the rest of that document is Notion, not repo. §51 *Current Operating State* is a real screen but would be a hand-typed dashboard until #691 exists. §55's *"400 accepted leads × $4"* is a **planning assumption with an owner and a date**, not a product constant — only the `$4` is a constant (#687), and conflating the two was my error, corrected by the founder.
+
 ## Phase 0 — THE CURRENT VERSION'S OWN WORK (not a phase gate — it ships before/with client #1)
 **#651 — the industry/purpose sequencing engine.** R38-amended + R39: sequencing is **core to all three products and serves the client**, never an add-on and never operator-only tooling. v1 = templates by industry AND purpose (meeting-gen · event invite · reactivation) · **date-aware cadence that counts BACK from an event date** · per-campaign depth 3/5/7 (5 only as the default). Later rungs: winning-plays-feed-templates (needs live send data), call/LinkedIn steps as those channels unlock (#475/#388), auto-tuned depth (P2's Nexus), the visual flow builder (P3's client surface).
 

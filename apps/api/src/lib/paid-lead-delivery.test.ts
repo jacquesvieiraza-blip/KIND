@@ -83,7 +83,9 @@ function makeQuery(table: string) {
   return q
 }
 
-const LEAD = { id: 'lead1', client_id: 'c1', email: 'known@acme.com', first_name: 'A', last_name: 'B', company: 'Acme', crm_existing: false }
+// See approve-lead.test.ts: an allowed country keeps step 3d's launch hold out of a file whose
+// subject is what happens to a lead AFTER it is paid for.
+const LEAD = { id: 'lead1', client_id: 'c1', email: 'known@acme.com', first_name: 'A', last_name: 'B', company: 'Acme', country: 'United States', crm_existing: false }
 
 vi.mock('@kind/db', () => ({
   db: {

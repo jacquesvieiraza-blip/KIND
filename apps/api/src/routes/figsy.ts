@@ -1,4 +1,5 @@
 import { pecrVerdict, pecrSkipReason } from '../lib/pecr'
+import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 import { recordEnrolSkips } from '../lib/operator-audit'
 import { Router } from 'express'
 import crypto from 'crypto'
@@ -587,6 +588,32 @@ figsyRouter.post('/webhook/enrol', figsyWebhookLimiter, async (req, res) => {
           // Named, not refused. Suppressing every lead with a missing country would delete most
           // of the book on an enrichment gap — so it sends, and the count is visible.
           console.warn(`[figsy] #617 enrolling ${lead.email} with no country — ${pecr.reason}`)
+        }
+
+        // ⚠️ LAUNCH COUNTRY HOLD — AT LAUNCH WE SEND TO THE US AND THE UK, AND NOWHERE ELSE.
+        //
+        // Directly under the PECR gate because it is the same shape of question, and BEFORE
+        // `chargeFigsyEnroll` for the same reason: a credit taken for a lead we are about to
+        // refuse is correct-looking money churning the ledger for nothing (#332).
+        //
+        // ⚠️ IT IS NOT THE SAME QUESTION AS PECR, AND MERGING THEM WOULD BE WRONG. PECR asks
+        // whether UK law forbids this send; a Nigerian lead passes it happily. This asks whether
+        // the founder has opened the country — and holds that same lead. Two tests, one after
+        // the other, on purpose (see `packages/shared/src/launch-countries.ts`).
+        //
+        // ⚠️ AND IT INVERTS PECR ON THE BLANK COUNTRY, DELIBERATELY. Three lines above, an
+        // unknown country ENROLS and is merely counted, because refusing on a missing field
+        // would delete most of the book on a legal test that may not even apply. Here it is
+        // HELD: we cannot claim a lead is in the US or the UK when nothing on the row says so,
+        // and an unknown country is not evidence of an allowed one. The founder took that cost
+        // knowingly on 20 Aug. Held, never deleted — this lead enrols the day its country opens.
+        //
+        // `isDemo` is handled by `pecrVerdict` above for PECR; here it is explicit, because the
+        // entire demo book is South African and a demo that stops drafting is a broken demo.
+        if (!isDemo && !isLaunchSendCountry(lead.country)) {
+          noteSkip(skipReasons, launchHoldReason(lead.country))
+          skipped++
+          continue
         }
 
         if (!appliedSequence) {
@@ -1689,6 +1716,32 @@ figsyRouter.post('/campaigns/:id/enroll', rateLimit({ limit: 30, windowMs: 60_00
           // Named, not refused. Suppressing every lead with a missing country would delete most
           // of the book on an enrichment gap — so it sends, and the count is visible.
           console.warn(`[figsy] #617 enrolling ${lead.email} with no country — ${pecr.reason}`)
+        }
+
+        // ⚠️ LAUNCH COUNTRY HOLD — AT LAUNCH WE SEND TO THE US AND THE UK, AND NOWHERE ELSE.
+        //
+        // Directly under the PECR gate because it is the same shape of question, and BEFORE
+        // `chargeFigsyEnroll` for the same reason: a credit taken for a lead we are about to
+        // refuse is correct-looking money churning the ledger for nothing (#332).
+        //
+        // ⚠️ IT IS NOT THE SAME QUESTION AS PECR, AND MERGING THEM WOULD BE WRONG. PECR asks
+        // whether UK law forbids this send; a Nigerian lead passes it happily. This asks whether
+        // the founder has opened the country — and holds that same lead. Two tests, one after
+        // the other, on purpose (see `packages/shared/src/launch-countries.ts`).
+        //
+        // ⚠️ AND IT INVERTS PECR ON THE BLANK COUNTRY, DELIBERATELY. Three lines above, an
+        // unknown country ENROLS and is merely counted, because refusing on a missing field
+        // would delete most of the book on a legal test that may not even apply. Here it is
+        // HELD: we cannot claim a lead is in the US or the UK when nothing on the row says so,
+        // and an unknown country is not evidence of an allowed one. The founder took that cost
+        // knowingly on 20 Aug. Held, never deleted — this lead enrols the day its country opens.
+        //
+        // `isDemo` is handled by `pecrVerdict` above for PECR; here it is explicit, because the
+        // entire demo book is South African and a demo that stops drafting is a broken demo.
+        if (!isDemo && !isLaunchSendCountry(lead.country)) {
+          noteSkip(skipReasons, launchHoldReason(lead.country))
+          skipped++
+          continue
         }
 
         if (!appliedSequence) {

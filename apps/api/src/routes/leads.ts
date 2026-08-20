@@ -13,6 +13,7 @@ import type { BatchCheck } from '../lib/approval-batch'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
 import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
+import { launchHoldMessage } from '@kind/shared'
 import { sendFounderAlert } from '../lib/alerts'
 
 export const leadRouter = Router()
@@ -790,6 +791,7 @@ leadRouter.post('/:id/reveal', rateLimit({ limit: 60, windowMs: 60_000, key: 'le
     if (outcome.status === 'no_email') { res.status(422).json({ success: false, error: 'no_email_found', message: 'We could not find a verified email for this lead — you were not charged.' }); return }
     if (outcome.status === 'already_in_crm') { res.status(409).json({ success: false, error: 'already_in_crm', message: 'This contact is already in your CRM — no charge.' }); return }
     if (outcome.status === 'no_campaign') { res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return }
+    if (outcome.status === 'launch_hold') { res.status(409).json({ success: false, error: 'launch_hold', country: outcome.country, message: launchHoldMessage(outcome.country) }); return }
     // "Here are the N they approved" — throttled to one summary per client per 30 min, so a
     // client working through a batch is one nudge rather than fifty.
     if (shouldAlertApprovals(clientId)) {
@@ -901,6 +903,11 @@ leadRouter.post('/:id/approve', rateLimit({ limit: 60, windowMs: 60_000, key: 'l
       // We charge for WORK. With no active campaign there is nothing to enrol into, so
       // the wallet was deliberately left untouched (see approve-lead.ts step 3c).
       res.status(409).json({ success: false, error: 'no_campaign', message: "Your campaign isn't live yet, so we can't start outreach — you were not charged. We've been alerted and will switch it on." }); return
+    }
+    if (outcome.status === 'launch_hold') {
+      // Not an error the client did anything to cause, and not a dead end for the lead — it
+      // goes back on the queue untouched. Said in those words rather than as a failure.
+      res.status(409).json({ success: false, error: 'launch_hold', country: outcome.country, message: launchHoldMessage(outcome.country) }); return
     }
     res.json({ success: true, ...outcome })
   } catch (err) { console.error('[approve]', err); res.status(500).json({ success: false, error: 'Failed to approve lead' }) }

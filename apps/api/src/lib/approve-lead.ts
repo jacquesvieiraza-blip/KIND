@@ -6,6 +6,7 @@ import { isDemoClient } from './demo'
 import { sendFounderAlert } from './alerts'
 import { PAID_TX_TYPES } from './onboarding-pack'
 import { recordLeadSaleCommission } from './lead-sale-commission'
+import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 
 // ONE WALLET — the work model (founder-locked 24 Jul, supersedes #492).
 // APPROVE is the ONLY money event: the client's 👍 (in Milla) or an operator
@@ -26,6 +27,7 @@ export type ApproveOutcome =
   | { status: 'already_in_crm'; revealed: false }  // client owns it — no charge
   | { status: 'insufficient_funds'; revealed: false } // wallet < $4 — nothing moved (402)
   | { status: 'no_campaign'; revealed: false }     // no active campaign → can't work it → NOT charged
+  | { status: 'launch_hold'; revealed: false; country: string | null } // outside the launch allowlist → NOT charged
   | { status: 'not_found'; revealed: false }
 
 // ── #625 — THE NO-CAMPAIGN RULE, IN ONE PLACE ─────────────────────────────────────────────
@@ -207,6 +209,37 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   // charge-once door at 3b can never disagree about whether a client has somewhere to run.
   const activeCampaign = await resolveActiveCampaign(clientId)
   if (!activeCampaign) return refuseNoCampaign(clientId, leadId, unclaim, false)
+
+  // 3d. LAUNCH COUNTRY HOLD → we cannot send to this lead yet, so we must not take the money.
+  //
+  // ⚠️ THIS SITS HERE, AND NOT WITH THE OTHER LAUNCH GATES, FOR ONE REASON: THE MONEY.
+  //
+  // The five other launch gates all live in the enrol/send paths, which sounds like the right
+  // place until you follow the order of events. `try_charge_wallet` fires ~15 lines below;
+  // `autoEnrollLead` — where the enrol-side gate lives — is called at the BOTTOM of this
+  // function. So a held lead placed under the enrol gate alone is revealed, charged $4, and
+  // only then refused. That is exactly the charge-then-refuse #332 forbids: correct-looking
+  // money for work we always knew we would not do.
+  //
+  // The founder's ruling was "never charged" (20 Aug), and this line is the only place in the
+  // repository where that sentence can be made true.
+  //
+  // UN-CLAIMED, NOT CONSUMED. `revealed_at` is reset, so the lead returns to the queue intact
+  // and can be approved normally the day he opens its country. A hold is a pause on OUR side,
+  // never a decision about the lead — nothing here deletes, passes or burns anything.
+  //
+  // NO FOUNDER ALERT, deliberately — unlike `refuseNoCampaign`. No-campaign is a broken state
+  // one operator click fixes; a launch hold is the system working as instructed, and paging
+  // him once per out-of-scope lead would train him to ignore the alert that means a real
+  // client is stuck.
+  //
+  // The 3b charge-once branch above returns before this line and is intentionally NOT gated:
+  // it moves no money, and the enrol-side gate inside `autoEnrollLead` still holds the send.
+  if (!isLaunchSendCountry(claim.country as string | null)) {
+    await unclaim()
+    console.warn(`[approve] lead ${leadId} NOT approved — ${launchHoldReason(claim.country as string | null)}; nothing charged, lead returned to the queue`)
+    return { status: 'launch_hold', revealed: false, country: (claim.country as string | null) ?? null }
+  }
 
   // 4. Charge — unless this approval is still covered by the $99 onboarding pack.
   //

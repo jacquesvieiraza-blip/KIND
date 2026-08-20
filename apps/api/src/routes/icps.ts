@@ -15,6 +15,7 @@ import { deliveryCapBalance, normalizePlan, normalizeRevealEmail, normalizeRevea
 import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
+import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
 import { splitPoolAndRemainder , poolWriteAllowed} from '../lib/pool-sourcing'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import {
@@ -118,13 +119,47 @@ async function autoConsentScoredLeads(leadIds: string[], companyName: string, cl
   }
 }
 
+// ── LAUNCH COUNTRY FENCE — REFUSE THE TARGET LIST, NOT JUST THE SEND ──────────────────────
+//
+// ⚠️ WITHOUT THIS, THE LAUNCH ALLOWLIST COSTS REAL MONEY TO ENFORCE.
+//
+// The five send-side launch gates hold a lead we cannot email. They fire at the END of the
+// pipeline — long after we have PAID for the lead. `pdl-search.ts` pushes `geographies`
+// straight into the PDL query as `location_country`, so a client targeting Nigeria means: we
+// spend PDL budget sourcing Nigerian leads, insert them, score them, and then hold every single
+// one at the send gate. Money out, nothing sendable, and no error anywhere — the system looks
+// like it is working.
+//
+// So the refusal moves to the front door. A country we cannot send to is a country we do not
+// buy leads in.
+//
+// ⚠️ ON THE SCHEMA, NOT IN THE THREE ROUTES. There are three doors that save an ICP — POST `/`,
+// POST `/revise` and PATCH `/:id` — and `.partial()` on the PATCH door keeps this refinement,
+// so all three are covered by one definition and a FOURTH door added later inherits it for
+// free. A gate copied into three handlers is a gate that will be missed on the fourth: that is
+// exactly how the min-20 gate ended up bypassable on a route its 18 unit tests never saw.
+//
+// This does NOT restrict where a CLIENT is based — only who they may target. A South African
+// client selling into the US and the UK is the normal case and is completely unaffected.
+const geographiesSchema = z.array(z.string()).default([]).superRefine((geos, ctx) => {
+  for (const g of geos) {
+    // Blank entries are the UI's problem, not this gate's — an empty tag matches nothing in
+    // the PDL query and buys no leads, so refusing it here would be a confusing wall for a
+    // typo. Only a REAL country we cannot send to is refused.
+    if (!String(g ?? '').trim()) continue
+    if (!isLaunchSendCountry(g)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: launchTargetRefusal(g) })
+    }
+  }
+})
+
 const icpSchema = z.object({
   name:                  z.string().min(1),
   industries:            z.array(z.string()).default([]),
   job_titles:            z.array(z.string()).default([]),
   seniority_levels:      z.array(z.string()).default([]),
   company_sizes:         z.array(z.string()).default([]),
-  geographies:           z.array(z.string()).default([]),
+  geographies:           geographiesSchema,
   tech_stack:            z.array(z.string()).default([]),
   keywords:              z.array(z.string()).default([]),
   apollo_only_consented: z.boolean().default(true),

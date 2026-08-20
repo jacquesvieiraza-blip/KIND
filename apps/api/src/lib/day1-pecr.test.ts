@@ -192,15 +192,33 @@ describe('#617 — the gate refuses the right leads and only those', () => {
     expect(mailed).not.toContain('sole@trader.co.uk')
   })
 
-  it('a lead with NO country still sends — and that is deliberate, not an oversight', async () => {
-    // pecrVerdict returns allow:true / class 'unknown_country' on purpose: refusing every
-    // blank country would silently delete most of the book on a field enrichment often misses.
-    // ⚠️ Worth knowing what that means today — the founder's own export showed 166 of 166 leads
-    // with no country, so this gate passes the entire current book. It protects the leads that
-    // DO say United Kingdom, which is who it is for. Pinned so nobody "fixes" it by accident.
-    const noCountry: MockLead = { ...UK_SOLE_TRADER, id: 'l-none', email: 'x@y.com', country: null }
-    const mailed = await runBatch([noCountry])
-    expect(mailed).toEqual(['x@y.com'])
+  it('a lead with NO country PASSES PECR — and is then held by the launch gate behind it', async () => {
+    // ⚠️ SUPERSEDED 20 AUG, AND THE CHANGE IS THE POINT — READ BOTH HALVES.
+    //
+    // WAS: this asserted `mailed === ['x@y.com']`, because `pecrVerdict` returns allow:true /
+    // class 'unknown_country' on a blank country. That is STILL TRUE and still deliberate:
+    // refusing every blank country on a LEGAL test that may not even apply would silently
+    // delete most of the book on a field enrichment often misses.
+    //
+    // NOW: the launch-country allowlist (founder-locked 20 Aug) sits directly behind the PECR
+    // gate on this path, and it inverts the blank-country call on purpose — we cannot claim a
+    // lead is in the US or the UK when nothing on the row says so. So the lead clears PECR and
+    // is held one line later, and nothing is mailed.
+    //
+    // Both facts are asserted rather than just the outcome, because the outcome alone would
+    // read as "PECR now refuses blank countries" — which is false, and would send the next
+    // person to change the wrong file. The skip reason is the proof of WHICH gate fired.
+    const warns: string[] = []
+    const spy = vi.spyOn(console, 'warn').mockImplementation((...a) => { warns.push(a.join(' ')) })
+    let mailed: string[]
+    try {
+      const noCountry: MockLead = { ...UK_SOLE_TRADER, id: 'l-none', email: 'x@y.com', country: null }
+      mailed = await runBatch([noCountry])
+    } finally { spy.mockRestore() }
+
+    expect(mailed, 'the launch allowlist holds an unknown country').toEqual([])
+    expect(warns.join('\n'), 'held by the LAUNCH gate…').toContain('launch_hold: unknown')
+    expect(warns.join('\n'), '…and NOT by PECR, which allowed it').not.toContain('pecr_individual_risk')
   })
 })
 

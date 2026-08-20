@@ -87,7 +87,9 @@ import { autoEnrollLead } from './figsy'
 beforeEach(() => {
   rpcCalls.length = 0; inserts.length = 0; deletes.length = 0
   rpcReturns = { try_charge_wallet: true, increment_wallet: null, record_reveal_or_refund: 'charged', reveal_is_owned: false }
-  leadRow = { id: 'lead1', client_id: 'c1', email: 'known@acme.com', first_name: 'A', last_name: 'B', company: 'Acme', crm_existing: false }
+  // See approve-lead.test.ts: an allowed country keeps step 3d's launch hold out of a file
+  // whose subject is the pack boundary.
+  leadRow = { id: 'lead1', client_id: 'c1', email: 'known@acme.com', first_name: 'A', last_name: 'B', company: 'Acme', country: 'United States', crm_existing: false }
   purchaseCount = 1
   approvedCountIncludingThisOne = 1
   emailUpdateFails = false

@@ -59,7 +59,10 @@ import { autoEnrollLead } from './figsy'
 beforeEach(() => {
   rpcCalls.length = 0; tableInserts.length = 0; leadUpdates.length = 0
   rpcReturns = { try_charge_wallet: true, increment_wallet: null, record_reveal_or_refund: 'charged', reveal_is_owned: false }
-  leadRow = { id: 'lead1', client_id: 'c1', email: null, first_name: 'A', last_name: 'B', company: 'Acme', crm_existing: false }
+  // `country` is set because step 3d holds any lead outside the launch allowlist BEFORE the
+  // charge — a fixture with no country would be refused for geography and this file would
+  // stop testing the money at all. The launch gate has its own file; here it must not fire.
+  leadRow = { id: 'lead1', client_id: 'c1', email: null, first_name: 'A', last_name: 'B', company: 'Acme', country: 'United States', crm_existing: false }
   campaignRow = { id: 'camp1' }
   claimWins = true; enrollAfter = 0; isDemo = false
   vi.mocked(autoEnrollLead).mockClear()
@@ -161,5 +164,122 @@ describe('ONE WALLET — approveLead ($4 flat, final)', () => {
     expect(out.status).toBe('passed')
     expect(rpcCalls.length).toBe(0)                                     // zero money RPCs
     expect(leadUpdates.some(u => u.status === 'passed')).toBe(true)
+  })
+})
+
+// ── STEP 3d — THE LAUNCH-COUNTRY HOLD, AND WHY IT LIVES ON THE MONEY PATH ─────────────────
+//
+// Founder-locked 20 Aug: at launch we send to the US and the UK, and nowhere else. His words on
+// what that must cost the client: **"never charged"**.
+//
+// ⚠️ THE DEFECT THIS PREVENTS IS AN ORDERING DEFECT, NOT A MISSING GATE.
+//
+// The obvious home for a country check is the enrol path, and there IS one there. But follow the
+// order this function actually runs in:
+//
+//     step 4    try_charge_wallet          ← the $4 leaves the client's wallet
+//     step 5    reveal the email
+//     step 8    autoEnrollLead(...)        ← where the enrol-side country gate lives
+//
+// So with ONLY the enrol gate, a held lead is revealed, charged $4, and refused afterwards. The
+// client pays for outreach we knew we would never run, the ledger looks correct, and nothing
+// errors. That is precisely the charge-then-refuse #332 forbids, and it is exactly the shape of
+// the #625 no-campaign bug — a gate that was real but sat on the wrong side of the till.
+//
+// These tests therefore assert on `try_charge_wallet` CALL COUNT, not on the returned status. A
+// status assertion alone would pass on a version of this file that charges first and refuses
+// second, which is the only version that matters to get wrong.
+describe('step 3d — a lead outside the launch countries is HELD, and never charged', () => {
+  const held = (country: string | null) => { leadRow = { ...leadRow!, country } }
+
+  it('RED PROOF — with the enrol gate ALONE, the $4 is taken before the refusal ever runs', async () => {
+    // The pre-fix ordering, reproduced from the real sequence of steps in this function. This is
+    // what "gate it at enrolment" actually buys you: a charged client and a held lead.
+    const oldOrder = (country: string | null) => {
+      const events: string[] = []
+      events.push('try_charge_wallet')                 // step 4 — unconditional
+      events.push('reveal_email')                      // step 5
+      if (!['United States', 'United Kingdom'].includes(country ?? '')) events.push('enrol_refused')
+      return events
+    }
+    expect(oldOrder('Nigeria')).toEqual(['try_charge_wallet', 'reveal_email', 'enrol_refused'])  // ← RED
+    expect(oldOrder('Nigeria')[0]).toBe('try_charge_wallet')
+  })
+
+  it('NEW behaviour, REAL FUNCTION: a Nigerian lead is not charged a cent', async () => {
+    held('Nigeria')
+    const out = await approveLead('lead1', 'c1')
+
+    expect(out.status).toBe('launch_hold')
+    expect(out.revealed).toBe(false)
+    expect(charged(), 'THE ASSERTION THAT MATTERS — the wallet was never touched').toHaveLength(0)
+    expect(rpcCalls.filter(r => r.fn === 'increment_wallet'), 'and nothing was refunded, because nothing was taken').toHaveLength(0)
+    expect(vi.mocked(autoEnrollLead)).not.toHaveBeenCalled()
+  })
+
+  it('the lead is UN-CLAIMED, so it returns to the queue instead of being consumed', async () => {
+    // A hold is a pause on OUR side. Leaving `revealed_at` set would mark the lead permanently
+    // approved without an email ever being bought — it would vanish from the client's queue and
+    // never come back the day the country opens.
+    held('Nigeria')
+    await approveLead('lead1', 'c1')
+    expect(leadUpdates.some(u => u.revealed_at === null)).toBe(true)
+  })
+
+  it('names the country back, so an operator is never guessing which rule fired', async () => {
+    held('Nigeria')
+    const out = await approveLead('lead1', 'c1')
+    expect((out as { country?: string | null }).country).toBe('Nigeria')
+  })
+
+  it('⚠️ A BLANK COUNTRY IS HELD TOO — the inversion of the PECR gate, and it was chosen', async () => {
+    // `pecrVerdict` ALLOWS an unknown country; this gate refuses it. We cannot claim a lead is in
+    // the US or the UK when nothing on the row says so, and the cost — the founder's own export
+    // showed 166 of 166 leads with no country — was taken knowingly.
+    held(null)
+    const out = await approveLead('lead1', 'c1')
+    expect(out.status).toBe('launch_hold')
+    expect(charged()).toHaveLength(0)
+    expect((out as { country?: string | null }).country).toBeNull()
+  })
+
+  it('a US lead and a UK lead are charged and enrolled exactly as before', async () => {
+    // The gate must refuse the right leads AND ONLY THOSE. A hold that also caught the countries
+    // we launched in would read as "the allowlist works" while stopping every send we want.
+    for (const country of ['United States', 'united states', 'USA', 'United Kingdom', 'GB', 'Scotland']) {
+      // `enrollAfter` is what the count queries read, and the mocked `autoEnrollLead` sets it to
+      // 1 — so without this reset the SECOND iteration looks like a client who has bought the
+      // pack, the approval comes out free, and the assertion fails for a reason that has nothing
+      // to do with countries. Full per-iteration reset, not a partial one.
+      rpcCalls.length = 0; leadUpdates.length = 0; enrollAfter = 0
+      vi.mocked(autoEnrollLead).mockClear()
+      held(country)
+      const out = await approveLead('lead1', 'c1')
+      expect(out.status, country).toBe('approved')
+      expect(charged(), country).toHaveLength(1)
+    }
+  })
+
+  it('a DEMO client is exempt — the demo book is entirely South African', async () => {
+    // Step 2 returns before 3d ever runs. Pinned here rather than assumed: a launch hold that
+    // caught demo leads would silently break every walkthrough and every sales demo, and the
+    // symptom ("the demo stopped working") points nowhere near a country allowlist.
+    isDemo = true
+    held('South Africa')
+    leadRow = { ...leadRow!, email: 'demo@acme.com' }
+    const out = await approveLead('lead1', 'c1')
+    expect(out.status).toBe('approved')
+    expect(charged()).toHaveLength(0)
+  })
+
+  it('fires AFTER the free exits — an already-in-CRM lead is still reported as already-in-CRM', async () => {
+    // Ordering among the refusals matters for the CLIENT'S reading of what happened. A lead they
+    // already own is not a launch-hold story, and telling them "we can't send there yet" about a
+    // contact that was never going to be charged anyway is a confusing, wrong answer.
+    held('Nigeria')
+    leadRow = { ...leadRow!, crm_existing: true }
+    const out = await approveLead('lead1', 'c1')
+    expect(out.status).toBe('already_in_crm')
+    expect(charged()).toHaveLength(0)
   })
 })

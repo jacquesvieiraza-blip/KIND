@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { pecrVerdict, pecrSkipReason } from './pecr'
+import { isLaunchSendCountry, launchHoldReason } from '@kind/shared'
 import { db } from '@kind/db'
 import { normalizeRevealEmail } from './billing-rules'
 import { sequencePlan, normalisePurpose, normaliseDepth, type SequencePurpose, type SequenceDepth } from './sequence-templates'
@@ -646,6 +647,30 @@ export async function sendSequenceEmail(
       if (enrollmentId) {
         await updateEnrollmentState(enrollmentId, { next_send_at: null },
           'a UK individual-subscriber risk (#617 PECR) was suppressed but not stood down — it stays due and will be re-processed on every send run')
+      }
+      return 'suppressed'
+    }
+
+    // LAUNCH COUNTRY HOLD — SAFETY NET, for the rows the enrol gates could never see.
+    //
+    // The enrol gates refuse a held country before the client is charged. This catches what
+    // they cannot: enrollments created BEFORE this shipped, already sitting live and due, and
+    // any lead reaching a send by a path those gates do not sit on. One check here covers every
+    // step-1/2/3 send, exactly as the opt-out and PECR nets above do.
+    //
+    // ⚠️ `next_send_at: null`, NOT a deferral — but for the OPPOSITE reason to the PECR net
+    // directly above. There, the refusal is permanent. Here it is temporary by design: this
+    // lead sends the day the founder opens its country. Standing it down is still correct —
+    // leaving it due would re-run this hold on every send cycle forever (the #349/#453 lesson)
+    // — and re-arming it is a one-line update per country the day he opens one. A hold parked
+    // cleanly is recoverable; a cron re-checking it every ten minutes until then is not.
+    //
+    // ONE WALLET: no money moves. The $4 was final at approve, exactly as on the branches above.
+    if (!isLaunchSendCountry(lead.country)) {
+      console.warn(`[figsy] sendSequenceEmail: ${lead.email} — ${launchHoldReason(lead.country)}; step ${step} NOT sent`)
+      if (enrollmentId) {
+        await updateEnrollmentState(enrollmentId, { next_send_at: null },
+          'a launch-country hold was suppressed but not stood down — it stays due and will be re-processed on every send run')
       }
       return 'suppressed'
     }
@@ -1405,6 +1430,21 @@ export async function sendDay1OutreachBatch(
       continue
     }
 
+    // LAUNCH COUNTRY HOLD — and on this path it is the ONLY country gate that can fire.
+    //
+    // Day-1 outreach is the fallback for a client with no active campaign, and it is the FIRST
+    // email a prospect ever receives from us — so a lead outside the launch countries reaching
+    // here would be our opening move in a market we have not opened. No charge lives on this
+    // path (day-1 sends carry no campaign and no enrollment), so `continue` is the whole of it:
+    // the lead stays 'scored' and is simply never day-1 mailed. It is picked up normally the
+    // day its country opens — nothing here consumes or marks the lead.
+    //
+    // No demo check needed: the whole batch returns at the top for a demo client (#453).
+    if (!isLaunchSendCountry(lead.country)) {
+      console.warn(`[day1-outreach] ${lead.email} NOT day-1 emailed — ${launchHoldReason(lead.country)}`)
+      continue
+    }
+
     // Which mailbox carries THIS message? Least-used first; null means every box is at its
     // cap, which is a STOP — never a fall-back to a box that is already over its limit.
     const pickedId = nextFromRotation(rotation)
@@ -1837,6 +1877,26 @@ export async function autoEnrollLead(leadId: string, clientId: string, opts?: { 
         console.warn(`[figsy] #617 autoEnrollLead: lead ${leadId} not enrolled — ${pecr.reason}`)
         return
       }
+    }
+
+    // LAUNCH COUNTRY HOLD — at launch we send to the US and the UK, and nowhere else.
+    //
+    // Beside the PECR gate because it is the same kind of question — may we write to this
+    // person? — but it is NOT the same question, and the two must not be merged. PECR asks
+    // whether UK law forbids the send; this asks whether the founder has opened the country.
+    // A Nigerian lead passes PECR happily and is held here, which is the whole point.
+    //
+    // THE MONEY IS ALREADY GONE BY THE TIME WE GET HERE, and that is why this is not the only
+    // launch gate. `approve-lead.ts` step 3d holds the lead BEFORE `try_charge_wallet` so the
+    // client is never charged. This line is the backstop for every other road into enrolment —
+    // an operator enrolling on behalf, a re-approve of a contact paid for before this shipped.
+    // Reaching this gate with money already moved means the 3d gate was bypassed, not that the
+    // hold is wrong: hold anyway, because a send we cannot make is worse than a stranded $4.
+    //
+    // Demo exempt, exactly as above: the demo book is entirely South African and drafts only.
+    if (!isDemo && !isLaunchSendCountry(lead.country)) {
+      console.warn(`[figsy] autoEnrollLead: lead ${leadId} not enrolled — ${launchHoldReason(lead.country)}`)
+      return
     }
 
     // Billing gate (item 166): FIGSY is charged at ENROLLMENT — one FIGSY credit =

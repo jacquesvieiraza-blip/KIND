@@ -1,10 +1,12 @@
 # 🚀 LAUNCH PAD — zero product → live, the execution list
 
+> 🚀 **R57 (20 Aug): WE LAUNCH 25 AUGUST REGARDLESS OF STATE.** Original date 31 May — the slip is on the record at the founder's order. No item moves the date; post-launch work is documented in The Next Builds, not queued. #553's ladder still governs HOW the first send happens safely.
+
 > **The one page you open.** Every row here either **gets us live** or **unblocks a row that does**. If it isn't on this page, it does not block launch — it lives in V2-TRACKER.
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢106 · 🩷306 · 🟣2 · 🟡48 · 🔴177 · ⏸6 · **Σ645** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷307 · 🟣2 · 🟡47 · 🔴177 · ⏸6 · **Σ645** · live count: `scripts/count-inventory.sh`
 
 ---
 

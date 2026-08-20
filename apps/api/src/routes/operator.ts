@@ -4288,3 +4288,112 @@ operatorRouter.get('/schema-probe', async (_req: Request, res: Response) => {
     res.status(500).json({ success: false, error: err instanceof Error ? err.message : 'The schema probe could not run' })
   }
 })
+
+// ── R46 · GOVERNED DOCUMENTS — VIDA IS THE SINGLE HOME, AND THE CHAIN IS THE HISTORY ───────
+//
+// Founder-ruled 17 Aug: *"any documents we need to create hold of be governed get held in Vida
+// operator. on sole truth of source."*
+//
+// ⚠️ THERE IS NO UPDATE ROUTE AND NO DELETE ROUTE, AND THAT IS THE FEATURE. A governed document
+// is amended by writing a NEW VERSION that names what it supersedes — the same law the rules
+// register runs on, and for the same reason: a superseded document that vanishes takes with it
+// the evidence that it was ever in force. `governed-documents.test.ts` asserts the absence,
+// because an absence nobody guards is an absence somebody adds a handler to next month.
+//
+// ⚠️ NOT `terms-library`. That screen holds blank uploadable TEMPLATES and legitimately has a
+// delete button. This holds instruments whose TEXT is the record. Both screens say so.
+
+/** The document families, newest version of each first. */
+operatorRouter.get('/governed-documents', async (_req: Request, res) => {
+  try {
+    const { data, error } = await db.from('governed_documents')
+      .select('id, title, kind, version, supersedes_id, created_at, created_by')
+      .order('created_at', { ascending: false })
+    if (error) throw error
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) {
+    // A failed read must NOT render as an empty library — "no governed documents" and "we
+    // could not ask" are opposite facts and only one of them is calm.
+    console.error('[operator/governed-documents]', err)
+    res.status(500).json({ success: false, error: 'Could not read the governed documents' })
+  }
+})
+
+/** One document, with its full chain oldest-first, so the history reads as a history. */
+operatorRouter.get('/governed-documents/:id', async (req: Request, res) => {
+  try {
+    const { data: row, error } = await db.from('governed_documents')
+      .select('*').eq('id', req.params.id).maybeSingle()
+    if (error) throw error
+    if (!row) { res.status(404).json({ success: false, error: 'Document not found' }); return }
+
+    // Walk BACKWARDS along supersedes_id to the first version. Bounded: a chain longer than
+    // this is a bug, and an unbounded walk on a cycle would hang the request rather than fail.
+    const chain: Record<string, unknown>[] = [row]
+    let cursor = row.supersedes_id as string | null
+    for (let hops = 0; cursor && hops < 100; hops++) {
+      const { data: prev } = await db.from('governed_documents').select('*').eq('id', cursor).maybeSingle()
+      if (!prev) break
+      chain.unshift(prev)
+      cursor = prev.supersedes_id as string | null
+    }
+    res.json({ success: true, data: { current: row, chain } })
+  } catch (err) {
+    console.error('[operator/governed-documents/:id]', err)
+    res.status(500).json({ success: false, error: 'Could not read that document' })
+  }
+})
+
+/**
+ * Write a document: version 1 when `supersedes_id` is absent, otherwise the next link.
+ *
+ * ⚠️ THE VERSION NUMBER IS DERIVED, NEVER ACCEPTED FROM THE CALLER. A client-supplied version
+ * is a client-supplied lie waiting to happen — two rows claiming v2, or a v7 with no v6. It is
+ * read from the row being superseded and incremented here.
+ */
+operatorRouter.post('/governed-documents', async (req: Request, res) => {
+  try {
+    const { title, kind, body_md, supersedes_id } = req.body ?? {}
+    if (typeof title !== 'string' || !title.trim())     { res.status(400).json({ success: false, error: 'A title is required' }); return }
+    if (typeof kind !== 'string' || !kind.trim())       { res.status(400).json({ success: false, error: 'A kind is required' }); return }
+    if (typeof body_md !== 'string' || !body_md.trim()) { res.status(400).json({ success: false, error: 'The document body is required' }); return }
+
+    let version = 1
+    if (supersedes_id) {
+      const { data: prev } = await db.from('governed_documents')
+        .select('id, version').eq('id', supersedes_id).maybeSingle()
+      if (!prev) { res.status(404).json({ success: false, error: 'The document this supersedes does not exist' }); return }
+      version = Number(prev.version ?? 0) + 1
+    }
+
+    const { data, error } = await db.from('governed_documents').insert({
+      title: title.trim(), kind: kind.trim(), body_md,
+      version, supersedes_id: supersedes_id ?? null,
+      created_by: operatorEmail(req),
+    }).select('id, title, kind, version, supersedes_id, created_at, created_by').single()
+
+    if (error) {
+      // 23505 is `governed_documents_one_successor` refusing a FORK — somebody else already
+      // superseded this version while this operator was typing. Say that, rather than "insert
+      // failed": the fix is to re-read the chain and amend the new head.
+      if ((error as { code?: string }).code === '23505') {
+        res.status(409).json({ success: false, error: 'That version has already been superseded — reload and amend the newest version.' })
+        return
+      }
+      throw error
+    }
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req),
+      action: supersedes_id ? 'governed_document_version_added' : 'governed_document_created',
+      subjectType: 'governed_document',
+      subjectId: data.id,
+      detail: { title: data.title, kind: data.kind, version: data.version, supersedes_id: data.supersedes_id },
+    })
+
+    res.json({ success: true, data })
+  } catch (err) {
+    console.error('[operator/governed-documents POST]', err)
+    res.status(500).json({ success: false, error: 'Could not save the document' })
+  }
+})

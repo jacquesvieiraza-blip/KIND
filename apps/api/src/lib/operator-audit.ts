@@ -30,6 +30,12 @@ export type OperatorAction =
   | 'client_partner_invite_resent' // 16 Aug — the invitation was re-sent (or re-linked) after an email that never arrived.
                             // Audited because it mints a login that can read commission
                             // money, and because the seat carries its own pay rate.
+  | 'governed_document_created'      // R46 — a NEW governed document (version 1) was written.
+  | 'governed_document_version_added' // R46 — a new VERSION was chained onto an existing one.
+                            // Audited because this table is the sole source of truth for
+                            // documents the business is governed by, and the only defence
+                            // against a quiet rewrite is knowing who wrote what, when. There
+                            // is deliberately no 'governed_document_deleted': nothing deletes.
   | 'send_now'              // forced a due send
   | 'pause_campaign'        // paused a campaign
   | 'resume_campaign'       // #564 — pressed RUN on an existing campaign. It used to record

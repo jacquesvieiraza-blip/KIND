@@ -96,6 +96,14 @@ export default function TermsLibraryPage() {
           <p className="text-gray-500 text-sm mt-1">
             Upload your legal PDFs. Clients can access these documents from the billing page before accepting the terms &amp; conditions.
           </p>
+          {/* R46 — two shelves, and each one says which it is. Without this line "Vida is the
+              single source of truth for governed documents" becomes a question: this screen and
+              Governed Documents both hold things called documents. They hold different things. */}
+          <p className="text-gray-400 text-xs mt-2">
+            These are <strong>blank templates</strong> you upload and hand out, so they can be replaced or removed.
+            Documents the business is <em>governed by</em> — the ones that are versioned and never deleted — live in{' '}
+            <a href="/governed-documents" className="underline">Governed Documents</a>.
+          </p>
         </div>
 
         {/* Status banner */}

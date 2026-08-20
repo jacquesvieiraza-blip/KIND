@@ -20,10 +20,21 @@ vi.mock('@kind/db', () => ({
   db: {
     from: (table: string) => {
       const q: Record<string, unknown> = {}
-      for (const m of ['select', 'eq', 'in', 'order', 'limit', 'is', 'not']) q[m] = () => q
+      for (const m of ['select', 'eq', 'in', 'order', 'limit', 'is', 'not', 'ilike']) q[m] = () => q
+      // HC-3 — the push now writes `leads.smartlead_campaign_id` after a successful addLeads.
+      // Without an `update` on the mock the happy path throws AFTER the lead reached Smartlead,
+      // which would fail these tests for a reason that has nothing to do with what they assert.
+      q.update = () => ({ eq: async () => ({ error: null }) })
       q.maybeSingle = async () => {
         if (table === 'clients') return { data: { id: 'c1', is_demo: state.isDemo, company_name: 'Acme' } }
-        if (table === 'leads') return { data: { id: 'l1', email: 'ada@acme.com', first_name: 'Ada', last_name: 'L', company: 'Acme' } }
+        // HC-3 — `country: 'United States'` because the push now carries the R50 launch-country
+        // gate: a lead with no country is HELD, and this file's subject is the API hand-off, not
+        // geography. `company: 'Acme'` has no corporate marker but the country is not UK, so
+        // PECR passes it as out-of-scope. Both gates are proved in `smartlead-hc3.test.ts`.
+        if (table === 'leads') return { data: { id: 'l1', email: 'ada@acme.com', first_name: 'Ada', last_name: 'L', company: 'Acme', country: 'United States' } }
+        // Nobody is on the blocklist here — a hit would refuse the push for the WRONG reason and
+        // quietly fake a pass on every "nothing is sent" assertion below.
+        if (table === 'opt_out_blocklist') return { data: null, error: null }
         if (table === 'client_inboxes') return { data: state.inbox ? { id: 'i1' } : null }
         if (table === 'figsy_sequences') return { data: { steps: state.sequenceSteps } }
         return { data: null }

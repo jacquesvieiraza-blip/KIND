@@ -154,6 +154,21 @@ export async function suppressOptOut(
     .eq('email', email)
   if (leadErr) failures.push(`leads: ${leadErr.message}`)
 
+  // HC-3 — OUR BLOCKLIST DOES NOT STOP SMARTLEAD.
+  //
+  // Every write above stops OUR sends. Smartlead sends from its own engine with its own copy of
+  // the lead and has never read our table — so a person who replied STOP is now suppressed
+  // everywhere except the one place still emailing them. This alerts, naming the person and the
+  // campaign, because the founder has to remove them by hand in the Smartlead dashboard.
+  //
+  // Founder-ruled 20 Aug (*"yes alert not api"*): the remove endpoint is unverified from this
+  // environment and is registered in `smartlead.ts`'s NOT_POSSIBLE rather than guessed.
+  //
+  // Silent when the address is in no campaign — which is every lead today — so it can never
+  // become the alert that fires on every opt-out and gets ignored. Awaited but never throws.
+  const { alertSmartleadStillSending } = await import('./smartlead-send')
+  await alertSmartleadStillSending(email, reason)
+
   if (failures.length > 0) {
     await sendFounderAlert('support_escalation',
       `🛑 OPT-OUT NOT FULLY APPLIED — ${email}`, [

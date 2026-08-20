@@ -461,6 +461,7 @@ alter table public.leads
   add column if not exists previous_company                 text,
   add column if not exists research_summary                 jsonb,
   add column if not exists revealed_at                      timestamptz,
+  add column if not exists smartlead_campaign_id            text,
   add column if not exists source                           text,
   add column if not exists surfaced_for_approval_at         timestamptz;
--- sources: 010_crm_dedup.sql, 20260526_drip_and_controls.sql, 20260530_consent_token.sql, 20260531_auto_consent.sql, 20260531_lead_research.sql, 20260611_lead_job_change.sql, 20260709_reveal_charge.sql, 20260723_money_retime.sql, 20260723_operator_audit_log.sql, 20260806_leads_source.sql
+-- sources: 010_crm_dedup.sql, 20260526_drip_and_controls.sql, 20260530_consent_token.sql, 20260531_auto_consent.sql, 20260531_lead_research.sql, 20260611_lead_job_change.sql, 20260709_reveal_charge.sql, 20260723_money_retime.sql, 20260723_operator_audit_log.sql, 20260806_leads_source.sql, 20260820_smartlead_campaign_membership.sql

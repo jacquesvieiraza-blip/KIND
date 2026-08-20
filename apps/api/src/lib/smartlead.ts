@@ -267,6 +267,10 @@ export const NOT_POSSIBLE: { what: string; why: string }[] = [
     why: 'Not built, deliberately. Replies come back through the provider-agnostic spine in `reply-ingest.ts`, which already accepts a `smartlead` provider — so the missing piece is a webhook or a fetch, not the ingestion. Guessing an endpoint would ship a path that silently returns nothing, which is how a client stops hearing about their own replies.',
   },
   {
+    what: 'Removing or stopping a lead in a campaign when they opt out (HC-3)',
+    why: 'THE GAP THAT MATTERS MOST IN THIS LIST, because it is the one with a person on the other end. Smartlead sends from its own engine with its own copy of the lead, so `opt_out_blocklist` — which every one of OUR send paths re-reads — does nothing to it. A person who replies STOP is suppressed everywhere except the one place still emailing them. There is NO remove/stop/lead-lookup endpoint in this file to call, and api.smartlead.ai returns 403 to this environment so no URL can be confirmed; writing one would be guessing an endpoint, which is what the replies entry below already refuses to do. Founder-ruled 20 Aug — *"yes alert not api"*. So `alertSmartleadStillSending` in `smartlead-send.ts` reads `leads.smartlead_campaign_id` and pages the founder with the person and the campaign to remove by hand, on BOTH suppression doors (reply-STOP and one-click unsubscribe). That works today; the API call gets written the day the workspace is live, which is also the first day it could be tested. ⚠️ NOT a silent no-op — a silent one would make the product LOOK like it propagates opt-outs while a suppressed person kept receiving mail.',
+  },
+  {
     what: 'Respecting a published rate limit',
     why: 'No rate limit is documented publicly. Nothing retries or backs off, because a retry loop against an unknown limit is how an account gets suspended. Calls fail once, loudly, and a 429 says exactly that.',
   },

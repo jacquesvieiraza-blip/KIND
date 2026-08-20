@@ -112,6 +112,22 @@ async function recordUnsubscribe(email: string): Promise<void> {
       ]).catch(() => {})
     }
   }
+  // HC-3 — OUR BLOCKLIST DOES NOT STOP SMARTLEAD, and this is the one-click path.
+  //
+  // Somebody pressed the unsubscribe button the law requires us to honour. That writes the
+  // blocklist row, which stops OUR sends — and does nothing whatsoever to Smartlead, which
+  // holds its own copy of the lead and keeps mailing them from its own engine. Alerts naming
+  // the person and the campaign so they can be removed by hand in the Smartlead dashboard.
+  //
+  // The SAME helper as the reply-STOP path (`reply-ingest.ts`'s `suppressOptOut`) rather than a
+  // second copy here, so the two doors into suppression cannot word the same refusal — or,
+  // worse, cover different cases — the way three PECR gates would have without `pecrSkipReason`.
+  //
+  // Founder-ruled 20 Aug (*"yes alert not api"*): the remove endpoint is unverified from this
+  // environment and is registered in NOT_POSSIBLE rather than guessed.
+  const { alertSmartleadStillSending } = await import('../lib/smartlead-send')
+  await alertSmartleadStillSending(addr, 'list_unsubscribe')
+
   void logOutcomeEvent({
     client_id: null, campaign_id: null, lead_id: null, enrollment_id: null,
     event_type: 'opt_out', channel: 'email',

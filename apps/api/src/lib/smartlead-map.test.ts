@@ -14,13 +14,19 @@ import { canPushToInstantly } from './instantly-map'
 // exactly one route can ever accept a given lead and neither can silently take the other's
 // traffic.
 
+// HC-3 — the four suppression answers default to "clean lead" so this file keeps testing the
+// SYSTEM gates it was written for. Their own behaviour is proved in `smartlead-hc3.test.ts`,
+// including that each one refuses on its own and reports its own reason.
 const gate = (over: Partial<Parameters<typeof canPushToSmartlead>[0]> = {}) => canPushToSmartlead({
   hasApiKey: true, killSwitchOn: true, isDemo: false, isHouseClient: false,
-  hasSmartleadInbox: true, leadEmail: 'someone@acme.com', ...over,
+  hasSmartleadInbox: true, leadEmail: 'someone@acme.com',
+  isBlocklisted: false, isDoNotContact: false, pecrAllows: true, inLaunchCountry: true, ...over,
 })
 
 describe('the gates are exact inverses — this is the whole safety property', () => {
-  const shared = { hasApiKey: true, killSwitchOn: true, isDemo: false, leadEmail: 'a@b.com' }
+  const shared = { hasApiKey: true, killSwitchOn: true, isDemo: false, leadEmail: 'a@b.com',
+    // HC-3 — a clean lead, so the INVERSE property below is about routing and nothing else.
+    isBlocklisted: false, isDoNotContact: false, pecrAllows: true, inLaunchCountry: true }
 
   it('THE HOUSE CLIENT goes to Instantly and is REFUSED by Smartlead', () => {
     expect(canPushToInstantly({ ...shared, isHouseClient: true }).ok).toBe(true)

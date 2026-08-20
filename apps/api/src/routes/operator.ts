@@ -712,6 +712,50 @@ operatorRouter.get('/enrol-skips', async (req: Request, res: Response) => {
   }
 })
 
+// ── HOW MANY OF THIS CLIENT'S LEADS CAN WE ACTUALLY SEND TO? ──────────────────────────────
+//
+// `pecr.ts`'s `unknown_country` class said it was *"counted so the volume is visible."* It was
+// not: the class is an ALLOW, so nothing ever called `noteSkip` for it and the only trace was a
+// `console.warn`. Nothing has ever counted it.
+//
+// ⚠️ AND `/enrol-skips` CANNOT ANSWER THIS. That surface reads the LAST ENROL RUN — and no
+// enrol run has ever happened (`AUTO_OUTREACH_ENABLED` is off), so it renders nothing at all
+// and would keep rendering nothing until send-day. It also counts leads that reached the enrol
+// gate, not leads that exist. The founder's question is about the BOOK.
+//
+// Read-only, one query, no new table — the schema is untouched.
+operatorRouter.get('/country-coverage', async (req: Request, res: Response) => {
+  try {
+    const clientId = String(req.query.client_id ?? '').trim()
+    if (!clientId) { res.status(400).json({ success: false, error: 'client_id is required' }); return }
+
+    // ⚠️ CAPPED, AND THE CAP IS REPORTED. Reading every lead of a large book to tally one field
+    // would be a page-load cost that grows silently. 5,000 is far above any current book (206
+    // on 20 Aug), and if it is ever hit the screen SAYS the numbers are a floor rather than
+    // quietly showing a wrong total — "no silent caps" (RULEBOOK).
+    const CAP = 5000
+    const { data, error } = await db.from('leads')
+      .select('country').eq('client_id', clientId).limit(CAP)
+    if (error) {
+      // An unreadable count must not render as "all clear". Say so and show nothing.
+      console.error('[operator/country-coverage]', error.message)
+      res.json({ success: true, data: null, error: error.message }); return
+    }
+
+    const rows = (data ?? []) as { country: string | null }[]
+    // The CHIP is computed here, not in the console. `apps/admin` cannot import from
+    // `apps/api` (#563/#614), so a decision left to the JSX would be a second implementation
+    // of the same rule with no test on it — which is how four different sequence limits ended
+    // up live at once. The console renders what this returns and decides nothing.
+    const { countryCoverage, coverageChip } = await import('../lib/country-coverage')
+    const coverage = countryCoverage(rows.map(r => r.country), rows.length >= CAP)
+    res.json({ success: true, data: { ...coverage, chip: coverageChip(coverage) } })
+  } catch (err) {
+    console.error('[operator/country-coverage]', err)
+    res.status(500).json({ success: false, error: 'Failed to read country coverage' })
+  }
+})
+
 operatorRouter.get('/campaign/:id/enrollments', async (req: Request, res: Response) => {
   try {
     const client = await requireClient(String(req.query.client_id ?? ''))

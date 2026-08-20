@@ -102,18 +102,38 @@ async function autoConsentScoredLeads(leadIds: string[], companyName: string, cl
 
     if (!leads?.length) return
 
+    // HC-4 — THE COUNT NOW REFLECTS WHAT ACTUALLY WENT OUT.
+    //
+    // This used to log `sent to ${leads.length}` — the number of rows SELECTED, not the number
+    // emailed — and flip every one of them to `status: 'consent_sent'` regardless. So a
+    // suppressed person was recorded as having been asked for consent, which is a false entry
+    // in the one record that proves we asked, and the log said we had asked N people when we
+    // had asked fewer.
+    //
+    // The gates themselves live inside `sendConsentEmail` (all six callers funnel through it —
+    // gating here would have covered this door and left five open). This just reads the verdict
+    // and refuses to write a status the send did not earn. Refusals are NAMED, never a bare
+    // count: "3 skipped" with no cause sends somebody hunting a bug in the wrong place.
+    const skipReasons = new Map<string, number>()
+    let sent = 0
     await Promise.allSettled(
       leads.map(async (lead) => {
         const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
         // #453 — clientId lets sendConsentEmail suppress the send for a demo client.
-        await sendConsentEmail(lead.email!, lead.first_name, companyName, optOutUrl, clientId)
+        const res = await sendConsentEmail(lead.email!, lead.first_name, companyName, optOutUrl, clientId)
+        if (!res.sent) {
+          skipReasons.set(res.reason, (skipReasons.get(res.reason) ?? 0) + 1)
+          return   // ← the status stays 'scored'; nothing claims we asked
+        }
+        sent++
         await db.from('leads').update({
           status: 'consent_sent',
           consent_sent_at: new Date().toISOString(),
         }).eq('id', lead.id)
       })
     )
-    console.log(`[auto-consent] sent to ${leads.length} scored leads`)
+    const skipped = [...skipReasons.entries()].map(([r, n]) => `${r}: ${n}`).join(' · ')
+    console.log(`[auto-consent] sent to ${sent} of ${leads.length} scored leads${skipped ? ` — skipped ${skipped}` : ''}`)
   } catch (err) {
     console.error('[auto-consent] failed:', err)
   }

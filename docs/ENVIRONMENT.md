@@ -63,7 +63,7 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `ADMIN_SECRET_KEY` | admin·api | 🟠 important | Admin API auth secret | Railway → **@kind/admin** + Railway → **@kind/api** |
 | `API_URL` | api | 🟠 important | Public API base — tracking/unsubscribe links and the MCP manifest | Railway → **@kind/api** |
 | `DATABASE_URL` | api | 🟠 important | Direct Postgres — Run migrations, RLS audit and backup manifest all need it (currently mangled, #558) | Railway → **@kind/api** |
-| `FIGSY_COLD_FROM` | api | 🟠 important | FIGSY cold From — unset = cold mail sends from hello@get-kind.com and POISONS the domain | Railway → **@kind/api** |
+| `FIGSY_COLD_FROM` | api | 🔴 **critical** | **S5 — the cold AND consent From. Unset, every cold send falls back to `hello@get-kind.com`, the domain every invoice and password reset leaves from.** ⛓️ Raised 🟠→🔴 on 20 Aug (HC-4): at `important` that fallback was reachable in production by forgetting one variable, with only a `console.warn` to show for it. Live value verified before the promotion — `K.I.N.D <figsy@gettingkind.com>` — so it locks nobody out. | Railway → **@kind/api** |
 | `FIGSY_COLD_REPLY_TO` | api | 🟠 important | Reply-To on cold mail — unset = replies land nowhere we read | Railway → **@kind/api** |
 | `FIGSY_REPLY_TO` | api | 🟠 important | Reply-To on sequence mail | Railway → **@kind/api** |
 | `FIGSY_UNSUB_MAILTO` | api | 🟠 important | List-Unsubscribe mailto — unset = the one-click header is absent and Gmail penalises the domain | Railway → **@kind/api** |

@@ -170,7 +170,7 @@ describe('HC-1 GUARD — every opt_out_blocklist email comparison goes through t
   // The three probes that pass a variable rather than a call. Each is proven normalised at its
   // definition by the test below — listing them here rather than pattern-matching keeps the
   // guard honest: a NEW variable name is an offender until someone adds it deliberately.
-  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails', 'emailKey'])
+  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails', 'emailKey', 'consentKey'])
 
   it('every variable on that allowlist is built by the normaliser at its definition', () => {
     // `singular` distinguishes the one-address probe from the batch ones. Both forms are
@@ -182,6 +182,10 @@ describe('HC-1 GUARD — every opt_out_blocklist email comparison goes through t
       // HC-3 — the Smartlead push probes the blocklist before handing a lead to an engine we do
       // not control. One address, so the singular normaliser.
       { file: 'lib/smartlead-send.ts', name: 'emailKey', singular: true },
+      // HC-4 — the consent email probes the blocklist before asking a stranger for permission.
+      // S6: opt-outs are global, so a person sourced afresh for another client must not be
+      // asked for consent they already refused. One address, so the singular normaliser.
+      { file: 'lib/email.ts',          name: 'consentKey', singular: true },
     ]
     for (const { file, name, singular } of defs) {
       const text = readFileSync(join(API_SRC, file), 'utf8')

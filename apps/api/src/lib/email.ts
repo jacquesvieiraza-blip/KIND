@@ -1,7 +1,10 @@
 import { Resend } from 'resend'
-import { htmlToText } from './deliverability'
+import { htmlToText, COLD_FROM } from './deliverability'
 import { interpretSend } from './resend-checked'
 import { isDemoClient } from './demo'
+import { db } from '@kind/db'
+import { normalizeRevealEmail } from './billing-rules'
+import { isSuppressed } from './suppression'
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
 const FROM = 'K.I.N.D <hello@get-kind.com>'
@@ -334,31 +337,106 @@ export async function sendOnboardingEmail(
 // RULEBOOK 12.2 is not violated: its harm is "one client's complaints poison the REST". Here
 // the sender is us, identified as us — a complaint lands on the party that actually sent it.
 //
-// ⚠️ OPEN SUB-QUESTION, deliberately NOT changed here: this sends from `FROM`, the
-// TRANSACTIONAL identity (hello@get-kind.com), while D4's rule is that cold-adjacent mail
-// must never poison the transactional domain — and a permission request to a stranger is
-// cold-adjacent. The right home is arguably FIGSY_COLD_FROM. That is a live deliverability
-// change affecting the domain every invoice and password reset also leaves from, so it needs
-// its own PR and the founder's call, not a quiet edit inside this one. Logged on #547.
+// ⛓️ THE OPEN SUB-QUESTION ABOVE IS CLOSED — HC-4, 20 Aug. It read: *"this sends from `FROM`,
+// the TRANSACTIONAL identity (hello@get-kind.com)… the right home is arguably FIGSY_COLD_FROM.
+// That is a live deliverability change… so it needs its own PR and the founder's call, not a
+// quiet edit inside this one."* That was correct on both counts. This is that PR, and the
+// founder made that call: send via `COLD_FROM`, and make `FIGSY_COLD_FROM` boot-critical so the
+// rule cannot silently regress to the transactional domain (see `startup-check.ts`).
+//
+// ── HC-4 — WHY THE GATES LIVE IN THIS FUNCTION AND NOT IN ITS CALLERS ──────────────────────
+//
+// **S5 (founder-locked 26 Jul): "Never cold-email from the primary domain."** A permission
+// request to a stranger is a cold send. It went out from `hello@get-kind.com` — the domain
+// every invoice, password reset and receipt also leaves from — so a spam complaint on a
+// prospect who never asked to hear from us landed on the reputation of our billing mail.
+//
+// **S6 (verified 26 Jul): "Opt-outs are global, checked at sourcing, across every client."**
+// They were not checked here at all.
+//
+// ⚠️ SIX CALL SITES, AND THEY DISAGREED WITH EACH OTHER. `autoConsentScoredLeads` in
+// `routes/icps.ts`, and five more in `routes/leads.ts` (711, 1001, 1026, 1064, 1320). **NOT ONE
+// of the six checked the blocklist.** Two checked `isSuppressed`; four did not. One had no
+// gate of any kind. Fixing the caller the defect was reported against would have left five
+// doors open and made the next reader conclude that consent sends were covered — the min-20
+// shape exactly (18 green unit tests behind a bypassable route), and #617's (present in two
+// functions, absent from a third, which every occurrence count reads as "handled").
+//
+// So the gates live HERE, beside the demo stop, where all six funnel through and a SEVENTH
+// door inherits them for free.
+//
+// ⚠️ RETURNS A RESULT NOW, and that is not cosmetic. It used to return `void`, so
+// `autoConsentScoredLeads` flipped the lead to `status: 'consent_sent'` whether or not
+// anything was sent. A suppressed person would have been recorded as having been asked for
+// consent — a false entry in the one record that proves we asked. Callers that ignore the
+// return behave exactly as before.
+export type ConsentSendResult =
+  | { sent: true }
+  | { sent: false; reason: 'not_configured' | 'is_demo' | 'opted_out' | 'do_not_contact'; detail: string }
+
 export async function sendConsentEmail(
   to: string,
   firstName: string,
   senderCompanyName: string,
   optOutUrl: string,
   clientId?: string | null,
-) {
-  if (!resend) return
+): Promise<ConsentSendResult> {
+  if (!resend) return { sent: false, reason: 'not_configured', detail: 'RESEND_API_KEY is not set, so nothing can be sent.' }
   // #453 — DEMO MODE: a consent email is an OUTBOUND prospect send. A demo client must
   // never email a real person, so suppress it when the sending client is is_demo. (The
   // clientId is passed by every caller; if omitted this behaves exactly as before.)
   if (clientId && await isDemoClient(clientId)) {
     console.log(`[demo] prospect send suppressed for client ${clientId} — consent email to ${to} NOT sent (demo).`)
-    return
+    return { sent: false, reason: 'is_demo', detail: 'Demo account — a demo can never reach a real person.' }
   }
+
+  // S6 — OPT-OUTS ARE GLOBAL, AND THIS IS THE PATH WHERE THAT MATTERS MOST.
+  //
+  // A person who opted out of client A's outreach gets freshly sourced for client B a week
+  // later, scores over 60, and is asked for permission by name. That is not a technicality:
+  // asking someone for consent AFTER they have refused is the most direct contradiction of an
+  // opt-out the product can produce, and it arrives looking like a polite first contact.
+  //
+  // HC-1 — probe with the NORMALISED address. `leads.email` is stored raw and the blocklist
+  // normalised, so an exact compare between the two is a coin toss on letter case.
+  //
+  // ⚠️ FAILS CLOSED. A rejected read returns `data: null`, which reads as "not opted out" and
+  // sends. There is no second gate behind this function — it IS the send — so an unanswerable
+  // question is treated as a NO. Over-refusing costs one permission request that a later run
+  // re-attempts; under-refusing emails somebody who told us to stop.
+  // Named `consentKey` rather than `key`: the HC-1 guard allowlists probe VARIABLES by name,
+  // and allowlisting a name as generic as `key` would let any future `const key = anything`
+  // through the guard unnoticed. A specific name keeps the allowlist meaningful.
+  const consentKey = normalizeRevealEmail(to)
+  if (consentKey) {
+    const { data: blocked, error: blockErr } = await db.from('opt_out_blocklist')
+      .select('id').eq('email', consentKey).is('opted_back_in_at', null).maybeSingle()
+    if (blockErr) {
+      console.error(`[consent] blocklist read FAILED — NOT sending to ${to} (fail-closed)`, blockErr.message)
+      return { sent: false, reason: 'opted_out', detail: `Could not establish whether this person has opted out (${blockErr.message}). Refused rather than sent.` }
+    }
+    if (blocked) {
+      console.warn(`[consent] ${to} is on the opt-out blocklist — consent email NOT sent (S6: opt-outs are global)`)
+      return { sent: false, reason: 'opted_out', detail: 'This person is on the global opt-out blocklist. Asking them for consent would contradict the opt-out they already gave us.' }
+    }
+  }
+
+  // DO-NOT-CONTACT — the founder's employer and anyone connected to it. A hard stop on every
+  // path. Two of the six callers checked this and four did not; now none of them has to.
+  if (isSuppressed({ email: to })) {
+    console.warn(`[consent] ${to} is on the do-not-contact list — consent email NOT sent`)
+    return { sent: false, reason: 'do_not_contact', detail: 'This address is on the do-not-contact list.' }
+  }
+
   const consentUrl = `${optOutUrl}?consent=true`
   const declineUrl = `${optOutUrl}?consent=false`
   await sendTx({
-    from: FROM,
+    // S5 — NOT `FROM`. This is the only send in this file that goes to a COLD PROSPECT, and
+    // `FROM` is the transactional identity every invoice and password reset uses. `COLD_FROM`
+    // resolves to `FIGSY_COLD_FROM`, which `startup-check.ts` now grades CRITICAL — so the
+    // fallback to the transactional domain in `deliverability.ts` can no longer be reached in
+    // production without the API refusing to boot and saying why.
+    from: COLD_FROM,
     to,
     subject: `[Action required] ${senderCompanyName} would like to connect`,
     html: `
@@ -385,6 +463,7 @@ export async function sendConsentEmail(
       </div>
     `,
   })
+  return { sent: true }
 }
 
 // D4 — First leads email now includes top 5 leads inline

@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get-Kind — Jack & Jill Inspired Product Model Verification</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a30;--panel2:#18213a;--text:#eef2ff;--muted:#aeb8d4;
+  --line:#2a3658;--good:#93f5ba;--warn:#ffd782;--bad:#ff9a9a;--accent:#9fd0ff;--code:#0a0f1d
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,var(--bg),#0e1426);color:var(--text);line-height:1.55}
+main{max-width:1260px;margin:0 auto;padding:48px 24px 72px}
+header,section,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+header{padding:30px;margin-bottom:24px;background:linear-gradient(135deg,var(--panel),#10172b)}
+section{padding:24px;margin:18px 0}
+h1{margin:0 0 10px;font-size:2rem;line-height:1.15}
+h2{margin-top:0;font-size:1.4rem}
+h3{margin-bottom:8px}
+p{margin:10px 0}
+.meta,.small{color:var(--muted);font-size:.92rem}
+.callout{border-left:4px solid var(--accent);background:var(--panel2);padding:14px 16px;border-radius:10px;margin:14px 0}
+.success{border-left-color:var(--good)}.warning{border-left-color:var(--warn)}.critical{border-left-color:var(--bad)}
+code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+code{background:var(--code);border:1px solid #202b49;border-radius:6px;padding:2px 6px;color:#d8e4ff}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);border:1px solid #202b49;border-radius:12px;padding:16px;color:#d8e4ff;overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.93rem}
+th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}th{background:#18233f}
+ol,ul{padding-left:22px}li{margin:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{padding:18px}
+.tag{display:inline-block;border:1px solid var(--line);background:#131d36;color:var(--muted);border-radius:999px;padding:4px 9px;margin:3px 4px 3px 0;font-size:.82rem}
+</style>
+</head>
+<body><main>
+
+<header>
+<h1>Get-Kind — Jack & Jill Inspired Product Model Verification</h1>
+<p class="meta">Purpose: read-only Claude Code verification of whether the current Get-Kind architecture can support a more differentiated product model built around Milla, Vida, FIGSY, a living Meeting Brief, calibration, signals/anti-signals and learning toward MEETING_BOOKED.</p>
+<p class="meta">This is not a request to copy Jack & Jill's recruitment product. It is a request to test whether the same product-design principles can be expressed coherently in Get-Kind's outbound-reseller model.</p>
+</header>
+
+<section>
+<h2>1. Hard instruction to Claude Code</h2>
+<div class="callout critical">
+<strong>READ-ONLY PRODUCT-MODEL VERIFICATION. DO NOT CHANGE THE CODE.</strong>
+<p>Do not edit, create, delete, rename, reformat or move repository files. Do not generate or apply patches. Do not run migrations. Do not modify environment values, configuration, infrastructure or databases. Do not commit, push or open a pull request.</p>
+<p>Your task is to inspect what exists today, determine how much of this product model is already supported, and identify the minimum architectural gaps.</p>
+</div>
+</section>
+
+<section>
+<h2>2. Product roles to verify</h2>
+<div class="grid">
+<div class="card">
+<h3>MILLA — Client Intelligence Layer</h3>
+<p>Target role: deeply understand the client's business, commercial objective, ICP preferences, exclusions, campaign feedback and meeting goals.</p>
+<p>Not merely a portal/dashboard.</p>
+</div>
+<div class="card">
+<h3>FIGSY — Decision Brain</h3>
+<p>Target role: decide who to pursue, why now, which evidence matters, which campaign angle fits, whether the prospect is eligible, and what should happen next.</p>
+<p>Not merely a 0–100 lead scorer.</p>
+</div>
+<div class="card">
+<h3>VIDA — Human/Operator Control Layer</h3>
+<p>Target role: handle exceptions, uncertainty, risk, approvals, anomalies and cases requiring judgement.</p>
+<p>Not routine manual administration.</p>
+</div>
+</div>
+
+<p>Claude must identify the real production responsibilities currently assigned to Milla, Vida and FIGSY, if those names/concepts exist in code or product structure.</p>
+</section>
+
+<section>
+<h2>3. Central product object — the Meeting Brief</h2>
+<div class="callout success">
+<strong>Target concept: the Meeting Brief becomes the living definition of what “good” means for one client mission.</strong>
+</div>
+
+<p>Claude should verify whether the current product already has one canonical object that combines the client's ICP, commercial hypothesis, signal rules, exclusions, campaign strategy, compliance requirements and meeting objective.</p>
+
+<pre>
+MEETING BRIEF
+
+client_id
+mission_id
+objective
+target_meetings
+ideal_accounts
+target_personas
+company_filters
+persona_filters
+
+commercial_problem
+client_proposition
+proof_points
+
+strong_signals
+anti_signals
+why_now_hypotheses
+
+source_strategy
+enrichment_strategy
+
+campaign_angles
+objection_set
+cta_strategy
+
+allowed_geographies
+channel_rules
+compliance_policy_reference
+
+meeting_booking_policy
+
+brief_version
+created_at
+updated_at
+approved_by
+</pre>
+
+<p>If the information exists today across many unrelated tables/configurations/prompts, report that as <strong>fragmented</strong> rather than treating it as equivalent to a living Meeting Brief.</p>
+</section>
+
+<section>
+<h2>4. Mission model</h2>
+<p>Target architecture:</p>
+
+<pre>
+CLIENT
+  ↓
+MILLA understands the client
+  ↓
+MISSION 1
+MISSION 2
+MISSION 3
+  ↓
+each mission owns:
+- Meeting Brief
+- ICP
+- signals
+- anti-signals
+- source strategy
+- campaigns
+- sequence logic
+- compliance policy
+- meeting target
+- learning history
+</pre>
+
+<p>Claude should verify whether the current schema has a clean concept equivalent to a client-specific “mission”, or whether ICPs/campaigns/sequences currently act as disconnected configuration objects.</p>
+</section>
+
+<section>
+<h2>5. Conversational onboarding hypothesis</h2>
+<p>Target customer experience:</p>
+
+<pre>
+MILLA:
+"Tell me about your business."
+
+Client explains:
+- what they sell
+- who buys
+- why customers buy
+- bad-fit customers
+- typical triggers
+- geography
+- proof
+- objections
+
+        ↓
+
+FIGSY builds Meeting Brief v1
+        ↓
+
+MILLA shows calibration accounts/prospects
+        ↓
+
+client accepts / rejects / comments
+        ↓
+
+FIGSY recalibrates
+        ↓
+
+"Got it. I know what we're looking for."
+</pre>
+
+<p>Claude should verify whether current onboarding supports:</p>
+<ul>
+<li>conversational or guided client discovery;</li>
+<li>structured extraction of commercial context;</li>
+<li>automatic creation of ICP/campaign configuration from that context;</li>
+<li>client review/approval before launch;</li>
+<li>versioned updates after client feedback.</li>
+</ul>
+</section>
+
+<section>
+<h2>6. Calibration before scale</h2>
+<p>Target behaviour: before sending at scale, show the client a small calibration set of accounts/people and learn from normal review actions.</p>
+
+<pre>
+FIGSY proposes 10–20 examples
+
+Client:
+✓ ideal
+✗ too large
+✗ wrong market
+✓ strong fit
+"avoid agencies under 20 employees"
+
+        ↓
+
+FIGSY updates understanding
+        ↓
+Meeting Brief v2
+        ↓
+campaign begins
+</pre>
+
+<p>Claude must verify whether the product currently stores:</p>
+<ul>
+<li>accept/reject feedback;</li>
+<li>reason codes or free-text feedback;</li>
+<li>reference accounts/people;</li>
+<li>anti-reference accounts/people;</li>
+<li>feedback timestamps and actor;</li>
+<li>whether feedback changes future scoring or selection.</li>
+</ul>
+</section>
+
+<section>
+<h2>7. Signals and anti-signals</h2>
+<p>Get-Kind should be able to learn both why a prospect is attractive and why a prospect should be avoided.</p>
+
+<div class="grid">
+<div class="card">
+<h3>Signals</h3>
+<ul>
+<li>new sales leader;</li>
+<li>funding;</li>
+<li>SDR hiring;</li>
+<li>technology change;</li>
+<li>social intent;</li>
+<li>relevant public activity;</li>
+<li>client-defined commercial triggers.</li>
+</ul>
+</div>
+<div class="card">
+<h3>Anti-signals</h3>
+<ul>
+<li>company too small/large;</li>
+<li>wrong business model;</li>
+<li>recent rejection;</li>
+<li>cool-down active;</li>
+<li>no relevant team/function;</li>
+<li>company contraction / unsuitable timing;</li>
+<li>client-defined permanent exclusions.</li>
+</ul>
+</div>
+</div>
+
+<p>Claude should verify whether anti-signals are first-class structured data or are currently represented only through ad-hoc filtering/suppression.</p>
+</section>
+
+<section>
+<h2>8. State and recency</h2>
+<p>A prospect should not be treated as a static profile.</p>
+
+<pre>
+ICP FIT      85
+INTENT       91
+RECENCY      98
+TIMING       94
+
+WHY NOW:
+New VP Sales
++ hiring 6 SDRs
++ relevant public signal 3 days ago
+</pre>
+
+<p>Claude should inspect whether the current architecture can represent:</p>
+<ul>
+<li>signal observed time;</li>
+<li>signal age / decay;</li>
+<li>current vs historical state;</li>
+<li>expired/stale evidence;</li>
+<li>recency-aware scoring;</li>
+<li>time-dependent campaign eligibility.</li>
+</ul>
+</section>
+
+<section>
+<h2>9. FIGSY explainability</h2>
+<p>Target output should be decomposable and evidence-backed rather than only a single score.</p>
+
+<pre>
+FIGSY
+94 — PRIORITY
+
+ICP Fit             96
+Persona Fit         95
+Timing              98
+Intent              89
+Data Confidence     97
+Reachability        94
+Permission          PASS
+
+WHY NOW
+New CRO 21 days ago.
+Hiring 5 SDRs.
+Recent Series B.
+
+BEST ANGLE
+Pipeline capacity.
+
+RECOMMENDATION
+Campaign 7.
+</pre>
+
+<p>Claude should verify whether current FIGSY/scoring logic can expose component scores, evidence references, recommendation rationale and campaign selection.</p>
+</section>
+
+<section>
+<h2>10. Learning through normal client behaviour</h2>
+<p>The target is to avoid a separate “train the AI” workflow.</p>
+
+<pre>
+Client:
+"Too enterprise"
+→ learning event
+
+Client:
+"These three are ideal"
+→ learning event
+
+Client:
+"Never target agencies below 20 staff"
+→ learning event
+
+Client:
+"Use this angle instead"
+→ learning event
+</pre>
+
+<p>Claude should verify whether routine product actions currently create structured learning signals or simply update UI state/configuration.</p>
+</section>
+
+<section>
+<h2>11. Meeting Graph / compounding intelligence</h2>
+<p>The long-term product flywheel is not a larger contact database. It is learning which pre-booking combinations create meetings.</p>
+
+<pre>
+ICP
++ source
++ signal
++ anti-signal
++ persona
++ company type
++ timing
++ angle
++ sequence
++ CTA
++ reply classification
+       ↓
+MEETING_BOOKED
+</pre>
+
+<p>Claude should verify whether the current architecture can attribute a booking back to these inputs.</p>
+
+<p>Potential learned insight:</p>
+<pre>
+50–200 employee SaaS
++ new CRO
++ SDR hiring
++ pipeline-speed angle
++ interest CTA
++ sequence B
+→ strongest booking rate
+</pre>
+
+<div class="callout warning">
+<strong>Cross-client learning must preserve tenant confidentiality.</strong>
+<p>Claude should identify whether any current learning architecture can aggregate anonymous/permitted performance patterns without exposing one client's private records or strategy to another.</p>
+</div>
+</section>
+
+<section>
+<h2>12. Milla daily experience hypothesis</h2>
+<p>The client should ideally return to understand what happened, not to operate complex machinery.</p>
+
+<pre>
+MILLA
+
+Morning.
+
+FIGSY found 47 new prospects
+matching your Meeting Brief.
+
+11 have strong timing signals.
+
+Campaign 3 is outperforming Campaign 1.
+
+2 prospects are interested
+and waiting for scheduling.
+
+4 meetings booked this week.
+</pre>
+
+<p>Claude should verify whether current data and APIs can support a concise client-facing briefing containing these facts.</p>
+</section>
+
+<section>
+<h2>13. Vida exception-based operations</h2>
+<p>Target operator philosophy:</p>
+
+<pre>
+VIDA handles:
+- compliance uncertainty
+- high-value reply
+- AI uncertainty
+- data conflict
+- campaign anomaly
+- failed suppression
+- failed integration
+- booking opportunity needing judgement
+
+VIDA should not manually perform routine work
+that deterministic code can handle.
+</pre>
+
+<p>Claude should identify which operator actions are currently routine/manual and which are genuinely exception-driven.</p>
+</section>
+
+<section>
+<h2>14. Product simplicity test</h2>
+<p>Claude should assess whether the current client experience requires users to understand internal machinery such as:</p>
+
+<ul>
+<li>PDL / Apollo / Hunter;</li>
+<li>enrichment waterfalls;</li>
+<li>signal weights;</li>
+<li>sequence internals;</li>
+<li>jurisdiction logic;</li>
+<li>deliverability gates;</li>
+<li>FIGSY prompts/models;</li>
+<li>low-level campaign settings.</li>
+</ul>
+
+<p>Classify each as:</p>
+<pre>
+SHOULD BE INVISIBLE
+SHOULD BE CLIENT-CONTROLLABLE
+SHOULD REQUIRE APPROVAL
+SHOULD BE OPERATOR-ONLY
+</pre>
+</section>
+
+<section>
+<h2>15. Outcome alignment</h2>
+<div class="callout success">
+<strong>Get-Kind's product outcome remains MEETING_BOOKED.</strong>
+</div>
+
+<p>Claude should verify whether the system's primary analytics and campaign-learning structures currently align to meeting booking or are dominated by sends, opens, clicks and generic replies.</p>
+
+<pre>
+£ DATA SPEND
+      ↓
+ELIGIBLE PROSPECTS
+      ↓
+CONVERSATIONS
+      ↓
+MEETINGS BOOKED
+</pre>
+</section>
+
+<section>
+<h2>16. What NOT to copy from Jack & Jill</h2>
+<p>Claude should not propose a two-sided candidate/employer marketplace or a “prospect agent” simply because that pattern exists in recruitment.</p>
+
+<p>Get-Kind's market is structurally different:</p>
+
+<pre>
+Recruitment:
+candidate wants opportunity
+company wants candidate
+
+Outbound:
+client wants prospect
+prospect may not yet want conversation
+</pre>
+
+<p>The transferable principle is therefore <strong>better understanding + timing + relevance + low-friction progression</strong>, not a literal mutual-agent marketplace.</p>
+</section>
+
+<section>
+<h2>17. Required verification questions</h2>
+<ol>
+<li>What does Milla actually do in production today?</li>
+<li>What does Vida actually do in production today?</li>
+<li>What does FIGSY actually do in production today?</li>
+<li>Is there one canonical object equivalent to a Meeting Brief?</li>
+<li>If not, where are ICP, offer, persona, signal, exclusion and campaign assumptions currently stored?</li>
+<li>Are those settings versioned?</li>
+<li>Can one client have multiple independent missions?</li>
+<li>Can each mission have its own meeting target?</li>
+<li>Can each mission have its own source strategy?</li>
+<li>Can each mission have its own compliance policy/profile?</li>
+<li>Can clients review/calibrate example companies before launch?</li>
+<li>Can client accept/reject feedback be persisted?</li>
+<li>Does feedback change later lead selection?</li>
+<li>Can free-text client feedback become structured rules?</li>
+<li>Are positive signals first-class data?</li>
+<li>Are anti-signals first-class data?</li>
+<li>Can signal recency/decay be represented?</li>
+<li>Can FIGSY explain why now?</li>
+<li>Can FIGSY explain why not?</li>
+<li>Can FIGSY recommend a campaign/angle?</li>
+<li>Can FIGSY expose component scores?</li>
+<li>Can booking outcomes be attributed to signal/persona/angle/sequence/CTA?</li>
+<li>Can the client see concise “what happened” summaries?</li>
+<li>Which current client workflows expose too much internal complexity?</li>
+<li>Which operator workflows could become exception-only?</li>
+<li>Can cross-client aggregate learning happen without violating tenant isolation?</li>
+<li>Is MEETING_BOOKED first-class enough to drive learning?</li>
+</ol>
+</section>
+
+<section>
+<h2>18. Capability matrix Claude must complete</h2>
+<table>
+<thead>
+<tr><th>Capability</th><th>Status</th><th>Evidence</th><th>Current behaviour</th><th>Target gap</th><th>Impact</th></tr>
+</thead>
+<tbody>
+<tr><td>Milla as client intelligence layer</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>FIGSY as decision engine</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Vida as exception operator</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Meeting Brief</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Mission model</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Conversational onboarding</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Calibration workflow</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Structured client feedback learning</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Signals</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Anti-signals</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Signal recency / decay</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Explainable FIGSY scoring</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Campaign-angle recommendation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Meeting Graph attribution</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Cross-client safe learning</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Milla daily briefing</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Exception-driven Vida operations</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>MEETING_BOOKED learning target</td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>19. Verification status definitions</h2>
+<table>
+<thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>VERIFIED</td><td>Implemented and enforced in executable production code.</td></tr>
+<tr><td>PARTIAL</td><td>Meaningful plumbing exists but does not yet support the full target.</td></tr>
+<tr><td>ABSENT</td><td>No meaningful implementation found.</td></tr>
+<tr><td>UNVERIFIED</td><td>Evidence is inconclusive.</td></tr>
+<tr><td>NOT APPLICABLE</td><td>Intentionally outside current product scope.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>20. Required final output</h2>
+<ol>
+<li><strong>Executive product-model verdict</strong>.</li>
+<li><strong>Verified roles</strong> for Milla, Vida and FIGSY today.</li>
+<li><strong>Meeting Brief feasibility verdict</strong>.</li>
+<li><strong>Mission-model feasibility verdict</strong>.</li>
+<li><strong>Calibration and feedback-learning readiness</strong>.</li>
+<li><strong>Signals / anti-signals readiness</strong>.</li>
+<li><strong>FIGSY explainability readiness</strong>.</li>
+<li><strong>Meeting Graph / compounding-learning readiness</strong>.</li>
+<li><strong>Client simplicity findings</strong>.</li>
+<li><strong>Operator/exception findings</strong>.</li>
+<li><strong>Top 10 gaps ranked by impact on MEETING_BOOKED and differentiation</strong>.</li>
+<li><strong>Top 10 existing strengths</strong>.</li>
+<li><strong>Claims disproved by repository evidence</strong>.</li>
+<li><strong>Areas that remain unverified</strong>.</li>
+</ol>
+</section>
+
+<section>
+<h2>21. Copy/paste Claude Code instruction</h2>
+<pre>
+READ-ONLY PRODUCT-MODEL VERIFICATION.
+
+Read this HTML artifact completely, then inspect the current Get-Kind repository.
+
+Goal:
+Verify whether Get-Kind can support a more differentiated product model built around:
+
+- Milla as the client-intelligence layer
+- FIGSY as the decision brain
+- Vida as the exception/operator layer
+- a living Meeting Brief
+- client-specific Missions
+- calibration before scale
+- signals and anti-signals
+- recency-aware state
+- explainable FIGSY decisions
+- learning through normal client feedback
+- a Meeting Graph that learns what leads to MEETING_BOOKED
+- a simple client experience that hides unnecessary machinery
+
+This is NOT an implementation task.
+
+DO NOT:
+- edit files
+- create repository files
+- delete or rename files
+- generate/apply patches
+- run migrations
+- write to databases
+- modify environment/configuration/infrastructure
+- commit or push
+- open pull requests
+- implement Meeting Brief
+- implement Missions
+- implement calibration
+- implement AI changes
+
+For every finding provide:
+1. VERIFIED / PARTIAL / ABSENT / UNVERIFIED / NOT APPLICABLE
+2. exact file path
+3. line number(s)
+4. function/class/schema/table
+5. current behaviour
+6. target difference
+7. impact on MEETING_BOOKED
+8. impact on product differentiation
+9. severity
+
+Do not treat documentation, prompts, comments or tests as proof of production behaviour unless the executable path is also identified.
+
+The product optimisation boundary stops at MEETING_BOOKED.
+
+Return:
+1. executive verdict
+2. actual current roles of Milla / Vida / FIGSY
+3. completed capability matrix
+4. Meeting Brief feasibility
+5. Mission-model feasibility
+6. calibration/feedback readiness
+7. signals and anti-signals readiness
+8. explainability readiness
+9. Meeting Graph readiness
+10. client simplicity findings
+11. operator exception-model findings
+12. top 10 product-model gaps
+13. top 10 current strengths
+14. claims disproved by repository evidence
+15. unverified areas
+
+Do not change the code.
+</pre>
+</section>
+
+<section>
+<h2>22. Scope note</h2>
+<p class="small">This is an engineering/product feasibility artifact inspired by product-design principles visible in Jack & Jill's recruitment model. It is not an instruction to copy their product, branding, marketplace model or proprietary implementation. The goal is to test whether Get-Kind can create its own differentiated meeting-generation system around clearer roles, deeper client understanding and compounding pre-booking intelligence.</p>
+</section>
+
+</main></body>
+</html>

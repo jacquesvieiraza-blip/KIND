@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get-Kind — Meeting Booking Engine Strategy</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a30;--panel2:#18213a;--text:#eef2ff;--muted:#aeb8d4;
+  --line:#2a3658;--good:#93f5ba;--warn:#ffd782;--accent:#9fd0ff;--code:#0a0f1d
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:linear-gradient(180deg,var(--bg),#0e1426);color:var(--text);line-height:1.55
+}
+main{max-width:1180px;margin:0 auto;padding:48px 24px 72px}
+header,section,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+header{padding:30px;margin-bottom:24px;background:linear-gradient(135deg,var(--panel),#10172b)}
+section{padding:24px;margin:18px 0}
+h1{margin:0 0 10px;font-size:2rem;line-height:1.15}
+h2{margin-top:0;font-size:1.4rem}
+h3{margin-bottom:8px}
+p{margin:10px 0}
+.meta,.small{color:var(--muted);font-size:.92rem}
+.callout{
+  border-left:4px solid var(--accent);background:var(--panel2);padding:14px 16px;
+  border-radius:10px;margin:14px 0
+}
+.success{border-left-color:var(--good)}
+.warning{border-left-color:var(--warn)}
+code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+code{background:var(--code);border:1px solid #202b49;border-radius:6px;padding:2px 6px;color:#d8e4ff}
+pre{
+  white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);border:1px solid #202b49;
+  border-radius:12px;padding:16px;color:#d8e4ff;overflow-x:auto
+}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.95rem}
+th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}
+th{background:#18233f}
+ol,ul{padding-left:22px} li{margin:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.card{padding:18px}
+.metric{font-size:1.7rem;font-weight:800;margin:4px 0}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+<h1>Get-Kind — Meeting Booking Engine Strategy</h1>
+<p class="meta">Commercial objective: maximise ICP-valid meetings booked for clients. The optimisation boundary stops at <strong>meeting_booked</strong>. Client/reseller conversion after the meeting is outside this strategy.</p>
+</header>
+
+<section>
+<h2>1. The North Star</h2>
+<div class="callout success">
+<strong>Primary conversion event: <code>meeting_booked</code></strong>
+<p>Get-Kind should optimise sourcing, campaign selection, sequencing, messaging, reply handling and booking flow around one outcome: more ICP-valid meetings booked per client.</p>
+</div>
+
+<pre>
+ELIGIBLE PROSPECTS
+        ↓
+     DELIVERED
+        ↓
+ POSITIVE RESPONSE
+        ↓
+ MEETING INTENT
+        ↓
+  MEETING BOOKED
+</pre>
+
+<p>The key commercial equation is:</p>
+
+<pre>
+BOOKED MEETINGS
+=
+eligible prospect volume
+× message relevance
+× positive response rate
+× positive-response → booking conversion
+</pre>
+</section>
+
+<section>
+<h2>2. Diagnose the right problem</h2>
+<table>
+<thead><tr><th>Observed issue</th><th>Likely problem area</th></tr></thead>
+<tbody>
+<tr><td>Low eligible prospect volume</td><td>Sourcing / ICP / jurisdiction eligibility</td></tr>
+<tr><td>Good volume, few replies</td><td>Targeting / timing / offer / messaging</td></tr>
+<tr><td>Many replies, few positive replies</td><td>ICP or proposition mismatch</td></tr>
+<tr><td>Good positive replies, few bookings</td><td>Reply handling / booking friction / CTA</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>3. Sell the response before the meeting</h2>
+<p>Cold outreach should often seek a small expression of interest before asking for calendar time.</p>
+
+<pre>
+EMAIL 1
+→ relevance
+→ problem
+→ reason now
+→ low-friction interest CTA
+
+Examples:
+"Is this something you're looking at?"
+"Would this be relevant?"
+"Worth me sending over how we're doing this?"
+"Is reducing X currently a priority?"
+</pre>
+
+<p>Once interest is established, switch to a direct scheduling path:</p>
+
+<pre>
+positive response
+      ↓
+intent classified
+      ↓
+human-approved reply
+      ↓
+specific available times
+      +
+booking link
+      ↓
+MEETING BOOKED
+</pre>
+</section>
+
+<section>
+<h2>4. Every sequence step should earn its place</h2>
+<p>A sequence should not repeat the same pitch in different words.</p>
+
+<pre>
+EMAIL 1
+Why you + why now
+
+EMAIL 2
+Different commercial problem
+
+EMAIL 3
+Relevant proof / result / evidence
+
+EMAIL 4
+Alternative angle or objection
+
+EMAIL 5
+Low-friction final question
+</pre>
+
+<div class="callout warning">
+<strong>Five emails should create five different opportunities to respond.</strong>
+<p>A sequence that only says “following up”, “bumping this” and “did you see this?” is effectively one attempt repeated several times.</p>
+</div>
+</section>
+
+<section>
+<h2>5. FIGSY should choose the angle, not just score the lead</h2>
+<p>Instead of only returning a score, FIGSY should eventually reason about the commercial context behind the prospect.</p>
+
+<pre>
+WHY THIS COMPANY?
+→ hiring 8 SDRs
+
+WHY THIS PERSON?
+→ VP Sales
+
+WHY NOW?
+→ started role 31 days ago
+
+LIKELY PROBLEM?
+→ rapidly building outbound capacity
+
+BEST CAMPAIGN ANGLE?
+→ pipeline generation without increasing SDR headcount
+
+BEST PROOF?
+→ relevant customer scenario
+
+BEST OPENING?
+→ hiring-growth angle
+</pre>
+
+<p>This creates far narrower, more relevant campaigns than a generic “VP Sales campaign”.</p>
+</section>
+
+<section>
+<h2>6. Campaigns should be experiments</h2>
+
+<pre>
+CAMPAIGN
+
+ICP:
+B2B SaaS
+50–250 employees
+
+Persona:
+VP Sales
+
+Signal:
+3+ open SDR positions
+
+Hypothesis:
+Rapid SDR hiring creates pressure
+to generate pipeline quickly.
+
+ANGLE A:
+pipeline productivity
+
+ANGLE B:
+cost of additional SDR capacity
+
+ANGLE C:
+speed to pipeline
+
+SUCCESS EVENT:
+meeting_booked
+</pre>
+
+<p>Traffic should be split across variants and the winner should be determined by <strong>meetings booked</strong>, not by opens or clicks.</p>
+
+<table>
+<thead><tr><th>Variant</th><th>Prospects</th><th>Positive replies</th><th>Meetings booked</th></tr></thead>
+<tbody>
+<tr><td>A</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>B</td><td>—</td><td>—</td><td>—</td></tr>
+<tr><td>C</td><td>—</td><td>—</td><td>—</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>7. Attribute every booking to what caused it</h2>
+
+<pre>
+meeting
+ ↓
+lead
+ ↓
+campaign
+ ↓
+sequence
+ ↓
+step
+ ↓
+copy variant
+ ↓
+CTA
+ ↓
+persona
+ ↓
+ICP
+ ↓
+signal
+ ↓
+data source
+</pre>
+
+<p>This gives Get-Kind the ability to learn which combinations produce meetings, rather than only which emails get replies.</p>
+</section>
+
+<section>
+<h2>8. Positive reply → booked meeting is its own conversion engine</h2>
+
+<p>A key KPI should be:</p>
+
+<pre>
+positive_reply_to_booking_rate
+=
+booked_meetings / qualified_positive_replies
+</pre>
+
+<p>The system should be able to identify where interested prospects are lost:</p>
+
+<ul>
+<li>positive reply received but not reviewed quickly;</li>
+<li>human approval waiting too long;</li>
+<li>reply does not answer the prospect's actual question;</li>
+<li>no concrete times are offered;</li>
+<li>booking link is omitted;</li>
+<li>timezone or availability creates friction;</li>
+<li>booking flow errors.</li>
+</ul>
+
+<pre>
+Positive reply
+      ↓
+classified how quickly?
+      ↓
+reply drafted how quickly?
+      ↓
+human approved how quickly?
+      ↓
+did it answer the question?
+      ↓
+were actual times offered?
+      ↓
+was booking link offered?
+      ↓
+MEETING BOOKED
+</pre>
+</section>
+
+<section>
+<h2>9. Make the operator experience meeting-first</h2>
+
+<pre>
+🔥 MEETING OPPORTUNITY
+
+Sarah — VP Sales
+Intent: POSITIVE
+Confidence: 96%
+
+"They're interested but asked
+whether this integrates with HubSpot."
+
+Suggested response:
+[answer]
+
+Suggested availability:
+Tue 10:30
+Tue 14:00
+Wed 11:00
+
+[APPROVE & SEND]
+</pre>
+
+<p>The objective is to make it extremely hard for a warm response to sit unhandled.</p>
+</section>
+
+<section>
+<h2>10. Do not make the booking link do all the work</h2>
+
+<p>After interest is shown, the reply should reduce scheduling friction:</p>
+
+<pre>
+Absolutely.
+
+Would Tuesday at 10:30 or Wednesday
+at 2 work?
+
+Or grab another time here:
+[calendar link]
+</pre>
+
+<p>Specific available times plus a booking link are stronger than simply dropping a generic calendar URL.</p>
+</section>
+
+<section>
+<h2>11. Sequence should react, not merely run</h2>
+
+<pre>
+Prospect
+   ↓
+Signal strength?
+   ↓
+Persona?
+   ↓
+Campaign?
+   ↓
+Message
+   ↓
+response?
+ ┌───────┬─────────┬─────────┐
+positive neutral   objection  none
+   ↓        ↓          ↓       ↓
+booking   answer     handle   next angle
+path      question   objection
+</pre>
+
+<p>FIGSY should act as a campaign decision engine, not only an email-writing tool.</p>
+</section>
+
+<section>
+<h2>12. Build a campaign winner library</h2>
+
+<pre>
+FINTECH
+CFO
+funding trigger
+→ Campaign 32 wins
+
+SAAS
+VP SALES
+SDR hiring trigger
+→ Campaign 81 wins
+
+AGENCY
+FOUNDER
+new-client hiring trigger
+→ Campaign 113 wins
+</pre>
+
+<p>Over time, new clients should benefit from what Get-Kind has already learned about which signal + persona + angle + sequence combinations generate bookings.</p>
+</section>
+
+<section>
+<h2>13. Client dashboard should show the value they buy</h2>
+
+<div class="grid">
+<div class="card">
+<div class="small">MEETINGS BOOKED</div>
+<div class="metric">27</div>
+<div class="small">↑ 8 this week</div>
+</div>
+<div class="card">
+<div class="small">POSITIVE REPLIES</div>
+<div class="metric">132</div>
+<div class="small">leading indicator</div>
+</div>
+<div class="card">
+<div class="small">POSITIVE REPLY → BOOKING</div>
+<div class="metric">20.5%</div>
+<div class="small">conversion to K.I.N.D outcome</div>
+</div>
+</div>
+
+<p>Supporting diagnostic metrics can include:</p>
+
+<pre>
+1,842 eligible prospects
+1,776 delivered
+132 positive replies
+27 meetings booked
+20.5% positive reply → meeting
+</pre>
+
+<p>The headline should not be opens, clicks or raw send volume. Clients are paying for filled calendars.</p>
+</section>
+
+<section>
+<h2>14. Metric hierarchy</h2>
+
+<ol>
+<li><strong>ICP-valid meetings booked</strong></li>
+<li><strong>Meetings booked per 100 eligible prospects</strong></li>
+<li><strong>Positive replies per 100 delivered</strong></li>
+<li><strong>Positive reply → meeting booked %</strong></li>
+<li><strong>Data cost per meeting booked</strong></li>
+</ol>
+
+<div class="callout warning">
+<strong>Stop measurement at meeting booked for this product optimisation model.</strong>
+<p>No meeting attendance, opportunity creation, close rate, reseller conversion or revenue attribution is required here. Those belong to the reseller/client after handoff.</p>
+</div>
+</section>
+
+<section>
+<h2>15. How this connects to sourcing</h2>
+
+<pre>
+MORE / BETTER SOURCES
+        ↓
+BETTER SIGNALS
+        ↓
+BETTER TIMING
+        ↓
+BETTER CAMPAIGN SELECTION
+        ↓
+MORE RELEVANT MESSAGES
+        ↓
+MORE POSITIVE REPLIES
+        ↓
+BETTER BOOKING CONVERSION
+        ↓
+MORE MEETINGS
+</pre>
+
+<p>The value of a richer data layer is not the number of providers. It is whether the extra evidence helps Get-Kind select the right person, the right timing and the right campaign.</p>
+</section>
+
+<section>
+<h2>16. The three learning engines</h2>
+
+<div class="grid">
+<div class="card">
+<h3>1. WHO ENGINE</h3>
+<p>Who should we contact?</p>
+</div>
+<div class="card">
+<h3>2. WHY-NOW ENGINE</h3>
+<p>What makes this relevant now?</p>
+</div>
+<div class="card">
+<h3>3. MEETING ENGINE</h3>
+<p>Which campaign, sequence, message and CTA is most likely to get this prospect onto the calendar?</p>
+</div>
+</div>
+
+<div class="callout success">
+<strong>All three engines optimise toward the same event:</strong>
+<p><code>MEETING_BOOKED</code></p>
+</div>
+</section>
+
+<section>
+<h2>17. Suggested verification questions for Claude Code</h2>
+<p>If this artifact is used for repository review, Claude should verify the current state without changing code:</p>
+
+<ol>
+<li>What is the exact campaign → sequence → send data model?</li>
+<li>Can a campaign have multiple copy / angle variants?</li>
+<li>Can variants be attributed to booked meetings?</li>
+<li>Can performance be measured by sequence step?</li>
+<li>Can performance be measured by persona, ICP and signal?</li>
+<li>Can positive replies be distinguished reliably from generic replies?</li>
+<li>Does a positive reply immediately stop remaining automated follow-ups?</li>
+<li>How quickly can a positive reply reach human review?</li>
+<li>Can the reply workflow offer real client availability?</li>
+<li>Can specific time options be inserted into approved replies?</li>
+<li>Can a booking be attributed back to the exact campaign, sequence step and variant?</li>
+<li>Can booking outcomes feed campaign selection for future prospects?</li>
+<li>Can FIGSY choose or recommend a campaign angle based on sourced evidence?</li>
+<li>Can sequence steps contain genuinely different commercial angles?</li>
+<li>Can poor-performing variants be identified using meetings booked rather than opens/clicks?</li>
+<li>Can the system measure <code>positive_reply_to_booking_rate</code>?</li>
+<li>Can the system measure <code>meetings_booked_per_100_eligible_prospects</code>?</li>
+<li>Can the system calculate <code>data_cost_per_meeting_booked</code>?</li>
+<li>Does any existing analytics logic incorrectly optimise for a metric other than meeting booked?</li>
+<li>Are there paths where a warm prospect can remain waiting without escalation?</li>
+</ol>
+</section>
+
+<section>
+<h2>18. Claude Code instruction</h2>
+
+<pre>
+READ-ONLY VERIFICATION ONLY.
+
+Read this HTML artifact fully, then inspect the Get-Kind repository.
+
+DO NOT:
+- edit code
+- create or delete repository files
+- rename files
+- generate or apply patches
+- run migrations
+- modify configuration or infrastructure
+- write to databases
+- commit or push
+- open pull requests
+- implement missing functionality
+
+Verify how closely the current product supports the meeting-booking strategy in this artifact.
+
+For every finding provide:
+1. VERIFIED / PARTIAL / ABSENT / UNVERIFIED / NOT APPLICABLE
+2. exact file path
+3. exact line number(s)
+4. function / class / schema / table
+5. evidence of current behaviour
+6. difference from target behaviour
+7. likely impact on MEETING_BOOKED
+8. severity: LOW / MEDIUM / HIGH / CRITICAL
+
+Explicitly inspect:
+- campaign architecture
+- sequence architecture
+- copy / angle variants
+- FIGSY scoring and selection logic
+- reply classification
+- positive reply handling
+- human approval latency controls
+- calendar availability handling
+- booking flow
+- booking attribution
+- analytics
+- campaign performance metrics
+
+The product optimisation boundary stops at MEETING_BOOKED.
+
+Do not assess or propose tracking:
+- meeting attendance
+- opportunity creation
+- client close rate
+- reseller conversion
+- revenue after the meeting
+
+End with:
+- current meeting-booking funnel
+- current attribution model
+- current positive-reply → booking path
+- top 10 gaps most likely to suppress booked-meeting volume
+- top 10 existing strengths supporting booked-meeting volume
+- metrics currently available
+- metrics missing
+- claims in this artifact disproved by the repository
+- areas that remain unverified
+
+Do not change the code.
+</pre>
+</section>
+
+<section>
+<h2>19. Scope note</h2>
+<p class="small">This is a product and engineering strategy artifact for increasing booked meetings. It does not replace the separate global compliance framework controlling whether a prospect may be sourced, processed or contacted.</p>
+</section>
+
+</main>
+</body>
+</html>

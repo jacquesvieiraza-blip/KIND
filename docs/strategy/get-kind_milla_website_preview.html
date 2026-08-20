@@ -1,0 +1,682 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Get-Kind — Milla Website Preview</title>
+<meta name="description" content="Preview concept for Get-Kind's Milla-first website." />
+<style>
+  :root{
+    --purple:#7c3aed;
+    --purple-dark:#6d28d9;
+    --purple-soft:#f6f2ff;
+    --ink:#0b0b0d;
+    --text:#404044;
+    --muted:#73737a;
+    --line:#dedee3;
+    --surface:#f5f5f7;
+    --white:#ffffff;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    font-family:Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color:var(--ink);
+    background:var(--white);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;text-decoration:none}
+  button{font:inherit}
+  .wrap{width:min(1120px, calc(100% - 40px)); margin:0 auto}
+  .narrow{width:min(860px, calc(100% - 40px)); margin:0 auto}
+  .eyebrow{
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--purple);
+    font-weight:800;
+  }
+  h1,h2,h3,p{margin-top:0}
+  h1{
+    font-size:clamp(52px, 8vw, 92px);
+    line-height:.93;
+    letter-spacing:-.055em;
+    margin-bottom:22px;
+  }
+  h2{
+    font-size:clamp(38px, 5vw, 64px);
+    line-height:.98;
+    letter-spacing:-.045em;
+    margin-bottom:22px;
+  }
+  h3{
+    font-size:24px;
+    line-height:1.1;
+    letter-spacing:-.025em;
+  }
+  .purple{color:var(--purple)}
+  .lead{
+    font-size:clamp(20px, 2.7vw, 30px);
+    line-height:1.16;
+    letter-spacing:-.02em;
+    font-weight:750;
+    color:#3d3d42;
+    max-width:780px;
+  }
+  .body-lg{
+    font-size:19px;
+    line-height:1.55;
+    color:var(--text);
+    max-width:680px;
+  }
+  .muted{color:var(--muted)}
+
+  /* NAV */
+  .nav{
+    height:82px;
+    display:flex;
+    align-items:center;
+    border-bottom:1px solid #ededf0;
+    background:rgba(255,255,255,.96);
+    position:sticky;
+    top:0;
+    z-index:50;
+    backdrop-filter:blur(12px);
+  }
+  .nav-inner{display:flex;align-items:center;justify-content:space-between;gap:24px}
+  .brand{
+    font-size:22px;
+    font-weight:900;
+    letter-spacing:-.04em;
+  }
+  .brand-dot{color:var(--purple)}
+  .nav-links{display:flex;align-items:center;gap:28px;color:#45454a;font-size:14px;font-weight:700}
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-height:46px;
+    padding:0 24px;
+    border-radius:999px;
+    background:var(--ink);
+    color:white;
+    font-weight:800;
+    font-size:14px;
+    border:1px solid var(--ink);
+    transition:.18s ease;
+  }
+  .btn:hover{transform:translateY(-1px);background:#202024}
+  .btn-purple{background:var(--purple);border-color:var(--purple)}
+  .btn-purple:hover{background:var(--purple-dark)}
+
+  /* HERO */
+  .hero{padding:84px 0 78px}
+  .hero-copy{max-width:860px}
+  .hero h1 span{display:block}
+  .hero .body-lg{margin:28px 0 30px}
+  .micro-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:26px;
+    margin-top:28px;
+    padding-top:24px;
+    border-top:1px solid var(--line);
+    font-size:12px;
+    font-weight:800;
+  }
+
+  /* VIDEO */
+  .video{
+    margin-top:40px;
+    aspect-ratio:16/8.8;
+    border-radius:20px;
+    overflow:hidden;
+    position:relative;
+    background:
+      radial-gradient(circle at 50% 48%, rgba(124,58,237,.22), transparent 28%),
+      linear-gradient(135deg,#151122 0%,#08080a 58%,#0c0c10 100%);
+    border:1px solid #202027;
+  }
+  .video:before{
+    content:"";
+    position:absolute;inset:0;
+    background:
+      linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+    background-size:40px 40px;
+    mask-image:linear-gradient(to bottom,transparent,black 25%,black 75%,transparent);
+  }
+  .play{
+    position:absolute;inset:50% auto auto 50%;
+    transform:translate(-50%,-50%);
+    width:78px;height:78px;border-radius:50%;
+    background:var(--purple);
+    display:grid;place-items:center;
+    color:white;font-size:28px;
+    box-shadow:0 16px 44px rgba(124,58,237,.28);
+  }
+  .play:after{content:"▶";transform:translateX(3px);font-size:22px}
+  .video-label{
+    position:absolute;left:24px;bottom:20px;color:#c9c9ce;font-size:12px
+  }
+  .sound{
+    position:absolute;right:20px;top:18px;
+    color:white;background:#2b2932;border-radius:999px;
+    padding:9px 12px;font-size:11px
+  }
+
+  /* CAPABILITIES */
+  .section{padding:110px 0}
+  .cards4{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:16px;
+    margin-top:46px;
+  }
+  .feature{
+    border:1px solid var(--line);
+    border-radius:18px;
+    overflow:hidden;
+    min-height:420px;
+    background:white;
+  }
+  .feature-visual{
+    height:190px;
+    background:linear-gradient(180deg,#f9f9fa,#f2f2f5);
+    border-bottom:1px solid var(--line);
+    padding:20px;
+    display:flex;
+    align-items:flex-end;
+  }
+  .feature-body{padding:24px}
+  .feature-body p{color:#5e5e65;line-height:1.58;font-size:15px}
+
+  .mini-ui{
+    width:100%;
+    background:white;
+    border:1px solid #ddddE4;
+    border-radius:12px;
+    padding:13px;
+    box-shadow:0 14px 32px rgba(15,15,20,.06);
+  }
+  .ui-bar{height:7px;border-radius:5px;background:#ececf0;margin-bottom:9px}
+  .ui-bar.purple{background:#d9c7ff}
+  .ui-row{display:grid;grid-template-columns:24px 1fr 42px;gap:8px;align-items:center;margin:8px 0}
+  .ui-avatar{width:24px;height:24px;border-radius:50%;background:#e8e8eb}
+  .ui-score{font-size:10px;background:var(--purple);color:white;border-radius:6px;padding:5px 4px;text-align:center}
+  .reply-lines div{height:7px;border-radius:5px;background:#ececf0;margin:8px 0}
+  .reply-lines div:nth-child(2){width:84%}.reply-lines div:nth-child(3){width:62%}
+  .calendar-chip{
+    display:flex;align-items:center;justify-content:space-between;
+    border-top:1px solid #ececf0;padding-top:10px;margin-top:10px;font-size:11px
+  }
+
+  /* BLACK BREAK */
+  .dark{
+    background:#0a0a0b;
+    color:white;
+    padding:96px 0;
+  }
+  .dark .copy{max-width:790px}
+  .dark p{
+    font-size:clamp(22px,3vw,32px);
+    line-height:1.42;
+    letter-spacing:-.018em;
+    color:#8e8e93;
+  }
+  .dark strong{color:white}
+  .dark p + p{margin-top:28px}
+
+  /* STEPS */
+  .steps{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:16px;
+    margin-top:42px;
+  }
+  .step{
+    border:1px solid var(--line);
+    border-radius:18px;
+    padding:24px;
+    min-height:210px;
+    background:white;
+  }
+  .step-label{
+    font-size:10px;letter-spacing:.18em;font-weight:900;color:#5f5f66;margin-bottom:26px
+  }
+  .step h3{font-size:21px}
+  .step p{font-size:14px;line-height:1.58;color:#626269}
+  .step.cta-step{background:#f0f0f2;border-color:#f0f0f2}
+  .step.cta-step h3{font-size:28px}
+
+  /* SEE IT */
+  .demo-section{background:#f4f4f6}
+  .demo-grid{
+    display:grid;
+    grid-template-columns:1fr 1.08fr 1fr;
+    gap:22px;
+    align-items:start;
+    margin-top:46px;
+  }
+  .demo-card{
+    background:white;
+    border:1px solid #dcdce2;
+    border-radius:16px;
+    padding:22px;
+  }
+  .demo-card h3{font-size:21px}
+  .demo-card .eyebrow{margin-bottom:20px}
+  .statline{
+    display:flex;align-items:baseline;gap:12px;
+    padding:15px 0;border-top:1px solid #e6e6ea;
+  }
+  .statline b{font-size:25px}.statline span{font-size:13px;color:#6b6b72}
+  .prospect{
+    background:#f6f6f8;border:1px solid #dadade;border-radius:12px;padding:17px
+  }
+  .prospect-top{display:flex;justify-content:space-between;gap:12px}
+  .score{
+    background:var(--purple);color:white;border-radius:8px;
+    min-width:40px;height:32px;display:grid;place-items:center;font-weight:900
+  }
+  .subeyebrow{font-size:9px;letter-spacing:.18em;color:var(--purple);font-weight:900;margin:18px 0 7px}
+  .prospect p{font-size:13px;line-height:1.45;margin-bottom:0}
+  .actions{display:flex;gap:8px;margin-top:16px}
+  .small-btn{
+    border-radius:8px;border:1px solid #dadade;background:white;padding:9px 14px;font-weight:800;font-size:12px
+  }
+  .small-btn.primary{background:#0c0c0e;color:white;border-color:#0c0c0e}
+  .meeting-card{
+    background:#0b0b0c;color:white;border:none;
+  }
+  .meeting-card .eyebrow{color:#b78cff}
+  .meeting-card p{color:#8e8e95;font-size:13px}
+  .meeting-time{border-top:1px solid #333339;margin-top:22px;padding-top:18px;font-weight:800}
+
+  /* PRICING */
+  .pricing{text-align:center}
+  .price{
+    font-size:clamp(88px,13vw,148px);
+    line-height:.82;
+    letter-spacing:-.07em;
+    color:var(--purple);
+    font-weight:900;
+    margin:28px 0 18px
+  }
+  .price-sub{font-size:31px;font-weight:850;letter-spacing:-.035em}
+  .pricing-list{
+    width:min(640px,100%);
+    margin:50px auto 0;
+    text-align:left;
+  }
+  .pricing-item{
+    padding:18px 0;border-top:1px solid var(--line);
+    display:flex;gap:15px;color:#535359;font-size:15px
+  }
+  .pricing-item:before{content:"✓";color:var(--purple);font-size:21px;line-height:1}
+  .pricing-item b{color:var(--ink)}
+  .pricing-explainer{
+    width:min(640px,100%);
+    margin:42px auto 0;
+    border-radius:18px;background:#f3f3f5;padding:28px;text-align:left
+  }
+  .pricing-explainer h3{margin-bottom:18px}
+  .pricing-explainer p{color:#58585f;font-size:15px;line-height:1.6;margin-bottom:0}
+
+  /* PROOF PLACEHOLDER */
+  .proof{background:#f4f4f6}
+  .proof-note{
+    border:1px dashed #b596ff;
+    background:#faf8ff;
+    border-radius:16px;
+    padding:22px;
+    color:#4d3a75;
+    margin:28px 0 34px;
+    font-size:14px;
+    line-height:1.55;
+  }
+  .proof-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:18px}
+  .proof-placeholder{
+    min-height:220px;border-radius:18px;background:white;border:1px solid #e1e1e5;padding:28px
+  }
+  .skeleton{height:12px;background:#eeeeF1;border-radius:10px;margin:14px 0}
+  .skeleton.short{width:38%}.skeleton.mid{width:65%}.skeleton.long{width:86%}
+  .proof-placeholder .label{font-size:11px;color:var(--purple);font-weight:900;letter-spacing:.16em}
+
+  /* TRUST + CTA */
+  .trust{padding:92px 0;border-bottom:1px solid #e8e8eb}
+  .trust-copy{max-width:650px}
+  .trust p{color:#505057;line-height:1.65;font-size:17px}
+  .final{text-align:center;padding:100px 0 120px}
+  .final h2{font-size:clamp(38px,5vw,66px)}
+  footer{padding:30px 0;border-top:1px solid #ededf0;color:#77777e;font-size:12px}
+  .footer-inner{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+  @media (max-width:900px){
+    .nav-links a:not(.btn){display:none}
+    .cards4{grid-template-columns:repeat(2,1fr)}
+    .steps{grid-template-columns:repeat(2,1fr)}
+    .demo-grid{grid-template-columns:1fr}
+    .proof-grid{grid-template-columns:1fr}
+  }
+  @media (max-width:620px){
+    .wrap,.narrow{width:min(100% - 28px,1120px)}
+    .hero{padding-top:56px}
+    .cards4,.steps{grid-template-columns:1fr}
+    .feature{min-height:auto}
+    .micro-row{gap:13px 20px}
+    .video{border-radius:14px;aspect-ratio:1.3}
+    .section{padding:78px 0}
+    .dark{padding:72px 0}
+  }
+</style>
+</head>
+
+<body>
+
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top">K.I.N.D<span class="brand-dot">.</span></a>
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#how">How it works</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#trust">Trust</a>
+      <a class="btn" href="#start">Meet Milla</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+  <section class="hero">
+    <div class="narrow">
+      <div class="hero-copy">
+        <h1>
+          <span>Meet Milla.</span>
+          <span class="purple">Your pipeline, handled.</span>
+        </h1>
+
+        <p class="lead">An AI agent that finds the people worth meeting and books them into your calendar.</p>
+
+        <p class="body-lg">Tell Milla who a great prospect looks like. You approve the people. She takes it from there.</p>
+
+        <a class="btn" href="#start">Meet Milla</a>
+
+        <div class="micro-row">
+          <span>Reviewing is free</span>
+          <span>No subscription</span>
+          <span>You approve every person</span>
+        </div>
+
+        <div class="video" aria-label="Product demo placeholder">
+          <div class="sound">🔇 Tap to unmute</div>
+          <div class="play" aria-hidden="true"></div>
+          <div class="video-label">The product demo</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="how">
+    <div class="wrap">
+      <h2>Everything Milla does<br>to fill your calendar.</h2>
+
+      <div class="cards4">
+        <article class="feature">
+          <div class="feature-visual">
+            <div class="mini-ui">
+              <div class="ui-row">
+                <span class="ui-avatar"></span><span class="ui-bar"></span><span class="ui-score">94</span>
+              </div>
+              <div class="ui-row">
+                <span class="ui-avatar"></span><span class="ui-bar purple"></span><span class="ui-score">91</span>
+              </div>
+              <div class="ui-row">
+                <span class="ui-avatar"></span><span class="ui-bar"></span><span class="ui-score">88</span>
+              </div>
+            </div>
+          </div>
+          <div class="feature-body">
+            <h3>Leads land masked</h3>
+            <p>Every person Milla finds appears with the contact details hidden. You see the fit, the score and why now. Nothing is charged until you approve.</p>
+          </div>
+        </article>
+
+        <article class="feature">
+          <div class="feature-visual">
+            <div class="mini-ui">
+              <div class="eyebrow">Your call</div>
+              <div style="height:12px"></div>
+              <div class="ui-bar purple" style="width:76%"></div>
+              <div class="ui-bar" style="width:92%"></div>
+              <div class="actions">
+                <span class="small-btn primary">Approve</span>
+                <span class="small-btn">Pass</span>
+              </div>
+            </div>
+          </div>
+          <div class="feature-body">
+            <h3>One screen, one decision</h3>
+            <p>Approve or pass. That is the interface. No sequences to build, no lists to upload and no prospecting tool to learn.</p>
+          </div>
+        </article>
+
+        <article class="feature">
+          <div class="feature-visual">
+            <div class="mini-ui">
+              <div class="eyebrow">Reply detected</div>
+              <div class="reply-lines">
+                <div></div><div></div><div></div>
+              </div>
+              <div class="calendar-chip"><span>Needs attention</span><b>High intent</b></div>
+            </div>
+          </div>
+          <div class="feature-body">
+            <h3>Replies handled</h3>
+            <p>Milla writes the outreach, sends the follow-ups and reads the replies. The conversations that need you rise to the top.</p>
+          </div>
+        </article>
+
+        <article class="feature">
+          <div class="feature-visual">
+            <div class="mini-ui">
+              <div class="eyebrow">Meeting booked</div>
+              <h3 style="margin:10px 0 4px">Wednesday · 14:00</h3>
+              <div class="muted" style="font-size:12px">VP Sales · Acme</div>
+              <div class="calendar-chip"><span>Client calendar</span><b>Confirmed</b></div>
+            </div>
+          </div>
+          <div class="feature-body">
+            <h3>Meetings land in your calendar</h3>
+            <p>When someone wants to talk, Milla works from real availability and moves the conversation toward a booked meeting.</p>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="dark">
+    <div class="narrow">
+      <div class="copy">
+        <p><strong>Your best people run out of hours, not talent.</strong><br>
+        Prospecting is work that never ends. Research, lists, follow-ups and inbox checking consume hours before the actual sales conversation even begins.</p>
+
+        <p><strong>Milla works differently.</strong> She learns what a great prospect looks like, finds them, writes the outreach, handles the replies and moves the right conversations toward your calendar. <strong>You approve the people. Milla handles the rest of the prospecting workflow.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="narrow">
+      <h2>From conversation to meeting,<br>in 5 steps.</h2>
+
+      <div class="steps">
+        <article class="step">
+          <div class="step-label">STEP 01</div>
+          <h3>One conversation</h3>
+          <p>Tell Milla who you want to meet. Rough notes are enough.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-label">STEP 02</div>
+          <h3>She learns what good looks like</h3>
+          <p>Milla turns what you tell her into a clear picture of your customers, proposition, exclusions and useful buying signals.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-label">STEP 03</div>
+          <h3>You check she’s understood</h3>
+          <p>Review example prospects before anything starts. Approve the direction or correct it.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-label">STEP 04</div>
+          <h3>Then you stop prospecting</h3>
+          <p>Milla gets to work — finding, researching, reaching out, following up and handling responses.</p>
+        </article>
+
+        <article class="step">
+          <div class="step-label">STEP 05</div>
+          <h3>Meetings appear in your calendar</h3>
+          <p>You turn up to the conversations worth having.</p>
+        </article>
+
+        <article class="step cta-step">
+          <div class="step-label">READY?</div>
+          <h3>Tell Milla who you want to meet.</h3>
+          <a href="#start" style="font-weight:900;font-size:14px">Meet Milla ›</a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section demo-section">
+    <div class="narrow">
+      <h2>See it happen.</h2>
+
+      <div class="demo-grid">
+        <article class="demo-card">
+          <div class="eyebrow">Milla</div>
+          <h3>I found 24 prospects overnight.</h3>
+          <div class="statline"><b>14</b><span>strong matches</span></div>
+          <div class="statline"><b>6</b><span>showing buying signals</span></div>
+          <div class="statline"><b>3</b><span>need your approval</span></div>
+        </article>
+
+        <article class="demo-card">
+          <div class="eyebrow">Your call</div>
+          <div class="prospect">
+            <div class="prospect-top">
+              <div>
+                <h3 style="margin-bottom:4px">Acme</h3>
+                <div class="muted" style="font-size:12px">VP Sales</div>
+              </div>
+              <div class="score">94</div>
+            </div>
+
+            <div class="subeyebrow">WHY NOW</div>
+            <p>New CRO 17 days ago<br>Hiring 5 SDRs</p>
+
+            <div class="subeyebrow">WHY THEY FIT</div>
+            <p>Series B SaaS<br>87 employees<br>UK</p>
+
+            <div class="actions">
+              <button class="small-btn primary" type="button">Approve</button>
+              <button class="small-btn" type="button">Pass</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="demo-card meeting-card">
+          <div class="eyebrow">Meeting booked</div>
+          <h3>Sarah Jones</h3>
+          <p>VP Sales · Acme</p>
+          <div class="meeting-time">Wednesday · 14:00</div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section pricing" id="pricing">
+    <div class="narrow">
+      <div class="eyebrow">Pricing</div>
+      <div class="price">$4</div>
+      <div class="price-sub">when you say yes.</div>
+
+      <div class="pricing-list">
+        <div class="pricing-item"><div><b>Reviewing is free.</b> Look at every person Milla finds and pay nothing.</div></div>
+        <div class="pricing-item"><div><b>No subscription.</b> No seats, no retainer, no annual lock-in.</div></div>
+        <div class="pricing-item"><div><b>Stop anytime.</b> If it is not working, stop.</div></div>
+        <div class="pricing-item"><div><b>Dead email, no charge.</b> If the address cannot be used, you are not billed.</div></div>
+      </div>
+
+      <p class="lead" style="font-size:24px;max-width:660px;margin:48px auto 0">
+        You approve the people. We take it from there. $4 per person you want us to pursue. No subscription.
+      </p>
+
+      <div class="pricing-explainer">
+        <h3>Why only $4?</h3>
+        <p>Because you are paying for one person, not a platform. There is no software licence to recover, no seats to fill and no minimum. Milla only earns when you say yes to somebody, so the incentive is to bring you people you actually want — not volume.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section proof">
+    <div class="narrow">
+      <div class="eyebrow">Proof</div>
+      <h2 style="margin-top:14px">Your real customers will do the talking.</h2>
+
+      <div class="proof-note">
+        <strong>Preview placeholder.</strong> This section intentionally contains no invented customer results. Replace these blocks with real first-client outcomes, named testimonials and meeting figures once you have permission to publish them.
+      </div>
+
+      <div class="proof-grid">
+        <div class="proof-placeholder">
+          <div class="label">MEETINGS / OUTCOME</div>
+          <div class="skeleton short" style="height:34px;margin-top:24px"></div>
+          <div class="skeleton long"></div>
+          <div class="skeleton mid"></div>
+          <div class="skeleton short" style="margin-top:28px"></div>
+        </div>
+
+        <div class="proof-placeholder">
+          <div class="label">CUSTOMER QUOTE</div>
+          <div class="skeleton long" style="margin-top:30px"></div>
+          <div class="skeleton long"></div>
+          <div class="skeleton mid"></div>
+          <div class="skeleton short" style="margin-top:30px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="trust" id="trust">
+    <div class="narrow">
+      <div class="trust-copy">
+        <div class="eyebrow">Trust</div>
+        <p style="margin-top:24px"><strong>Built with privacy and suppression controls from the start.</strong></p>
+        <p>As K.I.N.D's jurisdiction-aware contact-policy engine is completed and independently verified, this section can expand to make more specific market-by-market claims.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="final" id="start">
+    <div class="narrow">
+      <h2>Tell Milla who you want to meet.</h2>
+      <a class="btn btn-purple" href="#">Get started</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap footer-inner">
+    <span>© 2026 K.I.N.D</span>
+    <span>Preview concept — not the live website</span>
+  </div>
+</footer>
+
+</body>
+</html>

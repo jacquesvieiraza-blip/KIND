@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get-Kind — Vida Post-10-Client Autonomous Operations Verification</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a30;--panel2:#18213a;--text:#eef2ff;--muted:#aeb8d4;
+  --line:#2a3658;--good:#93f5ba;--warn:#ffd782;--bad:#ff9a9a;--accent:#9fd0ff;--code:#0a0f1d
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,var(--bg),#0e1426);color:var(--text);line-height:1.55}
+main{max-width:1260px;margin:0 auto;padding:48px 24px 72px}
+header,section,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+header{padding:30px;margin-bottom:24px;background:linear-gradient(135deg,var(--panel),#10172b)}
+section{padding:24px;margin:18px 0}
+h1{margin:0 0 10px;font-size:2rem;line-height:1.15}
+h2{margin-top:0;font-size:1.4rem}
+h3{margin-bottom:8px}
+p{margin:10px 0}
+.meta,.small{color:var(--muted);font-size:.92rem}
+.callout{border-left:4px solid var(--accent);background:var(--panel2);padding:14px 16px;border-radius:10px;margin:14px 0}
+.success{border-left-color:var(--good)}
+.warning{border-left-color:var(--warn)}
+.critical{border-left-color:var(--bad)}
+code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+code{background:var(--code);border:1px solid #202b49;border-radius:6px;padding:2px 6px;color:#d8e4ff}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);border:1px solid #202b49;border-radius:12px;padding:16px;color:#d8e4ff;overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.93rem}
+th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}
+th{background:#18233f}
+ol,ul{padding-left:22px}
+li{margin:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{padding:18px}
+.tag{display:inline-block;border:1px solid var(--line);background:#131d36;color:var(--muted);border-radius:999px;padding:4px 9px;margin:3px 4px 3px 0;font-size:.82rem}
+.good{color:var(--good);font-weight:700}.warn{color:var(--warn);font-weight:700}.bad{color:var(--bad);font-weight:700}
+</style>
+</head>
+<body><main>
+
+<header>
+<h1>Get-Kind — Vida Post-10-Client Autonomous Operations Verification</h1>
+<p class="meta">Purpose: read-only Claude Code verification of whether Vida can safely evolve into a more autonomous operations layer <strong>after Get-Kind has approximately 10 live clients and the early operational edge cases have been observed, logged and understood</strong>.</p>
+<p class="meta">This is a post-10-client architecture/readiness review. It is not an instruction to automate Vida now.</p>
+</header>
+
+<section>
+<h2>1. Hard instruction to Claude Code</h2>
+<div class="callout critical">
+<strong>READ-ONLY AUTONOMY READINESS REVIEW. DO NOT CHANGE THE CODE.</strong>
+<p>Do not edit, create, delete, rename, reformat or move repository files. Do not generate or apply patches. Do not run migrations. Do not modify configuration, environment values, infrastructure or databases. Do not commit, push or open a pull request.</p>
+<p>Your job is to verify whether the current architecture could support a safer autonomous Vida after the first ~10 clients have exposed real operational edge cases.</p>
+</div>
+</section>
+
+<section>
+<h2>2. Why this is deliberately post-10-client</h2>
+<p>The first clients are intended to expose the real failure modes that are difficult to predict from code or planning alone.</p>
+
+<div class="callout warning">
+<strong>Do not automate unknown behaviour.</strong>
+<p>Before Vida becomes materially autonomous, Get-Kind should first observe real client operations, catalogue the “bad eggs”, and distinguish normal repeatable work from exceptional work requiring human judgement.</p>
+</div>
+
+<p>Examples of early operational edge cases to expect:</p>
+<ul>
+<li>bad or contradictory ICP inputs;</li>
+<li>clients changing direction mid-campaign;</li>
+<li>weak or misleading campaign signals;</li>
+<li>mailbox/deliverability anomalies;</li>
+<li>positive replies requiring nuanced interpretation;</li>
+<li>compliance uncertainty;</li>
+<li>unexpected CRM or data-provider failures;</li>
+<li>client-specific exceptions;</li>
+<li>booking/calendar failures;</li>
+<li>suppression or dedup edge cases;</li>
+<li>campaigns that appear healthy on replies but do not book meetings;</li>
+<li>clients whose approved strategy produces poor results;</li>
+<li>unusual spend or enrichment behaviour.</li>
+</ul>
+</section>
+
+<section>
+<h2>3. Target operating model after the first 10 clients</h2>
+
+<pre>
+MILLA
+understands the client
+        ↓
+MEETING BRIEF / MISSION
+defines what good looks like
+        ↓
+FIGSY
+decides what should happen and why
+        ↓
+VIDA
+executes approved actions autonomously
+        ↓
+RESULTS
+        ↓
+FIGSY learns / reassesses
+        ↓
+VIDA adapts within policy
+        ↓
+MEETING_BOOKED
+
+YOU
+remain governance + exception authority
+</pre>
+
+<p>The target principle is:</p>
+
+<div class="callout success">
+<strong>Vida is autonomous inside approved policy. You handle exceptions, not routine operations.</strong>
+</div>
+</section>
+
+<section>
+<h2>4. Role boundaries</h2>
+<table>
+<thead><tr><th>Layer</th><th>Primary responsibility</th><th>Should not become</th></tr></thead>
+<tbody>
+<tr><td><strong>Milla</strong></td><td>Client relationship, client intent, Meeting Brief updates, summaries and approvals.</td><td>Low-level operator console.</td></tr>
+<tr><td><strong>FIGSY</strong></td><td>Reasoning, scoring, campaign choice, why-now logic, next-best action, risk/confidence.</td><td>Unbounded executor.</td></tr>
+<tr><td><strong>Vida</strong></td><td>Operational execution of approved actions, monitoring, remediation, controlled adaptation and escalation.</td><td>Chat assistant that merely reports problems to the owner.</td></tr>
+<tr><td><strong>Owner</strong></td><td>Governance, new policy, high-risk exceptions, material spend changes, new jurisdictions/channels, security/compliance decisions.</td><td>Human glue for every client workflow.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>5. Autonomy levels</h2>
+<p>Claude should verify which level the current code can safely support today and what is missing for later levels.</p>
+
+<table>
+<thead><tr><th>Level</th><th>Vida behaviour</th><th>Example</th></tr></thead>
+<tbody>
+<tr><td>Level 1 — Observe</td><td>Detects and reports.</td><td>“Campaign A is underperforming.”</td></tr>
+<tr><td>Level 2 — Recommend</td><td>Suggests action and waits for approval.</td><td>“Shift 20% of traffic to Variant B?”</td></tr>
+<tr><td>Level 3 — Act within policy</td><td>Executes bounded approved actions automatically and logs them.</td><td>Shift traffic within approved test limits; replenish lead inventory within budget.</td></tr>
+<tr><td>Level 4 — Adaptive operations</td><td>Runs routine client operations end-to-end within hard policy and escalation thresholds.</td><td>Source, test, pause, rebalance, recover, escalate and continue toward meeting target.</td></tr>
+</tbody>
+</table>
+
+<div class="callout warning">
+<strong>Target after ~10 clients: Level 3 first, not unrestricted Level 4.</strong>
+<p>Level 4 should be earned only after Level 3 actions are proven safe, predictable and reversible across real clients.</p>
+</div>
+</section>
+
+<section>
+<h2>6. Event-driven Vida</h2>
+<p>Vida should be triggered by explicit operational events rather than continuously improvising.</p>
+
+<pre>
+EVENT: lead_supply_low
+EVENT: campaign_underperforming
+EVENT: variant_outperforming
+EVENT: positive_reply
+EVENT: meeting_booked
+EVENT: mailbox_problem
+EVENT: suppression_failure
+EVENT: provider_failure
+EVENT: budget_threshold
+EVENT: new_signal_detected
+EVENT: booking_failure
+EVENT: compliance_uncertain
+EVENT: client_strategy_changed
+</pre>
+
+<p>Claude should verify whether the current architecture already has an event model, queue, job system, webhook model or audit event model that could support this safely.</p>
+</section>
+
+<section>
+<h2>7. Vida tool registry — conceptual target</h2>
+<p>Vida should receive bounded tools rather than unrestricted access.</p>
+
+<pre>
+READ / INSPECT
+- inspect_client_state
+- inspect_campaign_health
+- inspect_lead_inventory
+- inspect_mailbox_health
+- inspect_reply_queue
+- inspect_booking_state
+- inspect_budget
+
+SOURCING
+- source_leads_within_policy
+- enrich_approved_leads
+- verify_emails
+
+CAMPAIGN OPERATIONS
+- create_campaign_variant
+- adjust_variant_allocation
+- pause_campaign
+- resume_campaign
+- activate_approved_sequence
+- adjust_sequence_within_limits
+
+REPLY / BOOKING
+- stop_sequence_on_reply
+- draft_reply
+- fetch_calendar_availability
+- prepare_booking_response
+- request_human_approval
+
+CONTROL
+- flag_client
+- flag_lead
+- escalate
+- run_audit
+- generate_client_summary
+</pre>
+
+<p>This is conceptual only. Claude must not create these tools.</p>
+</section>
+
+<section>
+<h2>8. Every tool must have policy limits</h2>
+<p>Claude should verify whether current architecture can express per-tool boundaries such as:</p>
+
+<pre>
+ACTION:
+source_leads_within_policy
+
+client_id:
+Acme
+
+max_data_spend:
+£250/month
+
+allowed_geographies:
+UK, US
+
+approved_personas:
+VP Sales, CRO
+
+meeting_brief_version:
+v7
+
+compliance_policy:
+must_pass
+
+max_records_per_run:
+100
+
+audit_required:
+true
+</pre>
+
+<p>The system must be able to refuse actions outside policy without relying on Vida's language-model judgement alone.</p>
+</section>
+
+<section>
+<h2>9. Hard human-approval boundaries</h2>
+<p>Vida should stop and escalate for material changes such as:</p>
+
+<ul>
+<li>new country/jurisdiction;</li>
+<li>new outreach channel;</li>
+<li>new client proposition or materially new campaign claim;</li>
+<li>budget increase beyond approved limits;</li>
+<li>compliance uncertainty;</li>
+<li>change to permanent suppression policy;</li>
+<li>security incident;</li>
+<li>client complaint;</li>
+<li>high-risk or legally sensitive reply;</li>
+<li>system behaviour outside learned/approved patterns;</li>
+<li>mass campaign pause/restart above a defined threshold;</li>
+<li>material change to client Meeting Brief.</li>
+</ul>
+
+<p>Claude must verify whether these types of approval boundaries can be represented and enforced.</p>
+</section>
+
+<section>
+<h2>10. Reversibility requirement</h2>
+<div class="callout critical">
+<strong>Autonomous actions should be reversible wherever practical.</strong>
+</div>
+
+<p>Claude should verify whether the following can be rolled back safely:</p>
+
+<ul>
+<li>campaign allocation change;</li>
+<li>campaign pause/resume;</li>
+<li>sequence activation;</li>
+<li>lead assignment;</li>
+<li>draft generation;</li>
+<li>non-destructive configuration changes.</li>
+</ul>
+
+<p>Irreversible actions such as sending an email, charging money, deleting data or changing suppression state require stronger controls and explicit audit evidence.</p>
+</section>
+
+<section>
+<h2>11. “Bad egg” operational log</h2>
+<p>After the first 10 clients, Get-Kind should have a structured catalogue of failure modes before increasing Vida's autonomy.</p>
+
+<pre>
+edge_case_id
+client_id
+event_type
+description
+detected_at
+root_cause
+impact
+manual_action_taken
+could_have_been_automated
+safe_automatic_action
+unsafe_action
+required_policy
+required_guardrail
+reversible
+repeat_count
+resolved
+</pre>
+
+<p>Claude should verify whether current audit/event infrastructure could support this type of operational-learning log.</p>
+</section>
+
+<section>
+<h2>12. Post-10-client autonomy readiness gates</h2>
+<p>Claude should assess whether these can be measured from current data.</p>
+
+<table>
+<thead><tr><th>Readiness gate</th><th>Desired evidence before Level 3 autonomy</th></tr></thead>
+<tbody>
+<tr><td>Operational stability</td><td>Routine workflows behave consistently across the first ~10 clients.</td></tr>
+<tr><td>Edge-case catalogue</td><td>Known failure classes are documented and have deterministic handling/escalation.</td></tr>
+<tr><td>Auditability</td><td>Every autonomous action can be reconstructed from logs.</td></tr>
+<tr><td>Policy enforcement</td><td>Hard limits live in deterministic code, not only AI prompts.</td></tr>
+<tr><td>Kill-switch coverage</td><td>Client-level/global stopping mechanisms cover all material autonomous paths.</td></tr>
+<tr><td>Rollback</td><td>Reversible actions can be restored safely.</td></tr>
+<tr><td>Budget safety</td><td>Spend caps cannot be bypassed by the agent.</td></tr>
+<tr><td>Tenant isolation</td><td>One client's autonomous operation cannot affect another client.</td></tr>
+<tr><td>Suppression safety</td><td>Vida cannot bypass DNC/opt-out/employer/global permission gates.</td></tr>
+<tr><td>Confidence thresholds</td><td>Low-confidence decisions escalate rather than execute.</td></tr>
+<tr><td>Human escalation</td><td>Owner/operator is notified with enough context to decide quickly.</td></tr>
+<tr><td>Meeting attribution</td><td>Actions can be evaluated against MEETING_BOOKED.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>13. Example: autonomous campaign optimisation</h2>
+
+<pre>
+EVENT:
+campaign_underperforming
+
+        ↓
+
+FIGSY analysis:
+ICP remains strong
+Variant A booking rate weak
+Variant B booking rate materially stronger
+sample size sufficient
+no compliance issue
+
+        ↓
+
+VIDA checks policy:
+allocation shift allowed?
+max shift = 20%
+experiment still valid?
+YES
+
+        ↓
+
+VIDA:
+shift 20% traffic from A → B
+record decision
+record metrics
+schedule re-check
+
+        ↓
+
+MEETING_BOOKED remains target
+</pre>
+
+<p>Claude should verify whether current analytics, variant model, campaign controls and audit system can support this later.</p>
+</section>
+
+<section>
+<h2>14. Example: autonomous lead replenishment</h2>
+
+<pre>
+EVENT:
+lead_supply_low
+
+        ↓
+
+Current eligible inventory:
+93
+
+Required weekly inventory:
+400
+
+        ↓
+
+FIGSY reads Meeting Brief
+        ↓
+approved source strategy
+        ↓
+
+VIDA:
+search lead_pool
+→ insufficient
+→ activate approved signals
+→ resolve accounts
+→ enrich only as needed
+→ verify
+→ global permission gate
+→ replenish inventory
+
+        ↓
+
+hard budget cap applies
+all actions logged
+</pre>
+
+<p>Claude should verify whether current sourcing, spend-cap, permission and pool-first architecture can support an automated replenishment loop.</p>
+</section>
+
+<section>
+<h2>15. Example: positive reply</h2>
+
+<pre>
+EVENT:
+positive_reply
+
+        ↓
+
+VIDA:
+stop sequence immediately
+        ↓
+FIGSY classifies intent / risk
+        ↓
+
+LOW-RISK + HIGH-CONFIDENCE
+→ prepare response
+→ fetch real availability
+→ human approval if policy requires
+→ send
+
+HIGH-RISK / LOW-CONFIDENCE
+→ escalate
+→ do not auto-send
+</pre>
+
+<p>Claude should verify how much of this exists today and which steps remain human-dependent.</p>
+</section>
+
+<section>
+<h2>16. Per-client autonomous operating state</h2>
+<p>Target concept:</p>
+
+<pre>
+CLIENT: ACME
+
+Milla
+→ understands Acme
+
+Meeting Brief
+→ defines Acme mission
+
+FIGSY
+→ reasons for Acme
+
+Vida State
+→ runs Acme within Acme's policies
+
+Budget
+→ Acme-specific
+
+Mailboxes
+→ Acme-specific
+
+Calendar
+→ Acme-specific
+
+Suppression
+→ global floor + client context
+
+Audit
+→ Acme-specific actions
+</pre>
+
+<p>Claude should verify whether the existing tenant model supports this without cross-client leakage.</p>
+</section>
+
+<section>
+<h2>17. Owner experience after autonomy</h2>
+<p>The owner should receive exception-oriented operations rather than a constant task queue.</p>
+
+<pre>
+VIDA — DAILY OPERATIONS
+
+Today I:
+
+✓ sourced 624 prospects
+✓ rejected 191 on fit
+✓ rejected 47 on permission
+✓ verified 318 contacts
+✓ created 2 campaign variants
+✓ shifted traffic toward Variant B
+✓ paused 1 weak sequence
+✓ handled 31 routine replies
+✓ escalated 4 replies
+✓ booked 7 meetings
+
+Needs owner review:
+
+1 item
+
+Client X wants to begin
+outreach in a new jurisdiction.
+
+[REVIEW]
+</pre>
+
+<p>Claude should verify whether current data and audit APIs could support such a report.</p>
+</section>
+
+<section>
+<h2>18. What Vida must never be allowed to bypass</h2>
+<ul>
+<li>global kill-switch;</li>
+<li>client kill-switch;</li>
+<li>opt-out suppression;</li>
+<li>employer suppression;</li>
+<li>jurisdiction/contact-permission gates;</li>
+<li>spend caps;</li>
+<li>tenant isolation;</li>
+<li>CRM dedup where enabled;</li>
+<li>sequence hard caps;</li>
+<li>mailbox warming restrictions;</li>
+<li>security permissions;</li>
+<li>human-review requirements for defined high-risk actions.</li>
+</ul>
+
+<p>Claude must trace whether these controls sit below the AI layer in deterministic code.</p>
+</section>
+
+<section>
+<h2>19. Required verification questions</h2>
+<ol>
+<li>What does Vida actually do today?</li>
+<li>Which Vida actions are read-only vs write/actions?</li>
+<li>Which operator actions already have reusable functions/services?</li>
+<li>Is there an event bus, queue, job scheduler or equivalent?</li>
+<li>Can events be processed idempotently?</li>
+<li>Can per-client operational state be persisted?</li>
+<li>Can per-client autonomy be enabled/disabled independently?</li>
+<li>Can individual tool/actions be permissioned?</li>
+<li>Can hard per-action limits be enforced deterministically?</li>
+<li>Can Vida be prevented from bypassing spend caps?</li>
+<li>Can Vida be prevented from bypassing suppression?</li>
+<li>Can Vida be prevented from bypassing jurisdiction gates?</li>
+<li>Can Vida be prevented from bypassing tenant isolation?</li>
+<li>Can autonomous decisions be logged with input, rationale, policy version and outcome?</li>
+<li>Can campaign changes be rolled back?</li>
+<li>Can sequence changes be rolled back?</li>
+<li>Can campaign variants be created without touching core send logic?</li>
+<li>Can lead inventory thresholds be measured?</li>
+<li>Can sourcing automatically refill an approved client inventory?</li>
+<li>Can campaign performance be evaluated against MEETING_BOOKED?</li>
+<li>Can sufficient-sample thresholds be enforced before automatic optimisation?</li>
+<li>Can low-confidence FIGSY decisions be escalated?</li>
+<li>Can high-risk reply classifications force human approval?</li>
+<li>Can the owner receive a concise exception queue?</li>
+<li>Can failures automatically pause affected actions rather than continuing?</li>
+<li>Can one client's Vida state affect another client?</li>
+<li>Can a “bad egg” edge-case log be created from current audit/event data?</li>
+<li>What evidence would be available after 10 clients to decide whether Level 3 autonomy is safe?</li>
+<li>Which actions should remain permanently human-approved?</li>
+<li>Which routine actions are already safe candidates for post-10-client automation?</li>
+</ol>
+</section>
+
+<section>
+<h2>20. Autonomy capability matrix</h2>
+<table>
+<thead>
+<tr><th>Capability</th><th>Status</th><th>Evidence</th><th>Current behaviour</th><th>Needed for Level 3</th><th>Risk</th></tr>
+</thead>
+<tbody>
+<tr><td>Event-driven operations</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Per-client Vida state</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Bounded action/tool registry</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Deterministic policy limits</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Per-client autonomy enablement</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Spend-cap enforcement</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Suppression enforcement</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Global permission enforcement</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Tenant isolation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Campaign rollback</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Lead replenishment automation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Campaign optimisation automation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Positive-reply orchestration</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Confidence-based escalation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Exception queue</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Autonomous-action audit trail</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Bad-egg / edge-case log readiness</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>MEETING_BOOKED feedback loop</td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>21. Required verdict</h2>
+<p>Claude should return one of the following for post-10-client Level 3 autonomy:</p>
+
+<pre>
+READY IN PRINCIPLE
+Current architecture can support bounded autonomy
+after operational policies are learned from the first clients.
+
+READY WITH PREREQUISITES
+Architecture is suitable, but specific control/event/audit
+plumbing must exist first.
+
+NOT READY
+Autonomy would currently create unacceptable coupling,
+unbounded actions, weak auditability or safety risk.
+</pre>
+
+<p>Claude must also provide a separate verdict for each candidate autonomous action.</p>
+</section>
+
+<section>
+<h2>22. Candidate actions to rank for post-10-client automation</h2>
+<table>
+<thead><tr><th>Action</th><th>Safe candidate?</th><th>Prerequisites</th><th>Human approval?</th><th>Risk</th></tr></thead>
+<tbody>
+<tr><td>Generate client daily summary</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Detect low lead inventory</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Replenish leads within approved budget</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Create campaign variant</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Shift limited campaign allocation</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Pause poor-performing variant</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Stop sequence after reply</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Draft reply</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Fetch calendar availability</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Prepare booking reply</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Send low-risk approved-class reply</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Pause affected workflow on provider failure</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Escalate compliance uncertainty</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Increase client data budget</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Enable new jurisdiction</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Change global suppression policy</td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>23. Required final report structure</h2>
+<ol>
+<li><strong>Executive autonomy-readiness verdict</strong>.</li>
+<li><strong>What Vida does today</strong>.</li>
+<li><strong>Current autonomy level</strong>: Level 1 / 2 / 3 / 4.</li>
+<li><strong>Event-driven architecture readiness</strong>.</li>
+<li><strong>Tool/action boundary readiness</strong>.</li>
+<li><strong>Policy enforcement readiness</strong>.</li>
+<li><strong>Rollback/reversibility readiness</strong>.</li>
+<li><strong>Auditability readiness</strong>.</li>
+<li><strong>Per-client isolation readiness</strong>.</li>
+<li><strong>Bad-egg logging readiness</strong>.</li>
+<li><strong>Candidate actions ranked safest → riskiest</strong>.</li>
+<li><strong>Actions that should remain human-only</strong>.</li>
+<li><strong>Prerequisites before Level 3 autonomy</strong>.</li>
+<li><strong>Evidence to collect during first 10 clients</strong>.</li>
+<li><strong>Top 10 architectural risks</strong>.</li>
+<li><strong>Top 10 existing strengths</strong>.</li>
+<li><strong>Claims disproved by repository evidence</strong>.</li>
+<li><strong>Unverified areas</strong>.</li>
+</ol>
+</section>
+
+<section>
+<h2>24. Copy/paste Claude Code instruction</h2>
+<pre>
+READ-ONLY VIDA POST-10-CLIENT AUTONOMY VERIFICATION.
+
+Read this HTML artifact completely, then inspect the current Get-Kind repository.
+
+Goal:
+Determine whether Vida can safely evolve after approximately 10 live clients from an operator/reporting assistant into a bounded autonomous operations layer.
+
+This is intentionally POST-10-CLIENT.
+The first clients should be used to identify real operational “bad eggs” and edge cases before increasing autonomy.
+
+DO NOT:
+- edit files
+- create repository files
+- delete or rename files
+- generate or apply patches
+- run migrations
+- write to databases
+- modify environment/configuration/infrastructure
+- implement agent tools
+- implement queues
+- implement autonomy
+- commit or push
+- open pull requests
+
+Verify:
+- what Vida actually does today
+- current autonomy level
+- event/job/queue architecture
+- per-client operational state
+- tool/action boundaries
+- deterministic policy limits
+- spend-cap safety
+- suppression safety
+- jurisdiction/permission safety
+- tenant isolation
+- campaign rollback
+- lead replenishment feasibility
+- campaign optimisation feasibility
+- positive-reply orchestration
+- confidence-based escalation
+- exception queue support
+- auditability of autonomous actions
+- ability to log early-client edge cases
+- ability to measure autonomy against MEETING_BOOKED
+
+For every finding provide:
+1. VERIFIED / PARTIAL / ABSENT / UNVERIFIED / NOT APPLICABLE
+2. exact file path
+3. line number(s)
+4. function/class/schema/table
+5. current behaviour
+6. target difference
+7. autonomy risk
+8. severity
+
+Do not treat prompts, comments, docs or tests as proof of production behaviour unless executable enforcement is also identified.
+
+Do not recommend unrestricted autonomous agency.
+The desired model is:
+VIDA IS AUTONOMOUS INSIDE APPROVED POLICY.
+
+Classify current Vida as:
+LEVEL 1 — OBSERVE
+LEVEL 2 — RECOMMEND
+LEVEL 3 — ACT WITHIN POLICY
+LEVEL 4 — ADAPTIVE OPERATIONS
+
+Return:
+1. READY IN PRINCIPLE / READY WITH PREREQUISITES / NOT READY
+2. current Vida autonomy level
+3. completed autonomy capability matrix
+4. candidate autonomous actions ranked safest → riskiest
+5. actions that must remain human-approved
+6. architecture prerequisites for Level 3
+7. evidence Get-Kind should collect during the first 10 clients
+8. recommended “bad egg” categories to log from existing data
+9. audit/rollback gaps
+10. top 10 risks
+11. top 10 current strengths
+12. claims disproved by repository evidence
+13. unverified areas
+
+The commercial optimisation boundary remains MEETING_BOOKED.
+
+Do not change the code.
+</pre>
+</section>
+
+<section>
+<h2>25. Scope note</h2>
+<p class="small">This artifact is an engineering and operational-readiness specification. It deliberately postpones material Vida autonomy until real operating behaviour has been observed across the first ~10 clients. It is intended to prevent premature automation of unknown edge cases while preserving a clear path toward scalable, exception-driven operations.</p>
+</section>
+
+</main></body>
+</html>

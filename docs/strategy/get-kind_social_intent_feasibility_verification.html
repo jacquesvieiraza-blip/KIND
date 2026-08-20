@@ -1,0 +1,580 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get-Kind — Social Intent Feasibility Verification</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a30;--panel2:#18213a;--text:#eef2ff;--muted:#aeb8d4;
+  --line:#2a3658;--good:#93f5ba;--warn:#ffd782;--bad:#ff9a9a;--accent:#9fd0ff;--code:#0a0f1d
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,var(--bg),#0e1426);color:var(--text);line-height:1.55}
+main{max-width:1180px;margin:0 auto;padding:48px 24px 72px}
+header,section,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+header{padding:30px;margin-bottom:24px;background:linear-gradient(135deg,var(--panel),#10172b)}
+section{padding:24px;margin:18px 0}
+h1{margin:0 0 10px;font-size:2rem;line-height:1.15} h2{margin-top:0;font-size:1.4rem} h3{margin-bottom:8px}
+p{margin:10px 0}.meta,.small{color:var(--muted);font-size:.92rem}
+.callout{border-left:4px solid var(--accent);background:var(--panel2);padding:14px 16px;border-radius:10px;margin:14px 0}
+.success{border-left-color:var(--good)}.warning{border-left-color:var(--warn)}.critical{border-left-color:var(--bad)}
+code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+code{background:var(--code);border:1px solid #202b49;border-radius:6px;padding:2px 6px;color:#d8e4ff}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);border:1px solid #202b49;border-radius:12px;padding:16px;color:#d8e4ff;overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.95rem}
+th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}th{background:#18233f}
+ol,ul{padding-left:22px}li{margin:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{padding:18px}
+.tag{display:inline-block;border:1px solid var(--line);background:#131d36;color:var(--muted);border-radius:999px;padding:4px 9px;margin:3px 4px 3px 0;font-size:.82rem}
+</style>
+</head>
+<body><main>
+
+<header>
+<h1>Get-Kind — Social Intent Feasibility Verification</h1>
+<p class="meta">Purpose: read-only Claude Code verification of whether the current Get-Kind architecture can support a future Social Intent layer across LinkedIn, X/Twitter, Instagram/Meta and similar approved sources.</p>
+<p class="meta">Goal: detect people or companies showing relevant commercial intent, then pass them into the existing Get-Kind enrichment, compliance, sequencing and meeting-booking machinery.</p>
+</header>
+
+<section>
+<h2>1. Hard instruction to Claude Code</h2>
+<div class="callout critical">
+<strong>READ-ONLY FEASIBILITY REVIEW. DO NOT CHANGE THE CODE.</strong>
+<p>Do not edit, create, delete, rename, reformat or move repository files. Do not generate or apply patches. Do not run migrations. Do not modify configuration, environment values or infrastructure. Do not write to databases. Do not commit, push or open a pull request.</p>
+<p>Your task is to verify whether the existing architecture can support a future Social Intent capability and identify the minimum prerequisites.</p>
+</div>
+</section>
+
+<section>
+<h2>2. Product objective</h2>
+<p>Get-Kind currently relies primarily on identity/contact providers such as PeopleDataLabs, Apollo and Hunter. The proposed Social Intent layer is different: it is intended to detect <strong>who appears interested now</strong>, then resolve and enrich only the most relevant people.</p>
+
+<div class="callout success">
+<strong>Social should contribute signals, not replace identity providers.</strong>
+</div>
+
+<pre>
+SOCIAL SIGNALS
+LinkedIn / X / Instagram / future approved sources
+        ↓
+intent classification
+        ↓
+company/person resolution
+        ↓
+PDL / Apollo / lead_pool
+        ↓
+Hunter / verification
+        ↓
+global permission gate
+        ↓
+FIGSY
+        ↓
+campaign / sequence
+        ↓
+MEETING_BOOKED
+</pre>
+</section>
+
+<section>
+<h2>3. Proposed lead classes</h2>
+<table>
+<thead><tr><th>Lead class</th><th>Description</th><th>Relative intent</th></tr></thead>
+<tbody>
+<tr><td>Cold ICP</td><td>Right person/company based on static firmographic or role fit.</td><td>Low</td></tr>
+<tr><td>Signal ICP</td><td>Right person/company plus an external timing trigger such as hiring, funding, leadership change or technology shift.</td><td>Medium</td></tr>
+<tr><td>Social Intent</td><td>Person or company publicly engaging around a problem, topic, competitor or solution category relevant to the client.</td><td>High</td></tr>
+<tr><td>Inbound Social</td><td>User explicitly initiates interest through DM, lead form, enquiry or similar approved route.</td><td>Very high</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>4. Target Social Intent architecture</h2>
+
+<pre>
+               SOCIAL SOURCE CONNECTORS
+      ┌──────────────┬──────────────┬──────────────┐
+      │ LinkedIn     │ X / Twitter  │ Instagram    │
+      │ approved     │ approved API │ Meta APIs    │
+      │ surfaces     │ / streams    │ / lead forms │
+      └──────────────┴──────────────┴──────────────┘
+                         ↓
+                 RAW SOCIAL EVENTS
+                         ↓
+                 NORMALISATION LAYER
+                         ↓
+                 INTENT CLASSIFIER
+                         ↓
+      noise / weak / problem / evaluation / inbound
+                         ↓
+                  IDENTITY RESOLUTION
+                         ↓
+                COMPANY + PERSON GRAPH
+                         ↓
+                    FIGSY SCORING
+                         ↓
+                 GLOBAL PERMISSION GATE
+                         ↓
+                 CAMPAIGN / SEQUENCE
+                         ↓
+                   MEETING_BOOKED
+</pre>
+</section>
+
+<section>
+<h2>5. Source classes Claude should verify for feasibility</h2>
+
+<div class="grid">
+<div class="card">
+<h3>LinkedIn — client-owned engagement</h3>
+<span class="tag">company page comments</span>
+<span class="tag">reactions</span>
+<span class="tag">lead forms</span>
+<span class="tag">event leads</span>
+<p>Verify whether Get-Kind can accept authenticated, client-specific social events and preserve the client/page/account relationship.</p>
+</div>
+
+<div class="card">
+<h3>X / Twitter — public intent</h3>
+<span class="tag">keyword search</span>
+<span class="tag">exact phrase</span>
+<span class="tag">hashtags</span>
+<span class="tag">mentions</span>
+<span class="tag">replies</span>
+<p>Verify whether the architecture can support near-real-time or scheduled ingestion of public intent events without coupling them directly to the send path.</p>
+</div>
+
+<div class="card">
+<h3>Instagram / Meta</h3>
+<span class="tag">professional account comments</span>
+<span class="tag">mentions</span>
+<span class="tag">inbound messages</span>
+<span class="tag">lead forms</span>
+<p>Verify whether existing per-client credential and webhook patterns could support Meta-owned account data.</p>
+</div>
+</div>
+</section>
+
+<section>
+<h2>6. Intent classification target</h2>
+<p>Claude should verify whether the current AI/reply classification architecture can be reused for social events.</p>
+
+<pre>
+NOISE
+OPINION
+INDUSTRY_DISCUSSION
+WEAK_INTENT
+PROBLEM_SIGNAL
+ACTIVE_EVALUATION
+BUYING_INTENT
+INBOUND_ENQUIRY
+</pre>
+
+<p>Suggested structured fields:</p>
+
+<pre>
+social_event_id
+platform
+client_id
+source_account_id
+source_post_id
+actor_external_id
+actor_display_name
+actor_profile_reference
+event_type
+event_text
+observed_at
+intent_class
+intent_score
+intent_reason
+topic
+competitor_mention
+problem_signal
+buying_signal
+inbound
+resolved_person_id
+resolved_company_id
+jurisdiction
+permission_status
+campaign_eligible
+</pre>
+</section>
+
+<section>
+<h2>7. “Why now?” integration</h2>
+<p>The Social Intent layer should feed structured timing evidence into FIGSY.</p>
+
+<pre>
+PERSON
+Sarah Jones
+VP Sales
+Acme Ltd
+
+SOCIAL SIGNAL:
+Posted 2 days ago:
+"Building our first outbound team"
+
+COMPANY SIGNAL:
+Hiring 4 SDRs
+
+FIGSY:
+high intent / high timing confidence
+
+WHY NOW:
+New outbound team + active hiring +
+recent public discussion around the problem.
+</pre>
+
+<p>Claude should verify whether the current scoring and lead model can accept multiple timing signals and preserve their source/evidence.</p>
+</section>
+
+<section>
+<h2>8. Signal weighting</h2>
+<p>Claude is not being asked to implement numeric weights, but should verify whether the data model can support different signal strengths.</p>
+
+<table>
+<thead><tr><th>Signal example</th><th>Indicative relative strength</th></tr></thead>
+<tbody>
+<tr><td>Followed client account</td><td>Low</td></tr>
+<tr><td>Liked relevant content</td><td>Low–medium</td></tr>
+<tr><td>Repeated engagement</td><td>Medium</td></tr>
+<tr><td>Relevant comment</td><td>Medium</td></tr>
+<tr><td>Comment describes active problem</td><td>High</td></tr>
+<tr><td>Asks product/category question</td><td>High</td></tr>
+<tr><td>Asks for recommendations / alternatives</td><td>Very high</td></tr>
+<tr><td>Inbound DM</td><td>Very high</td></tr>
+<tr><td>Pricing/demo question</td><td>Very high</td></tr>
+<tr><td>Lead form submission</td><td>Very high</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>9. Identity resolution</h2>
+<p>Verify whether the current architecture can take a social actor and resolve them into an existing or new B2B person/company record without unsafe merging.</p>
+
+<pre>
+social actor
+   ↓
+known external social ID?
+   ↓
+known email / domain / company?
+   ↓
+lead_pool match?
+   ↓
+PDL / Apollo enrichment if needed
+   ↓
+Hunter verification if needed
+   ↓
+resolved person + company
+</pre>
+
+<p>Claude should inspect:</p>
+<ul>
+<li>whether external platform IDs can be stored;</li>
+<li>whether one person can carry multiple identity references;</li>
+<li>whether matching can be client-scoped;</li>
+<li>whether provenance is preserved;</li>
+<li>whether conflicting social/profile identity can be handled safely;</li>
+<li>whether unresolved actors can remain signals without being forced into a person record.</li>
+</ul>
+</section>
+
+<section>
+<h2>10. Client-owned vs public intent</h2>
+<p>The system should distinguish social events by relationship to the client.</p>
+
+<pre>
+CLIENT-OWNED ENGAGEMENT
+- comment on client's post
+- message to client's account
+- client's lead form
+- client's event registration
+
+PUBLIC INTENT
+- public post mentioning problem
+- public post asking for recommendation
+- public competitor dissatisfaction
+- public category discussion
+</pre>
+
+<p>Claude should verify whether such source context can be represented so the global compliance engine can treat the routes differently later.</p>
+</section>
+
+<section>
+<h2>11. Platform connector boundary</h2>
+<p>Claude should assess whether a generic social connector interface could fit the current architecture.</p>
+
+<pre>
+SocialIntentConnector
+  authenticate()
+  testConnection()
+  fetchEvents()
+  fetchSince(cursor)
+  verifyWebhook()
+  normaliseEvent()
+  checkpoint()
+</pre>
+
+<p>This is conceptual only. Do not implement it.</p>
+</section>
+
+<section>
+<h2>12. Background processing and webhooks</h2>
+<p>Verify whether the repository already has reusable infrastructure for:</p>
+<ul>
+<li>scheduled polling;</li>
+<li>incremental cursors/checkpoints;</li>
+<li>webhook endpoints;</li>
+<li>webhook signature verification;</li>
+<li>idempotent event handling;</li>
+<li>retries / dead-letter handling;</li>
+<li>per-client credentials;</li>
+<li>rate-limit handling;</li>
+<li>event audit logging.</li>
+</ul>
+</section>
+
+<section>
+<h2>13. Compliance and platform-safety boundary</h2>
+<div class="callout warning">
+<strong>Social discovery must not bypass the existing global permission framework.</strong>
+<p>A social event can increase priority or reveal intent, but it must not itself be treated as automatic permission to contact through another channel.</p>
+</div>
+
+<p>Verify whether future social leads can still pass through:</p>
+
+<pre>
+source provenance
+→ jurisdiction resolution
+→ recipient type
+→ channel selection
+→ contact permission
+→ suppression
+→ FIGSY
+→ campaign
+→ send
+</pre>
+
+<p>Also verify that there is no current architectural assumption that a discovered email or verified email automatically means outreach is allowed.</p>
+</section>
+
+<section>
+<h2>14. Do not build a scraping dependency</h2>
+<p>Claude should verify whether any current or planned social integration code depends on browser scraping, credential sharing, session-cookie automation or other brittle unofficial access patterns.</p>
+
+<div class="callout critical">
+<strong>Target architecture: approved APIs, authorised client connections, or other contractually permitted data sources.</strong>
+<p>If scraping-oriented code exists, report it separately as a platform-risk finding. Do not expand or implement it.</p>
+</div>
+</section>
+
+<section>
+<h2>15. Social-to-meeting attribution</h2>
+<p>The eventual value of Social Intent should be measured against the product's commercial conversion event: <code>MEETING_BOOKED</code>.</p>
+
+<pre>
+social event
+   ↓
+intent classification
+   ↓
+resolved person/company
+   ↓
+campaign
+   ↓
+sequence step
+   ↓
+positive reply
+   ↓
+MEETING_BOOKED
+</pre>
+
+<p>Claude should verify whether a future booking could be attributed back to:</p>
+<ul>
+<li>platform;</li>
+<li>social event;</li>
+<li>intent class;</li>
+<li>signal age;</li>
+<li>campaign;</li>
+<li>sequence;</li>
+<li>message variant;</li>
+<li>data/enrichment sources used.</li>
+</ul>
+</section>
+
+<section>
+<h2>16. Required feasibility questions</h2>
+<ol>
+<li>Does the current repository already contain social-platform code, environment variables, SDKs or unused integrations?</li>
+<li>Is there an existing provider/connector abstraction suitable for social sources?</li>
+<li>Can per-client OAuth credentials be stored securely?</li>
+<li>Can one client connect multiple social accounts/pages?</li>
+<li>Can authenticated webhooks be received per client?</li>
+<li>Can events be processed idempotently?</li>
+<li>Can scheduled API polling run safely?</li>
+<li>Can incremental cursors/checkpoints be stored?</li>
+<li>Can rate limits and retries be handled?</li>
+<li>Can social events be stored separately from leads?</li>
+<li>Can unresolved social actors exist without becoming lead records?</li>
+<li>Can a social event later link to a resolved person/company?</li>
+<li>Can multiple social identities link to one person?</li>
+<li>Can provenance and source URL/reference be preserved?</li>
+<li>Can event timestamps be preserved for recency scoring?</li>
+<li>Can current AI classification infrastructure classify social text?</li>
+<li>Can current scoring infrastructure ingest a social intent score?</li>
+<li>Can FIGSY consume multiple signals for one prospect?</li>
+<li>Can the system distinguish inbound social interest from public intent?</li>
+<li>Can the global permission gate receive social-source provenance?</li>
+<li>Can opt-out/suppression block outreach even when social intent is high?</li>
+<li>Can social-triggered campaigns still use the existing sequence engine?</li>
+<li>Can a booked meeting be attributed to a social event?</li>
+<li>Can source cost / API cost be attributed to social-origin meetings?</li>
+<li>Is there any current scraping dependency that would create platform risk?</li>
+<li>Can this capability be added without modifying the core send path?</li>
+</ol>
+</section>
+
+<section>
+<h2>17. Verification status definitions</h2>
+<table>
+<thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>VERIFIED</td><td>Existing executable code clearly supports the capability.</td></tr>
+<tr><td>PARTIAL</td><td>Some reusable plumbing exists but important pieces are missing.</td></tr>
+<tr><td>ABSENT</td><td>No suitable capability found.</td></tr>
+<tr><td>UNVERIFIED</td><td>Repository evidence is inconclusive.</td></tr>
+<tr><td>NOT APPLICABLE</td><td>Capability is intentionally outside current scope.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>18. Required Claude Code output</h2>
+
+<h3>A. Feasibility verdict</h3>
+<p>Return one of:</p>
+<ul>
+<li><strong>GO</strong></li>
+<li><strong>GO WITH PREREQUISITES</strong></li>
+<li><strong>DEFER / REFACTOR</strong></li>
+</ul>
+
+<h3>B. Platform readiness matrix</h3>
+<table>
+<thead><tr><th>Area</th><th>Status</th><th>Evidence</th><th>Current capability</th><th>Gap</th><th>Severity</th></tr></thead>
+<tbody>
+<tr><td>Per-client OAuth / credentials</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Webhook ingestion</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Scheduled polling</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Event normalisation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Social event storage</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Intent classification</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Identity resolution</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>FIGSY signal ingestion</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Global permission routing</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Meeting attribution</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Tenant isolation</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Platform-risk exposure</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+
+<h3>C. Existing reusable plumbing</h3>
+<p>List the specific existing files/functions/services that could support this feature.</p>
+
+<h3>D. Missing prerequisites</h3>
+<p>Rank prerequisites by dependency order, not by coding convenience.</p>
+
+<h3>E. Recommended first social source</h3>
+<p>Based on architectural fit found in the repository, recommend which source class should be integrated first. Do not implement it.</p>
+
+<h3>F. Post-launch recommendation</h3>
+<p>Return P0 / P1 / P2 / P3 for when this should be considered after launch, with reasoning based on expected meeting-booking value, effort, risk and reuse of existing plumbing.</p>
+</section>
+
+<section>
+<h2>19. Copy/paste Claude Code instruction</h2>
+
+<pre>
+READ-ONLY SOCIAL INTENT FEASIBILITY VERIFICATION.
+
+Read this HTML artifact completely, then inspect the current Get-Kind repository.
+
+Goal:
+Determine whether Get-Kind can add a future Social Intent layer using approved/authorised sources such as LinkedIn client-owned engagement and lead forms, X/Twitter public intent, Instagram/Meta professional-account engagement, inbound messages and lead forms.
+
+This is NOT an implementation task.
+
+DO NOT:
+- edit files
+- create repository files
+- delete or rename files
+- generate or apply patches
+- run migrations
+- write to databases
+- modify environment/configuration/infrastructure
+- install or wire SDKs
+- create OAuth apps
+- add webhook routes
+- commit or push
+- open pull requests
+- implement scraping
+- implement connectors
+
+Verify whether current architecture can support:
+- per-client social account authentication
+- OAuth/secret storage
+- scheduled polling
+- authenticated webhooks
+- event normalisation
+- social event storage
+- intent classification
+- signal recency
+- person/company identity resolution
+- provenance
+- FIGSY signal ingestion
+- global permission gating
+- suppression
+- campaign routing
+- meeting attribution
+- tenant isolation
+
+Explicitly search for any existing scraping/session-cookie/browser-automation dependency and report it as platform risk.
+
+Do not treat social intent as automatic permission to email, message or contact a person.
+
+For every finding provide:
+1. VERIFIED / PARTIAL / ABSENT / UNVERIFIED / NOT APPLICABLE
+2. exact file path
+3. line number(s)
+4. function/class/schema/table
+5. current behaviour
+6. difference from target
+7. impact on future Social Intent capability
+8. severity
+
+Return:
+- GO / GO WITH PREREQUISITES / DEFER-REFACTOR
+- platform readiness matrix
+- current reusable plumbing
+- missing prerequisites
+- likely architecture diagram in text
+- safest integration boundary
+- recommended first social source class
+- post-launch priority
+- top 10 risks
+- top 10 advantages
+- any claims in this artifact disproved by the repository
+- areas that remain unverified
+
+Do not change the code.
+</pre>
+</section>
+
+<section>
+<h2>20. Scope note</h2>
+<p class="small">This artifact is an engineering feasibility specification. It does not itself authorise collection, enrichment or outreach from a social signal. Any later implementation must use approved/contractually permitted access methods and must still pass Get-Kind's global compliance and suppression controls before outreach.</p>
+</section>
+
+</main></body>
+</html>

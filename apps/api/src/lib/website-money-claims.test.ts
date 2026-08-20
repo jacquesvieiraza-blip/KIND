@@ -37,7 +37,12 @@ const terms = site('terms.html')
 const pricing = site('pricing.html')
 const support = site('support.html')
 
-const PAGES: Array<[string, string]> = [['terms.html', terms], ['pricing.html', pricing]]
+// P30 (20 Aug): the homepage joins the pinned set — visible content only, because $299
+// also appears in the auth-modal script and a comment; a guard satisfiable by a comment
+// describing the sentence is not a guard.
+const homeRaw = site('index.html')
+const home = homeRaw.replace(/<!--[\s\S]*?-->/g, '').replace(/<script[\s\S]*?<\/script>/gi, '')
+const PAGES: Array<[string, string]> = [['terms.html', terms], ['pricing.html', pricing], ['index.html', home]]
 
 describe('the site no longer calls the first purchase a wallet top-up', () => {
   for (const [name, html] of PAGES) {
@@ -127,5 +132,12 @@ describe('#327 — the CSV claim now matches what a client can actually do', () 
     for (const [name, html] of PAGES) {
       expect(html, name).not.toMatch(/HubSpot (&|and) Salesforce integration/i)
     }
+  })
+})
+
+describe('P30 — the homepage states the whole offer in what a visitor can read', () => {
+  it('one visible line carries the pack price AND the included count together', () => {
+    const line = home.split('\n').find(l => l.includes(`$${PACK_PRICE_USD}`) && l.includes(`${PACK_LEADS} approved leads`))
+    expect(line, 'the $299 pack line is missing from the visible homepage').toBeTruthy()
   })
 })

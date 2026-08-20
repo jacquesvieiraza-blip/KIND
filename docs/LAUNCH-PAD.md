@@ -6,7 +6,7 @@
 > **No dates on this page.** The founder locked the outside edge — **31 Aug** — and the order below is the order we work.
 > **Dots are MIRRORED, never typed.** The dot next to each `#id` is stamped from PRODUCT-INVENTORY by `scripts/mirror-launchpad.sh`. Status of record lives **only** in the inventory. Why/history → **KIND-MASTER**. Future → **V2-TRACKER**. Money → **`docs/CASHFLOW-LAB.html`**.
 
-**Board:** 🟢106 · 🩷307 · 🟣2 · 🟡47 · 🔴177 · ⏸6 · **Σ645** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷307 · 🟣2 · 🟡47 · 🔴188 · ⏸6 · **Σ656** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -165,6 +165,7 @@
 | D3 | Railway replica re-check | — | only if ever Pro |
 | — | Subscription path hardcoded price (`stripe.ts:657`, dormant) | 🤖 | the day subscriptions return |
 | — | Dead `handleSubscribe` (#563/#431) | 🤖 | with subscriptions |
+| **#686–#696** | 🔬 **FIGSY OBSERVABILITY + MODEL ROUTING — designed, documented, NOT built (R58).** The founder gave the go on three items and reversed it the same session: *"nothing is live. just docs"*. The code written under the first go was **reverted**, not parked. Headline finding: **a rescore destroys the decision that won a meeting** (`scoring.ts:173` overwrites score/reasoning in place) — his ruling was that this outranks token metering. Full chain, sequence and the four founder decisions still open live in **V2-TRACKER**. Nothing here moves the 25th (R57). | 🤖 + 🧍 | post-launch review |
 
 ## 🔑 Legend + how anything goes live
 

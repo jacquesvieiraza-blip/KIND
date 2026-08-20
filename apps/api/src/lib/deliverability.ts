@@ -116,7 +116,52 @@ export function trackingBaseUrl(): string | null {
   return url.replace(/\/$/, '')
 }
 
-export function trackingPixelHtml(emailId: string | null): string {
+// ── HC-6 — OPEN TRACKING IS OFF. FOUNDER-RULED 20 Aug. ────────────────────────────────────
+//
+// ⛓️ **THIS CHAINS HIS OWN 29-JUN RULING, IT DOES NOT CORRECT A BUG.** On 29 Jun he
+// re-enabled this pixel (PR #814) as part of rebuilding the deliverability stack after 310
+// cold emails from the wrong domain went to spam. That was the right call then: nothing was
+// landing, and opens were the only signal available to prove mail was arriving at all.
+//
+// WHAT CHANGED. Three things, and none of them is "the old ruling was wrong":
+//
+//   ① **It tracks a NAMED person and we never told them.** `emailId` resolves through
+//      `figsy_sent_emails` to `lead_id` to a real prospect at a real company. That is
+//      individual-level behavioural data on someone who never heard of us — and the privacy
+//      policy does not mention open tracking anywhere. Under UK GDPR that processing needs a
+//      lawful basis and Art. 13/14 transparency regardless of how PECR reg. 6 reads on the
+//      mechanism. (On the mechanism: this was a plain remote image — no cookie, no device
+//      storage, no device read — so reg. 6 was arguable rather than automatic. The point is
+//      that we would have been arguing it, five days before launch, over a metric we do not
+//      sell on.)
+//
+//   ② **MEETINGS ARE THE NORTH STAR, AND THIS FED THE PICKER THAT IGNORED THAT.** The A/B
+//      winner-picker (`routes/internal.ts`) chooses the winning subject line **by open rate**
+//      and marks the test resolved IRREVERSIBLY. So the product was tuning its own copy
+//      toward opens while `MEETING_BOOKED` is the ruled outcome. Logged as F14; Prompt 27 is
+//      the real fix. With no opens the picker's `MIN_OPENS_TO_RESOLVE` guard (#392) simply
+//      never trips, so it goes INERT rather than wrong — the safer of the two states, and the
+//      reason turning the pixel off does not have to wait for Prompt 27.
+//
+//   ③ It bought us nothing we act on. Nothing downstream changes a decision on an open
+//      except that picker; the rest is dashboard numbers.
+//
+// WHAT THIS DOES NOT DO. `trackingBaseUrl()` and the `/figsy/track/open/:emailId` endpoint
+// both STAY. The endpoint must keep answering, because pixels already sitting in prospects'
+// inboxes from earlier sends will keep requesting it — removing it would turn those into
+// broken-image requests and 404s in the logs. It simply stops being fed new work.
+//
+// TO TURN IT BACK ON: delete the early return below. That is deliberately a one-line change
+// on the founder's word, exactly as re-enabling it was in June.
+export function trackingPixelHtml(_emailId: string | null): string {
+  return ''
+}
+
+/**
+ * The pixel as it was built, kept so the shape is readable rather than reconstructed from a
+ * commit if he ever rules it back on. Called by nothing (CORE-MAP rule 3 — nothing is deleted).
+ */
+export function trackingPixelHtmlDisabled(emailId: string | null): string {
   if (!emailId) return ''
   const base = trackingBaseUrl()
   if (!base) return '' // D3: no branded domain → no pixel

@@ -66,10 +66,51 @@ describe('tracking-domain guard (D3 — anti-phishing)', () => {
     delete process.env.TRACKING_URL
   })
 
-  it('accepts a branded domain and emits the pixel', () => {
+  it('⛓️ HC-6 — a branded domain resolves, and the pixel is STILL empty (open tracking is OFF)', () => {
+    // WAS: `expect(trackingPixelHtml('abc')).toContain('.../figsy/track/open/abc')`.
+    //
+    // Founder-ruled 20 Aug: no open tracking. That chains his own 29-Jun ruling which
+    // re-enabled the pixel — not a bug fix, a reversal on new grounds: it tracked a NAMED
+    // prospect with no notice anywhere in the privacy policy, and it fed the A/B picker that
+    // chooses subject lines by open rate while MEETING_BOOKED is the ruled North Star.
+    //
+    // ⚠️ BOTH HALVES ARE ASSERTED ON PURPOSE. `trackingBaseUrl()` must STILL resolve — the
+    // `/figsy/track/open/:emailId` endpoint has to keep answering for pixels already sitting
+    // in prospects' inboxes from earlier sends, and this is what proves that machinery is
+    // intact rather than ripped out. Only the emitting stopped.
     process.env.TRACKING_URL = 'https://api.get-kind.com'
-    expect(trackingBaseUrl()).toBe('https://api.get-kind.com')
-    expect(trackingPixelHtml('abc')).toContain('api.get-kind.com/figsy/track/open/abc')
+    expect(trackingBaseUrl(), 'the base URL still resolves — the endpoint stays reachable').toBe('https://api.get-kind.com')
+    expect(trackingPixelHtml('abc'), 'but NOTHING is embedded in an email any more').toBe('')
+    delete process.env.TRACKING_URL
+  })
+
+  it('emits no pixel however the environment is configured', () => {
+    // The old gate was environmental — set the right domain and the pixel came back. This is a
+    // RULING, so it must not be one env var away from reversing itself.
+    for (const url of ['https://api.get-kind.com', 'https://track.gettingkind.com', '']) {
+      if (url) process.env.TRACKING_URL = url; else delete process.env.TRACKING_URL
+      expect(trackingPixelHtml('abc'), `TRACKING_URL=${url || '(unset)'}`).toBe('')
+    }
+    delete process.env.TRACKING_URL
+  })
+
+  it('the original pixel shape is KEPT, not deleted (CORE-MAP rule 3)', async () => {
+    // So that ruling it back on is reading one function, not reconstructing it from a commit.
+    const { trackingPixelHtmlDisabled } = await import('./deliverability')
+    process.env.TRACKING_URL = 'https://api.get-kind.com'
+    expect(trackingPixelHtmlDisabled('abc')).toContain('api.get-kind.com/figsy/track/open/abc')
+    delete process.env.TRACKING_URL
+  })
+
+  it('and no cold email carries a pixel any more — the real send path, not the helper', async () => {
+    // `coldEmailHtml` is what actually goes into a prospect's inbox. Asserting on the helper
+    // alone would pass even if something else re-inserted an <img> downstream.
+    const { coldEmailHtml } = await import('./deliverability')
+    process.env.TRACKING_URL = 'https://api.get-kind.com'
+    const html = coldEmailHtml('Hello there.', 'some-email-id')
+    expect(html, 'no tracking image reaches the prospect').not.toContain('track/open')
+    expect(html, 'no invisible image of any kind').not.toContain('<img')
+    expect(html, 'and the actual message is still there').toContain('Hello there.')
     delete process.env.TRACKING_URL
   })
 })

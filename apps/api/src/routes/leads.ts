@@ -1074,7 +1074,13 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
 
     let sent = 0
     let alreadySent = 0
-    let alreadyConsented = 0
+    // ⛓️ RENAMED FROM `alreadyConsented` ON 20 Aug (#675). It counts leads skipped because
+    // `apollo_consented` is true — a provider-VERIFIED email, NOT a consent record — so the old
+    // key reported "already consented" about people who had clicked nothing. Nothing unsafe
+    // happened; the operator was simply told something untrue. `alreadyContactable` is what the
+    // condition actually means: we already hold a verified address for them, so they are
+    // reachable under legitimate interest and a consent request adds nothing.
+    let alreadyContactable = 0
     let optedOut = 0
     // ⚠️ A COUNTED MAP, NOT A SENTENCE. The single-lead doors put the mailer's refusal in
     // `res.detail`; a loop over 50 leads has no single detail to carry. So the refusals join
@@ -1083,14 +1089,13 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
     const refused: Record<string, number> = {}
 
     for (const lead of leads ?? []) {
-      // ⚠️ THIS COUNTER IS MISNAMED, AND IT IS LOGGED AS ITEM #675 RATHER THAN FIXED HERE.
-      // `apollo_consented` is a provider-VERIFIED email, NOT a consent record — so a lead
-      // skipped on this line is reported to the operator as "already consented" when nobody
-      // clicked anything. Nothing unsafe happens (no message is sent to anyone who should not
-      // get one); the defect is the sentence the operator reads afterwards. Renaming the key
-      // changes the response shape, so the founder ruled it out of this comments-only pass on
-      // 20 Aug — "leave it, log it as separate item".
-      if (lead.apollo_consented)              { alreadyConsented++; continue }
+      // ⛓️ FIXED 20 Aug (#675) — this line was flagged the same day and parked for one PR.
+      // `apollo_consented` is a provider-VERIFIED email, NOT a consent record, so the counter
+      // this feeds was called `alreadyConsented` and told the operator "30 already consented"
+      // about 30 people who had clicked nothing. Nothing unsafe ever happened — no message went
+      // to anyone who should not have had one — the defect was the sentence afterwards.
+      // The counter is now `alreadyContactable`; see its declaration above.
+      if (lead.apollo_consented)              { alreadyContactable++; continue }
       if (lead.status === 'opted_out')        { optedOut++;         continue }
       if (lead.consent_sent_at)              { alreadySent++;      continue }
       if (!lead.email)                        { alreadySent++;      continue }
@@ -1117,12 +1122,12 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
     }
 
     const refusedTotal = Object.values(refused).reduce((a, b) => a + b, 0)
-    const skipped = alreadySent + alreadyConsented + optedOut + refusedTotal
+    const skipped = alreadySent + alreadyContactable + optedOut + refusedTotal
     res.json({
       success: true,
       sent,
       skipped,
-      skippedReasons: { alreadySent, alreadyConsented, optedOut, ...refused },
+      skippedReasons: { alreadySent, alreadyContactable, optedOut, ...refused },
     })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }

@@ -208,6 +208,44 @@ describe('the client is told WHY, in one wording, shaped to the door', () => {
     expect(data.skippedReasons.do_not_contact).toBe(1)
   })
 
+  it('⛓️ #675 — no skip reason claims CONSENT for a merely-verified email', async () => {
+    // ⛓️ The key was `alreadyConsented` and it counted `lead.apollo_consented` — a provider
+    // VERIFIED email, not a consent record. Press "send consent to these 50" and the answer
+    // said "30 already consented" about 30 people who had clicked nothing. Nothing unsafe ever
+    // happened (nobody was mailed who should not have been); the defect was the sentence
+    // afterwards, which is why the founder parked it for one PR rather than letting it ride
+    // into a comments-only pass — "leave it, log it as separate item", then "lets also fix
+    // this now".
+    //
+    // Asserted on the RESPONSE rather than the source, because the response is the thing an
+    // operator actually reads.
+    mailer.refuse = null
+    const res = await call('post', '/consent/bulk', { leadIds: ['00000000-0000-4000-8000-000000000001'] })
+    const reasons = res.payload.skippedReasons as Record<string, number>
+
+    expect(reasons, 'the reason map must exist, or this proves nothing').toBeTruthy()
+    for (const key of Object.keys(reasons)) {
+      expect(key, `a skip reason still claims consent: "${key}"`).not.toMatch(/consent/i)
+    }
+    expect(Object.keys(reasons), 'and the honest name is the one shipped').toContain('alreadyContactable')
+  })
+
+  it('the renamed counter still COUNTS — a rename that broke the tally would be worse', async () => {
+    // The #617 shape. If the rename had orphaned the variable, every key would be absent and
+    // the assertion above would pass on a response that reports nothing at all.
+    LEAD.apollo_consented = true
+    try {
+      mailer.refuse = null
+      const res = await call('post', '/consent/bulk', { leadIds: ['00000000-0000-4000-8000-000000000001'] })
+      const reasons = res.payload.skippedReasons as Record<string, number>
+      expect(reasons.alreadyContactable, 'a verified-email lead lands in this bucket').toBe(1)
+      expect(res.payload.sent, 'and is not sent a consent request').toBe(0)
+      expect(res.payload.skipped, 'and is inside the skipped total').toBe(1)
+    } finally {
+      LEAD.apollo_consented = false
+    }
+  })
+
   it('the bulk maps stay EMPTY on a clean run, rather than reporting a zero for every reason', async () => {
     mailer.refuse = null
     const res = await call('post', '/bulk-consent', { lead_ids: ['00000000-0000-4000-8000-000000000001'] })

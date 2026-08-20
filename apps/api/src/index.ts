@@ -121,8 +121,33 @@ app.use(express.json())
 // boot, or deploys fail + roll back). DB/email state is reported in the BODY
 // (`status: ok|degraded`, `checks.db`) so an external monitor can alert on it.
 // Everything is wrapped + bounded by a 3s timeout so /health never hangs.
+// ── #673 — WHICH BUILD IS THIS? ────────────────────────────────────────────────────────────
+//
+// `v` below is a HAND-TYPED STRING that has read '2026-06-22-health' since June. It says which
+// version of this endpoint's *shape* was written, and nothing whatsoever about which code is
+// running — a response from the live API was byte-identical whether it served June's build or
+// this morning's.
+//
+// ⚠️ THAT COST A WRONG STATUS ONCE. On 20 Aug a website merge was reported as shipped while the
+// live site still served Google Analytics dated the 14th; it was caught only because a STATIC
+// site can be fetched and read. The API had no equivalent, so every API item flipped to 🩷
+// after a merge was flipped on trust rather than on evidence.
+//
+// `RAILWAY_GIT_COMMIT_SHA` is injected by the platform and already logged at boot (see the
+// listen callback) and already registered in `startup-check.ts` as *"Deploy identity, used in
+// health/diagnostics"* — **a description that was not yet true.** This makes it true:
+//
+//     curl -s https://<api>/health | jq -r .commit
+//     git rev-parse --short origin/main
+//
+// Same value = the deploy carries that commit. Different = it does not, whatever anyone said.
+//
+// ⚠️ 'unknown' IS NOT 'verified'. Off-platform (local, CI) the variable is absent and this
+// reports `unknown` rather than inventing a value — a build that cannot name itself must not
+// read as one that matched.
 app.get('/health', async (_req, res) => {
   const v = '2026-06-22-health'
+  const commit = process.env.RAILWAY_GIT_COMMIT_SHA?.slice(0, 7) || 'unknown'
   const email = process.env.RESEND_API_KEY ? 'configured' as const : 'missing' as const
   let db: 'ok' | 'fail' = 'fail'
 
@@ -147,6 +172,8 @@ app.get('/health', async (_req, res) => {
     status: db === 'ok' ? 'ok' : 'degraded',
     service: 'kind-api',
     v,
+    // The deployed commit — the only field here that changes when the code does.
+    commit,
     checks: { db, email },
     ts: new Date().toISOString(),
   })

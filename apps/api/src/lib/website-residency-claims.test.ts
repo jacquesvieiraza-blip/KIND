@@ -54,6 +54,12 @@ describe('① banned literals — every one was on the live site this morning', 
     ['DPA and SCCs in place', 'F13 is open; the PDL Order Form has not been found'],
     ['fully compliant with the CCPA', 'compliance is a regulator\'s conclusion, not ours'],
     ['Point-in-time restore available', 'the screenshot shows a BETA TAB, not an enabled feature'],
+    // ⛓️ ADDED 20 Aug, LATE. P13 phase 1 listed this family as suspect and the ruled ①–⑦ set did
+    // not cover it — so both instances were still serving after the pass that was supposed to end
+    // them, and Fable's end-of-day sweep is what found them. A claim about a VENDOR is no more
+    // checkable than a claim about ourselves: nobody has read PeopleDataLabs', Hunter's or
+    // Apollo's consent machinery, and F13 records that we have not even found the PDL order form.
+    ['consent infrastructure', 'a claim about vendors nobody has verified — the same class R56 bans'],
   ]
 
   for (const [needle, why] of BANNED) {

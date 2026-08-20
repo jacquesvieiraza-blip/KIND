@@ -82,6 +82,9 @@ const SECTIONS: Section[] = [
     items: [
       { href: '/compliance',    label: 'Compliance',  icon: ShieldCheck },
       { href: '/terms-library', label: 'Terms',       icon: FileText },
+      // R46 — governed documents. Listed in BOTH navs on purpose: this console still exists,
+      // and a document home discoverable from only one of two menus is half-discoverable.
+      { href: '/vida/governed-documents', label: 'Documents', icon: FileText },
     ],
   },
   {

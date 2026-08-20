@@ -66,6 +66,16 @@ const NERVOUS_SYSTEM: { href: string; label: string; icon: string }[] = [
   { href: '/vida/founder',    label: 'Founder',    icon: '👑' },
   { href: '/vida/outreach',   label: 'Outreach',   icon: '🎯' },
   { href: '/vida/compliance', label: 'Compliance', icon: '🛡' },
+  // ⚠️ THE THIRD TIME THIS EXACT BUG SHIPPED, and the two comments below record the first two.
+  // /governed-documents was built 20 Aug (R46), deployed, its migration run — and linked from
+  // NOWHERE. The founder opened this menu, could not find it, and said so: "cant find
+  // documents." A page reachable only by typing its URL is the same failure as a count nobody
+  // renders (#620) — it exists, and no screen shows it.
+  //
+  // It was also built OUTSIDE the /vida shell, which is the half-fix the /partners comment
+  // below warns about — one click and the operator is in the old console. Moved to be
+  // Vida-native before it was ever linked, so that mistake is not made a second time either.
+  { href: '/vida/governed-documents', label: 'Documents', icon: '📁' },
   // ⚠️ SAME BUG AS /vida/demo ABOVE, found by the founder 16 Aug the day the seat shipped:
   // /partners is a real, working screen — it holds the partner book AND the "New Client
   // Partner seat" card (R40) — but it lived only in the OLD AdminSidebar, which this menu

@@ -271,5 +271,40 @@ export const PARTNER_COMMISSION_PER_LEAD_USD = (LEAD_PRICE_USD * PARTNER_COMMISS
 // ⚠️ IMPORT IT. Never re-type the digit — a literal is how this drifted the first time, and
 // `website-step-claims.test.ts` now fails the build on a step-count claim that is not this
 // number.
+// ─────────────────────────────────────────────────────────────────────────────
+// THE POSTAL ADDRESS — CAN-SPAM §7704(a)(5)(A)(iii), and it has exactly ONE home
+// ─────────────────────────────────────────────────────────────────────────────
+//
+// US law requires a **valid physical postal address of the sender in every commercial
+// message**. It is the least arguable requirement in the whole of CAN-SPAM: no interpretation,
+// no exemption to weigh — the address is either in the message or it is not. The 20 Aug audit
+// found it in NO cold email: not in the body, not in a footer, not in a header.
+//
+// ⚠️ FOUNDER-SUPPLIED, NEVER INVENTED. The audit stopped and asked rather than filling in a
+// plausible address, because a WRONG address satisfies nothing and misstates who we are — it
+// is worse than the gap it would appear to close. These are his words, as given, 20 Aug 2026.
+//
+// ⚠️ HE WAS TOLD IT BECOMES PUBLIC AND CHOSE IT ANYWAY. It was put to him that this address
+// reaches every cold prospect and cannot be recalled once sent, with virtual-office and
+// registered-office alternatives named. He supplied this one. Recorded so the decision reads
+// as a decision.
+//
+// ⚠️ WHOSE ADDRESS THIS IS remains a live counsel question (CAN-SPAM's multiple-marketer
+// "sender designation" rules — our engine sends FROM the client's mailbox with replies routed
+// to us). K.I.N.D's own address is the defensible default because K.I.N.D operates the
+// sending. If counsel rules the CLIENT is the sender, this becomes a per-client field and this
+// constant becomes its fallback. Nothing else about the footer changes.
+//
+// ⚠️ INTERPOLATED, NEVER TYPED — the same rule as every price a client can read. One home, so
+// a change is one edit and cannot half-land across the paths.
+/** K.I.N.D's postal address, for the CAN-SPAM footer on every cold message. Founder-supplied 20 Aug 2026. */
+export const POSTAL_ADDRESS = '33 Townsend Road, CV37 7DE, United Kingdom'
+
+/** The legal entity named beside the address. */
+export const LEGAL_ENTITY_NAME = 'K.I.N.D Technologies Ltd'
+
+/** The one-line footer a cold message carries. Built here so text and HTML cannot diverge. */
+export const POSTAL_FOOTER_LINE = `${LEGAL_ENTITY_NAME}, ${POSTAL_ADDRESS}`
+
 /** The most email steps a sequence may contain. Founder-locked 6 Aug (R3). */
 export const MAX_SEQUENCE_STEPS = 7

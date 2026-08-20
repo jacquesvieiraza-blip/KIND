@@ -16,6 +16,7 @@
 // via Smartlead rather than SMTP.
 
 import { applyTokens } from './sequence-apply'
+import { POSTAL_FOOTER_LINE } from '@kind/shared'
 import type { SequenceStep } from './sequence-apply'
 
 /** The per-client sending mode this integration owns. Recorded on `client_inboxes.provider`. */
@@ -241,8 +242,19 @@ export function toSmartleadSequence(
   const out: SmartleadStep[] = []
   for (const s of emails) {
     const subject = applyTokens(s.subject ?? '', lead, senderCompany).trim()
-    const body = applyTokens(s.body ?? '', lead, senderCompany).trim()
-    if (!subject && !body) continue
+    const rendered = applyTokens(s.body ?? '', lead, senderCompany).trim()
+    if (!subject && !rendered) continue
+    // ── CAN-SPAM §7704(a)(5)(A)(iii) — THE POSTAL ADDRESS, ON THIS PATH TOO ─────────────────
+    //
+    // ⚠️ THIS PATH IS EASY TO FORGET AND IS THE ONE THAT MATTERS FIRST. Smartlead is the R25
+    // month-one path for every new client, and **Smartlead's engine does the sending** — our
+    // `coldEmailText`/`coldEmailHtml` never run for these messages. A footer added only to the
+    // SMTP path would be missing from every email a new client's first month produces.
+    //
+    // Rendered in HERE, from the same constant, for the same reason the copy is token-rendered
+    // before it leaves (see this function's header): what we send is what we reviewed, and
+    // their templating is never relied on for anything that has to be present.
+    const body = `${rendered}\n\n${POSTAL_FOOTER_LINE}`
     out.push({
       seq_number: out.length + 1,
       // `wait_days` is days since the PREVIOUS step, which is exactly what Smartlead's

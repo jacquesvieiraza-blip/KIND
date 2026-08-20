@@ -1,9 +1,18 @@
 import { db } from '@kind/db'
+import { sendFounderAlert } from './alerts'
 
 // #486 — the one place an operator action gets written to operator_audit_log.
 // Best-effort by design: an audit-write failure must NEVER block or reverse the
 // underlying money/state action (which has already succeeded or failed on its own
-// merits) — but it IS logged loudly so a persistent audit outage is visible.
+// merits) — founder-reaffirmed 20 Aug, and unchanged.
+//
+// ⛓️ CORRECTED 20 Aug. This line used to end: *"— but it IS logged loudly so a persistent audit
+// outage is visible."* **It was not visible.** The only trace was a `console.error`, and nobody
+// reads the logs; a persistent audit outage would have looked exactly like a working system.
+// The comment described an intention as though it were a mechanism — the third such line found
+// today (`pecr.ts`'s unknown_country count, and `startup-check.ts` claiming the deploy SHA was
+// "used in health/diagnostics" when only the boot log touched it). It is true now: a dropped
+// row raises a founder alert, throttled per action.
 //
 // operator_email is passed in by the caller, which reads it SERVER-SIDE from the
 // admin Supabase session (see resolveOperatorEmail) — it is never taken from a
@@ -97,6 +106,66 @@ export interface OperatorAuditEntry {
   detail?:       Record<string, unknown>
 }
 
+// ── A DROPPED AUDIT ROW IS NEVER SILENT ────────────────────────────────────────────────────
+//
+// This function used to `console.error` a failed insert and return. The audit log is the only
+// record of who did what to a client's account, so a failed insert meant an operator action
+// happened and **nothing anywhere says it did** — and the only trace was a log line nobody
+// reads. That is the same shape as #620 (a count nobody renders) and as the swallowed ledger
+// insert in `approve-lead.ts`, which was a double-charge waiting to be triggered.
+//
+// ⚠️ DELIBERATELY NOT FAIL-CLOSED, founder-ruled 20 Aug: *"a human operator's action should not
+// be blocked by a logging hiccup — that decision waits for Level-3."* So the action still
+// proceeds. What changes is that the failure becomes LOUD instead of invisible.
+//
+// ⚠️ AND IT IS THROTTLED, which is the half that makes it usable. Without a throttle, a database
+// outage turns every operator click into an email and a Slack message: working a queue of fifty
+// leads would send fifty alerts at the exact moment things are broken, burying the signal the
+// alert exists to raise. Same reasoning `cron-health.ts` records — *"a throttle that cannot be
+// tested without a database is a throttle nobody proves until it floods the founder's inbox."*
+
+const AUDIT_ALERT_THROTTLE_MS = 15 * 60 * 1000
+
+/** Last time we alerted about a dropped row, per action. Module-level and in-memory on purpose. */
+const lastAuditAlertAt = new Map<string, number>()
+
+/**
+ * May we alert about this action now? CLAIMS the slot when it says yes.
+ *
+ * ⚠️ IN-MEMORY IS THE HONEST CHOICE HERE, and the failure direction is why. A restart or a
+ * second replica re-arms the throttle, so the worst case is **one more alert than strictly
+ * needed** — never a suppressed one. A durable throttle would have to write to the same
+ * database that is, in this exact scenario, the thing that is broken.
+ *
+ * Pure enough to test: pass an explicit clock and store, as `auditAlertDue('x', 0, new Map())`.
+ */
+export function auditAlertDue(
+  action: string,
+  now: number = Date.now(),
+  store: Map<string, number> = lastAuditAlertAt,
+): boolean {
+  const previous = store.get(action)
+  if (previous !== undefined && now - previous < AUDIT_ALERT_THROTTLE_MS) return false
+  store.set(action, now)
+  return true
+}
+
+/** The alert itself — fire-and-forget, so raising it can never block or fail the caller. */
+function reportDroppedAudit(e: OperatorAuditEntry, reason: string): void {
+  if (!auditAlertDue(e.action)) return
+  void sendFounderAlert('audit_dropped', 'An operator action was NOT recorded', [
+    `Action: ${e.action}`,
+    `Operator: ${e.operatorEmail}`,
+    `Subject: ${e.subjectType ?? 'n/a'} ${e.subjectId ?? ''}`.trim(),
+    e.clientId ? `Client: ${e.clientId}` : '',
+    `Why the row was not written: ${reason}`,
+    '',
+    'THE ACTION ITSELF WENT THROUGH — this is the audit row, not the work. The audit log is the',
+    'only record of who did what to a client account, so this one is now missing from it.',
+    `Further alerts for "${e.action}" are held for 15 minutes so an outage cannot flood this inbox.`,
+  ]).catch(() => {})
+}
+
 export async function writeOperatorAudit(e: OperatorAuditEntry): Promise<void> {
   try {
     const { error } = await db.from('operator_audit_log').insert({
@@ -107,9 +176,17 @@ export async function writeOperatorAudit(e: OperatorAuditEntry): Promise<void> {
       subject_id:     e.subjectId ?? null,
       detail:         e.detail ?? {},
     })
-    if (error) console.error('[operator-audit] insert failed:', error.message, e.action, e.subjectId)
+    if (error) {
+      console.error('[operator-audit] insert failed:', error.message, e.action, e.subjectId)
+      reportDroppedAudit(e, error.message)
+    }
   } catch (err) {
-    console.error('[operator-audit] insert threw:', err instanceof Error ? err.message : err)
+    // ⚠️ BOTH PATHS ALERT. supabase-js RETURNS its errors, but a connection failure THROWS —
+    // and a thrown insert drops the row just as completely as a returned one. Alerting on only
+    // the returned case would leave the outage scenario, the one that matters most, silent.
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[operator-audit] insert threw:', message)
+    reportDroppedAudit(e, message)
   }
 }
 

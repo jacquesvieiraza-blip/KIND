@@ -26,6 +26,9 @@ const FOUNDER = process.env.FOUNDER_EMAIL || 'hello@get-kind.com'
 const SLACK   = process.env.SLACK_WEBHOOK_URL || ''
 
 export type AlertKind = 'payment_failed' | 'new_signup' | 'sends_stalled' | 'api_down' | 'churn_risk' | 'charge_failed' | 'source_down' | 'hot_reply' | 'support_escalation'
+  // An operator action happened and the ONLY record of it could not be written. Not fail-closed
+  // — a human's action is never blocked by a logging hiccup — but never silent either.
+  | 'audit_dropped'
 
 export async function sendFounderAlert(kind: AlertKind, subject: string, lines: string[]): Promise<void> {
   const body = lines.filter(Boolean).join('\n')

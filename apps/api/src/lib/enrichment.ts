@@ -11,6 +11,12 @@ export interface EnrichmentResult {
   domain?: string
   source: 'apollo' | 'pdl' | 'hunter' | 'clearbit' | 'claude' | 'none'
   raw?: Record<string, unknown>
+  /**
+   * Set when a provider reported a data-subject objection for this identity. When present the
+   * result is deliberately EMPTY — see `waterfallEnrich`. Callers that ignore it behave exactly
+   * as they do for any other "no email found", which is the correct outcome.
+   */
+  refusal?: ProviderRefusal
 }
 
 // A real, usable email address — NOT PDL's free-tier boolean presence flag
@@ -29,8 +35,90 @@ export interface LeadProfile {
   domain?: string | null
 }
 
+// ── UPSTREAM PRIVACY REFUSALS — PER PROVIDER, NEVER GENERIC ────────────────────────────────
+//
+// A data provider can tell us that a person has asked to stop being processed. That is not an
+// API error; it is a DATA-SUBJECT SIGNAL arriving through an error channel, and it is the only
+// route by which an upstream deletion request ever reaches this product.
+//
+// ⚠️ THE RULE THIS TABLE EXISTS TO ENFORCE: **A STATUS CODE HAS NO INHERENT PRIVACY MEANING.**
+//
+// HTTP 451 means "unavailable for legal reasons" — a copyright takedown, a geo-block and a
+// data-subject erasure request all live under it. Hunter's 451 means do-not-process ONLY
+// because Hunter's own documentation says so, in those words. A future provider's 451 might
+// mean a court order about a company, or a sanctions block, or nothing about a person at all.
+//
+// So the meaning is keyed on the PROVIDER and carries the quotation that justifies it. Adding
+// a provider here means reading THAT provider's documentation and pasting what it actually
+// says — never inheriting a mapping because the number matches. `enrichment-dsr.test.ts`
+// fails the build if an entry has no quoted basis.
+//
+// ⚠️ THIS IS AN INBOUND SIGNAL ONLY. It tells us to stop processing what we ASK FOR. It is not
+// an opt-out from our sending (that is `opt_out_blocklist`, and nothing here writes to it) and
+// it does not reach backwards into `lead_pool` rows we cached before the person objected.
+// That gap is real, is the reason `docs/compliance/UPSTREAM-DSR-PROPAGATION.md` exists, and is
+// covered by a MANUAL rule there until tooling exists.
+
+export type ProviderRefusal = {
+  provider: 'hunter'
+  /** Machine-readable class, in the `enrol_skips` shape an operator already reads. */
+  code: string
+  /** The provider's OWN words. Never a paraphrase — a paraphrase is how a mapping drifts. */
+  basis: string
+  /** Where that wording came from, so the next reader can re-check it. */
+  source: string
+}
+
+/**
+ * Hunter.io — VERIFIED 20 Aug 2026 by fetching their live API reference (HTTP 200), not from
+ * memory and not from the prompt that asked for this.
+ *
+ * Their documentation, verbatim:
+ *
+ *   451 claimed_email — "The person owning the email address asked us directly or indirectly
+ *   to stop the processing of their personal data. For this reason, you shouldn't process it
+ *   yourself in any way."
+ *
+ * ⚠️ NOTE THE LAST CLAUSE. Hunter is not merely declining to answer — they are instructing us
+ * about OUR OWN processing. That is what makes discarding the whole enrichment the correct
+ * response rather than an over-reaction.
+ *
+ * ⚠️ A SECOND HUNTER SIGNAL EXISTS AND IS DELIBERATELY NOT HANDLED. Their `400 invalid_domain`
+ * reads: "The domain name is invalid, has no MX record **or its owner has asked us to stop the
+ * processing of the associated data**" — a domain-level suppression request conflated with an
+ * ordinary bad domain, in one code. The two are indistinguishable from outside, so mapping it
+ * would suppress every typo'd domain as a legal refusal. Founder-ruled 20 Aug: document only.
+ * It is written up in UPSTREAM-DSR-PROPAGATION.md rather than left as folklore.
+ */
+export const HUNTER_CLAIMED_EMAIL: ProviderRefusal = {
+  provider: 'hunter',
+  code: 'provider_refusal:hunter:claimed_email',
+  basis:
+    'The person owning the email address asked us directly or indirectly to stop the ' +
+    "processing of their personal data. For this reason, you shouldn't process it yourself in any way.",
+  source: 'hunter.io/api-documentation/v2 — 451 claimed_email (fetched live 20 Aug 2026)',
+}
+
+/**
+ * Does THIS provider's response carry a documented privacy refusal?
+ *
+ * Keyed on the provider by construction: there is no `if (status === 451)` anywhere outside a
+ * provider's own branch, so a new provider's 451 cannot inherit Hunter's meaning by accident.
+ */
+export function hunterRefusal(status: number, body: unknown): ProviderRefusal | null {
+  if (status !== 451) return null
+  // Hunter returns the class in `errors[].id`. Accept the 451 alone as sufficient — their
+  // top-level 451 is documented as "We have been requested not to process personal
+  // identifiable information linked to this person", so both forms are the same signal — but
+  // read the id when present so the log says which one arrived.
+  const id = (body as { errors?: { id?: string }[] } | null)?.errors?.[0]?.id
+  return id && id !== 'claimed_email'
+    ? { ...HUNTER_CLAIMED_EMAIL, code: `provider_refusal:hunter:${id}` }
+    : HUNTER_CLAIMED_EMAIL
+}
+
 // Hunter.io: find email by name + domain
-async function tryHunter(lead: LeadProfile): Promise<EnrichmentResult | null> {
+async function tryHunter(lead: LeadProfile): Promise<EnrichmentResult | ProviderRefusal | null> {
   const key = process.env.HUNTER_API_KEY
   if (!key) return null
 
@@ -45,7 +133,18 @@ async function tryHunter(lead: LeadProfile): Promise<EnrichmentResult | null> {
     url.searchParams.set('api_key', key)
 
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) })
-    if (!res.ok) return null
+    if (!res.ok) {
+      // ⚠️ A 451 IS NOT AN ERROR. It is a person's erasure request arriving through an error
+      // channel, and this line used to flatten it into the same `null` as a 404, a 429 and a
+      // 500 — so the one response in this whole file that carries a legal instruction was the
+      // one we discarded most completely.
+      //
+      // Read only on THIS branch, from Hunter's own documented meaning. No other provider's
+      // non-OK path consults it (see the table above).
+      const refusal = hunterRefusal(res.status, await res.json().catch(() => null))
+      if (refusal) return refusal
+      return null
+    }
     const json = await res.json() as { data?: { email?: string; score?: number } }
     const email = json.data?.email
     if (!email || (json.data?.score ?? 0) < 50) return null
@@ -166,7 +265,41 @@ export async function waterfallEnrich(lead: LeadProfile): Promise<EnrichmentResu
     const domain = await resolveDomain(lead.domain ?? merged.domain, lead.company)
     if (domain) {
       merged.domain = merged.domain ?? domain
-      mergeInto(merged, await tryHunter({ ...lead, domain }))
+      const hunter = await tryHunter({ ...lead, domain })
+
+      // ── THE UPSTREAM ERASURE SIGNAL, AND WHY IT DISCARDS EVERYTHING ──────────────────────
+      //
+      // Hunter has told us this person asked to stop being processed, and their documentation
+      // says in terms: "you shouldn't process it yourself in any way."
+      //
+      // ⚠️ DISCARDING ONLY HUNTER'S CONTRIBUTION WOULD MISS THE POINT ENTIRELY, and it is the
+      // obvious wrong fix. **PDL runs at step 1, BEFORE this.** So by the time the refusal
+      // arrives we are already holding a PDL profile — job title, company, domain, sometimes
+      // an address — for the very person we have just been told not to process. Returning
+      // that, minus Hunter's email, would be honouring the letter of the refusal while
+      // handing back a dossier on the same human.
+      //
+      // So the whole merged result is dropped and `{ source: 'none' }` is returned. Every
+      // caller already handles "no email" as an ordinary outcome — `approve-lead.ts` reverses
+      // the $4 and returns `no_email`, which is the correct commercial answer too: the client
+      // is not charged for a lead nobody may contact.
+      //
+      // Founder-ruled 20 Aug: *"1. discard all."*
+      //
+      // ⚠️ WHAT THIS DOES NOT DO, stated so nobody believes more is covered than is. It does
+      // NOT write to `opt_out_blocklist` (that is OUR sending suppression, a different
+      // register with a different meaning), and it does NOT reach backwards into `lead_pool`
+      // rows cached before the person objected. Both gaps are real; both are documented with
+      // an interim MANUAL rule in `docs/compliance/UPSTREAM-DSR-PROPAGATION.md`.
+      if (hunter && 'provider' in hunter) {
+        console.warn(
+          `[enrichment] ${hunter.code} — ${lead.first_name} ${lead.last_name} @ ${domain}: ` +
+          `upstream provider reports a data-subject objection. Enrichment DISCARDED, nothing persisted. ` +
+          `Basis (${hunter.source}): ${hunter.basis}`,
+        )
+        return { source: 'none', refusal: hunter }
+      }
+      mergeInto(merged, hunter)
     }
   }
 
@@ -202,11 +335,23 @@ export async function revealTrace(lead: LeadProfile): Promise<Record<string, unk
     url.searchParams.set('api_key', key)
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) })
     const j = await res.json().catch(() => null) as { data?: { email?: string; score?: number }; errors?: unknown } | null
+    // NAME the refusal here too. This is the admin diagnostic, and an operator reading a bare
+    // `status: 451` alongside a `502` and a `429` has no way to know that ONE of those three is
+    // a person's erasure request rather than a flaky upstream. The trace itself is NOT stripped
+    // — hiding data from the tool whose only job is to explain what happened would make it
+    // useless — but the label makes the meaning unmissable, and it says the enrichment path
+    // discards this identity so nobody "retries" it as a transient failure.
+    const refusal = hunterRefusal(res.status, j)
     t.hunter = {
       status: res.status,
       email:  j?.data?.email ?? null,
       score:  j?.data?.score ?? null,
       error:  res.ok ? null : JSON.stringify(j?.errors ?? j ?? '').slice(0, 200),
+      ...(refusal ? {
+        privacy_refusal: refusal.code,
+        meaning: `${refusal.basis} (${refusal.source})`,
+        note: 'waterfallEnrich DISCARDS the whole enrichment for this identity — do not retry, this is not a transient failure.',
+      } : {}),
     }
   } catch (e) {
     t.hunter = { error: e instanceof Error ? e.message : 'hunter request failed' }

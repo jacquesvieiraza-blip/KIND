@@ -60,6 +60,12 @@ describe('① banned literals — every one was on the live site this morning', 
     // checkable than a claim about ourselves: nobody has read PeopleDataLabs', Hunter's or
     // Apollo's consent machinery, and F13 records that we have not even found the PDL order form.
     ['consent infrastructure', 'a claim about vendors nobody has verified — the same class R56 bans'],
+    // ⛓️ P30 (20 Aug). The OLD homepage served "Every lead is GDPR & POPIA consented before
+    // anyone is ever contacted" — the opposite of privacy.html's legitimate-interest basis
+    // (#676/#677). It survived the P13 sweep because the banned literal said "compliant" and
+    // this said "consented" — one noun apart. Both spellings banned, both directions.
+    ['POPIA consented', 'consent was never the basis — legitimate interest (privacy.html, #676/#677)'],
+    ['GDPR consented', 'same claim, other spelling'],
   ]
 
   for (const [needle, why] of BANNED) {

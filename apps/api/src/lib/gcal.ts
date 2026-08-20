@@ -1,6 +1,10 @@
 // Google Calendar OAuth2 + API integration — loaded dynamically to avoid
 // pulling googleapis into the build graph (it triggers native apt deps on Railway).
-// Re-add googleapis to package.json when Google Calendar goes live.
+//
+// ⛓️ CORRECTED 20 Aug. This line used to read *"Re-add googleapis to package.json when Google
+// Calendar goes live."* It is already there (`apps/api/package.json` → `googleapis ^173.0.0`),
+// and had been for some time. The dynamic `require` below is still deliberate — it keeps the
+// package off the BUILD graph — but the dependency itself is not missing.
 
 import { createHash } from 'crypto'
 
@@ -9,9 +13,37 @@ const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ''
 const REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI  ??
   (process.env.PORTAL_URL ? `${process.env.PORTAL_URL}/calendar/callback` : 'http://localhost:3000/calendar/callback')
 
+// ── WHAT WE ASK A CLIENT FOR, AND WHY EACH ONE ─────────────────────────────────────────────
+//
+// ⛓️ NARROWED 20 Aug. This list used to carry `calendar.readonly`, which grants read access to
+// the CONTENT of every event on the client's calendar — titles, attendees, notes. We never read
+// an event body. It was requested for exactly one line: `calendars.get` in `getPrimaryTimeZone`
+// below, to learn which timezone to draw business hours in.
+//
+// ⚠️ AND DROPPING IT OUTRIGHT WOULD HAVE FAILED SILENTLY, which is why the answer was to narrow
+// rather than delete. `getPrimaryTimeZone` swallows its error and returns 'UTC', so a missing
+// scope produces no error anywhere — just business hours computed in the wrong zone. For a US
+// Pacific client, 9–17 UTC is 02:00–10:00 local: the exact "3am slots" failure the comment on
+// `zonedWeekdayHour` warns about, arriving quietly.
+//
+// Every scope below is load-bearing, checked against Google's own per-method scope declarations
+// (`googleapis` typings, v173) and pinned by `gcal-scopes.test.ts`:
+//
+//   calendar.events             → events.insert (create the meeting) + events.get (409 retry)
+//   calendar.freebusy           → freebusy.query ×2 (busy TIMES only, never event content)
+//   calendar.calendars.readonly → calendars.get, for the timezone and nothing else
+//   userinfo.email              → the client's own address, used as an ATTENDEE on the invite;
+//                                 without it we cannot invite the client to their own meeting
+//
+// ⚠️ EXISTING CONNECTIONS ARE UNAFFECTED AND NOTHING BREAKS. A stored token keeps the scopes it
+// was issued with, and the old `calendar.readonly` already covers both `calendars.get` and
+// `freebusy.query` — so previously-connected clients keep working unchanged. Re-consent is what
+// SHRINKS their grant; it is not needed to keep them running. The reduction applies to every
+// client who connects or reconnects from here.
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/calendar.freebusy',
+  'https://www.googleapis.com/auth/calendar.calendars.readonly',
   'https://www.googleapis.com/auth/userinfo.email',
 ]
 

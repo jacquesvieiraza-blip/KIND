@@ -52,7 +52,25 @@ const REQUIRED_VARS: VarSpec[] = [
   // Email — Resend is THE send transport (sequences, FIGSY cold, digests, alerts)
   { key: 'RESEND_API_KEY',            level: 'critical',  description: 'Resend — all outbound email; unset = FIGSY records "sent" but sends NOTHING' },
   { key: 'RESEND_WEBHOOK_SECRET',     level: 'important', description: 'Resend inbound webhook — unset = client replies rejected (no reply capture)' },
-  { key: 'FIGSY_COLD_FROM',           level: 'important', description: 'FIGSY cold From — unset = cold mail sends from hello@get-kind.com and POISONS the domain' },
+  // HC-4 (20 Aug) — raised important → critical, and it is what turns S5 from a sentence into
+  // something enforced.
+  //
+  // S5 (founder-locked 26 Jul): **"Never cold-email from the primary domain."** Its enforcement
+  // column in PRODUCT-RULES read `—` for 25 days, and `deliverability.ts:19` is
+  // `process.env.FIGSY_COLD_FROM || 'K.I.N.D <hello@get-kind.com>'` — so unset, every cold send
+  // silently falls back to the transactional domain and the only symptom is a `console.warn`
+  // nobody reads. At `important` that fallback is reachable in production by forgetting one
+  // variable; at `critical` the API refuses to boot and says why.
+  //
+  // ⚠️ THE CONSENT EMAIL IS WHY THIS MOVED NOW. It goes to a cold prospect and sent from
+  // `FROM` — the transactional identity — so a spam complaint from a stranger who never asked
+  // to hear from us landed on the reputation of our invoices and password resets.
+  //
+  // Verified set in Railway before this was raised (founder screenshot, 20 Aug):
+  // `K.I.N.D <figsy@gettingkind.com>` — a separate domain from the primary, so promoting it
+  // locks nobody out. Raising a var to critical without checking its live value first is how
+  // a deploy dies at boot.
+  { key: 'FIGSY_COLD_FROM',           level: 'critical',  description: 'S5 — the cold/consent From. Unset, every cold send falls back to hello@get-kind.com and poisons the domain every invoice and password reset leaves from' },
 
   // Lead engine — we run PDL + Hunter. Apollo is optional/BYO, NOT used day-to-day.
   { key: 'PDL_API_KEY',               level: 'important', description: 'People Data Labs — PRIMARY lead sourcing; unset (with no Apollo) = zero leads' },

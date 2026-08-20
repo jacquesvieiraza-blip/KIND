@@ -1,4 +1,5 @@
 import crypto from 'crypto'
+import { POSTAL_FOOTER_LINE } from '@kind/shared'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DELIVERABILITY (Mon 8 Jun — D1–D4)
@@ -237,12 +238,50 @@ export function unsubscribeFooterText(email: string): string {
 // what Gmail's own compose produces. Compliance is still met by the one-click
 // List-Unsubscribe header (unsubscribeHeaders) + the "Reply STOP to opt out." line the
 // FIGSY prompt always puts in the body.
-// Open tracking re-enabled 29 Jun (founder decision). Pixel is included when emailId
-// is passed and TRACKING_URL is set. Near-plain HTML is preserved for deliverability.
+// ⛓️ CORRECTED 20 Aug — the line here read "Open tracking re-enabled 29 Jun (founder
+// decision). Pixel is included when emailId is passed and TRACKING_URL is set." That became
+// FALSE the same morning, when HC-6 turned the pixel off, and I left it standing: a comment
+// describing the opposite of the code beneath it, written by the person who changed the code.
+// Caught by the CAN-SPAM audit reading this file end to end hours later. Near-plain HTML is
+// preserved for deliverability; the footer below is the one deliberate addition (CAN-SPAM).
+// ── THE CAN-SPAM POSTAL FOOTER ────────────────────────────────────────────────────────────
+//
+// **§7704(a)(5)(A)(iii): a valid physical postal address of the sender, in every commercial
+// message.** The 20 Aug audit found it in NO cold email — not the body, not a footer, not a
+// header. It is the least arguable requirement in the statute: nothing to interpret, no
+// exemption to weigh, the address is either there or it is not.
+//
+// ⚠️ ONE CONSTANT, TWO BODIES. `text` and `html` are separate arguments to `sendAs`, and the
+// text part is what a plain-text client actually renders — so a footer added to only the HTML
+// would be missing for exactly the readers most likely to be running a strict client. Both are
+// built here from `POSTAL_FOOTER_LINE` so they cannot drift apart, and both are asserted.
+//
+// ⚠️ DELIBERATELY PLAIN, AND THAT IS NOT LAZINESS. `coldEmailHtml`'s header records that the
+// pixel, the banner, the visible unsubscribe footer and the templated shell were all stripped
+// so cold mail lands in Primary rather than Promotions. A styled compliance block would undo
+// that work. This is one small grey line — the minimum the law asks for and the least
+// promotional shape it can take.
+//
+// The separator is a blank line then the entity and address. Nothing else: no "unsubscribe"
+// link (the one-click header carries that, deliberately — see the note above), no logo.
+
+/** The plain-text body a cold message actually sends, footer included. */
+export function coldEmailText(body: string): string {
+  return `${(body || '').trimEnd()}\n\n${POSTAL_FOOTER_LINE}`
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
 export function coldEmailHtml(body: string, emailId: string | null = null): string {
   const lines = (body || '').split('\n').map(line => (line.length ? line : '')).join('<br>')
   const pixel = emailId ? trackingPixelHtml(emailId) : ''
-  return `<div dir="ltr" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">${lines}${pixel}</div>`
+  // Escaped: the address is a founder-supplied string that ends up inside markup, and an
+  // ampersand in a future address would otherwise produce broken HTML in a real inbox.
+  const footer =
+    `<div style="margin-top:16px;color:#888;font-size:12px">${escapeHtml(POSTAL_FOOTER_LINE)}</div>`
+  return `<div dir="ltr" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222;line-height:1.5">${lines}${pixel}${footer}</div>`
 }
 
 // ── #622 THE CAP LADDER, AS NAMED STEPS ───────────────────────────────────────────────────

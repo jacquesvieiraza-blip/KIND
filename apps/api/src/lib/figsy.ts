@@ -19,6 +19,7 @@ import {
   COLD_REPLY_TO,
   unsubscribeHeaders,
   coldEmailHtml,
+  coldEmailText,
   warmupRampCap,
 } from './deliverability'
 
@@ -875,7 +876,10 @@ export async function sendSequenceEmail(
         replyTo:  REPLY_TO,
         subject,
         headers:  unsubscribeHeaders(lead.email),
-        text:     body,
+        // CAN-SPAM §7704(a)(5)(A)(iii) — the postal address rides on BOTH parts. `text` is what
+        // a plain-text client renders, so a footer in the HTML alone would be missing for
+        // exactly the readers most likely to be running a strict client.
+        text:     coldEmailText(body),
         html:     coldEmailHtml(body, emailId),
       })
     } catch (thrown) {
@@ -1470,7 +1474,9 @@ export async function sendDay1OutreachBatch(
         subject: draft.subject,
         // Personal 1:1 cold email (Primary, not Promotions) — header-only unsubscribe.
         headers: unsubscribeHeaders(lead.email),
-        text: draft.body,
+        // CAN-SPAM §7704(a)(5)(A)(iii) — same footer, same constant. This is the FIRST email a
+        // prospect ever receives from us, so it is the one that least of all may be missing it.
+        text: coldEmailText(draft.body),
         html: coldEmailHtml(draft.body),
       })
 

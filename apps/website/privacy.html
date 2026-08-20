@@ -165,7 +165,7 @@
         <div class="mm-head">Company</div>
         <div class="mm-grid c2"><a href="about.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0-3.5 3-5.5 7-5.5s7 2 7 5.5"/></svg></span><span><span class="mm-tt">About K.I.N.D </span><span class="mm-ss">Why we built FIGSY</span></span></a>
           <a href="nexus.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/></svg></span><span><span class="mm-tt">The Family </span><span class="mm-ss">FIGSY, Milla &amp; Vida</span></span></a>
-          <a href="trust.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></span><span><span class="mm-tt">Trust &amp; Security </span><span class="mm-ss">GDPR &amp; POPIA compliant</span></span></a>
+          <a href="trust.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/></svg></span><span><span class="mm-tt">Trust &amp; Security </span><span class="mm-ss">Privacy controls built in</span></span></a>
           <a href="status.html" class="mm-link"><span class="mm-ic "><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-6 4 12 2.5-6h5"/></svg></span><span><span class="mm-tt">System Status </span><span class="mm-ss">Live uptime</span></span></a></div>
       </div>
     </div>
@@ -245,14 +245,14 @@
 
   <div class="section" id="hosting">
     <h2>4. Data hosting &amp; transfers</h2>
-    <p><strong>Database:</strong> All client account data and lead data is stored on <strong>Supabase</strong>, hosted in the <strong>af-south-1 region (Cape Town, South Africa)</strong>. This hosting is GDPR-, UK GDPR- and POPIA-compliant. US and international clients can request dedicated US data residency (see below).</p>
-    <p><strong>US &amp; international clients:</strong> All client data is currently hosted in Cape Town (af-south-1). The United States imposes no data-residency requirement on B2B SaaS, and this hosting is fully compliant with the CCPA. Enterprise clients who require their data to be physically stored within the United States can request US data residency &mdash; contact <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> and we will provision a dedicated US-region instance.</p>
+    <p><strong>Database:</strong> All client account data and lead data is stored on <strong>Supabase</strong> in the <strong>eu-west-1 region (Dublin, Ireland)</strong>, and processed by application servers in <strong>Railway's US West region</strong>. Our database provider is SOC 2 Type II audited (see below).</p>
+    <p><strong>US &amp; international clients:</strong> Client data is stored in the European Union (Dublin, eu-west-1) and processed by application servers in the United States (Railway, US West). The United States imposes no data-residency requirement on B2B SaaS.</p>
     <p><strong>Application hosting:</strong> The K.I.N.D platform (Portal, API, Admin) runs on <strong>Railway</strong>, which operates on SOC 2-audited infrastructure. No personal data is stored in Railway environment variables — only configuration keys.</p>
     <p><strong>Email delivery:</strong> Outbound emails are sent via <strong>Resend</strong>, which processes recipient email addresses to deliver messages. Resend is GDPR-compliant.</p>
     <p><strong>Lead enrichment:</strong> Lead data is sourced from licensed B2B data providers — <strong>PeopleDataLabs</strong> (primary sourcing), <strong>Hunter</strong> (work-email verification) and <strong>Apollo.io</strong> (K.I.N.D’s own prospecting; applied to a client’s leads only where that client supplies their own Apollo key). Each maintains its own consent infrastructure for B2B contact data. We process that data under lawful business purpose.</p>
     <p><strong>AI processing:</strong> Natural language generation for email sequences and analysis uses <strong>Anthropic's Claude API</strong> (US-based). We do not include personal data (names, emails) in AI prompts.</p>
     <p><strong>Payments:</strong> Payment card data is processed by <strong>Stripe</strong> (PCI DSS Level 1 certified). K.I.N.D never stores card numbers.</p>
-    <p><strong>International transfers:</strong> Where data is transferred outside South Africa or the UK, we apply appropriate safeguards — Standard Contractual Clauses for GDPR transfers, and POPIA section 72 conditions for cross-border transfers from South Africa.</p>
+    <p><strong>International transfers:</strong> Where data crosses borders we apply appropriate safeguards.</p>
   </div>
 
   <div class="section" id="retention">
@@ -306,12 +306,12 @@
     <h2>8. Third-party sub-processors</h2>
     <p>K.I.N.D uses the following sub-processors to deliver the service. Each has been assessed for GDPR/POPIA compliance and a Data Processing Agreement is in place where required.</p>
     <ul>
-      <li><strong>Supabase</strong> — database hosting (Cape Town, af-south-1) — SOC 2 Type II, GDPR compliant</li>
+      <li><strong>Supabase</strong> — database hosting (Dublin, eu-west-1) — SOC 2 Type II</li>
       <li><strong>Railway</strong> — application hosting — SOC 2-audited infrastructure</li>
       <li><strong>Stripe</strong> — payment processing — PCI DSS Level 1 certified</li>
       <li><strong>Resend</strong> — email delivery — GDPR compliant</li>
-      <li><strong>PeopleDataLabs</strong> — B2B contact data, primary lead sourcing — GDPR compliant; DPA and SCCs in place</li>
-      <li><strong>Hunter</strong> — work-email verification — GDPR compliant; DPA and SCCs in place</li>
+      <li><strong>PeopleDataLabs</strong> — B2B contact data, primary lead sourcing</li>
+      <li><strong>Hunter</strong> — work-email verification</li>
       <li><strong>Apollo.io</strong> — B2B contact data. Used for K.I.N.D’s own prospecting; applied to a client’s leads only where that client supplies their own Apollo key — GDPR compliant, US-based</li>
       <li><strong>Anthropic</strong> — AI language model (no PII in prompts) — enterprise data agreements</li>
     </ul>

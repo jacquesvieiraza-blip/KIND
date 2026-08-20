@@ -41,6 +41,7 @@ export default function GovernedDocumentsPage() {
   const [rows, setRows] = useState<DocRow[]>([])
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadDetail, setLoadDetail] = useState<string | null>(null)
 
   const [open, setOpen] = useState<{ current: FullDoc; chain: FullDoc[] } | null>(null)
   const [composing, setComposing] = useState<null | { supersedes: DocRow | null }>(null)
@@ -58,10 +59,16 @@ export default function GovernedDocumentsPage() {
       const j = await fetch('/api/proxy/operator/governed-documents').then(r => r.json())
       // ⚠️ A FAILED READ MUST NOT RENDER AS AN EMPTY LIBRARY. "There are no governed documents"
       // and "we could not ask" are opposite facts, and only one of them is calm.
-      if (!j.success) throw new Error(j.error || 'Could not read the governed documents')
+      //
+      // ⚠️ AND THE FALLBACK MUST NOT WEAR THE SERVER'S WORDS. It used to read "Could not read
+      // the governed documents" — the SAME sentence the API returns — so the screen looked
+      // identical whether the API had answered with a reason or never answered at all. That
+      // ambiguity cost four round-trips on the first real walk of this page.
+      if (!j.success) { setLoadDetail(j.detail ?? null); throw new Error(j.error || 'The API answered, but without a reason.') }
       setRows(j.data ?? [])
+      setLoadDetail(null)
     } catch (e) {
-      setLoadError(e instanceof Error ? e.message : 'Could not read the governed documents')
+      setLoadError(e instanceof Error ? e.message : 'Could not reach the API at all — it did not answer.')
     }
     setLoading(false)
   }
@@ -131,7 +138,13 @@ export default function GovernedDocumentsPage() {
 
       {loadError && (
         <div className="mt-6 p-4 rounded border border-red-200 bg-red-50 text-sm text-red-800">
-          {loadError} — nothing was changed. <button onClick={() => void load()} className="underline">Try again</button>
+          <span className="block">{loadError}</span>
+          <span className="block mt-1 text-red-700/80">Nothing was changed.{' '}
+            <button onClick={() => void load()} className="underline">Try again</button>
+          </span>
+          {/* The raw database message, kept for the operator. This console is internal (R36) and
+              the person reading it is the person who can fix it. */}
+          {loadDetail && <span className="block mt-2 font-mono text-xs text-red-700/70 break-all">{loadDetail}</span>}
         </div>
       )}
 

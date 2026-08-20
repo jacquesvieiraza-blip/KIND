@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get-Kind — Data Sourcing & Signal Engine Verification Artifact</title>
+<style>
+:root{--bg:#0b1020;--panel:#121a30;--panel2:#18213a;--text:#eef2ff;--muted:#aeb8d4;--line:#2a3658;--ok:#93f5ba;--warn:#ffd782;--bad:#ff9a9a;--info:#9fd0ff;--code:#0a0f1d}
+*{box-sizing:border-box} body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,var(--bg),#0e1426);color:var(--text);line-height:1.55}
+main{max-width:1180px;margin:0 auto;padding:48px 24px 72px} header,section,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px} header{padding:28px;margin-bottom:24px;background:linear-gradient(135deg,var(--panel),#10172b)}
+section{padding:22px;margin:18px 0}.card{padding:18px;margin:0} h1{margin:0 0 8px;font-size:2rem;line-height:1.15} h2{margin-top:0;font-size:1.35rem} h3{margin-bottom:8px}
+.meta,.small{color:var(--muted);font-size:.92rem}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin:16px 0 24px}
+.callout{border-left:4px solid var(--info);background:var(--panel2);padding:14px 16px;border-radius:10px;margin:14px 0}.critical{border-left-color:var(--bad)}.warning{border-left-color:var(--warn)}.success{border-left-color:var(--ok)}
+code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}code{background:var(--code);border:1px solid #202b49;border-radius:6px;padding:2px 6px;color:#d8e4ff}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);border:1px solid #202b49;border-radius:12px;padding:16px;color:#d8e4ff;overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.94rem}th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}th{background:#18233f}
+.tag{display:inline-block;border:1px solid var(--line);background:#131d36;color:var(--muted);border-radius:999px;padding:4px 9px;margin:3px 4px 3px 0;font-size:.82rem}
+.ok{color:var(--ok);font-weight:700}.warn{color:var(--warn);font-weight:700}.bad{color:var(--bad);font-weight:700}ul,ol{padding-left:22px}li{margin:6px 0}
+</style>
+</head>
+<body><main>
+
+<header>
+<h1>Get-Kind — Data Sourcing & Signal Engine Verification Artifact</h1>
+<p class="meta">Purpose: read-only Claude Code verification of the current repository against a proposed stronger global lead-sourcing and signal architecture.</p>
+<p class="meta">Reference implementation record supplied by Get-Kind: commit <code>31ac17cb</code>, reviewed 17 August 2026.</p>
+</header>
+
+<section>
+<h2>1. Hard instruction to Claude Code</h2>
+<div class="callout critical">
+<strong>READ-ONLY AUDIT. DO NOT CHANGE THE CODE.</strong>
+<p>Do not edit, create, delete, rename, reformat or move files. Do not generate patches. Do not run migrations. Do not change configuration, infrastructure or environment values. Do not write to a database. Do not commit, push or open a pull request.</p>
+<p>Your task is to inspect the repository and report what exists today compared with this target architecture.</p>
+</div>
+</section>
+
+<section>
+<h2>2. Current behaviour to independently verify</h2>
+<p>These statements come from the supplied code record. Claude must verify them independently in the repository rather than assuming they are correct.</p>
+<table>
+<thead><tr><th>Area</th><th>Current stated behaviour</th><th>Known reference</th></tr></thead>
+<tbody>
+<tr><td>Lead sourcing</td><td>Internal <code>lead_pool</code> is served first at $0. Remainder goes to PeopleDataLabs behind a monthly spend cap. Hunter verifies the work email. Purchased records are written back into <code>lead_pool</code> with cost.</td><td><code>routes/icps.ts</code> around 171, 206, 234, 461</td></tr>
+<tr><td>Suppression at sourcing</td><td>Do-not-contact and employer-floor suppression runs before a record is stored against a client.</td><td><code>lib/suppression.ts</code> around 38</td></tr>
+<tr><td>Lead scoring</td><td>Claude scores leads 0–100 and returns a one-sentence reason stored with the lead.</td><td><code>lib/scoring.ts</code> around 51 and 131</td></tr>
+<tr><td>Pre-enrolment gates</td><td>Kill-switch → employer DNC → CRM dedup (fail closed) → UK PECR gate.</td><td><code>lib/figsy.ts</code> around 1665–1980</td></tr>
+<tr><td>Send suppression</td><td>Blocklist is checked again immediately before sending.</td><td><code>lib/figsy.ts</code> around 617 and 1358</td></tr>
+<tr><td>Auditability</td><td>Operator actions are written to an audit log with actor, client, action, subject and detail payload.</td><td><code>lib/operator-audit.ts</code> around 94</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>3. Objective</h2>
+<p>Get-Kind should evolve from a primarily contact-enrichment pipeline into a <strong>multi-source evidence, signal and timing engine</strong>.</p>
+<div class="callout success"><strong>The target is not “50 data vendors”.</strong><p>The target is to combine multiple evidence classes so the system can explain: who the right person is, why the company fits, why now is relevant, how confident the data is, what the lead cost, and whether the prospect is eligible for outreach.</p></div>
+</section>
+
+<section>
+<h2>4. Proposed target architecture</h2>
+<pre>
+                    GET-KIND DATA ENGINE
+
+        ┌──────────── Existing Lead Pool ────────────┐
+        │                                             │
+        │ CRM / Closed Won        Company Web/Search │
+        │ Product/Website         Funding / News     │
+        │ Hiring / Job Changes    Tech Changes       │
+        │ Social / Events         ABM Lists          │
+        └─────────────────┬───────────────────────────┘
+                          ↓
+                    COMPANY GRAPH
+                          ↓
+                 ICP + SIGNAL ENGINE
+                          ↓
+             Is this account worth resolving?
+                     ↓               ↓
+                    NO              YES
+                  ignore             ↓
+                                PERSON GRAPH
+                                     ↓
+                          Existing Pool / PDL
+                                     ↓
+                     Secondary enrichment only
+                         when confidence needs it
+                                     ↓
+                            Hunter verification
+                                     ↓
+                        Global permission gate
+                                     ↓
+                                  FIGSY
+                   fit + intent + timing + confidence
+                                     ↓
+                                 outreach
+                                     ↓
+                   reply → meeting → opportunity → win
+                                     ↓
+                      SOURCE PERFORMANCE MODEL
+                                     ↺
+</pre>
+</section>
+
+<section>
+<h2>5. Data-source classes to verify</h2>
+<p>Claude must report which source classes already exist, which are partial, and which are absent. Do not recommend adding a vendor merely to increase provider count.</p>
+<div class="grid">
+<div class="card"><h3>Existing customer data</h3><span class="tag">CRM history</span><span class="tag">closed won/lost</span><span class="tag">prior replies</span><span class="tag">meetings</span><span class="tag">suppression</span></div>
+<div class="card"><h3>Company intelligence</h3><span class="tag">company web</span><span class="tag">attributes</span><span class="tag">funding</span><span class="tag">acquisitions</span><span class="tag">expansion</span></div>
+<div class="card"><h3>Commercial timing</h3><span class="tag">job changes</span><span class="tag">promotions</span><span class="tag">hiring spikes</span><span class="tag">leadership changes</span><span class="tag">launches</span></div>
+<div class="card"><h3>Technology signals</h3><span class="tag">current stack</span><span class="tag">new technology</span><span class="tag">removed technology</span><span class="tag">stack history</span></div>
+<div class="card"><h3>Engagement / intent</h3><span class="tag">website activity</span><span class="tag">product activity</span><span class="tag">campaign activity</span><span class="tag">authorized social signals</span></div>
+<div class="card"><h3>Contact resolution</h3><span class="tag">lead_pool</span><span class="tag">PDL</span><span class="tag">Apollo if used</span><span class="tag">secondary enrichment</span><span class="tag">Hunter verification</span></div>
+</div>
+</section>
+
+<section>
+<h2>6. Lead Evidence Graph — target model</h2>
+<p>Verify whether the current schema supports multiple source assertions rather than one mutable value per field.</p>
+<pre>
+entity_id
+entity_type                  // company | person | account
+field_name                   // title | employer | technology | funding_event | etc.
+value
+source_provider
+source_type
+source_reference
+observed_at
+ingested_at
+confidence
+verification_status
+cost
+jurisdiction
+permitted_use
+expires_at
+raw_evidence_reference
+</pre>
+<p>Identify whether provider data overwrites canonical fields, whether history is preserved, and whether conflicting assertions can coexist.</p>
+</section>
+
+<section>
+<h2>7. Company-first qualification</h2>
+<p>Verify whether Get-Kind currently performs paid person-resolution too early.</p>
+<pre>
+company discovered
+→ ICP qualification
+→ signal/timing qualification
+→ compliance eligibility check
+→ determine whether person resolution is worth spending money on
+→ use lead_pool first
+→ use paid provider only when required
+→ verify contact
+</pre>
+<p>Report any current path where paid enrichment occurs before the system has enough company-level evidence to justify the spend.</p>
+</section>
+
+<section>
+<h2>8. Conditional enrichment waterfall</h2>
+<p>The target is a confidence- and cost-aware resolver rather than a fixed provider chain.</p>
+<pre>
+1. Search local lead_pool
+2. Evaluate freshness and confidence
+3. If sufficient → stop
+4. If insufficient → query preferred approved provider for this geography / ICP / field
+5. Compare returned assertion with existing evidence
+6. If confidence threshold met → stop
+7. Otherwise optionally query a secondary approved provider
+8. Verify email only when the prospect is otherwise worth pursuing
+9. Record total acquisition cost and every source used
+</pre>
+<p>Verify whether provider selection is currently configurable by geography, ICP, field, historical performance or data quality.</p>
+</section>
+
+<section>
+<h2>9. FIGSY scoring — proposed evolution</h2>
+<p>Current stated behaviour is a 0–100 score plus reason. Verify the exact inputs and persistence model.</p>
+<pre>
+Opportunity Score =
+    ICP Fit
+  × Intent / Trigger Strength
+  × Timing
+  × Reachability
+  × Data Confidence
+  × Compliance Eligibility
+</pre>
+<p>Determine whether the current score can already incorporate company fit, recent triggers, trigger freshness, contact confidence, verification, jurisdiction/outreach eligibility, source reliability and historical conversion performance.</p>
+</section>
+
+<section>
+<h2>10. “Why now?” evidence</h2>
+<p>For every high-priority lead, the system should ideally persist a structured timing reason:</p>
+<pre>
+trigger_type: "new_sales_leader"
+trigger_observed_at: "2026-08-10"
+trigger_source: "approved_source"
+trigger_strength: 0.87
+trigger_reason: "New CRO joined 7 days ago while the company is hiring 5 SDR roles."
+</pre>
+<p>Verify whether an equivalent concept exists today.</p>
+</section>
+
+<section>
+<h2>11. Source-performance learning loop</h2>
+<p>Verify whether Get-Kind can connect downstream outcomes back to the sources and signals that caused a prospect to be selected.</p>
+<pre>
+source(s) + signal(s) + ICP + geography + cost + score
+                         ↓
+                        sent
+                         ↓
+                        reply
+                         ↓
+                   positive reply
+                         ↓
+                       meeting
+                         ↓
+                    opportunity
+                         ↓
+                    won revenue
+</pre>
+<p>Expected metrics should eventually include cost per resolved contact, cost per verified contact, positive reply rate, meeting rate, opportunity rate, won revenue, qualified meetings per £1 of data spend, freshness failure rate and provider disagreement rate.</p>
+</section>
+
+<section>
+<h2>12. Provider-selection learning</h2>
+<p>Verify whether Get-Kind can learn that one provider or signal source performs better for a particular client, ICP, country, industry, job function, company size or signal type.</p>
+<p>If absent, classify this as a <strong>missing optimisation capability</strong>, not a compliance defect.</p>
+</section>
+
+<section>
+<h2>13. Provenance and compliance coupling</h2>
+<p>The sourcing system should preserve enough provenance for the global compliance engine to make a later decision.</p>
+<pre>
+jurisdiction
+jurisdiction_confidence
+recipient_type
+source_provider
+source_type
+source_reference
+source_collected_at
+source_country
+permitted_use
+processing_basis
+processing_basis_evidence
+contact_permission_type
+contact_permission_evidence
+privacy_notice_status
+profiling_status
+retention_expires_at
+country_policy_version
+suppression_status
+</pre>
+<div class="callout warning"><strong>Important:</strong> Do not infer legal permission from a verified email address. Email validity, source provenance, processing basis and permission to contact are distinct concepts.</div>
+</section>
+
+<section>
+<h2>14. Required audit questions</h2>
+<ol>
+<li>What exact code paths source a new company?</li>
+<li>What exact code paths source a new person?</li>
+<li>Which providers are called in production today?</li>
+<li>Is <code>lead_pool</code> always checked first?</li>
+<li>How is freshness represented?</li>
+<li>How are conflicting provider values resolved?</li>
+<li>Is raw provider provenance retained?</li>
+<li>Can multiple evidence records exist for the same field?</li>
+<li>Is provider cost recorded per call, per lead or per field?</li>
+<li>Can provider cost be attributed to meetings and revenue?</li>
+<li>Are company-level signals represented anywhere?</li>
+<li>Are trigger timestamps represented?</li>
+<li>Does the scoring model use timing/signals or only static ICP data?</li>
+<li>Can the system explain why a lead is high priority beyond one generic sentence?</li>
+<li>Is person enrichment delayed until the company is sufficiently qualified?</li>
+<li>Can provider order vary by geography or performance?</li>
+<li>Does the system calculate provider reliability?</li>
+<li>Can the system stop the waterfall as soon as confidence is sufficient?</li>
+<li>Is email verification performed only after the lead is worth pursuing?</li>
+<li>Can every downstream outcome be traced back to the evidence that selected the lead?</li>
+<li>Can suppression stop later marketing re-enrichment or re-scoring?</li>
+<li>Does the global permission gate receive sourcing provenance before outreach?</li>
+</ol>
+</section>
+
+<section>
+<h2>15. Verification status definitions</h2>
+<table>
+<thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td class="ok">VERIFIED</td><td>Implemented and enforced in executable code. Cite file path and line numbers.</td></tr>
+<tr><td class="warn">PARTIAL</td><td>Some components exist but do not meet the complete target behaviour.</td></tr>
+<tr><td class="bad">ABSENT</td><td>No implementation found after searching likely code paths and schemas.</td></tr>
+<tr><td>UNVERIFIED</td><td>Evidence is inconclusive. Explain what was searched and why no conclusion is possible.</td></tr>
+<tr><td>NOT APPLICABLE</td><td>Target feature is intentionally outside the current product scope. Explain why.</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>16. Required output from Claude Code</h2>
+<h3>A. Executive summary</h3>
+<ul><li>Current sourcing architecture in 10–20 lines.</li><li>Top 5 strengths.</li><li>Top 10 gaps preventing the target evidence/signal engine.</li><li>Separate commercial optimisation gaps from compliance/control gaps.</li></ul>
+
+<h3>B. Verification matrix</h3>
+<table>
+<thead><tr><th>Capability</th><th>Status</th><th>Evidence</th><th>Current behaviour</th><th>Difference from target</th><th>Risk / impact</th></tr></thead>
+<tbody>
+<tr><td>Pool-first sourcing</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Company-first qualification</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Signal ingestion</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Evidence graph</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Conditional enrichment waterfall</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Freshness / confidence</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Cost attribution</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>FIGSY signal-aware scoring</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Why-now explanation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Outcome-to-source attribution</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Provider performance learning</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Provenance into compliance gate</td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+
+<h3>C. Source inventory</h3>
+<pre>
+source name
+source class
+purpose
+fields/signals supplied
+where called
+cost handling
+cache/pool behaviour
+provenance retained?
+freshness retained?
+jurisdiction metadata?
+permitted-use metadata?
+production / unused / legacy
+</pre>
+
+<h3>D. Data-flow trace</h3>
+<p>Trace one prospect from discovery through enrichment, scoring, approval, permission checks, send, reply, meeting and outcome attribution. Cite exact files and functions.</p>
+
+<h3>E. Missing capabilities ranked by value</h3>
+<ol><li>Higher meeting yield</li><li>Lower data spend</li><li>Better data confidence</li><li>Better global compliance evidence</li><li>Better explainability / auditability</li></ol>
+
+<h3>F. No implementation</h3>
+<div class="callout critical"><strong>Do not provide code patches.</strong><p>You may describe what capability is missing and where it would logically integrate, but do not write implementation code and do not modify repository files.</p></div>
+</section>
+
+<section>
+<h2>17. What success would look like later</h2>
+<div class="callout success"><p><strong>Desired product statement:</strong></p><p>“This is the correct person at the correct company. Multiple sources support the identity and role. A recent commercial trigger explains why now. The work contact is freshly verified. The prospect passes the jurisdiction and outreach-permission policy. The system can explain the decision, its evidence, its cost and how similar source/signal combinations have historically converted for this client.”</p></div>
+</section>
+
+
+<section>
+<h2>18. Meeting Yield Engine — the commercial objective</h2>
+<div class="callout success">
+<strong>Primary commercial outcome: qualified held meetings that create pipeline.</strong>
+<p>Do not optimise the product for raw email volume, raw reply rate or even raw booked meetings alone. The retained-value metric should be the number of <strong>qualified meetings that actually happen</strong>, with downstream opportunity and revenue attribution where the client supplies it.</p>
+</div>
+
+<p>The system should therefore distinguish:</p>
+<pre>
+sent
+→ delivered
+→ opened / engaged where lawfully measured
+→ replied
+→ positive reply
+→ meeting offered
+→ meeting booked
+→ meeting confirmed
+→ meeting held
+→ opportunity created
+→ reseller / client conversion
+→ won revenue
+</pre>
+
+<p>Claude must verify which stages are represented in code and data today, and whether Get-Kind can optimise campaigns against the stages that matter commercially.</p>
+</section>
+
+<section>
+<h2>19. Campaign objective hierarchy</h2>
+<p>The campaign engine should optimise in this order:</p>
+<ol>
+<li><strong>Qualified held meetings</strong> — primary optimisation target.</li>
+<li><strong>Booked meetings</strong> — leading indicator.</li>
+<li><strong>Positive replies</strong> — leading indicator of message-market fit.</li>
+<li><strong>Reply rate</strong> — diagnostic only; negative replies should not improve a campaign score.</li>
+<li><strong>Delivery rate</strong> — necessary constraint, not the business outcome.</li>
+<li><strong>Client opportunity / reseller conversion</strong> — downstream quality signal when available.</li>
+<li><strong>Won revenue</strong> — ultimate source/campaign quality signal when supplied by the client CRM.</li>
+</ol>
+
+<div class="callout warning">
+<strong>Do not optimise blindly for meeting count.</strong>
+<p>A campaign that books many low-quality meetings can increase cancellations, no-shows and client churn. Meeting quality, show rate and downstream conversion must influence campaign learning.</p>
+</div>
+</section>
+
+<section>
+<h2>20. Sequence intelligence — target behaviour</h2>
+<p>Verify whether current sequences are static templates or whether they can adapt based on prospect evidence, timing, engagement and campaign outcomes.</p>
+
+<p>The target sequencing model is:</p>
+<pre>
+PROSPECT SELECTED
+      ↓
+why_this_account?
+why_this_person?
+why_now?
+      ↓
+choose campaign / offer
+      ↓
+choose channel and sequence permitted by jurisdiction
+      ↓
+MESSAGE 1: relevance + problem + reason now
+      ↓
+reply?
+ ┌────┴────┐
+YES        NO
+ ↓          ↓
+classify    wait using campaign timing policy
+ ↓          ↓
+positive?   MESSAGE 2: different angle / evidence
+ ↓          ↓
+book path   no reply?
+             ↓
+             MESSAGE 3: proof / use case / commercial outcome
+             ↓
+             MESSAGE 4: concise close / permission to close
+             ↓
+             suppress / cool-down / recycle only if policy permits
+</pre>
+
+<p>Claude should verify whether:</p>
+<ul>
+<li>sequence steps can vary by ICP, persona, trigger and country;</li>
+<li>follow-ups use a different argument rather than repeating the first email;</li>
+<li>the system can stop sequences immediately after meaningful replies;</li>
+<li>sequence length and timing are configurable and measurable;</li>
+<li>the system records which step generated the reply or booking;</li>
+<li>the system can compare performance by sequence step and message angle;</li>
+<li>the system can prevent over-contact or recycle only after a governed cool-down.</li>
+</ul>
+</section>
+
+<section>
+<h2>21. Campaign offer and message architecture</h2>
+<p>The highest meeting yield usually comes from improving the <strong>reason to reply</strong>, not merely increasing the number of touches.</p>
+
+<p>Verify whether campaigns can store structured messaging strategy rather than only email copy:</p>
+<pre>
+campaign_id
+icp
+persona
+problem_hypothesis
+offer
+proof_point
+trigger_type
+why_now
+primary_angle
+secondary_angle
+objection_set
+call_to_action
+meeting_type
+booking_duration
+qualification_rule
+exclusion_rule
+</pre>
+
+<p>Get-Kind should be able to compare which combinations generate qualified meetings:</p>
+<pre>
+ICP
++ persona
++ trigger
++ offer
++ message angle
++ sequence
++ send timing
++ source quality
++ client
+       ↓
+booked meeting rate
+held meeting rate
+opportunity rate
+client / reseller conversion
+</pre>
+</section>
+
+<section>
+<h2>22. Personalisation must come from evidence</h2>
+<p>Verify whether personalisation is generated from actual sourced evidence or generic AI-generated text.</p>
+<p>The preferred model is structured and auditable:</p>
+<pre>
+account evidence
++ person evidence
++ current trigger
++ client proposition
++ approved campaign angle
+→ message draft
+</pre>
+
+<p>Claude should identify whether the system can distinguish:</p>
+<ul>
+<li>verified facts;</li>
+<li>inferred facts;</li>
+<li>AI-generated hypotheses;</li>
+<li>client-supplied claims;</li>
+<li>publicly observed commercial triggers.</li>
+</ul>
+
+<p>Messages should not manufacture familiarity or pretend the sender observed something that the system did not actually source.</p>
+</section>
+
+<section>
+<h2>23. Adaptive campaign learning</h2>
+<p>Verify whether campaign performance can change future decisions automatically or is currently reporting-only.</p>
+
+<p>The target is a controlled learning loop:</p>
+<pre>
+campaign launched
+      ↓
+delivery + reply + meeting outcomes
+      ↓
+measure by:
+- ICP
+- persona
+- source
+- signal
+- message angle
+- sequence step
+- day/time
+- geography
+- client
+      ↓
+identify winning combinations
+      ↓
+shift future traffic gradually
+      ↓
+retain holdout / comparison group
+      ↓
+continue measuring held meetings and downstream conversion
+</pre>
+
+<p>Claude should check for experimentation primitives such as:</p>
+<ul>
+<li>campaign variants;</li>
+<li>A/B or multi-armed allocation;</li>
+<li>random or controlled assignment;</li>
+<li>minimum sample sizes;</li>
+<li>variant-level booking attribution;</li>
+<li>variant-level held-meeting attribution;</li>
+<li>automatic winner selection;</li>
+<li>guardrails preventing premature optimisation from tiny samples.</li>
+</ul>
+</section>
+
+<section>
+<h2>24. Meeting booking friction</h2>
+<p>Once a prospect is interested, the system should minimise the distance between positive intent and a confirmed meeting.</p>
+
+<p>Verify whether Get-Kind supports:</p>
+<ul>
+<li>client-specific booking links;</li>
+<li>server-validated availability;</li>
+<li>timezone-aware slots;</li>
+<li>short default meeting duration where appropriate;</li>
+<li>immediate booking from a positive reply;</li>
+<li>human-approved reply drafts that contain relevant availability;</li>
+<li>clear confirmation and reschedule/cancel paths;</li>
+<li>deduplication so one prospect cannot accidentally create multiple meetings;</li>
+<li>meeting attribution back to campaign, sequence step, source and signal.</li>
+</ul>
+
+<p>The existing signed booking token and slot validation should be verified as part of this flow.</p>
+</section>
+
+<section>
+<h2>25. Positive-reply to meeting conversion</h2>
+<p>A major commercial KPI should be:</p>
+<pre>
+positive_reply_to_booking_rate
+=
+booked_meetings / qualified_positive_replies
+</pre>
+
+<p>If this number is weak, the issue is usually no longer lead sourcing. Claude should verify whether Get-Kind can measure where interested prospects are lost:</p>
+<ul>
+<li>positive reply received but not answered quickly;</li>
+<li>human approval waiting too long;</li>
+<li>booking link not sent;</li>
+<li>calendar has too little availability;</li>
+<li>timezone mismatch;</li>
+<li>prospect asks a question and receives no useful response;</li>
+<li>booking flow fails;</li>
+<li>meeting gets booked but later cancelled.</li>
+</ul>
+
+<p>Report whether latency from positive reply → human approval → outbound reply → booked meeting is recorded.</p>
+</section>
+
+<section>
+<h2>26. No-show reduction</h2>
+<p>Booked meetings are not enough. Verify whether the platform can improve <strong>held meeting rate</strong>.</p>
+
+<p>Desired controls include:</p>
+<ul>
+<li>confirmation immediately after booking;</li>
+<li>calendar invitation status tracking;</li>
+<li>optional compliant reminders;</li>
+<li>easy rescheduling;</li>
+<li>meeting-status ingestion from the client calendar or CRM;</li>
+<li>no-show and cancellation reasons;</li>
+<li>campaign/source attribution for no-show rate.</li>
+</ul>
+
+<p>The system should measure:</p>
+<pre>
+show_rate = held_meetings / booked_meetings
+</pre>
+</section>
+
+<section>
+<h2>27. Qualified meeting definition</h2>
+<p>Each client should have an explicit meeting-quality definition so the system does not optimise toward worthless bookings.</p>
+
+<pre>
+meeting_qualification_profile:
+  target_company_fit
+  target_roles
+  allowed_geographies
+  company_size
+  relevant_problem
+  buying_timing
+  exclusion_conditions
+  minimum_figsy_score
+  required_signal_types
+</pre>
+
+<p>Claude should verify whether these rules are represented structurally or only implied in prompts / campaign copy.</p>
+</section>
+
+<section>
+<h2>28. Client / reseller conversion feedback</h2>
+<p>The client is responsible for converting meetings, but Get-Kind should learn from the outcome whenever the client shares it.</p>
+
+<p>Verify whether CRM or manual feedback can record:</p>
+<pre>
+meeting held?
+qualified?
+opportunity created?
+opportunity value
+stage
+won / lost
+loss reason
+client / reseller conversion
+revenue
+</pre>
+
+<p>This data should improve future sourcing, scoring and campaign selection without confusing the client’s sales execution with Get-Kind’s meeting-generation performance.</p>
+
+<div class="callout success">
+<strong>Recommended commercial North Star:</strong>
+<p><code>Qualified Held Meetings per Client per Month</code>, accompanied by <code>Pipeline Value Created</code> when CRM data is available.</p>
+</div>
+</section>
+
+<section>
+<h2>29. Campaign health dashboard — target metrics</h2>
+<table>
+<thead><tr><th>Layer</th><th>Metrics</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td>Data</td><td>source confidence, freshness, verification, cost</td><td>Are we targeting reliable people?</td></tr>
+<tr><td>Delivery</td><td>delivery rate, bounce rate, suppression hits</td><td>Can messages reliably reach the prospect?</td></tr>
+<tr><td>Engagement</td><td>reply rate, positive reply rate, negative reply rate</td><td>Does the proposition resonate?</td></tr>
+<tr><td>Meeting</td><td>booking rate, positive-reply-to-booking rate, booking latency</td><td>Can interest become a meeting?</td></tr>
+<tr><td>Quality</td><td>held rate, qualified meeting rate, no-show rate</td><td>Are meetings valuable?</td></tr>
+<tr><td>Pipeline</td><td>opportunity rate, pipeline created</td><td>Is the client receiving commercial value?</td></tr>
+<tr><td>Revenue feedback</td><td>win rate, won revenue, conversion</td><td>Do our meeting patterns predict eventual sales success?</td></tr>
+<tr><td>Efficiency</td><td>cost per held meeting, cost per qualified meeting, data spend per meeting</td><td>Can Get-Kind scale profitably?</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>30. Campaign optimisation audit questions</h2>
+<ol>
+<li>What is the exact campaign → sequence → send data model?</li>
+<li>Can one ICP have multiple message angles and sequence variants?</li>
+<li>Is variant assignment deterministic, randomised or manual?</li>
+<li>Can performance be measured by sequence step?</li>
+<li>Can performance be measured by campaign variant?</li>
+<li>Can performance be measured by source and trigger?</li>
+<li>Can the system identify a positive reply separately from any reply?</li>
+<li>Can a positive reply immediately stop all automated follow-ups?</li>
+<li>What is the latency from positive reply to human review?</li>
+<li>What is the latency from positive reply to meeting booked?</li>
+<li>Can the system detect that a booking occurred outside the built-in booking link?</li>
+<li>Are booked meetings attributed to the exact campaign and lead evidence?</li>
+<li>Can the system determine whether a booked meeting was actually held?</li>
+<li>Can no-show/cancel/reschedule outcomes be recorded?</li>
+<li>Can the client's CRM return opportunity and won/lost information?</li>
+<li>Can campaign learning use held meetings instead of raw replies?</li>
+<li>Can campaign learning use qualified meetings instead of all meetings?</li>
+<li>Can campaign learning use client conversion data without treating it as a guaranteed Get-Kind outcome?</li>
+<li>Is data spend attributable to held meetings and pipeline?</li>
+<li>Can the system pause poor-performing campaigns automatically or only manually?</li>
+<li>Are there guardrails against changing strategy from statistically insignificant samples?</li>
+<li>Can the system compare performance by persona, industry, geography and company size?</li>
+<li>Can FIGSY incorporate campaign outcome feedback?</li>
+<li>Can the system explain why it selected a particular sequence or angle?</li>
+</ol>
+</section>
+
+<section>
+<h2>31. Copy/paste Claude Code instruction</h2>
+<pre>
+READ-ONLY VERIFICATION ONLY.
+
+Open and read this HTML specification completely, then inspect the Get-Kind repository and verify the current code against every capability and audit question in the document.
+
+DO NOT:
+- edit files
+- create files in the repository
+- delete or rename files
+- generate or apply patches
+- run migrations
+- write to databases
+- modify environment/configuration/infrastructure
+- commit or push
+- open a pull request
+- implement any missing feature
+
+For every finding, provide:
+1. status: VERIFIED / PARTIAL / ABSENT / UNVERIFIED / NOT APPLICABLE
+2. exact file path
+3. line number(s)
+4. function/class/schema/table name
+5. concise evidence of what the code actually does
+6. difference from the target behaviour
+7. impact category: commercial optimisation / data quality / cost / compliance / auditability
+8. severity: LOW / MEDIUM / HIGH / CRITICAL
+
+Do not treat comments, docs, environment examples or test fixtures as proof of production enforcement unless you also identify the executable production path.
+
+Do not assume the supplied “current behaviour” section is correct. Independently verify it.
+
+End with:
+- a source inventory
+- a data-flow trace for one lead
+- a campaign-to-meeting data-flow trace
+- the current booked-meeting and held-meeting attribution model
+- the current positive-reply-to-booking path and latency controls
+- the top 10 sourcing gaps ranked by value/importance
+- the top 10 meeting-yield gaps ranked by value/importance
+- a list of claims in this artifact that the repository disproves
+- a list of areas you could not conclusively verify
+
+For meeting-yield findings, explicitly separate:
+- data quality issues
+- targeting issues
+- messaging / offer issues
+- sequencing issues
+- booking-friction issues
+- no-show issues
+- downstream client / reseller conversion feedback
+
+Do not change the code.
+</pre>
+</section>
+
+<section>
+<h2>32. Scope note</h2>
+<p class="small">This artifact is an engineering verification specification. It does not itself determine that any data source, signal, enrichment provider, processing activity or outreach action is lawful. Legal/compliance permission remains a separate decision and should be enforced by the global permission framework.</p>
+</section>
+
+</main></body></html>

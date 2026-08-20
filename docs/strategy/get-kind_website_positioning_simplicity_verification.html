@@ -1,0 +1,788 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get-Kind — Website Positioning & Simplicity Verification Prompt</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a30;--panel2:#18213a;--text:#eef2ff;--muted:#aeb8d4;
+  --line:#2a3658;--good:#93f5ba;--warn:#ffd782;--bad:#ff9a9a;--accent:#9fd0ff;--code:#0a0f1d
+}
+*{box-sizing:border-box}
+body{
+  margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:linear-gradient(180deg,var(--bg),#0e1426);color:var(--text);line-height:1.55
+}
+main{max-width:1260px;margin:0 auto;padding:48px 24px 72px}
+header,section,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+header{padding:30px;margin-bottom:24px;background:linear-gradient(135deg,var(--panel),#10172b)}
+section{padding:24px;margin:18px 0}
+h1{margin:0 0 10px;font-size:2rem;line-height:1.15}
+h2{margin-top:0;font-size:1.4rem}
+h3{margin-bottom:8px}
+p{margin:10px 0}
+.meta,.small{color:var(--muted);font-size:.92rem}
+.callout{border-left:4px solid var(--accent);background:var(--panel2);padding:14px 16px;border-radius:10px;margin:14px 0}
+.success{border-left-color:var(--good)}
+.warning{border-left-color:var(--warn)}
+.critical{border-left-color:var(--bad)}
+code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+code{background:var(--code);border:1px solid #202b49;border-radius:6px;padding:2px 6px;color:#d8e4ff}
+pre{
+  white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);border:1px solid #202b49;
+  border-radius:12px;padding:16px;color:#d8e4ff;overflow-x:auto
+}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.93rem}
+th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}
+th{background:#18233f}
+ol,ul{padding-left:22px}
+li{margin:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.card{padding:18px}
+.tag{
+  display:inline-block;border:1px solid var(--line);background:#131d36;color:var(--muted);
+  border-radius:999px;padding:4px 9px;margin:3px 4px 3px 0;font-size:.82rem
+}
+.good{color:var(--good);font-weight:700}
+.warn{color:var(--warn);font-weight:700}
+.bad{color:var(--bad);font-weight:700}
+</style>
+</head>
+<body><main>
+
+<header>
+<h1>Get-Kind — Website Positioning & Simplicity Verification Prompt</h1>
+<p class="meta">Purpose: read-only Claude Code verification of the current get-kind.com website against a simpler, more outcome-led product experience inspired by the clarity of Jack & Jill — without copying their branding, language or category.</p>
+<p class="meta">Core product outcome: <strong>MEETING_BOOKED</strong>.</p>
+</header>
+
+<section>
+<h2>1. Hard instruction to Claude Code</h2>
+<div class="callout critical">
+<strong>READ-ONLY WEBSITE / PRODUCT-POSITIONING AUDIT. DO NOT CHANGE THE CODE.</strong>
+<p>Do not edit, create, delete, rename, reformat or move repository files. Do not generate or apply patches. Do not modify HTML, CSS, JavaScript, routes, copy, configuration, deployment settings or assets. Do not commit, push or open a pull request.</p>
+<p>Your job is to verify what the website currently says and does, then compare it against the target positioning model described below.</p>
+</div>
+</section>
+
+<section>
+<h2>2. Strategic premise</h2>
+
+<div class="callout success">
+<strong>The client should primarily need to understand one thing:</strong>
+<p><strong>Milla books my meetings.</strong></p>
+</div>
+
+<p>Internal product complexity should increasingly be hidden from the homepage unless it helps the buyer understand value, trust or control.</p>
+
+<pre>
+PUBLIC EXPERIENCE
+
+CLIENT
+  ↓
+MILLA
+"Understands what I want
+and gets meetings booked."
+
+BEHIND THE EXPERIENCE
+
+MILLA
+client intelligence
+
+FIGSY
+market / decision intelligence
+
+VIDA
+operations / execution
+
+K.I.N.D SYSTEM
+sourcing + enrichment + compliance +
+campaigns + sequences + replies + booking
+</pre>
+</section>
+
+<section>
+<h2>3. Role simplification hypothesis</h2>
+
+<table>
+<thead><tr><th>Entity</th><th>Internal role</th><th>Recommended public visibility</th></tr></thead>
+<tbody>
+<tr>
+<td><strong>Milla</strong></td>
+<td>Client-facing intelligence and relationship layer.</td>
+<td><strong>Primary public character / product interface.</strong></td>
+</tr>
+<tr>
+<td><strong>FIGSY</strong></td>
+<td>Decision engine: who, why now, campaign angle, scoring, eligibility, next-best action.</td>
+<td>Secondary. Explain later as the intelligence behind Milla.</td>
+</tr>
+<tr>
+<td><strong>Vida</strong></td>
+<td>Operator / operations layer, increasingly autonomous over time.</td>
+<td>Mostly hidden from acquisition messaging unless operational trust matters.</td>
+</tr>
+<tr>
+<td><strong>Nexus</strong></td>
+<td>Isolation / learning / platform architecture.</td>
+<td>Trust / architecture section only, not early hero messaging.</td>
+</tr>
+</tbody>
+</table>
+
+<p>Claude should verify whether the current website forces a first-time visitor to understand too many internal product names before understanding the outcome.</p>
+</section>
+
+<section>
+<h2>4. Homepage comprehension test</h2>
+
+<p>Claude should inspect the current homepage and answer:</p>
+
+<ol>
+<li>Can a new buyer explain what Get-Kind does after reading only the hero?</li>
+<li>Does the hero communicate <code>MEETING_BOOKED</code>, or primarily “managed leads” / “AI outbound” / internal system structure?</li>
+<li>How many proprietary names or concepts are introduced in the first screen?</li>
+<li>Does the page explain Milla, Vida, FIGSY and Nexus before proving why the buyer should care?</li>
+<li>Is the primary CTA low friction and obvious?</li>
+<li>Does the page sell software mechanics or client outcomes?</li>
+<li>Does the visitor understand who they interact with day-to-day?</li>
+</ol>
+</section>
+
+<section>
+<h2>5. Proposed public positioning</h2>
+
+<p>This is a positioning hypothesis for verification, not approved final copy:</p>
+
+<pre>
+Meet Milla.
+
+Your pipeline, handled.
+
+Tell Milla who you need to meet.
+She learns your business,
+finds the right people,
+runs the outreach
+and books them into your calendar.
+
+[Meet Milla]
+
+No subscription.
+$4 per person you approve.
+</pre>
+
+<p>Claude should determine whether the current product can truthfully support each sentence today.</p>
+</section>
+
+<section>
+<h2>6. Meeting Brief as onboarding story</h2>
+
+<p>The website should eventually be able to explain onboarding as:</p>
+
+<pre>
+1. Tell Milla who you want to meet.
+
+2. She learns what good looks like.
+
+3. She shows you example companies/prospects
+   to confirm she has understood.
+
+4. K.I.N.D gets to work.
+
+5. Meetings appear in your calendar.
+</pre>
+
+<p>Claude must verify whether the current product actually supports each stage or whether parts remain aspirational.</p>
+</section>
+
+<section>
+<h2>7. Product demonstration hypothesis</h2>
+
+<p>The website should demonstrate the product rather than only describe it.</p>
+
+<p>Potential product story:</p>
+
+<pre>
+MILLA
+
+I found 24 prospects overnight.
+
+14 strong matches
+6 showing timing signals
+3 need your approval
+
+─────────────────────
+
+ACME
+VP Sales
+Score: 94
+
+Why now:
+New CRO 17 days ago
+Hiring 5 SDRs
+
+Why they fit:
+Series B SaaS
+87 employees
+UK
+
+[Approve] [Pass]
+</pre>
+
+<p>Then:</p>
+
+<pre>
+MILLA
+
+Good news.
+
+Sarah at Acme is interested.
+
+Available:
+Tue 10:30
+Wed 14:00
+
+[Review conversation]
+</pre>
+
+<p>Then:</p>
+
+<pre>
+MEETING BOOKED
+
+Sarah Jones
+VP Sales · Acme
+
+Wednesday · 14:00
+</pre>
+
+<p>Claude should verify whether the current application already has the real data and UI states needed to support an honest homepage demo like this.</p>
+</section>
+
+<section>
+<h2>8. Current homepage story vs target story</h2>
+
+<table>
+<thead><tr><th>Layer</th><th>Current website — verify</th><th>Target direction</th></tr></thead>
+<tbody>
+<tr><td>Hero</td><td></td><td>Milla + meeting/pipeline outcome</td></tr>
+<tr><td>Characters</td><td></td><td>Milla first; FIGSY later; Vida mostly operational</td></tr>
+<tr><td>Onboarding</td><td></td><td>Conversation → Meeting Brief → calibration</td></tr>
+<tr><td>Product proof</td><td></td><td>Show actual workflow states</td></tr>
+<tr><td>Outcome</td><td></td><td>MEETING_BOOKED</td></tr>
+<tr><td>Pricing</td><td></td><td>$4 per approved person, no subscription</td></tr>
+<tr><td>Trust</td><td></td><td>Precise, supportable privacy/compliance language</td></tr>
+<tr><td>Proof</td><td></td><td>Real client outcomes once available</td></tr>
+<tr><td>CTA</td><td></td><td>Low-friction start / meet Milla</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>9. Pricing clarity verification</h2>
+
+<p>Claude should verify the exact current pricing language and whether it cleanly explains:</p>
+
+<pre>
+NO SUBSCRIPTION
+
+$4
+per person the client approves
+
+Client approves the person.
+K.I.N.D handles the outreach.
+Goal:
+MEETING_BOOKED
+</pre>
+
+<p>Flag any pricing language that could cause confusion between:</p>
+
+<ul>
+<li>lead sourced;</li>
+<li>lead approved;</li>
+<li>lead contacted;</li>
+<li>meeting booked;</li>
+<li>subscription / wallet / credit mechanics.</li>
+</ul>
+</section>
+
+<section>
+<h2>10. Proof strategy</h2>
+
+<p>Claude should inventory all current homepage trust/proof elements:</p>
+
+<ul>
+<li>customer logos;</li>
+<li>named testimonials;</li>
+<li>meeting outcomes;</li>
+<li>client counts;</li>
+<li>campaign statistics;</li>
+<li>product screenshots;</li>
+<li>self-use proof;</li>
+<li>security/compliance proof;</li>
+<li>case-study links.</li>
+</ul>
+
+<p>Classify each as:</p>
+
+<pre>
+EXTERNAL PROOF
+SELF PROOF
+PRODUCT PROOF
+TRUST PROOF
+ASPIRATIONAL CLAIM
+</pre>
+
+<div class="callout warning">
+<strong>Do not fabricate external proof.</strong>
+<p>If Get-Kind does not yet have customer case studies, testimonials or volume metrics, state that plainly.</p>
+</div>
+</section>
+
+<section>
+<h2>11. First-10-client proof collection</h2>
+
+<p>Claude should verify whether the current product records enough data to later publish truthful customer proof such as:</p>
+
+<pre>
+11 meetings booked
+in first 30 days
+
+97 prospects approved
+643 evaluated
+£388 lead spend
+
+"Meeting generation now takes
+15 minutes of our week."
+</pre>
+
+<p>The product only needs to support proof up to <code>MEETING_BOOKED</code>. Do not require downstream opportunity/revenue tracking.</p>
+</section>
+
+<section>
+<h2>12. Compliance/trust copy verification</h2>
+
+<div class="callout critical">
+<strong>Audit current compliance claims carefully.</strong>
+</div>
+
+<p>Claude should search the website for phrases such as:</p>
+
+<pre>
+GDPR compliant
+POPIA compliant
+consented
+consent before contact
+privacy compliant
+fully compliant
+global compliance
+jurisdiction aware
+</pre>
+
+<p>Compare those claims with the actual current product enforcement found in the repository.</p>
+
+<p>Preferred direction for claims that are supportable before full global permission-engine completion:</p>
+
+<pre>
+"Built with privacy, suppression
+and jurisdiction-aware controls
+from the start."
+
+"Every prospect passes applicable
+contact-policy and suppression checks
+before outreach."
+</pre>
+
+<p>Claude should not rewrite the site. It should only identify where current public claims are stronger than executable evidence.</p>
+</section>
+
+<section>
+<h2>13. Managed-service positioning test</h2>
+
+<p>Current/future question:</p>
+
+<pre>
+Does "managed lead service"
+accurately position what Get-Kind
+is becoming?
+
+OR
+
+Does it make the product sound
+like an outsourced lead-gen agency
+rather than an intelligent
+meeting-generation platform?
+</pre>
+
+<p>Claude should inspect the actual current degree of human operation and determine whether “managed service” is:</p>
+
+<pre>
+ACCURATE AND NECESSARY TODAY
+ACCURATE BUT UNDERSELLS PRODUCT
+TEMPORARY LAUNCH POSITIONING
+NO LONGER ACCURATE
+</pre>
+</section>
+
+<section>
+<h2>14. Complexity inventory</h2>
+
+<p>Claude should list every proprietary concept introduced on the public site:</p>
+
+<pre>
+Milla
+Vida
+FIGSY
+Nexus
+Meeting Brief
+Mission
+any other named internal systems
+</pre>
+
+<p>For each one classify:</p>
+
+<pre>
+MUST KNOW BEFORE BUYING
+USEFUL AFTER INTEREST
+TRUST / TECHNICAL DETAIL
+SHOULD STAY INTERNAL
+</pre>
+</section>
+
+<section>
+<h2>15. Website architecture hypothesis</h2>
+
+<p>Potential future story:</p>
+
+<pre>
+1. HERO
+   Meet Milla.
+   Your pipeline, handled.
+
+2. PRODUCT IN ACTION
+   Prospects → interest → meeting.
+
+3. MEETING BRIEF
+   Tell Milla what good looks like.
+
+4. CALIBRATION
+   Approve/pass examples.
+
+5. MACHINE RUNNING
+   Finding
+   Research
+   Verification
+   Outreach
+   Follow-up
+   Replies
+   Scheduling
+
+6. RESULT
+   Meetings booked.
+
+7. PROOF
+   Real client outcomes.
+
+8. PRICING
+   $4 when you approve.
+
+9. TRUST
+   Security / privacy / compliance controls.
+
+10. CTA
+    Tell Milla who you want to meet.
+</pre>
+
+<p>Claude should compare this to the current homepage section order and identify:</p>
+
+<ul>
+<li>repetition;</li>
+<li>sections appearing too early;</li>
+<li>sections that explain internals before outcomes;</li>
+<li>missing proof;</li>
+<li>missing product demonstration;</li>
+<li>unclear CTA progression.</li>
+</ul>
+</section>
+
+<section>
+<h2>16. Milla / FIGSY / Vida public-product boundary</h2>
+
+<p>Target hierarchy:</p>
+
+<pre>
+CLIENT REMEMBERS:
+
+MILLA
+"She understands my business
+and gets meetings booked."
+
+CLIENT MAY DISCOVER:
+
+FIGSY
+"The intelligence deciding
+who to pursue and why."
+
+MOSTLY INTERNAL:
+
+VIDA
+"The operational engine
+that makes the machine run."
+
+TRUST / ARCHITECTURE:
+
+NEXUS
+"Isolation, learning and
+platform safeguards."
+</pre>
+
+<p>Claude should verify whether the current public website follows or contradicts this hierarchy.</p>
+</section>
+
+<section>
+<h2>17. Copy truthfulness checks</h2>
+
+<p>Claude should audit any public statements resembling:</p>
+
+<ul>
+<li>“runs while you sleep”;</li>
+<li>“zero hours”;</li>
+<li>“fully managed”;</li>
+<li>“books meetings”;</li>
+<li>“consented before contact”;</li>
+<li>“GDPR compliant”;</li>
+<li>“POPIA compliant”;</li>
+<li>“AI handles everything”;</li>
+<li>“no human work required”;</li>
+<li>“unlimited pipeline”.</li>
+</ul>
+
+<p>For each claim return:</p>
+
+<pre>
+CLAIM
+WHERE IT APPEARS
+CURRENT SUPPORTING CODE/BEHAVIOUR
+VERDICT:
+SUPPORTED / PARTIALLY SUPPORTED / OVERSTATED / UNVERIFIED
+WHY
+</pre>
+</section>
+
+<section>
+<h2>18. Required verification questions</h2>
+
+<ol>
+<li>What is the exact homepage hero copy today?</li>
+<li>What is the primary CTA?</li>
+<li>How quickly does the site communicate meetings as the outcome?</li>
+<li>How many proprietary product names appear before the first proof point?</li>
+<li>What does the site currently say Milla does?</li>
+<li>What does the site currently say Vida does?</li>
+<li>What does the site currently say FIGSY does?</li>
+<li>What does the site currently say Nexus does?</li>
+<li>Which of those claims match production code?</li>
+<li>Which public claims are aspirational?</li>
+<li>Does the website explain too much internal architecture?</li>
+<li>Is the product demo based on actual product states?</li>
+<li>Can the current API/data model support a Meeting Brief story?</li>
+<li>Can the current product support client calibration before launch?</li>
+<li>Can the current product truthfully claim it books meetings?</li>
+<li>Can bookings be attributed to the client/campaign?</li>
+<li>What external proof exists today?</li>
+<li>What self-proof exists today?</li>
+<li>Can the product produce first-10-client proof metrics automatically?</li>
+<li>Is pricing explained consistently across all pages?</li>
+<li>Does “managed lead service” match the current operational reality?</li>
+<li>Which compliance claims exceed current enforcement?</li>
+<li>Which internal terms could be hidden from the first-time visitor?</li>
+<li>Which page sections repeat the same concept?</li>
+<li>What is the strongest current differentiation visible on the site?</li>
+<li>What differentiation exists in code but is poorly communicated?</li>
+<li>Is “Milla books my meetings” technically defensible today?</li>
+</ol>
+</section>
+
+<section>
+<h2>19. Website capability / messaging matrix</h2>
+
+<table>
+<thead>
+<tr><th>Area</th><th>Status</th><th>Website evidence</th><th>Code/product evidence</th><th>Gap</th><th>Priority</th></tr>
+</thead>
+<tbody>
+<tr><td>Hero clarity</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Milla-first positioning</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Meeting outcome clarity</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Meeting Brief story</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Calibration story</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Product-in-action demo</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Pricing clarity</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>External proof</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Self proof</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>First-10-client proof readiness</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Compliance claim accuracy</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Managed-service positioning</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Internal-complexity reduction</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>CTA progression</td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>20. Required verdicts</h2>
+
+<p>Claude must return separate verdicts for:</p>
+
+<pre>
+A. "Milla books my meetings."
+   DEFENSIBLE / PARTIALLY DEFENSIBLE / ASPIRATIONAL
+
+B. "Your pipeline, handled."
+   DEFENSIBLE / PARTIALLY DEFENSIBLE / ASPIRATIONAL
+
+C. "$4 per person you approve. No subscription."
+   CONSISTENT / INCONSISTENT / UNVERIFIED
+
+D. "Managed lead service."
+   ACCURATE / UNDERSELLS PRODUCT / TEMPORARY / INACCURATE
+
+E. Current compliance language.
+   SUPPORTABLE / NEEDS QUALIFICATION / OVERSTATED
+
+F. Current homepage complexity.
+   SIMPLE / MODERATE / TOO COMPLEX
+</pre>
+</section>
+
+<section>
+<h2>21. Recommended output format</h2>
+
+<ol>
+<li><strong>Executive website verdict</strong>.</li>
+<li><strong>Current homepage story</strong> in 10–20 lines.</li>
+<li><strong>Current public product hierarchy</strong>.</li>
+<li><strong>Messaging matrix</strong>.</li>
+<li><strong>Truthfulness audit</strong>.</li>
+<li><strong>Compliance-claim audit</strong>.</li>
+<li><strong>Proof inventory</strong>.</li>
+<li><strong>Product-demo readiness</strong>.</li>
+<li><strong>Milla-first readiness</strong>.</li>
+<li><strong>Meeting Brief/calibration readiness</strong>.</li>
+<li><strong>Top 10 simplification opportunities</strong>.</li>
+<li><strong>Top 10 strengths that should remain</strong>.</li>
+<li><strong>Sections/claims that should not be changed yet because the product does not support the proposed future state</strong>.</li>
+<li><strong>Claims disproved by repository evidence</strong>.</li>
+<li><strong>Unverified areas</strong>.</li>
+</ol>
+</section>
+
+<section>
+<h2>22. Copy/paste Claude Code instruction</h2>
+
+<pre>
+READ-ONLY GET-KIND WEBSITE POSITIONING VERIFICATION.
+
+Read this HTML artifact completely, then inspect the current Get-Kind repository and website source.
+
+This is a verification task, NOT a rewrite or implementation task.
+
+DO NOT:
+- edit website files
+- edit application files
+- create repository files
+- delete or rename files
+- generate or apply patches
+- change copy
+- modify CSS/JS/components
+- run migrations
+- write to databases
+- modify configuration/infrastructure
+- commit or push
+- open pull requests
+
+Goal:
+Verify whether Get-Kind can truthfully move toward a simpler Milla-first website where:
+
+MILLA
+understands the client
+and is the primary public product relationship.
+
+FIGSY
+is the intelligence behind the scenes.
+
+VIDA
+is increasingly operational and mostly hidden from early acquisition messaging.
+
+K.I.N.D
+ultimately sells the outcome:
+MEETING_BOOKED.
+
+Inspect both:
+1. the public website implementation
+2. the product/backend implementation required to support the claims
+
+For every finding provide:
+- VERIFIED / PARTIAL / ABSENT / UNVERIFIED / NOT APPLICABLE
+- exact file path
+- exact line number(s)
+- component/function/schema where relevant
+- current website copy/behaviour
+- supporting or contradicting product evidence
+- risk of changing the public claim
+- priority
+
+Explicitly audit:
+- hero copy
+- primary CTA
+- Milla positioning
+- Vida positioning
+- FIGSY positioning
+- Nexus positioning
+- Meeting Brief readiness
+- calibration readiness
+- product-demo readiness
+- booking proof
+- pricing language
+- managed-service language
+- compliance claims
+- GDPR/POPIA/consent wording
+- self-proof vs external proof
+- section repetition
+- homepage complexity
+- first-10-client proof readiness
+
+Do not rewrite the website.
+
+Return:
+1. executive verdict
+2. current homepage story
+3. completed messaging/capability matrix
+4. Milla-first positioning verdict
+5. "Milla books my meetings" defensibility verdict
+6. Meeting Brief/calibration readiness
+7. product-demo readiness
+8. pricing consistency verdict
+9. managed-service positioning verdict
+10. compliance-claim audit
+11. proof inventory
+12. top 10 simplification opportunities
+13. top 10 strengths to retain
+14. claims that should NOT be changed yet
+15. claims disproved by repository evidence
+16. unverified areas
+
+The commercial outcome boundary is MEETING_BOOKED.
+
+Do not change the code.
+</pre>
+</section>
+
+<section>
+<h2>23. Scope note</h2>
+<p class="small">This artifact uses Jack & Jill only as a product-design reference for simplicity, role clarity, proof and outcome-led storytelling. It is not an instruction to copy their wording, visual design, character model, recruitment workflow or marketplace mechanics. The goal is to determine whether Get-Kind can express its own product more simply and truthfully.</p>
+</section>
+
+</main></body>
+</html>

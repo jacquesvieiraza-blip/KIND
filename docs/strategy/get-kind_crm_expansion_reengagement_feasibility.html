@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Get-Kind — CRM Expansion & Re-Engagement Feasibility Verification</title>
+<style>
+:root{
+  --bg:#0b1020;--panel:#121a30;--panel2:#18213a;--text:#eef2ff;--muted:#aeb8d4;
+  --line:#2a3658;--good:#93f5ba;--warn:#ffd782;--bad:#ff9a9a;--accent:#9fd0ff;--code:#0a0f1d
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(180deg,var(--bg),#0e1426);color:var(--text);line-height:1.55}
+main{max-width:1180px;margin:0 auto;padding:48px 24px 72px}
+header,section,.card{background:var(--panel);border:1px solid var(--line);border-radius:16px}
+header{padding:30px;margin-bottom:24px;background:linear-gradient(135deg,var(--panel),#10172b)}
+section{padding:24px;margin:18px 0}
+h1{margin:0 0 10px;font-size:2rem;line-height:1.15} h2{margin-top:0;font-size:1.4rem} h3{margin-bottom:8px}
+p{margin:10px 0}.meta,.small{color:var(--muted);font-size:.92rem}
+.callout{border-left:4px solid var(--accent);background:var(--panel2);padding:14px 16px;border-radius:10px;margin:14px 0}
+.success{border-left-color:var(--good)}.warning{border-left-color:var(--warn)}.critical{border-left-color:var(--bad)}
+code,pre{font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace}
+code{background:var(--code);border:1px solid #202b49;border-radius:6px;padding:2px 6px;color:#d8e4ff}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--code);border:1px solid #202b49;border-radius:12px;padding:16px;color:#d8e4ff;overflow-x:auto}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:.95rem}
+th,td{border:1px solid var(--line);padding:10px 12px;vertical-align:top;text-align:left}th{background:#18233f}
+ol,ul{padding-left:22px}li{margin:6px 0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}.card{padding:18px}
+.tag{display:inline-block;border:1px solid var(--line);background:#131d36;color:var(--muted);border-radius:999px;padding:4px 9px;margin:3px 4px 3px 0;font-size:.82rem}
+</style>
+</head>
+<body><main>
+
+<header>
+<h1>Get-Kind — CRM Expansion & Re-Engagement Feasibility Verification</h1>
+<p class="meta">Purpose: ask Claude Code to verify whether the current Get-Kind architecture can support native client CRM connectivity after launch, without implementing it now.</p>
+<p class="meta"><strong>Planned action point:</strong> Post-launch — 25 August 2026.</p>
+</header>
+
+<section>
+<h2>1. Current product position</h2>
+<p>Get-Kind currently supports client lead ingestion through CSV, but does not currently have native plumbing to connect to a client's CRM.</p>
+
+<div class="grid">
+<div class="card">
+<h3>Closed Won</h3>
+<p>Potential future use: identify existing customer accounts and relevant contacts for <strong>expansion</strong> campaigns, subject to the client's instructions, data minimisation, suppression and the applicable outreach rules.</p>
+</div>
+<div class="card">
+<h3>Closed Lost</h3>
+<p>Potential future use: identify previously lost opportunities that may be suitable for <strong>re-engagement</strong>, subject to loss reason, timing/cool-down, suppression, prior objections and the global contact-permission engine.</p>
+</div>
+</div>
+
+<div class="callout warning">
+<strong>Do not assume “Closed Lost” means “safe to contact again”.</strong>
+<p>Lost opportunities must not be recycled automatically if the record shows an opt-out, do-not-contact instruction, legal restriction, unsuitable loss reason, or any other suppression condition.</p>
+</div>
+</section>
+
+<section>
+<h2>2. Recommended product boundary</h2>
+<p>The initial CRM integration should be considered a <strong>read-only ingestion and segmentation capability</strong>, not a bidirectional CRM replacement.</p>
+
+<pre>
+CLIENT CRM
+   ↓
+read authorised records
+   ↓
+normalise account / contact / opportunity status
+   ↓
+deduplicate against Get-Kind
+   ↓
+apply suppression + compliance rules
+   ↓
+segment:
+   CLOSED WON → expansion candidate pool
+   CLOSED LOST → re-engagement candidate pool
+   ↓
+client approves campaign
+   ↓
+existing Get-Kind campaign / sequence / meeting-booking engine
+</pre>
+
+<p>Write-back to the CRM can be evaluated later. It is not required for the first useful version.</p>
+</section>
+
+<section>
+<h2>3. What Claude Code must verify</h2>
+<p>Claude must inspect the current repository and answer whether native CRM integration is architecturally feasible without a major rewrite.</p>
+
+<table>
+<thead><tr><th>Capability</th><th>Question to verify</th></tr></thead>
+<tbody>
+<tr><td>Tenant isolation</td><td>Can CRM credentials, mappings and imported records be isolated per client?</td></tr>
+<tr><td>Secrets handling</td><td>Is there an existing secure pattern for per-client OAuth tokens / API credentials?</td></tr>
+<tr><td>Connector abstraction</td><td>Is there an API/provider abstraction that could support CRM connectors cleanly?</td></tr>
+<tr><td>Background jobs</td><td>Can the system run scheduled sync jobs safely and idempotently?</td></tr>
+<tr><td>Webhooks</td><td>Is there an existing authenticated webhook pattern suitable for CRM change events?</td></tr>
+<tr><td>Lead/account model</td><td>Can current schemas represent CRM account, contact and opportunity IDs?</td></tr>
+<tr><td>Status mapping</td><td>Can external stages be normalised into <code>closed_won</code>, <code>closed_lost</code> and other states?</td></tr>
+<tr><td>Deduplication</td><td>Can CRM contacts/accounts be matched safely to existing Get-Kind leads and lead_pool records?</td></tr>
+<tr><td>Provenance</td><td>Can imported records retain CRM source, external ID, sync time and client ownership?</td></tr>
+<tr><td>Suppression</td><td>Will imported CRM records still pass all existing opt-out / employer / jurisdiction gates before outreach?</td></tr>
+<tr><td>Audit logging</td><td>Can syncs, imports, stage changes and campaign eligibility decisions be audited?</td></tr>
+<tr><td>CSV reuse</td><td>Can existing CSV ingestion logic be reused as a normalisation layer for CRM data?</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>4. Closed Won — expansion candidate flow</h2>
+<p>The intended future use is to surface additional revenue opportunities from existing customer accounts without treating the CRM as a general data dump.</p>
+
+<pre>
+CRM opportunity = CLOSED WON
+        ↓
+identify customer account
+        ↓
+retrieve only required account/contact fields
+        ↓
+check:
+- existing Get-Kind suppression
+- country / contact eligibility
+- role relevance
+- current customer relationship
+- previous campaign history
+        ↓
+identify expansion personas / whitespace
+        ↓
+client approves expansion campaign
+        ↓
+Get-Kind sources / enriches only where needed
+        ↓
+campaign → sequence → MEETING_BOOKED
+</pre>
+
+<p>Claude should verify whether the current data model can distinguish:</p>
+<ul>
+<li>existing customer account vs new prospect;</li>
+<li>original opportunity/contact vs new expansion contact;</li>
+<li>CRM source record vs externally sourced record;</li>
+<li>client-owned historical relationship vs Get-Kind generated prospect;</li>
+<li>campaign history against the same account.</li>
+</ul>
+</section>
+
+<section>
+<h2>5. Closed Lost — re-engagement candidate flow</h2>
+<p>The intended future use is to make previously lost opportunities discoverable for a controlled re-engagement campaign.</p>
+
+<pre>
+CRM opportunity = CLOSED LOST
+        ↓
+read loss metadata
+        ↓
+hard exclusion checks
+        ↓
+eligible for re-engagement?
+   ┌───────────────┴───────────────┐
+  NO                              YES
+   ↓                                ↓
+retain only for record         apply cool-down /
+do not campaign                timing policy
+                                    ↓
+                           verify contact/current role
+                                    ↓
+                           global permission gate
+                                    ↓
+                           client approves campaign
+                                    ↓
+                           campaign → MEETING_BOOKED
+</pre>
+
+<p>Claude should verify whether the present architecture could support re-engagement rules based on fields such as:</p>
+
+<pre>
+opportunity_id
+account_id
+contact_id
+closed_lost_at
+loss_reason
+last_contact_at
+previous_campaign_id
+previous_reply_intent
+do_not_contact
+opt_out
+country
+cooldown_until
+reengagement_eligible
+reengagement_reason
+</pre>
+</section>
+
+<section>
+<h2>6. Hard exclusions for re-engagement</h2>
+<p>Claude is not being asked to determine legal sufficiency. It should verify whether the architecture can enforce hard exclusions before a Closed Lost record becomes campaignable.</p>
+
+<ul>
+<li>explicit unsubscribe / opt-out;</li>
+<li>client DNC instruction;</li>
+<li>employer floor suppression;</li>
+<li>prior objection to marketing;</li>
+<li>unknown / blocked jurisdiction under the global permission framework;</li>
+<li>loss reason that the client marks as permanently unsuitable;</li>
+<li>contact has left the account and identity cannot be safely refreshed;</li>
+<li>cool-down period has not expired;</li>
+<li>duplicate active opportunity / active client conversation.</li>
+</ul>
+</section>
+
+<section>
+<h2>7. CRM should remain the system of record</h2>
+<div class="callout success">
+<strong>Recommended architecture:</strong>
+<p>The client's CRM remains authoritative for account, opportunity and sales-stage state. Get-Kind consumes only the data required to select and run campaigns.</p>
+</div>
+
+<pre>
+CRM = system of record for:
+- accounts
+- contacts
+- opportunities
+- won/lost state
+- loss reason
+- client ownership
+
+GET-KIND = system of action for:
+- sourcing
+- enrichment
+- compliance gating
+- campaign selection
+- sequencing
+- reply handling
+- booking meetings
+</pre>
+</section>
+
+<section>
+<h2>8. Sync model Claude should assess</h2>
+<p>Claude should compare three possible integration approaches against the current codebase.</p>
+
+<table>
+<thead><tr><th>Model</th><th>Description</th><th>What Claude should assess</th></tr></thead>
+<tbody>
+<tr>
+<td>A. Scheduled pull</td>
+<td>Get-Kind periodically reads changed CRM records through the CRM API.</td>
+<td>Existing job scheduler, token handling, rate limits, incremental cursors, idempotency.</td>
+</tr>
+<tr>
+<td>B. Webhook + reconciliation</td>
+<td>CRM sends change events; Get-Kind periodically reconciles as a safety net.</td>
+<td>Webhook authentication, retry handling, event dedup, background jobs.</td>
+</tr>
+<tr>
+<td>C. Manual sync / CSV bridge</td>
+<td>Existing CSV model becomes an interim post-launch feature while native connectors are developed.</td>
+<td>Whether CSV importer can accept opportunity status/loss reason/external IDs with minimal architecture change.</td>
+</tr>
+</tbody>
+</table>
+
+<p>Claude should recommend which approach best fits the existing architecture, but must not implement it.</p>
+</section>
+
+<section>
+<h2>9. First native CRM connector strategy</h2>
+<p>Claude should verify whether the codebase supports a connector interface that could later be implemented approximately as:</p>
+
+<pre>
+CRMConnector
+  authenticate()
+  testConnection()
+  listChangedAccounts()
+  listChangedContacts()
+  listChangedOpportunities()
+  normaliseAccount()
+  normaliseContact()
+  normaliseOpportunity()
+  checkpointSync()
+</pre>
+
+<p>This is conceptual only. Claude must not create this interface or any code.</p>
+</section>
+
+<section>
+<h2>10. Data minimisation</h2>
+<p>The future integration should avoid copying an entire CRM into Get-Kind. Claude should assess whether the current product can work with a deliberately small field set.</p>
+
+<p>Candidate minimum fields:</p>
+
+<pre>
+CRM account external ID
+account/company name
+domain
+CRM contact external ID
+business email
+name
+job title
+country
+opportunity external ID
+opportunity status
+closed won / closed lost date
+loss reason where applicable
+owner / client identifier
+last relevant activity date
+DNC / opt-out markers if available
+sync timestamp
+</pre>
+</section>
+
+<section>
+<h2>11. Matching and deduplication</h2>
+<p>Claude should inspect the current CRM dedup logic already used before enrolment and determine whether it could support a native sync.</p>
+
+<p>Verify potential matching keys and collision handling:</p>
+
+<pre>
+CRM external ID        → strongest within one client
+email                   → person identity candidate
+company domain          → account identity candidate
+name + company          → weaker fallback
+existing lead ID        → Get-Kind identity
+</pre>
+
+<div class="callout warning">
+<strong>Client-scoped identity matters.</strong>
+<p>A CRM external ID from Client A must never resolve to Client B's data. Existing Nexus/RLS protections should be reviewed for this path.</p>
+</div>
+</section>
+
+<section>
+<h2>12. Post-launch action — 25 August 2026</h2>
+
+<div class="callout success">
+<strong>Action: CRM Native Integration Feasibility Review</strong>
+<p>Run this read-only Claude Code verification after launch. The outcome should be an engineering decision document, not code.</p>
+</div>
+
+<p>Required decision:</p>
+
+<pre>
+GO
+Architecture already supports native CRM connectors
+with bounded additions.
+
+GO WITH PREREQUISITES
+Feasible, but specific platform plumbing must be added first.
+
+DEFER / REFACTOR
+Current architecture would create unsafe coupling or require
+a material rewrite before CRM connectors should be built.
+</pre>
+
+<p>Claude must provide a proposed post-launch implementation order only at the level of components and dependencies. It must not provide patches or implement anything.</p>
+</section>
+
+<section>
+<h2>13. Required Claude Code audit questions</h2>
+<ol>
+<li>Where is the existing CSV import implemented?</li>
+<li>What schemas/tables receive CSV-imported leads?</li>
+<li>Can CSV imports currently carry external IDs and source metadata?</li>
+<li>Is there a reusable normalisation layer between imported data and lead records?</li>
+<li>Does the repository already contain CRM-specific code, adapters, types, environment variables or unused connectors?</li>
+<li>What is the current CRM dedup path referenced in enrolment?</li>
+<li>Does that dedup path call a live external CRM or only an internal/client-supplied dataset?</li>
+<li>How are per-client external credentials currently stored for other integrations?</li>
+<li>Is OAuth supported anywhere?</li>
+<li>Are encrypted per-client secrets supported?</li>
+<li>What background-job mechanism exists?</li>
+<li>Can it support incremental syncs and retries?</li>
+<li>What webhook infrastructure already exists?</li>
+<li>Can webhook events be authenticated and deduplicated?</li>
+<li>Can current schemas represent CRM account/contact/opportunity IDs without collisions?</li>
+<li>Can an opportunity be represented separately from a lead?</li>
+<li>Can the product represent closed-won and closed-lost timestamps?</li>
+<li>Can it retain loss reason?</li>
+<li>Can it model a client-defined re-engagement cool-down?</li>
+<li>Can Closed Lost records be hard-blocked by existing suppression controls?</li>
+<li>Can Closed Won accounts be distinguished from ordinary net-new prospects?</li>
+<li>Can expansion contacts be associated with an existing customer account?</li>
+<li>Can imported CRM records flow through the global permission gate before outreach?</li>
+<li>Can imported records flow through FIGSY/campaign selection without bypassing existing controls?</li>
+<li>Can CRM source provenance be retained in the audit trail?</li>
+<li>Can sync actions be audited per client?</li>
+<li>Can one client's CRM records ever leak into another client's lead pool or learning layer?</li>
+<li>Can native CRM integration be added without modifying the core send path?</li>
+<li>Which architecture is the best fit: scheduled pull, webhook + reconciliation, or enhanced CSV bridge?</li>
+<li>What are the minimum prerequisites before a first native connector can be safely built?</li>
+</ol>
+</section>
+
+<section>
+<h2>14. Required output from Claude Code</h2>
+
+<h3>A. Feasibility verdict</h3>
+<p>Return one of:</p>
+<ul>
+<li><strong>GO</strong></li>
+<li><strong>GO WITH PREREQUISITES</strong></li>
+<li><strong>DEFER / REFACTOR</strong></li>
+</ul>
+
+<h3>B. Evidence matrix</h3>
+<table>
+<thead><tr><th>Capability</th><th>Status</th><th>Evidence</th><th>Current behaviour</th><th>Needed for CRM integration</th><th>Severity</th></tr></thead>
+<tbody>
+<tr><td>CSV ingestion</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>External IDs</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Account/contact/opportunity model</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Per-client credentials</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>OAuth readiness</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Background sync</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Webhook readiness</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Deduplication</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Closed Won segmentation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Closed Lost segmentation</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Suppression enforcement</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Compliance-gate routing</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Auditability</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>Tenant isolation</td><td></td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+
+<h3>C. Proposed future component map — no code</h3>
+<p>Describe the likely components required and where they would integrate into the current architecture. Do not write implementation code.</p>
+
+<h3>D. Post-launch priority</h3>
+<p>Give this feature a recommended priority of P0 / P1 / P2 / P3 for work beginning after 25 August 2026, with reasoning based on expected client value, architectural risk and effort.</p>
+
+<h3>E. First connector recommendation</h3>
+<p>Based only on architectural fit discovered in the repository, state what characteristics the first CRM connector should have. Do not select a vendor unless the repository or product requirements provide a clear reason.</p>
+</section>
+
+<section>
+<h2>15. Copy/paste Claude Code instruction</h2>
+
+<pre>
+READ-ONLY CRM FEASIBILITY VERIFICATION.
+
+Read this HTML artifact in full and inspect the current Get-Kind repository.
+
+The goal is to determine whether native client CRM connectivity can be added after launch to support:
+
+1. CLOSED WON → expansion candidate campaigns
+2. CLOSED LOST → controlled re-engagement candidate campaigns
+
+The current product can accept CSV uploads but is believed not to have native CRM connector plumbing. Verify that claim independently.
+
+DO NOT:
+- modify code
+- create repository files
+- delete or rename files
+- apply patches
+- run migrations
+- write to databases
+- modify configuration
+- change infrastructure
+- commit or push
+- open a pull request
+- implement CRM connectors
+- implement schemas
+- generate production code
+
+For every finding provide:
+- status: VERIFIED / PARTIAL / ABSENT / UNVERIFIED / NOT APPLICABLE
+- exact file path
+- line number(s)
+- function/class/schema/table
+- evidence
+- architectural implication
+- severity
+
+Specifically determine whether the current architecture can support:
+- per-client CRM authentication
+- OAuth / secret storage
+- scheduled incremental sync
+- webhooks
+- account/contact/opportunity external IDs
+- closed-won / closed-lost states
+- loss reason and timestamps
+- CRM provenance
+- client-scoped dedup
+- expansion candidate segmentation
+- re-engagement candidate segmentation
+- suppression before campaign eligibility
+- global permission gating
+- audit logging
+- tenant isolation
+- reuse of CSV normalisation logic
+
+Treat the client's CRM as the future system of record.
+Treat Get-Kind as the system of action for sourcing, campaigning, sequencing and MEETING_BOOKED.
+
+For CLOSED LOST, verify that a future implementation could enforce hard exclusions such as opt-out, DNC, prohibited jurisdiction, unsuitable loss reason and cooldown.
+
+For CLOSED WON, verify that a future implementation could distinguish existing customer accounts and expansion contacts from net-new prospects.
+
+Do not assess anything after MEETING_BOOKED.
+
+Return:
+1. GO / GO WITH PREREQUISITES / DEFER-REFACTOR
+2. evidence matrix
+3. current architecture diagram in text
+4. proposed future component map in text only
+5. prerequisites
+6. likely architectural risks
+7. recommended sync model
+8. recommended post-launch priority
+9. a phased component-level plan beginning after 25 August 2026
+10. anything in this artifact disproved by the repository
+
+Do not change the code.
+</pre>
+</section>
+
+<section>
+<h2>16. Scope note</h2>
+<p class="small">This artifact is for technical feasibility verification only. It does not itself authorise re-contacting a CRM record. Any later expansion or re-engagement campaign must still pass client instructions, suppression, provenance, jurisdiction and channel-specific compliance controls.</p>
+</section>
+
+</main></body>
+</html>

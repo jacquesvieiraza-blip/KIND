@@ -169,25 +169,24 @@ function BuyingSignals({ lead }: { lead: Lead }) {
   if ((lead.score ?? 0) >= 80)
     signals.push({ label: '🔥 High fit', color: 'bg-red-50 text-red-600' })
 
-  // 🛑 THIS BADGE IS FALSE, AND IT IS THE MOST SERIOUS INSTANCE OF THE apollo_consented
-  // NAMING PROBLEM IN THE PRODUCT — logged as item #677, NOT fixed here.
+  // ⛓️ THE "✓ GDPR" BADGE WAS DELETED HERE ON 20 Aug (item #677) — recorded, not silently
+  // dropped, so nobody re-adds it believing it was an oversight.
   //
-  // The comment above it used to read "Apollo consented = already opted in". That belief is
-  // exactly what this pass exists to stop, and here it had already become a **green
-  // compliance badge shown to a paying client**: any lead whose email a provider marked
-  // verified — or, via routes/icps.ts, merely `likely_to_engage`, a PREDICTION — is labelled
-  // "✓ GDPR" on their lead list. Nobody opted in. Nothing was recorded. A client reading this
-  // would reasonably believe that contact is cleared to email, and could repeat that belief
-  // to their own customers.
+  // It read: `if (lead.apollo_consented) signals.push({ label: '✓ GDPR' })`, under a comment
+  // saying "Apollo consented = already opted in". Nobody opted in. `apollo_consented` means a
+  // provider marked the email VERIFIED — or, via routes/icps.ts, merely `likely_to_engage`,
+  // which is a PREDICTION that an address will engage. So the product showed a paying client
+  // a green compliance chip, per lead, on the strength of an email check, and that client
+  // could repeat the claim to their own customers.
   //
-  // apollo_consented = provider-VERIFIED email, treated as a legitimate-interest contact.
-  // It is NOT a consent record. Naming predates the pivot; do not build consent logic on it.
+  // DELETED RATHER THAN REWORDED, on the founder's ruling of 20 Aug. A lead's data-protection
+  // position is not something a two-word chip can carry: any wording leaves a compliance claim
+  // on a surface that cannot support one.
   //
-  // Removing the badge is an executable change and this pass is comments-only, so it is
-  // logged rather than done. It should be deleted, not reworded — a lead's GDPR position is
-  // not something a lead list can summarise in a two-word chip.
-  if (lead.apollo_consented)
-    signals.push({ label: '✓ GDPR', color: 'bg-green-50 text-green-600' })
+  // ⚠️ WHAT IS STILL HERE IS CORRECT AND MUST STAY. The "POPIA Consented" stat counts
+  // `status = 'consent_given'` — a real consent record — and the page footer states the basis
+  // honestly ("sourced from Apollo for B2B outreach under legitimate interest"). This removes
+  // the one per-lead claim that was false, not the product's compliance language.
 
   // Job title signals (hiring/growth keywords)
   const title = (lead.job_title ?? '').toLowerCase()

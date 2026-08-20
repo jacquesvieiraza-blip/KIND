@@ -16,7 +16,7 @@ import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
-import { splitPoolAndRemainder , poolWriteAllowed} from '../lib/pool-sourcing'
+import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine } from '../lib/pool-sourcing'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
@@ -591,9 +591,20 @@ export async function runIcpJob(
       // NOTHING: a record bought once for any client is reused, cost never rewritten.
       // Belt over the structural guard (this block only runs in the non-demo branch):
       // the pool holds ONLY bought records — a demo run must never write to it.
-      if (poolWriteAllowed(isDemo, poolUpserts.length)) {
+      //
+      // ⚠️ PROVENANCE TRIPWIRE (F13/F15). `lead_pool` is CROSS-CLIENT: a record bought for this
+      // client is served to the next one, and whether we may do that is provider-specific. This
+      // path tags `source: 'pdl'` two dozen lines up, so it refuses nothing today — the guard is
+      // for the second sourcing path, written by somebody who does not know the pool is shared,
+      // that tags its records `apollo` or forgets to tag them at all.
+      //
+      // The refusal skips the POOL write ONLY. Every lead this run bought is already inserted,
+      // delivered and charged above; a licensing precaution must never become an outage.
+      const { eligible: poolEligible, refused: poolRefused } = splitPoolEligible(poolUpserts)
+      if (poolRefused.length > 0) console.error(poolRefusalLine(poolRefused))
+      if (poolWriteAllowed(isDemo, poolEligible.length)) {
         const { error: poolErr } = await db.from('lead_pool')
-          .upsert(poolUpserts, { onConflict: 'email_norm', ignoreDuplicates: true })
+          .upsert(poolEligible, { onConflict: 'email_norm', ignoreDuplicates: true })
         if (poolErr) console.error('[icp] lead_pool upsert failed (non-fatal):', poolErr)
       }
     }

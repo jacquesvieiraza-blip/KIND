@@ -149,6 +149,11 @@ function CampaignMicroBar({ lead }: { lead: Lead }) {
 // wired to real Apollo org data (PRODUCT-INVENTORY item 247). Hide-until-real.
 
 // ── Apollo badge ──────────────────────────────────────────────────────────────
+// ⚠️ THE PROP IS NAMED `consented` AND THE VALUE IS NOT CONSENT. It is
+// `lead.apollo_consented` — a provider-VERIFIED email, treated as a legitimate-interest
+// contact, NOT a consent record (see @kind/shared `Lead`). The rendered text is "✓ Apollo",
+// which is true and claims nothing about permission; the prop name is the only thing wrong
+// here, and renaming it is an executable change left for the rename pass.
 function ApolloBadge({ consented }: { consented: boolean }) {
   return consented
     ? <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-[#F5F0FF] text-[#7C3AED] font-medium">✓ Apollo</span>
@@ -164,7 +169,23 @@ function BuyingSignals({ lead }: { lead: Lead }) {
   if ((lead.score ?? 0) >= 80)
     signals.push({ label: '🔥 High fit', color: 'bg-red-50 text-red-600' })
 
-  // Apollo consented = already opted in
+  // 🛑 THIS BADGE IS FALSE, AND IT IS THE MOST SERIOUS INSTANCE OF THE apollo_consented
+  // NAMING PROBLEM IN THE PRODUCT — logged as item #677, NOT fixed here.
+  //
+  // The comment above it used to read "Apollo consented = already opted in". That belief is
+  // exactly what this pass exists to stop, and here it had already become a **green
+  // compliance badge shown to a paying client**: any lead whose email a provider marked
+  // verified — or, via routes/icps.ts, merely `likely_to_engage`, a PREDICTION — is labelled
+  // "✓ GDPR" on their lead list. Nobody opted in. Nothing was recorded. A client reading this
+  // would reasonably believe that contact is cleared to email, and could repeat that belief
+  // to their own customers.
+  //
+  // apollo_consented = provider-VERIFIED email, treated as a legitimate-interest contact.
+  // It is NOT a consent record. Naming predates the pivot; do not build consent logic on it.
+  //
+  // Removing the badge is an executable change and this pass is comments-only, so it is
+  // logged rather than done. It should be deleted, not reworded — a lead's GDPR position is
+  // not something a lead list can summarise in a two-word chip.
   if (lead.apollo_consented)
     signals.push({ label: '✓ GDPR', color: 'bg-green-50 text-green-600' })
 
@@ -227,6 +248,8 @@ const TABS: TabDef[] = [
   {
     id: 'in_figsy',
     label: 'In FIGSY',
+    // apollo_consented is a VERIFIED-EMAIL flag, not consent (see @kind/shared `Lead`) — this
+    // count is honest because it also requires a consent status.
     getCount: (leads, stats) => stats?.in_figsy ?? leads.filter(l => l.apollo_consented && (l.status === 'consent_given' || l.status === 'consent_sent')).length,
     pillCls: 'text-indigo-700 hover:bg-indigo-50',
     activePillCls: 'bg-indigo-600 text-white',
@@ -557,6 +580,7 @@ export default function LeadsPage() {
       if (statusFilter) params.set('status', statusFilter)
       if (minScore)     params.set('min_score', minScore)
       if (icpFilter)    params.set('icp_id', icpFilter)
+      // Filters to VERIFIED-EMAIL leads, not consented ones. See @kind/shared `Lead`.
       if (apolloOnly)   params.set('apollo_consented', 'true')
       if (campaignId)   params.set('campaign_id', campaignId)
 

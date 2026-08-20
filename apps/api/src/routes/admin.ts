@@ -568,6 +568,8 @@ adminRouter.post('/seed-leads', async (req: Request, res: Response) => {
       score_reasoning:  `Strong ICP match: ${l.seniority} at a ${l.industry} company in South Africa`,
       company_size:     l.company_size,
       tech_stack:       [['HubSpot', 'Slack'], ['Salesforce', 'AWS'], ['Pipedrive', 'Google Workspace']][i % 3],
+      // Demo data. apollo_consented = provider-VERIFIED email, a legitimate-interest contact —
+      // NOT a consent record. Nobody in this seed consented to anything; they are invented.
       apollo_consented: true,
       status:           ['pending', 'pending', 'pending', 'contacted'][i % 4] as string,
       delivered_at:     i % 4 === 3 ? now : null,

@@ -114,6 +114,12 @@ create table if not exists public.leads (
   seniority         text,
   tech_stack        text[],
   apollo_id         text,                   -- Apollo.io record id
+  -- ⚠️ THE NAME IS A LIE, AND THIS IS THE COLUMN'S ONE HOME FOR SAYING SO.
+  -- apollo_consented = provider-VERIFIED email, treated as a legitimate-interest contact.
+  -- It is NOT a consent record. Naming predates the pivot; do not build consent logic on
+  -- this flag. Recorded consent lives on `status` ('consent_given') + `consent_given_at`
+  -- + `consent_token` a few lines below — those are the evidence, this is not.
+  -- Renaming the column is the real fix and is deliberately NOT done in launch week.
   apollo_consented  boolean not null default false,
   -- scoring
   score             integer check (score >= 0 and score <= 100),

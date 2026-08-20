@@ -39,6 +39,9 @@ export async function enrichAndDeliverLeads(
       if (email) {
         // apollo_consented: came through Apollo's verified-email filter and we now
         // hold a real work email — mark it as Apollo-sourced contactable.
+        // ⚠️ CONTACTABLE, NOT CONSENTED. The flag is a provider-VERIFIED email, treated as a
+        // legitimate-interest contact. It is NOT a consent record — naming predates the pivot.
+        // Do not build consent logic on it. See @kind/shared `Lead` for the full note.
         await db.from('leads').update({ email, apollo_consented: true }).eq('id', r.id)
       }
     }

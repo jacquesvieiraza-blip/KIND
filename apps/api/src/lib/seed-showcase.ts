@@ -64,6 +64,8 @@ export async function seedShowcaseData(clientId: string, icpId: string | null): 
       job_title: rand(TITLES), company: co, industry: ind, country,
       seniority: rand(SENIORITY), linkedin_url: `https://linkedin.com/in/${slug(first)}-${slug(last)}`,
       score: ri(62, 97), score_reasoning: `Strong match: ${ind} decision-maker in ${country}`,
+      // apollo_consented = provider-VERIFIED email, a legitimate-interest contact — NOT a
+      // consent record. Showcase data; nobody here consented to anything.
       company_size: rand(SIZES), tech_stack: rand(STACKS), apollo_consented: true,
       status, delivered_at: daysAgo(ri(1, 35)),
       estimated_deal_value_usd: deal,

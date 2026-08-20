@@ -116,6 +116,9 @@ leadRouter.get('/stats', async (req: AuthRequest, res) => {
       // Pending Review pill: high-quality leads waiting for approval (score ≥ 70, not yet enrolled).
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).gte('score', 70).in('status', ['pending', 'scored']),
       // In FIGSY pill: consented leads in an active outreach state.
+      // apollo_consented = provider-VERIFIED email, a legitimate-interest contact — NOT consent
+      // (see @kind/shared `Lead`). This count is safe because it ALSO requires a consent status;
+      // the flag alone would not mean what "in FIGSY" implies.
       db.from('leads').select('id', { count: 'exact', head: true }).eq('client_id', clientId).not('delivered_at', 'is', null).eq('apollo_consented', true).in('status', ['consent_given', 'consent_sent']),
     ])).map(r => r.status === 'fulfilled' ? r.value : { count: 0 })
 
@@ -178,6 +181,8 @@ leadRouter.get('/', async (req: AuthRequest, res) => {
     }
     if (min_score)        query = query.gte('score', Number(min_score))
     if (icp_id)           query = query.eq('icp_id', icp_id as string)
+    // Filters on the VERIFIED-EMAIL flag, not on consent (see @kind/shared `Lead`). A caller
+    // reading this query name as "only consented leads" would be wrong.
     if (apollo_consented) query = query.eq('apollo_consented', apollo_consented === 'true')
     if (campaignLeadIds)  query = query.in('id', campaignLeadIds)
 
@@ -567,6 +572,7 @@ leadRouter.post('/', rateLimit({ limit: 60, windowMs: 60_000, key: 'leads-create
       seniority:                 z.string().optional(),
       tech_stack:                z.array(z.string()).optional(),
       apollo_id:                 z.string().optional(),
+      // NOT consent — a provider-VERIFIED email flag. See @kind/shared `Lead`.
       apollo_consented:          z.boolean().default(false),
       score:                     z.number().min(0).max(100).optional(),
       score_reasoning:           z.string().optional(),
@@ -1077,6 +1083,13 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
     const refused: Record<string, number> = {}
 
     for (const lead of leads ?? []) {
+      // ⚠️ THIS COUNTER IS MISNAMED, AND IT IS LOGGED AS ITEM #675 RATHER THAN FIXED HERE.
+      // `apollo_consented` is a provider-VERIFIED email, NOT a consent record — so a lead
+      // skipped on this line is reported to the operator as "already consented" when nobody
+      // clicked anything. Nothing unsafe happens (no message is sent to anyone who should not
+      // get one); the defect is the sentence the operator reads afterwards. Renaming the key
+      // changes the response shape, so the founder ruled it out of this comments-only pass on
+      // 20 Aug — "leave it, log it as separate item".
       if (lead.apollo_consented)              { alreadyConsented++; continue }
       if (lead.status === 'opted_out')        { optedOut++;         continue }
       if (lead.consent_sent_at)              { alreadySent++;      continue }

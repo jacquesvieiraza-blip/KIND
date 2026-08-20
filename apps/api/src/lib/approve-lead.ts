@@ -339,6 +339,9 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
   // So: put the money back the same way the dead-email path does, release the claim so a
   // retry can work, and tell the client plainly rather than handing them a revealed lead
   // whose email we failed to keep.
+  // apollo_consented is set here because we now hold a VERIFIED email — it records that, and
+  // nothing else. It is NOT consent (see @kind/shared `Lead`); the client paying $4 to reveal
+  // a contact is not the contact agreeing to be emailed.
   const { error: emailErr } = await db.from('leads')
     .update({ email, apollo_consented: true }).eq('id', claim.id)
   if (emailErr) {

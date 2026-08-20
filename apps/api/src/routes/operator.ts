@@ -3,6 +3,7 @@ import { db } from '@kind/db'
 import { normalizeRevealEmails } from '../lib/billing-rules'
 import { adminKeyValid } from './admin'
 import { getExcludedClientIds } from '../lib/real-clients'
+import { documentReadFailure } from '../lib/document-read-failure'
 import { writeOperatorAudit, campaignAuditAction } from '../lib/operator-audit'
 import { PAID_TX_TYPES, CASH_TX_TYPES, packState, packLabel, PACK_PRICE_USD } from '../lib/onboarding-pack'
 import { MAX_SEQUENCE_STEPS } from '@kind/shared'
@@ -4315,7 +4316,7 @@ operatorRouter.get('/governed-documents', async (_req: Request, res) => {
     // A failed read must NOT render as an empty library — "no governed documents" and "we
     // could not ask" are opposite facts and only one of them is calm.
     console.error('[operator/governed-documents]', err)
-    res.status(500).json({ success: false, error: 'Could not read the governed documents' })
+    res.status(500).json({ success: false, ...documentReadFailure(err) })
   }
 })
 
@@ -4340,7 +4341,7 @@ operatorRouter.get('/governed-documents/:id', async (req: Request, res) => {
     res.json({ success: true, data: { current: row, chain } })
   } catch (err) {
     console.error('[operator/governed-documents/:id]', err)
-    res.status(500).json({ success: false, error: 'Could not read that document' })
+    res.status(500).json({ success: false, ...documentReadFailure(err) })
   }
 })
 
@@ -4394,6 +4395,8 @@ operatorRouter.post('/governed-documents', async (req: Request, res) => {
     res.json({ success: true, data })
   } catch (err) {
     console.error('[operator/governed-documents POST]', err)
-    res.status(500).json({ success: false, error: 'Could not save the document' })
+    // Same mapping on the write path: a missing table looks identical from here, and an
+    // operator who has just typed a document deserves to know it was the migration, not them.
+    res.status(500).json({ success: false, ...documentReadFailure(err) })
   }
 })

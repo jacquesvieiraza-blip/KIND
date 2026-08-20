@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import { stripCommentsForEnvScan } from './env-inventory'
+import { documentReadFailure } from './document-read-failure'
 
 // ── R46 — GOVERNED DOCUMENTS: THE CHAIN IS THE HISTORY, AND NOTHING DELETES ────────────────
 //
@@ -164,6 +165,59 @@ describe('② NOTHING DELETES — asserted as an absence, deliberately', () => {
     expect(audit).toContain("'governed_document_created'")
     expect(audit).toContain("'governed_document_version_added'")
     expect(audit, 'a delete action must not exist in the union').not.toContain("'governed_document_deleted'")
+  })
+})
+
+describe('④ a failed read NAMES THE FIX — the message that cost four round-trips', () => {
+  // ⚠️ WRITTEN FROM A REAL WALK. The founder merged #678, deployed, saw the migration count read
+  // 28, and opened the screen. It said *"Could not read the governed documents"* — the same
+  // sentence for a missing table, a dead API and a network blip. The fact that mattered was that
+  // the migration was QUEUED and not applied, and nothing said so. He opened the raw endpoint,
+  // then Engine, then pressed Run migrations. Four exchanges for a one-button fix.
+  //
+  // The mapper is exercised with the error SHAPES Postgres and PostgREST actually produce,
+  // rather than asserted about in source — a source match would pass on a mapper that never ran.
+
+  // ⚠️ THE REAL FUNCTION, IMPORTED — not a copy rebuilt out of the route's source. A
+  // reconstructed mapper proves the reconstruction; this proves the code that runs. It lives in
+  // its own pure module precisely so this import is possible without pulling in @kind/db.
+  const mapper = documentReadFailure
+
+  it('the mapper is the real exported function, and the route uses it', () => {
+    expect(typeof mapper).toBe('function')
+    expect(ROUTES, 'the route must call it rather than carrying its own copy').toContain('documentReadFailure(err)')
+    expect(mapper(new Error('boom')).error.length).toBeGreaterThan(10)
+  })
+
+  for (const [name, err] of [
+    ['Postgres 42P01 (relation does not exist)', Object.assign(new Error('relation "public.governed_documents" does not exist'), { code: '42P01' })],
+    ['PostgREST PGRST205 (not in the schema cache)', Object.assign(new Error("Could not find the table 'public.governed_documents' in the schema cache"), { code: 'PGRST205' })],
+    ['a bare message with no code at all', new Error('relation "public.governed_documents" does not exist')],
+  ] as const) {
+    it(`${name} → tells the operator to run the migrations`, () => {
+      const out = mapper(err)
+      expect(out.error, 'it must name the SCREEN and the BUTTON, not just the fault').toContain('Run migrations')
+      expect(out.error).toContain('Engine')
+      expect(out.detail, 'and keeps the raw message for the person who can act on it').toBeTruthy()
+    })
+  }
+
+  it('⚠️ AN ORDINARY FAILURE IS NOT MISREPORTED AS A MISSING TABLE', () => {
+    // Without this the mapper could tell everyone to run migrations forever, which is the same
+    // disease in the other direction: a confident wrong instruction stops you looking.
+    const out = mapper(Object.assign(new Error('connection terminated unexpectedly'), { code: '08006' }))
+    expect(out.error).not.toContain('Run migrations')
+    expect(out.error).toContain('Could not read the governed documents')
+    expect(out.detail).toContain('connection terminated')
+  })
+
+  it('the screen no longer wears the server\'s words as its own fallback', () => {
+    // The two were the SAME sentence, so the page looked identical whether the API answered
+    // with a reason or never answered at all. That ambiguity is what made the walk slow.
+    const page = stripCommentsForEnvScan(PAGE)
+    expect(page, 'the API-answered path uses the server reason').toContain('j.error ||')
+    expect(page, 'and the catch says something only a dead API could mean').toContain('did not answer')
+    expect(page, 'the raw detail is shown to the operator').toContain('loadDetail')
   })
 })
 

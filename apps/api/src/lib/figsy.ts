@@ -1734,6 +1734,16 @@ Return ONLY valid JSON:
 /**
  * OPTION A — campaign-ready eligibility (the one rule, used everywhere we enroll).
  *
+ * ⚠️ `apollo_consented` IS NOT CONSENT — third of the three homes for this warning, and it
+ * sits here because this is the read that decides who gets emailed. The flag means a
+ * provider-VERIFIED email, treated as a legitimate-interest contact. **It is NOT a consent
+ * record.** Naming predates the pivot; do not build consent logic on this flag.
+ *
+ * ⚠️ AND THE RULE BELOW IS CORRECT AS WRITTEN — it is not an instance of that mistake. It
+ * enrols on verified-email OR explicit consent *deliberately*, on the legitimate-interest
+ * basis spelled out in the next paragraph, with the opt-out and unsubscribe carrying the
+ * obligation. Read it as a documented decision, not as consent logic built on the flag.
+ *
  * A lead can be enrolled into outreach when it is Apollo-VERIFIED (apollo_consented)
  * OR has explicitly consented — and is NOT opted out / rejected. No separate consent
  * click is required: verified B2B leads are treated as legitimate-interest contacts,

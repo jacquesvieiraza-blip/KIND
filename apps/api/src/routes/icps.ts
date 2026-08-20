@@ -315,6 +315,9 @@ async function servePoolLeads(
     // Insert the pool matches as THIS client's leads — same shape the PDL path sets,
     // so delivery/reveal/scoring is unchanged. $0 marginal: no allowance, no positive
     // ledger cost. Pool emails are PDL-verified-equivalent → apollo_consented true.
+    // ⚠️ VERIFIED-EQUIVALENT, NOT CONSENTED. apollo_consented = a provider-VERIFIED email,
+    // treated as a legitimate-interest contact. It is NOT a consent record; naming predates
+    // the pivot. Do not build consent logic on it. See @kind/shared `Lead`.
     const rows = eligible.map(c => ({
       client_id:        clientId,
       icp_id:           icp.id,
@@ -547,6 +550,11 @@ export async function runIcpJob(
           seniority:        contact.seniority  || null,
           tech_stack:       contact.organization?.technology_names ?? [],
           apollo_id:        contact.id,
+          // ⚠️ NOT CONSENT — a provider-VERIFIED email, treated as a legitimate-interest
+          // contact. Naming predates the pivot; do not build consent logic on it.
+          // ⚠️ AND NOT EVEN UNIFORMLY "VERIFIED": `likely_to_engage` is Apollo's PREDICTION
+          // that an address will engage, not a verification that it exists. This is the one
+          // write that sets the flag on a guess. See @kind/shared `Lead`.
           apollo_consented: contact.email_status === 'verified' ||
                             contact.email_status === 'likely_to_engage',
           status:           'pending',

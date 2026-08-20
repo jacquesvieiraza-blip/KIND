@@ -215,9 +215,11 @@ export function toLeadRow(lead: ParsedLead, clientId: string): Record<string, un
     country:          lead.country,
     tech_stack:       [] as string[],
     apollo_id:        null,
-    // NOT a consent claim. The column is a legacy name from the Apollo-era schema and gates
-    // nothing on its own; consent is tracked on `status` + the consent token. Set false so an
-    // imported row can never be mistaken for one carrying recorded consent.
+    // NOT a consent claim — this site already said so, and the wording is now the canonical
+    // one used at every other site: apollo_consented = provider-VERIFIED email, treated as a
+    // legitimate-interest contact. It is NOT a consent record. Naming predates the pivot; do
+    // not build consent logic on it. Consent is `status` + `consent_given_at` + the token.
+    // Set false here so an imported row can never be mistaken for one carrying consent.
     apollo_consented: false,
     status:           'pending',
     delivered_at:     null,

@@ -94,6 +94,19 @@ export interface Lead {
   seniority: string | null
   tech_stack: string[] | null
   apollo_id: string | null
+  /**
+   * ⚠️ NOT CONSENT, DESPITE THE NAME — one of the three homes for this warning.
+   *
+   * `apollo_consented` = provider-VERIFIED email, treated as a legitimate-interest contact.
+   * **It is NOT a consent record.** Naming predates the pivot; do not build consent logic on
+   * this flag. Recorded consent is `status: 'consent_given'` + `consent_given_at` + the
+   * consent token — those are the evidence a regulator would be shown, this is not.
+   *
+   * It is set true on email VERIFICATION at: approve-lead (the $4 reveal), lead-delivery
+   * (Apollo bulk-match), the icps pool-serve, and the seeders. `routes/icps.ts` also sets it
+   * for Apollo's `likely_to_engage`, which is a PREDICTION rather than a verification — so
+   * the flag is not even uniformly "verified".
+   */
   apollo_consented: boolean
   score: number | null
   score_reasoning: string | null

@@ -100,6 +100,8 @@ async function run() {
     score_reasoning:  `Strong match: ${l.seniority} at ${l.industry} company in South Africa`,
     company_size:     ['51–200', '201–500', '11–50'][i % 3],
     tech_stack:       [['HubSpot', 'Slack'], ['Salesforce', 'AWS'], ['Pipedrive', 'Google Workspace']][i % 3],
+    // Demo data. apollo_consented = provider-VERIFIED email, a legitimate-interest contact —
+    // NOT a consent record. These people are invented and consented to nothing.
     apollo_consented: true,
     status:           ['pending', 'pending', 'pending', 'contacted'][i % 4],
     delivered_at:     i % 4 === 3 ? now : null,

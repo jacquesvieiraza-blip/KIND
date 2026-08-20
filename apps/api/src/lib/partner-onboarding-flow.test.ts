@@ -202,6 +202,105 @@ describe('the emailed link arrives as a FRAGMENT, and something has to read it',
     expect(called).toBeLessThan(read)
   })
 
+  // ── THE CALL, PROVED AGAINST CODE RATHER THAN AGAINST TEXT ────────────────────────────
+  //
+  // ⚠️ WHAT THE TEST ABOVE CAN AND CANNOT DO, SAID PLAINLY. It searches the file for the
+  // characters `await adoptSessionFromHash()`. That is genuinely stronger than the version it
+  // replaced — which matched the bare name and was satisfied by the IMPORT LINE — and it does
+  // fail if the call is deleted. But a text match cannot tell running code from characters:
+  //
+  //   • COMMENT THE CALL OUT — `// const adopted = await adoptSessionFromHash()` — and the
+  //     characters are all still there. The guard above stays GREEN with the call dead.
+  //   • MOVE IT INTO A FUNCTION NOTHING INVOKES, or behind a condition that is never true, and
+  //     the same thing happens. That is #620's `{false && …}` exactly: every string present,
+  //     nothing running, sixteen tests green.
+  //
+  // Both leave the invited partner at "confirmation failed" — the bug this whole block exists
+  // to prevent — with a green suite.
+  //
+  // ⚠️ AND A REAL INVOCATION TEST IS NOT AVAILABLE HERE. Asserting the function is genuinely
+  // CALLED means rendering the component, and the repo has no DOM environment: no `jsdom`, no
+  // `happy-dom`, no `@testing-library`. Adding three dev dependencies to the client app in
+  // launch week, for a page that performs Supabase auth on mount, is a bigger and riskier
+  // change than the hole it closes. **So this is not called an invocation proof.** It is a
+  // source guard that closes the two holes a source guard CAN close: the call must survive
+  // comment-stripping, and it must sit inside the effect that actually runs.
+  const stripped = (() => {
+    // Blank out comments and string/template literals, preserving LENGTH so every index below
+    // still lines up with the real file. What remains is code.
+    const s = page
+    const out = s.split('')
+    let i = 0
+    const blank = (from: number, to: number) => { for (let k = from; k < to && k < out.length; k++) if (out[k] !== '\n') out[k] = ' ' }
+    while (i < s.length) {
+      const two = s.slice(i, i + 2)
+      if (two === '//') { const end = s.indexOf('\n', i); const stop = end === -1 ? s.length : end; blank(i, stop); i = stop; continue }
+      if (two === '/*') { const end = s.indexOf('*/', i + 2); const stop = end === -1 ? s.length : end + 2; blank(i, stop); i = stop; continue }
+      const c = s[i]
+      if (c === '"' || c === "'" || c === '`') {
+        let j = i + 1
+        while (j < s.length && s[j] !== c) { if (s[j] === '\\') j++; j++ }
+        blank(i + 1, j); i = j + 1; continue
+      }
+      i++
+    }
+    return out.join('')
+  })()
+
+  it('⚠️ THE STRIPPER ACTUALLY STRIPS — otherwise every assertion below is vacuous', () => {
+    // If the stripper silently returned the file unchanged, the comment-out hole would reopen
+    // and the two tests after this would pass for the wrong reason. Same lesson as the
+    // UK_COUNTRIES matcher above: a guard that cannot prove it read something is not a guard.
+    expect(stripped.length, 'length is preserved so indices stay valid').toBe(page.length)
+    expect(page, 'the page really does carry block comments to strip').toContain('/**')
+    expect(stripped, 'and they are gone from the stripped copy').not.toContain('PARTNER ONBOARDING (R42')
+    expect(stripped, 'a line comment inside the effect is gone too').not.toContain('HER LINK CARRIES THE SESSION')
+    expect(stripped, 'but the code around them survives').toContain('useEffect(')
+  })
+
+  it('the adopt call is CODE, not a comment — commenting it out turns this red', () => {
+    expect(
+      stripped.indexOf('adoptSessionFromHash()'),
+      'the call is missing from the stripped source — it has been deleted or commented out, ' +
+      'and an invited partner will land on "confirmation failed"',
+    ).toBeGreaterThan(-1)
+  })
+
+  it('and it sits INSIDE the effect that runs on mount, not in dead code', () => {
+    // Closes the second hole: a call moved into an uninvoked helper still matches a text
+    // search of the whole file. This locates the `useEffect` block by walking its braces and
+    // requires the call to be within it — so "present in the file" is no longer enough.
+    const effectStart = stripped.indexOf('useEffect(')
+    expect(effectStart, 'the mount effect must exist').toBeGreaterThan(-1)
+
+    let depth = 0, end = -1
+    for (let i = stripped.indexOf('{', effectStart); i < stripped.length; i++) {
+      if (stripped[i] === '{') depth++
+      else if (stripped[i] === '}') { depth--; if (depth === 0) { end = i; break } }
+    }
+    expect(end, 'the effect block must close — if it does not, this guard has gone blind').toBeGreaterThan(effectStart)
+
+    const effect = stripped.slice(effectStart, end)
+    expect(effect, 'the adopt call must be inside the mount effect').toContain('adoptSessionFromHash()')
+    expect(
+      effect.indexOf('adoptSessionFromHash()') < effect.indexOf('auth.getSession()'),
+      'and still before the session is read, or it reads the absence it was meant to fix',
+    ).toBe(true)
+  })
+
+  it('a dead link is SURFACED to her, not swallowed — the call\'s result is used', () => {
+    // The call has a side effect (it sets the session), so a bare call would still "work".
+    // What would be lost is the error path: `adopted.kind === 'error'` is how an expired
+    // one-time link becomes the inline "Send me a fresh link" message instead of silence.
+    //
+    // Asserted on `adopted.kind ===` without the literal on purpose: the stripper blanks the
+    // INSIDE of every string, so `'error'` is spaces by the time this runs. Matching the
+    // blanked text would be matching the stripper's output rather than the page's code. The
+    // branch and the use of the message are what matter, and both survive stripping.
+    expect(stripped, 'the result is inspected, not discarded').toContain('adopted.kind ===')
+    expect(stripped, 'and the message is put somewhere she can read it').toContain('setError(adopted.message)')
+  })
+
   it('it adopts them EXPLICITLY with setSession — auto-detection refuses this link', () => {
     // `detectSessionInUrl` throws AuthPKCEGrantCodeExchangeError("Not a valid PKCE flow url")
     // on an implicit fragment when the client is PKCE, which ours is. Relying on it would be

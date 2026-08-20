@@ -260,12 +260,35 @@ describe('step 3d — a lead outside the launch countries is HELD, and never cha
     }
   })
 
-  it('a DEMO client is exempt — the demo book is entirely South African', async () => {
+  it('⛓️ a SOUTH AFRICAN lead is charged and enrolled — it was held until 20 Aug', async () => {
+    // ⛓️ South Africa was in the HELD set when this gate shipped earlier the same day. The
+    // founder's rule is *"my launch rule is US, UK and South Africa"* (R54), so this is the
+    // money gate for a third of the launch book — and the failure it guards against is silent
+    // in the expensive direction: a held SA lead is not an error anybody sees, it is a sale
+    // that quietly does not happen.
+    for (const country of ['South Africa', 'south africa', 'ZA', 'RSA']) {
+      rpcCalls.length = 0; leadUpdates.length = 0; enrollAfter = 0
+      vi.mocked(autoEnrollLead).mockClear()
+      held(country)
+      const out = await approveLead('lead1', 'c1')
+      expect(out.status, country).toBe('approved')
+      expect(charged(), country).toHaveLength(1)
+      expect(vi.mocked(autoEnrollLead), country).toHaveBeenCalled()
+    }
+  })
+
+  it('a DEMO client is exempt — pinned on a country that is genuinely held', async () => {
     // Step 2 returns before 3d ever runs. Pinned here rather than assumed: a launch hold that
     // caught demo leads would silently break every walkthrough and every sales demo, and the
     // symptom ("the demo stopped working") points nowhere near a country allowlist.
+    //
+    // ⛓️ THIS TEST USED `'South Africa'` AND WENT VACUOUS ON 20 Aug. Its comment read *"the demo
+    // book is entirely South African"* — true, and the reason it was chosen. The moment R54
+    // opened South Africa the lead would be approved with or without the demo exemption, so the
+    // test would have gone on passing while proving nothing: the #617 shape exactly. Swapped to
+    // Nigeria, which is still held, so the exemption is what the green actually means.
     isDemo = true
-    held('South Africa')
+    held('Nigeria')
     leadRow = { ...leadRow!, email: 'demo@acme.com' }
     const out = await approveLead('lead1', 'c1')
     expect(out.status).toBe('approved')

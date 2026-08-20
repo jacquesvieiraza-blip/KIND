@@ -167,6 +167,39 @@ describe('every door that saves a target list refuses a country we cannot send t
     expect(messageOf(res), 'the allowed ones are not reported as problems').not.toContain("can't target United States")
   })
 
+  it('⛓️ SOUTH AFRICA SAVES — the fence refused it until 20 Aug', async () => {
+    // ⛓️ The fence shipped earlier the same day against a US + UK allowlist, so a client
+    // targeting South Africa hit a 400 telling them we cannot send there. The founder's rule is
+    // *"my launch rule is US, UK and South Africa"* (R54) — this is the door a South African
+    // client would have hit first, before any lead was ever sourced.
+    for (const spelling of ['South Africa', 'south africa', 'ZA', 'RSA']) {
+      state.written = []
+      const res = await callIcpRoute('post', '/', icp([spelling]))
+      expect(res.code, spelling).toBeLessThan(400)
+      expect(state.written.length, spelling).toBe(1)
+    }
+  })
+
+  it('and opening South Africa did not open the rest of the continent', async () => {
+    // The fence's whole job. If adding one African country loosened the rule rather than
+    // extending the list, this is where it would show — and it would show as revenue, not an
+    // error, because the leads would source and bill normally.
+    for (const held of ['Nigeria', 'Kenya', 'Zambia', 'Zimbabwe', 'Ghana']) {
+      state.written = []
+      const res = await callIcpRoute('post', '/', icp([held]))
+      expect(res.code, held).toBe(400)
+      expect(state.written, held).toEqual([])
+    }
+  })
+
+  it('a mixed South Africa + Nigeria list is still refused, and names Nigeria', async () => {
+    const res = await callIcpRoute('post', '/', icp(['South Africa', 'Nigeria']))
+    expect(res.code).toBe(400)
+    expect(state.written).toEqual([])
+    expect(messageOf(res)).toContain('Nigeria')
+    expect(messageOf(res), 'the open one is not reported as a problem').not.toContain("can't target South Africa")
+  })
+
   it('accepts the spellings enrichment and humans actually use', async () => {
     for (const spelling of ['us', 'USA', 'United States', 'uk', 'GB', 'Scotland']) {
       state.written = []

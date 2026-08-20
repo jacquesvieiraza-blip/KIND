@@ -708,7 +708,19 @@ leadRouter.patch('/:id/status', async (req: AuthRequest, res) => {
           if (!coldMailAllowed()) { console.warn(`[consent] status-change auto-consent SKIPPED for lead ${data.id} — outreach is off.`); return }
           const token = await getOrCreateConsentToken(freshLead)
           const consentUrl = buildConsentUrl(freshLead.id, token)
-          await sendConsentEmail(freshLead.email!, freshLead.first_name, clientForConsent?.company_name ?? '', consentUrl, clientId)
+          const verdict = await sendConsentEmail(freshLead.email!, freshLead.first_name, clientForConsent?.company_name ?? '', consentUrl, clientId)
+          // ⚠️ NOT-POSSIBLE: THE RESPONSE CANNOT CARRY THE REASON ON THIS DOOR, and that is a
+          // property of where it sits, not an omission. This is a fire-and-forget IIFE — the
+          // client's HTTP response was already sent at the top of this handler, before the
+          // consent email was even attempted. There is nothing left to write a reason into.
+          //
+          // So the refusal is LOGGED, in the same shape as the kill-switch line three lines
+          // above it. What matters most is the half that IS possible: the status write is
+          // skipped, so a refused person is never recorded as having been asked.
+          if (!verdict.sent) {
+            console.warn(`[consent] status-change auto-consent NOT sent for lead ${data.id} — ${verdict.reason}: ${verdict.detail}`)
+            return
+          }
           await db.from('leads').update({
             status: 'consent_sent',
             consent_sent_at: new Date().toISOString(),
@@ -998,7 +1010,11 @@ leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).single()
 
     const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-    await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+    const verdict = await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+    // HC-4 gave sendConsentEmail a verdict and only ONE of its six callers read it. Writing
+    // `consent_sent` for a person the function refused records them as having been ASKED for
+    // consent they were never asked for — a false entry in the one row that proves we asked.
+    if (!verdict.sent) { res.status(409).json({ success: false, error: verdict.reason, message: verdict.detail }); return }
 
     await db.from('leads')
       .update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() })
@@ -1023,7 +1039,9 @@ leadRouter.post('/:id/resend-consent', async (req: AuthRequest, res) => {
     if (lead.status === 'opted_out') { res.status(409).json({ success: false, error: 'Lead has opted out' }); return }
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
     const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-    await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+    const verdict = await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+    // Same refusal shape as POST /:id/consent — one wording, both doors (see there for why).
+    if (!verdict.sent) { res.status(409).json({ success: false, error: verdict.reason, message: verdict.detail }); return }
     await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', req.params.id)
     res.json({ success: true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to resend consent email' }) }
@@ -1052,6 +1070,11 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
     let alreadySent = 0
     let alreadyConsented = 0
     let optedOut = 0
+    // ⚠️ A COUNTED MAP, NOT A SENTENCE. The single-lead doors put the mailer's refusal in
+    // `res.detail`; a loop over 50 leads has no single detail to carry. So the refusals join
+    // the reasons this route ALREADY counts, keyed by `verdict.reason` — one wording, reused,
+    // and a caller reading `skippedReasons` learns why without a per-lead trawl of the logs.
+    const refused: Record<string, number> = {}
 
     for (const lead of leads ?? []) {
       if (lead.apollo_consented)              { alreadyConsented++; continue }
@@ -1061,7 +1084,16 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
 
       try {
         const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-        await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+        const verdict = await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+        // The write is what made this a lie: `status: 'consent_sent'` on a lead the mailer
+        // refused. The row then reads as contacted, the resend door's `consent_given` /
+        // `opted_out` checks never look at it again, and the blocklist entry that stopped the
+        // send leaves no trace on the lead at all.
+        if (!verdict.sent) {
+          refused[verdict.reason] = (refused[verdict.reason] ?? 0) + 1
+          console.warn(`[leads/consent/bulk] lead ${lead.id} NOT sent — ${verdict.reason}: ${verdict.detail}`)
+          continue
+        }
         await db.from('leads')
           .update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() })
           .eq('id', lead.id)
@@ -1071,12 +1103,13 @@ leadRouter.post('/consent/bulk', async (req: AuthRequest, res) => {
       }
     }
 
-    const skipped = alreadySent + alreadyConsented + optedOut
+    const refusedTotal = Object.values(refused).reduce((a, b) => a + b, 0)
+    const skipped = alreadySent + alreadyConsented + optedOut + refusedTotal
     res.json({
       success: true,
       sent,
       skipped,
-      skippedReasons: { alreadySent, alreadyConsented, optedOut },
+      skippedReasons: { alreadySent, alreadyConsented, optedOut, ...refused },
     })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
@@ -1311,19 +1344,28 @@ leadRouter.post('/bulk-consent', async (req: AuthRequest, res) => {
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).single()
 
     let sent = 0, skipped = 0
+    // Same counted map as `/consent/bulk` — one shape, both loops. This route had no reason
+    // breakdown at all, so a refusal here was indistinguishable from an ineligible lead.
+    const refused: Record<string, number> = {}
     for (const lead of leads ?? []) {
       if (!lead.email || lead.status === 'opted_out' || lead.status === 'consent_given' || lead.status === 'consent_sent') {
         skipped++; continue
       }
       try {
         const optOutUrl = buildConsentUrl(lead.id, await getOrCreateConsentToken(lead))
-        await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+        const verdict = await sendConsentEmail(lead.email, lead.first_name, client?.company_name ?? '', optOutUrl, clientId)
+        // Refused ⇒ no status write. See `/consent/bulk` for why the write is the harm.
+        if (!verdict.sent) {
+          refused[verdict.reason] = (refused[verdict.reason] ?? 0) + 1
+          console.warn(`[leads/bulk-consent] lead ${lead.id} NOT sent — ${verdict.reason}: ${verdict.detail}`)
+          skipped++; continue
+        }
         await db.from('leads').update({ status: 'consent_sent', consent_sent_at: new Date().toISOString() }).eq('id', lead.id)
         sent++
       } catch { skipped++ }
     }
 
-    res.json({ success: true, data: { sent, skipped } })
+    res.json({ success: true, data: { sent, skipped, skippedReasons: { ...refused } } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error(err); res.status(500).json({ success: false, error: 'Failed to send bulk consent' })

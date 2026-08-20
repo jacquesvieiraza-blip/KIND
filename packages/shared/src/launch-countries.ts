@@ -1,8 +1,12 @@
-// LAUNCH SEND ALLOWLIST — AT LAUNCH WE EMAIL THE US AND THE UK, AND NOWHERE ELSE.
+// LAUNCH SEND ALLOWLIST — AT LAUNCH WE EMAIL THE US, THE UK AND SOUTH AFRICA, AND NOWHERE ELSE.
 //
 // Founder-locked 20 Aug 2026. A lead outside this list is **held**, not deleted: it stays in
 // the book, keeps its row, and starts sending the day he opens its country. Nothing about this
 // file destroys data.
+//
+// ⛓️ AMENDED 20 Aug 2026 — the list shipped as US + UK only. The founder's rule is *"my launch
+// rule is US, UK and South Africa"*, and R45 had attached a POPIA condition to South Africa that
+// he never set (R54 chains it). South Africa was added the same day, under R54.
 //
 // ⚠️ WHY A SECOND COUNTRY LIST EXISTS, AND WHY THAT IS NOT DUPLICATION.
 //
@@ -26,7 +30,7 @@
  * Display-facing — this is the list a client is shown when their target list is refused.
  * Matching does NOT use this array; it uses the tolerant token set below.
  */
-export const LAUNCH_SEND_COUNTRIES = ['United States', 'United Kingdom'] as const
+export const LAUNCH_SEND_COUNTRIES = ['United States', 'United Kingdom', 'South Africa'] as const
 
 /**
  * Every spelling of those two countries we accept from enrichment.
@@ -47,6 +51,9 @@ const LAUNCH_COUNTRY_TOKENS = [
   // United Kingdom — kept in step with pecr.ts's UK_COUNTRIES by launch-countries.test.ts
   'uk', 'u.k.', 'gb', 'gbr', 'united kingdom', 'great britain', 'britain',
   'england', 'scotland', 'wales', 'northern ireland',
+  // South Africa — founder-locked 20 Aug 2026 (R54). `suid-afrika` is the Afrikaans name and
+  // appears in real data; `rsa` is what a South African writes on a form more often than `za`.
+  'za', 'zaf', 'south africa', 'rsa', 'republic of south africa', 'suid-afrika', 'suid afrika',
 ]
 
 /**
@@ -93,22 +100,46 @@ export function launchHoldReason(country: string | null | undefined): string {
 export function launchHoldMessage(country: string | null | undefined): string {
   const c = String(country ?? '').trim()
   const where = c ? `in ${c}` : 'without a country on record'
-  return `We're only sending to the ${openCountriesPhrase()} right now, and this contact is ${where} — so we've left them on your list and you were not charged. They'll be ready as soon as we open up.`
+  // No article here — `openCountriesPhrase()` carries its own, per country. See there.
+  return `We're only sending to ${openCountriesPhrase()} right now, and this contact is ${where} — so we've left them on your list and you were not charged. They'll be ready as soon as we open up.`
 }
 
 /**
- * "the United States and the United Kingdom" — built from the constant, never typed.
+ * Does this country name take a definite article? "the United States", but "South Africa".
+ *
+ * ⚠️ A REAL RULE, NOT A LOOKUP OF THE THREE WE HAPPEN TO HAVE. English gives "the" to country
+ * names that are grammatically descriptions rather than proper nouns — plurals and names built
+ * on a common noun (States, Kingdom, Republic, Emirates, Netherlands, Philippines, Gambia).
+ * A hard-coded `{'United States': true}` map would be right today and silently wrong the first
+ * time the founder opens the Netherlands.
+ */
+function takesThe(country: string): boolean {
+  return /\b(States|Kingdom|Republic|Emirates|Netherlands|Philippines|Gambia|Bahamas|Maldives|Union)\b/i.test(country)
+}
+
+/**
+ * "the United States, the United Kingdom and South Africa" — built from the constant, never typed.
+ *
+ * ⚠️ THE ARTICLE MOVED IN HERE ON 20 Aug, AND SOUTH AFRICA IS WHY. Both sentences below used to
+ * read `in the ${openCountriesPhrase()}`, and the phrase itself welded a second `the` onto the
+ * last item — correct for exactly the two countries it was written against, and broken the
+ * moment a third arrived: *"in the United States, United Kingdom and the South Africa"*. Two
+ * separate article bugs in one line, neither visible until the list changed.
+ *
+ * So each name now carries its own article and the call sites carry none. Adding a country is
+ * one line in `LAUNCH_SEND_COUNTRIES` again, which is what that constant was always for.
  *
  * Widened to `readonly string[]` on purpose: `LAUNCH_SEND_COUNTRIES` is `as const`, so its
- * length is the literal `2` and TypeScript rejects a one-country branch as dead code. That is
- * the compiler being right about TODAY and wrong about the point of this function, which is to
- * still read correctly the day the list is one country or four.
+ * length is a literal and TypeScript rejects the one-country branch as dead code. That is the
+ * compiler being right about TODAY and wrong about the point of this function, which is to still
+ * read correctly the day the list is one country or six.
  */
 function openCountriesPhrase(): string {
   const list: readonly string[] = LAUNCH_SEND_COUNTRIES
-  if (list.length === 0) return 'countries we have opened'
-  if (list.length === 1) return list[0]
-  return `${list.slice(0, -1).join(', ')} and the ${list[list.length - 1]}`
+  if (list.length === 0) return 'the countries we have opened'
+  const named = list.map(c => (takesThe(c) ? `the ${c}` : c))
+  if (named.length === 1) return named[0]
+  return `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}`
 }
 
 /**
@@ -119,5 +150,6 @@ function openCountriesPhrase(): string {
  * Naming the country back to them is the difference between a rule and a wall.
  */
 export function launchTargetRefusal(country: string): string {
-  return `We can't target ${String(country).trim()} yet — right now we source and send in the ${openCountriesPhrase()} only. Remove it to save your targeting, and we'll tell you the moment it opens up.`
+  // No article here either — see `openCountriesPhrase()`.
+  return `We can't target ${String(country).trim()} yet — right now we source and send in ${openCountriesPhrase()} only. Remove it to save your targeting, and we'll tell you the moment it opens up.`
 }

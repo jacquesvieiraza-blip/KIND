@@ -57,7 +57,7 @@ describe('drift guard — PECR\'s UK list and the launch allowlist cannot diverg
 })
 
 describe('isLaunchSendCountry', () => {
-  it('accepts the US and the UK however enrichment happens to spell them', () => {
+  it('accepts the US, the UK and South Africa however enrichment happens to spell them', () => {
     // PDL writes lowercase, an Apollo CSV writes title case, a human writes anything.
     for (const c of ['US', 'us', 'U.S.', 'USA', 'United States', 'united states of america', 'America']) {
       expect(isLaunchSendCountry(c), c).toBe(true)
@@ -65,19 +65,44 @@ describe('isLaunchSendCountry', () => {
     for (const c of ['UK', 'uk', 'GB', 'United Kingdom', 'Great Britain', 'England', 'Scotland', 'Wales', 'Northern Ireland']) {
       expect(isLaunchSendCountry(c), c).toBe(true)
     }
+    for (const c of ['ZA', 'za', 'ZAF', 'South Africa', 'south africa', 'RSA', 'Republic of South Africa', 'Suid-Afrika']) {
+      expect(isLaunchSendCountry(c), c).toBe(true)
+    }
   })
 
   it('is insensitive to case and surrounding whitespace', () => {
     expect(isLaunchSendCountry('  UnItEd KiNgDoM  ')).toBe(true)
+    expect(isLaunchSendCountry('  south africa ')).toBe(true)
+  })
+
+  it('⛓️ SOUTH AFRICA IS OPEN — this assertion used to say the opposite', () => {
+    // ⛓️ 20 Aug 2026, and recorded rather than quietly edited. This file shipped earlier the
+    // same day with `'South Africa'` in the HELD list below, because the allowlist was built as
+    // US + UK. The founder's rule is *"my launch rule is US, UK and South Africa"* — the third
+    // country was never in question, and R45 had attached a POPIA condition he never set (R54).
+    //
+    // Left as its own test rather than folded into the one above so the flip is visible in the
+    // suite, not just in a git diff nobody reads.
+    expect(isLaunchSendCountry('South Africa')).toBe(true)
+    expect(LAUNCH_SEND_COUNTRIES).toContain('South Africa')
   })
 
   it('holds every country we have not opened', () => {
     // The African list the ICP builder suggests is the one that matters commercially — before
     // the front-door fence, each of these was a country we would happily have bought leads in.
-    for (const c of ['South Africa', 'Nigeria', 'Kenya', 'Ghana', 'Egypt', 'Rwanda', 'Tanzania', 'Uganda', 'Senegal', "Cote d'Ivoire"]) {
+    // South Africa left this list on 20 Aug (see above); the rest are still closed.
+    for (const c of ['Nigeria', 'Kenya', 'Ghana', 'Egypt', 'Rwanda', 'Tanzania', 'Uganda', 'Senegal', "Cote d'Ivoire"]) {
       expect(isLaunchSendCountry(c), c).toBe(false)
     }
     for (const c of ['Ireland', 'Canada', 'Australia', 'Germany', 'India']) {
+      expect(isLaunchSendCountry(c), c).toBe(false)
+    }
+  })
+
+  it('opening South Africa did not open its neighbours or a substring of its name', () => {
+    // `'za'` is a short token and short tokens are where a loose match leaks. These are the
+    // countries somebody would expect to be caught by a sloppy rule.
+    for (const c of ['Zambia', 'Zimbabwe', 'South Sudan', 'South Korea', 'Africa', 'South Africa Ltd']) {
       expect(isLaunchSendCountry(c), c).toBe(false)
     }
   })
@@ -119,6 +144,32 @@ describe('the words a person actually reads', () => {
       expect(launchHoldMessage('Nigeria')).toContain(c)
       expect(launchTargetRefusal('Nigeria')).toContain(c)
     }
+  })
+
+  it('⚠️ AND READS AS ENGLISH — "and the South Africa" is what this catches', () => {
+    // ⚠️ THE TEST ABOVE PASSED ON THE BROKEN SENTENCE, and that is the whole lesson here.
+    // `toContain('South Africa')` is satisfied by *"in the United States, United Kingdom and
+    // the South Africa"* — every name present, two article bugs, and a client reads it.
+    //
+    // Interpolating a name is not the same as producing a sentence. So this asserts the
+    // sentence: the article belongs to each country, and no country gets one it should not.
+    for (const msg of [launchHoldMessage('Nigeria'), launchTargetRefusal('Nigeria')]) {
+      expect(msg, 'no article on South Africa').not.toContain('the South Africa')
+      expect(msg, 'the US keeps its article').toContain('the United States')
+      expect(msg, 'so does the UK').toContain('the United Kingdom')
+      expect(msg, 'and the list reads as one phrase').toContain('the United States, the United Kingdom and South Africa')
+      expect(msg, 'no doubled article from a leading "the" at the call site').not.toContain('the the ')
+    }
+  })
+
+  it('the article rule is a RULE, not a lookup of the three we have today', () => {
+    // The phrase builder is private, so this proves the rule through the only door it has: a
+    // sentence. If the article were a hard-coded map of today's three countries, opening the
+    // Netherlands would silently produce "and Netherlands" — right names, wrong English, and
+    // no test would notice until a client did.
+    const sentence = launchTargetRefusal('Nigeria')
+    expect(sentence).toContain('send in the United States')
+    expect(sentence, 'the leading article moved into the phrase, so the call site has none').not.toContain('send in the the')
   })
 
   it('tells the client they were not charged and that the lead is still theirs', () => {

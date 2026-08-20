@@ -102,7 +102,7 @@ export default function TermsLibraryPage() {
           <p className="text-gray-400 text-xs mt-2">
             These are <strong>blank templates</strong> you upload and hand out, so they can be replaced or removed.
             Documents the business is <em>governed by</em> — the ones that are versioned and never deleted — live in{' '}
-            <a href="/governed-documents" className="underline">Governed Documents</a>.
+            <a href="/vida/governed-documents" className="underline">Governed Documents</a>.
           </p>
         </div>
 

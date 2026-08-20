@@ -28,7 +28,7 @@ import { stripCommentsForEnvScan } from './env-inventory'
 
 const ROUTES_RAW = readFileSync(join(__dirname, '../routes/operator.ts'), 'utf8')
 const ROUTES = stripCommentsForEnvScan(ROUTES_RAW)
-const PAGE = readFileSync(join(__dirname, '../../../admin/src/app/governed-documents/page.tsx'), 'utf8')
+const PAGE = readFileSync(join(__dirname, '../../../admin/src/app/vida/governed-documents/page.tsx'), 'utf8')
 const MIGRATION = readFileSync(join(__dirname, '../../../../supabase/migrations/20260820_governed_documents.sql'), 'utf8')
 const RUNNER = readFileSync(join(__dirname, './pending-migrations.ts'), 'utf8')
 
@@ -181,6 +181,47 @@ describe('③ every write is audited', () => {
     // would let the caller sign somebody else's name to a governed document.
     const post = ROUTES.slice(ROUTES.indexOf("operatorRouter.post('/governed-documents'"))
     expect(post).toContain('created_by: operatorEmail(req)')
+  })
+})
+
+describe('⚠️ THE SCREEN IS REACHABLE — the guard this build shipped without', () => {
+  // ⚠️ WRITTEN AFTER THE FOUNDER COULD NOT FIND IT. The page shipped, the migration ran, and
+  // nothing linked to it: he opened the Vida menu and said *"cant find documents."* A page
+  // reachable only by typing its URL is #620's failure exactly — it exists, and no screen shows
+  // it — and this file was full of guards about deletes while missing the one that mattered.
+  //
+  // It is also the THIRD time this shipped in this console: `/vida/demo` and `/partners` both
+  // did it before, and `vida/layout.tsx` carries a comment about each. Three occurrences is a
+  // pattern, so it gets a test rather than a fourth comment.
+  const layout = readFileSync(join(__dirname, '../../../admin/src/app/vida/layout.tsx'), 'utf8')
+  const sidebar = readFileSync(join(__dirname, '../../../admin/src/components/AdminSidebar.tsx'), 'utf8')
+
+  it('the Vida menu links to it — the menu the founder actually opens', () => {
+    expect(stripCommentsForEnvScan(layout), 'a control you cannot find is not a control')
+      .toContain("href: '/vida/governed-documents'")
+  })
+
+  it('and it is VIDA-NATIVE, so the link does not eject the operator into the old console', () => {
+    // The half-fix `/partners` shipped with, and the founder caught within a minute: *"i click
+    // partners in the vida and it takes me to the old version this needs to stay on the new
+    // version."* The page lives under the /vida shell for that reason.
+    const { existsSync } = require('fs') as typeof import('fs')
+    expect(existsSync(join(__dirname, '../../../admin/src/app/vida/governed-documents/page.tsx'))).toBe(true)
+    expect(existsSync(join(__dirname, '../../../admin/src/app/governed-documents/page.tsx')),
+      'the pre-shell copy must be gone, not left behind as a second door').toBe(false)
+  })
+
+  it('the old console lists it too — half-discoverable is not discoverable', () => {
+    expect(stripCommentsForEnvScan(sidebar)).toContain("href: '/vida/governed-documents'")
+  })
+
+  it('every link that points at it uses the shell path', () => {
+    // A stale `/governed-documents` link would 404 now that the page moved.
+    const terms = readFileSync(join(__dirname, '../../../admin/src/app/terms-library/page.tsx'), 'utf8')
+    for (const [name, src] of [['terms-library', terms], ['vida layout', layout], ['sidebar', sidebar]] as const) {
+      const stale = stripCommentsForEnvScan(src).match(/['"]\/governed-documents/g) ?? []
+      expect(stale, `${name} still points at the pre-move path`).toEqual([])
+    }
   })
 })
 

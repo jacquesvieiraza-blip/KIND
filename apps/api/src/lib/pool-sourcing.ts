@@ -97,6 +97,72 @@ export function poolWriteAllowed(isDemo: boolean, recordCount: number): boolean 
   return isDemo !== true && recordCount > 0
 }
 
+// ── PROVENANCE TRIPWIRE — ONLY RECORDS WE MAY REUSE ACROSS CLIENTS ENTER THE POOL ──────────
+//
+// `lead_pool` is a CROSS-CLIENT store: a record bought for client A is served to client B. That
+// is a licensing question before it is an engineering one, and the answer is **provider-
+// specific** (F13/F15). PDL is bought under terms we believe permit it — F13 is still open on
+// the order form — and Apollo's terms are a different document with different answers.
+//
+// ⚠️ TODAY THIS REFUSES NOTHING, AND THAT IS THE POINT. One writer exists and it hard-codes
+// `source: 'pdl'` (`routes/icps.ts`), so the pool is structurally clean right now. The risk is
+// entirely in the future tense: a second sourcing path, written by somebody who does not know
+// the pool is cross-client, tags its records `apollo` — or forgets to tag them at all — and
+// every client afterwards is served records we had no right to reuse. Nothing in the code
+// would object, and the first sign would be a letter.
+//
+// A tripwire that has never fired is not a tripwire that does nothing.
+//
+// ⚠️ NOT A KILL-SWITCH ON SOURCING. Founder-ruled: refusal skips the POOL write only. The
+// client still gets every lead their run bought — the lead rows, the delivery and the charge
+// are all upstream of this and untouched. Refusing the run instead would turn a licensing
+// precaution into an outage.
+
+/** The sources we may serve to a SECOND client. Widening this is a licensing decision. */
+export const POOL_ELIGIBLE_SOURCES: readonly string[] = ['pdl']
+
+/** Just enough of a pool record for the provenance question. */
+export type PoolWriteCandidate = { source?: string | null; email_norm?: string | null }
+
+/**
+ * Split a batch into what may be pooled and what may not.
+ *
+ * ⚠️ PER RECORD, NOT PER BATCH, on the founder's wording (*"refuse any upsert whose source is
+ * not on a POOL_ELIGIBLE_SOURCES allowlist"*). A mixed batch is exactly what a future writer
+ * would produce, and discarding legitimately-bought PDL records because of a bad neighbour
+ * would punish the wrong rows. The refused ones are returned rather than counted so the caller
+ * can name the sources it turned away — a bare "3 refused" is #620's mistake.
+ *
+ * ⚠️ AN ABSENT SOURCE IS REFUSED. `undefined` is not evidence of PDL; it is evidence that
+ * somebody wrote a pool record without thinking about provenance, which is the case this
+ * exists to catch. Same reasoning as `isLaunchSendCountry` refusing a blank country.
+ */
+export function splitPoolEligible<T extends PoolWriteCandidate>(
+  records: readonly T[],
+): { eligible: T[]; refused: T[] } {
+  const eligible: T[] = []
+  const refused: T[] = []
+  for (const r of records) {
+    const src = typeof r.source === 'string' ? r.source.trim().toLowerCase() : ''
+    if (src && POOL_ELIGIBLE_SOURCES.includes(src)) eligible.push(r)
+    else refused.push(r)
+  }
+  return { eligible, refused }
+}
+
+/** The sentence an operator finds in the log — names the sources, never a bare count. */
+export function poolRefusalLine(refused: readonly PoolWriteCandidate[]): string {
+  const counts = new Map<string, number>()
+  for (const r of refused) {
+    const src = (typeof r.source === 'string' && r.source.trim()) ? r.source.trim().toLowerCase() : '(untagged)'
+    counts.set(src, (counts.get(src) ?? 0) + 1)
+  }
+  const named = [...counts.entries()].map(([s, n]) => `${n}× ${s}`).join(', ')
+  return `[pool] REFUSED ${refused.length} record(s) — not pool-eligible: ${named}. ` +
+    `Only ${POOL_ELIGIBLE_SOURCES.join(', ')} may be reused across clients (F13/F15). ` +
+    `The sourcing run was NOT affected; the client still has these leads.`
+}
+
 /** Six months in ms — the freshness horizon for a pooled email. */
 export const POOL_FRESHNESS_MS = 6 * 30 * 24 * 60 * 60 * 1000
 

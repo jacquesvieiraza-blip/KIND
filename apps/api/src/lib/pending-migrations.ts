@@ -1050,6 +1050,45 @@ comment on column public.partner_commissions.commission_type is
   'land = the one-time acquisition fee (legacy MRR plan) - retain = the recurring book fee (legacy MRR plan) - lead_sale = 25% of a $4 approved lead, the live model from 19 Aug 2026. The two legacy values are kept because statements are derived from historical rows.';
 `.trim(),
   },
+  {
+    // HC-3 - the column that makes an opt-out reachable into Smartlead.
+    //
+    // Smartlead's OWN ENGINE sends. Once a lead is pushed there our chokepoint never runs for
+    // it again, so adding that person to opt_out_blocklist stops OUR sends and does nothing at
+    // all to Smartlead's. The only fix is to remove them inside Smartlead - and nothing in the
+    // product recorded WHO was in a Smartlead campaign, because pushApprovedLeadToSmartlead
+    // returned the campaign id and approve-lead.ts threw it away.
+    //
+    // Canonical record: supabase/migrations/20260820_smartlead_campaign_membership.sql (AR6 -
+    // both homes, and THIS string is the one that actually executes).
+    key: '20260820_smartlead_campaign_membership',
+    title: 'Record which leads are inside a Smartlead campaign, so an opt-out can name them',
+    sql: `
+-- HC-3 - RECORD WHICH LEADS ARE INSIDE A SMARTLEAD CAMPAIGN (20 Aug 2026)
+--
+-- Smartlead is the R25 month-one send path for every new client, and Smartlead's own engine
+-- does the sending. Our send chokepoint - which carries the opt-out net, the do-not-contact
+-- stop, the PECR gate and the launch-country hold - is never reached for those emails.
+--
+-- So when a person opts out, the blocklist row stops OUR sends and Smartlead keeps mailing
+-- them from its own copy of the lead. Removing them there is the only stop, and you cannot
+-- remove someone you cannot name. This column is what lets the opt-out alert say WHO and
+-- FROM WHICH campaign.
+--
+-- NOTHING NEEDS BACKFILLING. Smartlead is unpurchased and every call returns 401, so no lead
+-- has ever been pushed - every row is correctly null today.
+--
+-- IDEMPOTENT: add-if-not-exists plus an unconditional comment. A second run changes nothing.
+-- Nullable and unindexed on purpose - read one lead at a time on the suppression path, never
+-- scanned.
+
+alter table public.leads
+  add column if not exists smartlead_campaign_id text;
+
+comment on column public.leads.smartlead_campaign_id is
+  'HC-3: the Smartlead campaign this lead was pushed into, or NULL if never pushed. Set only after addLeads succeeds. Read on opt-out so the alert can name the campaign a person must be removed from - our blocklist does not stop Smartlead sending.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

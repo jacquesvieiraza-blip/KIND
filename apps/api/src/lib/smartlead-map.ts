@@ -28,6 +28,27 @@ export type SmartleadRefusal =
   | 'is_house_client'
   | 'no_smartlead_inbox'
   | 'no_email'
+  // ── HC-3, 20 Aug — THE FOUR SUPPRESSION GATES THIS PATH NEVER HAD ────────────────────────
+  //
+  // ⚠️ READ THIS BEFORE TOUCHING ANY OF THEM. Smartlead is the R25 month-one send path for
+  // every new client, and **Smartlead's own engine does the sending.** Our chokepoint,
+  // `sendSequenceEmail` — which carries the opt-out net, the do-not-contact stop, the PECR
+  // gate and the launch-country hold — is NEVER REACHED for an email Smartlead sends. Once a
+  // lead is in their campaign it is out of our hands.
+  //
+  // So the four gates that live at the send chokepoint for SMTP have to live at the PUSH for
+  // Smartlead. There is no second chance behind them.
+  //
+  // ⚠️ AND THE PUSH FIRED EVEN WHEN OUR OWN ENROL HAD ALREADY REFUSED THE LEAD.
+  // `autoEnrollLead` returns `Promise<void>` and every refusal is a bare `return`, never a
+  // throw — so `enrolled` in `approve-lead.ts` is true whenever it did not CRASH, including
+  // every do-not-contact, PECR, launch-country and CRM-dedup refusal. `if (enrolled)` then
+  // pushed to Smartlead. A lead our own nets had just refused was handed to an engine that
+  // would send it.
+  | 'opted_out'
+  | 'do_not_contact'
+  | 'pecr_individual_risk'
+  | 'launch_hold'
 
 export type SmartleadDecision =
   | { ok: true }
@@ -51,6 +72,24 @@ export function canPushToSmartlead(a: {
   /** The client has a `client_inboxes` row with provider `smartlead-api`. */
   hasSmartleadInbox: boolean
   leadEmail: string | null | undefined
+  // ── HC-3 — THE ANSWERS, NOT THE QUESTIONS, AND THAT IS THE WHOLE DESIGN ──────────────────
+  //
+  // The blocklist test is a database read, and this file is PURE — see the header: *"has to be
+  // provable without a network, because a wrong field name does not throw."* Putting a query
+  // in here would destroy the property the file exists for, and the unit tests with it.
+  //
+  // So the impure caller (`smartlead-send.ts`, which already reads `leads` and `clients`) asks
+  // the database and hands the ANSWER down. `isSuppressed` and `pecrVerdict` are themselves
+  // pure and could have been called here — they are not, so that all four gates arrive the
+  // same way and no future reader has to work out which kind each one is.
+  /** Blocklist hit on the NORMALISED address (HC-1) — probed by the caller. */
+  isBlocklisted: boolean
+  /** `isSuppressed({ email, company })` — the do-not-contact list, evaluated by the caller. */
+  isDoNotContact: boolean
+  /** `pecrVerdict(...).allow` — false means a UK individual-subscriber risk. */
+  pecrAllows: boolean
+  /** `isLaunchSendCountry(lead.country)` — false means outside the launch allowlist (R50). */
+  inLaunchCountry: boolean
 }): SmartleadDecision {
   if (a.isDemo) {
     return { ok: false, reason: 'is_demo',
@@ -85,6 +124,33 @@ export function canPushToSmartlead(a: {
     return { ok: false, reason: 'no_email',
       detail: 'This lead has no email address. Pushing it would create an unsendable row in Smartlead and silently inflate the campaign count.' }
   }
+
+  // ── HC-3 — THE FOUR SUPPRESSION GATES, LAST AND ON PURPOSE ───────────────────────────────
+  //
+  // ⚠️ ORDERED BY WHAT A REFUSAL MEANS, NOT BY COST. The six gates above are all states of the
+  // SYSTEM — no key, no mailbox, switched off — and every one of them is expected, silent, and
+  // says nothing about the person. These four are about the PERSON, and each one is a promise
+  // we made to them or a law we are bound by. Reading a Smartlead refusal and finding
+  // `no_smartlead_inbox` when the truth is `opted_out` would be a wrong answer about a human.
+  //
+  // Opt-out FIRST of the four: it is the only one where the person themselves told us to stop,
+  // and if two apply at once that is the one that must be reported.
+  if (a.isBlocklisted) {
+    return { ok: false, reason: 'opted_out',
+      detail: 'This person is on the opt-out blocklist. Smartlead sends from its own engine and never reaches our send-time net, so this push is the last place it can be stopped.' }
+  }
+  if (a.isDoNotContact) {
+    return { ok: false, reason: 'do_not_contact',
+      detail: 'This lead is on the do-not-contact list (the founder\'s employer and anyone connected to it). A hard stop on every path, including this one.' }
+  }
+  if (!a.pecrAllows) {
+    return { ok: false, reason: 'pecr_individual_risk',
+      detail: 'UK PECR reg. 22: this looks like an individual subscriber (a sole trader or ordinary partnership) rather than a corporate one, and cold-emailing them needs consent. Refused here because Smartlead would send it without ever asking (#617).' }
+  }
+  if (!a.inLaunchCountry) {
+    return { ok: false, reason: 'launch_hold',
+      detail: 'This lead is outside the countries we send to at launch (R50). Held, not deleted — it becomes pushable the day that country opens.' }
+  }
   return { ok: true }
 }
 
@@ -96,6 +162,10 @@ export function smartleadRefusalLabel(r: SmartleadRefusal): string {
     case 'is_house_client':     return 'the house account — our own outreach goes via Instantly'
     case 'no_smartlead_inbox':  return 'client has no Smartlead mailbox to send from'
     case 'no_email':            return 'lead has no email address'
+    case 'opted_out':           return 'this person asked us to stop'
+    case 'do_not_contact':      return 'on the do-not-contact list'
+    case 'pecr_individual_risk':return 'UK individual-subscriber risk (PECR)'
+    case 'launch_hold':         return 'outside the launch countries'
   }
 }
 

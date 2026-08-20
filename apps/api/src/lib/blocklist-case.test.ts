@@ -170,19 +170,26 @@ describe('HC-1 GUARD — every opt_out_blocklist email comparison goes through t
   // The three probes that pass a variable rather than a call. Each is proven normalised at its
   // definition by the test below — listing them here rather than pattern-matching keeps the
   // guard honest: a NEW variable name is an offender until someone adds it deliberately.
-  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails'])
+  const NORMALISED_VARS = new Set(['batchEmails', 'candEmails', 'emailKey'])
 
   it('every variable on that allowlist is built by the normaliser at its definition', () => {
-    const defs: { file: string; name: string }[] = [
-      { file: 'routes/figsy.ts', name: 'batchEmails' },
-      { file: 'routes/icps.ts',  name: 'candEmails'  },
+    // `singular` distinguishes the one-address probe from the batch ones. Both forms are
+    // normalisers; asserting the BATCH name against a single-address variable would pass
+    // vacuously on a file that used neither, which is the failure this whole block guards.
+    const defs: { file: string; name: string; singular?: boolean }[] = [
+      { file: 'routes/figsy.ts',     name: 'batchEmails' },
+      { file: 'routes/icps.ts',      name: 'candEmails'  },
+      // HC-3 — the Smartlead push probes the blocklist before handing a lead to an engine we do
+      // not control. One address, so the singular normaliser.
+      { file: 'lib/smartlead-send.ts', name: 'emailKey', singular: true },
     ]
-    for (const { file, name } of defs) {
+    for (const { file, name, singular } of defs) {
       const text = readFileSync(join(API_SRC, file), 'utf8')
       const decls = [...text.matchAll(new RegExp(`const ${name}\\s*=\\s*([\\s\\S]{0,120})`, 'g'))]
       expect(decls.length, `${file}: no declaration of ${name} found`).toBeGreaterThan(0)
       for (const d of decls) {
-        expect(d[1], `${file}: ${name} is not built by the normaliser`).toContain('normalizeRevealEmails(')
+        expect(d[1], `${file}: ${name} is not built by the normaliser`)
+          .toContain(singular ? 'normalizeRevealEmail(' : 'normalizeRevealEmails(')
       }
     }
   })

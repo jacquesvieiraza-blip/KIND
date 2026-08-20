@@ -117,7 +117,7 @@ describe('① every migration has a canonical file', () => {
     // auth.users away from the view's own reader, so Money Path's pool section broke on
     // deploy. Chained rather than amended: the first entry stays exactly as it ran in
     // production, and the correction is a separate, dated, readable act.
-    expect(runnerKeys).toHaveLength(26)
+    expect(runnerKeys).toHaveLength(27)   // +1 20 Aug HC-3 (smartlead_campaign_membership — the column that makes an opt-out reachable into an engine we do not control: Smartlead holds its own copy of the lead and never reads opt_out_blocklist)
   })
 
   it('the recovered one says where it came from, and that the constant still rules', () => {
@@ -165,7 +165,7 @@ describe('② a copy that can drift is the disease, not the cure', () => {
     //     shapes, so a mixed-case opt-out was unmatchable by every send-path probe) = 138.
     // +1 (20260819_lead_sale_commission — the partner commission moves off Stripe payments
     //     onto the $4 lead sale; widens commission_type to accept 'lead_sale') = 139.
-    expect(sqlFiles(CANON)).toHaveLength(139)
+    expect(sqlFiles(CANON)).toHaveLength(140)   // +1 20 Aug HC-3 (20260820_smartlead_campaign_membership — records WHICH leads are inside a Smartlead campaign; nothing wrote it down before, so an opt-out could not name who to remove, and our blocklist does not stop Smartlead sending)
   })
 
   it('every consolidated file names its origin, and every original names its replacement', () => {

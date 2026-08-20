@@ -488,6 +488,27 @@ export async function approveLead(leadId: string, clientId: string): Promise<App
     // Silent on the five EXPECTED refusals (demo · kill-switch off · the house account, which
     // goes via Instantly · no key · client has no Smartlead mailbox yet). Only a real API
     // failure or a missing sequence is news.
+    //
+    // ── ⚠️ HC-3 (Prompt 20, 20 Aug) — READ THIS BEFORE CHANGING THE LINE BELOW ───────────────
+    //
+    // **SMARTLEAD'S OWN ENGINE SENDS.** This push is a hand-off, not a send: once the lead is in
+    // their campaign, `sendSequenceEmail` — the chokepoint carrying the opt-out net, the
+    // do-not-contact stop, the #617 PECR gate and the R50 launch-country hold — IS NEVER
+    // REACHED for those emails. There is no second chance behind this line.
+    //
+    // ⚠️ AND `enrolled` DOES NOT MEAN WHAT IT LOOKS LIKE IT MEANS. `autoEnrollLead` returns
+    // `Promise<void>` and every refusal inside it is a bare `return`, never a throw — so
+    // `enrolled` is true whenever it did not CRASH, including every do-not-contact, PECR,
+    // launch-country and CRM-dedup refusal. Before HC-3, `if (enrolled)` therefore pushed leads
+    // our own nets had just refused, straight into an engine that would send them.
+    //
+    // Fixing it HERE was the wrong move and was rejected: a gate in the money path is one edit
+    // from being reordered, and `pushApprovedLeadToSmartlead` is one import from being called by
+    // something new that forgets it. So the four gates live in the map/push pair where they are
+    // unit-tested and unavoidable — and this comment exists so the next reader knows the
+    // Smartlead route bypasses our nets BY DESIGN, and where the replacements went.
+    //
+    // R25 makes this the month-one path for EVERY new client, so it is not a corner case.
     try {
       const { pushApprovedLeadToSmartlead, smartleadRefusalIsNews } = await import('./smartlead-send')
       const push = await pushApprovedLeadToSmartlead(leadId, clientId)

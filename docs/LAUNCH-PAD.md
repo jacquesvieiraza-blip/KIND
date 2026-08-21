@@ -14,6 +14,7 @@
 |---|---|---|---|
 | C1 | 📅 Google Calendar runbook steps 3–5 — test connection · Search Console TXT · submit · add client test users. **The 20-Aug token dies ~27 Aug.** [`runbooks/GOOGLE-VERIFICATION.md`](./runbooks/GOOGLE-VERIFICATION.md) | 🧍 | **now** |
 | C2 | 📚 Docs reconciliation — ✅ done, PR #1428 | 🤖 | ✅ |
+| C2b | 🔒 **Canonical truth** — an outside audit found the canonical layer contradicting itself. Fixed: KIND-MASTER $99→**$299** · inventory intro off-era → managed/Milla-first · README puts PRODUCT-RULES first · DOC-MAP indexes `compliance/`+`runbooks/` (12 files it never listed) · legal-pack's false *"DPAs ✅ in place"* → **not held** · APOLLO-ENGINE banner → **AR5, Apollo is OURS**. Plus V2-TRACKER restored verbatim (690 → 18,138 words). **Two open PRs — #1430 (V2 restore) + this one. Founder merges.** | 🤖 | ⏳ open |
 | C3 | 💰 J3 money walk + A9 — the $4 seen moving on screen · one clean fresh signup | 🧍 | pre-25 |
 | C4 | 🔎 A10 — Instantly glance · Google ~$28 charge · reconcile the #198 25-vs-30 drift | 🧍 | Sun/Mon 24 |
 | C5 | 🧾 B2 — company-cost lines checked in a real browser | 🧍 | pre-25 |

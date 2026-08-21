@@ -14,14 +14,8 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel 2>/dev/null || echo .)"
 
-# Overridable for tests ONLY — same convention count-inventory.sh already uses
-# (`DOC="${INVENTORY_DOC:-…}"`). Unset, these are byte-identical to the old literals.
-# ⚠️ mirror-launchpad.sh (called at the end) does NOT honour these and hard-codes the
-# real paths, so pointing these at a fixture is not on its own enough to isolate a test:
-# scripts/board-tooling.test.sh runs the whole flow inside a throwaway git repo instead,
-# which is what actually redirects `git rev-parse --show-toplevel`.
-INV="${INVENTORY_DOC:-docs/PRODUCT-INVENTORY.md}"
-LP="${LAUNCHPAD_DOC:-docs/LAUNCH-PAD.md}"
+INV=docs/PRODUCT-INVENTORY.md
+LP=docs/LAUNCH-PAD.md
 
 board="$(scripts/count-inventory.sh)"   # e.g. 🟢111 · 🩷85 · 🟣3 · 🟡23 · 🔴213 · ⏸5 · Σ440
 read -r g p v y r b s <<<"$(echo "$board" | grep -oE '[0-9]+' | tr '\n' ' ')"

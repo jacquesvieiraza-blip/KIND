@@ -35,7 +35,7 @@ vi.mock('@kind/db', () => {
     Object.assign(q, {
       select: (_c?: string, opts?: { head?: boolean; count?: string }) => {
         if (opts?.head) {
-          const v = table === 'leads' ? state.pendingCount : state.meetingsCount
+          const v = state.meetingsCount
           result = typeof v === 'number'
             ? { count: v, error: null }
             : { count: null, error: { message: v.error } }
@@ -91,18 +91,18 @@ beforeEach(() => {
 
 describe('one brief per client per London day', () => {
   it('creates the day\'s brief when there is none', async () => {
-    state.pendingCount = 12
     state.meetingsCount = 2
     const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
     expect(r.status).toBe('created')
     expect(state.inserts).toHaveLength(1)
     expect(state.inserts[0].content).toBe(
-      'Morning. 12 prospects are waiting for your review · 2 meetings booked this week.')
+      "Morning. 2 meetings booked this week — they're in your Meetings tab.")
     expect(state.inserts[0].role).toBe('assistant')
     expect(state.inserts[0].sources).toEqual({ kind: 'morning_brief', day: '2026-08-24' })
   })
 
   it('a SECOND login the same day writes nothing — the same brief stands', async () => {
+    state.meetingsCount = 2
     state.existing = { id: 'brief-1' }
     const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T14:00:00Z'))
     expect(r.status).toBe('exists')
@@ -114,6 +114,7 @@ describe('one brief per client per London day', () => {
     // exist?" probe — that is what concurrency MEANS — so the guarantee has to
     // come from the unique index. Here the loser's insert returns 23505 and must
     // be read as success, because the winner's brief is already in the thread.
+    state.meetingsCount = 2
     state.insertError = { code: '23505', message: 'duplicate key value violates unique constraint' }
     const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
     expect(r.status).toBe('exists')          // NOT 'failed' — the race was settled correctly
@@ -123,6 +124,7 @@ describe('one brief per client per London day', () => {
   it('a real insert failure is NOT disguised as success', async () => {
     // The 23505 branch must stay narrow. Any other error is a genuine failure and
     // reporting it as "exists" would hide a brief that never landed.
+    state.meetingsCount = 2
     state.insertError = { code: '42703', message: 'column does not exist' }
     const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
     expect(r.status).toBe('failed')
@@ -130,13 +132,6 @@ describe('one brief per client per London day', () => {
 })
 
 describe('#136a — an unmeasurable number never renders as zero', () => {
-  it('a failed pending count writes NO brief', async () => {
-    state.pendingCount = { error: 'timeout' }
-    const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
-    expect(r.status).toBe('failed')
-    expect(state.inserts).toHaveLength(0)
-  })
-
   it('a failed meetings count writes NO brief', async () => {
     state.meetingsCount = { error: 'timeout' }
     const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
@@ -144,18 +139,21 @@ describe('#136a — an unmeasurable number never renders as zero', () => {
     expect(state.inserts).toHaveLength(0)
   })
 
-  it('a genuine zero DOES render — as the honest quiet state', async () => {
+  it('a genuine zero writes NOTHING — the greeting already stands on its own', async () => {
+    // Distinct from the failure above and it matters: zero meetings is a MEASURED
+    // fact and the answer is silence; an unmeasurable count is a failure. Both
+    // write no row, for opposite reasons, and only one of them is a problem.
     const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
-    expect(r.status).toBe('created')
-    expect(String(state.inserts[0].content)).toContain('Quiet night')
+    expect(r).toEqual({ status: 'skipped', reason: 'nothing_new' })
+    expect(state.inserts).toHaveLength(0)
   })
 })
 
 describe('tenant isolation', () => {
   it('every query is filtered on the SAME client id — Client A can never see B', async () => {
-    state.pendingCount = 5
+    state.meetingsCount = 5
     await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
-    expect(state.seenClientFilters.length).toBeGreaterThanOrEqual(3)   // clients, leads, bookings
+    expect(state.seenClientFilters.length).toBeGreaterThanOrEqual(2)   // clients, bookings
     expect(new Set(state.seenClientFilters)).toEqual(new Set(['client-a']))
     expect(state.inserts[0].client_id).toBe('client-a')
   })
@@ -175,6 +173,7 @@ describe('the rails', () => {
     // Founder-ruled: "yes send on day 1". A client who has never typed has no
     // session, and without this they would get nothing until they started talking.
     state.sessions = []
+    state.meetingsCount = 1
     const r = await ensureTodaysBrief('client-a', new Date('2026-08-24T08:00:00Z'))
     expect(r.status).toBe('created')
     expect(state.inserts[0].session_id).toBe('sess-new')

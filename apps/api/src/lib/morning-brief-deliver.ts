@@ -17,7 +17,7 @@ import {
 export type EnsureBriefResult =
   | { status: 'created';   day: string; text: string }
   | { status: 'exists';    day: string }
-  | { status: 'skipped';   reason: 'opted_out' }
+  | { status: 'skipped';   reason: 'opted_out' | 'nothing_new' }
   | { status: 'failed';    reason: string }
 
 /**
@@ -57,35 +57,30 @@ export async function ensureTodaysBrief(clientId: string, now: Date = new Date()
     // The two numbers. Both tenant-scoped on client_id — the isolation is in the
     // query itself, never in a filter applied afterwards.
     const weekStart = londonWeekStart(now).toISOString()
-    const [pending, meetings] = await Promise.all([
-      // N — EXACTLY the /leads/for-approval filter (routes/leads.ts). Same four
-      // conditions, so the number always equals what the client sees when they
-      // click through. A brief that disagrees with the screen it points at is
-      // worse than no brief.
-      db.from('leads').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .not('delivered_at', 'is', null)
-        .not('surfaced_for_approval_at', 'is', null)
-        .is('revealed_at', null)
-        .neq('status', 'passed'),
-      // Z — MEETING_BOOKED only: confirmed bookings starting inside the London
-      // week. Not pending, not cancelled, and nothing downstream of the booking.
-      db.from('calendar_bookings').select('id', { count: 'exact', head: true })
-        .eq('client_id', clientId)
-        .eq('status', 'confirmed')
-        .gte('start_time', weekStart),
-    ])
 
-    // #136a — a number we could not actually measure must not render as zero.
-    // A failed count is not "nothing happened", and reporting it as 0 is the
-    // fake-dashboard defect in miniature. No brief today beats a false one.
-    if (pending.error)  return { status: 'failed', reason: `pending count: ${pending.error.message}` }
+    // MEETING_BOOKED only: confirmed bookings starting inside the London week.
+    // Not pending, not cancelled, and nothing downstream of the booking.
+    //
+    // ⚠️ THE LEAD COUNT USED TO BE QUERIED HERE AND IS GONE ON PURPOSE. /milla's
+    // own greeting already reports it, from a query that mirrors this one's
+    // sibling exactly — so printing it again put the same number in two
+    // consecutive messages. Founder's call: the greeting keeps it.
+    const meetings = await db.from('calendar_bookings')
+      .select('id', { count: 'exact', head: true })
+      .eq('client_id', clientId)
+      .eq('status', 'confirmed')
+      .gte('start_time', weekStart)
+
+    // #136a — a number we could not measure must not render as zero. A failed
+    // count is not "no meetings"; treating it as one would report a quiet week
+    // to a client who had three. No brief beats a false brief.
     if (meetings.error) return { status: 'failed', reason: `meetings count: ${meetings.error.message}` }
 
-    const text = composeBrief({
-      pendingReview:    pending.count ?? 0,
-      meetingsThisWeek: meetings.count ?? 0,
-    })
+    const text = composeBrief({ meetingsThisWeek: meetings.count ?? 0 })
+    // Nothing worth saying today. The greeting already stands on its own, so
+    // silence here is the product working, not a failure — and stamping no row
+    // means tomorrow gets a fresh chance to have news.
+    if (text === null) return { status: 'skipped', reason: 'nothing_new' }
 
     // Which thread? The newest session — the one /milla opens (GET /milla/sessions
     // orders created_at DESC and the page takes [0]). If they have none yet, make

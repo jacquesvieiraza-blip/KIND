@@ -413,6 +413,25 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
 // database". A tool that needs a UUID a human cannot see is not a tool.
 //
 // Returns the client's most recent leads so the panel can offer a list to click.
+// GET /operator/clients/:id/meeting-brief — the version history, for the operator.
+//
+// P34 clause 11 asked for an EXISTING Vida surface rather than a new screen; the
+// client detail page (/vida/clients-admin/[id] -> /clients/[id]) already renders a
+// client's ICP, so their brief history belongs beside it. This is the read that
+// page needs — newest version first, every version kept.
+operatorRouter.get('/clients/:id/meeting-brief', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.params.id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { briefHistory } = await import('../lib/meeting-brief-deliver')
+    const history = await briefHistory(client.id)
+    res.json({ success: true, data: history })
+  } catch (err) {
+    console.error('[operator/meeting-brief]', err)
+    res.status(500).json({ success: false, error: 'Failed to load the meeting brief history' })
+  }
+})
+
 operatorRouter.get('/clients/:id/recent-leads', async (req: Request, res: Response) => {
   try {
     const client = await requireClient(req.params.id)

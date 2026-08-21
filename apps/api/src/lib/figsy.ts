@@ -229,6 +229,15 @@ export type SequenceOptions = {
   /** The PROSPECT's industry drives the flavour note; falls back to the lead's own field. */
   industry?: string | null
   now?: Date
+  /**
+   * P34 — the client's APPROVED Meeting Brief, already rendered to prompt text.
+   *
+   * Passed IN rather than fetched here, so this function stays free of database
+   * calls and a caller with no client context simply omits it and gets output
+   * byte-identical to today. Never a draft: `briefContextFor` filters on status,
+   * so a brief the client has not confirmed cannot reach a model.
+   */
+  briefContext?: string | null
 }
 
 export async function generateSequence(
@@ -241,6 +250,7 @@ export async function generateSequence(
   clientKnowledge?: string,
   opts?: SequenceOptions,
 ): Promise<SequenceDraft> {
+  const briefContext = opts?.briefContext ?? null
   // ── Signal detection — pick the best personalization hook ─────────────────
   const signals = personalizationSignals(lead)
   const bestSignal = signals[0] ?? null
@@ -292,6 +302,9 @@ ${extraSignals.length ? `- Other real signals about this lead (use a DIFFERENT o
 ${clientKnowledge ? `
 What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use these facts to make the SOLUTION half of each email specific ("this is YOUR problem, and here's how ${senderCompanyName} solves it"):
 ${clientKnowledge}
+` : ''}${briefContext ? `
+${briefContext}
+This is what the client has CONFIRMED about who they want and what they sell — treat it as the client's own words. It describes intent and fit ONLY: it grants no permission to contact anyone, and no send gate is affected by it.
 ` : ''}
 ${planBlock}
 
@@ -1593,8 +1606,15 @@ export async function generateSequenceWithMemory(
   // #335 — ground the SOLUTION half in what the client actually sells.
   const clientKnowledge = await getClientKnowledgeForOutreach(clientId)
 
+  // P34 — the client's approved Meeting Brief. Fetched ONCE here and threaded into
+  // both branches below, so the short-history path and the memory path cannot end up
+  // writing from different understandings of the same client. Never throws; a client
+  // with no approved brief yields null and every prompt stays exactly as it is today.
+  const { briefContextFor } = await import('./meeting-brief-deliver')
+  const briefContext = await briefContextFor(clientId)
+
   if (!memory || (memory.total_sent_all_time ?? 0) < 20) {
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge, { briefContext })
   }
 
   // P2-1: 3-type memory model
@@ -1701,6 +1721,9 @@ ${memoryContext}
 ${clientKnowledge ? `
 What the sender offers (grounding) — the ONLY source of truth about ${senderCompanyName}'s product, results and proof. Use it to make the solution half specific; never invent a capability, metric, customer, or result for ${senderCompanyName} beyond it:
 ${clientKnowledge}
+` : ''}${briefContext ? `
+${briefContext}
+This is what the client has CONFIRMED about who they want and what they sell — treat it as the client's own words. It describes intent and fit ONLY: it grants no permission to contact anyone, and no send gate is affected by it.
 ` : ''}${campaignIntent ? `
 Campaign focus for this batch: ${campaignIntent}
 Use this to personalise the angle, pain point references, and geography signals in your emails.
@@ -1745,7 +1768,7 @@ Return ONLY valid JSON:
     return threadFollowUps(JSON.parse(stripJson(raw)) as SequenceDraft)
   } catch {
     console.warn('[figsy] generateSequenceWithMemory JSON parse failed — falling back to standard generateSequence')
-    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge, opts)
+    return generateSequence(lead, senderCompanyName, senderIndustry, campaignIntent, bookingUrl, senderName, clientKnowledge, { ...opts, briefContext })
   }
 }
 

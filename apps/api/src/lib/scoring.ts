@@ -107,6 +107,25 @@ export async function scoreLeadsForIcp(
     } catch { /* best-effort — scoring proceeds exactly as today on any error */ }
   }
 
+  // ── THE MEETING BRIEF (P34) — WHAT THE CLIENT HAS CONFIRMED ABOUT WHO THEY WANT ──
+  //
+  // The third additive context block on this prompt, built exactly like the two above:
+  // fenced to ONE client, best-effort, and byte-identical to today whenever it yields
+  // nothing. `briefContextFor` returns null unless there is an APPROVED brief — a draft
+  // we assembled but the client has not confirmed never reaches a model.
+  //
+  // ⚠️ EVIDENCE, NOT PERMISSION. The brief's geography records what the client WANTS to
+  // target; it cannot widen the launch allowlist, PECR, suppression or any send gate,
+  // none of which this table is wired to. The rendered text says so to the model too.
+  let briefContext = ''
+  if (clientId) {
+    try {
+      const { briefContextFor } = await import('./meeting-brief-deliver')
+      const line = await briefContextFor(clientId)
+      if (line) briefContext = `\n\n${line}`
+    } catch { /* best-effort — scoring proceeds exactly as today on any error */ }
+  }
+
   const BATCH_SIZE = 10
   let alertedScoringFailure = false   // #358 — alert at most once per call, not per batch
 
@@ -146,7 +165,7 @@ export async function scoreLeadsForIcp(
 ICP criteria:
 ${icpDescription}
 
-Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfect match, 0 = no match.${nexusBoost}${feedbackContext}
+Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfect match, 0 = no match.${nexusBoost}${feedbackContext}${briefContext}
 
 Leads to score:
 ${leadsText}

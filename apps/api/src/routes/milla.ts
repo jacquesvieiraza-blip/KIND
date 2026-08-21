@@ -7,6 +7,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
 import { ensureTodaysBrief } from '../lib/morning-brief-deliver'
+import { ensureBrief, approveBrief, editBrief } from '../lib/meeting-brief-deliver'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -190,6 +191,83 @@ millaRouter.delete('/documents/:documentId', async (req: AuthRequest, res) => {
 })
 
 // ── SESSIONS ──────────────────────────────────────────────────────────────────
+
+// ── THE MEETING BRIEF (P34) — "Here's what I understand" ──────────────────────
+//
+// The client's own view of what we've understood about their business, and the
+// place they correct it. Founder-ruled 21 Aug: the CLIENT approves their own
+// brief — it is their business, and routing every one through an operator would
+// be work nobody needs.
+//
+// v1 arrives as a DRAFT. A draft never reaches a model: both consumers read
+// through `currentBrief`, which filters on status. Nothing about scoring or
+// sequences changes until the client says the brief is right.
+
+// GET /milla/brief — the current brief (assembling v1 on first ask).
+millaRouter.get('/brief', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const r = await ensureBrief(clientId)
+    if (r.status === 'no_evidence') {
+      // Honest empty state. A brand-new client with no ICP and no pitch has
+      // nothing we could have understood yet, and inventing a brief to fill the
+      // screen is the exact thing the evidence rule forbids.
+      res.json({ success: true, data: null, reason: 'no_evidence' }); return
+    }
+    if (r.status === 'failed') { res.status(500).json({ success: false, error: r.reason }); return }
+    res.json({ success: true, data: r.brief })
+  } catch (err) {
+    console.error('[milla/brief GET]', err)
+    res.status(500).json({ success: false, error: 'Failed to load your brief' })
+  }
+})
+
+// POST /milla/brief/approve — the client confirms a draft. Metadata only.
+millaRouter.post('/brief/approve', async (req: AuthRequest, res) => {
+  try {
+    const { version } = z.object({ version: z.number().int().positive() }).parse(req.body)
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const r = await approveBrief(clientId, version)
+    if (r.status === 'not_found') {
+      // Either the version does not exist, belongs to someone else, or is already
+      // approved. All three are "nothing to do here" and none of them should say
+      // which, because that would answer a question about another tenant's data.
+      res.status(404).json({ success: false, error: 'No draft at that version to approve' }); return
+    }
+    if (r.status === 'failed') { res.status(500).json({ success: false, error: r.reason }); return }
+    res.json({ success: true, data: r.brief })
+  } catch (err) {
+    if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: 'A version number is required' }); return }
+    console.error('[milla/brief approve]', err)
+    res.status(500).json({ success: false, error: 'Failed to approve your brief' })
+  }
+})
+
+// POST /milla/brief — a client edit. INSERTS version+1; nothing is overwritten.
+millaRouter.post('/brief', async (req: AuthRequest, res) => {
+  try {
+    const body = z.record(z.unknown()).parse(req.body ?? {})
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const r = await editBrief(clientId, body)
+    if (r.status === 'no_base') { res.status(404).json({ success: false, error: 'There is no brief to edit yet' }); return }
+    if (r.status === 'conflict') {
+      // Two tabs both wrote the next version. Told plainly rather than silently
+      // overwriting whichever landed first.
+      res.status(409).json({ success: false, error: 'Your brief changed in another tab — reload and try again' }); return
+    }
+    if (r.status === 'failed') { res.status(500).json({ success: false, error: r.reason }); return }
+    res.status(201).json({ success: true, data: r.brief })
+  } catch (err) {
+    console.error('[milla/brief POST]', err)
+    res.status(500).json({ success: false, error: 'Failed to save your brief' })
+  }
+})
 
 millaRouter.post('/sessions', async (req: AuthRequest, res) => {
   try {

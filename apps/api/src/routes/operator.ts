@@ -417,11 +417,26 @@ operatorRouter.get('/clients/:id/recent-leads', async (req: Request, res: Respon
   try {
     const client = await requireClient(req.params.id)
     if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
-    const { data } = await db.from('leads')
+    // ⚠️ THE ERROR IS CHECKED, AND THAT IS THE WHOLE FIX. The first version destructured
+    // `{ data }` only and answered `data ?? []` — so ANY query failure rendered as "This client
+    // has no leads yet". The founder saw that on every client and reported it as no data; it
+    // was a broken query reporting an empty one. A screen that cannot tell "none" from "broken"
+    // sends somebody looking in the wrong place, which is the #620 defect in a new costume.
+    //
+    // ⚠️ AND IT ORDERS BY `score`, not `created_at`. Every working lead query in this file
+    // orders by score (lines 304, 336, 686); `created_at` appears nowhere in a lead ORDER BY,
+    // and PostgREST fails the whole request on an unknown column rather than ignoring it — the
+    // exact way this returned nothing while looking fine.
+    const { data, error } = await db.from('leads')
       .select('id, first_name, last_name, company, job_title, status')
       .eq('client_id', client.id)
-      .order('created_at', { ascending: false })
+      .order('score', { ascending: false, nullsFirst: false })
       .limit(25)
+    if (error) {
+      console.error('[operator/recent-leads] query failed for client', client.id, error)
+      res.status(500).json({ success: false, error: `Could not load leads: ${error.message}` })
+      return
+    }
     res.json({ success: true, data: data ?? [] })
   } catch (err) {
     console.error('[operator/recent-leads]', err)

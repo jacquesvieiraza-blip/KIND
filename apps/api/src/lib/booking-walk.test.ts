@@ -112,6 +112,35 @@ describe('③ THE TOOL IS USABLE BY A HUMAN — no UUID a human cannot see', () 
     expect(code, 'and offered as a list').toMatch(/<select value=\{linkLeadId\}/)
   })
 
+  it('⚠️ THE PICKER CANNOT REPORT "no leads" WHEN THE QUERY BROKE', () => {
+    // The founder saw "This client has no leads" on EVERY client. Both halves were swallowing
+    // the failure: the endpoint destructured `{ data }` only and answered `data ?? []`, and the
+    // screen mapped any non-success to `[]`. A screen that cannot tell "none" from "broken"
+    // sends somebody looking in the wrong place — #620 in a new costume.
+    const api = codeOf(OPERATOR)
+    const h = api.slice(api.indexOf("get('/clients/:id/recent-leads'"))
+    const handler = h.slice(0, h.indexOf('\n})'))
+    expect(handler, 'the error must be destructured').toMatch(/const \{ data, error \}/)
+    expect(handler, 'and acted on, not ignored').toMatch(/if \(error\)/)
+    expect(handler, 'and its message reaches the caller').toMatch(/Could not load leads: \$\{error\.message\}/)
+
+    const ui = codeOf(VIDA)
+    expect(ui, 'the screen keeps a separate error state').toMatch(/leadsError/)
+    expect(ui, 'and shows it instead of claiming emptiness').toMatch(/Could not load leads —/)
+  })
+
+  it('⚠️ IT ORDERS BY A COLUMN THIS FILE ALREADY USES', () => {
+    // The first version ordered by `created_at`. Every working lead query in this file orders
+    // by `score` (lines ~304, ~336, ~686) and `created_at` appears in none of them. PostgREST
+    // fails the WHOLE request on an unknown column rather than ignoring it, which is exactly
+    // how this returned nothing while looking correct.
+    const api = codeOf(OPERATOR)
+    const h = api.slice(api.indexOf("get('/clients/:id/recent-leads'"))
+    const handler = h.slice(0, h.indexOf('\n})'))
+    expect(handler).toMatch(/\.order\('score'/)
+    expect(handler, 'created_at is not an ordering this file trusts for leads').not.toMatch(/order\('created_at'/)
+  })
+
   it('the endpoint that feeds the picker is client-scoped', () => {
     const code = codeOf(OPERATOR)
     const h = code.slice(code.indexOf("get('/clients/:id/recent-leads'"))

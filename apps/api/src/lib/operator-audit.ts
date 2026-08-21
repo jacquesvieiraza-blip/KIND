@@ -39,6 +39,10 @@ export type OperatorAction =
   | 'client_partner_invite_resent' // 16 Aug — the invitation was re-sent (or re-linked) after an email that never arrived.
                             // Audited because it mints a login that can read commission
                             // money, and because the seat carries its own pay rate.
+  | 'booking_link_issued'    // P47 follow-on — an operator minted a prospect booking link for a
+                             // lead, to walk the real calendar flow. Audited because the token
+                             // it hands out IS the authorization on a public page: anyone
+                             // holding it can book into that client's calendar until it expires.
   | 'governed_document_created'      // R46 — a NEW governed document (version 1) was written.
   | 'governed_document_version_added' // R46 — a new VERSION was chained onto an existing one.
                             // Audited because this table is the sole source of truth for

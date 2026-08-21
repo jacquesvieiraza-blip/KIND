@@ -13,7 +13,19 @@
 
 import { useState, useEffect, useCallback } from 'react'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://kindapi-production-e64c.up.railway.app'
+// ⚠️ NO HARDCODED HOST HERE (found 21 Aug, during the P47 domain move).
+//
+// This line used to end `|| 'https://kindapi-production-e64c.up.railway.app'` — the exact
+// domain the whole Google-verification move exists to escape, baked in as the fallback on the
+// ONE page a real prospect uses. P47's guard covers the API's calendar path; it does not reach
+// the portal, which is why this survived a pass that was looking for precisely this.
+//
+// An unset variable now shows the page's own honest error state rather than silently pointing
+// a client's prospects at a domain we are decommissioning.
+// Empty rather than a throw: this page is the one a REAL PROSPECT opens, and a module-scope
+// throw gives them a white screen. Empty makes the first fetch fail, which this page already
+// handles with its honest `error` phase — visible, and never a claim that anything was booked.
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? ''
 
 interface Slot { start: string; end: string }
 type Phase = 'loading' | 'ready' | 'invalid' | 'disconnected' | 'empty' | 'booking' | 'booked' | 'error'

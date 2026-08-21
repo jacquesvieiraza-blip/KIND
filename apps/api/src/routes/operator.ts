@@ -384,6 +384,76 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
 // client's own 👍 in Milla. This spends NOTHING — it starts the #492 72h approval TTL and
 // writes an audit row. (The old operator "approve-on-behalf $4" endpoint was removed: no
 // path may let an operator spend a client's credits.)
+// ── TEST BOOKING LINK (P47 follow-on, 21 Aug) ─────────────────────────────────────────────
+//
+// R55/L2, the founder's own words: *"we need to book in the clients calendar and see"* ·
+// *"this is essential to pre 25th."* He connected Google on 20 Aug and it worked — and then
+// could not test the half that matters, because **nothing in the product lets an operator or a
+// client book anything.**
+//
+// ⚠️ WHAT THE AUDIT FOUND. `/calendar/book` (authed) exists in the API and NO SCREEN CALLS IT —
+// verified by grepping the whole portal and admin for `calendar/book`: zero hits. The only
+// booking path that reaches a real calendar is `/book/<signed-token>`, the page a COLD PROSPECT
+// lands on from a sequence email. So proving a booking end-to-end required sourcing a lead,
+// approving it, enrolling it, sending a real sequence, and clicking the link as the recipient.
+// That is a fair test of the product and a terrible way to answer "does the calendar work".
+//
+// This mints the same token `bookingUrlForLead` embeds in that email, for any lead, so the
+// founder can open the REAL prospect page and book into the REAL calendar in two minutes.
+//
+// ⚠️ IT IS NOT A SHORTCUT AROUND THE PRODUCT. The link returned IS the product's link — same
+// signing key, same TTL, same page, same `performBooking` path. Nothing here books anything;
+// it hands back a URL and the founder walks the actual flow. A test that bypassed the real
+// page would prove the bypass works.
+operatorRouter.get('/leads/:id/booking-link', async (req: Request, res: Response) => {
+  try {
+    const { client_id } = (req.query ?? {}) as { client_id?: string }
+    const client = await requireClient(client_id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+
+    // The lead must belong to this client — the token binds lead→client and is the
+    // authorization on a public page, so minting one across a tenant boundary would be
+    // handing out a key to somebody else's calendar.
+    const { data: lead } = await db.from('leads')
+      .select('id, first_name, last_name, company')
+      .eq('id', req.params.id).eq('client_id', client.id).maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found for this client' }); return }
+
+    const { data: c } = await db.from('clients')
+      .select('calendar_booking_enabled, booking_url, google_calendar_refresh_token')
+      .eq('id', client.id).maybeSingle()
+
+    const { bookingUrlForLead } = await import('../lib/booking-token')
+    const url = bookingUrlForLead(c ?? null, lead.id, client.id)
+
+    // Say WHY there is no link rather than returning null and letting the screen guess.
+    // Each of these is a different fix, and "no link" reads identically for all three.
+    const blocked =
+      !process.env.PORTAL_URL        ? 'PORTAL_URL is not set — the link would be a dead URL, so none is issued'
+      : !process.env.ADMIN_SECRET_KEY ? 'ADMIN_SECRET_KEY is not set — tokens cannot be signed'
+      : !c?.calendar_booking_enabled  ? 'This client has not connected Google Calendar (calendar_booking_enabled is false)'
+      : !c?.google_calendar_refresh_token ? 'No refresh token stored — the connection needs redoing'
+      : null
+
+    await writeOperatorAudit({
+      operatorEmail: operatorEmail(req), clientId: client.id, action: 'booking_link_issued',
+      subjectType: 'lead', subjectId: lead.id,
+      detail: { issued: !!url && !blocked, blocked },
+    })
+
+    res.json({
+      success: true,
+      url: blocked ? null : url,
+      blocked,
+      lead: { id: lead.id, name: [lead.first_name, lead.last_name].filter(Boolean).join(' ') || null, company: lead.company ?? null },
+    })
+  } catch (err) {
+    console.error('[operator/booking-link]', err)
+    res.status(500).json({ success: false, error: 'Failed to issue booking link' })
+  }
+})
+
+
 operatorRouter.post('/leads/:id/surface', async (req: Request, res: Response) => {
   try {
     const { client_id } = (req.body ?? {}) as { client_id?: string }

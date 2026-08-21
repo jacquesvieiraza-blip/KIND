@@ -169,10 +169,15 @@ describe('⑥ the migration is in BOTH homes (AR6) and the runner moved 28 → 2
     expect(RUNNER, 'RLS on').toContain('alter table public.lead_feedback enable row level security')
   })
 
-  it('the runner count is 29', () => {
+  it('the runner carries P32, and the count is 30', () => {
     const keys = [...RUNNER.matchAll(/key: '([^']+)'/g)].map(m => m[1])
-    expect(keys.length, `runner entries: ${keys.length}`).toBe(29)
-    expect(keys[keys.length - 1]).toBe('20260821_lead_feedback')
+    // 29 -> 30 on 21 Aug: P33's 20260822_morning_brief_once_per_day.
+    expect(keys.length, `runner entries: ${keys.length}`).toBe(30)
+    // ⚠️ WAS `keys[keys.length - 1]` — "P32 is LAST". That was only ever true until the
+    // next migration existed, so it asserted a fact about the calendar rather than about
+    // P32. What this test is FOR is that P32's entry is in the runner at all; that is now
+    // what it checks, and it will not go red again the next time somebody adds a table.
+    expect(keys).toContain('20260821_lead_feedback')
   })
 })
 

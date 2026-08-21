@@ -6,6 +6,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { processDocument, chat } from '../lib/milla'
+import { ensureTodaysBrief } from '../lib/morning-brief-deliver'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -220,6 +221,23 @@ millaRouter.get('/sessions', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // P33 — MILLA'S MORNING BRIEF lands here, on the client's way IN.
+    //
+    // WHY THIS DOOR. /milla calls GET /sessions first, then reads the newest
+    // session's messages. Writing the brief here means it is already in the thread
+    // by the time that second call runs — the founder's "waiting when they log in"
+    // — with no cron needed and no chance of a client arriving before one fired.
+    // The founder ruled it goes out from day one ("yes send on day 1"), so a
+    // brand-new client with no session gets one created for them.
+    //
+    // ⚠️ AWAITED, BUT IT CAN NEVER BREAK THIS RESPONSE. `ensureTodaysBrief` does
+    // not throw — every failure comes back as a value — and its result is
+    // deliberately ignored here. A greeting must never be the reason a client
+    // cannot reach their leads. It is awaited rather than fired-and-forgotten so
+    // the message is in the thread before the page asks for it; a floating promise
+    // would race the very fetch it exists to populate.
+    await ensureTodaysBrief(clientId)
 
     const { data, error } = await db.from('milla_sessions')
       .select('id, title, created_at')

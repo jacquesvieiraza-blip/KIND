@@ -2,7 +2,12 @@
 
 > **The index of every doc in the repo.** Three tiers: **LIVING** (maintained — must always match code + the locked model), **ARTIFACT** (dated one-offs — frozen, never updated, read as history), **ARCHIVE** (superseded — do not use). If a doc isn't listed here, it isn't tracked — add it.
 > `Last-restructured: 9 Jul 2026` (doc-management reset: status stripped from non-inventory docs, doc-lint firewall added, dead docs archived). Sweep history lives in the KIND-MASTER session log, not here.
-> `Last-reconciled: 11 Aug 2026` — see the box below.
+> `Last-reconciled: 21 Aug 2026` — see both boxes below.
+
+> ### ⚠️ RECONCILED 21 AUG — two whole folders existed and were indexed nowhere
+> Found by an outside read-only audit of the docs, not by any script. **[`compliance/`](./compliance/) (10 files) and [`runbooks/`](./runbooks/) (2 files) were completely absent from this map** — including `EVIDENCE-PACK.md`, the register that records which legal paper we actually hold. Both folders are now indexed above, one row per file, each description read from the file's own header.
+>
+> **The 11-Aug audit below was not wrong — it was overtaken.** Every file in both folders was written on **20 Aug**, nine days after that sweep ran, and nothing re-ran it. That is the same rot in a new place: **this map still has no check that compares the folders on disk against the folders on this page.** Until it does, a folder created after any given sweep is invisible by default. *(A disk-vs-map lint is the fix and is **not** built — it does not aid the 25th, so it is post-live per R65.)*
 
 > ### ⚠️ RECONCILED 11 AUG — this page was missing 9 docs and 5 folders, and carried a false price
 > The founder asked whether this map actually held *"all relevant docs and links"*. Audited by script rather than by eye — every `.md`/`.html` in `docs/` compared against every link on this page:
@@ -126,6 +131,28 @@
 |-----|----------------|-------------|
 | [`legal.md`](./legal.md) | data-rights exposure + structural options (SUPERSEDE banner on Apollo thesis) | lawyer review lands |
 | [`legal/`](./legal/) (6 files) | legal pack · IT-security pack · SEIS draft · partner agreement · key-rotation + restore runbooks — factually per-lead since 9 Jul; **⚖️ sign-off owed before external use (#432–#436)** | compliance milestone / sign-off |
+
+### Compliance evidence → [`compliance/`](./compliance/) *(10 files — added to this map 21 Aug; the folder existed and was **not indexed here at all**)*
+> ⚠️ **Read the state banner on each file before quoting it.** Most are **DRAFT FOR COUNSEL — not filed, not published, not relied on**; that state is the point, not a defect. `EVIDENCE-PACK.md` is the register that says which paper we actually hold.
+
+| Doc | Unique content | Update when |
+|-----|----------------|-------------|
+| [`EVIDENCE-PACK.md`](./compliance/EVIDENCE-PACK.md) | **the accountability register** — every document we must be able to hand a regulator/client/DPA audit, and honestly whether we hold it (rows 9/17: vendor DPAs listed on `dpa.html` but **not executed/held**) | any evidence is collected or a claim changes |
+| [`DATA-BOUNDARY.md`](./compliance/DATA-BOUNDARY.md) | DRAFT — what data crosses which boundary, **written by reading the code**, every claim naming file + line | the data path changes |
+| [`SECURITY-TOMS.md`](./compliance/SECURITY-TOMS.md) | DRAFT — technical + organisational measures, written from the code; three states, rows marked **FOUNDER-CONFIRMS** | a control is added or confirmed |
+| [`TRUST-ROOM.md`](./compliance/TRUST-ROOM.md) | DRAFT — the client-facing trust surface (counsel blesses the legal rows; founder walks the FAQ first) | before anything is served to a client |
+| [`CLIENT-SECURITY-FAQ.md`](./compliance/CLIENT-SECURITY-FAQ.md) | DRAFT — plain-words answers to client security questions, each pointing at the doc that proves it | a client asks something new |
+| [`BREACH-RESPONSE-DRAFT.md`](./compliance/BREACH-RESPONSE-DRAFT.md) | DRAFT FOR COUNSEL — breach response; **counsel words both notification thresholds** | counsel returns wording |
+| [`UPSTREAM-DSR-PROPAGATION.md`](./compliance/UPSTREAM-DSR-PROPAGATION.md) | when a data provider's own subject exercises rights, we are **not told** — how cached records get caught | a sourcing vendor changes |
+| [`SA-INFORMATION-OFFICER-CHECKLIST.md`](./compliance/SA-INFORMATION-OFFICER-CHECKLIST.md) | DRAFT FOR COUNSEL — SA Information Officer duties; **nothing filed with the Regulator** | counsel / filing happens |
+| [`SA-PAIA-MANUAL-DRAFT.md`](./compliance/SA-PAIA-MANUAL-DRAFT.md) | DRAFT FOR COUNSEL — PAIA manual; **not filed or published** | counsel / filing happens |
+| [`SA-S72-TRANSFER-MEMO-SKELETON.md`](./compliance/SA-S72-TRANSFER-MEMO-SKELETON.md) | DRAFT FOR COUNSEL — s72 transfer basis, **left blank** pending the vendor DPAs (gated by EVIDENCE-PACK row 17) | the DPAs are executed |
+
+### Runbooks → [`runbooks/`](./runbooks/) *(2 files — added to this map 21 Aug; the folder existed and was **not indexed here at all**)*
+| Doc | Unique content | Update when |
+|-----|----------------|-------------|
+| [`DSAR-ERASURE.md`](./runbooks/DSAR-ERASURE.md) | **⏱️ one calendar month** — handling a subject access / erasure request for one person, by email, start to finish | the data path or the deadline law changes |
+| [`GOOGLE-VERIFICATION.md`](./runbooks/GOOGLE-VERIFICATION.md) | the Google Calendar OAuth verification path — the app is in **Testing** with the token expiry that follows | Google's app state changes |
 
 ### Root-level (evergreen)
 [`README.md`](../README.md) (repo front door) · [`CLAUDE.md`](../CLAUDE.md) · [`AGENT_AVATARS.md`](../AGENT_AVATARS.md).

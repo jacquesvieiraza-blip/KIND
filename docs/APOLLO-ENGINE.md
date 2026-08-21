@@ -1,6 +1,8 @@
 # ⚙️ K.I.N.D — THE APOLLO ENGINE (outbound OS → FIGSY)
 
-> **⛔ BANNER — Apollo retired from the data path.** PDL Full (sourcing) + Hunter (reveal) is the **live stack**; Apollo is no longer a live vendor. This playbook is **vendor-agnostic and kept** — the 6-stage OS below is what makes FIGSY convert regardless of vendor. (Filename kept as "APOLLO-ENGINE" for history; the vendor is not.)
+> **🎯 BANNER — CORRECTED 21 Aug. Apollo is OURS. `[OUR HUNTING]`**
+> This banner previously read *"Apollo retired from the data path… Apollo is no longer a live vendor."* **That is the exact conclusion the founder overruled**, and re-asserting it here is the mistake his ruling exists to stop: **PRODUCT-RULES AR5** (locked 30 Jul, re-affirmed 1 Aug, #606) — *"**Apollo is OURS. PDL + Hunter are the CLIENTS'.** The same mirror as Instantly/Smartlead. A 1-Aug audit tagged Apollo 'retired' and he **overruled it** — rows relabelled **[OUR HUNTING]** so no future audit repeats the mistake."*
+> **So, plainly:** Apollo is **our own hunting stack** — how *we* find *our* clients. **PDL Full (sourcing) + Hunter (reveal) are the CLIENTS' stack** — what we run *for* a paying client. Two different jobs; neither retires the other. The 6-stage OS below stays the spec for how FIGSY sources, sequences, sends and optimises, and is vendor-agnostic by design. *(Filename is accurate, not historical.)*
 
 > **What this is:** the playbook we learned from auditing Apollo's full platform (their API is the documentation), turned into the spec for how FIGSY should source, sequence, send, and optimise outbound. **Apollo the *vendor* is optional/BYOK; Apollo the *playbook* is free and is what makes FIGSY's sequences actually convert.**
 >

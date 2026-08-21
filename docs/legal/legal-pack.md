@@ -57,7 +57,7 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 - Privacy notice (✅ live at get-kind.com/privacy)
 - Data subject rights: access, rectification, erasure, portability, objection (30-day response window)
 - Data breach notification to ICO within 72 hours if personal data is at risk
-- Data Processing Agreements (DPAs) with all third-party processors (✅ in place with Railway, Supabase, Stripe, Resend, PDL, Hunter, Flutterwave)
+- Data Processing Agreements (DPAs) with all third-party processors — ⚠️ **CORRECTED 21 Aug: this row said "✅ in place with Railway, Supabase, Stripe, Resend, PDL, Hunter, Flutterwave". That was FALSE.** The processors are **listed publicly** on `apps/website/dpa.html`, but **no executed DPA is held** — *"none executed and held"* ([`compliance/EVIDENCE-PACK.md`](../compliance/EVIDENCE-PACK.md) rows 9 & 17). The list is a claim; the signed contracts behind it are the evidence, and the **founder is collecting them into the vault** (the PDL Order Form has never been located — F13). ⛓️ This row gates others: the s72 transfer memo cannot rely on an agreement-based basis, and the breach-response draft cannot state what a vendor owes us on notification, until these exist.
 - ICO registration and annual fee payment
 
 **ICO registration — REQUIRED NOW:**

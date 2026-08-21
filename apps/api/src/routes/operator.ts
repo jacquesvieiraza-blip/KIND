@@ -405,6 +405,31 @@ operatorRouter.get('/board', async (req: Request, res: Response) => {
 // signing key, same TTL, same page, same `performBooking` path. Nothing here books anything;
 // it hands back a URL and the founder walks the actual flow. A test that bypassed the real
 // page would prove the bypass works.
+// ── PICKABLE LEADS FOR THE BOOKING WALK (21 Aug) ──────────────────────────────────────────
+//
+// ⚠️ ADDED BECAUSE THE FIRST VERSION WAS NOT ACTUALLY USABLE. The booking-link panel below
+// asked the founder to paste a lead UUID — and NO SCREEN IN VIDA RENDERS ONE. `lead_id` exists
+// in the queue's data and is never displayed, so "paste a lead ID" meant "go and query the
+// database". A tool that needs a UUID a human cannot see is not a tool.
+//
+// Returns the client's most recent leads so the panel can offer a list to click.
+operatorRouter.get('/clients/:id/recent-leads', async (req: Request, res: Response) => {
+  try {
+    const client = await requireClient(req.params.id)
+    if (!client) { res.status(404).json({ success: false, error: 'Unknown client_id' }); return }
+    const { data } = await db.from('leads')
+      .select('id, first_name, last_name, company, job_title, status')
+      .eq('client_id', client.id)
+      .order('created_at', { ascending: false })
+      .limit(25)
+    res.json({ success: true, data: data ?? [] })
+  } catch (err) {
+    console.error('[operator/recent-leads]', err)
+    res.status(500).json({ success: false, error: 'Failed to load leads' })
+  }
+})
+
+
 operatorRouter.get('/leads/:id/booking-link', async (req: Request, res: Response) => {
   try {
     const { client_id } = (req.query ?? {}) as { client_id?: string }

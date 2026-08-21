@@ -101,7 +101,25 @@ describe('② the operator can mint the PRODUCT\'s own booking link', () => {
   })
 })
 
-describe('③ Vida can reach it — a route nothing calls is not a feature', () => {
+describe('③ THE TOOL IS USABLE BY A HUMAN — no UUID a human cannot see', () => {
+  it('⚠️ IT IS A PICKER, NOT A TEXT BOX', () => {
+    // The first version asked the founder to paste a lead UUID. NO SCREEN IN VIDA RENDERS ONE
+    // — `lead_id` is in the queue's data and never displayed — so "paste a lead ID" meant "go
+    // and query the database". He asked "where is the lead ID", which is the whole finding.
+    const code = codeOf(VIDA)
+    expect(code, 'a pasted uuid is not an interface').not.toMatch(/placeholder="lead id \(uuid\)"/)
+    expect(code, 'the leads are fetched to be picked').toMatch(/recent-leads/)
+    expect(code, 'and offered as a list').toMatch(/<select value=\{linkLeadId\}/)
+  })
+
+  it('the endpoint that feeds the picker is client-scoped', () => {
+    const code = codeOf(OPERATOR)
+    const h = code.slice(code.indexOf("get('/clients/:id/recent-leads'"))
+    expect(h.slice(0, 900)).toMatch(/\.eq\('client_id', client\.id\)/)
+  })
+})
+
+describe('④ Vida can reach it — a route nothing calls is not a feature', () => {
   it('the bookings screen calls the operator endpoint', () => {
     // The lesson from the governed-documents build: something reachable from nowhere is not
     // built. This is the third time that has been the finding.

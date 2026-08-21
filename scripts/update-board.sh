@@ -24,9 +24,19 @@ export board g p v y r b s   # the perl one-liners read these via %ENV — no sh
 # 1. hidden marker
 perl -i -pe 's|<!-- BOARD:[^>]*-->|<!-- BOARD: $ENV{board} -->|' "$INV"
 
-# 2. visible summary row (the first 7-cell bold-number row only — $done makes it first-match,
-#    which is what GNU sed's `0,/re/` did and BSD sed cannot)
-perl -i -pe '$done ||= s/^\| \*\*\d+\*\*( \| \*\*\d+\*\*){6} \|$/| **$ENV{g}** | **$ENV{p}** | **$ENV{v}** | **$ENV{y}** | **$ENV{r}** | **$ENV{b}** | **$ENV{s}** |/' "$INV"
+# 2. EVERY visible summary row of 7 bold-number cells.
+#
+# ⚠️ 21 Aug — this line read `$done ||= s/…/` and that first-match-only behaviour is half
+# of a two-part bug. The inventory carries TWO such rows: an orphan between the <!-- BOARD -->
+# markers, and the one under the visible legend. This writer repaired only the orphan, and
+# count-inventory.sh --check validated only the orphan (`head -1`) — so the row a human
+# actually reads drifted 79 items out of date while every gate reported green. The writer
+# and the checker were blind in the same place, which is why nothing caught it.
+#
+# The regex is deliberately UNCHANGED — it matches exactly 2 lines in the live docs tree,
+# both of them the real board, so applying it to all matches widens nothing. What changed
+# is only that we no longer stop after the first.
+perl -i -pe 's/^\| \*\*\d+\*\*( \| \*\*\d+\*\*){6} \|$/| **$ENV{g}** | **$ENV{p}** | **$ENV{v}** | **$ENV{y}** | **$ENV{r}** | **$ENV{b}** | **$ENV{s}** |/' "$INV"
 
 # 3. section headers '# ░ <dot> LABEL (N) ░'
 perl -i -pe 's|^(# ░ 🟢[^(]*)\(\d+\)|${1}($ENV{g})|' "$INV"

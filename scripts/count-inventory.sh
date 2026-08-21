@@ -97,22 +97,44 @@ if [ "${1:-}" = "--check" ]; then
     fail=1
   fi
 
-  # 2) Visible summary table — the first row of seven bold-number cells, in board
+  # 2) Visible summary tables — EVERY row of seven bold-number cells, in board
   #    order: 🟢 | 🩷 | 🟣 | 🟡 | 🔴 | ⏸ | Σ.
-  trow="$(grep -E '^\| \*\*[0-9]+\*\*( \| \*\*[0-9]+\*\*){6} \|$' "$DOC" | head -1 || true)"
-  if [ -z "$trow" ]; then
+  #
+  # ⚠️ 21 Aug — THIS USED `| head -1` AND THAT IS THE WHOLE BUG. The inventory carries
+  # TWO such rows: an orphan between the <!-- BOARD --> markers, and the one under the
+  # visible legend that a human actually reads. `head -1` validated the orphan and never
+  # looked at the second, so the legend row sat 79 items stale (95·240·2·64·173·5·579
+  # against a real 106·308·2·49·187·6·658) while this check printed OK. `update-board.sh`
+  # had the mirror-image defect (`$done ||=`), so the writer only ever repaired the row
+  # the checker was watching — the two bugs hid each other.
+  #
+  # The bitter part: the comment at the top of this --check block already describes this
+  # EXACT drift class ("marker vs a visible table reading the truth") as the reason the
+  # block was hardened in the first place. That hardening was written with `head -1` and
+  # so reproduced the same blind spot one row lower. A check that inspects only the first
+  # instance of a thing cannot prove anything about the rest of them.
+  #
+  # Now: every matching row is checked and a mismatch names its LINE NUMBER, so the next
+  # failure points at the row instead of leaving you to find it.
+  rows="$(grep -nE '^\| \*\*[0-9]+\*\*( \| \*\*[0-9]+\*\*){6} \|$' "$DOC" || true)"
+  if [ -z "$rows" ]; then
     echo "MISMATCH (visible table): no 7-column bold-number summary row found" >&2
     fail=1
   else
-    read -r -a tnums <<< "$(printf '%s\n' "$trow" | grep -oE '[0-9]+' | tr '\n' ' ')"
     expect=("$c_green" "$c_pink" "$c_purple" "$c_yellow" "$c_red" "$c_blocked" "$total")
     labels=("🟢" "🩷" "🟣" "🟡" "🔴" "⏸" "Σ")
-    for i in 0 1 2 3 4 5 6; do
-      if [ "${tnums[$i]:-}" != "${expect[$i]}" ]; then
-        echo "MISMATCH (visible table ${labels[$i]}): doc=${tnums[$i]:-<none>} real=${expect[$i]}" >&2
-        fail=1
-      fi
-    done
+    while IFS= read -r entry; do
+      [ -n "$entry" ] || continue
+      lineno="${entry%%:*}"
+      trow="${entry#*:}"
+      read -r -a tnums <<< "$(printf '%s\n' "$trow" | grep -oE '[0-9]+' | tr '\n' ' ')"
+      for i in 0 1 2 3 4 5 6; do
+        if [ "${tnums[$i]:-}" != "${expect[$i]}" ]; then
+          echo "MISMATCH (visible table line $lineno, ${labels[$i]}): doc=${tnums[$i]:-<none>} real=${expect[$i]}" >&2
+          fail=1
+        fi
+      done
+    done <<< "$rows"
   fi
 
   # 3) Section headers: '# ░ <dot> LABEL (N) ░' — N must equal the derived count

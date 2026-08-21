@@ -302,8 +302,13 @@
   </style>
   <!-- Shared K.I.N.D design system (loaded last so it wins) -->
   <link rel="stylesheet" href="kind.css" />
+  <!-- W1 (21 Aug 2026) — the homepage's visual system, shared. Loaded LAST so it
+       wins the cascade without rewriting this page's markup. Two corrections to the
+       build brief are documented in that file: the content width is 1120px, not
+       1080px, and Inter never loads. index.html does NOT load it and is untouched. -->
+  <link rel="stylesheet" href="gp-system.css" />
 </head>
-<body>
+<body class="gp-converged">
 
 <!-- AUTH MODAL -->
 <!-- auth modal removed (#482 audit) — managed service has no self-serve signup -->

@@ -63,7 +63,19 @@ DATA MAP   Did OUR data exist there?
            · Supabase   → yes: ALL client and lead personal data (Dublin)
            · Railway    → yes: in-flight processing; per privacy.html §4, no personal data at rest
            · Resend     → yes: recipient addresses + message content
-           · Anthropic  → per privacy.html §4, prompts exclude names/emails — VERIFY per incident
+           · Anthropic  → YES, personal data reaches it. ⛓️ CORRECTED 21 Aug — this line said
+                          "per privacy.html §4, prompts exclude names/emails", which is FALSE.
+                          Structured lead paths send NAME, job title, company, industry,
+                          seniority, country + up to the first 1,200 characters of prospect
+                          reply text (scoring.ts:138,159→:176 · figsy.ts:293-299→:327 ·
+                          figsy.ts:387→:410 via reply-pipeline.ts:141). The structured
+                          lead.email field is NOT sent in those paths. Milla chat sends the
+                          client's typed messages, prior turns and verbatim uploaded-document
+                          excerpts with NO filtering or redaction (milla.ts:164-165,191-196,201
+                          →:207) — so it CAN carry anything, including email addresses.
+                          ⚠️ Anthropic's own retention/training terms are UNVERIFIED — none held
+                          (EVIDENCE-PACK row 17), so this doc states nothing about what happens
+                          to the data after it arrives. Scope it per incident from the paths above.
            · Smartlead  → yes: campaign recipients and reply content
            · PDL/Hunter → yes: sourced prospect records
            · Stripe     → payment data; we hold reference IDs only

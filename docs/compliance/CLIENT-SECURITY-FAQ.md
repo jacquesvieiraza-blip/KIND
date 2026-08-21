@@ -78,13 +78,40 @@ today it is a person doing it.
 
 ## 9. Do you train AI on my data?
 
-**No.** We use Anthropic's Claude API, which **does not train on data submitted through the API**
-by default. Beyond that, our privacy notice states that prompts exclude personal data — names and
-email addresses are not sent to the model.
-⚠️ Two honest notes: we have **not** yet collected Anthropic's terms into our vault
-(`EVIDENCE-PACK.md` row 17), and the "no personal data in prompts" claim should be re-verified
-per feature rather than assumed across all of them.
-→ `apps/website/privacy.html` §4
+⚠️ **UNVERIFIED — we cannot evidence an answer to this question, and we will not assert one.**
+⛓️ **CORRECTED 21 Aug.** This answer used to open **"No."** and state that *"names and email
+addresses are not sent to the model."* **Both parts were wrong to assert:** we hold no Anthropic
+contract or terms document anywhere in this repository (`EVIDENCE-PACK.md` row 17 — founder to
+collect into the vault), so **nothing here claims what Anthropic does or does not do with data it
+receives**; and names ARE sent. What we CAN state is what our own production code proves:
+
+**What reaches Anthropic's Claude API — established from production code, not from policy.**
+
+**① Structured lead paths (scoring · sequence writing · reply classification).** These send lead
+**name**, **job title**, **company**, **industry**, **seniority**, **country**, and **up to the
+first 1,200 characters of prospect reply text**. **The structured `lead.email` field is NOT sent in
+these paths** — it is not selected for the scoring prompt and appears only in server-side log lines
+on the send path.
+*Evidence:* `apps/api/src/lib/scoring.ts:138,159` → `:176` · `figsy.ts:293-299` → `:327` ·
+`figsy.ts:387` → `:410`, invoked at `reply-pipeline.ts:141`.
+
+**② Milla client chat.** This sends the client's **typed messages**, their **prior chat turns**, and
+**verbatim excerpts of documents they have uploaded**. **No content filtering, redaction or PII
+detection is applied** — the only transformations are a 4,000-character truncation and a filter on
+message *role*. **Therefore this path CAN carry personal data, including email addresses, if a
+client types or uploads them.** The injected account snapshot carries aggregate counts and a
+campaign name only.
+*Evidence:* `milla.ts:21-24,135,164-165,191-196,201` → `:207` · `milla-chat-system.ts:35,47-48`.
+
+**So the accurate statement is narrow, and deliberately so:** the structured `lead.email` field is
+not sent in the verified scoring, sequence and reply paths — **but this is not a claim that email
+addresses are never sent to Anthropic**, because the Milla chat path can carry anything a client
+writes or uploads.
+
+🚨 **OPEN CONTRADICTION — `apps/website/privacy.html` (LIVE) says the opposite.** §4 states *"We do
+not include personal data (names, emails) in AI prompts"* (`privacy.html:253`, and `:238`). The
+**names** half is false against the evidence above. **Recorded, not fixed here** — the public
+privacy wording is a separate founder-commanded task (**P12** · **R56**).
 
 ## 10. Are you SOC 2 certified?
 

@@ -27,7 +27,7 @@ re-verify; nothing here is inferred.
 | **Application servers** (processing, not storage) | **Railway, US West — California, United States** | Founder's dashboard, 20 Aug |
 | **Backups** | Daily, same region as the database (Dublin) | Backup screen, 20 Aug — 7 days visible (13–20 Aug) |
 | **Email delivery** | Resend | `privacy.html` §4 |
-| **AI processing** | Anthropic Claude API (US) | `privacy.html` §4 — no personal data in prompts, per that section |
+| **AI processing** | Anthropic Claude API (US) | ⛓️ **CORRECTED 21 Aug — this cell said *"`privacy.html` §4 — no personal data in prompts"*, which is FALSE and must not be relied on for an s72 analysis.** **Personal data DOES cross to Anthropic (US).** Structured lead paths send **name, job title, company, industry, seniority, country + up to the first 1,200 characters of prospect reply text** (`scoring.ts:138,159`→`:176` · `figsy.ts:293-299`→`:327` · `figsy.ts:387`→`:410` via `reply-pipeline.ts:141`); the structured `lead.email` field is **not** sent in those paths. **Milla chat** sends client-typed messages, prior turns and **verbatim uploaded-document excerpts with NO filtering or redaction** (`milla.ts:164-165,191-196,201`→`:207`) — so it **can** carry any personal data, including email addresses. ⚠️ **Anthropic's terms are UNVERIFIED — none held** (`EVIDENCE-PACK.md` row 17), so **no agreement-based s72 basis can rest on this vendor** until they are executed and in the vault |
 | **Payments** | Stripe | `privacy.html` §4 |
 
 **So an SA data subject's personal information is stored in Ireland and processed in the United

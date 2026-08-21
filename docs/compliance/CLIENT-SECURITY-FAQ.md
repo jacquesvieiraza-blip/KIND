@@ -79,11 +79,14 @@ today it is a person doing it.
 ## 9. Do you train AI on my data?
 
 ⚠️ **UNVERIFIED — we cannot evidence an answer to this question, and we will not assert one.**
-⛓️ **CORRECTED 21 Aug.** This answer used to open **"No."** and state that *"names and email
-addresses are not sent to the model."* **Both parts were wrong to assert:** we hold no Anthropic
-contract or terms document anywhere in this repository (`EVIDENCE-PACK.md` row 17 — founder to
-collect into the vault), so **nothing here claims what Anthropic does or does not do with data it
-receives**; and names ARE sent. What we CAN state is what our own production code proves:
+⛓️ **CORRECTED 21 Aug — and the two halves of the old answer failed in DIFFERENT ways, which is
+why they are separated here.** The previous answer opened **"No."** without evidence held in our
+vault. **That training/retention claim is therefore UNVERIFIED** — we hold no Anthropic contract or
+terms document anywhere in this repository (`EVIDENCE-PACK.md` row 17 — founder to collect into the
+vault), so nothing here claims what Anthropic does or does not do with data it receives, **and
+nothing here claims the opposite either.** The separate statement that names were not sent was
+**factually FALSE: production code proves names are sent.** What we CAN state is what our own
+production code proves:
 
 **What reaches Anthropic's Claude API — established from production code, not from policy.**
 
@@ -107,11 +110,6 @@ campaign name only.
 not sent in the verified scoring, sequence and reply paths — **but this is not a claim that email
 addresses are never sent to Anthropic**, because the Milla chat path can carry anything a client
 writes or uploads.
-
-🚨 **OPEN CONTRADICTION — `apps/website/privacy.html` (LIVE) says the opposite.** §4 states *"We do
-not include personal data (names, emails) in AI prompts"* (`privacy.html:253`, and `:238`). The
-**names** half is false against the evidence above. **Recorded, not fixed here** — the public
-privacy wording is a separate founder-commanded task (**P12** · **R56**).
 
 ## 10. Are you SOC 2 certified?
 

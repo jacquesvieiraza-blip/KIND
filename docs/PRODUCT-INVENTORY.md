@@ -14,7 +14,7 @@
 <!-- BOARD: 🟢106 · 🩷308 · 🟣2 · 🟡49 · 🔴187 · ⏸6 · Σ658 -->
 | 🟢 Live + verified | 🩷 Live, not walked | 🟣 Approved, not shipped | 🟡 Built, pending review | 🔴 Not built | ⏸ Blocked | Σ |
 |:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **95** | **240** | **2** | **64** | **173** | **5** | **579** |
+| **106** | **308** | **2** | **49** | **187** | **6** | **658** |
 
 > **Rebuilt clean 25 Jun 2026** (code-verified walkthrough, evidence in `LIVE-FEATURE-WALK.md`); **re-grouped by agent 21 Jul 2026** (audit: docs/KIND-MASTER 21 Jul). One honest line per item; every dot reflects verified reality. **Grouped by AGENT** (FIGSY · MILLA · VIDA · shared platform · archive) so you see per-agent what's **live vs left**. The status roll-up (board above) is still script-counted across all agents.
 

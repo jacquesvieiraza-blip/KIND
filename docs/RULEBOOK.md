@@ -126,7 +126,9 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 12.4 **Build vs integrate** (founder decides): current lean = **integrate** a sending-platform API (**Smartlead** white-label for the product engine · **Instantly** for our own outreach now), put the AI + African data on top — don't rebuild the hardest wheel.
 
 ## 13. 🔍 AUDIT PROTOCOL — what "a full audit" must cover (folded in from FULL_CHECK, 23 Jun)
-> ⛓️ **SCOPED 21 Aug — THIS SECTION DEFINES `MODE = FULL AUDIT`, AND NOTHING ELSE.** It fires on the founder's explicit *"audit / teardown / full check"* and on the §15.16 triggers (major milestone · pre-release · major architecture/data/compliance change). **The WEEKLY audit is a different thing entirely** — change-based from the last persisted `audited-through` SHA (§15.15) — and **does not invoke this section.** The distinction matters: §13.2's *"reason over the whole system, grep can't find absence"* is right for a full audit and would be whole-repo archaeology every seven days.
+> ⛓️ **SCOPED 21 Aug — THIS SECTION DEFINES `MODE = FULL AUDIT`, AND NOTHING ELSE.**
+> 🛑 **A FULL AUDIT NEVER STARTS AUTOMATICALLY.** Milestones, pre-release/pre-launch and major architecture, data or compliance changes are **reasons for Claude or GPT-5.6 to RECOMMEND one — then PAUSE.** They are not triggers that start it. Even the founder's explicit *"audit / teardown / full check"* establishes **intent only**: Claude scopes it first (Scope Card + Clause Table, §15.8) and **waits for GO** before the expensive work begins. A full audit is the most costly thing in this repo and must never begin on inference.
+> **The WEEKLY audit is a different thing entirely** — change-based from the last persisted `audited-through` SHA (§15.15) — and **does not invoke this section.** The distinction matters: §13.2's *"reason over the whole system, grep can't find absence"* is right for a full audit and would be whole-repo archaeology every seven days.
 > When the founder asks for an "audit / teardown / full check / make sure we're done," work through **every** section below and report on each — including the ones that come back clean. *(Origin: a 2-Jun "full teardown" missed that all Railway services have no failover, because it was scoped to "what I built this session" not "the whole system." An audit covers the system, never one session's diff.)*
 13.1 **Single points of failure / redundancy** — what dies if Railway / Supabase / Resend / Anthropic is down? Any failover, status page, uptime monitor, tested DB restore?
 13.2 **Standing commitments not yet built** — reason over conversation + docs for things *discussed* but never built ("backup plan", "Phase 2", "later"). Grep can't find absence — you must.
@@ -224,15 +226,21 @@ This is **the founder's current pre-launch operating method.**
 
 ⚠️ **Named failure mode: re-reading PRODUCT-RULES or LAUNCH-PAD several times inside a single build is a defect, not diligence.** It burns the context the task needs and produces no new truth.
 
+🔒 **How this reconciles with THE CITATION LAW** (CLAUDE.md, founder-ordered 6 Aug, chain-amended 21 Aug). The law's **duty is unchanged**: every founder ruling is cited by rule ID and date, and never paraphrased into a lock. What the ledger changes is **frequency** — verify the lock **once, at first use in the task**, record rule ID + date in the ledger, and reuse that evidence for every later sentence, PR body and report until a rule-5 trigger fires. ⚠️ **One thing always requires going back to the source: presenting text as a VERBATIM QUOTE.** A ledger entry records that a rule exists and what it means; it is not permission to reconstruct the founder's exact words from memory.
+
 ### 15.7 TASK MODES + TASK SIZES
 
 **Modes:** `READ-ONLY VERIFY` · `BUILD` · `DOC RECONCILIATION` · `FULL AUDIT` (§13 defines the last). **If the mode is unclear, default to READ-ONLY / PAUSE** — never to BUILD.
 
+**BUILD, DOC RECONCILIATION and FULL AUDIT all require the Scope Card + Clause Table and an explicit GO before they start** (§15.8). **READ-ONLY VERIFY is the only mode that may proceed on the founder's original prompt alone**, and only within the bounds that prompt set.
+
 **Sizes:** **SMALL** ≤5 substantive files read / ≤3 changed · **MEDIUM** ≤12 read / ≤8 changed · **LARGE** anything above either threshold, which **requires explicit founder approval for the expanded scope before it starts.**
 
-### 15.8 SCOPE CARD + CLAUSE TABLE — the pre-build contract
+### 15.8 SCOPE CARD + CLAUSE TABLE — the pre-work contract
 
-Before every BUILD, return: **MODE · GOAL · TASK SIZE · RULES USED · FILES TO READ · FILES TO CHANGE · TESTS · NO-TOUCH · OPEN QUESTIONS**, then the **CLAUSE TABLE** (P11 — every clause quoted from the founder's words, never paraphrased), then **WAIT FOR GO**.
+**Required before every BUILD, every DOC RECONCILIATION and every FULL AUDIT** — all three spend the founder's money and all three can drift. Return: **MODE · GOAL · TASK SIZE · RULES USED · FILES TO READ · FILES TO CHANGE · TESTS · NO-TOUCH · OPEN QUESTIONS**, then the **CLAUSE TABLE** (P11 — every clause quoted from the founder's words, never paraphrased), then **WAIT FOR GO**.
+
+**READ-ONLY VERIFY is the one mode that may proceed without a second GO** — and only **inside the exact read-only bounds the founder's prompt already set**. Widening those bounds is a new task and needs the card.
 
 **After GO, the clause table IS the contract.** Anything not in it is out of scope — including improvements that are obviously correct. No opportunistic cleanup.
 
@@ -292,9 +300,17 @@ WEEKLY AUDIT · <date> · audited-through <origin/main SHA> · GREEN|AMBER|RED �
 
 ⚠️ **Writing that line is a future task under the normal scoped GO process. LAUNCH-PAD was NOT changed by the protocol install itself.**
 
-### 15.16 FULL AUDITS
+### 15.16 FULL AUDITS — recommended, never auto-started
 
-Reserved for: **major milestone** · **pre-release / pre-launch** · **major architecture, data or compliance change** · **explicit founder request**. **§13 defines what one must cover.** A full audit is never the default response to the word "check".
+🛑 **A FULL AUDIT NEVER STARTS AUTOMATICALLY.** The four situations below are **reasons to RECOMMEND one**, not triggers that fire one: **major milestone** · **pre-release / pre-launch** · **major architecture, data or compliance change** · **explicit founder request**.
+
+**The sequence, every time:**
+1. Claude or GPT-5.6 **recommends** a full audit and says why.
+2. **Claude PAUSES.**
+3. If the founder wants it, Claude returns the **Scope Card + Clause Table** (§15.8).
+4. **The audit begins only on the founder's explicit GO.**
+
+Even the founder's own *"full audit / teardown / full check"* establishes **intent, not authorisation to start** — it goes through steps 3 and 4 like anything else, because the phrase does not say how deep, how wide, or how much of the week it consumes. **§13 defines what a full audit must cover** once authorised. **A full audit is never the default response to the word "check".**
 
 ### 15.17 COMPACT REPORTING
 

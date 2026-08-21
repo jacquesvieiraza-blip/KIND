@@ -1,0 +1,312 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   gp-system.css — THE HOMEPAGE'S VISUAL SYSTEM, MADE SHAREABLE (W1, 21 Aug 2026)
+
+   WHY THIS FILE EXISTS
+   The GPT 5.6 site audit found the real defect: get-kind.com is not one visual
+   system with a few rough pages — it is a NEW homepage (the `gp-*` layer, 217
+   occurrences in index.html and ZERO on all 28 other pages) sitting on top of
+   several OLD page families. Patching pages one at a time is what produced that
+   split in the first place, so the fix is convergence through one shared layer.
+
+   WHAT IT DOES
+   Re-declares the homepage's own tokens, type scale, content width and CTA
+   shape, then maps the secondary pages' existing container classes onto them.
+   Loaded LAST (after each page's inline <style> and after kind.css) so it wins
+   on the cascade without any page's markup being rewritten. Each converged page
+   therefore takes a TWO-LINE diff: this <link>, and `class="gp-converged"` on
+   <body>. Nothing else about those pages moves.
+
+   ⚠️ index.html NEVER LOADS THIS FILE AND IS NOT TOUCHED BY THIS BUILD.
+   The homepage is the founder-approved reference (P30, approved on preview and
+   shipped 21 Aug). It keeps its own inline `gp-*` block. This file is a COPY of
+   that system's measurements for everyone else — if the two ever disagree,
+   index.html is right and this file is the bug.
+
+   ⚠️ TWO CORRECTIONS TO THE BRIEF, BOTH VERIFIED IN THE SOURCE (21 Aug):
+
+   1. THE CONTENT WIDTH IS 1120px, NOT 1080px.
+      index.html:1358 — `.gp-wrap{width:min(1120px, calc(100% - 40px))}`.
+      The 1080px figure that reached the build brief is the width of the OLD
+      layer (`.hero`, the pre-gp sections) — i.e. the system being converged
+      AWAY from. Building to 1080 would have re-created the old rail on five
+      more pages and called it convergence. The audit's "~1120px" was right.
+
+   2. INTER IS NEVER LOADED, ANYWHERE.
+      kind.css:9 imports Plus Jakarta Sans, Outfit and JetBrains Mono — not
+      Inter. So the homepage's `font-family:Inter, ui-sans-serif, …` falls
+      through to the system UI face on every machine that lacks Inter. This
+      file declares the SAME stack deliberately: matching the homepage means
+      matching what it RENDERS, not what it asks for. Do not "fix" this by
+      importing Inter here — that would make these five pages differ from the
+      homepage, which is the exact defect this file exists to close. If Inter
+      should really load, it belongs in kind.css, applies to index.html too,
+      and is a founder decision because it changes the approved homepage.
+
+   FOUNDER RULINGS BEHIND THIS FILE (21 Aug):
+   fonts stay exactly as the approved homepage has them · Nexus untouched until
+   after launch · five P0 pages pre-launch, the rest after · demo form unchanged.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. TOKENS — copied from index.html:1336-1346 ────────────────────────── */
+.gp-converged {
+  --gp-purple: #7c3aed;
+  --gp-purple-dark: #6d28d9;
+  --gp-purple-soft: #f6f2ff;
+  --gp-ink: #0b0b0d;
+  --gp-text: #404044;
+  --gp-muted: #73737a;
+  --gp-line: #dedee3;
+  --gp-surface: #f5f5f7;
+
+  /* index.html:1358-1359 — the real measurements, see correction 1 above */
+  --gp-wrap: 1120px;
+  --gp-narrow: 860px;
+  --gp-gutter: 40px;
+  --gp-rhythm: 110px;   /* index.html:1502 — .gp-section{padding:110px 0} */
+}
+
+/* ── 2. TYPE — index.html:1351 (see correction 2: Inter does not load) ───── */
+.gp-converged {
+  font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
+               "Segoe UI", Helvetica, Arial, sans-serif;
+  color: var(--gp-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* The heading scale, index.html:1368-1384. Scoped to page CONTENT only —
+   `.nav-*` and `footer` are excluded throughout this file, because the nav,
+   the footer and every dropdown between them are explicitly out of scope:
+   "the top and bottom and all other connecting drop downs from the heads and
+   links too etc dont change" (founder, P30 ship instruction). */
+/* ⚠️ THE SELECTOR LIST IS THE WHOLE JOB, AND A FIRST PASS GOT IT WRONG.
+   These pages do NOT all mark their headings up as <h1>/<h2>. Counted in the
+   source, outside nav and footer (21 Aug):
+     pricing    h1×1, h2×6   — plain tags
+     figsy      h1×1, h2×2   — plain tag + `.kdash-h`
+     trust      h1×1 `.k-h1` WITH AN INLINE font-size, h2×7 `.s-title`
+     solutions  h1×0, h2×1   — `.big2`
+     milla      h1×0, h2×0   — the page title is `<div class="rname">`
+   A tag-only selector therefore reached pricing and figsy, half-reached trust,
+   and did NOTHING on solutions or milla — which rendered as "converged" in a
+   screenshot only because the width and body type had moved. Every real title
+   element is named below, by the class the page actually uses. */
+.gp-converged main h1,
+.gp-converged .page-hero h1,
+.gp-converged .trust-hero-inner h1,
+.gp-converged .agent-hero h1,
+.gp-converged .content h1,
+.gp-converged .rname {              /* milla — a div, not a heading */
+  font-size: clamp(52px, 8vw, 92px);
+  line-height: .93;
+  letter-spacing: -.055em;
+  margin-bottom: 22px;
+}
+
+/* trust.html's title carries `style="font-size:clamp(2.2rem,4.5vw,3.5rem)"`
+   INLINE, which outranks any stylesheet — so this one rule needs `!important`
+   to reach it. Deliberately the only `!important` in this file: the alternative
+   is editing that page's markup, and the two-line-diff rule is what keeps this
+   build reviewable and reversible. If the inline style is ever removed, delete
+   the `!important` with it rather than leaving a permanent override behind. */
+.gp-converged .k-h1 {
+  font-size: clamp(52px, 8vw, 92px) !important;
+  line-height: .93;
+  letter-spacing: -.055em;
+}
+
+.gp-converged .s-title,
+.gp-converged .section h2,
+.gp-converged .trust-wrap h2,
+.gp-converged .dont-inner h2,
+.gp-converged .plans-wrap h2,
+.gp-converged .calc-head h2,
+.gp-converged .big2,                /* solutions */
+.gp-converged .kdash-h {            /* figsy */
+  font-size: clamp(38px, 5vw, 64px);
+  line-height: .98;
+  letter-spacing: -.045em;
+  margin-bottom: 22px;
+}
+
+.gp-converged .s-sub,
+.gp-converged .page-hero p,
+.gp-converged .trust-hero-inner p,
+.gp-converged .agent-hero p {
+  font-size: 19px;
+  line-height: 1.55;
+  color: var(--gp-text);
+  max-width: 680px;   /* index.html:1398 — .gp-body-lg */
+}
+
+/* The uppercase eyebrow, index.html:1360-1366 */
+.gp-converged .eyebrow,
+.gp-converged .s-eyebrow,
+.gp-converged .page-hero .label {
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--gp-purple);
+  font-weight: 800;
+}
+
+/* ── 3. WIDTH — every content rail onto the 1120 system ─────────────────────
+   Deliberately EXCLUDED: .footer-inner and .footer-bottom (footer is frozen),
+   .modal (a 420px dialog is not a content rail), .k-prose (already 680px,
+   which is exactly .gp-body-lg's measure — converged by coincidence). */
+.gp-converged .k-inner,
+.gp-converged .section,
+.gp-converged .plans-wrap,
+.gp-converged .cmp-details,
+.gp-converged .calc-wrap,
+.gp-converged .stats-inner,
+.gp-converged .agent-cta-inner,
+.gp-converged .trust-wrap,
+.gp-converged .dont-inner {
+  width: min(var(--gp-wrap), calc(100% - var(--gp-gutter)));
+  max-width: var(--gp-wrap);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Heroes and prose take the narrow rail, index.html:1359 + :1440
+   (.gp-hero-copy{max-width:860px}). pricing's 640px hero was the single
+   narrowest rail on the site and the most visible mismatch beside home. */
+.gp-converged .page-hero,
+.gp-converged .content,
+.gp-converged .trust-hero-inner,
+.gp-converged .agent-hero-inner,
+.gp-converged .calc-head,
+.gp-converged .faq-section {
+  width: min(var(--gp-narrow), calc(100% - var(--gp-gutter)));
+  max-width: var(--gp-narrow);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ── 4. RHYTHM — index.html:1502, .gp-section{padding:110px 0} ───────────── */
+.gp-converged .section,
+.gp-converged .trust-wrap,
+.gp-converged .k-section {
+  padding-top: var(--gp-rhythm);
+  padding-bottom: var(--gp-rhythm);
+}
+.gp-converged .page-hero,
+.gp-converged .agent-hero,
+.gp-converged .trust-hero {
+  padding-top: 84px;      /* index.html:1439 — .gp-hero{padding:84px 0 78px} */
+  padding-bottom: 78px;
+}
+.gp-converged .dont-section,
+.gp-converged .agent-cta-section,
+.gp-converged .cta-section {
+  padding-top: var(--gp-rhythm);
+  padding-bottom: var(--gp-rhythm);
+}
+
+/* ── 5. CTA — one pill, index.html:1421-1437. Nav buttons untouched. ─────── */
+.gp-converged .btn-cta,
+.gp-converged .btn-cta-primary,
+.gp-converged .btn-cta-ghost,
+.gp-converged .plan-btn,
+.gp-converged .btn2,
+.gp-converged .agent-hero-cta,
+.gp-converged .agent-cta-btn,
+.gp-converged .human-strip-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 24px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 14px;
+  transition: .18s ease;
+}
+.gp-converged .btn-cta:hover,
+.gp-converged .btn-cta-primary:hover,
+.gp-converged .plan-btn:hover,
+.gp-converged .btn2:hover,
+.gp-converged .agent-hero-cta:hover,
+.gp-converged .agent-cta-btn:hover,
+.gp-converged .human-strip-btn:hover {
+  transform: translateY(-1px);
+}
+
+/* ── 6. IMAGERY — bounded frames, never text over loose art ───────────────
+   The audit's "writing covered by images" risk. The homepage keeps product
+   imagery inside a bounded frame separated from body copy; these rules apply
+   the same containment to secondary-page visuals. The Drop's 4:3
+   `object-fit:cover` crop is the sharper version of this problem, but the
+   Drop is phase 2 — nothing here touches it. */
+.gp-converged .k-inner img:not([class*="icon"]):not([class*="logo"]),
+.gp-converged .section img:not([class*="icon"]):not([class*="logo"]) {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ── 7. DARK SECTIONS — a controlled variant, not a second theme ───────────
+   trust.html's dark hero and "what we don't do" band stay dark (that is the
+   page's intent and the founder approved the tone); they simply inherit the
+   converged widths and type scale above, and take their neutrals from the
+   same token set so the dark is a variant of one system rather than another
+   system that happens to be dark. */
+.gp-converged .trust-hero,
+.gp-converged .dont-section {
+  --gp-text: rgba(255,255,255,.72);
+  --gp-muted: rgba(255,255,255,.5);
+  --gp-line: rgba(255,255,255,.14);
+}
+
+/* ── 8. MOBILE — index.html:1691 collapses both rails to one gutter ──────── */
+@media (max-width: 760px) {
+  .gp-converged .k-inner,
+  .gp-converged .section,
+  .gp-converged .plans-wrap,
+  .gp-converged .cmp-details,
+  .gp-converged .calc-wrap,
+  .gp-converged .stats-inner,
+  .gp-converged .agent-cta-inner,
+  .gp-converged .trust-wrap,
+  .gp-converged .dont-inner,
+  .gp-converged .page-hero,
+  .gp-converged .content,
+  .gp-converged .trust-hero-inner,
+  .gp-converged .agent-hero-inner,
+  .gp-converged .calc-head,
+  .gp-converged .faq-section {
+    width: min(100% - 28px, var(--gp-wrap));
+  }
+  .gp-converged .section,
+  .gp-converged .trust-wrap,
+  .gp-converged .dont-section,
+  .gp-converged .agent-cta-section,
+  .gp-converged .cta-section {
+    padding-top: 64px;
+    padding-bottom: 64px;
+  }
+  .gp-converged .page-hero,
+  .gp-converged .agent-hero,
+  .gp-converged .trust-hero {
+    padding-top: 56px;
+    padding-bottom: 48px;
+  }
+}
+
+/* Wide content must scroll inside its own container, never the page body. */
+.gp-converged .cmp-details table,
+.gp-converged .section table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gp-converged .btn-cta,
+  .gp-converged .btn-cta-primary,
+  .gp-converged .plan-btn,
+  .gp-converged .btn2,
+  .gp-converged .agent-hero-cta,
+  .gp-converged .agent-cta-btn,
+  .gp-converged .human-strip-btn { transition: none; }
+}

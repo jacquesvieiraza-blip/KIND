@@ -2,35 +2,19 @@
 
 > **🧭 Four-doc contract:** **KIND-MASTER** *(this doc)* = strategy, decisions, why, dated session log · **LAUNCH-PAD** = daily execution · **PRODUCT-INVENTORY** = status (one dot, one owner) · **V2-TRACKER** = future. **Conflict rule:** strategy/decision truth = here; status = PRODUCT-INVENTORY; daily action = LAUNCH-PAD; future = V2-TRACKER. No fifth core doc. *(This supersedes every older "two docs" / "three source docs" line below — those are archived history.)* **Money model of record → [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html)** (founder-locked 25 Jul, #556).
 
-## ▶️ START HERE — the current state of the company *(26 Jul 2026 — supersedes every dated block below)*
+## ▶️ START HERE
 
-**Locked by the founder, 26 Jul, in his words:** *"on 31 aug if this is not all done i stop."* That is the outside edge. Between now and then there is **one thing that decides whether we have a business: the product must be able to send from the client's own mailbox.** Everything else is already built or does not matter yet.
+- **What to do now** → [`LAUNCH-PAD.md`](./LAUNCH-PAD.md) — the 25th cut, nine rows.
+- **What is built** → [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) — one dot per item.
+- **The founder's rulings** → [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) — the locks, quoted.
+- **After launch** → [`V2-TRACKER.md`](./V2-TRACKER.md).
+- **Why we decided anything** → the SESSION LOG below, newest first.
 
-- **What we sell.** A **managed cold-outreach service** trading as **Milla&Vida** on the FIGSY engine. **Vida** = our operator console. **Milla** = the client portal (masked leads · 👍 approve / ✕ pass · concierge chat · meetings · reports). **Nexus** = each client's private brain. K.I.N.D remains the registered company.
-- **The money, as it actually runs** (locked 24–25 Jul, #492/#541): one dollar wallet per client · first purchase **$99 = the onboarding pack, 100 approved leads included** · then a flat **$4 per approved lead, FINAL** · no expiry, no hold, no capture-on-booking, no release · a dead email is never charged · meetings are reported, not refunded · **only the client's 👍 ever spends — operators never**. Two gates protect it: **minimum 20 approvals** the first time round, and **30 days with no approvals suspends them** (they un-suspend on their own next approval, no operator in the loop).
-- **The cost floor is ~$457/month, not ~$190** (#556 — the old figure omitted Smartlead ~$94, Instantly ~$37, Zoho ~$3 and the Anthropic runtime). Two consequences we now sell against: a client must approve **~13/month just to pay for their own inbox**, and the **$99 pack was −$52 in month one** — RETIRED figure, and the reason the price moved: at **$299** (3 Aug, #609) the pack clears **≈ +$165** in month one. **The repeat is the business; the pack is the door.**
-- **🛑 THE BLOCKER, stated plainly: we cannot deliver a paying client.** `figsy.ts:26` is `const FROM = COLD_FROM` — one shared module constant for every client — `client_inboxes` is read by **no send path**, and **no SMTP client is installed**. So *"sends on your own warmed inbox"* is not built. That is **#211**, 🔴 since 30 Jun, now broken into **#547–#553** (LAUNCH-PAD Block A). Founder-locked 26 Jul: **Instantly is OURS, Smartlead is the CLIENTS'**, and both run **inside our own product** — *"we use our own product for us"*, no CSV hand-off.
-- **What we CAN do today: demo.** MBF (#544) is one fixed demo environment, always — 40 invented people, no migration needed, and it physically cannot send. **The demo is sellable; delivery is not.** So the honest sales position is: sell the demo, take the deposit, deliver when Block A lands.
-- **Why the docs were rewritten today.** Founder: *"the one source of truth is so wrong."* He was right. `BUILD-STATUS.md` — a fifth status doc, forbidden by `CLAUDE.md` — claimed *"the ONLY items not built: #515 + CI"* while the whole sending spine was 🔴. It is retired (#555). LAUNCH-PAD is now one table of items, owners and mirrored dots, ordered Blocks A→E, with everything that does not get us live moved out and its new home named.
-- **The rule that comes out of this:** every claim in a doc is either **read from the code in the same session** or it is marked as a claim. The last three sessions' worth of "done" that turned out to be half-done all trace to the same habit — reporting memory as evidence.
+> ⚠️ The block that stood here carried a **26 Jul** date and a *"31 Aug outside edge"* that R57 has
+> since replaced with **25 Aug, unconditional**. It is kept verbatim in
+> [`archive/KIND-MASTER-STARTHERE-2026-08-21.md`](./archive/KIND-MASTER-STARTHERE-2026-08-21.md).
+> **No dated stamp replaces it: git is the date.**
 
-
-### 💼 THE TWO-MODEL DECISION — Base + Advanced, one engine *(founder-locked 31 Jul; logged 2 Aug, #608)*
-
-**Logged late, and deliberately so.** The founder locked this on 31 Jul and then held it back: *"once we through with all this log that we need to ensure opus verifies all docs are up to date and clean. Stale docs = errors."* The cleaning is #608; this is the thing it was gating.
-
-**The founder's case, in his words:** *"I know from my own sales experience selling a 1 product model is not strong enough… I think we need to have 2 offerings min."* He also asked not to be agreed with reflexively — *"Do not just agree with me"* — and the position below survived that challenge rather than skipping it.
-
-**THE DECISION: Base + Advanced. Two packages, ONE engine.** Not two products, not two codebases, not two prices for the same thing. The engine that finds, scores, writes, sends, triages and books is identical in both; what differs is how much of it a client is entitled to and how much of our attention comes with it.
-
-**Why two beats one here, on this business's own numbers:**
-- **One price cannot express two buyers.** The $299 pack + $4/approved model is a single dial *(written when the pack was $99; price re-locked 3 Aug — the argument is unchanged)*. A client approving 20 leads a month and one approving 100 are the same product to us and wildly different economics — with one package the second is under-served and the first is over-sold.
-- **The repeat is the business.** ⚠️ **UPDATED 3 Aug:** this said the **$99 pack is −$52 in month one**, which was true and is exactly why the price moved. At **$299** month one clears **≈ +$165** and covers acquisition too. The repeat still carries the business, but the door no longer runs at a loss. `CASHFLOW-LAB` recovers if they come back. A second tier gives a reason to come back that is not "buy more of the same".
-- **Advanced is sold before it is built** — deliberately. It is a commercial position, not a build order. Nothing in Advanced should be constructed until a client has said yes to it and the price has been tested against a real conversation.
-
-**What is NOT decided, and must not be inferred:** the price points, the exact feature split, and whether Advanced is a higher included-lead count, a higher-touch service, or an intelligence layer. Sketch figures discussed on 31 Jul ($249 Starter / $499–599 Advanced / $10–12 per lead) were **brainstorming and are not locked** — the founder said so explicitly at the time. The lock is the SHAPE: two packages, one engine.
-
-**Coaching stays exactly as it is.** The tabbed Coaching rebuild (#601, PR #1239) is **parked on founder hold** — not cancelled, not merged. Milla's existing Coaching page is what clients see, and coaching is **not** a paid add-on: it remains a value-add on a booked meeting, which is what makes it a retention lever rather than another thing to price.
 
 ## ▶️ RESUME HERE — where we are *(6 Jul 2026 PM, post-launch)*
 - **⚠️ SUPERSEDED by the 8-Jul locks (see SESSION LOG top) — this 6-Jul block is dated.** **CURRENT:** sell **FIGSY + Lead-Gen only** — per-qualified-lead ladder ($1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6; Vida inbound $3), **no subscriptions**. **Milla/Vida/Denise/Tony/Casey = coming soon** (code exists, OUT OF PLAY, returns as per-lead layers in M4 — NOT live agents). **Milestone 0 is the gate.** Data = PDL Full + Hunter (no Apollo). _(6-Jul text, historical:)_ product loop, Company Engine, billing, admin OS live; Nora (#275, 🩷).

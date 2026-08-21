@@ -30,7 +30,7 @@ Supabase Pro/Team plan — upgrade decision is post-launch).
 
 ## C) Full Railway outage → fail over to the Render standby
 All 4 services run on Railway (single provider = the SPOF). The Render standby +
-Cloudflare cutover is documented in **`docs/portal-admin-failover.md`** — follow it.
+Cloudflare cutover is documented in **`docs/archive/portal-admin-failover.md`** (archived 21 Aug — reference only) and the live order is in **`docs/render-cloudflare-failover.md`**: **DNS repoint FIRST.**
 Key reminders from that doc:
 - Standby env vars must mirror live. **Never set `NEXT_PUBLIC_ADMIN_KEY`** (security).
 - `NEXT_PUBLIC_*` vars are baked at build time — set them before the standby builds.

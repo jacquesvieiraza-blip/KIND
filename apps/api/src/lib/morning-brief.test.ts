@@ -58,55 +58,41 @@ describe('"this week" is a real week, never a rolling 7 days', () => {
   })
 })
 
-describe('#136a — the brief may only say what a query proved', () => {
-  it('renders both numbers when both are real', () => {
-    expect(composeBrief({ pendingReview: 12, meetingsThisWeek: 2 }))
-      .toBe('Morning. 12 prospects are waiting for your review · 2 meetings booked this week.')
+describe('#136a — the brief says only what a query proved, and only if it is news', () => {
+  it('reports meetings, and points at where they are', () => {
+    expect(composeBrief({ meetingsThisWeek: 2 }))
+      .toBe("Morning. 2 meetings booked this week — they're in your Meetings tab.")
   })
 
-  it('says "1 prospect", never "1 prospects"', () => {
-    expect(composeBrief({ pendingReview: 1, meetingsThisWeek: 1 }))
-      .toBe('Morning. 1 prospect is waiting for your review · 1 meeting booked this week.')
+  it('says "1 meeting", never "1 meetings"', () => {
+    expect(composeBrief({ meetingsThisWeek: 1 }))
+      .toBe("Morning. 1 meeting booked this week — it's in your Meetings tab.")
   })
 
-  it('a zero category is DROPPED, not printed as a zero', () => {
-    // "0 meetings booked this week" is technically true and reads as failure on a
-    // day the client did nothing wrong. Silence is the honest rendering.
-    const s = composeBrief({ pendingReview: 4, meetingsThisWeek: 0 })
-    expect(s).toBe('Morning. 4 prospects are waiting for your review.')
-    expect(s).not.toContain('0 meetings')
+  it('SAYS NOTHING when there is no news — /milla already greets the client', () => {
+    // The late correction: the page's own greeting reports the lead count from a
+    // query that mirrors ours. A brief with nothing left to add would be a second
+    // message saying nothing. Silence is the correct output, not a "quiet" line.
+    expect(composeBrief({ meetingsThisWeek: 0 })).toBeNull()
   })
 
-  it('mixed zero/non-zero is NEVER called quiet — the founder\'s clause, verbatim', () => {
-    const s = composeBrief({ pendingReview: 0, meetingsThisWeek: 3 })
-    expect(s).toContain('3 meetings booked this week')
-    expect(s).not.toContain('Quiet night')
-  })
-
-  it('only a genuinely empty day is quiet, and it says what happens next', () => {
-    // Founder-ruled 21 Aug: "yes send on day 1" — so a brand-new client sees this
-    // as their first message. It must not read like a dead end.
-    const s = composeBrief({ pendingReview: 0, meetingsThisWeek: 0 })
-    expect(s).toContain('Quiet night')
-    expect(s).toContain('next batch')
+  it('never re-prints the lead count the greeting owns', () => {
+    const s = String(composeBrief({ meetingsThisWeek: 3 })).toLowerCase()
+    expect(s).not.toContain('prospect')
+    expect(s).not.toContain('waiting for your review')
   })
 
   it('never mentions the two numbers that have no rule behind them', () => {
     // X ("match strongly") has no canonical rule anywhere; Y ("replies need you")
-    // has no handled-state to test. Both were CUT rather than approximated.
-    for (const n of [
-      { pendingReview: 9, meetingsThisWeek: 4 },
-      { pendingReview: 0, meetingsThisWeek: 0 },
-    ]) {
-      const s = composeBrief(n).toLowerCase()
-      expect(s).not.toContain('match strongly')
-      expect(s).not.toContain('need you')
-      expect(s).not.toContain('strong')
-    }
+    // has no handled-state to test. Both CUT rather than approximated.
+    const s = String(composeBrief({ meetingsThisWeek: 4 })).toLowerCase()
+    expect(s).not.toContain('match strongly')
+    expect(s).not.toContain('need you')
+    expect(s).not.toContain('strong')
   })
 
   it('carries no downstream outcome past MEETING_BOOKED', () => {
-    const s = composeBrief({ pendingReview: 5, meetingsThisWeek: 2 }).toLowerCase()
+    const s = String(composeBrief({ meetingsThisWeek: 2 })).toLowerCase()
     for (const banned of ['pipeline', 'revenue', 'close rate', 'roi', 'opportunit', 'forecast']) {
       expect(s).not.toContain(banned)
     }

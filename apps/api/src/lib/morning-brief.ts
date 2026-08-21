@@ -21,7 +21,17 @@
 // EVERY client, in the thread they actually read. The email one is deliberately
 // UNTOUCHED here: P33's NO-TOUCH list covers outbound email paths.
 //
-// ── TWO NUMBERS, AND THE TWO THAT ARE MISSING ON PURPOSE ────────────────────
+// ── ONE NUMBER, AND WHY IT IS NOT THREE ─────────────────────────────────────
+// ⚠️ THE LEAD COUNT IS DELIBERATELY NOT HERE, AND THAT IS A LATE CORRECTION.
+// This was built reporting prospects-waiting AND meetings, and only then did a
+// read of the live page show that /milla ALREADY greets the client with the lead
+// count — from `milla-summary.ts`, which mirrors /for-approval with the exact
+// same four conditions this file was using. The numbers would always have
+// agreed; they would simply have been printed twice, in consecutive messages.
+// Founder's call, given the choice: "1" — drop it from the brief and let the
+// greeting keep owning it. What is left here is what the greeting never says.
+//
+// ── THE TWO THAT ARE MISSING ON PURPOSE ─────────────────────────────────────
 // The prompt asked for four. Two cannot be built honestly, so they are CUT and
 // said out loud rather than faked (#136a — a number with no query and no
 // canonical meaning CANNOT RENDER):
@@ -108,8 +118,6 @@ export function londonMidnightUtc(day: string): Date {
 }
 
 export type BriefNumbers = {
-  /** Prospects delivered + surfaced, not yet revealed, not passed — the review queue. */
-  pendingReview: number
   /** Confirmed calendar bookings starting inside the current London week. */
   meetingsThisWeek: number
 }
@@ -117,31 +125,16 @@ export type BriefNumbers = {
 /**
  * The brief's text. Pure, so the red proof can assert exact strings.
  *
- * ZERO/QUIET STATE — the rule is narrow and the prompt is explicit: "Quiet
- * night" ONLY when the day is genuinely empty. One zero beside one non-zero
- * still renders the real activity, because calling a day quiet while a meeting
- * sits in it is the same class of lie as an invented number.
+ * Returns null when there is nothing to say. That is not an edge case — it is
+ * most days early on, and it is the right answer: /milla already opens with a
+ * live greeting, so a brief that adds no new fact would be a second message
+ * saying nothing. Silence beats noise in a thread the client is meant to read.
  */
-export function composeBrief(n: BriefNumbers): string {
-  const parts: string[] = []
-  if (n.pendingReview > 0) {
-    parts.push(n.pendingReview === 1
-      ? '1 prospect is waiting for your review'
-      : `${n.pendingReview} prospects are waiting for your review`)
-  }
-  if (n.meetingsThisWeek > 0) {
-    parts.push(n.meetingsThisWeek === 1
-      ? '1 meeting booked this week'
-      : `${n.meetingsThisWeek} meetings booked this week`)
-  }
-
-  if (parts.length === 0) {
-    // Founder-ruled 21 Aug: the first brief goes out on day one — "yes send on
-    // day 1" — so this is a real state a brand-new client sees, not a rare edge.
-    // It says what happens next instead of just reporting nothing.
-    return 'Morning. Quiet night — nothing new waiting for you. I\'ll keep sourcing and bring you the next batch as soon as it\'s ready.'
-  }
-  return `Morning. ${parts.join(' · ')}.`
+export function composeBrief(n: BriefNumbers): string | null {
+  if (n.meetingsThisWeek <= 0) return null
+  return n.meetingsThisWeek === 1
+    ? 'Morning. 1 meeting booked this week — it\'s in your Meetings tab.'
+    : `Morning. ${n.meetingsThisWeek} meetings booked this week — they're in your Meetings tab.`
 }
 
 /**

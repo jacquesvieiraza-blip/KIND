@@ -589,11 +589,31 @@ describe('generateSequence no longer asks for a link in the first touch', () => 
     expect(src).toMatch(/NO LINK, NO ATTACHMENT AND NO BOOKING ASK/)
   })
 
-  it('a LATER step still carries the link — the ruling was about the first touch only', () => {
-    // #651 made this purpose-aware: the meeting brief still offers the link on a later step
-    // and the event brief puts the RSVP link on step 2. What must never happen is step 1.
-    expect(src).toMatch(/If a link is appropriate for a step \(never step 1\)/)
-    expect(src).toMatch(/now include the joining\/RSVP link/i)
+  // ⛓️ SUPERSEDED 21 Aug BY THE FOUNDER'S P31 DOCTRINE — the old assertion is struck, not deleted.
+  //
+  // THIS TEST USED TO READ, and passed for sixteen days:
+  //   it('a LATER step still carries the link — the ruling was about the first touch only')
+  //     expect(src).toMatch(/If a link is appropriate for a step \(never step 1\)/)
+  //
+  // It pinned figsy.ts telling the model *"If a link is appropriate for a step (never step 1)"*,
+  // i.e. steps 2-7 of a COLD sequence could carry a calendar link. That reading was always in
+  // tension with the step-1 brief sitting beside it, which says in the founder's own 5 Aug words
+  // that *"the link goes in the REPLY once they have raised their hand"* — the reply, not step 4.
+  //
+  // The founder settled it on 21 Aug: *"The calendar/booking link enters only AFTER positive
+  // intent."* So a cold sequence now carries no link at ANY step, and the assertion inverts.
+  //
+  // ⚠️ THE EVENT HALF IS UNTOUCHED AND DELIBERATELY SO. An event invite's step 2 still carries
+  // the RSVP link: the doctrine is about earning a reply from a cold prospect before asking for
+  // their calendar, and an invitation to a named event on a fixed date is not that. Collapsing
+  // the two would have deleted a working sequence to satisfy a rule written about another one.
+  it('⛓️ 21 Aug — NO cold step carries the link, and the event RSVP link is untouched', () => {
+    expect(src, 'the permissive instruction is gone from both generation sites')
+      .not.toMatch(/If a link is appropriate for a step/)
+    expect(src, 'and the prohibition replaced it')
+      .toMatch(/DO NOT put a booking or calendar link in ANY step/)
+    expect(src, 'the event invite still puts its RSVP link on step 2')
+      .toMatch(/now include the joining\/RSVP link/i)
   })
 })
 

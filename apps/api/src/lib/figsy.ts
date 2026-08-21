@@ -263,7 +263,18 @@ export async function generateSequence(
       : '',
     '',
     ...plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`),
-    bookingUrl ? `\nIf a link is appropriate for a step (never step 1), use exactly: ${bookingUrl}` : '',
+    // ── P31 · THE BOOKING LINK ENTERS ONLY AFTER POSITIVE INTENT ────────────────────────
+    //
+    // Founder doctrine, 21 Aug: "the calendar/booking link enters only AFTER positive intent".
+    // ⚠️ THE OLD LINE SAID "never step 1" — WHICH LEFT STEPS 2-7 FREE TO CARRY IT. That is a
+    // calendar link inside a COLD sequence, before the prospect has said one word: exactly the
+    // meeting-ask this doctrine replaces with an interest question. Step 1 was protected and
+    // the other six were not, and nothing failed if one used it.
+    //
+    // A cold sequence now carries NO link at any step. The booking URL still reaches the REPLY
+    // path untouched (`bookingUrlForLead` → the reply handler), which is where intent has
+    // actually been shown — nothing is lost, it just stops arriving uninvited.
+    bookingUrl ? `\nDO NOT put a booking or calendar link in ANY step of this sequence. These emails are cold — nobody has replied yet. The link is sent later, only after this person shows interest. A step that asks for a meeting has skipped the reply this sequence exists to earn.` : '',
   ].filter(Boolean).join('\n')
 
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person at the company — not an AI, not a bot. Your emails sound like they were typed quickly by someone who genuinely noticed this prospect and thought "this person needs to hear this."
@@ -1669,7 +1680,18 @@ export async function generateSequenceWithMemory(
       : '',
     '',
     ...plan.template.guidance.map((g, i) => `Step ${i + 1} (Day ${plan.dayOffsets[i]}): ${g}`),
-    bookingUrl ? `\nIf a link is appropriate for a step (never step 1), use exactly: ${bookingUrl}` : '',
+    // ── P31 · THE BOOKING LINK ENTERS ONLY AFTER POSITIVE INTENT ────────────────────────
+    //
+    // Founder doctrine, 21 Aug: "the calendar/booking link enters only AFTER positive intent".
+    // ⚠️ THE OLD LINE SAID "never step 1" — WHICH LEFT STEPS 2-7 FREE TO CARRY IT. That is a
+    // calendar link inside a COLD sequence, before the prospect has said one word: exactly the
+    // meeting-ask this doctrine replaces with an interest question. Step 1 was protected and
+    // the other six were not, and nothing failed if one used it.
+    //
+    // A cold sequence now carries NO link at any step. The booking URL still reaches the REPLY
+    // path untouched (`bookingUrlForLead` → the reply handler), which is where intent has
+    // actually been shown — nothing is lost, it just stops arriving uninvited.
+    bookingUrl ? `\nDO NOT put a booking or calendar link in ANY step of this sequence. These emails are cold — nobody has replied yet. The link is sent later, only after this person shows interest. A step that asks for a meeting has skipped the reply this sequence exists to earn.` : '',
   ].filter(Boolean).join('\n')
 
   const prompt = `You are writing cold outreach emails on behalf of ${senderCompanyName}${senderIndustry ? ` (${senderIndustry})` : ''}. You write as a real person — not an AI.

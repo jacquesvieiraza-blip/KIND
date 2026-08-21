@@ -156,18 +156,39 @@ export type SequenceTemplate = {
   name: string
   /** One line per step, in order, `depth` long. Fed to the generator as the step brief. */
   guidance: string[]
+  /**
+   * P31 — ONE ANGLE LABEL PER STEP, and no two may repeat.
+   *
+   * Before this, "add a NEW angle" was advice to a model inside a prose brief. Advice is not a
+   * constraint: nothing could tell whether two steps had drifted into the same email, and
+   * nothing would have failed if they had. The label makes the angle a checkable fact, and
+   * `sequence-doctrine.test.ts` fails the build the moment two of them match.
+   */
+  angles: string[]
 }
 
 /** The per-purpose step briefs, written at depth 7 and trimmed to the chosen depth. */
 const PURPOSE_STEPS: Record<SequencePurpose, string[]> = {
+  // ── P31 · THE MEETING SEQUENCE SELLS THE RESPONSE ────────────────────────────────────────
+  //
+  // Founder doctrine, 21 Aug: step 1 sells the REPLY, not the meeting. Seven steps are seven
+  // DIFFERENT arguments — "a step that only bumps is one attempt repeated". Every step below
+  // is a distinct angle, labelled in MEETING_ANGLES, and the guard fails the build if two ever
+  // collide.
+  //
+  // ⚠️ WHAT CHANGED, AND WHY IT IS NOT COSMETIC. The old set was already decent — it had a
+  // no-ask value email and a real breakup, and it banned guilt tactics. Two things were wrong:
+  // step 1 asked for "one question" with no floor on how big that ask could be, and there was
+  // NO OBJECTION STEP anywhere in seven emails. The most common reason a warm prospect goes
+  // quiet is an unvoiced objection, and nothing in the arc ever reached for it.
   meeting: [
-    'First touch — open on the personalization signal, one sentence on what the sender does and why it matters to this person, one soft INTEREST-BASED CTA — ask whether it is worth a look or whether this is already handled. NO LINK, NO ATTACHMENT AND NO BOOKING ASK in this email (founder-ruled 5 Aug): a link to a stranger costs deliverability, and the link goes in the REPLY once they have raised their hand. Max 70 words.',
-    'Follow-up — acknowledge you wrote before, add a NEW angle on a different real signal. Shorter and lighter. Max 60 words.',
-    'The value email — no ask at all. One genuinely useful observation for someone in their role. Max 60 words.',
-    'The proof email — one concrete way the sender helps, drawn ONLY from the grounding block. If the grounding is silent, stay generic and describe the approach, never invent a result. Max 60 words.',
-    'The direct question — one short, specific question answerable in a single line (is this a priority this quarter, or should we stop?). Shortest email. Max 40 words.',
-    'The different angle — try one fresh framing of the problem, in case the earlier ones missed. Max 50 words.',
-    'The breakup — direct, this is the last email, genuinely open, no guilt and no urgency tactics. 3–4 sentences.',
+    'WHY NOW — open on the personalization signal and the reason this is live for them THIS quarter. One sentence on what the sender does and why it matters to this person. Close with one soft INTEREST-BASED CTA — ask whether it is worth a look or whether this is already handled. NO LINK, NO ATTACHMENT AND NO BOOKING ASK in this email (founder-ruled 5 Aug, re-affirmed 21 Aug): a link to a stranger costs deliverability, and the link goes in the REPLY once they have raised their hand. The job of this email is a REPLY, not a booking. Max 70 words.',
+    'A DIFFERENT COMMERCIAL PROBLEM — do not restate step 1. Name a second, distinct business cost this person carries, drawn from their real context. Same low-friction close. Max 60 words.',
+    'PROOF — one concrete way the sender helps, drawn ONLY from the grounding block. If the grounding is silent, stay general and claim nothing. No invented numbers, no invented clients (R30). Max 60 words.',
+    'THE OBJECTION — name out loud the most likely reason they have not replied ("you probably already have someone doing this", "the timing is wrong") and answer it in one honest line. Do not apologise for writing. Max 60 words.',
+    'AN ALTERNATIVE ANGLE — reframe the problem a different way in case every earlier framing missed. A different reader in their seat should recognise themselves here. Max 50 words.',
+    'NEW EVIDENCE — something that has changed or emerged since step 1: a fresh signal about their company, their market or their role. If there is genuinely nothing new, say something useful for their role instead and make no ask. Max 50 words.',
+    'THE FINAL LOW-FRICTION QUESTION — this is the last email. One question answerable in a single word, a genuine open door, no guilt, no urgency tactics, no "just checking in". 3 sentences.',
   ],
   event: [
     'The invite — say plainly what the event is, where, and when. Why THIS person would find it worth their time, using the personalization signal. NO link in this first email (the 5 Aug lock stands for every purpose); ask if they would like the details. Max 70 words.',
@@ -195,6 +216,44 @@ const PURPOSE_STEPS: Record<SequencePurpose, string[]> = {
  * generator still has the lead's real industry, the campaign intent and the client's
  * grounded knowledge to work from.
  */
+/**
+ * P31 — the angle each step argues, one label per step, NEVER two the same.
+ *
+ * `event` and `reactivation` keep their own arcs (founder-ruled: the seven-angle doctrine is for
+ * `meeting` only — an event invite needs its link early and a reactivation opens on a real prior
+ * relationship). But the DISTINCTNESS guard applies to all three, so no sequence of any purpose
+ * can ever ship the same argument twice.
+ */
+const PURPOSE_ANGLES: Record<SequencePurpose, string[]> = {
+  meeting: [
+    'why-now',
+    'different-commercial-problem',
+    'proof',
+    'objection',
+    'alternative-angle',
+    'new-evidence',
+    'final-low-friction-question',
+  ],
+  event: [
+    'the-invite',
+    'the-details-and-link',
+    'the-takeaway',
+    'who-is-in-the-room',
+    'the-practical-note',
+    'the-near-reminder',
+    'the-last-call',
+  ],
+  reactivation: [
+    'the-re-open',
+    'what-changed',
+    'value-no-ask',
+    'the-direct-question',
+    'a-smaller-next-step',
+    'the-human-check-in',
+    'the-close',
+  ],
+}
+
 const INDUSTRY_NOTES: { match: RegExp; note: string }[] = [
   { match: /recruit|staffing|talent|hr\b/i,
     note: 'Recruitment buyers are pitched constantly — lead with the specific role or team, never with "we help companies hire".' },
@@ -231,14 +290,20 @@ export function templateFor(
   industry?: string | null,
 ): SequenceTemplate {
   const all = PURPOSE_STEPS[purpose]
+  const allAngles = PURPOSE_ANGLES[purpose]
   // Trim to depth by keeping the OPENER and the CLOSER and dropping from the middle, so a
   // 3-step sequence is still a real arc rather than the first three emails of a longer one.
-  const guidance = depth >= all.length
-    ? [...all]
-    : [all[0], ...all.slice(1, all.length - 1).slice(0, depth - 2), all[all.length - 1]]
+  // ⚠️ ANGLES ARE TRIMMED BY THE SAME RULE, in lockstep — if the two lists ever trimmed
+  // differently, step 4's brief would carry step 6's angle label and every guard downstream
+  // would be checking the wrong thing while staying green.
+  const trim = <T,>(xs: T[]): T[] => depth >= xs.length
+    ? [...xs]
+    : [xs[0], ...xs.slice(1, xs.length - 1).slice(0, depth - 2), xs[xs.length - 1]]
+  const guidance = trim(all)
+  const angles = trim(allAngles)
   const note = industryNote(industry)
   if (note) guidance[0] = `${guidance[0]} INDUSTRY NOTE (applies to every email): ${note}`
-  return { name: `${PURPOSE_LABEL[purpose]} — ${depth} touches`, guidance }
+  return { name: `${PURPOSE_LABEL[purpose]} — ${depth} touches`, guidance, angles }
 }
 
 /**

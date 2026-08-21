@@ -34,6 +34,7 @@ import { isEnumRejection } from '../lib/subscription-status'
 import {
   decideLapse, webhookSuspectLines, LAPSED_STATUS, LAPSED_FALLBACK, type LapseCandidate,
 } from '../lib/subscription-lapse'
+import { pickAbWinner, type VariantOutcome } from '../lib/ab-winner'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -2459,7 +2460,8 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
 
       // Get all step-1 sent emails for this campaign
       const { data: sentEmails } = await db.from('figsy_sent_emails')
-        .select('id, subject, opened_at, sent_at')
+        // P27 — `lead_id` added: it is what joins a variant's sends to its MEETINGS.
+        .select('id, subject, opened_at, sent_at, lead_id')
         .eq('campaign_id', campaign.id)
         .eq('step', 1)
         .order('sent_at', { ascending: true })
@@ -2496,24 +2498,64 @@ internalRouter.post('/figsy/ab-winner-check', async (_req: Request, res: Respons
       const activeVariants = Object.entries(variantGroups).filter(([, emails]) => emails.length >= 5)
       if (activeVariants.length < 2) continue
 
-      // #392 (AR-62) — never resolve on ZERO data. If open-tracking is unset (no
-      // TRACKING_URL / pixel), every variant's open rate is 0 and the first one would
-      // "win" at rate 0 > -1 — irreversibly (ab_test_resolved:true). Require a minimum
-      // of real opens across the active variants before crowning a winner; otherwise
-      // leave the test open so it resolves once tracking data actually accrues.
-      const MIN_OPENS_TO_RESOLVE = 5
-      const totalOpens = activeVariants.reduce(
-        (sum, [, emails]) => sum + emails.filter(e => e.opened_at).length, 0,
-      )
-      if (totalOpens < MIN_OPENS_TO_RESOLVE) continue
-
-      // Find winner by open rate
-      let bestLabel = 'a'
-      let bestRate = -1
+      // ── P27 · THE WINNER OPTIMISES MEETINGS, NEVER OPENS ────────────────────────────
+      //
+      // ⛓️ WHAT THIS REPLACED, kept in words because the old rule was defensible and still
+      // wrong. It read:
+      //     const MIN_OPENS_TO_RESOLVE = 5
+      //     const rate = emails.filter(e => e.opened_at).length / emails.length
+      //     if (rate > bestRate) { bestRate = rate; bestLabel = label }
+      // — highest OPEN RATE won, and `ab_test_resolved: true` made it permanent. A
+      // curiosity-gap subject beats an honest one on opens and loses on meetings; this rule
+      // picked the curiosity gap and locked it in for every future lead on the campaign.
+      //
+      // The #392 guard it carried (never resolve on zero data) was correct and is KEPT —
+      // moved onto the signal the decision now uses. Left as an OPENS threshold it would have
+      // inverted: a campaign with twenty meetings and no pixel would never resolve at all.
+      //
+      // Attribution is a real join, not an approximation: `figsy_sent_emails.lead_id` →
+      // `figsy_replies.lead_id`, counting `meeting_booked_at IS NOT NULL`. Both columns exist
+      // today (002_figsy.sql, 20260529_meetings_booked.sql), which is why this clause could be
+      // built rather than reported as a gap.
+      const variantLeadIds = new Map<string, string[]>()
       for (const [label, emails] of activeVariants) {
-        const rate = emails.filter(e => e.opened_at).length / emails.length
-        if (rate > bestRate) { bestRate = rate; bestLabel = label }
+        variantLeadIds.set(label, [...new Set(emails.map(e => e.lead_id).filter(Boolean))] as string[])
       }
+      const allLeadIds = [...new Set([...variantLeadIds.values()].flat())]
+
+      // One query for the whole campaign's outcomes, then grouped in memory — a query per
+      // variant would multiply round-trips for no benefit.
+      const { data: outcomeRows } = await db.from('figsy_replies')
+        .select('lead_id, classification, meeting_booked_at')
+        .eq('campaign_id', campaign.id)
+        .in('lead_id', allLeadIds.length ? allLeadIds : ['00000000-0000-0000-0000-000000000000'])
+
+      const meetingsByLead = new Set<string>()
+      const positiveByLead = new Set<string>()
+      for (const r of (outcomeRows ?? []) as { lead_id: string; classification: string | null; meeting_booked_at: string | null }[]) {
+        if (r.meeting_booked_at) meetingsByLead.add(r.lead_id)
+        if (r.classification === 'interested') positiveByLead.add(r.lead_id)
+      }
+
+      const outcomes: VariantOutcome[] = activeVariants.map(([label, emails]) => {
+        const leadIds = variantLeadIds.get(label) ?? []
+        return {
+          label,
+          sends: emails.length,
+          meetings:        leadIds.filter(id => meetingsByLead.has(id)).length,
+          positiveReplies: leadIds.filter(id => positiveByLead.has(id)).length,
+          // Carried for the log only. `pickAbWinner` never reads it.
+          opens: emails.filter(e => e.opened_at).length,
+        }
+      })
+
+      const decision = pickAbWinner(outcomes)
+      if (!decision.resolved) continue      // no meetings and too few positive replies — stay open
+      const bestLabel = decision.winner
+      console.log(
+        `[figsy/ab-winner-check] ${campaign.id} → variant ${bestLabel} on ${decision.basis} · ` +
+        outcomes.map(o => `${o.label}: ${o.meetings}m/${o.positiveReplies}r/${o.sends}s`).join(' · '),
+      )
 
       // #391 (AR-61) — merge only the A/B result keys atomically (see adaptive-send
       // above) instead of writing the whole settings blob back from a stale read.

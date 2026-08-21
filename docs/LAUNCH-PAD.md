@@ -4,7 +4,7 @@
 > **🚀 R57: WE LAUNCH 25 AUGUST REGARDLESS OF STATE.** **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
 > The full pre-surgery page is kept verbatim at [`archive/LAUNCH-PAD-2026-08-21.md`](./archive/LAUNCH-PAD-2026-08-21.md).
 
-**Board:** 🟢106 · 🩷307 · 🟣3 · 🟡49 · 🔴187 · ⏸6 · **Σ658** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷308 · 🟣2 · 🟡49 · 🔴187 · ⏸6 · **Σ658** · live count: `scripts/count-inventory.sh`
 
 ---
 

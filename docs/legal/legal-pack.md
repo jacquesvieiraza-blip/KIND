@@ -83,7 +83,7 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 - Cross-border transfers only to countries with adequate protection or with consent
 
 **K.I.N.D's position:**
-- Supabase `af-south-1` (Cape Town) keeps SA client data in-country ✅
+- ⛓️ **CORRECTED 21 Aug.** ~~*"Supabase `af-south-1` (Cape Town) keeps SA client data in-country ✅"*~~ — **FALSE for the current architecture.** SA client data is stored in **Supabase `eu-west-1` (Dublin)** and processed by **Railway US West** (**`R56`**, 20 Aug). It does **not** stay in South Africa. ⚠️ A cross-border transfer therefore needs its own POPIA s72 basis — that is exactly what [`../compliance/SA-S72-TRANSFER-MEMO-SKELETON.md`](../compliance/SA-S72-TRANSFER-MEMO-SKELETON.md) is open on, and it is **gated by the unexecuted vendor DPAs** below
 - Privacy Policy covers POPIA obligations ✅
 - DPA with SA clients available on site ✅
 - Information Regulator: inforegulator.org.za (no registration fee required for private companies)
@@ -131,14 +131,17 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 
 ### 2.6 Data Residency Summary
 
-| Client location | Data stored | Law | Compliant |
-|----------------|------------|-----|-----------|
-| South Africa | Supabase af-south-1 (Cape Town) | POPIA | ✅ Yes |
-| UK | Supabase af-south-1 (adequate protection) | UK GDPR | ✅ Yes |
-| EU | Supabase af-south-1 (assess adequacy) | GDPR | Review needed |
-| Nigeria | Supabase af-south-1 | NDPR | ✅ Adequate |
-| Kenya | Supabase af-south-1 | Kenya DPA | ✅ Adequate |
-| USA | Supabase af-south-1 | CCPA (below threshold) | ✅ Yes |
+> ⛓️ **CORRECTED 21 Aug — every row of this table said `Supabase af-south-1 (Cape Town)`. That is HISTORICAL and was never the current architecture at launch.** Current, per **`R56`** (founder-approved 20 Aug) and the founder's own words *"we dont store in South Africa. I proven this before"*: **ALL client and lead data is stored in Supabase `eu-west-1` (Dublin, Ireland) and PROCESSED by application servers in Railway's US West region.** Residency is stated in **both halves, always** — storage and processing. *(The `af-south-1` rows are kept below, struck, as the record of what this document used to claim.)*
+> ⚠️ **The "Compliant" verdicts below are a pre-existing self-assessment and were NOT re-validated by this correction** — and **R56** is explicit that a blanket compliance verdict *"is not ours to award."* Treat that column as historical until counsel rules.
+
+| Client location | Data stored (CURRENT) | Data processed (CURRENT) | Law | ~~Was~~ |
+|----------------|------------|-----|-----|-----|
+| South Africa | Supabase **eu-west-1 (Dublin)** | Railway **US West** | POPIA | ~~af-south-1 · ✅ Yes~~ |
+| UK | Supabase **eu-west-1 (Dublin)** | Railway **US West** | UK GDPR | ~~af-south-1 · ✅ Yes~~ |
+| EU | Supabase **eu-west-1 (Dublin)** | Railway **US West** | GDPR | ~~af-south-1 · Review needed~~ |
+| Nigeria | Supabase **eu-west-1 (Dublin)** | Railway **US West** | NDPR | ~~af-south-1 · ✅ Adequate~~ |
+| Kenya | Supabase **eu-west-1 (Dublin)** | Railway **US West** | Kenya DPA | ~~af-south-1 · ✅ Adequate~~ |
+| USA | Supabase **eu-west-1 (Dublin)** | Railway **US West** | CCPA (below threshold) | ~~af-south-1 · ✅ Yes~~ |
 
 ---
 
@@ -154,7 +157,7 @@ K.I.N.D processes personal data across multiple jurisdictions. The following law
 - **Live at:** get-kind.com/dpa
 - **Purpose:** Establishes K.I.N.D as data processor acting on the client's instructions. Required for UK GDPR and POPIA compliance.
 - **Covers:** Scope of processing, data subject rights obligations, sub-processor list, breach notification obligations, deletion on contract end, international transfer safeguards
-- **Sub-processors listed:** Railway, Supabase, Stripe, Resend, **PDL, Hunter, Flutterwave**, Anthropic *(Apollo removed — retired from the data path)*
+- **Sub-processors listed:** Railway, Supabase, Stripe, Resend, **PDL, Hunter, Flutterwave**, Anthropic, **Apollo** ⛓️ *(**CORRECTED 21 Aug** — this line said "**Apollo removed — retired from the data path**", which is the exact conclusion the founder **overruled**. **`AR5`**, locked 30 Jul and re-affirmed 1 Aug (#606): **"Apollo is OURS. PDL + Hunter are the CLIENTS'."** Apollo is our own prospecting stack — how **we** find **our** clients — and is applied to a client's leads only where that client supplies their own key. It is a live vendor and belongs on this list.)*
 - **US version:** get-kind.com/dpa-us (CCPA addendum)
 
 ### 3.3 Key Clauses to Protect K.I.N.D in Client Contracts
@@ -227,7 +230,7 @@ K.I.N.D is a customer of these providers. Their standard contracts govern the re
 | Provider | Key contractual point | Risk |
 |----------|----------------------|------|
 | Railway | Service is provided "as is" with uptime SLA (Pro plan). Not liable for data loss beyond their stated backup policy. | Low — Supabase holds the data |
-| Supabase | Data belongs to you. Supabase is a data processor. DPA signed. Cape Town region = POPIA compliant. | Low |
+| Supabase | Data belongs to you. Supabase is a data processor. ⛓️ **CORRECTED 21 Aug — this cell said *"DPA signed. Cape Town region = POPIA compliant."* BOTH halves were false.** **No executed Supabase DPA is held** (`compliance/EVIDENCE-PACK.md` rows 9 & 17 — *"none executed and held"*; founder collecting into the vault), and the region is **`eu-west-1` (Dublin)**, not Cape Town (**`R56`**). Consistent with §2.1 above — this document gives **one** answer on DPAs: listed publicly on `dpa.html`, **not executed**. | Low |
 | Stripe | Regulated financial institution. Stripe is the merchant of record for payment processing. K.I.N.D never holds card data. | Low |
 | Resend | Email delivery service. CAN-SPAM and GDPR compliant. K.I.N.D is responsible for the content it sends. | Medium — ensure opt-out / unsubscribe works |
 | PDL (People Data Labs) | Lead sourcing (people/company data). Subject to PDL's data licensing terms. K.I.N.D is responsible for lawful use of sourced data. | Medium — lawful basis + suppression on all outreach |

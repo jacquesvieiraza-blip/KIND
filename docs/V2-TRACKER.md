@@ -1,5 +1,29 @@
 # 🎯 K.I.N.D — FORWARD ROADMAP + RISK REGISTER (future detail ONLY)
 
+> # 🚧 HISTORICAL FENCE — READ BEFORE YOU QUOTE ONE LINE OF THIS DOCUMENT
+>
+> **This page is restored historical roadmap material plus future thinking. It is NOT a record of current truth, and nothing in it may be used as current authority.**
+>
+> **Where current truth actually lives:**
+> | For | Go to | Never here |
+> |---|---|---|
+> | **Founder rulings / the locks** | [`PRODUCT-RULES.md`](./PRODUCT-RULES.md) — **wins every conflict** | ✋ |
+> | **Current launch execution** | [`LAUNCH-PAD.md`](./LAUNCH-PAD.md) | ✋ |
+> | **Current implementation status (the dots)** | [`PRODUCT-INVENTORY.md`](./PRODUCT-INVENTORY.md) | ✋ |
+>
+> **The rule, stated once:** a statement on this page from an earlier era is **NOT current truth unless a current rule or status entry explicitly revalidates it.** If this page and any of the three above disagree, **this page loses** — every time, without argument.
+>
+> **Known superseded language you WILL find below.** These are left in deliberately — the repo chains history, it does not delete it — and none of them is current:
+> - **earlier launch dates, and "already launched" phrasing** → the launch is **25 Aug** (**R57**, 20 Aug, unconditional)
+> - **Milla / Vida described as "coming soon"** → they are the live portals of the managed model (**AR1**); the Milla homepage is **live** (**R59**, #697)
+> - **a 10-step sequence cap** → the cap is **7** (**D14**, ruled 6 Aug; `MAX_STEPS = 7`)
+> - **booking marked "Soon"** → the booking path is built and was proved live 21 Aug
+> - **the old Smartlead/Instantly sender architecture** → **D1 as amended 30 Jul (#577)**: our own engine sends our outreach; Instantly is a warm-up utility on Growth
+> - **Apollo described as retired** → **AR5**: *"Apollo is OURS. PDL + Hunter are the CLIENTS'"* — the founder overruled the "retired" audit on 1 Aug
+> - **blanket compliance wording** ("GDPR & POPIA compliant") → **R56**: we do not award ourselves compliance verdicts, and residency is stated in both halves — **stored Dublin `eu-west-1`, processed Railway US West**
+>
+> ⚠️ **This fence is a fence, not an edit.** The body below has **not** been re-fact-checked and has **not** been rewritten — that was deliberate (founder, 21 Aug). Treat every current-state sentence in it as historical until you have checked it against the three docs above.
+
 > 🔄 **RESTORED VERBATIM — 21 Aug 2026.** The 21-Aug "S1" cut reduced this doc to a 690-word skeleton and lost the working roadmap the founder actually uses — the three-product future (R39), agent capability specs, Alta parity, the J&J steals, the Milla & Vida future and the market history. This body is the pre-cut file restored byte-for-byte from git; **that skeleton is not deleted, it lives in git history** (`346b54dd:docs/V2-TRACKER.md`).
 > **This doc is future detail — roadmap · risks · steals.** The 25th-cut execution list stays in [`LAUNCH-PAD.md`](./LAUNCH-PAD.md) and never moves here.
 

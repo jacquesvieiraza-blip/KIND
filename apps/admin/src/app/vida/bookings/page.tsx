@@ -57,6 +57,12 @@ export default function VidaBookingsPage() {
   // Vida renders one, so it meant "go and query the database". A tool that needs an id a human
   // cannot see is not a tool.
   const [recentLeads, setRecentLeads] = useState<{ id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null }[] | null>(null)
+  // ⚠️ A SEPARATE ERROR STATE, BECAUSE [] AND "BROKEN" ARE DIFFERENT ANSWERS. The first version
+  // mapped every failure to an empty array, so a failing query rendered as "This client has no
+  // leads yet" on every client — the founder reported no data when the truth was a broken
+  // request. A screen that cannot tell "none" from "broken" sends somebody looking in the
+  // wrong place.
+  const [leadsError, setLeadsError] = useState<string | null>(null)
   const [linkLeadId, setLinkLeadId] = useState('')
   const [linkResult, setLinkResult] = useState<{ url: string | null; blocked: string | null; lead?: { name: string | null; company: string | null } } | null>(null)
   const [linkBusy, setLinkBusy] = useState(false)
@@ -64,10 +70,14 @@ export default function VidaBookingsPage() {
   useEffect(() => {
     if (!selected) { setRecentLeads(null); return }
     setLinkResult(null); setLinkLeadId('')
+    setLeadsError(null)
     fetch(`/api/proxy/operator/clients/${selected}/recent-leads`)
       .then(r => r.json())
-      .then(j => setRecentLeads(j?.success ? (j.data ?? []) : []))
-      .catch(() => setRecentLeads([]))
+      .then(j => {
+        if (!j?.success) { setLeadsError(j?.error ?? 'Could not load leads'); setRecentLeads([]); return }
+        setRecentLeads(j.data ?? [])
+      })
+      .catch(e => { setLeadsError(e instanceof Error ? e.message : 'Could not reach the engine'); setRecentLeads([]) })
   }, [selected])
 
   async function issueLink() {
@@ -209,7 +219,10 @@ export default function VidaBookingsPage() {
                 <select value={linkLeadId} onChange={e => setLinkLeadId(e.target.value)}
                   className="flex-1 text-[12px] border border-[#e4d4fb] rounded-lg px-2.5 py-1.5 bg-white">
                   <option value="">
-                    {recentLeads === null ? 'Loading leads…' : recentLeads.length === 0 ? 'This client has no leads yet' : 'Pick a lead…'}
+                    {leadsError ? `Could not load leads — ${leadsError}`
+                      : recentLeads === null ? 'Loading leads…'
+                      : recentLeads.length === 0 ? 'This client has no leads yet'
+                      : 'Pick a lead…'}
                   </option>
                   {(recentLeads ?? []).map(l => (
                     <option key={l.id} value={l.id}>

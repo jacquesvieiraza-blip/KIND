@@ -207,6 +207,29 @@ export default function MillaHomePage() {
       else setError(err.message || 'Could not approve — please try again')
     } finally { setActing(null) }
   }
+  // ── CALIBRATION v1 (P32) — the reason chip ────────────────────────────────────────────
+  // Founder doctrine (Jack&Jill K.2): "Approve/Pass IS the calibration event — capture the
+  // REASON and the product gets smarter every time a client clicks."
+  //
+  // ⚠️ FIRE-AND-FORGET, DELIBERATELY. The pass has already succeeded. If this call fails, is
+  // slow, or is never made, the client's action stands and their screen is unaffected — which
+  // is the whole difference between a calibration prompt and a gate.
+  const [justPassed, setJustPassed] = useState<{ id: string; at: number } | null>(null)
+  const REASON_CHIPS: { code: string; label: string }[] = [
+    { code: 'too_big',         label: 'Too big' },
+    { code: 'too_small',       label: 'Too small' },
+    { code: 'wrong_industry',  label: 'Wrong industry' },
+    { code: 'wrong_role',      label: 'Wrong role' },
+    { code: 'wrong_geography', label: 'Wrong geography' },
+    { code: 'bad_timing',      label: 'Bad timing' },
+    { code: 'other',           label: 'Other' },
+  ]
+  async function sendReason(leadId: string, code: string) {
+    setJustPassed(null)                       // acknowledge the tap at once — no spinner on a nicety
+    try { await api.post(`/leads/${leadId}/feedback`, { action: 'pass', reason_code: code }, await token()) }
+    catch { /* never surfaced: the pass stands, and a lost chip is not the client's problem */ }
+  }
+
   // #570 — pass() now reloads. It removed the row locally and never refreshed, so the KPI
   // still read "3 leads awaiting" after the client had passed all three — and with a desk
   // capped at 50, passing one never pulled the next one in. The screen disagreed with itself.
@@ -215,6 +238,11 @@ export default function MillaHomePage() {
     try {
       await api.post(`/leads/${id}/pass`, {}, await token())
       setLeads(ls => (ls ?? []).filter(l => l.id !== id))   // instant, so the row goes at once
+      // ── CALIBRATION v1 (P32) — ask WHY, after the fact, never before ──────────────────
+      // The pass is DONE by this line. The chip row is a second, optional call; the founder's
+      // rule is "one tap, never mandatory, never blocks the action". Nothing below can undo,
+      // delay or fail the pass the client just made.
+      setJustPassed({ id, at: Date.now() })
       void load()                                          // then the real counts, from the server
     }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not pass — please try again') }
@@ -383,6 +411,29 @@ export default function MillaHomePage() {
               const note = summary && leads ? deskCoverage({ awaiting: summary.leads_awaiting, shown: leads.length }) : null
               return note ? <div className="text-[12.5px] text-[#5c5279] bg-[#faf8ff] border border-[#ece5fb] rounded-xl px-3 py-2">{note}</div> : null
             })()}
+            {/* ── CALIBRATION v1 (P32) — the reason chip row ─────────────────────────────
+                Appears ONLY after a pass, above the list, and disappears on any tap. It is
+                skippable by ignoring it: nothing here blocks the next action, and the pass it
+                refers to has already completed. "One tap, never mandatory." */}
+            {justPassed && (
+              <div className="bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-3.5">
+                <div className="text-[13px] text-[#4c4368] font-semibold">Passed. What was off about them?</div>
+                <div className="text-[12px] text-[#9b8ec4] mt-0.5">Optional — it tunes what I find you next.</div>
+                <div className="flex flex-wrap gap-1.5 mt-2.5">
+                  {REASON_CHIPS.map(c => (
+                    <button key={c.code}
+                      onClick={() => void sendReason(justPassed.id, c.code)}
+                      className="text-[12.5px] font-bold text-[#7C3AED] bg-white border-[1.5px] border-[#e4d4fb] rounded-lg px-2.5 py-1.5">
+                      {c.label}
+                    </button>
+                  ))}
+                  <button onClick={() => setJustPassed(null)}
+                    className="text-[12.5px] font-semibold text-[#9b8ec4] px-2.5 py-1.5">
+                    Skip
+                  </button>
+                </div>
+              </div>
+            )}
             {leads?.filter(l => revealed[l.id]).map(l => (
               <div key={l.id} className="bg-white border-[1.5px] border-emerald-200 rounded-2xl p-3.5">
                 <div className="flex items-center gap-2"><span className="text-emerald-600">✓</span><b className="text-[14px]">Approved · {l.role} @ {l.company}</b></div>

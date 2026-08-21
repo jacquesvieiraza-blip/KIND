@@ -989,6 +989,53 @@ leadRouter.post('/:id/pass', rateLimit({ limit: 120, windowMs: 60_000, key: 'lea
   } catch (err) { console.error('[pass]', err); res.status(500).json({ success: false, error: 'Failed to pass lead' }) }
 })
 
+// ── CALIBRATION v1 — WHY THEY PASSED (P32) ──────────────────────────────────────────
+//
+// ⚠️ A SEPARATE CALL FROM THE PASS ITSELF, ON PURPOSE. The founder's rule is *"One tap,
+// never mandatory, never blocks the action."* The pass has already succeeded by the time this
+// runs, so this endpoint can fail, be slow, or never be called at all and the client's action
+// is unaffected. Folding the reason into POST /:id/pass would have coupled a nice-to-have
+// write to a state change the client is watching.
+//
+// Upserts on (client_id, lead_id, action): a client who taps a chip then changes it is
+// correcting themselves, not voting twice.
+leadRouter.post('/:id/feedback', rateLimit({ limit: 120, windowMs: 60_000, key: 'lead-feedback', byUser: true }), async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { normaliseFeedback } = await import('../lib/lead-feedback')
+    const { reasonCode, freeText, hasSomething } = normaliseFeedback(req.body ?? {})
+    // Nothing to record is a SUCCESS, not an error — the client tapped and untapped, or a
+    // stale build sent an unknown code. Neither deserves an error on their screen.
+    if (!hasSomething) { res.json({ success: true, recorded: false }); return }
+
+    // The lead must belong to THIS client. Without this, a client could attach an opinion to
+    // another client's lead — and this table is about to drive sourcing.
+    const { data: lead } = await db.from('leads')
+      .select('id').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    const action = req.body?.action === 'approve' ? 'approve' : 'pass'
+    const { error } = await db.from('lead_feedback').upsert({
+      client_id: clientId, lead_id: req.params.id, action,
+      reason_code: reasonCode, free_text: freeText,
+    }, { onConflict: 'client_id,lead_id,action' })
+
+    if (error) {
+      // Never fatal to the client: the pass stands. Logged loudly, because a persistent
+      // failure here means calibration is silently collecting nothing.
+      console.error('[leads/feedback] NOT RECORDED for lead', req.params.id, error)
+      res.json({ success: true, recorded: false }); return
+    }
+    res.json({ success: true, recorded: true })
+  } catch (err) {
+    console.error('[leads/feedback]', err)
+    res.json({ success: true, recorded: false })
+  }
+})
+
+
 // ── SEND POPIA CONSENT EMAIL ──────────────────────────────────────────────────
 leadRouter.post('/:id/consent', async (req: AuthRequest, res) => {
   try {

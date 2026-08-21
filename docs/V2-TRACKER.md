@@ -896,3 +896,26 @@ That + outbound + partners = the motion.
 - `SMOKE_TEST.md` — T1–T10 detail · `DEPLOY-CHECKLIST.md` — deploy steps · `legal.md` — legal pack
 - `MASTER_TODO.md` / `EVERYTHING.md` — **older/overlapping → fold into this tracker, then archive.**
 - **[4-Aug, #610] Multi-mailbox sending (4+ boxes/client):** blocked on the frozen schema (`client_inboxes_one_live_per_kind` + `kind` CHECK). The day migrations return: ONE migration widens the index, boxes 3+4 (already warm, App Passwords saved) plug in, rotation (built in Prompt 30) simply sees more boxes. Until then: 2 boxes + the cap ladder 30→50/day ≈ the modelled ~100/day.
+
+
+---
+
+# ░ 📌 THE 25TH CUT — PARKED POST-LIVE *(moved here 21 Aug evening, founder-ordered: "if the build or the fix is not to aid the live state it moves post live")* ░
+
+> Every item below was on the launch artifact's board and failed the one test — *does it aid the live state on the 25th?* None is forgotten; none is worked before launch. The artifact mirrors this list until the 25th, then dies; this page is the home.
+
+## Parked builds *(each already has a verified prompt in the launch artifact — reuse it when its day comes)*
+- **P34's screens — PR #1427, OPEN and PARKED.** The merged half (#1426: table, routes, prompt consumers) is verified **inert** in production — the brief only reaches a prompt once a client approves one, and without the screens nobody can. Decision on merge day: merge #1427 as-is (was gate-green 21 Aug) or rebuild against then-current main.
+- **P35 — the Proof Pack** (founder-only outcomes report in `vida/reports`; HTML only — no PDF lib exists).
+- **P36 — Social Intent v1** (client-owned inbound; the "employer floor" term correction is already in its prompt).
+- **P37 — CRM v1 — HELD** harder than parked: requires the founder to first record R-CRM-DOWNSTREAM in PRODUCT-RULES (verified absent, 21 Aug).
+- **P45 — the Warm-Reply Cockpit** (upgrades the live `/milla/replies` + `/vida/unibox`; must reuse the freebusy LIB, not the two dead calendar routes).
+- **P46 — the Bad-Egg Log** (alert taxonomy pinned at 9 kinds; ships WITH its nav link).
+- **W1 phases 2–3** — the other 23 site pages · the Drop's 4:3 crop risk · the Nexus sub-brand-or-converge decision.
+- **Welcome-transcript capture** (P34 follow-on; own privacy surface).
+- **The brief-message removal control** (one stale "3 prospects" line sits in the founder's own thread; O3 forbids a hand delete).
+- **The email morning-brief's two defects** — `en-ZA` date locale (contradicts R62) and its button pointing at the retired `/dashboard`.
+
+## Cleanups from the 21-Aug full-system verification *(zero broken clicks found; these are the two structural findings)*
+- **Retire or fence the old `/dashboard` page family** — fully functional, reachable only by typed URL since login redirects to `/milla`; it is the layer that keeps misleading build prompts (the figsy-chat near miss).
+- **Review the ~40 orphan endpoints** no screen calls (`scripts/dead-surfaces.sh` is the catalogue; webhooks/cron rows are legitimate).

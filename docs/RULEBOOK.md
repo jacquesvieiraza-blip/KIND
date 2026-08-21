@@ -86,6 +86,8 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 - [ ] Am I stating only what I can **prove**? (Rule 1.4)
 
 ## 8. 🔄 SESSION START — RECONCILE BEFORE ANYTHING (added 14 Jun, after repeated state discrepancies)
+
+> ⛓️ **AMENDED 21 Aug (R65):** silence is NEVER a go, and reading a response is never a go — a build starts only on the founder's explicit "go" with the switch to Opus. Pause is the default. Full ruling: PRODUCT-RULES R65.
 > The founder is tired of opening every session by catching Claude out on what's actually merged. So Claude starts from verified truth, not memory — **every time.**
 8.1 **Read the history first.** Review the prior conversation/summary to recover what was decided and what was in flight.
 8.2 **Fetch and check the last merges.** `git fetch origin main`; list recent merges (`git log origin/main`), identify the last PR(s) merged and when.

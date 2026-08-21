@@ -104,6 +104,13 @@ step "Vida (admin) build"   npx next build apps/admin  --no-lint
 #    stale claims. Cheap — and doc drift is what made the trackers untrustworthy.
 step "Doc lint" bash scripts/doc-lint.sh
 
+# ⚠️ 21 Aug — doc-lint asks "is the board correct TODAY?". This asks the question whose
+# absence let the 79-item drift live: "would the tooling NOTICE if it stopped being
+# correct?" The writer and the checker were both first-match-only, so a stale visible
+# board row passed every gate. Runs entirely inside a throwaway git repo — it never
+# touches the real docs, and it fails if it ever does.
+step "Board tooling regression" bash scripts/board-tooling.test.sh
+
 echo ""
 echo "══════════════════════════════════════════════════════════"
 if [ -n "$FAILED" ]; then

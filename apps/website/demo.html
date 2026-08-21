@@ -83,6 +83,19 @@
     .band-dark .s-sub { color: rgba(255,255,255,0.42); }
     .video-frame { position: relative; width: 100%; padding-bottom: 56.25%; border-radius: 20px; overflow: hidden; margin-top: 40px; box-shadow: 0 0 0 1px rgba(124,58,237,0.25), 0 40px 100px rgba(124,58,237,0.3); }
     .video-frame iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+    /* dw-* = the walkthrough poster. Prefixed so nothing here can collide with an
+       existing class on this page or in kind.css. */
+    a.video-frame { display: block; cursor: pointer; text-decoration: none; }
+    .dw-still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+    .dw-veil { position: absolute; inset: 0; background: rgba(15,10,30,.18); transition: background .25s ease; }
+    a.video-frame:hover .dw-veil { background: rgba(15,10,30,.34); }
+    .dw-play { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); width: 78px; height: 78px; border-radius: 50%; background: var(--blue, #7C3AED); display: grid; place-items: center; box-shadow: 0 16px 44px rgba(124,58,237,.28); }
+    .dw-play::after { content: "\25B6"; color: #fff; font-size: 22px; transform: translateX(3px); }
+    .dw-label { position: absolute; left: 20px; bottom: 18px; color: #f2f0f7; font-size: 12px;
+                font-weight: 600; background: rgba(15,10,30,.72); padding: 6px 12px;
+                border-radius: 999px; backdrop-filter: blur(6px); }
+    a.video-frame:focus-visible { outline: 3px solid #a78bfa; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { .dw-veil { transition: none; } }
 
     /* ── LIGHT LAVENDER BAND ── */
     .band-lav { background: linear-gradient(180deg, #F5F0FF 0%, #FBFAFF 100%); padding: 96px 48px; }
@@ -251,13 +264,24 @@
       <div class="s-label">Service walkthrough</div>
       <h2 class="s-title">See the service in action</h2>
       <p class="s-sub">Inside your Milla portal, and how our team runs your pipeline.</p>
-      <div class="video-frame" style="display:flex;align-items:center;justify-content:center;text-align:center;padding:56px 24px">
-        <div>
-          <div style="font-size:42px;line-height:1">&#127916;</div>
-          <p style="font-weight:700;font-size:1.15rem;margin-top:14px">A real service walkthrough is on the way.</p>
-          <p style="opacity:.72;margin-top:8px;max-width:440px">We're recording the service working live on a real pipeline. Want to see it now? <a href="#request" style="color:#a78bfa;font-weight:600">Book a walkthrough below &rarr;</a></p>
-        </div>
-      </div>
+      <!-- THE WALKTHROUGH VIDEO (21 Aug 2026, founder-commanded).
+           This box was BUILT for a video — `.video-frame` already carries the 16:9
+           padding-bottom and the absolutely-positioned iframe rule — and was then
+           overridden by an inline flex/padding style holding a "video is on the way"
+           placeholder. On a page prospects reach straight from a cold email that read
+           as a broken empty panel. It now plays the SAME demo the homepage plays.
+           Same three properties as index.html, deliberately, not re-invented:
+             • one click-to-play poster, so no YouTube request is made before consent
+             • youtube-nocookie, so no cookie lands until the visitor presses play
+               (privacy.html §9 names the embeds; this keeps that sentence true)
+             • the anchor's href still opens YouTube, so with JS off the button lives -->
+      <a class="video-frame dw-playlink" href="https://youtu.be/Cx5-PjxjGFI"
+         target="_blank" rel="noopener" aria-label="Play the product walkthrough">
+        <img class="dw-still" src="mv-milla-portal.png" alt="The Milla portal — masked leads waiting for your approve or pass">
+        <span class="dw-veil"></span>
+        <span class="dw-play" aria-hidden="true"></span>
+        <span class="dw-label">The product walkthrough</span>
+      </a>
     </div>
   </section>
 
@@ -422,6 +446,27 @@
    pricing/support ends here too). Fixes dead Log in / Get started free
    buttons on pages without the modal. */
 function openAuth(){location.href='https://app.get-kind.com/login'}
+</script>
+<script>
+/* In-place playback — the same behaviour as the homepage hero. Swaps the poster for the
+   nocookie player on click; if JS never runs, the anchor's href opens YouTube instead,
+   so the control cannot become dead. */
+(function(){
+  var link = document.querySelector('.dw-playlink');
+  if (!link) return;
+  link.addEventListener('click', function(e){
+    e.preventDefault();
+    var box = document.createElement('div');
+    box.className = 'video-frame';
+    var f = document.createElement('iframe');
+    f.src = 'https://www.youtube-nocookie.com/embed/Cx5-PjxjGFI?autoplay=1&rel=0';
+    f.title = 'Milla & Vida — product walkthrough';
+    f.setAttribute('allow', 'autoplay; encrypted-media; fullscreen; picture-in-picture');
+    f.setAttribute('allowfullscreen', '');
+    box.appendChild(f);
+    link.replaceWith(box);
+  });
+})();
 </script>
 </body>
 </html>

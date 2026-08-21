@@ -22,6 +22,7 @@ import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
   type CursorQuery, type StoredCursor,
 } from '../lib/pdl-cursor'
+import { narrowSizeBands } from '../lib/lead-feedback'
 
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
@@ -465,7 +466,41 @@ export async function runIcpJob(
 
       // #366 — resume from where the last run stopped. `cursor.token` is null on a first
       // run (or after an ICP edit), which is the old behaviour exactly.
-      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icp, 1, grantedSize, cursor.token)
+      // ── CALIBRATION v1 (P32) — THIS CLIENT'S OWN PASSES NARROW THIS RUN ──────────────
+      //
+      // Founder-ruled 21 Aug: *"a client who passed 'too big' on 3+ leads of a size band gets
+      // that band excluded from THEIR next sourcing run"* — that band AND everything above it.
+      //
+      // ⚠️ NARROWED HERE, NOT INSIDE THE QUERY BUILDERS. `searchPeopleWithFallback` fans out to
+      // BOTH Apollo (`buildSearchBody`) and PDL (`buildPdlBody`); filtering inside either one
+      // would leave the other still sourcing exactly what this client just rejected. One
+      // narrowing, before the fan-out, covers both by construction.
+      //
+      // ⚠️ CLIENT-SCOPED AND BEST-EFFORT. The read is `.eq('client_id', clientId)` and nothing
+      // else, and any failure leaves the run EXACTLY as it is today. A calibration nicety must
+      // never be able to stop a client's sourcing.
+      let icpForSearch = icp
+      try {
+        const { data: fb } = await db.from('lead_feedback')
+          .select('reason_code, leads!inner(company_size)')
+          .eq('client_id', clientId)
+          .eq('action', 'pass')
+          .order('created_at', { ascending: false })
+          .limit(200)
+        const rows = (fb ?? []).map((r: Record<string, unknown>) => ({
+          reason_code: r.reason_code as never,
+          company_size: (r.leads as { company_size?: string | null } | null)?.company_size ?? null,
+        }))
+        const narrowed = narrowSizeBands((icp as { company_sizes?: string[] }).company_sizes ?? [], rows)
+        if (narrowed.excluded.length) {
+          icpForSearch = { ...icp, company_sizes: narrowed.sizes }
+          console.log(`[icp] calibration — client ${clientId} excluded ${narrowed.excluded.join(', ')} (${narrowed.reason})`)
+        }
+      } catch (err) {
+        console.error('[icp] calibration read failed — sourcing continues unnarrowed:', err)
+      }
+
+      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token)
       relaxed = pdlRelaxed
 
       // Remember where PDL got to, so NEXT month starts after these people instead of on

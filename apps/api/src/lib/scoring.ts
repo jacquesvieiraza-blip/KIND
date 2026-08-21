@@ -83,6 +83,30 @@ export async function scoreLeadsForIcp(
     } catch { /* best-effort — scoring proceeds exactly as today on any Nexus error */ }
   }
 
+  // ── CALIBRATION v1 (P32) — WHAT THIS CLIENT HAS BEEN REJECTING ──────────────────────────
+  //
+  // Founder-ruled 21 Aug: *"FIGSY's scoring prompt receives the client's recent feedback as
+  // context."* Structured codes only — free text never reaches the model, for the same reason
+  // it never reaches the sourcing filter: he gated it, and a prompt IS an application.
+  //
+  // Fenced and best-effort like the Nexus block above: one client's rows, and any failure
+  // leaves scoring byte-identical to today.
+  let feedbackContext = ''
+  if (clientId) {
+    try {
+      const { scoringFeedbackContext } = await import('./lead-feedback')
+      const { data: fb } = await db.from('lead_feedback')
+        .select('reason_code, leads!inner(company_size)')
+        .eq('client_id', clientId).eq('action', 'pass')
+        .order('created_at', { ascending: false }).limit(100)
+      const line = scoringFeedbackContext((fb ?? []).map((r: Record<string, unknown>) => ({
+        reason_code: r.reason_code as never,
+        company_size: (r.leads as { company_size?: string | null } | null)?.company_size ?? null,
+      })))
+      if (line) feedbackContext = `\n\n${line}`
+    } catch { /* best-effort — scoring proceeds exactly as today on any error */ }
+  }
+
   const BATCH_SIZE = 10
   let alertedScoringFailure = false   // #358 — alert at most once per call, not per batch
 
@@ -122,7 +146,7 @@ export async function scoreLeadsForIcp(
 ICP criteria:
 ${icpDescription}
 
-Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfect match, 0 = no match.${nexusBoost}
+Score each lead from 0 to 100 based on how well they match the ICP. 100 = perfect match, 0 = no match.${nexusBoost}${feedbackContext}
 
 Leads to score:
 ${leadsText}

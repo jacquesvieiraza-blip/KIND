@@ -87,3 +87,100 @@ export function applicableAntiSignals(rows: readonly FeedbackRow[]): Map<ReasonC
   for (const [code, n] of [...counts]) if (n < ANTI_SIGNAL_MIN_COUNT) counts.delete(code)
   return counts
 }
+
+// ── PR 2 · THE SIZE ANTI-SIGNAL — "too big" / "too small" NARROW A CLIENT'S OWN SOURCING ───
+//
+// Founder-ruled 21 Aug: *"a client who passed 'too big' on 3+ leads of a size band gets that
+// band excluded from THEIR next sourcing run"* — and, on the question of how far to exclude:
+// **that band AND everything above it.** His words on the choice: *"go with both your
+// recommendations"*, the recommendation being that "too big" means too big, and excluding only
+// the exact band leaves the larger companies flowing straight back.
+//
+// ⚠️ CLIENT-SCOPED, ALWAYS. Every function here takes one client's rows and returns one
+// client's narrowed list. Nothing global, nothing that reaches the pool, nothing another
+// client's feedback can influence — asserted in the guard, because "client-scoped" is a
+// property that decays silently the first time somebody adds a convenient cross-client read.
+//
+// ⚠️ AND IT CAN NEVER EMPTY THE SEARCH. If a client's feedback would exclude every band they
+// target, the narrowing is ABANDONED and the original list returned. A search with no sizes
+// finds nobody, and "we listened to you so hard you now get zero leads" is a worse outcome
+// than "we kept looking while you tell us more".
+
+/** The size ladder, smallest → largest. The ICP labels, exactly as the portal stores them. */
+export const SIZE_LADDER = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'] as const
+
+/** A passed lead's band, matched tolerantly — `leads.company_size` is provider text, not ours. */
+export function bandIndex(companySize: string | null | undefined): number {
+  if (!companySize) return -1
+  const s = companySize.replace(/[\s,]/g, '').replace(/[–—]/g, '-')
+  return SIZE_LADDER.findIndex(b => b.replace(/[\s,]/g, '').replace(/[–—]/g, '-') === s)
+}
+
+export type SizedFeedback = { reason_code: ReasonCode | null; company_size?: string | null }
+
+/**
+ * Narrow a client's targeted size bands using their own recent passes.
+ *
+ * `too_big`   on band i → drop band i and everything ABOVE it.
+ * `too_small` on band i → drop band i and everything BELOW it.
+ *
+ * Both need `ANTI_SIGNAL_MIN_COUNT` passes at the same band before they count: three is an
+ * opinion, one is a bad afternoon.
+ */
+export function narrowSizeBands(
+  targeted: readonly string[],
+  rows: readonly SizedFeedback[],
+): { sizes: string[]; excluded: string[]; reason: string | null } {
+  const tooBigAt = new Map<number, number>()
+  const tooSmallAt = new Map<number, number>()
+  for (const r of rows) {
+    const i = bandIndex(r.company_size)
+    if (i < 0) continue                                  // unknown band — no opinion to act on
+    if (r.reason_code === 'too_big')   tooBigAt.set(i, (tooBigAt.get(i) ?? 0) + 1)
+    if (r.reason_code === 'too_small') tooSmallAt.set(i, (tooSmallAt.get(i) ?? 0) + 1)
+  }
+
+  // The LOWEST band called "too big" enough times sets the ceiling; the HIGHEST called
+  // "too small" sets the floor.
+  const ceiling = [...tooBigAt.entries()].filter(([, n]) => n >= ANTI_SIGNAL_MIN_COUNT)
+    .map(([i]) => i).sort((a, b) => a - b)[0]
+  const floor = [...tooSmallAt.entries()].filter(([, n]) => n >= ANTI_SIGNAL_MIN_COUNT)
+    .map(([i]) => i).sort((a, b) => b - a)[0]
+
+  if (ceiling === undefined && floor === undefined) return { sizes: [...targeted], excluded: [], reason: null }
+
+  const keep = targeted.filter(b => {
+    const i = SIZE_LADDER.indexOf(b as typeof SIZE_LADDER[number])
+    if (i < 0) return true                               // a band we do not recognise is left alone
+    if (ceiling !== undefined && i >= ceiling) return false
+    if (floor   !== undefined && i <= floor)   return false
+    return true
+  })
+
+  // ⚠️ NEVER NARROW TO NOTHING. See the header: a client who has rejected every band they
+  // target would otherwise get zero leads, which is a worse answer than continuing to look.
+  if (keep.length === 0) return { sizes: [...targeted], excluded: [], reason: null }
+
+  const excluded = targeted.filter(b => !keep.includes(b))
+  if (excluded.length === 0) return { sizes: [...targeted], excluded: [], reason: null }
+
+  const parts: string[] = []
+  if (ceiling !== undefined) parts.push(`passed ${ANTI_SIGNAL_MIN_COUNT}+ as "too big" at ${SIZE_LADDER[ceiling]}`)
+  if (floor   !== undefined) parts.push(`passed ${ANTI_SIGNAL_MIN_COUNT}+ as "too small" at ${SIZE_LADDER[floor]}`)
+  return { sizes: keep, excluded, reason: parts.join(' · ') }
+}
+
+/**
+ * The client's recent feedback, as one line for FIGSY's scoring prompt.
+ *
+ * Structured codes only — free text never reaches a model here for the same reason it never
+ * reaches the filter: the founder gated it, and a prompt is an application.
+ */
+export function scoringFeedbackContext(rows: readonly SizedFeedback[]): string | null {
+  const counts = applicableAntiSignals(rows)
+  if (counts.size === 0) return null
+  const parts = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([code, n]) => `${REASON_LABELS[code].toLowerCase()} (${n}×)`)
+  return `This client has recently passed on leads for: ${parts.join(', ')}. Score accordingly.`
+}

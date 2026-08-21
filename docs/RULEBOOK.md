@@ -88,6 +88,7 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 ## 8. 🔄 SESSION START — RECONCILE BEFORE ANYTHING (added 14 Jun, after repeated state discrepancies)
 
 > ⛓️ **AMENDED 21 Aug (R65):** silence is NEVER a go, and reading a response is never a go — a build starts only on the founder's explicit "go" with the switch to Opus. Pause is the default. Full ruling: PRODUCT-RULES R65.
+> ⛓️ **EXTENDED 21 Aug by §15.6.** This reconciliation still runs at every session start — but the facts it establishes now go into the **session evidence ledger**, anchored to the baseline `origin/main` SHA, and are **not re-read** while that SHA and the source are unchanged. §8 is how the session *starts*; §15.6 is why it does not start over mid-build.
 > The founder is tired of opening every session by catching Claude out on what's actually merged. So Claude starts from verified truth, not memory — **every time.**
 8.1 **Read the history first.** Review the prior conversation/summary to recover what was decided and what was in flight.
 8.2 **Fetch and check the last merges.** `git fetch origin main`; list recent merges (`git log origin/main`), identify the last PR(s) merged and when.
@@ -125,6 +126,7 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 12.4 **Build vs integrate** (founder decides): current lean = **integrate** a sending-platform API (**Smartlead** white-label for the product engine · **Instantly** for our own outreach now), put the AI + African data on top — don't rebuild the hardest wheel.
 
 ## 13. 🔍 AUDIT PROTOCOL — what "a full audit" must cover (folded in from FULL_CHECK, 23 Jun)
+> ⛓️ **SCOPED 21 Aug — THIS SECTION DEFINES `MODE = FULL AUDIT`, AND NOTHING ELSE.** It fires on the founder's explicit *"audit / teardown / full check"* and on the §15.16 triggers (major milestone · pre-release · major architecture/data/compliance change). **The WEEKLY audit is a different thing entirely** — change-based from the last persisted `audited-through` SHA (§15.15) — and **does not invoke this section.** The distinction matters: §13.2's *"reason over the whole system, grep can't find absence"* is right for a full audit and would be whole-repo archaeology every seven days.
 > When the founder asks for an "audit / teardown / full check / make sure we're done," work through **every** section below and report on each — including the ones that come back clean. *(Origin: a 2-Jun "full teardown" missed that all Railway services have no failover, because it was scoped to "what I built this session" not "the whole system." An audit covers the system, never one session's diff.)*
 13.1 **Single points of failure / redundancy** — what dies if Railway / Supabase / Resend / Anthropic is down? Any failover, status page, uptime monitor, tested DB restore?
 13.2 **Standing commitments not yet built** — reason over conversation + docs for things *discussed* but never built ("backup plan", "Phase 2", "later"). Grep can't find absence — you must.
@@ -136,6 +138,10 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 13.8 **Report format — every audit ends with three explicit lists:** ✅ LIVE & VERIFIED (checked on disk/main) · 🛑 STOPPED / NOT BUILT (with the reason) · ⏳ PENDING (split founder-action vs Claude-build-queue). Never present "what I built" as a complete audit.
 
 ## 14. 🤖 HOW THE FOUNDER RUNS OPUS WHEN FABLE IS AWAY (founder-locked 19 Aug)
+> ⛓️ **CHAINED 21 Aug — THE DAILY LOOP BELOW IS SUPERSEDED BY §15.2; EVERYTHING ELSE HERE STANDS.** This section is the 19-Aug record and is kept in full. What changed: **GPT-5.6 now sits on both sides of the build** — classifying and scoping the prompt before it, and independently reviewing the diff and evidence before any merge (§15.1/§15.2). So "THE DAILY LOOP" below, which runs founder↔Opus with no GPT step, is **no longer the current method**. Read §15 for how the day actually runs.
+> **What survives unchanged and is carried into §15 by reference, not duplicated:** the FIVE STANDING RULES · the EVIDENCE BAR · the FABLE QUEUE · the TRIPWIRES (extended to eight in §15.9) · the PRIVACY-CHANGE GATE (§15.18).
+> ⚠️ **One stale fact corrected in place:** the evidence bar below says *"pasted `check.sh` **6/6**"*. **The gate has been SEVEN stages since 21 Aug** (#1434 added `[7] Board tooling regression`). Read it as **7/7** — the requirement is a green gate, not a particular number, and the number will move again.
+
 > Added 19 Aug 2026. Fable's availability is roughly weekly; the week runs on Opus. This section exists so the founder never has to hold the method in his head — *"opus does heavy lifting. you are reassurance."*
 
 **THE SPLIT.** Opus does the heavy lifting — builds, doc chores, bounded mechanical verification. Fable is reassurance — architecture truth, compliance interpretation, independent review of Opus's work, launch-critical calls. Fable is available ~weekly; the week runs on Opus under this protocol.
@@ -154,6 +160,161 @@ Every item in `PRODUCT-INVENTORY.md` carries exactly one dot. The ladder: **🔴
 **THE TRIPWIRES — Opus stops and asks, never proceeds, when:** a fix wants to touch a second file class · a test needs weakening to pass · a doc contradicts the code · the instruction is one word · anything wants to write to `PRODUCT-RULES.md` or the frozen site.
 
 **THE PRIVACY-CHANGE GATE (adopted 19 Aug).** Any prompt that introduces a new data source, new purpose, new recipient, new country, new channel, new provider, new FIGSY inference class or new autonomous Vida action triggers this checklist BEFORE the clause table: new data? → new purpose? → new recipient? → new country/transfer? → new lawful basis or channel rule? → DPIA impact? → privacy-notice update? → retention entry? → contract/vendor permission? Opus answers each in one line and the founder sees the answers before any yes.
+
+---
+
+## 15. 🤖 K.I.N.D CLAUDE OPERATING PROTOCOL v1 — founder-locked 21 Aug 2026
+
+> **What this is.** The detailed operating reference for how the founder, GPT-5.6 and Claude Code work together. The short mandatory version lives in [`CLAUDE.md`](../CLAUDE.md) so it can be read every session without spending context; this is where the reasoning lives. **This section consolidates §8, §13 and §14 — it does not compete with them**, and none of that history is deleted.
+>
+> **Why it exists.** The same defects kept recurring at the founder's expense: whole-repo re-reads for small tasks, scope drifting mid-build, fixes that were never protected and had to be rediscovered, and claims from code that were never true at runtime. Those are process defects, not content problems.
+
+### 15.1 ROLES
+
+| Who | Does |
+|---|---|
+| **FOUNDER** | States intent in plain English. Gives **GO / MERGE / HOLD**. The only merge authority. |
+| **GPT-5.6** | Classifies founder intent · designs the Claude prompt · reviews Claude's scope card and clause table **before** the build · **independently reviews the final diff and evidence** · recommends **GO / HOLD / MERGE / DO NOT MERGE**. |
+| **CLAUDE CODE** | Repo inspection · evidence · bounded implementation · tests · PR. **Never merges.** |
+
+⚠️ **GPT-5.6 is NOT a new source of product truth.** It classifies, scopes and reviews founder intent. **PRODUCT-RULES and explicit founder decisions remain authoritative** — a GPT recommendation never outranks a lock, and never becomes one. If GPT and PRODUCT-RULES disagree, PRODUCT-RULES wins and the disagreement is reported.
+
+This is **the founder's current pre-launch operating method.**
+
+### 15.2 THE DAILY FLOW
+
+**Founder intent → GPT-5.6 classifies/scopes → Claude prompt → Claude SCOPE CARD + CLAUSE TABLE → founder GO → bounded implementation → targeted tests → `check.sh` once → PR → ⛔ CLAUDE STOPS → GPT-5.6 diff/evidence review → founder MERGE/HOLD.**
+
+🛑 **THE STOP IS THE POINT.** After BUILD or DOC RECONCILIATION, Claude produces the PR, diff, tests and evidence — and **stops**. **Claude's own self-review is never merge authorisation**, however green the gate is (extends **R41**: Claude never self-certifies its own build; and **P3**: the founder merges). Every merge is authorised by the founder **after** GPT-5.6's independent review. ⚠️ **There is no small-task or docs-only exemption** — founder-ruled 21 Aug. A one-line docs PR goes through the same review as a money-path change, because the errors that reached `main` this month were one-line docs errors.
+
+### 15.3 IDEAS VS DECISIONS — the distinction that stops half-decisions becoming product
+
+**The founder has an idea but has NOT decided** → log it in **V2-TRACKER** as **UNRULED / DO NOT BUILD**, in his own wording, with no product implication. It is not a rule, not a status, and nothing downstream may cite it.
+
+**The founder explicitly decides** → it becomes a **PRODUCT-RULES chained ruling** (old text struck and dated, new beneath, latest wins — never overwritten) → run the **dependency check** (§15.12) → **and the resulting product/code change is NOT built until separately approved.** Recording a ruling and building it are two different approvals.
+
+### 15.4 TRUTH AUTHORITY
+
+**PRODUCT-RULES > LAUNCH-PAD > PRODUCT-INVENTORY > KIND-MASTER > V2-TRACKER.**
+
+| Doc | Its authority |
+|---|---|
+| **PRODUCT-RULES** | Founder rulings, verbatim and dated. **Beats every other document, always.** |
+| **LAUNCH-PAD** | Current execution — what is being done now. |
+| **PRODUCT-INVENTORY** | Implementation status. **The dots are the status of record**, not prose anywhere else. |
+| **KIND-MASTER** | Strategy, decisions, history, session log — the *why*. |
+| **V2-TRACKER** | Post-live roadmap and restored historical material. Fenced; never current authority. |
+
+**Follow the higher authority automatically.** Do not ask which doc wins — the order above answers it. **STOP and ask only when the highest relevant authority is itself ambiguous or silent** on the question.
+
+### 15.5 CHAIN-AWARE READING
+
+**A search hit is not a live claim.** This repo chains history rather than deleting it, so old false sentences survive inside labelled ⛓️ correction quotes, struck text and dated supersession notes. Before reporting any string as a defect, **read what surrounds it**. Repeatedly re-reporting known historical text as a live error wastes the founder's time and trains him to ignore reports.
+
+### 15.6 SESSION EVIDENCE LEDGER — anchored to the baseline SHA
+
+**At bootstrap, record the baseline `origin/main` SHA.** Verify each canonical fact the task needs **once**, and hold it in an ephemeral ledger in session context. **The ledger is never committed.**
+
+**Your own task commits and branch-HEAD movement do NOT invalidate the ledger.** A commit you just made cannot change what PRODUCT-RULES says.
+
+**Re-read a ledger fact ONLY when:**
+1. the canonical source supporting that fact changed;
+2. `origin/main` advanced **and** the change could plausibly affect this task; or
+3. the task now needs a fact that was never verified.
+
+⚠️ **Named failure mode: re-reading PRODUCT-RULES or LAUNCH-PAD several times inside a single build is a defect, not diligence.** It burns the context the task needs and produces no new truth.
+
+### 15.7 TASK MODES + TASK SIZES
+
+**Modes:** `READ-ONLY VERIFY` · `BUILD` · `DOC RECONCILIATION` · `FULL AUDIT` (§13 defines the last). **If the mode is unclear, default to READ-ONLY / PAUSE** — never to BUILD.
+
+**Sizes:** **SMALL** ≤5 substantive files read / ≤3 changed · **MEDIUM** ≤12 read / ≤8 changed · **LARGE** anything above either threshold, which **requires explicit founder approval for the expanded scope before it starts.**
+
+### 15.8 SCOPE CARD + CLAUSE TABLE — the pre-build contract
+
+Before every BUILD, return: **MODE · GOAL · TASK SIZE · RULES USED · FILES TO READ · FILES TO CHANGE · TESTS · NO-TOUCH · OPEN QUESTIONS**, then the **CLAUSE TABLE** (P11 — every clause quoted from the founder's words, never paraphrased), then **WAIT FOR GO**.
+
+**After GO, the clause table IS the contract.** Anything not in it is out of scope — including improvements that are obviously correct. No opportunistic cleanup.
+
+### 15.9 SCOPE-CREEP TRIPWIRES — stop, do not proceed
+
+Stop and ask before: **>12 substantive reads** · **>8 changed files** · touching a **second unrelated subsystem** · a **new provider, data source, channel or country** · an unapproved **money / send / suppression / tenancy** boundary · **weakening a test** to make it pass · a **missing founder ruling** · **runtime proof is required but inaccessible**.
+
+*(Extends §14's five tripwires to eight; §14's originals — second file class, test weakening, doc-contradicts-code, one-word instruction, writes to PRODUCT-RULES or the frozen site — all still apply.)*
+
+### 15.10 TESTING FUNNEL
+
+**Smallest RED proof → targeted GREEN → affected package if required → `check.sh` ONCE at the end.** Never open with the full gate; never run it repeatedly to see if something changed.
+
+### 15.11 REGRESSION / DRIFT PROTECTION — and the incident that proves the rule
+
+A finding travels: **OPEN → FIXED → regression-protected OR weekly-monitored → CLOSED.** A fix with no protection is **FIXED BUT UNGUARDED**, never CLOSED.
+
+🔧 **THE BOARD-TOOLING INCIDENT (21 Aug) — the pattern to remember.** The inventory's visible status table sat **79 items stale** while **every gate reported green**. Cause: the writer (`update-board.sh`, `$done ||=`) and the checker (`count-inventory.sh`, `head -1`) were **both first-match-only** — they shared one blind spot, so the writer kept the checker happy and the drift lived in the gap between them. Worse, the checker's own header already described that exact drift class as the reason it had been hardened; the hardening was written with `head -1` and reproduced the blind spot one row lower.
+
+**Therefore: a new or changed validator must be tested against a DELIBERATELY BAD STATE** — good state PASS → bad state **FAIL** → restored state PASS. A checker that has only ever seen a good state proves nothing. **A validator and the thing it validates must not be written from the same assumption.**
+
+### 15.12 PRODUCT-RULES DEPENDENCY CHECK
+
+Whenever a founder rule is added or superseded: **identify the superseded rule** → **search current dependent docs** → **identify affected code and tests** → **report the dependency set to the founder**. **Do not silently update unrelated surfaces** — the report is the deliverable; the updates are a separate approval.
+
+### 15.13 CODE VS RUNTIME TRUTH — where the labels apply
+
+For **implementation, deployment, configuration, provider-entitlement and runtime** claims, state which of these applies:
+
+- **CODE VERIFIED** — read in the source; true of the code.
+- **RUNTIME VERIFIED** — observed in the running system (migration seen applied, secret seen SET, integration seen connecting, region visually confirmed).
+- **RUNTIME UNVERIFIED** — the code says so; nobody has watched it happen.
+
+**Never infer runtime truth from code alone** (O5/O6). ⚠️ **Ordinary documentation, history and product-rule statements are NOT labelled** — labelling everything devalues the label exactly where it matters.
+
+### 15.14 FINDING STATES
+
+**OPEN** · **PARKED / DEFERRED** · **FIXED BUT UNGUARDED** · **CLOSED / VERIFIED.**
+
+**A PARKED finding is not rediscovered and re-reported** unless: the founder asks · a dependency changed · or files touched by the current task could invalidate it. Re-surfacing known parked items as new findings is noise.
+
+### 15.15 THE WEEKLY AUDIT — change-based, with a persistent checkpoint
+
+Once a week. **CHANGE-BASED from the previously persisted `audited-through` SHA** — not a whole-repo pass, and **it does not invoke §13**.
+
+**Covers:** files changed that week · PRODUCT-RULES changes and dependency drift · canonical consistency · OPEN/PARKED/CLOSED regressions · test and checker health · stale runtime assumptions · **2–3 adversarial truth samples** · whether anything previously CLOSED has resurfaced.
+
+**Output: GREEN / AMBER / RED.**
+
+📌 **THE CHECKPOINT — how continuity survives a Claude with no memory.** At the end of each **approved** weekly audit, one compact line is recorded in **LAUNCH-PAD's existing current-execution layer**:
+
+```
+WEEKLY AUDIT · <date> · audited-through <origin/main SHA> · GREEN|AMBER|RED · open finding IDs
+```
+
+**The detailed audit report is NOT copied into LAUNCH-PAD.** The next weekly audit begins from that persisted `audited-through` SHA. This gives continuity across sessions **without creating another truth or audit document** (§15.19) — the line lives in a doc that already exists and is already read every day.
+
+⚠️ **Writing that line is a future task under the normal scoped GO process. LAUNCH-PAD was NOT changed by the protocol install itself.**
+
+### 15.16 FULL AUDITS
+
+Reserved for: **major milestone** · **pre-release / pre-launch** · **major architecture, data or compliance change** · **explicit founder request**. **§13 defines what one must cover.** A full audit is never the default response to the word "check".
+
+### 15.17 COMPACT REPORTING
+
+The normal report is: **VERDICT · CLAUSES · FILES · TESTS · EVIDENCE · OPEN ITEMS · PR/MERGE STATE.** No enormous logs unless the evidence itself requires them — pasted output is required where a rule demands proof (the §14 evidence bar), not as a substitute for a conclusion.
+
+### 15.18 PRIVACY-CHANGE GATE
+
+Runs **only** when introducing a **new data source · purpose · recipient · provider · country · transfer · channel · FIGSY inference class · autonomous Vida action**. The checklist is §14's and is not restated here: new data? → new purpose? → new recipient? → new country/transfer? → new lawful basis or channel rule? → DPIA impact? → privacy-notice update? → retention entry? → contract/vendor permission? Answered in one line each, **before** the clause table.
+
+### 15.19 NO NEW SOURCE OF TRUTH
+
+**No new summary or current-truth document — unless the founder explicitly changes this rule and approves it.** The default is no; the authority to change it is his, not the protocol's.
+
+*(Why the default is no: `BUILD-STATUS.md` became a fifth status doc and claimed "the ONLY items not built: #515 + CI · Nothing left" while the entire sending spine was 🔴. That single line is what made the founder stop trusting the docs. Retired 26 Jul, #555.)*
+
+### 15.20 THE CORE PRINCIPLE — founder's words
+
+> **"Claude should prove only what the task needs, read only what the task needs, change only what the founder approved, and never reconstruct the whole company unless the founder explicitly requests a FULL AUDIT."**
+
+> **"A problem we fix repeatedly is a process defect, not merely another content problem. Protect the fix so the founder does not pay to rediscover it."**
 
 ---
 _If a rule here is wrong or missing, the founder says so and we edit this doc. This is the contract._

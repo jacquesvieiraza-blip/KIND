@@ -53,9 +53,22 @@ export default function VidaBookingsPage() {
   // This mints that same token for any lead so the real page can be walked in two minutes.
   // It is not a shortcut around the product: the URL IS the product's URL, and booking still
   // happens on the real page through the real `performBooking`.
+  // ⚠️ A PICKER, NOT A TEXT BOX. The first version asked for a lead UUID — and no screen in
+  // Vida renders one, so it meant "go and query the database". A tool that needs an id a human
+  // cannot see is not a tool.
+  const [recentLeads, setRecentLeads] = useState<{ id: string; first_name: string | null; last_name: string | null; company: string | null; job_title: string | null }[] | null>(null)
   const [linkLeadId, setLinkLeadId] = useState('')
   const [linkResult, setLinkResult] = useState<{ url: string | null; blocked: string | null; lead?: { name: string | null; company: string | null } } | null>(null)
   const [linkBusy, setLinkBusy] = useState(false)
+
+  useEffect(() => {
+    if (!selected) { setRecentLeads(null); return }
+    setLinkResult(null); setLinkLeadId('')
+    fetch(`/api/proxy/operator/clients/${selected}/recent-leads`)
+      .then(r => r.json())
+      .then(j => setRecentLeads(j?.success ? (j.data ?? []) : []))
+      .catch(() => setRecentLeads([]))
+  }, [selected])
 
   async function issueLink() {
     if (!selected || !linkLeadId.trim() || linkBusy) return
@@ -189,13 +202,22 @@ export default function VidaBookingsPage() {
             <div className="mx-[22px] mt-3 border border-[#ece5fb] rounded-xl p-3.5 bg-[#faf8ff]">
               <b className="text-[12.5px] text-[#4c4368]">Test a real booking</b>
               <p className="text-[10.5px] text-[#9b8ec4] mt-0.5 leading-relaxed">
-                Paste a lead ID for this client to get the prospect booking link. Open it, pick a slot,
+                Pick any lead for this client to get their prospect booking link. Open it, pick a slot,
                 and the meeting lands in their connected Google Calendar — the same page a real prospect uses.
               </p>
               <div className="flex gap-2 mt-2.5">
-                <input value={linkLeadId} onChange={e => setLinkLeadId(e.target.value)}
-                  placeholder="lead id (uuid)"
-                  className="flex-1 text-[12px] border border-[#e4d4fb] rounded-lg px-2.5 py-1.5 bg-white" />
+                <select value={linkLeadId} onChange={e => setLinkLeadId(e.target.value)}
+                  className="flex-1 text-[12px] border border-[#e4d4fb] rounded-lg px-2.5 py-1.5 bg-white">
+                  <option value="">
+                    {recentLeads === null ? 'Loading leads…' : recentLeads.length === 0 ? 'This client has no leads yet' : 'Pick a lead…'}
+                  </option>
+                  {(recentLeads ?? []).map(l => (
+                    <option key={l.id} value={l.id}>
+                      {[l.first_name, l.last_name].filter(Boolean).join(' ') || 'Unnamed'}
+                      {l.job_title ? ` · ${l.job_title}` : ''}{l.company ? ` · ${l.company}` : ''}
+                    </option>
+                  ))}
+                </select>
                 <button onClick={() => void issueLink()} disabled={!linkLeadId.trim() || linkBusy}
                   className="text-[12px] font-bold text-white bg-[#7C3AED] rounded-lg px-3 py-1.5 disabled:opacity-40">
                   {linkBusy ? 'Issuing…' : 'Get link'}

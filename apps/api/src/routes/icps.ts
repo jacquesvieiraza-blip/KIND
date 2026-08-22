@@ -1510,7 +1510,10 @@ async function persistMillaUnderstanding(
         .select('id').eq('client_id', clientId).order('created_at', { ascending: false })
         .limit(1).maybeSingle()
       if (icpRow?.id) {
-        const camp = await ensureCampaignForIcp(clientId, icpRow.id as string, icpName ?? null)
+        // SCAFFOLD ONLY. Storing what the client wants must not be the event that makes a
+      // campaign live — that is K.I.N.D's GO, and a campaign made live here would also
+      // have refused the operator's own GO through the one-active invariant.
+      const camp = await ensureCampaignForIcp(clientId, icpRow.id as string, icpName ?? null)
         if (camp?.id) {
           await db.from('figsy_campaigns')
             .update({ campaign_intent: intent.slice(0, 2000), intent_mapped_at: new Date().toISOString() })
@@ -1528,8 +1531,33 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     const body = icpSchema.parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
+
+    // ── ONE CORE ICP, REFINED — NOT A SECOND EXPERIMENT (22 Aug, integration fix) ────
+    //
+    // ⚠️ THIS ALWAYS INSERTED, AND THAT BROKE THE APPROVED JOURNEY. The proof surface sends
+    // a prospect who says "not these people" back to Milla, and Milla's save lands here —
+    // so pass 2 would have run against a NEW ICP. That is a different experiment, not the
+    // refinement of the same core ICP the founder specified, and it would have orphaned
+    // pass 1's leads and feedback on a row nothing looked at again.
+    //
+    // So: the client's FIRST ICP is created here (onboarding, as before); every later save
+    // UPDATES the one they already have, preserving `icp.id`. The identity is the point —
+    // `leads.icp_id`, the campaign's `icp_id` and the PDL cursor all hang off it, and
+    // `proof_passes_done` is client-level and untouched either way.
+    //
+    // ⚠️ `is_active` IS NEVER WRITTEN HERE. A prospect's ICP stays inactive through both
+    // proof passes, and a paying client's live ICP simply carries the new targeting —
+    // which is AR9 exactly: they change what runs (25 Jul), they never activate it (22 Aug).
+    // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
+    // door, and one core ICP is the client-side rule.
+    const { data: mine } = await db.from('icps')
+      .select('id').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+    const { data, error } = mine?.id
+      ? await db.from('icps').update(body).eq('id', mine.id).eq('client_id', clientId).select().single()
+      : await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
 
     // ── THE UNDERSTANDING FOLLOWS THE ICP (22 Aug) ──────────────────────────────────
     // Milla learned this in the same conversation that produced the targeting above, so it
@@ -1561,38 +1589,56 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
 // their own change hostage) and NOTIFIES US, because the people already in a live campaign
 // were picked against the OLD profile and may now be the wrong people.
 //
-// Deliberately separate from POST /icps: that one creates an inactive draft and auto-runs
-// on credits. This one supersedes the current version atomically-in-order (deactivate all,
-// then insert active) so the client is never left with zero active ICPs, and it does NOT
-// auto-source — Vida re-picks who goes into the campaign, which is the whole point of the
-// notification. Same shape the conversational builder returns (POST /icps/chat-build).
+// ⚠️ REWRITTEN 22 Aug (integration fix): THIS SUPERSEDED BY INSERTING, AND IT ACTIVATED.
+// It deactivated every ICP the client had and inserted a new `is_active: true` row — two
+// problems at once. (a) The refinement between proof pass 1 and pass 2 produced a SECOND
+// ICP, so pass 2 ran against a different experiment and pass 1's leads and feedback were
+// orphaned. (b) It made an ICP live from a CLIENT request, which is the exact thing AR9's
+// 22-Aug amendment took away from them.
+//
+// It now UPDATES the client's current ICP in place and never touches `is_active`. Both
+// halves of AR9 then hold at once: a paying client's revision reaches their LIVE targeting
+// immediately with no gate (25 Jul), and nobody outside K.I.N.D activates anything
+// (22 Aug). It still does NOT auto-source — Vida re-picks who goes into the campaign,
+// which is the whole point of the notification below.
 icpRouter.post('/revise', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    const { data: previous } = await db.from('icps')
+    // Their live ICP if they have one, otherwise the newest — the SAME row either way.
+    const { data: active } = await db.from('icps')
       .select('id, name').eq('client_id', clientId).eq('is_active', true)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const { data: newest } = active?.id ? { data: active } : await db.from('icps')
+      .select('id, name').eq('client_id', clientId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const previous = newest ?? null
 
-    await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
-    const { data, error } = await db.from('icps')
-      .insert({ ...body, client_id: clientId, is_active: true }).select().single()
+    const { data, error } = previous?.id
+      ? await db.from('icps').update(body).eq('id', previous.id).eq('client_id', clientId).select().single()
+      // No ICP at all — create one, INACTIVE. Going live is K.I.N.D's call, not this route's.
+      : await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
+    if (!data) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
 
     // Notify us. Vida's bell already derives "ICP revised since the campaign was built"
     // from the rows, so this alert is the push half of the same fact — never the only half.
-    // One ICP = one campaign — born together, never assigned.
+    // One ICP = one campaign; SCAFFOLD only, because a client's revision must not make a
+    // campaign live any more than it makes their ICP live.
     const { ensureCampaignForIcp } = await import('../lib/start-work')
     void ensureCampaignForIcp(clientId, data.id, data.name).catch(() => {})
 
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
+    const isLive = data.is_active === true
     void sendFounderAlert('new_signup', `ICP revised — ${client?.company_name ?? 'a client'}`, [
       `${client?.company_name ?? 'A client'} changed their targeting in Milla.`,
-      previous?.name ? `Was: ${previous.name}` : 'They had no active ICP before this.',
+      previous?.name ? `Was: ${previous.name}` : 'They had no ICP before this.',
       `Now: ${data.name ?? 'unnamed ICP'}`,
-      'It is LIVE. Anyone already enrolled was picked against the old profile — re-check who is in the campaign in Vida.',
+      isLive
+        ? 'Their targeting is LIVE, so this change is already in effect. Anyone already enrolled was picked against the old profile — re-check who is in the campaign in Vida.'
+        : 'Their ICP is NOT live — this is a refinement before we switch them on. Nothing changed for anyone already enrolled.',
     ]).catch(() => {})
 
     res.status(201).json({ success: true, data })
@@ -1968,7 +2014,10 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     if (!icpRow) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
 
     const { ensureCampaignForIcp } = await import('../lib/start-work')
-    const camp = await ensureCampaignForIcp(clientId, req.params.id, (icpRow as { name?: string | null }).name ?? null)
+    // ⚠️ `activate: true` — THE ONLY CALL IN THE CODEBASE THAT MAKES A CAMPAIGN LIVE.
+    // Milla's onboarding scaffolds the same row as a draft and parks the client's intent
+    // on it; this wakes THAT row rather than creating a second one.
+    const camp = await ensureCampaignForIcp(clientId, req.params.id, (icpRow as { name?: string | null }).name ?? null, { activate: true })
     if (camp && 'refused' in camp && camp.refused) {
       res.status(409).json({
         success: false,

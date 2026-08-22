@@ -16,6 +16,12 @@
 // ⚠️ THESE TESTS RUN THE REAL `ensureCampaignForIcp` — not a mock of it. Every other
 // suite that touches this function mocks it away, which is how the first implementation's
 // behaviour shipped without a single test noticing. Only the database is simulated.
+//
+// ⚠️ AND THE FUNCTION HAS TWO MODES (integration fix, same day). The invariant above is the
+// ACTIVATE mode — K.I.N.D's GO. The default is SCAFFOLD: Milla parks `campaign_intent` on a
+// DRAFT campaign row, because storing what a client wants must not be the event that makes
+// a campaign live. Both are asserted below, and the default being the harmless one is
+// itself the point — a caller that forgets the flag can only fail to activate.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -32,7 +38,7 @@ type Sim = {
 }
 type Rec = { inserts: Array<Record<string, unknown>>; updates: Array<{ patch: Record<string, unknown>; id: string | null }> }
 
-async function ensure(sim: Sim, rec: Rec, clientId = 'c1') {
+async function ensure(sim: Sim, rec: Rec, clientId = 'c1', opts?: { activate?: boolean }) {
   vi.resetModules()
   vi.doMock('@kind/db', () => {
     const campaignQuery = () => {
@@ -82,8 +88,10 @@ async function ensure(sim: Sim, rec: Rec, clientId = 'c1') {
     return { db: { from: () => campaignQuery(), rpc: async () => ({ data: null, error: null }) } }
   })
   const { ensureCampaignForIcp } = await import('./start-work')
-  return ensureCampaignForIcp(clientId, 'icp-1', 'Test ICP')
+  return ensureCampaignForIcp(clientId, 'icp-1', 'Test ICP', opts)
 }
+/** GO — the only mode that makes a campaign live. */
+const activateMode = (sim: Sim, rec: Rec, clientId = 'c1') => ensure(sim, rec, clientId, { activate: true })
 
 const prev = { url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY }
 
@@ -101,7 +109,7 @@ describe('one client, one active campaign — refusal, not silent repair', () =>
   })
 
   it('CAMPAIGN A ACTIVE → CAMPAIGN B IS REFUSED, AND A IS NOT TOUCHED', async () => {
-    const r = await ensure({ otherActive: { id: 'camp-A', name: 'First push', client_id: 'c1' } }, rec)
+    const r = await activateMode({ otherActive: { id: 'camp-A', name: 'First push', client_id: 'c1' } }, rec)
     // The refusal names what blocked it, so the operator knows what to pause.
     expect(r && 'refused' in r && r.refused?.blockingCampaignId).toBe('camp-A')
     expect((r as { id?: string })?.id).toBeUndefined()
@@ -111,26 +119,26 @@ describe('one client, one active campaign — refusal, not silent repair', () =>
   })
 
   it('pause A first → B may then be created and activated', async () => {
-    const r = await ensure({ otherActive: null }, rec)
+    const r = await activateMode({ otherActive: null }, rec)
     expect((r as { id?: string })?.id).toBe('new-camp')
     expect(rec.inserts).toHaveLength(1)
     expect(rec.inserts[0].status).toBe('active')
   })
 
   it('reusing the SAME active campaign succeeds — it is not a second campaign', async () => {
-    const r = await ensure({ existing: { id: 'camp-A', status: 'active' } }, rec)
+    const r = await activateMode({ existing: { id: 'camp-A', status: 'active' } }, rec)
     expect((r as { id?: string })?.id).toBe('camp-A')
     expect(rec.inserts).toHaveLength(0)
   })
 
   it('re-activating this ICP\'s PAUSED campaign is allowed only when nothing else is live', async () => {
-    const r = await ensure({ existing: { id: 'camp-A', status: 'paused' }, otherActive: null }, rec)
+    const r = await activateMode({ existing: { id: 'camp-A', status: 'paused' }, otherActive: null }, rec)
     expect((r as { id?: string })?.id).toBe('camp-A')
     expect(rec.updates.some(u => u.patch.status === 'active' && u.id === 'camp-A')).toBe(true)
   })
 
   it('…and is REFUSED while another campaign is live', async () => {
-    const r = await ensure({
+    const r = await activateMode({
       existing: { id: 'camp-A', status: 'paused' },
       otherActive: { id: 'camp-B', name: 'Other push', client_id: 'c1' },
     }, rec)
@@ -139,20 +147,66 @@ describe('one client, one active campaign — refusal, not silent repair', () =>
   })
 
   it('ANOTHER CLIENT\'S ACTIVE CAMPAIGN NEVER BLOCKS THIS CLIENT', async () => {
-    const r = await ensure({ otherActive: { id: 'camp-X', name: 'Someone else', client_id: 'c2' } }, rec)
+    const r = await activateMode({ otherActive: { id: 'camp-X', name: 'Someone else', client_id: 'c2' } }, rec)
     expect((r as { id?: string })?.id).toBe('new-camp')
   })
 
   it('A FAILED VISIBILITY CHECK REFUSES RATHER THAN PROCEEDS', async () => {
     // If we cannot SEE whether another campaign is active, we do not get to assume there
     // isn't one. Proceeding here is how a db hiccup mints a second live campaign.
-    const r = await ensure({ blockingCheckError: true }, rec)
+    const r = await activateMode({ blockingCheckError: true }, rec)
     expect(r).toBeNull()
     expect(rec.inserts).toHaveLength(0)
   })
 
   it('A FAILED WRITE CANNOT REPORT SUCCESS', async () => {
-    const r = await ensure({ existing: { id: 'camp-A', status: 'paused' }, otherActive: null, writeError: true }, rec)
+    const r = await activateMode({ existing: { id: 'camp-A', status: 'paused' }, otherActive: null, writeError: true }, rec)
     expect(r).toBeNull()
+  })
+})
+
+// ── SCAFFOLD MODE — MILLA STORES INTENT, AND NOTHING GOES LIVE ────────────────
+//
+// `persistMillaUnderstanding` needs a campaign row to hang `campaign_intent` on. It used to
+// get one through the ACTIVATE path, so merely telling Milla what you wanted made a campaign
+// live — before payment, before an operator looked — and that live campaign then refused the
+// operator's own GO through the invariant above. Found by review of the assembled journey.
+describe('scaffold mode — a campaign row without a live campaign', () => {
+  let rec: Rec
+  beforeEach(() => {
+    rec = { inserts: [], updates: [] }
+    process.env.SUPABASE_URL = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+  })
+  afterEach(() => {
+    vi.resetModules()
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('THE DEFAULT IS SCAFFOLD — a forgotten flag can only fail to activate', async () => {
+    const r = await ensure({ otherActive: null }, rec)          // no opts at all
+    expect((r as { id?: string })?.id).toBe('new-camp')
+    expect(rec.inserts).toHaveLength(1)
+    expect(rec.inserts[0].status, 'the default made a campaign LIVE').toBe('draft')
+  })
+
+  it('AN EXISTING CAMPAIGN IS RETURNED UNTOUCHED — no waking, no pausing', async () => {
+    // Re-running Milla must never wake a campaign an operator deliberately paused…
+    const paused = await ensure({ existing: { id: 'camp-A', status: 'paused' } }, rec)
+    expect((paused as { id?: string })?.id).toBe('camp-A')
+    // …nor demote a live one.
+    const live = await ensure({ existing: { id: 'camp-A', status: 'active' } }, rec)
+    expect((live as { id?: string })?.id).toBe('camp-A')
+    expect(rec.updates).toHaveLength(0)
+    expect(rec.inserts).toHaveLength(0)
+  })
+
+  it('A LIVE CAMPAIGN ELSEWHERE DOES NOT BLOCK A SCAFFOLD — a draft collides with nothing', async () => {
+    // The invariant is about ACTIVE campaigns. Refusing to store a client's intent because
+    // another campaign happens to be running would break onboarding for no safety gain.
+    const r = await ensure({ otherActive: { id: 'camp-A', name: 'First push', client_id: 'c1' } }, rec)
+    expect((r as { id?: string })?.id).toBe('new-camp')
+    expect(rec.inserts[0].status).toBe('draft')
   })
 })

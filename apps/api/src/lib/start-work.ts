@@ -56,6 +56,26 @@ import { sourceTarget, PAID_TX_TYPES } from './onboarding-pack'
  * Application-level on purpose (a partial unique index needs a migration against a live
  * table three days before launch); `start-work-one-active.test.ts` exercises this REAL
  * function, because the first implementation shipped behind suites that mocked it away.
+ *
+ * ⚠️ AND IT HAS TWO MODES, BECAUSE LEARNING IS NOT GO (22 Aug, integration correction).
+ * `persistMillaUnderstanding` calls this to park `campaign_intent` on the campaign row —
+ * and while this function created ACTIVE, *telling Milla what you want made a campaign
+ * live*: before payment, before an operator looked, and it then BLOCKED the operator's own
+ * GO through the refusal above. Found by independent review of the assembled journey; no
+ * single-piece suite could see it, because each piece was right on its own.
+ *
+ *   · SCAFFOLD (the default, `activate` omitted or false) — find or create the campaign
+ *     row for this ICP as a **draft**, and leave an existing row's status exactly as it
+ *     is. Nothing goes live, nothing is paused, and the one-active invariant is not
+ *     consulted because a draft cannot collide with anything. `figsy.ts` selects campaigns
+ *     `.eq('status','active')`, so a draft's intent is stored and invisible to generation
+ *     until GO — which is precisely the behaviour wanted.
+ *   · ACTIVATE (`{ activate: true }`) — K.I.N.D's GO, and the only mode that makes a
+ *     campaign live: the invariant is checked, a competitor refuses, and this ICP's own
+ *     draft or paused campaign is woken.
+ *
+ * The default is SCAFFOLD deliberately: a caller that forgets the flag can only ever fail
+ * to activate, never accidentally activate.
  */
 export type EnsureCampaignResult =
   | { id: string; refused?: undefined }
@@ -66,11 +86,30 @@ export async function ensureCampaignForIcp(
   clientId: string,
   icpId: string,
   icpName?: string | null,
+  opts?: { activate?: boolean },
 ): Promise<EnsureCampaignResult> {
+  const activate = opts?.activate === true
   try {
     const { data: existing, error: existErr } = await db.from('figsy_campaigns')
       .select('id, status').eq('client_id', clientId).eq('icp_id', icpId).limit(1).maybeSingle()
     if (existErr) throw existErr
+
+    // SCAFFOLD: the row is all that is wanted. An existing one is returned untouched —
+    // re-running Milla must never wake a campaign an operator deliberately paused, and it
+    // must never demote a live one either.
+    if (!activate) {
+      if (existing?.id) return { id: existing.id as string }
+      const { data: draft, error: draftErr } = await db.from('figsy_campaigns')
+        .insert({
+          client_id: clientId, icp_id: icpId, status: 'draft',
+          name: icpName?.trim() ? icpName.trim().slice(0, 120) : 'Outbound campaign',
+          settings: { review_required: true },
+          copilot_mode: true, approve_before_send: true,
+        })
+        .select('id').single()
+      if (draftErr || !draft?.id) throw draftErr ?? new Error('campaign scaffold returned no id')
+      return { id: draft.id as string }
+    }
 
     // The same campaign staying active is not a second campaign. Answered before the
     // blocking check so a legacy double-active state cannot deadlock its own repair.

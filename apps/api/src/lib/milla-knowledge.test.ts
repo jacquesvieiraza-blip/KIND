@@ -28,6 +28,7 @@ async function createIcp(body: Record<string, unknown>) {
   const upserts: Upsert[] = []
   const campaignUpdates: Array<Record<string, unknown>> = []
   const clientUpdates: Array<Record<string, unknown>> = []
+  const icpUpdates: Array<Record<string, unknown>> = []
 
   vi.resetModules()
 
@@ -52,8 +53,15 @@ async function createIcp(body: Record<string, unknown>) {
       q.update = (patch: Record<string, unknown>) => {
         if (table === 'figsy_campaigns') campaignUpdates.push(patch)
         if (table === 'clients') clientUpdates.push(patch)
+        if (table === 'icps') icpUpdates.push(patch)
         const chain: Record<string, unknown> = {}
         for (const m of ['eq', 'in', 'is', 'neq']) chain[m] = () => chain
+        // ⚠️ `.select()` on an UPDATE — POST /icps now UPDATES the client's one core ICP
+        // instead of always inserting (integration fix), and reads the row back. Without
+        // this the handler threw and the route answered 500.
+        ;(chain as { select: unknown }).select = () => ({
+          single: async () => ({ data: { id: 'icp-1', name: 'Test ICP', ...patch }, error: null }),
+        })
         ;(chain as { then: unknown }).then = (r: (v: unknown) => void) => r({ error: null })
         return chain
       }
@@ -91,7 +99,7 @@ async function createIcp(body: Record<string, unknown>) {
     json(b: unknown) { this.body = b; return this },
   }
   await handler({ body, userId: 'u1', headers: {} }, res)
-  return { upserts, campaignUpdates, clientUpdates, res }
+  return { upserts, campaignUpdates, clientUpdates, icpUpdates, res }
 }
 
 const prev = { anthropic: process.env.ANTHROPIC_API_KEY, url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY }
@@ -239,5 +247,39 @@ describe('the reflect-back confirmation is recorded', () => {
     ]) {
       expect(readFileSync(join(__dirname, p), 'utf8')).toContain('milla_understanding_confirmed_at')
     }
+  })
+})
+
+// ── ONE CORE ICP — THE CLIENT'S SAVE REFINES, IT DOES NOT MULTIPLY ────────────
+//
+// Milla's save always INSERTED, so the refinement between proof pass 1 and pass 2 produced
+// a SECOND ICP: a different experiment, with pass 1's leads and feedback orphaned on a row
+// nothing looked at again. The client's first ICP is still created; every later save
+// updates it. Identity is the point — `leads.icp_id`, the campaign's `icp_id` and the PDL
+// cursor all hang off `icp.id`.
+describe('one core ICP — the client refines, never multiplies', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+  })
+  afterEach(() => {
+    vi.doUnmock('../lib/start-work'); vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('A CLIENT WHO ALREADY HAS AN ICP GETS AN UPDATE, NOT A SECOND ROW', async () => {
+    // The harness's `icps` lookup answers with an existing row, i.e. this client has one.
+    const { icpUpdates, res } = await createIcp({ ...ICP, name: 'Sharper targeting' })
+    expect(res.statusCode).toBe(201)
+    expect(icpUpdates, 'the refinement did not update the existing ICP').toHaveLength(1)
+    expect(icpUpdates[0].name).toBe('Sharper targeting')
+  })
+
+  it('THE REFINEMENT NEVER WRITES is_active — going live stays K.I.N.D\'s', async () => {
+    const { icpUpdates } = await createIcp({ ...ICP, name: 'Sharper targeting' })
+    for (const patch of icpUpdates) expect('is_active' in patch).toBe(false)
   })
 })

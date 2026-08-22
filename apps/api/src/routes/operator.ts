@@ -2124,8 +2124,13 @@ operatorRouter.post('/icp', async (req: Request, res: Response) => {
       .insert({ client_id: client.id, ...payload, is_active: true }).select('id, name').single()
     if (error) throw error
     // One ICP = one campaign — born together, never assigned (flow v2).
+    // `activate: true` because this IS K.I.N.D: an operator creating a client's ICP in Vida
+    // has just set it active on the line above, so its campaign goes live with it. The
+    // one-active invariant still applies inside — a competing live campaign refuses, and
+    // this call already tolerates that (it is fire-and-forget and the ICP row is the
+    // operator's record either way).
     const { ensureCampaignForIcp } = await import('../lib/start-work')
-    void ensureCampaignForIcp(client.id, data.id, data.name).catch(() => {})
+    void ensureCampaignForIcp(client.id, data.id, data.name, { activate: true }).catch(() => {})
     await writeOperatorAudit({ operatorEmail: operatorEmail(req), clientId: client.id, action: 'edit_icp', subjectType: 'icp', subjectId: data.id, detail: { created: true } })
     res.json({ success: true, data })
   } catch (err) { console.error('[operator/icp]', err); res.status(500).json({ success: false, error: 'Failed to save ICP' }) }

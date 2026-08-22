@@ -5,10 +5,18 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 
-// #512 — CLIENT ICP APPROVAL GATE. The client reviews their targeting (current ICP) and,
-// if the operator has proposed a newer version, signs it off. FIGSY sources against the
-// ACTIVE ICP only — approving here activates it (and kicks a first sourcing run). Reuses
-// the live /icps endpoints.
+// #512 — the client reviews their targeting and, when a newer version exists, asks to SEE
+// who it finds. FIGSY sources against the ACTIVE ICP only.
+//
+// ⚠️ THIS PAGE USED TO ACTIVATE (22 Aug, corrected round 4). The button called
+// `PATCH /icps/:id/activate` and made the ICP live itself. When activation became
+// K.I.N.D-only that call started returning 403 and this became a button that always
+// failed — and free proof, the launch acquisition motion, had no client entry at all.
+//
+// It now calls `POST /icps/:id/proof`: up to 20 REAL masked leads, the ICP stays
+// `is_active = false`, nothing is revealed, charged, enrolled or sent. Going live remains
+// ours (Vida). The language follows: the client asks to see their matches, they do not
+// "activate", "approve" or press GO.
 
 type Icp = {
   id: string; name: string | null; is_active: boolean | null; created_at: string | null; last_run_at: string | null
@@ -54,13 +62,17 @@ export default function MillaIcpPage() {
   }, [])
   useEffect(() => { load() }, [load])
 
-  async function approve(id: string) {
+  // FREE PROOF — the client asks to see who this targeting finds. Not activation: their
+  // ICP stays exactly as it was, and K.I.N.D still decides when it goes live.
+  async function showMatches(id: string) {
     setActing(true); setError(null); setNote(null)
     try {
-      const r = await api.patch<{ sourcing?: boolean }>(`/icps/${id}/activate`, {}, await token())
-      setNote(r.sourcing ? 'Approved — FIGSY is sourcing leads against this ICP now.' : 'Approved — this is now your active targeting.')
+      const r = await api.post<{ data?: { pass?: number } }>(`/icps/${id}/proof`, {}, await token())
+      setNote(r.data?.pass === 2
+        ? 'On it — this is your second look, so we are being thorough. Your matches appear on your desk in a few minutes.'
+        : 'On it — we are finding real people who match this. They will appear on your desk in a few minutes.')
       await load()
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not approve — please try again') }
+    } catch (e) { setError(e instanceof Error ? e.message : 'Could not start that — please try again') }
     finally { setActing(false) }
   }
 
@@ -130,16 +142,20 @@ export default function MillaIcpPage() {
           <div className="mt-5 bg-white border-[1.5px] border-[#e4d4fb] rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-1">
               <b className="text-[15px]">New targeting proposed · {`v${icps!.length}`}</b>
-              <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5 uppercase">awaiting your 👍</span>
+              <span className="text-[10px] font-extrabold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5 uppercase">ready to try</span>
             </div>
             <p className="text-[13px] text-[#5c5279] mb-3">{pendingApproval.name}</p>
             <div className="flex flex-wrap gap-1.5 mb-4">
               {chipsOf(pendingApproval).map((c, i) => <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-[#f3ecff] rounded-full px-2.5 py-1">{c}</span>)}
             </div>
             <div className="flex gap-2">
-              <button disabled={acting} onClick={() => approve(pendingApproval.id)} className="text-[13px] font-bold text-white rounded-xl py-2.5 px-5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{acting ? 'Approving…' : '✓ Approve — start sourcing'}</button>
-              <button disabled={acting} onClick={() => router.push('/milla/welcome')} className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb]">Request changes</button>
+              <button disabled={acting} onClick={() => showMatches(pendingApproval.id)} className="text-[13px] font-bold text-white rounded-xl py-2.5 px-5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{acting ? 'Finding…' : 'Show me who this finds'}</button>
+              <button disabled={acting} onClick={() => router.push('/milla/welcome')} className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb]">Change the targeting</button>
             </div>
+            {/* Said plainly, because the previous copy implied the client flipped a switch. */}
+            <p className="text-[11.5px] text-[#9b8ec4] mt-3">
+              We&apos;ll show you real people who match — free, and nothing is contacted. K.I.N.D switches your campaign on once you&apos;re happy.
+            </p>
           </div>
         )}
 

@@ -17,7 +17,17 @@ type IcpDraft = {
   company_sizes: string[]; geographies: string[]; tech_stack: string[]; keywords: string[]
   apollo_only_consented: boolean
 }
-type BuilderReply = { type: 'question'; content: string } | { type: 'complete'; icp: IcpDraft; summary: string | null }
+/** What Milla learned about the BUSINESS — the half FIGSY writes from. */
+type Business = {
+  product: string; pitch: string; pain_points: string
+  differentiators: string; tone: string; bad_fit: string
+}
+/** A specific claim (named customer, case study, result). Unusable in outreach until permitted. */
+type ProofClaim = { claim: string; permitted: boolean }
+type BuilderReply =
+  | { type: 'question'; content: string }
+  | { type: 'complete'; icp: IcpDraft; summary: string | null
+      business?: Business; proof?: ProofClaim[]; campaign_intent?: string }
 type Msg = { role: 'user' | 'assistant'; content: string }
 
 async function token(): Promise<string | undefined> {
@@ -25,6 +35,12 @@ async function token(): Promise<string | undefined> {
 }
 
 const GREETING = "Hi 👋 I'm Milla, your campaign partner. Tell me who your best customers are — industry, role, company size, region — and I'll build your targeting plan. No forms."
+// ⚠️ REFINING IS NOT STARTING AGAIN (22 Aug, integration fix). A prospect who says "not
+// these people" after their first proof batch arrives back on this page — and it greeted
+// them as a stranger and saved as if it were building something new. The server now keeps
+// ONE core ICP and updates it, so the words here have to match: this is the same targeting
+// being sharpened, not a second experiment.
+const REFINING_GREETING = "Welcome back 👋 Let's sharpen the same targeting rather than start over — tell me what was off about the people I found, and I'll adjust who we look for."
 
 export default function MillaWelcomePage() {
   const router = useRouter()
@@ -35,7 +51,26 @@ export default function MillaWelcomePage() {
   const [matchCount, setMatchCount] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // What Milla understood about the business, alongside the targeting.
+  const [business, setBusiness] = useState<Business | null>(null)
+  const [proof, setProof] = useState<ProofClaim[]>([])
+  const [intent, setIntent] = useState('')
+  // Do they already have a core ICP? Then this visit is a REFINEMENT of it.
+  const [refining, setRefining] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const r = await api.get<{ data: Array<{ id: string }> }>('/icps', await token())
+        if ((r.data ?? []).length > 0) {
+          setRefining(true)
+          setMessages(m => (m.length === 1 && m[0].content === GREETING)
+            ? [{ role: 'assistant', content: REFINING_GREETING }] : m)
+        }
+      } catch { /* silent — the page still works as first-time setup */ }
+    })()
+  }, [])
 
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
@@ -57,6 +92,9 @@ export default function MillaWelcomePage() {
       const d = r.data
       if (d.type === 'complete') {
         setMessages(m => [...m, { role: 'assistant', content: d.summary || "Here's the targeting plan I'd recommend — review it on the right." }])
+        if (d.business) setBusiness(d.business)
+        if (Array.isArray(d.proof)) setProof(d.proof)
+        if (typeof d.campaign_intent === 'string') setIntent(d.campaign_intent)
         await propose(d.icp)
       } else {
         setMessages(m => [...m, { role: 'assistant', content: d.content }])
@@ -69,7 +107,14 @@ export default function MillaWelcomePage() {
     if (!proposed) return
     setSaving(true); setError(null)
     try {
-      await api.post('/icps', proposed, await token())
+      // ⚑ 22 Aug — the SAME conversation now carries the business understanding and the
+      // campaign's purpose, not just the targeting. Before this, everything Milla learned
+      // about what the client actually sells was discarded the moment the ICP was saved,
+      // and FIGSY wrote every email with no idea who it was writing for.
+      //
+      // `proof` claims each carry their own `permitted` flag. Only the ones the client
+      // explicitly approved reach outreach — the rest are recorded for a human to ask about.
+      await api.post('/icps', { ...proposed, business, proof, campaign_intent: intent }, await token())
       // ⚑ flow v2 (step 2): the $99 was never asked for at the moment it matters. The banner
       // sat on the dashboard where a brand-new client had no reason to look, so the ICP they
       // just approved sat dormant. The conversation ENDS on the ask, because that is when
@@ -146,6 +191,53 @@ export default function MillaWelcomePage() {
                 ))}
               </div>
 
+              {/* ── WHAT WE UNDERSTAND ABOUT YOU (22 Aug) ───────────────────────────────
+                  The client confirms we understood their BUSINESS — they do not review
+                  copy, and they never become the copywriter. Everything shown here is
+                  read back from what Milla actually stored; nothing is invented for the
+                  panel. If it reads wrong, the fix is to tell Milla, not to edit a field.
+                  Rendered only when the conversation produced something to show. */}
+              {business && (Object.values(business).some(Boolean) || intent) && (
+                <div className="border border-[#eee7f7] rounded-xl p-3.5 mb-4 bg-[#fcfbff]">
+                  <div className="text-[15px] font-bold mb-2">Here&rsquo;s what I understand about your business</div>
+              {refining && (
+                <p className="text-[11.5px] text-[#9b8ec4] mb-2">
+                  This updates your existing targeting — same plan, sharpened. We keep everything you&rsquo;ve seen so far.
+                </p>
+              )}
+                  <div className="space-y-2 text-[12.5px] leading-relaxed">
+                    {business.product && <div><span className="text-[#9b8ec4] font-semibold">What you sell — </span><span className="text-[#5c5279]">{business.product}</span></div>}
+                    {business.pitch && <div><span className="text-[#9b8ec4] font-semibold">Why it matters — </span><span className="text-[#5c5279]">{business.pitch}</span></div>}
+                    {business.pain_points && <div><span className="text-[#9b8ec4] font-semibold">The problem you solve — </span><span className="text-[#5c5279]">{business.pain_points}</span></div>}
+                    {business.differentiators && <div><span className="text-[#9b8ec4] font-semibold">What makes you different — </span><span className="text-[#5c5279]">{business.differentiators}</span></div>}
+                    {intent && <div><span className="text-[#9b8ec4] font-semibold">What this campaign is for — </span><span className="text-[#5c5279]">{intent}</span></div>}
+                    {business.tone && <div><span className="text-[#9b8ec4] font-semibold">How you want to sound — </span><span className="text-[#5c5279]">{business.tone}</span></div>}
+                  </div>
+
+                  {/* Proof is shown SPLIT, because the split is the promise: we may know
+                      something and still not be allowed to say it. */}
+                  {proof.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-[#eee7f7]">
+                      <div className="text-[10px] uppercase font-extrabold text-[#b3a9cc] mb-1.5">Proof we may use in your emails</div>
+                      {proof.filter(p => p.permitted).length > 0
+                        ? <div className="flex flex-wrap gap-1.5">{proof.filter(p => p.permitted).map((p, i) => (
+                            <span key={i} className="text-[11.5px] font-semibold text-[#059669] bg-[#e8f7f0] rounded-full px-2.5 py-1">{p.claim}</span>
+                          ))}</div>
+                        : <div className="text-[12px] text-[#9b8ec4]">None yet — we will not name a customer or quote a result until you say we can.</div>}
+                      {proof.some(p => !p.permitted) && (
+                        <div className="text-[11.5px] text-[#9b8ec4] mt-2">
+                          {proof.filter(p => !p.permitted).length} other thing(s) you mentioned are saved but <b className="text-[#5c5279]">will not be used</b> until you approve them.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="text-[11.5px] text-[#9b8ec4] mt-3">
+                    Confirming below tells us this represents you, and we record that. If anything is off, keep talking to Milla — we would rather fix it now than write from it.
+                  </div>
+                </div>
+              )}
+
               <div className="text-[15px] font-bold mb-2">Starter plan <span className="text-[10px] font-semibold text-[#b3a9cc] uppercase">· recommended</span></div>
               <div className="flex gap-2.5 mb-2">
                 <div className="flex-1 bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5"><div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">Approvals</div><div className="text-[19px] font-extrabold">{recCredits}</div><div className="text-[11px] text-[#9b8ec4]">$4 per approved lead</div></div>
@@ -160,7 +252,15 @@ export default function MillaWelcomePage() {
                   3-Aug $299 sweep because the sweep fixed the small print ONE LINE BELOW and
                   missed the button above it — the founder caught it on screen, mid-signup,
                   showing two prices at once. The screen a client reads cannot hand-type money. */}
-              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : `Approve this — then go live for $${PACK_PRICE_USD}`}</button>
+              {/* ⚑ round 4 — THE BUTTON IS THE CONFIRMATION. Pressing it persists the business
+                  understanding AND records that the client said it represents them
+                  (`clients.milla_understanding_confirmed_at`). Its words now say that,
+                  because "Approve this" described the targeting and quietly stood in for a
+                  statement about their whole business. The journey is unchanged: confirm,
+                  then go live for $299. */}
+              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : (business && Object.values(business).some(Boolean)
+                ? `Yes, this represents us — go live for $${PACK_PRICE_USD}`
+                : `Approve this — then go live for $${PACK_PRICE_USD}`)}</button>
               <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">${PACK_PRICE_USD} includes your first <b className="text-[#5c5279]">{PACK_LEADS} approved leads</b> and your sender. Nothing sources until it lands.</div>
               <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
               {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}

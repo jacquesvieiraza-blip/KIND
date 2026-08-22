@@ -29,15 +29,114 @@ import { sourceTarget, PAID_TX_TYPES } from './onboarding-pack'
  *
  * Idempotent: returns the existing campaign for that ICP if there is one.
  */
+/**
+ * ONE CLIENT → ONE ACTIVE CAMPAIGN, AND THE INVARIANT FAILS CLOSED
+ * (founder-ruled 22 Aug; corrected same day, round 4).
+ *
+ * `figsy.ts` routes a lead to the campaign matching `leads.icp_id`, and falls back to
+ * "whichever active campaign is newest" when there is no match. Both of those are
+ * first-match-wins, which is fine with one active campaign and silently arbitrary with two —
+ * and nothing in the schema or the code prevented two.
+ *
+ * ⚠️ THE FIRST IMPLEMENTATION HAD THE RULE BACKWARDS. It let the NEW campaign win and
+ * auto-paused the client's others — and when that pause failed it logged and CARRIED ON,
+ * so a db hiccup left two live campaigns behind an operation that reported success. The
+ * approved rule is the opposite, and it is a refusal, not a repair:
+ *
+ *   · another ACTIVE campaign for this client → this one is REFUSED, named, untouched.
+ *     Pausing the other one is a human's decision (Vida), never a side effect.
+ *   · the SAME campaign already active → reused, as ever.
+ *   · this ICP's PAUSED campaign → re-activated only when nothing else is live.
+ *   · a check or write we cannot complete → null. If we cannot SEE whether another
+ *     campaign is live, we do not get to assume there isn't one — proceeding on a failed
+ *     read is exactly how a hiccup mints a second live campaign. Callers treat null as
+ *     "not done", never as success.
+ *   · scoped to THIS client throughout — another client's campaign never blocks anyone.
+ *
+ * Application-level on purpose (a partial unique index needs a migration against a live
+ * table three days before launch); `start-work-one-active.test.ts` exercises this REAL
+ * function, because the first implementation shipped behind suites that mocked it away.
+ *
+ * ⚠️ AND IT HAS TWO MODES, BECAUSE LEARNING IS NOT GO (22 Aug, integration correction).
+ * `persistMillaUnderstanding` calls this to park `campaign_intent` on the campaign row —
+ * and while this function created ACTIVE, *telling Milla what you want made a campaign
+ * live*: before payment, before an operator looked, and it then BLOCKED the operator's own
+ * GO through the refusal above. Found by independent review of the assembled journey; no
+ * single-piece suite could see it, because each piece was right on its own.
+ *
+ *   · SCAFFOLD (the default, `activate` omitted or false) — find or create the campaign
+ *     row for this ICP as a **draft**, and leave an existing row's status exactly as it
+ *     is. Nothing goes live, nothing is paused, and the one-active invariant is not
+ *     consulted because a draft cannot collide with anything. `figsy.ts` selects campaigns
+ *     `.eq('status','active')`, so a draft's intent is stored and invisible to generation
+ *     until GO — which is precisely the behaviour wanted.
+ *   · ACTIVATE (`{ activate: true }`) — K.I.N.D's GO, and the only mode that makes a
+ *     campaign live: the invariant is checked, a competitor refuses, and this ICP's own
+ *     draft or paused campaign is woken.
+ *
+ * The default is SCAFFOLD deliberately: a caller that forgets the flag can only ever fail
+ * to activate, never accidentally activate.
+ */
+export type EnsureCampaignResult =
+  | { id: string; refused?: undefined }
+  | { id?: undefined; refused: { blockingCampaignId: string; blockingName: string | null } }
+  | null
+
 export async function ensureCampaignForIcp(
   clientId: string,
   icpId: string,
   icpName?: string | null,
-): Promise<{ id: string } | null> {
+  opts?: { activate?: boolean },
+): Promise<EnsureCampaignResult> {
+  const activate = opts?.activate === true
   try {
-    const { data: existing } = await db.from('figsy_campaigns')
-      .select('id').eq('client_id', clientId).eq('icp_id', icpId).limit(1).maybeSingle()
-    if (existing?.id) return { id: existing.id as string }
+    const { data: existing, error: existErr } = await db.from('figsy_campaigns')
+      .select('id, status').eq('client_id', clientId).eq('icp_id', icpId).limit(1).maybeSingle()
+    if (existErr) throw existErr
+
+    // SCAFFOLD: the row is all that is wanted. An existing one is returned untouched —
+    // re-running Milla must never wake a campaign an operator deliberately paused, and it
+    // must never demote a live one either.
+    if (!activate) {
+      if (existing?.id) return { id: existing.id as string }
+      const { data: draft, error: draftErr } = await db.from('figsy_campaigns')
+        .insert({
+          client_id: clientId, icp_id: icpId, status: 'draft',
+          name: icpName?.trim() ? icpName.trim().slice(0, 120) : 'Outbound campaign',
+          settings: { review_required: true },
+          copilot_mode: true, approve_before_send: true,
+        })
+        .select('id').single()
+      if (draftErr || !draft?.id) throw draftErr ?? new Error('campaign scaffold returned no id')
+      return { id: draft.id as string }
+    }
+
+    // The same campaign staying active is not a second campaign. Answered before the
+    // blocking check so a legacy double-active state cannot deadlock its own repair.
+    if (existing?.id && existing.status === 'active') return { id: existing.id as string }
+
+    // WHO ELSE IS LIVE? One query, client-scoped, excluding this ICP's own campaign.
+    let blockingQuery = db.from('figsy_campaigns')
+      .select('id, name').eq('client_id', clientId).eq('status', 'active')
+    if (existing?.id) blockingQuery = blockingQuery.neq('id', existing.id)
+    const { data: blocking, error: blockErr } = await blockingQuery.limit(1).maybeSingle()
+    if (blockErr) throw blockErr
+    if (blocking?.id) {
+      return { refused: {
+        blockingCampaignId: blocking.id as string,
+        blockingName: (blocking.name as string | null) ?? null,
+      } }
+    }
+
+    if (existing?.id) {
+      // Re-activating an ICP whose campaign was paused brings that campaign back — the
+      // write is checked, because "live with nothing able to work its leads" and "reported
+      // live but still paused" are the same failure wearing different clothes.
+      const { error: wakeErr } = await db.from('figsy_campaigns')
+        .update({ status: 'active' }).eq('id', existing.id)
+      if (wakeErr) throw wakeErr
+      return { id: existing.id as string }
+    }
 
     // Created ACTIVE: the table default is 'draft', and a draft would leave the client just
     // as blocked as no campaign at all (approve fail-closes without a live one). Nothing
@@ -50,10 +149,10 @@ export async function ensureCampaignForIcp(
         copilot_mode: true, approve_before_send: true,
       })
       .select('id').single()
-    if (error) throw error
+    if (error || !made?.id) throw error ?? new Error('campaign insert returned no id')
     return { id: made.id as string }
   } catch (err) {
-    console.error('[start-work] ensureCampaignForIcp failed', clientId, icpId, err)
+    console.error('[start-work] ensureCampaignForIcp failed (fail-closed — nothing activated)', clientId, icpId, err)
     return null
   }
 }

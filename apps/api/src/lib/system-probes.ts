@@ -309,6 +309,42 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
     why: 'the accrual side of the same fence — without it a paying client never earns the allowance their payment bought',
     migration: '20260711_sourcing_fences',
   },
+  // ── The free-proof acquisition fence — a SEPARATE budget from the paid one above ──
+  // These three are what stop an unpaid prospect costing more than 40 PDL records, and
+  // what stops free acquisition eating the paying clients' monthly ceiling. Probed for
+  // the same reason as the fences above: if the migration has not run, sourcing for a
+  // prospect silently reserves nothing and the fence that is supposed to bound the spend
+  // is not there at all.
+  {
+    name: 'try_claim_proof_pass',
+    args: { p_client_id: NO_SUCH_ROW_UUID },                  // no matching row → RETURN 0
+    why: 'two free proof passes then a human — without it a prospect could be shown free batches forever',
+    migration: '20260822_free_proof_acquisition',
+  },
+  {
+    name: 'try_reserve_proof_records',
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_requested: 0 },   // guard: `p_requested <= 0 → granted 0`
+    why: 'the atomic 40-record-per-prospect and monthly acquisition ceiling — without it free proof has no spend fence',
+    migration: '20260822_free_proof_acquisition',
+  },
+  {
+    name: 'apply_pending_revision',
+    // The all-zeros uuid, like every probe: the function finds no ICP for that client and
+    // returns `ok:false, reason:'ICP_NOT_FOUND'` BEFORE writing anything — so this proves it
+    // exists without applying a revision to anyone.
+    args: { p_icp_id: NO_SUCH_ROW_UUID, p_client_id: NO_SUCH_ROW_UUID, p_campaign_id: NO_SUCH_ROW_UUID },
+    why: "K.I.N.D's GO applies a live client's held targeting AND held brief in ONE transaction — without it the route has no atomic way to apply them together, and a half-apply leaves a client live on a new brief with old targeting",
+    migration: '20260822_free_proof_acquisition',
+  },
+  {
+    name: 'release_proof_records',
+    // Addressed by RESERVATION id, not client id (22 Aug round 2) — release is scoped to
+    // one reservation row and reconciles it exactly once, so a replay cannot recreate
+    // authority for records that were genuinely bought.
+    args: { p_reservation_id: NO_SUCH_ROW_UUID, p_records: 0 },   // guard: `p_records <= 0 → RETURN 0`
+    why: 'reconciles ONE proof reservation, once — without it every thin search permanently under-allocates the prospect and the month',
+    migration: '20260822_free_proof_acquisition',
+  },
   {
     name: 'grant_first_run_credits',
     args: { p_client_id: NO_SUCH_ROW_UUID, p_amount: 0, p_max_balance: 0, p_claim_first_run: false },

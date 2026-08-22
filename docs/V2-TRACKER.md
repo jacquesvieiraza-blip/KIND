@@ -938,6 +938,29 @@ That + outbound + partners = the motion.
 - **P37 — CRM v1 — HELD** harder than parked: requires the founder to first record R-CRM-DOWNSTREAM in PRODUCT-RULES (verified absent, 21 Aug).
 - **P45 — the Warm-Reply Cockpit** (upgrades the live `/milla/replies` + `/vida/unibox`; must reuse the freebusy LIB, not the two dead calendar routes).
 - **P46 — the Bad-Egg Log** (alert taxonomy pinned at 9 kinds; ships WITH its nav link).
+
+### Parked by the 22-Aug launch-coherence build (#700 · AR17/AR18)
+*Everything below was deliberately cut from the free-proof and Milla-understanding work so the 25th could hold. Each is an improvement to something that now WORKS, not a gap in it.*
+- **Website intelligence beyond targeting.** `/icps/prefill` reads the site once, takes the first 3,000 characters, proposes ICP fields and stores nothing. It informs WHO we find, never WHAT we say. Deeper reading — product detail, positioning, proof — is post-live.
+- **Case-study and testimonial extraction.** Proof reaches FIGSY only when the client states it and permits it. Pulling named customers or metrics off a website automatically needs the permission conversation designed first; the flag exists (`proof[].permitted`), the extractor does not.
+- **Automated contradiction detection** — noticing that what a client says now disagrees with what they said before, or with their site.
+- **Richer negative targeting.** There is still **no exclusion field of any kind** in the ICP: no excluded companies, titles, industries or domains. A client's *"anyone except our existing customers"* has nowhere to go. `bad_fit` is captured as prose for a human to read, and no filter applies it.
+- **Richer geography** — country is the only unit. *"Manufacturers in the Midlands"* becomes *United Kingdom*.
+- **Job-function and company-type targeting** — neither is expressible in the five fields the engine actually targets on.
+- **Multiple ICPs and multiple live campaigns.** Launch is one core ICP → one active campaign → one motion, enforced at activation. Orchestrating several is a product expansion.
+- **ICP version history** — which ICP version sourced which leads is not recorded.
+- **Proof conversion analytics · trial scoring · automated "materially wrong" detection · adaptive proof-batch sizing · deeper acquisition learning · acquisition-cost optimisation.** The free-proof motion ships with human judgement deciding whether a second pass missed. Measuring and automating that judgement is the post-live work; the founder ruled human operation acceptable at launch.
+- **Regeneration of frozen sequence copy.** Copy is written at enrolment and kept. Change the campaign intent or the grounding afterwards and already-enrolled leads keep their original wording, including unsent steps 2 and 3. Safe at launch because the reflect-back summary happens before enrolment — but there is no rewrite action.
+- **Operator copy editing.** Vida can Release or Reject a queued draft. It cannot edit the words or ask for a rewrite.
+- **Autonomous reply handling and reply orchestration.** Any reply stops the sequence and a person takes over. FIGSY never auto-replies, never negotiates, never promises, never discounts — and that stays true until it is deliberately changed.
+- **Advanced automated outcome handoff.** The client gets context with their meeting because a person writes it. Automating that is post-live.
+- **Operator scaling automation** — everything above assumes the founder is the operator.
+- **Founder-Operator OS** — PR #1436, still open.
+
+### FOUNDER ECONOMICS / CASHFLOW CALCULATORS REFRESH *(one job, all three together)*
+⚠️ **Their current outputs are NOT canon until this is done — including the partner model the founder has already used to think about hiring.**
+Refresh **[`hiring/KIND-AE-commission-calculator.html`](./hiring/KIND-AE-commission-calculator.html)**, **[`hiring/KIND-partner-calculator.html`](./hiring/KIND-partner-calculator.html)** and **[`hiring/KIND-team-pnl-calculator.html`](./hiring/KIND-team-pnl-calculator.html)** **together**, against verified current economics: **$299** onboarding package · **first 100 approved leads included** · **$4** thereafter · **$8/client/month** inbox + domain · **Instantly $37/mo as a FIXED company-wide warm-up cost, never per client** · **Smartlead dormant — the stale $45/client month-one assumption removed** · **PDL $0.28/record** · **free-proof acquisition economics (40 records / $11.20 per prospect, $300/mo ceiling)** · preview economics · **Hunter UNKNOWN** where unverified · **Anthropic UNKNOWN** where unverified · Stripe ≈5% marked *estimate* until read off the dashboard · fixed vs per-client costs kept apart · partner commission and share economics.
+Refreshed together because they share inputs: correcting one and not the others is how the $45 Smartlead line survived inside the $299 cost basis while `cost-floor.ts` already said Smartlead was $0.
 - **W1 phases 2–3** — the other 23 site pages · the Drop's 4:3 crop risk · the Nexus sub-brand-or-converge decision.
 - **Welcome-transcript capture** (P34 follow-on; own privacy surface).
 - **The brief-message removal control** (one stale "3 prospects" line sits in the founder's own thread; O3 forbids a hand delete).

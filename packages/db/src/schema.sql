@@ -412,6 +412,7 @@ alter table public.clients
   add column if not exists last_seen_at                     timestamptz,
   add column if not exists leads_per_run                    integer,
   add column if not exists low_credit_warned_at             timestamptz,
+  add column if not exists milla_understanding_confirmed_at timestamptz,
   add column if not exists nexus_autotune_enabled           boolean not null default false,
   add column if not exists onboarding_completed             text[] DEFAULT '{}',
   add column if not exists onboarding_completed_at          timestamptz,
@@ -431,12 +432,14 @@ alter table public.clients
   add column if not exists signup_terms_accepted_at         timestamptz,
   add column if not exists signup_terms_accepted_ip         text,
   add column if not exists sourcing_allowance               int NOT NULL DEFAULT 0,
+  add column if not exists proof_passes_done                int NOT NULL DEFAULT 0,
+  add column if not exists proof_records_committed          int NOT NULL DEFAULT 0,
   add column if not exists terms_accepted_at                timestamptz,
   add column if not exists terms_accepted_ip                text,
   add column if not exists trial_sourcing_granted           int NOT NULL DEFAULT 0,
   add column if not exists vat_number                       TEXT,
   add column if not exists wallet_balance_usd               numeric NOT NULL DEFAULT 0;
--- sources: 003_crm_integration.sql, 010_crm_dedup.sql, 012_signer_and_booking.sql, 20260513_referral_credits.sql, 20260514_terms_acceptance.sql, 20260518_company_registration.sql, 20260518_demo_environments.sql, 20260525_add_missing_clients_columns.sql, 20260526_drip_and_controls.sql, 20260530_client_share_token.sql, 20260603_schema_reconcile.sql, 20260611_daily_brief_pref.sql, 20260612_company_engine.sql, 20260616_billing_correctness.sql, 20260617_signup_terms.sql, 20260707_money_integrity.sql, 20260711_sourcing_fences.sql, 20260714_onboarding_state.sql, 20260724_nexus_autotune_flag.sql, 20260724_one_wallet.sql, 20260726_client_contact_name.sql
+-- sources: 003_crm_integration.sql, 010_crm_dedup.sql, 012_signer_and_booking.sql, 20260513_referral_credits.sql, 20260514_terms_acceptance.sql, 20260518_company_registration.sql, 20260518_demo_environments.sql, 20260525_add_missing_clients_columns.sql, 20260526_drip_and_controls.sql, 20260530_client_share_token.sql, 20260603_schema_reconcile.sql, 20260611_daily_brief_pref.sql, 20260612_company_engine.sql, 20260616_billing_correctness.sql, 20260617_signup_terms.sql, 20260707_money_integrity.sql, 20260711_sourcing_fences.sql, 20260714_onboarding_state.sql, 20260724_nexus_autotune_flag.sql, 20260724_one_wallet.sql, 20260726_client_contact_name.sql, 20260822_free_proof_acquisition.sql
 
 -- ── SUBSCRIPTIONS ──────────────────────────────────────────────────────────────
 alter table public.subscriptions
@@ -451,6 +454,9 @@ alter table public.icps
   add column if not exists pdl_exhausted_at                 timestamptz,
   add column if not exists pdl_scroll_query                 text,
   add column if not exists pdl_scroll_token                 text,
+  add column if not exists pending_campaign_intent          text,
+  add column if not exists pending_submitted_at             timestamptz,
+  add column if not exists pending_targeting                jsonb,
   add column if not exists settings                         jsonb;
 -- sources: 20260527_icp_abm_organization_names.sql, 20260601_social_signals.sql, 20260603_schema_reconcile.sql, 20260727_pdl_cursor.sql
 

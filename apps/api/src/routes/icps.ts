@@ -24,6 +24,12 @@ import {
   type CursorQuery, type StoredCursor,
 } from '../lib/pdl-cursor'
 import { narrowSizeBands } from '../lib/lead-feedback'
+// K.I.N.D-only GO (22 Aug) — the same admin-key check `routes/lookalike.ts` already uses,
+// rather than a second way of asking "is this an operator?".
+import { adminKeyValid } from './admin'
+// Free proof (22 Aug) — reuses the EXISTING real/comp/never-funded distinction rather than
+// inventing a second notion of "has this account paid us".
+import { fundedVia } from '../lib/onboarding-pack'
 
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
@@ -190,6 +196,59 @@ const icpSchema = z.object({
 async function getClientId(userId: string): Promise<string | null> {
   const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
+}
+
+/**
+ * How many leads one automatic proof pass may put in front of a prospect.
+ *
+ * Founder-set: pass 1 up to 20, one refinement, pass 2 up to 20 more, then a human. This
+ * is the CUSTOMER-EXPERIENCE rule and is deliberately NOT the spend rule — pool records
+ * are free and never touch the PDL fence, but they still fill this 20.
+ */
+const PROOF_PASS_LEADS = 20
+/** Lifetime PDL records one unpaid prospect may cost, across BOTH passes. Mirrors the
+ *  hard ceiling inside `try_reserve_proof_records`; used here only for honest logging. */
+const PROOF_CLIENT_RECORD_CAP = 40
+
+// FREE-PROOF ACQUISITION BUDGET ALARM (22 Aug) — the twin of the paid alarm below, kept
+// separate because it means something different and calls for a different decision.
+//
+// The paid alarm says "your clients' sourcing has stopped". This one says "we have spent
+// what you set aside to WIN clients this month" — founder-set at $300, and deliberately
+// raised by hand when demand justifies it, never automatically.
+//
+// ⚠️ Pool-only proof is NOT affected and the message says so: owned records cost nothing,
+// so a prospect can still be shown real leads from the pool after this fires.
+//
+// Same one-per-day module throttle as the paid alarm. Best-effort; never throws.
+let lastProofAlertDay = ''
+async function alertProofBudgetSpent(clientId: string): Promise<void> {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    if (today === lastProofAlertDay) return
+    lastProofAlertDay = today
+    const { data: settings } = await db.from('money_settings').select('proof_monthly_cap_usd').eq('id', 1).maybeSingle()
+    const cap = Number(settings?.proof_monthly_cap_usd ?? 300)
+    // ⚠️ budget_month, NOT created_at (round 3). The authority inside
+    // `try_reserve_proof_records` sums over budget_month so a late correction lands in the
+    // month the money was reserved. Summing this display by created_at instead would show
+    // the founder a September figure distorted by an August reconciliation — two different
+    // numbers for one budget, which is how the $138 infra line went unchallenged for weeks.
+    const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
+    const budgetMonth = monthStart.toISOString().slice(0, 10)
+    const { data: rows } = await db.from('proof_ledger')
+      .select('cost_usd').eq('budget_month', budgetMonth)
+    const spent = (rows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
+    void sendFounderAlert('source_down', 'Free-proof ACQUISITION budget spent — no more paid proof sourcing this month', [
+      `This month's free-proof PDL spend is $${spent.toFixed(2)} of the $${cap.toFixed(0)} acquisition cap.`,
+      `Prospect ${clientId} was refused paid proof sourcing just now.`,
+      'PAYING CLIENTS ARE UNAFFECTED — paid delivery has its own separate ceiling and its own budget.',
+      'Pool-only proof still works: records we already own cost nothing, so a prospect can still be shown real leads.',
+      'Raise proof_monthly_cap_usd in the admin Money Path page if this is volume you want to fund.',
+    ])
+  } catch (err) {
+    console.error('[icp] alertProofBudgetSpent failed (non-fatal):', err)
+  }
 }
 
 // #445 — global PDL-budget alarm. Reads this month's sourcing spend vs the (admin-
@@ -364,7 +423,22 @@ export async function runIcpJob(
   clientId: string,
   userId: string,
   maxLeads?: number,
+  // ── EXPLICIT PROOF MODE (22 Aug, round 4) ─────────────────────────────────────────
+  //
+  // ⚠️ PROOF USED TO BE INFERRED: `fundedVia === null` made ANY run a proof run. That made
+  // proof a property of the ACCOUNT instead of the ACTION — a nightly cron, an operator
+  // kick, an admin route or a partner route hitting a never-funded account would silently
+  // burn one of the prospect's two proof passes and reserve acquisition money nobody had
+  // decided to spend. Found by independent review.
+  //
+  // Proof now happens only when the caller says so. `proofPass` is the pass number the
+  // client's own proof route atomically claimed (`try_claim_proof_pass`) BEFORE invoking
+  // this run — the claim travels with the call, so this function never claims one and a
+  // normal run cannot consume one. Without `opts`, a never-funded account takes the
+  // ordinary `try_spend_sourcing` path, which grants it 0: the pre-proof behaviour.
+  opts?: { proofPass: number },
 ): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
+  const proofMode = (opts?.proofPass ?? 0) > 0
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
@@ -418,7 +492,48 @@ export async function runIcpJob(
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
   // below runs exactly as it did pre-pool. Pool leads are inserted here and flow into
   // the same delivery/scoring/consent as PDL leads.
-  const pool = await servePoolLeads(icp, clientId, effectiveCap)
+  // ── PROOF MODE VERIFIES THE ACCOUNT IS ACTUALLY A PROSPECT (free proof, 22 Aug) ────
+  //
+  // The pass was already claimed by the proof route — ABOVE this call, above the pool
+  // serve — so a pool-only batch consumed a pass exactly as a PDL-backed one does, and
+  // this function can never claim one itself. What remains here is defense in depth on
+  // the money: `'real'` = they paid us · `'comp'` = a manual grant, i.e. ENTITLED ·
+  // `null` = a prospect. Only a prospect may draw on free-proof acquisition authority.
+  // A funded account reaching proof mode is a caller bug, and the fail-closed answer is
+  // to source NOTHING — letting it fall through to the paid path would spend the client's
+  // AR8 allowance on a run they never asked for, and letting it reserve proof money would
+  // mix the two budgets the founder ruled separate (AR18).
+  //
+  // Reusing `fundedVia` rather than inventing a second notion of paid-ness:
+  // `onboarding-pack.ts` already draws this distinction, and #619 exists precisely
+  // because a surface once read entitlement and printed "Paid $299".
+  if (proofMode) {
+    const { data: fundingRows } = await db.from('credit_transactions')
+      .select('type, reference').eq('client_id', clientId)
+    if (fundedVia(fundingRows ?? []) !== null) {
+      console.error(`[icp] PROOF MODE REFUSED for client ${clientId} — the account is funded. Proof authority is for prospects only; nothing was sourced.`)
+      await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
+      return { inserted: 0, skipped: 0, relaxed: 'This account is already live — proof batches are only for new prospects.' }
+    }
+    console.log(`[icp] FREE PROOF run — pass ${opts!.proofPass} of 2, claimed by the proof route for prospect ${clientId}.`)
+  }
+
+  // ── THE PROOF PASS IS 20 LEADS, NOT THE PAID TARGET (22 Aug, round 3) ─────────────
+  //
+  // ⚠️ THIS USED `effectiveCap` AND THAT WAS THE DEFECT. `effectiveCap` is the PAID
+  // client's per-run target — the $299 pack asks for 200 so they can pass on half and
+  // still approve 100. Handing a PROSPECT that number meant "up to 20 real masked leads"
+  // existed in the founder's model and nowhere in the code. Found by independent review.
+  //
+  // ⚠️ THIS IS NOT THE 40-RECORD FENCE, AND CONFLATING THEM WOULD BE WRONG IN BOTH
+  // DIRECTIONS. They are separate rules:
+  //     CUSTOMER EXPERIENCE — at most 20 leads SURFACED per automatic proof pass.
+  //     PDL SPEND           — at most 40 PDL records across BOTH passes, lifetime.
+  // Pool records are free and never touch the 40, but they DO fill the 20: a prospect
+  // shown 13 from the pool may be bought at most 7 more for that pass.
+  const runCap = proofMode ? Math.min(effectiveCap, PROOF_PASS_LEADS) : effectiveCap
+
+  const pool = await servePoolLeads(icp, clientId, runCap)
   inserted += pool.served
   insertedIds.push(...pool.insertedIds)
 
@@ -441,7 +556,9 @@ export async function runIcpJob(
 
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
-  const { pdlRemainder } = splitPoolAndRemainder(effectiveCap, pool.served)
+  // For a prospect this is the 20-lead pass remainder; for everyone else it is exactly
+  // what it always was.
+  const { pdlRemainder } = splitPoolAndRemainder(runCap, pool.served)
 
   if (isDemo) {
     // #453 — DEMO: pool-only. Skip the ENTIRE PDL remainder — no try_spend_sourcing, no
@@ -468,10 +585,41 @@ export async function runIcpJob(
     // to pre-fund. The volume limit is the SAME `pdlRemainder` the fence would have
     // capped: no new budget subsystem, no wallet link, no new ceiling, no runtime data
     // touched. The client path below is byte-for-byte what it was.
+    //
+    // ⚠️ AND A NEVER-FUNDED PROSPECT IS FENCED BY A THIRD, SEPARATE AUTHORITY (22 Aug).
+    // Free proof shows real leads BEFORE anyone pays, so its PDL spend cannot come from
+    // `try_spend_sourcing`: an unpaid prospect's allowance is 0, so that call could never
+    // fund it — and granting into that shared integer would expose the proof budget to the
+    // six other paths that spend it. Proof therefore reserves against its own atomic
+    // authority, with its own monthly ceiling, and paid AR8 below is untouched.
     let grantedSize: number
+    let proofReserved = 0
+    // The reservation's identity, carried to the reconcile. A release addresses THIS
+    // reservation by id — never the client's aggregate — so a retried reconcile is a
+    // no-op instead of a second decrement that recreates spent authority (GPT review,
+    // 22 Aug round 2).
+    let proofReservationId: string | null = null
+    // Straight from the RPC: GRANTED · CLIENT_PROOF_LIMIT_REACHED ·
+    // MONTHLY_PROOF_BUDGET_REACHED · FAIL_CLOSED_*. Only the second value in that list is a
+    // company money event, and only it raises the acquisition alert.
+    let proofReason = 'GRANTED'
     if (audience === 'house') {
       grantedSize = pdlRemainder
       console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; the PDL cash fence does not apply (AR5/AR8).`)
+    } else if (proofMode) {
+      const { data: reserved } = await db.rpc('try_reserve_proof_records', {
+        p_client_id: clientId, p_requested: pdlRemainder,
+      })
+      const r = (reserved ?? {}) as { granted?: number; reservation_id?: string | null; reason?: string }
+      proofReserved = typeof r.granted === 'number' ? r.granted : 0
+      proofReservationId = typeof r.reservation_id === 'string' ? r.reservation_id : null
+      // WHY it was zero, straight from the atomic decision rather than re-derived by a
+      // second query that could disagree with the one that actually decided. The RPC always
+      // answers; a missing reason means the call itself failed, and an unexplained refusal
+      // must NOT be reported as the acquisition budget running out.
+      proofReason = typeof r.reason === 'string' ? r.reason : 'FAIL_CLOSED_NO_REASON'
+      grantedSize = proofReserved
+      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime, $300/mo).`)
     } else {
       const { data: granted } = await db.rpc('try_spend_sourcing', {
         p_client_id: clientId, p_requested: pdlRemainder,
@@ -481,7 +629,21 @@ export async function runIcpJob(
     if (grantedSize <= 0) {
       // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
       // cap every grant is 0, so this is the only path that can raise "budget REACHED".
-      void maybeAlertPdlBudget()
+      // ⚠️ PAID BUDGET ALARM ONLY. A refused PROOF reservation means the ACQUISITION
+      // ceiling is spent, which is a different budget and a different decision — raising
+      // the paid alarm for it would tell the founder his clients' sourcing had stopped
+      // when it had not. Proof raises its own alert below.
+      // ⚠️ AND A PROSPECT FINISHING THEIR OWN 40 IS NOT A COMPANY BUDGET EVENT (round 3).
+      // Every zero grant used to raise "the $300 acquisition budget is spent". Most zeros
+      // are simply this prospect reaching their lifetime 40 — telling the founder his
+      // acquisition budget is gone when it is not is exactly how a real alert gets ignored.
+      if (!proofMode) void maybeAlertPdlBudget()
+      else if (proofReason === 'MONTHLY_PROOF_BUDGET_REACHED') void alertProofBudgetSpent(clientId)
+      else if (proofReason === 'CLIENT_PROOF_LIMIT_REACHED') console.log(`[icp] FREE PROOF — prospect ${clientId} has used their ${PROOF_CLIENT_RECORD_CAP}-record allowance; the monthly acquisition budget is untouched.`)
+      // A fail-closed reason is NOT "they used their 40" — saying so in a log the founder
+      // may read is the same species of false statement the alert routing just fixed, only
+      // quieter. Name it for what it is: the reservation did not happen and nothing spent.
+      else console.error(`[icp] FREE PROOF reservation did not complete for prospect ${clientId} (${proofReason}) — nothing was reserved and nothing spent. This is not a budget event.`)
       if (pool.served === 0) {
         // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
         console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
@@ -564,16 +726,39 @@ export async function runIcpJob(
       const returnedCount = Math.min(contacts.length, grantedSize)
       const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
       if (unusedGrant > 0) {
-        const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
-          p_client_id: clientId, p_records: unusedGrant, p_trial: false,
-        })
-        if (refundErr) {
-          console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
+        if (proofMode) {
+          // FREE PROOF reconcile — reserve 40, PDL returns 25, release 15 AGAINST THE
+          // RESERVATION MADE ABOVE, by its id. The RPC marks that row reconciled and will
+          // never release it again, so a retry of this exact call is a no-op rather than a
+          // second decrement — and the correction inherits the reservation's budget_month,
+          // so a run that straddles midnight on the 31st corrects the month the money was
+          // reserved in, never the month the reconcile happened to land in. If this never
+          // runs the reservation simply stands: the prospect and the month are each
+          // under-allocated by the unused amount, which is the fail-closed direction.
+          if (proofReservationId) {
+            const { error: relErr } = await db.rpc('release_proof_records', {
+              p_reservation_id: proofReservationId, p_records: unusedGrant,
+            })
+            if (relErr) {
+              console.error(`[icp] PROOF release FAILED for prospect ${clientId} (${unusedGrant} records, reservation ${proofReservationId}) — the reservation stands, so future proof under-allows rather than overspends:`, relErr)
+            }
+          } else {
+            // Reserved without an id would mean the RPC contract broke mid-flight. Nothing
+            // to address a release at → the reservation stands. Under-allows, never over.
+            console.error(`[icp] PROOF release SKIPPED for prospect ${clientId} — no reservation id was returned; ${unusedGrant} record(s) stay reserved (fail-closed).`)
+          }
         } else {
-          const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
-            client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+          const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
+            p_client_id: clientId, p_records: unusedGrant, p_trial: false,
           })
-          if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+          if (refundErr) {
+            console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
+          } else {
+            const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
+              client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+            })
+            if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+          }
         }
       }
 
@@ -846,6 +1031,44 @@ export async function runIcpJob(
     }
   }
 
+  // ── SURFACE THE PROOF SET (free proof, 22 Aug) ─────────────────────────────────────
+  //
+  // A paid client's leads reach their desk through `start-work.ts`, which sets
+  // `surfaced_for_approval_at` and `delivered_at` together with the comment that says why:
+  // "SURFACING **IS** DELIVERY IN THE MANAGED MODEL". A prospect has no start-work run, so
+  // without this their proof leads exist and are invisible.
+  //
+  // ⚠️ THIS DOES NOT CALL `enrichAndDeliverLeads`, DELIBERATELY. That function reveals
+  // emails — Apollo bulk-match then the Hunter waterfall — and a reveal before payment is
+  // forbidden. It is not needed either: PDL's search already requires `work_email` to
+  // exist, so there is nothing to reveal. The two fields below are the whole of what
+  // `/leads/for-approval` needs.
+  //
+  // ⚠️ AND IT WORKS WHETHER OR NOT AN EMAIL CAME BACK. `/leads/for-approval` filters on
+  // delivered · surfaced · `revealed_at IS NULL` · not passed — never on email — and the
+  // masked card it returns omits name, email and phone whatever the row holds. So a record
+  // that arrived with a presence flag instead of an address still proves TARGETING FIT,
+  // which is the only thing this stage claims. No Hunter is called to make it visible.
+  //
+  // `revealed_at` stays NULL, so this lead cannot enter a pack slot, a $4 charge, the
+  // approval count or any ledger. Nothing here is a commercial state.
+  if (proofMode && insertedIds.length > 0) {
+    const nowIso = new Date().toISOString()
+    const { error: surfErr } = await db.from('leads')
+      .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
+      .in('id', insertedIds).is('delivered_at', null)
+    if (surfErr) {
+      // Same failure shape start-work treats as serious: the leads exist and the prospect
+      // cannot see them, which reads to them as "K.I.N.D found nobody".
+      console.error(`[icp] PROOF surfacing FAILED for prospect ${clientId} — ${insertedIds.length} lead(s) are invisible:`, surfErr.message)
+      void sendFounderAlert('sends_stalled', 'Free-proof leads were sourced but the prospect cannot see them', [
+        `Prospect ${clientId}: ${insertedIds.length} proof lead(s) could not be surfaced.`,
+        `Reason: ${surfErr.message}`,
+        'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
+      ]).catch(() => {})
+    }
+  }
+
   await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp)
   return { inserted, skipped, relaxed }
 }
@@ -1051,23 +1274,76 @@ icpRouter.post('/builder/chat', async (req: AuthRequest, res) => {
       messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).min(1).max(40),
     }).parse(req.body)
 
-    const system = `You are Milla, an ICP (Ideal Customer Profile) builder for K.I.N.D, a B2B lead-gen platform.
-Have a short, friendly conversation to learn who the user wants to target, then produce a structured ICP.
+    // ── MILLA LEARNS THE BUSINESS, NOT JUST THE TARGET (22 Aug) ────────────────────────
+    //
+    // ⚠️ THIS CONVERSATION USED TO BE THROWN AWAY. It produced an ICP and nothing else, so
+    // FIGSY — which writes every cold email — had no idea what the client actually sells.
+    // The client was then expected to type it all again into a "Train FIGSY" form that
+    // lives in the retired dashboard family behind a flag that is off. The result: we sell
+    // "personal onboarding" and send generic mail.
+    //
+    // The same conversation now yields THREE things: the targeting ICP, the business
+    // understanding FIGSY writes from, and what this campaign is for.
+    //
+    // ⚠️ AND PROOF IS PERMISSIONED, NOT ASSUMED. Milla may learn a named customer or a
+    // result from the client's website or their own words — but a specific claim only
+    // reaches an outbound email if the client says it may. `permitted` defaults to FALSE
+    // and only an explicit yes flips it. Milla may know more than FIGSY is allowed to say.
+    const system = `You are Milla, onboarding a new client for K.I.N.D, a B2B lead-gen platform.
+
+Have a natural, friendly conversation. Ask AS MANY questions as you genuinely need — some
+businesses take three, some take ten. Never present a numbered form. One or two questions at
+a time, in plain language.
+
+You are learning TWO things at once:
+  1. WHO they want to reach (their targeting).
+  2. WHAT THEIR BUSINESS IS — because we write their outreach for them, and we may only say
+     things that are true and that they have approved.
+
+Cover, in whatever order the conversation goes: what they sell · who gets real value from it ·
+the problem those people have · what changes for them afterwards · what makes them different ·
+who has this already worked for · who is an obvious BAD fit · where they sell · and what they
+are trying to achieve with this batch right now.
+
+On that last point, ask what outcome they want — a booked meeting, a product launch, a
+webinar or event, or something else — and then ask the follow-ups that outcome deserves. For
+a launch: what is launching, what is new, why now, what response they want. For a webinar:
+topic, value, timing, who should attend, the next step. For a meeting: the offer, the
+problem, why they should care, what the conversation is.
+
+If they mention a named customer, a case study, a testimonial, a specific result or a metric,
+ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not
+clearly approved must be recorded with "permitted": false.
 
 Respond with ONLY valid JSON (no markdown):
-- If you still need more info: {"type":"question","content":"<your friendly reply, max 2 sentences>"}
-- Once you have enough (at minimum industries OR job titles, plus a rough sense of who): {"type":"complete","summary":"<one-sentence summary>","icp":{
-    "name": "<short ICP name>",
-    "industries": [from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy],
-    "job_titles": ["CTO", ...],
-    "seniority_levels": [from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor],
-    "company_sizes": [from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+],
-    "geographies": ["South Africa", ...],
-    "tech_stack": [...],
-    "keywords": ["hiring","Series A", ...],
-    "apollo_only_consented": true
-  }}
-Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 questions before completing.`
+- Still learning: {"type":"question","content":"<your reply, max 2 sentences>"}
+- When you genuinely understand them:
+{"type":"complete","summary":"<one-sentence summary>",
+ "icp":{
+   "name": "<short ICP name>",
+   "industries": [from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy],
+   "job_titles": ["CTO", ...],
+   "seniority_levels": [from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor],
+   "company_sizes": [from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+],
+   "geographies": ["South Africa", ...],
+   "tech_stack": [...],
+   "keywords": ["hiring","Series A", ...],
+   "apollo_only_consented": true
+ },
+ "business":{
+   "product": "<what they sell, one or two sentences, their words>",
+   "pitch": "<the value proposition / the outcome for the buyer>",
+   "pain_points": "<the problem they solve>",
+   "differentiators": "<what makes them different — NO named customers, NO metrics here>",
+   "tone": "<how they want to sound, e.g. warm and direct>",
+   "bad_fit": "<who is an obvious bad fit, if they said>"
+ },
+ "proof":[ {"claim":"<a named customer, case study, testimonial, result or metric>","permitted":false} ],
+ "campaign_intent": "<what they are trying to achieve with this batch, in their words>"
+}
+
+Only fill what you are confident about; use "" or [] otherwise. NEVER invent a customer, a
+result or a number. "permitted" is false unless they explicitly said we may use that claim.`
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -1078,7 +1354,13 @@ Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 quest
 
     const textBlock = response.content.find(b => b.type === 'text') as { type: 'text'; text: string } | undefined
     const raw = (textBlock?.text ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-    let parsed: { type?: string; content?: string; summary?: string; icp?: Record<string, unknown> }
+    let parsed: {
+      type?: string; content?: string; summary?: string
+      icp?: Record<string, unknown>
+      business?: Record<string, unknown>
+      proof?: unknown[]
+      campaign_intent?: unknown
+    }
     try {
       parsed = JSON.parse(raw)
     } catch {
@@ -1098,7 +1380,33 @@ Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 quest
         keywords:              Array.isArray(icp.keywords) ? icp.keywords : [],
         apollo_only_consented: icp.apollo_only_consented !== false,
       }
-      res.json({ success: true, data: { type: 'complete', icp: draft, summary: parsed.summary ?? null } })
+      // The business half. Sanitised the same way the ICP is: only strings survive, and a
+      // proof claim is permitted ONLY when the model returns an explicit true.
+      const b = (parsed.business ?? {}) as Record<string, unknown>
+      const str = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 1200) : '')
+      const business = {
+        product:         str(b.product),
+        pitch:           str(b.pitch),
+        pain_points:     str(b.pain_points),
+        differentiators: str(b.differentiators),
+        tone:            str(b.tone),
+        bad_fit:         str(b.bad_fit),
+      }
+      const proof = (Array.isArray(parsed.proof) ? parsed.proof : [])
+        .map((p) => {
+          const row = (p ?? {}) as Record<string, unknown>
+          return { claim: str(row.claim), permitted: row.permitted === true }
+        })
+        .filter(p => p.claim.length > 0)
+        .slice(0, 12)
+
+      res.json({
+        success: true,
+        data: {
+          type: 'complete', icp: draft, summary: parsed.summary ?? null,
+          business, proof, campaign_intent: str(parsed.campaign_intent),
+        },
+      })
       return
     }
 
@@ -1110,24 +1418,255 @@ Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 quest
   }
 })
 
+/**
+ * MILLA'S UNDERSTANDING → FIGSY'S GROUNDING (22 Aug).
+ *
+ * Writes what the onboarding conversation learned into the knowledge store FIGSY already
+ * reads (`figsy_knowledge`, kinds `pitch` and `messaging`), and puts the campaign's purpose
+ * on the campaign row FIGSY already reads it from (`figsy_campaigns.campaign_intent`).
+ *
+ * ⚠️ NOTHING NEW WAS INVENTED TO HOLD THIS. Both stores existed and were already wired into
+ * generation; what was missing was anything that WROTE to them. The only writer before today
+ * was a client-facing form on the retired dashboard, behind a flag that defaults to off.
+ *
+ * ⚠️ PERMITTED PROOF ONLY. `differentiators` carries the claims FIGSY may use, and a claim
+ * gets there only when the client explicitly said yes. Everything else is kept under
+ * `proof_all` — recorded so an operator can see what we know and ask about it, and never
+ * read by the outreach digest. That separation is the whole permission mechanism: unapproved
+ * claims are not filtered out at write time, they simply never enter the field FIGSY reads.
+ *
+ * Best-effort by design. A failure here degrades outreach to generic; it must never fail an
+ * ICP the client just approved.
+ */
+/**
+ * THE CLIENT'S ONE CORE ICP — SAVED, AND FOR A LIVE CLIENT, HELD FOR REVIEW.
+ * (founder-ruled 22 Aug: "the change must wait for K.I.N.D review".)
+ *
+ * The targeting columns on the `icps` row ARE the live operational targeting — `runIcpJob`
+ * reads that row and hands it straight to the pool serve and the PDL query — so writing
+ * them takes effect on the very next run. A live client editing their targeting in Milla
+ * therefore changed who we source for them with nobody at K.I.N.D looking.
+ *
+ * ⚠️ AND THAT PREDATES THE SAME-ICP FIX, which only changed its shape. Before it, this path
+ * deactivated every ICP and inserted a new `is_active: true` row carrying the new targeting
+ * — also immediate, and additionally a client activating their own ICP.
+ *
+ * Three cases, and the row's own `is_active` decides which:
+ *   · NO ICP YET      → create it, inactive. Onboarding.
+ *   · NOT LIVE        → write the live columns. A prospect in unpaid proof is still
+ *                       shaping a draft; there is nothing of theirs running to protect,
+ *                       and a review step here would only delay their second pass.
+ *   · LIVE            → write the pending columns and leave every live column untouched.
+ *                       The revision is SAVED (the client asked for it, and losing it
+ *                       would be worse than applying it) and waits.
+ *
+ * ⚠️ THE BRIEF WAITS WITH THE TARGETING (founder-ruled 22 Aug). `campaign_intent` is what
+ * every email is written from, so a live campaign whose brief changed without review is the
+ * same event as live targeting that changed without review. The first pass at this ruling
+ * correctly refused to APPLY the new brief and then dropped it — right not to use it, wrong
+ * to lose it: the client had said what the campaign was now for, and by GO nobody could
+ * recover it. It rides here, in the SAME row as the targeting, so a refused GO cannot clear
+ * half a revision.
+ *
+ * It needs its own column rather than a key inside `pending_targeting`, because GO applies
+ * that payload by spreading it onto the `icps` row — every key becomes an `icps` column,
+ * and `campaign_intent` belongs to `figsy_campaigns`.
+ *
+ * Same `icp.id` in all three: `leads.icp_id`, the campaign's `icp_id` and the PDL cursor
+ * all hang off it. GO applies the pending revision and clears it.
+ */
+async function saveClientTargeting(
+  clientId: string,
+  body: Record<string, unknown>,
+  /** The revised brief, when the conversation produced one. Held, never applied, here. */
+  intent = '',
+): Promise<{ row: Record<string, unknown>; pending: boolean } | null> {
+  // Their live ICP if they have one, otherwise the newest — the SAME row either way.
+  const { data: live } = await db.from('icps')
+    .select('id, name, is_active').eq('client_id', clientId).eq('is_active', true)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const core = live?.id ? live : (await db.from('icps')
+    .select('id, name, is_active').eq('client_id', clientId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()).data
+
+  if (!core?.id) {
+    const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
+    if (error) throw error
+    return data ? { row: data as Record<string, unknown>, pending: false } : null
+  }
+
+  const isLive = (core as { is_active?: boolean }).is_active === true
+  const patch = isLive
+    ? {
+        pending_targeting: body,
+        pending_submitted_at: new Date().toISOString(),
+        // Only overwrite a waiting brief when they actually gave a new one — a revision
+        // that says nothing about the campaign's purpose must not erase what they told us
+        // last time and left waiting.
+        ...(intent ? { pending_campaign_intent: intent } : {}),
+      }
+    : body
+  const { data, error } = await db.from('icps')
+    .update(patch).eq('id', core.id).eq('client_id', clientId).select().single()
+  if (error) throw error
+  return data ? { row: data as Record<string, unknown>, pending: isLive } : null
+}
+
+async function persistMillaUnderstanding(
+  clientId: string,
+  body: Record<string, unknown>,
+  icpName?: string | null,
+  /** True when the targeting was held for review — see `saveClientTargeting`. */
+  pending = false,
+): Promise<void> {
+  try {
+    const biz = (body.business ?? {}) as Record<string, unknown>
+    const proofIn = Array.isArray(body.proof) ? body.proof : []
+    const intent = typeof body.campaign_intent === 'string' ? body.campaign_intent.trim() : ''
+    const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+
+    const proof = proofIn
+      .map(p => {
+        const row = (p ?? {}) as Record<string, unknown>
+        return { claim: str(row.claim), permitted: row.permitted === true }
+      })
+      .filter(p => p.claim.length > 0)
+
+    const permitted = proof.filter(p => p.permitted).map(p => p.claim)
+    const hasBusiness = Object.values(biz).some(v => str(v).length > 0)
+    if (!hasBusiness && !permitted.length && !intent) return   // nothing was learned — write nothing
+
+    // ── "YES, THIS REPRESENTS US" IS A RECORDED FACT (round 4) ──────────────────────
+    // The reflect-back panel renders only when Milla learned something, and the approve
+    // button under it is the client saying the understanding represents them — so
+    // reaching this line with an understanding in hand IS the confirmation, and it gets
+    // a timestamp. AN AUDITABLE FACT, NEVER A GATE: nothing reads this column before
+    // activation, generation or sending. It exists so a later "FIGSY wrote the wrong
+    // thing about us" conversation can be answered with the date the client confirmed
+    // the understanding it wrote from. Best-effort like everything else here.
+    const { error: confirmErr } = await db.from('clients')
+      .update({ milla_understanding_confirmed_at: new Date().toISOString() })
+      .eq('id', clientId)
+    if (confirmErr) console.error('[icps] could not record the reflect-back confirmation (non-fatal):', confirmErr.message)
+
+    // `differentiators` is the field `getClientKnowledgeForOutreach` surfaces as
+    // "Differentiators / proof points", so permitted claims join it and nothing else does.
+    const differentiators = [str(biz.differentiators), ...permitted].filter(Boolean).join(' · ')
+
+    if (hasBusiness || permitted.length) {
+      await db.from('figsy_knowledge').upsert({
+        client_id: clientId, kind: 'pitch',
+        data: {
+          product:         str(biz.product),
+          pitch:           str(biz.pitch),
+          pain_points:     str(biz.pain_points),
+          differentiators,
+          // Recorded, NEVER read by the outreach digest. An operator can see what Milla
+          // heard and ask the client whether we may use it.
+          proof_all:       proof,
+          bad_fit:         str(biz.bad_fit),
+          source:          'milla_onboarding',
+        },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'client_id,kind' })
+    }
+
+    if (str(biz.tone)) {
+      await db.from('figsy_knowledge').upsert({
+        client_id: clientId, kind: 'messaging',
+        data: { style: str(biz.tone), source: 'milla_onboarding' },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'client_id,kind' })
+    }
+
+    // The campaign is born with the ICP (one ICP → one campaign) and carries its purpose.
+    //
+    // ⚠️ NOT WHEN THE TARGETING IS WAITING FOR REVIEW (founder-ruled 22 Aug). The ruling is
+    // explicit that a live client's revision must "NOT automatically reactivate/change the
+    // live campaign", and `campaign_intent` is the brief every email is written from — a
+    // live campaign whose brief changed without review is the same event as live targeting
+    // that changed without review. The BUSINESS UNDERSTANDING above still saves, because
+    // the ruling equally says Milla may save "the revised targeting and understanding".
+    if (intent && pending) {
+      // NOT DROPPED — `saveClientTargeting` has already parked it on the ICP row as
+      // `pending_campaign_intent`, beside the pending targeting. GO applies both.
+      console.log(`[icp] campaign intent HELD for live client ${clientId} — saved as a pending revision, applied to their live campaign only when K.I.N.D presses GO.`)
+    } else if (intent) {
+      const { ensureCampaignForIcp } = await import('../lib/start-work')
+      const { data: icpRow } = await db.from('icps')
+        .select('id').eq('client_id', clientId).order('created_at', { ascending: false })
+        .limit(1).maybeSingle()
+      if (icpRow?.id) {
+        // SCAFFOLD ONLY. Storing what the client wants must not be the event that makes a
+        // campaign live — that is K.I.N.D's GO, and a campaign made live here would also
+        // have refused the operator's own GO through the one-active invariant.
+        const camp = await ensureCampaignForIcp(clientId, icpRow.id as string, icpName ?? null)
+        if (camp?.id) {
+          await db.from('figsy_campaigns')
+            .update({ campaign_intent: intent.slice(0, 2000), intent_mapped_at: new Date().toISOString() })
+            .eq('id', camp.id)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[icps] persistMillaUnderstanding failed — outreach stays generic rather than wrong:', err)
+  }
+}
+
 icpRouter.post('/', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
-    if (error) throw error
-    // Auto-run on creation — only if client has credits
-    ;(async () => {
-      try {
-        const { data: bal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
-        const autoRunCap = bal?.credit_balance ?? 0
-        if (autoRunCap > 0) {
-          await runIcpJob(data.id, clientId, req.userId!, autoRunCap)
-        }
-      } catch (autoErr) { console.error('[icp auto-run]', autoErr) }
-    })()
-    res.status(201).json({ success: true, data })
+
+    // ── ONE CORE ICP, REFINED — NOT A SECOND EXPERIMENT (22 Aug, integration fix) ────
+    //
+    // ⚠️ THIS ALWAYS INSERTED, AND THAT BROKE THE APPROVED JOURNEY. The proof surface sends
+    // a prospect who says "not these people" back to Milla, and Milla's save lands here —
+    // so pass 2 would have run against a NEW ICP. That is a different experiment, not the
+    // refinement of the same core ICP the founder specified, and it would have orphaned
+    // pass 1's leads and feedback on a row nothing looked at again.
+    //
+    // So: the client's FIRST ICP is created here (onboarding, as before); every later save
+    // UPDATES the one they already have, preserving `icp.id`. The identity is the point —
+    // `leads.icp_id`, the campaign's `icp_id` and the PDL cursor all hang off it, and
+    // `proof_passes_done` is client-level and untouched either way.
+    //
+    // ⚠️ `is_active` IS NEVER WRITTEN HERE, and a LIVE client's revision does not touch the
+    // live columns either — `saveClientTargeting` holds it in `pending_targeting` until
+    // K.I.N.D reviews it. (This comment said the opposite until the founder ruled on 22 Aug:
+    // I had read "no gate on their own change" as licence to apply a live client's edit
+    // immediately. They may still revise as often as they like; the edit now WAITS.)
+    // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
+    // door, and one core ICP is the client-side rule.
+    const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
+    const saved = await saveClientTargeting(clientId, body, revisedIntent)
+    if (!saved) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
+    const { row: data, pending } = saved
+
+    // ── THE UNDERSTANDING FOLLOWS THE ICP (22 Aug) ──────────────────────────────────
+    // Milla learned this in the same conversation that produced the targeting above, so it
+    // is persisted in the same request rather than asking the client to repeat themselves
+    // into a second form. Best-effort throughout: an ICP that saved must never fail because
+    // the grounding did not, and FIGSY's documented empty state is "generic, never invented".
+    await persistMillaUnderstanding(clientId, req.body as Record<string, unknown>, data?.name as string | null, pending)
+
+    // Auto-run on creation — only if client has credits, and NEVER on a held revision.
+    // ⚠️ A pending save changed nothing operational: the live targeting is exactly what it
+    // was, so a run here would spend the client's money re-sourcing the OLD audience
+    // because they asked us to look at a NEW one.
+    if (!pending) {
+      ;(async () => {
+        try {
+          const { data: bal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+          const autoRunCap = bal?.credit_balance ?? 0
+          if (autoRunCap > 0) {
+            await runIcpJob(data.id as string, clientId, req.userId!, autoRunCap)
+          }
+        } catch (autoErr) { console.error('[icp auto-run]', autoErr) }
+      })()
+    }
+    res.status(201).json({ success: true, data, pending_review: pending })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/create]', err)
@@ -1141,11 +1680,18 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
 // their own change hostage) and NOTIFIES US, because the people already in a live campaign
 // were picked against the OLD profile and may now be the wrong people.
 //
-// Deliberately separate from POST /icps: that one creates an inactive draft and auto-runs
-// on credits. This one supersedes the current version atomically-in-order (deactivate all,
-// then insert active) so the client is never left with zero active ICPs, and it does NOT
-// auto-source — Vida re-picks who goes into the campaign, which is the whole point of the
-// notification. Same shape the conversational builder returns (POST /icps/chat-build).
+// ⚠️ REWRITTEN 22 Aug (integration fix): THIS SUPERSEDED BY INSERTING, AND IT ACTIVATED.
+// It deactivated every ICP the client had and inserted a new `is_active: true` row — two
+// problems at once. (a) The refinement between proof pass 1 and pass 2 produced a SECOND
+// ICP, so pass 2 ran against a different experiment and pass 1's leads and feedback were
+// orphaned. (b) It made an ICP live from a CLIENT request, which is the exact thing AR9's
+// 22-Aug amendment took away from them.
+//
+// It now UPDATES the client's current ICP in place and never touches `is_active`. Both
+// halves of AR9 then hold at once: a paying client's revision reaches their LIVE targeting
+// immediately with no gate (25 Jul), and nobody outside K.I.N.D activates anything
+// (22 Aug). It still does NOT auto-source — Vida re-picks who goes into the campaign,
+// which is the whole point of the notification below.
 icpRouter.post('/revise', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
@@ -1153,29 +1699,39 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
     const { data: previous } = await db.from('icps')
-      .select('id, name').eq('client_id', clientId).eq('is_active', true)
+      .select('id, name').eq('client_id', clientId)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
-    await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
-    const { data, error } = await db.from('icps')
-      .insert({ ...body, client_id: clientId, is_active: true }).select().single()
-    if (error) throw error
+    const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
+    const saved = await saveClientTargeting(clientId, body, revisedIntent)
+    if (!saved) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
+    const { row: data, pending } = saved
 
     // Notify us. Vida's bell already derives "ICP revised since the campaign was built"
     // from the rows, so this alert is the push half of the same fact — never the only half.
-    // One ICP = one campaign — born together, never assigned.
+    // One ICP = one campaign; SCAFFOLD only, because a client's revision must not make a
+    // campaign live any more than it makes their ICP live.
     const { ensureCampaignForIcp } = await import('../lib/start-work')
-    void ensureCampaignForIcp(clientId, data.id, data.name).catch(() => {})
+    void ensureCampaignForIcp(clientId, data.id as string, (data.name as string | null) ?? null).catch(() => {})
 
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
-    void sendFounderAlert('new_signup', `ICP revised — ${client?.company_name ?? 'a client'}`, [
-      `${client?.company_name ?? 'A client'} changed their targeting in Milla.`,
-      previous?.name ? `Was: ${previous.name}` : 'They had no active ICP before this.',
-      `Now: ${data.name ?? 'unnamed ICP'}`,
-      'It is LIVE. Anyone already enrolled was picked against the old profile — re-check who is in the campaign in Vida.',
-    ]).catch(() => {})
+    const proposed = (body as { name?: string }).name ?? 'unnamed ICP'
+    void sendFounderAlert('new_signup',
+      pending
+        ? `⏸ ICP revision WAITING for review — ${client?.company_name ?? 'a client'}`
+        : `ICP revised — ${client?.company_name ?? 'a client'}`,
+      [
+        `${client?.company_name ?? 'A client'} changed their targeting in Milla.`,
+        previous?.name ? `Was: ${previous.name}` : 'They had no ICP before this.',
+        `Now: ${proposed}`,
+        pending
+          // The whole point of the ruling: nothing has changed yet, and it will not until
+          // someone here looks. An alert that said "it is live" would be false.
+          ? 'They are LIVE, so this is NOT in effect. Their current targeting is unchanged and still sourcing. Review it in Vida → ICP and press GO to apply it.'
+          : 'Their ICP is NOT live — this is a refinement before we switch them on. Nothing changed for anyone already enrolled.',
+      ]).catch(() => {})
 
-    res.status(201).json({ success: true, data })
+    res.status(201).json({ success: true, data, pending_review: pending })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/revise]', err)
@@ -1437,36 +1993,209 @@ Based on this data, suggest 3 specific ICP improvements that would increase repl
   }
 })
 
-icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
+// ── THE CLIENT'S OWN PROOF ACTION (free proof, 22 Aug round 4) ──────────────────────────
+//
+// When activation became K.I.N.D-only, the client's old button kept calling the activation
+// route and simply started failing — which left FREE PROOF, the launch acquisition motion,
+// with no correct client entry at all. This route is that entry, and it is deliberately NOT
+// activation: the ICP stays `is_active = false`, no campaign goes live, nothing is enrolled,
+// revealed, charged or sent. It shows a prospect up to 20 real masked leads. That is all.
+//
+// The FENCES, in the order they answer:
+//   1. The caller must OWN the ICP — the lookup is scoped to their own client row, so
+//      another client's ICP id is indistinguishable from a missing one (404, not 403:
+//      no probe learns whether the id exists).
+//   2. Only a NEVER-FUNDED prospect may use it. `fundedVia` ≠ null → refused; a paying or
+//      comped account has real budget and the paid path — free-proof money is not theirs.
+//   3. The proof pass is claimed HERE, atomically, before anything runs — a pool-only
+//      batch spends a pass exactly as a PDL-backed one does, pass 3 is refused with a
+//      human sentence, and the claim travels INTO `runIcpJob` so a run can never claim
+//      one on its own (proof is an action, not an account property).
+// The 40-record / $11.20 / $300 money fences all live below `try_reserve_proof_records`,
+// inside the run — nothing here duplicates them.
+icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
   try {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
-    await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
-    const { data, error } = await db.from('icps')
-      .update({ is_active: true }).eq('id', req.params.id).eq('client_id', clientId).select().single()
-    if (error) throw error
+
+    const { data: icp } = await db.from('icps')
+      .select('id, is_active').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    const { data: fundingRows } = await db.from('credit_transactions')
+      .select('type, reference').eq('client_id', clientId)
+    if (fundedVia(fundingRows ?? []) !== null) {
+      res.status(403).json({
+        success: false,
+        error: 'Your account is already live — your leads arrive through your campaign, not a proof batch.',
+      })
+      return
+    }
+
+    // Atomic: two requests racing for pass 2 give exactly one claimant. Pass 3 is always 0.
+    // If something fails after this claim, the pass is spent and there is NO automatic
+    // retry — an automatic retry is precisely the race that would mint a third free batch.
+    const { data: pass } = await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
+    const claimed = typeof pass === 'number' ? pass : 0
+    if (claimed <= 0) {
+      res.status(409).json({
+        success: false,
+        error: 'We have shown you two sets of leads. Let us talk it through together before we look again — we would rather get your targeting right than keep guessing.',
+      })
+      return
+    }
+
+    // Fire-and-forget like activation: the prospect gets an immediate answer, the batch
+    // lands on their desk when the run finishes. `req.userId` IS the account owner here —
+    // this route is client-authenticated, no operator is involved.
+    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
+      .catch(e => console.error('[icps/proof] proof run failed:', e))
+
+    res.json({ success: true, data: { pass: claimed, of: 2, finding: true } })
+  } catch (err) {
+    console.error('[icps/proof]', err)
+    res.status(500).json({ success: false, error: 'Could not start your proof batch' })
+  }
+})
+
+// ── K.I.N.D OWNS GO (founder-ruled 22 Aug) ──────────────────────────────────────────────
+//
+// The client may create and revise their ICP, and refine it with Milla for as long as they
+// like. They may NOT make it live. Until now this route was client-authenticated and the
+// flip was theirs: `is_active` went true immediately, nobody at K.I.N.D was told, and — see
+// the auto-run below — a client edit could start a real sourcing run with no operator
+// watching it. That is the opposite of the ruling.
+//
+// The gate is the ADMIN KEY, reusing exactly the check `routes/lookalike.ts` already uses
+// (the Vida proxy injects `x-admin-key` on every call), rather than inventing an approval
+// state machine three days before launch. `clientId` is now taken from the BODY because the
+// caller is an operator acting on a client's behalf, not the client themselves.
+//
+// ⚠️ Everything below this gate is unchanged on purpose: the same deactivate-then-activate,
+// the same one-ICP-one-campaign creation, the same never-run auto-sourcing. Only WHO may
+// trigger it moved. The Vida control ships in this same PR — a gate without a control would
+// strand every new ICP.
+icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({
+        success: false,
+        error: 'Activating an ICP is done by K.I.N.D. Your targeting is saved — we review it and switch it on.',
+      })
+      return
+    }
+    const clientId = typeof req.body?.client_id === 'string' && req.body.client_id
+      ? req.body.client_id
+      : await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // ── ONE CLIENT → ONE ACTIVE CAMPAIGN, ANSWERED BEFORE ANYTHING FLIPS (round 4) ──
+    //
+    // The campaign invariant used to be a fire-and-forget afterthought here: the ICP went
+    // live first, the campaign was ensured behind a `void …catch(() => {})`, and a second
+    // active campaign was silently paused — with a pause failure logged and ignored. Now
+    // the invariant is the GATE. If another campaign is live for this client, the whole
+    // activation is refused with its name, and the operator pauses it first — in Vida, as
+    // a decision, never as a side effect. If the invariant cannot be verified or the
+    // campaign cannot be made live, NOTHING is flipped: an activation we cannot finish is
+    // an activation that did not happen, not one that half-happened.
+    // Only to prove the ICP is theirs and to name the campaign. The pending fields are read
+    // INSIDE the function, under its own row lock — reading them here and passing them in
+    // would reintroduce exactly the read-then-write gap the transaction exists to close.
+    const { data: icpRow } = await db.from('icps')
+      .select('id, name').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!icpRow) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    const { ensureCampaignForIcp } = await import('../lib/start-work')
+    // ⚠️ `activate: true` — THE ONLY CALL IN THE CODEBASE THAT MAKES A CAMPAIGN LIVE.
+    // Milla's onboarding scaffolds the same row as a draft and parks the client's intent
+    // on it; this wakes THAT row rather than creating a second one.
+    const camp = await ensureCampaignForIcp(clientId, req.params.id, (icpRow as { name?: string | null }).name ?? null, { activate: true })
+    if (camp && 'refused' in camp && camp.refused) {
+      res.status(409).json({
+        success: false,
+        error: `This client already has a live campaign${camp.refused.blockingName ? ` ("${camp.refused.blockingName}")` : ''}. One client runs ONE active campaign — pause it first, then activate this one.`,
+      })
+      return
+    }
+    if (!camp?.id) {
+      res.status(500).json({
+        success: false,
+        error: 'Could not verify the one-active-campaign rule, so nothing was activated. Try again.',
+      })
+      return
+    }
+
+    // ── GO IS ALSO WHERE A HELD REVISION IS APPLIED — ATOMICALLY ──────────────────
+    //
+    // A live client's revised targeting and revised brief waited together, and the ruling is
+    // that GO applies them together. "Together" was the part this could not honour: it made
+    // TWO ordinary client writes — the campaign brief, then the ICP — and two writes across
+    // two tables are not a transaction. When the first landed and the second did not, the
+    // client was left with a NEW BRIEF and OLD TARGETING, FIGSY writing for an audience
+    // nobody had approved, while the revision could still look like it was waiting. My own
+    // comment here claimed "a failure leaves the whole revision untouched"; against two
+    // client writes that sentence was not true. Found by independent review.
+    //
+    // Ordering them more carefully cannot fix it and a compensating rollback between two
+    // ordinary writes is just a third thing that can fail. `apply_pending_revision` is one
+    // `SECURITY DEFINER` function, and a plpgsql body IS one transaction: the brief, the
+    // targeting, the one-active sweep, the activation and the clearing of all three pending
+    // fields land together, or any raise inside rolls back every part of it.
+    //
+    // It runs only AFTER the one-active-campaign invariant passed above — that design is
+    // unchanged, and a refused GO still never reaches this line.
+    const { data: appliedRaw, error: applyErr } = await db.rpc('apply_pending_revision', {
+      p_icp_id: req.params.id, p_client_id: clientId, p_campaign_id: camp.id,
+    })
+    const applied = (appliedRaw ?? {}) as {
+      ok?: boolean; reason?: string; applied?: boolean; applied_intent?: boolean
+      icp?: Record<string, unknown> | null
+    }
+    // `ok: false` is the function's clean refusal — decided before it wrote anything. An
+    // `error` is a raise from inside, which rolled the whole transaction back. Both mean
+    // the same thing to the operator: nothing was applied and the revision still waits.
+    if (applyErr || applied.ok !== true) {
+      // Nothing landed: the transaction rolled back, so their live targeting, their live
+      // brief and every pending field are exactly as they were.
+      console.error(`[icps/activate] the revision could not be applied for client ${clientId} — nothing changed, it is still waiting:`, applyErr?.message ?? applied.reason ?? 'no result')
+      res.status(500).json({
+        success: false,
+        error: 'Could not apply this ICP, so nothing was changed. Their revision (if any) is still waiting — try again.',
+      })
+      return
+    }
+    const data = applied.icp ?? null
+    if (!data) { res.status(500).json({ success: false, error: 'Activation returned no ICP' }); return }
+    if (applied.applied) {
+      console.log(`[icps/activate] applied the held revision for client ${clientId} — reviewed and approved by an operator (brief: ${applied.applied_intent === true}).`)
+    }
 
     // If this ICP has never sourced leads, activating it should actually FIND
     // leads — otherwise "set active" silently does nothing and the client waits
     // forever. Only auto-run a never-run ICP with credits available; an already-
     // run ICP is left alone (no surprise re-spend). Fire-and-forget so the
     // response is fast; runIcpJob delivers + charges, capped at balance.
-    // One ICP = one campaign — born together, never assigned.
-    if (data) {
-      const { ensureCampaignForIcp } = await import('../lib/start-work')
-      void ensureCampaignForIcp(clientId, data.id, data.name).catch(() => {})
-    }
+    // One ICP = one campaign — born together above, never assigned.
 
     let started = false
     if (data && !data.last_run_at) {
-      const { data: bal } = await db.from('clients').select('credit_balance, first_icp_run_at').eq('id', clientId).single()
+      // ⚠️ THE CLIENT'S user_id, NOT THE OPERATOR'S. `runIcpJob` looks this id up to email
+      // "your first leads are ready" to the account owner. Now that an OPERATOR triggers
+      // activation, passing `req.userId` would send a client's leads email to whoever in
+      // K.I.N.D pressed the button — and the client would never hear their run had started.
+      const { data: bal } = await db.from('clients')
+        .select('credit_balance, first_icp_run_at, user_id').eq('id', clientId).single()
       const credits = bal?.credit_balance ?? 0
+      const ownerUserId = (bal?.user_id as string | null) ?? req.userId!
       if (credits > 0 || !bal?.first_icp_run_at) {
         started = true
-        runIcpJob(req.params.id, clientId, req.userId!, credits > 0 ? credits : 20)
+        runIcpJob(req.params.id, clientId, ownerUserId, credits > 0 ? credits : 20)
           .catch(e => console.error('[icps/activate] auto-run failed:', e))
       }
     }
-    res.json({ success: true, data, sourcing: started })
+    // `applied_revision` so Vida can say what actually happened — "revision applied" and
+    // "ICP is live" are different events and the operator pressed the same button for both.
+    res.json({ success: true, data, sourcing: started, applied_revision: applied.applied === true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to activate ICP' }) }
 })

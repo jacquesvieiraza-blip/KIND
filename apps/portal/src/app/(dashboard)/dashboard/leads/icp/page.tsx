@@ -631,15 +631,14 @@ export default function ICPPage() {
     }
   }
 
-  async function handleActivate(id: string) {
-    if (!token) return
-    try {
-      await api.patch(`/icps/${id}/activate`, {}, token)
-      setIcps(prev => prev.map(i => ({ ...i, is_active: i.id === id })))
-    } catch (err) {
-      setSaveError(err instanceof Error ? err.message : 'Failed to activate ICP — please try again.')
-    }
-  }
+  // ── "SET ACTIVE" WAS REMOVED FROM THE CLIENT (22 Aug, round 4) ────────────────────
+  //
+  // This called `PATCH /icps/:id/activate`, which is now K.I.N.D-only and answers a client
+  // JWT with 403 — so the control was a button that could only ever fail. Activation is an
+  // operator decision in Vida: making an ICP live starts real, money-spending sourcing, and
+  // the founder ruled that nobody outside K.I.N.D presses that. The caller is gone rather
+  // than left to fail; the page still SAYS who activates, so the absence is explained
+  // instead of merely felt.
 
   async function handleRefine(id: string) {
     if (!token) return
@@ -822,10 +821,9 @@ export default function ICPPage() {
                   }
                 </button>
                 {!icp.is_active && (
-                  <button onClick={() => handleActivate(icp.id)}
-                    className="text-xs text-[#6D28D9] hover:text-[#5B21B6] font-medium transition-colors">
-                    Set active
-                  </button>
+                  <span className="text-xs text-[#9B8EC4]" title="Making an ICP live starts real sourcing, so K.I.N.D switches it on.">
+                    K.I.N.D switches this on
+                  </span>
                 )}
                 <button onClick={() => startEdit(icp)} className="text-xs text-[#7B6FA0] hover:text-gray-700 transition-colors">Edit</button>
                 <button onClick={() => handleDelete(icp.id)} className="p-1.5 hover:bg-red-50 rounded-md text-[#9B8EC4] hover:text-red-500 transition-colors">

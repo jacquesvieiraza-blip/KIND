@@ -1,0 +1,468 @@
+-- ── FREE REAL-LEAD PROOF — THE ACQUISITION FENCE (22 Aug 2026, corrected same day) ──────
+--
+-- An unpaid prospect is shown REAL masked leads before they pay: up to 20, one refinement
+-- of the same core ICP, up to 20 more, then a human conversation. That costs K.I.N.D real
+-- money at PDL, so it needs a fence -- and the fence has to be a different fence from the
+-- one that protects paying clients.
+--
+-- ⚠️ WHY THIS DOES NOT REUSE clients.sourcing_allowance OR try_spend_sourcing.
+-- An unpaid prospect's sourcing_allowance is 0, so try_spend_sourcing grants 0 and could
+-- never fund proof at all. Granting into that shared integer instead would be worse: SIX
+-- current paths spend it (ICP create/activate/run, the nightly top-up, start-work, operator
+-- sourcing, admin and partner routes, and /lookalike/generate directly), so a proof budget
+-- placed there could be drained by any of them. Proof therefore gets its own authority,
+-- and paid AR8 is left byte-for-byte alone.
+--
+-- ⚠️ WHY PROOF DOES NOT WRITE TO sourcing_ledger.
+-- That ledger is the sum behind the PAID monthly PDL ceiling. Writing proof spend into it
+-- would make free acquisition compete with paid delivery for the same $300 -- a busy
+-- acquisition month could refuse a paying client's sourcing. Founder-ruled 22 Aug: free
+-- acquisition and paid delivery are SEPARATE budget controls. So proof gets proof_ledger,
+-- and money_settings gets its own proof cap beside the paid one.
+--
+-- ⚠️ THE FOUR RACES THIS EXISTS TO CLOSE. Two were found in review before any code was
+-- written, two more by independent review of the first implementation:
+--   1. PER CLIENT. read spent -> compute remaining -> call PDL -> increment is NOT a fence:
+--      two overlapping runs both read the same remaining budget and both spend it. Fixed by
+--      deciding and committing inside one transaction under a row lock.
+--   2. ACROSS CLIENTS. Locking client A's row does nothing to serialise client B. With 50
+--      records of monthly room, A and B could each be authorised 40 -- 80 total. Fixed by
+--      taking the lock on the SINGLETON money_settings row FIRST, so every proof
+--      reservation in the system passes through one critical section.
+--   3. RECONCILIATION REPLAY. The first release took a client id and a count and
+--      decremented the AGGREGATE. Reserve 40, consume 25, release 15 -> committed 25; retry
+--      the SAME reconciliation -> committed 10, though 25 real records were bought. A
+--      retried job literally manufactured acquisition authority -- and with two
+--      reservations for one client, reconciling one could release the other's. Fixed:
+--      every reservation is its own ledger row, reconciliation addresses THAT row by id,
+--      and a row reconciles exactly once. A replay is a true no-op.
+--   4. MONTH-END LEAK. Sums keyed on created_at push an August reservation's September
+--      correction into September, so September opened with negative spend and more than
+--      the configured budget of real authority. Fixed: every reservation carries a FIXED
+--      budget_month stamped at creation; its correction inherits that month; and the
+--      monthly room is summed over budget_month, never over when a row happened to land.
+--
+-- Lock order is always money_settings (global) then clients (per client); the release path
+-- locks its reservation row then the client, and never money_settings. One order per path,
+-- no cycle, so proof callers cannot deadlock each other. try_spend_sourcing reads
+-- money_settings with a plain SELECT and never locks it, so the paid path is not blocked.
+--
+-- Reservation is PESSIMISTIC: the records are committed BEFORE PDL is called and released
+-- afterwards if fewer came back. Every failure therefore under-allows rather than
+-- overspends -- a temporary under-allocation is recoverable, an overspend is not.
+--
+-- Additive only. No existing table, function or money rule is modified.
+
+-- ── 1. Per-client proof state ───────────────────────────────────────────────────────────
+-- proof_records_committed: PDL records reserved for this prospect across BOTH passes,
+--   capped at 40 for life (founder-set, 22 Aug: $11.20 at the verified $0.28 rate).
+-- proof_passes_done: automatic proof batches already claimed. Max 2, then a human.
+-- milla_understanding_confirmed_at: when the client pressed "yes, this represents us" on
+--   the reflect-back of what Milla understood about their business. AN AUDITABLE FACT,
+--   NEVER A GATE (round 4): nothing reads it before activation, generation or sending —
+--   it exists so a later "FIGSY wrote the wrong thing about us" conversation can be
+--   answered with the date they confirmed the understanding it wrote from.
+alter table public.clients
+  add column if not exists proof_records_committed          int not null default 0,
+  add column if not exists proof_passes_done                int not null default 0,
+  add column if not exists milla_understanding_confirmed_at timestamptz;
+
+-- ── 2. The free-acquisition monthly ceiling, beside the paid one ────────────────────────
+-- Deliberately a SECOND column rather than a shared one: paid delivery keeps
+-- pdl_monthly_cap_usd untouched, and neither budget can starve the other.
+-- ── 1b. A LIVE CLIENT'S REVISION WAITS FOR K.I.N.D (founder-ruled 22 Aug) ───────────────
+-- The targeting columns on the icps row ARE the live operational targeting: runIcpJob reads
+-- that row and hands it straight to the pool serve and the PDL query, so writing them takes
+-- effect on the very next run. That meant a live client editing their targeting in Milla
+-- changed who we source for them with nobody at K.I.N.D looking - the founder ruled the
+-- change must WAIT for review.
+--
+-- There was no way to tell CURRENT LIVE targeting from a REVISED PENDING one, because the
+-- row held only the live copy. These two columns are that distinction and nothing more:
+--   pending_targeting    the revision exactly as the client saved it, parked off to the
+--                        side. Nothing reads it for sourcing, scoring or sending.
+--   pending_submitted_at when they asked. Drives the Vida badge and "waiting since".
+--   pending_campaign_intent  the revised BRIEF - what this campaign is now for. It waits
+--                        with the targeting, because the brief is what every email is
+--                        written from: a live campaign whose brief changed without review
+--                        is the same event as live targeting that changed without review.
+-- K.I.N.D's GO applies all of it and clears all of it. A prospect in unpaid proof is NOT
+-- live, so their refinement keeps writing the live columns directly - there is nothing of
+-- theirs running to protect.
+--
+-- WHY THE BRIEF NEEDS ITS OWN FIELD RATHER THAN A KEY INSIDE pending_targeting: GO applies
+-- the held revision by spreading that payload straight onto the icps row, so every key in
+-- it is written as an icps COLUMN. campaign_intent is a figsy_campaigns column
+-- (20260524_campaign_intent.sql) and does not exist on icps - hiding it in that payload
+-- would fail the GO write, or need stripping logic the column's own name gives no hint of.
+-- It is still the SAME row as the targeting, so a refused GO cannot clear half a revision.
+alter table public.icps
+  add column if not exists pending_targeting       jsonb,
+  add column if not exists pending_submitted_at    timestamptz,
+  add column if not exists pending_campaign_intent text;
+
+comment on column public.icps.pending_targeting is
+  'A live client''s revised targeting, awaiting K.I.N.D review. NEVER read by sourcing, scoring or sending - the live columns beside it remain operational until GO applies this and clears it. Null for a prospect, whose ICP is not live and is edited in place.';
+
+alter table public.money_settings
+  add column if not exists proof_monthly_cap_usd numeric not null default 300;
+
+comment on column public.money_settings.proof_monthly_cap_usd is
+  'Free-proof ACQUISITION PDL ceiling per calendar month, separate from pdl_monthly_cap_usd which fences PAID delivery. Founder-set 22 Aug at $300: the most he is initially prepared to fund to win clients, raised deliberately when demand justifies it. Never raised automatically.';
+
+-- ── 3. The proof ledger — every RESERVATION is a row, and the row is the token ──────────
+-- Separate from sourcing_ledger on purpose (see header). A positive row IS a reservation:
+-- its id is the identity a reconciliation must name, budget_month pins which month's
+-- ceiling it consumed, and reconciled_at makes reconciliation once-only. Negative rows are
+-- corrections, carry reservation_id back to the row they correct, and inherit its
+-- budget_month -- so a late reconciliation can never leak authority into a newer month.
+create table if not exists public.proof_ledger (
+  id               uuid primary key default uuid_generate_v4(),
+  client_id        uuid not null references public.clients(id) on delete cascade,
+  records          int  not null,
+  cost_usd         numeric not null,
+  -- The month whose ceiling this row counts against. Stamped at creation, inherited by the
+  -- correction, NEVER derived from when a later event happened to run.
+  budget_month     date not null default (date_trunc('month', now()))::date,
+  -- Corrections only: the reservation row this negative row reconciles.
+  reservation_id   uuid references public.proof_ledger(id),
+  -- Reservations only: set exactly once, by the one reconciliation this row may ever have.
+  reconciled_at    timestamptz,
+  released_records int not null default 0,
+  created_at       timestamptz not null default now()
+);
+
+create index if not exists proof_ledger_budget_month_idx on public.proof_ledger (budget_month);
+create index if not exists proof_ledger_client_idx on public.proof_ledger (client_id, created_at desc);
+
+alter table public.proof_ledger enable row level security;
+
+comment on table public.proof_ledger is
+  'Free-proof acquisition PDL spend. A positive row IS a reservation (made BEFORE the provider call) and its id is the token a reconciliation must name; a negative row is that reservation''s once-only correction and inherits its budget_month. The month sum of cost_usd over budget_month is the authority for the free-acquisition ceiling. Never mixed with sourcing_ledger, which fences paid delivery.';
+
+-- ── 4. Claim a proof pass — atomic, and independent of PDL ──────────────────────────────
+-- Claimed BEFORE the batch starts, so a POOL-ONLY batch consumes a pass exactly as a
+-- PDL-backed one does. Returns the pass number claimed (1 or 2), or 0 when refused.
+--
+-- If a technical failure happens after a claim, the pass is spent and there is NO automatic
+-- retry: an automatic retry is precisely the race that would produce a third free batch.
+-- Recovery is human, which is the model the founder already chose for a second miss.
+create or replace function public.try_claim_proof_pass(p_client_id uuid)
+returns int
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_done int;
+begin
+  if p_client_id is null then return 0; end if;
+
+  -- FOR UPDATE serialises two requests racing for the same pass: the loser reads the
+  -- winner's committed value, not a stale one, and is refused.
+  select coalesce(proof_passes_done, 0) into v_done
+    from public.clients where id = p_client_id for update;
+
+  if v_done is null then return 0; end if;     -- unknown client: fail closed
+  if v_done >= 2 then return 0; end if;        -- two passes used: a human takes over
+
+  update public.clients set proof_passes_done = v_done + 1 where id = p_client_id;
+  return v_done + 1;
+end;
+$$;
+
+revoke execute on function public.try_claim_proof_pass(uuid) from public;
+grant  execute on function public.try_claim_proof_pass(uuid) to service_role;
+
+-- ── 5. Reserve proof records — atomic per client AND across clients ─────────────────────
+-- Returns jsonb: { "granted": n, "reservation_id": uuid, "reason": text }. granted is the
+-- LEAST of what was asked for, the prospect's remaining 40, and the month's remaining room;
+-- 0 = refused and reservation_id is null. The caller MUST carry reservation_id to the
+-- reconciliation: a release addresses one reservation, never a client aggregate.
+--
+-- ⚠️ WHY THE REASON IS RETURNED RATHER THAN INFERRED BY THE CALLER (round 3).
+-- A granted of 0 on its own says only "you got nothing". It does not say whether THIS
+-- prospect has used their own 40 lifetime records -- routine, expected, and costing K.I.N.D
+-- nothing -- or whether the MONTH'S $300 ACQUISITION CEILING is gone, which is rare, urgent
+-- and needs the founder. The first implementation could not tell them apart, so it raised
+-- "the free-proof acquisition budget is spent" on every zero, including the common one. An
+-- alert that fires on a routine event is an alert nobody reads on the day it is true.
+--
+-- The reason is computed INSIDE the same locked section, from the same numbers that decided
+-- the grant, so it can never disagree with the decision it explains and is never re-derived
+-- by a second query reading a different instant. Values:
+--   GRANTED                       records were reserved (possibly fewer than requested).
+--   CLIENT_PROOF_LIMIT_REACHED    this prospect has committed all 40 of their records.
+--   MONTHLY_PROOF_BUDGET_REACHED  the month's acquisition ceiling has no room left.
+--   FAIL_CLOSED_BAD_ARGS          nothing was asked for; nothing reserved, nothing spent.
+--   FAIL_CLOSED_NO_MONEY_SETTINGS the singleton settings row is missing -> refuse.
+--   FAIL_CLOSED_UNKNOWN_CLIENT    no such client row -> refuse.
+--
+-- ⚠️ ORDER MATTERS: the CLIENT'S own limit is tested FIRST. A prospect sitting at 40 tells
+-- you nothing whatsoever about the $300, so reporting that case as a budget exhaustion
+-- would be a false statement about company money.
+create or replace function public.try_reserve_proof_records(p_client_id uuid, p_requested int)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_rate        numeric := 0.28;   -- PDL $/record, verified 10 Jul (sourcing-fences.ts:6)
+  v_client_cap  int     := 40;     -- founder-set lifetime proof records per prospect
+  v_committed   int;
+  v_client_room int;
+  v_cap_usd     numeric;
+  v_month_usd   numeric;
+  v_month       date := (date_trunc('month', now()))::date;
+  v_room        int;
+  v_grant       int;
+  v_res_id      uuid;
+begin
+  if p_client_id is null or p_requested is null or p_requested <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  -- ① GLOBAL LOCK FIRST. The singleton money_settings row is the one object every proof
+  --    reservation must pass through, which is what serialises DIFFERENT clients. Locking
+  --    per-client rows alone would let two prospects each read the same monthly room.
+  select coalesce(proof_monthly_cap_usd, 300) into v_cap_usd
+    from public.money_settings where id = 1 for update;
+  if v_cap_usd is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_NO_MONEY_SETTINGS');
+  end if;
+
+  -- ② then the prospect's own row. Always this order, so proof callers cannot deadlock.
+  select coalesce(proof_records_committed, 0) into v_committed
+    from public.clients where id = p_client_id for update;
+  if v_committed is null then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_UNKNOWN_CLIENT');
+  end if;
+
+  -- THE PROSPECT'S OWN CEILING, ANSWERED BEFORE THE COMPANY'S. This is the common refusal
+  -- and it is not a money event: the prospect has had their two passes' worth of records.
+  v_client_room := greatest(0, v_client_cap - v_committed);
+  if v_client_room <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'CLIENT_PROOF_LIMIT_REACHED');
+  end if;
+
+  -- THIS month's authority: summed over budget_month, so an old month's late correction
+  -- can never inflate the current month's room. Outstanding reservations are already in
+  -- the sum, because the reservation IS a ledger row.
+  select coalesce(sum(cost_usd), 0) into v_month_usd
+    from public.proof_ledger where budget_month = v_month;
+
+  v_room := greatest(0, floor((v_cap_usd - v_month_usd) / v_rate))::int;
+  if v_room <= 0 then
+    -- THE ONE THAT IS ACTUALLY A COMPANY EVENT. Free acquisition has stopped for everybody
+    -- until the founder raises the ceiling, so this -- and only this -- raises the alert.
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'MONTHLY_PROOF_BUDGET_REACHED');
+  end if;
+
+  v_grant := least(p_requested, v_client_room, v_room);
+  if v_grant <= 0 then
+    -- Unreachable: all three inputs are > 0 above. Kept as a fail-closed floor so a future
+    -- edit to any of them can only ever under-allow.
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
+  end if;
+
+  update public.clients
+     set proof_records_committed = v_committed + v_grant
+   where id = p_client_id;
+
+  insert into public.proof_ledger (client_id, records, cost_usd, budget_month)
+    values (p_client_id, v_grant, v_grant * v_rate, v_month)
+    returning id into v_res_id;
+
+  return jsonb_build_object('granted', v_grant, 'reservation_id', v_res_id, 'reason', 'GRANTED');
+end;
+$$;
+
+revoke execute on function public.try_reserve_proof_records(uuid, int) from public;
+grant  execute on function public.try_reserve_proof_records(uuid, int) to service_role;
+
+-- ── 6. Reconcile ONE reservation — once, by id, in its own month ────────────────────────
+-- Reserve 40, PDL returns 25 -> release 15 AGAINST THAT RESERVATION. The row is marked
+-- reconciled and can never release again: a replayed job, a double webhook or a second
+-- reconciliation is a true no-op, so authority can never be recreated after the records
+-- were genuinely bought. The correction inherits the reservation's budget_month, so an
+-- August reservation reconciled on 1 Sep corrects AUGUST -- September opens with exactly
+-- its configured budget.
+--
+-- If this never runs, the reservation simply stands: the prospect and the month are both
+-- under-allocated by the unused amount, and neither ceiling can be exceeded. That is the
+-- fail-closed behaviour, and it is why the reservation is taken before the provider call.
+create or replace function public.release_proof_records(p_reservation_id uuid, p_records int)
+returns int
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_row       public.proof_ledger%rowtype;
+  v_rate      numeric;
+  v_committed int;
+  v_release   int;
+begin
+  if p_reservation_id is null or p_records is null or p_records <= 0 then return 0; end if;
+
+  -- Lock THE reservation row. Everything below is scoped to it and nothing else.
+  select * into v_row from public.proof_ledger where id = p_reservation_id for update;
+  if not found then return 0; end if;
+  if v_row.records <= 0 then return 0; end if;             -- corrections are not reservations
+  if v_row.reconciled_at is not null then return 0; end if; -- ONCE. A replay is a no-op.
+
+  -- Clamp to THIS reservation's size: reconciling A can never release B's authority.
+  v_release := least(p_records, v_row.records);
+  v_rate    := v_row.cost_usd / v_row.records;             -- the rate this reservation was booked at
+
+  update public.proof_ledger
+     set reconciled_at = now(), released_records = v_release
+   where id = p_reservation_id;
+
+  select coalesce(proof_records_committed, 0) into v_committed
+    from public.clients where id = v_row.client_id for update;
+  update public.clients
+     set proof_records_committed = greatest(0, v_committed - v_release)
+   where id = v_row.client_id;
+
+  -- The correction lands in the RESERVATION'S month. Never the current one.
+  insert into public.proof_ledger (client_id, records, cost_usd, budget_month, reservation_id)
+    values (v_row.client_id, -v_release, -(v_release * v_rate), v_row.budget_month, v_row.id);
+
+  return v_release;
+end;
+$$;
+
+-- ── 7. APPLY A HELD REVISION — ALL OF IT, OR NONE OF IT ─────────────────────────────────
+-- A live client's revised targeting and revised brief wait together (founder-ruled 22 Aug),
+-- and K.I.N.D's GO applies them together. "Together" is the whole rule, and the first
+-- implementation could not honour it: the route made TWO ordinary client writes, the
+-- campaign brief first and the ICP second. Two writes across two tables are not a
+-- transaction. When the first landed and the second did not, the client was left with a NEW
+-- BRIEF and OLD TARGETING - FIGSY writing for an audience nobody had approved - while the
+-- revision could still look like it was waiting. Found by independent review.
+--
+-- Ordering the writes more carefully cannot fix that; only one transaction can. A plpgsql
+-- function body IS one transaction, so everything below either lands together or, on any
+-- raise, rolls back entirely: the live targeting, the live brief and all three pending
+-- fields are exactly as they were, and GO reports failure.
+--
+-- WHY THE TARGETING IS APPLIED FIELD BY FIELD rather than spread from the jsonb: this is a
+-- WHITELIST. Only the nine columns the client's own ICP form can set are written, so a stray
+-- or hostile key in the stored payload can never reach a column nobody intended - and a key
+-- that is absent leaves the live value alone rather than nulling it.
+--
+-- Idempotent by construction: applying clears the pending fields in the same statement that
+-- activates, so a second GO finds nothing to apply and simply re-activates.
+--
+-- ⚠️ TWO KINDS OF FAILURE, AND ONLY ONE OF THEM RAISES. Bad arguments and an ICP that is not
+-- this client's are answered with a clean refusal, because they are decided BEFORE any write
+-- happens - nothing has been changed, so there is nothing to roll back, and a refusal keeps
+-- the function PROBEABLE (system-probes calls it with the all-zeros uuid to prove it exists
+-- without touching a real row). Every failure that can occur once a write has landed RAISES,
+-- which is what rolls the whole thing back. The route treats ok=false and an error the same
+-- way: nothing was applied, the revision is still waiting.
+create or replace function public.apply_pending_revision(
+  p_icp_id      uuid,
+  p_client_id   uuid,
+  p_campaign_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_icp    public.icps%rowtype;
+  v_t      jsonb;
+  v_intent text;
+  v_rows   int;
+begin
+  if p_icp_id is null or p_client_id is null then
+    -- Nothing written; a clean refusal rather than a raise. This is the shape the probe hits.
+    return jsonb_build_object('ok', false, 'reason', 'BAD_ARGS', 'applied', false);
+  end if;
+
+  -- FOR UPDATE: two operators pressing GO on the same ICP serialise here, so the second
+  -- reads the first's committed row and finds nothing left pending rather than replaying it.
+  select * into v_icp from public.icps
+    where id = p_icp_id and client_id = p_client_id for update;
+  if not found then
+    -- Still nothing written. Refuse cleanly: the route turns this into a failed GO.
+    return jsonb_build_object('ok', false, 'reason', 'ICP_NOT_FOUND', 'applied', false);
+  end if;
+
+  v_t      := v_icp.pending_targeting;
+  v_intent := nullif(btrim(coalesce(v_icp.pending_campaign_intent, '')), '');
+
+  -- ① THE BRIEF, onto the campaign that already exists. A missing campaign raises rather
+  --    than silently skipping: a revision half-applied is the defect this function exists
+  --    to make impossible.
+  if v_intent is not null then
+    if p_campaign_id is null then
+      raise exception 'a held brief needs a campaign to apply to';
+    end if;
+    update public.figsy_campaigns
+       set campaign_intent = left(v_intent, 2000), intent_mapped_at = now()
+     where id = p_campaign_id and client_id = p_client_id;
+    get diagnostics v_rows = row_count;
+    if v_rows <> 1 then
+      raise exception 'the campaign meant to carry the revised brief was not found for this client';
+    end if;
+  end if;
+
+  -- ② ONE ACTIVE ICP for this client, exactly as the route did before.
+  update public.icps set is_active = false
+   where client_id = p_client_id and id <> p_icp_id and is_active;
+
+  -- ③ THE TARGETING, THE ACTIVATION AND THE CLEARING - one statement, one whitelist.
+  update public.icps set
+    name = case when jsonb_typeof(v_t->'name') = 'string'
+                then v_t->>'name' else name end,
+    industries = case when jsonb_typeof(v_t->'industries') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'industries')) else industries end,
+    job_titles = case when jsonb_typeof(v_t->'job_titles') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'job_titles')) else job_titles end,
+    seniority_levels = case when jsonb_typeof(v_t->'seniority_levels') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'seniority_levels')) else seniority_levels end,
+    company_sizes = case when jsonb_typeof(v_t->'company_sizes') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'company_sizes')) else company_sizes end,
+    geographies = case when jsonb_typeof(v_t->'geographies') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'geographies')) else geographies end,
+    tech_stack = case when jsonb_typeof(v_t->'tech_stack') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'tech_stack')) else tech_stack end,
+    keywords = case when jsonb_typeof(v_t->'keywords') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'keywords')) else keywords end,
+    apollo_only_consented = case when jsonb_typeof(v_t->'apollo_only_consented') = 'boolean'
+                then (v_t->>'apollo_only_consented')::boolean else apollo_only_consented end,
+    is_active               = true,
+    pending_targeting       = null,
+    pending_campaign_intent = null,
+    pending_submitted_at    = null,
+    updated_at              = now()
+  where id = p_icp_id and client_id = p_client_id;
+  get diagnostics v_rows = row_count;
+  if v_rows <> 1 then
+    raise exception 'the icp could not be updated; nothing has been applied';
+  end if;
+
+  -- The PDL cursor is NOT cleared here on purpose: decideCursor fingerprints the query and
+  -- resets itself on the next run when the targeting changed, so an unchanged revision keeps
+  -- its paging rather than re-serving page one.
+  select * into v_icp from public.icps where id = p_icp_id;
+
+  return jsonb_build_object(
+    'ok',             true,
+    'applied',        (v_t is not null or v_intent is not null),
+    'applied_intent', (v_intent is not null),
+    'icp',            to_jsonb(v_icp)
+  );
+end;
+$$;
+
+revoke execute on function public.apply_pending_revision(uuid, uuid, uuid) from public;
+grant  execute on function public.apply_pending_revision(uuid, uuid, uuid) to service_role;
+
+revoke execute on function public.release_proof_records(uuid, int) from public;
+grant  execute on function public.release_proof_records(uuid, int) to service_role;

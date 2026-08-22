@@ -931,6 +931,26 @@ That + outbound + partners = the motion.
 
 > Every item below was on the launch artifact's board and failed the one test — *does it aid the live state on the 25th?* None is forgotten; none is worked before launch. The artifact mirrors this list until the 25th, then dies; this page is the home.
 
+## ▶ THE RUNNING ORDER *(founder-set 22 Aug, after the launch build merged)*
+
+> **Priority is part of the record, not a preference to be re-derived later.** The founder set this order deliberately: the first two sessions after launch fix HOW HE OPERATES and HOW THE COMPANY READS, before anything new is built. Numbers 6–11 are improvements to things that now work — none is a gap in the live product.
+>
+> The **Parked builds** immediately below are a separate list: whole builds that already have verified prompts. They are not part of this ladder and are picked up when their day comes.
+
+| # | Post-live work | Kind |
+|---|---|---|
+| **1** | **Founder-Operator OS — the operational fix** *(incl. hiring / scale triggers)* | **FIRST session after launch** |
+| **2** | Website consistency / cleanup *(incl. the Milla + Vida homepage)* | Second session |
+| **3** | Forecasting — the numbers we plan against, and what we track | Ongoing discipline |
+| **4** | Founder economics / cashflow calculators refresh *(all three together)* | Feeds 3 |
+| **5** | Cost / economics audits — Anthropic · Hunter · Stripe · Google | Feeds 4 |
+| **6** | Website intelligence — later | Improvement |
+| **7** | ICP / targeting evolution — later | Improvement |
+| **8** | Proof / acquisition optimisation — later | Improvement |
+| **9** | FIGSY evolution — later | Improvement |
+| **10** | Reply / handoff evolution — later | Improvement |
+| **11** | Vida / operator scaling — later | Improvement |
+
 ## Parked builds *(each already has a verified prompt in the launch artifact — reuse it when its day comes)*
 - **P34's screens — PR #1427, OPEN and PARKED.** The merged half (#1426: table, routes, prompt consumers) is verified **inert** in production — the brief only reaches a prompt once a client approves one, and without the screens nobody can. Decision on merge day: merge #1427 as-is (was gate-green 21 Aug) or rebuild against then-current main.
 - **P35 — the Proof Pack** (founder-only outcomes report in `vida/reports`; HTML only — no PDF lib exists).
@@ -939,28 +959,131 @@ That + outbound + partners = the motion.
 - **P45 — the Warm-Reply Cockpit** (upgrades the live `/milla/replies` + `/vida/unibox`; must reuse the freebusy LIB, not the two dead calendar routes).
 - **P46 — the Bad-Egg Log** (alert taxonomy pinned at 9 kinds; ships WITH its nav link).
 
-### Parked by the 22-Aug launch-coherence build (#700 · AR17/AR18)
+## 1. FOUNDER-OPERATOR OS — THE OPERATIONAL FIX *(the FIRST working session after launch, before any product expansion)*
+
+⛓️ **This supersedes the one-line entry that read *"Founder-Operator OS — PR #1436, still open"*.** The PR is still open and is **not** simply to be merged: the operational fix comes first, and the PR is then judged against it.
+
+**The purpose is not a feature.** It is to fix how the founder actually operates K.I.N.D across Notion and the tools around it — where an idea goes, who owns it, and how anyone knows what happened to it.
+
+**The operating chain, end to end:**
+
+`IDEA` → `RECORD` → `CLASSIFY` → `PARK / PRIORITISE` → `OWNER` → `ACTION` → `STATUS` → `COMPLETION / LEARNING`
+
+**The property being built for** — the test any design has to pass:
+
+> **one home · one owner · one state · one next action · one trigger · one history trail**
+
+⚠️ **The Founder-Operator OS visual is a KEY design and operating reference, and its location needs correcting rather than repeating.** Verified 22 Aug against the merged `main`:
+- **`docs/mv-previews/founder-operator-os-v8.html` is NOT on `main`.** It exists only on the **PR #1436 branch** (`claude/log-founder-operator-os`), so it lives nowhere a session starting from `main` would find it. Landing that file is part of this work.
+- **`docs/design-reference/founder-operator-os-v8.png` does not exist anywhere in the repo** — not on `main`, not on the PR branch. `docs/design-reference/` holds ten website screenshots and nothing else. If the founder holds that image outside the repo, bringing it in is part of this work; recording the path as though it were already here would be the kind of sentence that reads true and is not.
+
+### 1a. HIRING AND SCALE TRIGGERS — a core operating control, not a loose future idea
+
+The OS must make these **operational**, not merely written down. Each is a question the founder should never have to re-answer under pressure:
+
+- **When the founder stops absorbing a function personally** — the point at which doing it himself stops being the cheap option.
+- **What actually triggers a hire** — workload, client volume, revenue, operational pressure; the threshold named in advance rather than felt in arrears.
+- **Which role comes next, and why that one** — the ordering, with its reasoning attached.
+- **What that person owns** — the function moving across, not a list of tasks.
+- **How responsibility moves founder → owner** — the handover itself, so the founder is not the fallback owner forever.
+- **The two failure modes, both explicit:** hiring **too early** (paying for capacity the work does not need) and hiring **only after founder overload** (by which point the decision is made badly, under strain, and usually late).
+
+⚠️ The **partner and team economics the founder already uses to think about hiring live in the three calculators at #4, whose outputs are NOT canon until refreshed.** Hiring triggers and those numbers are one conversation.
+
+## 2. WEBSITE CONSISTENCY / CLEANUP *(second session after launch)*
+
+**The site is already strong. This is not a redesign, and it is not pre-launch work.** The goal is that it reads as **one coherent company and one coherent product** rather than pages written at different times.
+
+One end-to-end pass covering: **messaging · terminology · page structure · tone · visual hierarchy · CTA language · pricing and product explanation · the Milla description · the Vida description · the K.I.N.D description** — every one of them checked against the **settled launch product model**, not against an earlier era.
+
+### 2a. HOMEPAGE — MILLA + VIDA, SIDE BY SIDE *(J&J-style)*
+
+The main homepage concept: the two as the **paired core system**, shown together rather than as separate features.
+
+- **Milla** learns the client — their business, their core ICP, their campaign intent.
+- **Vida** is how K.I.N.D operates and delivers the work.
+
+This belongs to the consistency pass and comes **after** the operational fix, not before it.
+
+## 3. FORECASTING *(the numbers we plan against — and what makes them real)*
+
+⚠️ **EVERY NUMBER BELOW IS A WORKING PLANNING ASSUMPTION, NOT PROVEN K.I.N.D TRUTH.** They are written down so planning has a starting point and so that later, when real data disagrees, the disagreement is visible instead of quietly reinterpreted.
+
+**Contact volume per paying customer**
+- **Initial planning assumption: ~250–400** properly targeted prospective customers contacted per paying K.I.N.D customer.
+- **Stronger target once the proof motion is working: ~100–200** prospects per paying customer.
+
+**Acquisition rate**
+- **2–5 new paying clients / month** — realistic early acquisition.
+- **5–10 / month** — very good early performance.
+- **10–15 / month** — strong evidence the proposition and the acquisition motion are working.
+- **Initial operating target: prove 5 paying clients / month, consistently.**
+
+**Free-acquisition economics** *(as fenced by AR17/AR18, live in the code from 22 Aug)*
+- **$300 / month** free-acquisition PDL budget, separate from paid delivery.
+- **PDL $0.28** per sourced external record.
+- **Max 40 PDL records** per unpaid proof prospect.
+- **Therefore max $11.20 PDL exposure** for a full two-pass proof prospect.
+- **Pool-first can reduce the actual cost** — owned records cost $0 and never touch the 40.
+
+**Paid-client principle.** As paying customer volume proves the economics, the founder **deliberately raises funded acquisition and sourcing capacity**. The current ceilings are safety while the model is unproven — they are **not permanent caps**, and nothing raises them automatically.
+
+### 3a. THE RULE THAT DECIDES WHICH NUMBER WINS
+
+> **Industry benchmarks inform planning. K.I.N.D's own observed funnel data becomes the primary evidence as soon as enough real data exists — and an external benchmark must never silently replace it.**
+
+### 3b. WHAT WE TRACK *(K.I.N.D's own funnel — the primary evidence)*
+
+prospects contacted · meaningful replies and conversations · proof starts · **proof pass 1 outcomes** · refinements · **proof pass 2 outcomes** · **$299 conversions** · prospect → paid conversion · acquisition spend per customer · **PDL cost per customer** · approved leads per client · **post-100 $4 lead usage** · retained and active customers · monthly new customers.
+
+### 3c. MONTHLY INDUSTRY BENCHMARK TRACKING *(the secondary evidence)*
+
+Track monthly, and compare month on month: **cold email reply rates · meeting booking rates · follow-up contribution · sales close rates · prospect-to-customer conversion · major outbound trend changes.**
+
+Translate any meaningful change into what it implies for K.I.N.D's forecasting — and write the translation down, so a moved benchmark never arrives as an unexplained new assumption.
+
+## 4. FOUNDER ECONOMICS / CASHFLOW CALCULATORS REFRESH *(one job, all three together)*
+⚠️ **Their current outputs are NOT canon until this is done — including the partner model the founder has already used to think about hiring.**
+Refresh **[`hiring/KIND-AE-commission-calculator.html`](./hiring/KIND-AE-commission-calculator.html)**, **[`hiring/KIND-partner-calculator.html`](./hiring/KIND-partner-calculator.html)** and **[`hiring/KIND-team-pnl-calculator.html`](./hiring/KIND-team-pnl-calculator.html)** **together**, against verified current economics: **$299** onboarding package · **first 100 approved leads included** · **$4** thereafter · **$8/client/month** inbox + domain · **Instantly $37/mo as a FIXED company-wide warm-up cost, never per client** · **Smartlead dormant — the stale $45/client month-one assumption removed** · **PDL $0.28/record** · **free-proof acquisition economics (40 records / $11.20 per prospect, $300/mo ceiling)** · preview economics · **Hunter UNKNOWN** where unverified · **Anthropic UNKNOWN** where unverified · **Stripe actual / variable fees read from Stripe's own reporting — never a guessed fixed percentage** · fixed vs per-client costs kept apart · partner commission and share economics.
+Refreshed together because they share inputs: correcting one and not the others is how the $45 Smartlead line survived inside the $299 cost basis while `cost-floor.ts` already said Smartlead was $0.
+
+## 5. COST / ECONOMICS AUDITS *(what turns the UNKNOWNs above into numbers)*
+Post-live, verify and model each properly — every one of these currently sits in a calculator as an estimate or a blank:
+- **Anthropic / Claude real operational cost** — call sites · models · `max_tokens` · call frequency · retries · logging · caching · batching and streaming · **live vs dead paths** (a call site nothing reaches costs nothing, and counting it inflates the floor).
+- **Hunter — the exact K.I.N.D usage pattern.** Finder, Verifier, or both. The plan is known; which endpoints we actually consume is not.
+- **Stripe — actual and variable reporting**, read off the dashboard, rather than the guessed flat percentage the calculators currently carry.
+- **Google / mailbox — reconcile the separate ~$28 charge** against the $8/client/month figure the model uses.
+
+### 6–11 — parked improvements *(from the 22-Aug launch-coherence build, #700 · AR17/AR18)*
 *Everything below was deliberately cut from the free-proof and Milla-understanding work so the 25th could hold. Each is an improvement to something that now WORKS, not a gap in it.*
+
+**6. WEBSITE INTELLIGENCE — LATER**
 - **Website intelligence beyond targeting.** `/icps/prefill` reads the site once, takes the first 3,000 characters, proposes ICP fields and stores nothing. It informs WHO we find, never WHAT we say. Deeper reading — product detail, positioning, proof — is post-live.
 - **Case-study and testimonial extraction.** Proof reaches FIGSY only when the client states it and permits it. Pulling named customers or metrics off a website automatically needs the permission conversation designed first; the flag exists (`proof[].permitted`), the extractor does not.
 - **Automated contradiction detection** — noticing that what a client says now disagrees with what they said before, or with their site.
+
+**7. ICP / TARGETING EVOLUTION — LATER**
+- **ICP version history** — which ICP version sourced which leads is not recorded.
+- **Multiple ICPs and multiple live campaigns.** Launch is one core ICP → one active campaign → one motion, enforced at activation. Orchestrating several is a product expansion.
 - **Richer negative targeting.** There is still **no exclusion field of any kind** in the ICP: no excluded companies, titles, industries or domains. A client's *"anyone except our existing customers"* has nowhere to go. `bad_fit` is captured as prose for a human to read, and no filter applies it.
 - **Richer geography** — country is the only unit. *"Manufacturers in the Midlands"* becomes *United Kingdom*.
 - **Job-function and company-type targeting** — neither is expressible in the five fields the engine actually targets on.
-- **Multiple ICPs and multiple live campaigns.** Launch is one core ICP → one active campaign → one motion, enforced at activation. Orchestrating several is a product expansion.
-- **ICP version history** — which ICP version sourced which leads is not recorded.
+
+**8. PROOF / ACQUISITION OPTIMISATION — LATER** — ⚠️ the launch rule **20 → one refinement of the SAME core ICP → 20 → a human** does NOT change now; this is about learning from real data whether it should ever evolve.
 - **Proof conversion analytics · trial scoring · automated "materially wrong" detection · adaptive proof-batch sizing · deeper acquisition learning · acquisition-cost optimisation.** The free-proof motion ships with human judgement deciding whether a second pass missed. Measuring and automating that judgement is the post-live work; the founder ruled human operation acceptable at launch.
+
+**9. FIGSY EVOLUTION — LATER**
 - **Regeneration of frozen sequence copy.** Copy is written at enrolment and kept. Change the campaign intent or the grounding afterwards and already-enrolled leads keep their original wording, including unsent steps 2 and 3. Safe at launch because the reflect-back summary happens before enrolment — but there is no rewrite action.
 - **Operator copy editing.** Vida can Release or Reject a queued draft. It cannot edit the words or ask for a rewrite.
+
+**10. REPLY / HANDOFF EVOLUTION — LATER** — ⚠️ launch stays: any reply stops the sequence · Claude classifies · FIGSY never auto-replies · a K.I.N.D human takes over.
 - **Autonomous reply handling and reply orchestration.** Any reply stops the sequence and a person takes over. FIGSY never auto-replies, never negotiates, never promises, never discounts — and that stays true until it is deliberately changed.
 - **Advanced automated outcome handoff.** The client gets context with their meeting because a person writes it. Automating that is post-live.
-- **Operator scaling automation** — everything above assumes the founder is the operator.
-- **Founder-Operator OS** — PR #1436, still open.
 
-### FOUNDER ECONOMICS / CASHFLOW CALCULATORS REFRESH *(one job, all three together)*
-⚠️ **Their current outputs are NOT canon until this is done — including the partner model the founder has already used to think about hiring.**
-Refresh **[`hiring/KIND-AE-commission-calculator.html`](./hiring/KIND-AE-commission-calculator.html)**, **[`hiring/KIND-partner-calculator.html`](./hiring/KIND-partner-calculator.html)** and **[`hiring/KIND-team-pnl-calculator.html`](./hiring/KIND-team-pnl-calculator.html)** **together**, against verified current economics: **$299** onboarding package · **first 100 approved leads included** · **$4** thereafter · **$8/client/month** inbox + domain · **Instantly $37/mo as a FIXED company-wide warm-up cost, never per client** · **Smartlead dormant — the stale $45/client month-one assumption removed** · **PDL $0.28/record** · **free-proof acquisition economics (40 records / $11.20 per prospect, $300/mo ceiling)** · preview economics · **Hunter UNKNOWN** where unverified · **Anthropic UNKNOWN** where unverified · Stripe ≈5% marked *estimate* until read off the dashboard · fixed vs per-client costs kept apart · partner commission and share economics.
-Refreshed together because they share inputs: correcting one and not the others is how the $45 Smartlead line survived inside the $299 cost basis while `cost-floor.ts` already said Smartlead was $0.
+**11. VIDA / OPERATOR SCALING — LATER** — deeper operator tooling · review and readiness improvements · complex readiness scoring · scaling the human operating layer · Founder-Operator OS evolution, AFTER the first operational fix at #1.
+- **Operator scaling automation** — everything above assumes the founder is the operator.
+
+### Smaller parked items *(from the 21-Aug cut — each is small, none is urgent)*
 - **W1 phases 2–3** — the other 23 site pages · the Drop's 4:3 crop risk · the Nexus sub-brand-or-converge decision.
 - **Welcome-transcript capture** (P34 follow-on; own privacy surface).
 - **The brief-message removal control** (one stale "3 prospects" line sits in the founder's own thread; O3 forbids a hand delete).
@@ -969,3 +1092,13 @@ Refreshed together because they share inputs: correcting one and not the others 
 ## Cleanups from the 21-Aug full-system verification *(zero broken clicks found; these are the two structural findings)*
 - **Retire or fence the old `/dashboard` page family** — fully functional, reachable only by typed URL since login redirects to `/milla`; it is the layer that keeps misleading build prompts (the figsy-chat near miss).
 - **Review the ~40 orphan endpoints** no screen calls (`scripts/dead-surfaces.sh` is the catalogue; webhooks/cron rows are legitimate).
+
+---
+
+## 🛑 NOTHING ABOVE IS LAUNCH SCOPE *(founder-restated 22 Aug, when this list was written)*
+
+Every item on this page is parked. **No entry above converts into launch scope**, and reading one here is not permission to build it. Launch remains exactly:
+
+**25 Aug 2026** · **one core ICP** · **one active campaign** · **one live sequence / motion** · **20 → refine the SAME ICP → 20 → a human** · **$299 onboarding pack** · **first 100 approved leads included** · **$4 after the first 100** · **K.I.N.D-only GO** · **human reply ownership** · **the current provider and money boundaries**.
+
+His reason for the whole shape, recorded because it explains every deferral above: *"correctness and control matter more than automation"* — the founder wants to learn how clients actually behave before any of this is made more efficient.

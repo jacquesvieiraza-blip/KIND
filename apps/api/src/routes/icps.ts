@@ -851,7 +851,18 @@ export async function runIcpJob(
 }
 
 // Preview count — returns total matching leads + 3 sample contacts for an ICP config without saving
-icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
+//
+// ── RATE LIMIT (founder-ruled 22 Aug) ────────────────────────────────────────────
+// #446's cache makes REPEATED IDENTICAL previews free, but the key is the ICP SHAPE —
+// so every distinct variant is a fresh PDL call, and PDL bills per record returned
+// (count 1 + samples 3). Nothing capped how many distinct shapes one account could
+// churn through. This is the SAME config as `/icps/:id/run` below — the other
+// PDL-spending, authenticated, per-user route on this router — not a new policy:
+// 10/min, keyed by the authenticated user (`requireAuth` runs first at :93).
+//
+// ⚠️ IT GUARDS PREVIEW TRAFFIC ONLY. Creating, editing and saving an ICP are separate
+// routes and are NOT rate-limited by this — a client can still revise their ICP freely.
+icpRouter.post('/preview-count', rateLimit({ limit: 10, windowMs: 60_000, key: 'icp-preview', byUser: true }), async (req: AuthRequest, res) => {
   try {
     const { previewCount, buildSearchBody, searchPeople } = await import('../lib/apollo')
     const body = req.body as {

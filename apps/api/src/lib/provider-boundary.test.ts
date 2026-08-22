@@ -29,7 +29,7 @@ vi.mock('@kind/db', () => ({
 }))
 
 import {
-  searchProviderFor, revealProviderFor, companyNameSearchAllowed,
+  searchProviderFor, companyNameSearchAllowed,
   isApolloPersonId, apolloRevealableIds,
   COMPANY_SEARCH_UNAVAILABLE, type Audience,
 } from './provider-boundary'
@@ -41,10 +41,11 @@ describe('AR5 — the provider decision is pure and audience-driven', () => {
     expect(searchProviderFor('client')).toBe('pdl')
   })
 
-  it('house reveals via Apollo; client reveals via Hunter', () => {
-    expect(revealProviderFor('house')).toBe('apollo')
-    expect(revealProviderFor('client')).toBe('hunter')
-  })
+  // ⚠️ There is deliberately no `revealProviderFor` test — the function was removed on
+  // 22 Aug. It had no runtime callers and encoded a rule the founder does not hold:
+  // *"no. we have no blocker. if we need hunter we need him."* Hunter serves client
+  // reveals AND is permitted as a house reveal fallback. What AR5 constrains is the
+  // paid Apollo reveal, and that is tested below against the id's own provenance.
 
   it('company-name search is house-only (founder, 21 Aug)', () => {
     expect(companyNameSearchAllowed('house')).toBe(true)
@@ -144,6 +145,145 @@ describe('AR5 — a PDL id can never be sent to Apollo bulk_match', () => {
       expect(fetchSpy).toHaveBeenCalledTimes(1)
       expect(out.get('legacy_apollo_id')).toBe('dana@northwind-logistics.co.uk')
     })
+  })
+})
+
+// ── THE AR8 CASH FENCE IS THE CLIENT'S FENCE, NOT THE HOUSE'S ────────────────
+//
+// `try_spend_sourcing` (AR8) pre-funds PDL records out of the CLIENT'S collected
+// cash — k=2, monthly ceiling, daily cap. It is a fence around buying PDL data.
+//
+// The first version of this PR resolved the audience SIXTY LINES AFTER that fence
+// ran, so the house account operating through Milla was made to pre-fund its own
+// Apollo hunting out of a PDL allowance the house never accrues. With a zero
+// allowance the grant came back 0 and the run returned "Sourcing paused — add
+// reveal credits" — the house never reached Apollo at all.
+//
+// These tests drive the real `runIcpJob` with an empty pool (so the whole target
+// falls to the external remainder) and watch which RPCs it calls.
+describe('AR8 — the PDL cash fence is the client\'s, and the house is not gated by it', () => {
+  const ICP_ROW = {
+    id: 'icp-1', client_id: 'c1',
+    geographies: [], job_titles: [], industries: [], seniority_levels: [], company_sizes: [],
+  }
+
+  /** Runs the REAL runIcpJob against mocks. Returns what it reached for. */
+  async function runSourcing(audience: Audience, grantReturns: number) {
+    const rpcCalls: Array<{ fn: string; args: Record<string, unknown> }> = []
+    const searchCalls: Array<{ size: number; audience: string }> = []
+
+    vi.resetModules()
+
+    vi.doMock('@kind/db', () => {
+      const singleFor = (table: string) => {
+        if (table === 'icps') return ICP_ROW
+        if (table === 'clients') return { leads_per_run: null, is_demo: false, user_id: 'u1' }
+        return null
+      }
+      const makeQuery = (table: string) => {
+        const q: Record<string, unknown> = {}
+        for (const m of ['select', 'eq', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) {
+          q[m] = () => q
+        }
+        // `lead_pool` ends its candidate query on `.limit(n)` — an EMPTY pool, so the
+        // entire target falls through to the external remainder, which is the path
+        // under test.
+        q.limit          = async () => ({ data: [], error: null })
+        q.single         = async () => ({ data: singleFor(table), error: null })
+        q.maybeSingle    = async () => ({ data: singleFor(table), error: null })
+        q.update         = () => ({ eq: async () => ({ error: null }) })
+        q.upsert         = async () => ({ error: null })
+        q.insert         = () => ({
+          select: () => ({ single: async () => ({ data: { id: 'lead-x' }, error: null }) }),
+          then:   (r: (v: unknown) => void) => r({ error: null }),
+        })
+        q.then = (r: (v: unknown) => void) => r({ data: [], count: 0, error: null })
+        return q
+      }
+      return {
+        db: {
+          from: (t: string) => makeQuery(t),
+          rpc:  async (fn: string, args: Record<string, unknown>) => {
+            rpcCalls.push({ fn, args })
+            if (fn === 'try_spend_sourcing') return { data: grantReturns, error: null }
+            return { data: null, error: null }
+          },
+          auth: { admin: { listUsers: async () => ({ data: { users: [] }, error: null }) } },
+        },
+      }
+    })
+
+    // The audience decision itself is proved by the tests above; here it is pinned so
+    // the FENCE ORDERING is what is under test, not the lookup.
+    vi.doMock('./provider-boundary', async () => {
+      const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
+      return { ...real, audienceForClient: async () => audience, audienceForUser: async () => audience }
+    })
+
+    // No provider is ever reached: the search door is recorded, not called.
+    vi.doMock('./apollo', () => ({
+      searchPeopleWithFallback: async (_icp: unknown, _p: number, size: number, _c: unknown, aud: string) => {
+        searchCalls.push({ size, audience: aud })
+        return { contacts: [], relaxed: false }
+      },
+      ApolloCreditsExhaustedError: class extends Error {},
+      ApolloRateLimitError: class extends Error {},
+    }))
+
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob('icp-1', 'c1', 'u1', 10)
+
+    return { rpcNames: rpcCalls.map(c => c.fn), rpcCalls, searchCalls }
+  }
+
+  // `middleware/auth.ts:4` calls `createClient(...)` at MODULE SCOPE, and importing
+  // `routes/icps` pulls it in — so the import throws "supabaseUrl is required" before a
+  // single line of the function under test runs. These are syntactically-valid dummies
+  // and no client is ever used: every DB call goes through the mocked `@kind/db`.
+  // (`lib/startup-check.ts:98` documents this same module-scope hazard.)
+  const prev = {
+    anthropic: process.env.ANTHROPIC_API_KEY,
+    url:       process.env.SUPABASE_URL,
+    anon:      process.env.SUPABASE_ANON_KEY,
+  }
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY  = 'test-key'
+    process.env.SUPABASE_URL       = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY  = 'test-anon-key'
+  })
+  afterEach(() => {
+    // ⚠️ NOT `@kind/db` — un-mocking it would drop the HOISTED module-level mock this
+    // whole file depends on, and every later suite would try to reach a real Supabase.
+    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL      = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('A — HOUSE with ZERO PDL allowance never calls the fence, and still reaches Apollo', async () => {
+    // grantReturns 0 = the house has no PDL allowance, which is the normal state: the
+    // house never accrues one. Before the fix this returned "Sourcing paused".
+    const { rpcNames, searchCalls } = await runSourcing('house', 0)
+    expect(rpcNames).not.toContain('try_spend_sourcing')
+    expect(searchCalls).toHaveLength(1)
+    expect(searchCalls[0].audience).toBe('house')
+    // The volume limit is the remainder that already existed — no new budget rule.
+    expect(searchCalls[0].size).toBe(10)
+  })
+
+  it('B — NORMAL CLIENT still calls the fence, with AR8\'s arguments unchanged', async () => {
+    const { rpcNames, rpcCalls, searchCalls } = await runSourcing('client', 10)
+    expect(rpcNames).toContain('try_spend_sourcing')
+    const fence = rpcCalls.find(c => c.fn === 'try_spend_sourcing')!
+    expect(fence.args).toEqual({ p_client_id: 'c1', p_requested: 10 })
+    expect(searchCalls[0].audience).toBe('client')
+  })
+
+  it('B2 — a NORMAL CLIENT with no allowance is still refused, exactly as AR8 says', async () => {
+    const { rpcNames, searchCalls } = await runSourcing('client', 0)
+    expect(rpcNames).toContain('try_spend_sourcing')
+    expect(searchCalls).toHaveLength(0)   // refused — no provider reached
   })
 })
 

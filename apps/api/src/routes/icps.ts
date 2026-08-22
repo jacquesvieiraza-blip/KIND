@@ -422,6 +422,23 @@ export async function runIcpJob(
   inserted += pool.served
   insertedIds.push(...pool.insertedIds)
 
+  // ── AR5 / AR8 — WHOSE RUN IS THIS? RESOLVED BEFORE THE FENCE, NOT AFTER IT ──────
+  //
+  // ⚠️ This lookup used to sit SIXTY LINES FURTHER DOWN, immediately before the provider
+  // call — and that ordering was itself the defect. `try_spend_sourcing` (AR8) pre-funds
+  // **PDL** records out of the **client's** collected cash: k=2, monthly ceiling, daily
+  // cap. It is a fence around buying the clients' data.
+  //
+  // Running it before the audience was known meant the HOUSE account operating through
+  // Milla was asked to pre-fund its own Apollo hunting out of a PDL allowance the house
+  // never accrues. With the normal zero allowance the grant came back 0 and the run
+  // returned *"Sourcing paused — add reveal credits"* — Client Zero never reached Apollo
+  // at all. Found by independent review (GPT-5.6, 22 Aug).
+  //
+  // `audienceForClient` fails closed to 'client', so an unknown account still lands on
+  // the fenced path and can never spend K.I.N.D's Apollo.
+  const audience = await audienceForClient(clientId)
+
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
   const { pdlRemainder } = splitPoolAndRemainder(effectiveCap, pool.served)
@@ -445,10 +462,22 @@ export async function runIcpJob(
     // the global monthly ceiling and the daily cap, returning the GRANTED batch size.
     // We then ask PDL for EXACTLY that many (kills the old buy-50-keep-20 waste). granted
     // 0 = the client is out of pre-funded budget → source nothing, log honestly, no PDL spend.
-    const { data: granted } = await db.rpc('try_spend_sourcing', {
-      p_client_id: clientId, p_requested: pdlRemainder,
-    })
-    const grantedSize = typeof granted === 'number' ? granted : 0
+    // ⚠️ HOUSE IS NOT GATED BY THE PDL CASH FENCE (AR5/AR8, corrected 22 Aug).
+    // The house remainder is sourced from APOLLO — ours, already prepaid — so no PDL
+    // record is bought, there is no allowance to decrement and nothing for a cash fence
+    // to pre-fund. The volume limit is the SAME `pdlRemainder` the fence would have
+    // capped: no new budget subsystem, no wallet link, no new ceiling, no runtime data
+    // touched. The client path below is byte-for-byte what it was.
+    let grantedSize: number
+    if (audience === 'house') {
+      grantedSize = pdlRemainder
+      console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; the PDL cash fence does not apply (AR5/AR8).`)
+    } else {
+      const { data: granted } = await db.rpc('try_spend_sourcing', {
+        p_client_id: clientId, p_requested: pdlRemainder,
+      })
+      grantedSize = typeof granted === 'number' ? granted : 0
+    }
     if (grantedSize <= 0) {
       // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
       // cap every grant is 0, so this is the only path that can raise "budget REACHED".
@@ -463,7 +492,9 @@ export async function runIcpJob(
       // Pool already served leads — deliver those; just skip the PDL top-up.
       console.log(`[icp] PDL top-up refused for client ${clientId} (no budget) — delivering ${pool.served} pool-served leads only.`)
     } else {
-      void maybeAlertPdlBudget()
+      // PDL-budget alarm only on a run that actually spends PDL. A house run buys no
+      // PDL records, so raising the PDL budget alarm from it would be a false alert.
+      if (audience !== 'house') void maybeAlertPdlBudget()
 
       // #366 — resume from where the last run stopped. `cursor.token` is null on a first
       // run (or after an ICP edit), which is the old behaviour exactly.
@@ -502,12 +533,11 @@ export async function runIcpJob(
       }
 
       // ── AR5 BOUNDARY (21 Aug) ──────────────────────────────────────────────────
-      // Whose sourcing is this? House → Apollo (our hunting, our prepaid credits);
-      // client → PDL under the AR8 fence spent just above. Derived from the client's
-      // AUTH USER (#593), never from which global API keys happen to be set — that
-      // key-driven mixing is the defect this closes. `audienceForClient` fails closed
-      // to 'client', so an unknown account can never reach K.I.N.D's Apollo.
-      const audience = await audienceForClient(clientId)
+      // House → Apollo (our hunting, our prepaid credits); client → PDL under the AR8
+      // fence spent just above. `audience` is resolved BEFORE that fence now — see the
+      // note at the pool serve — because the fence is the client's and must not gate
+      // the house. Identity is the AUTH USER (#593), never which API keys happen to be
+      // set: that key-driven mixing is the defect this closes.
       const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience)
       relaxed = pdlRelaxed
 
@@ -526,8 +556,13 @@ export async function runIcpJob(
       // unused grant (p_trial=false: it goes back to spendable allowance WITHOUT touching
       // the trial-granted counter, so retries stay possible) and book a negative ledger
       // correction so the monthly/daily sums reflect real spend.
+      //
+      // ⚠️ CLIENT ONLY. A house run never called `try_spend_sourcing`, so there is no
+      // grant to refund and no PDL money was spent — refunding here would credit the
+      // house a PDL allowance it never bought and book a negative PDL ledger row for a
+      // run that cost no PDL. The reconcile belongs to the fence, so it lives with it.
       const returnedCount = Math.min(contacts.length, grantedSize)
-      const unusedGrant = grantedSize - returnedCount
+      const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
       if (unusedGrant > 0) {
         const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
           p_client_id: clientId, p_records: unusedGrant, p_trial: false,

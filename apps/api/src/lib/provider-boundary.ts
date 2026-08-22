@@ -40,7 +40,6 @@ import { db } from '@kind/db'
 export type Audience = 'house' | 'client'
 
 export type SearchProvider = 'apollo' | 'pdl'
-export type RevealProvider = 'apollo' | 'hunter'
 
 /**
  * AR5, as a function. Pure — no keys, no environment, no database.
@@ -54,15 +53,23 @@ export function searchProviderFor(audience: Audience): SearchProvider {
   return audience === 'house' ? 'apollo' : 'pdl'
 }
 
-/**
- * AR5's other half. Apollo reveals cost a credit each; Hunter is the clients' side.
- *
- * ⚠️ This governs which provider a NEW reveal is allowed to use. It does not and
- * must not be read as permission to re-route an EXISTING lead — see the header.
- */
-export function revealProviderFor(audience: Audience): RevealProvider {
-  return audience === 'house' ? 'apollo' : 'hunter'
-}
+// ⚠️ THERE IS DELIBERATELY NO `revealProviderFor()` HERE (removed 22 Aug).
+//
+// A `revealProviderFor(audience) => 'apollo' | 'hunter'` was written here and had
+// ZERO runtime callers — nothing but its own test ever read it. Dead policy code
+// is bad enough; this particular dead code also *encoded a rule that does not
+// exist*, reading as "house must never use Hunter". The founder ruled otherwise:
+//
+//   "no. we have no blocker. if we need hunter we need him."   (22 Aug)
+//
+// Hunter is the normal client's reveal provider AND is permitted as a house /
+// Client Zero reveal fallback when needed. The live Hunter waterfall in
+// `lead-delivery.ts` is gated on the key, serves any audience, and is CORRECT —
+// it is not an AR5 defect and it is not changed by this module.
+//
+// What AR5 does constrain is the paid APOLLO reveal, and that is enforced below
+// by `apolloRevealableIds()` against the id's own provenance — not by an
+// audience-to-provider table nothing consults. See PRODUCT-RULES **AR5**.
 
 /**
  * Founder-ruled 21 Aug: **company-name search is house-only, for now.**

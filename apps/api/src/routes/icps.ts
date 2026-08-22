@@ -1511,9 +1511,9 @@ async function persistMillaUnderstanding(
         .limit(1).maybeSingle()
       if (icpRow?.id) {
         // SCAFFOLD ONLY. Storing what the client wants must not be the event that makes a
-      // campaign live — that is K.I.N.D's GO, and a campaign made live here would also
-      // have refused the operator's own GO through the one-active invariant.
-      const camp = await ensureCampaignForIcp(clientId, icpRow.id as string, icpName ?? null)
+        // campaign live — that is K.I.N.D's GO, and a campaign made live here would also
+        // have refused the operator's own GO through the one-active invariant.
+        const camp = await ensureCampaignForIcp(clientId, icpRow.id as string, icpName ?? null)
         if (camp?.id) {
           await db.from('figsy_campaigns')
             .update({ campaign_intent: intent.slice(0, 2000), intent_mapped_at: new Date().toISOString() })

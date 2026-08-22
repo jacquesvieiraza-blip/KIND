@@ -77,7 +77,8 @@ type Cockpit = {
   icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null
                is_active?: boolean | null
                pending_targeting?: { name?: string | null } | null
-               pending_submitted_at?: string | null }[]
+               pending_submitted_at?: string | null
+               pending_campaign_intent?: string | null }[]
   campaigns: CampaignRow[]
   sequences: { id: string; name: string; steps: unknown; created_at: string | null; updated_at: string | null }[]
   replies:   { id: string; lead_id: string | null; from_name: string | null; from_email: string | null; classification: string | null; qualified_at: string | null; meeting_booked_at: string | null; received_at: string | null }[]
@@ -990,7 +991,7 @@ export default function VidaConsolePage() {
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Could not activate (${res.status})`)
       setSaveMsg(notice.ok(json.applied_revision
-        ? 'Revision applied — this is their targeting now. Nothing was re-sourced; their motion continues.'
+        ? 'Revision applied — their targeting and brief are live now. Nothing was re-sourced; their motion continues.'
         : json.sourcing
           ? 'ICP is live — first sourcing run started.'
           : 'ICP is live. It has sourced before, so nothing was re-run.'))
@@ -2042,6 +2043,14 @@ export default function VidaConsolePage() {
                           {i.pending_submitted_at && (
                             <span className="block text-[12px] font-bold text-amber-800 mt-1">
                               ⏸ Revision waiting since {fmtDate(i.pending_submitted_at)} — “{i.pending_targeting?.name || 'revised targeting'}”. Not in effect; GO applies it.
+                            </span>
+                          )}
+                          {/* The BRIEF waits with the targeting (founder-ruled 22 Aug), so it
+                              is shown with it: an operator reviewing a revision needs to see
+                              what the campaign is now FOR, not only who it is aimed at. */}
+                          {i.pending_campaign_intent && (
+                            <span className="block text-[12px] text-amber-800 mt-0.5">
+                              New brief waiting: “{i.pending_campaign_intent}”
                             </span>
                           )}
                         </div>

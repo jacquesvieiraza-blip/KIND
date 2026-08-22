@@ -454,6 +454,7 @@ alter table public.icps
   add column if not exists pdl_exhausted_at                 timestamptz,
   add column if not exists pdl_scroll_query                 text,
   add column if not exists pdl_scroll_token                 text,
+  add column if not exists pending_campaign_intent          text,
   add column if not exists pending_submitted_at             timestamptz,
   add column if not exists pending_targeting                jsonb,
   add column if not exists settings                         jsonb;

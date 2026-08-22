@@ -420,6 +420,16 @@ describe('a LIVE client revises — it is saved, and it waits', () => {
     await h({ params: { id: icpId }, body: { client_id: 'c1' }, headers: { 'x-admin-key': 'right-key' }, userId: 'operator-user' }, res)
     return res
   }
+  /** The realistic revision path: back through Milla, carrying a new brief with it. */
+  const reviseViaMilla = async (intent: string) => {
+    const h = await handlerFor('/', 'post')
+    const res = makeRes()
+    await h({ body: {
+      ...ICP_BODY, name: 'Different people entirely', industries: ['Logistics'],
+      business: BUSINESS, campaign_intent: intent,
+    }, userId: 'u1', headers: {} }, res)
+    return res
+  }
   /** Take the client live, the way K.I.N.D does. */
   const makeLive = async () => {
     await onboard()
@@ -526,5 +536,159 @@ describe('a LIVE client revises — it is saved, and it waits', () => {
     expect(store.icps[0].name).toBe('Different people entirely')   // applied straight away
     expect(store.icps[0].pending_targeting ?? null).toBeNull()
     expect(store.icps).toHaveLength(1)
+  })
+})
+
+// ── THE BRIEF WAITS WITH THE TARGETING, AND IT IS NOT LOST ───────────────────
+//
+// Founder-ruled 22 Aug, closing the gap left by the first pass at the ruling: for a live
+// client BOTH the revised targeting AND the revised campaign intent must wait for review.
+// The first implementation got half of it — it correctly refused to write the new intent
+// onto the live campaign, and then simply DROPPED it. Not applying a client's brief is
+// right; losing it is not. They said what this campaign is now for, and by GO nobody could
+// remember what that was.
+//
+// ⚠️ WHY `pending_targeting` COULD NOT JUST CARRY IT, proved in the code rather than
+// asserted: GO applies the held revision with `db.from('icps').update({ ...applyHeld })`,
+// so EVERY key inside `pending_targeting` is written as an `icps` column. `campaign_intent`
+// is a `figsy_campaigns` column (20260524_campaign_intent.sql) and does not exist on
+// `icps` — so hiding it in that payload would either fail the whole GO write or, worse,
+// silently need stripping logic that the column's own name gives no hint of. It gets its
+// own field, and the whole pending revision still lives in ONE row so a refused GO cannot
+// clear half of it.
+describe('a live client\'s revised BRIEF waits too — and survives the wait', () => {
+  let store: Store
+  let rec: { rpcs: Array<{ fn: string; args: Row }> }
+
+  beforeEach(() => {
+    store = makeStore()
+    rec = { rpcs: [] }
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installDb(store, rec)
+    vi.doMock('../routes/admin', () => ({ adminKeyValid: (k: unknown) => k === 'right-key' }))
+    vi.doMock('./apollo', () => ({
+      searchPeopleWithFallback: async () => ({ contacts: [], relaxed: false }),
+      ApolloCreditsExhaustedError: class extends Error {}, ApolloRateLimitError: class extends Error {},
+    }))
+    vi.doMock('./alerts', () => ({ sendFounderAlert: async () => {} }))
+    vi.doMock('./provider-boundary', async () => {
+      const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
+      return { ...real, audienceForClient: async () => 'client', audienceForUser: async () => 'client' }
+    })
+  })
+  afterEach(() => {
+    vi.doUnmock('../routes/admin'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts'); vi.doUnmock('./provider-boundary')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  const save = async (body: Row) => {
+    const h = await handlerFor('/', 'post')
+    const res = makeRes()
+    await h({ body, userId: 'u1', headers: {} }, res)
+    return res
+  }
+  const go = async (icpId: string) => {
+    const h = await handlerFor('/:id/activate', 'patch')
+    const res = makeRes()
+    await h({ params: { id: icpId }, body: { client_id: 'c1' }, headers: { 'x-admin-key': 'right-key' }, userId: 'operator-user' }, res)
+    return res
+  }
+  /** Onboard with an original brief, then take them live. */
+  const liveWithBrief = async () => {
+    await save({ ...ICP_BODY, business: BUSINESS, campaign_intent: 'Book demos with fleet managers' })
+    const icpId = store.icps[0].id
+    await go(icpId)
+    await new Promise(r => setTimeout(r, 60))
+    expect(store.icps[0].is_active).toBe(true)
+    expect(store.figsy_campaigns[0].campaign_intent).toBe('Book demos with fleet managers')
+    return icpId
+  }
+  const reviseBrief = (intent: string) => save({
+    ...ICP_BODY, name: 'Different people entirely', industries: ['Logistics'],
+    business: BUSINESS, campaign_intent: intent,
+  })
+
+  it('THE LIVE BRIEF IS UNCHANGED, AND THE NEW ONE IS KEPT', async () => {
+    await liveWithBrief()
+    await reviseBrief('Fill the 3 September launch webinar')
+
+    // What FIGSY writes from is exactly what it was — the brief did not change under a
+    // live campaign any more than the targeting did.
+    expect(store.figsy_campaigns[0].campaign_intent).toBe('Book demos with fleet managers')
+    // THE DEFECT, ASSERTED: and the client's new brief is not thrown away.
+    expect(store.icps[0].pending_campaign_intent, 'the revised brief was lost').toBe('Fill the 3 September launch webinar')
+    // The targeting waits alongside it, in the same row.
+    expect(store.icps[0].pending_targeting?.name).toBe('Different people entirely')
+  })
+
+  it('NOTHING RUNS WHILE THE BRIEF WAITS', async () => {
+    await liveWithBrief()
+    rec.rpcs.length = 0
+    await reviseBrief('Fill the 3 September launch webinar')
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_spend_sourcing')
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_reserve_proof_records')
+    expect(store.figsy_campaigns).toHaveLength(1)
+    expect(store.figsy_campaigns[0].status).toBe('active')      // untouched, still theirs
+  })
+
+  it('GO APPLIES BOTH — the targeting AND the brief — then clears them', async () => {
+    const icpId = await liveWithBrief()
+    const campId = store.figsy_campaigns[0].id
+    await reviseBrief('Fill the 3 September launch webinar')
+
+    const res = await go(icpId)
+    expect(res.statusCode).toBe(200)
+    // Targeting applied…
+    expect(store.icps[0].name).toBe('Different people entirely')
+    // …and the brief applied to the SAME campaign, not a new one.
+    expect(store.figsy_campaigns).toHaveLength(1)
+    expect(store.figsy_campaigns[0].id).toBe(campId)
+    expect(store.figsy_campaigns[0].campaign_intent).toBe('Fill the 3 September launch webinar')
+    expect(store.figsy_campaigns[0].status).toBe('active')
+    // …and nothing is left pending, so a second GO cannot replay a stale revision.
+    expect(store.icps[0].pending_targeting ?? null).toBeNull()
+    expect(store.icps[0].pending_campaign_intent ?? null).toBeNull()
+    expect(store.icps[0].pending_submitted_at ?? null).toBeNull()
+  })
+
+  it('A REFUSED GO LEAVES BOTH WAITING — nothing half-applied', async () => {
+    const icpId = await liveWithBrief()
+    await reviseBrief('Fill the 3 September launch webinar')
+    // A genuinely competing live campaign, and this ICP's own campaign paused so the
+    // invariant sees a competitor rather than itself.
+    store.figsy_campaigns[0].status = 'paused'
+    store.figsy_campaigns.push({ id: 'camp-other', client_id: 'c1', icp_id: 'icp-other', status: 'active', name: 'Other push' })
+
+    const res = await go(icpId)
+    expect(res.statusCode).toBe(409)
+    expect(store.icps[0].name).toBe('SA SaaS CTOs')                                   // targeting untouched
+    expect(store.icps[0].pending_targeting, 'a refused GO dropped the targeting').toBeTruthy()
+    expect(store.icps[0].pending_campaign_intent, 'a refused GO dropped the brief').toBe('Fill the 3 September launch webinar')
+    expect(store.figsy_campaigns[0].campaign_intent).toBe('Book demos with fleet managers')   // brief untouched
+  })
+
+  it('APPLYING A REVISED BRIEF IS NOT A SECOND FIRST RUN', async () => {
+    const icpId = await liveWithBrief()
+    await reviseBrief('Fill the 3 September launch webinar')
+    rec.rpcs.length = 0
+    const res = await go(icpId)
+    expect((res.body as any).sourcing).toBe(false)
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_spend_sourcing')
+  })
+
+  it('AN UNPAID PROSPECT\'S BRIEF STILL APPLIES STRAIGHT AWAY', async () => {
+    // Nothing of theirs is live, so there is no live brief to protect and no review to wait
+    // for — their campaign is a draft nobody has sent from.
+    await save({ ...ICP_BODY, business: BUSINESS, campaign_intent: 'Book demos with fleet managers' })
+    expect(store.icps[0].is_active).toBeFalsy()
+    await reviseBrief('Fill the 3 September launch webinar')
+    expect(store.figsy_campaigns[0].campaign_intent).toBe('Fill the 3 September launch webinar')
+    expect(store.icps[0].pending_campaign_intent ?? null).toBeNull()
   })
 })

@@ -1456,9 +1456,21 @@ result or a number. "permitted" is false unless they explicitly said we may use 
  *   · NOT LIVE        → write the live columns. A prospect in unpaid proof is still
  *                       shaping a draft; there is nothing of theirs running to protect,
  *                       and a review step here would only delay their second pass.
- *   · LIVE            → write `pending_targeting` + `pending_submitted_at` and leave every
- *                       live column untouched. The revision is SAVED (the client asked for
- *                       it, and losing it would be worse than applying it) and waits.
+ *   · LIVE            → write the pending columns and leave every live column untouched.
+ *                       The revision is SAVED (the client asked for it, and losing it
+ *                       would be worse than applying it) and waits.
+ *
+ * ⚠️ THE BRIEF WAITS WITH THE TARGETING (founder-ruled 22 Aug). `campaign_intent` is what
+ * every email is written from, so a live campaign whose brief changed without review is the
+ * same event as live targeting that changed without review. The first pass at this ruling
+ * correctly refused to APPLY the new brief and then dropped it — right not to use it, wrong
+ * to lose it: the client had said what the campaign was now for, and by GO nobody could
+ * recover it. It rides here, in the SAME row as the targeting, so a refused GO cannot clear
+ * half a revision.
+ *
+ * It needs its own column rather than a key inside `pending_targeting`, because GO applies
+ * that payload by spreading it onto the `icps` row — every key becomes an `icps` column,
+ * and `campaign_intent` belongs to `figsy_campaigns`.
  *
  * Same `icp.id` in all three: `leads.icp_id`, the campaign's `icp_id` and the PDL cursor
  * all hang off it. GO applies the pending revision and clears it.
@@ -1466,6 +1478,8 @@ result or a number. "permitted" is false unless they explicitly said we may use 
 async function saveClientTargeting(
   clientId: string,
   body: Record<string, unknown>,
+  /** The revised brief, when the conversation produced one. Held, never applied, here. */
+  intent = '',
 ): Promise<{ row: Record<string, unknown>; pending: boolean } | null> {
   // Their live ICP if they have one, otherwise the newest — the SAME row either way.
   const { data: live } = await db.from('icps')
@@ -1483,7 +1497,14 @@ async function saveClientTargeting(
 
   const isLive = (core as { is_active?: boolean }).is_active === true
   const patch = isLive
-    ? { pending_targeting: body, pending_submitted_at: new Date().toISOString() }
+    ? {
+        pending_targeting: body,
+        pending_submitted_at: new Date().toISOString(),
+        // Only overwrite a waiting brief when they actually gave a new one — a revision
+        // that says nothing about the campaign's purpose must not erase what they told us
+        // last time and left waiting.
+        ...(intent ? { pending_campaign_intent: intent } : {}),
+      }
     : body
   const { data, error } = await db.from('icps')
     .update(patch).eq('id', core.id).eq('client_id', clientId).select().single()
@@ -1567,7 +1588,9 @@ async function persistMillaUnderstanding(
     // that changed without review. The BUSINESS UNDERSTANDING above still saves, because
     // the ruling equally says Milla may save "the revised targeting and understanding".
     if (intent && pending) {
-      console.log(`[icp] campaign intent NOT applied for live client ${clientId} — their targeting revision is waiting for K.I.N.D review, and the live campaign's brief waits with it.`)
+      // NOT DROPPED — `saveClientTargeting` has already parked it on the ICP row as
+      // `pending_campaign_intent`, beside the pending targeting. GO applies both.
+      console.log(`[icp] campaign intent HELD for live client ${clientId} — saved as a pending revision, applied to their live campaign only when K.I.N.D presses GO.`)
     } else if (intent) {
       const { ensureCampaignForIcp } = await import('../lib/start-work')
       const { data: icpRow } = await db.from('icps')
@@ -1616,7 +1639,8 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // immediately. They may still revise as often as they like; the edit now WAITS.)
     // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
     // door, and one core ICP is the client-side rule.
-    const saved = await saveClientTargeting(clientId, body)
+    const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
+    const saved = await saveClientTargeting(clientId, body, revisedIntent)
     if (!saved) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
     const { row: data, pending } = saved
 
@@ -1678,7 +1702,8 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
       .select('id, name').eq('client_id', clientId)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
-    const saved = await saveClientTargeting(clientId, body)
+    const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
+    const saved = await saveClientTargeting(clientId, body, revisedIntent)
     if (!saved) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
     const { row: data, pending } = saved
 
@@ -2075,7 +2100,8 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // campaign cannot be made live, NOTHING is flipped: an activation we cannot finish is
     // an activation that did not happen, not one that half-happened.
     const { data: icpRow } = await db.from('icps')
-      .select('id, name, pending_targeting').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+      .select('id, name, pending_targeting, pending_campaign_intent')
+      .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!icpRow) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
 
     const { ensureCampaignForIcp } = await import('../lib/start-work')
@@ -2110,11 +2136,39 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // It is applied only AFTER the one-active-campaign invariant passed above: a refused
     // GO must leave the revision waiting, not half-spent.
     const held = (icpRow as { pending_targeting?: Record<string, unknown> | null }).pending_targeting
-    const applyHeld = held && typeof held === 'object' && !Array.isArray(held)
-      ? { ...held, pending_targeting: null, pending_submitted_at: null }
-      : {}
-    if (Object.keys(applyHeld).length > 0) {
-      console.log(`[icps/activate] applying the held targeting revision for client ${clientId} — reviewed and approved by an operator.`)
+    const heldIntent = (icpRow as { pending_campaign_intent?: string | null }).pending_campaign_intent
+    const hasHeldTargeting = !!held && typeof held === 'object' && !Array.isArray(held)
+    const hasHeldIntent = typeof heldIntent === 'string' && heldIntent.trim().length > 0
+    if (hasHeldTargeting || hasHeldIntent) {
+      console.log(`[icps/activate] applying the held revision for client ${clientId} — reviewed and approved by an operator (targeting: ${hasHeldTargeting}, brief: ${hasHeldIntent}).`)
+    }
+
+    // ⚠️ THE BRIEF GOES FIRST, AND ITS FAILURE STOPS EVERYTHING. If the campaign write
+    // fails after the ICP had been flipped, the client would be live on new targeting with
+    // the old brief and nothing waiting to say so. Doing it here means a failure leaves the
+    // whole revision untouched and still waiting — the same fail-closed direction as the
+    // one-active refusal above.
+    if (hasHeldIntent) {
+      const { error: intentErr } = await db.from('figsy_campaigns')
+        .update({ campaign_intent: heldIntent!.slice(0, 2000), intent_mapped_at: new Date().toISOString() })
+        .eq('id', camp.id)
+      if (intentErr) {
+        console.error(`[icps/activate] could not apply the held brief for client ${clientId} — nothing was activated, the revision still waits:`, intentErr.message)
+        res.status(500).json({
+          success: false,
+          error: 'Could not apply their revised campaign brief, so nothing was activated. Their revision is still waiting — try again.',
+        })
+        return
+      }
+    }
+
+    // Clearing the pending fields in the SAME write that activates is what stops a second
+    // GO re-applying a stale revision on top of newer targeting.
+    const applyHeld = {
+      ...(hasHeldTargeting ? held as Record<string, unknown> : {}),
+      ...(hasHeldTargeting || hasHeldIntent
+        ? { pending_targeting: null, pending_submitted_at: null, pending_campaign_intent: null }
+        : {}),
     }
 
     await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
@@ -2147,6 +2201,6 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     }
     // `applied_revision` so Vida can say what actually happened — "revision applied" and
     // "ICP is live" are different events and the operator pressed the same button for both.
-    res.json({ success: true, data, sourcing: started, applied_revision: Object.keys(applyHeld).length > 0 })
+    res.json({ success: true, data, sourcing: started, applied_revision: hasHeldTargeting || hasHeldIntent })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to activate ICP' }) }
 })

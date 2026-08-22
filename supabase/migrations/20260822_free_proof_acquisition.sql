@@ -82,12 +82,24 @@ alter table public.clients
 --   pending_targeting    the revision exactly as the client saved it, parked off to the
 --                        side. Nothing reads it for sourcing, scoring or sending.
 --   pending_submitted_at when they asked. Drives the Vida badge and "waiting since".
--- K.I.N.D's GO applies the revision onto the live columns and clears both. A prospect in
--- unpaid proof is NOT live, so their refinement keeps writing the live columns directly -
--- there is nothing of theirs running to protect.
+--   pending_campaign_intent  the revised BRIEF - what this campaign is now for. It waits
+--                        with the targeting, because the brief is what every email is
+--                        written from: a live campaign whose brief changed without review
+--                        is the same event as live targeting that changed without review.
+-- K.I.N.D's GO applies all of it and clears all of it. A prospect in unpaid proof is NOT
+-- live, so their refinement keeps writing the live columns directly - there is nothing of
+-- theirs running to protect.
+--
+-- WHY THE BRIEF NEEDS ITS OWN FIELD RATHER THAN A KEY INSIDE pending_targeting: GO applies
+-- the held revision by spreading that payload straight onto the icps row, so every key in
+-- it is written as an icps COLUMN. campaign_intent is a figsy_campaigns column
+-- (20260524_campaign_intent.sql) and does not exist on icps - hiding it in that payload
+-- would fail the GO write, or need stripping logic the column's own name gives no hint of.
+-- It is still the SAME row as the targeting, so a refused GO cannot clear half a revision.
 alter table public.icps
-  add column if not exists pending_targeting    jsonb,
-  add column if not exists pending_submitted_at timestamptz;
+  add column if not exists pending_targeting       jsonb,
+  add column if not exists pending_submitted_at    timestamptz,
+  add column if not exists pending_campaign_intent text;
 
 comment on column public.icps.pending_targeting is
   'A live client''s revised targeting, awaiting K.I.N.D review. NEVER read by sourcing, scoring or sending - the live columns beside it remain operational until GO applies this and clears it. Null for a prospect, whose ICP is not live and is edited in place.';

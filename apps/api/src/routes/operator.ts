@@ -2318,7 +2318,7 @@ operatorRouter.get('/cockpit', async (req: Request, res: Response) => {
       // client's revision is waiting for review. Without them the founder's ruling would be
       // enforced invisibly: the change would correctly not apply, and nobody here would
       // know there was anything to look at.
-      db.from('icps').select('id, name, created_at, last_run_at, is_active, pending_targeting, pending_submitted_at')
+      db.from('icps').select('id, name, created_at, last_run_at, is_active, pending_targeting, pending_submitted_at, pending_campaign_intent')
         .eq('client_id', cid).order('created_at', { ascending: false }).limit(20),
       // campaign_intent + settings are here because the Campaign editor pre-fills from this
       // read — without them "Edit" would open blank and saving would wipe the brief every

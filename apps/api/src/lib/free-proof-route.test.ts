@@ -16,8 +16,14 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-type Rec = { rpcs: Array<{ fn: string; args: Record<string, unknown> }>; leadUpdates: Array<Record<string, unknown>> }
-const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [] })
+type Rec = {
+  rpcs: Array<{ fn: string; args: Record<string, unknown> }>
+  leadUpdates: Array<Record<string, unknown>>
+  leadInserts: number
+  alerts: Array<{ subject: string; lines: string[] }>
+  poolCap: number | null
+}
+const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null })
 
 const ICP_ROW = {
   id: 'icp-1', client_id: 'c1',
@@ -33,8 +39,15 @@ async function runJob(opts: {
   funded: 'real' | null
   pass?: number
   reserve?: number
+  reserveReason?: string
+  /** Simulate the RPC failing to answer at all — data comes back null. */
+  reserveNoAnswer?: boolean
   grant?: number
   contacts?: number
+  /** How many matching records the shared pool holds for this ICP. */
+  pool?: number
+  /** What the caller asks for — the pre-existing effectiveCap input. */
+  maxLeads?: number
 }, rec: Rec) {
   vi.resetModules()
 
@@ -47,7 +60,20 @@ async function runJob(opts: {
     const makeQuery = (table: string) => {
       const q: Record<string, unknown> = {}
       for (const m of ['select', 'eq', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) q[m] = () => q
-      q.limit       = async () => ({ data: [], error: null })
+      q.limit       = async (n?: number) => {
+        if (table === 'lead_pool') {
+          // servePoolLeads pulls a buffer of max(cap*5, 50) then .slice(0, cap). Recording
+          // n lets the test read back the cap the proof path actually handed the pool.
+          if (typeof n === 'number') rec.poolCap = n >= 50 ? Math.round(n / 5) : null
+          const rows = Array.from({ length: opts.pool ?? 0 }, (_, i) => ({
+            email_norm: `pool${i}@acme.co`, first_name: 'P', last_name: String(i),
+            title: 'CTO', seniority: 'C-Suite', company: 'Acme', industry: 'SaaS',
+            company_size: '11-50', country: 'United Kingdom', linkedin_url: null,
+          }))
+          return { data: rows, error: null }
+        }
+        return { data: [], error: null }
+      }
       q.single      = async () => ({ data: singleFor(table), error: null })
       q.maybeSingle = async () => ({ data: singleFor(table), error: null })
       q.update      = (patch: Record<string, unknown>) => {
@@ -58,10 +84,18 @@ async function runJob(opts: {
         return chain
       }
       q.upsert = async () => ({ error: null })
-      q.insert = () => ({
-        select: () => ({ single: async () => ({ data: { id: 'lead-x' }, error: null }) }),
-        then:   (r: (v: unknown) => void) => r({ error: null }),
-      })
+      q.insert = (rows?: unknown) => {
+        if (table === 'leads') rec.leadInserts += Array.isArray(rows) ? rows.length : 1
+        return {
+          select: () => ({
+            single: async () => ({ data: { id: `lead-${rec.leadInserts}` }, error: null }),
+            then:   (r: (v: unknown) => void) => r({
+              data: Array.isArray(rows) ? rows.map((_, i) => ({ id: `lead-${i}` })) : [], error: null,
+            }),
+          }),
+          then: (r: (v: unknown) => void) => r({ error: null }),
+        }
+      }
       // credit_transactions drives fundedVia: a purchase row WITH a provider reference is
       // real money; no rows at all is a prospect.
       q.then = (r: (v: unknown) => void) => r({
@@ -80,7 +114,12 @@ async function runJob(opts: {
           if (fn === 'try_claim_proof_pass')       return { data: opts.pass ?? 1, error: null }
           // The corrected contract (22 Aug round 2): reserve returns jsonb with the
           // reservation's identity, and release must address that identity.
-          if (fn === 'try_reserve_proof_records')  return { data: { granted: opts.reserve ?? 10, reservation_id: 'res-1' }, error: null }
+          if (fn === 'try_reserve_proof_records' && opts.reserveNoAnswer) return { data: null, error: null }
+          if (fn === 'try_reserve_proof_records')  return { data: {
+            granted: opts.reserve ?? 10,
+            reservation_id: (opts.reserve ?? 10) > 0 ? 'res-1' : null,
+            reason: opts.reserveReason ?? ((opts.reserve ?? 10) > 0 ? 'GRANTED' : 'MONTHLY_PROOF_BUDGET_REACHED'),
+          }, error: null }
           if (fn === 'try_spend_sourcing')         return { data: opts.grant ?? 10, error: null }
           return { data: null, error: null }
         },
@@ -91,6 +130,12 @@ async function runJob(opts: {
       },
     }
   })
+
+  vi.doMock('./alerts', () => ({
+    sendFounderAlert: async (_k: string, subject: string, lines: string[]) => {
+      rec.alerts.push({ subject, lines })
+    },
+  }))
 
   // The house/client decision is proved in provider-boundary.test.ts; pinned here so the
   // FUNDING branch is what this file is testing.
@@ -112,7 +157,7 @@ async function runJob(opts: {
   }))
 
   const { runIcpJob } = await import('../routes/icps')
-  return runIcpJob('icp-1', 'c1', 'u1', 20)
+  return runIcpJob('icp-1', 'c1', 'u1', opts.maxLeads ?? 20)
 }
 
 const prev = {
@@ -131,7 +176,7 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
     process.env.SUPABASE_ANON_KEY = 'test-anon-key'
   })
   afterEach(() => {
-    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo')
+    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
     process.env.ANTHROPIC_API_KEY = prev.anthropic
     process.env.SUPABASE_URL = prev.url
@@ -201,7 +246,7 @@ describe('runIcpJob leaves the PAID path exactly as it was', () => {
     process.env.SUPABASE_ANON_KEY = 'test-anon-key'
   })
   afterEach(() => {
-    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo')
+    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
     vi.resetModules()
     process.env.ANTHROPIC_API_KEY = prev.anthropic
     process.env.SUPABASE_URL = prev.url
@@ -232,5 +277,130 @@ describe('runIcpJob leaves the PAID path exactly as it was', () => {
     const rec = emptyRec()
     await runJob({ funded: 'real', grant: 10, contacts: 10 }, rec)
     expect(rec.leadUpdates.some(u => 'surfaced_for_approval_at' in u)).toBe(false)
+  })
+})
+
+// ── THE 20-LEAD PROOF PASS (22 Aug, round 3) ─────────────────────────────────
+//
+// GPT found that the proof path was using the pre-existing `effectiveCap` — the paid
+// client's per-run target, which the $299 pack sets to 200. So "up to 20 real masked
+// leads" was a sentence in the founder's model and nowhere in the code.
+//
+// The two rules are SEPARATE and this suite pins both halves:
+//   CUSTOMER EXPERIENCE — at most 20 SURFACED leads per automatic proof pass.
+//   PDL SPEND — at most 40 PDL records across BOTH passes, lifetime.
+//
+// Pool records cost $0 and never touch the 40-record fence, but they DO fill the 20 —
+// a prospect shown 13 from the pool may be bought at most 7 more.
+describe('free proof — a proof pass surfaces at most 20 leads', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL      = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+  })
+  afterEach(() => {
+    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('AN EFFECTIVE CAP OF 200 STILL ASKS FOR ONLY 20', async () => {
+    // The $299 pack sets leads_per_run high so a paying client can pass on half. A
+    // prospect is not a paying client.
+    const rec = emptyRec()
+    await runJob({ funded: null, maxLeads: 200, pool: 0, contacts: 0 }, rec)
+    const res = rec.rpcs.find(r => r.fn === 'try_reserve_proof_records')!
+    expect(res.args.p_requested).toBe(20)
+  })
+
+  it('POOL 13 → PDL IS ASKED FOR AT MOST 7', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: null, maxLeads: 200, pool: 13, contacts: 0 }, rec)
+    const res = rec.rpcs.find(r => r.fn === 'try_reserve_proof_records')!
+    expect(res.args.p_requested).toBe(7)
+  })
+
+  it('POOL 20 → NO PDL RESERVATION AT ALL', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: null, maxLeads: 200, pool: 20, contacts: 0 }, rec)
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_reserve_proof_records')
+  })
+
+  it('a pool holding 25 matches still surfaces only 20 for the pass', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: null, maxLeads: 200, pool: 25, contacts: 0 }, rec)
+    expect(rec.poolCap).toBe(20)                     // the cap handed to servePoolLeads
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_reserve_proof_records')
+  })
+
+  it('A PAYING CLIENT\'S CAP IS UNTOUCHED — still the full effectiveCap', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: 'real', maxLeads: 200, pool: 0, grant: 200, contacts: 0 }, rec)
+    const spend = rec.rpcs.find(r => r.fn === 'try_spend_sourcing')!
+    expect(spend.args.p_requested).toBe(200)         // NOT 20 — the 20 is a proof rule only
+  })
+})
+
+// ── THE TWO WAYS A RESERVATION CAN RETURN ZERO (22 Aug, round 3) ─────────────
+//
+// GPT found the caller treated EVERY zero grant as "the $300 monthly acquisition budget
+// is spent". It is not: a zero is far more often just this prospect finishing their own
+// 40 records. Alerting the founder that his acquisition budget is gone, when it is not,
+// is the kind of false alarm that trains someone to ignore the real one.
+describe('free proof — a prospect finishing their 40 is not a company budget alert', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL      = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+  })
+  afterEach(() => {
+    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('CLIENT_PROOF_LIMIT_REACHED DOES NOT RAISE THE $300 ALERT', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: null, reserve: 0, reserveReason: 'CLIENT_PROOF_LIMIT_REACHED', pool: 0 }, rec)
+    const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
+    expect(budgetAlerts).toHaveLength(0)
+  })
+
+  it('MONTHLY_PROOF_BUDGET_REACHED DOES raise it', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: null, reserve: 0, reserveReason: 'MONTHLY_PROOF_BUDGET_REACHED', pool: 0 }, rec)
+    const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
+    expect(budgetAlerts).toHaveLength(1)
+    // …and it must say plainly that paying clients are untouched, because the whole point
+    // of the separate budget is that acquisition cannot starve delivery.
+    expect(budgetAlerts[0].lines.join(' ')).toMatch(/PAYING CLIENTS ARE UNAFFECTED/)
+  })
+
+  it('AN UNEXPLAINED REFUSAL IS NOT REPORTED AS THE BUDGET RUNNING OUT', async () => {
+    // The RPC always returns a reason, so a missing one means the CALL failed — a
+    // transport error, a function not yet created in this database. Announcing "the $300
+    // acquisition budget is spent" on the strength of an RPC that never answered would be
+    // stating a fact about company money that nothing established.
+    const rec = emptyRec()
+    await runJob({ funded: null, reserveNoAnswer: true, pool: 0 }, rec)
+    expect(rec.alerts.filter(a => /acquisition budget/i.test(a.subject))).toHaveLength(0)
+    // And nothing was bought: a refusal we cannot explain still spends nothing.
+    expect(rec.rpcs.some(r => r.fn === 'try_spend_sourcing')).toBe(false)
+  })
+
+  it('POOL-ONLY PROOF STILL WORKS WHEN THE MONTHLY PDL BUDGET IS GONE', async () => {
+    // Owned records cost nothing, so a spent acquisition budget must not stop us showing
+    // a prospect real leads we already have.
+    const rec = emptyRec()
+    const r = await runJob({
+      funded: null, maxLeads: 200, pool: 12, reserve: 0,
+      reserveReason: 'MONTHLY_PROOF_BUDGET_REACHED', contacts: 0,
+    }, rec)
+    expect(r.inserted).toBe(12)
+    expect(rec.leadUpdates.some(u => 'surfaced_for_approval_at' in u)).toBe(true)
   })
 })

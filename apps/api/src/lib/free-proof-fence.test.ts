@@ -31,6 +31,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 const PDL_RATE = 0.28
 const CLIENT_CAP = 40
@@ -80,19 +82,25 @@ function makeProofDb(initial?: { committed?: number; passes?: number; monthUsd?:
       return { data: c.passes, error: null }
     }
     if (fn === 'try_reserve_proof_records') {
+      // Refusals name the fence, in the SQL's order: the prospect's own ceiling is answered
+      // BEFORE the company's, because a prospect at 40 says nothing about the $300.
+      const refuse = (why: string) => ({ data: { granted: 0, reservation_id: null, reason: why }, error: null })
       const c = clientOf(String(args.p_client_id ?? ''))
       const requested = Number(args.p_requested ?? 0)
-      if (!(requested > 0)) return { data: { granted: 0, reservation_id: null }, error: null }
+      if (!(requested > 0)) return refuse('FAIL_CLOSED_BAD_ARGS')
+      const clientRoom = Math.max(0, CLIENT_CAP - c.committed)
+      if (clientRoom <= 0) return refuse('CLIENT_PROOF_LIMIT_REACHED')
       const room = Math.max(0, Math.floor((MONTH_CAP - state.monthUsdFor(state.month)) / PDL_RATE))
-      const grant = Math.min(requested, Math.max(0, CLIENT_CAP - c.committed), room)
-      if (grant <= 0) return { data: { granted: 0, reservation_id: null }, error: null }
+      if (room <= 0) return refuse('MONTHLY_PROOF_BUDGET_REACHED')
+      const grant = Math.min(requested, clientRoom, room)
+      if (grant <= 0) return refuse('FAIL_CLOSED_BAD_ARGS')
       c.committed += grant
       const id = `res-${++seq}`
       state.ledger.push({
         id, client: String(args.p_client_id), records: grant, cost: grant * PDL_RATE,
         budgetMonth: state.month, reservationId: null, reconciledAt: null, released: 0,
       })
-      return { data: { granted: grant, reservation_id: id }, error: null }
+      return { data: { granted: grant, reservation_id: id, reason: 'GRANTED' }, error: null }
     }
     if (fn === 'release_proof_records') {
       const wanted = Number(args.p_records ?? 0)
@@ -119,6 +127,8 @@ function makeProofDb(initial?: { committed?: number; passes?: number; monthUsd?:
 
 const granted = (d: unknown) => (d as { granted: number }).granted
 const resId = (d: unknown) => (d as { reservation_id: string }).reservation_id
+/** WHICH fence refused — returned by the RPC itself, never inferred by the caller. */
+const reason = (d: unknown) => (d as { reason: string }).reason
 
 // ── The per-prospect 40-record ceiling ───────────────────────────────────────
 describe('free proof — a prospect can never cost more than 40 PDL records', () => {
@@ -324,5 +334,97 @@ describe('free proof — a reservation\'s money stays in the month it was reserv
     const replay = await rpc('release_proof_records', { p_reservation_id: resId(r), p_records: 15 })
     expect(replay.data).toBe(0)
     expect(state.monthUsdFor('2026-08')).toBeCloseTo(25 * PDL_RATE, 5)
+  })
+})
+
+// ── THE REFUSAL HAS TO SAY WHICH FENCE STOPPED IT (round 3) ──────────────────
+//
+// Defect found by independent review, 22 Aug: `granted = 0` was the caller's ONLY signal,
+// so the route raised "the $300 free-proof acquisition budget is spent" every time a single
+// prospect finished their own lifetime 40 — the routine case, and the one that costs the
+// company nothing. An alert that fires on a routine event is an alert nobody reads on the
+// day it is true, which is the day the acquisition ceiling actually stops every prospect.
+//
+// So the RPC returns the reason from INSIDE the locked section, computed from the same
+// numbers that decided the grant. It cannot disagree with the decision it explains, and the
+// caller never re-derives it with a second query reading a different instant.
+describe('free proof — a refusal names the fence that refused it', () => {
+  it('a granted reservation says GRANTED', async () => {
+    const { rpc } = makeProofDb()
+    const { data } = await rpc('try_reserve_proof_records', { p_client_id: 'p1', p_requested: 7 })
+    expect(granted(data)).toBe(7)
+    expect(reason(data)).toBe('GRANTED')
+  })
+
+  it('a partial grant is still GRANTED — fewer records is not a refusal', async () => {
+    const { rpc } = makeProofDb({ committed: 35 })
+    const { data } = await rpc('try_reserve_proof_records', { p_client_id: 'p1', p_requested: 20 })
+    expect(granted(data)).toBe(5)
+    expect(reason(data)).toBe('GRANTED')
+  })
+
+  it('A PROSPECT AT THEIR OWN 40 IS NOT A BUDGET EVENT', async () => {
+    // THE DEFECT, ASSERTED. This is the common zero and it must never read as "the $300
+    // is gone" — the month below is virtually untouched.
+    const { rpc, state } = makeProofDb({ committed: CLIENT_CAP })
+    const { data } = await rpc('try_reserve_proof_records', { p_client_id: 'p1', p_requested: 20 })
+    expect(granted(data)).toBe(0)
+    expect(reason(data)).toBe('CLIENT_PROOF_LIMIT_REACHED')
+    expect(state.monthUsd).toBe(0)
+  })
+
+  it('a spent acquisition month says MONTHLY_PROOF_BUDGET_REACHED', async () => {
+    // The rare one, and the only one that is a company event: free acquisition has stopped
+    // for EVERY prospect until the founder raises the ceiling.
+    const { rpc } = makeProofDb({ monthUsd: MONTH_CAP })
+    const { data } = await rpc('try_reserve_proof_records', { p_client_id: 'fresh', p_requested: 20 })
+    expect(granted(data)).toBe(0)
+    expect(reason(data)).toBe('MONTHLY_PROOF_BUDGET_REACHED')
+  })
+
+  it('WHEN BOTH FENCES ARE CLOSED, THE PROSPECT\'S OWN LIMIT IS REPORTED', async () => {
+    // Order is not cosmetic. A prospect sitting at 40 tells you NOTHING about the $300, so
+    // resolving the tie the other way would state something false about company money on
+    // the strength of a fact that does not support it.
+    const { rpc } = makeProofDb({ committed: CLIENT_CAP, monthUsd: MONTH_CAP })
+    const { data } = await rpc('try_reserve_proof_records', { p_client_id: 'p1', p_requested: 20 })
+    expect(reason(data)).toBe('CLIENT_PROOF_LIMIT_REACHED')
+  })
+
+  it('a request for nothing fails closed with a reason, and reserves nothing', async () => {
+    const { rpc, state } = makeProofDb()
+    const { data } = await rpc('try_reserve_proof_records', { p_client_id: 'p1', p_requested: 0 })
+    expect(granted(data)).toBe(0)
+    expect(reason(data)).toBe('FAIL_CLOSED_BAD_ARGS')
+    expect(state.ledger).toEqual([])
+  })
+
+  it('THE SHIPPED SQL EMITS THESE REASONS, AND TESTS THE CLIENT BEFORE THE MONTH', () => {
+    // The simulation above proves the CONTRACT. This proves the contract is the one the
+    // function that will actually run in production implements — in BOTH homes, because a
+    // migration recorded in one and run from the other is how a fence goes missing.
+    const homes = [
+      readFileSync(join(__dirname, '../../../../supabase/migrations/20260822_free_proof_acquisition.sql'), 'utf8'),
+      readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8'),
+    ]
+    for (const src of homes) {
+      const fn = src.slice(
+        src.indexOf('create or replace function public.try_reserve_proof_records'),
+        src.indexOf('revoke execute on function public.try_reserve_proof_records'),
+      )
+      expect(fn.length).toBeGreaterThan(0)
+      for (const r of ['GRANTED', 'CLIENT_PROOF_LIMIT_REACHED', 'MONTHLY_PROOF_BUDGET_REACHED', 'FAIL_CLOSED_BAD_ARGS']) {
+        expect(fn).toContain(`'${r}'`)
+      }
+      // Every exit carries a reason — a bare two-key return would leave the caller guessing
+      // exactly as before.
+      const returns = fn.match(/jsonb_build_object\(/g) ?? []
+      const withReason = fn.match(/jsonb_build_object\([^;]*?'reason'/g) ?? []
+      expect(withReason.length).toBe(returns.length)
+      // ORDERING, read off the shipped source: the client's own ceiling is answered first.
+      expect(fn.indexOf("'CLIENT_PROOF_LIMIT_REACHED'")).toBeLessThan(fn.indexOf("'MONTHLY_PROOF_BUDGET_REACHED'"))
+      // And the month's room is still summed over budget_month, not created_at (defect 4).
+      expect(fn).toContain('where budget_month = v_month')
+    }
   })
 })

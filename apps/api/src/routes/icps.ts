@@ -198,6 +198,18 @@ async function getClientId(userId: string): Promise<string | null> {
   return data?.id ?? null
 }
 
+/**
+ * How many leads one automatic proof pass may put in front of a prospect.
+ *
+ * Founder-set: pass 1 up to 20, one refinement, pass 2 up to 20 more, then a human. This
+ * is the CUSTOMER-EXPERIENCE rule and is deliberately NOT the spend rule — pool records
+ * are free and never touch the PDL fence, but they still fill this 20.
+ */
+const PROOF_PASS_LEADS = 20
+/** Lifetime PDL records one unpaid prospect may cost, across BOTH passes. Mirrors the
+ *  hard ceiling inside `try_reserve_proof_records`; used here only for honest logging. */
+const PROOF_CLIENT_RECORD_CAP = 40
+
 // FREE-PROOF ACQUISITION BUDGET ALARM (22 Aug) — the twin of the paid alarm below, kept
 // separate because it means something different and calls for a different decision.
 //
@@ -217,9 +229,15 @@ async function alertProofBudgetSpent(clientId: string): Promise<void> {
     lastProofAlertDay = today
     const { data: settings } = await db.from('money_settings').select('proof_monthly_cap_usd').eq('id', 1).maybeSingle()
     const cap = Number(settings?.proof_monthly_cap_usd ?? 300)
+    // ⚠️ budget_month, NOT created_at (round 3). The authority inside
+    // `try_reserve_proof_records` sums over budget_month so a late correction lands in the
+    // month the money was reserved. Summing this display by created_at instead would show
+    // the founder a September figure distorted by an August reconciliation — two different
+    // numbers for one budget, which is how the $138 infra line went unchallenged for weeks.
     const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
+    const budgetMonth = monthStart.toISOString().slice(0, 10)
     const { data: rows } = await db.from('proof_ledger')
-      .select('cost_usd').gte('created_at', monthStart.toISOString())
+      .select('cost_usd').eq('budget_month', budgetMonth)
     const spent = (rows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
     void sendFounderAlert('source_down', 'Free-proof ACQUISITION budget spent — no more paid proof sourcing this month', [
       `This month's free-proof PDL spend is $${spent.toFixed(2)} of the $${cap.toFixed(0)} acquisition cap.`,
@@ -499,7 +517,22 @@ export async function runIcpJob(
     console.log(`[icp] FREE PROOF pass ${claimed} of 2 claimed for prospect ${clientId}.`)
   }
 
-  const pool = await servePoolLeads(icp, clientId, effectiveCap)
+  // ── THE PROOF PASS IS 20 LEADS, NOT THE PAID TARGET (22 Aug, round 3) ─────────────
+  //
+  // ⚠️ THIS USED `effectiveCap` AND THAT WAS THE DEFECT. `effectiveCap` is the PAID
+  // client's per-run target — the $299 pack asks for 200 so they can pass on half and
+  // still approve 100. Handing a PROSPECT that number meant "up to 20 real masked leads"
+  // existed in the founder's model and nowhere in the code. Found by independent review.
+  //
+  // ⚠️ THIS IS NOT THE 40-RECORD FENCE, AND CONFLATING THEM WOULD BE WRONG IN BOTH
+  // DIRECTIONS. They are separate rules:
+  //     CUSTOMER EXPERIENCE — at most 20 leads SURFACED per automatic proof pass.
+  //     PDL SPEND           — at most 40 PDL records across BOTH passes, lifetime.
+  // Pool records are free and never touch the 40, but they DO fill the 20: a prospect
+  // shown 13 from the pool may be bought at most 7 more for that pass.
+  const runCap = funding === null ? Math.min(effectiveCap, PROOF_PASS_LEADS) : effectiveCap
+
+  const pool = await servePoolLeads(icp, clientId, runCap)
   inserted += pool.served
   insertedIds.push(...pool.insertedIds)
 
@@ -522,7 +555,9 @@ export async function runIcpJob(
 
   // Only the REMAINDER (target − pool-served) goes to the fenced PDL path. When the
   // pool served nothing, pdlRemainder === effectiveCap — byte-identical to today.
-  const { pdlRemainder } = splitPoolAndRemainder(effectiveCap, pool.served)
+  // For a prospect this is the 20-lead pass remainder; for everyone else it is exactly
+  // what it always was.
+  const { pdlRemainder } = splitPoolAndRemainder(runCap, pool.served)
 
   if (isDemo) {
     // #453 — DEMO: pool-only. Skip the ENTIRE PDL remainder — no try_spend_sourcing, no
@@ -563,6 +598,10 @@ export async function runIcpJob(
     // no-op instead of a second decrement that recreates spent authority (GPT review,
     // 22 Aug round 2).
     let proofReservationId: string | null = null
+    // Straight from the RPC: GRANTED · CLIENT_PROOF_LIMIT_REACHED ·
+    // MONTHLY_PROOF_BUDGET_REACHED · FAIL_CLOSED_*. Only the second value in that list is a
+    // company money event, and only it raises the acquisition alert.
+    let proofReason = 'GRANTED'
     if (audience === 'house') {
       grantedSize = pdlRemainder
       console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; the PDL cash fence does not apply (AR5/AR8).`)
@@ -570,11 +609,16 @@ export async function runIcpJob(
       const { data: reserved } = await db.rpc('try_reserve_proof_records', {
         p_client_id: clientId, p_requested: pdlRemainder,
       })
-      const r = (reserved ?? {}) as { granted?: number; reservation_id?: string | null }
+      const r = (reserved ?? {}) as { granted?: number; reservation_id?: string | null; reason?: string }
       proofReserved = typeof r.granted === 'number' ? r.granted : 0
       proofReservationId = typeof r.reservation_id === 'string' ? r.reservation_id : null
+      // WHY it was zero, straight from the atomic decision rather than re-derived by a
+      // second query that could disagree with the one that actually decided. The RPC always
+      // answers; a missing reason means the call itself failed, and an unexplained refusal
+      // must NOT be reported as the acquisition budget running out.
+      proofReason = typeof r.reason === 'string' ? r.reason : 'FAIL_CLOSED_NO_REASON'
       grantedSize = proofReserved
-      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}) against the acquisition fence (40 lifetime, $300/mo).`)
+      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}, ${proofReason}) against the acquisition fence (40 lifetime, $300/mo).`)
     } else {
       const { data: granted } = await db.rpc('try_spend_sourcing', {
         p_client_id: clientId, p_requested: pdlRemainder,
@@ -588,8 +632,13 @@ export async function runIcpJob(
       // ceiling is spent, which is a different budget and a different decision — raising
       // the paid alarm for it would tell the founder his clients' sourcing had stopped
       // when it had not. Proof raises its own alert below.
+      // ⚠️ AND A PROSPECT FINISHING THEIR OWN 40 IS NOT A COMPANY BUDGET EVENT (round 3).
+      // Every zero grant used to raise "the $300 acquisition budget is spent". Most zeros
+      // are simply this prospect reaching their lifetime 40 — telling the founder his
+      // acquisition budget is gone when it is not is exactly how a real alert gets ignored.
       if (funding !== null) void maybeAlertPdlBudget()
-      else void alertProofBudgetSpent(clientId)
+      else if (proofReason === 'MONTHLY_PROOF_BUDGET_REACHED') void alertProofBudgetSpent(clientId)
+      else console.log(`[icp] FREE PROOF — prospect ${clientId} has used their ${PROOF_CLIENT_RECORD_CAP}-record allowance (${proofReason}); the monthly acquisition budget is untouched.`)
       if (pool.served === 0) {
         // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
         console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)

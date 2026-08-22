@@ -135,10 +135,32 @@ revoke execute on function public.try_claim_proof_pass(uuid) from public;
 grant  execute on function public.try_claim_proof_pass(uuid) to service_role;
 
 -- ── 5. Reserve proof records — atomic per client AND across clients ─────────────────────
--- Returns jsonb: { "granted": n, "reservation_id": uuid } -- granted is the LEAST of what
--- was asked for, the prospect's remaining 40, and the month's remaining room; 0 = refused
--- and reservation_id is null. The caller MUST carry reservation_id to the reconciliation:
--- a release addresses one reservation, never a client aggregate.
+-- Returns jsonb: { "granted": n, "reservation_id": uuid, "reason": text }. granted is the
+-- LEAST of what was asked for, the prospect's remaining 40, and the month's remaining room;
+-- 0 = refused and reservation_id is null. The caller MUST carry reservation_id to the
+-- reconciliation: a release addresses one reservation, never a client aggregate.
+--
+-- ⚠️ WHY THE REASON IS RETURNED RATHER THAN INFERRED BY THE CALLER (round 3).
+-- A granted of 0 on its own says only "you got nothing". It does not say whether THIS
+-- prospect has used their own 40 lifetime records -- routine, expected, and costing K.I.N.D
+-- nothing -- or whether the MONTH'S $300 ACQUISITION CEILING is gone, which is rare, urgent
+-- and needs the founder. The first implementation could not tell them apart, so it raised
+-- "the free-proof acquisition budget is spent" on every zero, including the common one. An
+-- alert that fires on a routine event is an alert nobody reads on the day it is true.
+--
+-- The reason is computed INSIDE the same locked section, from the same numbers that decided
+-- the grant, so it can never disagree with the decision it explains and is never re-derived
+-- by a second query reading a different instant. Values:
+--   GRANTED                       records were reserved (possibly fewer than requested).
+--   CLIENT_PROOF_LIMIT_REACHED    this prospect has committed all 40 of their records.
+--   MONTHLY_PROOF_BUDGET_REACHED  the month's acquisition ceiling has no room left.
+--   FAIL_CLOSED_BAD_ARGS          nothing was asked for; nothing reserved, nothing spent.
+--   FAIL_CLOSED_NO_MONEY_SETTINGS the singleton settings row is missing -> refuse.
+--   FAIL_CLOSED_UNKNOWN_CLIENT    no such client row -> refuse.
+--
+-- ⚠️ ORDER MATTERS: the CLIENT'S own limit is tested FIRST. A prospect sitting at 40 tells
+-- you nothing whatsoever about the $300, so reporting that case as a budget exhaustion
+-- would be a false statement about company money.
 create or replace function public.try_reserve_proof_records(p_client_id uuid, p_requested int)
 returns jsonb
 language plpgsql
@@ -146,18 +168,19 @@ security definer
 set search_path = public, pg_temp
 as $$
 declare
-  v_rate       numeric := 0.28;   -- PDL $/record, verified 10 Jul (sourcing-fences.ts:6)
-  v_client_cap int     := 40;     -- founder-set lifetime proof records per prospect
-  v_committed  int;
-  v_cap_usd    numeric;
-  v_month_usd  numeric;
-  v_month      date := (date_trunc('month', now()))::date;
-  v_room       int;
-  v_grant      int;
-  v_res_id     uuid;
+  v_rate        numeric := 0.28;   -- PDL $/record, verified 10 Jul (sourcing-fences.ts:6)
+  v_client_cap  int     := 40;     -- founder-set lifetime proof records per prospect
+  v_committed   int;
+  v_client_room int;
+  v_cap_usd     numeric;
+  v_month_usd   numeric;
+  v_month       date := (date_trunc('month', now()))::date;
+  v_room        int;
+  v_grant       int;
+  v_res_id      uuid;
 begin
   if p_client_id is null or p_requested is null or p_requested <= 0 then
-    return jsonb_build_object('granted', 0, 'reservation_id', null);
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
   end if;
 
   -- ① GLOBAL LOCK FIRST. The singleton money_settings row is the one object every proof
@@ -166,14 +189,21 @@ begin
   select coalesce(proof_monthly_cap_usd, 300) into v_cap_usd
     from public.money_settings where id = 1 for update;
   if v_cap_usd is null then
-    return jsonb_build_object('granted', 0, 'reservation_id', null);   -- no settings row: fail closed
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_NO_MONEY_SETTINGS');
   end if;
 
   -- ② then the prospect's own row. Always this order, so proof callers cannot deadlock.
   select coalesce(proof_records_committed, 0) into v_committed
     from public.clients where id = p_client_id for update;
   if v_committed is null then
-    return jsonb_build_object('granted', 0, 'reservation_id', null);
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_UNKNOWN_CLIENT');
+  end if;
+
+  -- THE PROSPECT'S OWN CEILING, ANSWERED BEFORE THE COMPANY'S. This is the common refusal
+  -- and it is not a money event: the prospect has had their two passes' worth of records.
+  v_client_room := greatest(0, v_client_cap - v_committed);
+  if v_client_room <= 0 then
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'CLIENT_PROOF_LIMIT_REACHED');
   end if;
 
   -- THIS month's authority: summed over budget_month, so an old month's late correction
@@ -182,10 +212,18 @@ begin
   select coalesce(sum(cost_usd), 0) into v_month_usd
     from public.proof_ledger where budget_month = v_month;
 
-  v_room  := greatest(0, floor((v_cap_usd - v_month_usd) / v_rate))::int;
-  v_grant := least(p_requested, greatest(0, v_client_cap - v_committed), v_room);
+  v_room := greatest(0, floor((v_cap_usd - v_month_usd) / v_rate))::int;
+  if v_room <= 0 then
+    -- THE ONE THAT IS ACTUALLY A COMPANY EVENT. Free acquisition has stopped for everybody
+    -- until the founder raises the ceiling, so this -- and only this -- raises the alert.
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'MONTHLY_PROOF_BUDGET_REACHED');
+  end if;
+
+  v_grant := least(p_requested, v_client_room, v_room);
   if v_grant <= 0 then
-    return jsonb_build_object('granted', 0, 'reservation_id', null);
+    -- Unreachable: all three inputs are > 0 above. Kept as a fail-closed floor so a future
+    -- edit to any of them can only ever under-allow.
+    return jsonb_build_object('granted', 0, 'reservation_id', null, 'reason', 'FAIL_CLOSED_BAD_ARGS');
   end if;
 
   update public.clients
@@ -196,7 +234,7 @@ begin
     values (p_client_id, v_grant, v_grant * v_rate, v_month)
     returning id into v_res_id;
 
-  return jsonb_build_object('granted', v_grant, 'reservation_id', v_res_id);
+  return jsonb_build_object('granted', v_grant, 'reservation_id', v_res_id, 'reason', 'GRANTED');
 end;
 $$;
 

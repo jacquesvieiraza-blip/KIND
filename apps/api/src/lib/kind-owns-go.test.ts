@@ -16,7 +16,9 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-type Rec = { icpUpdates: Array<Record<string, unknown>>; sourcingStarted: boolean; userIdSeen: string | null }
+type Rec = { icpUpdates: Array<Record<string, unknown>>; sourcingStarted: boolean; userIdSeen: string | null
+  /** Activation now happens INSIDE `apply_pending_revision` — one transaction, not two writes. */
+  rpcs?: string[] }
 
 async function activate(headers: Record<string, unknown>, body: Record<string, unknown>, rec: Rec) {
   vi.resetModules()
@@ -48,7 +50,18 @@ async function activate(headers: Record<string, unknown>, body: Record<string, u
     return {
       db: {
         from: (t: string) => makeQuery(t),
-        rpc: async () => ({ data: 0, error: null }),
+        rpc: async (fn: string) => {
+          ;(rec.rpcs ??= []).push(fn)
+          // ⚠️ ACTIVATION MOVED INSIDE A TRANSACTION (22 Aug). The route used to deactivate
+          // the client's other ICPs and activate this one with two separate writes; both now
+          // happen inside `apply_pending_revision`, along with applying any held revision, so
+          // the whole thing lands together or not at all.
+          if (fn === 'apply_pending_revision') {
+            return { data: { ok: true, applied: false, applied_intent: false,
+              icp: { id: 'icp-1', name: 'Test', last_run_at: null, is_active: true } }, error: null }
+          }
+          return { data: 0, error: null }
+        },
         auth: { admin: { listUsers: async () => ({ data: { users: [] }, error: null }), getUserById: async () => ({ data: { user: { email: '' } }, error: null }) } },
       },
     }
@@ -77,7 +90,7 @@ const prev = { anthropic: process.env.ANTHROPIC_API_KEY, url: process.env.SUPABA
 describe('activating an ICP is K.I.N.D\'s decision, not the client\'s', () => {
   let rec: Rec
   beforeEach(() => {
-    rec = { icpUpdates: [], sourcingStarted: false, userIdSeen: null }
+    rec = { icpUpdates: [], sourcingStarted: false, userIdSeen: null, rpcs: [] }
     process.env.ANTHROPIC_API_KEY = 'test-key'
     process.env.SUPABASE_URL = 'http://localhost:54321'
     process.env.SUPABASE_ANON_KEY = 'test-anon-key'
@@ -112,9 +125,17 @@ describe('activating an ICP is K.I.N.D\'s decision, not the client\'s', () => {
     const res = await activate({ 'x-admin-key': 'right-key' }, { client_id: 'c1' }, rec)
     expect(res.statusCode).toBe(200)
     expect((res.body as { success: boolean }).success).toBe(true)
-    // Exactly the old behaviour: deactivate the client's others, then activate this one.
-    expect(rec.icpUpdates.some(u => u.is_active === false)).toBe(true)
-    expect(rec.icpUpdates.some(u => u.is_active === true)).toBe(true)
+    // ⛓️ THIS USED TO ASSERT TWO `icps` WRITES — deactivate the others, activate this one.
+    // Both now happen inside `apply_pending_revision`, together with applying any held
+    // revision, because two writes across two tables could half-apply. The behaviour is the
+    // same and the guarantee is stronger, so the assertion moved to the call that carries it.
+    expect(rec.rpcs).toContain('apply_pending_revision')
+    expect((res.body as { data?: { is_active?: boolean } }).data?.is_active).toBe(true)
+  })
+
+  it('A REFUSED CLIENT NEVER REACHES THE APPLY TRANSACTION', async () => {
+    await activate({}, {}, rec)
+    expect(rec.rpcs).not.toContain('apply_pending_revision')
   })
 
   it('the first sourcing run still fires for a never-run ICP', async () => {
@@ -194,6 +215,13 @@ async function activateRich(opts: {
         rpc: async (fn: string) => {
           rec.rpcs.push(fn)
           if (fn === 'try_spend_sourcing') return { data: 5, error: null }
+          if (fn === 'apply_pending_revision') {
+            // Nothing held in this suite — it is about WHO may activate, not about
+            // revisions — so the transaction applies nothing and simply activates.
+            rec.icpUpdates.push({ is_active: true })
+            return { data: { ok: true, applied: false, applied_intent: false,
+              icp: { id: 'icp-1', name: 'Test', last_run_at: opts.icpLastRunAt ?? null, is_active: true } }, error: null }
+          }
           return { data: null, error: null }
         },
         auth: { admin: {

@@ -1708,6 +1708,136 @@ begin
 end;
 $$;
 
+-- ── 7. APPLY A HELD REVISION — ALL OF IT, OR NONE OF IT ─────────────────────────────────
+-- A live client's revised targeting and revised brief wait together (founder-ruled 22 Aug),
+-- and K.I.N.D's GO applies them together. "Together" is the whole rule, and the first
+-- implementation could not honour it: the route made TWO ordinary client writes, the
+-- campaign brief first and the ICP second. Two writes across two tables are not a
+-- transaction. When the first landed and the second did not, the client was left with a NEW
+-- BRIEF and OLD TARGETING - FIGSY writing for an audience nobody had approved - while the
+-- revision could still look like it was waiting. Found by independent review.
+--
+-- Ordering the writes more carefully cannot fix that; only one transaction can. A plpgsql
+-- function body IS one transaction, so everything below either lands together or, on any
+-- raise, rolls back entirely: the live targeting, the live brief and all three pending
+-- fields are exactly as they were, and GO reports failure.
+--
+-- WHY THE TARGETING IS APPLIED FIELD BY FIELD rather than spread from the jsonb: this is a
+-- WHITELIST. Only the nine columns the client's own ICP form can set are written, so a stray
+-- or hostile key in the stored payload can never reach a column nobody intended - and a key
+-- that is absent leaves the live value alone rather than nulling it.
+--
+-- Idempotent by construction: applying clears the pending fields in the same statement that
+-- activates, so a second GO finds nothing to apply and simply re-activates.
+--
+-- ⚠️ TWO KINDS OF FAILURE, AND ONLY ONE OF THEM RAISES. Bad arguments and an ICP that is not
+-- this client's are answered with a clean refusal, because they are decided BEFORE any write
+-- happens - nothing has been changed, so there is nothing to roll back, and a refusal keeps
+-- the function PROBEABLE (system-probes calls it with the all-zeros uuid to prove it exists
+-- without touching a real row). Every failure that can occur once a write has landed RAISES,
+-- which is what rolls the whole thing back. The route treats ok=false and an error the same
+-- way: nothing was applied, the revision is still waiting.
+create or replace function public.apply_pending_revision(
+  p_icp_id      uuid,
+  p_client_id   uuid,
+  p_campaign_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_icp    public.icps%rowtype;
+  v_t      jsonb;
+  v_intent text;
+  v_rows   int;
+begin
+  if p_icp_id is null or p_client_id is null then
+    -- Nothing written; a clean refusal rather than a raise. This is the shape the probe hits.
+    return jsonb_build_object('ok', false, 'reason', 'BAD_ARGS', 'applied', false);
+  end if;
+
+  -- FOR UPDATE: two operators pressing GO on the same ICP serialise here, so the second
+  -- reads the first's committed row and finds nothing left pending rather than replaying it.
+  select * into v_icp from public.icps
+    where id = p_icp_id and client_id = p_client_id for update;
+  if not found then
+    -- Still nothing written. Refuse cleanly: the route turns this into a failed GO.
+    return jsonb_build_object('ok', false, 'reason', 'ICP_NOT_FOUND', 'applied', false);
+  end if;
+
+  v_t      := v_icp.pending_targeting;
+  v_intent := nullif(btrim(coalesce(v_icp.pending_campaign_intent, '')), '');
+
+  -- ① THE BRIEF, onto the campaign that already exists. A missing campaign raises rather
+  --    than silently skipping: a revision half-applied is the defect this function exists
+  --    to make impossible.
+  if v_intent is not null then
+    if p_campaign_id is null then
+      raise exception 'a held brief needs a campaign to apply to';
+    end if;
+    update public.figsy_campaigns
+       set campaign_intent = left(v_intent, 2000), intent_mapped_at = now()
+     where id = p_campaign_id and client_id = p_client_id;
+    get diagnostics v_rows = row_count;
+    if v_rows <> 1 then
+      raise exception 'the campaign meant to carry the revised brief was not found for this client';
+    end if;
+  end if;
+
+  -- ② ONE ACTIVE ICP for this client, exactly as the route did before.
+  update public.icps set is_active = false
+   where client_id = p_client_id and id <> p_icp_id and is_active;
+
+  -- ③ THE TARGETING, THE ACTIVATION AND THE CLEARING - one statement, one whitelist.
+  update public.icps set
+    name = case when jsonb_typeof(v_t->'name') = 'string'
+                then v_t->>'name' else name end,
+    industries = case when jsonb_typeof(v_t->'industries') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'industries')) else industries end,
+    job_titles = case when jsonb_typeof(v_t->'job_titles') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'job_titles')) else job_titles end,
+    seniority_levels = case when jsonb_typeof(v_t->'seniority_levels') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'seniority_levels')) else seniority_levels end,
+    company_sizes = case when jsonb_typeof(v_t->'company_sizes') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'company_sizes')) else company_sizes end,
+    geographies = case when jsonb_typeof(v_t->'geographies') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'geographies')) else geographies end,
+    tech_stack = case when jsonb_typeof(v_t->'tech_stack') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'tech_stack')) else tech_stack end,
+    keywords = case when jsonb_typeof(v_t->'keywords') = 'array'
+                then array(select jsonb_array_elements_text(v_t->'keywords')) else keywords end,
+    apollo_only_consented = case when jsonb_typeof(v_t->'apollo_only_consented') = 'boolean'
+                then (v_t->>'apollo_only_consented')::boolean else apollo_only_consented end,
+    is_active               = true,
+    pending_targeting       = null,
+    pending_campaign_intent = null,
+    pending_submitted_at    = null,
+    updated_at              = now()
+  where id = p_icp_id and client_id = p_client_id;
+  get diagnostics v_rows = row_count;
+  if v_rows <> 1 then
+    raise exception 'the icp could not be updated; nothing has been applied';
+  end if;
+
+  -- The PDL cursor is NOT cleared here on purpose: decideCursor fingerprints the query and
+  -- resets itself on the next run when the targeting changed, so an unchanged revision keeps
+  -- its paging rather than re-serving page one.
+  select * into v_icp from public.icps where id = p_icp_id;
+
+  return jsonb_build_object(
+    'ok',             true,
+    'applied',        (v_t is not null or v_intent is not null),
+    'applied_intent', (v_intent is not null),
+    'icp',            to_jsonb(v_icp)
+  );
+end;
+$$;
+
+revoke execute on function public.apply_pending_revision(uuid, uuid, uuid) from public;
+grant  execute on function public.apply_pending_revision(uuid, uuid, uuid) to service_role;
+
 revoke execute on function public.release_proof_records(uuid, int) from public;
 grant  execute on function public.release_proof_records(uuid, int) to service_role;
 `.trim(),

@@ -328,6 +328,15 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
     migration: '20260822_free_proof_acquisition',
   },
   {
+    name: 'apply_pending_revision',
+    // The all-zeros uuid, like every probe: the function finds no ICP for that client and
+    // returns `ok:false, reason:'ICP_NOT_FOUND'` BEFORE writing anything — so this proves it
+    // exists without applying a revision to anyone.
+    args: { p_icp_id: NO_SUCH_ROW_UUID, p_client_id: NO_SUCH_ROW_UUID, p_campaign_id: NO_SUCH_ROW_UUID },
+    why: "K.I.N.D's GO applies a live client's held targeting AND held brief in ONE transaction — without it the route has no atomic way to apply them together, and a half-apply leaves a client live on a new brief with old targeting",
+    migration: '20260822_free_proof_acquisition',
+  },
+  {
     name: 'release_proof_records',
     // Addressed by RESERVATION id, not client id (22 Aug round 2) — release is scoped to
     // one reservation row and reconciles it exactly once, so a replay cannot recreate

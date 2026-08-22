@@ -2099,9 +2099,11 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // a decision, never as a side effect. If the invariant cannot be verified or the
     // campaign cannot be made live, NOTHING is flipped: an activation we cannot finish is
     // an activation that did not happen, not one that half-happened.
+    // Only to prove the ICP is theirs and to name the campaign. The pending fields are read
+    // INSIDE the function, under its own row lock — reading them here and passing them in
+    // would reintroduce exactly the read-then-write gap the transaction exists to close.
     const { data: icpRow } = await db.from('icps')
-      .select('id, name, pending_targeting, pending_campaign_intent')
-      .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+      .select('id, name').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!icpRow) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
 
     const { ensureCampaignForIcp } = await import('../lib/start-work')
@@ -2124,57 +2126,50 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
       return
     }
 
-    // ── GO IS ALSO WHERE A HELD REVISION IS APPLIED (founder-ruled 22 Aug) ─────────
+    // ── GO IS ALSO WHERE A HELD REVISION IS APPLIED — ATOMICALLY ──────────────────
     //
-    // A live client's revision was parked in `pending_targeting` and nothing has read it
-    // since — sourcing, scoring and sending all ran on the live columns beside it. This is
-    // the review the ruling asks for: the operator has looked, and pressing GO makes the
-    // revision operational in the SAME write that activates, so there is no instant where
-    // the row is half-applied. Clearing the pending fields in that write is what stops a
-    // second GO re-applying a stale revision on top of newer targeting.
+    // A live client's revised targeting and revised brief waited together, and the ruling is
+    // that GO applies them together. "Together" was the part this could not honour: it made
+    // TWO ordinary client writes — the campaign brief, then the ICP — and two writes across
+    // two tables are not a transaction. When the first landed and the second did not, the
+    // client was left with a NEW BRIEF and OLD TARGETING, FIGSY writing for an audience
+    // nobody had approved, while the revision could still look like it was waiting. My own
+    // comment here claimed "a failure leaves the whole revision untouched"; against two
+    // client writes that sentence was not true. Found by independent review.
     //
-    // It is applied only AFTER the one-active-campaign invariant passed above: a refused
-    // GO must leave the revision waiting, not half-spent.
-    const held = (icpRow as { pending_targeting?: Record<string, unknown> | null }).pending_targeting
-    const heldIntent = (icpRow as { pending_campaign_intent?: string | null }).pending_campaign_intent
-    const hasHeldTargeting = !!held && typeof held === 'object' && !Array.isArray(held)
-    const hasHeldIntent = typeof heldIntent === 'string' && heldIntent.trim().length > 0
-    if (hasHeldTargeting || hasHeldIntent) {
-      console.log(`[icps/activate] applying the held revision for client ${clientId} — reviewed and approved by an operator (targeting: ${hasHeldTargeting}, brief: ${hasHeldIntent}).`)
+    // Ordering them more carefully cannot fix it and a compensating rollback between two
+    // ordinary writes is just a third thing that can fail. `apply_pending_revision` is one
+    // `SECURITY DEFINER` function, and a plpgsql body IS one transaction: the brief, the
+    // targeting, the one-active sweep, the activation and the clearing of all three pending
+    // fields land together, or any raise inside rolls back every part of it.
+    //
+    // It runs only AFTER the one-active-campaign invariant passed above — that design is
+    // unchanged, and a refused GO still never reaches this line.
+    const { data: appliedRaw, error: applyErr } = await db.rpc('apply_pending_revision', {
+      p_icp_id: req.params.id, p_client_id: clientId, p_campaign_id: camp.id,
+    })
+    const applied = (appliedRaw ?? {}) as {
+      ok?: boolean; reason?: string; applied?: boolean; applied_intent?: boolean
+      icp?: Record<string, unknown> | null
     }
-
-    // ⚠️ THE BRIEF GOES FIRST, AND ITS FAILURE STOPS EVERYTHING. If the campaign write
-    // fails after the ICP had been flipped, the client would be live on new targeting with
-    // the old brief and nothing waiting to say so. Doing it here means a failure leaves the
-    // whole revision untouched and still waiting — the same fail-closed direction as the
-    // one-active refusal above.
-    if (hasHeldIntent) {
-      const { error: intentErr } = await db.from('figsy_campaigns')
-        .update({ campaign_intent: heldIntent!.slice(0, 2000), intent_mapped_at: new Date().toISOString() })
-        .eq('id', camp.id)
-      if (intentErr) {
-        console.error(`[icps/activate] could not apply the held brief for client ${clientId} — nothing was activated, the revision still waits:`, intentErr.message)
-        res.status(500).json({
-          success: false,
-          error: 'Could not apply their revised campaign brief, so nothing was activated. Their revision is still waiting — try again.',
-        })
-        return
-      }
+    // `ok: false` is the function's clean refusal — decided before it wrote anything. An
+    // `error` is a raise from inside, which rolled the whole transaction back. Both mean
+    // the same thing to the operator: nothing was applied and the revision still waits.
+    if (applyErr || applied.ok !== true) {
+      // Nothing landed: the transaction rolled back, so their live targeting, their live
+      // brief and every pending field are exactly as they were.
+      console.error(`[icps/activate] the revision could not be applied for client ${clientId} — nothing changed, it is still waiting:`, applyErr?.message ?? applied.reason ?? 'no result')
+      res.status(500).json({
+        success: false,
+        error: 'Could not apply this ICP, so nothing was changed. Their revision (if any) is still waiting — try again.',
+      })
+      return
     }
-
-    // Clearing the pending fields in the SAME write that activates is what stops a second
-    // GO re-applying a stale revision on top of newer targeting.
-    const applyHeld = {
-      ...(hasHeldTargeting ? held as Record<string, unknown> : {}),
-      ...(hasHeldTargeting || hasHeldIntent
-        ? { pending_targeting: null, pending_submitted_at: null, pending_campaign_intent: null }
-        : {}),
+    const data = applied.icp ?? null
+    if (!data) { res.status(500).json({ success: false, error: 'Activation returned no ICP' }); return }
+    if (applied.applied) {
+      console.log(`[icps/activate] applied the held revision for client ${clientId} — reviewed and approved by an operator (brief: ${applied.applied_intent === true}).`)
     }
-
-    await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
-    const { data, error } = await db.from('icps')
-      .update({ ...applyHeld, is_active: true }).eq('id', req.params.id).eq('client_id', clientId).select().single()
-    if (error) throw error
 
     // If this ICP has never sourced leads, activating it should actually FIND
     // leads — otherwise "set active" silently does nothing and the client waits
@@ -2201,6 +2196,6 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     }
     // `applied_revision` so Vida can say what actually happened — "revision applied" and
     // "ICP is live" are different events and the operator pressed the same button for both.
-    res.json({ success: true, data, sourcing: started, applied_revision: hasHeldTargeting || hasHeldIntent })
+    res.json({ success: true, data, sourcing: started, applied_revision: applied.applied === true })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to activate ICP' }) }
 })

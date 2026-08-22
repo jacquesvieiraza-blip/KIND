@@ -26,7 +26,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 type Row = Record<string, any>
-type Store = { icps: Row[]; figsy_campaigns: Row[]; clients: Row[]; leads: Row[]; figsy_knowledge: Row[]; credit_transactions: Row[] }
+type Store = { icps: Row[]; figsy_campaigns: Row[]; clients: Row[]; leads: Row[]; figsy_knowledge: Row[]; credit_transactions: Row[]
+  /** Make the icps write fail, so a partly-applied revision is reproducible. */
+  failIcpUpdate?: boolean }
 
 function makeStore(funded = false): Store {
   return {
@@ -83,7 +85,9 @@ function installDb(store: Store, rec: { rpcs: Array<{ fn: string; args: Row }> }
         const chain: any = {}
         const ueqs: Array<[string, unknown]> = []
         let uneq: [string, unknown] | null = null
+        const failed = () => table === 'icps' && store.failIcpUpdate === true
         const apply = () => {
+          if (failed()) return []                       // the write never lands
           let targets = rows().filter(r => ueqs.every(([c, v]) => r[c] === v))
           if (uneq) targets = targets.filter(r => r[uneq![0]] !== uneq![1])
           targets.forEach(r => Object.assign(r, patch))
@@ -93,10 +97,18 @@ function installDb(store: Store, rec: { rpcs: Array<{ fn: string; args: Row }> }
         chain.eq = (c: string, v: unknown) => { ueqs.push([c, v]); return chain }
         chain.neq = (c: string, v: unknown) => { uneq = [c, v]; return chain }
         chain.select = () => ({
-          single: async () => ({ data: apply()[0] ?? null, error: null }),
-          maybeSingle: async () => ({ data: apply()[0] ?? null, error: null }),
+          single: async () => (failed()
+            ? { data: null, error: { message: 'icps write failed' } }
+            : { data: apply()[0] ?? null, error: null }),
+          maybeSingle: async () => (failed()
+            ? { data: null, error: { message: 'icps write failed' } }
+            : { data: apply()[0] ?? null, error: null }),
         })
-        chain.then = (r: (v: unknown) => void) => { apply(); r({ error: null }) }
+        chain.then = (r: (v: unknown) => void) => {
+          const bad = failed()
+          apply()
+          r({ error: bad ? { message: 'icps write failed' } : null })
+        }
         return chain
       }
       q.upsert = async (row: Row) => {
@@ -119,6 +131,28 @@ function installDb(store: Store, rec: { rpcs: Array<{ fn: string; args: Row }> }
           }
           if (fn === 'try_reserve_proof_records') return { data: { granted: 0, reservation_id: null, reason: 'MONTHLY_PROOF_BUDGET_REACHED' }, error: null }
           if (fn === 'try_spend_sourcing') return { data: 0, error: null }
+          if (fn === 'apply_pending_revision') {
+            // A faithful stand-in for the plpgsql body, INCLUDING its transaction: every
+            // change is staged and committed only if the whole function would have
+            // succeeded. `store.failIcpUpdate` is the simulated raise — and the point of
+            // this mock is that the campaign write must NOT survive it.
+            const icp = store.icps.find(r => r.id === args.p_icp_id && r.client_id === args.p_client_id)
+            if (!icp) return { data: { ok: false, reason: 'ICP_NOT_FOUND', applied: false }, error: null }
+            const heldT = icp.pending_targeting ?? null
+            const heldI = (icp.pending_campaign_intent ?? '').trim() || null
+            const camp = store.figsy_campaigns.find(c => c.id === args.p_campaign_id && c.client_id === args.p_client_id)
+            if (heldI && !camp) return { data: null, error: { message: 'campaign for the revised brief not found' } }
+            if (store.failIcpUpdate) return { data: null, error: { message: 'the icp could not be updated; nothing has been applied' } }
+            // Past every raise — now everything commits together.
+            if (heldI && camp) { camp.campaign_intent = String(heldI).slice(0, 2000); camp.intent_mapped_at = 'now' }
+            store.icps.forEach(r => { if (r.client_id === args.p_client_id && r.id !== icp.id) r.is_active = false })
+            const WHITELIST = ['name', 'industries', 'job_titles', 'seniority_levels',
+              'company_sizes', 'geographies', 'tech_stack', 'keywords', 'apollo_only_consented']
+            if (heldT) for (const k of WHITELIST) if (heldT[k] !== undefined) icp[k] = heldT[k]
+            icp.is_active = true
+            icp.pending_targeting = null; icp.pending_campaign_intent = null; icp.pending_submitted_at = null
+            return { data: { ok: true, applied: !!(heldT || heldI), applied_intent: !!heldI, icp: { ...icp } }, error: null }
+          }
           return { data: null, error: null }
         },
         auth: { admin: {
@@ -690,5 +724,155 @@ describe('a live client\'s revised BRIEF waits too — and survives the wait', (
     await reviseBrief('Fill the 3 September launch webinar')
     expect(store.figsy_campaigns[0].campaign_intent).toBe('Fill the 3 September launch webinar')
     expect(store.icps[0].pending_campaign_intent ?? null).toBeNull()
+  })
+})
+
+// ── APPLYING A REVISION IS ALL-OR-NOTHING ────────────────────────────────────
+//
+// Independent review, 22 Aug: GO applied a pending revision with TWO ordinary client writes
+// — `figsy_campaigns.campaign_intent` first, then the ICP (targeting + activation + clearing
+// the pending fields). Two writes across two tables are not a transaction. If the first
+// landed and the second did not, the client was left with a NEW BRIEF and OLD TARGETING —
+// FIGSY writing for an audience nobody had approved — while the revision could still look
+// like it was waiting. My own comment claimed "a failure leaves the whole revision
+// untouched and still waiting", and against two client writes that sentence was simply not
+// true. Ordering them more carefully cannot fix it; only one transaction can.
+//
+// The fix is a single `SECURITY DEFINER` function, `apply_pending_revision`, added to the
+// same still-unapplied migration. A plpgsql function body IS one transaction: it applies the
+// brief, the targeting, the activation and the clearing together, and any failure inside it
+// raises, which rolls back every part.
+describe('GO applies a revision atomically — or not at all', () => {
+  let store: Store
+  let rec: { rpcs: Array<{ fn: string; args: Row }> }
+
+  beforeEach(() => {
+    store = makeStore()
+    rec = { rpcs: [] }
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installDb(store, rec)
+    vi.doMock('../routes/admin', () => ({ adminKeyValid: (k: unknown) => k === 'right-key' }))
+    vi.doMock('./apollo', () => ({
+      searchPeopleWithFallback: async () => ({ contacts: [], relaxed: false }),
+      ApolloCreditsExhaustedError: class extends Error {}, ApolloRateLimitError: class extends Error {},
+    }))
+    vi.doMock('./alerts', () => ({ sendFounderAlert: async () => {} }))
+    vi.doMock('./provider-boundary', async () => {
+      const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
+      return { ...real, audienceForClient: async () => 'client', audienceForUser: async () => 'client' }
+    })
+  })
+  afterEach(() => {
+    vi.doUnmock('../routes/admin'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts'); vi.doUnmock('./provider-boundary')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  const save = async (body: Row) => {
+    const h = await handlerFor('/', 'post')
+    const res = makeRes()
+    await h({ body, userId: 'u1', headers: {} }, res)
+    return res
+  }
+  const go = async (icpId: string) => {
+    const h = await handlerFor('/:id/activate', 'patch')
+    const res = makeRes()
+    await h({ params: { id: icpId }, body: { client_id: 'c1' }, headers: { 'x-admin-key': 'right-key' }, userId: 'operator-user' }, res)
+    return res
+  }
+  const liveWithRevision = async () => {
+    await save({ ...ICP_BODY, business: BUSINESS, campaign_intent: 'Book demos with fleet managers' })
+    const icpId = store.icps[0].id
+    await go(icpId)
+    await new Promise(r => setTimeout(r, 60))
+    await save({ ...ICP_BODY, name: 'Different people entirely', industries: ['Logistics'],
+                 business: BUSINESS, campaign_intent: 'Fill the 3 September launch webinar' })
+    expect(store.icps[0].pending_campaign_intent).toBe('Fill the 3 September launch webinar')
+    return icpId
+  }
+
+  it('A FAILED APPLICATION LEAVES THE LIVE BRIEF UNCHANGED', async () => {
+    // THE DEFECT, ASSERTED. With two separate writes the brief escaped into the live
+    // campaign and the targeting never followed it.
+    const icpId = await liveWithRevision()
+    store.failIcpUpdate = true
+
+    const res = await go(icpId)
+    expect(res.statusCode).toBeGreaterThanOrEqual(400)
+    expect(store.figsy_campaigns[0].campaign_intent,
+      'the new brief escaped into the live campaign while the targeting did not').toBe('Book demos with fleet managers')
+  })
+
+  it('A FAILED APPLICATION LEAVES THE LIVE TARGETING UNCHANGED', async () => {
+    const icpId = await liveWithRevision()
+    store.failIcpUpdate = true
+    await go(icpId)
+    expect(store.icps[0].name).toBe('SA SaaS CTOs')
+    expect(store.icps[0].industries).toEqual(['SaaS'])
+  })
+
+  it('A FAILED APPLICATION LEAVES EVERY PENDING FIELD WAITING', async () => {
+    const icpId = await liveWithRevision()
+    store.failIcpUpdate = true
+    await go(icpId)
+    expect(store.icps[0].pending_targeting?.name).toBe('Different people entirely')
+    expect(store.icps[0].pending_campaign_intent).toBe('Fill the 3 September launch webinar')
+    expect(store.icps[0].pending_submitted_at).toBeTruthy()
+  })
+
+  it('A FAILED APPLICATION SOURCES NOTHING AND SPENDS NOTHING', async () => {
+    const icpId = await liveWithRevision()
+    rec.rpcs.length = 0
+    store.failIcpUpdate = true
+    await go(icpId)
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_spend_sourcing')
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_reserve_proof_records')
+    expect(store.figsy_campaigns).toHaveLength(1)
+  })
+
+  it('THE SHIPPED SQL APPLIES BOTH IN ONE FUNCTION, AND RAISES RATHER THAN HALF-APPLIES', () => {
+    // The simulation above proves the CONTRACT. This proves the contract belongs to the
+    // function that will actually run — in BOTH homes, because a migration recorded in one
+    // and run from the other is how a fence goes missing.
+    const { readFileSync } = require('fs') as typeof import('fs')
+    const { join } = require('path') as typeof import('path')
+    for (const rel of [
+      '../../../../supabase/migrations/20260822_free_proof_acquisition.sql',
+      './pending-migrations.ts',
+    ]) {
+      const src = readFileSync(join(__dirname, rel), 'utf8')
+      const start = src.indexOf('create or replace function public.apply_pending_revision')
+      expect(start, `apply_pending_revision missing in ${rel}`).toBeGreaterThan(-1)
+      const fn = src.slice(start, src.indexOf('revoke execute on function public.apply_pending_revision'))
+      // ONE function, and it touches BOTH tables — that is what makes it one transaction.
+      expect(fn).toContain('update public.figsy_campaigns')
+      expect(fn).toContain('update public.icps')
+      // A failure RAISES, so the whole function's work rolls back rather than half-landing.
+      expect(fn).toMatch(/raise exception/i)
+      // Locked and scoped: the row is taken FOR UPDATE and every write is client-scoped.
+      expect(fn).toContain('for update')
+      expect(fn).toContain('client_id = p_client_id')
+      // And it clears all three pending fields, so a second GO cannot replay a stale one.
+      for (const c of ['pending_targeting', 'pending_campaign_intent', 'pending_submitted_at']) {
+        expect(fn).toContain(c)
+      }
+    }
+  })
+
+  it('THE ROUTE NO LONGER WRITES THE CAMPAIGN BRIEF ITSELF DURING GO', () => {
+    // The anti-drift guard. The half-apply was possible because the route wrote
+    // figsy_campaigns directly; if that ever comes back, atomicity is gone again and this
+    // fails rather than the defect returning quietly.
+    const { readFileSync } = require('fs') as typeof import('fs')
+    const { join } = require('path') as typeof import('path')
+    const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    const go = src.slice(src.indexOf("icpRouter.patch('/:id/activate'"))
+    expect(go).toContain('apply_pending_revision')
+    expect(go).not.toMatch(/from\('figsy_campaigns'\)\s*\n?\s*\.update/)
   })
 })

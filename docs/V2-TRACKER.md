@@ -1042,6 +1042,18 @@ Track monthly, and compare month on month: **cold email reply rates · meeting b
 
 Translate any meaningful change into what it implies for K.I.N.D's forecasting — and write the translation down, so a moved benchmark never arrives as an unexplained new assumption.
 
+## 4. FOUNDER ECONOMICS / CASHFLOW CALCULATORS REFRESH *(one job, all three together)*
+⚠️ **Their current outputs are NOT canon until this is done — including the partner model the founder has already used to think about hiring.**
+Refresh **[`hiring/KIND-AE-commission-calculator.html`](./hiring/KIND-AE-commission-calculator.html)**, **[`hiring/KIND-partner-calculator.html`](./hiring/KIND-partner-calculator.html)** and **[`hiring/KIND-team-pnl-calculator.html`](./hiring/KIND-team-pnl-calculator.html)** **together**, against verified current economics: **$299** onboarding package · **first 100 approved leads included** · **$4** thereafter · **$8/client/month** inbox + domain · **Instantly $37/mo as a FIXED company-wide warm-up cost, never per client** · **Smartlead dormant — the stale $45/client month-one assumption removed** · **PDL $0.28/record** · **free-proof acquisition economics (40 records / $11.20 per prospect, $300/mo ceiling)** · preview economics · **Hunter UNKNOWN** where unverified · **Anthropic UNKNOWN** where unverified · **Stripe actual / variable fees read from Stripe's own reporting — never a guessed fixed percentage** · fixed vs per-client costs kept apart · partner commission and share economics.
+Refreshed together because they share inputs: correcting one and not the others is how the $45 Smartlead line survived inside the $299 cost basis while `cost-floor.ts` already said Smartlead was $0.
+
+## 5. COST / ECONOMICS AUDITS *(what turns the UNKNOWNs above into numbers)*
+Post-live, verify and model each properly — every one of these currently sits in a calculator as an estimate or a blank:
+- **Anthropic / Claude real operational cost** — call sites · models · `max_tokens` · call frequency · retries · logging · caching · batching and streaming · **live vs dead paths** (a call site nothing reaches costs nothing, and counting it inflates the floor).
+- **Hunter — the exact K.I.N.D usage pattern.** Finder, Verifier, or both. The plan is known; which endpoints we actually consume is not.
+- **Stripe — actual and variable reporting**, read off the dashboard, rather than the guessed flat percentage the calculators currently carry.
+- **Google / mailbox — reconcile the separate ~$28 charge** against the $8/client/month figure the model uses.
+
 ### 6–11 — parked improvements *(from the 22-Aug launch-coherence build, #700 · AR17/AR18)*
 *Everything below was deliberately cut from the free-proof and Milla-understanding work so the 25th could hold. Each is an improvement to something that now WORKS, not a gap in it.*
 
@@ -1076,18 +1088,6 @@ Translate any meaningful change into what it implies for K.I.N.D's forecasting �
 - **Welcome-transcript capture** (P34 follow-on; own privacy surface).
 - **The brief-message removal control** (one stale "3 prospects" line sits in the founder's own thread; O3 forbids a hand delete).
 - **The email morning-brief's two defects** — `en-ZA` date locale (contradicts R62) and its button pointing at the retired `/dashboard`.
-
-## 4. FOUNDER ECONOMICS / CASHFLOW CALCULATORS REFRESH *(one job, all three together)*
-⚠️ **Their current outputs are NOT canon until this is done — including the partner model the founder has already used to think about hiring.**
-Refresh **[`hiring/KIND-AE-commission-calculator.html`](./hiring/KIND-AE-commission-calculator.html)**, **[`hiring/KIND-partner-calculator.html`](./hiring/KIND-partner-calculator.html)** and **[`hiring/KIND-team-pnl-calculator.html`](./hiring/KIND-team-pnl-calculator.html)** **together**, against verified current economics: **$299** onboarding package · **first 100 approved leads included** · **$4** thereafter · **$8/client/month** inbox + domain · **Instantly $37/mo as a FIXED company-wide warm-up cost, never per client** · **Smartlead dormant — the stale $45/client month-one assumption removed** · **PDL $0.28/record** · **free-proof acquisition economics (40 records / $11.20 per prospect, $300/mo ceiling)** · preview economics · **Hunter UNKNOWN** where unverified · **Anthropic UNKNOWN** where unverified · Stripe ≈5% marked *estimate* until read off the dashboard · fixed vs per-client costs kept apart · partner commission and share economics.
-Refreshed together because they share inputs: correcting one and not the others is how the $45 Smartlead line survived inside the $299 cost basis while `cost-floor.ts` already said Smartlead was $0.
-
-## 5. COST / ECONOMICS AUDITS *(what turns the UNKNOWNs above into numbers)*
-Post-live, verify and model each properly — every one of these currently sits in a calculator as an estimate or a blank:
-- **Anthropic / Claude real operational cost** — call sites · models · `max_tokens` · call frequency · retries · logging · caching · batching and streaming · **live vs dead paths** (a call site nothing reaches costs nothing, and counting it inflates the floor).
-- **Hunter — the exact K.I.N.D usage pattern.** Finder, Verifier, or both. The plan is known; which endpoints we actually consume is not.
-- **Stripe — actual and variable reporting**, read off the dashboard, rather than the guessed flat percentage the calculators currently carry.
-- **Google / mailbox — reconcile the separate ~$28 charge** against the $8/client/month figure the model uses.
 
 ## Cleanups from the 21-Aug full-system verification *(zero broken clicks found; these are the two structural findings)*
 - **Retire or fence the old `/dashboard` page family** — fully functional, reachable only by typed URL since login redirects to `/milla`; it is the layer that keeps misleading build prompts (the figsy-chat near miss).

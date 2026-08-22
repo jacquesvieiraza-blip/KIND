@@ -915,14 +915,21 @@ icpRouter.post('/preview-count', rateLimit({ limit: 10, windowMs: 60_000, key: '
           // This still reports what an external provider can see. The owned pool is NOT
           // added — a preview that counted leads we already hold would answer a different
           // question than the one the client is asking.
+          //
+          // ⚠️ ONE PROVIDER PER AUDIENCE — NO CROSS-OVER (corrected 22 Aug).
+          // This was `if (house) { apollo }` followed by `if (contacts.length === 0)
+          // { pdl }`, which is not a branch, it is a FALLTHROUGH: a house preview with a
+          // thin ICP returned zero Apollo rows and went straight on to PDL, and an Apollo
+          // error was swallowed to `[]` and did the same. Either way the house sampled on
+          // the clients' provider. A strict if/else is the whole fix — for the house,
+          // zero Apollo results now honestly means zero samples.
           let contacts: Awaited<ReturnType<typeof searchPeople>> = []
           if (previewAudience === 'house') {
             const searchBody = buildSearchBody(icpArg, 1)
             searchBody.per_page = 3
             contacts = await searchPeople(searchBody).catch(() => [])
-          }
-          if (contacts.length === 0) {
-            // #243: PDL keeps preview samples working Apollo-free — and is now the ONLY
+          } else {
+            // #243: PDL keeps preview samples working Apollo-free — and is the ONLY
             // source a normal client's preview ever touches.
             const { pdlSearchPeople } = await import('../lib/pdl-search')
             contacts = await pdlSearchPeople(icpArg, 3)

@@ -224,6 +224,14 @@ export async function previewCount(
   // ICP preview works Apollo-free once PDL_API_KEY is set. Returns null if PDL isn't
   // configured or also fails → caller keeps Apollo's original 0/error.
   const pdlFallback = async (reason: string): Promise<PreviewCountResult | null> => {
+    // ⚠️ AR5 AT THE FALLBACK ITSELF (22 Aug, third review round). #243 built this as a
+    // "when Apollo is unusable" escape hatch and AR5 later made it the CLIENT'S primary
+    // path — but neither step stopped the HOUSE reaching it. Three call sites below
+    // (`!apiKey`, a non-OK response, and the catch) each handed a house preview to the
+    // clients' provider. Guarding HERE closes all three at once and cannot be missed by
+    // a future edit that adds a fourth. For the house every `?? {…}` below now yields
+    // Apollo's own honest error or zero, which is the correct answer.
+    if (searchProviderFor(audience) !== 'pdl') return null
     if (!process.env.PDL_API_KEY) return null
     const d = await pdlSearchDiagnostic(icp)
     return d.ok ? { count: d.count, error: null, debug: { ...baseDebug, rawCountField: `pdl:${reason}` } } : null

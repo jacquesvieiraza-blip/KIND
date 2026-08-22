@@ -325,7 +325,7 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     }
   }
 
-  async function withMocks(audience: Audience, grant: number, rec: Rec) {
+  async function withMocks(audience: Audience, grant: number, rec: Rec, apolloThrows = false) {
     vi.resetModules()
     vi.doMock('@kind/db', () => {
       const singleFor = (t: string) => {
@@ -364,7 +364,11 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     })
     vi.doMock('./apollo', () => ({
       buildSearchBody: () => ({ page: 1 } as Record<string, unknown>),
-      searchPeople:    async () => { rec.apollo++; return [] },
+      searchPeople:    async () => {
+        rec.apollo++
+        if (apolloThrows) throw new Error('apollo 500')
+        return []
+      },
       previewCount:    async () => ({ count: 0, error: null, debug: {} }),
       searchPeopleWithFallback: async () => ({ contacts: [], relaxed: false }),
       ApolloCreditsExhaustedError: class extends Error {},
@@ -491,6 +495,107 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     await handler({ body, userId: 'u1', headers: {} }, mockRes())
     expect(rec.apollo).toBe(0)
     expect(rec.pdl.length).toBe(1)
+  })
+
+  // ── 8 + 9 — the HOUSE preview must never fall through to PDL ─────────────────
+  //
+  // #243 built PDL as a preview fallback for "Apollo is unusable", and AR5 turned it
+  // into the client's PRIMARY. What neither step did was stop the HOUSE using it: the
+  // samples branch ran Apollo, swallowed any error to `[]`, and then took the
+  // `contacts.length === 0` path straight into PDL. So a house preview with a thin ICP
+  // — or a 500 from Apollo — quietly spent the clients' provider.
+  async function runPreviewSamples(audience: Audience, apolloThrows: boolean) {
+    const rec = emptyRec()
+    await withMocks(audience, 0, rec, apolloThrows)
+    const mod = await import('../routes/icps')
+    const { handler } = await handlerFor(mod as never, 'icpRouter', '/preview-count')
+    // A distinct ICP shape per case, or #446's cache answers the second call for free
+    // and the test proves nothing about the provider.
+    const body = { job_titles: [`T-${audience}-${apolloThrows}`], geographies: ['UK'] }
+    await handler({ body, userId: 'u1', headers: {} }, mockRes())
+    return rec
+  }
+
+  it('8 — HOUSE preview samples with ZERO Apollo results never reach PDL', async () => {
+    const rec = await runPreviewSamples('house', false)
+    expect(rec.apollo).toBe(1)
+    expect(rec.pdl).toEqual([])
+  })
+
+  it('9 — HOUSE preview samples with an Apollo ERROR never reach PDL', async () => {
+    const rec = await runPreviewSamples('house', true)
+    expect(rec.apollo).toBe(1)
+    expect(rec.pdl).toEqual([])
+  })
+})
+
+// ── previewCount itself — the count half of the same boundary ─────────────────
+describe('AR5 — the HOUSE preview COUNT never falls back to PDL', () => {
+  const prev = { apollo: process.env.APOLLO_API_KEY, pdl: process.env.PDL_API_KEY }
+  let fetchSpy: ReturnType<typeof vi.fn>
+
+  const ICP = {
+    job_titles: ['Founder'], seniority_levels: ['owner'], company_sizes: ['1,10'],
+    geographies: ['UK'], industries: ['SaaS'], tech_stack: [], keywords: [],
+    apollo_only_consented: false,
+  }
+
+  const hitPdl = () => fetchSpy.mock.calls.some(c => String(c[0]).includes('peopledatalabs'))
+
+  beforeEach(() => {
+    fetchSpy = vi.fn(async () => ({
+      ok: true, status: 200,
+      json: async () => ({ total: 0, pagination: { total_entries: 0 }, data: [] }),
+      text: async () => '{}',
+    })) as unknown as ReturnType<typeof vi.fn>
+    vi.stubGlobal('fetch', fetchSpy)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    process.env.APOLLO_API_KEY = prev.apollo
+    process.env.PDL_API_KEY    = prev.pdl
+  })
+
+  it('NO Apollo key + PDL key present — the house still does not call PDL', async () => {
+    delete process.env.APOLLO_API_KEY
+    process.env.PDL_API_KEY = 'pdl-key'
+    const { previewCount } = await import('./apollo')
+    const result = await previewCount(ICP, 'house')
+    expect(hitPdl()).toBe(false)
+    // …and it says so honestly rather than silently returning a PDL number.
+    expect(String(result.error)).toMatch(/APOLLO_API_KEY/)
+  })
+
+  it('Apollo returns an ERROR status — the house still does not call PDL', async () => {
+    process.env.APOLLO_API_KEY = 'apollo-key'
+    process.env.PDL_API_KEY    = 'pdl-key'
+    fetchSpy.mockImplementation(async () => ({
+      ok: false, status: 500, json: async () => ({}), text: async () => 'upstream boom',
+    }))
+    const { previewCount } = await import('./apollo')
+    const result = await previewCount(ICP, 'house')
+    expect(hitPdl()).toBe(false)
+    expect(String(result.error)).toMatch(/Apollo 500/)
+  })
+
+  it('Apollo THROWS — the house still does not call PDL', async () => {
+    process.env.APOLLO_API_KEY = 'apollo-key'
+    process.env.PDL_API_KEY    = 'pdl-key'
+    fetchSpy.mockImplementation(async () => { throw new Error('socket hang up') })
+    const { previewCount } = await import('./apollo')
+    const result = await previewCount(ICP, 'house')
+    expect(hitPdl()).toBe(false)
+    expect(String(result.error)).toMatch(/socket hang up/)
+  })
+
+  it('a CLIENT still counts on PDL — the boundary cuts one way only', async () => {
+    process.env.APOLLO_API_KEY = 'apollo-key'
+    process.env.PDL_API_KEY    = 'pdl-key'
+    const { previewCount } = await import('./apollo')
+    await previewCount(ICP, 'client')
+    expect(fetchSpy.mock.calls.some(c => String(c[0]).includes('apollo.io'))).toBe(false)
+    expect(hitPdl()).toBe(true)
   })
 })
 

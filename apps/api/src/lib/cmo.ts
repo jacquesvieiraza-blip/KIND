@@ -66,12 +66,24 @@ export const KIND_BRAND = {
   },
 }
 
-// #481 — Client-Zero sourcing runs on the LIVE PDL+Hunter stack, not dead Apollo.
-// This used to call searchPeople() directly, which THROWS when APOLLO_API_KEY is unset
-// (it always is — Apollo is retired) → the whole self-outreach job died with zero spend
-// and zero prospects. searchPeopleWithFallback() is the same entry runIcpJob uses: with
-// Apollo dead it fails over to PDL (returns [] on any error, never throws). Size is capped
-// at the 20/day self-outreach limit so PDL is asked for at most what we can enrol.
+// ⛓️ **AR5 BOUNDARY, 21 Aug — this is HOUSE work and now says so.**
+// ~~#481: "Client-Zero sourcing runs on the LIVE PDL+Hunter stack, not dead Apollo…
+// searchPeopleWithFallback() … with Apollo dead it fails over to PDL."~~ That was written
+// when a 1-Aug audit had tagged Apollo retired — **the founder overruled that conclusion**
+// (AR5, 30 Jul, re-affirmed 1 Aug, #606: *"Apollo is OURS. PDL + Hunter are the CLIENTS'"*).
+// PDL is the CLIENTS' stack; K.I.N.D's own hunting must not spend it. Passing `'house'`
+// routes this to Apollo and closes that half of the boundary.
+//
+// #481's real point survives: this must never THROW when a key is missing. It does not —
+// the client/PDL branch and the house/Apollo branch both swallow provider errors and
+// return []. Size stays capped at the 20/day self-outreach limit.
+//
+// ⚠️ POOL-FIRST (founder, 21 Aug) IS NOT APPLIED HERE, DELIBERATELY. This function creates
+// no leads — it returns contacts for the founder's own prospect digest, and `servePoolLeads`
+// is a lead-INSERTING step that needs a client id. Client Zero's ACTUAL sourcing, run through
+// Milla like any client, goes through routes/icps.ts — which is pool-first already and stays
+// pool-first. Applying the ruling here would mean changing what this route does, not where it
+// sources from.
 export async function findKindProspects(): Promise<ApolloContact[]> {
   const { contacts } = await searchPeopleWithFallback({
     industries:       KIND_BRAND.target_icp.industries,
@@ -82,7 +94,7 @@ export async function findKindProspects(): Promise<ApolloContact[]> {
     tech_stack:       [],
     keywords:         [],
     apollo_only_consented: false,
-  }, 1, 20)
+  }, 1, 20, null, 'house')
   // #375 (AR-38) — drop placeholder addresses at the source so no caller can
   // insert/charge/cold-email a fake mailbox (reputation risk to our sending domain).
   return contacts.filter(p => !isPlaceholderEmail(p.email))

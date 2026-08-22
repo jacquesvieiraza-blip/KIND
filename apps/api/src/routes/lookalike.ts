@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
+import { audienceForClient } from '../lib/provider-boundary'
+import { PDL_RATE_USD } from '../lib/sourcing-fences'
 
 const router = Router()
 
@@ -73,8 +75,53 @@ router.post('/generate', async (req: Request, res: Response) => {
     if (icpErr) throw icpErr
     if (!icp) return res.status(404).json({ error: 'No ICP found for this client' })
 
-    if (!process.env.APOLLO_API_KEY) {
+    // ── AR5 BOUNDARY (21 Aug) ────────────────────────────────────────────────────
+    // This is an OPERATOR tool, but the leads it writes land in a CLIENT's account —
+    // so the audience is the TARGET CLIENT, not the operator running it. A normal
+    // client's lookalikes are sourced from PDL (their stack); the house account's from
+    // Apollo (ours). Nothing here decides on `APOLLO_API_KEY` being present any more.
+    const audience = await audienceForClient(String(client_id))
+
+    if (audience === 'house' && !process.env.APOLLO_API_KEY) {
       return res.status(500).json({ error: 'Apollo not configured' })
+    }
+
+    // The route's existing requested record count — unchanged, just named so the AR8
+    // fence and the PDL request can both refer to the same number.
+    const LOOKALIKE_TARGET = 50
+
+    // ── AR8 — A CLIENT'S PDL SPEND IS PRE-FUNDED, HERE TOO (22 Aug) ──────────────
+    //
+    // Found by independent review (GPT-5.6). Closing the AR5 boundary re-pointed a
+    // normal client's lookalikes from Apollo (free search) to PDL (billed per record
+    // RETURNED, $0.28 — `sourcing-fences.ts:6`, verified 10 Jul) — but it did not carry
+    // AR8 across. This route had NO fence at all: no `try_spend_sourcing`, no ledger row,
+    // no allowance touch. 50 records ≈ $14 of unfenced spend per click.
+    //
+    // Founder-ruled 22 Aug: the leads land in the CLIENT'S pipeline, so the spend belongs
+    // to THAT CLIENT'S existing pre-funded allowance. Same mechanism as `routes/icps.ts`
+    // — same RPC, same arguments, same daily/monthly limits, same ledger semantics. No
+    // K.I.N.D growth budget, no new money system.
+    //
+    // ⚠️ HOUSE IS NOT FENCED BY IT. Client Zero's lookalikes come from Apollo — ours,
+    // already prepaid — so there is no PDL record to pre-fund (AR5/AR16).
+    let grantedSize = LOOKALIKE_TARGET
+    if (audience !== 'house') {
+      const { data: granted } = await db.rpc('try_spend_sourcing', {
+        p_client_id: client_id, p_requested: LOOKALIKE_TARGET,
+      })
+      grantedSize = typeof granted === 'number' ? granted : 0
+      if (grantedSize <= 0) {
+        // Honest controlled refusal, in the shape this route already returns. Nothing is
+        // sourced and nothing is spent — the operator is told why rather than shown an
+        // empty result that reads as "this client has no lookalikes".
+        console.log(`[lookalike] refused for client ${client_id} — no pre-funded sourcing budget (allowance/ceiling/daily). No PDL spend.`)
+        return res.json({
+          found: 0, inserted: 0, refused: 'sourcing_allowance',
+          message: 'Sourcing paused — add reveal credits (or the monthly data budget has been reached).',
+          icp_used: { industries: icp.industries, titles: icp.job_titles, locations: icp.geographies },
+        })
+      }
     }
 
     // Use the existing buildSearchBody helper which maps ICP fields correctly
@@ -89,9 +136,56 @@ router.post('/generate', async (req: Request, res: Response) => {
       apollo_only_consented: icp.apollo_only_consented ?? false,
       intent_signals:        icp.intent_signals         ?? [],
     }, 1)
-    searchBody.per_page = 50
+    searchBody.per_page = LOOKALIKE_TARGET
 
-    const people = await searchPeople(searchBody)
+    // Provider by audience — never by key presence. For a client this is PDL, using the
+    // same ICP traits the Apollo body was built from (industries · sizes · titles ·
+    // seniority · geographies), which PDL's own query builder maps natively.
+    // ⚠️ Result QUALITY may differ between providers; the FEATURE does not. That is the
+    // price of AR5, and it is disclosed rather than hidden.
+    const people = audience === 'house'
+      ? await searchPeople(searchBody)
+      : await (async () => {
+          const { pdlSearchPeople } = await import('../lib/pdl-search')
+          // PDL's query shape is the five ICP traits it can actually target. `tech_stack`,
+          // `keywords` and `apollo_only_consented` are Apollo-only concepts and are not
+          // silently pretended at — see the quality note above.
+          // Ask for EXACTLY what was granted — never more than we pre-funded.
+          return pdlSearchPeople({
+            job_titles:       icp.job_titles       ?? [],
+            seniority_levels: icp.seniority_levels ?? [],
+            company_sizes:    icp.company_sizes    ?? [],
+            geographies:      icp.geographies      ?? [],
+            industries:       icp.industries       ?? [],
+          }, grantedSize)
+        })()
+
+    // ── RECONCILE (Fable F1's rule, applied here too) ───────────────────────────
+    // PDL bills per record RETURNED, not per record granted. A thin or empty search must
+    // not drain the client's allowance or book ledger cost for money never spent. Refund
+    // the unused grant (`p_trial: false` — back to spendable allowance without touching
+    // the trial counter, so retries stay possible) and book a negative ledger correction.
+    //
+    // ⚠️ THIS RUNS BEFORE THE EMPTY-RESULT RETURN BELOW, DELIBERATELY. A zero-result run
+    // is exactly the case that must refund; reconciling after the early return would
+    // silently keep the whole grant for a search that returned nobody.
+    if (audience !== 'house') {
+      const returnedCount = Math.min(people.length, grantedSize)
+      const unusedGrant   = grantedSize - returnedCount
+      if (unusedGrant > 0) {
+        const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
+          p_client_id: client_id, p_records: unusedGrant, p_trial: false,
+        })
+        if (refundErr) {
+          console.error(`[lookalike] sourcing-grant refund FAILED for client ${client_id} (${unusedGrant} records) —`, refundErr)
+        } else {
+          const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
+            client_id, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+          })
+          if (ledgerErr) console.error('[lookalike] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+        }
+      }
+    }
 
     if (!people.length) {
       return res.json({

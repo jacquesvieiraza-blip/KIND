@@ -8,6 +8,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { pushToCrm } from '../lib/crm'
 import { sendConsentEmail } from '../lib/email'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
+import { audienceForClient, companyNameSearchAllowed, COMPANY_SEARCH_UNAVAILABLE } from '../lib/provider-boundary'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import type { BatchCheck } from '../lib/approval-batch'
 import { getOrCreateConsentToken, buildConsentUrl } from '../lib/consent'
@@ -1880,6 +1881,23 @@ leadRouter.post('/find-at-companies', async (req: AuthRequest, res) => {
     // Build Apollo search body targeting specific companies
     const searchBody = buildSearchBody({ ...icp, organization_names: companies }, 1)
     searchBody.per_page = Math.min(limit, 100)
+
+    // ── AR5 + FOUNDER RULING, 21 Aug ─────────────────────────────────────────────
+    // "only the house account can search by company name. for now. only us."
+    //
+    // This route is CLIENT-authenticated and searches Apollo on K.I.N.D's key, which is
+    // the boundary in the wrong place. It is refused for clients rather than re-pointed
+    // at PDL, because PDL genuinely cannot do this: its query builder maps industries,
+    // sizes, titles, seniority and geography — there is no company-NAME targeting. So for
+    // a client the capability does not exist; it has not moved vendor. Refusing honestly
+    // beats returning an empty list that reads as "no one works at these companies".
+    //
+    // 403, not 404: the route exists and works — this account may not use it.
+    const audience = await audienceForClient(clientId)
+    if (!companyNameSearchAllowed(audience)) {
+      res.status(403).json({ success: false, error: COMPANY_SEARCH_UNAVAILABLE })
+      return
+    }
 
     const contacts = await searchPeople(searchBody)
     if (!contacts.length) {

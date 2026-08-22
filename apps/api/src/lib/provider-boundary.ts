@@ -25,13 +25,12 @@
 // The doors ask this module; the module is pure and unit-tested; and the answer
 // depends on WHO the work is for — never on which keys exist.
 //
-// ⚠️ `apollo_id` ON A LEAD IS NOT AN AUDIENCE SIGNAL. It is provenance, and the
-// founder deliberately grandfathered existing client leads that carry it
-// (21 Aug): they may finish through the Apollo reveal path they were created
-// under. That legacy drain is exactly why `lead-delivery.ts` is NOT modified —
-// closing the four writer doors means every NEW client lead simply arrives with
-// no `apollo_id`, so the reveal step skips Apollo on its own and falls through
-// to the Hunter waterfall. No guard, no cutover date, no provenance rewrite.
+// ⚠️ `apollo_id` ON A LEAD IS NOT AN AUDIENCE SIGNAL. It is provenance. The
+// founder deliberately grandfathered existing client leads that carry a genuine
+// Apollo id (AR15, 21 Aug): they may finish through the reveal path they were
+// created under. But a NEW client lead is not id-less — it carries PDL's own
+// `pdl_…` id — so closing the four search doors did not close the REVEAL door.
+// See "THE REVEAL DOOR" below for the guard that does.
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { resolveHouseUserIds } from './real-clients'
@@ -82,6 +81,49 @@ export function companyNameSearchAllowed(audience: Audience): boolean {
 /** The message the API returns when a client asks for company-name search. */
 export const COMPANY_SEARCH_UNAVAILABLE =
   'Company-name search is not available for this account.'
+
+// ── THE REVEAL DOOR ─────────────────────────────────────────────────────────
+//
+// Closing the four SEARCH doors was NOT sufficient, and independent review
+// (GPT-5.6, 22 Aug) rejected the first version of this file for claiming it was.
+// The header above used to say every new client lead "arrives with no
+// `apollo_id`". That was wrong. A PDL lead arrives with `apollo_id = 'pdl_…'`,
+// and `lead-delivery.ts` picks its reveal candidates on that column being
+// TRUTHY — so a brand-new, PDL-sourced, client-owned record was still being
+// handed to Apollo's paid `people/bulk_match`.
+//
+// The defence offered for that — "Apollo can't match a PDL id, so no credit is
+// charged" — is not the standard. AR5 is a PROVIDER BOUNDARY, not a cost
+// ceiling: a client's record must not be SENT to K.I.N.D's Apollo account at
+// all, whatever comes back.
+//
+// The provenance was already correct at the writer: `pdl-search.ts` has stamped
+// the `pdl_` prefix since it was written, precisely so PDL records "are never
+// sent to Apollo's bulk_match". That was an ASPIRATION in a comment with no code
+// behind it. This is the code.
+//
+// ⚠️ WHY THE GUARD IS HERE AND NOT AT THE WRITER. Nulling `apollo_id` for clients
+// would look like the tidier fix, but `icps.ts` de-duplicates a client's sourcing
+// runs against exactly that column — nulling it would re-insert the same person on
+// every run. The column is a PROVIDER-ID column carrying a discriminating prefix,
+// and the discriminator is what needed enforcing.
+const PDL_ID_PREFIX = 'pdl_'
+
+/**
+ * Is this id one Apollo can be asked about? Provenance, read off the id itself.
+ *
+ * Deliberately a DISCRIMINATOR, not a cutover date: AR15 (founder, 21 Aug)
+ * grandfathered existing client leads that carry a genuine Apollo id — they finish
+ * through the path they were created under. This keeps every one of them.
+ */
+export function isApolloPersonId(id: string | null | undefined): boolean {
+  return typeof id === 'string' && id.length > 0 && !id.startsWith(PDL_ID_PREFIX)
+}
+
+/** The subset of a reveal batch that Apollo is allowed to be shown. */
+export function apolloRevealableIds(ids: Array<string | null | undefined>): string[] {
+  return ids.filter(isApolloPersonId) as string[]
+}
 
 /**
  * IO — which audience does this client belong to?

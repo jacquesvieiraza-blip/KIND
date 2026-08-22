@@ -30,6 +30,7 @@ vi.mock('@kind/db', () => ({
 
 import {
   searchProviderFor, revealProviderFor, companyNameSearchAllowed,
+  isApolloPersonId, apolloRevealableIds,
   COMPANY_SEARCH_UNAVAILABLE, type Audience,
 } from './provider-boundary'
 
@@ -65,6 +66,84 @@ describe('AR5 — the provider decision is pure and audience-driven', () => {
       process.env.APOLLO_API_KEY = prevA
       process.env.PDL_API_KEY = prevP
     }
+  })
+})
+
+// ── THE REVEAL DOOR — where the boundary was still open ──────────────────────
+//
+// Closing the four SEARCH doors was not enough, and independent review (GPT-5.6,
+// 22 Aug) was right to reject the argument that it was. A client's lead is now
+// sourced from PDL, but it is still STAMPED with a provider id — `pdl_…` — and
+// `lead-delivery.ts` selects reveal candidates on `apollo_id` being TRUTHY. A
+// `pdl_…` string is truthy. So a brand-new, PDL-sourced, client-owned lead was
+// still handed to Apollo's paid bulk_match endpoint.
+//
+// The argument that this was harmless — "Apollo won't match a PDL id, so no credit
+// is charged" — is not the test. AR5 is a PROVIDER BOUNDARY, not a cost ceiling:
+// a client's record must not be SENT to K.I.N.D's Apollo account at all. These
+// tests assert the request never leaves, not that it comes back cheap.
+describe('AR5 — a PDL id can never be sent to Apollo bulk_match', () => {
+  it('the id itself carries its provenance', () => {
+    expect(isApolloPersonId('5f3a1c2b9d7e4f0a1b2c3d4e')).toBe(true)
+    expect(isApolloPersonId('pdl_abc123')).toBe(false)
+    expect(isApolloPersonId('')).toBe(false)
+    expect(isApolloPersonId(null)).toBe(false)
+  })
+
+  it('the filter keeps legacy Apollo ids and drops PDL ids', () => {
+    // AR15 (founder, 21 Aug): existing client leads that carry a GENUINE Apollo id
+    // were deliberately grandfathered — they finish through the path they were
+    // created under. So this filter must be a discriminator, not a cutover.
+    expect(apolloRevealableIds(['pdl_a', 'apollo-legacy-1', 'pdl_b', 'apollo-legacy-2']))
+      .toEqual(['apollo-legacy-1', 'apollo-legacy-2'])
+  })
+
+  describe('bulkMatchEmails', () => {
+    const prev = process.env.APOLLO_API_KEY
+    let fetchSpy: ReturnType<typeof vi.fn>
+
+    beforeEach(() => {
+      // The dangerous shape: the Apollo key IS set. Production.
+      process.env.APOLLO_API_KEY = 'apollo-key'
+      fetchSpy = vi.fn(async () => ({
+        ok: true, status: 200,
+        json: async () => ({ matches: [] }),
+        text: async () => '{}',
+      })) as unknown as ReturnType<typeof vi.fn>
+      vi.stubGlobal('fetch', fetchSpy)
+    })
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+      process.env.APOLLO_API_KEY = prev
+    })
+
+    it('a new PDL-sourced client lead never reaches Apollo — no request at all', async () => {
+      const { bulkMatchEmails } = await import('./apollo')
+      const out = await bulkMatchEmails(['pdl_person_1', 'pdl_person_2'])
+      expect(fetchSpy).not.toHaveBeenCalled()
+      expect(out.size).toBe(0)
+    })
+
+    it('a mixed batch sends ONLY the genuine Apollo ids in the request body', async () => {
+      const { bulkMatchEmails } = await import('./apollo')
+      await bulkMatchEmails(['pdl_person_1', 'legacy_apollo_id', 'pdl_person_2'])
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as { body: string }).body))
+      expect(body.details).toEqual([{ id: 'legacy_apollo_id' }])
+    })
+
+    it('AR15 grandfathering still works — a legacy Apollo id is still revealed', async () => {
+      fetchSpy.mockImplementation(async () => ({
+        ok: true, status: 200,
+        json: async () => ({ matches: [{ id: 'legacy_apollo_id', email: 'dana@northwind-logistics.co.uk' }] }),
+        text: async () => '{}',
+      }))
+      const { bulkMatchEmails } = await import('./apollo')
+      const out = await bulkMatchEmails(['legacy_apollo_id'])
+      expect(fetchSpy).toHaveBeenCalledTimes(1)
+      expect(out.get('legacy_apollo_id')).toBe('dana@northwind-logistics.co.uk')
+    })
   })
 })
 

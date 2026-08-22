@@ -1,6 +1,6 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage } from './pdl-search'
-import { searchProviderFor, type Audience } from './provider-boundary'
+import { searchProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
 
@@ -477,7 +477,19 @@ const APOLLO_BULK_MATCH = `${APOLLO_BASE}/people/bulk_match`
 export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, string>> {
   const out = new Map<string, string>()
   const apiKey = process.env.APOLLO_API_KEY
-  const ids = apolloIds.filter(Boolean)
+
+  // ── AR5 AT THE REVEAL DOOR (22 Aug) ───────────────────────────────────────
+  // This used to be `apolloIds.filter(Boolean)`, which let anything truthy through.
+  // A client's PDL-sourced lead carries `apollo_id = 'pdl_…'` — truthy — so
+  // `lead-delivery.ts` was handing a client's record to K.I.N.D's Apollo account.
+  // Apollo would not have MATCHED it, but AR5 is a boundary, not a cost ceiling:
+  // the record must not be sent. Legacy client leads holding a genuine Apollo id
+  // still pass, which is AR15's grandfathering, intact.
+  const ids = apolloRevealableIds(apolloIds)
+  const refused = apolloIds.filter(Boolean).length - ids.length
+  if (refused > 0) {
+    console.log(`[apollo] bulk_match: AR5 refused ${refused} non-Apollo id(s) — routed to the Hunter waterfall instead`)
+  }
   if (!apiKey || ids.length === 0) return out
 
   for (let i = 0; i < ids.length; i += 10) {

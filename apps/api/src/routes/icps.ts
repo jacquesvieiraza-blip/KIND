@@ -1609,9 +1609,11 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // `leads.icp_id`, the campaign's `icp_id` and the PDL cursor all hang off it, and
     // `proof_passes_done` is client-level and untouched either way.
     //
-    // ⚠️ `is_active` IS NEVER WRITTEN HERE. A prospect's ICP stays inactive through both
-    // proof passes, and a paying client's live ICP simply carries the new targeting —
-    // which is AR9 exactly: they change what runs (25 Jul), they never activate it (22 Aug).
+    // ⚠️ `is_active` IS NEVER WRITTEN HERE, and a LIVE client's revision does not touch the
+    // live columns either — `saveClientTargeting` holds it in `pending_targeting` until
+    // K.I.N.D reviews it. (This comment said the opposite until the founder ruled on 22 Aug:
+    // I had read "no gate on their own change" as licence to apply a live client's edit
+    // immediately. They may still revise as often as they like; the edit now WAITS.)
     // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
     // door, and one core ICP is the client-side rule.
     const saved = await saveClientTargeting(clientId, body)

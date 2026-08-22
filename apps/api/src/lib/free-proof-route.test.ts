@@ -78,7 +78,9 @@ async function runJob(opts: {
         rpc: async (fn: string, args: Record<string, unknown>) => {
           rec.rpcs.push({ fn, args })
           if (fn === 'try_claim_proof_pass')       return { data: opts.pass ?? 1, error: null }
-          if (fn === 'try_reserve_proof_records')  return { data: opts.reserve ?? 10, error: null }
+          // The corrected contract (22 Aug round 2): reserve returns jsonb with the
+          // reservation's identity, and release must address that identity.
+          if (fn === 'try_reserve_proof_records')  return { data: { granted: opts.reserve ?? 10, reservation_id: 'res-1' }, error: null }
           if (fn === 'try_spend_sourcing')         return { data: opts.grant ?? 10, error: null }
           return { data: null, error: null }
         },
@@ -174,6 +176,10 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
     expect(names).not.toContain('add_sourcing_allowance')
     const rel = rec.rpcs.find(r => r.fn === 'release_proof_records')!
     expect(rel.args.p_records).toBe(12)          // 20 reserved − 8 returned
+    // …and it addresses THE reservation, not the client aggregate — the identity is what
+    // makes a replayed reconcile a no-op instead of a second decrement.
+    expect(rel.args.p_reservation_id).toBe('res-1')
+    expect('p_client_id' in rel.args).toBe(false)
   })
 
   it('proof leads are surfaced AND delivered, and revealed_at is never set', async () => {

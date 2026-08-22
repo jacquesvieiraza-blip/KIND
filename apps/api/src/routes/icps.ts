@@ -558,6 +558,11 @@ export async function runIcpJob(
     // authority, with its own monthly ceiling, and paid AR8 below is untouched.
     let grantedSize: number
     let proofReserved = 0
+    // The reservation's identity, carried to the reconcile. A release addresses THIS
+    // reservation by id — never the client's aggregate — so a retried reconcile is a
+    // no-op instead of a second decrement that recreates spent authority (GPT review,
+    // 22 Aug round 2).
+    let proofReservationId: string | null = null
     if (audience === 'house') {
       grantedSize = pdlRemainder
       console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; the PDL cash fence does not apply (AR5/AR8).`)
@@ -565,9 +570,11 @@ export async function runIcpJob(
       const { data: reserved } = await db.rpc('try_reserve_proof_records', {
         p_client_id: clientId, p_requested: pdlRemainder,
       })
-      proofReserved = typeof reserved === 'number' ? reserved : 0
+      const r = (reserved ?? {}) as { granted?: number; reservation_id?: string | null }
+      proofReserved = typeof r.granted === 'number' ? r.granted : 0
+      proofReservationId = typeof r.reservation_id === 'string' ? r.reservation_id : null
       grantedSize = proofReserved
-      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) against the acquisition fence (40 lifetime, $300/mo).`)
+      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) (reservation ${proofReservationId ?? 'none'}) against the acquisition fence (40 lifetime, $300/mo).`)
     } else {
       const { data: granted } = await db.rpc('try_spend_sourcing', {
         p_client_id: clientId, p_requested: pdlRemainder,
@@ -666,18 +673,25 @@ export async function runIcpJob(
       const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
       if (unusedGrant > 0) {
         if (funding === null) {
-          // FREE PROOF reconcile — reserve 40, PDL returns 25, release 15. ONE call frees
-          // BOTH fences: the prospect's 40-record lifetime count and the acquisition
-          // month's room, the latter because the negative proof-ledger row lowers the very
-          // sum the reservation raised. If this never runs the reservation simply stands,
-          // and the prospect and the month are each under-allocated by the unused amount —
-          // which is the fail-closed direction, and the reason the reservation is
-          // pessimistic in the first place.
-          const { error: relErr } = await db.rpc('release_proof_records', {
-            p_client_id: clientId, p_records: unusedGrant,
-          })
-          if (relErr) {
-            console.error(`[icp] PROOF release FAILED for prospect ${clientId} (${unusedGrant} records) — the reservation stands, so future proof under-allows rather than overspends:`, relErr)
+          // FREE PROOF reconcile — reserve 40, PDL returns 25, release 15 AGAINST THE
+          // RESERVATION MADE ABOVE, by its id. The RPC marks that row reconciled and will
+          // never release it again, so a retry of this exact call is a no-op rather than a
+          // second decrement — and the correction inherits the reservation's budget_month,
+          // so a run that straddles midnight on the 31st corrects the month the money was
+          // reserved in, never the month the reconcile happened to land in. If this never
+          // runs the reservation simply stands: the prospect and the month are each
+          // under-allocated by the unused amount, which is the fail-closed direction.
+          if (proofReservationId) {
+            const { error: relErr } = await db.rpc('release_proof_records', {
+              p_reservation_id: proofReservationId, p_records: unusedGrant,
+            })
+            if (relErr) {
+              console.error(`[icp] PROOF release FAILED for prospect ${clientId} (${unusedGrant} records, reservation ${proofReservationId}) — the reservation stands, so future proof under-allows rather than overspends:`, relErr)
+            }
+          } else {
+            // Reserved without an id would mean the RPC contract broke mid-flight. Nothing
+            // to address a release at → the reservation stands. Under-allows, never over.
+            console.error(`[icp] PROOF release SKIPPED for prospect ${clientId} — no reservation id was returned; ${unusedGrant} record(s) stay reserved (fail-closed).`)
           }
         } else {
           const { error: refundErr } = await db.rpc('add_sourcing_allowance', {

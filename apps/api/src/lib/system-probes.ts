@@ -323,14 +323,17 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
   },
   {
     name: 'try_reserve_proof_records',
-    args: { p_client_id: NO_SUCH_ROW_UUID, p_requested: 0 },   // guard: `p_requested <= 0 → RETURN 0`
+    args: { p_client_id: NO_SUCH_ROW_UUID, p_requested: 0 },   // guard: `p_requested <= 0 → granted 0`
     why: 'the atomic 40-record-per-prospect and monthly acquisition ceiling — without it free proof has no spend fence',
     migration: '20260822_free_proof_acquisition',
   },
   {
     name: 'release_proof_records',
-    args: { p_client_id: NO_SUCH_ROW_UUID, p_records: 0 },     // guard: `p_records <= 0 → RETURN 0`
-    why: 'returns an unused proof reservation — without it every thin search permanently under-allocates the prospect and the month',
+    // Addressed by RESERVATION id, not client id (22 Aug round 2) — release is scoped to
+    // one reservation row and reconciles it exactly once, so a replay cannot recreate
+    // authority for records that were genuinely bought.
+    args: { p_reservation_id: NO_SUCH_ROW_UUID, p_records: 0 },   // guard: `p_records <= 0 → RETURN 0`
+    why: 'reconciles ONE proof reservation, once — without it every thin search permanently under-allocates the prospect and the month',
     migration: '20260822_free_proof_acquisition',
   },
   {

@@ -1,5 +1,6 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage } from './pdl-search'
+import { searchProviderFor, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
 
@@ -200,7 +201,13 @@ export interface PreviewCountResult {
   }
 }
 
-export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): Promise<PreviewCountResult> {
+export async function previewCount(
+  icp: Parameters<typeof buildSearchBody>[0],
+  // ⚠️ REQUIRED (AR5, 21 Aug) — same reasoning as `searchPeopleWithFallback`. The preview
+  // spends no Apollo CREDITS (People Search is free), but running a client's preview on
+  // K.I.N.D's Apollo key is still the boundary in the wrong place.
+  audience: Audience = 'client',
+): Promise<PreviewCountResult> {
   const apiKey = process.env.APOLLO_API_KEY
   const body = buildSearchBody(icp, 1)
   body.per_page = 1
@@ -220,6 +227,15 @@ export async function previewCount(icp: Parameters<typeof buildSearchBody>[0]): 
     if (!process.env.PDL_API_KEY) return null
     const d = await pdlSearchDiagnostic(icp)
     return d.ok ? { count: d.count, error: null, debug: { ...baseDebug, rawCountField: `pdl:${reason}` } } : null
+  }
+
+  // AR5 — a client's preview counts against PDL and never touches our Apollo key. The
+  // #243 fallback above is the same code path; for a client it is simply the only path.
+  if (searchProviderFor(audience) === 'pdl') {
+    return (await pdlFallback('client-audience')) ?? {
+      count: 0, error: null,
+      debug: { ...baseDebug, keyConfigured: false, keyTail: null, rawCountField: 'pdl:unconfigured' },
+    }
   }
 
   if (!apiKey) {
@@ -287,31 +303,48 @@ export async function searchPeopleWithFallback(
   // the returned `pdlPage.scrollToken` on the ICP row and hands it back next time, which is
   // what makes a client's second month find people their first month did not.
   pdlCursor: string | null = null,
+  // ⚠️ REQUIRED, and required ON PURPOSE (AR5, 21 Aug). Optional-with-a-default would let a
+  // future call site inherit whatever that default was and silently re-open the boundary —
+  // the exact failure this parameter exists to close. It sits after `pdlCursor` (which keeps
+  // its default) so the compiler forces every caller to state the cursor explicitly too:
+  // that is deliberate, and the two existing call sites already pass one.
+  audience: Audience,
 ): Promise<{ contacts: ApolloContact[]; relaxed: string | null; pdlPage: PdlPage | null }> {
-  // SECOND SOURCE (dormant unless PDL_API_KEY is set): when configured, PDL is used
-  // two ways — (1) as a PARALLEL SUPPLEMENT that is MERGED (deduped) with a successful
-  // Apollo result so a run returns Apollo ∪ PDL rather than Apollo-only; and (2) as a
-  // FALLBACK when Apollo fails (dead key / exhausted credits / rate limit) or returns 0
-  // across all passes. With no key set, behaviour is byte-identical to before — Apollo
-  // errors propagate, 0 = relaxed msg, no supplement, no extra calls.
-  const pdlConfigured = !!process.env.PDL_API_KEY
-
-  // Fetch the PDL supplement once, in parallel with the Apollo pass below, but only
-  // when configured. Never throws (pdlSearchPage swallows every error into `error`), so it
-  // can only ever ADD leads — it cannot break the Apollo path. We always supplement
-  // (not just when Apollo under-fills): PDL surfaces a distinct pool of contacts that
-  // carry a real work_email directly, so merging widens reach on every run. Cost is
-  // bounded — one extra PDL search per run, deduped against Apollo before use.
+  // ── THE AR5 BOUNDARY (21 Aug) ─────────────────────────────────────────────────────
+  // This function used to run **Apollo ∪ PDL for everyone**, with the mix decided by
+  // which global keys existed. That is the defect: a paying client's sourcing consumed
+  // K.I.N.D's Apollo, and house hunting consumed the clients' PDL, in both directions,
+  // silently. Provider now follows the AUDIENCE and nothing else.
   //
-  // #366 — this is now a PAGE, not a list: it resumes from `pdlCursor` and reports where it
-  // got to. Every return below carries that page back out so the caller can persist it.
-  const pdlSupplement: Promise<PdlPage | null> = pdlConfigured
-    ? pdlSearchPage(icp, size, pdlCursor).catch(() => null)
-    : Promise.resolve(null)
+  // The union is gone rather than made conditional: it only ever existed because the two
+  // audiences shared one function. `searchProviderFor` is the single decision — see
+  // lib/provider-boundary.ts for why it does not live at the call sites.
+  const provider = searchProviderFor(audience)
+
   // Every exit point must report the page, so a stored cursor can never silently stop
   // advancing. Threading it by hand through nine returns is exactly how one gets missed.
   const out = (contacts: ApolloContact[], relaxed: string | null, pdlPage: PdlPage | null) =>
     ({ contacts, relaxed, pdlPage })
+
+  // ── CLIENT AUDIENCE → PDL ONLY ────────────────────────────────────────────────────
+  // No Apollo pass at all, whatever APOLLO_API_KEY holds. PDL's own size-ladder, cursor
+  // and error-swallowing are untouched — this is the same `pdlSearchPage` the supplement
+  // used, called directly instead of merged.
+  if (provider === 'pdl') {
+    const pdlPage = await pdlSearchPage(icp, size, pdlCursor).catch(() => null)
+    const contacts = pdlPage?.contacts ?? []
+    if (contacts.length > 0) return out(contacts, null, pdlPage)
+    return out([], pdlPage?.error
+      ? 'Lead sourcing is temporarily unavailable — we will retry automatically.'
+      : 'No matches for this profile yet — widening the search next run.', pdlPage)
+  }
+
+  // ── HOUSE AUDIENCE → APOLLO ONLY ──────────────────────────────────────────────────
+  // Apollo's relax ladder below is unchanged. PDL is never consulted for house work,
+  // whatever PDL_API_KEY holds — the clients' stack is not ours to spend.
+  const pdlConfigured = false
+
+  const pdlSupplement: Promise<PdlPage | null> = Promise.resolve(null)
 
   // Ask Apollo for exactly `size` too (per_page), so no source over-pulls what we keep.
   const sized = (b: ApolloSearchBody): ApolloSearchBody => { b.per_page = size; return b }

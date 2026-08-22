@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express'
 import { db } from '@kind/db'
 import { adminKeyValid } from './admin'
 import { searchPeople, buildSearchBody } from '../lib/apollo'
+import { audienceForClient } from '../lib/provider-boundary'
 
 const router = Router()
 
@@ -73,7 +74,14 @@ router.post('/generate', async (req: Request, res: Response) => {
     if (icpErr) throw icpErr
     if (!icp) return res.status(404).json({ error: 'No ICP found for this client' })
 
-    if (!process.env.APOLLO_API_KEY) {
+    // ── AR5 BOUNDARY (21 Aug) ────────────────────────────────────────────────────
+    // This is an OPERATOR tool, but the leads it writes land in a CLIENT's account —
+    // so the audience is the TARGET CLIENT, not the operator running it. A normal
+    // client's lookalikes are sourced from PDL (their stack); the house account's from
+    // Apollo (ours). Nothing here decides on `APOLLO_API_KEY` being present any more.
+    const audience = await audienceForClient(String(client_id))
+
+    if (audience === 'house' && !process.env.APOLLO_API_KEY) {
       return res.status(500).json({ error: 'Apollo not configured' })
     }
 
@@ -91,7 +99,26 @@ router.post('/generate', async (req: Request, res: Response) => {
     }, 1)
     searchBody.per_page = 50
 
-    const people = await searchPeople(searchBody)
+    // Provider by audience — never by key presence. For a client this is PDL, using the
+    // same ICP traits the Apollo body was built from (industries · sizes · titles ·
+    // seniority · geographies), which PDL's own query builder maps natively.
+    // ⚠️ Result QUALITY may differ between providers; the FEATURE does not. That is the
+    // price of AR5, and it is disclosed rather than hidden.
+    const people = audience === 'house'
+      ? await searchPeople(searchBody)
+      : await (async () => {
+          const { pdlSearchPeople } = await import('../lib/pdl-search')
+          // PDL's query shape is the five ICP traits it can actually target. `tech_stack`,
+          // `keywords` and `apollo_only_consented` are Apollo-only concepts and are not
+          // silently pretended at — see the quality note above.
+          return pdlSearchPeople({
+            job_titles:       icp.job_titles       ?? [],
+            seniority_levels: icp.seniority_levels ?? [],
+            company_sizes:    icp.company_sizes    ?? [],
+            geographies:      icp.geographies      ?? [],
+            industries:       icp.industries       ?? [],
+          }, 50)
+        })()
 
     if (!people.length) {
       return res.json({

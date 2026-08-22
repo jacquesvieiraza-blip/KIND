@@ -5,6 +5,7 @@ import { db } from '@kind/db'
 import { requireAuth, AuthRequest } from '../middleware/auth'
 import { rateLimit } from '../lib/rate-limit'
 import { searchPeopleWithFallback, ApolloCreditsExhaustedError, ApolloRateLimitError } from '../lib/apollo'
+import { audienceForClient, audienceForUser } from '../lib/provider-boundary'
 import { scoreLeadsForIcp } from '../lib/scoring'
 import { sendFirstLeadsReadyEmail, sendConsentEmail } from '../lib/email'
 import { suggestIcpFromWebsite } from '../lib/scrape'
@@ -500,7 +501,14 @@ export async function runIcpJob(
         console.error('[icp] calibration read failed — sourcing continues unnarrowed:', err)
       }
 
-      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token)
+      // ── AR5 BOUNDARY (21 Aug) ──────────────────────────────────────────────────
+      // Whose sourcing is this? House → Apollo (our hunting, our prepaid credits);
+      // client → PDL under the AR8 fence spent just above. Derived from the client's
+      // AUTH USER (#593), never from which global API keys happen to be set — that
+      // key-driven mixing is the defect this closes. `audienceForClient` fails closed
+      // to 'client', so an unknown account can never reach K.I.N.D's Apollo.
+      const audience = await audienceForClient(clientId)
+      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience)
       relaxed = pdlRelaxed
 
       // Remember where PDL got to, so NEXT month starts after these people instead of on
@@ -841,16 +849,35 @@ icpRouter.post('/preview-count', async (req: AuthRequest, res) => {
     const cached = previewCacheGet(cacheKey)
     if (cached) { res.json({ success: true, data: cached }); return }
 
+    // AR5 (21 Aug) — resolved ONCE for both halves of the preview. This route is stateless
+    // and holds no client row, so the audience comes from the AUTH USER (#593 identity rule);
+    // `audienceForUser` fails closed to 'client'.
+    const previewAudience = await audienceForUser(req.userId)
+
     // Run count + sample contacts in parallel (per_page:1 for count, per_page:3 for samples)
     const [countResult, sampleResult] = await Promise.all([
-      previewCount(icpArg),
+      previewCount(icpArg, previewAudience),
       (async (): Promise<{ samples: unknown[]; sampleError: string | null }> => {
         try {
-          const searchBody = buildSearchBody(icpArg, 1)
-          searchBody.per_page = 3
-          let contacts = await searchPeople(searchBody).catch(() => [])
+          // ── AR5 BOUNDARY (21 Aug) — provider by audience, here too ────────────────
+          // This route spends no Apollo CREDITS (People Search is free; the credit is the
+          // reveal) and writes no leads — but it still ran a client's preview on K.I.N.D's
+          // Apollo key. Correctness, not cost: client → PDL, house → Apollo. #243's PDL
+          // path already existed as a fallback; for a client it simply becomes the primary.
+          //
+          // ⚠️ PREVIEW SEMANTICS ARE UNCHANGED (founder-ruled 21 Aug: EXTERNAL ONLY).
+          // This still reports what an external provider can see. The owned pool is NOT
+          // added — a preview that counted leads we already hold would answer a different
+          // question than the one the client is asking.
+          let contacts: Awaited<ReturnType<typeof searchPeople>> = []
+          if (previewAudience === 'house') {
+            const searchBody = buildSearchBody(icpArg, 1)
+            searchBody.per_page = 3
+            contacts = await searchPeople(searchBody).catch(() => [])
+          }
           if (contacts.length === 0) {
-            // #243: fall back to PDL so preview samples work Apollo-free (PDL_API_KEY set)
+            // #243: PDL keeps preview samples working Apollo-free — and is now the ONLY
+            // source a normal client's preview ever touches.
             const { pdlSearchPeople } = await import('../lib/pdl-search')
             contacts = await pdlSearchPeople(icpArg, 3)
           }

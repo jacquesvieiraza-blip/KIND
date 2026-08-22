@@ -91,7 +91,11 @@ export default function MillaHomePage() {
       // Functional update, and the greeting is keyed 'greet': the thread-history effect
       // below races this one, and whichever lands second must not wipe the other.
       setMessages(m => [{ id: 'greet', role: 'assistant', content: n > 0
-        ? `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; ${priceLine}. Want me to talk you through them?`
+        ? (s.data.icp_versions.length > 0 && !s.data.has_funded
+            // A prospect is looking at free PROOF, so the opener must not ask them to
+            // approve anything — there is nothing commercial for them to approve yet.
+            ? `Hi 👋 I'm Milla. Here are **${n} real ${n === 1 ? 'person' : 'people'}** who match your targeting — masked, free, and nobody has been contacted. Tell me what looks right and I'll get you live.`
+            : `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; ${priceLine}. Want me to talk you through them?`)
         : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
         ...m.filter(x => x.id !== 'greet')])
     } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your dashboard') }
@@ -139,6 +143,16 @@ export default function MillaHomePage() {
   // GO-LIVE step: nothing sources or sends until it's paid (money rails enforce $0 = no
   // work), and a "Go live — load $99" banner sits on the dashboard until they do.
   const needsGoLive = !!summary && summary.icp_versions.length > 0 && !summary.has_funded
+  // ── FREE PROOF: THE SAME DESK, WITHOUT THE COMMERCIAL CONTROLS (22 Aug round 4) ──
+  //
+  // A prospect who has never paid is looking at PROOF leads — real people, masked, sourced
+  // free to show the targeting works. The card must not offer "Approve qualified lead · $4":
+  // that control reveals an email, takes a pack slot and charges, and none of those may
+  // happen before payment. Their two answers are LOOKS RIGHT and NOT A FIT.
+  //
+  // `has_funded` is the same fact the go-live banner already reads — no new state, no new
+  // endpoint, and a client who pays flips to the commercial desk by paying.
+  const proofMode = needsGoLive
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
@@ -466,7 +480,15 @@ export default function MillaHomePage() {
                       <div className="flex gap-1.5 mt-2.5">
                         {/* Under the gate the card is a CHOICE, not an action — you pick your
                             20 and start them together. Past it, one tap approves as before. */}
-                        {gate.batch && gate.required > 1 ? (
+                        {proofMode ? (
+                          /* LOOKS RIGHT — a calibration signal and nothing else. It writes
+                             no approval, reveals nothing, charges nothing and takes no pack
+                             slot; it moves them toward going live, which is the $299. */
+                          <button disabled={busy} onClick={e => { e.stopPropagation(); router.push('/milla/billing?start=1&from=proof') }}
+                            className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                            👍 Looks right
+                          </button>
+                        ) : gate.batch && gate.required > 1 ? (
                           <button onClick={e => { e.stopPropagation(); togglePick(l.id) }}
                             className={`flex-1 text-[13px] font-bold rounded-lg py-2 border-[1.5px] ${picked.has(l.id)
                               ? 'text-white bg-[#7C3AED] border-[#7C3AED]'
@@ -486,14 +508,16 @@ export default function MillaHomePage() {
             {/* Said "$4 per approved lead" even while the button above it said "included" —
                 two prices on one screen. */}
             <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">
-              {freeApproval
-                ? `Included in your ${summary?.pack?.included ?? 100} — nothing charged until the pack runs out. Reviewing is free.`
-                : '$4 per approved lead — final. Reviewing is free.'}
+              {proofMode
+                ? 'These are real people who match your targeting — free, and nobody has been contacted. Tell us what looks right and we will go live.'
+                : freeApproval
+                  ? `Included in your ${summary?.pack?.included ?? 100} — nothing charged until the pack runs out. Reviewing is free.`
+                  : '$4 per approved lead — final. Reviewing is free.'}
             </div>
           </div>
           {/* THE START BAR — sticks to the bottom of the lead desk while the gate is on, so
               "how many more" is never something the client has to count for themselves. */}
-          {gate.batch && gate.required > 1 && (
+          {!proofMode && gate.batch && gate.required > 1 && (
             <div className="shrink-0 border-t border-[#eee7f7] bg-[#faf8ff] px-4 py-3 flex items-center gap-3 flex-wrap">
               <span className="text-[13.5px] text-[#5c5279]">
                 <b className="text-[#1f1235]">{picked.size} of {gate.required} picked</b>

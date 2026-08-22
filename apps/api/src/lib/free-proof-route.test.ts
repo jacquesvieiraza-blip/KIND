@@ -5,11 +5,14 @@
 // itself to the right authority — which is the half a fence cannot defend on its own. A
 // perfect fence called from the wrong branch protects nothing.
 //
-// Every assertion below is about which RPCs a real `runIcpJob` invocation reaches, and which
-// it must never reach:
+// Every assertion below is about which RPCs a real invocation reaches, and which it must
+// never reach. Since round 4 the contract is EXPLICIT (proof is an execution mode the
+// client's proof route asks for, never inferred from the account):
 //
-//   never-funded prospect → try_claim_proof_pass + try_reserve_proof_records
-//   paying / comped client → try_spend_sourcing, exactly as before, untouched
+//   POST /icps/:id/proof     → claims the pass, then runs in proof mode
+//   proof-mode run           → try_reserve_proof_records — and NEVER a pass claim of its own
+//   any run WITHOUT the mode → try_spend_sourcing, whoever the account is
+//   paying / comped client   → the paid path, exactly as before, untouched
 //
 // Mocks only. No provider, no database, no network.
 // ═══════════════════════════════════════════════════════════════════════════
@@ -22,8 +25,9 @@ type Rec = {
   leadInserts: number
   alerts: Array<{ subject: string; lines: string[] }>
   poolCap: number | null
+  eqs: Array<{ table: string; col: string; val: unknown }>
 }
-const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null })
+const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null, eqs: [] })
 
 const ICP_ROW = {
   id: 'icp-1', client_id: 'c1',
@@ -48,18 +52,23 @@ async function runJob(opts: {
   pool?: number
   /** What the caller asks for — the pre-existing effectiveCap input. */
   maxLeads?: number
+  /** Explicit proof mode: the pass number the proof ROUTE claimed. Absent = a normal run. */
+  proof?: number
+  /** Simulate an ICP that does not exist for this client (or belongs to someone else). */
+  icpMissing?: boolean
 }, rec: Rec) {
   vi.resetModules()
 
   vi.doMock('@kind/db', () => {
     const singleFor = (t: string) => {
-      if (t === 'icps') return ICP_ROW
-      if (t === 'clients') return { leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0 }
+      if (t === 'icps') return opts.icpMissing ? null : ICP_ROW
+      if (t === 'clients') return { id: 'c1', leads_per_run: null, is_demo: false, user_id: 'u1', credit_balance: 0 }
       return null
     }
     const makeQuery = (table: string) => {
       const q: Record<string, unknown> = {}
-      for (const m of ['select', 'eq', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) q[m] = () => q
+      for (const m of ['select', 'in', 'is', 'neq', 'not', 'order', 'or', 'gte', 'lte']) q[m] = () => q
+      q.eq = (col: string, val: unknown) => { rec.eqs.push({ table, col, val }); return q }
       q.limit       = async (n?: number) => {
         if (table === 'lead_pool') {
           // servePoolLeads pulls a buffer of max(cap*5, 50) then .slice(0, cap). Recording
@@ -157,7 +166,33 @@ async function runJob(opts: {
   }))
 
   const { runIcpJob } = await import('../routes/icps')
-  return runIcpJob('icp-1', 'c1', 'u1', opts.maxLeads ?? 20)
+  return runIcpJob('icp-1', 'c1', 'u1', opts.maxLeads ?? 20,
+    // The route claims the pass and hands the claim over; a run without it is normal.
+    ...(opts.proof ? [{ proofPass: opts.proof }] as const : []))
+}
+
+/**
+ * Drives the REAL POST /icps/:id/proof handler inside the same mock world as runJob —
+ * the client's one proof entry: owns-the-ICP check, prospect-only check, atomic pass
+ * claim, then the proof-mode run, fire-and-forget.
+ */
+async function runProofRoute(opts: Parameters<typeof runJob>[0], rec: Rec, userId = 'u1') {
+  vi.resetModules()
+  const setup = runJob(opts, rec)                       // installs the doMocks…
+  await setup.catch(() => {})                           // …and runs one job we ignore below
+  rec.rpcs.length = 0; rec.leadUpdates.length = 0; rec.eqs.length = 0; rec.alerts.length = 0
+  const mod = await import('../routes/icps')
+  const layer = (mod.icpRouter as unknown as { stack: Array<Record<string, any>> }).stack
+    .find(l => l.route?.path === '/:id/proof' && l.route?.methods?.post)
+  expect(layer, 'POST /icps/:id/proof missing').toBeTruthy()
+  const handler = layer!.route.stack[layer!.route.stack.length - 1].handle
+  const res = {
+    statusCode: 200, body: null as unknown,
+    status(c: number) { this.statusCode = c; return this },
+    json(b: unknown) { this.body = b; return this },
+  }
+  await handler({ params: { id: 'icp-1' }, body: {}, headers: {}, userId }, res)
+  return res
 }
 
 const prev = {
@@ -183,39 +218,43 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
     process.env.SUPABASE_ANON_KEY = prev.anon
   })
 
-  it('A NEVER-FUNDED PROSPECT never calls try_spend_sourcing', async () => {
+  it('A PROOF RUN never calls try_spend_sourcing — and never claims its own pass', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, contacts: 5 }, rec)
+    await runJob({ funded: null, proof: 1, contacts: 5 }, rec)
     const names = rec.rpcs.map(r => r.fn)
-    expect(names).toContain('try_claim_proof_pass')
     expect(names).toContain('try_reserve_proof_records')
     expect(names).not.toContain('try_spend_sourcing')
     expect(names).not.toContain('add_sourcing_allowance')
+    // The pass travels IN — the run claiming one itself is exactly the round-4 defect.
+    expect(names).not.toContain('try_claim_proof_pass')
   })
 
-  it('the proof pass is claimed BEFORE any reservation — a pool-only batch still spends one', async () => {
+  it('THE ROUTE CLAIMS THE PASS BEFORE ANYTHING RUNS — a pool-only batch still spends one', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, contacts: 0 }, rec)
+    const res = await runProofRoute({ funded: null, pool: 3, contacts: 0 }, rec)
+    expect(res.statusCode).toBe(200)
+    expect((res.body as { data: { pass: number } }).data.pass).toBe(1)
     const names = rec.rpcs.map(r => r.fn)
-    expect(names.indexOf('try_claim_proof_pass')).toBeGreaterThanOrEqual(0)
-    expect(names.indexOf('try_claim_proof_pass'))
-      .toBeLessThan(names.indexOf('try_reserve_proof_records') === -1 ? Infinity : names.indexOf('try_reserve_proof_records'))
+    // The claim is the FIRST rpc of the whole flow — before the pool serve, before any
+    // reservation — so a prospect with a well-covered pool still spends a pass.
+    expect(names[0]).toBe('try_claim_proof_pass')
   })
 
-  it('WHEN BOTH PASSES ARE USED, NOTHING IS SOURCED AT ALL', async () => {
+  it('WHEN BOTH PASSES ARE USED, THE ROUTE REFUSES — a human takes over, nothing runs', async () => {
     const rec = emptyRec()
-    const r = await runJob({ funded: null, pass: 0 }, rec)
+    const res = await runProofRoute({ funded: null, pass: 0 }, rec)
+    expect(res.statusCode).toBe(409)
+    expect(String((res.body as { error: string }).error)).toMatch(/two sets of leads/i)
     const names = rec.rpcs.map(r2 => r2.fn)
     expect(names).toContain('try_claim_proof_pass')
     expect(names).not.toContain('try_reserve_proof_records')
     expect(names).not.toContain('try_spend_sourcing')
-    expect(r.inserted).toBe(0)
-    expect(String(r.relaxed)).toMatch(/two sets of leads/i)
+    expect(rec.leadInserts).toBe(0)
   })
 
   it('an under-return releases the proof reservation, not the paid allowance', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, reserve: 20, contacts: 8 }, rec)
+    await runJob({ funded: null, proof: 1, reserve: 20, contacts: 8 }, rec)
     const names = rec.rpcs.map(r => r.fn)
     expect(names).toContain('release_proof_records')
     expect(names).not.toContain('add_sourcing_allowance')
@@ -229,7 +268,7 @@ describe('runIcpJob routes an unpaid prospect to the PROOF authority, never the 
 
   it('proof leads are surfaced AND delivered, and revealed_at is never set', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, reserve: 5, contacts: 3 }, rec)
+    await runJob({ funded: null, proof: 1, reserve: 5, contacts: 3 }, rec)
     const surf = rec.leadUpdates.find(u => 'surfaced_for_approval_at' in u)
     expect(surf).toBeTruthy()
     expect(surf).toHaveProperty('delivered_at')
@@ -310,27 +349,27 @@ describe('free proof — a proof pass surfaces at most 20 leads', () => {
     // The $299 pack sets leads_per_run high so a paying client can pass on half. A
     // prospect is not a paying client.
     const rec = emptyRec()
-    await runJob({ funded: null, maxLeads: 200, pool: 0, contacts: 0 }, rec)
+    await runJob({ funded: null, proof: 1, maxLeads: 200, pool: 0, contacts: 0 }, rec)
     const res = rec.rpcs.find(r => r.fn === 'try_reserve_proof_records')!
     expect(res.args.p_requested).toBe(20)
   })
 
   it('POOL 13 → PDL IS ASKED FOR AT MOST 7', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, maxLeads: 200, pool: 13, contacts: 0 }, rec)
+    await runJob({ funded: null, proof: 1, maxLeads: 200, pool: 13, contacts: 0 }, rec)
     const res = rec.rpcs.find(r => r.fn === 'try_reserve_proof_records')!
     expect(res.args.p_requested).toBe(7)
   })
 
   it('POOL 20 → NO PDL RESERVATION AT ALL', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, maxLeads: 200, pool: 20, contacts: 0 }, rec)
+    await runJob({ funded: null, proof: 1, maxLeads: 200, pool: 20, contacts: 0 }, rec)
     expect(rec.rpcs.map(r => r.fn)).not.toContain('try_reserve_proof_records')
   })
 
   it('a pool holding 25 matches still surfaces only 20 for the pass', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, maxLeads: 200, pool: 25, contacts: 0 }, rec)
+    await runJob({ funded: null, proof: 1, maxLeads: 200, pool: 25, contacts: 0 }, rec)
     expect(rec.poolCap).toBe(20)                     // the cap handed to servePoolLeads
     expect(rec.rpcs.map(r => r.fn)).not.toContain('try_reserve_proof_records')
   })
@@ -365,14 +404,14 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
 
   it('CLIENT_PROOF_LIMIT_REACHED DOES NOT RAISE THE $300 ALERT', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, reserve: 0, reserveReason: 'CLIENT_PROOF_LIMIT_REACHED', pool: 0 }, rec)
+    await runJob({ funded: null, proof: 1, reserve: 0, reserveReason: 'CLIENT_PROOF_LIMIT_REACHED', pool: 0 }, rec)
     const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
     expect(budgetAlerts).toHaveLength(0)
   })
 
   it('MONTHLY_PROOF_BUDGET_REACHED DOES raise it', async () => {
     const rec = emptyRec()
-    await runJob({ funded: null, reserve: 0, reserveReason: 'MONTHLY_PROOF_BUDGET_REACHED', pool: 0 }, rec)
+    await runJob({ funded: null, proof: 1, reserve: 0, reserveReason: 'MONTHLY_PROOF_BUDGET_REACHED', pool: 0 }, rec)
     const budgetAlerts = rec.alerts.filter(a => /acquisition budget/i.test(a.subject))
     expect(budgetAlerts).toHaveLength(1)
     // …and it must say plainly that paying clients are untouched, because the whole point
@@ -386,7 +425,7 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
     // acquisition budget is spent" on the strength of an RPC that never answered would be
     // stating a fact about company money that nothing established.
     const rec = emptyRec()
-    await runJob({ funded: null, reserveNoAnswer: true, pool: 0 }, rec)
+    await runJob({ funded: null, proof: 1, reserveNoAnswer: true, pool: 0 }, rec)
     expect(rec.alerts.filter(a => /acquisition budget/i.test(a.subject))).toHaveLength(0)
     // And nothing was bought: a refusal we cannot explain still spends nothing.
     expect(rec.rpcs.some(r => r.fn === 'try_spend_sourcing')).toBe(false)
@@ -397,10 +436,143 @@ describe('free proof — a prospect finishing their 40 is not a company budget a
     // a prospect real leads we already have.
     const rec = emptyRec()
     const r = await runJob({
-      funded: null, maxLeads: 200, pool: 12, reserve: 0,
+      funded: null, proof: 1, maxLeads: 200, pool: 12, reserve: 0,
       reserveReason: 'MONTHLY_PROOF_BUDGET_REACHED', contacts: 0,
     }, rec)
     expect(r.inserted).toBe(12)
     expect(rec.leadUpdates.some(u => 'surfaced_for_approval_at' in u)).toBe(true)
+  })
+})
+
+// ── ROUND 4 — PROOF AUTHORITY IS INVOKED DELIBERATELY, NEVER INFERRED ─────────
+//
+// The first wiring let `runIcpJob` decide "this is a proof run" whenever `fundedVia`
+// returned null. That made proof a property of the ACCOUNT rather than of the ACTION: a
+// nightly cron, an operator run, an admin kick or a partner route hitting a never-funded
+// account would silently consume one of the prospect's two proof passes and reserve
+// acquisition money the founder meant for a deliberate proof batch. Found in review.
+//
+// Now proof is an execution mode the caller must ask for — the client's own proof route
+// claims the pass and hands `runIcpJob` the claim. A run without that claim is a normal
+// run whoever the account is, and a never-funded account on the normal path simply has no
+// budget (try_spend_sourcing grants 0), which is the pre-proof behaviour restored.
+describe('round 4 — proof is an execution mode, not an account property', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL      = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+  })
+  afterEach(() => {
+    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('A NORMAL RUN ON A NEVER-FUNDED ACCOUNT MUST NOT TOUCH PROOF AUTHORITY', async () => {
+    // THE DEFECT, ASSERTED: no proof mode was asked for, so no proof pass may be claimed
+    // and no acquisition money reserved — whatever fundedVia would say about this account.
+    const rec = emptyRec()
+    await runJob({ funded: null, pool: 0, contacts: 0 }, rec)
+    const names = rec.rpcs.map(r => r.fn)
+    expect(names).not.toContain('try_claim_proof_pass')
+    expect(names).not.toContain('try_reserve_proof_records')
+    // The normal fence answers instead — and for a never-funded account it grants 0.
+    expect(names).toContain('try_spend_sourcing')
+  })
+
+  it('A NORMAL RUN DOES NOT AUTO-SURFACE A NEVER-FUNDED ACCOUNT\'S LEADS', async () => {
+    // Surfacing is the proof experience. A normal run that somehow inserts leads for a
+    // never-funded account (grant > 0 cannot happen in prod, but the mock can) must not
+    // quietly put them on the prospect's desk as if a proof pass had been spent.
+    const rec = emptyRec()
+    await runJob({ funded: null, pool: 0, contacts: 5, grant: 5 }, rec)
+    expect(rec.leadUpdates.some(u => 'surfaced_for_approval_at' in u)).toBe(false)
+  })
+
+  it('THE CLIENT PROOF ROUTE EXISTS — POST /icps/:id/proof', async () => {
+    vi.resetModules()
+    const mod = await import('../routes/icps')
+    const layer = (mod.icpRouter as unknown as { stack: Array<Record<string, any>> }).stack
+      .find(l => l.route?.path === '/:id/proof' && l.route?.methods?.post)
+    expect(layer, 'POST /icps/:id/proof is the client\'s only proof entry — it does not exist').toBeTruthy()
+  })
+
+  it('A FUNDED ACCOUNT IN PROOF MODE IS REFUSED — no reserve, no spend', async () => {
+    // Defense in depth behind the route's own check: even if a caller hands proof mode a
+    // paying client, the run must not let paid money and proof money cross.
+    const rec = emptyRec()
+    const r = await runJob({ funded: 'real', proof: 1, contacts: 5 }, rec)
+    const names = rec.rpcs.map(r2 => r2.fn)
+    expect(names).not.toContain('try_reserve_proof_records')
+    expect(names).not.toContain('try_spend_sourcing')
+    expect(r.inserted).toBe(0)
+  })
+})
+
+// ── ROUND 4 — THE PROOF DOOR ITSELF ──────────────────────────────────────────
+describe('POST /icps/:id/proof — the client\'s one proof entry, and its fences', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL      = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+  })
+  afterEach(() => {
+    vi.doUnmock('./provider-boundary'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('a prospect can request proof for their own ICP — pass 1 then pass 2', async () => {
+    const rec = emptyRec()
+    const r1 = await runProofRoute({ funded: null, pass: 1, pool: 2 }, rec)
+    expect(r1.statusCode).toBe(200)
+    expect((r1.body as { data: { pass: number } }).data.pass).toBe(1)
+    const r2 = await runProofRoute({ funded: null, pass: 2, pool: 2 }, rec)
+    expect((r2.body as { data: { pass: number } }).data.pass).toBe(2)
+  })
+
+  it('AN ICP THAT IS NOT THEIRS IS A 404 — and the lookup is client-scoped in the query', async () => {
+    const rec = emptyRec()
+    const res = await runProofRoute({ funded: null, icpMissing: true }, rec)
+    expect(res.statusCode).toBe(404)
+    // The scoping is IN the query, not in an after-the-fact comparison: the icps lookup
+    // carries the caller's own client_id, so someone else's ICP id reads as missing.
+    expect(rec.eqs.some(e => e.table === 'icps' && e.col === 'client_id' && e.val === 'c1')).toBe(true)
+    // Nothing was claimed for an ICP they do not own.
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_claim_proof_pass')
+  })
+
+  it('THE PROOF REQUEST NEVER MAKES THE ICP LIVE', async () => {
+    const rec = emptyRec()
+    await runProofRoute({ funded: null, pool: 3 }, rec)
+    await new Promise(r => setTimeout(r, 80))     // let the fire-and-forget run finish
+    // No icps write anywhere in the flow set is_active — activation stays K.I.N.D-only.
+    expect(rec.eqs.filter(e => e.table === 'icps' && e.col === 'is_active')).toHaveLength(0)
+  })
+
+  it('A PAID OR COMPED ACCOUNT CANNOT DRAW FREE-PROOF AUTHORITY — 403, no pass spent', async () => {
+    const rec = emptyRec()
+    const res = await runProofRoute({ funded: 'real' }, rec)
+    expect(res.statusCode).toBe(403)
+    expect(String((res.body as { error: string }).error)).toMatch(/already live/i)
+    const names = rec.rpcs.map(r => r.fn)
+    expect(names).not.toContain('try_claim_proof_pass')
+    expect(names).not.toContain('try_reserve_proof_records')
+  })
+
+  it('NO COMMERCIAL SIDE EFFECT ANYWHERE IN A PROOF REQUEST', async () => {
+    const rec = emptyRec()
+    await runProofRoute({ funded: null, pool: 3, reserve: 5, contacts: 2 }, rec)
+    await vi.waitFor(() => expect(rec.leadUpdates.some(u => 'surfaced_for_approval_at' in u)).toBe(true), { timeout: 2000 })
+    // Surfaced and delivered — and NOTHING commercial: no reveal, no charge, no enrolment.
+    expect(rec.leadUpdates.some(u => 'revealed_at' in u)).toBe(false)
+    const names = rec.rpcs.map(r => r.fn)
+    for (const forbidden of ['approve_lead_atomic', 'increment_emails_sent', 'try_spend_sourcing']) {
+      expect(names).not.toContain(forbidden)
+    }
   })
 })

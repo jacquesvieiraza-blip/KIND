@@ -27,6 +27,7 @@ type Upsert = { client_id: string; kind: string; data: Record<string, unknown> }
 async function createIcp(body: Record<string, unknown>) {
   const upserts: Upsert[] = []
   const campaignUpdates: Array<Record<string, unknown>> = []
+  const clientUpdates: Array<Record<string, unknown>> = []
 
   vi.resetModules()
 
@@ -50,6 +51,7 @@ async function createIcp(body: Record<string, unknown>) {
       q.upsert = async (row: Upsert) => { if (table === 'figsy_knowledge') upserts.push(row); return { error: null } }
       q.update = (patch: Record<string, unknown>) => {
         if (table === 'figsy_campaigns') campaignUpdates.push(patch)
+        if (table === 'clients') clientUpdates.push(patch)
         const chain: Record<string, unknown> = {}
         for (const m of ['eq', 'in', 'is', 'neq']) chain[m] = () => chain
         ;(chain as { then: unknown }).then = (r: (v: unknown) => void) => r({ error: null })
@@ -89,7 +91,7 @@ async function createIcp(body: Record<string, unknown>) {
     json(b: unknown) { this.body = b; return this },
   }
   await handler({ body, userId: 'u1', headers: {} }, res)
-  return { upserts, campaignUpdates, res }
+  return { upserts, campaignUpdates, clientUpdates, res }
 }
 
 const prev = { anthropic: process.env.ANTHROPIC_API_KEY, url: process.env.SUPABASE_URL, anon: process.env.SUPABASE_ANON_KEY }
@@ -186,5 +188,56 @@ describe('Milla onboarding → FIGSY grounding', () => {
     })
     expect(res.statusCode).toBe(201)
     expect((res.body as { success: boolean }).success).toBe(true)
+  })
+})
+
+// ── ROUND 4 — "YES, THIS REPRESENTS US" IS A RECORDED FACT ────────────────────
+//
+// The reflect-back panel existed and the client's confirmation of it did not: pressing the
+// button persisted the understanding and left NO trace that the client had said "this
+// represents us". If a client later disputed what FIGSY wrote from, nothing could show
+// they confirmed the understanding it was written from. Found in review.
+//
+// The record is ONE nullable timestamp on the client row — an auditable fact, and
+// deliberately NOT a gate: nothing reads it before activation, generation or sending.
+describe('the reflect-back confirmation is recorded', () => {
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+  })
+  afterEach(() => {
+    vi.doUnmock('../lib/start-work'); vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  it('CONFIRMING AN UNDERSTANDING STAMPS milla_understanding_confirmed_at', async () => {
+    const { clientUpdates } = await createIcp({
+      ...ICP,
+      business: { product: 'Fleet software', pitch: '', pain_points: '', differentiators: '', tone: '', bad_fit: '' },
+    })
+    const stamp = clientUpdates.find(u => 'milla_understanding_confirmed_at' in u)
+    expect(stamp, 'the confirmation left no record').toBeTruthy()
+    expect(typeof stamp!.milla_understanding_confirmed_at).toBe('string')
+  })
+
+  it('an ICP saved with NO understanding stamps nothing — there was nothing to confirm', async () => {
+    // The panel only renders when Milla learned something; without it the client never made
+    // the "this represents us" statement, so recording one would be inventing evidence.
+    const { clientUpdates } = await createIcp({ ...ICP })
+    expect(clientUpdates.filter(u => 'milla_understanding_confirmed_at' in u)).toHaveLength(0)
+  })
+
+  it('THE SHIPPED MIGRATION CARRIES THE COLUMN, IN BOTH HOMES', () => {
+    const { readFileSync } = require('fs') as typeof import('fs')
+    const { join } = require('path') as typeof import('path')
+    for (const p of [
+      '../../../../supabase/migrations/20260822_free_proof_acquisition.sql',
+      './pending-migrations.ts',
+    ]) {
+      expect(readFileSync(join(__dirname, p), 'utf8')).toContain('milla_understanding_confirmed_at')
+    }
   })
 })

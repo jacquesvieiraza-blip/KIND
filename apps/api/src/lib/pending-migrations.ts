@@ -1431,9 +1431,15 @@ comment on table public.meeting_briefs is
 -- proof_records_committed: PDL records reserved for this prospect across BOTH passes,
 --   capped at 40 for life (founder-set, 22 Aug: $11.20 at the verified $0.28 rate).
 -- proof_passes_done: automatic proof batches already claimed. Max 2, then a human.
+-- milla_understanding_confirmed_at: when the client pressed "yes, this represents us" on
+--   the reflect-back of what Milla understood about their business. AN AUDITABLE FACT,
+--   NEVER A GATE (round 4): nothing reads it before activation, generation or sending —
+--   it exists so a later "FIGSY wrote the wrong thing about us" conversation can be
+--   answered with the date they confirmed the understanding it wrote from.
 alter table public.clients
-  add column if not exists proof_records_committed int not null default 0,
-  add column if not exists proof_passes_done       int not null default 0;
+  add column if not exists proof_records_committed          int not null default 0,
+  add column if not exists proof_passes_done                int not null default 0,
+  add column if not exists milla_understanding_confirmed_at timestamptz;
 
 -- ── 2. The free-acquisition monthly ceiling, beside the paid one ────────────────────────
 -- Deliberately a SECOND column rather than a shared one: paid delivery keeps

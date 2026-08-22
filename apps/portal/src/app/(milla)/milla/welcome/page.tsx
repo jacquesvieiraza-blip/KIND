@@ -207,7 +207,7 @@ export default function MillaWelcomePage() {
                   )}
 
                   <div className="text-[11.5px] text-[#9b8ec4] mt-3">
-                    Approving below tells us this represents you. If anything is off, keep talking to Milla — we would rather fix it now than write from it.
+                    Confirming below tells us this represents you, and we record that. If anything is off, keep talking to Milla — we would rather fix it now than write from it.
                   </div>
                 </div>
               )}
@@ -226,7 +226,15 @@ export default function MillaWelcomePage() {
                   3-Aug $299 sweep because the sweep fixed the small print ONE LINE BELOW and
                   missed the button above it — the founder caught it on screen, mid-signup,
                   showing two prices at once. The screen a client reads cannot hand-type money. */}
-              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : `Approve this — then go live for $${PACK_PRICE_USD}`}</button>
+              {/* ⚑ round 4 — THE BUTTON IS THE CONFIRMATION. Pressing it persists the business
+                  understanding AND records that the client said it represents them
+                  (`clients.milla_understanding_confirmed_at`). Its words now say that,
+                  because "Approve this" described the targeting and quietly stood in for a
+                  statement about their whole business. The journey is unchanged: confirm,
+                  then go live for $299. */}
+              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : (business && Object.values(business).some(Boolean)
+                ? `Yes, this represents us — go live for $${PACK_PRICE_USD}`
+                : `Approve this — then go live for $${PACK_PRICE_USD}`)}</button>
               <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">${PACK_PRICE_USD} includes your first <b className="text-[#5c5279]">{PACK_LEADS} approved leads</b> and your sender. Nothing sources until it lands.</div>
               <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
               {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}

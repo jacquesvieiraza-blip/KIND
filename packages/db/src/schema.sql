@@ -412,6 +412,7 @@ alter table public.clients
   add column if not exists last_seen_at                     timestamptz,
   add column if not exists leads_per_run                    integer,
   add column if not exists low_credit_warned_at             timestamptz,
+  add column if not exists milla_understanding_confirmed_at timestamptz,
   add column if not exists nexus_autotune_enabled           boolean not null default false,
   add column if not exists onboarding_completed             text[] DEFAULT '{}',
   add column if not exists onboarding_completed_at          timestamptz,

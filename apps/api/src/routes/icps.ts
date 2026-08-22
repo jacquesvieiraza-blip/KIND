@@ -423,7 +423,22 @@ export async function runIcpJob(
   clientId: string,
   userId: string,
   maxLeads?: number,
+  // ── EXPLICIT PROOF MODE (22 Aug, round 4) ─────────────────────────────────────────
+  //
+  // ⚠️ PROOF USED TO BE INFERRED: `fundedVia === null` made ANY run a proof run. That made
+  // proof a property of the ACCOUNT instead of the ACTION — a nightly cron, an operator
+  // kick, an admin route or a partner route hitting a never-funded account would silently
+  // burn one of the prospect's two proof passes and reserve acquisition money nobody had
+  // decided to spend. Found by independent review.
+  //
+  // Proof now happens only when the caller says so. `proofPass` is the pass number the
+  // client's own proof route atomically claimed (`try_claim_proof_pass`) BEFORE invoking
+  // this run — the claim travels with the call, so this function never claims one and a
+  // normal run cannot consume one. Without `opts`, a never-funded account takes the
+  // ordinary `try_spend_sourcing` path, which grants it 0: the pre-proof behaviour.
+  opts?: { proofPass: number },
 ): Promise<{ inserted: number; skipped: number; relaxed: string | null }> {
+  const proofMode = (opts?.proofPass ?? 0) > 0
   const { data: icp, error: icpErr } = await db
     .from('icps').select('*').eq('id', icpId).eq('client_id', clientId).single()
   if (icpErr || !icp) throw new Error('ICP not found')
@@ -477,44 +492,30 @@ export async function runIcpJob(
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
   // below runs exactly as it did pre-pool. Pool leads are inserted here and flow into
   // the same delivery/scoring/consent as PDL leads.
-  // ── HAS THIS ACCOUNT EVER BEEN FUNDED? (free proof, 22 Aug) ────────────────────────
+  // ── PROOF MODE VERIFIES THE ACCOUNT IS ACTUALLY A PROSPECT (free proof, 22 Aug) ────
   //
-  // `'real'` = they paid us · `'comp'` = a manual grant, i.e. ENTITLED · `null` = neither.
-  // Only `null` takes the free-proof path. Reusing `fundedVia` rather than inventing a
-  // second notion of paid-ness: `onboarding-pack.ts` already draws this distinction, and
-  // #619 exists precisely because a surface once read entitlement and printed "Paid $299".
+  // The pass was already claimed by the proof route — ABOVE this call, above the pool
+  // serve — so a pool-only batch consumed a pass exactly as a PDL-backed one does, and
+  // this function can never claim one itself. What remains here is defense in depth on
+  // the money: `'real'` = they paid us · `'comp'` = a manual grant, i.e. ENTITLED ·
+  // `null` = a prospect. Only a prospect may draw on free-proof acquisition authority.
+  // A funded account reaching proof mode is a caller bug, and the fail-closed answer is
+  // to source NOTHING — letting it fall through to the paid path would spend the client's
+  // AR8 allowance on a run they never asked for, and letting it reserve proof money would
+  // mix the two budgets the founder ruled separate (AR18).
   //
-  // A comped client keeps the ordinary paid AR8 path — a comp is a decision to fund them,
-  // not a prospect still being won.
-  const { data: fundingRows } = await db.from('credit_transactions')
-    .select('type, reference').eq('client_id', clientId)
-  const funding = fundedVia(fundingRows ?? [])
-
-  // ── CLAIM A PROOF PASS BEFORE ANY BATCH BEGINS (free proof, 22 Aug) ────────────────
-  //
-  // ⚠️ CLAIMED HERE, ABOVE THE POOL SERVE, AND THAT POSITION IS THE POINT. A pool-only
-  // batch is still a proof batch the prospect sees, so it must consume a pass exactly as a
-  // PDL-backed one does. Claiming after the pool serve — or inside the PDL branch — would
-  // let a prospect with a well-covered pool be shown free batch after free batch forever.
-  //
-  // The claim is atomic (`FOR UPDATE` inside the RPC): two requests racing for pass 2 give
-  // exactly one claimant, and the loser gets 0. Pass 3 is always 0 — a human takes over.
-  //
-  // If something fails after the claim, the pass is spent and there is NO automatic retry:
-  // an automatic retry is precisely the race that would produce a third free batch. Recovery
-  // is human, which is already the model for a second miss.
-  if (funding === null) {
-    const { data: pass } = await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
-    const claimed = typeof pass === 'number' ? pass : 0
-    if (claimed <= 0) {
-      console.log(`[icp] FREE PROOF refused for prospect ${clientId} — both proof passes used. A human conversation takes it from here.`)
+  // Reusing `fundedVia` rather than inventing a second notion of paid-ness:
+  // `onboarding-pack.ts` already draws this distinction, and #619 exists precisely
+  // because a surface once read entitlement and printed "Paid $299".
+  if (proofMode) {
+    const { data: fundingRows } = await db.from('credit_transactions')
+      .select('type, reference').eq('client_id', clientId)
+    if (fundedVia(fundingRows ?? []) !== null) {
+      console.error(`[icp] PROOF MODE REFUSED for client ${clientId} — the account is funded. Proof authority is for prospects only; nothing was sourced.`)
       await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
-      return {
-        inserted: 0, skipped: 0,
-        relaxed: 'We have shown you two sets of leads. Let us talk it through before we look again.',
-      }
+      return { inserted: 0, skipped: 0, relaxed: 'This account is already live — proof batches are only for new prospects.' }
     }
-    console.log(`[icp] FREE PROOF pass ${claimed} of 2 claimed for prospect ${clientId}.`)
+    console.log(`[icp] FREE PROOF run — pass ${opts!.proofPass} of 2, claimed by the proof route for prospect ${clientId}.`)
   }
 
   // ── THE PROOF PASS IS 20 LEADS, NOT THE PAID TARGET (22 Aug, round 3) ─────────────
@@ -530,7 +531,7 @@ export async function runIcpJob(
   //     PDL SPEND           — at most 40 PDL records across BOTH passes, lifetime.
   // Pool records are free and never touch the 40, but they DO fill the 20: a prospect
   // shown 13 from the pool may be bought at most 7 more for that pass.
-  const runCap = funding === null ? Math.min(effectiveCap, PROOF_PASS_LEADS) : effectiveCap
+  const runCap = proofMode ? Math.min(effectiveCap, PROOF_PASS_LEADS) : effectiveCap
 
   const pool = await servePoolLeads(icp, clientId, runCap)
   inserted += pool.served
@@ -605,7 +606,7 @@ export async function runIcpJob(
     if (audience === 'house') {
       grantedSize = pdlRemainder
       console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; the PDL cash fence does not apply (AR5/AR8).`)
-    } else if (funding === null) {
+    } else if (proofMode) {
       const { data: reserved } = await db.rpc('try_reserve_proof_records', {
         p_client_id: clientId, p_requested: pdlRemainder,
       })
@@ -636,9 +637,13 @@ export async function runIcpJob(
       // Every zero grant used to raise "the $300 acquisition budget is spent". Most zeros
       // are simply this prospect reaching their lifetime 40 — telling the founder his
       // acquisition budget is gone when it is not is exactly how a real alert gets ignored.
-      if (funding !== null) void maybeAlertPdlBudget()
+      if (!proofMode) void maybeAlertPdlBudget()
       else if (proofReason === 'MONTHLY_PROOF_BUDGET_REACHED') void alertProofBudgetSpent(clientId)
-      else console.log(`[icp] FREE PROOF — prospect ${clientId} has used their ${PROOF_CLIENT_RECORD_CAP}-record allowance (${proofReason}); the monthly acquisition budget is untouched.`)
+      else if (proofReason === 'CLIENT_PROOF_LIMIT_REACHED') console.log(`[icp] FREE PROOF — prospect ${clientId} has used their ${PROOF_CLIENT_RECORD_CAP}-record allowance; the monthly acquisition budget is untouched.`)
+      // A fail-closed reason is NOT "they used their 40" — saying so in a log the founder
+      // may read is the same species of false statement the alert routing just fixed, only
+      // quieter. Name it for what it is: the reservation did not happen and nothing spent.
+      else console.error(`[icp] FREE PROOF reservation did not complete for prospect ${clientId} (${proofReason}) — nothing was reserved and nothing spent. This is not a budget event.`)
       if (pool.served === 0) {
         // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
         console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
@@ -721,7 +726,7 @@ export async function runIcpJob(
       const returnedCount = Math.min(contacts.length, grantedSize)
       const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
       if (unusedGrant > 0) {
-        if (funding === null) {
+        if (proofMode) {
           // FREE PROOF reconcile — reserve 40, PDL returns 25, release 15 AGAINST THE
           // RESERVATION MADE ABOVE, by its id. The RPC marks that row reconciled and will
           // never release it again, so a retry of this exact call is a no-op rather than a
@@ -1047,7 +1052,7 @@ export async function runIcpJob(
   //
   // `revealed_at` stays NULL, so this lead cannot enter a pack slot, a $4 charge, the
   // approval count or any ledger. Nothing here is a commercial state.
-  if (funding === null && insertedIds.length > 0) {
+  if (proofMode && insertedIds.length > 0) {
     const nowIso = new Date().toISOString()
     const { error: surfErr } = await db.from('leads')
       .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
@@ -1455,6 +1460,19 @@ async function persistMillaUnderstanding(
     const hasBusiness = Object.values(biz).some(v => str(v).length > 0)
     if (!hasBusiness && !permitted.length && !intent) return   // nothing was learned — write nothing
 
+    // ── "YES, THIS REPRESENTS US" IS A RECORDED FACT (round 4) ──────────────────────
+    // The reflect-back panel renders only when Milla learned something, and the approve
+    // button under it is the client saying the understanding represents them — so
+    // reaching this line with an understanding in hand IS the confirmation, and it gets
+    // a timestamp. AN AUDITABLE FACT, NEVER A GATE: nothing reads this column before
+    // activation, generation or sending. It exists so a later "FIGSY wrote the wrong
+    // thing about us" conversation can be answered with the date the client confirmed
+    // the understanding it wrote from. Best-effort like everything else here.
+    const { error: confirmErr } = await db.from('clients')
+      .update({ milla_understanding_confirmed_at: new Date().toISOString() })
+      .eq('id', clientId)
+    if (confirmErr) console.error('[icps] could not record the reflect-back confirmation (non-fatal):', confirmErr.message)
+
     // `differentiators` is the field `getClientKnowledgeForOutreach` surfaces as
     // "Differentiators / proof points", so permitted claims join it and nothing else does.
     const differentiators = [str(biz.differentiators), ...permitted].filter(Boolean).join(' · ')
@@ -1839,6 +1857,71 @@ Based on this data, suggest 3 specific ICP improvements that would increase repl
   }
 })
 
+// ── THE CLIENT'S OWN PROOF ACTION (free proof, 22 Aug round 4) ──────────────────────────
+//
+// When activation became K.I.N.D-only, the client's old button kept calling the activation
+// route and simply started failing — which left FREE PROOF, the launch acquisition motion,
+// with no correct client entry at all. This route is that entry, and it is deliberately NOT
+// activation: the ICP stays `is_active = false`, no campaign goes live, nothing is enrolled,
+// revealed, charged or sent. It shows a prospect up to 20 real masked leads. That is all.
+//
+// The FENCES, in the order they answer:
+//   1. The caller must OWN the ICP — the lookup is scoped to their own client row, so
+//      another client's ICP id is indistinguishable from a missing one (404, not 403:
+//      no probe learns whether the id exists).
+//   2. Only a NEVER-FUNDED prospect may use it. `fundedVia` ≠ null → refused; a paying or
+//      comped account has real budget and the paid path — free-proof money is not theirs.
+//   3. The proof pass is claimed HERE, atomically, before anything runs — a pool-only
+//      batch spends a pass exactly as a PDL-backed one does, pass 3 is refused with a
+//      human sentence, and the claim travels INTO `runIcpJob` so a run can never claim
+//      one on its own (proof is an action, not an account property).
+// The 40-record / $11.20 / $300 money fences all live below `try_reserve_proof_records`,
+// inside the run — nothing here duplicates them.
+icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    const { data: icp } = await db.from('icps')
+      .select('id, is_active').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!icp) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    const { data: fundingRows } = await db.from('credit_transactions')
+      .select('type, reference').eq('client_id', clientId)
+    if (fundedVia(fundingRows ?? []) !== null) {
+      res.status(403).json({
+        success: false,
+        error: 'Your account is already live — your leads arrive through your campaign, not a proof batch.',
+      })
+      return
+    }
+
+    // Atomic: two requests racing for pass 2 give exactly one claimant. Pass 3 is always 0.
+    // If something fails after this claim, the pass is spent and there is NO automatic
+    // retry — an automatic retry is precisely the race that would mint a third free batch.
+    const { data: pass } = await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
+    const claimed = typeof pass === 'number' ? pass : 0
+    if (claimed <= 0) {
+      res.status(409).json({
+        success: false,
+        error: 'We have shown you two sets of leads. Let us talk it through together before we look again — we would rather get your targeting right than keep guessing.',
+      })
+      return
+    }
+
+    // Fire-and-forget like activation: the prospect gets an immediate answer, the batch
+    // lands on their desk when the run finishes. `req.userId` IS the account owner here —
+    // this route is client-authenticated, no operator is involved.
+    runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
+      .catch(e => console.error('[icps/proof] proof run failed:', e))
+
+    res.json({ success: true, data: { pass: claimed, of: 2, finding: true } })
+  } catch (err) {
+    console.error('[icps/proof]', err)
+    res.status(500).json({ success: false, error: 'Could not start your proof batch' })
+  }
+})
+
 // ── K.I.N.D OWNS GO (founder-ruled 22 Aug) ──────────────────────────────────────────────
 //
 // The client may create and revise their ICP, and refine it with Milla for as long as they
@@ -1869,6 +1952,38 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
       ? req.body.client_id
       : await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // ── ONE CLIENT → ONE ACTIVE CAMPAIGN, ANSWERED BEFORE ANYTHING FLIPS (round 4) ──
+    //
+    // The campaign invariant used to be a fire-and-forget afterthought here: the ICP went
+    // live first, the campaign was ensured behind a `void …catch(() => {})`, and a second
+    // active campaign was silently paused — with a pause failure logged and ignored. Now
+    // the invariant is the GATE. If another campaign is live for this client, the whole
+    // activation is refused with its name, and the operator pauses it first — in Vida, as
+    // a decision, never as a side effect. If the invariant cannot be verified or the
+    // campaign cannot be made live, NOTHING is flipped: an activation we cannot finish is
+    // an activation that did not happen, not one that half-happened.
+    const { data: icpRow } = await db.from('icps')
+      .select('id, name').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!icpRow) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
+
+    const { ensureCampaignForIcp } = await import('../lib/start-work')
+    const camp = await ensureCampaignForIcp(clientId, req.params.id, (icpRow as { name?: string | null }).name ?? null)
+    if (camp && 'refused' in camp && camp.refused) {
+      res.status(409).json({
+        success: false,
+        error: `This client already has a live campaign${camp.refused.blockingName ? ` ("${camp.refused.blockingName}")` : ''}. One client runs ONE active campaign — pause it first, then activate this one.`,
+      })
+      return
+    }
+    if (!camp?.id) {
+      res.status(500).json({
+        success: false,
+        error: 'Could not verify the one-active-campaign rule, so nothing was activated. Try again.',
+      })
+      return
+    }
+
     await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
     const { data, error } = await db.from('icps')
       .update({ is_active: true }).eq('id', req.params.id).eq('client_id', clientId).select().single()
@@ -1879,11 +1994,7 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // forever. Only auto-run a never-run ICP with credits available; an already-
     // run ICP is left alone (no surprise re-spend). Fire-and-forget so the
     // response is fast; runIcpJob delivers + charges, capped at balance.
-    // One ICP = one campaign — born together, never assigned.
-    if (data) {
-      const { ensureCampaignForIcp } = await import('../lib/start-work')
-      void ensureCampaignForIcp(clientId, data.id, data.name).catch(() => {})
-    }
+    // One ICP = one campaign — born together above, never assigned.
 
     let started = false
     if (data && !data.last_run_at) {

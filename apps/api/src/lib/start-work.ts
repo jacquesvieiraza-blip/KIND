@@ -30,50 +30,72 @@ import { sourceTarget, PAID_TX_TYPES } from './onboarding-pack'
  * Idempotent: returns the existing campaign for that ICP if there is one.
  */
 /**
- * ONE CLIENT → ONE ACTIVE CAMPAIGN (founder-ruled 22 Aug, for launch).
+ * ONE CLIENT → ONE ACTIVE CAMPAIGN, AND THE INVARIANT FAILS CLOSED
+ * (founder-ruled 22 Aug; corrected same day, round 4).
  *
  * `figsy.ts` routes a lead to the campaign matching `leads.icp_id`, and falls back to
  * "whichever active campaign is newest" when there is no match. Both of those are
  * first-match-wins, which is fine with one active campaign and silently arbitrary with two —
- * and nothing in the schema or the code prevented two. A client who had a second ICP
- * activated at any point could be left with two live campaigns and no way to tell which one
- * was working their leads.
+ * and nothing in the schema or the code prevented two.
  *
- * Enforced at the ONE moment a campaign becomes live for a client — activation — rather than
- * with a unique index, which would need a migration against a live table for a case this
- * closes completely. Idempotent: re-activating the same ICP pauses nothing extra.
+ * ⚠️ THE FIRST IMPLEMENTATION HAD THE RULE BACKWARDS. It let the NEW campaign win and
+ * auto-paused the client's others — and when that pause failed it logged and CARRIED ON,
+ * so a db hiccup left two live campaigns behind an operation that reported success. The
+ * approved rule is the opposite, and it is a refusal, not a repair:
  *
- * PAUSED, never archived or deleted: the founder's standing rule is that nothing is
- * destroyed, and a paused campaign keeps its stats and can be switched back on.
+ *   · another ACTIVE campaign for this client → this one is REFUSED, named, untouched.
+ *     Pausing the other one is a human's decision (Vida), never a side effect.
+ *   · the SAME campaign already active → reused, as ever.
+ *   · this ICP's PAUSED campaign → re-activated only when nothing else is live.
+ *   · a check or write we cannot complete → null. If we cannot SEE whether another
+ *     campaign is live, we do not get to assume there isn't one — proceeding on a failed
+ *     read is exactly how a hiccup mints a second live campaign. Callers treat null as
+ *     "not done", never as success.
+ *   · scoped to THIS client throughout — another client's campaign never blocks anyone.
+ *
+ * Application-level on purpose (a partial unique index needs a migration against a live
+ * table three days before launch); `start-work-one-active.test.ts` exercises this REAL
+ * function, because the first implementation shipped behind suites that mocked it away.
  */
-async function pauseOtherActiveCampaigns(clientId: string, keepCampaignId: string): Promise<void> {
-  const { error } = await db.from('figsy_campaigns')
-    .update({ status: 'paused' })
-    .eq('client_id', clientId)
-    .eq('status', 'active')
-    .neq('id', keepCampaignId)
-  if (error) {
-    // Non-fatal: the client still has a live campaign, which is what activation was for.
-    // Logged rather than swallowed so a client left with two lives is visible.
-    console.error('[start-work] could not pause the client\'s other active campaigns', clientId, error.message)
-  }
-}
+export type EnsureCampaignResult =
+  | { id: string; refused?: undefined }
+  | { id?: undefined; refused: { blockingCampaignId: string; blockingName: string | null } }
+  | null
 
 export async function ensureCampaignForIcp(
   clientId: string,
   icpId: string,
   icpName?: string | null,
-): Promise<{ id: string } | null> {
+): Promise<EnsureCampaignResult> {
   try {
-    const { data: existing } = await db.from('figsy_campaigns')
+    const { data: existing, error: existErr } = await db.from('figsy_campaigns')
       .select('id, status').eq('client_id', clientId).eq('icp_id', icpId).limit(1).maybeSingle()
+    if (existErr) throw existErr
+
+    // The same campaign staying active is not a second campaign. Answered before the
+    // blocking check so a legacy double-active state cannot deadlock its own repair.
+    if (existing?.id && existing.status === 'active') return { id: existing.id as string }
+
+    // WHO ELSE IS LIVE? One query, client-scoped, excluding this ICP's own campaign.
+    let blockingQuery = db.from('figsy_campaigns')
+      .select('id, name').eq('client_id', clientId).eq('status', 'active')
+    if (existing?.id) blockingQuery = blockingQuery.neq('id', existing.id)
+    const { data: blocking, error: blockErr } = await blockingQuery.limit(1).maybeSingle()
+    if (blockErr) throw blockErr
+    if (blocking?.id) {
+      return { refused: {
+        blockingCampaignId: blocking.id as string,
+        blockingName: (blocking.name as string | null) ?? null,
+      } }
+    }
+
     if (existing?.id) {
-      // Re-activating an ICP whose campaign was paused must bring that campaign back, or the
-      // client is "live" with nothing that can work their leads.
-      if (existing.status !== 'active') {
-        await db.from('figsy_campaigns').update({ status: 'active' }).eq('id', existing.id)
-      }
-      await pauseOtherActiveCampaigns(clientId, existing.id as string)
+      // Re-activating an ICP whose campaign was paused brings that campaign back — the
+      // write is checked, because "live with nothing able to work its leads" and "reported
+      // live but still paused" are the same failure wearing different clothes.
+      const { error: wakeErr } = await db.from('figsy_campaigns')
+        .update({ status: 'active' }).eq('id', existing.id)
+      if (wakeErr) throw wakeErr
       return { id: existing.id as string }
     }
 
@@ -88,11 +110,10 @@ export async function ensureCampaignForIcp(
         copilot_mode: true, approve_before_send: true,
       })
       .select('id').single()
-    if (error) throw error
-    await pauseOtherActiveCampaigns(clientId, made.id as string)
+    if (error || !made?.id) throw error ?? new Error('campaign insert returned no id')
     return { id: made.id as string }
   } catch (err) {
-    console.error('[start-work] ensureCampaignForIcp failed', clientId, icpId, err)
+    console.error('[start-work] ensureCampaignForIcp failed (fail-closed — nothing activated)', clientId, icpId, err)
     return null
   }
 }

@@ -100,7 +100,7 @@ describe('① schema.sql declares every column its own migrations add', () => {
     expect(guarded.length).toBe(adds.length)
     // 81 → 82 on 20 Aug: `leads.smartlead_campaign_id` (HC-3), created by
     // `20260820_smartlead_campaign_membership`. Declared because it now exists.
-    expect(adds.length).toBe(84)   // +2 22 Aug: clients.proof_records_committed + clients.proof_passes_done (free-proof fence state)
+    expect(adds.length).toBe(85)   // +2 22 Aug: clients.proof_records_committed + clients.proof_passes_done (free-proof fence state); +1 22 Aug round 4: clients.milla_understanding_confirmed_at — the client's "yes, this represents us" on Milla's reflect-back, recorded as an auditable fact and deliberately NOT a gate (nothing reads it before activation, generation or sending)
   })
 
   it('every ADD COLUMN in the block is balanced SQL', () => {

@@ -72,7 +72,12 @@ type CampaignRow = {
 type Cockpit = {
   client:    { id: string; company_name: string | null }
   onboarding: { percent: number; missing: string[]; checks: { key: string; label: string; ok: boolean }[] }
-  icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null }[]
+  // `pending_*` carry a LIVE client's revision that is waiting for K.I.N.D review — saved,
+  // and deliberately NOT in effect until an operator presses GO (founder-ruled 22 Aug).
+  icps:      { id: string; name: string | null; created_at: string | null; last_run_at: string | null
+               is_active?: boolean | null
+               pending_targeting?: { name?: string | null } | null
+               pending_submitted_at?: string | null }[]
   campaigns: CampaignRow[]
   sequences: { id: string; name: string; steps: unknown; created_at: string | null; updated_at: string | null }[]
   replies:   { id: string; lead_id: string | null; from_name: string | null; from_email: string | null; classification: string | null; qualified_at: string | null; meeting_booked_at: string | null; received_at: string | null }[]
@@ -984,9 +989,11 @@ export default function VidaConsolePage() {
       })
       const json = await res.json().catch(() => ({}))
       if (!res.ok || !json?.success) throw new Error(json?.error || `Could not activate (${res.status})`)
-      setSaveMsg(notice.ok(json.sourcing
-        ? 'ICP is live — first sourcing run started.'
-        : 'ICP is live. It has sourced before, so nothing was re-run.'))
+      setSaveMsg(notice.ok(json.applied_revision
+        ? 'Revision applied — this is their targeting now. Nothing was re-sourced; their motion continues.'
+        : json.sourcing
+          ? 'ICP is live — first sourcing run started.'
+          : 'ICP is live. It has sourced before, so nothing was re-run.'))
       await loadCockpit(selected)
     } catch (e) {
       setSaveMsg(notice.error(e instanceof Error ? e.message : 'Could not activate that ICP'))
@@ -2022,10 +2029,21 @@ export default function VidaConsolePage() {
                   {cockpit.icps.length === 0
                     ? <p className="text-[13.5px] text-[#9b8ec4] text-center py-6">No ICP yet — sourcing has no target until there is one.</p>
                     : cockpit.icps.map((i, n) => (
-                      <div key={i.id} className="flex items-center gap-2.5 border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                      <div key={i.id} className={`flex items-center gap-2.5 border rounded-xl px-3 py-2.5 mb-2 ${
+                        i.pending_submitted_at ? 'border-amber-300 bg-amber-50/50' : 'border-[#eee7f7]'}`}>
                         <div className="min-w-0">
                           <b className="text-[13.5px] block truncate">{i.name || `ICP v${cockpit.icps.length - n}`}</b>
                           <span className="text-[12px] text-[#9b8ec4]">{i.last_run_at ? `last sourced ${fmtDate(i.last_run_at)}` : 'never sourced'}</span>
+                          {/* A LIVE CLIENT'S REVISION IS WAITING (founder-ruled 22 Aug). It is
+                              saved and NOT in effect — their current targeting is still what
+                              we source. GO reviews-and-applies it. Naming the proposed
+                              targeting here is the whole review: an operator should not have
+                              to open an editor to find out what changed. */}
+                          {i.pending_submitted_at && (
+                            <span className="block text-[12px] font-bold text-amber-800 mt-1">
+                              ⏸ Revision waiting since {fmtDate(i.pending_submitted_at)} — “{i.pending_targeting?.name || 'revised targeting'}”. Not in effect; GO applies it.
+                            </span>
+                          )}
                         </div>
                         <div className="ml-auto shrink-0 flex items-center gap-2">
                           {n === 0 && <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">current</span>}

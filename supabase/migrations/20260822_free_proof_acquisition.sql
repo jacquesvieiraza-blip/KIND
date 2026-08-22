@@ -70,6 +70,28 @@ alter table public.clients
 -- ── 2. The free-acquisition monthly ceiling, beside the paid one ────────────────────────
 -- Deliberately a SECOND column rather than a shared one: paid delivery keeps
 -- pdl_monthly_cap_usd untouched, and neither budget can starve the other.
+-- ── 1b. A LIVE CLIENT'S REVISION WAITS FOR K.I.N.D (founder-ruled 22 Aug) ───────────────
+-- The targeting columns on the icps row ARE the live operational targeting: runIcpJob reads
+-- that row and hands it straight to the pool serve and the PDL query, so writing them takes
+-- effect on the very next run. That meant a live client editing their targeting in Milla
+-- changed who we source for them with nobody at K.I.N.D looking - the founder ruled the
+-- change must WAIT for review.
+--
+-- There was no way to tell CURRENT LIVE targeting from a REVISED PENDING one, because the
+-- row held only the live copy. These two columns are that distinction and nothing more:
+--   pending_targeting    the revision exactly as the client saved it, parked off to the
+--                        side. Nothing reads it for sourcing, scoring or sending.
+--   pending_submitted_at when they asked. Drives the Vida badge and "waiting since".
+-- K.I.N.D's GO applies the revision onto the live columns and clears both. A prospect in
+-- unpaid proof is NOT live, so their refinement keeps writing the live columns directly -
+-- there is nothing of theirs running to protect.
+alter table public.icps
+  add column if not exists pending_targeting    jsonb,
+  add column if not exists pending_submitted_at timestamptz;
+
+comment on column public.icps.pending_targeting is
+  'A live client''s revised targeting, awaiting K.I.N.D review. NEVER read by sourcing, scoring or sending - the live columns beside it remain operational until GO applies this and clears it. Null for a prospect, whose ICP is not live and is edited in place.';
+
 alter table public.money_settings
   add column if not exists proof_monthly_cap_usd numeric not null default 300;
 

@@ -1438,10 +1438,65 @@ result or a number. "permitted" is false unless they explicitly said we may use 
  * Best-effort by design. A failure here degrades outreach to generic; it must never fail an
  * ICP the client just approved.
  */
+/**
+ * THE CLIENT'S ONE CORE ICP — SAVED, AND FOR A LIVE CLIENT, HELD FOR REVIEW.
+ * (founder-ruled 22 Aug: "the change must wait for K.I.N.D review".)
+ *
+ * The targeting columns on the `icps` row ARE the live operational targeting — `runIcpJob`
+ * reads that row and hands it straight to the pool serve and the PDL query — so writing
+ * them takes effect on the very next run. A live client editing their targeting in Milla
+ * therefore changed who we source for them with nobody at K.I.N.D looking.
+ *
+ * ⚠️ AND THAT PREDATES THE SAME-ICP FIX, which only changed its shape. Before it, this path
+ * deactivated every ICP and inserted a new `is_active: true` row carrying the new targeting
+ * — also immediate, and additionally a client activating their own ICP.
+ *
+ * Three cases, and the row's own `is_active` decides which:
+ *   · NO ICP YET      → create it, inactive. Onboarding.
+ *   · NOT LIVE        → write the live columns. A prospect in unpaid proof is still
+ *                       shaping a draft; there is nothing of theirs running to protect,
+ *                       and a review step here would only delay their second pass.
+ *   · LIVE            → write `pending_targeting` + `pending_submitted_at` and leave every
+ *                       live column untouched. The revision is SAVED (the client asked for
+ *                       it, and losing it would be worse than applying it) and waits.
+ *
+ * Same `icp.id` in all three: `leads.icp_id`, the campaign's `icp_id` and the PDL cursor
+ * all hang off it. GO applies the pending revision and clears it.
+ */
+async function saveClientTargeting(
+  clientId: string,
+  body: Record<string, unknown>,
+): Promise<{ row: Record<string, unknown>; pending: boolean } | null> {
+  // Their live ICP if they have one, otherwise the newest — the SAME row either way.
+  const { data: live } = await db.from('icps')
+    .select('id, name, is_active').eq('client_id', clientId).eq('is_active', true)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const core = live?.id ? live : (await db.from('icps')
+    .select('id, name, is_active').eq('client_id', clientId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()).data
+
+  if (!core?.id) {
+    const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
+    if (error) throw error
+    return data ? { row: data as Record<string, unknown>, pending: false } : null
+  }
+
+  const isLive = (core as { is_active?: boolean }).is_active === true
+  const patch = isLive
+    ? { pending_targeting: body, pending_submitted_at: new Date().toISOString() }
+    : body
+  const { data, error } = await db.from('icps')
+    .update(patch).eq('id', core.id).eq('client_id', clientId).select().single()
+  if (error) throw error
+  return data ? { row: data as Record<string, unknown>, pending: isLive } : null
+}
+
 async function persistMillaUnderstanding(
   clientId: string,
   body: Record<string, unknown>,
   icpName?: string | null,
+  /** True when the targeting was held for review — see `saveClientTargeting`. */
+  pending = false,
 ): Promise<void> {
   try {
     const biz = (body.business ?? {}) as Record<string, unknown>
@@ -1504,7 +1559,16 @@ async function persistMillaUnderstanding(
     }
 
     // The campaign is born with the ICP (one ICP → one campaign) and carries its purpose.
-    if (intent) {
+    //
+    // ⚠️ NOT WHEN THE TARGETING IS WAITING FOR REVIEW (founder-ruled 22 Aug). The ruling is
+    // explicit that a live client's revision must "NOT automatically reactivate/change the
+    // live campaign", and `campaign_intent` is the brief every email is written from — a
+    // live campaign whose brief changed without review is the same event as live targeting
+    // that changed without review. The BUSINESS UNDERSTANDING above still saves, because
+    // the ruling equally says Milla may save "the revised targeting and understanding".
+    if (intent && pending) {
+      console.log(`[icp] campaign intent NOT applied for live client ${clientId} — their targeting revision is waiting for K.I.N.D review, and the live campaign's brief waits with it.`)
+    } else if (intent) {
       const { ensureCampaignForIcp } = await import('../lib/start-work')
       const { data: icpRow } = await db.from('icps')
         .select('id').eq('client_id', clientId).order('created_at', { ascending: false })
@@ -1550,32 +1614,33 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // which is AR9 exactly: they change what runs (25 Jul), they never activate it (22 Aug).
     // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
     // door, and one core ICP is the client-side rule.
-    const { data: mine } = await db.from('icps')
-      .select('id').eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle()
-
-    const { data, error } = mine?.id
-      ? await db.from('icps').update(body).eq('id', mine.id).eq('client_id', clientId).select().single()
-      : await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
-    if (error) throw error
-    if (!data) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
+    const saved = await saveClientTargeting(clientId, body)
+    if (!saved) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
+    const { row: data, pending } = saved
 
     // ── THE UNDERSTANDING FOLLOWS THE ICP (22 Aug) ──────────────────────────────────
     // Milla learned this in the same conversation that produced the targeting above, so it
     // is persisted in the same request rather than asking the client to repeat themselves
     // into a second form. Best-effort throughout: an ICP that saved must never fail because
     // the grounding did not, and FIGSY's documented empty state is "generic, never invented".
-    await persistMillaUnderstanding(clientId, req.body as Record<string, unknown>, data?.name)
-    // Auto-run on creation — only if client has credits
-    ;(async () => {
-      try {
-        const { data: bal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
-        const autoRunCap = bal?.credit_balance ?? 0
-        if (autoRunCap > 0) {
-          await runIcpJob(data.id, clientId, req.userId!, autoRunCap)
-        }
-      } catch (autoErr) { console.error('[icp auto-run]', autoErr) }
-    })()
-    res.status(201).json({ success: true, data })
+    await persistMillaUnderstanding(clientId, req.body as Record<string, unknown>, data?.name as string | null, pending)
+
+    // Auto-run on creation — only if client has credits, and NEVER on a held revision.
+    // ⚠️ A pending save changed nothing operational: the live targeting is exactly what it
+    // was, so a run here would spend the client's money re-sourcing the OLD audience
+    // because they asked us to look at a NEW one.
+    if (!pending) {
+      ;(async () => {
+        try {
+          const { data: bal } = await db.from('clients').select('credit_balance').eq('id', clientId).single()
+          const autoRunCap = bal?.credit_balance ?? 0
+          if (autoRunCap > 0) {
+            await runIcpJob(data.id as string, clientId, req.userId!, autoRunCap)
+          }
+        } catch (autoErr) { console.error('[icp auto-run]', autoErr) }
+      })()
+    }
+    res.status(201).json({ success: true, data, pending_review: pending })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/create]', err)
@@ -1607,41 +1672,39 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
     const clientId = await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
 
-    // Their live ICP if they have one, otherwise the newest — the SAME row either way.
-    const { data: active } = await db.from('icps')
-      .select('id, name').eq('client_id', clientId).eq('is_active', true)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    const { data: newest } = active?.id ? { data: active } : await db.from('icps')
+    const { data: previous } = await db.from('icps')
       .select('id, name').eq('client_id', clientId)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    const previous = newest ?? null
 
-    const { data, error } = previous?.id
-      ? await db.from('icps').update(body).eq('id', previous.id).eq('client_id', clientId).select().single()
-      // No ICP at all — create one, INACTIVE. Going live is K.I.N.D's call, not this route's.
-      : await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
-    if (error) throw error
-    if (!data) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
+    const saved = await saveClientTargeting(clientId, body)
+    if (!saved) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
+    const { row: data, pending } = saved
 
     // Notify us. Vida's bell already derives "ICP revised since the campaign was built"
     // from the rows, so this alert is the push half of the same fact — never the only half.
     // One ICP = one campaign; SCAFFOLD only, because a client's revision must not make a
     // campaign live any more than it makes their ICP live.
     const { ensureCampaignForIcp } = await import('../lib/start-work')
-    void ensureCampaignForIcp(clientId, data.id, data.name).catch(() => {})
+    void ensureCampaignForIcp(clientId, data.id as string, (data.name as string | null) ?? null).catch(() => {})
 
     const { data: client } = await db.from('clients').select('company_name').eq('id', clientId).maybeSingle()
-    const isLive = data.is_active === true
-    void sendFounderAlert('new_signup', `ICP revised — ${client?.company_name ?? 'a client'}`, [
-      `${client?.company_name ?? 'A client'} changed their targeting in Milla.`,
-      previous?.name ? `Was: ${previous.name}` : 'They had no ICP before this.',
-      `Now: ${data.name ?? 'unnamed ICP'}`,
-      isLive
-        ? 'Their targeting is LIVE, so this change is already in effect. Anyone already enrolled was picked against the old profile — re-check who is in the campaign in Vida.'
-        : 'Their ICP is NOT live — this is a refinement before we switch them on. Nothing changed for anyone already enrolled.',
-    ]).catch(() => {})
+    const proposed = (body as { name?: string }).name ?? 'unnamed ICP'
+    void sendFounderAlert('new_signup',
+      pending
+        ? `⏸ ICP revision WAITING for review — ${client?.company_name ?? 'a client'}`
+        : `ICP revised — ${client?.company_name ?? 'a client'}`,
+      [
+        `${client?.company_name ?? 'A client'} changed their targeting in Milla.`,
+        previous?.name ? `Was: ${previous.name}` : 'They had no ICP before this.',
+        `Now: ${proposed}`,
+        pending
+          // The whole point of the ruling: nothing has changed yet, and it will not until
+          // someone here looks. An alert that said "it is live" would be false.
+          ? 'They are LIVE, so this is NOT in effect. Their current targeting is unchanged and still sourcing. Review it in Vida → ICP and press GO to apply it.'
+          : 'Their ICP is NOT live — this is a refinement before we switch them on. Nothing changed for anyone already enrolled.',
+      ]).catch(() => {})
 
-    res.status(201).json({ success: true, data })
+    res.status(201).json({ success: true, data, pending_review: pending })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/revise]', err)
@@ -2010,7 +2073,7 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // campaign cannot be made live, NOTHING is flipped: an activation we cannot finish is
     // an activation that did not happen, not one that half-happened.
     const { data: icpRow } = await db.from('icps')
-      .select('id, name').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+      .select('id, name, pending_targeting').eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
     if (!icpRow) { res.status(404).json({ success: false, error: 'ICP not found' }); return }
 
     const { ensureCampaignForIcp } = await import('../lib/start-work')
@@ -2033,9 +2096,28 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
       return
     }
 
+    // ── GO IS ALSO WHERE A HELD REVISION IS APPLIED (founder-ruled 22 Aug) ─────────
+    //
+    // A live client's revision was parked in `pending_targeting` and nothing has read it
+    // since — sourcing, scoring and sending all ran on the live columns beside it. This is
+    // the review the ruling asks for: the operator has looked, and pressing GO makes the
+    // revision operational in the SAME write that activates, so there is no instant where
+    // the row is half-applied. Clearing the pending fields in that write is what stops a
+    // second GO re-applying a stale revision on top of newer targeting.
+    //
+    // It is applied only AFTER the one-active-campaign invariant passed above: a refused
+    // GO must leave the revision waiting, not half-spent.
+    const held = (icpRow as { pending_targeting?: Record<string, unknown> | null }).pending_targeting
+    const applyHeld = held && typeof held === 'object' && !Array.isArray(held)
+      ? { ...held, pending_targeting: null, pending_submitted_at: null }
+      : {}
+    if (Object.keys(applyHeld).length > 0) {
+      console.log(`[icps/activate] applying the held targeting revision for client ${clientId} — reviewed and approved by an operator.`)
+    }
+
     await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
     const { data, error } = await db.from('icps')
-      .update({ is_active: true }).eq('id', req.params.id).eq('client_id', clientId).select().single()
+      .update({ ...applyHeld, is_active: true }).eq('id', req.params.id).eq('client_id', clientId).select().single()
     if (error) throw error
 
     // If this ICP has never sourced leads, activating it should actually FIND
@@ -2061,6 +2143,8 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
           .catch(e => console.error('[icps/activate] auto-run failed:', e))
       }
     }
-    res.json({ success: true, data, sourcing: started })
+    // `applied_revision` so Vida can say what actually happened — "revision applied" and
+    // "ICP is live" are different events and the operator pressed the same button for both.
+    res.json({ success: true, data, sourcing: started, applied_revision: Object.keys(applyHeld).length > 0 })
   } catch (err) { console.error(err); res.status(500).json({ success: false, error: 'Failed to activate ICP' }) }
 })

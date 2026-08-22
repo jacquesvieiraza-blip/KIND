@@ -303,6 +303,7 @@ describe('the launch journey — one ICP, two proof passes, then K.I.N.D presses
     const icpId = store.icps[0].id
     const first = await go(icpId)
     expect((first.body as any).sourcing).toBe(true)
+    expect((first.body as any).applied_revision).toBe(false)   // nothing was waiting
     const again = await go(icpId)
     expect((again.body as any).sourcing).toBe(false)
     expect(store.figsy_campaigns).toHaveLength(1)
@@ -321,19 +322,23 @@ describe('the launch journey — one ICP, two proof passes, then K.I.N.D presses
     expect(store.figsy_campaigns.find(c => c.id === 'camp-other')!.status).toBe('active')  // untouched
   })
 
-  it('a paying client\'s revision still takes effect on their LIVE targeting', async () => {
-    // AR9's 25-Jul half, unchanged: "no gate on their own change". Updating in place means
-    // their live ICP carries the new targeting immediately — they change what is running,
-    // they never ACTIVATE anything, which is AR9's 22-Aug half.
+  it('a LIVE client\'s revision is SAVED and WAITS — same ICP, nothing operational changes', async () => {
+    // ⛓️ THIS TEST ASSERTED THE OPPOSITE UNTIL THE FOUNDER RULED (22 Aug). It read AR9's
+    // 25-Jul half — "no gate on their own change" — as licence to apply a live client's
+    // revision immediately, on the reasoning that they were changing what runs rather than
+    // activating anything. The founder's ruling settles it the other way: a live client's
+    // change must WAIT for K.I.N.D review. Rewritten rather than deleted, because the
+    // reversal is the point and a quietly vanished assertion teaches nobody anything.
     await onboard()
     const icpId = store.icps[0].id
     await go(icpId)
     expect(store.icps[0].is_active).toBe(true)
     await refine()
     expect(store.icps).toHaveLength(1)
-    expect(store.icps[0].id).toBe(icpId)
-    expect(store.icps[0].name).toBe('SA SaaS CTOs — smaller firms')
-    expect(store.icps[0].is_active).toBe(true)            // still live, now with new targeting
+    expect(store.icps[0].id).toBe(icpId)                          // same core ICP
+    expect(store.icps[0].name).toBe('SA SaaS CTOs')                // live targeting untouched
+    expect(store.icps[0].pending_targeting?.name).toBe('SA SaaS CTOs — smaller firms')
+    expect(store.icps[0].is_active).toBe(true)                    // still live, on the OLD targeting
   })
 
   it('THE PROOF MONEY RULES ARE UNTOUCHED BY ANY OF THIS', async () => {
@@ -347,5 +352,179 @@ describe('the launch journey — one ICP, two proof passes, then K.I.N.D presses
     // And the reservation asks for the 20-lead pass, not a paid client's target.
     const reserve = rec.rpcs.find(r => r.fn === 'try_reserve_proof_records')
     if (reserve) expect(Number(reserve.args.p_requested)).toBeLessThanOrEqual(20)
+  })
+})
+
+// ── A LIVE CLIENT'S REVISION WAITS FOR K.I.N.D (founder-ruled 22 Aug) ─────────
+//
+// The targeting columns on the icps row ARE the live operational targeting — `runIcpJob`
+// reads that row and hands it straight to the pool serve and the PDL query. So a live
+// client editing their targeting in Milla changed who we source for them on the very next
+// run, with nobody at K.I.N.D looking. The founder's ruling: Milla may SAVE it, and it
+// must WAIT for review.
+//
+// ⚠️ THIS PREDATES THE ROUND-5 CHANGE, and saying otherwise would be flattering. Before it,
+// `/revise` deactivated every ICP and inserted a new `is_active: true` row carrying the new
+// targeting — also immediate, and additionally a client activating their own ICP. Round 5
+// changed the shape, not the immediacy.
+//
+// The distinction the row could not make is now two columns: `pending_targeting` holds the
+// revision, `pending_submitted_at` says since when, and NOTHING reads either for sourcing,
+// scoring or sending until GO applies them.
+describe('a LIVE client revises — it is saved, and it waits', () => {
+  let store: Store
+  let rec: { rpcs: Array<{ fn: string; args: Row }> }
+
+  beforeEach(() => {
+    store = makeStore()
+    rec = { rpcs: [] }
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = 'test-key'
+    process.env.SUPABASE_URL = 'http://localhost:54321'
+    process.env.SUPABASE_ANON_KEY = 'test-anon-key'
+    installDb(store, rec)
+    vi.doMock('../routes/admin', () => ({ adminKeyValid: (k: unknown) => k === 'right-key' }))
+    vi.doMock('./apollo', () => ({
+      searchPeopleWithFallback: async () => ({ contacts: [], relaxed: false }),
+      ApolloCreditsExhaustedError: class extends Error {}, ApolloRateLimitError: class extends Error {},
+    }))
+    vi.doMock('./alerts', () => ({ sendFounderAlert: async () => {} }))
+    vi.doMock('./provider-boundary', async () => {
+      const real = await vi.importActual<typeof import('./provider-boundary')>('./provider-boundary')
+      return { ...real, audienceForClient: async () => 'client', audienceForUser: async () => 'client' }
+    })
+  })
+  afterEach(() => {
+    vi.doUnmock('../routes/admin'); vi.doUnmock('./apollo'); vi.doUnmock('./alerts'); vi.doUnmock('./provider-boundary')
+    vi.resetModules()
+    process.env.ANTHROPIC_API_KEY = prev.anthropic
+    process.env.SUPABASE_URL = prev.url
+    process.env.SUPABASE_ANON_KEY = prev.anon
+  })
+
+  const onboard = async (body: Row = {}) => {
+    const h = await handlerFor('/', 'post')
+    const res = makeRes()
+    await h({ body: { ...ICP_BODY, business: BUSINESS, campaign_intent: 'Book demos', ...body }, userId: 'u1', headers: {} }, res)
+    return res
+  }
+  const revise = async (body: Row = {}) => {
+    const h = await handlerFor('/revise', 'post')
+    const res = makeRes()
+    await h({ body: { ...ICP_BODY, name: 'Different people entirely', industries: ['Logistics'], ...body }, userId: 'u1', headers: {} }, res)
+    return res
+  }
+  const go = async (icpId: string) => {
+    const h = await handlerFor('/:id/activate', 'patch')
+    const res = makeRes()
+    await h({ params: { id: icpId }, body: { client_id: 'c1' }, headers: { 'x-admin-key': 'right-key' }, userId: 'operator-user' }, res)
+    return res
+  }
+  /** Take the client live, the way K.I.N.D does. */
+  const makeLive = async () => {
+    await onboard()
+    const icpId = store.icps[0].id
+    await go(icpId)
+    expect(store.icps[0].is_active).toBe(true)
+    // GO's first sourcing run is fire-and-forget. Let it finish before any test clears the
+    // recorder, or its RPCs land afterwards and read as "the revision caused this" — an
+    // assertion that would fail for a reason that has nothing to do with the code.
+    await new Promise(r => setTimeout(r, 60))
+    return icpId
+  }
+
+  it('A LIVE CLIENT\'S REVISION DOES NOT CHANGE LIVE TARGETING', async () => {
+    const icpId = await makeLive()
+    const liveBefore = { name: store.icps[0].name, industries: [...store.icps[0].industries] }
+
+    const res = await revise()
+    expect(res.statusCode).toBe(201)
+
+    // THE DEFECT, ASSERTED. What sourcing reads must be untouched…
+    expect(store.icps[0].name, 'the revision changed live targeting immediately').toBe(liveBefore.name)
+    expect(store.icps[0].industries).toEqual(liveBefore.industries)
+    // …and the revision must be SAVED, not thrown away — the client asked for it.
+    expect(store.icps[0].pending_targeting, 'the revision was not saved anywhere').toBeTruthy()
+    expect(store.icps[0].pending_targeting.name).toBe('Different people entirely')
+    expect(store.icps[0].pending_submitted_at).toBeTruthy()
+    // Same core ICP, still one row.
+    expect(store.icps).toHaveLength(1)
+    expect(store.icps[0].id).toBe(icpId)
+  })
+
+  it('NOTHING RUNS ON A PENDING REVISION — no sourcing, no campaign change', async () => {
+    await makeLive()
+    const campBefore = { ...store.figsy_campaigns[0] }
+    rec.rpcs.length = 0
+
+    await revise()
+    // No sourcing of any kind was triggered by the client's edit.
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_spend_sourcing')
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_reserve_proof_records')
+    // The live campaign is exactly as it was — not paused, not renamed, not duplicated.
+    expect(store.figsy_campaigns).toHaveLength(1)
+    expect(store.figsy_campaigns[0].status).toBe(campBefore.status)
+    expect(store.icps[0].is_active).toBe(true)     // still live on the OLD targeting
+  })
+
+  it('K.I.N.D GO APPLIES THE REVISION AND CLEARS IT', async () => {
+    const icpId = await makeLive()
+    const campId = store.figsy_campaigns[0].id
+    await revise()
+
+    const res = await go(icpId)
+    expect(res.statusCode).toBe(200)
+    // The revision is now the live targeting…
+    expect(store.icps[0].name).toBe('Different people entirely')
+    expect(store.icps[0].industries).toEqual(['Logistics'])
+    // …and the pending slot is empty, so a second GO cannot re-apply a stale revision.
+    expect(store.icps[0].pending_targeting ?? null).toBeNull()
+    expect(store.icps[0].pending_submitted_at ?? null).toBeNull()
+    // …and the API says WHICH event this was, because Vida shows a different message for
+    // "revision applied" than for "ICP is live" and the operator pressed one button.
+    expect((res.body as any).applied_revision).toBe(true)
+    // One ICP, one campaign, no duplicate, still the same rows.
+    expect(store.icps).toHaveLength(1)
+    expect(store.icps[0].id).toBe(icpId)
+    expect(store.figsy_campaigns).toHaveLength(1)
+    expect(store.figsy_campaigns[0].id).toBe(campId)
+    expect(store.figsy_campaigns[0].status).toBe('active')
+  })
+
+  it('APPLYING A REVISION IS NOT A SECOND FIRST RUN', async () => {
+    const icpId = await makeLive()
+    await revise()
+    rec.rpcs.length = 0
+    const res = await go(icpId)
+    // The ICP has already run, so GO applies the targeting and does NOT re-source: the
+    // client's motion continues on its own schedule rather than paying for a fresh batch
+    // because someone edited a job title.
+    expect((res.body as any).sourcing).toBe(false)
+    expect(rec.rpcs.map(r => r.fn)).not.toContain('try_spend_sourcing')
+  })
+
+  it('A COMPETING LIVE CAMPAIGN STILL REFUSES GO — and the revision stays pending', async () => {
+    const icpId = await makeLive()
+    await revise()
+    store.figsy_campaigns.push({ id: 'camp-other', client_id: 'c1', icp_id: 'icp-other', status: 'active', name: 'Other push' })
+    // Force the invariant to see a competitor that is not this ICP's own campaign.
+    store.figsy_campaigns[0].status = 'paused'
+
+    const res = await go(icpId)
+    expect(res.statusCode).toBe(409)
+    // Fail-closed all the way through: a refused GO must not half-apply the revision.
+    expect(store.icps[0].name).toBe('SA SaaS CTOs')
+    expect(store.icps[0].pending_targeting, 'a refused GO discarded the pending revision').toBeTruthy()
+  })
+
+  it('AN UNPAID PROSPECT\'S REFINEMENT IS UNCHANGED — edited in place, nothing pending', async () => {
+    // Nothing of theirs is running, so there is nothing to protect: their ICP is the draft
+    // they are still shaping, and a pending slot would only add a step before pass 2.
+    await onboard()
+    expect(store.icps[0].is_active).toBeFalsy()
+    await revise()
+    expect(store.icps[0].name).toBe('Different people entirely')   // applied straight away
+    expect(store.icps[0].pending_targeting ?? null).toBeNull()
+    expect(store.icps).toHaveLength(1)
   })
 })

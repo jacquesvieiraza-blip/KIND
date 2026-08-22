@@ -965,6 +965,34 @@ export default function VidaConsolePage() {
     } finally { setActing(null) }
   }
 
+  // K.I.N.D OWNS GO (22 Aug) — activate a client's ICP on their behalf.
+  //
+  // Activation is what makes an ICP live and, for a never-run ICP, starts its first sourcing
+  // run. It used to be the CLIENT's button: their edit went live immediately, nobody here was
+  // told, and a client could start real sourcing with no operator watching. The API now
+  // refuses a client JWT, so this is the only way an ICP goes live.
+  //
+  // `client_id` travels in the body because the caller is an operator acting for a client,
+  // not the client themselves.
+  async function activateIcp(icpId: string) {
+    if (!selected) return
+    setActing(`go-${icpId}`)
+    try {
+      const res = await fetch(`/api/proxy/icps/${encodeURIComponent(icpId)}/activate`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ client_id: selected }),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json?.success) throw new Error(json?.error || `Could not activate (${res.status})`)
+      setSaveMsg(notice.ok(json.sourcing
+        ? 'ICP is live — first sourcing run started.'
+        : 'ICP is live. It has sourced before, so nothing was re-run.'))
+      await loadCockpit(selected)
+    } catch (e) {
+      setSaveMsg(notice.error(e instanceof Error ? e.message : 'Could not activate that ICP'))
+    } finally { setActing(null) }
+  }
+
   // Needs-approval column — RELEASE (approve & send) or REJECT a FIGSY-written draft.
   // Acts on the approval-queue row id (NOT the lead) — no charge fires here; the $4 already
   // happened at enrollment. A send may honestly defer (cap/kill-switch) — surface the note.
@@ -2001,6 +2029,14 @@ export default function VidaConsolePage() {
                         </div>
                         <div className="ml-auto shrink-0 flex items-center gap-2">
                           {n === 0 && <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">current</span>}
+                          {/* K.I.N.D OWNS GO (22 Aug). The client can write and refine their
+                              ICP; only we make it live. This button is the control that made
+                              that safe to enforce — without it the API gate would strand
+                              every new ICP with nobody able to switch it on. */}
+                          <button disabled={acting === `go-${i.id}`} onClick={() => activateIcp(i.id)}
+                            className="text-[12.5px] font-bold text-white bg-emerald-600 rounded-lg px-2.5 py-1 disabled:opacity-50">
+                            {acting === `go-${i.id}` ? '…' : 'GO'}
+                          </button>
                           <button onClick={() => openIcpEditor(i.id)} className="text-[12.5px] font-bold text-[#7C3AED] border border-[#e4dcf7] rounded-lg px-2.5 py-1">Edit</button>
                         </div>
                       </div>

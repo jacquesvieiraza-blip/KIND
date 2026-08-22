@@ -24,6 +24,12 @@ import {
   type CursorQuery, type StoredCursor,
 } from '../lib/pdl-cursor'
 import { narrowSizeBands } from '../lib/lead-feedback'
+// K.I.N.D-only GO (22 Aug) — the same admin-key check `routes/lookalike.ts` already uses,
+// rather than a second way of asking "is this an operator?".
+import { adminKeyValid } from './admin'
+// Free proof (22 Aug) — reuses the EXISTING real/comp/never-funded distinction rather than
+// inventing a second notion of "has this account paid us".
+import { fundedVia } from '../lib/onboarding-pack'
 
 // PR-A — record ONE honest outcome row per ICP run so the client learns WHY a run
 // produced no leads (quota outage vs narrow ICP). Best-effort: a write failure here
@@ -190,6 +196,41 @@ const icpSchema = z.object({
 async function getClientId(userId: string): Promise<string | null> {
   const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
+}
+
+// FREE-PROOF ACQUISITION BUDGET ALARM (22 Aug) — the twin of the paid alarm below, kept
+// separate because it means something different and calls for a different decision.
+//
+// The paid alarm says "your clients' sourcing has stopped". This one says "we have spent
+// what you set aside to WIN clients this month" — founder-set at $300, and deliberately
+// raised by hand when demand justifies it, never automatically.
+//
+// ⚠️ Pool-only proof is NOT affected and the message says so: owned records cost nothing,
+// so a prospect can still be shown real leads from the pool after this fires.
+//
+// Same one-per-day module throttle as the paid alarm. Best-effort; never throws.
+let lastProofAlertDay = ''
+async function alertProofBudgetSpent(clientId: string): Promise<void> {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    if (today === lastProofAlertDay) return
+    lastProofAlertDay = today
+    const { data: settings } = await db.from('money_settings').select('proof_monthly_cap_usd').eq('id', 1).maybeSingle()
+    const cap = Number(settings?.proof_monthly_cap_usd ?? 300)
+    const monthStart = new Date(); monthStart.setUTCDate(1); monthStart.setUTCHours(0, 0, 0, 0)
+    const { data: rows } = await db.from('proof_ledger')
+      .select('cost_usd').gte('created_at', monthStart.toISOString())
+    const spent = (rows ?? []).reduce((s, r: { cost_usd?: number | string }) => s + Number(r.cost_usd ?? 0), 0)
+    void sendFounderAlert('source_down', 'Free-proof ACQUISITION budget spent — no more paid proof sourcing this month', [
+      `This month's free-proof PDL spend is $${spent.toFixed(2)} of the $${cap.toFixed(0)} acquisition cap.`,
+      `Prospect ${clientId} was refused paid proof sourcing just now.`,
+      'PAYING CLIENTS ARE UNAFFECTED — paid delivery has its own separate ceiling and its own budget.',
+      'Pool-only proof still works: records we already own cost nothing, so a prospect can still be shown real leads.',
+      'Raise proof_monthly_cap_usd in the admin Money Path page if this is volume you want to fund.',
+    ])
+  } catch (err) {
+    console.error('[icp] alertProofBudgetSpent failed (non-fatal):', err)
+  }
 }
 
 // #445 — global PDL-budget alarm. Reads this month's sourcing spend vs the (admin-
@@ -418,6 +459,46 @@ export async function runIcpJob(
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
   // below runs exactly as it did pre-pool. Pool leads are inserted here and flow into
   // the same delivery/scoring/consent as PDL leads.
+  // ── HAS THIS ACCOUNT EVER BEEN FUNDED? (free proof, 22 Aug) ────────────────────────
+  //
+  // `'real'` = they paid us · `'comp'` = a manual grant, i.e. ENTITLED · `null` = neither.
+  // Only `null` takes the free-proof path. Reusing `fundedVia` rather than inventing a
+  // second notion of paid-ness: `onboarding-pack.ts` already draws this distinction, and
+  // #619 exists precisely because a surface once read entitlement and printed "Paid $299".
+  //
+  // A comped client keeps the ordinary paid AR8 path — a comp is a decision to fund them,
+  // not a prospect still being won.
+  const { data: fundingRows } = await db.from('credit_transactions')
+    .select('type, reference').eq('client_id', clientId)
+  const funding = fundedVia(fundingRows ?? [])
+
+  // ── CLAIM A PROOF PASS BEFORE ANY BATCH BEGINS (free proof, 22 Aug) ────────────────
+  //
+  // ⚠️ CLAIMED HERE, ABOVE THE POOL SERVE, AND THAT POSITION IS THE POINT. A pool-only
+  // batch is still a proof batch the prospect sees, so it must consume a pass exactly as a
+  // PDL-backed one does. Claiming after the pool serve — or inside the PDL branch — would
+  // let a prospect with a well-covered pool be shown free batch after free batch forever.
+  //
+  // The claim is atomic (`FOR UPDATE` inside the RPC): two requests racing for pass 2 give
+  // exactly one claimant, and the loser gets 0. Pass 3 is always 0 — a human takes over.
+  //
+  // If something fails after the claim, the pass is spent and there is NO automatic retry:
+  // an automatic retry is precisely the race that would produce a third free batch. Recovery
+  // is human, which is already the model for a second miss.
+  if (funding === null) {
+    const { data: pass } = await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
+    const claimed = typeof pass === 'number' ? pass : 0
+    if (claimed <= 0) {
+      console.log(`[icp] FREE PROOF refused for prospect ${clientId} — both proof passes used. A human conversation takes it from here.`)
+      await recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)
+      return {
+        inserted: 0, skipped: 0,
+        relaxed: 'We have shown you two sets of leads. Let us talk it through before we look again.',
+      }
+    }
+    console.log(`[icp] FREE PROOF pass ${claimed} of 2 claimed for prospect ${clientId}.`)
+  }
+
   const pool = await servePoolLeads(icp, clientId, effectiveCap)
   inserted += pool.served
   insertedIds.push(...pool.insertedIds)
@@ -468,10 +549,25 @@ export async function runIcpJob(
     // to pre-fund. The volume limit is the SAME `pdlRemainder` the fence would have
     // capped: no new budget subsystem, no wallet link, no new ceiling, no runtime data
     // touched. The client path below is byte-for-byte what it was.
+    //
+    // ⚠️ AND A NEVER-FUNDED PROSPECT IS FENCED BY A THIRD, SEPARATE AUTHORITY (22 Aug).
+    // Free proof shows real leads BEFORE anyone pays, so its PDL spend cannot come from
+    // `try_spend_sourcing`: an unpaid prospect's allowance is 0, so that call could never
+    // fund it — and granting into that shared integer would expose the proof budget to the
+    // six other paths that spend it. Proof therefore reserves against its own atomic
+    // authority, with its own monthly ceiling, and paid AR8 below is untouched.
     let grantedSize: number
+    let proofReserved = 0
     if (audience === 'house') {
       grantedSize = pdlRemainder
       console.log(`[icp] house run for client ${clientId} — Apollo remainder ${grantedSize}; the PDL cash fence does not apply (AR5/AR8).`)
+    } else if (funding === null) {
+      const { data: reserved } = await db.rpc('try_reserve_proof_records', {
+        p_client_id: clientId, p_requested: pdlRemainder,
+      })
+      proofReserved = typeof reserved === 'number' ? reserved : 0
+      grantedSize = proofReserved
+      console.log(`[icp] FREE PROOF run for prospect ${clientId} — reserved ${proofReserved} of ${pdlRemainder} PDL record(s) against the acquisition fence (40 lifetime, $300/mo).`)
     } else {
       const { data: granted } = await db.rpc('try_spend_sourcing', {
         p_client_id: clientId, p_requested: pdlRemainder,
@@ -481,7 +577,12 @@ export async function runIcpJob(
     if (grantedSize <= 0) {
       // (Fable F3) the alarm must also run on the REFUSED path — at 100% of the global
       // cap every grant is 0, so this is the only path that can raise "budget REACHED".
-      void maybeAlertPdlBudget()
+      // ⚠️ PAID BUDGET ALARM ONLY. A refused PROOF reservation means the ACQUISITION
+      // ceiling is spent, which is a different budget and a different decision — raising
+      // the paid alarm for it would tell the founder his clients' sourcing had stopped
+      // when it had not. Proof raises its own alert below.
+      if (funding !== null) void maybeAlertPdlBudget()
+      else void alertProofBudgetSpent(clientId)
       if (pool.served === 0) {
         // Nothing from the pool AND no PDL budget → identical to the pre-pool refusal.
         console.log(`[icp] sourcing refused for client ${clientId} — no pre-funded budget (allowance/ceiling/daily). No PDL spend.`)
@@ -564,16 +665,32 @@ export async function runIcpJob(
       const returnedCount = Math.min(contacts.length, grantedSize)
       const unusedGrant = audience === 'house' ? 0 : grantedSize - returnedCount
       if (unusedGrant > 0) {
-        const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
-          p_client_id: clientId, p_records: unusedGrant, p_trial: false,
-        })
-        if (refundErr) {
-          console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
-        } else {
-          const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
-            client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+        if (funding === null) {
+          // FREE PROOF reconcile — reserve 40, PDL returns 25, release 15. ONE call frees
+          // BOTH fences: the prospect's 40-record lifetime count and the acquisition
+          // month's room, the latter because the negative proof-ledger row lowers the very
+          // sum the reservation raised. If this never runs the reservation simply stands,
+          // and the prospect and the month are each under-allocated by the unused amount —
+          // which is the fail-closed direction, and the reason the reservation is
+          // pessimistic in the first place.
+          const { error: relErr } = await db.rpc('release_proof_records', {
+            p_client_id: clientId, p_records: unusedGrant,
           })
-          if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+          if (relErr) {
+            console.error(`[icp] PROOF release FAILED for prospect ${clientId} (${unusedGrant} records) — the reservation stands, so future proof under-allows rather than overspends:`, relErr)
+          }
+        } else {
+          const { error: refundErr } = await db.rpc('add_sourcing_allowance', {
+            p_client_id: clientId, p_records: unusedGrant, p_trial: false,
+          })
+          if (refundErr) {
+            console.error(`[icp] sourcing-grant refund FAILED for client ${clientId} (${unusedGrant} records) —`, refundErr)
+          } else {
+            const { error: ledgerErr } = await db.from('sourcing_ledger').insert({
+              client_id: clientId, records: -unusedGrant, cost_usd: -(unusedGrant * PDL_RATE_USD),
+            })
+            if (ledgerErr) console.error('[icp] sourcing-ledger correction failed (allowance already refunded):', ledgerErr)
+          }
         }
       }
 
@@ -846,6 +963,44 @@ export async function runIcpJob(
     }
   }
 
+  // ── SURFACE THE PROOF SET (free proof, 22 Aug) ─────────────────────────────────────
+  //
+  // A paid client's leads reach their desk through `start-work.ts`, which sets
+  // `surfaced_for_approval_at` and `delivered_at` together with the comment that says why:
+  // "SURFACING **IS** DELIVERY IN THE MANAGED MODEL". A prospect has no start-work run, so
+  // without this their proof leads exist and are invisible.
+  //
+  // ⚠️ THIS DOES NOT CALL `enrichAndDeliverLeads`, DELIBERATELY. That function reveals
+  // emails — Apollo bulk-match then the Hunter waterfall — and a reveal before payment is
+  // forbidden. It is not needed either: PDL's search already requires `work_email` to
+  // exist, so there is nothing to reveal. The two fields below are the whole of what
+  // `/leads/for-approval` needs.
+  //
+  // ⚠️ AND IT WORKS WHETHER OR NOT AN EMAIL CAME BACK. `/leads/for-approval` filters on
+  // delivered · surfaced · `revealed_at IS NULL` · not passed — never on email — and the
+  // masked card it returns omits name, email and phone whatever the row holds. So a record
+  // that arrived with a presence flag instead of an address still proves TARGETING FIT,
+  // which is the only thing this stage claims. No Hunter is called to make it visible.
+  //
+  // `revealed_at` stays NULL, so this lead cannot enter a pack slot, a $4 charge, the
+  // approval count or any ledger. Nothing here is a commercial state.
+  if (funding === null && insertedIds.length > 0) {
+    const nowIso = new Date().toISOString()
+    const { error: surfErr } = await db.from('leads')
+      .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
+      .in('id', insertedIds).is('delivered_at', null)
+    if (surfErr) {
+      // Same failure shape start-work treats as serious: the leads exist and the prospect
+      // cannot see them, which reads to them as "K.I.N.D found nobody".
+      console.error(`[icp] PROOF surfacing FAILED for prospect ${clientId} — ${insertedIds.length} lead(s) are invisible:`, surfErr.message)
+      void sendFounderAlert('sends_stalled', 'Free-proof leads were sourced but the prospect cannot see them', [
+        `Prospect ${clientId}: ${insertedIds.length} proof lead(s) could not be surfaced.`,
+        `Reason: ${surfErr.message}`,
+        'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
+      ]).catch(() => {})
+    }
+  }
+
   await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp)
   return { inserted, skipped, relaxed }
 }
@@ -1051,23 +1206,76 @@ icpRouter.post('/builder/chat', async (req: AuthRequest, res) => {
       messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).min(1).max(40),
     }).parse(req.body)
 
-    const system = `You are Milla, an ICP (Ideal Customer Profile) builder for K.I.N.D, a B2B lead-gen platform.
-Have a short, friendly conversation to learn who the user wants to target, then produce a structured ICP.
+    // ── MILLA LEARNS THE BUSINESS, NOT JUST THE TARGET (22 Aug) ────────────────────────
+    //
+    // ⚠️ THIS CONVERSATION USED TO BE THROWN AWAY. It produced an ICP and nothing else, so
+    // FIGSY — which writes every cold email — had no idea what the client actually sells.
+    // The client was then expected to type it all again into a "Train FIGSY" form that
+    // lives in the retired dashboard family behind a flag that is off. The result: we sell
+    // "personal onboarding" and send generic mail.
+    //
+    // The same conversation now yields THREE things: the targeting ICP, the business
+    // understanding FIGSY writes from, and what this campaign is for.
+    //
+    // ⚠️ AND PROOF IS PERMISSIONED, NOT ASSUMED. Milla may learn a named customer or a
+    // result from the client's website or their own words — but a specific claim only
+    // reaches an outbound email if the client says it may. `permitted` defaults to FALSE
+    // and only an explicit yes flips it. Milla may know more than FIGSY is allowed to say.
+    const system = `You are Milla, onboarding a new client for K.I.N.D, a B2B lead-gen platform.
+
+Have a natural, friendly conversation. Ask AS MANY questions as you genuinely need — some
+businesses take three, some take ten. Never present a numbered form. One or two questions at
+a time, in plain language.
+
+You are learning TWO things at once:
+  1. WHO they want to reach (their targeting).
+  2. WHAT THEIR BUSINESS IS — because we write their outreach for them, and we may only say
+     things that are true and that they have approved.
+
+Cover, in whatever order the conversation goes: what they sell · who gets real value from it ·
+the problem those people have · what changes for them afterwards · what makes them different ·
+who has this already worked for · who is an obvious BAD fit · where they sell · and what they
+are trying to achieve with this batch right now.
+
+On that last point, ask what outcome they want — a booked meeting, a product launch, a
+webinar or event, or something else — and then ask the follow-ups that outcome deserves. For
+a launch: what is launching, what is new, why now, what response they want. For a webinar:
+topic, value, timing, who should attend, the next step. For a meeting: the offer, the
+problem, why they should care, what the conversation is.
+
+If they mention a named customer, a case study, a testimonial, a specific result or a metric,
+ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not
+clearly approved must be recorded with "permitted": false.
 
 Respond with ONLY valid JSON (no markdown):
-- If you still need more info: {"type":"question","content":"<your friendly reply, max 2 sentences>"}
-- Once you have enough (at minimum industries OR job titles, plus a rough sense of who): {"type":"complete","summary":"<one-sentence summary>","icp":{
-    "name": "<short ICP name>",
-    "industries": [from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy],
-    "job_titles": ["CTO", ...],
-    "seniority_levels": [from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor],
-    "company_sizes": [from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+],
-    "geographies": ["South Africa", ...],
-    "tech_stack": [...],
-    "keywords": ["hiring","Series A", ...],
-    "apollo_only_consented": true
-  }}
-Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 questions before completing.`
+- Still learning: {"type":"question","content":"<your reply, max 2 sentences>"}
+- When you genuinely understand them:
+{"type":"complete","summary":"<one-sentence summary>",
+ "icp":{
+   "name": "<short ICP name>",
+   "industries": [from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy],
+   "job_titles": ["CTO", ...],
+   "seniority_levels": [from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor],
+   "company_sizes": [from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+],
+   "geographies": ["South Africa", ...],
+   "tech_stack": [...],
+   "keywords": ["hiring","Series A", ...],
+   "apollo_only_consented": true
+ },
+ "business":{
+   "product": "<what they sell, one or two sentences, their words>",
+   "pitch": "<the value proposition / the outcome for the buyer>",
+   "pain_points": "<the problem they solve>",
+   "differentiators": "<what makes them different — NO named customers, NO metrics here>",
+   "tone": "<how they want to sound, e.g. warm and direct>",
+   "bad_fit": "<who is an obvious bad fit, if they said>"
+ },
+ "proof":[ {"claim":"<a named customer, case study, testimonial, result or metric>","permitted":false} ],
+ "campaign_intent": "<what they are trying to achieve with this batch, in their words>"
+}
+
+Only fill what you are confident about; use "" or [] otherwise. NEVER invent a customer, a
+result or a number. "permitted" is false unless they explicitly said we may use that claim.`
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -1078,7 +1286,13 @@ Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 quest
 
     const textBlock = response.content.find(b => b.type === 'text') as { type: 'text'; text: string } | undefined
     const raw = (textBlock?.text ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-    let parsed: { type?: string; content?: string; summary?: string; icp?: Record<string, unknown> }
+    let parsed: {
+      type?: string; content?: string; summary?: string
+      icp?: Record<string, unknown>
+      business?: Record<string, unknown>
+      proof?: unknown[]
+      campaign_intent?: unknown
+    }
     try {
       parsed = JSON.parse(raw)
     } catch {
@@ -1098,7 +1312,33 @@ Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 quest
         keywords:              Array.isArray(icp.keywords) ? icp.keywords : [],
         apollo_only_consented: icp.apollo_only_consented !== false,
       }
-      res.json({ success: true, data: { type: 'complete', icp: draft, summary: parsed.summary ?? null } })
+      // The business half. Sanitised the same way the ICP is: only strings survive, and a
+      // proof claim is permitted ONLY when the model returns an explicit true.
+      const b = (parsed.business ?? {}) as Record<string, unknown>
+      const str = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 1200) : '')
+      const business = {
+        product:         str(b.product),
+        pitch:           str(b.pitch),
+        pain_points:     str(b.pain_points),
+        differentiators: str(b.differentiators),
+        tone:            str(b.tone),
+        bad_fit:         str(b.bad_fit),
+      }
+      const proof = (Array.isArray(parsed.proof) ? parsed.proof : [])
+        .map((p) => {
+          const row = (p ?? {}) as Record<string, unknown>
+          return { claim: str(row.claim), permitted: row.permitted === true }
+        })
+        .filter(p => p.claim.length > 0)
+        .slice(0, 12)
+
+      res.json({
+        success: true,
+        data: {
+          type: 'complete', icp: draft, summary: parsed.summary ?? null,
+          business, proof, campaign_intent: str(parsed.campaign_intent),
+        },
+      })
       return
     }
 
@@ -1110,6 +1350,98 @@ Only fill fields you're confident about; use [] otherwise. Ask at most 2-3 quest
   }
 })
 
+/**
+ * MILLA'S UNDERSTANDING → FIGSY'S GROUNDING (22 Aug).
+ *
+ * Writes what the onboarding conversation learned into the knowledge store FIGSY already
+ * reads (`figsy_knowledge`, kinds `pitch` and `messaging`), and puts the campaign's purpose
+ * on the campaign row FIGSY already reads it from (`figsy_campaigns.campaign_intent`).
+ *
+ * ⚠️ NOTHING NEW WAS INVENTED TO HOLD THIS. Both stores existed and were already wired into
+ * generation; what was missing was anything that WROTE to them. The only writer before today
+ * was a client-facing form on the retired dashboard, behind a flag that defaults to off.
+ *
+ * ⚠️ PERMITTED PROOF ONLY. `differentiators` carries the claims FIGSY may use, and a claim
+ * gets there only when the client explicitly said yes. Everything else is kept under
+ * `proof_all` — recorded so an operator can see what we know and ask about it, and never
+ * read by the outreach digest. That separation is the whole permission mechanism: unapproved
+ * claims are not filtered out at write time, they simply never enter the field FIGSY reads.
+ *
+ * Best-effort by design. A failure here degrades outreach to generic; it must never fail an
+ * ICP the client just approved.
+ */
+async function persistMillaUnderstanding(
+  clientId: string,
+  body: Record<string, unknown>,
+  icpName?: string | null,
+): Promise<void> {
+  try {
+    const biz = (body.business ?? {}) as Record<string, unknown>
+    const proofIn = Array.isArray(body.proof) ? body.proof : []
+    const intent = typeof body.campaign_intent === 'string' ? body.campaign_intent.trim() : ''
+    const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+
+    const proof = proofIn
+      .map(p => {
+        const row = (p ?? {}) as Record<string, unknown>
+        return { claim: str(row.claim), permitted: row.permitted === true }
+      })
+      .filter(p => p.claim.length > 0)
+
+    const permitted = proof.filter(p => p.permitted).map(p => p.claim)
+    const hasBusiness = Object.values(biz).some(v => str(v).length > 0)
+    if (!hasBusiness && !permitted.length && !intent) return   // nothing was learned — write nothing
+
+    // `differentiators` is the field `getClientKnowledgeForOutreach` surfaces as
+    // "Differentiators / proof points", so permitted claims join it and nothing else does.
+    const differentiators = [str(biz.differentiators), ...permitted].filter(Boolean).join(' · ')
+
+    if (hasBusiness || permitted.length) {
+      await db.from('figsy_knowledge').upsert({
+        client_id: clientId, kind: 'pitch',
+        data: {
+          product:         str(biz.product),
+          pitch:           str(biz.pitch),
+          pain_points:     str(biz.pain_points),
+          differentiators,
+          // Recorded, NEVER read by the outreach digest. An operator can see what Milla
+          // heard and ask the client whether we may use it.
+          proof_all:       proof,
+          bad_fit:         str(biz.bad_fit),
+          source:          'milla_onboarding',
+        },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'client_id,kind' })
+    }
+
+    if (str(biz.tone)) {
+      await db.from('figsy_knowledge').upsert({
+        client_id: clientId, kind: 'messaging',
+        data: { style: str(biz.tone), source: 'milla_onboarding' },
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'client_id,kind' })
+    }
+
+    // The campaign is born with the ICP (one ICP → one campaign) and carries its purpose.
+    if (intent) {
+      const { ensureCampaignForIcp } = await import('../lib/start-work')
+      const { data: icpRow } = await db.from('icps')
+        .select('id').eq('client_id', clientId).order('created_at', { ascending: false })
+        .limit(1).maybeSingle()
+      if (icpRow?.id) {
+        const camp = await ensureCampaignForIcp(clientId, icpRow.id as string, icpName ?? null)
+        if (camp?.id) {
+          await db.from('figsy_campaigns')
+            .update({ campaign_intent: intent.slice(0, 2000), intent_mapped_at: new Date().toISOString() })
+            .eq('id', camp.id)
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[icps] persistMillaUnderstanding failed — outreach stays generic rather than wrong:', err)
+  }
+}
+
 icpRouter.post('/', async (req: AuthRequest, res) => {
   try {
     const body = icpSchema.parse(req.body)
@@ -1117,6 +1449,13 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
+
+    // ── THE UNDERSTANDING FOLLOWS THE ICP (22 Aug) ──────────────────────────────────
+    // Milla learned this in the same conversation that produced the targeting above, so it
+    // is persisted in the same request rather than asking the client to repeat themselves
+    // into a second form. Best-effort throughout: an ICP that saved must never fail because
+    // the grounding did not, and FIGSY's documented empty state is "generic, never invented".
+    await persistMillaUnderstanding(clientId, req.body as Record<string, unknown>, data?.name)
     // Auto-run on creation — only if client has credits
     ;(async () => {
       try {
@@ -1437,9 +1776,35 @@ Based on this data, suggest 3 specific ICP improvements that would increase repl
   }
 })
 
+// ── K.I.N.D OWNS GO (founder-ruled 22 Aug) ──────────────────────────────────────────────
+//
+// The client may create and revise their ICP, and refine it with Milla for as long as they
+// like. They may NOT make it live. Until now this route was client-authenticated and the
+// flip was theirs: `is_active` went true immediately, nobody at K.I.N.D was told, and — see
+// the auto-run below — a client edit could start a real sourcing run with no operator
+// watching it. That is the opposite of the ruling.
+//
+// The gate is the ADMIN KEY, reusing exactly the check `routes/lookalike.ts` already uses
+// (the Vida proxy injects `x-admin-key` on every call), rather than inventing an approval
+// state machine three days before launch. `clientId` is now taken from the BODY because the
+// caller is an operator acting on a client's behalf, not the client themselves.
+//
+// ⚠️ Everything below this gate is unchanged on purpose: the same deactivate-then-activate,
+// the same one-ICP-one-campaign creation, the same never-run auto-sourcing. Only WHO may
+// trigger it moved. The Vida control ships in this same PR — a gate without a control would
+// strand every new ICP.
 icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
   try {
-    const clientId = await getClientId(req.userId!)
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({
+        success: false,
+        error: 'Activating an ICP is done by K.I.N.D. Your targeting is saved — we review it and switch it on.',
+      })
+      return
+    }
+    const clientId = typeof req.body?.client_id === 'string' && req.body.client_id
+      ? req.body.client_id
+      : await getClientId(req.userId!)
     if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
     await db.from('icps').update({ is_active: false }).eq('client_id', clientId)
     const { data, error } = await db.from('icps')
@@ -1459,11 +1824,17 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
 
     let started = false
     if (data && !data.last_run_at) {
-      const { data: bal } = await db.from('clients').select('credit_balance, first_icp_run_at').eq('id', clientId).single()
+      // ⚠️ THE CLIENT'S user_id, NOT THE OPERATOR'S. `runIcpJob` looks this id up to email
+      // "your first leads are ready" to the account owner. Now that an OPERATOR triggers
+      // activation, passing `req.userId` would send a client's leads email to whoever in
+      // K.I.N.D pressed the button — and the client would never hear their run had started.
+      const { data: bal } = await db.from('clients')
+        .select('credit_balance, first_icp_run_at, user_id').eq('id', clientId).single()
       const credits = bal?.credit_balance ?? 0
+      const ownerUserId = (bal?.user_id as string | null) ?? req.userId!
       if (credits > 0 || !bal?.first_icp_run_at) {
         started = true
-        runIcpJob(req.params.id, clientId, req.userId!, credits > 0 ? credits : 20)
+        runIcpJob(req.params.id, clientId, ownerUserId, credits > 0 ? credits : 20)
           .catch(e => console.error('[icps/activate] auto-run failed:', e))
       }
     }

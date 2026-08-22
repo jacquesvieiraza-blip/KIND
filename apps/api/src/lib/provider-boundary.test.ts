@@ -197,7 +197,15 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
           select: () => ({ single: async () => ({ data: { id: 'lead-x' }, error: null }) }),
           then:   (r: (v: unknown) => void) => r({ error: null }),
         })
-        q.then = (r: (v: unknown) => void) => r({ data: [], count: 0, error: null })
+        // ⚠️ A PURCHASE ROW, because these tests are about a PAYING client's AR8 fence.
+        // From 22 Aug `runIcpJob` asks `fundedVia` whether the account has ever been funded:
+        // a never-funded account is a PROSPECT and takes the free-proof authority instead of
+        // `try_spend_sourcing`. Without this row the AR8 assertions below would be exercising
+        // the proof path and quietly proving nothing about AR8 at all.
+        q.then = (r: (v: unknown) => void) => r({
+          data: table === 'credit_transactions' ? [{ type: 'purchase', reference: 'cs_live_seed' }] : [],
+          count: 0, error: null,
+        })
         return q
       }
       return {

@@ -29,6 +29,36 @@ import { sourceTarget, PAID_TX_TYPES } from './onboarding-pack'
  *
  * Idempotent: returns the existing campaign for that ICP if there is one.
  */
+/**
+ * ONE CLIENT → ONE ACTIVE CAMPAIGN (founder-ruled 22 Aug, for launch).
+ *
+ * `figsy.ts` routes a lead to the campaign matching `leads.icp_id`, and falls back to
+ * "whichever active campaign is newest" when there is no match. Both of those are
+ * first-match-wins, which is fine with one active campaign and silently arbitrary with two —
+ * and nothing in the schema or the code prevented two. A client who had a second ICP
+ * activated at any point could be left with two live campaigns and no way to tell which one
+ * was working their leads.
+ *
+ * Enforced at the ONE moment a campaign becomes live for a client — activation — rather than
+ * with a unique index, which would need a migration against a live table for a case this
+ * closes completely. Idempotent: re-activating the same ICP pauses nothing extra.
+ *
+ * PAUSED, never archived or deleted: the founder's standing rule is that nothing is
+ * destroyed, and a paused campaign keeps its stats and can be switched back on.
+ */
+async function pauseOtherActiveCampaigns(clientId: string, keepCampaignId: string): Promise<void> {
+  const { error } = await db.from('figsy_campaigns')
+    .update({ status: 'paused' })
+    .eq('client_id', clientId)
+    .eq('status', 'active')
+    .neq('id', keepCampaignId)
+  if (error) {
+    // Non-fatal: the client still has a live campaign, which is what activation was for.
+    // Logged rather than swallowed so a client left with two lives is visible.
+    console.error('[start-work] could not pause the client\'s other active campaigns', clientId, error.message)
+  }
+}
+
 export async function ensureCampaignForIcp(
   clientId: string,
   icpId: string,
@@ -36,8 +66,16 @@ export async function ensureCampaignForIcp(
 ): Promise<{ id: string } | null> {
   try {
     const { data: existing } = await db.from('figsy_campaigns')
-      .select('id').eq('client_id', clientId).eq('icp_id', icpId).limit(1).maybeSingle()
-    if (existing?.id) return { id: existing.id as string }
+      .select('id, status').eq('client_id', clientId).eq('icp_id', icpId).limit(1).maybeSingle()
+    if (existing?.id) {
+      // Re-activating an ICP whose campaign was paused must bring that campaign back, or the
+      // client is "live" with nothing that can work their leads.
+      if (existing.status !== 'active') {
+        await db.from('figsy_campaigns').update({ status: 'active' }).eq('id', existing.id)
+      }
+      await pauseOtherActiveCampaigns(clientId, existing.id as string)
+      return { id: existing.id as string }
+    }
 
     // Created ACTIVE: the table default is 'draft', and a draft would leave the client just
     // as blocked as no campaign at all (approve fail-closes without a live one). Nothing
@@ -51,6 +89,7 @@ export async function ensureCampaignForIcp(
       })
       .select('id').single()
     if (error) throw error
+    await pauseOtherActiveCampaigns(clientId, made.id as string)
     return { id: made.id as string }
   } catch (err) {
     console.error('[start-work] ensureCampaignForIcp failed', clientId, icpId, err)

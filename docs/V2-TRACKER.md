@@ -1080,11 +1080,19 @@ For each function the map answers five questions: **what does it exist to achiev
 | **3** | **Sales / CRM** | the right prospects become paying clients | **Vida** | Founder |
 | **4** | **Client Onboarding / Success** | clients reach value, understand the service, stay engaged and retained | **Vida** | Founder |
 | **5** | **Delivery / Acquisition Ops** | approved leads · conversations · meetings · campaign outcomes | **Vida** | Founder |
-| **6** | **Product / Engineering** | K.I.N.D works and improves deliberately, without losing coherence | **Repo / GitHub** | Founder + the Claude workflow |
+| **6** | **Product / Engineering** | K.I.N.D works and improves deliberately, without losing coherence | **Repo / GitHub** *(Claude workflow supports execution and review)* | Founder |
 | **7** | **Finance** | know what is earned, spent, affordable and scalable | Vida operating finance + accounting actuals | Founder |
-| **8** | **Legal / Compliance / Risk** | commercial and legal obligations are visible, triggered and controlled | repo legal/compliance evidence + counsel | Founder + counsel |
+| **8** | **Legal / Compliance / Risk** | commercial and legal obligations are visible, triggered and controlled | repo legal/compliance evidence *(counsel provides external legal support)* | Founder |
 | **9** | **People / Capacity** | hire when the function is real and the economics justify the transfer | Founder OS + operating metrics + finance evidence | Founder |
-| **10** | **Company Knowledge** | truth is findable **without** documents becoming the daily operating interface | DOC-MAP + the canonical repo | Founder / repo architecture |
+| **10** | **Company Knowledge** | truth is findable **without** documents becoming the daily operating interface | DOC-MAP + the canonical repo *(holds the knowledge architecture)* | Founder |
+
+⚠️ **ONE ACCOUNTABLE OWNER PER FUNCTION — SUPPORT IS NOT CO-OWNERSHIP.** Three rows above first read *"Founder + the Claude workflow"*, *"Founder + counsel"* and *"Founder / repo architecture"*, which contradicted the property this whole design is built on (§1j): **one owner**. Two names in an owner field is not a shared responsibility, it is an unassigned one — and the moment something goes wrong, neither name is answerable. Corrected, and the supporting relationships kept where they belong:
+
+- **Product / Engineering** — the **founder owns it**; the **Claude workflow supports** execution and review. Claude is a worker and reviewer, never a system of record or an owner (§1c).
+- **Legal / Compliance / Risk** — the **founder owns it**; **counsel provides external legal support**. External expertise advises; it does not carry the obligation.
+- **Company Knowledge** — the **founder owns it**; **DOC-MAP and the canonical repo hold the knowledge architecture**. A system of record stores truth; it cannot be accountable for it.
+
+Every function above therefore has exactly **one accountable owner**, and today every one of them is the founder — which is the honest picture of a single-founder company, and precisely what §1a's ownership transfer is designed to change one row at a time.
 
 Measures worth recording where they apply: marketing — prospects · replies · proof starts · CAC · channel yield. Onboarding/Success — activation · time-to-value · proof-to-paid · retention · response time.
 

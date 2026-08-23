@@ -1095,6 +1095,116 @@ Post-live, verify and model each properly — every one of these currently sits 
 
 ---
 
+## 💡 23 AUG — POST-LAUNCH PRODUCT IDEAS / RESEARCH BANK
+
+> **These are ideas to research, discuss and challenge after launch. Logging an idea does not adopt it. Interesting does not mean roadmap. External success does not make something right for K.I.N.D. The founder must explicitly decide whether an idea is adopted or rejected.**
+
+⚠️ **THIS IS NOT THE NUMBERED LADDER ABOVE, AND MUST NEVER BE READ AS AN EXTENSION OF IT.** Nothing in this bank has a priority, a date, an owner, an approved build or an automatic follow-on. The ladder at 1–11 is committed work in a founder-set order; everything below is **research only**. An entry here appearing next to a committed item is a coincidence of the page, not a claim about its importance.
+
+### The decision filter — how anything here becomes work
+
+> **RESEARCH → DISCUSS → CHALLENGE → FILTER THE NOISE → THE FOUNDER DECIDES: ADOPT OR REJECT**
+
+A future change must earn its place through a **material** improvement in at least one of:
+
+| | |
+|---|---|
+| **REVENUE** | it makes money, or makes money more likely |
+| **RETENTION** | clients stay who would otherwise leave |
+| **EXPANSION** | existing clients justifiably spend more |
+| **SYSTEM QUALITY** | the system is genuinely better, not merely different |
+
+**If it does none of those, it stays research.** ⚠️ And *"system quality"* is **not a loophole for cosmetic churn** — a redesign that changes how something looks without changing what it does has not earned anything.
+
+---
+
+### 1. CALENDAR / MEETINGS
+
+**1.1 Calendar connection is hidden in Settings — NOT ADOPTED.**
+Observed: the integration exists, and a brand-new client may never learn they need to go and find it. Idea to research: surface Calendar connection contextually **from the Meetings area as well**, with Settings remaining the deeper configuration home. The underlying hypothesis is the general one: *if a feature is important to getting value from K.I.N.D, the client should not have to know where we hid it.*
+
+**1.2 Keep the Meetings list, and explore a calendar view beside it — NOT ADOPTED.**
+⚠️ **Record no assumption that the list view should be replaced** — it is useful. The idea is a proper visual calendar **alongside** it, with familiar patterns (Google Calendar) as *inspiration, not something to copy literally*. Views to research: day · week · month. The questions that would decide it: does it make booked meetings easier to understand · does it make K.I.N.D's outcome more tangible · does it improve engagement with the Meetings area?
+
+**1.3 Meetings as an outcome surface — NOT ADOPTED.**
+Research whether Meetings should become one of the clearest places a client sees **K.I.N.D activity → real conversation → booked meeting**. The aim would be to make acquisition outcomes *visible*, rather than making Meetings feel like another admin screen.
+
+### 2. GUIDED NEW-CLIENT ONBOARDING — NOT ADOPTED
+
+Founder observation: a new starter should not be expected to discover every important panel, button and workflow themselves.
+
+⚠️ **Do not record this as a traditional product tour.** The stronger concept is **USE REAL PRODUCT ACTIONS TO GET THE CLIENT OPERATIONAL** — the onboarding should make the important actions actually happen, not point at controls.
+
+A journey to research: meet Milla → tell Milla about the business → confirm what Milla understands → see who Milla finds → react to proof → connect Calendar → understand Meetings → complete required setup → understand what K.I.N.D GO means → become operational.
+
+Research goals: reduce setup abandonment · make hidden functionality discoverable · start the important Milla conversations · reach proof faster · improve activation, comprehension and retention · ensure the client experiences the product's real journey.
+
+⚠️ **Do NOT turn this into a hard technical gate.** Whether steps are required, optional or skippable is a **future founder decision**, not something this entry settles.
+
+### 3. GLEAN.COM — RESEARCH AND INSPIRATION, NOT AUTHORITY
+
+⚠️ **Glean is an external product reference and nothing more. It is NOT roadmap authority, and "copy Glean" is not recorded anywhere in this bank.** K.I.N.D is a different company, product and market.
+
+The transferable question: **what can K.I.N.D learn from a product that carries substantial complexity underneath while keeping the user-facing experience relatively simple?**
+
+Central hypothesis to research: **THE CLIENT SHOULD FEEL THE OUTCOME, NOT THE MACHINERY.** K.I.N.D already has considerable machinery — Milla · Vida · PDL · Apollo · Hunter · scoring · proof fences · money gates · campaign state · FIGSY · SMTP · reply classification · review queues · human controls — and the client should not need to understand any of it.
+
+**3.1 Context as a possible moat — NOT ADOPTED.** Research whether Milla's accumulated understanding of a client becomes an **enduring context layer** rather than disposable onboarding information: business understanding · core ICP · targeting · FIGSY grounding · campaign intent · permitted proof · reply context · meeting context · future campaign learning. ⚠️ **Permission boundaries remain mandatory — Milla may know more than any downstream feature is permitted to use.** The thought worth testing: models and providers change; high-quality accumulated understanding of a client may prove more durable than either.
+
+**3.2 One obvious front door — NOT ADOPTED.** Explore whether Milla increasingly feels like the natural way in: talk → understand → recommend the next meaningful action → move into the real workflow. ⚠️ Guard: **do not turn Milla into a configuration dashboard.**
+
+**3.3 Stage-aware home / next action — NOT ADOPTED.** Explore whether the client experience should know where the client is and surface the most meaningful next action. *Examples only, not copy:* continue telling Milla about your business · confirm what Milla understands · see who Milla found · tell us what is not a fit · connect your Calendar · complete your setup · your campaign is waiting for K.I.N.D review · your first meetings are here. The deciding question is the filter's: does it improve activation, comprehension, retention or revenue?
+
+**3.4 Guided real onboarding — NOT ADOPTED.** Cross-references §2. The research lesson: people may understand a product better by **accomplishing real work** than by completing a button tour.
+
+**3.5 Meetings as visible value — NOT ADOPTED.** Cross-references §1.2 and §1.3. Research whether Meetings can become a clearer proof surface for the outcome K.I.N.D creates.
+
+**3.6 One continuous journey.** Review future UX friction across the whole chain: Milla conversation → business understanding → ICP → proof → feedback → payment → campaign readiness → K.I.N.D GO → outreach → replies → meetings → learning. Unnecessary transitions and disconnected workflows are research points. The goal to investigate: **one coherent acquisition journey rather than several disconnected mini-products.**
+
+**3.7 Progressive disclosure.** Explore keeping the machinery underneath while exposing complexity only where it is genuinely useful. An ordinary client should not normally have to operate or understand: provider routing · PDL vs Apollo vs Hunter · SMTP infrastructure · scoring implementation · money fences · internal review queues · model selection · infrastructure controls. The principle to test: **the client talks naturally about their business; K.I.N.D operates the complexity.**
+
+**3.8 Human-in-the-loop as a strength.** Research supports treating governance and human judgement as *positive* product qualities — which aligns with what K.I.N.D already does: the client contributes and corrects · Milla learns · K.I.N.D owns GO · humans own judgement-heavy work. ⚠️ **This entry changes no current control rule.** It is recorded as support for the philosophy, not as licence to loosen or tighten anything.
+
+**3.9 Visible value / proof.** Explore making genuine K.I.N.D evidence increasingly visible — once genuinely observed: prospects contacted · proof starts · proof → paid conversion · approved leads · replies · meetings · time to first qualified conversation · acquisition cost · lead cost · client outcomes where permission exists. ⚠️ **Never invent proof. Never use a customer name, testimonial, case study, metric or outcome without permission** — the same rule the product already enforces at `proof[].permitted`.
+
+**3.10 Same context across capabilities.** Explore avoiding isolated intelligence silos: business understanding → targeting → FIGSY → replies → meetings → campaign learning → future campaign. The question: can future capabilities **strengthen one accumulated understanding** rather than each starting from zero?
+
+**3.11 Website — lead with the proposition, not the plumbing.** Research input for the committed website-consistency work at **#2 in the ladder above** — input, *not* an approved website change. A hierarchy worth testing: what K.I.N.D understands → what K.I.N.D does for the client → the outcome → the evidence → technical depth underneath, for buyers who want it.
+
+**3.12 Website — real product visuals.** Explore using real, controlled product moments rather than generic AI/SaaS artwork: Milla learning → masked proof → client feedback → campaign readiness → Vida operating → meeting booked. ⚠️ Feeds the future Milla + Vida homepage discussion **only if adopted**.
+
+**3.13 Proof architecture.** As K.I.N.D earns real evidence, research whether measurable outcomes should become a stronger storytelling layer in the product and on the site. ⚠️ **Use K.I.N.D's real evidence.** Industry benchmarks may contextualise; they must never substitute for K.I.N.D data — the same rule already set at **#3b/#3c** in the ladder.
+
+**3.14 Start narrow; expand only from the core loop.** ⚠️ **Critical guard: do NOT read another company's feature breadth as a reason to add features.** The core loop is: understand the business → identify the right people → prove fit → the client commits → K.I.N.D operates → conversation / meeting → learn. **Any future expansion must earn its place against that loop.**
+
+**3.15 Land and expand — depth in an existing client.** Once K.I.N.D genuinely works for a client, research whether more value comes from deepening that relationship: more approved leads · additional campaigns · additional audiences · different outcomes · geography · business units · deeper acquisition operation. ⚠️ **None of these is an approved build. Customer behaviour and economics must pull K.I.N.D there** — the pull is the evidence, not the idea.
+
+**3.16 K.I.N.D runs on K.I.N.D.** Use K.I.N.D's own acquisition operation as a learning laboratory: what targeting works · what proof converts · what messaging works · where prospects hesitate · what consumes operator time · what may deserve future automation. ⚠️ **Internal dogfooding is useful learning evidence. It is not automatically customer proof**, and must never be presented as such.
+
+**3.17 Visible product momentum.** Explore whether a simple periodic explanation of meaningful improvements helps adoption and discoverability. ⚠️ **Do not commit to monthly releases, a fixed cadence or high-volume updates — and never create change merely to demonstrate activity.**
+
+**3.18 Work where the user already is.** Longer-term research: some K.I.N.D actions or outcomes may eventually be better surfaced inside the tools a client already uses — Calendar · Meetings · email · other workflows. ⚠️ **Logging this authorises no integration build.**
+
+**3.19 WHAT NOT TO COPY — recorded explicitly, because the temptation is the point.** K.I.N.D should **not** automatically adopt: enterprise platform complexity · exposed model selectors · agent marketplaces · customer-built workflow engines · giant admin consoles · deep technical configuration · integration quantity for its own sake · high release volume for its own sake. **K.I.N.D must remain K.I.N.D.**
+
+**3.20 Complexity caution.** More capability also buys: slower interfaces · harder configuration · inconsistent behaviour · feature overload · lower adoption. The principle to test: **simplicity may need to be a hard product constraint rather than a design preference.**
+
+---
+
+### 🛑 THE IDEA-BANK CLOSING RULE
+
+**K.I.N.D does not change for the sake of changing.**
+
+Interesting products, competitor growth, attractive interfaces, new AI capabilities and customer suggestions can all justify **RESEARCH**. **None of them justifies ADOPTION by itself.**
+
+Before an idea becomes work:
+
+> **RESEARCH → DISCUSS → CHALLENGE → FILTER THE NOISE → THE FOUNDER DECIDES: ADOPT OR REJECT**
+
+An adopted change must materially support at least one of **REVENUE · RETENTION · EXPANSION · SYSTEM QUALITY**, and must remain consistent with K.I.N.D's underlying philosophy.
+
+---
+
 ## 🛑 NOTHING ABOVE IS LAUNCH SCOPE *(founder-restated 22 Aug, when this list was written)*
 
 Every item on this page is parked. **No entry above converts into launch scope**, and reading one here is not permission to build it. Launch remains exactly:

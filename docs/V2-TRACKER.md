@@ -965,6 +965,15 @@ That + outbound + partners = the motion.
 
 **The purpose is not a feature.** It is to fix how the founder actually operates K.I.N.D across Notion and the tools around it — where an idea goes, who owns it, and how anyone knows what happened to it.
 
+⚠️ **AND THE FOUNDER OS ALONE IS NOT ENOUGH — the realisation that produced the architecture below (adopted 23 Aug).** An attention layer with nothing underneath it becomes a second copy of the company: it starts holding client records, then money, then product truth, and every one of those already has a home. K.I.N.D needs **TWO LINKED LAYERS**, and the distinction between them is the whole design:
+
+| | |
+|---|---|
+| **COMPANY OPERATING MAP** | the whole company — functions · systems of record · owners · key outcomes · key measures · triggers · hiring and ownership transfer |
+| **FOUNDER OPERATING SYSTEM** | what the founder personally needs to pay attention to and execute **now** |
+
+**The Founder OS is NOT the company database. It is the founder's operating and attention layer over the systems underneath.** Everything from §1b to §1k is the adopted base for that first working session — **ADOPTED, not research**: it is the model to design and implement, and it does not change the founder-set order of the ladder above it.
+
 **The operating chain, end to end:**
 
 `IDEA` → `RECORD` → `CLASSIFY` → `PARK / PRIORITISE` → `OWNER` → `ACTION` → `STATUS` → `COMPLETION / LEARNING`
@@ -989,6 +998,168 @@ The OS must make these **operational**, not merely written down. Each is a quest
 - **The two failure modes, both explicit:** hiring **too early** (paying for capacity the work does not need) and hiring **only after founder overload** (by which point the decision is made badly, under strain, and usually late).
 
 ⚠️ The **partner and team economics the founder already uses to think about hiring live in the three calculators at #4, whose outputs are NOT canon until refreshed.** Hiring triggers and those numbers are one conversation.
+
+**THE COMPANY OPERATING MAP IS ALSO THE FUTURE ORG CHART (adopted 23 Aug).** Today most functions in §1e read `OWNER: FOUNDER`. Later the same rows read `OWNER: CLIENT SUCCESS LEAD`, `OWNER: SALES OWNER`, `OWNER: ENGINEERING OWNER`. ⚠️ **Do not redesign the company when a hire happens — transfer ownership of a function inside the existing operating model.** A company that reorganises itself around each new person has no operating model, only a current arrangement.
+
+**Hire on repeated evidence, never on one busy week.** The two failure modes are named above; these are the six conditions that together justify the transfer:
+- a **real, durable function** exists — not a pile of tasks that happen to co-occur
+- the **workload recurs** rather than spiking once
+- the **founder is becoming the bottleneck**, demonstrably
+- **service, response or queue quality is degrading, or visibly about to**
+- the **economics support it** — evidenced from #4 and #5, not estimated
+- **ownership can be cleanly transferred**, because §1e already says what the function owns
+
+
+### 1b. THE OPERATING ARCHITECTURE *(adopted 23 Aug — the base for pass 1)*
+
+```
+FOUNDER / CEO
+      ↓
+FOUNDER OS / NOTION
+attention · prioritisation · current work · ownership · next action · triggers
+      ↓
+VIDA   |   REPO / GITHUB   |   ACCOUNTING   |   GOOGLE WORKSPACE
+      ↓
+clients   |   product   |   money   |   communication
+      ↓
+CLAUDE / GPT help operate and review across those systems
+```
+
+**Hiring and capacity sits across the whole architecture**, watching for the moment a founder-owned function should transfer to another owner (§1a).
+
+### 1c. THE SIX SYSTEMS, AND THE BOUNDARY EACH ONE HOLDS
+
+The boundaries are the point. Every one of them exists because the alternative is a second copy of something that already has a home.
+
+**1 · NOTION / FOUNDER OS — where the founder RUNS the company day to day.**
+Owns: the company dashboard · `NOW` · `NEXT` · `WAITING` · `PARKED` · `RESEARCH` · `DONE / LEARNED` · owner · next action · blocked by · trigger · real due dates · operating history · company function · hiring and scale triggers · the weekly operating review.
+⚠️ Does **NOT** own: a full CRM · the full customer record · the accounting ledger · a duplicate Product Inventory · a duplicate V2 · duplicate repo truth.
+> **NOTION OWNS THE FOUNDER'S ATTENTION, NOT EVERY PIECE OF COMPANY DATA.**
+
+**The Notion data model starts SMALL — two databases, and only two.**
+
+*A. Work database.* Each actionable operating item carries: title · company function · source · classification · state · why it matters · revenue/retention/expansion/system-quality relevance · owner · next action · blocked by · trigger · **a due date only when the date is real** · source link · history and outcome. States: `NOW` · `NEXT` · `WAITING` · `PARKED` · `RESEARCH` · `DONE / LEARNED`.
+
+*B. Company Functions database.* The ten functions in §1e, each recording: purpose · current owner · system of record · key outcome · key measures · current health · current work · hiring/ownership-transfer trigger · likely next owner when the function leaves the founder.
+
+⚠️ **Do not create more Notion databases until real use proves they are needed.** A schema invented ahead of the work is a guess that has to be maintained.
+
+**THE FOUNDER HOME / COCKPIT.** The default operating page surfaces, in this order — **COMPANY TODAY** (revenue · clients · acquisition · money · product · operations · risk/legal · capacity), then **YOUR ATTENTION** (the six states), then **TRIGGERS** (counsel deadline · customer follow-up · monthly finance review · hiring threshold approaching · backup drill · contract or compliance trigger · an external dependency waking up).
+> **The success test: the founder knows what matters without reading the repo tree.**
+
+**2 · VIDA — the CLIENT operating system.** Vida remains and evolves as the system of record for the client lifecycle: `PROSPECT → PROOF → OPPORTUNITY → PAID CLIENT → ONBOARDING → ACTIVE → EXPANSION → RETAINED / LOST`. It owns operational customer truth — identity · the proof journey · targeting and client state · payment and client state where already modelled · campaigns · approved leads · replies · meetings · client health · delivery activity · expansion and use · operational client economics.
+⚠️ **DO NOT build a second CRM in Notion.**
+> **VIDA OWNS THE CUSTOMER. THE FOUNDER OS OWNS WHAT THE FOUNDER NEEDS TO DO ABOUT THE CUSTOMER.**
+
+*The worked example, because this is the boundary most likely to be eroded.* Vida holds: *Acme Ltd · proof completed · paid · 67/100 leads used · campaign live · 3 replies · 1 meeting.* The Founder OS holds only: *Acme — targeting mismatch needs founder call · state `NOW` · next action: call the client · trigger: client confirms correction · source: Vida / Acme.* **No duplicate CRM record anywhere.**
+
+**3 · VIDA — MANAGEMENT FINANCE / OPERATING ECONOMICS.** Vida may become the management-finance cockpit: **revenue** ($299 onboarding · post-100 $4 lead revenue · future expansion revenue) · **spend** (PDL · Hunter · Apollo · Anthropic · mailbox and domain · Instantly · Stripe actual fees · other fixed and variable operating costs) · **unit economics** (revenue per client · sourcing cost per client · acquisition cost · gross contribution · free-proof acquisition cost · approved leads per client · post-100 usage) · **forward view** (expected revenue · expected variable spend · client count · affordability · hiring affordability · cash-pressure and runway indicators where the data supports them).
+⚠️ **VIDA IS MANAGEMENT AND OPERATING FINANCE. It is NOT automatically the statutory accounting ledger.**
+
+**4 · ACCOUNTING / BOOKKEEPING — a separate system owns the books:** real bank transactions · bookkeeping · reconciliations · tax · filed and statutory accounts · the accounting ledger itself. Vida's operating numbers should eventually **reconcile to** those actuals.
+⚠️ **Do not rebuild statutory accounting inside Notion, and never present management-finance metrics as the legal books.**
+
+**5 · REPO + GITHUB — product and engineering truth.** Owns code · Product Inventory · V2 · Product Rules · KIND-MASTER · DOC-MAP · runbooks · technical evidence · compliance evidence · PR and build history. ⚠️ **The repo is NOT the founder's daily operating interface.**
+> **THE REPO HOLDS PRODUCT TRUTH AND EVIDENCE. THE FOUNDER OS TELLS THE FOUNDER WHERE ATTENTION GOES.**
+
+*The Product Inventory / V2 boundary, stated so it cannot be misread:* **do not copy either wholesale into Notion.** Product Inventory answers *what exists and what state is it in*. V2 answers *what future work is adopted, parked or research*. The Founder Execution Queue answers *what actually gets worked next* — and only the third of those is work. A green Inventory row is **reference**. A V2 research idea is **research**. An unresolved live defect **may become `NOW`**; an adopted V2 item **may become `NEXT`**.
+> ⚠️ **DOCUMENT EXISTENCE NEVER EQUALS WORKLOAD.**
+
+**6 · GOOGLE WORKSPACE — communication and calendar reality:** email · calendar · actually-scheduled meetings · the collaboration surfaces already in use. ⚠️ It does **not** own company prioritisation, CRM, product truth or founder execution state. The Founder OS and Vida may surface relevant actions and outcomes **without duplicating Workspace data**.
+
+**CLAUDE / GPT — workers and reviewers, never systems of record.** They may investigate · classify · reconcile · build · review · analyse · prepare evidence · help maintain the operating model. They do **not** own founder priorities · roadmap adoption · merge authority · canonical truth · client state · accounting truth. ⚠️ **The existing merge and review protocol is unchanged by any of this.**
+
+### 1d. THE COMPANY FUNCTIONS — every founder hat, made explicit
+
+For each function the map answers five questions: **what does it exist to achieve · where does its truth live · what numbers show whether it is healthy · what current work belongs to it · when does the founder stop owning it.**
+
+| # | Function | Outcome it exists for | Truth lives in | Owner today |
+|---|---|---|---|---|
+| **1** | **Strategy / CEO** | right priorities, decisions, capital and attention allocation | Founder OS + canonical repo decisions | Founder |
+| **2** | **Marketing / Growth** | qualified demand enters K.I.N.D consistently | marketing operating docs + Founder OS actions | Founder |
+| **3** | **Sales / CRM** | the right prospects become paying clients | **Vida** | Founder |
+| **4** | **Client Onboarding / Success** | clients reach value, understand the service, stay engaged and retained | **Vida** | Founder |
+| **5** | **Delivery / Acquisition Ops** | approved leads · conversations · meetings · campaign outcomes | **Vida** | Founder |
+| **6** | **Product / Engineering** | K.I.N.D works and improves deliberately, without losing coherence | **Repo / GitHub** *(Claude workflow supports execution and review)* | Founder |
+| **7** | **Finance** | know what is earned, spent, affordable and scalable | Vida operating finance + accounting actuals | Founder |
+| **8** | **Legal / Compliance / Risk** | commercial and legal obligations are visible, triggered and controlled | repo legal/compliance evidence *(counsel provides external legal support)* | Founder |
+| **9** | **People / Capacity** | hire when the function is real and the economics justify the transfer | Founder OS + operating metrics + finance evidence | Founder |
+| **10** | **Company Knowledge** | truth is findable **without** documents becoming the daily operating interface | DOC-MAP + the canonical repo *(holds the knowledge architecture)* | Founder |
+
+⚠️ **ONE ACCOUNTABLE OWNER PER FUNCTION — SUPPORT IS NOT CO-OWNERSHIP.** Three rows above first read *"Founder + the Claude workflow"*, *"Founder + counsel"* and *"Founder / repo architecture"*, which contradicted the property this whole design is built on (§1j): **one owner**. Two names in an owner field is not a shared responsibility, it is an unassigned one — and the moment something goes wrong, neither name is answerable. Corrected, and the supporting relationships kept where they belong:
+
+- **Product / Engineering** — the **founder owns it**; the **Claude workflow supports** execution and review. Claude is a worker and reviewer, never a system of record or an owner (§1c).
+- **Legal / Compliance / Risk** — the **founder owns it**; **counsel provides external legal support**. External expertise advises; it does not carry the obligation.
+- **Company Knowledge** — the **founder owns it**; **DOC-MAP and the canonical repo hold the knowledge architecture**. A system of record stores truth; it cannot be accountable for it.
+
+Every function above therefore has exactly **one accountable owner**, and today every one of them is the founder — which is the honest picture of a single-founder company, and precisely what §1a's ownership transfer is designed to change one row at a time.
+
+Measures worth recording where they apply: marketing — prospects · replies · proof starts · CAC · channel yield. Onboarding/Success — activation · time-to-value · proof-to-paid · retention · response time.
+
+### 1e. DOC-MAP BECOMES THE SOURCE REGISTRY
+
+⚠️ **The first post-launch reconciliation starts from DOC-MAP — not from reading V2 top to bottom.** Every mapped document and folder gets one classification:
+
+| | Class | What it can produce |
+|---|---|---|
+| **A** | **EXECUTION SOURCE** | may contain current actionable work — LAUNCH-PAD · adopted V2 items · unresolved Inventory items · current marketing actions · legal and commercial deadlines · active runbooks |
+| **B** | **GOVERNING TRUTH** | defines rules and decisions; **does not automatically create work** — PRODUCT-RULES · KIND-MASTER decisions · frozen strategy |
+| **C** | **EVIDENCE / SYSTEM REFERENCE** | proves how something works; **creates work only when it reveals an actual issue** — CORE-MAP · schema drift · ENVIRONMENT · compliance evidence |
+| **D** | **HISTORY / ARCHIVE / FROZEN** | context from the past; **never creates work unless deliberately revived** — artifacts · archive · superseded docs · historical bundles |
+
+> 🛑 **HARD RULE: DOCUMENT EXISTENCE ≠ WORK.**
+
+### 1f. RUNBOOKS ARE DORMANT UNTIL THEIR TRIGGER FIRES
+
+A runbook that is visible every day is noise every day. Each one sleeps until its trigger: **SEND-DAY-RUNBOOK** → send day / the first-send event · **BACKUP-RESTORE-DRILL** → the scheduled monthly drill · **LEGAL / COMPLIANCE ACTION** → counsel response · customer request · filing date · incident · contract milestone. **The Founder OS surfaces the triggered action, never the dormant runbook.**
+
+### 1g. THE FOUNDER EXECUTION QUEUE — what gets worked next
+
+1. **live risk** — customer failure · money · sending · data
+2. **customer obligation** / retention risk
+3. **revenue-producing work already committed**
+4. **expansion · capacity · revenue growth**
+5. **material system improvement**
+6. **everything else stays parked or research**
+
+A **dependency may move an item upward** when it unlocks several more important items. ⚠️ **Nothing enters the queue merely because it exists in Inventory, V2 or any other document — it must first be classified as actionable.**
+
+### 1h. HOW THIS GETS IMPLEMENTED — five passes, in order
+
+**PASS 1 — DESIGN THE OPERATING MODEL.** Founder + GPT discussion first. Finish and challenge the visual Company Operating Map, then walk it against real scenarios: the founder has an idea · a client complains · Claude returns a PR · a payment or cost changes · a legal item appears · a partner needs action · a task blocks · a product defect appears · a research idea appears · a hiring threshold approaches. ⚠️ **Do not build until the model makes sense to the founder.**
+
+**PASS 2 — BUILD THE NOTION SHELL, BY HAND.** Only the base: the Work database · the Company Functions database · the founder dashboard and views · triggers and reviews. **No heavy automation.**
+
+**PASS 3 — RECONCILE THE EXISTING COMPANY.** A Claude **READ-ONLY** sweep beginning at DOC-MAP, classifying the corpus into actionable · governing truth · evidence/reference · history/archive · research, and extracting **only genuine current actions**. GPT reviews independently; the founder decides only the genuinely ambiguous priority and adoption questions; the Founder OS is seeded with real current company state. ⚠️ **Do not import the repo into Notion.**
+
+**PASS 4 — MAP VIDA PROPERLY.** Audit what Vida already holds for CRM · prospect and client lifecycle · onboarding · delivery · replies · meetings · client economics · operational finance, and identify the genuine gaps. ⚠️ **Do not rebuild existing capability just because the operating model is new.**
+
+**PASS 5 — AUTOMATE ONLY PROVEN MOVEMENTS.** Use the system manually first. Then consider automating the movements that proved useful — client risk → founder action · PR merged → work-state update · counsel response → a `WAITING` item wakes · monthly finance snapshot → review trigger · hiring threshold → capacity warning. ⚠️ **No clever automation before the manual model works.**
+
+### 1i. DO NOT ADD SOFTWARE FOR THE SAKE OF IT
+
+⚠️ **Do not assume K.I.N.D needs Salesforce · HubSpot · Jira · Monday · Asana · ClickUp · another finance dashboard · another CRM** simply because companies often have them. Use the systems already present wherever one can genuinely own the function. If evidence later shows a system cannot do its job, alternatives are researched under the adoption filter — not adopted because they are familiar.
+
+### 1j. SUCCESS CRITERIA — how we know the redesign worked
+
+- the founder opens **one operating page** and knows what matters
+- the founder **does not read the repo tree** to discover work
+- every actionable item has **one home · one owner · one state · one next action · one trigger**, and **links back to its real source and history**
+- **client truth is not duplicated outside Vida**
+- **product truth is not duplicated outside the repo**
+- **statutory accounting truth is never confused with management finance**
+- **research cannot silently become roadmap**
+- **dormant docs and runbooks do not create noise**
+- **hiring triggers become visible before overload**, not after it
+- **a new team member can inherit a function without the operating model being redesigned**
+
+This preserves, rather than replaces, the property already settled above: **one home · one owner · one state · one next action · one trigger · one history trail.**
+
+### 1k. THE CENTRAL OPERATING RULE
+
+> ## **THE UNDERLYING SYSTEMS HOLD THE TRUTH. THE FOUNDER OS TELLS THE FOUNDER WHERE ATTENTION GOES.**
+
+> 🛑 **AND AFTER THE OPERATIONAL REDESIGN, THE FOUNDER MUST NOT NEED TO INSPECT THE REPOSITORY TREE TO DISCOVER WHAT WORK EXISTS.**
 
 ## 2. WEBSITE CONSISTENCY / CLEANUP *(second session after launch)*
 

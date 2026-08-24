@@ -376,13 +376,26 @@ export default function MillaWelcomePage() {
         // "try again" — pressing it could spend the second pass on top of the first.
         // Falling through to billing would ask a prospect for $299 having shown them
         // nothing, which is the exact defect this build exists to remove.
-        setError('Your targeting is saved, but we could not start finding your matches just yet. Nothing has been charged and nobody has been contacted — we have been told, and we will get this moving and let you know.')
+        //
+        // ⚠️ AND IT DOES NOT CLAIM ANYONE WAS TOLD. The first draft ended "we have been
+        // told, and we will get this moving and let you know" — traced, and false: the
+        // route's failure branch only `console.error`s, a network drop or the 15s timeout
+        // never reaches the server at all, and no alert, queue or Vida item exists for this
+        // path. A promise nothing keeps is the same defect as the desk's "we'll notify you".
+        // It says what is true instead: this is ours to resolve.
+        setError('Your targeting is saved, but we could not start finding your matches just yet. Nothing has been charged and nobody has been contacted. K.I.N.D needs to resolve this before your proof can continue.')
         setSaving(false)
         return
       }
 
       // Their masked leads land on the desk. The $299 lives behind "Looks right" there.
-      router.push('/milla')
+      //
+      // ⚑ `?finding=1` — the run is FIRE-AND-FORGET, so the desk would otherwise fetch once
+      // on mount, find nothing, and tell them "no leads waiting" until they reloaded by
+      // chance. The flag is explicit rather than inferred: "no leads + never paid" is also
+      // the state of someone who never started a run, and they must keep the honest copy.
+      // It is a READ signal only — the desk polls the existing lead GETs and never POSTs.
+      router.push('/milla?finding=1')
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 

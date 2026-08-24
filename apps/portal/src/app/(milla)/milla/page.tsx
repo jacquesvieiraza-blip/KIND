@@ -43,6 +43,31 @@ const CHIPS = [
   'How is my ROI looking?',
 ]
 
+// ── FINDING — THE FIRST PROOF RUN IS IN FLIGHT (founder-ruled 24 Aug) ────────────────────
+//
+// `POST /icps/:id/proof` claims a pass and starts `runIcpJob` FIRE-AND-FORGET: the prospect
+// gets an immediate 200 while the sourcing is still running. Milla's confirmation screen now
+// sends them straight here — and this page fetched once on mount and never again, so they
+// arrived to "No leads waiting right now" and the screen stayed that way until they happened
+// to reload. Free proof was being delivered and then hidden.
+//
+// ⚠️ THE FLAG IS EXPLICIT, NOT INFERRED. "proofMode && zero leads" is ALSO the state of a
+// prospect who never started a run, and telling them we are finding people would be a lie.
+// Only a proof start that was actually accepted sets `?finding=1`.
+//
+// Read from the URL on demand rather than via `useSearchParams`, which opts the whole route
+// out of pre-rendering and needs a Suspense boundary (see the note in /auth/reset). This is
+// the same `new URLSearchParams(window.location.search)` the referral capture already uses,
+// and it is called inside `load` — which is a `useCallback` with no deps and would otherwise
+// close over a stale value.
+function isFinding(): boolean {
+  try { return new URLSearchParams(window.location.search).get('finding') === '1' } catch { return false }
+}
+/** Every 3s, at most 20 times — ~60s, then we stop and say so. Bounded on purpose: an
+ *  unbounded poll on a run that died is a tab quietly hammering the API forever. */
+const FINDING_POLL_MS = 3000
+const FINDING_MAX_CHECKS = 20
+
 export default function MillaHomePage() {
   const router = useRouter()
   const [summary, setSummary] = useState<Summary | null>(null)
@@ -53,6 +78,10 @@ export default function MillaHomePage() {
   const [revealed, setRevealed] = useState<Record<string, Revealed>>({})
   const [topUp, setTopUp] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Set once, from the URL, after mount — an effect never runs during a pre-render.
+  const [finding, setFinding] = useState(false)
+  const [findingTimedOut, setFindingTimedOut] = useState(false)
 
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<Msg[]>([])
@@ -96,12 +125,20 @@ export default function MillaHomePage() {
             // approve anything — there is nothing commercial for them to approve yet.
             ? `Hi 👋 I'm Milla. Here are **${n} real ${n === 1 ? 'person' : 'people'}** who match your targeting — masked, free, and nobody has been contacted. Tell me what looks right and I'll get you live.`
             : `Hi 👋 I'm Milla, your campaign partner. FIGSY qualified **${n} new lead${n === 1 ? '' : 's'}**${camp} — they're in the panel on the right. Approve the ones worth pursuing; ${priceLine}. Want me to talk you through them?`)
-        : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
+        // ⚠️ NOT "no new leads waiting" WHEN A PROOF RUN IS IN FLIGHT. That sentence is
+        // false at the one moment it matters most — the prospect has just confirmed their
+        // targeting and we are finding their people right now. No completion time is
+        // promised, and no notification is promised, because nothing sends one.
+        : isFinding()
+          ? `Hi 👋 I'm Milla. I'm finding real people who match your targeting right now — they'll appear on the right as soon as I have them.`
+          : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
         ...m.filter(x => x.id !== 'greet')])
     } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your dashboard') }
   }, [])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => { setFinding(isFinding()) }, [])
 
   // M2 — the thread persists, so anything WE asked them (Vida's "Ask them for these" writes
   // straight into this thread) is waiting here when they next open Milla, and their answer
@@ -289,6 +326,32 @@ export default function MillaHomePage() {
 
 
   const pending = (leads ?? []).filter(l => !revealed[l.id])
+
+  // ── BOUNDED, READ-ONLY POLLING WHILE THE PROOF RUN FINISHES ─────────────────────────
+  //
+  // The ONLY thing this does is call `load()` again — the same `/leads/milla-summary` +
+  // `/leads/for-approval` GETs the page already makes on mount. No new endpoint, no POST,
+  // no provider call, no mutation, and above all NO second `/icps/:id/proof`: that would
+  // claim the client's SECOND pass. There is exactly one proof POST in the whole journey
+  // and it lives on the confirmation screen.
+  //
+  // Stops on the FIRST of: leads arrive · 20 checks (~60s) · unmount.
+  useEffect(() => {
+    if (!finding || pending.length > 0) return
+    let cancelled = false
+    let checks = 0
+    let inFlight = false                       // one request at a time — never overlap
+    const timer = setInterval(() => {
+      if (cancelled || inFlight) return
+      if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }
+      checks += 1
+      inFlight = true
+      void load().finally(() => { inFlight = false })
+    }, FINDING_POLL_MS)
+    // Cleanup is what guarantees a single loop: the effect re-runs only when `finding` or
+    // the pending COUNT changes, and each re-run tears the previous interval down first.
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [finding, pending.length, load])
   // Mirrors lib/approval-batch.ts on the server. `approvedEver` comes from the summary, so a
   // client already past 20 gets one-tap approve back — the gate starts the relationship, it
   // doesn't nag someone already working with us.
@@ -456,7 +519,28 @@ export default function MillaHomePage() {
               </div>
             ))}
             {leads && pending.length === 0 && Object.keys(revealed).length === 0 && (
-              <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>
+              /* ⚑ 24 Aug — FINDING vs GENUINELY EMPTY. These are different facts and used to
+                 render the same sentence. A prospect whose proof run is in flight was told
+                 "no leads waiting" and promised a notification nothing sends. The paying
+                 client's copy below is UNCHANGED on purpose — its own "we'll notify you"
+                 claim predates this build and is the founder's call, not this commit's. */
+              finding ? (
+                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
+                  <div className="text-[15px] font-bold text-[#5c5279]">Finding your matches now…</div>
+                  <div className="text-[13px] mt-1.5">
+                    {/* ⚠️ Real apostrophes, NOT &rsquo;. These are JS string literals inside an
+                        expression container, so an HTML entity is not decoded — it renders as
+                        the literal text "We&rsquo;re". Entities only work in JSX text nodes,
+                        which is what the paying-client line below is. */}
+                    {findingTimedOut
+                      /* No notification promised, no time promised — neither is true. */
+                      ? 'We’re still finding your matches. You can come back to this page shortly.'
+                      : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>
+              )
             )}
             {pending.map(l => {
               const busy = acting === l.id

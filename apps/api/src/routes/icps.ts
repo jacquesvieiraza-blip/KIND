@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, type Response } from 'express'
 import { z } from 'zod'
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '@kind/db'
@@ -1265,6 +1265,238 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
   }
 })
 
+// ── MILLA'S REPLY IS A FORCED TOOL CALL, NOT PROSE JSON (founder-ruled 24 Aug) ──────────
+//
+// WHAT THIS REPLACED, AND WHY. The route used to ask the model to "Respond with ONLY valid
+// JSON", show it a completion template that was ITSELF NOT VALID JSON (bare `[from: Fintech,
+// …]` tokens and literal `...` ellipses), cap the answer at 700 tokens, then `JSON.parse` the
+// text — and on a throw, silently replace the model's real answer with the hard-coded string
+// "Tell me more — what industry, job titles, company size, and region are you targeting?".
+//
+// On the founder's live signup walk that fallback fired on every turn from the third onward.
+// He answered the targeting question three times, said out loud that he had already answered
+// it, and Milla appeared to ignore him. She never saw any of it: her reply was thrown away
+// before it left this function, and a canned checklist was posted under her name. A system
+// failure wore her face — the same class of defect as FIGSY's photo over her copy.
+//
+// So the transport changes. The model now CALLS A TOOL, and the SDK hands back
+// `ToolUseBlock.input` as an already-parsed object — there is no JSON.parse on this path at
+// all, and no text for a truncation to corrupt into unparseable prose.
+//
+// ⚠️ BUT `input` IS TYPED `unknown`, AND IT IS TREATED AS UNKNOWN. A tool call is a
+// well-formed envelope, not a guarantee about what is inside it. Every field is validated by
+// the bounded Zod schema below before anything reaches the client or the database. The
+// pipeline is: forced tool_use -> input -> Zod -> question | complete. Never
+// tool_use -> input -> trusted.
+const MILLA_REPLY_TOOL = 'milla_reply'
+
+/** One definition, so the failure log and the request can never name different models.
+ *  UNCHANGED by this fix — the founder ruled the model stays put (24 Aug). */
+const BUILDER_MODEL = 'claude-haiku-4-5-20251001'
+
+/** The closed lists the launch targeting fields accept. ONE definition, used by both the
+ *  tool schema (as `enum`) and the prompt (as prose) so the two can never drift apart —
+ *  the old code stated them only inside a fake-JSON example. Values are unchanged. */
+const ICP_INDUSTRIES = ['Fintech', 'Healthtech', 'E-commerce', 'SaaS', 'Logistics', 'Agriculture', 'Education', 'Manufacturing', 'Real Estate', 'Media', 'Consulting', 'Retail', 'Banking', 'Insurance', 'Telecoms', 'Energy'] as const
+const ICP_SENIORITY  = ['C-Suite', 'VP / Director', 'Head of', 'Manager', 'Senior', 'Individual Contributor'] as const
+const ICP_SIZES      = ['1–10', '11–50', '51–200', '201–500', '501–1,000', '1,000+'] as const
+
+/** JSON Schema for the one tool the model may call.
+ *
+ *  ⚠️ FLAT OBJECT + `type` DISCRIMINATOR, NOT `oneOf`. A true discriminated JSON Schema is
+ *  the cleaner shape on paper, but tool `input_schema` is consumed by the provider's own
+ *  constrained decoder and `oneOf` support there is not something this repo can verify from
+ *  the installed types. A flat object with an enum discriminator is unambiguously supported,
+ *  and the discriminated REQUIREMENTS are enforced immediately afterwards by Zod — which the
+ *  founder mandated regardless of the JSON Schema shape. Bounds live in both places on
+ *  purpose: the schema discourages an enormous answer, Zod refuses one. */
+const millaReplyTool = (profileRequired: boolean) => ({
+  name: MILLA_REPLY_TOOL,
+  description: 'Reply to the client. Use type "question" to ask the single next thing you genuinely still need, or type "complete" once you understand them well enough to propose their targeting plan.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      type:    { type: 'string', enum: ['question', 'complete'], description: 'question = you still need something. complete = you understand them.' },
+      content: { type: 'string', maxLength: 600, description: 'REQUIRED when type is question. Your reply to the client, at most two sentences, in plain language.' },
+      summary: { type: 'string', maxLength: 400, description: 'One sentence describing this client. Used when type is complete.' },
+      ...(profileRequired ? {
+        profile: {
+          type: 'object',
+          description: 'The few facts needed to open their account. Leave a field out entirely rather than guessing it.',
+          properties: {
+            company_name: { type: 'string', maxLength: 200, description: 'Their company name, exactly as they gave it.' },
+            country:      { type: 'string', maxLength: 120, description: 'The country THEIR OWN BUSINESS is based in — never their target market.' },
+            contact_name: { type: 'string', maxLength: 120 },
+            phone:        { type: 'string', maxLength: 60 },
+            website:      { type: 'string', maxLength: 300 },
+            industry:     { type: 'string', maxLength: 200, description: 'A short plain phrase for what their business does, from their own words.' },
+          },
+        },
+      } : {}),
+      icp: {
+        type: 'object',
+        description: 'The targeting plan. REQUIRED when type is complete.',
+        properties: {
+          name:                  { type: 'string', maxLength: 120 },
+          industries:            { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_INDUSTRIES] } },
+          job_titles:            { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+          seniority_levels:      { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SENIORITY] } },
+          company_sizes:         { type: 'array', maxItems: 6,  items: { type: 'string', enum: [...ICP_SIZES] } },
+          geographies:           { type: 'array', maxItems: 8,  items: { type: 'string', maxLength: 80 } },
+          tech_stack:            { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+          keywords:              { type: 'array', maxItems: 10, items: { type: 'string', maxLength: 80 } },
+          apollo_only_consented: { type: 'boolean' },
+        },
+      },
+      business: {
+        type: 'object',
+        description: 'What their business IS — the half the outreach is written from.',
+        properties: {
+          product:         { type: 'string', maxLength: 1200 },
+          pitch:           { type: 'string', maxLength: 1200 },
+          pain_points:     { type: 'string', maxLength: 1200 },
+          differentiators: { type: 'string', maxLength: 1200, description: 'NO named customers and NO metrics here — those are proof.' },
+          tone:            { type: 'string', maxLength: 300 },
+          bad_fit:         { type: 'string', maxLength: 600 },
+        },
+      },
+      proof: {
+        type: 'array', maxItems: 12,
+        description: 'Named customers, case studies, testimonials, results or metrics they mentioned. permitted is false unless they explicitly said we may use it.',
+        items: {
+          type: 'object',
+          properties: {
+            claim:     { type: 'string', maxLength: 400 },
+            permitted: { type: 'boolean' },
+          },
+          required: ['claim'],
+        },
+      },
+      website_hints: { type: 'array', maxItems: 12, items: { type: 'string', maxLength: 200 }, description: 'Values that came from the website read and the client has NOT confirmed out loud.' },
+      campaign_intent: { type: 'string', maxLength: 2000 },
+    },
+    required: ['type'],
+  },
+})
+
+/** Bounded validation of whatever actually arrives in `ToolUseBlock.input`.
+ *  A forced tool call fixes the TRANSPORT; this fixes the CONTENT. */
+const boundedList = (maxItems: number, maxLen = 80) => z.array(z.string().max(maxLen)).max(maxItems).optional()
+
+/** ⚠️ THE CLOSED LISTS ARE ENFORCED HERE TOO, NOT ONLY DECLARED TO THE MODEL (GPT review).
+ *  The tool schema carries these as `enum`, which is guidance the provider's decoder applies
+ *  — it is not our trust boundary. The first cut validated all three with `boundedList()`, so
+ *  any string the decoder let through reached `icps.industries` and, from there, the PDL and
+ *  Apollo queries that read those columns. The SAME constants are reused; a second
+ *  hand-written copy of the values is exactly how the schema and the validator drift apart. */
+const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) =>
+  z.array(z.enum(values)).max(maxItems).optional()
+const MillaReplyInput = z.object({
+  type:    z.enum(['question', 'complete']),
+  content: z.string().max(600).optional(),
+  summary: z.string().max(400).optional(),
+  profile: z.object({
+    company_name: z.string().max(200).optional(),
+    country:      z.string().max(120).optional(),
+    contact_name: z.string().max(120).optional(),
+    phone:        z.string().max(60).optional(),
+    website:      z.string().max(300).optional(),
+    industry:     z.string().max(200).optional(),
+  }).optional(),
+  icp: z.object({
+    name:                  z.string().max(120).optional(),
+    // Closed lists — refused outright if the value is not one of ours.
+    industries:            boundedEnum(ICP_INDUSTRIES, 6),
+    seniority_levels:      boundedEnum(ICP_SENIORITY, 6),
+    company_sizes:         boundedEnum(ICP_SIZES, 6),
+    // Genuinely open fields: a job title, a country and a keyword are the client's own
+    // words by design. Bounded in length and count, not in vocabulary.
+    job_titles:            boundedList(10),
+    geographies:           boundedList(8),
+    tech_stack:            boundedList(10),
+    keywords:              boundedList(10),
+    apollo_only_consented: z.boolean().optional(),
+  }).optional(),
+  business: z.object({
+    product:         z.string().max(1200).optional(),
+    pitch:           z.string().max(1200).optional(),
+    pain_points:     z.string().max(1200).optional(),
+    differentiators: z.string().max(1200).optional(),
+    tone:            z.string().max(300).optional(),
+    bad_fit:         z.string().max(600).optional(),
+  }).optional(),
+  proof: z.array(z.object({
+    claim:     z.string().max(400),
+    permitted: z.boolean().optional(),
+  })).max(12).optional(),
+  website_hints:   boundedList(12, 200),
+  campaign_intent: z.string().max(2000).optional(),
+})
+  // The discriminated half, which the flat JSON Schema deliberately leaves to Zod.
+  .superRefine((v, ctx) => {
+    if (v.type === 'question' && !(v.content ?? '').trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['content'], message: 'a question must carry content' })
+    }
+    if (v.type === 'complete' && !v.icp) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['icp'], message: 'a completion must carry an icp' })
+    }
+  })
+
+/** ── THE FIRST-RUN GATE IS ENFORCED, NOT REQUESTED (GPT review) ──────────────────────────
+ *
+ *  The prompt tells the model not to answer "complete" without a company name and the
+ *  client's own country. That is an instruction, and an instruction is not a gate: the first
+ *  cut would have accepted a completion missing both, and the portal would then have tried to
+ *  open an account with an empty `company_name` — the very thing three separate rules exist
+ *  to prevent, since `clients.country` defaults to 'South Africa' rather than failing loudly.
+ *
+ *  ⚠️ ONLY ON A FIRST RUN. A returning client is never asked for these and their reply
+ *  carries no profile at all, so the gate is bound to `profile_required` rather than baked
+ *  into the schema. And `country` here means WHERE THEIR BUSINESS IS BASED — never the
+ *  targeting geography, which is a different fact and lives in `icp.geographies`. */
+const millaReplyFor = (profileRequired: boolean) =>
+  MillaReplyInput.superRefine((v, ctx) => {
+    if (!profileRequired || v.type !== 'complete') return
+    if (!(v.profile?.company_name ?? '').trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'company_name'], message: 'a first-run completion must carry the company name' })
+    }
+    if (!(v.profile?.country ?? '').trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'country'], message: "a first-run completion must carry the client's own business country" })
+    }
+    // contact_name, phone, website and industry stay genuinely optional — they always were.
+  })
+
+/** ── HONEST FAILURE, NEVER FAKE MILLA (founder-ruled 24 Aug) ─────────────────────────────
+ *
+ *  Every way this reply can be unusable ends here: truncation, no tool call, the wrong tool,
+ *  or content Zod refuses. The route answers with a retryable error the portal shows as an
+ *  error — it does NOT append an assistant message, so nothing is ever attributed to Milla
+ *  that she did not say. There is no automatic second Anthropic call: one turn, one request.
+ *
+ *  ⚠️ SAFE DIAGNOSTICS ONLY. The old code logged nothing at all, which is how a total live
+ *  blocker reached production through a green suite. It now logs enough to diagnose and
+ *  NOTHING that belongs to the client: no raw model text, no tool input, no transcript, no
+ *  company name, no phone, no proof claim, no scraped website text. Category, stop_reason,
+ *  model and sizes — that is the whole list. */
+function millaReplyFailed(
+  res: Response,
+  category: 'TRUNCATED' | 'UNEXPECTED_STOP' | 'NO_TOOL_CALL' | 'MULTIPLE_TOOL_CALLS' | 'WRONG_TOOL' | 'INVALID_SHAPE',
+  meta: { stop_reason?: string | null; blocks?: number; inputKeys?: number },
+) {
+  console.error('[icps/builder/chat] unusable model reply —', JSON.stringify({
+    category,
+    stop_reason: meta.stop_reason ?? null,
+    model: BUILDER_MODEL,
+    content_blocks: meta.blocks ?? null,
+    input_key_count: meta.inputKeys ?? null,
+  }))
+  res.status(503).json({
+    success: false,
+    error: 'Milla lost that response — please send your last answer again.',
+    retryable: true,
+  })
+}
+
 // ── BUILDER CHAT — conversational ICP builder for the /leads/icp/builder page ──
 // Contract: { messages:[{role,content}] } -> { type:'question'|'complete', content?, icp?, summary? }
 // (The builder page previously POSTed to a non-existent route and 404'd on every turn.)
@@ -1377,22 +1609,13 @@ account cannot be opened without those two, and a made-up value is far worse tha
 question. If either is missing, ask for it — that is a "question", not a "complete".`
       : ''
 
-    const profileJsonBlock = profile_required
-      ? ` "profile":{
-   "company_name": "<their company's name, exactly as they gave it — REQUIRED>",
-   "country": "<the country THEIR BUSINESS is based in, as they said it — REQUIRED, never taken from the targeting geographies>",
-   "contact_name": "<the name of the person you are talking to, if they gave it>",
-   "phone": "<their mobile, if they gave it>",
-   "website": "<their website, if they gave it>",
-   "industry": "<a short plain phrase for what their business does, from their own words>"
- },
-`
-      : ''
-
-    const neverInventProfile = profile_required
+    const profileFieldsNote = profile_required
       ? `
-NEVER invent a company name, a country, a person's name, a phone number or a website — leave
-it "" and ask instead. Nothing here may be filled in on the client's behalf.`
+When you answer "complete", fill "profile" with what they actually told you: their company
+name, the country THEIR OWN BUSINESS is based in, who you are speaking to, their mobile and
+their website. NEVER invent a company name, a country, a person's name, a phone number or a
+website — leave the field out entirely and ask for it instead. Nothing there may be filled in
+on the client's behalf.`
       : ''
 
     // ── MILLA LEARNS THE BUSINESS, NOT JUST THE TARGET (22 Aug) ────────────────────────
@@ -1431,80 +1654,146 @@ problem, why they should care, what the conversation is.
 
 If they mention a named customer, a case study, a testimonial, a specific result or a metric,
 ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not
-clearly approved must be recorded with "permitted": false.${websiteEvidenceBlock}${completionGate}
+clearly approved must be recorded with "permitted" false.${websiteEvidenceBlock}${completionGate}
 
-Respond with ONLY valid JSON (no markdown):
-- Still learning: {"type":"question","content":"<your reply, max 2 sentences>"}
-- When you genuinely understand them:
-{"type":"complete","summary":"<one-sentence summary>",
-${profileJsonBlock} "icp":{
-   "name": "<short ICP name>",
-   "industries": [from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy],
-   "job_titles": ["CTO", ...],
-   "seniority_levels": [from: C-Suite, VP / Director, Head of, Manager, Senior, Individual Contributor],
-   "company_sizes": [from: 1–10, 11–50, 51–200, 201–500, 501–1,000, 1,000+],
-   "geographies": ["South Africa", ...],
-   "tech_stack": [...],
-   "keywords": ["hiring","Series A", ...],
-   "apollo_only_consented": true
- },
- "business":{
-   "product": "<what they sell, one or two sentences, their words>",
-   "pitch": "<the value proposition / the outcome for the buyer>",
-   "pain_points": "<the problem they solve>",
-   "differentiators": "<what makes them different — NO named customers, NO metrics here>",
-   "tone": "<how they want to sound, e.g. warm and direct>",
-   "bad_fit": "<who is an obvious bad fit, if they said>"
- },
- "proof":[ {"claim":"<a named customer, case study, testimonial, result or metric>","permitted":false} ],
- "website_hints": ["<any value that came from the website read and the client has NOT confirmed out loud>"],
- "campaign_intent": "<what they are trying to achieve with this batch, in their words>"
-}
+── BEFORE YOU REPLY, WORK OUT WHERE YOU ACTUALLY ARE ───────────────────────────────────
+Read the whole conversation back and settle four things for yourself. This is your own
+reasoning — the client never sees it, and you never write it out:
 
-Only fill what you are confident about; use "" or [] otherwise. NEVER invent a customer, a
-result or a number. "permitted" is false unless they explicitly said we may use that claim.${neverInventProfile}`
+  KNOWN            — every fact they have already given you, anywhere in the conversation.
+  MISSING          — what you genuinely still do not have.
+  CONTRADICTORY    — anything they have said two different ways.
+  NEEDS CONFIRMING — anything you are working from that they have not actually endorsed.
+
+Then ask for ONE thing from MISSING. That is the whole method.
+
+  · NEVER re-ask something they have already answered. If it is in KNOWN, it is done.
+  · KEEP PARTIAL ANSWERS. If you asked two things and they answered one, that one is now
+    KNOWN — ask only for the remainder. If you ask "what is the company called, and what
+    does it do?" and they say "ABCV Logistics", then the name is KNOWN and what they do is
+    MISSING: ask only what ABCV Logistics does. Do not ask their name again, and do not
+    change the subject to targeting.
+  · Only CONTRADICTORY or NEEDS CONFIRMING earns a repeat, and then you name the specific
+    thing you are resolving — not the whole topic again. If they said the US and later the
+    UK, ask which.
+  · If you understand their TARGETING but not their BUSINESS, ask about the business.
+  · If you understand their BUSINESS but a genuinely necessary targeting fact is missing,
+    ask for that one fact.
+  · The country their business is BASED IN and the places they SELL INTO are different
+    facts. Knowing one tells you nothing about the other. Never infer either from the other.
+  · Once you understand them well enough, answer "complete". Do not keep asking to be safe.
+
+There is no set list of questions, no set number of them and no order you must follow. You
+decide what to ask from what they have actually said.
+
+── THEIR WORDS WILL NOT MATCH OUR LISTS, AND THAT IS FINE ──────────────────────────────
+Some targeting fields accept only certain values (they are listed on the tool). People do
+not speak in enums.
+
+WHEN THEIR MEANING CLEARLY MAPS to an allowed value, MAP IT and move on:
+  "MD and above"   -> C-Suite, VP / Director
+  "50 - 500"       -> 51–200, 201–500
+
+WHEN IT DOES NOT CLEARLY MAP, DO NOT GUESS. Ask about that ONE field, narrowly, and leave
+everything else they have already told you alone. "IT Solutions" is the example worth
+knowing: it could reasonably mean SaaS, or Consulting, or Telecoms, and picking one for them
+is inventing their targeting. Ask which it is closest to — nothing else.
+
+Either way, NEVER re-ask a whole targeting question just because their phrasing was not one
+of our values. One narrow clarification, never the checklist again.
+
+── HOW TO REPLY ────────────────────────────────────────────────────────────────────────
+Reply by calling the ${MILLA_REPLY_TOOL} tool. That is the only way you speak here.
+  · Still learning -> call it with type "question" and put your reply in "content".
+  · You understand them -> call it with type "complete" and fill what you learned.
+Fill only what you are confident about and leave the rest out. NEVER invent a customer, a
+result or a number. "permitted" is false unless they explicitly said we may use that claim.${profileFieldsNote}`
 
     const response = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 700,
+      model: BUILDER_MODEL,
+      // 700 was the old ceiling and it was not one the completion contract could fit — a
+      // verbose answer was cut mid-JSON, the parse threw, and the canned checklist went out
+      // under Milla's name. 4000 with a schema that bounds every string and array.
+      max_tokens: 4000,
       system,
+      tools: [millaReplyTool(profile_required)],
+      // The model does not get to choose whether to answer in the agreed shape.
+      tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true },
       messages: messages.map(m => ({ role: m.role, content: m.content })),
     })
 
-    const textBlock = response.content.find(b => b.type === 'text') as { type: 'text'; text: string } | undefined
-    const raw = (textBlock?.text ?? '').trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '')
-    let parsed: {
-      type?: string; content?: string; summary?: string
-      icp?: Record<string, unknown>
-      profile?: Record<string, unknown>
-      business?: Record<string, unknown>
-      proof?: unknown[]
-      website_hints?: unknown[]
-      campaign_intent?: unknown
+    // ── A USABLE REPLY IS ONE EXACT SHAPE, AND EVERY OTHER SHAPE IS REFUSED ─────────────
+    // stop_reason 'tool_use' · EXACTLY ONE tool_use block · that block is milla_reply ·
+    // its input passes Zod. Anything else returns an honest retryable error. None of these
+    // paths can put words in Milla's mouth, which is the whole point of the rewrite.
+    //
+    // Truncation is checked first because a cut-off tool call can still leave a
+    // well-formed-LOOKING block behind, and the old code's entire failure was treating
+    // damaged output as a reply. `stop_reason` is the provider saying so plainly.
+    const meta = { stop_reason: response.stop_reason, blocks: response.content.length }
+    if (response.stop_reason === 'max_tokens') {
+      millaReplyFailed(res, 'TRUNCATED', meta)
+      return
     }
-    try {
-      parsed = JSON.parse(raw)
-    } catch {
-      parsed = { type: 'question', content: 'Tell me more — what industry, job titles, company size, and region are you targeting?' }
+    // ⚑ GPT review: the first cut only rejected `max_tokens` and then went looking for a
+    // tool block. A forced tool_choice should always stop on 'tool_use'; anything else —
+    // 'end_turn', 'stop_sequence', null — means the turn did not do what we required, and
+    // guessing from whatever blocks happen to be present is how damaged output gets read
+    // as an answer. Refuse on the stop reason itself.
+    if (response.stop_reason !== 'tool_use') {
+      millaReplyFailed(res, 'UNEXPECTED_STOP', meta)
+      return
+    }
+    const toolBlocks = response.content.filter(b => b.type === 'tool_use')
+    if (toolBlocks.length === 0) {
+      millaReplyFailed(res, 'NO_TOOL_CALL', meta)
+      return
+    }
+    // ⚑ GPT review: the first cut took toolBlocks[0] and ignored the rest. We asked for one
+    // reply with disable_parallel_tool_use; more than one means the turn is not the turn we
+    // asked for, and silently picking the first is a guess about which one Milla meant.
+    if (toolBlocks.length > 1) {
+      millaReplyFailed(res, 'MULTIPLE_TOOL_CALLS', meta)
+      return
+    }
+    const call = toolBlocks[0] as { type: 'tool_use'; name: string; input: unknown }
+    if (call.name !== MILLA_REPLY_TOOL) {
+      millaReplyFailed(res, 'WRONG_TOOL', meta)
+      return
     }
 
+    // ⚠️ `input` IS `unknown`. A tool call guarantees the envelope, never the contents.
+    const validated = millaReplyFor(profile_required).safeParse(call.input)
+    if (!validated.success) {
+      millaReplyFailed(res, 'INVALID_SHAPE', {
+        ...meta,
+        // A COUNT, never the keys themselves — a key name is client data here.
+        inputKeys: call.input && typeof call.input === 'object' ? Object.keys(call.input).length : 0,
+      })
+      return
+    }
+    const parsed = validated.data
+
     if (parsed.type === 'complete' && parsed.icp) {
-      const icp = parsed.icp as Record<string, unknown>
+      // Everything below is reading ALREADY-VALIDATED, ALREADY-BOUNDED data — Zod refused
+      // anything longer or larger than the schema allows before we got here. The trims and
+      // defaults that remain are about shape (an omitted array becomes [], an omitted name
+      // becomes the placeholder), not about safety.
+      const icp = parsed.icp
       const draft = {
-        name:                  typeof icp.name === 'string' ? icp.name : 'My ICP',
-        industries:            Array.isArray(icp.industries) ? icp.industries : [],
-        job_titles:            Array.isArray(icp.job_titles) ? icp.job_titles : [],
-        seniority_levels:      Array.isArray(icp.seniority_levels) ? icp.seniority_levels : [],
-        company_sizes:         Array.isArray(icp.company_sizes) ? icp.company_sizes : [],
-        geographies:           Array.isArray(icp.geographies) ? icp.geographies : [],
-        tech_stack:            Array.isArray(icp.tech_stack) ? icp.tech_stack : [],
-        keywords:              Array.isArray(icp.keywords) ? icp.keywords : [],
+        name:                  icp.name?.trim() || 'My ICP',
+        industries:            icp.industries ?? [],
+        job_titles:            icp.job_titles ?? [],
+        seniority_levels:      icp.seniority_levels ?? [],
+        company_sizes:         icp.company_sizes ?? [],
+        geographies:           icp.geographies ?? [],
+        tech_stack:            icp.tech_stack ?? [],
+        keywords:              icp.keywords ?? [],
         apollo_only_consented: icp.apollo_only_consented !== false,
       }
-      // The business half. Sanitised the same way the ICP is: only strings survive, and a
-      // proof claim is permitted ONLY when the model returns an explicit true.
-      const b = (parsed.business ?? {}) as Record<string, unknown>
-      const str = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 1200) : '')
+      // The business half. A proof claim is permitted ONLY on an explicit true.
+      const b = parsed.business ?? {}
+      const str = (v: string | undefined) => (v ?? '').trim()
       const business = {
         product:         str(b.product),
         pitch:           str(b.pitch),
@@ -1513,13 +1802,9 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         tone:            str(b.tone),
         bad_fit:         str(b.bad_fit),
       }
-      const proof = (Array.isArray(parsed.proof) ? parsed.proof : [])
-        .map((p) => {
-          const row = (p ?? {}) as Record<string, unknown>
-          return { claim: str(row.claim), permitted: row.permitted === true }
-        })
+      const proof = (parsed.proof ?? [])
+        .map(p => ({ claim: str(p.claim), permitted: p.permitted === true }))
         .filter(p => p.claim.length > 0)
-        .slice(0, 12)
 
       // ── THE ACCOUNT FACTS (founder-ruled 24 Aug) ────────────────────────────────────
       // These used to be typed into a scripted six-question form at /onboard, before the
@@ -1539,16 +1824,15 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       // about a record that already exists. `null` here, and the portal's own first-run
       // gate, are two independent reasons an existing client's profile can never be
       // touched by this conversation.
-      const p = (parsed.profile ?? {}) as Record<string, unknown>
-      const short = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 200) : '')
+      const p = parsed.profile ?? {}
       const profile = profile_required
         ? {
-            company_name: short(p.company_name),
-            country:      short(p.country),
-            contact_name: short(p.contact_name),
-            phone:        short(p.phone),
-            website:      short(p.website),
-            industry:     short(p.industry),
+            company_name: str(p.company_name),
+            country:      str(p.country),
+            contact_name: str(p.contact_name),
+            phone:        str(p.phone),
+            website:      str(p.website),
+            industry:     str(p.industry),
           }
         : null
 
@@ -1556,8 +1840,7 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       // confirmation panel under its own heading so a scraped guess can never be read as
       // something they said — "the reflect-back must distinguish client-confirmed
       // understanding from mere website-derived hints".
-      const websiteHints = (Array.isArray(parsed.website_hints) ? parsed.website_hints : [])
-        .map(short).filter(h => h.length > 0).slice(0, 12)
+      const websiteHints = (parsed.website_hints ?? []).map(str).filter(h => h.length > 0)
 
       res.json({
         success: true,
@@ -1570,7 +1853,11 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       return
     }
 
-    res.json({ success: true, data: { type: 'question', content: parsed.content ?? 'Tell me a bit more about who you want to reach.' } })
+    // A question. Zod already refused a question with no content, so there is nothing left
+    // to substitute — which is the point: the old `?? 'Tell me a bit more about who you
+    // want to reach.'` was the second place a plumbing failure could put words in Milla's
+    // mouth. If we get here, she really did say this.
+    res.json({ success: true, data: { type: 'question', content: parsed.content } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/builder/chat]', err)

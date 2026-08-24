@@ -907,7 +907,41 @@ export async function runIcpJob(
   // current balance. Any remainder stays undelivered for the daily drip. The
   // atomic `.is('delivered_at', null)` claim inside keeps it idempotent (no
   // double-charge with the drip).
-  if (insertedIds.length > 0) {
+  // ── ⚑ 24 Aug — FREE PROOF NEVER ENTERS THE PAID DELIVERY PATH (founder-ruled) ────────
+  //
+  // ⚠️ THIS GUARD IS THE WHOLE FIX, AND ITS ABSENCE WAS A LIVE DEFECT. This block read
+  // `if (insertedIds.length > 0)` and nothing else, so a FREE-PROOF run fell straight into
+  // paid delivery. What that did, in order, on a real prospect:
+  //
+  //   1. `enrichAndDeliverLeads` sent all 20 PDL ids to `bulkMatchEmails`. AR5 refused every
+  //      `pdl_…` id at the Apollo door — correctly — and logged it. That log line is how the
+  //      founder found this.
+  //   2. It then ran the HUNTER WATERFALL over the leads with no email, if `HUNTER_API_KEY`
+  //      is set. Paid third-party enrichment, spent on somebody who has not paid.
+  //   3. Every lead Hunter FOUND an address for became "deliverable" and was stamped
+  //      `delivered_at`.
+  //   4. The proof surfacing block below then skipped exactly those rows, because it claims
+  //      `.is('delivered_at', null)` — so they got `delivered_at` but never
+  //      `surfaced_for_approval_at`, and `/leads/for-approval` requires BOTH.
+  //
+  // The client therefore saw only the leads Hunter FAILED on. Sourcing worked, proof worked,
+  // and the successful enrichments are what made the leads vanish. Two fresh companies both
+  // showed a handful out of twenty.
+  //
+  // ⚠️ AND THE RULE WAS ALREADY WRITTEN DOWN, one screen below: the surfacing block says
+  // "THIS DOES NOT CALL `enrichAndDeliverLeads`, DELIBERATELY. That function reveals emails
+  // — Apollo bulk-match then the Hunter waterfall — and a reveal before payment is
+  // forbidden." True of the code it sits above; false of the run as a whole, because this
+  // block called it ~140 lines earlier. A comment can only speak for its own scope.
+  //
+  // `proofMode` is the SAME flag the fence, the reservation, the PDL query and the surfacing
+  // step already act on — declared at the top of this function from the pass the proof route
+  // atomically claimed. Not a second notion of proof-ness, and never inferred.
+  //
+  // ⚠️ PAID IS UNTOUCHED. A non-proof run takes this block exactly as it always did: same
+  // `deliveryCapBalance`, same `DAILY_BROWSE_CAP`, same Apollo reveal, same Hunter waterfall,
+  // same delivery. Nothing inside the block changed — only who may enter it.
+  if (!proofMode && insertedIds.length > 0) {
     // Cap delivery by the wallet that matches the client's plan (item 167) — a
     // FIGSY-plan client delivers against the FIGSY pool, not the lead-gen balance,
     // so a FIGSY-only client (0 lead-gen credits) can still receive leads.

@@ -316,7 +316,11 @@ describe('the client row is created exactly once, and only when it is missing', 
 
   it('/auth/onboard is posted BEFORE /icps — the ICP save 404s without the row', () => {
     const onboardAt = welcomeCode.indexOf("api.post('/auth/onboard'")
-    const icpAt     = welcomeCode.indexOf("api.post('/icps',")
+    // ⚑ 24 Aug — anchor updated: the /icps call now captures its response (`const saved =
+    // await api.post<…>(`) so the saved id can start free proof. Same call, same payload,
+    // same position; only the assignment is new. Anchored on the PAYLOAD, which is the
+    // thing this guard actually cares about, so a future type annotation cannot break it.
+    const icpAt     = welcomeCode.indexOf("'/icps', { ...proposed")
     expect(onboardAt).toBeGreaterThan(-1)
     expect(icpAt).toBeGreaterThan(-1)
     expect(onboardAt).toBeLessThan(icpAt)
@@ -500,19 +504,30 @@ describe('everything downstream of the confirmation is byte-for-byte the same jo
   })
 
   it('the ICP save still carries business, proof and campaign intent in one call', () => {
-    expect(welcomeCode).toContain("api.post('/icps', { ...proposed, business, proof, campaign_intent: intent }, tk)")
+    // ⚑ 24 Aug — the call is UNCHANGED; only its RESULT is now captured, so the saved id
+    // can start free proof. Asserted on the payload rather than the whole statement, which
+    // is what actually matters here: one call, still carrying all four things.
+    expect(welcomeCode).toContain("'/icps', { ...proposed, business, proof, campaign_intent: intent }, tk)")
+    expect(welcomeCode.match(/api\.post<?[^(]*\(\s*'\/icps',/g) ?? []).toHaveLength(1)
   })
 
   it('one core ICP, refined — not a new row per save', () => {
     expect(icpsSrc).toContain('const saved = await saveClientTargeting(clientId, body, revisedIntent)')
   })
 
-  it('the money ask still ends the conversation, and the price is still interpolated', () => {
-    expect(welcomeCode).toContain("router.push('/milla/billing?start=1&from=icp')")
-    expect(welcomeCode).toContain('${PACK_PRICE_USD}')
+  it('the money ask has MOVED behind free proof, and no price is left on the confirmation', () => {
+    // ⚑ 24 Aug — this guard used to REQUIRE the billing push and the interpolated pack
+    // price on this screen. The founder's walk showed why that was the defect: a prospect
+    // confirmed Milla's understanding and was asked for $299 having been shown nobody. The
+    // assertion is INVERTED rather than deleted — the old behaviour is now forbidden.
+    expect(welcomeCode).not.toContain("router.push('/milla/billing?start=1&from=icp')")
+    expect(welcomeCode).not.toContain('billing?start=1&from=icp')
+    // No price of any kind survives on this panel — neither interpolated nor hand-typed.
+    expect(welcomeCode).not.toContain('${PACK_PRICE_USD}')
+    expect(welcomeCode).not.toContain('PACK_PRICE_USD')
+    expect(welcomeCode).not.toContain('PACK_LEADS')
     // Hand-typed money on a screen a client reads is the 3-Aug bug: the button said $99
-    // while the line beneath it said $299, and the founder caught it mid-signup. The pack
-    // price is interpolated from the shared constant and must stay that way. Code only —
+    // while the line beneath it said $299, and the founder caught it mid-signup. Code only —
     // the comment above the button legitimately quotes the prices it warns about.
     expect(welcomeCode).not.toMatch(/\$299|\$99\b/)
 
@@ -538,6 +553,298 @@ describe('everything downstream of the confirmation is byte-for-byte the same jo
     expect(icpsSrc).toContain('apply_pending_revision')
     expect(icpsSrc).toContain('PROOF_PASS_LEADS = 20')
     expect(icpsSrc).toContain('PROOF_CLIENT_RECORD_CAP = 40')
+  })
+})
+
+// ── FREE PROOF COMES BEFORE THE ASK (founder walk + ruling, 24 Aug) ──────────────────────
+//
+// The conversation fix landed and the walk got through it — and then the right-hand panel
+// said "Yes, this represents us — go live for $299" and the next screen was billing. A
+// prospect was being asked to pay having been shown NOBODY.
+//
+// The proof machinery was never broken. `POST /icps/:id/proof`, `try_claim_proof_pass`, the
+// 20-lead cap, the 40-record fence and the $300 ceiling all existed and worked — the entry
+// was simply orphaned on `/milla/icp`, a page a brand-new prospect never opens. This is the
+// missing navigation and nothing else: not one line of proof accounting is touched.
+//
+// ⚠️ WHAT IS NOT FIXED HERE, AND MUST NOT BE CLAIMED AS FIXED:
+//   · The batch-level NOT A FIT → refine the SAME ICP → pass 2 leg does NOT exist. "Not a
+//     fit" on the desk is PER-LEAD calibration (`POST /leads/:id/pass`). The server grants
+//     two passes and blocks the third with a human sentence; the UI to spend the second one
+//     deliberately is still missing. Confirmed launch-critical, and the NEXT fix.
+//   · A technical proof failure still CONSUMES a pass — `proof_passes_done` has exactly one
+//     writer and it only increments (pending-migrations.ts:1543); there is no release RPC.
+//     That is deliberate and founder-chosen ("recovery is human"), it is NOT solved by this
+//     build, and it is precisely why the error path below is TERMINAL: a retry control would
+//     spend the client's second pass on top of a first they never saw.
+describe('free proof runs before the client is ever asked to pay', () => {
+  it('the saved ICP id is captured from the existing POST /icps response', () => {
+    expect(welcomeCode).toContain("const saved = await api.post<{ data?: { id?: string } }>(")
+    expect(welcomeCode).toContain('const icpId = saved?.data?.id')
+  })
+
+  it('free proof is started with that id — EXACTLY ONCE, and nowhere else in the path', () => {
+    expect(welcomeCode).toContain('await api.post(`/icps/${icpId}/proof`, {}, tk)')
+    // ⚠️ The count is the guard, not the presence. A second call — a retry, a fallback, a
+    // catch-block re-attempt — would claim the client's SECOND pass, leaving them two down
+    // having seen no leads at all. One call site, repo-wide across the first-run path.
+    for (const src of [welcomeCode, onboardCode, loginCode]) {
+      expect((src.match(/\/proof`/g) ?? []).length).toBeLessThanOrEqual(1)
+    }
+    expect((welcomeCode.match(/\/proof`/g) ?? [])).toHaveLength(1)
+  })
+
+  it('proof is started AFTER the ICP exists — an id cannot be posted before it is issued', () => {
+    const saveAt  = welcomeCode.indexOf("'/icps', { ...proposed")
+    const idAt    = welcomeCode.indexOf('const icpId = saved?.data?.id')
+    const proofAt = welcomeCode.indexOf('/proof`')
+    // A guard that reads nothing passes everything — prove all three anchors exist first.
+    expect(saveAt,  'the ICP save').toBeGreaterThan(-1)
+    expect(idAt,    'the id capture').toBeGreaterThan(-1)
+    expect(proofAt, 'the proof call').toBeGreaterThan(-1)
+    expect(saveAt).toBeLessThan(idAt)
+    expect(idAt).toBeLessThan(proofAt)
+  })
+
+  it('a started proof lands the client on the desk, FLAGGED as finding', () => {
+    // ⚑ 24 Aug — plain '/milla' was not enough: the desk fetched once and told them "no
+    // leads waiting" while their run was still going. The flag is what turns the desk's
+    // honest-empty state into an honest-finding state.
+    expect(welcomeCode).toContain("router.push('/milla?finding=1')")
+    // …and that is the ONLY navigation out of a successful confirmation.
+    expect((welcomeCode.match(/router\.push\(/g) ?? [])).toHaveLength(1)
+  })
+
+  it('THE ERROR PATH IS TERMINAL — no retry, no second call, no billing', () => {
+    // The client stays put and is told plainly. `return` is what makes it terminal: without
+    // it, execution would fall through to the navigation below.
+    // ⚠️ THE COPY IS ASSERTED WHOLE, AND IT MUST NOT CLAIM ANYONE WAS TOLD. The first draft
+    // ended "we have been told, and we will get this moving and let you know". Traced on the
+    // founder's instruction and found FALSE: the route's failure branch only console.errors,
+    // a network drop or the 15s timeout never reaches the server, and no alert, queue or
+    // Vida item exists for this path. Asserted as one string so half of it cannot drift back.
+    expect(flat(welcomeCode)).toContain("setError('Your targeting is saved, but we could not start finding your matches just yet. Nothing has been charged and nobody has been contacted. K.I.N.D needs to resolve this before your proof can continue.')")
+    expect(welcomeCode).not.toMatch(/we have been told|we will get this moving|let you know/i)
+    // ⚠️ SCOPED TO THE PROOF FAILURE BLOCK, NOT THE FILE. A first cut asserted no /retry/i
+    // anywhere in `welcomeCode` and failed on two LEGITIMATE and unrelated affordances: the
+    // account-status lookup's "Try again" button, and send()'s "Milla hit a snag — please
+    // try again". Banning the word globally would have forced the removal of a retry that
+    // SHOULD exist. What must carry no retry is this block, because a second POST here
+    // claims the client's second pass.
+    const block = welcomeCode.slice(
+      welcomeCode.indexOf('/proof`'),
+      welcomeCode.indexOf("router.push('/milla?finding=1')"),
+    )
+    expect(block.length, 'the proof failure block').toBeGreaterThan(0)
+
+    // ⚠️ THE `return` IS WHAT MAKES IT TERMINAL, AND IT MUST BE ASSERTED *IN THIS BLOCK*.
+    // A first cut asserted `flat(welcomeCode)` contained "setSaving(false) return" — and
+    // RED 8 (deleting this block's return, so a failed proof falls straight through to the
+    // desk) PASSED, because an earlier branch — the missing company-name/country guard —
+    // has its own `setSaving(false); return` and the file-wide match found that one. A
+    // guard that can be satisfied by unrelated code is not a guard.
+    expect(flat(block)).toContain('setSaving(false) return')
+    expect(block).not.toMatch(/retry|try again/i)
+    expect(block).not.toMatch(/setTimeout|setInterval/)
+    expect(block).not.toMatch(/api\.post/)            // no second call of ANY kind
+    expect(block).not.toMatch(/router\.push/)          // and no navigation out of the failure
+    // The failure must never become a payment request — asserted file-wide, since there is
+    // no legitimate reason for this screen to mention billing at all any more.
+    expect(welcomeCode).not.toContain('billing')
+  })
+
+  it('the client is never told they burned a proof pass — that accounting is not theirs', () => {
+    expect(welcomeCode).not.toMatch(/proof[_ ]?pass|pass 1|pass 2|passes_done|attempt \d/i)
+  })
+
+  it('"Looks right" on the desk is still the ONLY route to the pack ask, unchanged', () => {
+    const deskSrc = read(join(PORTAL, 'app/(milla)/milla/page.tsx'))
+    expect(deskSrc).toContain("router.push('/milla/billing?start=1&from=proof')")
+    expect(deskSrc).toContain('👍 Looks right')
+    // …and the per-lead calibration this build must NOT have touched.
+    expect(deskSrc).toContain('Not a fit')
+    expect(deskSrc).toContain('await api.post(`/leads/${id}/pass`, {}, await token())')
+  })
+
+  it('the CTA asks to be shown people, and offers no price', () => {
+    expect(welcomeCode).toContain('"Yes, this represents us — show me who you\'d find"')
+    expect(welcomeSrc).toContain('free, masked, and nobody is contacted')
+    expect(welcomeCode).not.toMatch(/go live for/i)
+  })
+
+  it('NOT ONE LINE of proof accounting changed — the route, its fences and its caps', () => {
+    // The entry moved; the engine did not. Every fence asserted where it actually lives.
+    expect(icpsSrc).toContain("icpRouter.post('/:id/proof'")
+    expect(icpsSrc).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
+    expect(icpsSrc).toContain('const PROOF_PASS_LEADS = 20')
+    expect(icpsSrc).toContain('runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })')
+    expect(flat(icpsSrc)).toContain('We have shown you two sets of leads.')
+    expect(icpsSrc).toContain('PROOF_CLIENT_RECORD_CAP = 40')
+    // …and the portal did not gain its own copy of any of it.
+    expect(welcomeCode).not.toMatch(/try_claim_proof_pass|try_reserve_proof_records|release_proof_records/)
+  })
+
+  it('and the first-run path still reveals nothing, sends nothing and charges nothing', () => {
+    for (const src of [welcomeCode, onboardCode, loginCode]) {
+      expect(src).not.toMatch(/stripe/i)
+      expect(src).not.toMatch(/\bmailer\b/i)
+      expect(src).not.toMatch(/\/leads\/[a-z-]*reveal/i)
+      expect(src).not.toMatch(/\$4\b(?!\s*per approved lead)/)
+    }
+  })
+})
+
+// ── THE DESK TELLS THE TRUTH WHILE THE PROOF RUN FINISHES (founder-ruled 24 Aug) ─────────
+//
+// `POST /icps/:id/proof` returns a 200 while `runIcpJob` is still sourcing, and this page
+// fetched ONCE on mount and never again. So the prospect who had just confirmed their
+// targeting landed on "No leads waiting right now. We'll notify you the moment FIGSY
+// qualifies the next." — two sentences that were both false: people WERE being found, and
+// nothing sends a notification. Free proof was delivered and then hidden until they happened
+// to reload.
+//
+// What these guards protect: the flag is explicit, the copy promises nothing we do not do,
+// the poll is READ-ONLY and bounded, and there is still exactly ONE proof POST in the whole
+// journey — a second one would claim the client's second pass.
+describe('the desk shows an honest finding state and refreshes itself', () => {
+  const deskSrc  = read(join(PORTAL, 'app/(milla)/milla/page.tsx'))
+  const deskCode = stripComments(deskSrc)
+
+  it('finding is keyed by the EXPLICIT flag, never inferred from "no leads + never paid"', () => {
+    expect(deskCode).toContain("new URLSearchParams(window.location.search).get('finding') === '1'")
+    expect(deskCode).toContain('function isFinding()')
+    expect(deskCode).toContain('useEffect(() => { setFinding(isFinding()) }, [])')
+    // ⚠️ The inference this build must NOT make. `proofMode`/`needsGoLive` is also the state
+    // of a prospect who never started a run; telling them we are finding people is a lie.
+    expect(deskCode).not.toMatch(/finding\s*=\s*(needsGoLive|proofMode)/)
+  })
+
+  it('the finding state replaces the false empty copy — and promises nothing', () => {
+    expect(deskSrc).toContain('Finding your matches now…')
+    expect(deskCode).toContain('finding ? (')
+    // No notification, no email, no alert, no completion time — nothing sends any of them.
+    const findAt = deskSrc.indexOf('Finding your matches now…')
+    const findBlock = deskSrc.slice(findAt, findAt + 900)
+    expect(findBlock).not.toMatch(/notify|email|alert|minutes|shortly we|by \d/i)
+    expect(findBlock).not.toContain('No leads waiting right now')
+    // …and no provider mechanics are shown to the client.
+    expect(deskCode).not.toMatch(/\bPDL\b|Apollo|Hunter/i)
+  })
+
+  it('the timeout state is honest and offers no retry of the proof start', () => {
+    expect(deskSrc).toContain('We’re still finding your matches. You can come back to this page shortly.')
+    expect(deskCode).toContain('setFindingTimedOut(true)')
+    expect(deskCode).not.toMatch(/we'll notify you the moment your|we will let you know|try proof again|start proof again/i)
+  })
+
+  it('the PAYING client\'s empty-state copy is untouched — not this commit\'s call', () => {
+    expect(deskSrc).toContain('No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯')
+  })
+
+  it('the chat opener no longer says "no new leads" while a run is in flight', () => {
+    expect(deskCode).toContain("isFinding()\n          ? `Hi 👋 I'm Milla. I'm finding real people who match your targeting right now")
+    // The ordinary empty greeting survives for everyone else.
+    expect(deskCode).toContain('No new leads waiting this moment')
+  })
+
+  it('polling REUSES the existing lead read path — no new endpoint', () => {
+    expect(deskCode).toContain("api.get<{ data: MaskedLead[] }>('/leads/for-approval', tok)")
+    expect(deskCode).toContain('void load().finally(() => { inFlight = false })')
+  })
+
+  it('POLLING IS READ-ONLY — no POST, no proof, no provider, no mutation', () => {
+    const from = deskCode.indexOf('if (!finding || pending.length > 0) return')
+    const to   = deskCode.indexOf('}, [finding, pending.length, load])')
+    expect(from, 'the polling effect').toBeGreaterThan(-1)
+    expect(to,   'the end of the polling effect').toBeGreaterThan(from)
+    const poll = deskCode.slice(from, to)
+    expect(poll).not.toMatch(/api\.post|api\.put|api\.patch|api\.delete/)
+    expect(poll).not.toMatch(/proof/i)
+    expect(poll).not.toMatch(/reveal|approve|charge|stripe/i)
+  })
+
+  it('there is STILL exactly one proof POST in the journey, and the desk has none', () => {
+    expect((welcomeCode.match(/\/proof`/g) ?? [])).toHaveLength(1)
+    // ⚠️ The whole reason the poll may only read. A second POST claims the client's SECOND
+    // pass — two passes gone, no leads seen, and no release RPC exists to undo it.
+    expect(deskCode).not.toMatch(/\/proof/)
+  })
+
+  it('the cadence is 3s, bounded at 20 checks (~60s)', () => {
+    expect(deskCode).toContain('const FINDING_POLL_MS = 3000')
+    expect(deskCode).toContain('const FINDING_MAX_CHECKS = 20')
+    expect(deskCode).toContain('}, FINDING_POLL_MS)')
+    expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
+  })
+
+  it('it stops when leads arrive, at the cap, and on unmount — and never overlaps', () => {
+    expect(deskCode).toContain('if (!finding || pending.length > 0) return')          // leads arrived
+    expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS)')                    // cap
+    expect(deskCode).toContain('return () => { cancelled = true; clearInterval(timer) }') // unmount
+    expect(deskCode).toContain('if (cancelled || inFlight) return')                    // no overlap
+    // ONE loop: a single setInterval, and every re-run tears the previous one down.
+    expect((deskCode.match(/setInterval\(/g) ?? [])).toHaveLength(1)
+    expect((deskCode.match(/clearInterval\(/g) ?? [])).toHaveLength(2)
+  })
+
+  // ── THE FINDING SIGNAL IS CONSUMED ON ARRIVAL, NOT LEFT LYING AROUND ──────────────────
+  //
+  // Stopping the poll when leads land left `finding` true, `findingTimedOut` possibly true,
+  // and `?finding=1` in the address bar. So once the client worked through the batch they
+  // were shown, `pending` went back to zero and the ENTIRE finding state returned — "Finding
+  // your matches now…" for leads that arrived long ago, and a poll re-armed against a run
+  // that had already finished. These guards are the ones that stop that regression.
+  it('the finding signal is CONSUMED the moment the first pending lead appears', () => {
+    expect(deskCode).toContain('if (!finding || pending.length === 0) return')
+    expect(deskCode).toContain('setFinding(false)')
+    expect(deskCode).toContain('setFindingTimedOut(false)')
+    expect(deskCode).toContain('}, [finding, pending.length])')
+  })
+
+  it('and the URL is cleaned, so a reload cannot resurrect it from the query string', () => {
+    // ⚠️ THE FLAGS ALONE ARE NOT ENOUGH. `isFinding()` reads the URL, and `setFinding` runs
+    // from it on mount — leaving `?finding=1` in place means one refresh puts the whole
+    // state back. Stripping the param is what makes the transition permanent.
+    expect(deskCode).toContain("url.searchParams.delete('finding')")
+    expect(deskCode).toContain("window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)")
+    // replaceState, NOT router.replace: this is URL hygiene, not a navigation. A navigation
+    // would remount the desk mid-arrival and push onto the history stack.
+    // ⚠️ SCOPED. A first cut banned /router\.replace\(/ file-wide and failed on the
+    // LEGITIMATE pre-existing redirect that sends a client with no ICP to /milla/welcome.
+    // The rule is "this transition does not navigate", not "this page never navigates" —
+    // and the read-only guard below asserts exactly that on the same slice.
+    expect(deskCode).toContain("router.replace('/milla/welcome')")   // still there, untouched
+  })
+
+  it('THE TRANSITION IS READ-ONLY — no POST, no proof, no provider, no navigation', () => {
+    const from = deskCode.indexOf('if (!finding || pending.length === 0) return')
+    const to   = deskCode.indexOf('}, [finding, pending.length])')
+    expect(from, 'the consume effect').toBeGreaterThan(-1)
+    expect(to,   'the end of the consume effect').toBeGreaterThan(from)
+    const consume = deskCode.slice(from, to)
+    expect(consume).not.toMatch(/api\.post|api\.put|api\.patch|api\.delete|api\.get/)
+    expect(consume).not.toMatch(/proof/i)
+    expect(consume).not.toMatch(/reveal|charge|stripe|billing/i)
+    expect(consume).not.toMatch(/router\./)
+  })
+
+  it('a later empty desk cannot reactivate finding from stale state', () => {
+    // Both sources of truth are spent by the transition: the component flag is set false,
+    // and the URL the flag is READ from no longer carries it. `setFinding(isFinding())` runs
+    // only on mount, so nothing re-reads a param that is gone.
+    expect(deskCode).toContain('useEffect(() => { setFinding(isFinding()) }, [])')
+    expect((deskCode.match(/setFinding\(/g) ?? [])).toHaveLength(2)   // mount read + consume
+    expect((deskCode.match(/setFinding\(true\)/g) ?? [])).toHaveLength(0)
+    // …and nothing re-derives it from a state that recurs, which is the whole bug.
+    expect(deskCode).not.toMatch(/setFinding\(pending|setFinding\(!|setFinding\(leads/)
+  })
+
+  it('and the masked lead experience past the finding state is untouched', () => {
+    expect(deskSrc).toContain("router.push('/milla/billing?start=1&from=proof')")
+    expect(deskSrc).toContain('👍 Looks right')
+    expect(deskSrc).toContain('Not a fit')
+    expect(deskSrc).toContain('await api.post(`/leads/${id}/pass`, {}, await token())')
+    expect(deskCode).toContain('const proofMode = needsGoLive')
   })
 })
 

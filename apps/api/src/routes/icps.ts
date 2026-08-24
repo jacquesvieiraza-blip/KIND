@@ -700,7 +700,14 @@ export async function runIcpJob(
       // note at the pool serve — because the fence is the client's and must not gate
       // the house. Identity is the AUTH USER (#593), never which API keys happen to be
       // set: that key-driven mixing is the defect this closes.
-      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience)
+      // ⚑ 24 Aug — `{ proofMode }` is the ONLY new argument, and it carries one meaning: this is
+      // a free-proof run, so the PDL query asks "does this person FIT?" rather than "can we
+      // email them today?". It is the SAME `proofMode` the fence, the reservation and the
+      // surfacing step already act on (declared at the top of this function from the pass the
+      // proof route atomically claimed) — not a second notion of proof-ness, and never
+      // inferred. Everything else about this call is unchanged: one page, `grantedSize`
+      // records, the same cursor, the same audience, the same reservation.
+      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
       relaxed = pdlRelaxed
 
       // Remember where PDL got to, so NEXT month starts after these people instead of on

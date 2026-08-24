@@ -470,8 +470,16 @@ describe('paid preview cannot run before the account exists', () => {
     expect(icpsSrc).toContain('const previewAudience = await audienceForUser(req.userId)')
   })
 
-  it('and a missing count still renders as "—" rather than an invented number', () => {
-    expect(welcomeCode).toContain("matchCount == null ? '—'")
+  it('and no count is RENDERED at all now — the tile that showed it is gone', () => {
+    // ⚑ 24 Aug (free-proof copy) — this required the "Matches found" tile to fall back to an
+    // em dash. That tile lived inside the plan card the founder removed, so there is no
+    // longer anywhere on this screen for a count, invented or real, to appear. Stronger than
+    // the guarantee it replaces: a tile that does not exist cannot show a wrong number.
+    expect(welcomeCode).not.toContain('Matches found')
+    expect(welcomeCode).not.toContain("matchCount == null ? '—'")
+    // The preview CALL is untouched — only its display went. Still one gated call site.
+    expect(welcomeCode.match(/'\/icps\/preview-count'/g) ?? []).toHaveLength(1)
+    expect(welcomeCode).toMatch(/if \(hasClient !== true\) \{ setMatchCount\(null\); return \}/)
   })
 })
 
@@ -531,13 +539,14 @@ describe('everything downstream of the confirmation is byte-for-byte the same jo
     // the comment above the button legitimately quotes the prices it warns about.
     expect(welcomeCode).not.toMatch(/\$299|\$99\b/)
 
-    // ⚠️ REPORTED, DELIBERATELY NOT FIXED (24 Aug). The per-lead price on this same panel
-    // IS hand-typed — "$4 per approved lead" — while `LEAD_PRICE_USD` sits in @kind/shared
-    // beside `PACK_PRICE_USD`. It predates this build and arrived with the panel; the $4
-    // model is on this build's no-touch list, so it is recorded here rather than corrected
-    // inside a first-run change. Asserted as-is so the day someone fixes it, they are told
-    // this line exists and is a known debt, not an accident.
-    expect(welcomeCode).toContain('$4 per approved lead')
+    // ⚑ THE DEBT THIS GUARD RECORDED IS NOW PAID, AND NOT THE WAY IT EXPECTED. It asserted
+    // that a hand-typed "$4 per approved lead" survived on this panel — reported as debt on
+    // 24 Aug because the $4 model was on that build's no-touch list. The founder's answer
+    // was better than interpolating it: the price does not belong on this screen AT ALL,
+    // because the client has not seen a lead yet. So the assertion is inverted, and the
+    // no-price rule below is now absolute for this panel.
+    expect(welcomeCode).not.toContain('$4 per approved lead')
+    expect(welcomeCode).not.toMatch(/\$\s?\d/)
   })
 
   it('no charge and no send were introduced anywhere in the first-run path', () => {
@@ -995,30 +1004,66 @@ describe('no number is shown that no preview produced', () => {
     expect(welcomeCode).not.toContain('matchCount == null ? 200')
   })
 
-  it('the recommendation exists only when a real preview backs it', () => {
-    expect(welcomeCode).toContain('const previewReady = matchCount != null')
-    expect(welcomeCode).toMatch(/const recCredits = previewReady \? [\s\S]{0,120}? : null/)
+  // ⚑ 24 Aug (free-proof copy) — THESE GUARDS ARE NOW STRONGER, NOT WEAKER. They used to
+  // require the plan card and prove its numbers were honest ("show an em dash, never a
+  // figure nobody computed"). The founder's ruling removed the card outright: it quoted the
+  // POST-PURCHASE per-lead price to a prospect who has not seen a single lead yet, on the
+  // one screen whose job is "here is what free proof will show you". A card that cannot
+  // render cannot fabricate a number, so the assertions are INVERTED rather than deleted —
+  // and the derivations that fed it are gone too, because four dead computations of a price
+  // this screen must not show are how the price finds its way back.
+  it('the whole plan card is gone — nothing here can quote a downstream price', () => {
+    // Absence asserted on CODE. The comment above the new card quotes what it replaced on
+    // purpose — it is the record of why this screen must not carry a price, and deleting
+    // the account of the bug along with the bug is how a repo forgets. Same convention as
+    // every other absence assertion in this file.
+    expect(welcomeCode).not.toContain('Starter plan')
+    expect(welcomeCode).not.toContain('$4 per approved lead')
+    expect(welcomeCode).not.toContain('You only ever pay when you approve a lead')
+    expect(welcomeCode).not.toContain('counted this audience yet')
   })
 
-  it('meeting estimates are derived from that, so they vanish with it', () => {
-    expect(welcomeCode).toContain('const meetLow  = recCredits == null ? null :')
-    expect(welcomeCode).toContain('const meetHigh = recCredits == null ? null :')
+  it('and its derived numbers went with it, so none can be rendered again', () => {
+    for (const dead of ['previewReady', 'recCredits', 'meetLow', 'meetHigh']) {
+      expect(welcomeCode, dead).not.toContain(dead)
+    }
   })
 
-  it('the approvals tile renders an em dash, never a number nobody computed', () => {
-    expect(welcomeCode).toContain("{recCredits ?? '—'}")
-    expect(welcomeCode).toContain("{matchCount == null ? '—' : matchCount.toLocaleString()}")
+  it('the panel describes the CURRENT stage, which is free', () => {
+    expect(welcomeSrc).toContain('Free proof')
+    expect(welcomeSrc).toContain('Up to 20 masked leads')
+    expect(welcomeSrc).toContain('See who K.I.N.D would find before you decide to go live.')
   })
 
-  it('and the estimate line is replaced by an honest one, not hidden', () => {
-    expect(welcomeCode).toContain('{previewReady ? (')
-    expect(welcomeSrc).toContain('We haven&rsquo;t counted this audience yet')
-    // The one price that IS known is still stated — honesty is not silence.
-    expect(welcomeSrc).toContain('You only ever pay when you approve a lead.')
+  it('NO price of any kind appears on this screen — not $299, not $4, not the first 100', () => {
+    expect(welcomeCode).not.toMatch(/\$\s?\d/)
+    expect(welcomeCode).not.toContain('PACK_PRICE_USD')
+    expect(welcomeCode).not.toContain('LEAD_PRICE_USD')
+    expect(welcomeCode).not.toContain('PACK_LEADS')
+    expect(welcomeCode).not.toMatch(/first 100|100 approved/i)
   })
 
-  it('an existing client with a real preview sees exactly what they saw before', () => {
-    expect(welcomeCode).toMatch(/Estimate: <b className="text-\[#5c5279\]">\{meetLow\}–\{meetHigh\} meetings<\/b> from ~\{recCredits\} approvals/)
+  it('the $4 model is untouched everywhere it LEGITIMATELY appears', () => {
+    // This is a copy change on ONE screen, not a pricing change. The desk, the wallet chip
+    // and the billing page still state the model exactly as they did.
+    //
+    // ⚠️ BOTH DESK SITES, NOT "toContain". A first cut asserted the desk merely CONTAINS
+    // "$4 per approved lead" — and RED C15, which wiped the wallet-KPI subtitle, PASSED,
+    // because the second occurrence further down still satisfied the match. A guard that a
+    // partial deletion can satisfy does not protect the thing it names.
+    const desk = read(join(PORTAL, 'app/(milla)/milla/page.tsx'))
+    expect(desk).toContain('s="$4 per approved lead"')                        // wallet KPI
+    expect(desk).toContain("'$4 per approved lead — final. Reviewing is free.'") // lead cards
+    expect((desk.match(/\$4 per approved lead/g) ?? []).length).toBeGreaterThanOrEqual(2)
+    // Billing has several $4 lines, so the same partial-deletion hole applies. Anchor on the
+    // INTERPOLATED one instead — that is the economics guarantee, not a copy string: the
+    // page still derives both prices from the shared constants (method rule 7).
+    const billing = read(join(PORTAL, 'app/(dashboard)/dashboard/billing/page.tsx'))
+    expect(billing).toContain('${PACK_PRICE_USD} to start, then top up any time. ${LEAD_PRICE_USD} per approved lead.')
+    expect(billing).toMatch(/import \{[^}]*LEAD_PRICE_USD[^}]*\} from '@kind\/shared'/)
+    expect(read(join(REPO, 'packages/shared/src/constants/index.ts'))).toContain('export const LEAD_PRICE_USD')
+    expect(read(join(REPO, 'packages/shared/src/constants/index.ts'))).toContain('export const PACK_LEADS = 100')
+    expect(read(join(REPO, 'packages/shared/src/constants/index.ts'))).toContain('export const PACK_PRICE_USD = 299')
   })
 
   it('and no provider call was added to fill the gap', () => {

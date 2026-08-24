@@ -128,7 +128,14 @@ export default function MillaWelcomePage() {
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
   const [proposed, setProposed] = useState<IcpDraft | null>(null)
-  const [matchCount, setMatchCount] = useState<number | null>(null)
+  // ⚑ 24 Aug — the VALUE is no longer read on this screen (the plan card that displayed it
+  // is gone), but the setter stays: `propose()` still runs the gated preview and "Keep
+  // adjusting the target" still clears it, and neither of those is copy. Bound as `[,
+  // setMatchCount]` rather than deleted, so the preview behaviour is untouched by a copy
+  // change. ⚠️ REPORTED, NOT FIXED HERE: that means /icps/preview-count now has no consumer
+  // on this page. Whether it should still run at all is a provider-boundary question, and
+  // this build is copy-only.
+  const [, setMatchCount] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   // What Milla understood about the business, alongside the targeting.
@@ -409,12 +416,17 @@ export default function MillaWelcomePage() {
   // beneath the targeting it appears to describe. That is the "$138 · verified" failure —
   // a number nobody computed, rendered as though somebody had.
   //
-  // So the tiles go honest instead. The fix is display-only: no provider call is added,
-  // and the preview gate is untouched.
-  const previewReady = matchCount != null
-  const recCredits = previewReady ? Math.max(100, Math.min(500, Math.round(matchCount! / 50) * 50 || 200)) : null
-  const meetLow  = recCredits == null ? null : Math.round(recCredits * 0.04)
-  const meetHigh = recCredits == null ? null : Math.round(recCredits * 0.07)
+  // So the tiles went honest instead. The fix was display-only: no provider call was added,
+  // and the preview gate was untouched.
+  //
+  // ⚑ 24 Aug (free-proof copy) — AND NOW THE PANEL THEY FED IS GONE, so they are too.
+  // `previewReady`, `recCredits`, `meetLow` and `meetHigh` existed only to render a plan
+  // card that quoted the post-purchase per-lead price before the client had seen a lead.
+  // With that card replaced by the free-proof card, nothing reads them — they only fed each
+  // other. Deleting them is a consequence of the copy change, not a tidy-up: leaving four
+  // dead derivations of a price this screen must not show is how the price finds its way
+  // back. The preview itself is UNCHANGED: `matchCount` is still set by `propose()` behind
+  // the same account gate, and still cleared by "Keep adjusting the target".
   const chips = (arr: string[]) => arr.filter(Boolean)
   const showProfile = hasClient === false && profile && Object.values(profile).some(Boolean)
 
@@ -587,19 +599,25 @@ export default function MillaWelcomePage() {
                 </div>
               )}
 
-              <div className="text-[15px] font-bold mb-2">Starter plan {previewReady && <span className="text-[10px] font-semibold text-[#b3a9cc] uppercase">· recommended</span>}</div>
-              <div className="flex gap-2.5 mb-2">
-                <div className="flex-1 bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5"><div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">Approvals</div><div className="text-[19px] font-extrabold">{recCredits ?? '—'}</div><div className="text-[11px] text-[#9b8ec4]">$4 per approved lead</div></div>
-                <div className="flex-1 bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5"><div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">Matches found</div><div className="text-[19px] font-extrabold">{matchCount == null ? '—' : matchCount.toLocaleString()}</div><div className="text-[11px] text-[#9b8ec4]">to this ICP</div></div>
+              {/* ── THIS SCREEN DESCRIBES ONE STAGE, AND THE STAGE IS FREE (founder-ruled 24 Aug) ──
+                  This was a "Starter plan" card: an Approvals tile reading "$4 per approved
+                  lead", and a line ending "you only ever pay when you approve a lead". Every
+                  word of it was TRUE and every word of it was PREMATURE — it quoted the
+                  post-purchase per-lead price to a prospect who has not seen a single lead
+                  yet, on the one screen whose whole job is now "here is what free proof will
+                  show you". The approved sequence is free proof → they judge the fit → $299
+                  → first 100 included → $4 after that. So the panel says the stage it is in,
+                  and the money arrives when the money is actually being asked for.
+                  ⚠️ NO PRICE OF ANY KIND BELONGS ON THIS SCREEN — not $299, not $4, not the
+                  first 100. The $299 ask lives behind "Looks right" on the desk, and the $4
+                  model is unchanged everywhere it legitimately appears (billing, usage, the
+                  wallet chip, the desk). This is copy, and only copy: no economics moved. */}
+              <div className="text-[15px] font-bold mb-2">Free proof</div>
+              <div className="bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5 mb-2">
+                <div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">What happens next</div>
+                <div className="text-[19px] font-extrabold">Up to 20 masked leads</div>
+                <div className="text-[11px] text-[#9b8ec4]">See who K.I.N.D would find before you decide to go live.</div>
               </div>
-              {previewReady ? (
-                <div className="text-[11.5px] text-[#9b8ec4] mb-4">Estimate: <b className="text-[#5c5279]">{meetLow}–{meetHigh} meetings</b> from ~{recCredits} approvals — you only ever pay when you approve a lead.</div>
-              ) : (
-                /* We have not counted this audience yet, so we say so. Inventing a plan here
-                   would be a number the client could reasonably act on and we could not
-                   defend. They still know the only price that matters: you pay per approval. */
-                <div className="text-[11.5px] text-[#9b8ec4] mb-4">We haven&rsquo;t counted this audience yet — we&rsquo;ll size it and recommend a plan once your account is open. You only ever pay when you approve a lead.</div>
-              )}
 
               {/* ⚑ round 4 — THE BUTTON IS THE CONFIRMATION. Pressing it persists the business
                   understanding AND records that the client said it represents them

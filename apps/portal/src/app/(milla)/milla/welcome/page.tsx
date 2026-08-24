@@ -54,17 +54,60 @@ async function token(): Promise<string | undefined> {
   try { const { data } = await createClient().auth.getSession(); return data.session?.access_token } catch { return undefined }
 }
 
+/** ── A PERSON'S WEBSITE, TURNED INTO A URL (GPT review, 24 Aug) ────────────────────────
+ *
+ *  `/auth/onboard` validates `website` with `z.string().url()`, and a person asked for their
+ *  website says "acme.com". That is not a URL, and the whole account creation — company,
+ *  country, referral, consent — would have 400'd on the one optional field, because the first
+ *  cut trusted the model to happen to emit a scheme. It usually would. "Usually" is not a
+ *  contract, and the failure lands on the client's very first action.
+ *
+ *  So the value is normalised here, deterministically, before it is ever posted:
+ *    ''               → ''             (blank stays blank — the field is optional)
+ *    'https://acme.com' → unchanged     (already valid)
+ *    'acme.com'       → 'https://acme.com'
+ *    'www.acme.com'   → 'https://www.acme.com'   (their words kept, scheme added)
+ *    'we don't have one' → null        (NOT a website, and nothing is invented from it)
+ *
+ *  ⚠️ It only ever ADDS A SCHEME to something already shaped like a host. It never guesses a
+ *  domain from a company name, never infers one from an email, and returns null rather than
+ *  producing a plausible-looking URL nobody typed.
+ *
+ *  ⚠️ NOT EXPORTED, and it cannot be: a Next.js App Router page may only export page fields,
+ *  and `export function normalizeWebsite` failed the portal build with "not a valid Page
+ *  export field". `first-run-milla.test.ts` therefore lifts this function out of the source
+ *  and runs it, which tests the real thing without needing an export the router forbids. */
+function normalizeWebsite(raw: string | null | undefined): string | null {
+  const v = (raw ?? '').trim()
+  if (!v) return ''                                   // blank is a valid answer: no website
+  if (/\s/.test(v)) return null                       // a sentence is not a website
+  // ⚠️ AN EMAIL ADDRESS IS NOT A WEBSITE, and this is not theoretical: `new URL` happily
+  // reads "jacques@acme.com" as userinfo + host, so the first cut of this helper turned a
+  // client's email into "https://jacques@acme.com" and stored it as their site. Caught by
+  // the guard below. Anything carrying credentials-shaped syntax is refused outright.
+  if (v.includes('@')) return null
+  const withScheme = /^https?:\/\//i.test(v) ? v : `https://${v}`
+  const u = (() => { try { return new URL(withScheme) } catch { return null } })()
+  if (!u) return null
+  if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
+  // A host must look like a real domain: at least one dot and an alphabetic TLD. This is
+  // what rejects "hello", "acme.", "127.0.0.1" and anything with an @ in it.
+  if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*\.[a-z]{2,}$/i.test(u.hostname)) return null
+  return u.toString().replace(/\/$/, '')              // no cosmetic trailing slash
+}
+
 /** First thing in a message that looks like the client's website. Deliberately dumb: it only
  *  has to spot "acme.co.za" or "https://acme.com" so Milla can offer to have a look. A miss
- *  costs nothing — she asks for it in words, and the client can say it again. */
+ *  costs nothing — she asks for it in words, and the client can say it again.
+ *  Normalised through the SAME helper the account write uses, so the site we read and the
+ *  site we store can never disagree. */
 function firstUrl(text: string): string | null {
-  const m = text.match(/\b(?:https?:\/\/)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)(\/\S*)?/i)
+  const m = text.match(/\b(?:https?:\/\/)?((?:[a-z0-9-]+\.)+[a-z]{2,})(\/\S*)?/i)
   if (!m) return null
   const host = m[1].toLowerCase()
-  // An email address is not a website, and neither is a sentence with a full stop in it.
+  // An email address is not a website.
   if (text.toLowerCase().includes(`@${host}`)) return null
-  if (!/\.[a-z]{2,}$/i.test(host)) return null
-  return `https://${host}`
+  return normalizeWebsite(host) || null
 }
 
 const GREETING = "Hi 👋 I'm Milla, your campaign partner. Let's get you set up — tell me a bit about your company and who your best customers are, and I'll build your targeting plan. No forms."
@@ -94,6 +137,19 @@ export default function MillaWelcomePage() {
   // `null` = we have not looked yet. Everything first-run-only keys off `hasClient === false`
   // so that an unanswered lookup never causes an existing client to be treated as new.
   const [hasClient, setHasClient] = useState<boolean | null>(null)
+  // ── THE FIRST MESSAGE CANNOT RACE THE LOOKUP (GPT review, 24 Aug) ──────────────────
+  // `hasClient` starts null and resolves asynchronously, and a real person types fast. In
+  // the first cut, a brand-new client who pasted their website into the very first message
+  // hit `readWebsite`'s `hasClient !== false` guard while the answer was still in flight —
+  // so their site was silently never read — and `send` posted with no idea which mode the
+  // conversation was in. Both failures are invisible: nothing errors, the client just gets
+  // a worse product than the one we built.
+  //
+  // FAIL CLOSED. Nothing substantive happens until the answer is in. And a lookup that
+  // FAILED is not an answer: it must never be resolved by guessing, in either direction.
+  // Guessing "new" re-interviews a paying client; guessing "existing" strands a new one
+  // with no account. So it becomes a retry, and until then: no provider call, no write.
+  const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [profile, setProfile] = useState<Profile | null>(null)
   // Provisional website evidence: held to pass BACK into Milla's context, and shown on the
   // panel as unconfirmed until the client endorses it out loud.
@@ -104,27 +160,34 @@ export default function MillaWelcomePage() {
   const readSites = useRef<Set<string>>(new Set())
   const bodyRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    ;(async () => {
-      const tk = await token()
-      // Does this person already have an account? `/clients/me/profile` answers with
-      // `data: null` rather than 404, so a brand-new signup is a clean "no" and not an
-      // error. Only a CONFIRMED answer sets the flag — a failed lookup leaves it null,
-      // and null never triggers first-run behaviour.
-      try {
-        const p = await api.get<{ data: { id: string } | null }>('/clients/me/profile', tk)
-        setHasClient(Boolean(p.data?.id))
-      } catch { /* unknown — stays null, and nothing first-run-only fires */ }
-      try {
-        const r = await api.get<{ data: Array<{ id: string }> }>('/icps', tk)
-        if ((r.data ?? []).length > 0) {
-          setRefining(true)
-          setMessages(m => (m.length === 1 && m[0].content === GREETING)
-            ? [{ role: 'assistant', content: REFINING_GREETING }] : m)
-        }
-      } catch { /* silent — the page still works as first-time setup */ }
-    })()
+  /** Resolve "does this person already have an account?" — the question every first-run
+   *  rule below keys off. Separate and retryable, because it is now a hard prerequisite
+   *  rather than a nice-to-have. */
+  const loadStatus = useCallback(async () => {
+    setStatus('loading')
+    const tk = await token()
+    // `/clients/me/profile` answers with `data: null` rather than 404, so a brand-new
+    // signup is a clean "no" and not an error. Only a CONFIRMED answer sets the flag.
+    try {
+      const p = await api.get<{ data: { id: string } | null }>('/clients/me/profile', tk)
+      setHasClient(Boolean(p.data?.id))
+      setStatus('ready')
+    } catch {
+      setHasClient(null)
+      setStatus('error')
+      return
+    }
+    try {
+      const r = await api.get<{ data: Array<{ id: string }> }>('/icps', tk)
+      if ((r.data ?? []).length > 0) {
+        setRefining(true)
+        setMessages(m => (m.length === 1 && m[0].content === GREETING)
+          ? [{ role: 'assistant', content: REFINING_GREETING }] : m)
+      }
+    } catch { /* silent — the page still works as first-time setup */ }
   }, [])
+
+  useEffect(() => { void loadStatus() }, [loadStatus])
 
   useEffect(() => { const el = bodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages, proposed])
 
@@ -169,6 +232,12 @@ export default function MillaWelcomePage() {
 
   async function send(text: string) {
     const msg = text.trim(); if (!msg || thinking) return
+    // ⚠️ FAIL CLOSED ON AN UNRESOLVED ACCOUNT STATUS. Not a nicety: everything below —
+    // which mode the builder runs in, whether the website is read, whether preview may
+    // call a provider — depends on knowing. The composer is disabled while this is true,
+    // so reaching here means a keyboard submit beat the render; refuse rather than run
+    // the conversation in a mode nobody chose.
+    if (status !== 'ready' || hasClient === null) return
     setInput(''); setError(null); setThinking(true)
     const history = [...messages, { role: 'user' as const, content: msg }]
     setMessages(history)
@@ -177,9 +246,16 @@ export default function MillaWelcomePage() {
       // very next message can put what we found to them and ask whether it is right.
       const url = firstUrl(msg)
       const evidence = (url ? await readWebsite(url) : null) ?? webEvidence
+      // The route cannot know who is calling — it holds no client row — so the mode is
+      // stated explicitly. TRUE only on a confirmed first run; a returning client is asked
+      // for nothing about an account they already have.
       const r = await api.post<{ data: BuilderReply }>(
         '/icps/builder/chat',
-        { messages: history, ...(evidence ? { website_evidence: evidence } : {}) },
+        {
+          messages: history,
+          profile_required: hasClient === false,
+          ...(evidence ? { website_evidence: evidence } : {}),
+        },
         await token(),
       )
       const d = r.data
@@ -240,7 +316,11 @@ export default function MillaWelcomePage() {
           company_name: p!.company_name.trim(),
           country:      p!.country.trim(),
           industry:     p!.industry?.trim() || '',
-          website:      p!.website?.trim() || '',
+          // Normalised, never fabricated: "acme.com" becomes a URL the schema accepts, and
+          // anything that is not a website at all becomes blank rather than a 400 that
+          // would take the whole account creation down with it. Website is optional; the
+          // account is not.
+          website:      normalizeWebsite(p!.website) || '',
           phone:        p!.phone?.trim() || '',
           contact_name: p!.contact_name?.trim() || '',
           ...(ref ? { referred_by: ref } : {}),
@@ -266,9 +346,22 @@ export default function MillaWelcomePage() {
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 
-  // Recommended starter credit plan (a suggestion, clearly labelled — not a guarantee).
-  const recCredits = matchCount == null ? 200 : Math.max(100, Math.min(500, Math.round(matchCount / 50) * 50 || 200))
-  const meetLow = Math.round(recCredits * 0.04), meetHigh = Math.round(recCredits * 0.07)
+  // ── NO NUMBER WITHOUT A PREVIEW BEHIND IT (GPT review, 24 Aug) ──────────────────────
+  // This read `matchCount == null ? 200 : …`, and 200 then drove the "Approvals" figure
+  // AND an "8–14 meetings" estimate. That fallback was written when a null count meant a
+  // preview had FAILED — a rare accident. Deferring the paid preview until the account
+  // exists makes null the NORMAL first-run state, so the fallback stopped being a graceful
+  // degradation and became a fabricated recommendation: a brand-new client would read a
+  // precise-looking plan and a meetings range that came from nothing, sitting directly
+  // beneath the targeting it appears to describe. That is the "$138 · verified" failure —
+  // a number nobody computed, rendered as though somebody had.
+  //
+  // So the tiles go honest instead. The fix is display-only: no provider call is added,
+  // and the preview gate is untouched.
+  const previewReady = matchCount != null
+  const recCredits = previewReady ? Math.max(100, Math.min(500, Math.round(matchCount! / 50) * 50 || 200)) : null
+  const meetLow  = recCredits == null ? null : Math.round(recCredits * 0.04)
+  const meetHigh = recCredits == null ? null : Math.round(recCredits * 0.07)
   const chips = (arr: string[]) => arr.filter(Boolean)
   const showProfile = hasClient === false && profile && Object.values(profile).some(Boolean)
 
@@ -315,11 +408,23 @@ export default function MillaWelcomePage() {
             </div>
           </div>
           <div className="shrink-0 px-6 pb-5 pt-2 border-t border-[#eee7f7] bg-white">
-            <form onSubmit={e => { e.preventDefault(); send(input) }} className="max-w-2xl mx-auto flex gap-2">
-              <input value={input} onChange={e => setInput(e.target.value)} placeholder="e.g. Heads of Ops at UK logistics firms, 50–500 staff…"
-                className="flex-1 text-[13.5px] rounded-xl border border-[#e4dcf7] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30" />
-              <button type="submit" disabled={thinking || !input.trim()} className="text-[13px] font-bold text-white rounded-xl px-6 bg-[#7C3AED] disabled:opacity-50">Send</button>
-            </form>
+            {/* The composer is closed until we know whether this person already has an
+                account — see the `status` comment above. A failed lookup offers a retry
+                rather than a guess, because both guesses are wrong for somebody. */}
+            {status === 'error' ? (
+              <div className="max-w-2xl mx-auto flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <span className="text-[12.5px] text-[#7a6a3a]">I couldn&rsquo;t load your account just now, so I&rsquo;d rather not start until I can.</span>
+                <button type="button" onClick={() => { void loadStatus() }}
+                  className="text-[12.5px] font-bold text-white rounded-xl px-4 py-2 bg-[#7C3AED] shrink-0">Try again</button>
+              </div>
+            ) : (
+              <form onSubmit={e => { e.preventDefault(); send(input) }} className="max-w-2xl mx-auto flex gap-2">
+                <input value={input} onChange={e => setInput(e.target.value)} disabled={status !== 'ready'}
+                  placeholder={status === 'ready' ? 'e.g. Heads of Ops at UK logistics firms, 50–500 staff…' : 'One moment — getting your account ready…'}
+                  className="flex-1 text-[13.5px] rounded-xl border border-[#e4dcf7] px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 disabled:opacity-50" />
+                <button type="submit" disabled={status !== 'ready' || thinking || !input.trim()} className="text-[13px] font-bold text-white rounded-xl px-6 bg-[#7C3AED] disabled:opacity-50">Send</button>
+              </form>
+            )}
           </div>
         </section>
 
@@ -429,12 +534,19 @@ export default function MillaWelcomePage() {
                 </div>
               )}
 
-              <div className="text-[15px] font-bold mb-2">Starter plan <span className="text-[10px] font-semibold text-[#b3a9cc] uppercase">· recommended</span></div>
+              <div className="text-[15px] font-bold mb-2">Starter plan {previewReady && <span className="text-[10px] font-semibold text-[#b3a9cc] uppercase">· recommended</span>}</div>
               <div className="flex gap-2.5 mb-2">
-                <div className="flex-1 bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5"><div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">Approvals</div><div className="text-[19px] font-extrabold">{recCredits}</div><div className="text-[11px] text-[#9b8ec4]">$4 per approved lead</div></div>
+                <div className="flex-1 bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5"><div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">Approvals</div><div className="text-[19px] font-extrabold">{recCredits ?? '—'}</div><div className="text-[11px] text-[#9b8ec4]">$4 per approved lead</div></div>
                 <div className="flex-1 bg-[#faf8ff] border border-[#eee7f7] rounded-xl px-3 py-2.5"><div className="text-[9.5px] uppercase font-extrabold text-[#b3a9cc]">Matches found</div><div className="text-[19px] font-extrabold">{matchCount == null ? '—' : matchCount.toLocaleString()}</div><div className="text-[11px] text-[#9b8ec4]">to this ICP</div></div>
               </div>
-              <div className="text-[11.5px] text-[#9b8ec4] mb-4">Estimate: <b className="text-[#5c5279]">{meetLow}–{meetHigh} meetings</b> from ~{recCredits} approvals — you only ever pay when you approve a lead.</div>
+              {previewReady ? (
+                <div className="text-[11.5px] text-[#9b8ec4] mb-4">Estimate: <b className="text-[#5c5279]">{meetLow}–{meetHigh} meetings</b> from ~{recCredits} approvals — you only ever pay when you approve a lead.</div>
+              ) : (
+                /* We have not counted this audience yet, so we say so. Inventing a plan here
+                   would be a number the client could reasonably act on and we could not
+                   defend. They still know the only price that matters: you pay per approval. */
+                <div className="text-[11.5px] text-[#9b8ec4] mb-4">We haven&rsquo;t counted this audience yet — we&rsquo;ll size it and recommend a plan once your account is open. You only ever pay when you approve a lead.</div>
+              )}
 
               {/* The button says what actually happens next: they approve, and the very next
                   screen is the pack — because nothing sources until it lands. Promising

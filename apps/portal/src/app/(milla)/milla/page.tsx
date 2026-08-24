@@ -327,6 +327,34 @@ export default function MillaHomePage() {
 
   const pending = (leads ?? []).filter(l => !revealed[l.id])
 
+  // ── FINDING → PROOF READY: THE SIGNAL IS CONSUMED, ONCE ─────────────────────────────
+  //
+  // ⚠️ THE ARRIVAL IS A ONE-WAY TRANSITION, AND IT HAS TO BE SPENT. Stopping the poll when
+  // leads land is not enough on its own: `finding` stayed true, `findingTimedOut` could
+  // still be true, and `?finding=1` stayed in the address bar. So the moment the client
+  // worked through everything they were shown — approved them, passed them — `pending`
+  // returned to zero and the whole finding state came BACK: a spinner and "Finding your
+  // matches now…" for a batch that arrived long ago, plus a poll re-armed against a run
+  // that had already finished. A signal that is not consumed is a signal that fires twice.
+  //
+  // Clearing the flags handles this render; stripping the query param is what makes it
+  // permanent, because `isFinding()` reads the URL and a reload would otherwise resurrect
+  // it. `history.replaceState` rather than `router.replace` — this is cosmetic URL
+  // hygiene, not a navigation, and it must not remount the desk or touch the history stack.
+  //
+  // READ-ONLY, like everything else on this page's proof path: no POST, no `/proof`, no
+  // provider call, no server or customer mutation, no billing navigation.
+  useEffect(() => {
+    if (!finding || pending.length === 0) return
+    setFinding(false)
+    setFindingTimedOut(false)
+    try {
+      const url = new URL(window.location.href)
+      url.searchParams.delete('finding')
+      window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+    } catch { /* the flags are already cleared — the URL is cosmetic, never the gate */ }
+  }, [finding, pending.length])
+
   // ── BOUNDED, READ-ONLY POLLING WHILE THE PROOF RUN FINISHES ─────────────────────────
   //
   // The ONLY thing this does is call `load()` again — the same `/leads/milla-summary` +

@@ -787,6 +787,58 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect((deskCode.match(/clearInterval\(/g) ?? [])).toHaveLength(2)
   })
 
+  // ── THE FINDING SIGNAL IS CONSUMED ON ARRIVAL, NOT LEFT LYING AROUND ──────────────────
+  //
+  // Stopping the poll when leads land left `finding` true, `findingTimedOut` possibly true,
+  // and `?finding=1` in the address bar. So once the client worked through the batch they
+  // were shown, `pending` went back to zero and the ENTIRE finding state returned — "Finding
+  // your matches now…" for leads that arrived long ago, and a poll re-armed against a run
+  // that had already finished. These guards are the ones that stop that regression.
+  it('the finding signal is CONSUMED the moment the first pending lead appears', () => {
+    expect(deskCode).toContain('if (!finding || pending.length === 0) return')
+    expect(deskCode).toContain('setFinding(false)')
+    expect(deskCode).toContain('setFindingTimedOut(false)')
+    expect(deskCode).toContain('}, [finding, pending.length])')
+  })
+
+  it('and the URL is cleaned, so a reload cannot resurrect it from the query string', () => {
+    // ⚠️ THE FLAGS ALONE ARE NOT ENOUGH. `isFinding()` reads the URL, and `setFinding` runs
+    // from it on mount — leaving `?finding=1` in place means one refresh puts the whole
+    // state back. Stripping the param is what makes the transition permanent.
+    expect(deskCode).toContain("url.searchParams.delete('finding')")
+    expect(deskCode).toContain("window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)")
+    // replaceState, NOT router.replace: this is URL hygiene, not a navigation. A navigation
+    // would remount the desk mid-arrival and push onto the history stack.
+    // ⚠️ SCOPED. A first cut banned /router\.replace\(/ file-wide and failed on the
+    // LEGITIMATE pre-existing redirect that sends a client with no ICP to /milla/welcome.
+    // The rule is "this transition does not navigate", not "this page never navigates" —
+    // and the read-only guard below asserts exactly that on the same slice.
+    expect(deskCode).toContain("router.replace('/milla/welcome')")   // still there, untouched
+  })
+
+  it('THE TRANSITION IS READ-ONLY — no POST, no proof, no provider, no navigation', () => {
+    const from = deskCode.indexOf('if (!finding || pending.length === 0) return')
+    const to   = deskCode.indexOf('}, [finding, pending.length])')
+    expect(from, 'the consume effect').toBeGreaterThan(-1)
+    expect(to,   'the end of the consume effect').toBeGreaterThan(from)
+    const consume = deskCode.slice(from, to)
+    expect(consume).not.toMatch(/api\.post|api\.put|api\.patch|api\.delete|api\.get/)
+    expect(consume).not.toMatch(/proof/i)
+    expect(consume).not.toMatch(/reveal|charge|stripe|billing/i)
+    expect(consume).not.toMatch(/router\./)
+  })
+
+  it('a later empty desk cannot reactivate finding from stale state', () => {
+    // Both sources of truth are spent by the transition: the component flag is set false,
+    // and the URL the flag is READ from no longer carries it. `setFinding(isFinding())` runs
+    // only on mount, so nothing re-reads a param that is gone.
+    expect(deskCode).toContain('useEffect(() => { setFinding(isFinding()) }, [])')
+    expect((deskCode.match(/setFinding\(/g) ?? [])).toHaveLength(2)   // mount read + consume
+    expect((deskCode.match(/setFinding\(true\)/g) ?? [])).toHaveLength(0)
+    // …and nothing re-derives it from a state that recurs, which is the whole bug.
+    expect(deskCode).not.toMatch(/setFinding\(pending|setFinding\(!|setFinding\(leads/)
+  })
+
   it('and the masked lead experience past the finding state is untouched', () => {
     expect(deskSrc).toContain("router.push('/milla/billing?start=1&from=proof')")
     expect(deskSrc).toContain('👍 Looks right')

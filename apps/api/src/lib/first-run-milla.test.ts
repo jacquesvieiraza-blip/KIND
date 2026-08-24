@@ -1,6 +1,84 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
+
+// ── THE TRANSPORT IS EXECUTED, NOT DESCRIBED (GPT review, 24 Aug) ────────────────────────
+// Every guard below this line reads source text, and source text cannot prove that a forced
+// tool call actually round-trips, that a bad enum is actually refused, or that a first-run
+// completion missing a company name actually fails. So the real Express handler is driven
+// with a mocked Anthropic response, using the pattern already established in this repo
+// (source-multi-icp.route.test.ts): mock the module, import the router, find the layer, call
+// the handler with a fake req/res.
+//
+// `vi.mock` is hoisted, so the reply the fake SDK returns is held in a `vi.hoisted` box that
+// each test sets before calling.
+const anthropicBox = vi.hoisted(() => ({
+  reply: null as unknown,
+  calls: 0,
+}))
+
+vi.mock('@anthropic-ai/sdk', () => ({
+  default: class FakeAnthropic {
+    messages = {
+      create: async () => { anthropicBox.calls += 1; return anthropicBox.reply },
+    }
+  },
+}))
+
+// `middleware/auth` builds a Supabase client at MODULE level, so importing the route without
+// this throws "supabaseUrl is required" before a single line of the handler runs. The
+// handler is reached directly off the router layer, so the middleware never executes — this
+// mock exists purely to make the import resolve.
+vi.mock('../middleware/auth', () => ({
+  requireAuth: (_req: unknown, _res: unknown, next: () => void) => next(),
+}))
+
+// The builder/chat handler touches no database — but importing the route module pulls `db`
+// in, so it has to exist. Deliberately inert: if this route ever starts reading the database,
+// these tests break loudly rather than passing against a silent stub.
+vi.mock('@kind/db', () => ({
+  db: {
+    from: () => { throw new Error('builder/chat must not touch the database') },
+    rpc:  () => { throw new Error('builder/chat must not touch the database') },
+    auth: { getUser: async () => ({ data: { user: null }, error: null }) },
+  },
+}))
+
+/** One turn through the REAL handler. Returns the status and payload the client would get. */
+async function callBuilderChat(body: Record<string, unknown>) {
+  const { icpRouter } = await import('../routes/icps')
+  const layer = (icpRouter as unknown as {
+    stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: Function }> } }>
+  }).stack.find(l => l.route?.path === '/builder/chat' && l.route?.methods.post)
+  if (!layer?.route) throw new Error('POST /builder/chat not found on the icp router')
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle
+  const out: { code: number; payload: Record<string, unknown> } = { code: 200, payload: {} }
+  const fakeRes = {
+    status(c: number) { out.code = c; return fakeRes },
+    json(p: Record<string, unknown>) { out.payload = p; return fakeRes },
+  }
+  await handler({ body, headers: {}, params: {}, query: {}, userId: 'user-1' }, fakeRes, () => {})
+  return out
+}
+
+/** An Anthropic response carrying one milla_reply tool call with the given input. */
+const toolReply = (input: unknown, over: Record<string, unknown> = {}) => ({
+  stop_reason: 'tool_use',
+  content: [{ type: 'tool_use', id: 'tu_1', name: 'milla_reply', input }],
+  ...over,
+})
+
+/** The smallest ICP the schema accepts, using only approved enum values. */
+const VALID_ICP = {
+  name: 'US IT & Tech Solutions Leaders',
+  industries: ['Logistics', 'Consulting'],
+  seniority_levels: ['C-Suite', 'VP / Director'],
+  company_sizes: ['51–200', '201–500'],
+  job_titles: ['CEO', 'CTO', 'Managing Director'],
+  geographies: ['United States'],
+  keywords: ['supply chain'],
+  apollo_only_consented: true,
+}
 
 // ── THE FIRST RUN BELONGS TO MILLA, AND SHE HAS TO LOOK LIKE HERSELF (24 Aug) ────────────
 //
@@ -836,7 +914,7 @@ describe('a system failure can never again speak as Milla', () => {
     expect(icpsSrc).toContain("if (response.stop_reason === 'max_tokens')")
     // and it is checked BEFORE anything tries to read the reply
     const stop = icpsSrc.indexOf("response.stop_reason === 'max_tokens'")
-    const read = icpsSrc.indexOf("const validated = MillaReplyInput.safeParse")
+    const read = icpsSrc.indexOf("const validated = millaReplyFor(profile_required).safeParse")
     expect(stop).toBeGreaterThan(-1)
     expect(read).toBeGreaterThan(stop)
   })
@@ -875,9 +953,35 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
 
   it('ToolUseBlock.input is NEVER trusted — it goes through Zod first', () => {
     expect(icpsSrc).toContain('const MillaReplyInput = z.object({')
-    expect(icpsSrc).toContain('const validated = MillaReplyInput.safeParse(call.input)')
+    // ⚑ The schema is now built per-request, because the first-run account gate depends on
+    // `profile_required` and a module-level schema cannot know it.
+    expect(icpsSrc).toContain('const validated = millaReplyFor(profile_required).safeParse(call.input)')
     expect(icpsSrc).toContain('if (!validated.success) {')
     expect(icpsSrc).toContain('const parsed = validated.data')
+  })
+
+  it('the first-run account gate lives in the VALIDATOR, not only in the prompt', () => {
+    expect(icpsSrc).toContain('const millaReplyFor = (profileRequired: boolean) =>')
+    expect(icpsSrc).toContain("if (!profileRequired || v.type !== 'complete') return")
+    expect(icpsSrc).toContain("message: 'a first-run completion must carry the company name'")
+    expect(icpsSrc).toContain('message: "a first-run completion must carry the client\'s own business country"')
+  })
+
+  it('the closed lists are enforced by Zod from the SAME constants, not a second copy', () => {
+    expect(icpsSrc).toContain('const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) =>')
+    expect(icpsSrc).toContain('industries:            boundedEnum(ICP_INDUSTRIES, 6)')
+    expect(icpsSrc).toContain('seniority_levels:      boundedEnum(ICP_SENIORITY, 6)')
+    expect(icpsSrc).toContain('company_sizes:         boundedEnum(ICP_SIZES, 6)')
+    // …and the open fields stayed open.
+    expect(icpsSrc).toContain('job_titles:            boundedList(10)')
+    expect(icpsSrc).toContain('geographies:           boundedList(8)')
+  })
+
+  it('the envelope demands stop_reason tool_use and EXACTLY one call', () => {
+    expect(icpsSrc).toContain("if (response.stop_reason !== 'tool_use') {")
+    expect(icpsSrc).toContain("millaReplyFailed(res, 'UNEXPECTED_STOP', meta)")
+    expect(icpsSrc).toContain('if (toolBlocks.length > 1) {')
+    expect(icpsSrc).toContain("millaReplyFailed(res, 'MULTIPLE_TOOL_CALLS', meta)")
   })
 
   it('the wrong tool name is refused rather than read', () => {
@@ -996,12 +1100,27 @@ describe('the conversational discipline the founder specified is in the prompt',
     expect(route).not.toMatch(/question \d+ of \d+/i)
   })
 
-  it("the client's wording is mapped to our enums instead of triggering a re-ask", () => {
-    expect(flat(route)).toContain('When their meaning is clear, MAP IT and move on')
-    for (const live of ['"MD and above"', '"50 - 500"', '"IT Solutions"']) {
-      expect(route, live).toContain(live)
-    }
-    expect(flat(route)).toContain('Never re-ask a whole targeting question just because their phrasing was not one of our values')
+  it("a CLEAR mapping is applied instead of triggering a re-ask", () => {
+    expect(flat(route)).toContain('WHEN THEIR MEANING CLEARLY MAPS to an allowed value, MAP IT and move on')
+    expect(route).toContain('"MD and above"   -> C-Suite, VP / Director')
+    expect(route).toContain('"50 - 500"       -> 51–200, 201–500')
+    expect(flat(route)).toContain('NEVER re-ask a whole targeting question just because their phrasing was not one of our values')
+    expect(flat(route)).toContain('One narrow clarification, never the checklist again.')
+  })
+
+  it("an UNCLEAR mapping is asked about narrowly — never guessed (GPT review)", () => {
+    // "IT Solutions" was previously told to map to "the closest listed industry", which is
+    // an instruction to guess. It is not a clear mapping: SaaS, Consulting and Telecoms are
+    // all defensible, and picking one invents the client's targeting.
+    expect(flat(route)).toContain('WHEN IT DOES NOT CLEARLY MAP, DO NOT GUESS')
+    expect(flat(route)).toContain('"IT Solutions" is the example worth knowing')
+    expect(flat(route)).toContain('it could reasonably mean SaaS, or Consulting, or Telecoms, and picking one for them is inventing their targeting')
+    expect(flat(route)).toContain('Ask which it is closest to — nothing else.')
+    // …and NO mapping arrow may point out of "IT Solutions" at all, whatever the spacing.
+    // ⚠️ A first cut asserted the old line verbatim including its exact column alignment,
+    // so re-adding the guess with different whitespace slipped straight through. Caught in
+    // RED F. Match the SHAPE of the instruction, never its formatting.
+    expect(route).not.toMatch(/IT Solutions"?\s*->/)
   })
 
   it('and the first-run account facts are still asked for specifically, never invented', () => {
@@ -1091,6 +1210,252 @@ describe('the Anthropic transcript begins with the client, not with our own copy
     expect(out[0].content).toBe('Head of Operations. Logistics. Mid Market')
     expect(out).toHaveLength(3)                 // the greeting, and only the greeting, is dropped
     expect(out.map(m => m.role)).toEqual(['user', 'assistant', 'user'])
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// ── EXECUTED, NOT DESCRIBED (GPT review, 24 Aug) ─────────────────────────────────────────
+// The guards above read source. These drive the real handler with a mocked Anthropic reply,
+// because "the schema enforces the enum" and "the first-run gate is real" are claims about
+// BEHAVIOUR, and a string assertion cannot make them.
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+describe('EXECUTED · a question round-trips exactly as Milla said it', () => {
+  beforeEach(() => { anthropicBox.calls = 0 })
+
+  it('the client gets Milla\'s own words, unmodified', async () => {
+    const content = 'And what does ABCV Logistics actually help customers with?'
+    anthropicBox.reply = toolReply({ type: 'question', content })
+
+    const out = await callBuilderChat({
+      messages: [{ role: 'user', content: 'ABCV Logistics' }],
+      profile_required: true,
+    })
+
+    expect(out.code).toBe(200)
+    expect(out.payload.success).toBe(true)
+    expect(out.payload.data).toEqual({ type: 'question', content })
+  })
+
+  it('and it took exactly ONE Anthropic call to get there', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'Which country is ABCV Logistics based in?' })
+    await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: true })
+    expect(anthropicBox.calls).toBe(1)
+  })
+
+  it('a question with no content is REFUSED, not passed through empty', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: '   ' })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: true })
+    expect(out.code).toBe(503)
+    expect(out.payload.retryable).toBe(true)
+  })
+})
+
+describe('EXECUTED · a completion round-trips validated and sanitised', () => {
+  beforeEach(() => { anthropicBox.calls = 0 })
+
+  it('a first-run completion carrying company and own country is accepted', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'complete',
+      summary: 'ABCV Logistics moves hardware for IT and tech firms.',
+      profile: { company_name: 'ABCV Logistics', country: 'United States', contact_name: 'Jacques' },
+      icp: VALID_ICP,
+      business: { product: 'Logistics for IT and technology solution companies.' },
+      proof: [{ claim: 'Cut delivery time for a customer', permitted: false }],
+      campaign_intent: 'Book meetings with senior decision-makers.',
+    })
+
+    const out = await callBuilderChat({
+      messages: [{ role: 'user', content: 'ABCV Logistics, based in the US' }],
+      profile_required: true,
+    })
+
+    expect(out.code).toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.type).toBe('complete')
+    expect(d.icp.name).toBe('US IT & Tech Solutions Leaders')
+    expect(d.icp.industries).toEqual(['Logistics', 'Consulting'])
+    expect(d.icp.company_sizes).toEqual(['51–200', '201–500'])
+    expect(d.profile.company_name).toBe('ABCV Logistics')
+    expect(d.profile.country).toBe('United States')
+    expect(d.business.product).toBe('Logistics for IT and technology solution companies.')
+    // Unmentioned business fields come back as empty strings, not undefined.
+    expect(d.business.tone).toBe('')
+    // A proof claim is permitted ONLY on an explicit true — this one was not approved.
+    expect(d.proof).toEqual([{ claim: 'Cut delivery time for a customer', permitted: false }])
+    expect(anthropicBox.calls).toBe(1)
+  })
+
+  it('a completion with no icp is refused', async () => {
+    anthropicBox.reply = toolReply({ type: 'complete', summary: 'x', profile: { company_name: 'A', country: 'B' } })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: true })
+    expect(out.code).toBe(503)
+  })
+})
+
+describe('EXECUTED · the first-run account gate is real validation, not a request', () => {
+  const completion = (profile: Record<string, unknown>) => toolReply({
+    type: 'complete', summary: 's', profile, icp: VALID_ICP,
+  })
+
+  it('company + own country present -> ACCEPTED', async () => {
+    anthropicBox.reply = completion({ company_name: 'ABCV Logistics', country: 'United States' })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+    expect(out.code).toBe(200)
+  })
+
+  it('company name MISSING -> REFUSED, and not as a Milla question', async () => {
+    anthropicBox.reply = completion({ country: 'United States' })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+    expect(out.code).toBe(503)
+    expect(out.payload.retryable).toBe(true)
+    expect((out.payload.data as unknown) ?? null).toBeNull()
+    expect(JSON.stringify(out.payload)).not.toContain('question')
+  })
+
+  it('company name BLANK counts as missing', async () => {
+    anthropicBox.reply = completion({ company_name: '   ', country: 'United States' })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+    expect(out.code).toBe(503)
+  })
+
+  it('own country MISSING -> REFUSED (target geography is NOT a substitute)', async () => {
+    // The ICP carries geographies: ['United States']. That must not satisfy the gate — where
+    // they sell and where they are based are different facts.
+    anthropicBox.reply = completion({ company_name: 'ABCV Logistics' })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+    expect(out.code).toBe(503)
+  })
+
+  it('a RETURNING client is not held to the gate at all', async () => {
+    anthropicBox.reply = toolReply({ type: 'complete', summary: 's', icp: VALID_ICP })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: false })
+    expect(out.code).toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.type).toBe('complete')
+    // …and carries no profile at all, so nothing can reach a record they already have.
+    expect(d.profile).toBeNull()
+  })
+})
+
+describe('EXECUTED · the closed lists are enforced at the trust boundary', () => {
+  const withIcp = (icp: Record<string, unknown>) => toolReply({
+    type: 'complete', summary: 's',
+    profile: { company_name: 'ABCV Logistics', country: 'United States' },
+    icp: { ...VALID_ICP, ...icp },
+  })
+  const run = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+
+  it('every approved value passes', async () => {
+    anthropicBox.reply = withIcp({
+      industries: ['Fintech', 'SaaS', 'Telecoms'],
+      seniority_levels: ['Head of', 'Manager', 'Senior'],
+      company_sizes: ['1–10', '501–1,000', '1,000+'],
+    })
+    expect((await run()).code).toBe(200)
+  })
+
+  it('an industry OUTSIDE the approved list is refused — "IT Solutions" is the live example', async () => {
+    anthropicBox.reply = withIcp({ industries: ['IT Solutions'] })
+    const out = await run()
+    expect(out.code).toBe(503)
+    expect(out.payload.retryable).toBe(true)
+  })
+
+  it('a seniority outside the approved list is refused', async () => {
+    anthropicBox.reply = withIcp({ seniority_levels: ['MD and above'] })
+    expect((await run()).code).toBe(503)
+  })
+
+  it('a company size outside the approved list is refused', async () => {
+    anthropicBox.reply = withIcp({ company_sizes: ['50 - 500'] })
+    expect((await run()).code).toBe(503)
+  })
+
+  it('but job titles, geographies and keywords stay the client\'s own words', async () => {
+    anthropicBox.reply = withIcp({
+      job_titles: ['Head of Fleet Ops', 'Chief Logistics Wrangler'],
+      geographies: ['United States', 'Botswana'],
+      keywords: ['3PL', 'last mile'],
+    })
+    expect((await run()).code).toBe(200)
+  })
+})
+
+describe('EXECUTED · every unusable envelope is refused, none of them speaks as Milla', () => {
+  const run = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+  const expectHonestFailure = (out: { code: number; payload: Record<string, unknown> }) => {
+    expect(out.code).toBe(503)
+    expect(out.payload.success).toBe(false)
+    expect(out.payload.retryable).toBe(true)
+    expect(out.payload.error).toBe('Milla lost that response — please send your last answer again.')
+    // The decisive assertion: nothing came back that the portal would render as Milla.
+    expect(out.payload.data).toBeUndefined()
+  }
+
+  it('TRUNCATED — stop_reason max_tokens', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'hi' }, { stop_reason: 'max_tokens' })
+    expectHonestFailure(await run())
+  })
+
+  it('UNEXPECTED_STOP — a forced tool call that stopped on end_turn', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'hi' }, { stop_reason: 'end_turn' })
+    expectHonestFailure(await run())
+  })
+
+  it('NO_TOOL_CALL — the model wrote prose instead', async () => {
+    anthropicBox.reply = { stop_reason: 'tool_use', content: [{ type: 'text', text: 'Tell me more about your targeting' }] }
+    expectHonestFailure(await run())
+  })
+
+  it('MULTIPLE_TOOL_CALLS — two replies is not one reply', async () => {
+    anthropicBox.reply = {
+      stop_reason: 'tool_use',
+      content: [
+        { type: 'tool_use', id: 'a', name: 'milla_reply', input: { type: 'question', content: 'first' } },
+        { type: 'tool_use', id: 'b', name: 'milla_reply', input: { type: 'question', content: 'second' } },
+      ],
+    }
+    const out = await run()
+    expectHonestFailure(out)
+    // …and neither of them leaked through as the answer.
+    expect(JSON.stringify(out.payload)).not.toContain('first')
+    expect(JSON.stringify(out.payload)).not.toContain('second')
+  })
+
+  it('WRONG_TOOL — a tool we never offered', async () => {
+    anthropicBox.reply = {
+      stop_reason: 'tool_use',
+      content: [{ type: 'tool_use', id: 'a', name: 'something_else', input: { type: 'question', content: 'hi' } }],
+    }
+    expectHonestFailure(await run())
+  })
+
+  it('INVALID_SHAPE — a type we never defined', async () => {
+    anthropicBox.reply = toolReply({ type: 'chit-chat', content: 'hello' })
+    expectHonestFailure(await run())
+  })
+
+  it('INVALID_SHAPE — a string past its bound', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'x'.repeat(601) })
+    expectHonestFailure(await run())
+  })
+
+  it('INVALID_SHAPE — more proof claims than the schema allows', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'complete', summary: 's',
+      profile: { company_name: 'A', country: 'B' },
+      icp: VALID_ICP,
+      proof: Array.from({ length: 13 }, (_, i) => ({ claim: `claim ${i}`, permitted: false })),
+    })
+    expectHonestFailure(await run())
+  })
+
+  it('and not one of those failures made a second Anthropic call', async () => {
+    anthropicBox.calls = 0
+    anthropicBox.reply = toolReply({ type: 'question', content: 'hi' }, { stop_reason: 'end_turn' })
+    await run()
+    expect(anthropicBox.calls).toBe(1)
   })
 })
 

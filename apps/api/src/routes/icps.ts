@@ -1382,6 +1382,15 @@ const millaReplyTool = (profileRequired: boolean) => ({
 /** Bounded validation of whatever actually arrives in `ToolUseBlock.input`.
  *  A forced tool call fixes the TRANSPORT; this fixes the CONTENT. */
 const boundedList = (maxItems: number, maxLen = 80) => z.array(z.string().max(maxLen)).max(maxItems).optional()
+
+/** ⚠️ THE CLOSED LISTS ARE ENFORCED HERE TOO, NOT ONLY DECLARED TO THE MODEL (GPT review).
+ *  The tool schema carries these as `enum`, which is guidance the provider's decoder applies
+ *  — it is not our trust boundary. The first cut validated all three with `boundedList()`, so
+ *  any string the decoder let through reached `icps.industries` and, from there, the PDL and
+ *  Apollo queries that read those columns. The SAME constants are reused; a second
+ *  hand-written copy of the values is exactly how the schema and the validator drift apart. */
+const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) =>
+  z.array(z.enum(values)).max(maxItems).optional()
 const MillaReplyInput = z.object({
   type:    z.enum(['question', 'complete']),
   content: z.string().max(600).optional(),
@@ -1396,10 +1405,13 @@ const MillaReplyInput = z.object({
   }).optional(),
   icp: z.object({
     name:                  z.string().max(120).optional(),
-    industries:            boundedList(6),
+    // Closed lists — refused outright if the value is not one of ours.
+    industries:            boundedEnum(ICP_INDUSTRIES, 6),
+    seniority_levels:      boundedEnum(ICP_SENIORITY, 6),
+    company_sizes:         boundedEnum(ICP_SIZES, 6),
+    // Genuinely open fields: a job title, a country and a keyword are the client's own
+    // words by design. Bounded in length and count, not in vocabulary.
     job_titles:            boundedList(10),
-    seniority_levels:      boundedList(6),
-    company_sizes:         boundedList(6),
     geographies:           boundedList(8),
     tech_stack:            boundedList(10),
     keywords:              boundedList(10),
@@ -1430,6 +1442,30 @@ const MillaReplyInput = z.object({
     }
   })
 
+/** ── THE FIRST-RUN GATE IS ENFORCED, NOT REQUESTED (GPT review) ──────────────────────────
+ *
+ *  The prompt tells the model not to answer "complete" without a company name and the
+ *  client's own country. That is an instruction, and an instruction is not a gate: the first
+ *  cut would have accepted a completion missing both, and the portal would then have tried to
+ *  open an account with an empty `company_name` — the very thing three separate rules exist
+ *  to prevent, since `clients.country` defaults to 'South Africa' rather than failing loudly.
+ *
+ *  ⚠️ ONLY ON A FIRST RUN. A returning client is never asked for these and their reply
+ *  carries no profile at all, so the gate is bound to `profile_required` rather than baked
+ *  into the schema. And `country` here means WHERE THEIR BUSINESS IS BASED — never the
+ *  targeting geography, which is a different fact and lives in `icp.geographies`. */
+const millaReplyFor = (profileRequired: boolean) =>
+  MillaReplyInput.superRefine((v, ctx) => {
+    if (!profileRequired || v.type !== 'complete') return
+    if (!(v.profile?.company_name ?? '').trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'company_name'], message: 'a first-run completion must carry the company name' })
+    }
+    if (!(v.profile?.country ?? '').trim()) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['profile', 'country'], message: "a first-run completion must carry the client's own business country" })
+    }
+    // contact_name, phone, website and industry stay genuinely optional — they always were.
+  })
+
 /** ── HONEST FAILURE, NEVER FAKE MILLA (founder-ruled 24 Aug) ─────────────────────────────
  *
  *  Every way this reply can be unusable ends here: truncation, no tool call, the wrong tool,
@@ -1444,7 +1480,7 @@ const MillaReplyInput = z.object({
  *  model and sizes — that is the whole list. */
 function millaReplyFailed(
   res: Response,
-  category: 'TRUNCATED' | 'NO_TOOL_CALL' | 'WRONG_TOOL' | 'INVALID_SHAPE',
+  category: 'TRUNCATED' | 'UNEXPECTED_STOP' | 'NO_TOOL_CALL' | 'MULTIPLE_TOOL_CALLS' | 'WRONG_TOOL' | 'INVALID_SHAPE',
   meta: { stop_reason?: string | null; blocks?: number; inputKeys?: number },
 ) {
   console.error('[icps/builder/chat] unusable model reply —', JSON.stringify({
@@ -1652,12 +1688,19 @@ decide what to ask from what they have actually said.
 
 ── THEIR WORDS WILL NOT MATCH OUR LISTS, AND THAT IS FINE ──────────────────────────────
 Some targeting fields accept only certain values (they are listed on the tool). People do
-not speak in enums. When their meaning is clear, MAP IT and move on:
-  "MD and above"            -> C-Suite, VP / Director
-  "50 - 500"                -> 51–200, 201–500
-  "IT Solutions"            -> the closest listed industry
-Never re-ask a whole targeting question just because their phrasing was not one of our
-values. If a mapping is genuinely ambiguous, ask about that one ambiguity in plain language.
+not speak in enums.
+
+WHEN THEIR MEANING CLEARLY MAPS to an allowed value, MAP IT and move on:
+  "MD and above"   -> C-Suite, VP / Director
+  "50 - 500"       -> 51–200, 201–500
+
+WHEN IT DOES NOT CLEARLY MAP, DO NOT GUESS. Ask about that ONE field, narrowly, and leave
+everything else they have already told you alone. "IT Solutions" is the example worth
+knowing: it could reasonably mean SaaS, or Consulting, or Telecoms, and picking one for them
+is inventing their targeting. Ask which it is closest to — nothing else.
+
+Either way, NEVER re-ask a whole targeting question just because their phrasing was not one
+of our values. One narrow clarification, never the checklist again.
 
 ── HOW TO REPLY ────────────────────────────────────────────────────────────────────────
 Reply by calling the ${MILLA_REPLY_TOOL} tool. That is the only way you speak here.
@@ -1679,31 +1722,51 @@ result or a number. "permitted" is false unless they explicitly said we may use 
       messages: messages.map(m => ({ role: m.role, content: m.content })),
     })
 
-    // ── FOUR WAYS THIS CAN BE UNUSABLE, AND NOT ONE OF THEM SPEAKS AS MILLA ─────────────
-    // Truncation first, because a cut-off tool call can still leave a well-formed-looking
-    // block behind — and the old code's whole failure was treating damaged output as a
-    // reply. `stop_reason` is the provider telling us plainly; it was never read before.
+    // ── A USABLE REPLY IS ONE EXACT SHAPE, AND EVERY OTHER SHAPE IS REFUSED ─────────────
+    // stop_reason 'tool_use' · EXACTLY ONE tool_use block · that block is milla_reply ·
+    // its input passes Zod. Anything else returns an honest retryable error. None of these
+    // paths can put words in Milla's mouth, which is the whole point of the rewrite.
+    //
+    // Truncation is checked first because a cut-off tool call can still leave a
+    // well-formed-LOOKING block behind, and the old code's entire failure was treating
+    // damaged output as a reply. `stop_reason` is the provider saying so plainly.
+    const meta = { stop_reason: response.stop_reason, blocks: response.content.length }
     if (response.stop_reason === 'max_tokens') {
-      millaReplyFailed(res, 'TRUNCATED', { stop_reason: response.stop_reason, blocks: response.content.length })
+      millaReplyFailed(res, 'TRUNCATED', meta)
+      return
+    }
+    // ⚑ GPT review: the first cut only rejected `max_tokens` and then went looking for a
+    // tool block. A forced tool_choice should always stop on 'tool_use'; anything else —
+    // 'end_turn', 'stop_sequence', null — means the turn did not do what we required, and
+    // guessing from whatever blocks happen to be present is how damaged output gets read
+    // as an answer. Refuse on the stop reason itself.
+    if (response.stop_reason !== 'tool_use') {
+      millaReplyFailed(res, 'UNEXPECTED_STOP', meta)
       return
     }
     const toolBlocks = response.content.filter(b => b.type === 'tool_use')
     if (toolBlocks.length === 0) {
-      millaReplyFailed(res, 'NO_TOOL_CALL', { stop_reason: response.stop_reason, blocks: response.content.length })
+      millaReplyFailed(res, 'NO_TOOL_CALL', meta)
+      return
+    }
+    // ⚑ GPT review: the first cut took toolBlocks[0] and ignored the rest. We asked for one
+    // reply with disable_parallel_tool_use; more than one means the turn is not the turn we
+    // asked for, and silently picking the first is a guess about which one Milla meant.
+    if (toolBlocks.length > 1) {
+      millaReplyFailed(res, 'MULTIPLE_TOOL_CALLS', meta)
       return
     }
     const call = toolBlocks[0] as { type: 'tool_use'; name: string; input: unknown }
     if (call.name !== MILLA_REPLY_TOOL) {
-      millaReplyFailed(res, 'WRONG_TOOL', { stop_reason: response.stop_reason, blocks: response.content.length })
+      millaReplyFailed(res, 'WRONG_TOOL', meta)
       return
     }
 
     // ⚠️ `input` IS `unknown`. A tool call guarantees the envelope, never the contents.
-    const validated = MillaReplyInput.safeParse(call.input)
+    const validated = millaReplyFor(profile_required).safeParse(call.input)
     if (!validated.success) {
       millaReplyFailed(res, 'INVALID_SHAPE', {
-        stop_reason: response.stop_reason,
-        blocks: response.content.length,
+        ...meta,
         // A COUNT, never the keys themselves — a key name is client data here.
         inputKeys: call.input && typeof call.input === 'object' ? Object.keys(call.input).length : 0,
       })

@@ -249,10 +249,16 @@ export default function MillaWelcomePage() {
       // The route cannot know who is calling — it holds no client row — so the mode is
       // stated explicitly. TRUE only on a confirmed first run; a returning client is asked
       // for nothing about an account they already have.
+      // ⚠️ THE GREETING IS UI COPY, NOT A CONVERSATION TURN (founder-ruled 24 Aug).
+      // `messages[0]` is the seeded greeting rendered as an assistant bubble, so the array
+      // posted to the model used to BEGIN with an assistant turn — and the API contract is
+      // that the first message must be a user turn. Everything from the client's first real
+      // answer onward is sent; the greeting stays on screen and out of the payload.
+      const forModel = history.slice(history.findIndex(m => m.role === 'user'))
       const r = await api.post<{ data: BuilderReply }>(
         '/icps/builder/chat',
         {
-          messages: history,
+          messages: forModel,
           profile_required: hasClient === false,
           ...(evidence ? { website_evidence: evidence } : {}),
         },

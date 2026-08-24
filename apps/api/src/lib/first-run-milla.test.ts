@@ -60,6 +60,19 @@ const icpsSrc     = read(join(API, 'routes/icps.ts'))
  *  split across two. Assert against the flattened form or the guard fails on formatting. */
 const flat = (s: string) => s.replace(/\s+/g, ' ')
 
+/** Just the builder/chat reply path — the tool definitions, the schema, the failure helper
+ *  and the route itself. Assertions like "no JSON.parse survives here" have to be scoped to
+ *  this path: `icps.ts` is 2,000+ lines and other routes legitimately parse JSON. */
+function builderChatRoute(): string {
+  const start = icpsSrc.indexOf("const MILLA_REPLY_TOOL = 'milla_reply'")
+  if (start < 0) throw new Error('the milla_reply tool is gone from icps.ts')
+  const routeAt = icpsSrc.indexOf("icpRouter.post('/builder/chat'", start)
+  if (routeAt < 0) throw new Error('the builder/chat route is gone from icps.ts')
+  const end = icpsSrc.indexOf("icpRouter.post('/'", routeAt)
+  if (end < 0) throw new Error('could not find the end of the builder/chat route')
+  return icpsSrc.slice(start, end)
+}
+
 const loginCode   = stripComments(loginSrc)
 const onboardCode = stripComments(onboardSrc)
 const welcomeCode = stripComments(welcomeSrc)
@@ -149,8 +162,13 @@ describe('Milla collects the account facts herself', () => {
   })
 
   it('every field the old form collected is in the reply contract', () => {
+    // ⚑ Updated 24 Aug: the contract moved from a prose-JSON example to the forced tool's
+    // input_schema, and the extraction from `short()` to the Zod-validated `str()`. Same six
+    // fields, now declared in a schema the model is constrained by rather than shown.
     for (const f of ['company_name', 'country', 'contact_name', 'phone', 'website', 'industry']) {
-      expect(icpsSrc, f).toMatch(new RegExp(`${f}:\\s*short\\(p\\.${f}\\)`))
+      expect(icpsSrc, `${f} in tool schema`).toMatch(new RegExp(`${f}:\\s*\\{ type: 'string', maxLength:`))
+      expect(icpsSrc, `${f} in zod schema`).toMatch(new RegExp(`${f}:\\s*z\\.string\\(\\)\\.max\\(`))
+      expect(icpsSrc, `${f} extracted`).toMatch(new RegExp(`${f}:\\s*str\\(p\\.${f}\\)`))
     }
   })
 
@@ -497,7 +515,10 @@ describe('a returning client is not re-interviewed about their own account', () 
   it('FIRST-RUN mode learns three things and gates completion on the two required facts', () => {
     expect(icpsSrc).toMatch(/const learningGoals = profile_required\s*\n\s*\? `You are learning THREE things at once/)
     expect(icpsSrc).toMatch(/const completionGate = profile_required/)
-    expect(icpsSrc).toMatch(/const profileJsonBlock = profile_required/)
+    // ⚑ 24 Aug: `profileJsonBlock` (the fake-JSON template) became `profileFieldsNote`
+    // (prose), and the field contract moved into the forced tool's input_schema.
+    expect(icpsSrc).toMatch(/const profileFieldsNote = profile_required/)
+    expect(icpsSrc).toMatch(/\.\.\.\(profileRequired \? \{\s*\n\s*profile: \{/)
   })
 
   it('EXISTING-CLIENT mode learns two — the pre-24-Aug conversation, unchanged', () => {
@@ -506,11 +527,15 @@ describe('a returning client is not re-interviewed about their own account', () 
     expect(flat(icpsSrc)).toContain('Do NOT ask for their company name, their country, their phone number or their website')
   })
 
-  it('and carries NO completion gate, NO profile block, NO never-invent-profile clause', () => {
-    // Each of the three first-run-only fragments resolves to '' when the flag is false.
-    for (const name of ['completionGate', 'profileJsonBlock', 'neverInventProfile']) {
+  it('and carries NO completion gate and NO account-fields instruction', () => {
+    // Both first-run-only prompt fragments resolve to '' when the flag is false.
+    for (const name of ['completionGate', 'profileFieldsNote']) {
       expect(icpsSrc, name).toMatch(new RegExp(`const ${name} = profile_required[\\s\\S]{0,900}?\\n      : ''`))
     }
+    // …and the tool itself offers no `profile` property at all to a returning client, so
+    // there is nowhere for one to be returned even if the model tried.
+    expect(icpsSrc).toContain('...(profileRequired ? {')
+    expect(icpsSrc).toContain('} : {}),')
   })
 
   it('an existing client\'s reply carries no profile at all — not even an empty one', () => {
@@ -726,6 +751,346 @@ describe('website evidence is data, and can never become instructions', () => {
   it('the evidence still reaches the model as a field, never as a chat message', () => {
     expect(welcomeCode).toContain('website_evidence: evidence')
     expect(welcomeCode).not.toMatch(/role:\s*'assistant'[^}]*evidence/)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────────────────
+// ── THE LIVE BLOCKER: A SYSTEM FAILURE WORE MILLA'S FACE (founder walk, 24 Aug) ──────────
+//
+// On a fresh signup walk the founder answered the same targeting question three times, said
+// out loud that he had already answered it, and Milla appeared to ignore him. She had not:
+//
+//   Milla:  "Great — so you work in logistics. What's your company called, and what exactly
+//            does it do?"
+//   Client: "ABCV Logistics"
+//   Milla:  "Tell me more — what industry, job titles, company size, and region are you
+//            targeting?"                                       ← NOT MILLA. A hard-coded string.
+//   Client: "USA. Logistics for IT Tech Solutions. MD and above. Company Sizes 50 - 500."
+//   Milla:  "Tell me more — what industry, job titles, company size, and region are you
+//            targeting?"                                       ← the same string again
+//   Client: "IT Solutions. CEO and or CTO. 500 employees or more. USA"
+//   Milla:  "Tell me more — what industry, job titles, company size, and region are you
+//            targeting?"                                       ← and again
+//
+// The route asked the model for prose JSON, capped it at 700 tokens, showed it a completion
+// template that was not itself valid JSON, then `JSON.parse`d the text — and on a throw
+// replaced the model's real answer with that canned checklist and posted it as an assistant
+// message. Nothing was logged. A complete production blocker walked through a green suite.
+//
+// The transport is now a FORCED TOOL CALL: `input` arrives as an object, so there is no
+// parse to fail, and every unusable outcome returns an honest retryable error instead of
+// words attributed to Milla.
+//
+// ⚠️ WHAT THESE TESTS CAN AND CANNOT PROVE. They prove the plumbing: state reaches the
+// model, a structured reply survives, a broken one never masquerades as Milla, and the
+// discipline is in the prompt. They CANNOT prove Haiku always chooses good wording. The
+// conversational gate is the live walk.
+// ─────────────────────────────────────────────────────────────────────────────────────────
+
+describe('a system failure can never again speak as Milla', () => {
+  // Absence is asserted on CODE. The comment above the route quotes the removed string on
+  // purpose — it is the incident record, and deleting the account of the bug along with the
+  // bug is how a repo forgets why a rule exists. What must not survive is the ability to
+  // SAY it. Same convention as every other absence assertion in this file.
+  it('the exact string from the live walk can no longer be emitted', () => {
+    expect(stripComments(icpsSrc)).not.toContain('Tell me more — what industry, job titles, company size, and region are you targeting?')
+  })
+
+  it('the second canned fallback is gone too', () => {
+    expect(stripComments(icpsSrc)).not.toContain('Tell me a bit more about who you want to reach.')
+  })
+
+  it('neither string survives as code anywhere in the API or the portal', () => {
+    for (const src of [icpsSrc, welcomeSrc, authSrc, loginSrc, onboardSrc]) {
+      expect(stripComments(src)).not.toContain('what industry, job titles, company size, and region')
+      expect(stripComments(src)).not.toContain('Tell me a bit more about who you want to reach')
+    }
+  })
+
+  it('and the incident itself is still written down, so the next reader knows what this cost', () => {
+    // Single-line substrings: the record is a hard-wrapped `//` block, so flattening it
+    // leaves the comment markers in place and a phrase spanning two lines never matches.
+    expect(icpsSrc).toContain('failure wore her face')
+    expect(icpsSrc).toContain('He answered the targeting question three times')
+  })
+
+  it('there is no JSON.parse left on this reply path — the failure class is gone, not reduced', () => {
+    const route = builderChatRoute()
+    expect(route).not.toContain('JSON.parse')
+  })
+
+  it('every unusable outcome routes to the honest failure, and it is retryable', () => {
+    expect(icpsSrc).toContain("function millaReplyFailed(")
+    expect(icpsSrc).toContain("'Milla lost that response — please send your last answer again.'")
+    expect(icpsSrc).toContain('retryable: true')
+    expect(icpsSrc).toContain('res.status(503)')
+  })
+
+  it('all four failure categories are handled explicitly', () => {
+    for (const category of ['TRUNCATED', 'NO_TOOL_CALL', 'WRONG_TOOL', 'INVALID_SHAPE']) {
+      expect(icpsSrc, category).toContain(`millaReplyFailed(res, '${category}'`)
+    }
+  })
+
+  it('truncation is detected from stop_reason, not guessed from damaged output', () => {
+    expect(icpsSrc).toContain("if (response.stop_reason === 'max_tokens')")
+    // and it is checked BEFORE anything tries to read the reply
+    const stop = icpsSrc.indexOf("response.stop_reason === 'max_tokens'")
+    const read = icpsSrc.indexOf("const validated = MillaReplyInput.safeParse")
+    expect(stop).toBeGreaterThan(-1)
+    expect(read).toBeGreaterThan(stop)
+  })
+
+  it('the failure path never appends an assistant message in the portal', () => {
+    // send() only pushes an assistant bubble inside the success branches; a thrown API
+    // error lands in setError, which renders as an error, not as Milla.
+    expect(welcomeCode).toMatch(/catch \(e\) \{ setError\(e instanceof Error \? e\.message : 'Milla hit a snag/)
+  })
+})
+
+describe('the reply is a forced tool call, validated before it is trusted', () => {
+  it('exactly one tool is offered, by a single shared name', () => {
+    expect(icpsSrc).toContain("const MILLA_REPLY_TOOL = 'milla_reply'")
+    expect(icpsSrc).toContain('tools: [millaReplyTool(profile_required)]')
+    expect(icpsSrc).toContain('name: MILLA_REPLY_TOOL,')
+  })
+
+  it('that tool is FORCED, using the shape SDK 0.39.0 actually types', () => {
+    expect(icpsSrc).toContain("tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true }")
+  })
+
+  it('and the installed SDK really does type that shape — not an assumption', () => {
+    const sdk = read(join(REPO, 'node_modules/@anthropic-ai/sdk/resources/messages/messages.d.ts'))
+    expect(sdk).toContain('export interface ToolChoiceTool {')
+    expect(flat(sdk)).toContain('name: string; type: \'tool\'; ')
+    expect(sdk).toContain('disable_parallel_tool_use?: boolean;')
+    // …and that `input` is delivered as an object, which is why JSON.parse is gone.
+    expect(flat(sdk)).toContain('export interface ToolUseBlock { id: string; input: unknown;')
+  })
+
+  it('the installed SDK version is the one this was verified against', () => {
+    const pkg = JSON.parse(read(join(REPO, 'node_modules/@anthropic-ai/sdk/package.json')))
+    expect(pkg.version).toBe('0.39.0')
+  })
+
+  it('ToolUseBlock.input is NEVER trusted — it goes through Zod first', () => {
+    expect(icpsSrc).toContain('const MillaReplyInput = z.object({')
+    expect(icpsSrc).toContain('const validated = MillaReplyInput.safeParse(call.input)')
+    expect(icpsSrc).toContain('if (!validated.success) {')
+    expect(icpsSrc).toContain('const parsed = validated.data')
+  })
+
+  it('the wrong tool name is refused rather than read', () => {
+    expect(icpsSrc).toContain('if (call.name !== MILLA_REPLY_TOOL) {')
+  })
+
+  it('a missing tool call is refused rather than read', () => {
+    expect(icpsSrc).toContain('if (toolBlocks.length === 0) {')
+  })
+
+  it('the schema BOUNDS every string and array — no unbounded object', () => {
+    for (const bound of [
+      'content: z.string().max(600)',
+      'summary: z.string().max(400)',
+      'company_name: z.string().max(200)',
+      'campaign_intent: z.string().max(2000)',
+    ]) expect(icpsSrc, bound).toContain(bound)
+    expect(icpsSrc).toContain('const boundedList = (maxItems: number, maxLen = 80) => z.array(z.string().max(maxLen)).max(maxItems).optional()')
+    expect(icpsSrc).toContain('})).max(12).optional()')   // proof count
+    expect(icpsSrc).toContain('website_hints:   boundedList(12, 200)')
+  })
+
+  it('the discriminated requirements are enforced — a question needs content, a completion needs an icp', () => {
+    expect(icpsSrc).toContain("message: 'a question must carry content'")
+    expect(icpsSrc).toContain("message: 'a completion must carry an icp'")
+  })
+
+  it('the closed lists reach the tool schema as real enums, defined once', () => {
+    expect(icpsSrc).toContain('const ICP_INDUSTRIES =')
+    expect(icpsSrc).toContain('const ICP_SENIORITY  =')
+    expect(icpsSrc).toContain('const ICP_SIZES      =')
+    expect(icpsSrc).toContain('enum: [...ICP_INDUSTRIES]')
+    expect(icpsSrc).toContain('enum: [...ICP_SENIORITY]')
+    expect(icpsSrc).toContain('enum: [...ICP_SIZES]')
+    // the approved launch values themselves are unchanged
+    for (const v of ['Fintech', 'Logistics', 'C-Suite', 'VP / Director', '51–200', '1,000+']) {
+      expect(icpsSrc, v).toContain(v)
+    }
+  })
+})
+
+describe('the prompt no longer contradicts itself', () => {
+  const route = builderChatRoute()
+
+  it('the model is told to call the tool — that is the only output mechanism now', () => {
+    expect(route).toContain('Reply by calling the ${MILLA_REPLY_TOOL} tool. That is the only way you speak here.')
+  })
+
+  it('the "respond with ONLY valid JSON" instruction is gone', () => {
+    expect(route).not.toContain('Respond with ONLY valid JSON')
+  })
+
+  it('the fake-JSON completion example is gone, including every construct that broke the parse', () => {
+    expect(route).not.toContain('[from:')
+    expect(route).not.toContain('"job_titles": ["CTO", ...]')
+    expect(route).not.toContain('"tech_stack": [...]')
+    expect(route).not.toContain('{"type":"complete","summary"')
+  })
+
+  it('no literal ellipsis survives inside anything claiming to be a JSON example', () => {
+    const promptOnly = route.slice(route.indexOf('const system = `'), route.indexOf('await anthropic.messages.create'))
+    expect(promptOnly).not.toMatch(/\[\s*\.\.\.\s*\]/)
+    expect(promptOnly).not.toMatch(/,\s*\.\.\.\s*\]/)
+  })
+
+  it('two competing output mechanisms do not coexist', () => {
+    const promptOnly = route.slice(route.indexOf('const system = `'), route.indexOf('await anthropic.messages.create'))
+    expect(promptOnly).not.toContain('valid JSON')
+  })
+})
+
+describe('the conversational discipline the founder specified is in the prompt', () => {
+  const route = builderChatRoute()
+
+  it('KNOWN / MISSING / CONTRADICTORY / NEEDS CONFIRMING is stated as internal reasoning', () => {
+    // ⚠️ Assert the DEFINITION of each term, not the bare word. A first cut checked only
+    // that "KNOWN" appeared somewhere — and it appears three more times in the rules below,
+    // so deleting the definition block left the guard green. Caught in RED 12.
+    for (const line of [
+      'KNOWN            — every fact they have already given you, anywhere in the conversation.',
+      'MISSING          — what you genuinely still do not have.',
+      'CONTRADICTORY    — anything they have said two different ways.',
+      'NEEDS CONFIRMING — anything you are working from that they have not actually endorsed.',
+    ]) expect(route, line.slice(0, 20)).toContain(line)
+    expect(flat(route)).toContain('This is your own reasoning — the client never sees it, and you never write it out')
+    expect(flat(route)).toContain('Then ask for ONE thing from MISSING. That is the whole method.')
+  })
+
+  it('an already-answered field is never re-asked', () => {
+    expect(flat(route)).toContain('NEVER re-ask something they have already answered. If it is in KNOWN, it is done.')
+  })
+
+  it('partial answers are kept, with the live "ABCV Logistics" case written in as the example', () => {
+    expect(route).toContain('KEEP PARTIAL ANSWERS.')
+    expect(flat(route)).toContain('they say "ABCV Logistics", then the name is KNOWN and what they do is MISSING: ask only what ABCV Logistics does')
+    expect(flat(route)).toContain('Do not ask their name again, and do not change the subject to targeting.')
+  })
+
+  it('a genuine contradiction MAY be clarified — narrowly', () => {
+    expect(flat(route)).toContain('Only CONTRADICTORY or NEEDS CONFIRMING earns a repeat, and then you name the specific thing you are resolving — not the whole topic again')
+  })
+
+  it('the business gap takes priority when targeting is already understood', () => {
+    expect(flat(route)).toContain('If you understand their TARGETING but not their BUSINESS, ask about the business.')
+    expect(flat(route)).toContain('If you understand their BUSINESS but a genuinely necessary targeting fact is missing, ask for that one fact.')
+  })
+
+  it('base country and target geography stay distinct, neither inferred from the other', () => {
+    expect(flat(route)).toContain('The country their business is BASED IN and the places they SELL INTO are different facts')
+    expect(flat(route)).toContain('Never infer either from the other.')
+  })
+
+  it('NO questionnaire, NO fixed count, NO sequence, NO wizard', () => {
+    expect(flat(route)).toContain('There is no set list of questions, no set number of them and no order you must follow')
+    expect(route).not.toMatch(/step \d of \d/i)
+    expect(route).not.toMatch(/question \d+ of \d+/i)
+  })
+
+  it("the client's wording is mapped to our enums instead of triggering a re-ask", () => {
+    expect(flat(route)).toContain('When their meaning is clear, MAP IT and move on')
+    for (const live of ['"MD and above"', '"50 - 500"', '"IT Solutions"']) {
+      expect(route, live).toContain(live)
+    }
+    expect(flat(route)).toContain('Never re-ask a whole targeting question just because their phrasing was not one of our values')
+  })
+
+  it('and the first-run account facts are still asked for specifically, never invented', () => {
+    expect(flat(route)).toContain('NEVER invent a company name, a country, a person\'s name, a phone number or a website — leave the field out entirely and ask for it instead')
+  })
+})
+
+describe('one Anthropic call per turn, with headroom, on the same model', () => {
+  const route = builderChatRoute()
+
+  it('max_tokens is 4000 — the 700 ceiling that truncated the completion is gone', () => {
+    expect(route).toContain('max_tokens: 4000,')
+    expect(route).not.toContain('max_tokens: 700')
+  })
+
+  it('the model is unchanged', () => {
+    expect(icpsSrc).toContain("const BUILDER_MODEL = 'claude-haiku-4-5-20251001'")
+    expect(route).toContain('model: BUILDER_MODEL,')
+  })
+
+  it('EXACTLY ONE Anthropic call exists in this route — no repair retry was introduced', () => {
+    // The count IS the proof: a second call cannot exist without a second create.
+    expect(route.match(/anthropic\.messages\.create/g) ?? []).toHaveLength(1)
+    // …and it is not inside a loop that could run it twice.
+    const code = stripComments(route)
+    const callAt = code.indexOf('anthropic.messages.create')
+    const before = code.slice(Math.max(0, callAt - 400), callAt)
+    expect(before).not.toMatch(/\b(for|while)\s*\(/)
+  })
+
+  it('and the SDK dependency was not touched', () => {
+    const pkg = JSON.parse(read(join(API, '../package.json')))
+    expect(pkg.dependencies['@anthropic-ai/sdk']).toBe('^0.39.0')
+  })
+})
+
+describe('diagnostics are safe — nothing of the client is logged', () => {
+  const route = builderChatRoute()
+
+  it('the failure log carries category, stop_reason, model and sizes only', () => {
+    expect(icpsSrc).toContain("console.error('[icps/builder/chat] unusable model reply —'")
+    for (const field of ['category,', 'stop_reason:', 'model: BUILDER_MODEL,', 'content_blocks:', 'input_key_count:']) {
+      expect(icpsSrc, field).toContain(field)
+    }
+  })
+
+  it('the raw tool input is NEVER logged — only how many keys it had', () => {
+    expect(icpsSrc).toContain('inputKeys: call.input && typeof call.input === \'object\' ? Object.keys(call.input).length : 0')
+    expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*call\.input/)
+    expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*JSON\.stringify\(call\.input/)
+  })
+
+  it('no transcript, no model text, no customer content reaches a log line', () => {
+    for (const forbidden of [
+      /console\.\w+\([^)]*\bmessages\b/,
+      /console\.\w+\([^)]*\braw\b/,
+      /console\.\w+\([^)]*response\.content/,
+      /console\.\w+\([^)]*website_evidence/,
+      /console\.\w+\([^)]*\bproof\b/,
+      /console\.\w+\([^)]*company_name/,
+    ]) expect(route, String(forbidden)).not.toMatch(forbidden)
+  })
+})
+
+describe('the Anthropic transcript begins with the client, not with our own copy', () => {
+  it('the seeded greeting is sliced off before the payload is built', () => {
+    expect(welcomeCode).toContain("const forModel = history.slice(history.findIndex(m => m.role === 'user'))")
+    expect(welcomeCode).toContain('messages: forModel,')
+  })
+
+  it('the greeting is still rendered — it was presentation copy all along', () => {
+    expect(welcomeSrc).toContain("const GREETING = \"Hi 👋 I'm Milla, your campaign partner.")
+    expect(welcomeCode).toContain("useState<Msg[]>([{ role: 'assistant', content: GREETING }])")
+  })
+
+  it('and the slice really does drop a leading assistant turn (executed, not asserted)', () => {
+    type M = { role: 'user' | 'assistant'; content: string }
+    const slice = (h: M[]) => h.slice(h.findIndex(m => m.role === 'user'))
+    const history: M[] = [
+      { role: 'assistant', content: 'GREETING' },
+      { role: 'user', content: 'Head of Operations. Logistics. Mid Market' },
+      { role: 'assistant', content: "What's your company called, and what exactly does it do?" },
+      { role: 'user', content: 'ABCV Logistics' },
+    ]
+    const out = slice(history)
+    expect(out[0].role).toBe('user')
+    expect(out[0].content).toBe('Head of Operations. Logistics. Mid Market')
+    expect(out).toHaveLength(3)                 // the greeting, and only the greeting, is dropped
+    expect(out.map(m => m.role)).toEqual(['user', 'assistant', 'user'])
   })
 })
 

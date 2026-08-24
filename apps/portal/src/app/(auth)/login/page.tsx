@@ -48,7 +48,7 @@ function LoginForm() {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/auth/callback?next=/onboard` },
+        options: { redirectTo: `${window.location.origin}/auth/callback?next=/milla/welcome` },
       })
       // On success the browser redirects to the provider; we only land here on error.
       if (error) {
@@ -96,16 +96,20 @@ function LoginForm() {
           setError(data.error || 'Signup failed — please try again')
         } else {
           // Account is created + email-confirmed server-side. Sign in directly
-          // with the password to establish the session, then go to onboarding.
-          // (No magic-link/callback round-trip — that's what failed before.)
+          // with the password to establish the session, then hand straight over
+          // to Milla. (No magic-link/callback round-trip — that's what failed before.)
           const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password })
           if (signInErr) {
             setError(signInErr.message)
           } else {
-            // Item 186 — carry the actual T&C tick to onboard, where the client row
-            // (and its binding consent record) is created.
+            // Item 186 — carry the actual T&C tick through to the moment the client row
+            // (and its binding consent record) is created. ⚑ 24 Aug: that moment moved
+            // from /onboard to the confirmation at the end of Milla's first-run
+            // conversation, so /milla/welcome is what reads this key now. THE KEY AND ITS
+            // NAME ARE DELIBERATELY UNCHANGED — a rename here would silently drop the
+            // consent evidence for anyone mid-signup when the deploy lands.
             if (agreed) { try { localStorage.setItem('kind_terms_accepted', '1') } catch { /* ignore */ } }
-            router.push('/onboard')
+            router.push('/milla/welcome')
             router.refresh()
           }
         }
@@ -125,7 +129,7 @@ function LoginForm() {
           const res = await fetch(`${apiBase}/clients/me`, { headers })
 
           if (res.status === 404) {
-            // No client row — check if this is a partner account before sending to onboard.
+            // No client row — check if this is a partner account before sending to Milla.
             // A CLIENT PARTNER (R40) has her own portal and must not be dropped on the legacy
             // partner dashboard: the two show different money, and hers is the one bound by
             // "her cut only".
@@ -136,12 +140,14 @@ function LoginForm() {
                 ? '/dashboard/client-partner'
                 : '/dashboard/partner')
             } else {
-              router.push('/onboard')
+              // Signed in, no client row, no seat → they never finished their first run.
+              // Milla picks the conversation up rather than a form restarting it.
+              router.push('/milla/welcome')
             }
           } else {
             const body = await res.json()
             if (!body?.data?.company_name) {
-              router.push('/onboard')
+              router.push('/milla/welcome')
             } else {
               router.push('/milla')
             }

@@ -1,5 +1,5 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
-import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage } from './pdl-search'
+import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage, type PdlSearchOptions } from './pdl-search'
 import { searchProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
@@ -317,6 +317,12 @@ export async function searchPeopleWithFallback(
   // its default) so the compiler forces every caller to state the cursor explicitly too:
   // that is deliberate, and the two existing call sites already pass one.
   audience: Audience,
+  // ⚑ 24 Aug — FREE PROOF PROVES FIT, NOT DELIVERABILITY (founder-ruled). Optional and
+  // fail-safe: omitted, or `proofMode` anything but `true`, is today's paid behaviour.
+  // ⚠️ IT REACHES THE PDL BRANCH ONLY. Apollo's body builder is not given it and does not
+  // take it — this is a change to one clause of one provider's query, not to provider
+  // selection, order, or anything Apollo does.
+  opts?: PdlSearchOptions,
 ): Promise<{ contacts: ApolloContact[]; relaxed: string | null; pdlPage: PdlPage | null }> {
   // ── THE AR5 BOUNDARY (21 Aug) ─────────────────────────────────────────────────────
   // This function used to run **Apollo ∪ PDL for everyone**, with the mix decided by
@@ -339,7 +345,7 @@ export async function searchPeopleWithFallback(
   // and error-swallowing are untouched — this is the same `pdlSearchPage` the supplement
   // used, called directly instead of merged.
   if (provider === 'pdl') {
-    const pdlPage = await pdlSearchPage(icp, size, pdlCursor).catch(() => null)
+    const pdlPage = await pdlSearchPage(icp, size, pdlCursor, opts).catch(() => null)
     const contacts = pdlPage?.contacts ?? []
     if (contacts.length > 0) return out(contacts, null, pdlPage)
     return out([], pdlPage?.error

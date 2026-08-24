@@ -10,7 +10,8 @@ import {
   LAUNCH_SEND_COUNTRIES, isLaunchSendCountry, launchHoldReason,
   launchHoldMessage, launchTargetRefusal, canonicalLaunchCountry,
 } from '@kind/shared'
-import { buildPdlBody } from './pdl-search'
+import { buildPdlBody, pdlSearchPage } from './pdl-search'
+import { readFileSync as readSrc } from 'fs'
 import { isUkCountry } from './pecr'
 
 // THE LAUNCH ALLOWLIST — AND THE DRIFT GUARD BETWEEN THE TWO UK LISTS.
@@ -332,5 +333,144 @@ describe('buildPdlBody — targeting maps say what the labels promise', () => {
     expect(buildPdlBody(ICP, 20, 'tok')).toHaveProperty('scroll_token', 'tok')
     // No `from`-based paging crept back in (#366).
     expect(body).not.toHaveProperty('from')
+  })
+})
+
+// ── FREE PROOF PROVES TARGETING FIT, NOT DELIVERABILITY (founder-ruled 24 Aug) ───────────
+//
+// The PDL query always required `exists: work_email`, including for free proof. That answers
+// "can we email them today?" — a different question from the one free proof exists to ask,
+// answered BEFORE anyone has paid, and it discarded people who fit the client's targeting
+// perfectly. PDL's work-email coverage is far from complete, so the clause was quietly
+// shrinking the proof audience on a criterion the proof stage never claimed.
+//
+// ⚠️ THE DANGEROUS DIRECTION IS THE OTHER ONE. A PAID query silently losing its
+// deliverability requirement would put uncontactable people into a real campaign, so the
+// flag is opt-in, read only as `=== true`, and every other value keeps today's behaviour.
+// These guards assert the default and the explicit-paid case as hard as the proof case.
+describe('buildPdlBody — free proof asks about FIT, paid still asks about reach', () => {
+  const ICP = {
+    job_titles: ['Head of Operations'], seniority_levels: ['Head of'],
+    company_sizes: ['1,000+'], geographies: ['US'], industries: ['Logistics'],
+  }
+  const hasWorkEmail = (body: unknown) => JSON.stringify(body).includes('{"exists":{"field":"work_email"}}')
+
+  it('DEFAULT (no options at all) still requires work_email — the fail-safe', () => {
+    expect(hasWorkEmail(buildPdlBody(ICP, 20))).toBe(true)
+    expect(hasWorkEmail(buildPdlBody(ICP, 20, null))).toBe(true)
+  })
+
+  it('EXPLICIT PAID still requires work_email — however it is spelled', () => {
+    expect(hasWorkEmail(buildPdlBody(ICP, 20, null, {}))).toBe(true)
+    expect(hasWorkEmail(buildPdlBody(ICP, 20, null, { proofMode: false }))).toBe(true)
+    // ⚠️ Only a literal `true` opts out. A truthy-but-not-true value must NOT, because the
+    // flag arrives from a call graph and "nearly true" is how a paid query loses its fence.
+    expect(hasWorkEmail(buildPdlBody(ICP, 20, null, { proofMode: undefined }))).toBe(true)
+    expect(hasWorkEmail(buildPdlBody(ICP, 20, null, { proofMode: 1 as unknown as boolean }))).toBe(true)
+  })
+
+  it('FREE PROOF omits the work_email clause', () => {
+    expect(hasWorkEmail(buildPdlBody(ICP, 20, null, { proofMode: true }))).toBe(false)
+  })
+
+  it('…and the proof query still carries EVERY selected targeting clause', () => {
+    const body = buildPdlBody(ICP, 20, null, { proofMode: true }) as
+      { query: { bool: { must: Array<Record<string, Record<string, unknown>>> } } }
+    const termsFor = (f: string) =>
+      (body.query.bool.must.find(c => c.terms && f in c.terms)?.terms?.[f] as string[] | undefined) ?? null
+    // Nothing but the email clause went. The #1447 mappings are asserted HERE too, on a
+    // PROOF body, so proof mode cannot quietly become a different query.
+    expect(termsFor('location_country')).toEqual(['united states'])
+    for (const lvl of ['manager', 'director', 'vp']) expect(termsFor('job_title_levels'), lvl).toContain(lvl)
+    for (const b of ['1001-5000', '5001-10000', '10001+']) expect(termsFor('job_company_size'), b).toContain(b)
+    expect(termsFor('job_company_industry')).toContain('logistics and supply chain')
+    expect(body.query.bool.must.some(c => 'bool' in c), 'the title clause').toBe(true)
+    // The paid body is the proof body PLUS the email clause — nothing else differs.
+    const paid = buildPdlBody(ICP, 20, null) as typeof body
+    expect(paid.query.bool.must.length).toBe(body.query.bool.must.length + 1)
+  })
+
+  it('COST BOUNDARY — proof mode changes the query, never the request shape', () => {
+    const proof = buildPdlBody(ICP, 20, null, { proofMode: true }) as Record<string, unknown>
+    const paid  = buildPdlBody(ICP, 20, null) as Record<string, unknown>
+    // Same requested size, so the same authorised record cap is asked for.
+    expect(proof.size).toBe(20)
+    expect(paid.size).toBe(20)
+    // Same pagination contract — no token when none supplied, the token when one is.
+    expect(proof).not.toHaveProperty('scroll_token')
+    expect(buildPdlBody(ICP, 20, 'tok', { proofMode: true })).toHaveProperty('scroll_token', 'tok')
+    expect(proof).not.toHaveProperty('from')
+  })
+
+  it('THE CALL GRAPH THREADS IT EXPLICITLY — never inferred, and PDL-only', () => {
+    const icps   = readSrc(join(__dirname, '../routes/icps.ts'), 'utf8')
+    const apollo = readSrc(join(__dirname, './apollo.ts'), 'utf8')
+    const pdl    = readSrc(join(__dirname, './pdl-search.ts'), 'utf8')
+    // The one call site passes the SAME proofMode the fence and reservation already use.
+    expect(icps).toContain('searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })')
+    expect(icps).toContain('const proofMode = (opts?.proofPass ?? 0) > 0')
+    // …and it reaches the PDL branch only. Apollo's own body builder never receives it.
+    expect(apollo).toContain('pdlSearchPage(icp, size, pdlCursor, opts)')
+    expect(apollo).not.toMatch(/buildSearchBody\([^)]*opts/)
+    // Exactly ONE place decides, and it decides on a literal true.
+    expect((pdl.match(/opts\?\.proofMode/g) ?? [])).toHaveLength(1)
+    expect(pdl).toContain("if (opts?.proofMode !== true) must.push({ exists: { field: 'work_email' } })")
+  })
+
+  // ⚠️ EXECUTED THROUGH THE WHOLE INNER CHAIN, NOT JUST THE BUILDER. RED P5 and P6 —
+  // dropping `opts` at `buildPdlBody(...)` or at `pdlSearchOnce(...)` — both PASSED against
+  // the builder-only guards above, because those call the builder directly and never
+  // traverse the hops in between. A flag that is accepted and then quietly not forwarded is
+  // exactly the failure mode of threading a parameter through four signatures, so the real
+  // request body is captured off a mocked `fetch` and read.
+  it('THE FLAG SURVIVES EVERY HOP — the body PDL would actually receive', async () => {
+    const prevKey = process.env.PDL_API_KEY
+    process.env.PDL_API_KEY = 'test-key-not-a-secret'
+    const bodies: string[] = []
+    const prevFetch = globalThis.fetch
+    globalThis.fetch = (async (_url: string, init?: { body?: string }) => {
+      bodies.push(String(init?.body ?? ''))
+      return { ok: true, status: 200, json: async () => ({ data: [], scroll_token: null }) }
+    }) as unknown as typeof globalThis.fetch
+    try {
+      await pdlSearchPage(ICP, 20, null, { proofMode: true })
+      expect(bodies, 'one request, and only one').toHaveLength(1)
+      expect(bodies[0], 'proof request omits work_email').not.toContain('work_email')
+      expect(JSON.parse(bodies[0]).size, 'requested size is unchanged').toBe(20)
+
+      bodies.length = 0
+      await pdlSearchPage(ICP, 20, null)
+      expect(bodies).toHaveLength(1)
+      expect(bodies[0], 'default request still requires work_email').toContain('{"exists":{"field":"work_email"}}')
+
+      bodies.length = 0
+      await pdlSearchPage(ICP, 20, null, { proofMode: false })
+      expect(bodies[0], 'explicit paid still requires work_email').toContain('{"exists":{"field":"work_email"}}')
+    } finally {
+      globalThis.fetch = prevFetch
+      if (prevKey === undefined) delete process.env.PDL_API_KEY; else process.env.PDL_API_KEY = prevKey
+    }
+  })
+
+  it('ONE PDL page, one search call — no backfill was introduced', () => {
+    const apollo = readSrc(join(__dirname, './apollo.ts'), 'utf8')
+    const pdl    = readSrc(join(__dirname, './pdl-search.ts'), 'utf8')
+    expect((apollo.match(/pdlSearchPage\(/g) ?? [])).toHaveLength(1)
+    // The ladder is the ONLY loop, and it steps DOWN on 402 — it never fetches more.
+    expect(pdl).toContain('const ladder = [size, 25, 10, 5, 1]')
+    expect((pdl.match(/pdlSearchOnce\(/g) ?? []).length).toBeLessThanOrEqual(2)   // decl + one call
+  })
+
+  it('NO proof cap, fence, reveal, send or charge code entered this path', () => {
+    // ⚠️ ASSERTED ON CODE, NOT SOURCE. The comment above the clause explains WHY a no-email
+    // proof lead is safe — it names `revealed_at`, the reveal path and the enrichment
+    // waterfall on purpose, because that reasoning is the whole justification for the
+    // change. Matching prose would make this guard fail on its own explanation, which is
+    // the same convention every other absence assertion in this repo follows.
+    const pdl = readSrc(join(__dirname, './pdl-search.ts'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')
+    expect(pdl).not.toMatch(/try_reserve_proof_records|try_claim_proof_pass|proof_records_committed/)
+    expect(pdl).not.toMatch(/PROOF_PASS_LEADS|PROOF_CLIENT_RECORD_CAP/)
+    expect(pdl).not.toMatch(/revealed_at|stripe|mailer|hunter/i)
   })
 })

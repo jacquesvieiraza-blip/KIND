@@ -110,10 +110,28 @@ type IcpQuery = {
   industries:       string[]
 }
 
+/** ── FREE PROOF PROVES TARGETING FIT, NOT DELIVERABILITY (founder-ruled 24 Aug) ─────────
+ *
+ *  ⚠️ `proofMode` IS OPT-IN AND FAIL-SAFE BY CONSTRUCTION. It is optional, it is only ever
+ *  read as `=== true`, and every other value — `undefined`, `false`, an omitted options
+ *  object, a call site that never heard of it — keeps today's paid behaviour exactly. That
+ *  is deliberate: the dangerous direction here is a PAID query quietly losing its
+ *  deliverability requirement, so the default can only ever be the strict one.
+ *
+ *  It is also EXPLICIT. Proof mode is threaded from the one call site that already knows it
+ *  (`runIcpJob`'s `proofMode`, itself derived from the pass the proof route atomically
+ *  claimed) — never inferred from the absence of money, a missing field, a user type, a
+ *  client name, the environment, or which route we happen to be in. */
+export type PdlSearchOptions = {
+  /** TRUE only for a free-proof run. Omits the `work_email` existence clause so the query
+   *  answers "does this person FIT?" rather than "can we email them today?". */
+  proofMode?: boolean
+}
+
 /** Exported for the mapping guards ONLY — nothing else calls it from outside this file.
  *  A targeting map that is asserted by reading source strings proves the map was TYPED;
  *  executing the builder proves the query a client's words actually produce. */
-export function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string | null) {
+export function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string | null, opts?: PdlSearchOptions) {
   const must: unknown[] = []
   if (icp.job_titles.length) {
     must.push({ bool: { should: icp.job_titles.map(t => ({ match: { job_title: t } })) } })
@@ -147,8 +165,26 @@ export function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string |
   // `flatMap`, because one K.I.N.D band may legitimately mean several PDL buckets ('1,000+').
   const sizes = [...new Set(icp.company_sizes.flatMap(s => PDL_SIZE_MAP[s] ?? []))]
   if (sizes.length) must.push({ terms: { job_company_size: sizes } })
-  // Only return people we can actually email.
-  must.push({ exists: { field: 'work_email' } })
+  // ⚑ 24 Aug — Only return people we can actually email… UNLESS THIS IS FREE PROOF.
+  //
+  // Free proof exists to answer ONE question: do the people K.I.N.D would find actually look
+  // like the client's buyers? Requiring a work email answers a different question — "can we
+  // email them today?" — and answers it BEFORE anyone has paid, discarding people who fit
+  // perfectly. PDL's work-email coverage is far from complete, so this clause was quietly
+  // shrinking the proof audience on a criterion the proof stage does not claim.
+  //
+  // Everything downstream already copes with a null email, and none of it is a new decision:
+  // `mapPdlToContact` returns `email: null` rather than dropping the person, `leads.email` is
+  // nullable, `/leads/for-approval` never selects or filters on email, and the masked card
+  // omits it whatever the row holds. `icps.ts`'s own surfacing comment says so in as many
+  // words — a record with no address "still proves TARGETING FIT, which is the only thing
+  // this stage claims".
+  //
+  // ⚠️ PAID SOURCING IS UNCHANGED. A lead that reaches a real campaign still has to be
+  // contactable, and that is what the reveal path and the enrichment waterfall are for —
+  // neither is touched here. A no-email proof lead stays masked and inert: `revealed_at`
+  // stays NULL, so it cannot enter a pack slot, a $4 charge, an approval count or any ledger.
+  if (opts?.proofMode !== true) must.push({ exists: { field: 'work_email' } })
   // PAGINATION IS `scroll_token`, NOT `from` (#366).
   //
   // PDL deprecated `from`-based paging — sending it 400s the whole request, which is why
@@ -219,12 +255,12 @@ type PdlOutcome =
   | { kind: 'exhausted' }
   | { kind: 'error'; detail: string }
 
-async function pdlSearchOnce(icp: IcpQuery, size: number, key: string, scrollToken?: string | null): Promise<PdlOutcome> {
+async function pdlSearchOnce(icp: IcpQuery, size: number, key: string, scrollToken?: string | null, opts?: PdlSearchOptions): Promise<PdlOutcome> {
   try {
     const res = await fetch(PDL_SEARCH_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
-      body:    JSON.stringify(buildPdlBody(icp, size, scrollToken)),
+      body:    JSON.stringify(buildPdlBody(icp, size, scrollToken, opts)),
       signal:  AbortSignal.timeout(15000),
     })
     if (res.status === 404) return { kind: 'exhausted' }
@@ -289,7 +325,7 @@ export type PdlPage = {
  * dry → throttled founder alert. Failed calls (402/404/429) consume no PDL credits, so the
  * ladder costs nothing extra.
  */
-export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: string | null = null): Promise<PdlPage> {
+export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: string | null = null, opts?: PdlSearchOptions): Promise<PdlPage> {
   const key = process.env.PDL_API_KEY
   // Dormant until a key is configured. NOT `exhausted` — we never asked, so we cannot claim
   // the audience is finished; that would tell a client to widen an ICP that is fine.
@@ -299,7 +335,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
   let retriedRateLimit = false
 
   for (let i = 0; i < ladder.length; i++) {
-    const outcome = await pdlSearchOnce(icp, ladder[i], key, scrollToken)
+    const outcome = await pdlSearchOnce(icp, ladder[i], key, scrollToken, opts)
     if (outcome.kind === 'ok') {
       if (i > 0) console.log(`[pdl] size ladder recovered: got ${outcome.contacts.length} at size ${ladder[i]} (asked ${size})`)
       return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, error: null }

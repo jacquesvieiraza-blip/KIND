@@ -4,7 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
-import { PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
+// ⚑ 24 Aug — PACK_PRICE_USD / PACK_LEADS are no longer imported here, and that is the
+// point rather than a tidy-up: this screen no longer names a price at all. The pack ask
+// moved behind "Looks right" on the desk, where those constants are still interpolated.
+// If a price ever needs to appear on this panel again, import them then — do not
+// hand-type one (the 3-Aug $99-vs-$299 bug).
 
 // #513/#514 — MILLA CONVERSATIONAL ONBOARDING. Milla-led, no forms: the client describes
 // who they want to reach, Milla (via /icps/builder/chat) proposes a structured ICP, we show
@@ -343,12 +347,42 @@ export default function MillaWelcomePage() {
       //
       // `proof` claims each carry their own `permitted` flag. Only the ones the client
       // explicitly approved reach outreach — the rest are recorded for a human to ask about.
-      await api.post('/icps', { ...proposed, business, proof, campaign_intent: intent }, tk)
-      // ⚑ flow v2 (step 2): the $99 was never asked for at the moment it matters. The banner
-      // sat on the dashboard where a brand-new client had no reason to look, so the ICP they
-      // just approved sat dormant. The conversation ENDS on the ask, because that is when
-      // they most want what it buys.
-      router.push('/milla/billing?start=1&from=icp')
+      const saved = await api.post<{ data?: { id?: string } }>(
+        '/icps', { ...proposed, business, proof, campaign_intent: intent }, tk)
+
+      // ── FREE PROOF COMES BEFORE THE ASK (founder-ruled 24 Aug) ─────────────────────
+      //
+      // ⚑ This used to be `router.push('/milla/billing?start=1&from=icp')` — the client
+      // confirmed that Milla understood them and the very next screen asked for $299,
+      // having shown them nothing. The founder's walk caught it: the approved journey is
+      // understanding → confirm → FREE PROOF → up to 20 masked leads → the client judges
+      // the fit → and ONLY on "Looks right" does the $299 appear. The proof entry existed
+      // and worked (`POST /icps/:id/proof`, its passes, its 40-record and $300 fences) —
+      // it was simply orphaned on `/milla/icp`, a page a brand-new prospect never opens.
+      //
+      // Nothing about proof itself changed here. This is the missing navigation.
+      const icpId = saved?.data?.id
+      try {
+        if (!icpId) throw new Error('no icp id')
+        // EXACTLY ONE call. Never in a loop, never from an error handler, never retried:
+        // a pass is claimed atomically the moment this lands, and a second POST would
+        // claim the client's SECOND pass — leaving them two passes down having seen no
+        // leads at all. `api.post` itself performs a single fetch with no retry.
+        await api.post(`/icps/${icpId}/proof`, {}, tk)
+      } catch {
+        // ── TERMINAL. NO RETRY, NO BILLING (founder-ruled 24 Aug) ───────────────────
+        // A proof start that fails is OURS to fix, not something the client did. They
+        // stay on this screen, they are told plainly, and there is deliberately no
+        // "try again" — pressing it could spend the second pass on top of the first.
+        // Falling through to billing would ask a prospect for $299 having shown them
+        // nothing, which is the exact defect this build exists to remove.
+        setError('Your targeting is saved, but we could not start finding your matches just yet. Nothing has been charged and nobody has been contacted — we have been told, and we will get this moving and let you know.')
+        setSaving(false)
+        return
+      }
+
+      // Their masked leads land on the desk. The $299 lives behind "Looks right" there.
+      router.push('/milla')
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 
@@ -554,25 +588,25 @@ export default function MillaWelcomePage() {
                 <div className="text-[11.5px] text-[#9b8ec4] mb-4">We haven&rsquo;t counted this audience yet — we&rsquo;ll size it and recommend a plan once your account is open. You only ever pay when you approve a lead.</div>
               )}
 
-              {/* The button says what actually happens next: they approve, and the very next
-                  screen is the pack — because nothing sources until it lands. Promising
-                  "start sourcing" here was a promise the money gate does not keep.
-                  ⚠️ THE PRICE IS INTERPOLATED. This label hand-typed "$99" and survived the
-                  3-Aug $299 sweep because the sweep fixed the small print ONE LINE BELOW and
-                  missed the button above it — the founder caught it on screen, mid-signup,
-                  showing two prices at once. The screen a client reads cannot hand-type money. */}
               {/* ⚑ round 4 — THE BUTTON IS THE CONFIRMATION. Pressing it persists the business
                   understanding AND records that the client said it represents them
-                  (`clients.milla_understanding_confirmed_at`). Its words now say that,
-                  because "Approve this" described the targeting and quietly stood in for a
-                  statement about their whole business. The journey is unchanged: confirm,
-                  then go live for $299.
+                  (`clients.milla_understanding_confirmed_at`).
                   ⚑ 24 Aug — on a first run it also OPENS THE ACCOUNT, through the unchanged
-                  /auth/onboard handler, immediately before the ICP is saved. */}
-              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : (business && Object.values(business).some(Boolean)
-                ? `Yes, this represents us — go live for $${PACK_PRICE_USD}`
-                : `Approve this — then go live for $${PACK_PRICE_USD}`)}</button>
-              <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">${PACK_PRICE_USD} includes your first <b className="text-[#5c5279]">{PACK_LEADS} approved leads</b> and your sender. Nothing sources until it lands.</div>
+                  /auth/onboard handler, immediately before the ICP is saved.
+                  ⚑ 24 Aug (free-proof entry) — AND NO PRICE APPEARS HERE ANY MORE. This
+                  button read "go live for $299" and the next screen was billing: a prospect
+                  was asked to pay having been shown nobody. The approved journey puts FREE
+                  PROOF in between, so the words say what the click now does — she goes and
+                  finds them. The $299 ask is not deleted, it MOVED to where it already
+                  belonged: behind "Looks right" on the desk, which routes to
+                  `/milla/billing?start=1&from=proof`. It is still interpolated from
+                  PACK_PRICE_USD where it is rendered — the constant is untouched.
+                  ⚠️ The old label hand-typed "$99" and survived the 3-Aug $299 sweep because
+                  the sweep fixed the small print one line below and missed the button above
+                  it, showing two prices at once. That is why a price is never hand-typed on
+                  a screen a client reads — and why this screen now carries none at all. */}
+              <button disabled={saving} onClick={approve} className="w-full text-[13px] font-bold text-white rounded-xl py-3 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">{saving ? 'Saving…' : "Yes, this represents us — show me who you'd find"}</button>
+              <div className="text-[11.5px] text-[#9b8ec4] mt-2 text-center">We&rsquo;ll find real people who match this and show them to you — <b className="text-[#5c5279]">free, masked, and nobody is contacted</b>. You decide what happens next.</div>
               <button disabled={saving} onClick={() => { setProposed(null); setMatchCount(null) }} className="w-full text-[12.5px] font-semibold text-[#5c5279] mt-2 py-2">Keep adjusting the target</button>
               {error && <div className="mt-3 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
             </div>

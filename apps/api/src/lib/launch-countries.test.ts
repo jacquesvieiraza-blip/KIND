@@ -1,10 +1,16 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+
+// `pdl-search` imports `./alerts`, which builds a Supabase client at module load and throws
+// without SUPABASE_* env vars. Mocked so the TARGETING MAPS can be executed in a unit test —
+// nothing here sends an alert, and nothing here calls PDL.
+vi.mock('./alerts', () => ({ sendFounderAlert: vi.fn() }))
 import { readFileSync } from 'fs'
 import { join } from 'path'
 import {
   LAUNCH_SEND_COUNTRIES, isLaunchSendCountry, launchHoldReason,
-  launchHoldMessage, launchTargetRefusal,
+  launchHoldMessage, launchTargetRefusal, canonicalLaunchCountry,
 } from '@kind/shared'
+import { buildPdlBody } from './pdl-search'
 import { isUkCountry } from './pecr'
 
 // THE LAUNCH ALLOWLIST — AND THE DRIFT GUARD BETWEEN THE TWO UK LISTS.
@@ -186,5 +192,145 @@ describe('the words a person actually reads', () => {
 
   it('names the refused country back to the client', () => {
     expect(launchTargetRefusal('Nigeria')).toContain('Nigeria')
+  })
+})
+
+// ── THE ALIASES NOW ANSWER "WHICH ONE?", NOT JUST "IS IT ONE OF THE THREE?" ──────────────
+//
+// `pdl-search.ts` sent the client's own geography words straight to PDL, lowercased. PDL
+// indexes `location_country` as a canonical full name, so a client targeting "US" produced
+// `terms: { location_country: ['us'] }` — a clause matching nobody. It sits in `bool.must`,
+// so the WHOLE query went to zero, silently, and the client read that as "K.I.N.D found
+// nobody in my market". The industry, seniority and size clauses all mapped through a
+// vocabulary table; country was the only one that did not — while the alias knowledge to fix
+// it sat in THIS file, unusable because a flat token list cannot say which country a token is.
+describe('canonicalLaunchCountry — one alias table, now readable in both directions', () => {
+  it('every United States spelling canonicalises', () => {
+    for (const t of ['US', 'us', 'U.S.', 'U.S.A.', 'USA', 'America', 'United States', 'United States of America'])
+      expect(canonicalLaunchCountry(t), t).toBe('united states')
+  })
+
+  it('every United Kingdom spelling canonicalises, home nations included', () => {
+    for (const t of ['UK', 'U.K.', 'GB', 'GBR', 'United Kingdom', 'Great Britain', 'Britain',
+                     'England', 'Scotland', 'Wales', 'Northern Ireland'])
+      expect(canonicalLaunchCountry(t), t).toBe('united kingdom')
+  })
+
+  it('every South Africa spelling canonicalises', () => {
+    for (const t of ['ZA', 'ZAF', 'RSA', 'South Africa', 'Republic of South Africa', 'Suid-Afrika', 'Suid Afrika'])
+      expect(canonicalLaunchCountry(t), t).toBe('south africa')
+  })
+
+  it('is insensitive to case and surrounding whitespace, like its sibling', () => {
+    expect(canonicalLaunchCountry('  uNiTeD sTaTeS  ')).toBe('united states')
+  })
+
+  it('⚠️ AN UNKNOWN COUNTRY LOWERCASES AND PASSES THROUGH — it is never dropped', () => {
+    // Dropping it would quietly widen the client's targeting from one country to the whole
+    // world. Passing it through preserves exactly the pre-24-Aug behaviour for anything
+    // outside the table: it reaches the provider as they wrote it, and matches what it matches.
+    expect(canonicalLaunchCountry('Nigeria')).toBe('nigeria')
+    expect(canonicalLaunchCountry('Kenya')).toBe('kenya')
+    expect(canonicalLaunchCountry('')).toBe('')
+    expect(canonicalLaunchCountry(null)).toBe('')
+  })
+
+  it('ONE SOURCE OF TRUTH — the send fence and the canonicaliser cannot disagree', () => {
+    // The flat token list the fence tests against is DERIVED from the grouping, so every
+    // alias either both passes the fence and canonicalises, or does neither. A second
+    // independent token table is exactly what this assertion exists to prevent.
+    for (const t of ['US', 'USA', 'U.S.', 'UK', 'GB', 'England', 'ZA', 'RSA', 'Suid-Afrika']) {
+      expect(isLaunchSendCountry(t), `${t} passes the fence`).toBe(true)
+      expect(LAUNCH_SEND_COUNTRIES.map(c => c.toLowerCase()), `${t} canonicalises to a launch country`)
+        .toContain(canonicalLaunchCountry(t))
+    }
+    // …and the source really does derive one from the other, rather than listing twice.
+    const src = readFileSync(join(__dirname, '../../../../packages/shared/src/launch-countries.ts'), 'utf8')
+    expect(src).toContain('const LAUNCH_COUNTRY_TOKENS: readonly string[] = Object.values(LAUNCH_COUNTRY_ALIASES).flat()')
+    expect((src.match(/'u\.s\.a\.'/g) ?? []), 'the USA alias is written exactly once').toHaveLength(1)
+  })
+})
+
+// ── THE PDL QUERY MEANS WHAT THE CLIENT'S WORDS MEAN ─────────────────────────────────────
+//
+// Executed against the real builder, not asserted by reading source strings: a map that is
+// string-matched proves it was TYPED, while executing `buildPdlBody` proves what a client's
+// actual selections turn into.
+describe('buildPdlBody — targeting maps say what the labels promise', () => {
+  const ICP = {
+    job_titles: ['Head of Operations'], seniority_levels: [], company_sizes: [],
+    geographies: [], industries: [],
+  }
+  const clauseFor = (icp: Partial<typeof ICP>, field: string) => {
+    const body = buildPdlBody({ ...ICP, ...icp } as typeof ICP, 20) as
+      { query: { bool: { must: Array<Record<string, Record<string, unknown>>> } } }
+    const hit = body.query.bool.must.find(c => c.terms && field in c.terms)
+    return (hit?.terms?.[field] as string[] | undefined) ?? null
+  }
+
+  it('COUNTRY — the canonical value reaches location_country, not the client\'s spelling', () => {
+    expect(clauseFor({ geographies: ['US'] }, 'location_country')).toEqual(['united states'])
+    expect(clauseFor({ geographies: ['USA'] }, 'location_country')).toEqual(['united states'])
+    expect(clauseFor({ geographies: ['U.S.'] }, 'location_country')).toEqual(['united states'])
+    expect(clauseFor({ geographies: ['United States'] }, 'location_country')).toEqual(['united states'])
+    expect(clauseFor({ geographies: ['UK'] }, 'location_country')).toEqual(['united kingdom'])
+    expect(clauseFor({ geographies: ['GB'] }, 'location_country')).toEqual(['united kingdom'])
+    expect(clauseFor({ geographies: ['England'] }, 'location_country')).toEqual(['united kingdom'])
+    expect(clauseFor({ geographies: ['RSA'] }, 'location_country')).toEqual(['south africa'])
+    // …aliases of the SAME country collapse to one term rather than repeating it.
+    expect(clauseFor({ geographies: ['US', 'USA', 'America'] }, 'location_country')).toEqual(['united states'])
+    // …and an unknown country still reaches the provider, lowercased.
+    expect(clauseFor({ geographies: ['Nigeria'] }, 'location_country')).toEqual(['nigeria'])
+  })
+
+  it('SENIORITY — "Head of" means manager, director AND vp', () => {
+    const levels = clauseFor({ seniority_levels: ['Head of'] }, 'job_title_levels')
+    for (const lvl of ['manager', 'director', 'vp']) expect(levels, lvl).toContain(lvl)
+  })
+
+  it('SENIORITY — every other label keeps exactly the meaning it had', () => {
+    expect(clauseFor({ seniority_levels: ['C-Suite'] }, 'job_title_levels')).toEqual(['cxo', 'owner'])
+    expect(clauseFor({ seniority_levels: ['VP / Director'] }, 'job_title_levels')).toEqual(['vp', 'director'])
+    expect(clauseFor({ seniority_levels: ['Manager'] }, 'job_title_levels')).toEqual(['manager'])
+    expect(clauseFor({ seniority_levels: ['Senior'] }, 'job_title_levels')).toEqual(['senior'])
+    expect(clauseFor({ seniority_levels: ['Individual Contributor'] }, 'job_title_levels')).toEqual(['entry'])
+  })
+
+  it('SIZE — "1,000+" does not stop at 5,000', () => {
+    const sizes = clauseFor({ company_sizes: ['1,000+'] }, 'job_company_size')
+    for (const b of ['1001-5000', '5001-10000', '10001+']) expect(sizes, b).toContain(b)
+  })
+
+  it('SIZE — no OTHER band was widened; each still means exactly one bucket', () => {
+    expect(clauseFor({ company_sizes: ['1–10'] }, 'job_company_size')).toEqual(['1-10'])
+    expect(clauseFor({ company_sizes: ['11–50'] }, 'job_company_size')).toEqual(['11-50'])
+    expect(clauseFor({ company_sizes: ['51–200'] }, 'job_company_size')).toEqual(['51-200'])
+    expect(clauseFor({ company_sizes: ['201–500'] }, 'job_company_size')).toEqual(['201-500'])
+    expect(clauseFor({ company_sizes: ['501–1,000'] }, 'job_company_size')).toEqual(['501-1000'])
+    // …and a selection of small bands never drags enterprise buckets in behind it.
+    expect(clauseFor({ company_sizes: ['1–10', '11–50'] }, 'job_company_size'))
+      .toEqual(['1-10', '11-50'])
+  })
+
+  it('TITLES are still OR, and every clause still sits in bool.must', () => {
+    const body = buildPdlBody({ ...ICP, job_titles: ['Head of Ops', 'COO'] }, 20) as
+      { query: { bool: { must: Array<Record<string, unknown>> } } }
+    const titleClause = body.query.bool.must.find(c => 'bool' in c) as
+      { bool: { should: Array<{ match: { job_title: string } }> } }
+    expect(titleClause.bool.should.map(s => s.match.job_title)).toEqual(['Head of Ops', 'COO'])
+    expect(Array.isArray(body.query.bool.must)).toBe(true)
+  })
+
+  it('⚠️ BOUNDARIES — work_email, request shape and pagination are untouched', () => {
+    const body = buildPdlBody(ICP, 20) as Record<string, unknown> & { query: { bool: { must: unknown[] } } }
+    // The email-existence clause is NOT this build's business — the founder ruled it a
+    // separate one. It must still be here, unchanged, on every query.
+    expect(JSON.stringify(body)).toContain('{"exists":{"field":"work_email"}}')
+    // Same envelope, same size passthrough, and scroll_token only when one is supplied.
+    expect(body.size).toBe(20)
+    expect(body).not.toHaveProperty('scroll_token')
+    expect(buildPdlBody(ICP, 20, 'tok')).toHaveProperty('scroll_token', 'tok')
+    // No `from`-based paging crept back in (#366).
+    expect(body).not.toHaveProperty('from')
   })
 })

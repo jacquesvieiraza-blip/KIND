@@ -18,13 +18,27 @@
 // ─────────────────────────────────────────────────────────────────────────────
 import type { ApolloContact } from './apollo'
 import { sendFounderAlert } from './alerts'
+// The SAME alias knowledge the launch send fence uses — imported, never re-declared here.
+import { canonicalLaunchCountry } from '@kind/shared'
 
 const PDL_SEARCH_URL = 'https://api.peopledatalabs.com/v5/person/search'
 
-// ICP company-size label → PDL `job_company_size` bucket.
-const PDL_SIZE_MAP: Record<string, string> = {
-  '1–10': '1-10', '11–50': '11-50', '51–200': '51-200',
-  '201–500': '201-500', '501–1,000': '501-1000', '1,000+': '1001-5000',
+// ICP company-size label → PDL `job_company_size` bucket(s).
+//
+// ⚑ 24 Aug — `'1,000+'` MAPPED TO `'1001-5000'` AND STOPPED THERE. The K.I.N.D band is
+// unbounded above; PDL's bucket is not. So every company over 5,000 employees was silently
+// excluded from the one band a client picks precisely BECAUSE they want enterprise — and
+// nothing said so. The repo's own Apollo map already got this right (`apollo.ts:50`:
+// `'1,000+': '1001,1000000'`), so the two providers disagreed about the same product label.
+//
+// ⚠️ THE VALUE TYPE IS NOW AN ARRAY, and that is the smallest change that fixes it: the
+// clause is already `terms`, which is OR, so a band that means "1,000 and up" simply names
+// every bucket at or above 1,000. Every OTHER band keeps exactly one bucket — this widens
+// one label, not the search. There is no second size table; this IS the table.
+const PDL_SIZE_MAP: Record<string, readonly string[]> = {
+  '1–10': ['1-10'], '11–50': ['11-50'], '51–200': ['51-200'],
+  '201–500': ['201-500'], '501–1,000': ['501-1000'],
+  '1,000+': ['1001-5000', '5001-10000', '10001+'],
 }
 
 // ICP industry label → PDL `job_company_industry` vocab (the LinkedIn industry
@@ -59,7 +73,14 @@ const PDL_INDUSTRY_MAP: Record<string, string[]> = {
 const PDL_LEVEL_MAP: Record<string, string[]> = {
   'C-Suite':                ['cxo', 'owner'],
   'VP / Director':          ['vp', 'director'],
-  'Head of':                ['director'],
+  // ⚑ 24 Aug (founder-ruled) — WAS `['director']`, and that was narrower than the words.
+  // "Head of" is a TITLE CONVENTION, not a level: PDL levels a real Head of Operations as
+  // `manager`, `director` or `vp` depending on company size and reporting line — a Head of X
+  // at a 40-person firm often levels `manager`, at a 2,000-person firm often `vp`. Pinning
+  // one value excluded the other two, and because seniority AND-s with the title clause,
+  // every excluded level was a HARD exclusion. `terms` is OR and overlapping the neighbouring
+  // labels costs nothing (see the industry-map note above), so all three are named.
+  'Head of':                ['manager', 'director', 'vp'],
   'Manager':                ['manager'],
   'Senior':                 ['senior'],
   'Individual Contributor': ['entry'],
@@ -89,7 +110,10 @@ type IcpQuery = {
   industries:       string[]
 }
 
-function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string | null) {
+/** Exported for the mapping guards ONLY — nothing else calls it from outside this file.
+ *  A targeting map that is asserted by reading source strings proves the map was TYPED;
+ *  executing the builder proves the query a client's words actually produce. */
+export function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string | null) {
   const must: unknown[] = []
   if (icp.job_titles.length) {
     must.push({ bool: { should: icp.job_titles.map(t => ({ match: { job_title: t } })) } })
@@ -107,9 +131,21 @@ function buildPdlBody(icp: IcpQuery, size: number, scrollToken?: string | null) 
     if (industryTerms.length) must.push({ terms: { job_company_industry: industryTerms } })
   }
   if (icp.geographies.length) {
-    must.push({ terms: { location_country: icp.geographies.map(g => g.toLowerCase()) } })
+    // ⚑ 24 Aug — WAS `g.toLowerCase()` AND THAT WAS A LATENT HARD-ZERO. PDL indexes
+    // `location_country` as a canonical full name in lowercase, so a client who typed "US"
+    // produced `terms: { location_country: ['us'] }` — a clause matching nobody. Sitting in
+    // `bool.must`, it took the ENTIRE query to zero, silently, and the client read that as
+    // "K.I.N.D found nobody in my market".
+    //
+    // Canonicalised through the launch-country alias table that already existed for the send
+    // fence — ONE alias source, restructured so both read it. An unrecognised term still
+    // lowercases and passes through exactly as before: dropping it would quietly widen the
+    // client's targeting from one country to the world, which is worse than not matching.
+    const countries = [...new Set(icp.geographies.map(g => canonicalLaunchCountry(g)).filter(Boolean))]
+    if (countries.length) must.push({ terms: { location_country: countries } })
   }
-  const sizes = icp.company_sizes.map(s => PDL_SIZE_MAP[s]).filter(Boolean)
+  // `flatMap`, because one K.I.N.D band may legitimately mean several PDL buckets ('1,000+').
+  const sizes = [...new Set(icp.company_sizes.flatMap(s => PDL_SIZE_MAP[s] ?? []))]
   if (sizes.length) must.push({ terms: { job_company_size: sizes } })
   // Only return people we can actually email.
   must.push({ exists: { field: 'work_email' } })

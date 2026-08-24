@@ -1270,9 +1270,49 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
 // (The builder page previously POSTed to a non-existent route and 404'd on every turn.)
 icpRouter.post('/builder/chat', async (req: AuthRequest, res) => {
   try {
-    const { messages } = z.object({
+    const { messages, website_evidence } = z.object({
       messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).min(1).max(40),
+      // ── PROVISIONAL WEBSITE EVIDENCE (founder-ruled 24 Aug) ───────────────────────────
+      // The basic website read (`/icps/prefill` -> suggestIcpFromWebsite) used to run at
+      // sign-up and its output went to a localStorage key read only by a page the
+      // middleware redirects every client away from. It now runs INSIDE Milla, and its
+      // output arrives here as what it actually is: a machine's guess from 3,000 scraped
+      // characters. The founder's words: "website evidence is NOT unquestioned truth."
+      //
+      // It is passed as a SEPARATE field and NEVER as a chat message, because a message
+      // would put the scrape into the transcript as if the client had said it. It enters
+      // the system prompt clearly labelled, and Milla has to get it confirmed out loud.
+      website_evidence: z.object({
+        url:               z.string().max(300).optional(),
+        industries:        z.array(z.string()).max(12).optional(),
+        job_titles:        z.array(z.string()).max(12).optional(),
+        seniority_levels:  z.array(z.string()).max(12).optional(),
+        company_sizes:     z.array(z.string()).max(12).optional(),
+        geographies:       z.array(z.string()).max(12).optional(),
+        keywords:          z.array(z.string()).max(12).optional(),
+      }).optional(),
     }).parse(req.body)
+
+    // Rendered only when a website was actually read. An empty block would tell the model
+    // there is evidence when there is none, which is its own way of inventing something.
+    const evidenceList = (label: string, arr?: string[]) =>
+      arr && arr.length ? `  ${label}: ${arr.map(s => String(s).slice(0, 60)).join(', ')}\n` : ''
+    const websiteEvidenceBlock = website_evidence
+      ? `
+
+PROVISIONAL WEBSITE EVIDENCE — A MACHINE'S GUESS, NOT THE CLIENT'S WORDS.
+An automated basic read of ${website_evidence.url ?? 'their website'} produced the following.
+${evidenceList('Industries', website_evidence.industries)}${evidenceList('Job titles', website_evidence.job_titles)}${evidenceList('Seniority', website_evidence.seniority_levels)}${evidenceList('Company sizes', website_evidence.company_sizes)}${evidenceList('Geographies', website_evidence.geographies)}${evidenceList('Keywords', website_evidence.keywords)}
+HOW YOU MUST TREAT IT:
+- It is UNVERIFIED. It may be wrong, out of date, or about the wrong audience entirely.
+- NEVER say or imply the client told you any of it. Say where it came from: you had a look
+  at their site.
+- Put it to them plainly and ask them to confirm or correct it, in ordinary language.
+- A value only enters "icp" AFTER they confirm it. Anything they do not confirm, or do not
+  mention at all, must NOT appear in "icp".
+- List every value that came from the site and is still unconfirmed under "website_hints"
+  so the client can see, on the confirmation panel, which parts they have not yet endorsed.`
+      : ''
 
     // ── MILLA LEARNS THE BUSINESS, NOT JUST THE TARGET (22 Aug) ────────────────────────
     //
@@ -1295,10 +1335,23 @@ Have a natural, friendly conversation. Ask AS MANY questions as you genuinely ne
 businesses take three, some take ten. Never present a numbered form. One or two questions at
 a time, in plain language.
 
-You are learning TWO things at once:
+You are learning THREE things at once:
   1. WHO they want to reach (their targeting).
   2. WHAT THEIR BUSINESS IS — because we write their outreach for them, and we may only say
      things that are true and that they have approved.
+  3. THE FEW FACTS WE NEED TO OPEN THEIR ACCOUNT — this used to be a separate form before
+     anyone met you, and it is now yours: their company name, who you are speaking to,
+     which country their business is based in, a mobile number, and their website.
+
+Ask for the account facts the way a person would — woven into the conversation, never as a
+checklist, never all at once. "What's the company called?" belongs at the start. "And who am
+I speaking to?" is a normal thing to ask. The mobile and the website are worth asking for and
+fine to go without.
+
+⚠️ THE COUNTRY IS WHERE THEIR OWN BUSINESS IS BASED. It is NOT where their customers are.
+Those are different facts and they are often different countries. NEVER copy it from the
+geographies in the targeting, and NEVER guess it from a domain suffix, a currency or a
+timezone. If they have not said it, ask.
 
 Cover, in whatever order the conversation goes: what they sell · who gets real value from it ·
 the problem those people have · what changes for them afterwards · what makes them different ·
@@ -1313,12 +1366,24 @@ problem, why they should care, what the conversation is.
 
 If they mention a named customer, a case study, a testimonial, a specific result or a metric,
 ASK EXPLICITLY whether we may use it in outreach. Do not assume. Anything they have not
-clearly approved must be recorded with "permitted": false.
+clearly approved must be recorded with "permitted": false.${websiteEvidenceBlock}
+
+DO NOT ANSWER "complete" UNTIL YOU HOLD BOTH THEIR COMPANY NAME AND THEIR OWN COUNTRY. Their
+account cannot be opened without those two, and a made-up value is far worse than one more
+question. If either is missing, ask for it — that is a "question", not a "complete".
 
 Respond with ONLY valid JSON (no markdown):
 - Still learning: {"type":"question","content":"<your reply, max 2 sentences>"}
 - When you genuinely understand them:
 {"type":"complete","summary":"<one-sentence summary>",
+ "profile":{
+   "company_name": "<their company's name, exactly as they gave it — REQUIRED>",
+   "country": "<the country THEIR BUSINESS is based in, as they said it — REQUIRED, never taken from the targeting geographies>",
+   "contact_name": "<the name of the person you are talking to, if they gave it>",
+   "phone": "<their mobile, if they gave it>",
+   "website": "<their website, if they gave it>",
+   "industry": "<a short plain phrase for what their business does, from their own words>"
+ },
  "icp":{
    "name": "<short ICP name>",
    "industries": [from: Fintech, Healthtech, E-commerce, SaaS, Logistics, Agriculture, Education, Manufacturing, Real Estate, Media, Consulting, Retail, Banking, Insurance, Telecoms, Energy],
@@ -1339,11 +1404,14 @@ Respond with ONLY valid JSON (no markdown):
    "bad_fit": "<who is an obvious bad fit, if they said>"
  },
  "proof":[ {"claim":"<a named customer, case study, testimonial, result or metric>","permitted":false} ],
+ "website_hints": ["<any value that came from the website read and the client has NOT confirmed out loud>"],
  "campaign_intent": "<what they are trying to achieve with this batch, in their words>"
 }
 
 Only fill what you are confident about; use "" or [] otherwise. NEVER invent a customer, a
-result or a number. "permitted" is false unless they explicitly said we may use that claim.`
+result or a number. "permitted" is false unless they explicitly said we may use that claim.
+NEVER invent a company name, a country, a person's name, a phone number or a website — leave
+it "" and ask instead. Nothing here may be filled in on the client's behalf.`
 
     const response = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
@@ -1357,8 +1425,10 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     let parsed: {
       type?: string; content?: string; summary?: string
       icp?: Record<string, unknown>
+      profile?: Record<string, unknown>
       business?: Record<string, unknown>
       proof?: unknown[]
+      website_hints?: unknown[]
       campaign_intent?: unknown
     }
     try {
@@ -1400,11 +1470,42 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         .filter(p => p.claim.length > 0)
         .slice(0, 12)
 
+      // ── THE ACCOUNT FACTS (founder-ruled 24 Aug) ────────────────────────────────────
+      // These used to be typed into a scripted six-question form at /onboard, before the
+      // client had entered K.I.N.D at all — with FIGSY's face over copy that said "I'm
+      // Milla". They are now Milla's, collected in the one conversation.
+      //
+      // ⚠️ SANITISED, NEVER SUPPLIED. Whatever the model omits stays EMPTY and travels on
+      // as empty: `company_name` and `country` are required by `onboardSchema` and by the
+      // clients table, and the portal refuses to submit without them. Nothing here — not
+      // this route, not the portal — may fill one in on the client's behalf. The clients
+      // table defaults `country` to 'South Africa' (schema.sql), which is exactly the
+      // silent placeholder the founder ruled out, so an empty string must reach the
+      // validator and be REJECTED rather than quietly become a country.
+      const p = (parsed.profile ?? {}) as Record<string, unknown>
+      const short = (v: unknown) => (typeof v === 'string' ? v.trim().slice(0, 200) : '')
+      const profile = {
+        company_name: short(p.company_name),
+        country:      short(p.country),
+        contact_name: short(p.contact_name),
+        phone:        short(p.phone),
+        website:      short(p.website),
+        industry:     short(p.industry),
+      }
+
+      // What came off the website and the client has NOT endorsed out loud. Shown on the
+      // confirmation panel under its own heading so a scraped guess can never be read as
+      // something they said — "the reflect-back must distinguish client-confirmed
+      // understanding from mere website-derived hints".
+      const websiteHints = (Array.isArray(parsed.website_hints) ? parsed.website_hints : [])
+        .map(short).filter(h => h.length > 0).slice(0, 12)
+
       res.json({
         success: true,
         data: {
           type: 'complete', icp: draft, summary: parsed.summary ?? null,
-          business, proof, campaign_intent: str(parsed.campaign_intent),
+          profile, business, proof, website_hints: websiteHints,
+          campaign_intent: str(parsed.campaign_intent),
         },
       })
       return

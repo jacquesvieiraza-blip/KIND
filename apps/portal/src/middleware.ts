@@ -22,7 +22,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 export const PUBLIC_ROUTES: { path: string; why: string }[] = [
   { path: '/',            why: 'The landing/redirect entry point. Signed-in clients are bounced to /milla below.' },
   { path: '/login',       why: 'It IS the login.' },
-  { path: '/onboard',     why: 'Sign-up. A gate here would mean only existing clients could become clients.' },
+  { path: '/onboard',     why: 'A REDIRECT STUB to /milla/welcome, and nothing else (24 Aug). It used to be the sign-up interview; the founder ruled that authentication is all that happens before K.I.N.D, so Milla collects the account facts herself and the clients row is written when she is confirmed. The route survives only so an emailed /auth/callback?next=/onboard link, an old bookmark or a stale tab still lands somewhere sane. Left ungated because gating a redirect buys nothing: it holds no data, reads no session and grants nothing — /milla/welcome is where the real gate is (below), and a logged-out visitor is bounced from there to /login.' },
   { path: '/demo-login',  why: 'Auto-login for a demo account from Vida\'s "Open Demo". Carries a Supabase OTP (?e + ?o) which Supabase itself verifies server-side, so the credential IS the gate — and it signs the current session OUT first so a walkthrough can never land on the founder\'s own account. Must work logged-out by definition.' },
   { path: '/terms',       why: 'Legal. A client must be able to read the terms before they have an account, and after they have lost access to it.' },
   { path: '/privacy',     why: 'Legal, same reason.' },

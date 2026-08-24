@@ -37,7 +37,12 @@ authRouter.post('/signup', rateLimit({ limit: 10, windowMs: 60_000, key: 'signup
     // generate an admin magic link: server-generated links can't be PKCE-exchanged
     // by /auth/callback (exchangeCodeForSession needs a client-side code_verifier
     // that doesn't exist) → every signup hit "confirmation_failed" (the T1 bug).
-    res.json({ success: true, data: { redirect_url: `${PORTAL}/onboard` } })
+    // ⚑ 24 Aug — A NEW CLIENT GOES STRAIGHT INTO K.I.N.D, NOT INTO AN INTERVIEW. This
+    // pointed at /onboard, a six-question scripted form that ran BEFORE the client had
+    // entered the product, asked what their business does (a question Milla then asked
+    // again inside), and wore FIGSY's face over copy that read "Hi — I'm Milla". The
+    // account facts are Milla's now, so authentication hands straight over to her.
+    res.json({ success: true, data: { redirect_url: `${PORTAL}/milla/welcome` } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors[0].message }); return }
     console.error('[auth/signup]', err)

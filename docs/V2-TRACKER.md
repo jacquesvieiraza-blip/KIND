@@ -1134,6 +1134,20 @@ A **dependency may move an item upward** when it unlocks several more important 
 
 **PASS 4 — MAP VIDA PROPERLY.** Audit what Vida already holds for CRM · prospect and client lifecycle · onboarding · delivery · replies · meetings · client economics · operational finance, and identify the genuine gaps. ⚠️ **Do not rebuild existing capability just because the operating model is new.**
 
+> #### 🔴 KNOWN GAP CARRIED INTO PASS 4 — ABANDONED SIGNUP HAS NO VIDA RECORD *(founder-accepted 24 Aug, at launch)*
+>
+> **Accepted launch behaviour, decided knowingly.** The 24 Aug first-run change made authentication the only thing that happens before a client enters K.I.N.D: Milla collects the account facts conversationally, and the `clients` row is written at the moment the client confirms her understanding. A consequence follows directly from that, and the founder accepted it rather than papering over it:
+>
+> **Someone who signs up, enters Milla and leaves before confirming remains an auth user with no `clients` row — so that person does not appear in Vida at all.** Previously they would have left a half-filled row behind, because the old `/onboard` form wrote one before they had entered the product.
+>
+> **What this means, plainly:** abandoned-signup visibility and follow-up are **incomplete**. We cannot see, count, chase or learn from the people who signed up and stopped. Whatever that number is, today it is invisible.
+>
+> ⚠️ **Do NOT solve this by inserting a partial or placeholder `clients` row.** The founder ruled it out by name: no invented company name, no placeholder country (the table defaults `country` to `'South Africa'`, which is precisely the silent fiction being refused), and no weakening of the required fields to let a half-finished signup through. A record that exists only to be visible is a record that lies about a customer.
+>
+> **What Pass 4 must decide:** the proper representation of a **prospect who is not yet a client** — whether that is a distinct prospect concept, a lifecycle state, an auth-side view, or something else entirely. That is a CRM-model question, and it belongs to the Vida audit, not to a launch patch.
+>
+> **This is NOT a launch blocker.** It is recorded here so it is a decision waiting to be made rather than a discovery someone makes later by wondering where the signups went.
+
 **PASS 5 — AUTOMATE ONLY PROVEN MOVEMENTS.** Use the system manually first. Then consider automating the movements that proved useful — client risk → founder action · PR merged → work-state update · counsel response → a `WAITING` item wakes · monthly finance snapshot → review trigger · hiring threshold → capacity warning. ⚠️ **No clever automation before the manual model works.**
 
 ### 1i. DO NOT ADD SOFTWARE FOR THE SAKE OF IT

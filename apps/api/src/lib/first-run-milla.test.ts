@@ -1128,6 +1128,118 @@ describe('the conversational discipline the founder specified is in the prompt',
   })
 })
 
+// ── THE SECOND LIVE WALK: A VALID TOOL CALL ASKING A FILTER-FORM QUESTION ────────────────
+//
+// #1443 fixed the transport and the walk failed again. The founder's stamps read 5037517 on
+// BOTH services, so the reviewed code WAS running — Haiku made a perfectly valid milla_reply
+// tool call and used it to ask four targeting fields at once, then asked them again when the
+// client re-answered. Nothing in the plumbing was broken; the prompt was outvoting itself.
+//
+// ⚠️ WHAT THESE GUARDS PROVE, AND WHAT ONLY THE WALK CAN. They prove the competing language
+// is gone, that the decision method is what the model meets first, and that the two rules it
+// skipped are now stated in their own right. They CANNOT prove Haiku obeys them. The
+// conversational gate is still the live walk — that is exactly how this defect got here.
+describe('one question per reply, and the business before the filter fields', () => {
+  const route     = builderChatRoute()
+  const routeCode = stripComments(route)
+
+  it('the numeric contradiction is gone — nothing licenses TWO questions in a reply', () => {
+    // Asserted on CODE. The comment above the prompt quotes the removed line on purpose:
+    // it is the incident record, same convention as every other absence guard in this file.
+    expect(routeCode).not.toContain('One or two questions at a time')
+    // …and no replacement number crept in anywhere else.
+    expect(routeCode).not.toMatch(/\b(one or two|two or three|a couple of|two|three)\s+questions\s+(at a time|per reply)\b/i)
+  })
+
+  it('ONE genuinely missing thing per reply is stated as the governing rule', () => {
+    expect(flat(route)).toContain('ASK FOR ONE GENUINELY MISSING THING PER REPLY. That is the governing rule of this entire conversation, and nothing below relaxes it.')
+    expect(flat(route)).toContain('but only ever one of them per reply')
+    // The original method sentence survives untouched — this reinforces it, it does not replace it.
+    expect(flat(route)).toContain('Then ask for ONE thing from MISSING. That is the whole method.')
+  })
+
+  it('the decision method is met BEFORE the topic-coverage block, not after it', () => {
+    const methodAt = route.indexOf('── BEFORE YOU REPLY, WORK OUT WHERE YOU ACTUALLY ARE')
+    const oneAt    = route.indexOf('Then ask for ONE thing from MISSING.')
+    const topicsAt = route.indexOf('── WHAT THIS CONVERSATION MAY EVENTUALLY NEED TO UNDERSTAND')
+    // A guard that reads nothing passes everything — prove all three anchors exist first.
+    expect(methodAt, 'the method block').toBeGreaterThan(-1)
+    expect(oneAt,    'the ask-ONE rule').toBeGreaterThan(-1)
+    expect(topicsAt, 'the topic block').toBeGreaterThan(-1)
+    expect(methodAt).toBeLessThan(topicsAt)
+    expect(oneAt).toBeLessThan(topicsAt)
+  })
+
+  it('the topic list is framed as understanding to reach, never as questions to ask', () => {
+    expect(flat(route)).toContain('What follows is a list of UNDERSTANDING TO REACH — never a list of questions to ask, and never a list to put into one reply.')
+    expect(flat(route)).toContain('one at a time, and only where they are genuinely still MISSING')
+    // The old framing — a bare "Cover…" imperative sitting above the method — is gone.
+    expect(routeCode).not.toContain('Cover, in whatever order the conversation goes:')
+    // …and the outcome follow-ups are explicitly not a batch either.
+    expect(flat(route)).toContain('Those follow-ups are things to learn over several turns, one per reply — never a batch.')
+  })
+
+  it('the no-checklist rule covers targeting, not only the account facts', () => {
+    expect(flat(route)).toContain('The no-checklist rule covers ALL THREE of the things you are here to learn')
+    expect(flat(route)).toContain('Not one of them may be collected as a list, and targeting is not the exception.')
+  })
+
+  it('asking several targeting fields together is forbidden by name', () => {
+    expect(flat(route)).toContain('NEVER ask for industry, job titles, company size and geography together.')
+    expect(flat(route)).toContain('Several targeting fields in one reply is a filter form wearing your name')
+    expect(flat(route)).toContain('If several targeting facts are missing at once, that is NOT permission to ask for them all.')
+    expect(flat(route)).toContain('CHOOSE ONE — whichever would help most right now — and ask only that one.')
+  })
+
+  it('business understanding takes precedence over collecting targeting fields', () => {
+    expect(flat(route)).toContain("If you do not yet understand what the CLIENT'S OWN BUSINESS actually sells or does, do NOT switch into collecting targeting fields.")
+    for (const bar of ['· what they sell or do', '· what value or outcome that produces', '· who gets that value']) {
+      expect(route, bar).toContain(bar)
+    }
+    expect(flat(route)).toContain('That is the bar — not every business topic.')
+    // …and it is a precedence rule, which is NOT a stage or a questionnaire.
+    expect(flat(route)).toContain('This is a PRECEDENCE RULE. It is not a questionnaire, not a fixed order and not a stage you must complete')
+    expect(flat(route)).toContain('the next question is the most useful BUSINESS question rather than a sweep of targeting fields')
+  })
+
+  it('the ABCV Logistics case is worked through in BOTH places it now matters', () => {
+    // The partial-answer example (unchanged from #1443) …
+    expect(flat(route)).toContain('they say "ABCV Logistics", then the name is KNOWN and what they do is MISSING: ask only what ABCV Logistics does')
+    // … and the new precedence example, which names the wrong move explicitly.
+    expect(flat(route)).toContain('The name is KNOWN; what ABCV Logistics actually does is MISSING. The next question is what ABCV Logistics does.')
+    expect(flat(route)).toContain('It is NOT a jump to industry, titles, size and region.')
+  })
+
+  it('the first turn is framed in the SYSTEM prompt — the greeting is NOT put back in messages', () => {
+    expect(flat(route)).toContain('This conversation opens with you inviting them, on screen, to tell you about their company AND about who their best customers are.')
+    expect(flat(route)).toContain('That invitation is screen copy rather than a turn, so you will not see it in the messages below')
+    // ⚠️ The fix must not "restore context" by prepending the greeting to the payload — the
+    // API contract needs a leading USER turn, and that is why it was sliced off in the first
+    // place. The slice stays exactly as it was, and the framing lives in `system`.
+    expect(welcomeCode).toContain("const forModel = history.slice(history.findIndex(m => m.role === 'user'))")
+    expect(routeCode).toContain('messages: messages.map(m => ({ role: m.role, content: m.content })),')
+    expect(routeCode).not.toContain('GREETING')
+  })
+
+  it('an ambiguous opening answer is clarified narrowly, never assigned silently', () => {
+    expect(flat(route)).toContain('could describe THEIR OWN business, or the customers they want to reach, or some of each')
+    expect(flat(route)).toContain('DO NOT SILENTLY DECIDE WHICH')
+    expect(flat(route)).toContain('clarify that ONE ambiguous thing in ordinary words, and clarify nothing else in the same reply')
+  })
+
+  it('"Mid Market" licenses a question about company size and nothing else', () => {
+    expect(flat(route)).toContain('It does not map cleanly to any of our size bands, so it needs a clarification — but the ONLY field it licenses you to ask about is COMPANY SIZE.')
+    expect(flat(route)).toContain('An unmappable size is never a reason to ask about industry, titles or region as well.')
+    expect(flat(route)).toContain('Ask which band they mean, and nothing else.')
+  })
+
+  it('and this prompt work introduced no new Anthropic call, no retry and no model change', () => {
+    expect(routeCode.match(/anthropic\.messages\.create\(/g) ?? []).toHaveLength(1)
+    expect(routeCode).toContain('model: BUILDER_MODEL,')
+    expect(routeCode).not.toMatch(/\bretry\b|\bsecond (call|attempt)\b/i)
+  })
+})
+
 describe('one Anthropic call per turn, with headroom, on the same model', () => {
   const route = builderChatRoute()
 

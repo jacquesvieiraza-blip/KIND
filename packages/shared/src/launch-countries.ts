@@ -45,16 +45,40 @@ export const LAUNCH_SEND_COUNTRIES = ['United States', 'United Kingdom', 'South 
  * The four home nations are here because they arrive as the country in practice, and PECR's
  * list already accepts them; a lead whose country reads `"Scotland"` is a UK lead.
  */
-const LAUNCH_COUNTRY_TOKENS = [
-  // United States
-  'us', 'u.s.', 'u.s.a.', 'usa', 'united states', 'united states of america', 'america',
+// ── ⚑ 24 Aug — GROUPED BY COUNTRY, BECAUSE A FLAT LIST CANNOT SAY *WHICH* ───────────────
+//
+// This was a flat array, and that shape answered exactly one question: "is this one of the
+// three?". It could not answer "which one?" — and that turned out to matter, because PDL's
+// `location_country` is a CANONICAL FULL NAME in lowercase (`"united states"`), while
+// `pdl-search.ts` was sending the client's own words straight through lowercased. A client
+// targeting "US" produced `location_country: ["us"]`, which is a `terms` clause matching
+// nobody — and since it sits in `bool.must`, the WHOLE query returned zero. The industry,
+// seniority and size clauses all map through a vocabulary table; country was the only one
+// that did not, while the knowledge to fix it sat right here, unusable in this shape.
+//
+// So the tokens are grouped and the flat list is DERIVED from the grouping. There is still
+// exactly one alias truth table: adding a spelling to a group teaches both
+// `isLaunchSendCountry` and `canonicalLaunchCountry` at once, and they cannot disagree.
+// The canonical key is the PDL value — lowercase full name — because that is what the one
+// consumer needs; `LAUNCH_SEND_COUNTRIES` above stays the display-facing spelling.
+const LAUNCH_COUNTRY_ALIASES: Record<string, readonly string[]> = {
+  'united states': [
+    'us', 'u.s.', 'u.s.a.', 'usa', 'united states', 'united states of america', 'america',
+  ],
   // United Kingdom — kept in step with pecr.ts's UK_COUNTRIES by launch-countries.test.ts
-  'uk', 'u.k.', 'gb', 'gbr', 'united kingdom', 'great britain', 'britain',
-  'england', 'scotland', 'wales', 'northern ireland',
+  'united kingdom': [
+    'uk', 'u.k.', 'gb', 'gbr', 'united kingdom', 'great britain', 'britain',
+    'england', 'scotland', 'wales', 'northern ireland',
+  ],
   // South Africa — founder-locked 20 Aug 2026 (R54). `suid-afrika` is the Afrikaans name and
   // appears in real data; `rsa` is what a South African writes on a form more often than `za`.
-  'za', 'zaf', 'south africa', 'rsa', 'republic of south africa', 'suid-afrika', 'suid afrika',
-]
+  'south africa': [
+    'za', 'zaf', 'south africa', 'rsa', 'republic of south africa', 'suid-afrika', 'suid afrika',
+  ],
+}
+
+/** DERIVED, never hand-maintained — the flat set the send fence tests against. */
+const LAUNCH_COUNTRY_TOKENS: readonly string[] = Object.values(LAUNCH_COUNTRY_ALIASES).flat()
 
 /**
  * Is this lead in a country we send to at launch?
@@ -73,6 +97,31 @@ export function isLaunchSendCountry(country: string | null | undefined): boolean
   const c = String(country ?? '').trim().toLowerCase()
   if (!c) return false
   return LAUNCH_COUNTRY_TOKENS.includes(c)
+}
+
+/**
+ * The CANONICAL country name for a term a person actually typed — the form a data provider
+ * indexes on, lowercase, e.g. `"US"` → `"united states"`.
+ *
+ * ⚠️ THIS IS A TRANSLATION, NOT A GATE, AND THE DISTINCTION IS THE WHOLE POINT.
+ * `isLaunchSendCountry` decides whether we may target a country at all, and it runs at the
+ * ICP's front door (`icps.ts` geographiesSchema). This function runs LATER and only decides
+ * how to SPELL a country we have already agreed to. It can never let a refused country
+ * through, because it is never asked before the fence.
+ *
+ * ⚠️ AN UNRECOGNISED TERM IS LOWERCASED AND RETURNED, NEVER DROPPED. Silently removing it
+ * would quietly widen the client's targeting — they asked for one country and would be
+ * sourced the world. Passing it through preserves exactly today's behaviour for anything
+ * outside the alias table: it goes to the provider as the client wrote it, lowercased, and
+ * matches whatever it matches.
+ */
+export function canonicalLaunchCountry(country: string | null | undefined): string {
+  const c = String(country ?? '').trim().toLowerCase()
+  if (!c) return ''
+  for (const [canonical, aliases] of Object.entries(LAUNCH_COUNTRY_ALIASES)) {
+    if (aliases.includes(c)) return canonical
+  }
+  return c
 }
 
 /**

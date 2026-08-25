@@ -32,30 +32,92 @@ const state = {
   funding: [] as Row[],
   /** clients.proof_passes_done — the SAME column try_claim_proof_pass increments. */
   passes: 1 as number,
-  /** Every `.update()` the route issued against `icps`. */
+  /** Every `.update()` the route issued against `icps` THAT ACTUALLY MATCHED A ROW. */
   icpUpdates: [] as Row[],
+  /** The predicate each matching update carried — proves WHICH branch wrote. */
+  icpUpdateConds: [] as Array<Array<[string, unknown]>>,
+  /** Set to a revision to make it appear right after the core read — the race. */
+  pendingAppearsAfterCoreRead: null as Row | null,
+  /** How many times the core ICP row was SELECTED during one request. */
+  icpReads: 0,
+  /** Anything else that should happen in the window between the core read and the write. */
+  afterCoreRead: null as (() => void) | null,
 }
 
+const CORE_COLS = 'id, name, is_active, pending_targeting'
+
 function query(table: string) {
+  let cols = ''
   const q: Record<string, unknown> = {
-    select() { return q },
+    select(c?: string) { cols = c ?? ''; return q },
     eq() { return q }, in() { return q }, is() { return q }, neq() { return q },
     not() { return q }, order() { return q }, limit() { return q },
     async maybeSingle() {
       if (table === 'clients') return { data: { id: 'c1', proof_passes_done: state.passes, company_name: 'Acme' }, error: null }
-      if (table === 'icps') return { data: state.icp, error: null }
+      if (table === 'icps') {
+        // ⚠️ COUNT THE CORE SELECTION ONLY, BY ITS COLUMN LIST. `/icps/revise` also reads
+        // `id, name` for the founder alert — a pre-existing, unrelated read. A counter that
+        // could not tell them apart reported 2 for correct code and would have been "fixed"
+        // by loosening the assertion to 2, which is exactly the number the defect produced.
+        if (cols === CORE_COLS) state.icpReads += 1
+        // A SNAPSHOT, exactly like a real read: the caller holds these values, and the row
+        // in the database can move afterwards.
+        const snapshot = state.icp ? { ...state.icp } : null
+        // ⚑ 25 Aug — THE RACE, INJECTED AT THE ONLY MOMENT IT MATTERS. Set by a test to make
+        // a revision arrive for review AFTER the verdict has read a clean row and BEFORE the
+        // update runs. Fires once, so the second read in a normal flow is not disturbed.
+        // ⚠️ ONLY AFTER THE **CORE** READ. `/icps/revise` reads `id, name` first for the
+        // founder alert; firing there would move the row BEFORE the verdict ever saw it,
+        // which is the earlier conflict this file already covers — not the race.
+        if (cols === CORE_COLS) {
+          if (state.pendingAppearsAfterCoreRead && state.icp) {
+            state.icp = { ...state.icp, pending_targeting: state.pendingAppearsAfterCoreRead }
+            state.pendingAppearsAfterCoreRead = null
+          }
+          if (state.afterCoreRead) { const f = state.afterCoreRead; state.afterCoreRead = null; f() }
+        }
+        return { data: snapshot, error: null }
+      }
       return { data: null, error: null }
     },
     async single() { return { data: state.icp, error: null } },
+
+    // ⚑ 25 Aug — THE UPDATE PREDICATE IS EVALUATED, NOT IGNORED.
+    //
+    // This used to record the patch the moment `.update()` was called and hand back a row
+    // whatever the `.eq()`/`.is()` chain said — so a conditional write that should have
+    // matched NOTHING still looked like a successful write, and the harness could not have
+    // told a working fence from a missing one. The conditions are now collected and checked
+    // against the row as it stands AT WRITE TIME, which is the whole point of the fence: the
+    // test mutates `state.icp` between the read and the write to simulate the race.
     update(patch: Row) {
-      if (table === 'icps') state.icpUpdates.push(patch)
-      const done = { data: { ...(state.icp ?? {}), ...patch }, error: null }
+      const conds: Array<[string, unknown]> = []
+      const finish = () => {
+        const row = state.icp
+        const matches = !!row && conds.every(([col, val]) => {
+          if (col === 'client_id') return true                        // one client in this harness
+          if (col === 'pending_targeting' && val === null) return (row[col] ?? null) === null
+          return row[col] === val
+        })
+        // ⚠️ RECORDED ONLY WHEN IT MATCHED. "Zero rows affected" must leave no write behind,
+        // or `expect(state.icpUpdates).toHaveLength(0)` proves nothing.
+        if (!matches) return { data: null, error: null }
+        if (table === 'icps') { state.icpUpdates.push(patch); state.icpUpdateConds.push([...conds]) }
+        // ⚠️ THE WRITE ACTUALLY LANDS ON THE ROW. The harness used to return a merged object
+        // and leave `state.icp` alone — so "the live targeting survived" was true no matter
+        // what the route did, and a mutation that dropped the whole predicate stayed green.
+        // A test that cannot observe the damage cannot prove the absence of damage.
+        const next = { ...row, ...patch }
+        if (table === 'icps') state.icp = next
+        return { data: next, error: null }
+      }
       const chain: Record<string, unknown> = {
-        eq() { return chain },
+        eq(col: string, val: unknown) { conds.push([col, val]); return chain },
+        is(col: string, val: unknown) { conds.push([col, val]); return chain },
         select() { return chain },
-        async single() { return done },
-        async maybeSingle() { return done },
-        then(r: (v: unknown) => unknown) { return r(done) },
+        async single() { return finish() },
+        async maybeSingle() { return finish() },
+        then(r: (v: unknown) => unknown) { return r(finish()) },
       }
       return chain
     },
@@ -148,10 +210,14 @@ const wasApplied = () => 'industries' in patch() && !('pending_targeting' in pat
 
 beforeEach(() => {
   vi.resetModules()
-  state.icp = { id: 'icp-1', name: 'My targeting', is_active: true }
+  state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
   state.funding = []
   state.passes = 1
   state.icpUpdates = []
+  state.icpUpdateConds = []
+  state.pendingAppearsAfterCoreRead = null
+  state.icpReads = 0
+  state.afterCoreRead = null
 })
 
 describe('free-proof refinement applies immediately — and only it does', () => {
@@ -364,14 +430,38 @@ describe('an existing pending_targeting stops the refinement dead', () => {
     expect(wasHeld()).toBe(true)
   })
 
-  it('the conflict check reads the SAME row the save writes — one selection, not two', () => {
+  // ⛓️ REPLACED 25 Aug — THE OLD GUARD ASSERTED THE OPPOSITE OF WHAT IT CHECKED.
+  //
+  // It was called "one selection, not two" and its evidence was that BOTH call sites
+  // existed: `proofRefinementVerdict(..., await coreIcpRow(clientId))` in the route AND
+  // `const core = await coreIcpRow(clientId)` inside `saveClientTargeting`. Two reads. The
+  // test asserted the defect and named itself after the fix. Caught in GPT-5.6's literal
+  // review, not by me and not by any check here.
+  //
+  // A source assertion could never have settled this, so the replacement COUNTS THE READS
+  // AT RUNTIME, through the real handler.
+  it('the revise route reads the core ICP exactly ONCE per operation', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    // The verdict judged a row and the write targeted a row. If those are two separate
+    // selections, this is 2 and the two can disagree — which is the entire defect.
+    expect(state.icpReads, 'one authoritative observation of the core ICP').toBe(1)
+  })
+
+  it('the ordinary revise path still reads its own row — no caller was forced to change', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    await callRevise(TARGETING({ industries: ['Fintech'] }))
+    expect(state.icpReads, 'still exactly one, still authoritative').toBe(1)
+  })
+
+  it('one helper, one column list — the two readers cannot drift apart', () => {
     const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
-    // ⚠️ A conflict check that selects its own ICP could inspect a different row than the
-    // save touches, and would then report safety it never verified. Both go through one
-    // helper, so they cannot drift apart.
     expect(src).toContain('async function coreIcpRow(clientId: string)')
-    expect(src).toContain('const core = await coreIcpRow(clientId)')
-    expect(src).toContain('await proofRefinementVerdict(clientId, req.body, await coreIcpRow(clientId))')
+    // The route selects once and hands the SAME row to both consumers.
+    expect(src).toContain('const core = await coreIcpRow(clientId)\n    const verdict = await proofRefinementVerdict(clientId, req.body, core)')
+    expect(src).toContain('await saveClientTargeting(clientId, body, revisedIntent, verdict === \'apply\', core)')
+    // …and the old shape, which read twice, is gone.
+    expect(src).not.toContain('proofRefinementVerdict(clientId, req.body, await coreIcpRow(clientId))')
     expect((src.match(/const cols = 'id, name, is_active, pending_targeting'/g) ?? []),
       'one column list').toHaveLength(1)
     // 15 · NO PROVIDER ROUTING WAS TOUCHED. ⚠️ SCOPED TO THE CODE THIS BUILD ADDED — a
@@ -396,5 +486,124 @@ describe('an existing pending_targeting stops the refinement dead', () => {
     expect(src, 'the old name is gone everywhere, comments included')
       .not.toContain('proofRefinementApplies')
     expect(src).toContain('`proofRefinementVerdict()` returning `\'apply\'` is the')
+  })
+})
+
+// ── ⚑ 25 Aug — THE RACE BETWEEN THE DECISION AND THE WRITE (founder-ruled) ───────────────
+//
+// Reading the core ICP once closed the gap between the two READS. It does not close the gap
+// between the read and the WRITE. A revision can be submitted for review — or the ICP
+// deactivated — in the milliseconds after the verdict says 'apply', and the write would then
+// land on a row that no longer matches the row the decision was made on, overwriting a
+// waiting revision the founder's ruling says must survive untouched.
+//
+// So the verdict's conditions are restated as the UPDATE's own predicate and the database
+// evaluates them atomically at write time. This block drives that predicate for real: the
+// harness mutates the row between the read and the write, and the update must match nothing.
+describe('the apply write fails closed if the row moves underneath it', () => {
+  const AROSE = { industries: ['Logistics'], job_titles: ['COO'] }
+
+  it('1/2/3/4 · a revision arriving mid-flight makes the conditional update match ZERO rows', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    // The verdict will read a CLEAN row — no conflict — and then the revision appears.
+    state.pendingAppearsAfterCoreRead = AROSE
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code, 'a safe state-conflict, not a success').toBe(409)
+    expect(r.payload.code).toBe('targeting_state_changed')
+    expect(String(r.payload.error)).toContain('The targeting changed while you were reviewing it.')
+    expect(String(r.payload.error)).toContain('no new search has started')
+    // 3 · nothing was written. Not the live columns, not anything.
+    expect(state.icpUpdates, 'zero rows affected means zero writes recorded').toHaveLength(0)
+  })
+
+  it('5/6 · the live targeting AND the revision that arrived both survive untouched', async () => {
+    state.icp = {
+      id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null,
+      industries: ['SaaS'], job_titles: ['CTO'],
+    }
+    state.pendingAppearsAfterCoreRead = AROSE
+    await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    // The live columns are exactly what they were before the request.
+    expect(state.icp?.industries, 'live targeting unchanged').toEqual(['SaaS'])
+    expect(state.icp?.job_titles).toEqual(['CTO'])
+    // …and the revision that appeared mid-flight is byte-for-byte the one that arrived.
+    expect(state.icp?.pending_targeting, 'the new revision is untouched').toEqual(AROSE)
+  })
+
+  it('7/8 · it does NOT fall back to a pending write, and does NOT insert another ICP', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    state.pendingAppearsAfterCoreRead = AROSE
+    await callRevise({ ...TARGETING(), proof_refinement: true })
+    // ⚠️ EVERY "RECOVERY" HERE IS A DESTRUCTION. Retrying as an ordinary revision overwrites
+    // the revision that just arrived; inserting a second ICP orphans pass 1's leads and
+    // feedback on a row nothing looks at again. The correct behaviour is to do neither.
+    expect(state.icpUpdates).toHaveLength(0)
+    expect(state.icp?.id, 'still the one ICP').toBe('icp-1')
+  })
+
+  it('a DEACTIVATION mid-flight is refused by the same predicate', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    // The verdict reads an ACTIVE row; it is deactivated in the same window. `is_active` is
+    // in the predicate for this reason — an ICP that stopped being live is not one a proof
+    // refinement may write to, whatever the verdict decided a moment earlier.
+    state.afterCoreRead = () => { state.icp = { ...(state.icp as Row), is_active: false } }
+    const r = await callRevise({ ...TARGETING(), proof_refinement: true })
+    expect(r.code).toBe(409)
+    expect(r.payload.code).toBe('targeting_state_changed')
+    expect(state.icpUpdates).toHaveLength(0)
+  })
+
+  it('9/10/11 · when the row does NOT move, the apply still lands live on the same ICP', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code).toBe(201)
+    expect(wasApplied(), 'the live columns moved').toBe(true)
+    expect(patch().industries).toEqual(['Fintech'])
+    expect((r.payload.data as Row)?.id, 'the SAME ICP').toBe('icp-1')
+    expect(r.payload.pending_review, 'the desk fence reads this').toBe(false)
+    // ⚠️ AND IT WENT THROUGH THE GUARDED BRANCH. Without this, a build that deleted the
+    // predicate still passed here — `hold` is false when `applyLive` is true, so the
+    // ORDINARY path also writes live. Same visible result, no fence. The predicate the
+    // write carried is the only thing that tells the two apart.
+    const conds = state.icpUpdateConds[0].map(([c]) => c)
+    expect(conds, 'the apply write carried its predicate').toEqual(
+      ['id', 'client_id', 'is_active', 'pending_targeting'])
+  })
+
+  it('12 · a PAYING live client is never subjected to the conditional write', async () => {
+    // Their verdict is 'normal', so the apply branch — and its predicate — is not reached.
+    // Their revision parks exactly as it always did, even with a revision already waiting.
+    state.funding = [{ type: 'purchase', reference: 'pi_live_1' }]
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: AROSE }
+    state.pendingAppearsAfterCoreRead = { industries: ['Anything'] }
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code).toBe(201)
+    expect(wasHeld()).toBe(true)
+  })
+
+  it('13 · an ordinary unflagged revision is never subjected to it either', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    state.pendingAppearsAfterCoreRead = AROSE
+    const r = await callRevise(TARGETING({ industries: ['Fintech'] }))
+    expect(r.code, 'no 409 — this path has no predicate to fail').toBe(201)
+    expect(wasHeld(), 'parked for review, exactly as today').toBe(true)
+    // …and it wrote with the SAME two conditions it always did. A predicate appearing here
+    // would be a behaviour change on a path the founder said not to touch.
+    expect(state.icpUpdateConds[0].map(([c]) => c), 'ordinary predicate unchanged')
+      .toEqual(['id', 'client_id'])
+  })
+
+  it('the predicate restates EVERY condition the verdict checked', () => {
+    const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
+    const applyBlock = src.slice(src.indexOf('  if (applyLive) {'), src.indexOf("    if (!data) return { ok: false, reason: 'state_changed' }"))
+    expect(applyBlock).toContain(".eq('id', core.id)")
+    expect(applyBlock).toContain(".eq('client_id', clientId)")
+    expect(applyBlock).toContain(".eq('is_active', true)")
+    expect(applyBlock).toContain(".is('pending_targeting', null)")
+    // `maybeSingle`, so zero rows is an ANSWER rather than an exception.
+    expect(applyBlock).toContain('.select().maybeSingle()')
+    // ⚠️ THE ORDINARY PATH KEEPS `.single()`. Switching it would turn a real database failure
+    // into a quiet 404 — a behaviour change on a path nobody asked to change.
+    expect(src).toContain(".update(patch).eq('id', core.id).eq('client_id', clientId).select().single()")
   })
 })

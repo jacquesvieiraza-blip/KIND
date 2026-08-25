@@ -24,6 +24,10 @@ import {
   type CursorQuery, type StoredCursor,
 } from '../lib/pdl-cursor'
 import { narrowSizeBands } from '../lib/lead-feedback'
+import {
+  PROOF_BASIS_FIELDS, pgTextArrayLiteral, pendingCandidate,
+  type ProofWidenedBasis,
+} from '../lib/proof-candidate'
 // K.I.N.D-only GO (22 Aug) — the same admin-key check `routes/lookalike.ts` already uses,
 // rather than a second way of asking "is this an operator?".
 import { adminKeyValid } from './admin'
@@ -484,6 +488,17 @@ export async function runIcpJob(
   let relaxed: string | null = null
   const insertedIds: string[] = []
 
+  /**
+   * ⚑ 25 Aug — SET ONLY WHEN THE ONE PASS-2 WIDENED FALLBACK ACTUALLY FOUND PEOPLE.
+   *
+   * It holds the SAVED ICP's five targeting fields as they were when the widened search was
+   * derived from them — BEFORE seniority and size were dropped. It is not the widened query
+   * and it is not written anywhere yet: the candidate row is written down in the surfacing
+   * block below, where the batch timestamp is created, so the candidate and the batch carry
+   * the SAME stamp and nothing has to guess afterwards which set it belongs to.
+   */
+  let widenedBasis: ProofWidenedBasis | null = null
+
   // ── #366 PDL PAGING — WHERE WE GOT TO LAST RUN.
   //
   // `pdlSearchPeople(icp, _page = 1, size)` ignored its page argument, so every run asked
@@ -740,15 +755,118 @@ export async function runIcpJob(
       // proof route atomically claimed) — not a second notion of proof-ness, and never
       // inferred. Everything else about this call is unchanged: one page, `grantedSize`
       // records, the same cursor, the same audience, the same reservation.
-      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
-      relaxed = pdlRelaxed
+      const exact = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
+      let contacts = exact.contacts
+      relaxed = exact.relaxed
+      const pdlPage = exact.pdlPage
 
       // Remember where PDL got to, so NEXT month starts after these people instead of on
       // top of them. Only written when PDL actually answered — a failed request leaves the
       // stored cursor untouched, so the unserved page is retried rather than skipped.
+      //
+      // ⚠️ THE EXACT QUERY'S PAGE, ALWAYS — never the widened fallback's below. The cursor is
+      // fingerprinted against the SAVED ICP, so storing a token that belongs to a different
+      // query is precisely the stale-cursor trap `pdl-cursor.ts` exists to prevent.
       if (pdlPage) {
         cursorUpdate = nextCursorState(icp as CursorQuery, pdlPage, new Date().toISOString())
         if (pdlPage.exhausted) audienceExhausted = true
+      }
+
+      // ── ⚑ 25 Aug — PASS-2 ONE-TIME WIDENED RETRY (founder-ruled) ────────────────────────
+      //
+      // WHAT HAPPENED LIVE. A prospect refined their batch to CEO/CTO, confirmed it, and the
+      // exact query matched NOBODY on its first page. Their last free pass was spent, no
+      // second set appeared, and — before the `matchedNothing` split above — they were told
+      // the audience was exhausted, about people who had never been sourced.
+      //
+      // The founder's ruling: when the exact confirmed targeting returns zero on pass 2, make
+      // ONE more attempt that keeps WHO they asked for and drops only the two dimensions that
+      // narrow hardest. `job_titles`, `industries` and `geographies` are preserved exactly —
+      // a client who said "CEO and CTO, SaaS and Consulting, UK" still gets CEOs and CTOs at
+      // SaaS and Consulting firms in the UK. `seniority_levels` and `company_sizes` are
+      // cleared, because both AND against the title clause and both are inferences about the
+      // shape of the company rather than statements about who the buyer is.
+      //
+      // ⚠️ SEARCH-TIME ONLY. `widened` is a local object. The saved ICP is not written, no
+      // pending revision is created, the confirmation panel's five values remain the truth of
+      // record, and the campaign targeting is untouched. This is the same discipline
+      // `icpForSearch` already follows for calibration.
+      //
+      // ⚠️ INSIDE THE SAME AUTHORISATION. No second `try_claim_proof_pass`, no second
+      // `try_reserve_proof_records`, and the SAME `grantedSize` — the exact query returned
+      // zero records, so every record this pass already paid for is still unspent. The 20-lead
+      // cap, the 40-record lifetime fence and the $300 monthly ceiling are all untouched
+      // because none of them is re-consulted.
+      //
+      // ⚠️ EXACTLY ONE, AND ONLY FROM ZERO. Gated on `matchedNothing` — not on `exhausted`
+      // (a genuinely finished audience has no more people to find, widened or not), not on an
+      // error (we do not know what the query would have returned), and not on a thin-but-
+      // non-empty result. There is no second fallback and no third query.
+      const canWiden =
+        proofMode &&
+        opts?.proofPass === 2 &&
+        audience === 'client' &&
+        cursor.token === null &&
+        pdlPage?.matchedNothing === true &&
+        contacts.length === 0
+      if (canWiden) {
+        const widened = { ...icpForSearch, seniority_levels: [], company_sizes: [] }
+        console.log(`[icp] PROOF PASS 2 — exact targeting matched nobody for prospect ${clientId}; ONE widened retry (titles/industries/countries kept, seniority + size dropped).`)
+        const wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })
+        contacts = wide.contacts
+        // ⚑ 25 Aug (GPT review hold) — A ZERO IS NOT A ZERO UNTIL PDL PROVED IT.
+        //
+        // The first cut of this branch collapsed two different states into one sentence: a
+        // widened query PDL answered with "nobody matches", and a widened query that never
+        // produced a trustworthy answer at all (HTTP error, rate-limited twice, out of
+        // credits, no API key, or no page returned). Telling a client their refined targeting
+        // "didn't return a second set" when the request itself failed is the SAME class of
+        // untruth as the exhaustion sentence this whole build exists to remove — it reports a
+        // fact about their buyers that we never learned.
+        //
+        // `PdlPage` already carries the distinction, so nothing new is needed to express it:
+        // `matchedNothing` is the PROVED zero, and anything else — `error` set, a null page,
+        // any other empty outcome — is an UNKNOWN. Unknown gets its own honest sentence.
+        //
+        // ⚠️ ALL THREE BRANCHES END AT A HUMAN. None of them retries, widens again, calls a
+        // provider or changes what was spent. The only thing that differs is what we claim
+        // to know.
+        if (contacts.length > 0) {
+          relaxed = 'We widened the search a little to find this set — same roles, industries and countries you confirmed.'
+          // ⚑ 25 Aug — REMEMBER WHAT THIS SET WAS PRODUCED FROM, SO ACCEPTING IT CAN BE PROVED.
+          //
+          // ⚠️ FROM THE SAVED ROW, NOT FROM `widened`, AND NOT FROM `icpForSearch`. The basis
+          // is the targeting the client would be AGREEING TO CHANGE, so it must be the five
+          // columns as saved. On pass 2 `icpForSearch === icp` by construction — calibration
+          // is skipped for a confirmed refinement, a few hundred lines up — but reading `icp`
+          // says so explicitly rather than depending on that staying true.
+          //
+          // ⚠️ NOTHING IS PERSISTED HERE. This is a local value; the conditional write lives
+          // in the surfacing block, and if that write cannot be made safely there is simply
+          // no candidate and the widened proof is not adoptable. Never inferred later from a
+          // browser flag, the client-facing copy, a log line or a zero-result history.
+          widenedBasis = {
+            job_titles:       [...((icp as ProofWidenedBasis).job_titles       ?? [])],
+            seniority_levels: [...((icp as ProofWidenedBasis).seniority_levels ?? [])],
+            industries:       [...((icp as ProofWidenedBasis).industries       ?? [])],
+            company_sizes:    [...((icp as ProofWidenedBasis).company_sizes    ?? [])],
+            geographies:      [...((icp as ProofWidenedBasis).geographies      ?? [])],
+          }
+        } else if (wide.pdlPage?.matchedNothing === true) {
+          // PROVED ZERO. PDL answered, on a first page, that nobody matches. A human takes it
+          // from here: no third query, no third pass, no retry control, and never the
+          // exhaustion sentence — nobody was ever sourced from this targeting, so "you
+          // already have them all" would be false.
+          relaxed = 'That refined targeting didn’t return a second set. K.I.N.D will review it with you.'
+          console.log(`[icp] PROOF PASS 2 — widened retry also matched nobody for prospect ${clientId}. Human review; no further automatic attempt.`)
+        } else {
+          // NOT A PROVED ZERO. We do not know what this targeting would have returned, and
+          // the sentence says exactly that much and no more: it does not claim the targeting
+          // matched nobody, does not claim the audience is exhausted, does not claim anyone
+          // was already sourced, invites no retry and promises no timing.
+          relaxed = 'K.I.N.D couldn’t confirm a second set from that search. K.I.N.D will review it with you.'
+          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
+        }
       }
 
       // (Fable F1) RECONCILE — PDL bills per record RETURNED, not per record granted. A
@@ -1128,18 +1246,85 @@ export async function runIcpJob(
   // approval count or any ledger. Nothing here is a commercial state.
   if (proofMode && insertedIds.length > 0) {
     const nowIso = new Date().toISOString()
-    const { error: surfErr } = await db.from('leads')
-      .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
-      .in('id', insertedIds).is('delivered_at', null)
-    if (surfErr) {
-      // Same failure shape start-work treats as serious: the leads exist and the prospect
-      // cannot see them, which reads to them as "K.I.N.D found nobody".
-      console.error(`[icp] PROOF surfacing FAILED for prospect ${clientId} — ${insertedIds.length} lead(s) are invisible:`, surfErr.message)
-      void sendFounderAlert('sends_stalled', 'Free-proof leads were sourced but the prospect cannot see them', [
-        `Prospect ${clientId}: ${insertedIds.length} proof lead(s) could not be surfaced.`,
-        `Reason: ${surfErr.message}`,
-        'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
-      ]).catch(() => {})
+
+    // ── ⚑ 25 Aug — MOMENT 1: THE PROVENANCE IS WRITTEN BEFORE THE SET IS SHOWN ─────────
+    //
+    // ⛓️ REORDERED, AND THE ORDER IS THE GUARD. The first cut surfaced the widened leads and
+    // THEN tried to record the candidate. That is not fail-closed: when the candidate write
+    // came back zero rows or errored, the client still saw a widened set — and at acceptance
+    // a NULL candidate then meant two different things, `an ordinary exact batch` and `a
+    // widened batch whose provenance never persisted`. The server would have had to guess
+    // between them, and guessing is what this whole build exists to stop.
+    //
+    // So for a WIDENED set the candidate goes down FIRST, and the leads are surfaced only if
+    // it landed. A widened batch that reaches a client's desk is therefore, by construction,
+    // one whose provenance is already recorded — which is what lets acceptance treat a NULL
+    // candidate as an ordinary exact batch without ambiguity.
+    //
+    // ⚠️ AN EXACT PROOF BATCH IS UNCHANGED. `widenedBasis` is null for pass 1 and for any
+    // pass 2 whose confirmed targeting worked, so nothing is written and the surfacing below
+    // happens exactly as it always did.
+    //
+    // ⚠️ THIS IS NOT A TARGETING CHANGE. Nothing about the client's saved ICP moves here.
+    // The five targeting columns are untouched; the only column written is the candidate,
+    // which no part of sourcing, scoring or sending ever reads. The widened targeting
+    // becomes real ONLY when the client presses "Looks right" on THIS set.
+    //
+    // ⚠️ IT CARRIES THE SAME `nowIso` THE BATCH DOES. The candidate and the batch share one
+    // immutable stamp, so acceptance can PROVE they belong together instead of inferring it.
+    //
+    // ⚠️ AND THE WRITE ITSELF FAILS CLOSED. It is conditional on the ICP still being the row
+    // the basis came from — same id, same client, no revision parked, no other candidate
+    // already waiting, and all five targeting columns still exactly as the basis records
+    // them. If the row moved underneath the run, no candidate is written, the set is NOT
+    // shown, and a human takes it. We never manufacture the provenance, and acceptance can
+    // never infer it from a browser flag, the client copy or a log line.
+    let widenedAdoptable = true
+    if (widenedBasis) {
+      const basis: ProofWidenedBasis = widenedBasis
+      let q = db.from('icps')
+        .update({ proof_widened_candidate: pendingCandidate(nowIso, basis) })
+        .eq('id', icpId).eq('client_id', clientId)
+        .eq('is_active', true)
+        .is('pending_targeting', null)
+        // Never overwrite a candidate that is already waiting — a second one would quietly
+        // point the first batch's promise at this batch's numbers.
+        .is('proof_widened_candidate', null)
+      for (const f of PROOF_BASIS_FIELDS) q = q.filter(f, 'eq', pgTextArrayLiteral(basis[f]))
+      const { data: candRow, error: candErr } = await q.select('id').maybeSingle()
+      if (candErr || !candRow) {
+        widenedAdoptable = false
+        console.error(`[icp] PROOF PASS 2 — the widened candidate could NOT be recorded for prospect ${clientId} (${candErr?.message ?? 'the ICP changed underneath the run, or a candidate was already waiting'}). The set will NOT be surfaced: an adoptable widened batch must carry provenance, and one without it is a set nobody can safely accept. Human review; nothing retargeted, nothing re-sourced, no further pass.`)
+      } else {
+        console.log(`[icp] PROOF PASS 2 — widened candidate recorded for prospect ${clientId}, batch ${nowIso}. Nothing has been retargeted; it applies only if they accept this set.`)
+      }
+    }
+
+    // ⚠️ NO CANDIDATE, NO SET. The only thing that happens on this path is the log above and
+    // the human review it asks for: the pass economics are untouched (already reserved and
+    // reconciled), no provider is called again, no third query runs, no targeting moves, and
+    // the leads simply stay unsurfaced. The prospect's earlier batch remains unacceptable on
+    // its own, because `proof_passes_done` is 2 while only one batch is visible — which is
+    // exactly the Glean state, and exactly what the acceptance endpoint refuses.
+    if (widenedAdoptable) {
+      const { error: surfErr } = await db.from('leads')
+        .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
+        .in('id', insertedIds).is('delivered_at', null)
+      if (surfErr) {
+        // Same failure shape start-work treats as serious: the leads exist and the prospect
+        // cannot see them, which reads to them as "K.I.N.D found nobody".
+        //
+        // ⚠️ A RECORDED CANDIDATE IS LEFT EXACTLY WHERE IT IS. Deleting it would destroy the
+        // only record of what produced these people, and rewriting it would be manufacturing
+        // provenance. Its batch simply never becomes visible, so acceptance can never reach
+        // it — the batch count will not match the passes spent, and that is a refusal.
+        console.error(`[icp] PROOF surfacing FAILED for prospect ${clientId} — ${insertedIds.length} lead(s) are invisible:`, surfErr.message)
+        void sendFounderAlert('sends_stalled', 'Free-proof leads were sourced but the prospect cannot see them', [
+          `Prospect ${clientId}: ${insertedIds.length} proof lead(s) could not be surfaced.`,
+          `Reason: ${surfErr.message}`,
+          'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
+        ]).catch(() => {})
+      }
     }
   }
 

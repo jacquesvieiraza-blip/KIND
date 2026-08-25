@@ -487,6 +487,34 @@ export default function MillaHomePage() {
     } finally { setActing(null) }
   }
 
+  // ── ⚑ 25 Aug — 👍 LOOKS RIGHT NOW ASKS THE SERVER FIRST (founder-ruled) ──────────────
+  //
+  // It used to be `router.push('/milla/billing…')` and nothing else. Two things could follow:
+  // a client could pay for an ICP whose saved targeting had already been proved to find
+  // nobody (the widened set they approved was search-time only), and — the live Glean state —
+  // a client whose pass 2 produced no second set could click an EARLIER card and walk past
+  // the human review that failed pass is for.
+  //
+  // ⚠️ WE SEND ONE THING: WHICH CARD THEY CLICKED. No targeting, no batch, no flags. The
+  // server owns every other fact and would ignore ours if we sent them.
+  //
+  // ⚠️ NAVIGATION IS THE LAST STEP, NOT THE FIRST. Anything other than success — refused,
+  // failed, or a request that never got an answer — leaves them here with the honest sentence
+  // and the button live again. Pressing it again retries the ACCEPTANCE only: it sources
+  // nothing, spends no pass and creates no batch, because the endpoint does none of those.
+  async function acceptProof(id: string) {
+    setActing(id); setTopUp(null); setError(null)
+    try {
+      await api.post(`/leads/${id}/proof-accept`, {}, await token())
+      router.push('/milla/billing?start=1&from=proof')
+    } catch {
+      // ONE SENTENCE FOR EVERY FAILURE, and it claims nothing. Not that they were charged —
+      // nothing here charges. Not when it will be fixed — we do not know. Not that we will
+      // look again — we will not, automatically.
+      setError('K.I.N.D couldn’t save what worked in that proof yet. K.I.N.D needs to check this before you go live.')
+    } finally { setActing(null) }
+  }
+
   async function approve(id: string) {
     setActing(id); setTopUp(null); setError(null)
     try {
@@ -1007,9 +1035,9 @@ export default function MillaHomePage() {
                           /* LOOKS RIGHT — a calibration signal and nothing else. It writes
                              no approval, reveals nothing, charges nothing and takes no pack
                              slot; it moves them toward going live, which is the $299. */
-                          <button disabled={busy} onClick={e => { e.stopPropagation(); router.push('/milla/billing?start=1&from=proof') }}
+                          <button disabled={busy} onClick={e => { e.stopPropagation(); void acceptProof(l.id) }}
                             className="flex-1 text-[13px] font-bold text-white rounded-lg py-2 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                            👍 Looks right
+                            {busy ? 'Saving…' : '👍 Looks right'}
                           </button>
                         ) : gate.batch && gate.required > 1 ? (
                           <button onClick={e => { e.stopPropagation(); togglePick(l.id) }}

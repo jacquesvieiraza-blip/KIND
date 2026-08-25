@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -13,7 +13,10 @@ import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kin
 // flat $4 per approved lead from the one wallet. The wallet ledger moved to Billing (M4)
 // and the ICP card to its own rail page (/milla/icp) — this screen is leads + Milla only.
 
-type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean }
+type MaskedLead = { id: string; role: string; company: string; industry: string | null; country: string | null; score: number | null; why_fits: string | null; recommended?: boolean
+  /** ⚑ 25 Aug — WHICH PROOF BATCH this card came from. One shared timestamp per proof run,
+   *  written once and never rewritten, so it separates pass 1 from pass 2 exactly. */
+  surfaced_for_approval_at?: string | null }
 type Revealed = { email: string; charged: boolean }
 type IcpVersion = { version: string; current: boolean; name: string; summary: string; created_at: string | null }
 type Pack = { active: boolean; included: number; used: number; left: number; nextLeadCostUsd: number }
@@ -26,7 +29,47 @@ type Summary = {
   /** Every lead they have ever approved — releases the minimum-20 gate at 20. */
   leads_approved_total?: number
   pack?: Pack
+  /** ⚑ 24 Aug — how many free-proof batches this prospect has been shown, from
+   *  `clients.proof_passes_done` (the same column try_claim_proof_pass increments).
+   *  Lets the desk tell 0 / 1 / 2 apart WITHOUT making the client press something
+   *  just to discover a 409. */
+  proof_passes_done?: number
 }
+/** The targeting fields a refinement may touch — exactly the ICP's own, nothing more. */
+type IcpTargeting = {
+  name?: string
+  job_titles?: string[]; seniority_levels?: string[]; industries?: string[]
+  company_sizes?: string[]; geographies?: string[]; tech_stack?: string[]; keywords?: string[]
+  /**
+   * ⚑ 25 Aug — CARRIED, NEVER DECIDED HERE. `/icps/revise` validates the WHOLE ICP and
+   * `icpSchema` gives this field `.default(true)`, so a payload that simply omits it does
+   * not "leave it alone" — it silently rewrites a client's provider-consent setting to
+   * true. A refinement about job titles must not change which provider may source them.
+   * It is copied from the existing row and sent back unchanged; it is never editable,
+   * clearable, shown, defaulted by this flow, or inferred from anything.
+   */
+  apollo_only_consented?: boolean
+}
+/**
+ * ⚑ 25 Aug — THE FIVE TARGETING DIMENSIONS A REFINEMENT SPEAKS ABOUT (founder-ruled).
+ *
+ * ⚠️ ALL FIVE ARE ALWAYS SHOWN, INCLUDING THE UNCHANGED ONES. The reflect-back used to
+ * render only what the model returned, so a client refining job titles saw title chips and
+ * nothing else — while the payload silently carried their existing industries, sizes and
+ * countries. What they read was not what would run. Rendering the whole five, preserved
+ * values included, is what makes the panel true.
+ *
+ * The labels are the client's words, not the column names, and the same list drives BOTH
+ * the display and the merge — they cannot describe different fields.
+ */
+const REFINE_FIELDS = [
+  ['seniority_levels', 'Seniority'],
+  ['job_titles',       'Job titles'],
+  ['industries',       'Industry'],
+  ['company_sizes',    'Company size'],
+  ['geographies',      'Geography'],
+] as const
+type RefineField = (typeof REFINE_FIELDS)[number][0]
 type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 
 async function token(): Promise<string | undefined> {
@@ -78,6 +121,35 @@ export default function MillaHomePage() {
   const [revealed, setRevealed] = useState<Record<string, Revealed>>({})
   const [topUp, setTopUp] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // ── ⚑ 24 Aug — BATCH REFINEMENT (founder-ruled): pass 1 → "these aren't right" → pass 2.
+  // Per-lead "Not a fit" is unchanged and still recorded; this is the BATCH verdict, which
+  // is a different statement and was the missing half of 20 → refine → 20 → human.
+  const [refineOpen, setRefineOpen]   = useState(false)
+  const [refineText, setRefineText]   = useState('')
+  /** ⚑ 25 Aug — THE ONE FINAL OBJECT. Built once, rendered, then sent unchanged. See below. */
+  const [refineFinal, setRefineFinal] = useState<IcpTargeting | null>(null)
+  /** The ICP the preview was built against — proved unchanged before anything is spent. */
+  const [refineIcpId, setRefineIcpId] = useState<string | null>(null)
+  const [refineSaid, setRefineSaid]   = useState<string | null>(null)
+  const [refineBusy, setRefineBusy]   = useState(false)
+  const [refineErr, setRefineErr]     = useState<string | null>(null)
+  /**
+   * ⚑ 25 Aug — THE PROOF ATTEMPT IS ONE-WAY, AND A REF IS WHY IT ACTUALLY IS.
+   *
+   * The failure path used to clear `refineBusy` while `refineFinal` was still set, so after
+   * a failed `/proof` the confirm button became clickable again. That breaks the one-attempt
+   * rule in the worst possible way: an HTTP timeout or a dropped connection can happen AFTER
+   * the server has already claimed the pass, so "it failed, try again" is exactly when a
+   * second POST would burn the client's last one. There is no release RPC.
+   *
+   * The REF is the lock, not the state. `setState` is async and a synchronous re-entry in
+   * the same tick would not see it; a ref flips immediately and is read at the top of the
+   * handler. The state exists only so the panel can re-render into its handed-off form.
+   * Neither ever returns to false while this page stays mounted.
+   */
+  const proofAttemptedRef = useRef(false)
+  const [proofAttempted, setProofAttempted] = useState(false)
 
   // Set once, from the URL, after mount — an effect never runs during a pre-render.
   const [finding, setFinding] = useState(false)
@@ -190,6 +262,186 @@ export default function MillaHomePage() {
   // `has_funded` is the same fact the go-live banner already reads — no new state, no new
   // endpoint, and a client who pays flips to the commercial desk by paying.
   const proofMode = needsGoLive
+
+  // ── ⚑ 24 Aug — WHERE THIS PROSPECT IS IN THE TWO-PASS PROOF JOURNEY ──────────────────
+  //
+  // ⚠️ BOTH CONDITIONS, ALWAYS. `proofMode` is the authoritative unpaid/proof signal the
+  // desk already had (`has_funded` is the purchase count — real money, not a guess); the
+  // pass count alone is NOT a proof signal, because a client who later PAID still carries
+  // `proof_passes_done = 1` forever. Gating on the count alone would show a paying client a
+  // "these aren't right, find me another free set" control. Hence `proofMode &&`.
+  //
+  // ⛓️ CORRECTED 25 Aug — this said an unknown count "offers the refinement rather than
+  // hiding it". It is the OPPOSITE: `canRefine` requires `=== 1`, so a missing count reads
+  // as 0 and the control is HIDDEN. That is still the safe direction — an unknown state
+  // offers nothing rather than offering a spend — and the server's `try_claim_proof_pass`
+  // 409 remains the hard fence behind it either way. The behaviour was right; the sentence
+  // describing it was wrong, and the sentence is what changed.
+  // Nothing here is a gate; it decides what the client is OFFERED.
+  const proofPassesDone = summary?.proof_passes_done ?? 0
+  const canRefine       = proofMode && proofPassesDone === 1
+  const proofExhausted  = proofMode && proofPassesDone >= 2
+
+  // STEP 1 — opening the panel. Deliberately does NOTHING else: no call, no mutation, no
+  // spend. Pressing "these aren't right" must never cost a pass.
+  function openRefine() {
+    setRefineOpen(true); setRefineErr(null); setRefineFinal(null); setRefineIcpId(null); setRefineSaid(null)
+  }
+
+  // ── STEP 2 — THEIR WORDS BECOME THE FINAL TARGETING, HERE AND ONLY HERE ────────────────
+  //
+  // ⚠️ THE MERGE MOVED INTO THIS STEP, AND THAT IS THE WHOLE CORRECTION (founder-ruled
+  // 25 Aug). It used to live in `confirmRefine`: the panel rendered the model's raw draft
+  // while the payload was built later from draft + preserved existing values. Those are two
+  // different objects, so a client refining job titles saw title chips, pressed confirm, and
+  // saved industries and countries nobody had shown them. The preview was not a preview.
+  //
+  // Now ONE object is built before the confirmation exists, it is what the panel renders,
+  // and `confirmRefine` sends it byte-for-byte. There is no second merge anywhere.
+  //
+  // ⚠️ STILL COSTS NOTHING. `/icps/chat-build` only proposes — no write, no provider, no
+  // spend — and `/icps` is a read. Both are free and repeatable; the spend starts at step 3.
+  //
+  // THE THREE-WAY RULE, exactly as ruled:
+  //   • listed in `clear_fields`  → []          (an explicit "any industry" / "anywhere")
+  //   • returned non-empty        → the new value
+  //   • omitted, or [] with no clear_fields → the value already saved, PRESERVED
+  //
+  // `name`, `tech_stack` and `keywords` are carried through unchanged. They are not editable
+  // in this launch refinement and are never shown as changed — but `/icps/revise` validates
+  // the whole ICP, so they must travel with it, holding exactly today's values.
+  async function submitRefine(text: string) {
+    const msg = text.trim(); if (!msg || refineBusy) return
+    setRefineBusy(true); setRefineErr(null)
+    try {
+      const tk = await token()
+      const r = await api.post<{ data: IcpTargeting & { message?: string; clear_fields?: string[] } }>(
+        '/icps/chat-build', { message: msg, history: [] }, tk)
+      const d = r.data ?? {}
+      // The server already allowlisted these to the five clearable filters and fails closed;
+      // filtering again here is belt-and-braces against a stale or hand-built response.
+      const cleared = new Set<RefineField>(
+        (Array.isArray(d.clear_fields) ? d.clear_fields : [])
+          .filter((f): f is RefineField => REFINE_FIELDS.some(([k]) => k === f)),
+      )
+      // A refinement that neither names anyone new nor removes a filter has told us nothing
+      // yet — so we ask again rather than offering to spend a pass on an unchanged ICP.
+      const touched = REFINE_FIELDS.some(([k]) =>
+        (Array.isArray(d[k]) && (d[k] as string[]).length > 0) || cleared.has(k))
+      if (!touched) {
+        setRefineSaid(d.message || 'Tell me a bit more — who should we be looking for instead?')
+        setRefineFinal(null); setRefineIcpId(null)
+        return
+      }
+
+      const before = await api.get<{ data: Array<IcpTargeting & { id: string }> }>('/icps', tk)
+      const core = before.data?.[0]
+      if (!core?.id) throw new Error('no icp')
+
+      // ⚠️ NOT `?? true`. A fallback here would be this flow DECIDING provider consent for
+      // a client who never mentioned it — the exact defaulting the field must be protected
+      // from. The column is NOT NULL on the ICP, so a non-boolean means the read is wrong,
+      // and we stop rather than send a guess.
+      if (typeof core.apollo_only_consented !== 'boolean') throw new Error('icp-shape')
+
+      const final: IcpTargeting = {
+        name:       core.name || 'My targeting',
+        tech_stack: core.tech_stack ?? [],
+        keywords:   core.keywords ?? [],
+        apollo_only_consented: core.apollo_only_consented,
+      }
+      for (const [k] of REFINE_FIELDS) {
+        const next = d[k]
+        final[k] = cleared.has(k) ? []
+          : (Array.isArray(next) && next.length > 0 ? next : (core[k] ?? []))
+      }
+      setRefineFinal(final); setRefineIcpId(core.id); setRefineSaid(d.message ?? null)
+    } catch (e) {
+      setRefineErr(e instanceof Error ? e.message : 'I could not read that just yet — say it again?')
+    } finally { setRefineBusy(false) }
+  }
+
+  // STEP 3 — THE SPEND BOUNDARY. Everything above is free and reversible; this is the first
+  // line that mutates anything or costs a pass, and it only runs on an explicit confirm.
+  //
+  // Order is load-bearing: REVISE FIRST, and only claim the pass if it succeeded. Claiming
+  // first would burn a pass the client can never get back on targeting that was never saved.
+  //
+  // ⚠️ NO MERGE HERE. `refineFinal` is sent exactly as the panel rendered it. The only thing
+  // added to the payload is `proof_refinement`, which is a DECLARATION and not a permission:
+  // the server proves the exception for itself from the funding ledger,
+  // `proof_passes_done` and the ICP's own `pending_targeting`, and ignores this field
+  // entirely for anyone else.
+  async function confirmRefine() {
+    // The REF, not the state — see its declaration. This is the line that makes the attempt
+    // one-way, and it must be read before anything else can start a second one.
+    if (!refineFinal || refineBusy || proofAttemptedRef.current) return
+    setRefineBusy(true); setRefineErr(null)
+    try {
+      const tk = await token()
+      // The SAME ICP, read before and compared after. `/icps` is newest-first and
+      // `saveClientTargeting` updates the client's core row in place — this proves it did.
+      // It is also compared to the id the PREVIEW was built against, so a panel left open
+      // while the targeting moved underneath cannot spend the pass on a stale reflection.
+      const before = await api.get<{ data: Array<IcpTargeting & { id: string }> }>('/icps', tk)
+      const core = before.data?.[0]
+      if (!core?.id || core.id !== refineIcpId) throw new Error('same-icp')
+
+      const revised = await api.post<{ data?: { id?: string }; pending_review?: boolean }>(
+        '/icps/revise', { ...refineFinal, proof_refinement: true }, tk)
+      const afterId = revised?.data?.id
+      // SAME ICP, enforced at RUNTIME and not only in a test. If a revise ever created a
+      // second row, we stop here rather than spending the pass against the wrong targeting.
+      if (!afterId || afterId !== core.id) throw new Error('same-icp')
+
+      // ⚠️ THE SAME ROW COMING BACK IS NOT PROOF THE EDIT LANDED. `saveClientTargeting`
+      // returns that identical row whether it wrote the live targeting columns or merely
+      // parked the revision in `pending_targeting` — so the id check alone would have let a
+      // pass be spent on the OLD targeting, which is the exact defect this whole build
+      // exists to close. `pending_review === false` is the server saying it went live.
+      //
+      // FAILS CLOSED: `undefined !== false`, so an older API that does not send the field
+      // stops here rather than guessing. The server already refuses the conflict outright;
+      // this is a second, independent fence, and two independent fences is the point.
+      if (revised?.pending_review !== false) throw new Error('not-live')
+
+      // EXACTLY ONE claim. The ref flips BEFORE the request leaves, because the pass can be
+      // claimed server-side and the response still never arrive — a timeout is not a
+      // rollback. From here there is no retry of any kind, automatic or manual.
+      proofAttemptedRef.current = true
+      setProofAttempted(true)
+      await api.post(`/icps/${afterId}/proof`, {}, tk)
+      router.push('/milla?finding=1')
+    } catch (e) {
+      // ── STAGE-ACCURATE, BECAUSE THE OLD SENTENCE COULD BE A LIE ────────────────────────
+      // One generic message said *"Your targeting is saved"* for every failure — including
+      // the ones where the save is exactly what failed. What a client is told here decides
+      // whether they wait for us or go and change something themselves, so it has to match
+      // what actually happened.
+      const code = e instanceof Error ? e.message : ''
+      const status = (e as { status?: number } | null)?.status
+      setRefineErr(
+        // 4 · THE PROOF WAS ATTEMPTED. Never invite a retry and never claim the pass is
+        // definitely gone — we do not know. Only the server does.
+        proofAttemptedRef.current
+          ? 'We saved your refinement, but we could not confirm the new search started. Please don\'t try again — K.I.N.D will check whether it began and come back to you.'
+        // 2 · THE CONFLICT. Both the live targeting and the waiting revision are intact.
+        : status === 409
+          ? (code || 'You already have a targeting change waiting for K.I.N.D to review. Nothing has been changed and no new search has started.')
+        // 1 · STALE PREVIEW. Nothing was written; the panel described a different ICP.
+        : code === 'same-icp'
+          ? 'Something is out of step with your targeting — K.I.N.D needs to look at this before we search again. Nothing has been changed and no new search has started.'
+        // 3 · THE SAVE FAILED, OR LANDED FOR REVIEW INSTEAD OF GOING LIVE. Do NOT tell them
+        // it saved. No pass was claimed either way.
+          : 'We could not save that refinement, so your targeting is unchanged and no new search has started. K.I.N.D needs to look at this.',
+      )
+      // Only the pre-proof stages release the panel — they cost nothing, so the client may
+      // cancel or keep their current targeting. Once the proof was attempted the ref stays
+      // true and the confirm is gone for good.
+      setRefineBusy(false)
+    }
+  }
+
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
@@ -325,7 +577,155 @@ export default function MillaHomePage() {
   const togglePick = (id: string) => setPicked(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n })
 
 
-  const pending = (leads ?? []).filter(l => !revealed[l.id])
+  const pendingRaw = (leads ?? []).filter(l => !revealed[l.id])
+
+  // ── ⚑ 25 Aug — TWO PROOF SETS, KEPT AND LABELLED (founder-ruled) ──────────────────────
+  //
+  // WHAT WAS ACTUALLY HAPPENING. `/leads/for-approval` returns every undecided lead ordered
+  // by score, with no time limit (founder-locked 25 Jul) — so after pass 2 a prospect with
+  // 16 pass-1 leads still pending received 36 rows, SCORE-INTERLEAVED, with nothing on any
+  // card to say which batch it came from. They asked for a different set and got one list
+  // containing both, silently mixed.
+  //
+  // ⚠️ NOTHING IS DELETED, PASSED OR HIDDEN TO ACHIEVE THIS. All 36 stay, all 36 stay
+  // actionable; the only thing that changes is that they are sorted into their batches and
+  // the batches are named. `surfaced_for_approval_at` is one shared timestamp per proof run
+  // and is never rewritten, so it separates them exactly — no `batch_id`, no migration.
+  //
+  // ⚠️ PROOF ONLY. A paying client's ordering is the API's score ranking, untouched: their
+  // leads arrive continuously and "Latest set / Earlier set" would be a fiction there.
+  const batchKey = (l: MaskedLead) => l.surfaced_for_approval_at ?? ''
+  const pending = proofMode
+    ? [...pendingRaw].sort((a, b) =>
+        batchKey(b).localeCompare(batchKey(a)) || Number(b.score ?? 0) - Number(a.score ?? 0))
+    : pendingRaw
+  /** Newest batch first — index 0 is the set they just asked for. */
+  const proofBatches = proofMode ? [...new Set(pending.map(batchKey))] : []
+  /** Headings appear only when there is genuinely more than one set to tell apart. */
+  const showBatchLabels = proofBatches.length > 1
+  /**
+   * THE REFINEMENT BELONGS TO THE LATEST SET, so it is rendered directly beneath that set's
+   * last card — above the "Earlier set" heading, never stranded at the bottom of a list that
+   * ends with pass 1. With only one set this is the final card, exactly as before.
+   */
+  const lastLatestIdx = proofMode
+    ? pending.map(batchKey).lastIndexOf(proofBatches[0] ?? '')
+    : -1
+
+  // ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ──────────────────────────────────────
+  //
+  // "Not a fit" on a card is PER LEAD and stays exactly as it was — it is recorded as
+  // evidence either way. This is a different statement: the whole set is wrong. It was the
+  // missing half of 20 → refine → 20 → human, and without it a prospect who said so
+  // conversationally was told to go and find My ICP.
+  //
+  // ⚠️ NOTHING HERE SPENDS ANYTHING UNTIL THE CONFIRM. Opening the panel is free, describing
+  // what is wrong is free (`/icps/chat-build` only proposes), and the FINAL targeting — the
+  // exact five values that will be saved and run — is shown back BEFORE a single mutation.
+  //
+  // ⚑ 25 Aug — LIFTED OUT OF THE LIST so it can be rendered beneath the LATEST set's last
+  // card rather than at the bottom of everything. The control refines the set they were just
+  // shown; sitting under a trailing "Earlier set" would say it refines pass 1.
+  const refineControl = !canRefine || pending.length === 0 ? null : (
+    <div>
+      {!refineOpen && (
+        <button onClick={openRefine}
+          className="w-full text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 mt-1 border border-[#ece5fb] bg-white hover:bg-[#faf8ff]">
+          These aren&rsquo;t right
+        </button>
+      )}
+
+      {refineOpen && (
+        <div className="mt-2 rounded-2xl border border-[#e4d4fb] bg-[#faf8ff] p-3.5">
+          <div className="text-[14px] font-bold text-[#1f1235]">What&rsquo;s off about this batch?</div>
+          <div className="text-[12px] text-[#9b8ec4] mt-0.5">
+            Tell me in your own words — the wrong seniority, the wrong industry, the wrong places. I&rsquo;ll adjust who we look for.
+          </div>
+
+          {!refineFinal && (
+            <div className="flex gap-2 mt-2.5">
+              <input value={refineText} onChange={e => setRefineText(e.target.value)} disabled={refineBusy}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitRefine(refineText) } }}
+                placeholder="e.g. too IT-focused — I want Heads of Marketing and HR"
+                className="flex-1 text-[13px] rounded-xl border border-[#e4dcf7] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 disabled:opacity-50" />
+              <button disabled={refineBusy || !refineText.trim()} onClick={() => submitRefine(refineText)}
+                className="text-[13px] font-bold text-white rounded-xl px-4 bg-[#7C3AED] disabled:opacity-50">
+                {refineBusy ? '…' : 'Send'}
+              </button>
+            </div>
+          )}
+
+          {refineSaid && !refineFinal && (
+            <div className="text-[12.5px] text-[#5c5279] mt-2.5">{refineSaid}</div>
+          )}
+
+          {/* ⚑ 25 Aug — REFLECT BACK THE WHOLE TARGETING, NOT JUST WHAT CHANGED.
+              This rendered the model's raw draft, so only the dimensions it happened to
+              mention appeared — while the saved payload also carried every preserved value
+              the client never saw. All five are now listed from the ONE final object that
+              `/icps/revise` receives, so what they read IS what runs.
+
+              An empty dimension reads "Any", never a blank space: it is either a filter
+              they explicitly asked us to drop, or one they never set. Both mean the same
+              thing to the search, and silently omitting the row would hide a removal. */}
+          {refineFinal && (
+            <div className="mt-2.5">
+              <div className="text-[12px] text-[#5c5279]">Here&rsquo;s exactly who we&rsquo;d look for:</div>
+              <div className="mt-1.5 space-y-1.5">
+                {REFINE_FIELDS.map(([k, label]) => {
+                  const vals = refineFinal[k] ?? []
+                  return (
+                    <div key={k} className="flex gap-2 items-baseline">
+                      <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] shrink-0 w-[86px]">{label}</span>
+                      {vals.length === 0
+                        ? <span className="text-[12px] text-[#9b8ec4] italic">Any</span>
+                        : (
+                          <span className="flex flex-wrap gap-1.5">
+                            {vals.map((chip, i) => (
+                              <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-white border border-[#e4d4fb] rounded-full px-2.5 py-1">{chip}</span>
+                            ))}
+                          </span>
+                        )}
+                    </div>
+                  )
+                })}
+              </div>
+              {/* ⚑ 25 Aug — ONCE THE PROOF HAS BEEN ATTEMPTED THERE IS NO CONTROL AT ALL.
+                  Not a disabled button, not a "try again": both buttons stop rendering and
+                  the panel becomes a handoff. A pass may already be spent server-side even
+                  though the request looked like it failed, so the only honest thing left on
+                  screen is who is picking this up. */}
+              {proofAttempted ? (
+                <div className="text-[12px] text-[#5c5279] mt-2.5">
+                  K.I.N.D is checking this one with you — nothing more to do here.
+                </div>
+              ) : (
+                <>
+                  <div className="text-[12px] text-[#5c5279] mt-2.5 font-semibold">Use this refinement and find another set?</div>
+                  <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
+                    This is your second and last free set — after it, we talk it through together.
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button disabled={refineBusy} onClick={confirmRefine}
+                      className="flex-1 text-[13px] font-bold text-white rounded-xl py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                      {refineBusy ? 'Finding…' : 'Yes — find another set'}
+                    </button>
+                    <button disabled={refineBusy}
+                      onClick={() => { setRefineOpen(false); setRefineFinal(null); setRefineIcpId(null); setRefineText(''); setRefineSaid(null); setRefineErr(null) }}
+                      className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb] bg-white disabled:opacity-50">
+                      Keep current
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {refineErr && <div className="mt-2.5 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{refineErr}</div>}
+        </div>
+      )}
+    </div>
+  )
 
   // ── FINDING → PROOF READY: THE SIGNAL IS CONSUMED, ONCE ─────────────────────────────
   //
@@ -570,10 +970,21 @@ export default function MillaHomePage() {
                 <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>
               )
             )}
-            {pending.map(l => {
+            {pending.map((l, i) => {
               const busy = acting === l.id
+              // ⚑ 25 Aug — ONE HEADING AT EACH BATCH BOUNDARY. `pending` is already sorted
+              // newest batch first, so a heading is due whenever this row's batch differs
+              // from the row above it. Proof only, and only when there are two sets to tell
+              // apart — a single set needs no label and a paying client has no sets at all.
+              const newBatch = showBatchLabels && (i === 0 || batchKey(pending[i - 1]) !== batchKey(l))
               return (
-                <div key={l.id} onClick={() => gate.batch && gate.required > 1 && togglePick(l.id)}
+                <Fragment key={l.id}>
+                {newBatch && (
+                  <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] pt-1.5 px-1">
+                    {batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}
+                  </div>
+                )}
+                <div onClick={() => gate.batch && gate.required > 1 && togglePick(l.id)}
                   className={`rounded-2xl p-3.5 transition-shadow ${gate.batch && gate.required > 1 ? 'cursor-pointer' : ''} ${
                     picked.has(l.id) ? 'border-[1.5px] border-[#7C3AED] bg-[#f7f2ff] shadow-sm'
                     : l.recommended ? 'border-[1.5px] border-[#d9c4fb] bg-[#fcfaff]' : 'border border-[#ece5fb]'}`}>
@@ -615,10 +1026,25 @@ export default function MillaHomePage() {
                     </div>
                   </div>
                 </div>
+                {/* THE REFINEMENT SITS WITH THE SET IT REFINES — under the last card of the
+                    LATEST batch, above any "Earlier set" heading. With one batch this is the
+                    final card, which is exactly where it rendered before. */}
+                {i === lastLatestIdx && refineControl}
+                </Fragment>
               )
             })}
             {/* Said "$4 per approved lead" even while the button above it said "included" —
                 two prices on one screen. */}
+            {/* ⚠️ BOTH PASSES SPENT — AND WE SAY SO RATHER THAN OFFERING A THIRD. The server
+                refuses a third claim outright (`try_claim_proof_pass` returns 0 → 409), and
+                that fence is untouched. This is the desk telling them BEFORE they press
+                anything, instead of letting them discover it as an error. */}
+            {proofExhausted && (
+              <div className="mt-2 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
+                We&rsquo;ve used both proof passes. K.I.N.D will review this with you.
+              </div>
+            )}
+
             <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">
               {proofMode
                 ? 'These are real people who match your targeting — free, and nobody has been contacted. Tell us what looks right and we will go live.'

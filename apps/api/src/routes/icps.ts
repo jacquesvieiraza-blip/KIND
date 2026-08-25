@@ -193,6 +193,18 @@ const icpSchema = z.object({
   apollo_only_consented: z.boolean().default(true),
 })
 
+/**
+ * The ONLY targeting filters a client may explicitly BROADEN to "any" (founder-ruled 25 Aug).
+ *
+ * ⚠️ THE ABSENCES ARE THE POINT. `name` is the ICP's identity, `tech_stack` and `keywords`
+ * are intent signals rather than filters a prospect asks us to drop, and nothing commercial
+ * appears here at all. A refinement may narrow those fields only by replacing them, never by
+ * emptying them — so they cannot be cleared through this door in either direction.
+ */
+const CLEARABLE_ICP_FIELDS = [
+  'job_titles', 'seniority_levels', 'industries', 'company_sizes', 'geographies',
+] as const
+
 async function getClientId(userId: string): Promise<string | null> {
   const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
@@ -674,7 +686,28 @@ export async function runIcpJob(
       // else, and any failure leaves the run EXACTLY as it is today. A calibration nicety must
       // never be able to stop a client's sourcing.
       let icpForSearch = icp
-      try {
+      // ── ⚑ 24 Aug — AN EXPLICIT REFINEMENT OUTRANKS INFERRED CALIBRATION (founder-ruled) ──
+      //
+      // Pass 2 only happens because the client looked at pass 1, said "these aren't right",
+      // told us WHAT was off, saw the revised targeting written back, and pressed confirm.
+      // That is the most explicit statement of intent this product can obtain — and it would
+      // be silently overridden right here, because `narrowSizeBands` reads every `pass` the
+      // client clicked on individual cards from pass 1 and quietly removes size bands from
+      // the very ICP they just confirmed. Two truths about the same targeting, the weaker one
+      // winning, and nothing on screen to say so.
+      //
+      // So the confirmed ICP is run AS SAVED on pass 2. Nothing is deleted: every
+      // `lead_feedback` row stays exactly where it is, still evidence, still read by scoring
+      // and by every OTHER run. This narrows WHEN calibration applies, never the record.
+      //
+      // ⚠️ PASS 1 AND EVERY PAID RUN ARE UNTOUCHED. Pass 1 has no explicit refinement behind
+      // it — nobody has confirmed anything yet — and a paying client's calibration is exactly
+      // as it was. The condition is the PASS NUMBER, not proof-ness, for precisely that reason.
+      const confirmedRefinement = opts?.proofPass === 2
+      if (confirmedRefinement) {
+        console.log(`[icp] calibration SKIPPED for client ${clientId} — proof pass 2 runs the targeting the client explicitly confirmed.`)
+      }
+      if (!confirmedRefinement) try {
         const { data: fb } = await db.from('lead_feedback')
           .select('reason_code, leads!inner(company_size)')
           .eq('client_id', clientId)
@@ -1275,7 +1308,10 @@ Based on the conversation, return a JSON object with:
 - "tech_stack": array of tools they likely use
 - "keywords": array of intent signals (e.g. "hiring", "Series A", "expansion")
 
+- "clear_fields": array — ONLY for filters the user EXPLICITLY asked to remove or broaden, e.g. "any industry", "remove the industry restriction", "company size doesn't matter", "anywhere". Permitted values: "job_titles", "seniority_levels", "industries", "company_sizes", "geographies".
+
 Only include fields you're confident about. Leave arrays empty [] if not enough info yet.
+An empty array [] means "not enough information — leave that filter exactly as it is". It is NOT a request to remove a filter. Removing a filter is expressed ONLY through clear_fields.
 Always respond with valid JSON only — no markdown, no explanation outside the JSON.`
 
     const messages = [
@@ -1298,7 +1334,26 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
       parsed = { message: "Tell me more about who you want to target — industry, job title, company size, location?" }
     }
 
-    res.json({ success: true, data: parsed })
+    // ── ⚑ 25 Aug — `clear_fields` IS SANITISED HERE, FAIL-CLOSED (founder-ruled) ─────────
+    //
+    // WHY THE SIGNAL EXISTS. `[]` already means "not enough information yet" — that is what
+    // the prompt above has always said — so it could never also mean "remove this filter".
+    // A prospect who says *"any industry, I don't care"* produced an empty `industries`,
+    // which the refinement merge correctly PRESERVES, and their existing industry filter
+    // survived a request to delete it. Two different intentions, one representation.
+    //
+    // ⚠️ ALLOWLIST, NOT A BLOCKLIST, AND ENFORCED ON THE SERVER. The model is asked for a
+    // short list of field names and could return anything at all — `name`, `apollo_id`,
+    // `wallet_balance_usd`, prose. Every value outside the five targeting filters a client
+    // may broaden is DROPPED, and a non-array becomes `[]`. So the worst a bad response can
+    // do is clear nothing. `name`, `tech_stack` and `keywords` are deliberately absent:
+    // this flow may not touch them at all, in either direction.
+    const rawClear = (parsed as { clear_fields?: unknown }).clear_fields
+    const clear_fields = (Array.isArray(rawClear) ? rawClear : []).filter(
+      (f): f is string => typeof f === 'string' && (CLEARABLE_ICP_FIELDS as readonly string[]).includes(f),
+    )
+
+    res.json({ success: true, data: { ...parsed, clear_fields } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/chat-build]', err)
@@ -2042,28 +2097,113 @@ result or a number. "permitted" is false unless they explicitly said we may use 
  * Same `icp.id` in all three: `leads.icp_id`, the campaign's `icp_id` and the PDL cursor
  * all hang off it. GO applies the pending revision and clears it.
  */
+/**
+ * THE ONE ROW A CLIENT-SIDE REVISION EVER TOUCHES — their live ICP if they have one,
+ * otherwise their newest. The SAME row either way.
+ *
+ * ⚑ 25 Aug — EXTRACTED SO TWO READERS CANNOT DISAGREE. `saveClientTargeting` picks this row
+ * to write, and `proofRefinementVerdict` must read `pending_targeting` from the row that
+ * will actually be written — not from one it selected by a second, separately-maintained
+ * copy of the same three lines. A conflict check that inspects a different ICP than the
+ * save touches is worse than no check: it reports safety it did not verify.
+ *
+ * `pending_targeting` is in the select for exactly that reason; nothing else reads it here.
+ */
+async function coreIcpRow(clientId: string): Promise<Record<string, unknown> | null> {
+  const cols = 'id, name, is_active, pending_targeting'
+  const { data: live } = await db.from('icps')
+    .select(cols).eq('client_id', clientId).eq('is_active', true)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if ((live as { id?: string } | null)?.id) return live as Record<string, unknown>
+  const { data } = await db.from('icps')
+    .select(cols).eq('client_id', clientId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  return (data as Record<string, unknown> | null) ?? null
+}
+
+/**
+ * ⚑ 25 Aug — THREE OUTCOMES, BECAUSE THERE ARE THREE. This used to return `row | null`, and
+ * `null` meant "could not save" → 404. The atomic apply path adds a genuinely different
+ * answer: the write was REFUSED because the row moved under it. Collapsing that into the
+ * same `null` would have made a race indistinguishable from a database failure, and the two
+ * need opposite responses — one is "try again", the other is emphatically "do not".
+ */
+type SaveOutcome =
+  | { ok: true; row: Record<string, unknown>; pending: boolean }
+  | { ok: false; reason: 'not_saved' }
+  | { ok: false; reason: 'state_changed' }
+
 async function saveClientTargeting(
   clientId: string,
   body: Record<string, unknown>,
   /** The revised brief, when the conversation produced one. Held, never applied, here. */
   intent = '',
-): Promise<{ row: Record<string, unknown>; pending: boolean } | null> {
-  // Their live ICP if they have one, otherwise the newest — the SAME row either way.
-  const { data: live } = await db.from('icps')
-    .select('id, name, is_active').eq('client_id', clientId).eq('is_active', true)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
-  const core = live?.id ? live : (await db.from('icps')
-    .select('id, name, is_active').eq('client_id', clientId)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()).data
+  /**
+   * ⚑ 25 Aug — APPLY THE TARGETING TO THE LIVE COLUMNS EVEN THOUGH THE ICP IS ACTIVE.
+   *
+   * ⚠️ THE CALLER MUST HAVE PROVEN THE RIGHT TO SET THIS FROM SERVER STATE. It is never a
+   * request field and never a default; `proofRefinementVerdict()` returning `'apply'` is the
+   * only thing that sets it, and that function reads the funding ledger, `proof_passes_done`
+   * and the ICP's own `pending_targeting` itself.
+   *
+   * WHY IT HAD TO EXIST. `icps.is_active` defaults to TRUE at the database (schema.sql) and
+   * `icpSchema` carries no such field, so the insert a few lines below omits it — which
+   * means a Milla-created PROSPECT's ICP is active exactly like a paying client's. The
+   * `isLive` branch then parked their confirmed refinement in `pending_targeting`, the live
+   * columns never moved, and `runIcpJob` reads the live columns. A free-proof prospect would
+   * have confirmed a refinement, spent their SECOND AND LAST pass, and been shown another
+   * batch built from pass 1's targeting — with the same-ICP check passing, because it is
+   * genuinely the same row.
+   *
+   * The 22 Aug lock — a LIVE client's edit waits for K.I.N.D — is untouched: `applyLive`
+   * defaults to false, so every other caller behaves exactly as it did today.
+   */
+  applyLive = false,
+  /**
+   * ⚑ 25 Aug — THE CORE ROW THE CALLER ALREADY SELECTED, so this does not select it again.
+   *
+   * ⚠️ `undefined` MEANS "NOT SUPPLIED", `null` MEANS "THEY HAVE NO ICP". The distinction is
+   * load-bearing: `null` must reach the insert branch rather than trigger a second read.
+   *
+   * WHY IT EXISTS. `/icps/revise` has to decide the CONFLICT before it writes, and that
+   * decision reads `pending_targeting` off the core row. With this function selecting its
+   * own row, the verdict and the write were two separate observations of the state — so a
+   * revision could be submitted for review in between, and the write would go ahead against
+   * a row that no longer matched the row the decision was made on. The founder's ruling for
+   * that collision is STOP, and a check that can be overtaken does not stop anything.
+   */
+  coreIn: Record<string, unknown> | null | undefined = undefined,
+): Promise<SaveOutcome> {
+  const core = coreIn !== undefined ? coreIn : await coreIcpRow(clientId)
+
+  // ── ⚑ 25 Aug — A PROOF REFINEMENT WITH NO CORE ICP IS A STOP, NOT A CREATION ─────────
+  //
+  // ⚠️ THIS MUST SIT ABOVE THE INSERT BRANCH, AND THAT POSITION IS THE WHOLE GUARD.
+  // `applyLive` means "a free-proof prospect confirmed a refinement of the batch they were
+  // just shown" — so an ICP to refine is a PREMISE, not something to conjure. Falling into
+  // the insert below would have created a SECOND ICP for pass 2 to run against: pass 1's
+  // leads, its feedback and the PDL cursor all hang off `icp.id`, so they would be orphaned
+  // on a row nothing looks at again, and the client would have spent their last free pass on
+  // a brand-new experiment they never asked for.
+  //
+  // The second protection, in `proofRefinementVerdict`, refuses this case before the route
+  // ever calls here. This one exists because the two are reached by different callers and a
+  // guard that depends on another guard having run is not a guard.
+  //
+  // ⚠️ ONLY `applyLive`. `POST /icps` creating a client's FIRST ICP is exactly what the
+  // insert below is for, and it never sets this flag.
+  if (applyLive && !core?.id) return { ok: false, reason: 'state_changed' }
 
   if (!core?.id) {
     const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
-    return data ? { row: data as Record<string, unknown>, pending: false } : null
+    return data ? { ok: true, row: data as Record<string, unknown>, pending: false } : { ok: false, reason: 'not_saved' }
   }
 
   const isLive = (core as { is_active?: boolean }).is_active === true
-  const patch = isLive
+  // HELD only when the ICP is live AND the caller has not proven the free-proof exception.
+  const hold = isLive && !applyLive
+  const patch = hold
     ? {
         pending_targeting: body,
         pending_submitted_at: new Date().toISOString(),
@@ -2073,10 +2213,141 @@ async function saveClientTargeting(
         ...(intent ? { pending_campaign_intent: intent } : {}),
       }
     : body
+
+  // ── ⚑ 25 Aug — THE APPLY PATH FAILS CLOSED AT THE DATABASE, NOT ONLY IN JAVASCRIPT ─────
+  //
+  // Passing the same JS object closed the gap between the two READS. It does not close the
+  // gap between the read and the WRITE: a revision can be submitted for review, or the ICP
+  // deactivated, in the milliseconds after the verdict is decided — and the write would then
+  // land on a row that no longer matches the row the decision was made on, overwriting a
+  // waiting revision the founder's ruling says must survive untouched.
+  //
+  // So the conditions the verdict checked are RESTATED AS THE UPDATE'S OWN PREDICATE. The
+  // database evaluates them at write time, atomically, against the row as it is at that
+  // instant. If anything moved, the update matches nothing and we say so — we do NOT retry
+  // as an ordinary revision, do NOT fall back to writing `pending_targeting`, and do NOT
+  // insert a second ICP. Every one of those "recoveries" would destroy the thing the check
+  // exists to protect.
+  //
+  // ⚠️ THE ORDINARY PATH IS UNTOUCHED, INCLUDING ITS `.single()`. A 0-row update there still
+  // raises exactly the error it always did; switching it to `maybeSingle` would silently
+  // turn a database failure into a 404, which is a behaviour change nobody asked for.
+  if (applyLive) {
+    const { data, error } = await db.from('icps')
+      .update(patch)
+      .eq('id', core.id)
+      .eq('client_id', clientId)
+      .eq('is_active', true)
+      .is('pending_targeting', null)
+      .select().maybeSingle()
+    if (error) throw error
+    if (!data) return { ok: false, reason: 'state_changed' }
+    return { ok: true, row: data as Record<string, unknown>, pending: false }
+  }
+
   const { data, error } = await db.from('icps')
     .update(patch).eq('id', core.id).eq('client_id', clientId).select().single()
   if (error) throw error
-  return data ? { row: data as Record<string, unknown>, pending: isLive } : null
+  return data ? { ok: true, row: data as Record<string, unknown>, pending: hold } : { ok: false, reason: 'not_saved' }
+}
+
+/** The machine-readable code a desk can branch on. Stable — never reword it. */
+const EXISTING_PENDING_TARGETING = 'existing_pending_targeting'
+
+/**
+ * The same collision, caught a few milliseconds LATER — at the write instead of the read.
+ *
+ * A separate code on purpose: `existing_pending_targeting` says "you already had one when
+ * you asked", this says "one arrived while you were deciding". Both stop, both write
+ * nothing, but an operator reading the logs should be able to tell a client who forgot
+ * about a waiting revision from a genuine race.
+ */
+const TARGETING_STATE_CHANGED = 'targeting_state_changed'
+
+/**
+ * The one place that sentence is written, because it now has two callers — the missing-core
+ * refusal and the lost race. Two copies would be two things to keep in step, and a client
+ * reading a different sentence for the same fact is how a support conversation goes wrong.
+ */
+function stateChanged(res: Response): void {
+  res.status(409).json({
+    success: false,
+    code: TARGETING_STATE_CHANGED,
+    error: 'The targeting changed while you were reviewing it. K.I.N.D needs to check this before another proof set is searched — nothing has been changed and no new search has started.',
+  })
+}
+
+/**
+ * WHAT SHOULD HAPPEN TO THIS REVISION? (founder-ruled 25 Aug)
+ *
+ * - `'normal'`   — today's behaviour, byte for byte, for every caller that is not a proven
+ *                  free-proof refinement. A live client's edit still waits for K.I.N.D.
+ * - `'apply'`    — the free-proof exception: write the live targeting columns in place.
+ * - `'conflict'` — a proven free-proof refinement that collides with a revision ALREADY
+ *                  waiting for review. Nothing is written at all; see below.
+ *
+ * ⚠️ THE REQUEST FIELD IS A DECLARATION OF INTENT, NEVER THE PERMISSION. A client can put
+ * `proof_refinement: true` on any body they like; on its own it changes nothing. Every fact
+ * that decides the outcome is read HERE, from the server's own tables:
+ *
+ *   1. THEY HAVE NEVER FUNDED — the same `fundedVia` ledger test the proof route itself
+ *      uses. A paying or comped account is refused, so the 22 Aug "a live client's edit
+ *      waits" lock cannot be reached through this door.
+ *   2. `proof_passes_done === 1` — read from `clients`, the SAME column
+ *      `try_claim_proof_pass` increments. NOT a second counter, and deliberately `=== 1`:
+ *      at 0 there is no batch to refine, and at 2 both passes are gone and a human takes
+ *      over. Only the one state between them is a refinement.
+ *   3. THERE IS A CORE ICP AT ALL. ⚑ 25 Aug — without this, `core === null` made
+ *      `core?.pending_targeting` come back `undefined`, which passed the "nothing is
+ *      waiting" test below and returned `'apply'` — and the save then fell into its INSERT
+ *      branch and minted a SECOND ICP. A refinement of a batch presupposes the ICP that
+ *      produced the batch; if it is not there, something is wrong and we stop.
+ *   4. `pending_targeting IS NULL` on the core ICP — read from the row `saveClientTargeting`
+ *      will actually write, via the shared `coreIcpRow`.
+ *
+ * ⚠️ WHY (3) IS A CONFLICT AND NOT A FALLBACK. Without it the exception simply would not
+ * apply, and the revision would drop into the ordinary live-client branch — which
+ * OVERWRITES `pending_targeting`. A prospect confirming a batch refinement would silently
+ * destroy a targeting change they had already submitted and were waiting on us to review,
+ * and would then have spent a proof pass on targeting that never went live either. Two
+ * different intentions about the same ICP, one of them erased without anybody being told.
+ *
+ * So this case writes NOTHING — not the live columns, not `pending_targeting` — and the
+ * route answers 409. Both the live ICP and the waiting revision survive untouched, and a
+ * human resolves which one the client meant.
+ *
+ * ⚠️ NO REQUEST FIELD IS CONSULTED FOR ANY OF THE THREE. `icpSchema` strips unknown keys, so
+ * a body carrying `pending_targeting: null` cannot make a waiting revision look absent.
+ */
+type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict' | 'state_changed'
+
+async function proofRefinementVerdict(
+  clientId: string,
+  rawBody: unknown,
+  core: Record<string, unknown> | null,
+): Promise<ProofRefinementVerdict> {
+  if ((rawBody as { proof_refinement?: unknown } | null)?.proof_refinement !== true) return 'normal'
+
+  const { data: fundingRows } = await db.from('credit_transactions')
+    .select('type, reference').eq('client_id', clientId)
+  if (fundedVia(fundingRows ?? []) !== null) return 'normal'
+
+  const { data: client } = await db.from('clients')
+    .select('proof_passes_done').eq('id', clientId).maybeSingle()
+  const passes = Number((client as { proof_passes_done?: number } | null)?.proof_passes_done ?? 0)
+  if (passes !== 1) return 'normal'
+
+  // ⚑ 25 Aug — FAIL CLOSED WITH NO CORE ICP. Note the ORDER: this has to be asked before the
+  // `pending_targeting` question, because a null core answers that question `undefined` —
+  // which reads as "nothing is waiting" and returned `'apply'`. Never `'normal'` either:
+  // that would park or insert. There is nothing to refine, so there is nothing to do.
+  if (!core?.id) return 'state_changed'
+
+  // From the SERVER's row, never the body.
+  const waiting = core.pending_targeting
+  if (waiting !== null && waiting !== undefined) return 'conflict'
+
+  return 'apply'
 }
 
 async function persistMillaUnderstanding(
@@ -2207,8 +2478,11 @@ icpRouter.post('/', async (req: AuthRequest, res) => {
     // Operators keep every freedom to create additional ICPs in Vida; this is the CLIENT's
     // door, and one core ICP is the client-side rule.
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
+    // Unchanged caller: no `applyLive`, no pre-selected core, so it reads its own row and
+    // takes exactly the branch it always took. `state_changed` is unreachable without
+    // `applyLive`, so `!saved.ok` here means what `!saved` meant before.
     const saved = await saveClientTargeting(clientId, body, revisedIntent)
-    if (!saved) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
+    if (!saved.ok) { res.status(404).json({ success: false, error: 'Could not save your targeting' }); return }
     const { row: data, pending } = saved
 
     // ── THE UNDERSTANDING FOLLOWS THE ICP (22 Aug) ──────────────────────────────────
@@ -2270,8 +2544,49 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
-    const saved = await saveClientTargeting(clientId, body, revisedIntent)
-    if (!saved) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
+    // ⚑ 25 Aug — the ONE exception, and it is decided by the server, not by the body. See
+    // `proofRefinementVerdict`. 'normal' for every paying/active client, so their edit still
+    // waits for K.I.N.D exactly as it did before this line existed.
+    //
+    // ⚠️ ONE READ, AND THE SAME ROW GOES TO BOTH. This was two `coreIcpRow(clientId)` calls —
+    // one for the verdict, one inside `saveClientTargeting` — and the build claimed they
+    // were one selection while making two. A revision could be submitted for review between
+    // them, so the conflict decision and the write were observations of different states.
+    // The row selected here is the row the verdict judges AND the row the write targets.
+    const core = await coreIcpRow(clientId)
+    const verdict = await proofRefinementVerdict(clientId, req.body, core)
+
+    // ⚠️ REFUSED BEFORE ANY WRITE. This returns above `saveClientTargeting`, so on this path
+    // the route performs NO mutation at all: the live targeting is untouched, the waiting
+    // revision is untouched, and no proof pass can be claimed because the desk never gets a
+    // success to act on. That is the founder's ruling for this collision — stop, and a human
+    // resolves it — not "pick one of the two revisions and lose the other".
+    if (verdict === 'conflict') {
+      res.status(409).json({
+        success: false,
+        code: EXISTING_PENDING_TARGETING,
+        error: 'You already have a targeting change waiting for K.I.N.D to review. We need to go through that with you before we look for another set — nothing has been changed and no new search has started.',
+      })
+      return
+    }
+
+    // ⚑ 25 Aug — NO CORE ICP TO REFINE. Returned before the save is even called, so this
+    // path performs no read-modify-write of any kind. Same answer as losing the race below,
+    // because it is the same fact from the client's side: the targeting is not in the state
+    // the refinement was built against, and a human needs to look before anything else runs.
+    if (verdict === 'state_changed') { stateChanged(res); return }
+
+    const saved = await saveClientTargeting(clientId, body, revisedIntent, verdict === 'apply', core)
+
+    // ⚠️ THE RACE LOST, AND LOSING IS THE CORRECT OUTCOME. The conditional update matched no
+    // row, which means the ICP stopped being the one the verdict judged — a revision arrived
+    // for review, or it was deactivated — between the decision and the write. Nothing was
+    // written: the live targeting is as it was and any revision that appeared is untouched.
+    // We do NOT retry as an ordinary revision (that would overwrite it), do NOT park this
+    // one, and do NOT insert a second ICP. No proof pass can be claimed either, because the
+    // desk requires a success it will not get.
+    if (!saved.ok && saved.reason === 'state_changed') { stateChanged(res); return }
+    if (!saved.ok) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
     const { row: data, pending } = saved
 
     // Notify us. Vida's bell already derives "ICP revised since the campaign was built"

@@ -737,7 +737,17 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(findBlock).not.toMatch(/notify|email|alert|minutes|shortly we|by \d/i)
     expect(findBlock).not.toContain('No leads waiting right now')
     // …and no provider mechanics are shown to the client.
-    expect(deskCode).not.toMatch(/\bPDL\b|Apollo|Hunter/i)
+    //
+    // ⛓️ AMENDED 25 Aug — SCOPED TO WHAT A CLIENT CAN READ, WHICH IS WHAT IT ALWAYS MEANT.
+    // This banned the provider names anywhere in the desk's code, and the pass-2 refinement
+    // now carries `apollo_only_consented` through the payload — the ICP's own consent
+    // column, copied from the existing row so a refinement cannot silently rewrite it. That
+    // is a COLUMN NAME in a payload, not provider mechanics on a screen, and the rule was
+    // never about identifiers: it is about a prospect reading "Hunter" on their desk.
+    // Removing the field to satisfy the old wording would have reintroduced the defect this
+    // guard has nothing to do with. So the one identifier is exempted by name, and every
+    // other mention of a provider is still refused.
+    expect(deskCode.replace(/apollo_only_consented/g, ' ')).not.toMatch(/\bPDL\b|Apollo|Hunter/i)
   })
 
   it('the timeout state is honest and offers no retry of the proof start', () => {
@@ -772,11 +782,37 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(poll).not.toMatch(/reveal|approve|charge|stripe/i)
   })
 
-  it('there is STILL exactly one proof POST in the journey, and the desk has none', () => {
-    expect((welcomeCode.match(/\/proof`/g) ?? [])).toHaveLength(1)
+  // ⛓️ AMENDED 24 Aug — the desk now has EXACTLY ONE proof POST, and that is a founder ruling,
+  // not a regression. This guard read `expect(deskCode).not.toMatch(/\/proof/)` and was RIGHT
+  // for the world it was written in (#1445): back then the ONLY way to spend a pass was the
+  // welcome journey, so any /proof on the desk could only be an accident.
+  //
+  // The founder then ruled that a prospect whose first batch misses must be able to say so and
+  // get a second — "use the SAFE DESK CONTROL for launch" — which necessarily puts one, and
+  // only one, deliberate claim on this page. The old assertion would have forced that ruling to
+  // be implemented somewhere it does not belong, or the guard silently deleted.
+  //
+  // So the RULE is unchanged and the COUNT is what moved: the journey still claims exactly one
+  // pass, the desk now claims exactly one, and — the part that always mattered — the POLLING
+  // effect still claims none, which the read-only guard directly above proves separately.
+  it('the pass claims are still exactly one in the journey and one on the desk', () => {
+    expect((welcomeCode.match(/\/proof`/g) ?? []), 'welcome journey: one claim').toHaveLength(1)
     // ⚠️ The whole reason the poll may only read. A second POST claims the client's SECOND
     // pass — two passes gone, no leads seen, and no release RPC exists to undo it.
-    expect(deskCode).not.toMatch(/\/proof/)
+    expect((deskCode.match(/\/proof`/g) ?? []), 'desk: one claim, the refinement').toHaveLength(1)
+    // …and it sits in the confirm handler, never in an effect, a poll or a render path.
+    // ⚠️ BOUNDED AT THE NEXT TOP-LEVEL MEMBER, not end-of-file and not a named landmark.
+    // Two earlier cuts of this bound were too loose and I caught both by mutation, not by
+    // reading: slicing to end-of-file passes for a claim placed anywhere BELOW the function,
+    // and slicing to the next *named* line still swallows anything inserted in between — a
+    // stray `async function stray() { …/proof… }` sat inside the slice and the guard stayed
+    // green. Ending at the first member at 2-space indent is the actual function boundary.
+    const from = deskCode.indexOf('async function confirmRefine')
+    expect(from, 'confirmRefine exists').toBeGreaterThan(-1)
+    const rest = deskCode.slice(from + 1)
+    const end  = rest.search(/\n {2}(?:async function |function |useEffect\(|const |return )/)
+    expect(end, 'the next top-level member after it').toBeGreaterThan(-1)
+    expect(rest.slice(0, end), 'the desk claim is inside confirmRefine').toContain('/proof`')
   })
 
   it('the cadence is 3s, bounded at 20 checks (~60s)', () => {

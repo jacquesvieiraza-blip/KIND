@@ -249,7 +249,14 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
     // first/last name are fetched SERVER-SIDE ONLY (never returned) so we can scrub any
     // occurrence of them from score_reasoning before it becomes the masked "why_fits".
     const { data, error } = await db.from('leads')
-      .select('id, first_name, last_name, job_title, company, industry, country, score, score_reasoning, created_at')
+      // ⚑ 25 Aug — `surfaced_for_approval_at` IS THE PROOF-BATCH DISCRIMINATOR (founder-ruled).
+      // Free proof stamps ONE `new Date().toISOString()` across a whole run's rows and its
+      // `.is('delivered_at', null)` filter means a later run can never restamp an earlier
+      // batch — so this column is already batch-constant, batch-distinct and immutable. It
+      // is returned so the desk can show "Latest set" and "Earlier set" instead of one
+      // score-interleaved list. NO `batch_id`, no migration, no lead is touched: 36 rows go
+      // out as 36 rows and only their PRESENTATION changes.
+      .select('id, first_name, last_name, job_title, company, industry, country, score, score_reasoning, created_at, surfaced_for_approval_at')
       .eq('client_id', clientId)
       .not('delivered_at', 'is', null)
       .not('surfaced_for_approval_at', 'is', null)      // #493 — only leads the operator has Sent to the client
@@ -283,6 +290,9 @@ leadRouter.get('/for-approval', async (req: AuthRequest, res) => {
       score: l.score ?? null,
       why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null),
       created_at: l.created_at ?? null,
+      // A timestamp, not identity — it says WHICH BATCH, never who. The masked shape is
+      // otherwise unchanged: no name, no email, no phone, whatever the row holds.
+      surfaced_for_approval_at: l.surfaced_for_approval_at ?? null,
     }))
     // TOP 20 RECOMMENDED — derived from score at read time rather than stored, so it can
     // never go stale against a re-score and needs no column. The client sees which ones we'd

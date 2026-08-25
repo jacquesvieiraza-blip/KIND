@@ -18,6 +18,14 @@ import { PAID_TX_TYPES, PACK_PRICE_USD, LEAD_PRICE_USD, packState } from './onbo
 export interface MillaSummaryData {
   wallet_balance_usd: number
   has_funded: boolean
+  /** ⚑ 24 Aug — HOW MANY FREE-PROOF BATCHES THIS PROSPECT HAS ALREADY BEEN SHOWN.
+   *  Read straight from `clients.proof_passes_done`, the SAME column
+   *  `try_claim_proof_pass` increments — there is no second counter, and this is a
+   *  read only. The desk needs it so it can tell three states apart WITHOUT pressing
+   *  anything to find out: 0 = nothing spent · 1 = refinement and a second batch are
+   *  available · 2 = both spent, a human takes it from here. Before this, the only way
+   *  to learn the third state was to POST and read the 409. */
+  proof_passes_done: number
   pack: ReturnType<typeof packState>
   leads_awaiting: number
   meetings_booked: number
@@ -37,7 +45,7 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 
   const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases] = await Promise.all([
-    db.from('clients').select('wallet_balance_usd').eq('id', clientId).maybeSingle(),
+    db.from('clients').select('wallet_balance_usd, proof_passes_done').eq('id', clientId).maybeSingle(),
     // mirrors /for-approval — the exact set of masked cards the client can act on
     db.from('leads').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).not('delivered_at', 'is', null)
@@ -89,6 +97,15 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
 
   return {
     wallet_balance_usd: Number((client as Record<string, number> | null)?.wallet_balance_usd ?? 0),
+    // ⚑ 24 Aug — the existing column, read as-is. Fails to 0.
+    //
+    // ⛓️ CORRECTED 25 Aug: this said 0 "offers the refinement rather than hiding it". That
+    // was the wrong way round and the founder caught it. The desk gates on
+    // `proofPassesDone === 1`, so 0 HIDES the control. Failing to 0 is still the safe
+    // direction — it just earns that description by offering nothing, not by offering
+    // something. The behaviour is right; only the sentence describing it was wrong, and it
+    // is the sentence that changed.
+    proof_passes_done: Number((client as Record<string, number> | null)?.proof_passes_done ?? 0),
     // NO FREEBIES — true once the client has made their first purchase. The Milla
     // dashboard gates on this: no purchase → paywall to Billing.
     has_funded: (purchases.count ?? 0) > 0,

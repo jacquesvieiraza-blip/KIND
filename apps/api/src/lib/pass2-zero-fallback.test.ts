@@ -181,7 +181,9 @@ async function runJob(opts: {
           // The proof surfacing stamp — the batch identity the candidate must share.
           if (table === 'leads' && typeof patch.surfaced_for_approval_at === 'string') {
             rec.leadSurfacings.push(patch.surfaced_for_approval_at)
+            rec.order.push('surface')
           }
+          if (table === 'icps' && 'proof_widened_candidate' in patch) rec.order.push('candidate')
           // ⚑ 25 Aug — THE PREDICATES A CONDITIONAL WRITE CARRIES ARE THE POINT OF IT, so
           // the harness records them and can be told to refuse. A mock that always says
           // "one row updated" cannot tell a guarded write from an unguarded one.
@@ -282,8 +284,13 @@ async function runJob(opts: {
 }
 
 type IcpWrite = { patch: Record<string, unknown>; filters: Array<[string, string, unknown]> }
-type Rec = { searches: Search[]; rpcs: string[]; icpUpdates: Record<string, unknown>[]; icpWrites: IcpWrite[]; leadSurfacings: string[] }
-const fresh = (): Rec => ({ searches: [], rpcs: [], icpUpdates: [], icpWrites: [], leadSurfacings: [] })
+type Rec = {
+  searches: Search[]; rpcs: string[]; icpUpdates: Record<string, unknown>[]
+  icpWrites: IcpWrite[]; leadSurfacings: string[]
+  /** ⚑ 25 Aug — THE ORDER, because the correction IS an ordering. */
+  order: string[]
+}
+const fresh = (): Rec => ({ searches: [], rpcs: [], icpUpdates: [], icpWrites: [], leadSurfacings: [], order: [] })
 /** The candidate write, if one happened at all. */
 const candidateWrite = (rec: Rec) => rec.icpWrites.find(w => 'proof_widened_candidate' in w.patch)
 
@@ -550,18 +557,44 @@ describe('a successful widened set records a candidate, and changes nothing', ()
     }
   })
 
-  it('a REFUSED candidate write leaves the ICP alone and adopts nothing', async () => {
+  it('the CANDIDATE is written BEFORE the set is surfaced — the order is the guard', async () => {
+    const rec = fresh()
+    await runJob({ proof: 2, exact: 0, wide: 5 }, rec)
+    // ⛓️ 25 Aug, REORDERED. The first cut surfaced first and recorded afterwards, so a failed
+    // candidate write left a widened set on the client's desk with no provenance — and at
+    // acceptance a NULL candidate then meant either "ordinary exact batch" or "widened batch
+    // whose provenance was lost". The server would have had to guess between them.
+    expect(rec.order, 'candidate first, then the set').toEqual(['candidate', 'surface'])
+  })
+
+  it('a REFUSED candidate write means the widened set is NOT SHOWN AT ALL', async () => {
     for (const candidateWriteMode of ['zero', 'error'] as const) {
       const rec = fresh()
       await runJob({ proof: 2, exact: 0, wide: 5, candidateWrite: candidateWriteMode }, rec)
-      // The set still reached the client — the leads are real and were surfaced. What did not
-      // happen is the adoption: no candidate stands, so acceptance finds nothing to apply and
-      // a human takes it. We never manufacture the provenance instead.
-      expect(rec.leadSurfacings, `${candidateWriteMode}: the client still sees their leads`).toHaveLength(1)
+      // ⚠️ THE HEART OF THE CORRECTION. An adoptable widened batch must carry provenance; one
+      // without it is a set nobody can safely accept, so it is never surfaced. A human takes
+      // it — and we never manufacture the provenance to make the set showable.
+      expect(rec.leadSurfacings, `${candidateWriteMode}: nothing surfaced`).toHaveLength(0)
+      expect(rec.order, `${candidateWriteMode}: the attempt happened, the surfacing did not`).toEqual(['candidate'])
+      // And nothing else moved: no targeting write, no second search, no third pass, no RPC
+      // beyond the single reservation the run already made.
       for (const patch of rec.icpUpdates) {
         expect(patch).not.toHaveProperty('seniority_levels')
         expect(patch).not.toHaveProperty('company_sizes')
+        expect(patch).not.toHaveProperty('pending_targeting')
       }
+      expect(rec.searches, 'exact + one widened, and no retry of either').toHaveLength(2)
+      expect(rec.rpcs.filter(r => r === 'try_reserve_proof_records'), 'one reservation').toHaveLength(1)
+      expect(rec.rpcs.filter(r => r === 'try_claim_proof_pass'), 'no new pass').toHaveLength(0)
+    }
+  })
+
+  it('an EXACT proof batch surfaces exactly as before — no candidate stands in its way', async () => {
+    for (const opts of [{ proof: 1, exact: 9 }, { proof: 2, exact: 9 }]) {
+      const rec = fresh()
+      await runJob(opts, rec)
+      expect(rec.order, JSON.stringify(opts)).toEqual(['surface'])
+      expect(rec.leadSurfacings).toHaveLength(1)
     }
   })
 })

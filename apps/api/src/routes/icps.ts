@@ -1246,38 +1246,41 @@ export async function runIcpJob(
   // approval count or any ledger. Nothing here is a commercial state.
   if (proofMode && insertedIds.length > 0) {
     const nowIso = new Date().toISOString()
-    const { error: surfErr } = await db.from('leads')
-      .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
-      .in('id', insertedIds).is('delivered_at', null)
-    if (surfErr) {
-      // Same failure shape start-work treats as serious: the leads exist and the prospect
-      // cannot see them, which reads to them as "K.I.N.D found nobody".
-      console.error(`[icp] PROOF surfacing FAILED for prospect ${clientId} — ${insertedIds.length} lead(s) are invisible:`, surfErr.message)
-      void sendFounderAlert('sends_stalled', 'Free-proof leads were sourced but the prospect cannot see them', [
-        `Prospect ${clientId}: ${insertedIds.length} proof lead(s) could not be surfaced.`,
-        `Reason: ${surfErr.message}`,
-        'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
-      ]).catch(() => {})
-    }
 
-    // ── ⚑ 25 Aug — MOMENT 1: WRITE DOWN WHAT PRODUCED THIS SET (founder-ruled) ──────────
+    // ── ⚑ 25 Aug — MOMENT 1: THE PROVENANCE IS WRITTEN BEFORE THE SET IS SHOWN ─────────
+    //
+    // ⛓️ REORDERED, AND THE ORDER IS THE GUARD. The first cut surfaced the widened leads and
+    // THEN tried to record the candidate. That is not fail-closed: when the candidate write
+    // came back zero rows or errored, the client still saw a widened set — and at acceptance
+    // a NULL candidate then meant two different things, `an ordinary exact batch` and `a
+    // widened batch whose provenance never persisted`. The server would have had to guess
+    // between them, and guessing is what this whole build exists to stop.
+    //
+    // So for a WIDENED set the candidate goes down FIRST, and the leads are surfaced only if
+    // it landed. A widened batch that reaches a client's desk is therefore, by construction,
+    // one whose provenance is already recorded — which is what lets acceptance treat a NULL
+    // candidate as an ordinary exact batch without ambiguity.
+    //
+    // ⚠️ AN EXACT PROOF BATCH IS UNCHANGED. `widenedBasis` is null for pass 1 and for any
+    // pass 2 whose confirmed targeting worked, so nothing is written and the surfacing below
+    // happens exactly as it always did.
     //
     // ⚠️ THIS IS NOT A TARGETING CHANGE. Nothing about the client's saved ICP moves here.
     // The five targeting columns are untouched; the only column written is the candidate,
     // which no part of sourcing, scoring or sending ever reads. The widened targeting
     // becomes real ONLY when the client presses "Looks right" on THIS set.
     //
-    // ⚠️ IT CARRIES THE SAME `nowIso` THE BATCH DOES. That is the whole point of writing it
-    // here rather than beside the search: the candidate and the batch share one immutable
-    // stamp, so acceptance can PROVE they belong together instead of inferring it.
+    // ⚠️ IT CARRIES THE SAME `nowIso` THE BATCH DOES. The candidate and the batch share one
+    // immutable stamp, so acceptance can PROVE they belong together instead of inferring it.
     //
-    // ⚠️ AND IT FAILS CLOSED. The write is conditional on the ICP still being the row the
-    // basis came from — same id, same client, active, no revision parked, no other candidate
+    // ⚠️ AND THE WRITE ITSELF FAILS CLOSED. It is conditional on the ICP still being the row
+    // the basis came from — same id, same client, no revision parked, no other candidate
     // already waiting, and all five targeting columns still exactly as the basis records
-    // them. If the row moved underneath the run, no candidate is written and the widened
-    // proof is simply not adoptable: a human takes it. We never manufacture the provenance,
-    // and acceptance can never infer it from a browser flag, the client copy or a log line.
-    if (widenedBasis && insertedIds.length > 0) {
+    // them. If the row moved underneath the run, no candidate is written, the set is NOT
+    // shown, and a human takes it. We never manufacture the provenance, and acceptance can
+    // never infer it from a browser flag, the client copy or a log line.
+    let widenedAdoptable = true
+    if (widenedBasis) {
       const basis: ProofWidenedBasis = widenedBasis
       let q = db.from('icps')
         .update({ proof_widened_candidate: pendingCandidate(nowIso, basis) })
@@ -1290,9 +1293,37 @@ export async function runIcpJob(
       for (const f of PROOF_BASIS_FIELDS) q = q.filter(f, 'eq', pgTextArrayLiteral(basis[f]))
       const { data: candRow, error: candErr } = await q.select('id').maybeSingle()
       if (candErr || !candRow) {
-        console.error(`[icp] PROOF PASS 2 — widened set surfaced for prospect ${clientId} but the candidate could NOT be recorded (${candErr?.message ?? 'the ICP changed underneath the run, or a candidate was already waiting'}). The widened targeting is NOT adoptable; a human must review it.`)
+        widenedAdoptable = false
+        console.error(`[icp] PROOF PASS 2 — the widened candidate could NOT be recorded for prospect ${clientId} (${candErr?.message ?? 'the ICP changed underneath the run, or a candidate was already waiting'}). The set will NOT be surfaced: an adoptable widened batch must carry provenance, and one without it is a set nobody can safely accept. Human review; nothing retargeted, nothing re-sourced, no further pass.`)
       } else {
         console.log(`[icp] PROOF PASS 2 — widened candidate recorded for prospect ${clientId}, batch ${nowIso}. Nothing has been retargeted; it applies only if they accept this set.`)
+      }
+    }
+
+    // ⚠️ NO CANDIDATE, NO SET. The only thing that happens on this path is the log above and
+    // the human review it asks for: the pass economics are untouched (already reserved and
+    // reconciled), no provider is called again, no third query runs, no targeting moves, and
+    // the leads simply stay unsurfaced. The prospect's earlier batch remains unacceptable on
+    // its own, because `proof_passes_done` is 2 while only one batch is visible — which is
+    // exactly the Glean state, and exactly what the acceptance endpoint refuses.
+    if (widenedAdoptable) {
+      const { error: surfErr } = await db.from('leads')
+        .update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })
+        .in('id', insertedIds).is('delivered_at', null)
+      if (surfErr) {
+        // Same failure shape start-work treats as serious: the leads exist and the prospect
+        // cannot see them, which reads to them as "K.I.N.D found nobody".
+        //
+        // ⚠️ A RECORDED CANDIDATE IS LEFT EXACTLY WHERE IT IS. Deleting it would destroy the
+        // only record of what produced these people, and rewriting it would be manufacturing
+        // provenance. Its batch simply never becomes visible, so acceptance can never reach
+        // it — the batch count will not match the passes spent, and that is a refusal.
+        console.error(`[icp] PROOF surfacing FAILED for prospect ${clientId} — ${insertedIds.length} lead(s) are invisible:`, surfErr.message)
+        void sendFounderAlert('sends_stalled', 'Free-proof leads were sourced but the prospect cannot see them', [
+          `Prospect ${clientId}: ${insertedIds.length} proof lead(s) could not be surfaced.`,
+          `Reason: ${surfErr.message}`,
+          'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
+        ]).catch(() => {})
       }
     }
   }

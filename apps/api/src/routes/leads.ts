@@ -1095,29 +1095,51 @@ leadRouter.post('/:id/proof-accept', rateLimit({ limit: 30, windowMs: 60_000, ke
     // when a perfectly good Latest set sits above it.
     if (batches[0] !== batchAt) { needsReview(); return }
 
-    // ── THE WIDENED CANDIDATE, IF THERE IS ONE FOR THIS EXACT BATCH ───────────────────
-    const cand = readCandidate(icp.proof_widened_candidate)
-
-    // Already accepted, same batch — a repeat of a click that SUCCEEDED. Say so and change
-    // nothing. This is what makes a lost response safe to retry, and it rests on the server's
-    // own record of which batch was accepted, never on anything the browser claims.
-    if (cand && cand.state === 'accepted' && cand.batch_at === batchAt) {
-      res.json({ success: true, data: { applied: false, already_accepted: true } })
-      return
-    }
-
-    // ── EXACT-BATCH ACCEPTANCE — the ordinary happy path, and it writes NOTHING ───────
+    // ── THE STORED CANDIDATE, READ STRICTLY ───────────────────────────────────────────
     //
-    // No candidate at all (pass 1, or a pass 2 whose exact targeting worked), or a candidate
-    // belonging to some OTHER batch — either way the set they accepted was produced by the
-    // targeting already saved, so there is nothing to align. A stale candidate is left exactly
-    // where it is: its batch is not the latest, so it can never be accepted from here.
-    if (!cand || cand.state !== 'pending' || cand.batch_at !== batchAt) {
+    // ⛓️ 25 Aug, TIGHTENED. `runIcpJob` now records the candidate BEFORE it surfaces a
+    // widened set, so a surfaced widened batch always carries provenance. That is what makes
+    // the first branch below safe — an ABSENT candidate can only mean an ordinary exact
+    // batch, never "a widened batch whose provenance failed to persist".
+    //
+    // Everything else is refused rather than assumed. The first cut let two cases fall
+    // through to the exact path: a NON-NULL column this file could not parse, and a valid
+    // candidate belonging to some OTHER batch. Both would have been reported to the client as
+    // an ordinary acceptance — a success sentence about server state nobody had read.
+    const rawCandidate = icp.proof_widened_candidate
+    const cand = readCandidate(rawCandidate)
+
+    // ① ABSENT — pass 1, or a pass 2 whose confirmed targeting worked. The set they accepted
+    // was produced by the targeting already saved, so there is nothing to align. NO WRITE.
+    if (rawCandidate === null || rawCandidate === undefined) {
       res.json({ success: true, data: { applied: false, already_accepted: false } })
       return
     }
 
-    // ── WIDENED-BATCH ACCEPTANCE ──────────────────────────────────────────────────────
+    // ② PRESENT BUT UNREADABLE — a shape this file did not write. It is server-owned state,
+    // so an unparseable value is a fault, not an absence, and reporting it as an ordinary
+    // acceptance would send the client to billing on targeting nobody had verified.
+    if (!cand) {
+      console.error(`[leads/proof-accept] client ${clientId}, icp ${icp.id}: proof_widened_candidate is present but not readable — refusing rather than treating it as an exact batch.`)
+      needsReview(); return
+    }
+
+    // ③ A VALID CANDIDATE FOR A DIFFERENT BATCH — pending or accepted, it does not describe
+    // the set in front of them. Never silently downgraded to an exact acceptance.
+    if (cand.batch_at !== batchAt) {
+      console.error(`[leads/proof-accept] client ${clientId}, icp ${icp.id}: candidate names batch ${cand.batch_at} but the accepted card is from ${batchAt} — refusing.`)
+      needsReview(); return
+    }
+
+    // ④ ALREADY ACCEPTED, THIS BATCH — a repeat of a click that SUCCEEDED. Say so and change
+    // nothing. This is what makes a lost response safe to retry, and it rests on the server's
+    // own record of which batch was accepted, never on anything the browser claims.
+    if (cand.state === 'accepted') {
+      res.json({ success: true, data: { applied: false, already_accepted: true } })
+      return
+    }
+
+    // ── ⑤ WIDENED-BATCH ACCEPTANCE — pending, and for this exact batch ────────────────
     //
     // Read-time check first, so a client whose ICP has drifted gets the honest refusal rather
     // than a bare zero-row result. The conditional UPDATE below repeats it as a predicate —

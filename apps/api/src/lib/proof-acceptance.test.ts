@@ -260,15 +260,61 @@ describe('accepting an EXACT batch changes nothing at all', () => {
     expect(icpUpdate(rec)).toBeUndefined()
   })
 
-  it('a candidate belonging to some OTHER batch is left alone, and changes nothing', async () => {
+  it('ONLY an ABSENT candidate takes the exact path — that is what makes it unambiguous', async () => {
+    // ⛓️ 25 Aug. `runIcpJob` now records the candidate BEFORE it surfaces a widened set, so a
+    // surfaced widened batch always carries provenance. That is the whole reason a NULL
+    // column can be read as "ordinary exact batch" rather than "widened, provenance lost".
     const rec = fresh()
-    // Pending, but for the EARLIER set — it can never be accepted, because its batch is not
-    // the latest. The latest set was exact, so accepting it writes nothing.
-    const { status, body } = await callAccept(widenedWorld({
-      icp: { id: 'icp-1', client_id: 'c1', is_active: true, pending_targeting: null, ...SAVED, proof_widened_candidate: pendingCandidate(BATCH_1, SAVED) },
-    }), rec)
+    const { status, body } = await callAccept(exactWorld(), rec)
     expect(status).toBe(200)
     expect((body.data as Record<string, unknown>).applied).toBe(false)
+    expect(icpUpdate(rec)).toBeUndefined()
+  })
+})
+
+describe('a candidate that is present but not usable is REFUSED, never downgraded', () => {
+  it('a NON-NULL column this file cannot parse → REFUSED, not treated as exact', async () => {
+    // ⚠️ THE FIRST CUT LET THIS THROUGH. `readCandidate` returns null for anything malformed,
+    // and the route then took the exact path — reporting an ordinary acceptance about server
+    // state nobody had managed to read, and sending the client on to billing.
+    for (const raw of [
+      { version: 2, state: 'pending', proof_pass: 2, batch_at: BATCH_2, basis: SAVED },
+      { ...pendingCandidate(BATCH_2, SAVED), proof_pass: 1 },
+      { ...pendingCandidate(BATCH_2, SAVED), state: 'half-done' },
+      { ...pendingCandidate(BATCH_2, SAVED), basis: { ...SAVED, job_titles: 'CEO' } },
+      'pending',
+      42,
+      [pendingCandidate(BATCH_2, SAVED)],
+    ]) {
+      const rec = fresh()
+      const { status, body } = await callAccept(widenedWorld({
+        icp: { id: 'icp-1', client_id: 'c1', is_active: true, pending_targeting: null, ...SAVED, proof_widened_candidate: raw },
+      }), rec)
+      expect(status, JSON.stringify(raw)).toBe(409)
+      expect(body.code).toBe('proof_acceptance_needs_review')
+      expect(icpUpdate(rec)).toBeUndefined()
+    }
+  })
+
+  it('a valid PENDING candidate naming a different batch → REFUSED', async () => {
+    const rec = fresh()
+    const { status } = await callAccept(widenedWorld({
+      icp: { id: 'icp-1', client_id: 'c1', is_active: true, pending_targeting: null, ...SAVED, proof_widened_candidate: pendingCandidate(BATCH_1, SAVED) },
+    }), rec)
+    expect(status, 'never silently downgraded to an exact acceptance').toBe(409)
+    expect(icpUpdate(rec)).toBeUndefined()
+  })
+
+  it('a valid ACCEPTED candidate naming a different batch → REFUSED', async () => {
+    const rec = fresh()
+    const { status, body } = await callAccept(widenedWorld({
+      icp: {
+        id: 'icp-1', client_id: 'c1', is_active: true, pending_targeting: null, ...SAVED,
+        proof_widened_candidate: { ...pendingCandidate(BATCH_1, SAVED), state: 'accepted', accepted_at: BATCH_1 },
+      },
+    }), rec)
+    expect(status).toBe(409)
+    expect(body.code).toBe('proof_acceptance_needs_review')
     expect(icpUpdate(rec)).toBeUndefined()
   })
 })
@@ -339,6 +385,20 @@ describe('the Glean hole — an Earlier set can never buy its way past a failed 
   })
 
   it('two batches exist, but they clicked the EARLIER one → REFUSED', async () => {
+    // ⚠️ NO CANDIDATE IN THIS WORLD, DELIBERATELY. With one present, the candidate's own
+    // batch check would refuse this too — and mutation showed exactly that: deleting the
+    // latest-batch guard left the test green because the later check caught it. An EXACT
+    // world removes the understudy, so this asserts the guard it names.
+    const rec = fresh()
+    const { status } = await callAccept(exactWorld({
+      lead: { id: 'lead-1', client_id: 'c1', icp_id: 'icp-1', surfaced_for_approval_at: BATCH_1, delivered_at: BATCH_1, revealed_at: null, status: 'new' },
+      passesDone: 2, batches: [BATCH_1, BATCH_2],
+    }), rec)
+    expect(status).toBe(409)
+    expect(icpUpdate(rec)).toBeUndefined()
+  })
+
+  it('and a WIDENED latest set does not rescue an Earlier card either', async () => {
     const rec = fresh()
     const { status } = await callAccept(widenedWorld({
       lead: { id: 'lead-1', client_id: 'c1', icp_id: 'icp-1', surfaced_for_approval_at: BATCH_1, delivered_at: BATCH_1, revealed_at: null, status: 'new' },
@@ -370,9 +430,13 @@ describe('the Glean hole — an Earlier set can never buy its way past a failed 
     // counts AGREE, so only the pass-range check stands between a third proof pass — which
     // `try_claim_proof_pass` can never grant — and billing. Mutation proved the earlier
     // version of this test was leaning on the count check instead.
+    //
+    // ⚠️ AND NO CANDIDATE, for the same reason as the Earlier-card test above: a candidate
+    // naming a different batch would refuse this on its own, hiding whether the pass-range
+    // check does anything. Mutation found that mask too.
     const rec = fresh()
     const third = '2026-08-26T09:00:00.000Z'
-    const { status } = await callAccept(widenedWorld({
+    const { status } = await callAccept(exactWorld({
       passesDone: 3, batches: [BATCH_1, BATCH_2, third],
       lead: { id: 'lead-1', client_id: 'c1', icp_id: 'icp-1', surfaced_for_approval_at: third, delivered_at: third, revealed_at: null, status: 'new' },
     }), rec)
@@ -452,11 +516,12 @@ describe('acceptance refuses everything it cannot prove', () => {
 
   it('a candidate for a DIFFERENT batch cannot be spent by this one', async () => {
     const rec = fresh()
-    const { status, body } = await callAccept(widenedWorld({
+    const { status } = await callAccept(widenedWorld({
       icp: { id: 'icp-1', client_id: 'c1', is_active: true, pending_targeting: null, ...SAVED, proof_widened_candidate: pendingCandidate('2026-01-01T00:00:00.000Z', SAVED) },
     }), rec)
-    expect(status, 'the latest batch was exact, so this is an ordinary acceptance').toBe(200)
-    expect((body.data as Record<string, unknown>).applied).toBe(false)
+    // ⛓️ 25 Aug — WAS a 200 exact acceptance. Refused now: a candidate that does not describe
+    // the set in front of them is server state we cannot explain, not an ordinary batch.
+    expect(status).toBe(409)
     expect(icpUpdate(rec)).toBeUndefined()
   })
 
@@ -505,24 +570,6 @@ describe('a second click is safe, and only for the batch that was actually accep
     expect(icpUpdate(rec), 'nothing mutated a second time').toBeUndefined()
     // ⚠️ AND IT RESTS ON THE SERVER'S OWN RECORD, not on the browser saying "I already did".
     expect(rec.tables).toContain('icps')
-  })
-
-  it('an accepted candidate from ANOTHER batch does not answer for this one', async () => {
-    // ⚠️ THE CASE THE EARLIER-CARD TEST CANNOT REACH. Here the clicked card IS the latest
-    // batch, so the batch test passes — and only the accepted-branch's own `batch_at` check
-    // stops the server reporting "already accepted" about a set nobody ever accepted.
-    // Mutation proved that check was untested until now.
-    const rec = fresh()
-    const { status, body } = await callAccept(widenedWorld({
-      icp: {
-        id: 'icp-1', client_id: 'c1', is_active: true, pending_targeting: null, ...SAVED,
-        proof_widened_candidate: { ...pendingCandidate(BATCH_1, SAVED), state: 'accepted', accepted_at: BATCH_1 },
-      },
-    }), rec)
-    expect(status).toBe(200)
-    expect((body.data as Record<string, unknown>).already_accepted, 'this batch was NOT accepted').toBe(false)
-    expect((body.data as Record<string, unknown>).applied).toBe(false)
-    expect(icpUpdate(rec)).toBeUndefined()
   })
 
   it('a STALE batch does NOT inherit that idempotency', async () => {

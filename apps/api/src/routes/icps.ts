@@ -799,14 +799,39 @@ export async function runIcpJob(
         console.log(`[icp] PROOF PASS 2 — exact targeting matched nobody for prospect ${clientId}; ONE widened retry (titles/industries/countries kept, seniority + size dropped).`)
         const wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })
         contacts = wide.contacts
+        // ⚑ 25 Aug (GPT review hold) — A ZERO IS NOT A ZERO UNTIL PDL PROVED IT.
+        //
+        // The first cut of this branch collapsed two different states into one sentence: a
+        // widened query PDL answered with "nobody matches", and a widened query that never
+        // produced a trustworthy answer at all (HTTP error, rate-limited twice, out of
+        // credits, no API key, or no page returned). Telling a client their refined targeting
+        // "didn't return a second set" when the request itself failed is the SAME class of
+        // untruth as the exhaustion sentence this whole build exists to remove — it reports a
+        // fact about their buyers that we never learned.
+        //
+        // `PdlPage` already carries the distinction, so nothing new is needed to express it:
+        // `matchedNothing` is the PROVED zero, and anything else — `error` set, a null page,
+        // any other empty outcome — is an UNKNOWN. Unknown gets its own honest sentence.
+        //
+        // ⚠️ ALL THREE BRANCHES END AT A HUMAN. None of them retries, widens again, calls a
+        // provider or changes what was spent. The only thing that differs is what we claim
+        // to know.
         if (contacts.length > 0) {
           relaxed = 'We widened the search a little to find this set — same roles, industries and countries you confirmed.'
-        } else {
-          // BOTH queries empty. A human takes it from here: no third query, no third pass, no
-          // retry control, and never the exhaustion sentence — nobody was ever sourced from
-          // this targeting, so "you already have them all" would be false.
+        } else if (wide.pdlPage?.matchedNothing === true) {
+          // PROVED ZERO. PDL answered, on a first page, that nobody matches. A human takes it
+          // from here: no third query, no third pass, no retry control, and never the
+          // exhaustion sentence — nobody was ever sourced from this targeting, so "you
+          // already have them all" would be false.
           relaxed = 'That refined targeting didn’t return a second set. K.I.N.D will review it with you.'
           console.log(`[icp] PROOF PASS 2 — widened retry also matched nobody for prospect ${clientId}. Human review; no further automatic attempt.`)
+        } else {
+          // NOT A PROVED ZERO. We do not know what this targeting would have returned, and
+          // the sentence says exactly that much and no more: it does not claim the targeting
+          // matched nobody, does not claim the audience is exhausted, does not claim anyone
+          // was already sourced, invites no retry and promises no timing.
+          relaxed = 'K.I.N.D couldn’t confirm a second set from that search. K.I.N.D will review it with you.'
+          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
         }
       }
 

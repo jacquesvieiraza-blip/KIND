@@ -129,6 +129,7 @@ describe('a PDL 404 is two different facts, and the scroll token is which', () =
 // Every `searchPeopleWithFallback` call is recorded with the targeting it was given, so the
 // tests can assert HOW MANY queries ran and WHAT the second one asked for.
 type Search = { icp: Record<string, unknown>; size: number; token: string | null; opts: unknown }
+type PageCfg = { exhausted?: boolean; matchedNothing?: boolean; error?: string | null } | null
 
 async function runJob(opts: {
   proof?: number
@@ -136,8 +137,18 @@ async function runJob(opts: {
   exact?: number
   /** contacts returned by the SECOND (widened) search, if one happens */
   wide?: number
-  /** what the exact search's PdlPage reports */
-  page?: { exhausted?: boolean; matchedNothing?: boolean; error?: string | null } | null
+  /** what the EXACT search's PdlPage reports */
+  page?: PageCfg
+  /**
+   * ⚑ 25 Aug (GPT review hold) — what the WIDENED search's PdlPage reports, INDEPENDENTLY.
+   *
+   * The harness used to derive both pages from one config, which made it structurally
+   * incapable of expressing the state the review found: an exact query that PROVED zero
+   * followed by a widened query that FAILED. Any test written on the old harness would have
+   * been asserting a case it could not actually create. `null` means the call returned no
+   * page at all; omitted means "an ordinary page, proved zero if it carried no contacts".
+   */
+  widePage?: PageCfg
   funded?: boolean
 }, rec: { searches: Search[]; rpcs: string[]; icpUpdates: Record<string, unknown>[] }) {
   vi.resetModules()
@@ -225,11 +236,17 @@ async function runJob(opts: {
       rec.searches.push({ icp, size, token, opts: o })
       const first = rec.searches.length === 1
       const n = first ? (opts.exact ?? 0) : (opts.wide ?? 0)
-      const pg = opts.page === null ? null : {
+      // ⚠️ EACH CALL GETS ITS OWN PAGE. The exact query's outcome and the widened query's
+      // outcome are separate facts, and the correction under review turns on telling them
+      // apart — so the harness must be able to make them differ.
+      const cfg = first ? opts.page : opts.widePage
+      const pg = cfg === null ? null : {
         contacts: mk(n), scrollToken: null,
-        exhausted: opts.page?.exhausted ?? false,
-        matchedNothing: opts.page?.matchedNothing ?? (first && n === 0),
-        error: opts.page?.error ?? null,
+        exhausted: cfg?.exhausted ?? false,
+        // Default: an empty page from PDL is a PROVED zero. A test that wants an UNPROVEN
+        // empty page says so explicitly, with `error` or a null page.
+        matchedNothing: cfg?.matchedNothing ?? (n === 0),
+        error: cfg?.error ?? null,
       }
       return { contacts: mk(n), relaxed: null, pdlPage: pg }
     },
@@ -361,6 +378,85 @@ describe('pass 2 makes exactly one widened retry when the exact targeting matche
   })
 })
 
+
+// ── PART 2b · A ZERO IS NOT A ZERO UNTIL PDL PROVED IT ───────────────────────────────────
+//
+// ⚑ 25 Aug (GPT review hold). The first cut said "That refined targeting didn't return a
+// second set" for BOTH a widened query PDL answered with "nobody matches" AND a widened
+// query that never produced a trustworthy answer. The second is a claim about the client's
+// buyers that we never learned — the same class of untruth as the exhaustion sentence this
+// build exists to remove.
+const SUCCESS = 'We widened the search a little to find this set — same roles, industries and countries you confirmed.'
+const PROVED_ZERO = 'That refined targeting didn’t return a second set. K.I.N.D will review it with you.'
+const UNPROVEN = 'K.I.N.D couldn’t confirm a second set from that search. K.I.N.D will review it with you.'
+
+describe('the widened result tells the truth about what we actually learned', () => {
+  it('WIDENED PROVED ZERO → the zero-result human stop', async () => {
+    const rec = fresh()
+    const out = await runJob({ proof: 2, exact: 0, wide: 0, widePage: { matchedNothing: true } }, rec)
+    expect(out.relaxed).toBe(PROVED_ZERO)
+    expect(rec.searches).toHaveLength(2)
+  })
+
+  it('WIDENED ERRORED → the safe human-check sentence, NOT the zero-result one', async () => {
+    const rec = fresh()
+    const out = await runJob({ proof: 2, exact: 0, wide: 0, widePage: { matchedNothing: false, error: 'boom' } }, rec)
+    expect(out.relaxed).toBe(UNPROVEN)
+    // ⚠️ THE WHOLE POINT OF THE CORRECTION. A failed request must never be reported as a
+    // fact about who exists in the client's market.
+    expect(out.relaxed, 'never the proved-zero claim').not.toBe(PROVED_ZERO)
+    expect(rec.searches, 'still exactly two — a failure is not a licence to search again').toHaveLength(2)
+  })
+
+  it('WIDENED RETURNED NO PAGE AT ALL → the safe human-check sentence', async () => {
+    const rec = fresh()
+    const out = await runJob({ proof: 2, exact: 0, wide: 0, widePage: null }, rec)
+    expect(out.relaxed).toBe(UNPROVEN)
+    expect(out.relaxed).not.toBe(PROVED_ZERO)
+    expect(rec.searches).toHaveLength(2)
+  })
+
+  it('an empty widened page that proves nothing either way is also UNPROVEN', async () => {
+    const rec = fresh()
+    const out = await runJob({ proof: 2, exact: 0, wide: 0, widePage: { matchedNothing: false } }, rec)
+    expect(out.relaxed, 'zero contacts is not evidence — `matchedNothing` is').toBe(UNPROVEN)
+    expect(rec.searches).toHaveLength(2)
+  })
+
+  it('WIDENED FOUND PEOPLE → the success copy, unchanged', async () => {
+    const rec = fresh()
+    const out = await runJob({ proof: 2, exact: 0, wide: 6 }, rec)
+    expect(out.relaxed).toBe(SUCCESS)
+    expect(rec.searches).toHaveLength(2)
+  })
+
+  it('NO widened outcome whatsoever makes a third search, or spends anything twice', async () => {
+    for (const widePage of [
+      { matchedNothing: true } as PageCfg,
+      { matchedNothing: false, error: 'boom' } as PageCfg,
+      null as PageCfg,
+      { matchedNothing: false } as PageCfg,
+      { exhausted: true, matchedNothing: false } as PageCfg,
+    ]) {
+      const rec = fresh()
+      await runJob({ proof: 2, exact: 0, wide: 0, widePage }, rec)
+      expect(rec.searches, `widePage=${JSON.stringify(widePage)}: exact + one widened, never a third`).toHaveLength(2)
+      expect(rec.rpcs.filter(r => r === 'try_reserve_proof_records'), 'one reservation').toHaveLength(1)
+      expect(rec.rpcs.filter(r => r === 'try_claim_proof_pass'), 'no pass claim').toHaveLength(0)
+    }
+  })
+
+  it('the UNPROVEN sentence claims nothing it did not learn', () => {
+    // Same discipline as the proved-zero copy: no exhaustion, no prior sourcing, no retry,
+    // no timing — and, additionally, no claim that the targeting matched nobody.
+    expect(UNPROVEN).not.toMatch(/already been sourced|end of this audience|exhaust/i)
+    expect(UNPROVEN).not.toMatch(/matched nobody|no one matches|didn’t return|did not return/i)
+    expect(UNPROVEN).not.toMatch(/try again|retry/i)
+    expect(UNPROVEN).not.toMatch(/minutes|shortly|notify|email you/i)
+    expect(UNPROVEN, 'and it ends at a human').toContain('K.I.N.D will review it with you')
+  })
+})
+
 // ── PART 3 · THE GATE, AND WHAT IT MAY NOT REACH ─────────────────────────────────────────
 describe('the widened retry changes nothing else', () => {
   const icps = () => readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
@@ -423,6 +519,31 @@ describe('the widened retry changes nothing else', () => {
     expect(p).toContain('canonicalLaunchCountry(g)')
     expect(p).toContain("if (opts?.proofMode !== true) must.push({ exists: { field: 'work_email' } })")
     expect(icps()).toContain('if (!proofMode && insertedIds.length > 0) {')
+  })
+
+  it('the widened outcome is discriminated on `matchedNothing`, not on emptiness', () => {
+    const src = icps()
+    const from = src.indexOf('const canWiden =')
+    const to   = src.indexOf('// (Fable F1) RECONCILE', from)
+    const block = src.slice(from, to)
+    // ⚠️ THREE BRANCHES, AND THE MIDDLE ONE IS THE PROOF. Success · PROVED zero · unknown.
+    // A two-branch `if/else` on `contacts.length` cannot express the difference, which is
+    // exactly the collapse the review caught.
+    expect(block, 'the proved-zero test, on the WIDENED page').toContain('} else if (wide.pdlPage?.matchedNothing === true) {')
+    expect(block, 'and a final catch-all for everything unproven').toContain('        } else {\n')
+    // The unknown branch may not be reachable only from an error — a null page lands there
+    // too, so it must not be spelled as an error test.
+    expect(block).not.toMatch(/else if \(wide\.pdlPage\?\.error/)
+    // ⚠️ THE WIDENED PAGE, NOT THE EXACT ONE. Reading `pdlPage` here would discriminate on
+    // the query that already failed, and every widened outcome would read as a proved zero.
+    expect(block).not.toMatch(/else if \(pdlPage\?\.matchedNothing/)
+    // ⚠️ AND THE SHIPPED SENTENCES ARE THESE THREE, IN THIS ORDER. Without this the copy
+    // tests above only constrain constants declared in this file, and a mutation that made
+    // the unknown branch say "That search matched nobody" stayed GREEN — the guard was
+    // asserting its own copy of the words rather than the words that reach a client.
+    // Mutation caught it; this line is what ties the two together.
+    const copies = [...block.matchAll(/relaxed = '([^']*)'/g)].map(m => m[1])
+    expect(copies, 'three outcomes, exactly these words').toEqual([SUCCESS, PROVED_ZERO, UNPROVEN])
   })
 
   it('the money fences are named nowhere inside the retry', () => {

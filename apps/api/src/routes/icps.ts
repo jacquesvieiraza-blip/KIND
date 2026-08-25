@@ -740,15 +740,74 @@ export async function runIcpJob(
       // proof route atomically claimed) — not a second notion of proof-ness, and never
       // inferred. Everything else about this call is unchanged: one page, `grantedSize`
       // records, the same cursor, the same audience, the same reservation.
-      const { contacts, relaxed: pdlRelaxed, pdlPage } = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
-      relaxed = pdlRelaxed
+      const exact = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
+      let contacts = exact.contacts
+      relaxed = exact.relaxed
+      const pdlPage = exact.pdlPage
 
       // Remember where PDL got to, so NEXT month starts after these people instead of on
       // top of them. Only written when PDL actually answered — a failed request leaves the
       // stored cursor untouched, so the unserved page is retried rather than skipped.
+      //
+      // ⚠️ THE EXACT QUERY'S PAGE, ALWAYS — never the widened fallback's below. The cursor is
+      // fingerprinted against the SAVED ICP, so storing a token that belongs to a different
+      // query is precisely the stale-cursor trap `pdl-cursor.ts` exists to prevent.
       if (pdlPage) {
         cursorUpdate = nextCursorState(icp as CursorQuery, pdlPage, new Date().toISOString())
         if (pdlPage.exhausted) audienceExhausted = true
+      }
+
+      // ── ⚑ 25 Aug — PASS-2 ONE-TIME WIDENED RETRY (founder-ruled) ────────────────────────
+      //
+      // WHAT HAPPENED LIVE. A prospect refined their batch to CEO/CTO, confirmed it, and the
+      // exact query matched NOBODY on its first page. Their last free pass was spent, no
+      // second set appeared, and — before the `matchedNothing` split above — they were told
+      // the audience was exhausted, about people who had never been sourced.
+      //
+      // The founder's ruling: when the exact confirmed targeting returns zero on pass 2, make
+      // ONE more attempt that keeps WHO they asked for and drops only the two dimensions that
+      // narrow hardest. `job_titles`, `industries` and `geographies` are preserved exactly —
+      // a client who said "CEO and CTO, SaaS and Consulting, UK" still gets CEOs and CTOs at
+      // SaaS and Consulting firms in the UK. `seniority_levels` and `company_sizes` are
+      // cleared, because both AND against the title clause and both are inferences about the
+      // shape of the company rather than statements about who the buyer is.
+      //
+      // ⚠️ SEARCH-TIME ONLY. `widened` is a local object. The saved ICP is not written, no
+      // pending revision is created, the confirmation panel's five values remain the truth of
+      // record, and the campaign targeting is untouched. This is the same discipline
+      // `icpForSearch` already follows for calibration.
+      //
+      // ⚠️ INSIDE THE SAME AUTHORISATION. No second `try_claim_proof_pass`, no second
+      // `try_reserve_proof_records`, and the SAME `grantedSize` — the exact query returned
+      // zero records, so every record this pass already paid for is still unspent. The 20-lead
+      // cap, the 40-record lifetime fence and the $300 monthly ceiling are all untouched
+      // because none of them is re-consulted.
+      //
+      // ⚠️ EXACTLY ONE, AND ONLY FROM ZERO. Gated on `matchedNothing` — not on `exhausted`
+      // (a genuinely finished audience has no more people to find, widened or not), not on an
+      // error (we do not know what the query would have returned), and not on a thin-but-
+      // non-empty result. There is no second fallback and no third query.
+      const canWiden =
+        proofMode &&
+        opts?.proofPass === 2 &&
+        audience === 'client' &&
+        cursor.token === null &&
+        pdlPage?.matchedNothing === true &&
+        contacts.length === 0
+      if (canWiden) {
+        const widened = { ...icpForSearch, seniority_levels: [], company_sizes: [] }
+        console.log(`[icp] PROOF PASS 2 — exact targeting matched nobody for prospect ${clientId}; ONE widened retry (titles/industries/countries kept, seniority + size dropped).`)
+        const wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })
+        contacts = wide.contacts
+        if (contacts.length > 0) {
+          relaxed = 'We widened the search a little to find this set — same roles, industries and countries you confirmed.'
+        } else {
+          // BOTH queries empty. A human takes it from here: no third query, no third pass, no
+          // retry control, and never the exhaustion sentence — nobody was ever sourced from
+          // this targeting, so "you already have them all" would be false.
+          relaxed = 'That refined targeting didn’t return a second set. K.I.N.D will review it with you.'
+          console.log(`[icp] PROOF PASS 2 — widened retry also matched nobody for prospect ${clientId}. Human review; no further automatic attempt.`)
+        }
       }
 
       // (Fable F1) RECONCILE — PDL bills per record RETURNED, not per record granted. A

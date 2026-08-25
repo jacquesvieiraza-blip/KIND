@@ -305,8 +305,28 @@ export type PdlPage = {
   contacts: ApolloContact[]
   /** Send this back next run to get the FOLLOWING people. Null = no more pages. */
   scrollToken: string | null
-  /** PDL has nobody left for this query — a fact about the ICP, not a fault (#366). */
+  /**
+   * PDL has nobody left for this query AFTER we walked it — a fact about the ICP (#366).
+   *
+   * ⚠️ THIS NO LONGER MEANS "ZERO RESULTS". See `matchedNothing`.
+   */
   exhausted: boolean
+  /**
+   * ⚑ 25 Aug — THE FIRST PAGE MATCHED NOBODY AT ALL. Never paged, nothing sourced, ever.
+   *
+   * WHY THIS FIELD HAD TO EXIST. PDL answers 404 for both "your query matches nobody" and
+   * "you have reached the end of the results you were paging". This function already KNEW
+   * which — it logged the difference, branching on `scrollToken` — and then threw the
+   * knowledge away, returning one `exhausted: true` for both. Everything downstream was
+   * blind, and a client whose brand-new refined targeting matched zero people was told
+   * *"every matching person our data source holds has already been sourced for you"*, about
+   * an audience from which nothing had ever been sourced. That sentence was false, and it
+   * told them to widen an ICP when the real answer was that we had never found anyone in it.
+   *
+   * The two are mutually exclusive by construction: `exhausted` requires a scroll token,
+   * `matchedNothing` requires its absence. Nothing downstream may collapse them again.
+   */
+  matchedNothing: boolean
   /** Set when the page could not be fetched at all. Distinct from an empty page. */
   error: string | null
 }
@@ -329,7 +349,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
   const key = process.env.PDL_API_KEY
   // Dormant until a key is configured. NOT `exhausted` — we never asked, so we cannot claim
   // the audience is finished; that would tell a client to widen an ICP that is fine.
-  if (!key) return { contacts: [], scrollToken, exhausted: false, error: null }
+  if (!key) return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: null }
 
   const ladder = [size, 25, 10, 5, 1].filter((s, i, a) => s >= 1 && s <= size && a.indexOf(s) === i)
   let retriedRateLimit = false
@@ -338,13 +358,22 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
     const outcome = await pdlSearchOnce(icp, ladder[i], key, scrollToken, opts)
     if (outcome.kind === 'ok') {
       if (i > 0) console.log(`[pdl] size ladder recovered: got ${outcome.contacts.length} at size ${ladder[i]} (asked ${size})`)
-      return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, error: null }
+      return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, matchedNothing: false, error: null }
     }
     if (outcome.kind === 'exhausted') {
-      // 404. Either the query never matched anybody, or we have walked it to the end. Both
-      // are "there is nobody left here" — and both must be SAID, never returned as a bare [].
-      console.log(`[pdl] query exhausted (404)${scrollToken ? ' — paged to the end of this audience' : ' — matched nobody at all'}`)
-      return { contacts: [], scrollToken: null, exhausted: true, error: null }
+      // ⚑ 25 Aug — 404 IS TWO DIFFERENT FACTS, AND THE TOKEN IS WHICH.
+      //
+      // WITH a scroll token we asked "what comes after these people?" and PDL said "nothing"
+      // — the audience is genuinely finished, which is the #366 case this branch was built
+      // for. WITHOUT one we asked "who matches this?" from the top and PDL said "nobody" —
+      // a fact about the QUERY, on a page nobody has ever been sourced from.
+      //
+      // The log line below already drew this distinction and then discarded it by returning
+      // one boolean for both. It is now carried on the page. The two are mutually exclusive
+      // by construction, so no consumer can be true for both.
+      const firstPage = !scrollToken
+      console.log(`[pdl] 404${firstPage ? ' — matched nobody at all (first page, nothing was ever sourced)' : ' — paged to the end of this audience'}`)
+      return { contacts: [], scrollToken: null, exhausted: !firstPage, matchedNothing: firstPage, error: null }
     }
     if (outcome.kind === 'no_credit') continue // step down the ladder
     if (outcome.kind === 'rate_limited' && !retriedRateLimit) {
@@ -358,13 +387,13 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
     // Hard error (or second 429) — logged inside pdlSearchOnce. Keep the token: the page was
     // never served, so resuming from it next run loses nobody.
     const detail = outcome.kind === 'error' ? outcome.detail : 'rate limited twice'
-    return { contacts: [], scrollToken, exhausted: false, error: detail }
+    return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: detail }
   }
 
   // 402 all the way down to size 1 — the account has zero search credits left. Emphatically
   // NOT exhausted: the audience is fine, our wallet is not.
   alertPdlOutOfCredits()
-  return { contacts: [], scrollToken, exhausted: false, error: 'PDL is out of search credits' }
+  return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: 'PDL is out of search credits' }
 }
 
 /**

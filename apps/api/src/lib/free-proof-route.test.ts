@@ -662,9 +662,17 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     // is computed in exactly one place, and the only other permitted read is the pass-number
     // rule, also exactly once. RED G7 (a `proofMode2` alias) and G7b (re-deriving inline at
     // the delivery guard) both still fail, which is what this guard was written for.
+    // ⚑ 25 Aug (pass-2 zero fallback) — REFINED AGAIN, STILL NOT RELAXED. The widened-retry
+    // gate is a SECOND reader of the pass-number rule, and it reads the identical literal
+    // `opts?.proofPass === 2` the calibration precedence already uses — one rule, two
+    // consumers, which is the shape this guard has always wanted. What must stay singular is
+    // the DERIVATION of proof-ness, and that is still counted at exactly one.
     expect((src.match(/proofPass \?\? 0/g) ?? []), 'one derivation of proof-ness').toHaveLength(1)
-    expect((src.match(/opts\?\.proofPass === 2/g) ?? []), 'one pass-number rule').toHaveLength(1)
-    expect((src.match(/opts\?\.proofPass/g) ?? []), 'and nothing else reads it').toHaveLength(2)
+    expect((src.match(/opts\?\.proofPass === 2/g) ?? []), 'the pass-number rule, spelled one way').toHaveLength(2)
+    // ⚠️ AND NOTHING ELSE. Every read of the claimed pass is one of those three — a fourth,
+    // or a differently-spelled pass test (`>= 2`, `!== 1`, `== 2`), fails here.
+    expect((src.match(/opts\?\.proofPass/g) ?? []), 'and nothing else reads it').toHaveLength(3)
+    expect(src).not.toMatch(/opts\?\.proofPass\s*(>=|<=|>|<|!==|==[^=])/)
   })
 
   it('the proof surfacing block itself is UNCHANGED — same claim, same two fields', () => {
@@ -688,8 +696,18 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
 
   it('and no extra provider call or fence change came with it', () => {
     const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
-    // One search call site, one proof-pass claim, one reservation — all as before.
-    expect((src.match(/searchPeopleWithFallback\(/g) ?? [])).toHaveLength(1)
+    // ⛓️ AMENDED 25 Aug — TWO search call sites now, and the second is the founder-ruled
+    // pass-2 widened retry. It was one; asserting one would now forbid the fix. What the
+    // guard is actually for is that no THIRD query can appear and that the money fences are
+    // untouched, so it counts two and pins what the second one is allowed to be.
+    expect((src.match(/searchPeopleWithFallback\(/g) ?? []), 'exact + one widened retry').toHaveLength(2)
+    // The claim and the reservation are still made ONCE each — the retry reuses both.
+    // ⚠️ COUNT THE CALL, NOT THE NAME. A first cut counted the bare identifier and read 4,
+    // because the comments that explain the fences legitimately name them — the same
+    // assert-absence-on-prose trap this file has hit before. `db.rpc(` is the thing that
+    // actually spends authority, so that is what is counted.
+    expect((src.match(/db\.rpc\('try_claim_proof_pass'/g) ?? []), 'one pass claim').toHaveLength(1)
+    expect((src.match(/db\.rpc\('try_reserve_proof_records'/g) ?? []), 'one reservation').toHaveLength(1)
     expect(src).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
     expect(src).toContain("db.rpc('try_reserve_proof_records'")
     expect(src).toContain('const PROOF_PASS_LEADS = 20')

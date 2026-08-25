@@ -283,3 +283,107 @@ describe('/icps/chat-build exposes an explicit, allowlisted clear_fields', () =>
     expect(src).toContain('"clear_fields": array — ONLY for filters the user EXPLICITLY asked to remove or broaden')
   })
 })
+
+// ── ⚑ 25 Aug — A WAITING REVISION IS A CONFLICT, NOT AN ORDINARY EDIT (founder-ruled) ────
+//
+// The eligibility rule checked funding and the pass count but never asked whether the SAME
+// ICP already had a revision waiting for review. Without that question the exception simply
+// would not apply — and the refinement would fall into the ordinary live-client branch,
+// which OVERWRITES `pending_targeting`. A prospect confirming a batch refinement would have
+// silently destroyed a targeting change they had already submitted and were waiting on us
+// to look at, and would then have spent a proof pass on targeting that never went live.
+//
+// The founder's ruling is STOP / HUMAN: write nothing at all, keep both the live ICP and the
+// waiting revision, answer 409, and let a person work out which one they meant.
+describe('an existing pending_targeting stops the refinement dead', () => {
+  const WAITING = { industries: ['Logistics'], job_titles: ['COO'] }
+
+  it('1/2 · nothing is written — not the live columns, and not pending_targeting', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: WAITING }
+    await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    // ⚠️ ZERO updates, not "an update that happened to be harmless". The route returns
+    // BEFORE saveClientTargeting, so there is no write to inspect and nothing to undo.
+    expect(state.icpUpdates, 'no icps write at all').toHaveLength(0)
+  })
+
+  it('3 · it answers 409 with the stable machine-readable code', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: WAITING }
+    const r = await callRevise({ ...TARGETING(), proof_refinement: true })
+    expect(r.code).toBe(409)
+    expect(r.payload.code).toBe('existing_pending_targeting')
+    expect(r.payload.success).toBe(false)
+    // 27 · the client-safe text must not claim a new search started.
+    expect(String(r.payload.error)).toContain('no new search has started')
+    expect(String(r.payload.error)).toMatch(/waiting for K\.I\.N\.D to review/)
+  })
+
+  it('5 · no client-supplied field can pretend the waiting revision is absent', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: WAITING }
+    // Every one of these is a lie the body is allowed to tell. The verdict reads the ICP row.
+    const r = await callRevise({
+      ...TARGETING(), proof_refinement: true,
+      pending_targeting: null, pending_submitted_at: null,
+      has_pending: false, ignore_pending: true, force: true,
+    })
+    expect(r.code).toBe(409)
+    expect(state.icpUpdates).toHaveLength(0)
+  })
+
+  it('an EMPTY pending_targeting object still counts as waiting — only null is absent', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: {} }
+    const r = await callRevise({ ...TARGETING(), proof_refinement: true })
+    expect(r.code, 'a submitted-but-empty revision is still a revision').toBe(409)
+    expect(state.icpUpdates).toHaveLength(0)
+  })
+
+  it('6/7/8 · with NO waiting revision the exception still applies, same ICP, live', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code).toBe(201)
+    expect(wasApplied()).toBe(true)
+    expect((r.payload.data as Row)?.id, 'the SAME ICP').toBe('icp-1')
+    expect(r.payload.pending_review, 'the desk fence reads this').toBe(false)
+  })
+
+  it('9/10 · a PAYING client with a waiting revision is UNAFFECTED — today\'s behaviour', async () => {
+    // ⚠️ THE CONFLICT IS PROOF-ONLY. A funded client revising over their own waiting
+    // revision has always overwritten it, and that is not this build's business to change.
+    state.funding = [{ type: 'purchase', reference: 'pi_live_1' }]
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: WAITING }
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code, 'no 409 for a paying client').toBe(201)
+    expect(wasHeld(), 'still parked for review, exactly as before').toBe(true)
+    expect(patch().pending_targeting, 'and the new revision replaces the old, as today')
+      .toMatchObject({ industries: ['Fintech'] })
+  })
+
+  it('an ordinary unflagged revision over a waiting revision is also unaffected', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: WAITING }
+    const r = await callRevise(TARGETING({ industries: ['Fintech'] }))
+    expect(r.code).toBe(201)
+    expect(wasHeld()).toBe(true)
+  })
+
+  it('the conflict check reads the SAME row the save writes — one selection, not two', () => {
+    const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
+    // ⚠️ A conflict check that selects its own ICP could inspect a different row than the
+    // save touches, and would then report safety it never verified. Both go through one
+    // helper, so they cannot drift apart.
+    expect(src).toContain('async function coreIcpRow(clientId: string)')
+    expect(src).toContain('const core = await coreIcpRow(clientId)')
+    expect(src).toContain('await proofRefinementVerdict(clientId, req.body, await coreIcpRow(clientId))')
+    expect((src.match(/const cols = 'id, name, is_active, pending_targeting'/g) ?? []),
+      'one column list').toHaveLength(1)
+    // 15 · NO PROVIDER ROUTING WAS TOUCHED. ⚠️ SCOPED TO THE CODE THIS BUILD ADDED — a
+    // file-wide ban was meaningless here, because `icps.ts` IS the sourcing route and names
+    // PDL, Apollo and the provider boundary all over its legitimate length. What matters is
+    // that the eligibility decision reaches none of them.
+    const verdictFn = src.slice(src.indexOf('async function proofRefinementVerdict'),
+                                src.indexOf('async function persistMillaUnderstanding'))
+    expect(verdictFn.length).toBeGreaterThan(0)
+    expect(verdictFn).not.toMatch(/pdl|apollo|hunter|smartlead|stripe|provider/i)
+    const coreFn = src.slice(src.indexOf('async function coreIcpRow'),
+                             src.indexOf('async function saveClientTargeting'))
+    expect(coreFn).not.toMatch(/pdl|apollo|hunter|smartlead|stripe|provider/i)
+  })
+})

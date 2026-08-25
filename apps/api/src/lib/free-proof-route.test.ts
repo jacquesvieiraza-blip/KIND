@@ -719,7 +719,8 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
 describe('batch refinement — pass 1 → refine → pass 2, then a human', () => {
   const desk = () => readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
   /** Comments stripped — absence is asserted on CODE, the convention this repo uses everywhere. */
-  const deskCode = () => desk().replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')
+  const deskCode = (src?: string) =>
+    (src ?? desk()).replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')
   /**
    * ONLY confirmRefine's body.
    *
@@ -834,8 +835,13 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     // SHOULD be retryable because none of them spends a proof pass. Banning the phrase across
     // the whole page failed on three unrelated features and would have pushed me to delete
     // working retries to make a test about the proof path go green.
-    expect(confirmBody()).toContain('K.I.N.D needs to resolve this.')
-    expect(confirmBody()).not.toMatch(/try again|try the search again/i)
+    //
+    // ⛓️ AMENDED 25 Aug — one generic sentence became four stage-accurate ones, so the
+    // guard names the one that covers this stage. The retry ban is UNCHANGED and now has
+    // one deliberate exception: the post-attempt copy contains the words "try again" inside
+    // *"Please don't try again"*, which is the opposite of inviting one.
+    expect(confirmBody()).toContain('K.I.N.D will check whether it began and come back to you.')
+    expect(confirmBody().replace(/Please don\\'t try again/g, ' ')).not.toMatch(/try again|try the search again/i)
   })
 
   it('a successful pass 2 enters the EXISTING finding experience', () => {
@@ -850,7 +856,10 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     // ⚠️ BOUNDED TO THE FUNCTION. A first cut sliced to end-of-file and matched "send" in
     // the chat composer 300 lines below — a guard that reads the whole file proves nothing
     // about the function it names.
-    expect(confirmBody()).not.toMatch(/stripe|price|campaign|reveal|send/i)
+    // ⚠️ AND ON CODE, NOT SOURCE — the fourth time this build hit that trap. The new
+    // fails-closed comment reads "an older API that does not send the field", so asserting
+    // on the source failed on an explanation of a safety fence.
+    expect(deskCode(confirmBody())).not.toMatch(/stripe|price|campaign|reveal|send/i)
   })
 
   it('PASS 2 RUNS THE CONFIRMED ICP — old per-lead calibration does not silently narrow it', () => {
@@ -1143,8 +1152,193 @@ describe('one reflect-back truth, and two labelled proof sets', () => {
       .toEqual(["'/icps/chat-build'", "'/icps'"])
     expect(calls(c), 'confirmRefine: read, save, claim — in that order and no other')
       .toEqual(["'/icps'", "'/icps/revise'", '`/icps/${afterId}/proof`'])
+    // ⛓️ AMENDED 25 Aug — on CODE, and with the one legitimate identifier exempted.
+    // `apollo_only_consented` is the ICP's OWN consent column, copied from the existing row
+    // so a refinement cannot silently default it — carrying it is the fix, not a provider
+    // call. Everything else that names a provider is still refused, and the endpoint list
+    // above is what actually pins where these two functions can reach.
     for (const [name, body] of [['submitRefine', s], ['confirmRefine', c]] as const) {
-      expect(body, `${name} names no provider`).not.toMatch(/pdl|apollo|hunter|smartlead|stripe/i)
+      expect(stripComments(body).replace(/apollo_only_consented/g, ' '), `${name} names no provider`)
+        .not.toMatch(/pdl|apollo|hunter|smartlead|stripe/i)
     }
+  })
+})
+
+// ── ⚑ 25 Aug — THE DESK'S OWN FENCES ROUND THE PROOF CLAIM (founder-ruled) ───────────────
+//
+// Three separate ways the confirm step could still spend a pass it should not have:
+//
+//   B. `afterId === core.id` was the only proof the save landed — but `saveClientTargeting`
+//      returns that SAME row whether it wrote the live targeting or merely parked the
+//      revision. The id check could never have told those apart.
+//   C. The payload preserved name/tech_stack/keywords but not `apollo_only_consented`, and
+//      `icpSchema` gives that field `.default(true)` — so omitting it does not leave it
+//      alone, it rewrites a client's provider-consent setting.
+//   D. The error path cleared `refineBusy` while `refineFinal` was still set, so after a
+//      failed `/proof` the confirm button came back. A timeout is not a rollback: the pass
+//      may already be claimed, and "try again" is exactly when the last one gets burned.
+describe('the desk cannot spend a pass it has not earned', () => {
+  const desk = () => readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+  const strip = (s: string) =>
+    s.replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')
+  const bodyOf = (fn: string) => {
+    const d = desk()
+    const from = d.indexOf(fn)
+    expect(from, `${fn} exists`).toBeGreaterThan(-1)
+    const rest = d.slice(from + 1)
+    const end = rest.search(/\n {2}(?:\/\/|\/\*|async function |function |useEffect\(|const |return )/)
+    expect(end, 'the next top-level member after it').toBeGreaterThan(-1)
+    return rest.slice(0, end)
+  }
+  const submitBody  = () => bodyOf('async function submitRefine')
+  const confirmBody = () => bodyOf('async function confirmRefine')
+
+  // ── B · pending_review ───────────────────────────────────────────────────────────────
+  it('16/17/18 · the pass is claimed ONLY when the server says the edit went live', () => {
+    const c = confirmBody()
+    expect(c).toContain('pending_review?: boolean')
+    // ⚠️ `!== false`, NOT `=== true`. Fails closed: a missing field, null, or an older API
+    // that never sends it all stop here rather than guessing that the edit landed.
+    expect(c).toContain("if (revised?.pending_review !== false) throw new Error('not-live')")
+    // ⚠️ The looser forms that would fail OPEN, banned by name. (An earlier cut of this
+    // also banned `pending_review\s*\?\s*:` meaning "a ternary" — and matched the optional
+    // property `pending_review?: boolean` that the line above requires. The guard refused
+    // the very declaration it depends on.)
+    expect(c).not.toMatch(/pending_review\s*===\s*true/)
+    expect(c).not.toMatch(/if\s*\(\s*revised\??\.?\??pending_review\s*\)/)
+    // …and that throw sits BETWEEN the save and the claim, which is what makes it a fence.
+    const at = (needle: string) => c.indexOf(needle)
+    expect(at("'/icps/revise'")).toBeLessThan(at('pending_review !== false'))
+    expect(at('pending_review !== false')).toBeLessThan(at('/proof`'))
+  })
+
+  it('19 · an afterId mismatch still stops before the claim', () => {
+    const c = confirmBody()
+    expect(c).toContain("if (!afterId || afterId !== core.id) throw new Error('same-icp')")
+    expect(c.indexOf('afterId !== core.id')).toBeLessThan(c.indexOf('/proof`'))
+    // The preview's own ICP is checked too — a panel left open while targeting moved
+    // underneath cannot spend the pass on a stale reflection.
+    expect(c).toContain("if (!core?.id || core.id !== refineIcpId) throw new Error('same-icp')")
+  })
+
+  it('4 · a 409 conflict is a stop, and it never reaches the proof call', () => {
+    const c = confirmBody()
+    // `api` throws on a non-2xx, so the 409 leaves via the catch — above the proof POST,
+    // which is the only place a pass can be claimed. There is no branch that swallows it.
+    //
+    // ⚠️ THE STATUS MUST COME FROM THE CAUGHT ERROR. A first cut asserted only that
+    // `status === 409` appeared somewhere, and a mutation that hard-coded `const status = 0`
+    // left that comparison untouched and the guard green — it verified a branch existed
+    // while the value feeding it had been severed.
+    expect(c).toContain('const status = (e as { status?: number } | null)?.status')
+    expect(c).toContain('status === 409')
+    expect(c).not.toMatch(/catch\s*\{\s*\}|\.catch\(\(\) =>/)
+  })
+
+  // ── C · provider consent ─────────────────────────────────────────────────────────────
+  it('11/12/13 · apollo_only_consented is COPIED from the existing ICP, never decided here', () => {
+    const s = submitBody()
+    expect(s).toContain('apollo_only_consented: core.apollo_only_consented,')
+    // ⚠️ NO FALLBACK. `?? true` here would be this flow deciding provider consent for a
+    // client who never mentioned it — the exact defaulting the field must be protected
+    // from — and it would read as preservation while silently flipping a `false` to true.
+    expect(s).not.toMatch(/apollo_only_consented:\s*core\.apollo_only_consented\s*\?\?/)
+    expect(s).not.toMatch(/apollo_only_consented:\s*(true|false)/)
+    // The column is NOT NULL on the ICP, so a non-boolean is a broken read, not a default.
+    expect(s).toContain("if (typeof core.apollo_only_consented !== 'boolean') throw new Error('icp-shape')")
+    // …and nothing anywhere on this desk WRITES it.
+    expect(strip(desk())).not.toMatch(/setApollo|apollo_only_consented\s*=\s*(true|false)/)
+  })
+
+  it('14 · provider consent is not clearable and is not a refinement dimension', () => {
+    const d = desk()
+    const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    const five = d.slice(d.indexOf('const REFINE_FIELDS'), d.indexOf('type RefineField'))
+    expect(five).not.toContain('apollo_only_consented')
+    const clearable = icps.slice(icps.indexOf('const CLEARABLE_ICP_FIELDS'), icps.indexOf('async function getClientId'))
+    expect(clearable).not.toContain('apollo_only_consented')
+    // It is carried, so it must NOT appear in the reflect-back the client reads.
+    const panel = d.slice(d.indexOf('{REFINE_FIELDS.map(([k, label]) => {'), d.indexOf('Use this refinement and find another set?'))
+    expect(panel).not.toContain('apollo_only_consented')
+  })
+
+  // ── D · the one-way lock ─────────────────────────────────────────────────────────────
+  it('20 · the attempt is recorded BEFORE the proof request leaves', () => {
+    const c = confirmBody()
+    expect(c).toContain('proofAttemptedRef.current = true')
+    expect(c).toContain('setProofAttempted(true)')
+    // Strictly before — a timeout can arrive after the server already claimed the pass, so
+    // recording it afterwards would record nothing in exactly the case that matters.
+    expect(c.indexOf('proofAttemptedRef.current = true')).toBeLessThan(c.indexOf('/proof`'))
+  })
+
+  it('21/22 · once attempted, confirm cannot fire again — and it is the REF that stops it', () => {
+    const c = confirmBody()
+    const d = desk()
+    // ⚠️ THE REF, NOT THE STATE. `setState` is async; a synchronous re-entry in the same
+    // tick would not see it. The ref flips immediately and is read at the top of the handler.
+    expect(c).toContain('if (!refineFinal || refineBusy || proofAttemptedRef.current) return')
+    expect(d).toContain('const proofAttemptedRef = useRef(false)')
+    // It is NEVER set back to false anywhere on this page.
+    expect((d.match(/proofAttemptedRef\.current\s*=\s*/g) ?? []), 'assigned exactly once').toHaveLength(1)
+    expect(d).not.toMatch(/proofAttemptedRef\.current\s*=\s*false|setProofAttempted\(false\)/)
+  })
+
+  it('23/24 · no retry construct, and no control at all once the attempt exists', () => {
+    const c = confirmBody()
+    const d = desk()
+    expect(strip(c)).not.toMatch(/setTimeout|setInterval|while \(|retry/i)
+    // The confirm and cancel buttons stop RENDERING — not merely disabled, which still
+    // invites a click and still needs a correct guard behind it.
+    expect(d).toContain('{proofAttempted ? (')
+    expect(d).toContain('K.I.N.D is checking this one with you — nothing more to do here.')
+    const handoff = d.slice(d.indexOf('{proofAttempted ? ('), d.indexOf(') : ('))
+    expect(handoff).not.toMatch(/<button|onClick/)
+  })
+
+  it('25 · a SUCCESSFUL pass 2 still enters the existing finding experience', () => {
+    const c = confirmBody()
+    expect(c).toContain("router.push('/milla?finding=1')")
+    // …and only after the claim, never instead of it.
+    expect(c.indexOf('/proof`')).toBeLessThan(c.indexOf("router.push('/milla?finding=1')"))
+  })
+
+  // ── E · error copy that matches what actually happened ───────────────────────────────
+  it('26/27/28/29 · every failure stage says something DIFFERENT, and something true', () => {
+    const c = confirmBody()
+    // 28/29 · after the attempt: no retry invited, K.I.N.D verifies, and it does NOT claim
+    // the pass is definitely gone — only the server knows that.
+    expect(c).toContain('We saved your refinement, but we could not confirm the new search started.')
+    expect(c).toContain('K.I.N.D will check whether it began and come back to you.')
+    // 26 · a save failure must NOT say the targeting saved.
+    expect(c).toContain('We could not save that refinement, so your targeting is unchanged and no new search has started.')
+    // 27 · the conflict says nothing started, and does not invent a new search.
+    expect(c).toContain('no new search has started')
+    // 1 · the stale-preview case is its own sentence.
+    expect(c).toContain('Something is out of step with your targeting')
+    // ⚠️ THE OLD SENTENCE IS GONE. It said "Your targeting is saved" for EVERY failure,
+    // including the ones where saving is what failed.
+    expect(strip(c)).not.toContain('Your targeting is saved, but we could not start the new search just yet.')
+    // The four branches are keyed on the stage, not on one catch-all string.
+    expect(c).toContain('proofAttemptedRef.current')
+    expect(c).toContain("code === 'same-icp'")
+  })
+
+  it('the stage is decided by the REF, so a post-attempt failure can never read as pre-attempt', () => {
+    const c = confirmBody()
+    const branchAt = c.indexOf('proofAttemptedRef.current\n          ?')
+    expect(branchAt, 'the attempt branch is checked FIRST').toBeGreaterThan(-1)
+    expect(branchAt).toBeLessThan(c.indexOf('status === 409'))
+    expect(branchAt).toBeLessThan(c.indexOf("code === 'same-icp'"))
+  })
+
+  // ── F · a revise failure is recoverable, a proof failure is not ──────────────────────
+  it('a PRE-proof failure releases the panel; a post-proof one does not', () => {
+    const c = confirmBody()
+    // `refineBusy` is released either way — the difference is the ref, which has already
+    // removed the confirm control by the time the panel re-renders.
+    expect(c).toContain('setRefineBusy(false)')
+    // …and no background retry is introduced on any path.
+    expect(strip(c)).not.toMatch(/setTimeout|setInterval|requestAnimationFrame/)
   })
 })

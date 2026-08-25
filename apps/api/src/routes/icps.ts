@@ -2097,6 +2097,30 @@ result or a number. "permitted" is false unless they explicitly said we may use 
  * Same `icp.id` in all three: `leads.icp_id`, the campaign's `icp_id` and the PDL cursor
  * all hang off it. GO applies the pending revision and clears it.
  */
+/**
+ * THE ONE ROW A CLIENT-SIDE REVISION EVER TOUCHES — their live ICP if they have one,
+ * otherwise their newest. The SAME row either way.
+ *
+ * ⚑ 25 Aug — EXTRACTED SO TWO READERS CANNOT DISAGREE. `saveClientTargeting` picks this row
+ * to write, and `proofRefinementVerdict` must read `pending_targeting` from the row that
+ * will actually be written — not from one it selected by a second, separately-maintained
+ * copy of the same three lines. A conflict check that inspects a different ICP than the
+ * save touches is worse than no check: it reports safety it did not verify.
+ *
+ * `pending_targeting` is in the select for exactly that reason; nothing else reads it here.
+ */
+async function coreIcpRow(clientId: string): Promise<Record<string, unknown> | null> {
+  const cols = 'id, name, is_active, pending_targeting'
+  const { data: live } = await db.from('icps')
+    .select(cols).eq('client_id', clientId).eq('is_active', true)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if ((live as { id?: string } | null)?.id) return live as Record<string, unknown>
+  const { data } = await db.from('icps')
+    .select(cols).eq('client_id', clientId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  return (data as Record<string, unknown> | null) ?? null
+}
+
 async function saveClientTargeting(
   clientId: string,
   body: Record<string, unknown>,
@@ -2123,13 +2147,7 @@ async function saveClientTargeting(
    */
   applyLive = false,
 ): Promise<{ row: Record<string, unknown>; pending: boolean } | null> {
-  // Their live ICP if they have one, otherwise the newest — the SAME row either way.
-  const { data: live } = await db.from('icps')
-    .select('id, name, is_active').eq('client_id', clientId).eq('is_active', true)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
-  const core = live?.id ? live : (await db.from('icps')
-    .select('id, name, is_active').eq('client_id', clientId)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()).data
+  const core = await coreIcpRow(clientId)
 
   if (!core?.id) {
     const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
@@ -2156,12 +2174,21 @@ async function saveClientTargeting(
   return data ? { row: data as Record<string, unknown>, pending: hold } : null
 }
 
+/** The machine-readable code a desk can branch on. Stable — never reword it. */
+const EXISTING_PENDING_TARGETING = 'existing_pending_targeting'
+
 /**
- * MAY THIS REVISION BE APPLIED TO THE LIVE COLUMNS IMMEDIATELY? (founder-ruled 25 Aug)
+ * WHAT SHOULD HAPPEN TO THIS REVISION? (founder-ruled 25 Aug)
+ *
+ * - `'normal'`   — today's behaviour, byte for byte, for every caller that is not a proven
+ *                  free-proof refinement. A live client's edit still waits for K.I.N.D.
+ * - `'apply'`    — the free-proof exception: write the live targeting columns in place.
+ * - `'conflict'` — a proven free-proof refinement that collides with a revision ALREADY
+ *                  waiting for review. Nothing is written at all; see below.
  *
  * ⚠️ THE REQUEST FIELD IS A DECLARATION OF INTENT, NEVER THE PERMISSION. A client can put
- * `proof_refinement: true` on any body they like; on its own it changes nothing. Both facts
- * that actually grant the exception are read HERE, from the server's own tables:
+ * `proof_refinement: true` on any body they like; on its own it changes nothing. Every fact
+ * that decides the outcome is read HERE, from the server's own tables:
  *
  *   1. THEY HAVE NEVER FUNDED — the same `fundedVia` ledger test the proof route itself
  *      uses. A paying or comped account is refused, so the 22 Aug "a live client's edit
@@ -2170,21 +2197,46 @@ async function saveClientTargeting(
  *      `try_claim_proof_pass` increments. NOT a second counter, and deliberately `=== 1`:
  *      at 0 there is no batch to refine, and at 2 both passes are gone and a human takes
  *      over. Only the one state between them is a refinement.
+ *   3. `pending_targeting IS NULL` on the core ICP — read from the row `saveClientTargeting`
+ *      will actually write, via the shared `coreIcpRow`.
  *
- * Anything missing → false → today's behaviour, unchanged, for every other caller. No
- * environment check, no client-name check, no route guessing: three facts, all provable.
+ * ⚠️ WHY (3) IS A CONFLICT AND NOT A FALLBACK. Without it the exception simply would not
+ * apply, and the revision would drop into the ordinary live-client branch — which
+ * OVERWRITES `pending_targeting`. A prospect confirming a batch refinement would silently
+ * destroy a targeting change they had already submitted and were waiting on us to review,
+ * and would then have spent a proof pass on targeting that never went live either. Two
+ * different intentions about the same ICP, one of them erased without anybody being told.
+ *
+ * So this case writes NOTHING — not the live columns, not `pending_targeting` — and the
+ * route answers 409. Both the live ICP and the waiting revision survive untouched, and a
+ * human resolves which one the client meant.
+ *
+ * ⚠️ NO REQUEST FIELD IS CONSULTED FOR ANY OF THE THREE. `icpSchema` strips unknown keys, so
+ * a body carrying `pending_targeting: null` cannot make a waiting revision look absent.
  */
-async function proofRefinementApplies(clientId: string, rawBody: unknown): Promise<boolean> {
-  if ((rawBody as { proof_refinement?: unknown } | null)?.proof_refinement !== true) return false
+type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict'
+
+async function proofRefinementVerdict(
+  clientId: string,
+  rawBody: unknown,
+  core: Record<string, unknown> | null,
+): Promise<ProofRefinementVerdict> {
+  if ((rawBody as { proof_refinement?: unknown } | null)?.proof_refinement !== true) return 'normal'
 
   const { data: fundingRows } = await db.from('credit_transactions')
     .select('type, reference').eq('client_id', clientId)
-  if (fundedVia(fundingRows ?? []) !== null) return false
+  if (fundedVia(fundingRows ?? []) !== null) return 'normal'
 
   const { data: client } = await db.from('clients')
     .select('proof_passes_done').eq('id', clientId).maybeSingle()
   const passes = Number((client as { proof_passes_done?: number } | null)?.proof_passes_done ?? 0)
-  return passes === 1
+  if (passes !== 1) return 'normal'
+
+  // From the SERVER's row, never the body.
+  const waiting = core?.pending_targeting
+  if (waiting !== null && waiting !== undefined) return 'conflict'
+
+  return 'apply'
 }
 
 async function persistMillaUnderstanding(
@@ -2379,10 +2431,25 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
 
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
     // ⚑ 25 Aug — the ONE exception, and it is decided by the server, not by the body. See
-    // `proofRefinementApplies`. False for every paying/active client, so their edit still
+    // `proofRefinementVerdict`. 'normal' for every paying/active client, so their edit still
     // waits for K.I.N.D exactly as it did before this line existed.
-    const applyLive = await proofRefinementApplies(clientId, req.body)
-    const saved = await saveClientTargeting(clientId, body, revisedIntent, applyLive)
+    const verdict = await proofRefinementVerdict(clientId, req.body, await coreIcpRow(clientId))
+
+    // ⚠️ REFUSED BEFORE ANY WRITE. This returns above `saveClientTargeting`, so on this path
+    // the route performs NO mutation at all: the live targeting is untouched, the waiting
+    // revision is untouched, and no proof pass can be claimed because the desk never gets a
+    // success to act on. That is the founder's ruling for this collision — stop, and a human
+    // resolves it — not "pick one of the two revisions and lose the other".
+    if (verdict === 'conflict') {
+      res.status(409).json({
+        success: false,
+        code: EXISTING_PENDING_TARGETING,
+        error: 'You already have a targeting change waiting for K.I.N.D to review. We need to go through that with you before we look for another set — nothing has been changed and no new search has started.',
+      })
+      return
+    }
+
+    const saved = await saveClientTargeting(clientId, body, revisedIntent, verdict === 'apply')
     if (!saved) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
     const { row: data, pending } = saved
 

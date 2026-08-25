@@ -737,7 +737,17 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(findBlock).not.toMatch(/notify|email|alert|minutes|shortly we|by \d/i)
     expect(findBlock).not.toContain('No leads waiting right now')
     // …and no provider mechanics are shown to the client.
-    expect(deskCode).not.toMatch(/\bPDL\b|Apollo|Hunter/i)
+    //
+    // ⛓️ AMENDED 25 Aug — SCOPED TO WHAT A CLIENT CAN READ, WHICH IS WHAT IT ALWAYS MEANT.
+    // This banned the provider names anywhere in the desk's code, and the pass-2 refinement
+    // now carries `apollo_only_consented` through the payload — the ICP's own consent
+    // column, copied from the existing row so a refinement cannot silently rewrite it. That
+    // is a COLUMN NAME in a payload, not provider mechanics on a screen, and the rule was
+    // never about identifiers: it is about a prospect reading "Hunter" on their desk.
+    // Removing the field to satisfy the old wording would have reintroduced the defect this
+    // guard has nothing to do with. So the one identifier is exempted by name, and every
+    // other mention of a provider is still refused.
+    expect(deskCode.replace(/apollo_only_consented/g, ' ')).not.toMatch(/\bPDL\b|Apollo|Hunter/i)
   })
 
   it('the timeout state is honest and offers no retry of the proof start', () => {

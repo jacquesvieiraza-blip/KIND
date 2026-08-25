@@ -40,6 +40,15 @@ type IcpTargeting = {
   name?: string
   job_titles?: string[]; seniority_levels?: string[]; industries?: string[]
   company_sizes?: string[]; geographies?: string[]; tech_stack?: string[]; keywords?: string[]
+  /**
+   * ⚑ 25 Aug — CARRIED, NEVER DECIDED HERE. `/icps/revise` validates the WHOLE ICP and
+   * `icpSchema` gives this field `.default(true)`, so a payload that simply omits it does
+   * not "leave it alone" — it silently rewrites a client's provider-consent setting to
+   * true. A refinement about job titles must not change which provider may source them.
+   * It is copied from the existing row and sent back unchanged; it is never editable,
+   * clearable, shown, defaulted by this flow, or inferred from anything.
+   */
+  apollo_only_consented?: boolean
 }
 /**
  * ⚑ 25 Aug — THE FIVE TARGETING DIMENSIONS A REFINEMENT SPEAKS ABOUT (founder-ruled).
@@ -125,6 +134,22 @@ export default function MillaHomePage() {
   const [refineSaid, setRefineSaid]   = useState<string | null>(null)
   const [refineBusy, setRefineBusy]   = useState(false)
   const [refineErr, setRefineErr]     = useState<string | null>(null)
+  /**
+   * ⚑ 25 Aug — THE PROOF ATTEMPT IS ONE-WAY, AND A REF IS WHY IT ACTUALLY IS.
+   *
+   * The failure path used to clear `refineBusy` while `refineFinal` was still set, so after
+   * a failed `/proof` the confirm button became clickable again. That breaks the one-attempt
+   * rule in the worst possible way: an HTTP timeout or a dropped connection can happen AFTER
+   * the server has already claimed the pass, so "it failed, try again" is exactly when a
+   * second POST would burn the client's last one. There is no release RPC.
+   *
+   * The REF is the lock, not the state. `setState` is async and a synchronous re-entry in
+   * the same tick would not see it; a ref flips immediately and is read at the top of the
+   * handler. The state exists only so the panel can re-render into its handed-off form.
+   * Neither ever returns to false while this page stays mounted.
+   */
+  const proofAttemptedRef = useRef(false)
+  const [proofAttempted, setProofAttempted] = useState(false)
 
   // Set once, from the URL, after mount — an effect never runs during a pre-render.
   const [finding, setFinding] = useState(false)
@@ -313,10 +338,17 @@ export default function MillaHomePage() {
       const core = before.data?.[0]
       if (!core?.id) throw new Error('no icp')
 
+      // ⚠️ NOT `?? true`. A fallback here would be this flow DECIDING provider consent for
+      // a client who never mentioned it — the exact defaulting the field must be protected
+      // from. The column is NOT NULL on the ICP, so a non-boolean means the read is wrong,
+      // and we stop rather than send a guess.
+      if (typeof core.apollo_only_consented !== 'boolean') throw new Error('icp-shape')
+
       const final: IcpTargeting = {
         name:       core.name || 'My targeting',
         tech_stack: core.tech_stack ?? [],
         keywords:   core.keywords ?? [],
+        apollo_only_consented: core.apollo_only_consented,
       }
       for (const [k] of REFINE_FIELDS) {
         const next = d[k]
@@ -337,10 +369,13 @@ export default function MillaHomePage() {
   //
   // ⚠️ NO MERGE HERE. `refineFinal` is sent exactly as the panel rendered it. The only thing
   // added to the payload is `proof_refinement`, which is a DECLARATION and not a permission:
-  // the server proves the exception for itself from the funding ledger and
-  // `proof_passes_done`, and ignores this field entirely for anyone else.
+  // the server proves the exception for itself from the funding ledger,
+  // `proof_passes_done` and the ICP's own `pending_targeting`, and ignores this field
+  // entirely for anyone else.
   async function confirmRefine() {
-    if (!refineFinal || refineBusy) return
+    // The REF, not the state — see its declaration. This is the line that makes the attempt
+    // one-way, and it must be read before anything else can start a second one.
+    if (!refineFinal || refineBusy || proofAttemptedRef.current) return
     setRefineBusy(true); setRefineErr(null)
     try {
       const tk = await token()
@@ -352,23 +387,57 @@ export default function MillaHomePage() {
       const core = before.data?.[0]
       if (!core?.id || core.id !== refineIcpId) throw new Error('same-icp')
 
-      const revised = await api.post<{ data?: { id?: string } }>(
+      const revised = await api.post<{ data?: { id?: string }; pending_review?: boolean }>(
         '/icps/revise', { ...refineFinal, proof_refinement: true }, tk)
       const afterId = revised?.data?.id
       // SAME ICP, enforced at RUNTIME and not only in a test. If a revise ever created a
       // second row, we stop here rather than spending the pass against the wrong targeting.
       if (!afterId || afterId !== core.id) throw new Error('same-icp')
 
-      // EXACTLY ONE claim. Never retried, never in a loop: the pass is spent the moment this
-      // lands and there is no release, so a second POST would cost the client their last one.
+      // ⚠️ THE SAME ROW COMING BACK IS NOT PROOF THE EDIT LANDED. `saveClientTargeting`
+      // returns that identical row whether it wrote the live targeting columns or merely
+      // parked the revision in `pending_targeting` — so the id check alone would have let a
+      // pass be spent on the OLD targeting, which is the exact defect this whole build
+      // exists to close. `pending_review === false` is the server saying it went live.
+      //
+      // FAILS CLOSED: `undefined !== false`, so an older API that does not send the field
+      // stops here rather than guessing. The server already refuses the conflict outright;
+      // this is a second, independent fence, and two independent fences is the point.
+      if (revised?.pending_review !== false) throw new Error('not-live')
+
+      // EXACTLY ONE claim. The ref flips BEFORE the request leaves, because the pass can be
+      // claimed server-side and the response still never arrive — a timeout is not a
+      // rollback. From here there is no retry of any kind, automatic or manual.
+      proofAttemptedRef.current = true
+      setProofAttempted(true)
       await api.post(`/icps/${afterId}/proof`, {}, tk)
       router.push('/milla?finding=1')
     } catch (e) {
-      // Terminal, like the confirmation screen's proof failure: no retry control, no
-      // automatic re-call, and never a navigation that could start another pass.
-      setRefineErr(e instanceof Error && e.message === 'same-icp'
-        ? 'Something is out of step with your targeting — K.I.N.D needs to look at this before we search again.'
-        : 'Your targeting is saved, but we could not start the new search just yet. Nothing has been charged and nobody has been contacted. K.I.N.D needs to resolve this.')
+      // ── STAGE-ACCURATE, BECAUSE THE OLD SENTENCE COULD BE A LIE ────────────────────────
+      // One generic message said *"Your targeting is saved"* for every failure — including
+      // the ones where the save is exactly what failed. What a client is told here decides
+      // whether they wait for us or go and change something themselves, so it has to match
+      // what actually happened.
+      const code = e instanceof Error ? e.message : ''
+      const status = (e as { status?: number } | null)?.status
+      setRefineErr(
+        // 4 · THE PROOF WAS ATTEMPTED. Never invite a retry and never claim the pass is
+        // definitely gone — we do not know. Only the server does.
+        proofAttemptedRef.current
+          ? 'We saved your refinement, but we could not confirm the new search started. Please don\'t try again — K.I.N.D will check whether it began and come back to you.'
+        // 2 · THE CONFLICT. Both the live targeting and the waiting revision are intact.
+        : status === 409
+          ? (code || 'You already have a targeting change waiting for K.I.N.D to review. Nothing has been changed and no new search has started.')
+        // 1 · STALE PREVIEW. Nothing was written; the panel described a different ICP.
+        : code === 'same-icp'
+          ? 'Something is out of step with your targeting — K.I.N.D needs to look at this before we search again. Nothing has been changed and no new search has started.'
+        // 3 · THE SAVE FAILED, OR LANDED FOR REVIEW INSTEAD OF GOING LIVE. Do NOT tell them
+        // it saved. No pass was claimed either way.
+          : 'We could not save that refinement, so your targeting is unchanged and no new search has started. K.I.N.D needs to look at this.',
+      )
+      // Only the pre-proof stages release the panel — they cost nothing, so the client may
+      // cancel or keep their current targeting. Once the proof was attempted the ref stays
+      // true and the confirm is gone for good.
       setRefineBusy(false)
     }
   }
@@ -621,21 +690,34 @@ export default function MillaHomePage() {
                   )
                 })}
               </div>
-              <div className="text-[12px] text-[#5c5279] mt-2.5 font-semibold">Use this refinement and find another set?</div>
-              <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
-                This is your second and last free set — after it, we talk it through together.
-              </div>
-              <div className="flex gap-2 mt-2">
-                <button disabled={refineBusy} onClick={confirmRefine}
-                  className="flex-1 text-[13px] font-bold text-white rounded-xl py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
-                  {refineBusy ? 'Finding…' : 'Yes — find another set'}
-                </button>
-                <button disabled={refineBusy}
-                  onClick={() => { setRefineOpen(false); setRefineFinal(null); setRefineIcpId(null); setRefineText(''); setRefineSaid(null); setRefineErr(null) }}
-                  className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb] bg-white disabled:opacity-50">
-                  Keep current
-                </button>
-              </div>
+              {/* ⚑ 25 Aug — ONCE THE PROOF HAS BEEN ATTEMPTED THERE IS NO CONTROL AT ALL.
+                  Not a disabled button, not a "try again": both buttons stop rendering and
+                  the panel becomes a handoff. A pass may already be spent server-side even
+                  though the request looked like it failed, so the only honest thing left on
+                  screen is who is picking this up. */}
+              {proofAttempted ? (
+                <div className="text-[12px] text-[#5c5279] mt-2.5">
+                  K.I.N.D is checking this one with you — nothing more to do here.
+                </div>
+              ) : (
+                <>
+                  <div className="text-[12px] text-[#5c5279] mt-2.5 font-semibold">Use this refinement and find another set?</div>
+                  <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
+                    This is your second and last free set — after it, we talk it through together.
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <button disabled={refineBusy} onClick={confirmRefine}
+                      className="flex-1 text-[13px] font-bold text-white rounded-xl py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                      {refineBusy ? 'Finding…' : 'Yes — find another set'}
+                    </button>
+                    <button disabled={refineBusy}
+                      onClick={() => { setRefineOpen(false); setRefineFinal(null); setRefineIcpId(null); setRefineText(''); setRefineSaid(null); setRefineErr(null) }}
+                      className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb] bg-white disabled:opacity-50">
+                      Keep current
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

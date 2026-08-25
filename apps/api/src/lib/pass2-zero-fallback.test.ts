@@ -150,7 +150,9 @@ async function runJob(opts: {
    */
   widePage?: PageCfg
   funded?: boolean
-}, rec: { searches: Search[]; rpcs: string[]; icpUpdates: Record<string, unknown>[] }) {
+  /** make the conditional candidate write refuse, so the fail-closed path can be driven */
+  candidateWrite?: 'ok' | 'zero' | 'error'
+}, rec: Rec) {
   vi.resetModules()
 
   const icpRow = {
@@ -176,11 +178,32 @@ async function runJob(opts: {
         },
         update(patch: Record<string, unknown>) {
           if (table === 'icps') rec.icpUpdates.push(patch)
-          const done = { data: { ...icpRow, ...patch }, error: null }
+          // The proof surfacing stamp — the batch identity the candidate must share.
+          if (table === 'leads' && typeof patch.surfaced_for_approval_at === 'string') {
+            rec.leadSurfacings.push(patch.surfaced_for_approval_at)
+          }
+          // ⚑ 25 Aug — THE PREDICATES A CONDITIONAL WRITE CARRIES ARE THE POINT OF IT, so
+          // the harness records them and can be told to refuse. A mock that always says
+          // "one row updated" cannot tell a guarded write from an unguarded one.
+          const filters: Array<[string, string, unknown]> = []
+          const refuse = opts.candidateWrite === 'zero' || opts.candidateWrite === 'error'
+          const done = () => {
+            if (table === 'icps') rec.icpWrites.push({ patch, filters: [...filters] })
+            if (refuse && 'proof_widened_candidate' in patch) {
+              return { data: null, error: opts.candidateWrite === 'error' ? { message: 'boom' } : null }
+            }
+            // Writes LAND, so "the live targeting survived" is evidence rather than an
+            // artefact of a mock that never wrote anything back.
+            Object.assign(icpRow, patch)
+            return { data: { ...icpRow }, error: null }
+          }
           const c2: Record<string, unknown> = {
-            eq() { return c2 }, is() { return c2 }, in() { return c2 }, select() { return c2 },
-            async single() { return done }, async maybeSingle() { return done },
-            then(r: (v: unknown) => unknown) { return r(done) },
+            eq(c: string, v: unknown) { filters.push(['eq', c, v]); return c2 },
+            is(c: string, v: unknown) { filters.push(['is', c, v]); return c2 },
+            filter(c: string, op: string, v: unknown) { filters.push([op, c, v]); return c2 },
+            in() { return c2 }, select() { return c2 },
+            async single() { return done() }, async maybeSingle() { return done() },
+            then(r: (v: unknown) => unknown) { return r(done()) },
           }
           return c2
         },
@@ -258,7 +281,11 @@ async function runJob(opts: {
   return runIcpJob('icp-1', 'c1', 'u1', 20, ...(opts.proof ? [{ proofPass: opts.proof }] as const : []))
 }
 
-const fresh = () => ({ searches: [] as Search[], rpcs: [] as string[], icpUpdates: [] as Record<string, unknown>[] })
+type IcpWrite = { patch: Record<string, unknown>; filters: Array<[string, string, unknown]> }
+type Rec = { searches: Search[]; rpcs: string[]; icpUpdates: Record<string, unknown>[]; icpWrites: IcpWrite[]; leadSurfacings: string[] }
+const fresh = (): Rec => ({ searches: [], rpcs: [], icpUpdates: [], icpWrites: [], leadSurfacings: [] })
+/** The candidate write, if one happened at all. */
+const candidateWrite = (rec: Rec) => rec.icpWrites.find(w => 'proof_widened_candidate' in w.patch)
 
 describe('pass 2 makes exactly one widened retry when the exact targeting matches nobody', () => {
   it('3 · exact query zero → EXACTLY ONE fallback PDL call', async () => {
@@ -454,6 +481,126 @@ describe('the widened result tells the truth about what we actually learned', ()
     expect(UNPROVEN).not.toMatch(/try again|retry/i)
     expect(UNPROVEN).not.toMatch(/minutes|shortly|notify|email you/i)
     expect(UNPROVEN, 'and it ends at a human').toContain('K.I.N.D will review it with you')
+  })
+})
+
+// ── PART 2c · MOMENT 1 — WRITING DOWN WHAT PRODUCED THE SET ──────────────────────────────
+//
+// ⚑ 25 Aug (founder-ruled). A widened set that finds people does NOT retarget the client. It
+// records a CANDIDATE — the batch it produced and the saved targeting it was derived from —
+// and that candidate becomes real only if the client accepts that set with "Looks right".
+//
+// Everything here is about the write NOT happening, or happening with its guards on. The
+// acceptance half lives in proof-acceptance.test.ts.
+describe('a successful widened set records a candidate, and changes nothing', () => {
+  it('the candidate exists, and names this batch and this basis', async () => {
+    const rec = fresh()
+    await runJob({ proof: 2, exact: 0, wide: 5 }, rec)
+    const w = candidateWrite(rec)
+    expect(w, 'a widened set that found people is adoptable, and says so durably').toBeTruthy()
+    const cand = w!.patch.proof_widened_candidate as Record<string, unknown>
+    expect(cand.state).toBe('pending')
+    expect(cand.proof_pass).toBe(2)
+    expect(cand.version).toBe(1)
+    // ⚠️ THE BASIS IS THE SAVED ICP BEFORE THE WIDENING — not the widened query. It is what
+    // the client would be agreeing to change, so seniority and size are PRESENT here.
+    expect(cand.basis).toEqual({
+      job_titles: ICP.job_titles, seniority_levels: ICP.seniority_levels,
+      industries: ICP.industries, company_sizes: ICP.company_sizes, geographies: ICP.geographies,
+    })
+  })
+
+  it('its batch_at is the SAME stamp the batch was surfaced with', async () => {
+    const rec = fresh()
+    await runJob({ proof: 2, exact: 0, wide: 5 }, rec)
+    const cand = candidateWrite(rec)!.patch.proof_widened_candidate as Record<string, unknown>
+    // The leads update and the candidate write share one `nowIso`. That is the whole reason
+    // the candidate is written in the surfacing block rather than beside the search: without
+    // one shared stamp, acceptance would have to GUESS which set a candidate belongs to.
+    expect(rec.leadSurfacings, 'the batch was surfaced').toHaveLength(1)
+    expect(cand.batch_at).toBe(rec.leadSurfacings[0])
+  })
+
+  it('and the LIVE targeting is untouched — no field, no pending revision', async () => {
+    const rec = fresh()
+    await runJob({ proof: 2, exact: 0, wide: 5 }, rec)
+    for (const patch of rec.icpUpdates) {
+      for (const f of ['job_titles', 'seniority_levels', 'industries', 'company_sizes', 'geographies', 'pending_targeting']) {
+        expect(patch, `${f} must not be written before acceptance`).not.toHaveProperty(f)
+      }
+    }
+  })
+
+  it('the write is CONDITIONAL — it fails closed rather than racing the ICP', async () => {
+    const rec = fresh()
+    await runJob({ proof: 2, exact: 0, wide: 5 }, rec)
+    const f = candidateWrite(rec)!.filters
+    const shows = (op: string, col: string, val?: unknown) =>
+      f.some(x => x[0] === op && x[1] === col && (val === undefined || x[2] === val))
+    expect(shows('eq', 'id')).toBe(true)
+    expect(shows('eq', 'client_id')).toBe(true)
+    expect(shows('eq', 'is_active', true)).toBe(true)
+    expect(shows('is', 'pending_targeting', null)).toBe(true)
+    // Never overwrite a candidate already waiting — that would point one batch's promise at
+    // another batch's numbers.
+    expect(shows('is', 'proof_widened_candidate', null)).toBe(true)
+    // All five targeting columns, as properly-quoted array literals.
+    for (const col of ['job_titles', 'seniority_levels', 'industries', 'company_sizes', 'geographies']) {
+      expect(shows('eq', col), `CAS on ${col}`).toBe(true)
+    }
+  })
+
+  it('a REFUSED candidate write leaves the ICP alone and adopts nothing', async () => {
+    for (const candidateWriteMode of ['zero', 'error'] as const) {
+      const rec = fresh()
+      await runJob({ proof: 2, exact: 0, wide: 5, candidateWrite: candidateWriteMode }, rec)
+      // The set still reached the client — the leads are real and were surfaced. What did not
+      // happen is the adoption: no candidate stands, so acceptance finds nothing to apply and
+      // a human takes it. We never manufacture the provenance instead.
+      expect(rec.leadSurfacings, `${candidateWriteMode}: the client still sees their leads`).toHaveLength(1)
+      for (const patch of rec.icpUpdates) {
+        expect(patch).not.toHaveProperty('seniority_levels')
+        expect(patch).not.toHaveProperty('company_sizes')
+      }
+    }
+  })
+})
+
+describe('no candidate is recorded for anything that did not widen', () => {
+  it('an EXACT pass-2 success records none', async () => {
+    const rec = fresh()
+    await runJob({ proof: 2, exact: 12, wide: 99 }, rec)
+    expect(candidateWrite(rec), 'the saved targeting produced this set — nothing to adopt').toBeUndefined()
+  })
+
+  it('a PASS-1 success records none', async () => {
+    const rec = fresh()
+    await runJob({ proof: 1, exact: 9 }, rec)
+    expect(candidateWrite(rec)).toBeUndefined()
+  })
+
+  it('a widened PROVED ZERO records none', async () => {
+    const rec = fresh()
+    await runJob({ proof: 2, exact: 0, wide: 0, widePage: { matchedNothing: true } }, rec)
+    expect(candidateWrite(rec)).toBeUndefined()
+  })
+
+  it('a widened ERROR or NULL page records none', async () => {
+    for (const widePage of [{ matchedNothing: false, error: 'boom' } as PageCfg, null as PageCfg]) {
+      const rec = fresh()
+      await runJob({ proof: 2, exact: 0, wide: 0, widePage }, rec)
+      expect(candidateWrite(rec), JSON.stringify(widePage)).toBeUndefined()
+    }
+  })
+
+  it('a PAID run records none, and a genuinely exhausted pass 2 records none', async () => {
+    const paid = fresh()
+    await runJob({ exact: 9, funded: true }, paid)
+    expect(candidateWrite(paid)).toBeUndefined()
+
+    const done = fresh()
+    await runJob({ proof: 2, exact: 0, wide: 9, page: { exhausted: true, matchedNothing: false } }, done)
+    expect(candidateWrite(done)).toBeUndefined()
   })
 })
 

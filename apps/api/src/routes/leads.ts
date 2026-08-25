@@ -16,6 +16,8 @@ import { isSuppressed } from '../lib/suppression'
 import { waterfallEnrich } from '../lib/enrichment'
 import { launchHoldMessage } from '@kind/shared'
 import { sendFounderAlert } from '../lib/alerts'
+import { fundedVia } from '../lib/onboarding-pack'
+import { PROOF_BASIS_FIELDS, pgTextArrayLiteral, readCandidate, basisMatchesRow } from '../lib/proof-candidate'
 
 export const leadRouter = Router()
 
@@ -986,6 +988,188 @@ leadRouter.post('/approve-batch', rateLimit({ limit: 12, windowMs: 60_000, key: 
         : `${approved.length} of ${approvable.length} approved. The rest are listed below with why.`,
     })
   } catch (err) { console.error('[approve-batch]', err); res.status(500).json({ success: false, error: 'Failed to approve' }) }
+})
+
+// ══════════════════════════════════════════════════════════════════════════════════════════
+//  👍 LOOKS RIGHT — PROOF ACCEPTANCE (founder-ruled 25 Aug)
+// ══════════════════════════════════════════════════════════════════════════════════════════
+//
+// WHAT THIS REPLACED. "Looks right" was a `router.push('/milla/billing?start=1&from=proof')`
+// and nothing else — no server call at all. Two things followed from that:
+//
+//   ① A widened pass-2 proof could be accepted and paid for while the SAVED ICP still held
+//      the seniority and size bands whose exact query had already returned zero. The client
+//      would pay for targeting that had provably found nobody, having approved leads found by
+//      targeting we then threw away.
+//
+//   ② THE GLEAN HOLE. Pass 2 can be SPENT and produce no second batch (25 Aug: the exact
+//      confirmed targeting matched nobody on its first page). The pass-1 cards stay on screen,
+//      so a client could click "Looks right" on an Earlier set and walk straight to billing,
+//      right past the human review that the failed pass 2 is supposed to require.
+//
+// This endpoint is the server saying yes. It aligns targeting and NOTHING else: no Stripe, no
+// wallet, no pack entitlement, no reveal, no approval, no $4, no send, no campaign GO, no PDL,
+// no Apollo, no Hunter, no proof claim, no proof reservation, no proof release, no sourcing
+// allowance. Billing remains the next screen, exactly where it was.
+//
+// ⚠️ THE BROWSER SENDS ONE THING: WHICH CARD WAS CLICKED. There is no body. Every other fact —
+// which batch that card belongs to, whether it is the latest, whether it was widened, what
+// targeting produced it, whether the account is still unpaid — is resolved here, from rows the
+// server owns. A client asserting `widened: true` or posting a targeting object changes
+// nothing, because nothing here reads one.
+leadRouter.post('/:id/proof-accept', rateLimit({ limit: 30, windowMs: 60_000, key: 'proof-accept', byUser: true }), async (req: AuthRequest, res) => {
+  // The one refusal shape. Truthful about what we do and do not know, and it never implies a
+  // payment happened, never promises a time, and never invites another search.
+  const needsReview = (): void => {
+    res.status(409).json({
+      success: false,
+      code: 'proof_acceptance_needs_review',
+      error: 'K.I.N.D couldn’t save what worked in that proof yet. K.I.N.D needs to check this before you go live.',
+    })
+  }
+  try {
+    const clientId = await getClientId(req.userId!)
+    if (!clientId) { res.status(404).json({ success: false, error: 'Client not found' }); return }
+
+    // ── A · the card belongs to the caller ────────────────────────────────────────────
+    // Scoped to their own client row, so another client's lead id is INDISTINGUISHABLE from
+    // one that does not exist. 404 either way — no probe learns whether an id is real.
+    const { data: lead } = await db.from('leads')
+      .select('id, client_id, icp_id, surfaced_for_approval_at, delivered_at, revealed_at, status')
+      .eq('id', req.params.id).eq('client_id', clientId).maybeSingle()
+    if (!lead) { res.status(404).json({ success: false, error: 'Lead not found' }); return }
+
+    // ── E/F · it is a SURFACED PROOF card, not something else on the desk ──────────────
+    // `revealed_at` is the line between proof and paid: a revealed lead has been bought, and
+    // a bought lead's targeting is not up for realignment by this route.
+    const batchAt = lead.surfaced_for_approval_at as string | null
+    if (!lead.icp_id || !batchAt || !lead.delivered_at || lead.revealed_at || lead.status === 'passed') { needsReview(); return }
+
+    // ── G · the account is still unfunded ─────────────────────────────────────────────
+    // The SAME truth the proof route itself fences on — `fundedVia` over the ledger, not a
+    // second notion of "have they paid". A funded client has the paid path; this is not it.
+    const { data: fundingRows } = await db.from('credit_transactions')
+      .select('type, reference').eq('client_id', clientId)
+    if (fundedVia(fundingRows ?? []) !== null) {
+      res.status(403).json({ success: false, error: 'Your account is already live — your leads arrive through your campaign, not a proof batch.' })
+      return
+    }
+
+    // ── H · they are actually mid-proof ───────────────────────────────────────────────
+    const { data: clientRow } = await db.from('clients')
+      .select('proof_passes_done').eq('id', clientId).maybeSingle()
+    const passesDone = Number((clientRow as { proof_passes_done?: number } | null)?.proof_passes_done ?? 0)
+    if (passesDone !== 1 && passesDone !== 2) { needsReview(); return }
+
+    // ── B/C/D · the ICP is theirs, live, and has no revision parked ───────────────────
+    const { data: icp } = await db.from('icps')
+      .select('id, client_id, is_active, pending_targeting, job_titles, seniority_levels, industries, company_sizes, geographies, proof_widened_candidate')
+      .eq('id', lead.icp_id).eq('client_id', clientId).maybeSingle()
+    if (!icp) { needsReview(); return }
+    if (icp.is_active !== true) { needsReview(); return }
+    if (icp.pending_targeting !== null && icp.pending_targeting !== undefined) { needsReview(); return }
+
+    // ── I/J · THE BATCH TEST, AND IT IS THE GLEAN HOLE ────────────────────────────────
+    //
+    // Every surfaced proof batch on this ICP is one distinct `surfaced_for_approval_at`
+    // stamp — one shared timestamp per run, written once, never rewritten. So the batches are
+    // countable, and their count must AGREE with the passes the client has spent:
+    //
+    //   passes_done = 1 → exactly ONE batch, and it is acceptable.
+    //   passes_done = 2 → exactly TWO batches before ANY card may be accepted.
+    //
+    // Two batches with one pass spent would mean a batch nobody can account for. ONE batch
+    // with two passes spent is the live Glean state: pass 2 was consumed and produced no
+    // second set, so the only thing on screen is an Earlier set — and accepting that would
+    // walk the client past the human review the failed pass is FOR. Refused, both ways.
+    const { data: batchRows } = await db.from('leads')
+      .select('surfaced_for_approval_at')
+      .eq('client_id', clientId).eq('icp_id', icp.id)
+      .not('surfaced_for_approval_at', 'is', null)
+      .not('delivered_at', 'is', null)
+    const batches = [...new Set((batchRows ?? [])
+      .map(r => (r as { surfaced_for_approval_at: string }).surfaced_for_approval_at))]
+      .sort((a, b) => b.localeCompare(a))
+    if (batches.length !== passesDone) { needsReview(); return }
+    // The clicked card must be in the NEWEST batch. An Earlier set is never acceptable, even
+    // when a perfectly good Latest set sits above it.
+    if (batches[0] !== batchAt) { needsReview(); return }
+
+    // ── THE WIDENED CANDIDATE, IF THERE IS ONE FOR THIS EXACT BATCH ───────────────────
+    const cand = readCandidate(icp.proof_widened_candidate)
+
+    // Already accepted, same batch — a repeat of a click that SUCCEEDED. Say so and change
+    // nothing. This is what makes a lost response safe to retry, and it rests on the server's
+    // own record of which batch was accepted, never on anything the browser claims.
+    if (cand && cand.state === 'accepted' && cand.batch_at === batchAt) {
+      res.json({ success: true, data: { applied: false, already_accepted: true } })
+      return
+    }
+
+    // ── EXACT-BATCH ACCEPTANCE — the ordinary happy path, and it writes NOTHING ───────
+    //
+    // No candidate at all (pass 1, or a pass 2 whose exact targeting worked), or a candidate
+    // belonging to some OTHER batch — either way the set they accepted was produced by the
+    // targeting already saved, so there is nothing to align. A stale candidate is left exactly
+    // where it is: its batch is not the latest, so it can never be accepted from here.
+    if (!cand || cand.state !== 'pending' || cand.batch_at !== batchAt) {
+      res.json({ success: true, data: { applied: false, already_accepted: false } })
+      return
+    }
+
+    // ── WIDENED-BATCH ACCEPTANCE ──────────────────────────────────────────────────────
+    //
+    // Read-time check first, so a client whose ICP has drifted gets the honest refusal rather
+    // than a bare zero-row result. The conditional UPDATE below repeats it as a predicate —
+    // this one is not the guard, it is the early, explainable half of it.
+    if (!basisMatchesRow(cand.basis, icp as Record<string, unknown>)) { needsReview(); return }
+
+    // THE WRITE. Conditional on every fact the decision was made on, so the decision cannot be
+    // overtaken between reading and writing: same row, same owner, still live, still no parked
+    // revision, candidate still PENDING and still this batch, and all five targeting columns
+    // still exactly what the basis records.
+    //
+    // ⚠️ TWO FIELDS AND THE MARKER, IN ONE STATEMENT. `job_titles`, `industries`,
+    // `geographies`, `name`, `tech_stack`, `keywords`, `apollo_only_consented`, `client_id`,
+    // `is_active` and every campaign and commercial column are preserved BY CONSTRUCTION —
+    // they are not in the patch, so no spread, no merge and no stale copy can touch them.
+    //
+    // ⚠️ pending → accepted RIDES WITH IT. The consumption is the same UPDATE as the change,
+    // so a second click cannot apply twice: the predicate `state = pending` no longer holds,
+    // and it lands on the already-accepted branch above.
+    const acceptedAt = new Date().toISOString()
+    let q = db.from('icps')
+      .update({
+        seniority_levels: [],
+        company_sizes: [],
+        proof_widened_candidate: { ...cand, state: 'accepted', accepted_at: acceptedAt },
+      })
+      .eq('id', icp.id).eq('client_id', clientId)
+      .eq('is_active', true)
+      .is('pending_targeting', null)
+      .eq('proof_widened_candidate->>state', 'pending')
+      .eq('proof_widened_candidate->>batch_at', batchAt)
+    for (const f of PROOF_BASIS_FIELDS) q = q.filter(f, 'eq', pgTextArrayLiteral(cand.basis[f]))
+    const { data: updated, error: updErr } = await q.select('id').maybeSingle()
+
+    // ZERO ROWS IS A REFUSAL, NOT A REASON TO TRY AGAIN UNCONDITIONALLY. Something the write
+    // depended on changed, and the honest answer is that we could not save it yet.
+    if (updErr || !updated) {
+      console.error(`[leads/proof-accept] widened acceptance did not commit for client ${clientId}, icp ${icp.id}, batch ${batchAt}: ${updErr?.message ?? 'state changed underneath the request'}`)
+      needsReview(); return
+    }
+
+    console.log(`[leads/proof-accept] client ${clientId} accepted the widened proof batch ${batchAt} — icp ${icp.id} seniority + size cleared; titles, industries and countries untouched.`)
+    res.json({ success: true, data: { applied: true, already_accepted: false } })
+  } catch (err) {
+    console.error('[leads/proof-accept]', err)
+    // A failure here must not read as "saved". Same sentence, same refusal to navigate.
+    res.status(500).json({
+      success: false,
+      code: 'proof_acceptance_needs_review',
+      error: 'K.I.N.D couldn’t save what worked in that proof yet. K.I.N.D needs to check this before you go live.',
+    })
+  }
 })
 
 // ✕ pass — client says "not a fit". No charge, no reveal; the lead leaves the queue.

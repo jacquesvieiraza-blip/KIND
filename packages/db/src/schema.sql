@@ -457,8 +457,9 @@ alter table public.icps
   add column if not exists pending_campaign_intent          text,
   add column if not exists pending_submitted_at             timestamptz,
   add column if not exists pending_targeting                jsonb,
+  add column if not exists proof_widened_candidate          jsonb,
   add column if not exists settings                         jsonb;
--- sources: 20260527_icp_abm_organization_names.sql, 20260601_social_signals.sql, 20260603_schema_reconcile.sql, 20260727_pdl_cursor.sql
+-- sources: 20260527_icp_abm_organization_names.sql, 20260601_social_signals.sql, 20260603_schema_reconcile.sql, 20260727_pdl_cursor.sql, 20260825_proof_widened_candidate.sql
 
 -- ── LEADS ──────────────────────────────────────────────────────────────
 alter table public.leads

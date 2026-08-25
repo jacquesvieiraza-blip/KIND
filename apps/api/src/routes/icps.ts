@@ -24,6 +24,10 @@ import {
   type CursorQuery, type StoredCursor,
 } from '../lib/pdl-cursor'
 import { narrowSizeBands } from '../lib/lead-feedback'
+import {
+  PROOF_BASIS_FIELDS, pgTextArrayLiteral, pendingCandidate,
+  type ProofWidenedBasis,
+} from '../lib/proof-candidate'
 // K.I.N.D-only GO (22 Aug) — the same admin-key check `routes/lookalike.ts` already uses,
 // rather than a second way of asking "is this an operator?".
 import { adminKeyValid } from './admin'
@@ -484,6 +488,17 @@ export async function runIcpJob(
   let relaxed: string | null = null
   const insertedIds: string[] = []
 
+  /**
+   * ⚑ 25 Aug — SET ONLY WHEN THE ONE PASS-2 WIDENED FALLBACK ACTUALLY FOUND PEOPLE.
+   *
+   * It holds the SAVED ICP's five targeting fields as they were when the widened search was
+   * derived from them — BEFORE seniority and size were dropped. It is not the widened query
+   * and it is not written anywhere yet: the candidate row is written down in the surfacing
+   * block below, where the batch timestamp is created, so the candidate and the batch carry
+   * the SAME stamp and nothing has to guess afterwards which set it belongs to.
+   */
+  let widenedBasis: ProofWidenedBasis | null = null
+
   // ── #366 PDL PAGING — WHERE WE GOT TO LAST RUN.
   //
   // `pdlSearchPeople(icp, _page = 1, size)` ignored its page argument, so every run asked
@@ -818,6 +833,25 @@ export async function runIcpJob(
         // to know.
         if (contacts.length > 0) {
           relaxed = 'We widened the search a little to find this set — same roles, industries and countries you confirmed.'
+          // ⚑ 25 Aug — REMEMBER WHAT THIS SET WAS PRODUCED FROM, SO ACCEPTING IT CAN BE PROVED.
+          //
+          // ⚠️ FROM THE SAVED ROW, NOT FROM `widened`, AND NOT FROM `icpForSearch`. The basis
+          // is the targeting the client would be AGREEING TO CHANGE, so it must be the five
+          // columns as saved. On pass 2 `icpForSearch === icp` by construction — calibration
+          // is skipped for a confirmed refinement, a few hundred lines up — but reading `icp`
+          // says so explicitly rather than depending on that staying true.
+          //
+          // ⚠️ NOTHING IS PERSISTED HERE. This is a local value; the conditional write lives
+          // in the surfacing block, and if that write cannot be made safely there is simply
+          // no candidate and the widened proof is not adoptable. Never inferred later from a
+          // browser flag, the client-facing copy, a log line or a zero-result history.
+          widenedBasis = {
+            job_titles:       [...((icp as ProofWidenedBasis).job_titles       ?? [])],
+            seniority_levels: [...((icp as ProofWidenedBasis).seniority_levels ?? [])],
+            industries:       [...((icp as ProofWidenedBasis).industries       ?? [])],
+            company_sizes:    [...((icp as ProofWidenedBasis).company_sizes    ?? [])],
+            geographies:      [...((icp as ProofWidenedBasis).geographies      ?? [])],
+          }
         } else if (wide.pdlPage?.matchedNothing === true) {
           // PROVED ZERO. PDL answered, on a first page, that nobody matches. A human takes it
           // from here: no third query, no third pass, no retry control, and never the
@@ -1224,6 +1258,42 @@ export async function runIcpJob(
         `Reason: ${surfErr.message}`,
         'Their proof pass has been consumed and the leads exist — they simply do not appear. Re-surfacing them by hand costs nothing.',
       ]).catch(() => {})
+    }
+
+    // ── ⚑ 25 Aug — MOMENT 1: WRITE DOWN WHAT PRODUCED THIS SET (founder-ruled) ──────────
+    //
+    // ⚠️ THIS IS NOT A TARGETING CHANGE. Nothing about the client's saved ICP moves here.
+    // The five targeting columns are untouched; the only column written is the candidate,
+    // which no part of sourcing, scoring or sending ever reads. The widened targeting
+    // becomes real ONLY when the client presses "Looks right" on THIS set.
+    //
+    // ⚠️ IT CARRIES THE SAME `nowIso` THE BATCH DOES. That is the whole point of writing it
+    // here rather than beside the search: the candidate and the batch share one immutable
+    // stamp, so acceptance can PROVE they belong together instead of inferring it.
+    //
+    // ⚠️ AND IT FAILS CLOSED. The write is conditional on the ICP still being the row the
+    // basis came from — same id, same client, active, no revision parked, no other candidate
+    // already waiting, and all five targeting columns still exactly as the basis records
+    // them. If the row moved underneath the run, no candidate is written and the widened
+    // proof is simply not adoptable: a human takes it. We never manufacture the provenance,
+    // and acceptance can never infer it from a browser flag, the client copy or a log line.
+    if (widenedBasis && insertedIds.length > 0) {
+      const basis: ProofWidenedBasis = widenedBasis
+      let q = db.from('icps')
+        .update({ proof_widened_candidate: pendingCandidate(nowIso, basis) })
+        .eq('id', icpId).eq('client_id', clientId)
+        .eq('is_active', true)
+        .is('pending_targeting', null)
+        // Never overwrite a candidate that is already waiting — a second one would quietly
+        // point the first batch's promise at this batch's numbers.
+        .is('proof_widened_candidate', null)
+      for (const f of PROOF_BASIS_FIELDS) q = q.filter(f, 'eq', pgTextArrayLiteral(basis[f]))
+      const { data: candRow, error: candErr } = await q.select('id').maybeSingle()
+      if (candErr || !candRow) {
+        console.error(`[icp] PROOF PASS 2 — widened set surfaced for prospect ${clientId} but the candidate could NOT be recorded (${candErr?.message ?? 'the ICP changed underneath the run, or a candidate was already waiting'}). The widened targeting is NOT adoptable; a human must review it.`)
+      } else {
+        console.log(`[icp] PROOF PASS 2 — widened candidate recorded for prospect ${clientId}, batch ${nowIso}. Nothing has been retargeted; it applies only if they accept this set.`)
+      }
     }
   }
 

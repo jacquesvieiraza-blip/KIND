@@ -1842,6 +1842,28 @@ revoke execute on function public.release_proof_records(uuid, int) from public;
 grant  execute on function public.release_proof_records(uuid, int) to service_role;
 `.trim(),
   },
+  {
+    // ⚑ 25 Aug — FREE-PROOF PASS-2 WIDENED ACCEPTANCE. Canonical file:
+    // supabase/migrations/20260825_proof_widened_candidate.sql (written in the same change,
+    // which is the shape migration-home.test.ts argues for).
+    //
+    // ONE nullable jsonb column. It is the durable server-side answer to "which batch did
+    // this client accept, and what targeting produced it?" — without it, a client can accept
+    // a widened proof and then pay for an ICP whose paid sourcing re-runs the exact query
+    // that already returned zero. Every existing field was ruled out on its own evidence;
+    // the .sql file carries that reasoning in full.
+    //
+    // Additive, idempotent, no default, no backfill, no constraint, no index, no RLS change.
+    key: '20260825_proof_widened_candidate',
+    title: 'icps.proof_widened_candidate — the accepted-proof targeting alignment (a widened proof the client approved must be the targeting they pay for)',
+    sql: `
+alter table public.icps
+  add column if not exists proof_widened_candidate jsonb;
+
+comment on column public.icps.proof_widened_candidate is
+  'Free-proof pass-2 widened-fallback acceptance state. Server-owned only: never accepted from a browser, never read by sourcing, scoring or sending, and never applied by an operator GO. Shape: {version, state: pending|accepted, proof_pass, batch_at, basis:{job_titles, seniority_levels, industries, company_sizes, geographies}, accepted_at?}. batch_at is the surfaced_for_approval_at stamp of the batch it produced; basis is the saved ICP targeting the widened search was derived from, BEFORE seniority and size were removed. Only ''pending'' may change targeting, and the transition to ''accepted'' happens in the same conditional UPDATE that clears seniority_levels and company_sizes — so a replayed click cannot mutate twice. NULL for every paying client and for every proof that did not widen.';
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

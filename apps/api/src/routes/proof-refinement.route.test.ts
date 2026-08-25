@@ -36,6 +36,8 @@ const state = {
   icpUpdates: [] as Row[],
   /** The predicate each matching update carried — proves WHICH branch wrote. */
   icpUpdateConds: [] as Array<Array<[string, unknown]>>,
+  /** Every `.insert()` against `icps`. A proof refinement must never produce one. */
+  icpInserts: [] as Row[],
   /** Set to a revision to make it appear right after the core read — the race. */
   pendingAppearsAfterCoreRead: null as Row | null,
   /** How many times the core ICP row was SELECTED during one request. */
@@ -121,8 +123,13 @@ function query(table: string) {
       }
       return chain
     },
-    insert() {
-      const done = { data: { ...(state.icp ?? {}) }, error: null }
+    // ⚑ 25 Aug — INSERTS ARE RECORDED, because "no second ICP was created" is a claim and
+    // an unrecorded insert is not evidence of anything. Returns a plausible NEW row rather
+    // than echoing the existing one, so a test cannot mistake a creation for an update.
+    insert(row: Row) {
+      if (table === 'icps') state.icpInserts.push(row)
+      const created = { id: 'icp-NEW', ...row }
+      const done = { data: created, error: null }
       const chain: Record<string, unknown> = {
         select() { return chain },
         async single() { return done },
@@ -183,6 +190,22 @@ async function callRevise(body: Row) {
   return out
 }
 
+/** POST /icps — the ONBOARDING door, which legitimately creates a client's first ICP. */
+async function callCreate(body: Row) {
+  const { icpRouter } = await import('./icps')
+  const layer = (icpRouter as unknown as { stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: Function }> } }> })
+    .stack.find(l => l.route?.path === '/' && l.route?.methods.post)
+  if (!layer?.route) throw new Error('POST /icps not found on the icp router')
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle
+  const out: { code: number; payload: Row } = { code: 200, payload: {} }
+  const res = {
+    status(c: number) { out.code = c; return res },
+    json(p: Row) { out.payload = p; return res },
+  }
+  await handler({ body, headers: {}, params: {}, query: {}, userId: 'u1' }, res, () => {})
+  return out
+}
+
 async function callChatBuild(modelJson: unknown) {
   modelBox.text = typeof modelJson === 'string' ? modelJson : JSON.stringify(modelJson)
   const { icpRouter } = await import('./icps')
@@ -215,6 +238,7 @@ beforeEach(() => {
   state.passes = 1
   state.icpUpdates = []
   state.icpUpdateConds = []
+  state.icpInserts = []
   state.pendingAppearsAfterCoreRead = null
   state.icpReads = 0
   state.afterCoreRead = null
@@ -605,5 +629,104 @@ describe('the apply write fails closed if the row moves underneath it', () => {
     // ⚠️ THE ORDINARY PATH KEEPS `.single()`. Switching it would turn a real database failure
     // into a quiet 404 — a behaviour change on a path nobody asked to change.
     expect(src).toContain(".update(patch).eq('id', core.id).eq('client_id', clientId).select().single()")
+  })
+})
+
+// ── ⚑ 25 Aug — NO CORE ICP IS A STOP, NEVER A CREATION (founder-ruled) ───────────────────
+//
+// THE DEFECT, found in literal review of the atomicity build. `proofRefinementVerdict` asked
+// `core?.pending_targeting` — and for a null core that is `undefined`, which sailed through
+// the "nothing is waiting" test and returned `'apply'`. `saveClientTargeting` was then called
+// with `applyLive = true` and `coreIn = null`, hit its no-core branch, and INSERTED.
+//
+// A second ICP is the worst possible outcome of a refinement: `leads.icp_id`, the campaign's
+// `icp_id` and the PDL cursor all hang off `icp.id`, so pass 1's leads and feedback would be
+// orphaned on a row nothing looks at again — and the client would have spent their last free
+// pass on a brand-new experiment they never asked for.
+//
+// TWO protections, because they are reached by different callers and a guard that depends on
+// another guard having run is not a guard.
+describe('a proof refinement with no core ICP fails closed', () => {
+  it('1 · the route answers 409 targeting_state_changed', async () => {
+    state.icp = null
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code).toBe(409)
+    expect(r.payload.code).toBe('targeting_state_changed')
+    expect(String(r.payload.error)).toContain('no new search has started')
+  })
+
+  it('2/3/4 · zero inserts, zero updates, and no fallback pending write', async () => {
+    state.icp = null
+    await callRevise({ ...TARGETING(), proof_refinement: true })
+    expect(state.icpInserts, 'NO second ICP was created').toHaveLength(0)
+    expect(state.icpUpdates, 'and nothing was updated either').toHaveLength(0)
+  })
+
+  it('the VERDICT refuses it — `apply` is never produced without a core ICP', () => {
+    const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
+    const fn = src.slice(src.indexOf('async function proofRefinementVerdict'),
+                         src.indexOf('async function persistMillaUnderstanding'))
+    expect(fn).toContain("if (!core?.id) return 'state_changed'")
+    // ⚠️ ORDER IS THE GUARD. Asked BEFORE the pending question, because a null core answers
+    // that one `undefined` — which is exactly how `'apply'` was reached.
+    expect(fn.indexOf("!core?.id")).toBeLessThan(fn.indexOf('const waiting'))
+    // …and once past it the optional chain is gone, so the null case cannot be re-introduced
+    // silently by someone reading `core?.` as "this might be null here".
+    expect(fn).toContain('const waiting = core.pending_targeting')
+  })
+
+  it('the SAVE refuses it too, above the insert branch — the independent second fence', () => {
+    const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
+    const fn = src.slice(src.indexOf('  const core = coreIn !== undefined'),
+                         src.indexOf('  const isLive = (core as { is_active?: boolean })'))
+    expect(fn).toContain("if (applyLive && !core?.id) return { ok: false, reason: 'state_changed' }")
+    // ABOVE the insert. Below it, the insert has already happened and the guard is decoration.
+    expect(fn.indexOf('applyLive && !core?.id')).toBeLessThan(fn.indexOf("db.from('icps').insert"))
+    // ⚠️ `applyLive` ONLY — `POST /icps` creating a client's FIRST ICP is what that insert is
+    // for, and gating it unconditionally would break onboarding.
+    expect(fn).not.toMatch(/if \(!core\?\.id\) return \{ ok: false/)
+  })
+
+  it('5 · an eligible refinement WITH a core ICP still applies live', async () => {
+    state.icp = { id: 'icp-1', name: 'My targeting', is_active: true, pending_targeting: null }
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code).toBe(201)
+    expect(wasApplied()).toBe(true)
+    expect(state.icpInserts, 'still no insert — it UPDATED').toHaveLength(0)
+    expect((r.payload.data as Row)?.id).toBe('icp-1')
+  })
+
+  it('6 · an ordinary no-core POST /icps still INSERTS, exactly as before', async () => {
+    state.icp = null
+    const r = await callCreate(TARGETING({ industries: ['Fintech'] }))
+    expect(r.code, 'onboarding is untouched').toBe(201)
+    expect(state.icpInserts, 'the first ICP is created here, as it always was').toHaveLength(1)
+    expect(state.icpInserts[0]).toMatchObject({ industries: ['Fintech'], client_id: 'c1' })
+    expect(state.icpUpdates).toHaveLength(0)
+  })
+
+  it('an ordinary no-core /icps/revise also still inserts — no flag, no refusal', async () => {
+    state.icp = null
+    const r = await callRevise(TARGETING({ industries: ['Fintech'] }))
+    expect(r.code).toBe(201)
+    expect(state.icpInserts).toHaveLength(1)
+  })
+
+  it('7 · a PAID client is never refused by it — their verdict never reaches apply', async () => {
+    state.funding = [{ type: 'purchase', reference: 'pi_live_1' }]
+    state.icp = null
+    const r = await callRevise({ ...TARGETING({ industries: ['Fintech'] }), proof_refinement: true })
+    expect(r.code, 'no 409 — this is ordinary creation for them').toBe(201)
+    expect(state.icpInserts).toHaveLength(1)
+  })
+
+  it('both refusals answer with ONE sentence, written once', () => {
+    const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
+    expect(src).toContain('function stateChanged(res: Response): void {')
+    // Two callers, one copy — a second copy is a second thing to keep in step, and a client
+    // reading a different sentence for the same fact is how a support conversation goes wrong.
+    expect((src.match(/stateChanged\(res\); return/g) ?? []), 'both refusals use it').toHaveLength(2)
+    expect((src.match(/The targeting changed while you were reviewing it\./g) ?? []),
+      'the sentence exists exactly once').toHaveLength(1)
   })
 })

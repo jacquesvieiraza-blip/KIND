@@ -2176,6 +2176,24 @@ async function saveClientTargeting(
 ): Promise<SaveOutcome> {
   const core = coreIn !== undefined ? coreIn : await coreIcpRow(clientId)
 
+  // ── ⚑ 25 Aug — A PROOF REFINEMENT WITH NO CORE ICP IS A STOP, NOT A CREATION ─────────
+  //
+  // ⚠️ THIS MUST SIT ABOVE THE INSERT BRANCH, AND THAT POSITION IS THE WHOLE GUARD.
+  // `applyLive` means "a free-proof prospect confirmed a refinement of the batch they were
+  // just shown" — so an ICP to refine is a PREMISE, not something to conjure. Falling into
+  // the insert below would have created a SECOND ICP for pass 2 to run against: pass 1's
+  // leads, its feedback and the PDL cursor all hang off `icp.id`, so they would be orphaned
+  // on a row nothing looks at again, and the client would have spent their last free pass on
+  // a brand-new experiment they never asked for.
+  //
+  // The second protection, in `proofRefinementVerdict`, refuses this case before the route
+  // ever calls here. This one exists because the two are reached by different callers and a
+  // guard that depends on another guard having run is not a guard.
+  //
+  // ⚠️ ONLY `applyLive`. `POST /icps` creating a client's FIRST ICP is exactly what the
+  // insert below is for, and it never sets this flag.
+  if (applyLive && !core?.id) return { ok: false, reason: 'state_changed' }
+
   if (!core?.id) {
     const { data, error } = await db.from('icps').insert({ ...body, client_id: clientId }).select().single()
     if (error) throw error
@@ -2247,6 +2265,19 @@ const EXISTING_PENDING_TARGETING = 'existing_pending_targeting'
 const TARGETING_STATE_CHANGED = 'targeting_state_changed'
 
 /**
+ * The one place that sentence is written, because it now has two callers — the missing-core
+ * refusal and the lost race. Two copies would be two things to keep in step, and a client
+ * reading a different sentence for the same fact is how a support conversation goes wrong.
+ */
+function stateChanged(res: Response): void {
+  res.status(409).json({
+    success: false,
+    code: TARGETING_STATE_CHANGED,
+    error: 'The targeting changed while you were reviewing it. K.I.N.D needs to check this before another proof set is searched — nothing has been changed and no new search has started.',
+  })
+}
+
+/**
  * WHAT SHOULD HAPPEN TO THIS REVISION? (founder-ruled 25 Aug)
  *
  * - `'normal'`   — today's behaviour, byte for byte, for every caller that is not a proven
@@ -2266,7 +2297,12 @@ const TARGETING_STATE_CHANGED = 'targeting_state_changed'
  *      `try_claim_proof_pass` increments. NOT a second counter, and deliberately `=== 1`:
  *      at 0 there is no batch to refine, and at 2 both passes are gone and a human takes
  *      over. Only the one state between them is a refinement.
- *   3. `pending_targeting IS NULL` on the core ICP — read from the row `saveClientTargeting`
+ *   3. THERE IS A CORE ICP AT ALL. ⚑ 25 Aug — without this, `core === null` made
+ *      `core?.pending_targeting` come back `undefined`, which passed the "nothing is
+ *      waiting" test below and returned `'apply'` — and the save then fell into its INSERT
+ *      branch and minted a SECOND ICP. A refinement of a batch presupposes the ICP that
+ *      produced the batch; if it is not there, something is wrong and we stop.
+ *   4. `pending_targeting IS NULL` on the core ICP — read from the row `saveClientTargeting`
  *      will actually write, via the shared `coreIcpRow`.
  *
  * ⚠️ WHY (3) IS A CONFLICT AND NOT A FALLBACK. Without it the exception simply would not
@@ -2283,7 +2319,7 @@ const TARGETING_STATE_CHANGED = 'targeting_state_changed'
  * ⚠️ NO REQUEST FIELD IS CONSULTED FOR ANY OF THE THREE. `icpSchema` strips unknown keys, so
  * a body carrying `pending_targeting: null` cannot make a waiting revision look absent.
  */
-type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict'
+type ProofRefinementVerdict = 'normal' | 'apply' | 'conflict' | 'state_changed'
 
 async function proofRefinementVerdict(
   clientId: string,
@@ -2301,8 +2337,14 @@ async function proofRefinementVerdict(
   const passes = Number((client as { proof_passes_done?: number } | null)?.proof_passes_done ?? 0)
   if (passes !== 1) return 'normal'
 
+  // ⚑ 25 Aug — FAIL CLOSED WITH NO CORE ICP. Note the ORDER: this has to be asked before the
+  // `pending_targeting` question, because a null core answers that question `undefined` —
+  // which reads as "nothing is waiting" and returned `'apply'`. Never `'normal'` either:
+  // that would park or insert. There is nothing to refine, so there is nothing to do.
+  if (!core?.id) return 'state_changed'
+
   // From the SERVER's row, never the body.
-  const waiting = core?.pending_targeting
+  const waiting = core.pending_targeting
   if (waiting !== null && waiting !== undefined) return 'conflict'
 
   return 'apply'
@@ -2528,6 +2570,12 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
       return
     }
 
+    // ⚑ 25 Aug — NO CORE ICP TO REFINE. Returned before the save is even called, so this
+    // path performs no read-modify-write of any kind. Same answer as losing the race below,
+    // because it is the same fact from the client's side: the targeting is not in the state
+    // the refinement was built against, and a human needs to look before anything else runs.
+    if (verdict === 'state_changed') { stateChanged(res); return }
+
     const saved = await saveClientTargeting(clientId, body, revisedIntent, verdict === 'apply', core)
 
     // ⚠️ THE RACE LOST, AND LOSING IS THE CORRECT OUTCOME. The conditional update matched no
@@ -2537,14 +2585,7 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
     // We do NOT retry as an ordinary revision (that would overwrite it), do NOT park this
     // one, and do NOT insert a second ICP. No proof pass can be claimed either, because the
     // desk requires a success it will not get.
-    if (!saved.ok && saved.reason === 'state_changed') {
-      res.status(409).json({
-        success: false,
-        code: TARGETING_STATE_CHANGED,
-        error: 'The targeting changed while you were reviewing it. K.I.N.D needs to check this before another proof set is searched — nothing has been changed and no new search has started.',
-      })
-      return
-    }
+    if (!saved.ok && saved.reason === 'state_changed') { stateChanged(res); return }
     if (!saved.ok) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
     const { row: data, pending } = saved
 

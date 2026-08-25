@@ -26,6 +26,17 @@ type Summary = {
   /** Every lead they have ever approved — releases the minimum-20 gate at 20. */
   leads_approved_total?: number
   pack?: Pack
+  /** ⚑ 24 Aug — how many free-proof batches this prospect has been shown, from
+   *  `clients.proof_passes_done` (the same column try_claim_proof_pass increments).
+   *  Lets the desk tell 0 / 1 / 2 apart WITHOUT making the client press something
+   *  just to discover a 409. */
+  proof_passes_done?: number
+}
+/** The targeting fields a refinement may touch — exactly the ICP's own, nothing more. */
+type IcpTargeting = {
+  name?: string
+  job_titles?: string[]; seniority_levels?: string[]; industries?: string[]
+  company_sizes?: string[]; geographies?: string[]; tech_stack?: string[]; keywords?: string[]
 }
 type Msg = { id: string; role: 'user' | 'assistant'; content: string }
 
@@ -78,6 +89,16 @@ export default function MillaHomePage() {
   const [revealed, setRevealed] = useState<Record<string, Revealed>>({})
   const [topUp, setTopUp] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // ── ⚑ 24 Aug — BATCH REFINEMENT (founder-ruled): pass 1 → "these aren't right" → pass 2.
+  // Per-lead "Not a fit" is unchanged and still recorded; this is the BATCH verdict, which
+  // is a different statement and was the missing half of 20 → refine → 20 → human.
+  const [refineOpen, setRefineOpen]   = useState(false)
+  const [refineText, setRefineText]   = useState('')
+  const [refineDraft, setRefineDraft] = useState<IcpTargeting | null>(null)
+  const [refineSaid, setRefineSaid]   = useState<string | null>(null)
+  const [refineBusy, setRefineBusy]   = useState(false)
+  const [refineErr, setRefineErr]     = useState<string | null>(null)
 
   // Set once, from the URL, after mount — an effect never runs during a pre-render.
   const [finding, setFinding] = useState(false)
@@ -190,6 +211,98 @@ export default function MillaHomePage() {
   // `has_funded` is the same fact the go-live banner already reads — no new state, no new
   // endpoint, and a client who pays flips to the commercial desk by paying.
   const proofMode = needsGoLive
+
+  // ── ⚑ 24 Aug — WHERE THIS PROSPECT IS IN THE TWO-PASS PROOF JOURNEY ──────────────────
+  //
+  // ⚠️ BOTH CONDITIONS, ALWAYS. `proofMode` is the authoritative unpaid/proof signal the
+  // desk already had (`has_funded` is the purchase count — real money, not a guess); the
+  // pass count alone is NOT a proof signal, because a client who later PAID still carries
+  // `proof_passes_done = 1` forever. Gating on the count alone would show a paying client a
+  // "these aren't right, find me another free set" control. Hence `proofMode &&`.
+  //
+  // The count defaults to 0 — the safe direction: an unknown state offers the refinement
+  // rather than hiding it, and the server's `try_claim_proof_pass` 409 is the hard fence
+  // behind that either way. Nothing here is a gate; it decides what the client is OFFERED.
+  const proofPassesDone = summary?.proof_passes_done ?? 0
+  const canRefine       = proofMode && proofPassesDone === 1
+  const proofExhausted  = proofMode && proofPassesDone >= 2
+
+  // STEP 1 — opening the panel. Deliberately does NOTHING else: no call, no mutation, no
+  // spend. Pressing "these aren't right" must never cost a pass.
+  function openRefine() {
+    setRefineOpen(true); setRefineErr(null); setRefineDraft(null); setRefineSaid(null)
+  }
+
+  // STEP 2 — their words become structured targeting. READ-ONLY: `/icps/chat-build` is the
+  // same NL→targeting converter the /milla/icp refine panel already uses, and it only
+  // proposes — it writes nothing, spends nothing and calls no provider. Nothing is committed
+  // until they confirm on the next step.
+  async function submitRefine(text: string) {
+    const msg = text.trim(); if (!msg || refineBusy) return
+    setRefineBusy(true); setRefineErr(null)
+    try {
+      const r = await api.post<{ data: IcpTargeting & { message?: string } }>(
+        '/icps/chat-build', { message: msg, history: [] }, await token())
+      const d = r.data ?? {}
+      const touched = (['job_titles','seniority_levels','industries','company_sizes','geographies'] as const)
+        .some(k => Array.isArray(d[k]) && (d[k] as string[]).length > 0)
+      if (!touched) {
+        setRefineSaid(d.message || 'Tell me a bit more — who should we be looking for instead?')
+        setRefineDraft(null)
+      } else {
+        setRefineDraft(d); setRefineSaid(d.message ?? null)
+      }
+    } catch (e) {
+      setRefineErr(e instanceof Error ? e.message : 'I could not read that just yet — say it again?')
+    } finally { setRefineBusy(false) }
+  }
+
+  // STEP 3 — THE SPEND BOUNDARY. Everything above is free and reversible; this is the first
+  // line that mutates anything or costs a pass, and it only runs on an explicit confirm.
+  //
+  // Order is load-bearing: REVISE FIRST, and only claim the pass if it succeeded. Claiming
+  // first would burn a pass the client can never get back on targeting that was never saved.
+  async function confirmRefine() {
+    if (!refineDraft || refineBusy) return
+    setRefineBusy(true); setRefineErr(null)
+    try {
+      const tk = await token()
+      // The SAME ICP, read before and compared after. `/icps` is newest-first and
+      // `saveClientTargeting` updates the client's core row in place — this proves it did.
+      const before = await api.get<{ data: Array<IcpTargeting & { id: string }> }>('/icps', tk)
+      const core = before.data?.[0]
+      if (!core?.id) throw new Error('no icp')
+
+      // ⚠️ MERGE, NEVER REPLACE. A refinement that mentions titles must not silently wipe
+      // the industries and countries the client already agreed to. Only fields the draft
+      // actually carries override; everything else is preserved exactly as saved.
+      const keys = ['job_titles','seniority_levels','industries','company_sizes','geographies','tech_stack','keywords'] as const
+      const merged: IcpTargeting = { name: refineDraft.name || core.name || 'My targeting' }
+      for (const k of keys) {
+        const next = refineDraft[k]
+        merged[k] = Array.isArray(next) && next.length > 0 ? next : (core[k] ?? [])
+      }
+
+      const revised = await api.post<{ data?: { id?: string } }>('/icps/revise', merged, tk)
+      const afterId = revised?.data?.id
+      // SAME ICP, enforced at RUNTIME and not only in a test. If a revise ever created a
+      // second row, we stop here rather than spending the pass against the wrong targeting.
+      if (!afterId || afterId !== core.id) throw new Error('same-icp')
+
+      // EXACTLY ONE claim. Never retried, never in a loop: the pass is spent the moment this
+      // lands and there is no release, so a second POST would cost the client their last one.
+      await api.post(`/icps/${afterId}/proof`, {}, tk)
+      router.push('/milla?finding=1')
+    } catch (e) {
+      // Terminal, like the confirmation screen's proof failure: no retry control, no
+      // automatic re-call, and never a navigation that could start another pass.
+      setRefineErr(e instanceof Error && e.message === 'same-icp'
+        ? 'Something is out of step with your targeting — K.I.N.D needs to look at this before we search again.'
+        : 'Your targeting is saved, but we could not start the new search just yet. Nothing has been charged and nobody has been contacted. K.I.N.D needs to resolve this.')
+      setRefineBusy(false)
+    }
+  }
+
   // Scroll the CHAT container only — never the page (that would hide the KPI row).
   useEffect(() => { const el = chatBodyRef.current; if (el) el.scrollTop = el.scrollHeight }, [messages])
 
@@ -619,6 +732,92 @@ export default function MillaHomePage() {
             })}
             {/* Said "$4 per approved lead" even while the button above it said "included" —
                 two prices on one screen. */}
+            {/* ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ───────────────────────────
+                "Not a fit" above is PER LEAD and stays exactly as it was — it is recorded
+                as evidence either way. This is a different statement: the whole set is
+                wrong. It was the missing half of 20 → refine → 20 → human, and without it
+                a prospect who said so conversationally was told to go and find My ICP.
+
+                ⚠️ NOTHING HERE SPENDS ANYTHING UNTIL THE CONFIRM. Opening the panel is
+                free, describing what is wrong is free (`/icps/chat-build` only proposes),
+                and the revised targeting is shown back BEFORE a single mutation. */}
+            {canRefine && pending.length > 0 && !refineOpen && (
+              <button onClick={openRefine}
+                className="w-full text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 mt-1 border border-[#ece5fb] bg-white hover:bg-[#faf8ff]">
+                These aren&rsquo;t right
+              </button>
+            )}
+
+            {canRefine && refineOpen && (
+              <div className="mt-2 rounded-2xl border border-[#e4d4fb] bg-[#faf8ff] p-3.5">
+                <div className="text-[14px] font-bold text-[#1f1235]">What&rsquo;s off about this batch?</div>
+                <div className="text-[12px] text-[#9b8ec4] mt-0.5">
+                  Tell me in your own words — the wrong seniority, the wrong industry, the wrong places. I&rsquo;ll adjust who we look for.
+                </div>
+
+                {!refineDraft && (
+                  <div className="flex gap-2 mt-2.5">
+                    <input value={refineText} onChange={e => setRefineText(e.target.value)} disabled={refineBusy}
+                      onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitRefine(refineText) } }}
+                      placeholder="e.g. too IT-focused — I want Heads of Marketing and HR"
+                      className="flex-1 text-[13px] rounded-xl border border-[#e4dcf7] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[#7C3AED]/30 disabled:opacity-50" />
+                    <button disabled={refineBusy || !refineText.trim()} onClick={() => submitRefine(refineText)}
+                      className="text-[13px] font-bold text-white rounded-xl px-4 bg-[#7C3AED] disabled:opacity-50">
+                      {refineBusy ? '…' : 'Send'}
+                    </button>
+                  </div>
+                )}
+
+                {refineSaid && !refineDraft && (
+                  <div className="text-[12.5px] text-[#5c5279] mt-2.5">{refineSaid}</div>
+                )}
+
+                {/* REFLECT BACK BEFORE ANY SPEND. They see exactly what changed, in their
+                    own vocabulary, and nothing has been saved or searched yet. */}
+                {refineDraft && (
+                  <div className="mt-2.5">
+                    <div className="text-[12px] text-[#5c5279]">Here&rsquo;s who I&rsquo;d look for instead:</div>
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {[
+                        ...(refineDraft.seniority_levels ?? []), ...(refineDraft.job_titles ?? []),
+                        ...(refineDraft.industries ?? []), ...(refineDraft.geographies ?? []),
+                        ...(refineDraft.company_sizes ?? []).map(x => `${x} staff`),
+                      ].filter(Boolean).map((chip, i) => (
+                        <span key={i} className="text-[11.5px] font-semibold text-[#7C3AED] bg-white border border-[#e4d4fb] rounded-full px-2.5 py-1">{chip}</span>
+                      ))}
+                    </div>
+                    <div className="text-[12px] text-[#5c5279] mt-2.5 font-semibold">Use this refinement and find another set?</div>
+                    <div className="text-[11.5px] text-[#9b8ec4] mt-0.5">
+                      This is your second and last free set — after it, we talk it through together.
+                    </div>
+                    <div className="flex gap-2 mt-2">
+                      <button disabled={refineBusy} onClick={confirmRefine}
+                        className="flex-1 text-[13px] font-bold text-white rounded-xl py-2.5 bg-gradient-to-br from-[#7C3AED] to-[#EC4899] disabled:opacity-50">
+                        {refineBusy ? 'Finding…' : 'Yes — find another set'}
+                      </button>
+                      <button disabled={refineBusy}
+                        onClick={() => { setRefineOpen(false); setRefineDraft(null); setRefineText(''); setRefineSaid(null); setRefineErr(null) }}
+                        className="text-[13px] font-semibold text-[#5c5279] rounded-xl py-2.5 px-4 border border-[#ece5fb] bg-white disabled:opacity-50">
+                        Keep current
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {refineErr && <div className="mt-2.5 text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{refineErr}</div>}
+              </div>
+            )}
+
+            {/* ⚠️ BOTH PASSES SPENT — AND WE SAY SO RATHER THAN OFFERING A THIRD. The server
+                refuses a third claim outright (`try_claim_proof_pass` returns 0 → 409), and
+                that fence is untouched. This is the desk telling them BEFORE they press
+                anything, instead of letting them discover it as an error. */}
+            {proofExhausted && (
+              <div className="mt-2 rounded-2xl border border-[#ece5fb] bg-[#faf8ff] px-4 py-3 text-[13px] text-[#5c5279]">
+                We&rsquo;ve used both proof passes. K.I.N.D will review this with you.
+              </div>
+            )}
+
             <div className="text-[11.5px] text-[#b3a9cc] px-1 pt-1">
               {proofMode
                 ? 'These are real people who match your targeting — free, and nobody has been contacted. Tell us what looks right and we will go live.'

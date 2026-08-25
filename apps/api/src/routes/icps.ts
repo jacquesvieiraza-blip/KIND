@@ -674,7 +674,28 @@ export async function runIcpJob(
       // else, and any failure leaves the run EXACTLY as it is today. A calibration nicety must
       // never be able to stop a client's sourcing.
       let icpForSearch = icp
-      try {
+      // ── ⚑ 24 Aug — AN EXPLICIT REFINEMENT OUTRANKS INFERRED CALIBRATION (founder-ruled) ──
+      //
+      // Pass 2 only happens because the client looked at pass 1, said "these aren't right",
+      // told us WHAT was off, saw the revised targeting written back, and pressed confirm.
+      // That is the most explicit statement of intent this product can obtain — and it would
+      // be silently overridden right here, because `narrowSizeBands` reads every `pass` the
+      // client clicked on individual cards from pass 1 and quietly removes size bands from
+      // the very ICP they just confirmed. Two truths about the same targeting, the weaker one
+      // winning, and nothing on screen to say so.
+      //
+      // So the confirmed ICP is run AS SAVED on pass 2. Nothing is deleted: every
+      // `lead_feedback` row stays exactly where it is, still evidence, still read by scoring
+      // and by every OTHER run. This narrows WHEN calibration applies, never the record.
+      //
+      // ⚠️ PASS 1 AND EVERY PAID RUN ARE UNTOUCHED. Pass 1 has no explicit refinement behind
+      // it — nobody has confirmed anything yet — and a paying client's calibration is exactly
+      // as it was. The condition is the PASS NUMBER, not proof-ness, for precisely that reason.
+      const confirmedRefinement = opts?.proofPass === 2
+      if (confirmedRefinement) {
+        console.log(`[icp] calibration SKIPPED for client ${clientId} — proof pass 2 runs the targeting the client explicitly confirmed.`)
+      }
+      if (!confirmedRefinement) try {
         const { data: fb } = await db.from('lead_feedback')
           .select('reason_code, leads!inner(company_size)')
           .eq('client_id', clientId)

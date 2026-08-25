@@ -655,8 +655,16 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     // new name. A guard that a rename defeats does not protect the thing it names. Exactly
     // ONE place may read the claimed pass into a boolean; every other consumer reads that
     // boolean.
-    expect((src.match(/opts\?\.proofPass/g) ?? []), 'one derivation of proof-ness').toHaveLength(1)
-    expect((src.match(/proofPass \?\? 0/g) ?? [])).toHaveLength(1)
+    // ⚑ 24 Aug (batch refinement) — REFINED, NOT RELAXED. This counted every read of
+    // `opts?.proofPass` and required exactly one. Pass-2 calibration precedence legitimately
+    // adds a SECOND read — but it asks a different question ("is this pass TWO?"), not a
+    // second notion of proof-ness. So the count moves onto the DERIVATION itself: proof-ness
+    // is computed in exactly one place, and the only other permitted read is the pass-number
+    // rule, also exactly once. RED G7 (a `proofMode2` alias) and G7b (re-deriving inline at
+    // the delivery guard) both still fail, which is what this guard was written for.
+    expect((src.match(/proofPass \?\? 0/g) ?? []), 'one derivation of proof-ness').toHaveLength(1)
+    expect((src.match(/opts\?\.proofPass === 2/g) ?? []), 'one pass-number rule').toHaveLength(1)
+    expect((src.match(/opts\?\.proofPass/g) ?? []), 'and nothing else reads it').toHaveLength(2)
   })
 
   it('the proof surfacing block itself is UNCHANGED — same claim, same two fields', () => {
@@ -692,5 +700,193 @@ describe('free proof never reaches the paid reveal/delivery path', () => {
     expect(pdl).toContain("'Head of':                ['manager', 'director', 'vp'],")
     expect(pdl).toContain("'1,000+': ['1001-5000', '5001-10000', '10001+'],")
     expect(pdl).toContain('canonicalLaunchCountry(g)')
+  })
+})
+
+// ── THE BATCH VERDICT: PASS 1 → REFINE → PASS 2 → HUMAN (founder-ruled 24 Aug) ───────────
+//
+// The server rule was complete from the start — two passes, then a 409 with a human
+// sentence — but nothing on the desk could SPEND the second one. A prospect who told Milla
+// conversationally that the batch was wrong was sent to go and find My ICP, because the
+// shared chat engine has no tools and does not know the ICP id or the pass count.
+//
+// This is the desk-controlled half: an explicit batch verdict, their words turned into
+// targeting by the converter that already exists, the revision shown back, and only then —
+// on an explicit confirm — the SAME ICP updated and pass 2 claimed exactly once.
+//
+// ⚠️ EVERY GUARD BELOW IS ABOUT WHERE THE SPEND BOUNDARY SITS. Opening the control, and
+// describing what is wrong, must cost nothing and mutate nothing.
+describe('batch refinement — pass 1 → refine → pass 2, then a human', () => {
+  const desk = () => readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+  /** Comments stripped — absence is asserted on CODE, the convention this repo uses everywhere. */
+  const deskCode = () => desk().replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')
+  /**
+   * ONLY confirmRefine's body.
+   *
+   * ⚠️ BOUNDED AT THE FIRST MEMBER AT 2-SPACE INDENT, which is the real end of the function.
+   * Two looser cuts were both caught by mutation rather than by reading: slicing to
+   * end-of-file matched "send" in the chat composer 300 lines below, and slicing to the next
+   * NAMED landmark still swallowed anything inserted between — a stray function carrying a
+   * second `/proof` POST sat inside the slice and the guard stayed green.
+   */
+  const confirmBody = () => {
+    const d = desk()
+    const from = d.indexOf('async function confirmRefine')
+    expect(from, 'confirmRefine exists').toBeGreaterThan(-1)
+    const rest = d.slice(from + 1)
+    const end = rest.search(/\n {2}(?:\/\/|\/\*|async function |function |useEffect\(|const |return )/)
+    expect(end, 'the next top-level member after it').toBeGreaterThan(-1)
+    return rest.slice(0, end)
+  }
+  const summarySrc = () => readFileSync(join(__dirname, './milla-summary.ts'), 'utf8')
+
+  it('proof state comes from the EXISTING server column — no second counter', () => {
+    const s = summarySrc()
+    expect(s).toContain("db.from('clients').select('wallet_balance_usd, proof_passes_done')")
+    expect(s).toContain('proof_passes_done: Number((client as Record<string, number> | null)?.proof_passes_done ?? 0)')
+    // …and the desk reads THAT, rather than counting anything itself.
+    expect(desk()).toContain('const proofPassesDone = summary?.proof_passes_done ?? 0')
+    expect(desk()).not.toMatch(/passesUsed|proofCount|localPass/)
+  })
+
+  it('the control is PROOF-ONLY — a paying client never sees it', () => {
+    const d = desk()
+    // Both conditions. `proofMode` is the authoritative unpaid signal (has_funded = real
+    // purchases); the pass count alone is NOT one, because a client who later paid still
+    // carries proof_passes_done = 1 forever.
+    expect(d).toContain('const canRefine       = proofMode && proofPassesDone === 1')
+    expect(d).toContain('const proofExhausted  = proofMode && proofPassesDone >= 2')
+    expect(d).toContain('const proofMode = needsGoLive')
+    expect(d).toContain('const needsGoLive = !!summary && summary.icp_versions.length > 0 && !summary.has_funded')
+    // …and never inferred from anything else.
+    expect(d).not.toMatch(/canRefine\s*=\s*[^&]*wallet_balance|canRefine\s*=\s*[^&]*company_name/)
+  })
+
+  it('pass 0 and pass 2 do NOT offer another automatic run', () => {
+    const d = desk()
+    // `=== 1` is the whole point: not `>= 1`, which would offer a third after pass 2.
+    expect(d).toContain('proofPassesDone === 1')
+    expect(d).not.toContain('proofPassesDone >= 1')
+    expect(d).toContain("These aren&rsquo;t right")
+    // The exhausted state is a STATEMENT, with no action attached.
+    expect(d).toContain('We&rsquo;ve used both proof passes. K.I.N.D will review this with you.')
+  })
+
+  it('the wording is the founder\'s, verbatim', () => {
+    const d = desk()
+    expect(d).toContain('What&rsquo;s off about this batch?')
+    expect(d).toContain('Use this refinement and find another set?')
+  })
+
+  it('OPENING the control spends nothing — no call, no mutation', () => {
+    const d = desk()
+    const open = d.slice(d.indexOf('function openRefine()'), d.indexOf('async function submitRefine'))
+    expect(open.length).toBeGreaterThan(0)
+    expect(open).not.toMatch(/api\.(post|get|put|patch|delete)/)
+  })
+
+  it('DESCRIBING the problem uses the existing converter, and still spends nothing', () => {
+    const d = desk()
+    const sub = d.slice(d.indexOf('async function submitRefine'), d.indexOf('async function confirmRefine'))
+    expect(sub).toContain("'/icps/chat-build'")            // the existing NL → targeting path
+    expect(sub).not.toContain('/icps/revise')              // no mutation yet
+    expect(sub).not.toMatch(/\/proof/)                     // and no pass claimed
+  })
+
+  it('THE SPEND BOUNDARY — revise happens BEFORE proof, and only on confirm', () => {
+    const d = desk()
+    const confirm = confirmBody()
+    const reviseAt = confirm.indexOf("'/icps/revise'")
+    const proofAt  = confirm.indexOf('/proof`')
+    expect(reviseAt, 'revise is called').toBeGreaterThan(-1)
+    expect(proofAt, 'proof is called').toBeGreaterThan(-1)
+    expect(reviseAt).toBeLessThan(proofAt)
+    // A failed revise must NOT reach the pass claim — the throw between them is what guarantees it.
+    expect(confirm).toContain("if (!afterId || afterId !== core.id) throw new Error('same-icp')")
+  })
+
+  it('SAME ICP — proved at runtime, not only in this file', () => {
+    const d = desk()
+    expect(d).toContain("const before = await api.get<{ data: Array<IcpTargeting & { id: string }> }>('/icps', tk)")
+    expect(d).toContain('afterId !== core.id')
+    expect(d).toContain('await api.post(`/icps/${afterId}/proof`, {}, tk)')
+    // No path anywhere on this desk creates an ICP.
+    expect(d).not.toMatch(/api\.post\(\s*'\/icps'\s*,/)
+  })
+
+  it('the pass is claimed EXACTLY ONCE, and never retried', () => {
+    const d = desk()
+    // ⚠️ ON CODE, NOT SOURCE. Three of the four `/proof\`` mentions on this page are
+    // COMMENTS explaining why the poll may only read and why a second POST would cost the
+    // client their last pass — exactly the reasoning that must stay written down. Counting
+    // the source made this guard fail on its own explanation.
+    expect((deskCode().match(/\/proof`/g) ?? []), 'exactly one proof POST').toHaveLength(1)
+    // …and that one POST is inside THIS function, exactly once. That is the property the
+    // test's name actually claims — one confirmation, one pass consumed.
+    expect((confirmBody().match(/\/proof`/g) ?? []), 'one POST per confirmation').toHaveLength(1)
+    // ⚠️ BANS RETRY CONSTRUCTS, NOT LOOPS. A first cut banned `for (` outright and failed on
+    // `for (const k of keys)` — the MERGE loop over targeting field names, which is the
+    // founder's "preserve any field the refinement does not change" rule, not a retry.
+    expect(confirmBody()).not.toMatch(/setTimeout|setInterval|while \(/)
+    // The failure path is terminal: it sets an error and stops. No retry control, no re-call.
+    // ⚠️ SCOPED TO THE FUNCTION, for the same reason as the ban above. The desk carries four
+    // legitimate "please try again" strings — approve, pass, and the chat composer — which
+    // SHOULD be retryable because none of them spends a proof pass. Banning the phrase across
+    // the whole page failed on three unrelated features and would have pushed me to delete
+    // working retries to make a test about the proof path go green.
+    expect(confirmBody()).toContain('K.I.N.D needs to resolve this.')
+    expect(confirmBody()).not.toMatch(/try again|try the search again/i)
+  })
+
+  it('a successful pass 2 enters the EXISTING finding experience', () => {
+    expect(desk()).toContain("router.push('/milla?finding=1')")
+  })
+
+  it('MERGE, never replace — a refinement about titles cannot wipe the geographies', () => {
+    const d = desk()
+    expect(d).toContain('merged[k] = Array.isArray(next) && next.length > 0 ? next : (core[k] ?? [])')
+    // …and only the ICP's own targeting fields are touched. No pricing, campaign or provider.
+    expect(d).toContain("const keys = ['job_titles','seniority_levels','industries','company_sizes','geographies','tech_stack','keywords'] as const")
+    // ⚠️ BOUNDED TO THE FUNCTION. A first cut sliced to end-of-file and matched "send" in
+    // the chat composer 300 lines below — a guard that reads the whole file proves nothing
+    // about the function it names.
+    expect(confirmBody()).not.toMatch(/stripe|price|campaign|reveal|send/i)
+  })
+
+  it('PASS 2 RUNS THE CONFIRMED ICP — old per-lead calibration does not silently narrow it', () => {
+    const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    expect(src).toContain('const confirmedRefinement = opts?.proofPass === 2')
+    expect(src).toContain('if (!confirmedRefinement) try {')
+    // …and it SAYS so in the log, so a run that skipped calibration is never a mystery.
+    expect(src).toContain('calibration SKIPPED for client')
+  })
+
+  it('…but lead_feedback is RETAINED, and paid calibration is untouched', () => {
+    const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    // The rows are still read, still by the same client-scoped query — nothing is deleted.
+    expect(src).toContain("db.from('lead_feedback')")
+    expect(src).toContain('narrowSizeBands((icp as { company_sizes?: string[] }).company_sizes ?? [], rows)')
+    expect(src).not.toMatch(/delete\(\)[\s\S]{0,80}lead_feedback|lead_feedback[\s\S]{0,80}\.delete\(\)/)
+    // The condition is the PASS NUMBER, so pass 1 and every paid run still calibrate.
+    expect(src).not.toContain('const confirmedRefinement = proofMode')
+    expect(src).not.toContain('if (!proofMode) try {')
+  })
+
+  it('and every earlier launch fix is still standing', () => {
+    const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    const pdl  = readFileSync(join(__dirname, './pdl-search.ts'), 'utf8')
+    const d    = desk()
+    // #1449 — proof never enters paid delivery.
+    expect(icps).toContain('if (!proofMode && insertedIds.length > 0) {')
+    // #1448 — proof asks about fit, paid still asks about reach.
+    expect(pdl).toContain("if (opts?.proofMode !== true) must.push({ exists: { field: 'work_email' } })")
+    // #1447 — the targeting mappings.
+    expect(pdl).toContain("'Head of':                ['manager', 'director', 'vp'],")
+    expect(pdl).toContain("'1,000+': ['1001-5000', '5001-10000', '10001+'],")
+    expect(pdl).toContain('canonicalLaunchCountry(g)')
+    // The server's own pass-3 fence, and the per-lead control, both untouched.
+    expect(icps).toContain('We have shown you two sets of leads.')
+    expect(d).toContain('Not a fit')
+    expect(d).toContain("await api.post(`/leads/${id}/pass`, {}, await token())")
   })
 })

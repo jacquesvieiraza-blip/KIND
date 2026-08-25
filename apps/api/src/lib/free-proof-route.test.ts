@@ -18,6 +18,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { readFileSync } from 'fs'
+import { join } from 'path'
 
 type Rec = {
   rpcs: Array<{ fn: string; args: Record<string, unknown> }>
@@ -26,8 +28,11 @@ type Rec = {
   alerts: Array<{ subject: string; lines: string[] }>
   poolCap: number | null
   eqs: Array<{ table: string; col: string; val: unknown }>
+  /** ⚑ 24 Aug — every enrichAndDeliverLeads() call: the PAID reveal/delivery path.
+   *  A free-proof run must never appear here. Each entry is the candidate id list. */
+  enrich: string[][]
 }
-const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null, eqs: [] })
+const emptyRec = (): Rec => ({ rpcs: [], leadUpdates: [], leadInserts: 0, alerts: [], poolCap: null, eqs: [], enrich: [] })
 
 const ICP_ROW = {
   id: 'icp-1', client_id: 'c1',
@@ -157,6 +162,14 @@ async function runJob(opts: {
     id: `pdl_${i}`, first_name: 'A', last_name: 'B', email: null, email_status: null,
     linkedin_url: null, title: null, seniority: null, country: null,
     organization_name: null, organization: null,
+  }))
+
+  // ⚑ 24 Aug — THE PAID REVEAL/DELIVERY DOOR, recorded rather than executed. This is the
+  // function that sends ids to Apollo's bulk_match and then runs the Hunter waterfall; a
+  // free-proof run reaching it is the defect this file now guards. Mocked so the guard reads
+  // WHETHER it was called, and so no test can ever touch a real enrichment path.
+  vi.doMock('./lead-delivery', () => ({
+    enrichAndDeliverLeads: async (_clientId: string, ids: string[]) => { rec.enrich.push(ids); return 0 },
   }))
 
   vi.doMock('./apollo', () => ({
@@ -574,5 +587,110 @@ describe('POST /icps/:id/proof — the client\'s one proof entry, and its fences
     for (const forbidden of ['approve_lead_atomic', 'increment_emails_sent', 'try_spend_sourcing']) {
       expect(names).not.toContain(forbidden)
     }
+  })
+})
+
+// ── FREE PROOF NEVER ENTERS THE PAID DELIVERY PATH (founder-ruled 24 Aug) ────────────────
+//
+// THE LIVE DEFECT. `runIcpJob`'s delivery block read `if (insertedIds.length > 0)` and
+// nothing else, so a free-proof run fell into paid delivery: 20 PDL ids went to Apollo's
+// `bulkMatchEmails` (AR5 refused every one — correctly — and logged it, which is how this
+// was found), then the HUNTER WATERFALL ran over the email-less leads if the key was set.
+// Every lead Hunter FOUND an address for was stamped `delivered_at` — and the proof
+// surfacing block below claims `.is('delivered_at', null)`, so it skipped exactly those
+// rows. They got `delivered_at` but never `surfaced_for_approval_at`, and
+// `/leads/for-approval` requires BOTH.
+//
+// So the client saw only the leads Hunter FAILED on. Sourcing worked, proof worked, and the
+// successful enrichments are what made the leads disappear.
+//
+// ⚠️ WHAT THESE GUARDS PROTECT, in both directions. Free proof must not reach that door;
+// PAID must still walk through it exactly as before. The second half matters as much as the
+// first — a fix that quietly stopped delivering paid leads would be a worse bug than this one.
+describe('free proof never reaches the paid reveal/delivery path', () => {
+  beforeEach(() => { process.env.SUPABASE_URL = 'http://x'; process.env.SUPABASE_SERVICE_ROLE_KEY = 'k' })
+  afterEach(() => { vi.resetModules(); vi.restoreAllMocks() })
+
+  it('A PROOF RUN WITH LEADS NEVER CALLS enrichAndDeliverLeads', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: null, proof: 1, reserve: 20, contacts: 20 }, rec)
+    expect(rec.leadInserts, 'the run really did insert leads').toBeGreaterThan(0)
+    expect(rec.enrich, 'the paid reveal/delivery door was never opened').toEqual([])
+  })
+
+  it('…and it STILL surfaces them, which is the whole point', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: null, proof: 1, reserve: 20, contacts: 20 }, rec)
+    const surf = rec.leadUpdates.find(u => 'surfaced_for_approval_at' in u)
+    expect(surf, 'proof leads are surfaced by the proof block').toBeTruthy()
+    // BOTH fields, because /leads/for-approval requires both — that is the bug's mechanism.
+    expect(surf).toHaveProperty('delivered_at')
+    // …and nothing was revealed. A proof lead stays masked and commercially inert.
+    expect(rec.leadUpdates.some(u => 'revealed_at' in u), 'revealed_at is never set').toBe(false)
+  })
+
+  it('A PAID RUN STILL CALLS IT — the fix must not stop delivering to paying clients', async () => {
+    const rec = emptyRec()
+    await runJob({ funded: 'real', grant: 20, contacts: 20 }, rec)
+    expect(rec.leadInserts).toBeGreaterThan(0)
+    expect(rec.enrich.length, 'the paid path still enriches and delivers').toBe(1)
+    expect(rec.enrich[0].length, 'and it is given the inserted leads').toBeGreaterThan(0)
+  })
+
+  it('a NEVER-FUNDED account on a NORMAL run is still the paid path — proof is a MODE', async () => {
+    // Round 4's rule, re-asserted here: proof-ness comes from the claimed pass, never from
+    // the absence of money. A normal run on a prospect must behave like any other normal run.
+    const rec = emptyRec()
+    await runJob({ funded: null, grant: 20, contacts: 20 }, rec)
+    expect(rec.enrich.length, 'no proof claim → the ordinary delivery path').toBe(1)
+  })
+
+  it('the guard reads the SAME proofMode everything else does — no second flag', () => {
+    const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    expect(src).toContain('if (!proofMode && insertedIds.length > 0) {')
+    expect(src).toContain('const proofMode = (opts?.proofPass ?? 0) > 0')
+    // ⚠️ COUNTED ON THE SOURCE OF PROOF-NESS, NOT THE NAME. A first cut counted
+    // `const proofMode =` — and RED G7, which added a second flag called `proofMode2`
+    // derived from the same `opts?.proofPass`, PASSED, because the regex did not match the
+    // new name. A guard that a rename defeats does not protect the thing it names. Exactly
+    // ONE place may read the claimed pass into a boolean; every other consumer reads that
+    // boolean.
+    expect((src.match(/opts\?\.proofPass/g) ?? []), 'one derivation of proof-ness').toHaveLength(1)
+    expect((src.match(/proofPass \?\? 0/g) ?? [])).toHaveLength(1)
+  })
+
+  it('the proof surfacing block itself is UNCHANGED — same claim, same two fields', () => {
+    const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    expect(src).toContain("if (proofMode && insertedIds.length > 0) {")
+    expect(src).toContain(".update({ surfaced_for_approval_at: nowIso, delivered_at: nowIso })")
+    expect(src).toContain(".in('id', insertedIds).is('delivered_at', null)")
+  })
+
+  it('NO Hunter, Apollo or reveal implementation was touched by this fix', () => {
+    const delivery = readFileSync(join(__dirname, './lead-delivery.ts'), 'utf8')
+    const apollo   = readFileSync(join(__dirname, './apollo.ts'), 'utf8')
+    // The paid path's machinery is exactly as it was — this build changed WHO enters it.
+    expect(delivery).toContain('if (process.env.HUNTER_API_KEY) {')
+    expect(delivery).toContain('const revealed = await bulkMatchEmails(needEmail.map(r => r.apollo_id as string))')
+    expect(apollo).toContain('const ids = apolloRevealableIds(apolloIds)')
+    expect(apollo).toContain('bulk_match: AR5 refused ${refused} non-Apollo id(s) — routed to the Hunter waterfall instead')
+    // …and delivery still cannot charge (#420's invariant).
+    expect(delivery).toContain('INVARIANT VIOLATED: delivery must not charge')
+  })
+
+  it('and no extra provider call or fence change came with it', () => {
+    const src = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    // One search call site, one proof-pass claim, one reservation — all as before.
+    expect((src.match(/searchPeopleWithFallback\(/g) ?? [])).toHaveLength(1)
+    expect(src).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
+    expect(src).toContain("db.rpc('try_reserve_proof_records'")
+    expect(src).toContain('const PROOF_PASS_LEADS = 20')
+    expect(src).toContain('PROOF_CLIENT_RECORD_CAP = 40')
+    // …and #1447/#1448 are still where they were.
+    const pdl = readFileSync(join(__dirname, './pdl-search.ts'), 'utf8')
+    expect(pdl).toContain("if (opts?.proofMode !== true) must.push({ exists: { field: 'work_email' } })")
+    expect(pdl).toContain("'Head of':                ['manager', 'director', 'vp'],")
+    expect(pdl).toContain("'1,000+': ['1001-5000', '5001-10000', '10001+'],")
+    expect(pdl).toContain('canonicalLaunchCountry(g)')
   })
 })

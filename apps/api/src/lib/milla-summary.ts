@@ -97,9 +97,14 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
 
   return {
     wallet_balance_usd: Number((client as Record<string, number> | null)?.wallet_balance_usd ?? 0),
-    // ⚑ 24 Aug — the existing column, read as-is. Fails to 0, which is the SAFE direction:
-    // an unknown count offers the refinement rather than hiding it, and the server's own
-    // `try_claim_proof_pass` 409 is still the hard fence behind that.
+    // ⚑ 24 Aug — the existing column, read as-is. Fails to 0.
+    //
+    // ⛓️ CORRECTED 25 Aug: this said 0 "offers the refinement rather than hiding it". That
+    // was the wrong way round and the founder caught it. The desk gates on
+    // `proofPassesDone === 1`, so 0 HIDES the control. Failing to 0 is still the safe
+    // direction — it just earns that description by offering nothing, not by offering
+    // something. The behaviour is right; only the sentence describing it was wrong, and it
+    // is the sentence that changed.
     proof_passes_done: Number((client as Record<string, number> | null)?.proof_passes_done ?? 0),
     // NO FREEBIES — true once the client has made their first purchase. The Milla
     // dashboard gates on this: no purchase → paywall to Billing.

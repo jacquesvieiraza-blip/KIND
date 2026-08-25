@@ -193,6 +193,18 @@ const icpSchema = z.object({
   apollo_only_consented: z.boolean().default(true),
 })
 
+/**
+ * The ONLY targeting filters a client may explicitly BROADEN to "any" (founder-ruled 25 Aug).
+ *
+ * ⚠️ THE ABSENCES ARE THE POINT. `name` is the ICP's identity, `tech_stack` and `keywords`
+ * are intent signals rather than filters a prospect asks us to drop, and nothing commercial
+ * appears here at all. A refinement may narrow those fields only by replacing them, never by
+ * emptying them — so they cannot be cleared through this door in either direction.
+ */
+const CLEARABLE_ICP_FIELDS = [
+  'job_titles', 'seniority_levels', 'industries', 'company_sizes', 'geographies',
+] as const
+
 async function getClientId(userId: string): Promise<string | null> {
   const { data } = await db.from('clients').select('id').eq('user_id', userId).maybeSingle()
   return data?.id ?? null
@@ -1296,7 +1308,10 @@ Based on the conversation, return a JSON object with:
 - "tech_stack": array of tools they likely use
 - "keywords": array of intent signals (e.g. "hiring", "Series A", "expansion")
 
+- "clear_fields": array — ONLY for filters the user EXPLICITLY asked to remove or broaden, e.g. "any industry", "remove the industry restriction", "company size doesn't matter", "anywhere". Permitted values: "job_titles", "seniority_levels", "industries", "company_sizes", "geographies".
+
 Only include fields you're confident about. Leave arrays empty [] if not enough info yet.
+An empty array [] means "not enough information — leave that filter exactly as it is". It is NOT a request to remove a filter. Removing a filter is expressed ONLY through clear_fields.
 Always respond with valid JSON only — no markdown, no explanation outside the JSON.`
 
     const messages = [
@@ -1319,7 +1334,26 @@ Always respond with valid JSON only — no markdown, no explanation outside the 
       parsed = { message: "Tell me more about who you want to target — industry, job title, company size, location?" }
     }
 
-    res.json({ success: true, data: parsed })
+    // ── ⚑ 25 Aug — `clear_fields` IS SANITISED HERE, FAIL-CLOSED (founder-ruled) ─────────
+    //
+    // WHY THE SIGNAL EXISTS. `[]` already means "not enough information yet" — that is what
+    // the prompt above has always said — so it could never also mean "remove this filter".
+    // A prospect who says *"any industry, I don't care"* produced an empty `industries`,
+    // which the refinement merge correctly PRESERVES, and their existing industry filter
+    // survived a request to delete it. Two different intentions, one representation.
+    //
+    // ⚠️ ALLOWLIST, NOT A BLOCKLIST, AND ENFORCED ON THE SERVER. The model is asked for a
+    // short list of field names and could return anything at all — `name`, `apollo_id`,
+    // `wallet_balance_usd`, prose. Every value outside the five targeting filters a client
+    // may broaden is DROPPED, and a non-array becomes `[]`. So the worst a bad response can
+    // do is clear nothing. `name`, `tech_stack` and `keywords` are deliberately absent:
+    // this flow may not touch them at all, in either direction.
+    const rawClear = (parsed as { clear_fields?: unknown }).clear_fields
+    const clear_fields = (Array.isArray(rawClear) ? rawClear : []).filter(
+      (f): f is string => typeof f === 'string' && (CLEARABLE_ICP_FIELDS as readonly string[]).includes(f),
+    )
+
+    res.json({ success: true, data: { ...parsed, clear_fields } })
   } catch (err) {
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
     console.error('[icps/chat-build]', err)
@@ -2068,6 +2102,26 @@ async function saveClientTargeting(
   body: Record<string, unknown>,
   /** The revised brief, when the conversation produced one. Held, never applied, here. */
   intent = '',
+  /**
+   * ⚑ 25 Aug — APPLY THE TARGETING TO THE LIVE COLUMNS EVEN THOUGH THE ICP IS ACTIVE.
+   *
+   * ⚠️ THE CALLER MUST HAVE PROVEN THE RIGHT TO SET THIS FROM SERVER STATE. It is never a
+   * request field and never a default; `proofRefinementApplies()` is the only thing that
+   * returns true for it, and it reads the funding ledger and `proof_passes_done` itself.
+   *
+   * WHY IT HAD TO EXIST. `icps.is_active` defaults to TRUE at the database (schema.sql) and
+   * `icpSchema` carries no such field, so the insert a few lines below omits it — which
+   * means a Milla-created PROSPECT's ICP is active exactly like a paying client's. The
+   * `isLive` branch then parked their confirmed refinement in `pending_targeting`, the live
+   * columns never moved, and `runIcpJob` reads the live columns. A free-proof prospect would
+   * have confirmed a refinement, spent their SECOND AND LAST pass, and been shown another
+   * batch built from pass 1's targeting — with the same-ICP check passing, because it is
+   * genuinely the same row.
+   *
+   * The 22 Aug lock — a LIVE client's edit waits for K.I.N.D — is untouched: `applyLive`
+   * defaults to false, so every other caller behaves exactly as it did today.
+   */
+  applyLive = false,
 ): Promise<{ row: Record<string, unknown>; pending: boolean } | null> {
   // Their live ICP if they have one, otherwise the newest — the SAME row either way.
   const { data: live } = await db.from('icps')
@@ -2084,7 +2138,9 @@ async function saveClientTargeting(
   }
 
   const isLive = (core as { is_active?: boolean }).is_active === true
-  const patch = isLive
+  // HELD only when the ICP is live AND the caller has not proven the free-proof exception.
+  const hold = isLive && !applyLive
+  const patch = hold
     ? {
         pending_targeting: body,
         pending_submitted_at: new Date().toISOString(),
@@ -2097,7 +2153,38 @@ async function saveClientTargeting(
   const { data, error } = await db.from('icps')
     .update(patch).eq('id', core.id).eq('client_id', clientId).select().single()
   if (error) throw error
-  return data ? { row: data as Record<string, unknown>, pending: isLive } : null
+  return data ? { row: data as Record<string, unknown>, pending: hold } : null
+}
+
+/**
+ * MAY THIS REVISION BE APPLIED TO THE LIVE COLUMNS IMMEDIATELY? (founder-ruled 25 Aug)
+ *
+ * ⚠️ THE REQUEST FIELD IS A DECLARATION OF INTENT, NEVER THE PERMISSION. A client can put
+ * `proof_refinement: true` on any body they like; on its own it changes nothing. Both facts
+ * that actually grant the exception are read HERE, from the server's own tables:
+ *
+ *   1. THEY HAVE NEVER FUNDED — the same `fundedVia` ledger test the proof route itself
+ *      uses. A paying or comped account is refused, so the 22 Aug "a live client's edit
+ *      waits" lock cannot be reached through this door.
+ *   2. `proof_passes_done === 1` — read from `clients`, the SAME column
+ *      `try_claim_proof_pass` increments. NOT a second counter, and deliberately `=== 1`:
+ *      at 0 there is no batch to refine, and at 2 both passes are gone and a human takes
+ *      over. Only the one state between them is a refinement.
+ *
+ * Anything missing → false → today's behaviour, unchanged, for every other caller. No
+ * environment check, no client-name check, no route guessing: three facts, all provable.
+ */
+async function proofRefinementApplies(clientId: string, rawBody: unknown): Promise<boolean> {
+  if ((rawBody as { proof_refinement?: unknown } | null)?.proof_refinement !== true) return false
+
+  const { data: fundingRows } = await db.from('credit_transactions')
+    .select('type, reference').eq('client_id', clientId)
+  if (fundedVia(fundingRows ?? []) !== null) return false
+
+  const { data: client } = await db.from('clients')
+    .select('proof_passes_done').eq('id', clientId).maybeSingle()
+  const passes = Number((client as { proof_passes_done?: number } | null)?.proof_passes_done ?? 0)
+  return passes === 1
 }
 
 async function persistMillaUnderstanding(
@@ -2291,7 +2378,11 @@ icpRouter.post('/revise', async (req: AuthRequest, res) => {
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
 
     const revisedIntent = typeof req.body?.campaign_intent === 'string' ? req.body.campaign_intent.trim() : ''
-    const saved = await saveClientTargeting(clientId, body, revisedIntent)
+    // ⚑ 25 Aug — the ONE exception, and it is decided by the server, not by the body. See
+    // `proofRefinementApplies`. False for every paying/active client, so their edit still
+    // waits for K.I.N.D exactly as it did before this line existed.
+    const applyLive = await proofRefinementApplies(clientId, req.body)
+    const saved = await saveClientTargeting(clientId, body, revisedIntent, applyLive)
     if (!saved) { res.status(404).json({ success: false, error: 'Failed to save your targeting' }); return }
     const { row: data, pending } = saved
 

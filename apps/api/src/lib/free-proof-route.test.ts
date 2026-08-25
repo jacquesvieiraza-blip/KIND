@@ -842,11 +842,11 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     expect(desk()).toContain("router.push('/milla?finding=1')")
   })
 
-  it('MERGE, never replace — a refinement about titles cannot wipe the geographies', () => {
-    const d = desk()
-    expect(d).toContain('merged[k] = Array.isArray(next) && next.length > 0 ? next : (core[k] ?? [])')
-    // …and only the ICP's own targeting fields are touched. No pricing, campaign or provider.
-    expect(d).toContain("const keys = ['job_titles','seniority_levels','industries','company_sizes','geographies','tech_stack','keywords'] as const")
+  // ⛓️ AMENDED 25 Aug — the merge MOVED to submitRefine, so its guard moves with it. The
+  // three-way rule (clear / use / preserve) is proved in `submitBody()` below; what stays
+  // here is the property this test was always really about: the confirm step touches
+  // nothing commercial.
+  it('the confirm step touches no pricing, campaign, provider or send path', () => {
     // ⚠️ BOUNDED TO THE FUNCTION. A first cut sliced to end-of-file and matched "send" in
     // the chat composer 300 lines below — a guard that reads the whole file proves nothing
     // about the function it names.
@@ -888,5 +888,263 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
     expect(icps).toContain('We have shown you two sets of leads.')
     expect(d).toContain('Not a fit')
     expect(d).toContain("await api.post(`/leads/${id}/pass`, {}, await token())")
+  })
+})
+
+// ── ⚑ 25 Aug — THE THREE CORRECTIONS FOUND IN LITERAL REVIEW (founder-ruled) ─────────────
+//
+// The batch-refinement build above was reviewed line by line and three defects came out of
+// it that no test had caught, because every guard proved the code did what it said and none
+// asked whether what it said was ENOUGH:
+//
+//   0. The confirmed refinement was PARKED, not applied — so pass 2 would have run pass 1's
+//      targeting and spent the client's last free pass on nothing changed. Proved and
+//      guarded behaviourally in `routes/proof-refinement.route.test.ts`, through the real
+//      Express handler, because a source assertion cannot tell those two writes apart.
+//   1. `[]` could not mean "remove this filter" — same file, behavioural.
+//   2. The panel rendered the model's raw draft while the payload was merged later. Two
+//      objects; the client confirmed one and saved the other. Guarded here.
+//   3. Pass 1 and pass 2 leads came back as one score-interleaved list. Guarded here.
+describe('one reflect-back truth, and two labelled proof sets', () => {
+  const desk = () => readFileSync(join(__dirname, '../../../portal/src/app/(milla)/milla/page.tsx'), 'utf8')
+  /** Absence is asserted on CODE — the repo convention, and the trap this build kept hitting. */
+  const stripComments = (s: string) =>
+    s.replace(/\{\/\*[\s\S]*?\*\/\}/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/^\s*\/\/.*$/gm, ' ')
+  /** Bounded exactly like `confirmBody()` above, and for the same reasons. */
+  const bodyOf = (fn: string) => {
+    const d = desk()
+    const from = d.indexOf(fn)
+    expect(from, `${fn} exists`).toBeGreaterThan(-1)
+    const rest = d.slice(from + 1)
+    const end = rest.search(/\n {2}(?:\/\/|\/\*|async function |function |useEffect\(|const |return )/)
+    expect(end, 'the next top-level member after it').toBeGreaterThan(-1)
+    return rest.slice(0, end)
+  }
+  const submitBody  = () => bodyOf('async function submitRefine')
+  const confirmBody = () => bodyOf('async function confirmRefine')
+
+  // ── CLEAR / USE / PRESERVE ──────────────────────────────────────────────────────────
+  it('7/8 · omitted OR empty-without-clear_fields → the saved value is PRESERVED', () => {
+    // The single expression that decides all three cases. `[]` reaches the last branch —
+    // `core[k]` — which is exactly the founder's rule that an ordinary empty array is never
+    // read as a request to clear.
+    expect(submitBody()).toContain(
+      "final[k] = cleared.has(k) ? []\n          : (Array.isArray(next) && next.length > 0 ? next : (core[k] ?? []))")
+    // A regression to "replace" would look like this, and it is what /milla/icp still does.
+    expect(submitBody()).not.toMatch(/final\[k\]\s*=\s*next\s*\?\?\s*\[\]/)
+  })
+
+  it('9/10 · a field named in clear_fields is saved EMPTY, and only via that list', () => {
+    const b = submitBody()
+    expect(b).toContain('cleared.has(k) ? []')
+    // `cleared` can only ever hold one of the five — built by filtering against the same
+    // table that drives the display, so the two cannot describe different fields.
+    expect(b).toContain("(Array.isArray(d.clear_fields) ? d.clear_fields : [])")
+    expect(b).toContain('.filter((f): f is RefineField => REFINE_FIELDS.some(([k]) => k === f))')
+  })
+
+  it('12 · name, tech_stack and keywords are carried through, never cleared or edited', () => {
+    const b = submitBody()
+    expect(b).toContain("name:       core.name || 'My targeting'")
+    expect(b).toContain('tech_stack: core.tech_stack ?? []')
+    expect(b).toContain('keywords:   core.keywords ?? []')
+    // They are not in the clearable table, so no clear_fields value can reach them…
+    const five = desk().slice(desk().indexOf('const REFINE_FIELDS'), desk().indexOf('type RefineField'))
+    expect(five).not.toMatch(/'name'|'tech_stack'|'keywords'/)
+    // …and the loop that can empty a field only ever walks that table.
+    expect(b).toContain('for (const [k] of REFINE_FIELDS)')
+  })
+
+  // ── ONE OBJECT, BUILT BEFORE THE CONFIRMATION EXISTS ────────────────────────────────
+  it('13 · the final five are constructed in submitRefine — BEFORE any confirm is offered', () => {
+    expect(submitBody()).toContain('setRefineFinal(final)')
+    // The confirm button only renders once that object exists, so there is no window in
+    // which a client can confirm something that has not been built and shown.
+    expect(desk()).toContain('{refineFinal && (')
+    expect(desk()).toContain('{!refineFinal && (')
+  })
+
+  it('14/17 · confirmRefine SENDS the rendered object and merges nothing of its own', () => {
+    const c = confirmBody()
+    expect(c).toContain("'/icps/revise', { ...refineFinal, proof_refinement: true }, tk)")
+    // ⚠️ THE WHOLE CORRECTION, AS A BAN. Any of these reappearing in the confirm step means
+    // a second merge has come back and the preview is a preview again in name only.
+    expect(c).not.toMatch(/REFINE_FIELDS|cleared|core\[k\]|merged|final\[k\]/)
+    expect(c).not.toMatch(/for \(const \[k\]|\.map\(|\.filter\(/)
+  })
+
+  it('15/16 · all five dimensions render from that object, and an empty one reads "Any"', () => {
+    const d = desk()
+    // Rendered by walking the SAME table the merge walks — a preserved field is therefore
+    // impossible to omit, which is exactly how the old panel hid what it was about to save.
+    expect(d).toContain('{REFINE_FIELDS.map(([k, label]) => {')
+    expect(d).toContain('const vals = refineFinal[k] ?? []')
+    expect(d).toContain("? <span className=\"text-[12px] text-[#9b8ec4] italic\">Any</span>")
+    // The five labels a client actually reads.
+    for (const label of ['Seniority', 'Job titles', 'Industry', 'Company size', 'Geography']) {
+      expect(d, `${label} is shown`).toContain(`'${label}'`)
+    }
+    // The old partial render is gone: a flat chip soup of only what the model returned.
+    expect(d).not.toMatch(/\.\.\.\(refineDraft\.\w+ \?\? \[\]\)/)
+    expect(d).not.toContain('refineDraft')
+  })
+
+  it('the confirmation sentence and the two-passes warning are unchanged', () => {
+    const d = desk()
+    expect(d).toContain('Use this refinement and find another set?')
+    expect(d).toContain('This is your second and last free set — after it, we talk it through together.')
+  })
+
+  // ── BATCH SEPARATION ────────────────────────────────────────────────────────────────
+  it('25 · /leads/for-approval reads and returns surfaced_for_approval_at', () => {
+    const src = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
+    expect(src).toContain('score, score_reasoning, created_at, surfaced_for_approval_at')
+    expect(src).toContain('surfaced_for_approval_at: l.surfaced_for_approval_at ?? null,')
+    // …and the masked card is otherwise unchanged: still no name, email or phone.
+    // ⚠️ ON CODE, NOT SOURCE. The comment sitting inside this very block says "no name, no
+    // email, no phone" — so asserting on the source made the guard fail on the sentence
+    // that describes it. Third time this exact trap has been hit in this build.
+    const masked = stripComments(src.slice(
+      src.indexOf('const masked = (data ?? []).map'), src.indexOf('// TOP 20 RECOMMENDED')))
+    expect(masked).not.toMatch(/email|phone|first_name:|last_name:/)
+    // The names ARE read — as arguments to the scrubber that removes them from why_fits.
+    expect(masked).toContain('why_fits: scrub(l.score_reasoning ?? null, l.first_name ?? null, l.last_name ?? null)')
+  })
+
+  it('26 · nothing is deleted, passed or filtered away to separate the batches', () => {
+    const leadsSrc = readFileSync(join(__dirname, '../routes/leads.ts'), 'utf8')
+    const forApproval = leadsSrc.slice(
+      leadsSrc.indexOf("leadRouter.get('/for-approval'"), leadsSrc.indexOf("leadRouter.get('/ledger'"))
+    // The query gained a COLUMN and not a single new filter — 36 rows still leave as 36.
+    // ⚠️ THE METHOD COMES BEFORE THE COLUMN. A first cut looked for the column followed by
+    // a comparator and a real `.gte('surfaced_for_approval_at', …)` mutation walked straight
+    // past it — the guard was written back to front and would have let the earlier batch be
+    // filtered away server-side, which is the one thing this correction forbids.
+    expect(forApproval).not.toMatch(/\.(gte|gt|lte|lt|eq|neq|in)\(\s*['"]surfaced_for_approval_at/)
+    // The ONLY thing asked of that column is that it is not null — the pre-existing #493 gate.
+    expect(forApproval).toContain(".not('surfaced_for_approval_at', 'is', null)")
+    expect(forApproval).not.toMatch(/\.delete\(\)|status:\s*'passed'|passed_at/)
+    expect(forApproval).toContain('.limit(50)')                     // the pre-existing cap, untouched
+    // And the desk hides nothing either: the only rows it drops are ones already revealed.
+    expect(desk()).toContain('const pendingRaw = (leads ?? []).filter(l => !revealed[l.id])')
+    expect(desk()).not.toMatch(/pending\.slice\(|\.slice\(0, ?20\)/)
+  })
+
+  it('27/28/29 · the rows are SORTED into batches and each batch is NAMED', () => {
+    const d = desk()
+    // Batch first, score second — so the two sets can never be interleaved again.
+    expect(d).toContain('batchKey(b).localeCompare(batchKey(a)) || Number(b.score ?? 0) - Number(a.score ?? 0)')
+    expect(d).toContain("const batchKey = (l: MaskedLead) => l.surfaced_for_approval_at ?? ''")
+    // Exactly one heading per batch, at the boundary.
+    expect(d).toContain('const newBatch = showBatchLabels && (i === 0 || batchKey(pending[i - 1]) !== batchKey(l))')
+    expect(d).toContain("{batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}")
+    // Labels appear only when there is genuinely more than one set to tell apart.
+    expect(d).toContain('const showBatchLabels = proofBatches.length > 1')
+  })
+
+  it('a PAYING client\'s ordering and labelling are untouched', () => {
+    const d = desk()
+    // Both the re-sort and the batch list are proof-gated. A paying client gets the API's
+    // score ranking exactly as before, and no headings at all.
+    expect(d).toContain('const pending = proofMode\n    ? [...pendingRaw].sort(')
+    expect(d).toContain('    : pendingRaw')
+    expect(d).toContain('const proofBatches = proofMode ? [...new Set(pending.map(batchKey))] : []')
+  })
+
+  it('30 · the refinement control belongs to the LATEST set only', () => {
+    const d = desk()
+    expect(d).toContain('{i === lastLatestIdx && refineControl}')
+    expect(d).toContain("const lastLatestIdx = proofMode\n    ? pending.map(batchKey).lastIndexOf(proofBatches[0] ?? '')\n    : -1")
+    // It renders ONCE — a control that appeared under both sets would offer to refine pass 1.
+    expect((d.match(/&& refineControl/g) ?? []), 'one placement').toHaveLength(1)
+    // …and it is still proof-only and still needs a batch to refine.
+    expect(d).toContain('const refineControl = !canRefine || pending.length === 0 ? null : (')
+  })
+
+  // ⚑ 25 Aug — A COMMENT THAT DESCRIBES THE OPPOSITE OF THE CODE IS A DEFECT, AND IT GETS
+  // A GUARD LIKE ANY OTHER. Both of these said a missing `proof_passes_done` "offers the
+  // refinement rather than hiding it". `canRefire` is `=== 1`, so 0 HIDES it — the failure
+  // direction was described backwards in the two places a future reader would check first.
+  // The founder caught it in review; doc-lint cannot, because it verifies counts and copies
+  // and never whether a sentence is TRUE. This is the only thing that can.
+  it('the corrected comments say what the code does, not the reverse', () => {
+    const d = desk()
+    const s = readFileSync(join(__dirname, './milla-summary.ts'), 'utf8')
+    // ⚠️ THE WRONG SENTENCE MAY BE QUOTED, NEVER ASSERTED. This repo records what was
+    // removed and why — that is how a correction survives the next reader — so a flat ban
+    // on the phrase would have forced deleting the incident record to go green. Instead:
+    // every line carrying it must also carry the correction marker. A silent revert to the
+    // old claim has no `CORRECTED` on its line and fails.
+    //
+    // ⚠️ COMMENT MARKERS ARE STRIPPED BEFORE THE SCAN, AND TWO MUTATIONS PROVED WHY.
+    // A first cut checked line by line: the phrase wraps across two comment lines, so no
+    // single line ever held it and the guard was blind. A second cut collapsed whitespace
+    // but left the `//` prefixes in place — which sit BETWEEN "rather than" and "hiding
+    // it", so the phrase still never formed and a revert walked through again. Dropping the
+    // prefixes first is what makes a wrapped sentence readable as one sentence.
+    const phrase = 'offers the refinement rather than hiding it'
+    for (const [name, src] of [['desk', d], ['summary', s]] as const) {
+      const flat = src.replace(/^\s*\/\/ ?/gm, ' ').replace(/\s+/g, ' ')
+      for (let i = flat.indexOf(phrase); i > -1; i = flat.indexOf(phrase, i + 1)) {
+        const near = flat.slice(Math.max(0, i - 200), i)
+        // QUOTED = a report of what was said. UNQUOTED = the claim, asserted again.
+        expect(near.slice(-60), `${name}: the old claim appears only in quotes`).toMatch(/"/)
+        expect(near, `${name}: …and only inside a correction record`).toMatch(/CORRECTED/)
+      }
+    }
+    // …and both now state the real direction, in the same words the code uses.
+    expect(d).toContain('so a missing count reads')
+    expect(d).toContain('as 0 and the control is HIDDEN')
+    expect(s).toContain('The desk gates on')
+    expect(s).toContain('so 0 HIDES the control')
+    // The BEHAVIOUR is unchanged — the gate is still `=== 1` and the fallback still 0.
+    expect(d).toContain('const proofPassesDone = summary?.proof_passes_done ?? 0')
+    expect(d).toContain('const canRefine       = proofMode && proofPassesDone === 1')
+  })
+
+  it('34/35 · after both passes the desk states the stop and offers no third action', () => {
+    const d = desk()
+    const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    expect(d).toContain('We&rsquo;ve used both proof passes. K.I.N.D will review this with you.')
+    // The exhausted block carries no control of any kind.
+    const exhausted = d.slice(d.indexOf('{proofExhausted && ('), d.indexOf('{proofExhausted && (') + 400)
+    expect(exhausted).not.toMatch(/<button|onClick|api\.post/)
+    // And the server's own fence is exactly as it was.
+    expect(icps).toContain('We have shown you two sets of leads.')
+    expect(icps).toContain("db.rpc('try_claim_proof_pass', { p_client_id: clientId })")
+  })
+
+  it('39/40 · no provider, request-count, reveal, send or charge path moved', () => {
+    const icps = readFileSync(join(__dirname, '../routes/icps.ts'), 'utf8')
+    const pdl  = readFileSync(join(__dirname, './pdl-search.ts'), 'utf8')
+    const c    = confirmBody()
+    const s    = submitBody()
+    // #1447 / #1448 / #1449, all three still standing.
+    expect(pdl).toContain("'Head of':                ['manager', 'director', 'vp'],")
+    expect(pdl).toContain("'1,000+': ['1001-5000', '5001-10000', '10001+'],")
+    expect(pdl).toContain('canonicalLaunchCountry(g)')
+    expect(pdl).toContain("if (opts?.proofMode !== true) must.push({ exists: { field: 'work_email' } })")
+    expect(icps).toContain('if (!proofMode && insertedIds.length > 0) {')
+    // The fences and their arithmetic are untouched by this build.
+    expect(icps).toContain('const PROOF_PASS_LEADS = 20')
+    expect(icps).toContain("db.rpc('try_reserve_proof_records'")
+    // ⚠️ ENUMERATE THE CALLS, DO NOT BAN THE WORDS. A first cut banned /charge/i inside
+    // confirmRefine and failed on its own error copy — *"Nothing has been charged and
+    // nobody has been contacted"* — which is a sentence that must stay exactly as it is.
+    // What actually matters is which endpoints these two functions can reach, so that is
+    // what is pinned: three in confirm, one in submit, and nothing else in either.
+    // Matched ACROSS newlines: `api.post<{ … }>(` wraps before its URL, and a line-bounded
+    // regex read the wrong token off the generic instead of the endpoint.
+    const calls = (body: string) =>
+      [...body.matchAll(/api\.(?:get|post|put|patch|delete)[\s\S]*?(['"`][^'"`]*['"`])/g)].map(m => m[1])
+    // TWO, and both are free: the converter PROPOSES, and `/icps` is a read. That read is
+    // the whole reason the merge can happen before the confirmation instead of after it.
+    expect(calls(s), 'submitRefine: propose, then read — no write, no claim')
+      .toEqual(["'/icps/chat-build'", "'/icps'"])
+    expect(calls(c), 'confirmRefine: read, save, claim — in that order and no other')
+      .toEqual(["'/icps'", "'/icps/revise'", '`/icps/${afterId}/proof`'])
+    for (const [name, body] of [['submitRefine', s], ['confirmRefine', c]] as const) {
+      expect(body, `${name} names no provider`).not.toMatch(/pdl|apollo|hunter|smartlead|stripe/i)
+    }
   })
 })

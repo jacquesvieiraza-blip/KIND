@@ -386,4 +386,15 @@ describe('an existing pending_targeting stops the refinement dead', () => {
                              src.indexOf('async function saveClientTargeting'))
     expect(coreFn).not.toMatch(/pdl|apollo|hunter|smartlead|stripe|provider/i)
   })
+
+  // ⚑ 25 Aug — SAME CLASS AS THE CORRECTED-COMMENT GUARD: a comment naming a function that
+  // no longer exists sends the next reader looking for code that is not there, and this one
+  // was written in this very build and caught in review of my own diff. A rename is exactly
+  // when it happens, so the name is pinned rather than left to memory.
+  it('no comment names a function this build renamed away', () => {
+    const src = readFileSync(join(__dirname, './icps.ts'), 'utf8')
+    expect(src, 'the old name is gone everywhere, comments included')
+      .not.toContain('proofRefinementApplies')
+    expect(src).toContain('`proofRefinementVerdict()` returning `\'apply\'` is the')
+  })
 })

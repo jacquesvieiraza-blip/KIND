@@ -2130,8 +2130,9 @@ async function saveClientTargeting(
    * ⚑ 25 Aug — APPLY THE TARGETING TO THE LIVE COLUMNS EVEN THOUGH THE ICP IS ACTIVE.
    *
    * ⚠️ THE CALLER MUST HAVE PROVEN THE RIGHT TO SET THIS FROM SERVER STATE. It is never a
-   * request field and never a default; `proofRefinementApplies()` is the only thing that
-   * returns true for it, and it reads the funding ledger and `proof_passes_done` itself.
+   * request field and never a default; `proofRefinementVerdict()` returning `'apply'` is the
+   * only thing that sets it, and that function reads the funding ledger, `proof_passes_done`
+   * and the ICP's own `pending_targeting` itself.
    *
    * WHY IT HAD TO EXIST. `icps.is_active` defaults to TRUE at the database (schema.sql) and
    * `icpSchema` carries no such field, so the insert a few lines below omits it — which

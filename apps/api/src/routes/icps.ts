@@ -19,6 +19,7 @@ import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
+import { rethrowIfProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
@@ -1467,7 +1468,9 @@ icpRouter.post('/preview-count', rateLimit({ limit: 10, windowMs: 60_000, key: '
           if (previewAudience === 'house') {
             const searchBody = buildSearchBody(icpArg, 1)
             searchBody.per_page = 3
-            contacts = await searchPeople(searchBody).catch(() => [])
+            // A deliberate block must not degrade to "no results" here either (R66).
+            contacts = await searchPeople(searchBody)
+              .catch(e => { rethrowIfProviderBlocked(e); return [] })
           } else {
             // #243: PDL keeps preview samples working Apollo-free — and is the ONLY
             // source a normal client's preview ever touches.

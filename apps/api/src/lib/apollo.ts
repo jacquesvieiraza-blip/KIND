@@ -1,6 +1,6 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage, type PdlSearchOptions } from './pdl-search'
-import { assertPaidProviderAllowed } from './paid-provider-guard'
+import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
 import { searchProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
@@ -349,7 +349,14 @@ export async function searchPeopleWithFallback(
   // and error-swallowing are untouched — this is the same `pdlSearchPage` the supplement
   // used, called directly instead of merged.
   if (provider === 'pdl') {
-    const pdlPage = await pdlSearchPage(icp, size, pdlCursor, opts).catch(() => null)
+    // ⚠️ `.catch(() => null)` ALONE WAS THE DEFECT. It exists for network flakiness, and
+    // for that it is right — but it also ate the zero-spend guard's deliberate refusal, so
+    // a blocked run finished with zero contacts, derived `no_match`, and told a prospect
+    // their targeting matched nobody when PDL was never asked. A block now propagates to
+    // the proof crash boundary and lands on the approved `failed` state; every other
+    // error still degrades exactly as before.
+    const pdlPage = await pdlSearchPage(icp, size, pdlCursor, opts)
+      .catch(e => { rethrowIfProviderBlocked(e); return null })
     const contacts = pdlPage?.contacts ?? []
     if (contacts.length > 0) return out(contacts, null, pdlPage)
     return out([], pdlPage?.error

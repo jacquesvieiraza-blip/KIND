@@ -82,3 +82,24 @@ export class PaidProviderBlockedError extends Error {
 export function assertPaidProviderAllowed(provider: PaidProvider, context?: string): void {
   if (isSafeTestMode()) throw new PaidProviderBlockedError(provider, context)
 }
+
+/**
+ * Re-throw a `PaidProviderBlockedError`, swallow nothing else.
+ *
+ * ⚠️ WHY THIS EXISTS, and it is not hypothetical. `apollo.ts` wrapped the PDL search in
+ * `.catch(() => null)`. That handler was written for network flakiness and it did its job
+ * — but it also ate the guard's deliberate refusal, so a blocked run completed with zero
+ * contacts, derived `no_match`, and told a prospect **"No leads matched this ICP. Try
+ * widening it"** when we had never asked PDL anything. The approved `failed` state was
+ * unreachable because the throw never escaped.
+ *
+ * ⚠️ THE RULE THIS ENCODES: **a deliberate block must propagate as a deliberate block.**
+ * An ordinary provider or network error keeps whatever soft-failure behaviour it already
+ * had — those handlers are not changed, they are only taught to let this one error past.
+ *
+ * Call it as the FIRST statement of any catch that degrades a provider failure into a
+ * neutral value (`null`, `[]`, a zero count, a "temporarily unavailable" string).
+ */
+export function rethrowIfProviderBlocked(err: unknown): void {
+  if (err instanceof PaidProviderBlockedError) throw err
+}

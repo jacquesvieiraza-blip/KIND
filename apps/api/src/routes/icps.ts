@@ -1863,31 +1863,118 @@ const millaReplyTool = (profileRequired: boolean) => ({
 
 /** Bounded validation of whatever actually arrives in `ToolUseBlock.input`.
  *  A forced tool call fixes the TRANSPORT; this fixes the CONTENT. */
-const boundedList = (maxItems: number, maxLen = 80) => z.array(z.string().max(maxLen)).max(maxItems).optional()
+// ── ⚑ 26 Aug — BOUNDS ARE CLAMPED, NOT FATAL. THIS IS THE "MILLA LOST THAT RESPONSE" FIX ──
+//
+// THE DEFECT, TRACED. The tool schema's `maxLength` / `maxItems` / `enum` are GUIDANCE to
+// the model — the Messages API does not enforce them on tool input. The Zod layer here then
+// REFUSED any overrun outright (`.max()` fails the whole parse), so a perfectly good Milla
+// turn whose `content` ran to 601 characters, or whose `business.pitch` was a paragraph too
+// long, or whose industries list said "fintech" instead of "Fintech", collapsed the ENTIRE
+// reply into INVALID_SHAPE → 503 → the client-facing banner. And because a retry re-sends
+// the same history to the same model, the same overrun came back — the banner repeated until
+// the client gave up. That is the launch-blocking loop the founder saw.
+//
+// THE PRINCIPLE. A LENGTH is a budget, and a budget is enforced by trimming to it — losing
+// three words off the end of a paragraph is nothing against losing the client's whole turn.
+// A CLOSED LIST is a trust boundary, and it is enforced by DROPPING what is not on it —
+// never by letting it through, and never by burning the turn that carried it. STRUCTURE
+// (wrong types, missing required facts, the first-run gate) stays fatal: those are the
+// cases where no safe reply can be salvaged, and inventing one would put words in Milla's
+// mouth (founder-ruled 24 Aug — that rule is untouched).
+const clampedStr = (maxLen: number) =>
+  z.string().optional().transform(s => (typeof s === 'string' ? s.slice(0, maxLen) : s))
+const boundedList = (maxItems: number, maxLen = 80) =>
+  z.array(z.string()).optional()
+    .transform(a => a?.map(s => s.slice(0, maxLen)).slice(0, maxItems))
 
 /** ⚠️ THE CLOSED LISTS ARE ENFORCED HERE TOO, NOT ONLY DECLARED TO THE MODEL (GPT review).
  *  The tool schema carries these as `enum`, which is guidance the provider's decoder applies
- *  — it is not our trust boundary. The first cut validated all three with `boundedList()`, so
- *  any string the decoder let through reached `icps.industries` and, from there, the PDL and
- *  Apollo queries that read those columns. The SAME constants are reused; a second
- *  hand-written copy of the values is exactly how the schema and the validator drift apart. */
-const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) =>
-  z.array(z.enum(values)).max(maxItems).optional()
+ *  — it is not our trust boundary. The SAME constants are reused; a second hand-written copy
+ *  of the values is exactly how the schema and the validator drift apart.
+ *
+ *  ⛓️ AMENDED 26 Aug — FILTERED, NOT FATAL. The first shape refused the WHOLE reply when one
+ *  value was off-list, which turned a single hallucinated "IT Solutions" into the lost-turn
+ *  banner, deterministically, on every retry. The boundary itself is unchanged and absolute:
+ *  nothing outside the canonical list can pass — an off-list value is DROPPED before it can
+ *  reach `icps.industries` and the PDL/Apollo queries that read those columns. What changed
+ *  is only the blast radius: the invalid VALUE dies, the client's TURN survives. Matching is
+ *  case-insensitive against the canonical spelling so "fintech" becomes "Fintech" rather
+ *  than being thrown away — the value stored is always the canonical one, never the model's. */
+const canonicalise = (values: readonly string[]) => {
+  const byLower = new Map(values.map(v => [v.toLowerCase(), v]))
+  return (arr: string[] | undefined, maxItems: number) =>
+    arr
+      ?.map(s => byLower.get(String(s).trim().toLowerCase()))
+      .filter((v): v is string => v !== undefined)
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .slice(0, maxItems)
+}
+const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) => {
+  const canon = canonicalise(values)
+  // ⚠️ ALL-INVALID IS A REFUSAL, NOT AN EMPTY LIST (corrected 26 Aug, same day). Downstream,
+  // an empty closed list means UNCONSTRAINED — `buildPdlBody` adds no filter for a list with
+  // no length, `buildSearchBody` likewise, and the pool matcher deliberately "doesn't
+  // narrow" without a signal. So a reply whose every industry was off-list must not become
+  // `[]`: that would silently turn the specific constraint the client expressed into a
+  // broader search than anyone chose. Mixed replies keep their valid values (the turn
+  // survives); a NON-EMPTY list that canonicalises to NOTHING means the constraint itself
+  // was lost, no safe salvage exists, and the turn is refused with the field named in the
+  // log. A genuinely empty list from the model stays empty — that is "not specified", the
+  // same meaning it always had.
+  return z.array(z.string()).optional().transform((a, ctx) => {
+    const out = canon(a, maxItems)
+    if (a && a.length > 0 && out !== undefined && out.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'every value was off-list — the constraint would be silently dropped' })
+      return z.NEVER
+    }
+    return out
+  })
+}
+// ── ⚑ 26 Aug (final correction) — A QUESTION IS VALIDATED AS A QUESTION ─────────────────
+//
+// THE DEFECT THIS CLOSES, found in review of the literal diff. The all-invalid closed-list
+// refusal below is right for a `complete` — an empty list is unconstrained downstream — but
+// the ONE schema validated BOTH reply types, and a question's auxiliary `icp` payload is
+// never returned, never persisted and never reaches a provider: the route answers with
+// `{ type: 'question', content }` and discards the rest. So a perfectly usable question
+// ("No problem — who normally buys from you?") could still be destroyed because the model
+// tucked an incidental off-list industry into a payload nobody consumes — reintroducing,
+// for question turns, the exact deterministic retry loop this PR exists to kill.
+//
+// The contract is discriminated, so the validation now is too: a question is checked as
+// EXACTLY what the route returns — its type and its content — and everything else in the
+// tool input is STRIPPED (Zod's default), so no auxiliary value can be returned, persisted,
+// or sent anywhere. Junk targeting on a question cannot kill the turn because it is not
+// part of the question's contract at all. Structural garbage still fails: a numeric
+// content, a blank content, a missing content are refused exactly as before.
+const MillaQuestionReply = z.object({
+  type:    z.literal('question'),
+  content: z.string()
+    .transform(s => s.slice(0, 600))
+    .refine(s => s.trim().length > 0, { message: 'a question must carry content' }),
+})
+
 const MillaReplyInput = z.object({
   type:    z.enum(['question', 'complete']),
-  content: z.string().max(600).optional(),
-  summary: z.string().max(400).optional(),
+  // ⛓️ 26 Aug — every LENGTH bound below is a clamp, not a refusal. The tool schema states
+  // the same numbers to the model, but stated is not enforced: the API treats maxLength as
+  // guidance, and a reply one word over budget used to fail the whole parse and cost the
+  // client their turn — repeatedly, since a retry re-sends the same history to the same
+  // model. Type errors (a number where a string belongs) still refuse, as they must.
+  content: clampedStr(600),
+  summary: clampedStr(400),
   profile: z.object({
-    company_name: z.string().max(200).optional(),
-    country:      z.string().max(120).optional(),
-    contact_name: z.string().max(120).optional(),
-    phone:        z.string().max(60).optional(),
-    website:      z.string().max(300).optional(),
-    industry:     z.string().max(200).optional(),
+    company_name: clampedStr(200),
+    country:      clampedStr(120),
+    contact_name: clampedStr(120),
+    phone:        clampedStr(60),
+    website:      clampedStr(300),
+    industry:     clampedStr(200),
   }).optional(),
   icp: z.object({
-    name:                  z.string().max(120).optional(),
-    // Closed lists — refused outright if the value is not one of ours.
+    name:                  clampedStr(120),
+    // Closed lists — off-list values are DROPPED at the trust boundary, never stored and
+    // never allowed to cost the client the turn that carried them.
     industries:            boundedEnum(ICP_INDUSTRIES, 6),
     seniority_levels:      boundedEnum(ICP_SENIORITY, 6),
     company_sizes:         boundedEnum(ICP_SIZES, 6),
@@ -1900,25 +1987,24 @@ const MillaReplyInput = z.object({
     apollo_only_consented: z.boolean().optional(),
   }).optional(),
   business: z.object({
-    product:         z.string().max(1200).optional(),
-    pitch:           z.string().max(1200).optional(),
-    pain_points:     z.string().max(1200).optional(),
-    differentiators: z.string().max(1200).optional(),
-    tone:            z.string().max(300).optional(),
-    bad_fit:         z.string().max(600).optional(),
+    product:         clampedStr(1200),
+    pitch:           clampedStr(1200),
+    pain_points:     clampedStr(1200),
+    differentiators: clampedStr(1200),
+    tone:            clampedStr(300),
+    bad_fit:         clampedStr(600),
   }).optional(),
   proof: z.array(z.object({
-    claim:     z.string().max(400),
+    claim:     z.string().transform(s => s.slice(0, 400)),
     permitted: z.boolean().optional(),
-  })).max(12).optional(),
+  })).optional().transform(a => a?.slice(0, 12)),
   website_hints:   boundedList(12, 200),
-  campaign_intent: z.string().max(2000).optional(),
+  campaign_intent: clampedStr(2000),
 })
   // The discriminated half, which the flat JSON Schema deliberately leaves to Zod.
+  // ⚠️ The question-content rule moved into `MillaQuestionReply` above — a reply whose
+  // `type` is 'question' is routed there BEFORE this schema and can never reach it.
   .superRefine((v, ctx) => {
-    if (v.type === 'question' && !(v.content ?? '').trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['content'], message: 'a question must carry content' })
-    }
     if (v.type === 'complete' && !v.icp) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['icp'], message: 'a completion must carry an icp' })
     }
@@ -1960,21 +2046,42 @@ const millaReplyFor = (profileRequired: boolean) =>
  *  NOTHING that belongs to the client: no raw model text, no tool input, no transcript, no
  *  company name, no phone, no proof claim, no scraped website text. Category, stop_reason,
  *  model and sizes — that is the whole list. */
+/** ⛓️ 26 Aug — THE COPY STOPPED ASKING FOR A RETYPE, BECAUSE THE RETYPE WAS NEVER NEEDED.
+ *  The old sentence (it told the client to re-send their last answer) was factually wrong: the
+ *  portal appends the client's turn to its transcript BEFORE posting, keeps it there on
+ *  failure, and re-sends the whole history on the next attempt. The answer was never lost;
+ *  only the reply to it was. Worse, a client who obeyed and retyped "no" put a second "no"
+ *  into the history. The portal pairs this sentence with a Try again control that re-sends
+ *  without retyping.
+ *
+ *  ⛓️ CORRECTED AGAIN, SAME DAY: an earlier draft said the answer was "saved" — too strong.
+ *  This route persists nothing and the transcript lives in the page's own state: it survives
+ *  the SAME TAB (which is where this sentence is read), and it does not survive a refresh.
+ *  "Still here" claims exactly the first and nothing more — and the sentence itself vanishes
+ *  with the state it describes, so it can never outlive its own truth. */
+const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'
+
+// ⚑ 26 Aug — `zodPaths` names WHICH schema paths failed, so a repeating INVALID_SHAPE is
+// diagnosable from the log alone. Paths are OUR schema's own field names, never the
+// client's values — the no-client-data rule below is unchanged. (This note lives OUTSIDE
+// the console call on purpose: the log-safety guard greps the call's argument text.)
 function millaReplyFailed(
   res: Response,
   category: 'TRUNCATED' | 'UNEXPECTED_STOP' | 'NO_TOOL_CALL' | 'MULTIPLE_TOOL_CALLS' | 'WRONG_TOOL' | 'INVALID_SHAPE',
-  meta: { stop_reason?: string | null; blocks?: number; inputKeys?: number },
+  meta: { stop_reason?: string | null; blocks?: number; inputKeys?: number; zodPaths?: string[] },
 ) {
   console.error('[icps/builder/chat] unusable model reply —', JSON.stringify({
+    stage: 'reply',
     category,
     stop_reason: meta.stop_reason ?? null,
     model: BUILDER_MODEL,
     content_blocks: meta.blocks ?? null,
     input_key_count: meta.inputKeys ?? null,
+    zod_paths: meta.zodPaths ?? null,
   }))
   res.status(503).json({
     success: false,
-    error: 'Milla lost that response — please send your last answer again.',
+    error: MILLA_RETRY_ERROR,
     retryable: true,
   })
 }
@@ -1985,7 +2092,10 @@ function millaReplyFailed(
 icpRouter.post('/builder/chat', async (req: AuthRequest, res) => {
   try {
     const { messages, website_evidence, profile_required } = z.object({
-      messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string() })).min(1).max(40),
+      // ⛓️ 26 Aug — .max(40) used to REFUSE the whole request once a one-question-at-a-time
+      // onboarding ran long, surfacing raw Zod text in the client's error line. The cap now
+      // bounds abuse (200), and the model window below takes the most recent 40 turns.
+      messages: z.array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().max(4000) })).min(1).max(200),
       // ── WHICH CONVERSATION IS THIS? (GPT review, 24 Aug) ──────────────────────────────
       // The first cut of the account-facts change told EVERY caller to learn three things
       // and refuse to complete without a company name and a country. This route has no
@@ -2270,18 +2380,60 @@ Reply by calling the ${MILLA_REPLY_TOOL} tool. That is the only way you speak he
 Fill only what you are confident about and leave the rest out. NEVER invent a customer, a
 result or a number. "permitted" is false unless they explicitly said we may use that claim.${profileFieldsNote}`
 
-    const response = await anthropic.messages.create({
-      model: BUILDER_MODEL,
-      // 700 was the old ceiling and it was not one the completion contract could fit — a
-      // verbose answer was cut mid-JSON, the parse threw, and the canned checklist went out
-      // under Milla's name. 4000 with a schema that bounds every string and array.
-      max_tokens: 4000,
-      system,
-      tools: [millaReplyTool(profile_required)],
-      // The model does not get to choose whether to answer in the agreed shape.
-      tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true },
-      messages: messages.map(m => ({ role: m.role, content: m.content })),
-    })
+    // ── ⚑ 26 Aug — THE MODEL SEES A BOUNDED WINDOW, AND A LONG CHAT NO LONGER HARD-FAILS ──
+    // The request schema used to cap `messages` at 40 and REFUSE the 41st — so a client
+    // deep in a one-question-at-a-time onboarding hit a Zod 400 on every further send, with
+    // raw validation text as the visible error. The transcript now arrives up to 200 long
+    // and the model is given the most recent 40, opened at a user turn (the API contract:
+    // conversations start with the user). Milla keeps her recent context; nobody's send is
+    // refused for having talked to her too long.
+    const recent = messages.slice(-40)
+    const firstUser = recent.findIndex(m => m.role === 'user')
+    const windowed = firstUser > 0 ? recent.slice(firstUser) : recent
+
+    // ── ⚑ 26 Aug — A PROVIDER FAILURE IS ITS OWN STAGE, NAMED IN THE LOG ─────────────────
+    // Anything thrown INSIDE this try is by definition the provider call failing — timeout,
+    // 429, 5xx, auth, network. It used to fall through to the route's generic catch as
+    // "Failed to process message" with no stage information at all, indistinguishable from
+    // a Zod bug or a JSON error. It now logs the stage, the status and the error name (and
+    // NOTHING of the client's), and answers with the same truthful retryable state as an
+    // unusable reply — the client's answer is safe in their transcript either way.
+    //
+    // ⚠️ TIMEOUT ORDER MATTERS, AND IT IS ARITHMETIC, NOT INTENT (corrected 26 Aug).
+    // The first cut said 45s + one retry "< 60s". Reading the installed SDK (0.39.0,
+    // core.js) shows that was NOT provable: `timeout` is per ATTEMPT, and between attempts
+    // the SDK honours a server `retry-after` header up to just under 60 SECONDS of sleep —
+    // so 45s + 59.9s + 45s ≈ 150s worst case behind a 60s browser. The only shape whose
+    // worst case is provable from the SDK's own code is a SINGLE bounded attempt:
+    //   1 × 45s, no retry sleep possible  →  45s  <  60s browser, 15s headroom.
+    // The client-side Try again control IS the retry — visible, deliberate, never racing
+    // a browser that already gave up. (The old shape was worse still: SDK default 10
+    // minutes + 2 retries behind a 15s browser.)
+    let response: Awaited<ReturnType<typeof anthropic.messages.create>>
+    try {
+      response = await anthropic.messages.create({
+        model: BUILDER_MODEL,
+        // 700 was the old ceiling and it was not one the completion contract could fit — a
+        // verbose answer was cut mid-JSON, the parse threw, and the canned checklist went out
+        // under Milla's name. 4000 with a schema that bounds every string and array.
+        max_tokens: 4000,
+        system,
+        tools: [millaReplyTool(profile_required)],
+        // The model does not get to choose whether to answer in the agreed shape.
+        tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true },
+        messages: windowed.map(m => ({ role: m.role, content: m.content })),
+      }, { timeout: 45_000, maxRetries: 0 })
+    } catch (provErr) {
+      const e = provErr as { name?: string; status?: number; message?: string }
+      console.error('[icps/builder/chat] provider call failed —', JSON.stringify({
+        stage: 'provider',
+        name: e?.name ?? null,
+        status: typeof e?.status === 'number' ? e.status : null,
+        model: BUILDER_MODEL,
+      }))
+      res.status(503).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
+      return
+    }
 
     // ── A USABLE REPLY IS ONE EXACT SHAPE, AND EVERY OTHER SHAPE IS REFUSED ─────────────
     // stop_reason 'tool_use' · EXACTLY ONE tool_use block · that block is milla_reply ·
@@ -2324,12 +2476,24 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     }
 
     // ⚠️ `input` IS `unknown`. A tool call guarantees the envelope, never the contents.
-    const validated = millaReplyFor(profile_required).safeParse(call.input)
+    // ⚑ 26 Aug (final correction) — VALIDATE THE CONTRACT THE REPLY DECLARES. A question is
+    // parsed as a question (type + content, all else stripped — the route returns nothing
+    // else), and only a completion faces the strict targeting schema with its fail-closed
+    // lists and the first-run gate. Any other `type` value falls through to the strict
+    // schema, whose enum refuses it — unknown types keep failing closed.
+    const declaredType = call.input && typeof call.input === 'object'
+      ? (call.input as Record<string, unknown>).type
+      : undefined
+    const validated = declaredType === 'question'
+      ? MillaQuestionReply.safeParse(call.input)
+      : millaReplyFor(profile_required).safeParse(call.input)
     if (!validated.success) {
       millaReplyFailed(res, 'INVALID_SHAPE', {
         ...meta,
         // A COUNT, never the keys themselves — a key name is client data here.
         inputKeys: call.input && typeof call.input === 'object' ? Object.keys(call.input).length : 0,
+        // OUR schema's paths (deduped), so a repeating refusal names its own cause.
+        zodPaths: [...new Set(validated.error.errors.map(e => e.path.join('.') || '(root)'))].slice(0, 8),
       })
       return
     }
@@ -2420,9 +2584,19 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // mouth. If we get here, she really did say this.
     res.json({ success: true, data: { type: 'question', content: parsed.content } })
   } catch (err) {
+    // The request body itself was malformed — the caller's bug, not the model's turn.
     if (err instanceof z.ZodError) { res.status(400).json({ success: false, error: err.errors }); return }
-    console.error('[icps/builder/chat]', err)
-    res.status(500).json({ success: false, error: 'Failed to process message' })
+    // ⚑ 26 Aug — anything else here is OUR code failing between the stages that log for
+    // themselves (provider and reply validation both answer inside the try). Stage-tagged
+    // so a repeat is diagnosable; retryable because the client's turn is safe in their
+    // transcript and nothing here is their fault.
+    // ⚠️ STAGE AND NAME ONLY — the raw error object is deliberately NOT logged. A
+    // route-stage throw can interpolate anything that was in flight (a Supabase error
+    // embedding row data, a JSON error quoting the text it choked on), and the no-client-
+    // data rule admits no exceptions. The stage tells us where; the name tells us what
+    // kind; reproduction tells us the rest.
+    console.error('[icps/builder/chat] route failed —', JSON.stringify({ stage: 'route', name: err instanceof Error ? err.name : typeof err }))
+    res.status(503).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
   }
 })
 

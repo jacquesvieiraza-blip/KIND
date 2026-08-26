@@ -15,12 +15,24 @@ import { join } from 'path'
 const anthropicBox = vi.hoisted(() => ({
   reply: null as unknown,
   calls: 0,
+  // ⚑ 26 Aug — the box can now THROW (a provider failure is a throw from create, not a
+  // shape) and RECORDS what the route sent, so the transcript window and the SDK options
+  // are testable against the real handler rather than asserted from source text.
+  error: null as unknown,
+  lastParams: null as unknown,
+  lastOptions: null as unknown,
 }))
 
 vi.mock('@anthropic-ai/sdk', () => ({
   default: class FakeAnthropic {
     messages = {
-      create: async () => { anthropicBox.calls += 1; return anthropicBox.reply },
+      create: async (params: unknown, options?: unknown) => {
+        anthropicBox.calls += 1
+        anthropicBox.lastParams = params
+        anthropicBox.lastOptions = options ?? null
+        if (anthropicBox.error) throw anthropicBox.error
+        return anthropicBox.reply
+      },
     }
   },
 }))
@@ -154,6 +166,8 @@ function builderChatRoute(): string {
 const loginCode   = stripComments(loginSrc)
 const onboardCode = stripComments(onboardSrc)
 const welcomeCode = stripComments(welcomeSrc)
+// ⚑ 26 Aug — the dashboard builder page shares the retry contract with the welcome page.
+const builderPageCode = stripComments(read(join(PORTAL, 'app/(dashboard)/dashboard/leads/icp/builder/page.tsx')))
 
 // ─────────────────────────────────────────────────────────────────────────────────────────
 describe('a fresh signup lands in Milla, not in an interview', () => {
@@ -245,7 +259,8 @@ describe('Milla collects the account facts herself', () => {
     // fields, now declared in a schema the model is constrained by rather than shown.
     for (const f of ['company_name', 'country', 'contact_name', 'phone', 'website', 'industry']) {
       expect(icpsSrc, `${f} in tool schema`).toMatch(new RegExp(`${f}:\\s*\\{ type: 'string', maxLength:`))
-      expect(icpsSrc, `${f} in zod schema`).toMatch(new RegExp(`${f}:\\s*z\\.string\\(\\)\\.max\\(`))
+      // ⛓️ 26 Aug — bounds are clamps now (clampedStr), not refusals; same numbers, kept turn.
+      expect(icpsSrc, `${f} in zod schema`).toMatch(new RegExp(`${f}:\\s*clampedStr\\(`))
       expect(icpsSrc, `${f} extracted`).toMatch(new RegExp(`${f}:\\s*str\\(p\\.${f}\\)`))
     }
   })
@@ -1008,25 +1023,42 @@ describe('the first message cannot race the account-status lookup', () => {
   })
 
   it('the refusal sits before any builder call and any account write', () => {
-    const guard = welcomeCode.indexOf("if (status !== 'ready' || hasClient === null) return")
-    expect(guard).toBeGreaterThan(-1)
-    for (const call of ["'/icps/builder/chat'", "api.post('/auth/onboard'"]) {
-      expect(welcomeCode.indexOf(call), call).toBeGreaterThan(guard)
+    // ⛓️ 26 Aug — send() and retry() are now thin guarded entries over ONE deliver() path,
+    // so position-in-file no longer proves order-of-execution. What does: the builder POST
+    // exists ONLY inside deliver(), and BOTH functions that invoke deliver() open with the
+    // same fail-closed guard before their call. Same invariant, structure-aware proof.
+    const guard = "if (status !== 'ready' || hasClient === null) return"
+    const fn = (name: string, end: string) =>
+      welcomeCode.slice(welcomeCode.indexOf(name), welcomeCode.indexOf(end))
+    const sendBody  = fn('async function send(',  'async function approve')
+    const retryBody = fn('async function retry(', 'async function send(')
+    for (const [label, body] of [['send', sendBody], ['retry', retryBody]] as const) {
+      const g = body.indexOf(guard)
+      expect(g, `${label} carries the guard`).toBeGreaterThan(-1)
+      expect(g, `${label}: guard before its deliver`).toBeLessThan(body.indexOf('deliver('))
     }
+    // The POST lives in deliver() and NOWHERE else, so the guarded callers are the only way in.
+    expect((welcomeCode.match(/'\/icps\/builder\/chat'/g) ?? [])).toHaveLength(1)
+    const deliverBody = fn('async function deliver(', 'async function retry(')
+    expect(deliverBody).toContain("'/icps/builder/chat'")
+    // The account write still sits in approve(), after every guard in the file.
+    expect(welcomeCode.indexOf("api.post('/auth/onboard'")).toBeGreaterThan(welcomeCode.indexOf('async function approve'))
   })
 
   it('and the website read is only ever INVOKED from behind that refusal', () => {
-    // `readWebsite` and `propose` are DEFINED above `send` — definition order is not call
-    // order, so the check that matters is where they are called from. `readWebsite` has
-    // exactly one call site and it sits inside send(), after the guard.
-    const guard = welcomeCode.indexOf("if (status !== 'ready' || hasClient === null) return")
-    const invocations = [...welcomeCode.matchAll(/(?<!const )\breadWebsite\(/g)].map(m => m.index!)
-    expect(invocations).toHaveLength(1)
-    expect(invocations[0]).toBeGreaterThan(guard)
-    // Same for the paid preview: one call site, reached only via propose() from inside send().
+    // `readWebsite` has exactly one call site and it sits inside send(), after the guard;
+    // `propose` has exactly one call site and it sits inside deliver(), which only the two
+    // guarded functions can reach (proved above).
+    const sendBody = welcomeCode.slice(welcomeCode.indexOf('async function send('), welcomeCode.indexOf('async function approve'))
+    const reads = [...welcomeCode.matchAll(/(?<!const )\breadWebsite\(/g)].map(m => m.index!)
+    expect(reads).toHaveLength(1)
+    const readInSend = sendBody.indexOf('readWebsite(')
+    expect(readInSend).toBeGreaterThan(-1)
+    expect(sendBody.indexOf("if (status !== 'ready' || hasClient === null) return")).toBeLessThan(readInSend)
     const proposeCalls = [...welcomeCode.matchAll(/(?<!const )\bpropose\(/g)].map(m => m.index!)
     expect(proposeCalls).toHaveLength(1)
-    expect(proposeCalls[0]).toBeGreaterThan(guard)
+    const deliverBody = welcomeCode.slice(welcomeCode.indexOf('async function deliver('), welcomeCode.indexOf('async function retry('))
+    expect(deliverBody).toContain('propose(')
   })
 
   it('the composer itself is closed until ready, so the refusal is a backstop not the UX', () => {
@@ -1306,7 +1338,11 @@ describe('a system failure can never again speak as Milla', () => {
 
   it('every unusable outcome routes to the honest failure, and it is retryable', () => {
     expect(icpsSrc).toContain("function millaReplyFailed(")
-    expect(icpsSrc).toContain("'Milla lost that response — please send your last answer again.'")
+    // ⛓️ 26 Aug — the copy stopped asking for a retype. The portal keeps the client's turn
+    // in its transcript and re-sends it on retry, so "send your last answer again" was
+    // factually wrong and trained clients into duplicating their own turn.
+    expect(icpsSrc).toContain("const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'")
+    expect(icpsSrc).not.toContain('please send your last answer again')
     expect(icpsSrc).toContain('retryable: true')
     expect(icpsSrc).toContain('res.status(503)')
   })
@@ -1321,7 +1357,8 @@ describe('a system failure can never again speak as Milla', () => {
     expect(icpsSrc).toContain("if (response.stop_reason === 'max_tokens')")
     // and it is checked BEFORE anything tries to read the reply
     const stop = icpsSrc.indexOf("response.stop_reason === 'max_tokens'")
-    const read = icpsSrc.indexOf("const validated = millaReplyFor(profile_required).safeParse")
+    // ⛓️ 26 Aug — validation is discriminated now; the anchor is where EITHER schema runs.
+    const read = icpsSrc.indexOf("? MillaQuestionReply.safeParse(call.input)")
     expect(stop).toBeGreaterThan(-1)
     expect(read).toBeGreaterThan(stop)
   })
@@ -1329,7 +1366,10 @@ describe('a system failure can never again speak as Milla', () => {
   it('the failure path never appends an assistant message in the portal', () => {
     // send() only pushes an assistant bubble inside the success branches; a thrown API
     // error lands in setError, which renders as an error, not as Milla.
-    expect(welcomeCode).toMatch(/catch \(e\) \{ setError\(e instanceof Error \? e\.message : 'Milla hit a snag/)
+    // ⛓️ 26 Aug — the catch moved into deliver() and gained the retry affordance; it still
+    // sets an ERROR and never an assistant bubble, which is the invariant under test.
+    expect(welcomeCode).toMatch(/setError\(e instanceof Error \? e\.message : 'Milla hit a snag/)
+    expect(welcomeCode).toContain('setCanRetry(true)')
   })
 })
 
@@ -1362,7 +1402,12 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     expect(icpsSrc).toContain('const MillaReplyInput = z.object({')
     // ⚑ The schema is now built per-request, because the first-run account gate depends on
     // `profile_required` and a module-level schema cannot know it.
-    expect(icpsSrc).toContain('const validated = millaReplyFor(profile_required).safeParse(call.input)')
+    // ⛓️ 26 Aug — the contract is discriminated: a question is validated as EXACTLY what
+    // the route returns (type + content, all else stripped), and only a completion faces
+    // the strict targeting schema. Both branches still go through Zod before any read.
+    expect(icpsSrc).toContain('? MillaQuestionReply.safeParse(call.input)')
+    expect(icpsSrc).toContain(': millaReplyFor(profile_required).safeParse(call.input)')
+    expect(icpsSrc).toContain('const MillaQuestionReply = z.object({')
     expect(icpsSrc).toContain('if (!validated.success) {')
     expect(icpsSrc).toContain('const parsed = validated.data')
   })
@@ -1400,14 +1445,20 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
   })
 
   it('the schema BOUNDS every string and array — no unbounded object', () => {
+    // ⛓️ 26 Aug — the bounds are CLAMPS now, not refusals. The tool schema states the same
+    // numbers to the model, but the API treats maxLength as guidance; a reply one word over
+    // budget used to fail the whole parse and cost the client their turn, repeatedly, since
+    // a retry re-sent the same history to the same model. The BOUND itself is unchanged —
+    // nothing longer than these numbers can pass — only the blast radius moved.
     for (const bound of [
-      'content: z.string().max(600)',
-      'summary: z.string().max(400)',
-      'company_name: z.string().max(200)',
-      'campaign_intent: z.string().max(2000)',
+      'content: clampedStr(600)',
+      'summary: clampedStr(400)',
+      'company_name: clampedStr(200)',
+      'campaign_intent: clampedStr(2000)',
     ]) expect(icpsSrc, bound).toContain(bound)
-    expect(icpsSrc).toContain('const boundedList = (maxItems: number, maxLen = 80) => z.array(z.string().max(maxLen)).max(maxItems).optional()')
-    expect(icpsSrc).toContain('})).max(12).optional()')   // proof count
+    expect(icpsSrc).toContain("z.string().optional().transform(s => (typeof s === 'string' ? s.slice(0, maxLen) : s))")
+    expect(icpsSrc).toContain('.transform(a => a?.map(s => s.slice(0, maxLen)).slice(0, maxItems))')
+    expect(icpsSrc).toContain('})).optional().transform(a => a?.slice(0, 12))')   // proof count
     expect(icpsSrc).toContain('website_hints:   boundedList(12, 200)')
   })
 
@@ -1624,7 +1675,10 @@ describe('one question per reply, and the business before the filter fields', ()
     // API contract needs a leading USER turn, and that is why it was sliced off in the first
     // place. The slice stays exactly as it was, and the framing lives in `system`.
     expect(welcomeCode).toContain("const forModel = history.slice(history.findIndex(m => m.role === 'user'))")
-    expect(routeCode).toContain('messages: messages.map(m => ({ role: m.role, content: m.content })),')
+    // ⛓️ 26 Aug — the payload is the WINDOWED suffix of the transcript (most recent 40,
+    // opened at a user turn). A suffix slice can only ever REMOVE leading turns, so the
+    // screen-copy greeting still cannot re-enter the payload by construction.
+    expect(routeCode).toContain('messages: windowed.map(m => ({ role: m.role, content: m.content })),')
     expect(routeCode).not.toContain('GREETING')
   })
 
@@ -1661,8 +1715,10 @@ describe('one Anthropic call per turn, with headroom, on the same model', () => 
   })
 
   it('EXACTLY ONE Anthropic call exists in this route — no repair retry was introduced', () => {
-    // The count IS the proof: a second call cannot exist without a second create.
-    expect(route.match(/anthropic\.messages\.create/g) ?? []).toHaveLength(1)
+    // The count IS the proof: a second call cannot exist without a second create. The
+    // response variable's TYPE annotation also names create (typeof ...), so the count is
+    // of awaited INVOCATIONS, which is the thing a repair retry would need a second of.
+    expect(route.match(/await anthropic\.messages\.create/g) ?? []).toHaveLength(1)
     // …and it is not inside a loop that could run it twice.
     const code = stripComments(route)
     const callAt = code.indexOf('anthropic.messages.create')
@@ -1690,6 +1746,15 @@ describe('diagnostics are safe — nothing of the client is logged', () => {
     expect(icpsSrc).toContain('inputKeys: call.input && typeof call.input === \'object\' ? Object.keys(call.input).length : 0')
     expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*call\.input/)
     expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*JSON\.stringify\(call\.input/)
+  })
+
+  it('the route-stage log carries stage and name ONLY — never the raw error object', () => {
+    // ⚑ 26 Aug (final correction) — a route-stage throw can interpolate whatever was in
+    // flight (a Supabase error embedding row data, a JSON error quoting the text it choked
+    // on), so the raw object may not ride along with the safe metadata. This guard exists
+    // because the first red-proof of the cleanup did NOT go red: nothing was watching.
+    expect(icpsSrc).toContain("JSON.stringify({ stage: 'route', name: err instanceof Error ? err.name : typeof err }))")
+    expect(icpsSrc).not.toMatch(/stage: 'route'[^)]*\}\), err\)/)
   })
 
   it('no transcript, no model text, no customer content reaches a log line', () => {
@@ -1874,21 +1939,40 @@ describe('EXECUTED · the closed lists are enforced at the trust boundary', () =
     expect((await run()).code).toBe(200)
   })
 
-  it('an industry OUTSIDE the approved list is refused — "IT Solutions" is the live example', async () => {
-    anthropicBox.reply = withIcp({ industries: ['IT Solutions'] })
+  // ⛓️ 26 Aug — FILTERED, NOT FATAL. These three used to assert that one off-list value
+  // killed the WHOLE reply with the 503 banner — which it did, deterministically, on every
+  // retry, because the same history sent to the same model reproduced the same value. That
+  // was the "Milla lost that response" loop. The boundary itself is UNCHANGED and these
+  // tests still prove it: the off-list value is dropped before it can reach icps.industries
+  // and the PDL/Apollo queries — it is the client's TURN that now survives.
+  it('an off-list industry is DROPPED at the boundary — the turn survives, the value does not', async () => {
+    anthropicBox.reply = withIcp({ industries: ['IT Solutions', 'Fintech'] })
     const out = await run()
-    expect(out.code).toBe(503)
-    expect(out.payload.retryable).toBe(true)
+    expect(out.code).toBe(200)
+    const icp = (out.payload.data as Record<string, any>).icp
+    expect(icp.industries).toEqual(['Fintech'])                       // the real value kept
+    expect(JSON.stringify(icp)).not.toContain('IT Solutions')          // the invented one gone
   })
 
-  it('a seniority outside the approved list is refused', async () => {
-    anthropicBox.reply = withIcp({ seniority_levels: ['MD and above'] })
-    expect((await run()).code).toBe(503)
+  it('an off-list seniority is dropped the same way', async () => {
+    anthropicBox.reply = withIcp({ seniority_levels: ['MD and above', 'Manager'] })
+    const out = await run()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp.seniority_levels).toEqual(['Manager'])
   })
 
-  it('a company size outside the approved list is refused', async () => {
-    anthropicBox.reply = withIcp({ company_sizes: ['50 - 500'] })
-    expect((await run()).code).toBe(503)
+  it('an off-list company size is dropped the same way', async () => {
+    anthropicBox.reply = withIcp({ company_sizes: ['50 - 500', '51–200'] })
+    const out = await run()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp.company_sizes).toEqual(['51–200'])
+  })
+
+  it('a case drift is CANONICALISED, never stored as the model spelt it', async () => {
+    anthropicBox.reply = withIcp({ industries: ['fintech', 'SAAS'] })
+    const out = await run()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp.industries).toEqual(['Fintech', 'SaaS'])
   })
 
   it('but job titles, geographies and keywords stay the client\'s own words', async () => {
@@ -1907,7 +1991,7 @@ describe('EXECUTED · every unusable envelope is refused, none of them speaks as
     expect(out.code).toBe(503)
     expect(out.payload.success).toBe(false)
     expect(out.payload.retryable).toBe(true)
-    expect(out.payload.error).toBe('Milla lost that response — please send your last answer again.')
+    expect(out.payload.error).toBe('Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.')
     // The decisive assertion: nothing came back that the portal would render as Milla.
     expect(out.payload.data).toBeUndefined()
   }
@@ -1955,18 +2039,36 @@ describe('EXECUTED · every unusable envelope is refused, none of them speaks as
     expectHonestFailure(await run())
   })
 
-  it('INVALID_SHAPE — a string past its bound', async () => {
+  // ⛓️ 26 Aug — LENGTH OVERRUNS ARE CLAMPED, NOT FATAL. These two used to assert the exact
+  // behaviour that produced the repeated client-facing banner: the tool schema's maxLength
+  // is guidance the API does not enforce, so a reply one word over budget failed the whole
+  // parse and cost the client their turn — and a retry re-sent the same history to the same
+  // model and got the same overrun. The bound itself still holds: nothing longer than the
+  // budget can pass; the excess is trimmed instead of the turn being burned.
+  it('a string past its bound is CLAMPED to it — the turn survives at exactly the budget', async () => {
     anthropicBox.reply = toolReply({ type: 'question', content: 'x'.repeat(601) })
-    expectHonestFailure(await run())
+    const out = await run()
+    expect(out.code).toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.type).toBe('question')
+    expect(d.content).toHaveLength(600)                       // the bound is still the bound
   })
 
-  it('INVALID_SHAPE — more proof claims than the schema allows', async () => {
+  it('more proof claims than the budget are SLICED to it, never fatal', async () => {
     anthropicBox.reply = toolReply({
       type: 'complete', summary: 's',
       profile: { company_name: 'A', country: 'B' },
       icp: VALID_ICP,
       proof: Array.from({ length: 13 }, (_, i) => ({ claim: `claim ${i}`, permitted: false })),
     })
+    const out = await run()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).proof).toHaveLength(12)
+  })
+
+  it('a TYPE error is still fatal — clamping never rescues structural garbage', async () => {
+    // A number where a string belongs is not a budget problem; no safe reply exists in it.
+    anthropicBox.reply = toolReply({ type: 'question', content: 12345 })
     expectHonestFailure(await run())
   })
 
@@ -1996,5 +2098,387 @@ describe('the boundaries this build was told not to cross', () => {
     for (const col of ['company_name', 'industry', 'country', 'website', 'phone']) {
       expect(schema, col).toContain(col)
     }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug — THE COMPLETE MESSAGE-PATH MATRIX, THROUGH THE REAL HANDLER.
+//
+// THE LIVE DEFECT THESE CLOSE. Clients in onboarding hit the retryable 503 banner over and
+// over on ordinary answers. The trace found the loop: the tool schema's maxLength/enum are
+// GUIDANCE the API does not enforce, the Zod layer refused any drift outright, and a retry
+// re-sent the same history to the same model — which reproduced the same drift. Alongside
+// it: a provider throw fell into the generic route catch with no stage information, a
+// 40-message cap hard-failed long onboardings with raw Zod text, and the browser walked
+// away at 15s while the server was still legitimately working.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · the ordinary turn, and every failure class, through the real route', () => {
+  beforeEach(() => {
+    anthropicBox.calls = 0
+    anthropicBox.error = null
+    anthropicBox.reply = null
+    anthropicBox.lastParams = null
+    anthropicBox.lastOptions = null
+  })
+  const RETRY_COPY = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'
+
+  it('1 · an ordinary short answer — "no" — produces one reply and no banner', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'No problem — who are your best customers today?' })
+    const out = await callBuilderChat({
+      messages: [
+        { role: 'user', content: 'we sell fleet software' },
+        { role: 'assistant', content: 'Do you have a website I can look at?' },
+        { role: 'user', content: 'no' },
+      ],
+      profile_required: true,
+    })
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).type).toBe('question')
+    expect(anthropicBox.calls).toBe(1)                       // one submission, ONE model turn
+  })
+
+  it('2-5 · a provider throw (timeout / 429 / 5xx / network) is a STAGE, not a mystery', async () => {
+    for (const err of [
+      Object.assign(new Error('Request timed out'), { name: 'APIConnectionTimeoutError' }),
+      Object.assign(new Error('rate limited'), { name: 'RateLimitError', status: 429 }),
+      Object.assign(new Error('overloaded'), { name: 'InternalServerError', status: 529 }),
+      Object.assign(new Error('socket hang up'), { name: 'APIConnectionError' }),
+    ]) {
+      anthropicBox.error = err
+      const out = await callBuilderChat({ messages: [{ role: 'user', content: 'no' }], profile_required: true })
+      expect(out.code, err.name).toBe(503)
+      expect(out.payload.retryable, err.name).toBe(true)
+      expect(out.payload.error, err.name).toBe(RETRY_COPY)
+      // Never mislabeled as a request-body problem, and no raw provider text reaches the client.
+      expect(JSON.stringify(out.payload), err.name).not.toMatch(/anthropic|rate limited|socket|overloaded/i)
+    }
+  })
+
+  it('6 · an EMPTY provider response can never masquerade as a Milla turn', async () => {
+    anthropicBox.reply = { stop_reason: 'end_turn', content: [] }
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'no' }], profile_required: true })
+    expect(out.code).toBe(503)
+    expect(out.payload.data).toBeUndefined()
+  })
+
+  it('7 · SDK options are BOUNDED — 45s and one retry, under the portal’s 60s wait', async () => {
+    // The old shape: SDK default 10 minutes + 2 retries behind a browser that aborts at 15s
+    // — the server kept spending long after the client walked away, and this stateless
+    // route threw the eventual answer away. The order now: SDK 45s < portal 60s.
+    anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
+    await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: false })
+    // ⛓️ CORRECTED same day: maxRetries 0, because the SDK honours a server retry-after
+    // of up to ~60s BETWEEN attempts (core.js 0.39.0), making any retrying shape unprovable
+    // against the 60s browser budget. One bounded attempt: worst case 45s < 60s, 15s spare.
+    expect(anthropicBox.lastOptions).toEqual({ timeout: 45_000, maxRetries: 0 })
+  })
+
+  it('8 · a LONG onboarding no longer hard-fails — the model sees the last 40, from a user turn', async () => {
+    // 60 turns used to be a Zod 400 with raw validation text in the client's error line.
+    anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
+    const long = Array.from({ length: 60 }, (_, i) => ({
+      role: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: `turn ${i}`,
+    }))
+    const out = await callBuilderChat({ messages: long, profile_required: false })
+    expect(out.code).toBe(200)
+    const sent = (anthropicBox.lastParams as { messages: Array<{ role: string; content: string }> }).messages
+    expect(sent.length).toBeLessThanOrEqual(40)
+    expect(sent[0].role).toBe('user')                          // the API contract holds
+    expect(sent[sent.length - 1].content).toBe('turn 59')      // and recency is what is kept
+  })
+
+  it('9 · the window opens at a USER turn even when the slice lands on an assistant one', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
+    // 41 messages starting user: slice(-40) starts at an assistant turn — it must be dropped.
+    const long = Array.from({ length: 41 }, (_, i) => ({
+      role: (i % 2 === 0 ? 'user' : 'assistant') as 'user' | 'assistant',
+      content: `turn ${i}`,
+    }))
+    await callBuilderChat({ messages: long, profile_required: false })
+    const sent = (anthropicBox.lastParams as { messages: Array<{ role: string }> }).messages
+    expect(sent[0].role).toBe('user')
+  })
+
+  it('10 · a request beyond even the raised cap is still refused as the CALLER’s error', async () => {
+    const absurd = Array.from({ length: 201 }, () => ({ role: 'user' as const, content: 'x' }))
+    const out = await callBuilderChat({ messages: absurd, profile_required: false })
+    expect(out.code).toBe(400)                                 // bad request, not a Milla failure
+  })
+
+  it('11 · business prose a paragraph over budget is clamped, and the turn survives', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'complete', summary: 's',
+      profile: { company_name: 'ABCV Logistics', country: 'United States' },
+      icp: VALID_ICP,
+      business: { product: 'p'.repeat(1300), pitch: 'fine' },
+    })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).business.product).toHaveLength(1200)
+  })
+
+  it('12 · the first-run gate is UNTOUCHED by clamping — a completion without the account facts still refuses', async () => {
+    // Clamps rescue budgets, never structure: no company name means no account can open,
+    // and inventing one would put words in Milla’s mouth (founder-ruled, unchanged).
+    anthropicBox.reply = toolReply({ type: 'complete', summary: 's', icp: VALID_ICP })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+    expect(out.code).toBe(503)
+    expect(out.payload.retryable).toBe(true)
+  })
+
+  it('13 · a retry after a transient failure succeeds from the same transcript', async () => {
+    const history = [{ role: 'user' as const, content: 'no' }]
+    anthropicBox.error = Object.assign(new Error('blip'), { name: 'APIConnectionError' })
+    expect((await callBuilderChat({ messages: history, profile_required: true })).code).toBe(503)
+    anthropicBox.error = null
+    anthropicBox.reply = toolReply({ type: 'question', content: 'Got it — and who buys from you?' })
+    const out = await callBuilderChat({ messages: history, profile_required: true })
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).content).toContain('who buys from you')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The PORTAL side of the same defect: the failure banner asked the client to retype an
+// answer the transcript already held, and obeying appended the answer twice.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('the portal recovers from the SAVED turn — no retype, no duplicate', () => {
+  it('a failed delivery keeps the turn and arms a retry that appends NOTHING', () => {
+    expect(welcomeCode).toContain('async function retry()')
+    // retry re-delivers `messages` as they stand — no history construction, no append.
+    const retryBody = welcomeCode.slice(welcomeCode.indexOf('async function retry('), welcomeCode.indexOf('async function send('))
+    expect(retryBody).toContain('await deliver(messages, webEvidence)')
+    expect(retryBody).not.toContain('[...messages')
+  })
+
+  it('a RETYPE of the identical last answer after a failure is treated as a retry', () => {
+    // The old banner trained clients to type their answer again; anyone still doing so must
+    // not create "no" twice in the transcript.
+    expect(welcomeCode).toContain("if (canRetry && last?.role === 'user' && last.content.trim() === msg)")
+  })
+
+  it('the failure banner renders a Try again control wired to the retry', () => {
+    expect(welcomeCode).toContain('void retry()')
+    expect(welcomeCode).toContain('Try again')
+  })
+
+  it('the model wait uses the 60s budget, above the server’s 45s + one retry', () => {
+    expect(welcomeCode).toContain('60_000')
+    expect(builderPageCode).toContain('60_000')
+  })
+
+  it('the dashboard builder page carries the same retry contract', () => {
+    expect(builderPageCode).toContain('async function retryLast()')
+    expect(builderPageCode).toContain("if (canRetry && last?.role === 'user' && last.content.trim() === messageText)")
+    expect(builderPageCode).toContain('Try again')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug (correction pass) — THE THREE FACTS THE FIRST CUT ASSERTED WITHOUT PROOF.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('the timeout budget is ARITHMETIC, proven against the installed SDK', () => {
+  beforeEach(() => {
+    anthropicBox.calls = 0; anthropicBox.error = null; anthropicBox.reply = null
+    anthropicBox.lastOptions = null
+  })
+
+  it('the SDK honours a server retry-after of up to ~60s BETWEEN attempts — retrying is unprovable', () => {
+    // The fact that killed the first cut, read from the dependency itself: any accepted
+    // retry-after below 60s is slept in full, so with even ONE retry the worst case is
+    // per-attempt + ~59.9s + per-attempt — far beyond any browser budget we could set.
+    const core = read(join(__dirname, '../../../../node_modules/@anthropic-ai/sdk/core.js'))
+    expect(core).toContain("if (!(timeoutMillis && 0 <= timeoutMillis && timeoutMillis < 60 * 1000))")
+    expect(core).toContain('await (0, exports.sleep)(timeoutMillis)')
+  })
+
+  it('so the route makes ONE bounded attempt: 45s worst case, strictly under the 60s browser wait', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
+    await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: false })
+    const opts = anthropicBox.lastOptions as { timeout: number; maxRetries: number }
+    expect(opts.maxRetries).toBe(0)                          // no retry → no retry-after sleep path
+    const worstCaseMs = opts.timeout * (opts.maxRetries + 1) // per-attempt × attempts, no sleeps
+    expect(worstCaseMs).toBe(45_000)
+    const browserBudget = 60_000                             // welcomeCode/builderPageCode pass 60_000
+    expect(welcomeCode).toContain('60_000')
+    expect(worstCaseMs, 'browser must outlast the whole server model budget').toBeLessThan(browserBudget)
+  })
+
+  it('a provider failure with retries disabled is still ONE call, one truthful 503', async () => {
+    anthropicBox.error = Object.assign(new Error('timeout'), { name: 'APIConnectionTimeoutError' })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'no' }], profile_required: true })
+    expect(out.code).toBe(503)
+    expect(anthropicBox.calls).toBe(1)
+  })
+})
+
+describe('an all-invalid closed list can NEVER silently broaden the targeting', () => {
+  beforeEach(() => { anthropicBox.calls = 0; anthropicBox.error = null; anthropicBox.reply = null })
+  const withIcp2 = (icp: Record<string, unknown>) => toolReply({
+    type: 'complete', summary: 's',
+    profile: { company_name: 'ABCV Logistics', country: 'United States' },
+    icp: { ...VALID_ICP, ...icp },
+  })
+  const run2 = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+
+  // ⚠️ WHY REFUSAL AND NOT [] — read from the query builders themselves: `buildPdlBody`
+  // adds NO filter for a list with no length, and the pool matcher "doesn't narrow"
+  // without a signal. An empty closed list therefore means UNCONSTRAINED downstream, and
+  // turning "IT Solutions" into [] would quietly search a wider market than anyone chose.
+  it('ALL-invalid industries → the turn is refused, never an unconstrained search', async () => {
+    anthropicBox.reply = withIcp2({ industries: ['IT Solutions', 'Digital Stuff'] })
+    const out = await run2()
+    expect(out.code).toBe(503)
+    expect(out.payload.retryable).toBe(true)
+    expect(out.payload.data).toBeUndefined()                 // nothing broadened reaches the portal
+  })
+
+  it('ALL-invalid seniority → refused the same way', async () => {
+    anthropicBox.reply = withIcp2({ seniority_levels: ['MD and above'] })
+    expect((await run2()).code).toBe(503)
+  })
+
+  it('ALL-invalid company sizes → refused the same way', async () => {
+    anthropicBox.reply = withIcp2({ company_sizes: ['50 - 500'] })
+    expect((await run2()).code).toBe(503)
+  })
+
+  it('MIXED stays a rescue: the valid value survives, the invented one dies, the turn lives', async () => {
+    anthropicBox.reply = withIcp2({ industries: ['IT Solutions', 'Fintech'] })
+    const out = await run2()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp.industries).toEqual(['Fintech'])
+  })
+
+  it('a genuinely EMPTY list from the model stays empty — "not specified" is unchanged', async () => {
+    // [] from the model is the same "no constraint expressed" it always was; only a
+    // NON-EMPTY list collapsing to nothing is a constraint being silently dropped.
+    anthropicBox.reply = withIcp2({ tech_stack: [], industries: ['Fintech'] })
+    expect((await run2()).code).toBe(200)
+  })
+
+  it('the refusal names the field in the log path, so a repeat is diagnosable', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      anthropicBox.reply = withIcp2({ industries: ['IT Solutions'] })
+      await run2()
+      const logged = spy.mock.calls.map(c => c.join(' ')).join('\n')
+      expect(logged).toContain('icp.industries')
+      expect(logged, 'never the client value itself').not.toContain('IT Solutions')
+    } finally { spy.mockRestore() }
+  })
+})
+
+describe('the failure copy claims exactly what the state can honour', () => {
+  it('“still here” — same-tab truth only; no durability the route does not have', () => {
+    // The transcript lives in the page's React state: it survives the SAME TAB (where the
+    // sentence is read) and does NOT survive a refresh — and neither does the sentence, so
+    // the copy can never outlive its own truth. "Saved" (the earlier draft) claimed a
+    // persistence this stateless route does not provide, and is banned below.
+    expect(icpsSrc).toContain("const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'")
+    expect(icpsSrc).not.toContain('your answer is saved')
+    // And nothing in either portal page persists the transcript beyond component state.
+    for (const [name, src] of [['welcome', welcomeCode], ['builder', builderPageCode]] as const) {
+      expect(src, `${name}: no transcript in storage`).not.toMatch(/(localStorage|sessionStorage)\.[gs]etItem\([^)]*(message|transcript|chat)/i)
+    }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug (final correction) — A QUESTION CANNOT BE KILLED BY TARGETING NOBODY CONSUMES.
+//
+// Found in review of the literal diff: the all-invalid closed-list refusal ran during the
+// ONE global parse, but a question reply returns `{ type, content }` and DISCARDS its
+// auxiliary `icp`. So an incidental hallucinated industry on an ordinary question — the
+// commonest turn in the whole conversation — could still 503 deterministically on every
+// retry. Validation is discriminated now: a question is checked as exactly what the route
+// returns; only a completion faces the fail-closed targeting schema.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · discriminated validation — questions survive junk targeting, completions stay fail-closed', () => {
+  beforeEach(() => { anthropicBox.calls = 0; anthropicBox.error = null; anthropicBox.reply = null })
+  const ask = () => callBuilderChat({ messages: [{ role: 'user', content: 'no' }], profile_required: true })
+
+  it('A · question + all-invalid industries → 200, exact content, and NO targeting returned', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'question',
+      content: 'No problem — who normally buys from you?',
+      icp: { industries: ['IT Solutions'] },
+    })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.type).toBe('question')
+    expect(d.content).toBe('No problem — who normally buys from you?')   // exact, unclamped
+    expect(d.icp, 'a question returns no targeting at all').toBeUndefined()
+    expect(JSON.stringify(out.payload)).not.toContain('IT Solutions')     // the junk is gone
+  })
+
+  it('B · question + all-invalid seniority → 200', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'And how senior are they usually?', icp: { seniority_levels: ['MD and above'] } })
+    expect((await ask()).code).toBe(200)
+  })
+
+  it('C · question + all-invalid company size → 200', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'Roughly how big are those companies?', icp: { company_sizes: ['50 - 500'] } })
+    expect((await ask()).code).toBe(200)
+  })
+
+  it('D · question + MIXED auxiliary targeting → 200, the question survives untouched', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'Got it — which industries matter most?', icp: { industries: ['IT Solutions', 'Fintech'] } })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).content).toContain('which industries matter most')
+  })
+
+  it('E · a STRUCTURALLY invalid question still fails closed — numeric and blank content', async () => {
+    for (const content of [12345, '   ']) {
+      anthropicBox.reply = toolReply({ type: 'question', content })
+      const out = await ask()
+      expect(out.code, JSON.stringify(content)).toBe(503)
+      expect(out.payload.data, JSON.stringify(content)).toBeUndefined()
+    }
+  })
+
+  // F–H already hold above ('an all-invalid closed list can NEVER silently broaden') and
+  // are re-asserted here so THIS describe proves the completion side did not soften.
+  it('F–H · complete + all-invalid industries / seniority / sizes → still 503, each', async () => {
+    for (const icp of [
+      { industries: ['IT Solutions'] },
+      { seniority_levels: ['MD and above'] },
+      { company_sizes: ['50 - 500'] },
+    ]) {
+      anthropicBox.reply = toolReply({
+        type: 'complete', summary: 's',
+        profile: { company_name: 'ABCV Logistics', country: 'United States' },
+        icp: { ...VALID_ICP, ...icp },
+      })
+      const out = await ask()
+      expect(out.code, JSON.stringify(icp)).toBe(503)
+    }
+  })
+
+  it('I · complete + mixed → 200 with the canonical valid value only', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'complete', summary: 's',
+      profile: { company_name: 'ABCV Logistics', country: 'United States' },
+      icp: { ...VALID_ICP, industries: ['IT Solutions', 'fintech'] },
+    })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp.industries).toEqual(['Fintech'])
+  })
+
+  it('J · the ordinary "no" — one Milla response, one model call, no banner', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'No problem at all.' })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect(anthropicBox.calls).toBe(1)
+    expect(JSON.stringify(out.payload)).not.toContain('didn’t catch that')
+  })
+
+  it('an unknown reply type still falls to the strict schema and fails closed', async () => {
+    anthropicBox.reply = toolReply({ type: 'banana', content: 'hi' })
+    expect((await ask()).code).toBe(503)
   })
 })

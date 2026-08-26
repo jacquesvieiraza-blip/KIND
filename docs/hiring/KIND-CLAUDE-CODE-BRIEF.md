@@ -93,7 +93,7 @@ Build the **portals in this order**, account/auth systems done right from the st
 
 ## ⚠️ Reconcile notes (for when this is picked up — Claude, 19 Jun)
 - **Currency = USD — RESOLVED 22 Jun (founder: "we are USD").** The brief's earlier "all £ GBP" is overridden. The calculators + comp plans already filed in `docs/hiring/` are in **USD (correct, locked 22 Jun)** — consistent with the live product's locked pricing: per qualified lead, no subscriptions — $1 reveal → +$3 FIGSY = $4 → +$1 Milla = $5 → +$1 Denise = $6.
-- **Partner rate = 20% + 5%** (this brief is authoritative) → item 197's "25% + 5%" is superseded.
+- ~~**Partner rate = 20% + 5%** (this brief is authoritative) → item 197's "25% + 5%" is superseded.~~ ⛓️ **THIS LINE IS ITSELF SUPERSEDED — 19 Aug 2026, R47.** This brief was authoritative on 19 Jun; it is not authoritative on partner comp now. **Current: 25% of approved-lead spend after the included first 100, lifetime, gross, $0 of the $299 pack and $0 on the 100 included approvals.** Retained as the origin of the superseded structure (see **PR10**, chained).
 - **This brief operationalizes** items 196 (Stripe = money source-of-truth ledger), 197 (partner comp), 200 (the 3 portals), 201 (AE hire), 202 (HR/legal pack) — it's the concrete build spec for the whole seller engine.
 - **Repo question:** the brief says "fresh git repo." Decide: a new repo (like `kind-ops`) vs a module in the KIND product. The Stripe/attribution wiring overlaps the live product, so likely the KIND product (or a tightly-linked service), not fully standalone.
 - **Artifacts not yet in any repo** — they're in the founder's `kind handoff` zip. Add them when accessible.

@@ -68,9 +68,23 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 ---
 
 ## 💰 How you earn (partner terms)
-- **Acquisition — 20% one-time** of a new client's **first-month collected spend**, when they sign.
-- **Retention — 5% recurring** on your **active book** (every client you manage), **every month they stay.**
-- **Earned when we collect** — if a client churns, the retention simply stops. **No clawback. No cap. No paperwork.**
+
+> ⛓️ **RECONCILED 26 Aug 2026 — THE TERMS BELOW WERE REPLACED ON 19 AUG (R47). DO NOT QUOTE THE STRUCK LINES TO ANYONE.**
+>
+> **CURRENT PARTNER TERMS — R47, founder's own words:** *"no 25% does not include the $299 nor the 100 leads we give. its everything after this or above this"* · duration *"lifetime. if they looking after their client its theirs."*
+> - **25% of the client's approved-lead spend, after their included first 100** — the only thing that pays.
+> - **$0 of the $299 setup pack · $0 on the included first 100 approvals · then 25% of paid approved-lead spend thereafter**, for as long as that attributed client stays **active and spending**.
+> - ⚠️ **The funding event is not the commission event.** However a client tops their wallet up, **a payment into the wallet earns nothing by itself** — commission is earned when qualifying **paid approved leads** are taken, after the included first 100. The founder's own words: *"she earns on leads purchased not when they top up… we earn money when they buy leads."* **Leads bought with top-up money still commission normally.**
+> - **Recurring for the lifetime of the account**, while that client stays active and spending.
+> - Base is **gross** (before card fees), the founder's explicit choice.
+> - **At the live $4 price that is $1 per paid approved lead.** ⚠️ **The approved migration target is $8, which makes it $2 — see R68. $8 IS NOT LIVE YET.**
+> - The partner **brings and maintains the commercial relationship**; **K.I.N.D owns product quality and delivery.**
+>
+> ⚠️ **Why the old lines are struck rather than deleted:** the two models both total 25% and are otherwise nothing alike, and a partner who read the old wording would expect to be paid on the $299. They are not. Keeping the old text visible is how that misunderstanding stays traceable.
+
+~~- **Acquisition — 20% one-time** of a new client's **first-month collected spend**, when they sign.~~ ⛓️ *superseded by R47, 19 Aug*
+~~- **Retention — 5% recurring** on your **active book** (every client you manage), **every month they stay.**~~ ⛓️ *superseded by R47, 19 Aug*
+- **Earned when we collect** — if a client churns, the commission simply stops. **No clawback. No cap. No paperwork.** *(unchanged by R47)*
 - **Your own partner dashboard** + an **auto-provisioned demo account** to show prospects live.
 - **Unique referral link** — signups are attributed to you automatically (`/partners/ref/<your-code>`).
 
@@ -82,7 +96,7 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 1. Get approved → receive your partner dashboard + demo account + referral link.
 2. Pick a trade, use its playbook, show the demo, quote the bundle.
 3. Send your referral link; the client signs up (signup is free; the first purchase is $299 and nothing runs until it lands).
-4. On their first paid leads → your **20% acquisition** pays out + your **5% retention** starts, both shown on your dashboard.
+4. ~~On their first paid leads → your **20% acquisition** pays out + your **5% retention** starts, both shown on your dashboard.~~ ⛓️ **CORRECTED 26 Aug (R47):** the $299 pays you **nothing** and their **included first 100 approvals pay nothing**. Your **25%** starts on approval **101** — their first *paid* approved lead — and continues for the lifetime of the account.
 
 *Questions: hello@get-kind.com*
 
@@ -98,6 +112,7 @@ Each trade gets a specific funnel + ROI. Lead with these, not features.
 > Hi {{first}} — saw {{agency}} works with {{client type}}. I run **K.I.N.D**, an AI sales team for small businesses (finds + emails leads, books meetings). I'm bringing on a few agencies to resell it to clients they already have — **20% upfront + 5% recurring**. Open to a quick look?
 
 **3 · Intro ask (to a connector, e.g. Demmy):**
-> Hey {{first}} — building out K.I.N.D's partner channel: agencies resell our AI sales team for **20% + 5% recurring**, zero build. You know a lot of agency owners — could you intro me to **2–3** who'd want a recurring revenue line? Happy to send a one-pager you can forward.
+> ⛓️ *(26 Aug: **"20% + 5% recurring" is superseded by R47** — the correct line is **25% of what their clients spend on approved leads, for the lifetime of the account**. Do not send the struck wording.)*
+> Hey {{first}} — building out K.I.N.D's partner channel: agencies resell our AI sales team for ~~**20% + 5% recurring**~~ **25% recurring on approved-lead spend**, zero build. You know a lot of agency owners — could you intro me to **2–3** who'd want a recurring revenue line? Happy to send a one-pager you can forward.
 
 **When they reply "tell me more":** send `get-kind.com/small-business-playbook` or offer a 15-min demo. **Follow-up if quiet (~4 days):** *"No worries if the timing's off, {{first}} — want me to send the one-pager so it's there when it's useful?"*

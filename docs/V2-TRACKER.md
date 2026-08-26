@@ -459,7 +459,7 @@ A competitor teardown of **Qualified.com** (enterprise, Salesforce-native, *inbo
 |---|---|---|
 | Relationship | External channel (refers + white-labels) | Employed (internal closer) |
 | Pays for the tool? | **YES** — pays for their own seat/use | **NO** — free seat (employed sales kit) |
-| Earns | 20% acquisition + **5% on renewal** (item 197) | 20% land / 5% retain / 5% expansion + 5% multi-seat + 5% partner override (AE comp plan, `docs/hiring/`) |
+| Earns | ⛓️ **CURRENT (R47):** **$0 of the $299 · $0 on the included first 100 approvals · then 25% of paid approved-lead spend**, for the lifetime of the account while that attributed client stays active and spending. *(Historical, superseded 19 Aug: ~~20% acquisition + 5% on renewal (item 197)~~.)* | 20% land / 5% retain / 5% expansion + 5% multi-seat + 5% partner override (AE comp plan, `docs/hiring/`) |
 | Both | refer · manage a book · **earn on retention** · get a portal + demo envs + sell-through-the-product | (same) |
 
 **One seat model, one `seat_type` flag (`partner_paid` | `ae_free`).** Everything else is shared. This is the whole architecture insight — don't build two systems that drift.
@@ -1373,6 +1373,91 @@ Central hypothesis to research: **THE CLIENT SHOULD FEEL THE OUTCOME, NOT THE MA
 **3.19 WHAT NOT TO COPY — recorded explicitly, because the temptation is the point.** K.I.N.D should **not** automatically adopt: enterprise platform complexity · exposed model selectors · agent marketplaces · customer-built workflow engines · giant admin consoles · deep technical configuration · integration quantity for its own sake · high release volume for its own sake. **K.I.N.D must remain K.I.N.D.**
 
 **3.20 Complexity caution.** More capability also buys: slower interfaces · harder configuration · inconsistent behaviour · feature overload · lower adoption. The principle to test: **simplicity may need to be a hard product constraint rather than a design preference.**
+
+### 4. OBSERVED LIVE — MILLA'S "LOST THAT RESPONSE" APPEARS, THEN THE ANSWER ARRIVES ANYWAY
+
+⚠️ **THIS IS NOT AN IDEA. It is a defect observed on a real journey, logged here because this is the post-launch home and it is not a launch blocker.** Sections 1–3 above are research; this one is a thing that happened. Do not read "NOT ADOPTED" onto it — nothing has been decided, and no fix is approved.
+
+**Observed (25 Aug, live Milla onboarding/chat).** The chat displayed *"Milla lost that response — please send your last answer again."* — and the response then appeared to recover on its own, with no resend from the user.
+
+**Why it matters.** The sentence asks the client to act at the exact moment the system is recovering by itself. During onboarding that is confusing at best; at worst the client resends and the same answer is submitted twice, which nobody has yet checked is harmless.
+
+**What is known.** The message is one server response — `millaReplyFailed()` in `apps/api/src/routes/icps.ts`, a `503` with `retryable: true`, raised for six categories of unusable model reply (`TRUNCATED · UNEXPECTED_STOP · NO_TOOL_CALL · MULTIPLE_TOOL_CALLS · WRONG_TOOL · INVALID_SHAPE`). **What is NOT known is why the answer then appeared without a resend** — nobody has yet established whether something retried, whether a slower response landed late, or whether the client's screen simply caught up.
+
+**Questions an investigation would have to answer, none of them settled here:**
+- What actually recovered it — a retry, a late response, or the UI?
+- Does the error state CLEAR correctly once the answer arrives, or does the sentence sit under a reply that already worked?
+- Is a resend at that moment SAFE, or can the same answer be submitted twice?
+- Should a `retryable: true` failure be surfaced to the client at all before the recovery path has been given its chance?
+- Is the copy honest? It says *"lost"* about something that was not, in this instance, lost.
+
+⚠️ **Classification: post-launch UX / reliability debt. NOT a launch blocker (25 Aug).** ⚠️ **Nothing here authorises a change to the chat, the retry behaviour or the copy.** The decision filter above applies unchanged: the founder decides whether this becomes work. 🤖
+
+
+### 5. OBSERVED LIVE — PASS-2 DESK DEBT, AND TWO AUDITS NOBODY HAS RUN
+
+⚠️ **AS WITH SECTION 4, THESE ARE NOT IDEAS.** They are things seen or established during the 25 Aug launch journey and filed here because they are not launch blockers. Nothing is decided; the decision filter above applies.
+
+**5.1 The "What's off about this batch?" control is tiny and disconnected.** Observed on the proof desk: the refinement control that drives the entire pass-1 → pass-2 journey reads as an afterthought next to the cards it refines. Related debt seen in the same sitting: the **Milla / lead-grid split** makes it unclear where the conversation ends and the batch begins, **Latest / Earlier set** labelling needs to be unmissable rather than a small heading, and the **Milla right panel sizing/layout** does not hold its proportions. ⚠️ **All four are presentation. None changes what the server does**, and the pass-2 fences behind them are separately guarded.
+
+**5.2 Duplicate-submit and recovery behaviour.** Chains **4** above: if the client resends after a "lost that response", is the same answer submitted twice, and does anything deduplicate it? Unestablished.
+
+**5.3 Incident-specific Hunter credit audit — NOT DONE.** The historical free-proof incident should have consumed no Hunter credit (proof deliberately never enriches), but nobody has read the Hunter account to confirm it. ⚠️ **An assumption is not an audit** — the point of the line is that it is unverified.
+
+**5.4 PDL within-run backfill — an open economic question.** When a run's returned records are thinned by the client gates, should the run buy more to reach the cap, or deliver short? Both answers cost something: buying more spends the fence, delivering short gives the client less than the run was authorised for. **No decision has been taken and none should be inferred.**
+
+**5.5 PDL skip / rejection instrumentation.** `skipped` is counted in `runIcpJob` and never written to `icp_run_outcomes`, so when a run returns records and inserts none, **nothing records WHICH gate ate them** — budget cap, suppression, blocklist, this-client duplicate or insert failure all look identical afterwards. Directly related to **R67**'s retention work.
+
+**5.6 Willingness-to-pay and value perception.** Feeds the commercial pack (LAUNCH-PAD § BEFORE FRIDAY'S PARTNER MEETING, M5/M6) as evidence. ⚠️ **Research only — PR1's $299 lock stands until the founder rules on the evidence.**
+
+⚠️ **Classification: post-launch debt and research. None of it is a launch blocker (25 Aug).** 🤖
+
+
+### 6. COMMERCIAL SHAPE — TWO THINGS DISCUSSED THAT HAVE NO HOME ANYWHERE ELSE
+
+⚠️ **IDEAS, NOT DECISIONS.** Both were raised in the 25 Aug commercial conversation and neither is logged in any current doc. 🏷️ **POST-LAUNCH IDEA / REVIEW ITEM.** ⚠️ **PR1's $299 lock stands** — nothing here changes price, and the decision filter at the top of this bank applies unchanged.
+
+**6.1 Should Milla recommend a VOLUME and a SPEND, not just a targeting?** Today the client tells Milla who to reach and the money conversation happens elsewhere — `sales-playbook.md` maps recommended volumes for a *human* seller, and the product does not. The idea is that Milla, having just proved she can find this client's people, is the natural place to say *"for what you want, this is roughly the volume and roughly the monthly spend"*. ⚠️ **Every open question is open:** whether a recommendation from the system reads as help or as an upsell · whether being wrong about it damages the trust the proof just built · what it would be computed from · whether it belongs in the proof desk or in billing. **Nothing is designed, nothing is approved.**
+
+**6.2 The long-term move away from a flat $299 entry.** Raised as a direction, not a plan: the $299 pack plus $4-per-approved-lead is right for launch, and the founder's own framing was that it is not necessarily the shape of the business in a year. ⚠️ **This is not a pricing proposal and must never be cited as one.** What it is: a standing instruction that the pricing model gets **re-examined against real unit economics and real willingness-to-pay evidence** once there is data — the evidence for which is being gathered as **M5/M6** in the LAUNCH-PAD commercial pack. ⚠️ **A change to price is a founder ruling and a PR1 chain, and neither has happened.**
+
+**6.3 CRM REACTIVATION — the client's own dead pipeline as a lead source.** With the client's **explicit permission**, K.I.N.D may later use their CRM as a source: **closed-lost · dormant · stale opportunities**. K.I.N.D **revalidates** whether the opportunity deserves a new campaign before anything is enrolled. ⚠️ **Why it matters economically — stated structurally, because the absolute version is not true.** The client **already owns the source CRM identity**, so **K.I.N.D does not incur the ORIGINAL provider acquisition cost** for it. ⚠️ **That is NOT the same as a zero-cost lead, and no zero-cost rule exists.** Revalidation, enrichment, work/AI, sending and other processing **may still cost money**, and none of it has been measured. The lever is *"one cost category is removed"*, never *"this lead is free"*. ⚠️ **PRICING IS NOT DECIDED and must not be inferred:** same **$8 target rate**, or a **reduced reactivation rate**. Neither has been chosen. ⚠️ **Suppression, opt-out and DNC rules always apply** — a dead opportunity is still a person, and permission from the client is not consent from the prospect.
+
+**6.3b CRM SUPPRESSION / ADVISOR INTELLIGENCE.** The same permissioned CRM connection that makes **6.3** possible also tells K.I.N.D who **must not** be contacted — existing customers, live opportunities another team already owns, accounts in dispute, anyone the client has their own reason to protect. ⚠️ **This is a safety lever before it is a margin lever:** emailing a client's own live account as if it were a cold prospect is the kind of mistake that ends the relationship. It also makes K.I.N.D an **advisor** rather than a list vendor — *"these 40 are already yours, these 12 are in play, here are the 180 genuinely worth a campaign."* **Nothing designed, nothing built.** K.I.N.D's own global suppression, opt-out and DNC rules apply on top and are never weakened by anything a CRM says.
+
+**6.4 V2 SOCIAL / INTENT SIGNALS.** May improve **timing · qualification · conversion · acquisition win rate · campaign performance**. A better win rate lowers effective CAC and retains more margin. **Not priced, not designed, not built.**
+
+**6.5 MUCH LATER — explore removing the $299 upfront fee entirely.** Recorded as a direction only. ⚠️ **This is NOT a plan and NOT a proposal.** The $299 is founder-locked (**PR1**) and **R68** deliberately left it untouched while moving the recurring price. Any change is a founder ruling and a PR1 chain.
+
+**6.6 THE POST-LAUNCH MARGIN LEVERS — the whole list in one place, so none of them is quietly lost.** Each one is an *idea*; none is priced, designed or approved.
+- **CRM reactivation** (§6.3) — removes the original provider acquisition cost, never the whole cost
+- **Reusable owned inventory** — every paid identity retained and re-served when eligible (**R67**); the second client to use a record costs nothing to acquire
+- **Better sourcing efficiency** — moving records-per-approved-lead down from 7× is worth more per point than any price change
+- **Social / intent signals** (§6.4) — better win rate lowers effective CAC
+- **Retention** — the cheapest revenue is a client who stays; the partner's 25% is deliberately recurring for exactly this reason (**R47**)
+- **Premium expansion** — the top of the value ladder, deliberately **not designed or priced** (LAUNCH-PAD § the commercial pack)
+
+⚠️ **Classification: post-launch commercial research. Not a launch blocker (25 Aug).** 🤖
+
+
+### 7. THE FOUNDER OPERATING MODEL — POST-LAUNCH ACTION #1
+
+⚠️ **THIS IS NOT THE FOUNDER OS PRODUCT. Do not confuse the two — the confusion is the whole reason this section exists.** What follows is the **immediate internal operating system for running K.I.N.D**: how the founder decides, in what cadence, with which model doing what. The **commercial Founder OS product** is a separate, much-later idea (§7.3).
+
+**7.1 What the operating model has to cover.** Priority setting · daily cadence · weekly cadence · idea capture · fix capture · **launch-critical / post-launch / V2 classification** · founder decision authority · **GPT research, challenge and review** · **Claude inspect / build / report — never merge** · **Fable / independent second eyes where useful** · **founder merge authority** · SHA and deployment verification · economics · customer and product feedback loops · launch/production control · repo and document reconciliation · unresolved-risk tracking · commercial experiments · Vida control surfaces · Company Money.
+
+⛓️ **Most of the model authority is ALREADY RULED and must not be re-invented here** — **R65** (pause is default; only the founder's "go" starts a build), **CLAUDE.md Protocol v1 rule 20** (merge is never Claude's; founder routes through independent review), **R61** (every PR ships with its command), **R60** (day-1 post-launch redesign of how we operate). This section is the **operating shape around those rules**, not a replacement for them.
+
+**7.2 Artefacts to locate and reconcile BEFORE anything is rebuilt.** ⚠️ **Verified 26 Aug at `e62c6c8c`: none of these are in the repo.** They exist outside it and must be found, versioned and connected rather than re-created from memory —
+- `KIND_Founder_Operator_OS_Post26_Preview_v8 (1).html`
+- `founder-operator-os-v8.png`
+- `KIND_company_operating_map_v1.html`
+- **The branded partner-only earnings page** being prepared for the Friday partner discussion. ⚠️ **HARD CONSTRAINT: it must NEVER expose K.I.N.D internal costs, margins, tax, cash or house-client economics.** A partner sees their own earnings and nothing else.
+- **The partner calculator** (`hiring/KIND-partner-calculator.html`) still carries the superseded 20%+5% model (**PR10**, chained). Rebuilding it is **future artifact work**, not part of any current task.
+
+**7.3 MUCH LATER — Founder OS as a commercial product.** Only ever *after* the operating model above is proven in real use on this company. ⚠️ **Not a launch item, not costed, and explicitly excluded from launch economics** (LAUNCH-PAD § BEFORE FRIDAY'S PARTNER MEETING).
+
+⚠️ **Classification: post-launch operating work. Action #1 the day after launch, not before (26 Aug).** 🧍/🤖
 
 ---
 

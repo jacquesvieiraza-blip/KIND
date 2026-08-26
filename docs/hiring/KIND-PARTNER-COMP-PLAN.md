@@ -1,7 +1,13 @@
 # K.I.N.D — Partner Compensation Plan
 *The channel-side twin of the AE comp plan — same spine (refer · manage · earn on retention), built for an **external partner who PAYS to use the tool** (vs the AE's free seat). Reference doc under `/docs/hiring/`. Not a canonical tracker; status lives in PRODUCT-INVENTORY (197 model · 200 portal · 202 agreements).*
 
-> ✅ **RATE LOCKED (19 Jun):** **Acquisition 20% + Retention 5%** — locked by the founder's authoritative build brief (`KIND-CLAUDE-CODE-BRIEF.md` §3) + the Partner Channel Calculator. Supersedes the earlier "25% + 5%". This plan is now written to **20% + 5%**.
+> ⛓️ **SUPERSEDED 19 Aug 2026 BY R47 — RE-CONFIRMED 26 Aug. THIS PLAN IS HISTORY, NOT CURRENT PARTNER TRUTH.**
+>
+> **The rate below is no longer how a partner is paid.** Current terms (`docs/PRODUCT-RULES.md` **R47**): **25% of the client's approved-lead spend after their included first 100**, for the **lifetime** of the account, on a **gross** base — **$0 of the $299 pack · $0 on the included first 100 approvals · then 25% of paid approved-lead spend thereafter**, while that attributed client stays **active and spending**. ⚠️ **A wallet payment is a funding event, not a commission event** — money going into the wallet earns nothing by itself, and leads bought with that money commission normally (*"she earns on leads purchased not when they top up"*). At the live **$4** price that is **$1 per paid approved lead**; the approved migration target is **$8 → $2** (**R68**, *not live yet*).
+>
+> ⚠️ **Nothing on this page may be quoted to a partner.** It is retained because the 19-Jun reasoning and the modelling behind it are still useful history — and because **PR10** (chained) points here as the origin of the superseded structure. **Rebuilding `KIND-partner-calculator.html` on the R47 model is logged as required artifact work in V2-TRACKER §7.2 and is NOT done here.**
+>
+> ~~✅ **RATE LOCKED (19 Jun):** **Acquisition 20% + Retention 5%**~~ — locked by the founder's authoritative build brief (`KIND-CLAUDE-CODE-BRIEF.md` §3) + the Partner Channel Calculator. Supersedes the earlier "25% + 5%". This plan is now written to **20% + 5%**.
 
 ---
 

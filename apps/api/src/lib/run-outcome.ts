@@ -61,6 +61,8 @@ export function deriveRunStatus(
   return audienceExhausted ? 'audience_exhausted' : 'no_match'
 }
 
+/** Client-facing message for a run outcome. Honest: never blames the client for a
+ *  platform quota outage, and never hides a genuine no-match behind a vague spinner. */
 export function runOutcomeMessage(status: RunStatus, totalInserted: number, alreadyHeld = 0): string {
   switch (status) {
     case 'failed':

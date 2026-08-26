@@ -435,7 +435,6 @@ alter table public.clients
   add column if not exists proof_passes_done                int NOT NULL DEFAULT 0,
   add column if not exists proof_records_committed          int NOT NULL DEFAULT 0,
   add column if not exists proof_started_at                 timestamptz,  -- set by try_claim_proof_pass in the SAME update as proof_passes_done; NULL = unknown, never backfilled
-
   add column if not exists terms_accepted_at                timestamptz,
   add column if not exists terms_accepted_ip                text,
   add column if not exists trial_sourcing_granted           int NOT NULL DEFAULT 0,

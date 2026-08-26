@@ -71,21 +71,47 @@ export default function IcpBuilderPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, icpDraft])
 
+  // ⚑ 26 Aug — ONE DELIVERY PATH, SO A RETRY IS THE SAME CODE AS A SEND. On failure the
+  // user's turn is already in `messages`; the truthful recovery is to re-deliver that
+  // transcript unchanged, never to have them retype it (which appended a duplicate turn).
+  const [canRetry, setCanRetry] = useState(false)
+
+  async function retryLast() {
+    if (sending || !token || !messages.some(m => m.role === 'user')) return
+    await deliver(messages)
+  }
+
   async function sendMessage(text?: string) {
     const messageText = (text ?? input).trim()
     if (!messageText || sending || !token) return
 
+    // A retype of the identical last answer after a failure is a RETRY, not a new turn.
+    const last = messages[messages.length - 1]
+    if (canRetry && last?.role === 'user' && last.content.trim() === messageText) {
+      setInput('')
+      await deliver(messages)
+      return
+    }
+
     const newMessages: Message[] = [...messages, { role: 'user', content: messageText }]
     setMessages(newMessages)
     setInput('')
+    await deliver(newMessages)
+  }
+
+  async function deliver(newMessages: Message[]) {
     setSending(true)
     setError(null)
+    setCanRetry(false)
 
     try {
+      // 60s, not the 15s default: the server gives the model 45s with one retry, and a
+      // browser that walks away at 15s abandons a reply that is still legitimately coming.
       const res = await api.post<{ success: boolean; data: ChatResponse }>(
         '/icps/builder/chat',
         { messages: newMessages },
-        token,
+        token ?? undefined,
+        60_000,
       )
       const response = res.data
 
@@ -103,7 +129,9 @@ export default function IcpBuilderPage() {
         setMessages(prev => [...prev, { role: 'assistant', content: response.content! }])
       }
     } catch (err) {
+      // The user's turn stays in `messages` — nothing is lost; offer the re-delivery.
       setError(err instanceof Error ? err.message : 'Something went wrong — please try again.')
+      setCanRetry(true)
     }
 
     setSending(false)
@@ -257,8 +285,14 @@ export default function IcpBuilderPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700">
-          {error}
+        <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-700 flex items-center gap-3">
+          <span className="flex-1">{error}</span>
+          {canRetry && (
+            <button onClick={() => void retryLast()} disabled={sending}
+              className="shrink-0 font-bold text-red-700 underline underline-offset-2 disabled:opacity-50">
+              Try again
+            </button>
+          )}
         </div>
       )}
 

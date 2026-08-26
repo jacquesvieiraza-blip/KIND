@@ -241,22 +241,19 @@ export default function MillaWelcomePage() {
     }
   }, [hasClient])
 
-  async function send(text: string) {
-    const msg = text.trim(); if (!msg || thinking) return
-    // ⚠️ FAIL CLOSED ON AN UNRESOLVED ACCOUNT STATUS. Not a nicety: everything below —
-    // which mode the builder runs in, whether the website is read, whether preview may
-    // call a provider — depends on knowing. The composer is disabled while this is true,
-    // so reaching here means a keyboard submit beat the render; refuse rather than run
-    // the conversation in a mode nobody chose.
-    if (status !== 'ready' || hasClient === null) return
-    setInput(''); setError(null); setThinking(true)
-    const history = [...messages, { role: 'user' as const, content: msg }]
-    setMessages(history)
+  // ⚑ 26 Aug — ONE DELIVERY PATH, SO A RETRY IS THE SAME CODE AS A SEND.
+  //
+  // THE DEFECT THIS RESTRUCTURE CLOSES. When a turn failed, the error banner told the
+  // client to "send your last answer again" — but their answer was ALREADY in `messages`
+  // and already re-sent with the next attempt, so obeying appended a duplicate user turn
+  // ("no" twice in a row) and the model saw a transcript the client never spoke. The
+  // truthful recovery is to re-deliver the history AS IT STANDS, which is what `retry()`
+  // does and what the failure banner now offers.
+  const [canRetry, setCanRetry] = useState(false)
+
+  async function deliver(history: Msg[], evidence: WebsiteEvidence | null) {
+    setError(null); setCanRetry(false); setThinking(true)
     try {
-      // If they just gave us their website, have a look at it BEFORE Milla replies, so her
-      // very next message can put what we found to them and ask whether it is right.
-      const url = firstUrl(msg)
-      const evidence = (url ? await readWebsite(url) : null) ?? webEvidence
       // The route cannot know who is calling — it holds no client row — so the mode is
       // stated explicitly. TRUE only on a confirmed first run; a returning client is asked
       // for nothing about an account they already have.
@@ -266,6 +263,9 @@ export default function MillaWelcomePage() {
       // that the first message must be a user turn. Everything from the client's first real
       // answer onward is sent; the greeting stays on screen and out of the payload.
       const forModel = history.slice(history.findIndex(m => m.role === 'user'))
+      // ⚠️ 60s, NOT the 15s default. The server gives Anthropic 45s with one retry; a
+      // browser that walks away at 15s abandons a reply that is still legitimately coming,
+      // and this route keeps no server state, so that work was simply thrown away.
       const r = await api.post<{ data: BuilderReply }>(
         '/icps/builder/chat',
         {
@@ -274,6 +274,7 @@ export default function MillaWelcomePage() {
           ...(evidence ? { website_evidence: evidence } : {}),
         },
         await token(),
+        60_000,
       )
       const d = r.data
       if (d.type === 'complete') {
@@ -287,8 +288,49 @@ export default function MillaWelcomePage() {
       } else {
         setMessages(m => [...m, { role: 'assistant', content: d.content }])
       }
-    } catch (e) { setError(e instanceof Error ? e.message : 'Milla hit a snag — please try again') }
+    } catch (e) {
+      // The user's turn stays in `messages` — nothing was lost, and the banner offers the
+      // one action that is actually needed: deliver the same transcript again.
+      setError(e instanceof Error ? e.message : 'Milla hit a snag — please try again')
+      setCanRetry(true)
+    }
     finally { setThinking(false) }
+  }
+
+  /** Re-deliver the transcript exactly as it stands. Appends NOTHING. */
+  async function retry() {
+    // The same fail-closed guard as send(): a retry is a delivery too, and it must not be
+    // able to run the conversation in a mode nobody chose.
+    if (status !== 'ready' || hasClient === null) return
+    if (thinking || messages.findIndex(m => m.role === 'user') < 0) return
+    await deliver(messages, webEvidence)
+  }
+
+  async function send(text: string) {
+    const msg = text.trim(); if (!msg || thinking) return
+    // ⚠️ FAIL CLOSED ON AN UNRESOLVED ACCOUNT STATUS. Not a nicety: everything below —
+    // which mode the builder runs in, whether the website is read, whether preview may
+    // call a provider — depends on knowing. The composer is disabled while this is true,
+    // so reaching here means a keyboard submit beat the render; refuse rather than run
+    // the conversation in a mode nobody chose.
+    if (status !== 'ready' || hasClient === null) return
+    setInput('')
+    // ⚑ 26 Aug — A RETYPE AFTER A FAILURE IS A RETRY, NOT A NEW TURN. The old banner
+    // trained clients to type their last answer again; anyone who still does must not end
+    // up with the same words twice in the transcript. Identical text, straight after a
+    // failed delivery, re-delivers instead of appending.
+    const last = messages[messages.length - 1]
+    if (canRetry && last?.role === 'user' && last.content.trim() === msg) {
+      await deliver(messages, webEvidence)
+      return
+    }
+    const history = [...messages, { role: 'user' as const, content: msg }]
+    setMessages(history)
+    // If they just gave us their website, have a look at it BEFORE Milla replies, so her
+    // very next message can put what we found to them and ask whether it is right.
+    const url = firstUrl(msg)
+    const evidence = (url ? await readWebsite(url) : null) ?? webEvidence
+    await deliver(history, evidence)
   }
 
   async function approve() {
@@ -474,7 +516,20 @@ export default function MillaWelcomePage() {
                 </div>
               ))}
               {thinking && <div className="flex justify-start"><div className="bg-white border border-[#eee7f7] rounded-2xl px-4 py-2.5 text-[#9b8ec4] text-[13px]">Milla is thinking…</div></div>}
-              {error && <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</div>}
+              {error && (
+                <div className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2 flex items-center gap-3">
+                  <span className="flex-1">{error}</span>
+                  {/* ⚑ 26 Aug — the one action that actually recovers: re-deliver the
+                      transcript as it stands. The answer is already in it; nothing to
+                      retype, and pressing this cannot duplicate a turn. */}
+                  {canRetry && (
+                    <button onClick={() => void retry()} disabled={thinking}
+                      className="shrink-0 text-[12px] font-bold text-red-700 underline underline-offset-2 disabled:opacity-50">
+                      Try again
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
           <div className="shrink-0 px-6 pb-5 pt-2 border-t border-[#eee7f7] bg-white">

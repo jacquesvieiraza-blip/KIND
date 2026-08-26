@@ -272,18 +272,37 @@ async function pdlSearchOnce(icp: IcpQuery, size: number, key: string, scrollTok
     })
     if (res.status === 404) {
       // ⚑ 26 Aug (final gate) — 404 IS A TRUSTWORTHY ZERO ONLY WHEN PDL SAYS SO ITSELF.
-      // The Person Search contract (docs/person-search-api, and the 10 Jul live runs this
-      // file's industry-map comment records) returns 404 with a body of
-      //   { "status": 404, "error": { "type": "not_found", "message": "No records were found …" } }
-      // for "the query matched nobody". A bare status alone cannot carry that meaning: a
-      // proxy, a moved endpoint or a gateway can also say 404, and treating THOSE as
-      // "nobody matches" is a false no_match wearing a real one's clothes. So the body is
-      // read, and only the documented shape counts as the provider's own zero — anything
-      // else on a 404 is an ERROR, which leaves trust unproven and derives `failed`.
+      // A bare status cannot carry that meaning: a proxy, a moved endpoint or a gateway can
+      // all say 404, and treating THOSE as "nobody matches" is a false no_match wearing a
+      // real one's clothes. So the body is read, and anything that is not positively a
+      // no-records answer is an ERROR — which leaves trust unproven and derives `failed`.
+      //
+      // ⛓️ NARROWED 26 Aug (correction pass). The first version was
+      //     type === 'not_found' || /no records/i.test(message)
+      // and the OR was the defect: `type: 'not_found'` ALONE was enough, so *any* 404
+      // carrying a generic not_found — endpoint not found, resource not found, an API
+      // gateway's own error envelope — was promoted to "your search matched nobody". That
+      // is the precise lie this whole build exists to kill, reintroduced one operator at a
+      // time. Both halves are now REQUIRED: the machine-readable type AND the human message
+      // that says what was not found.
+      //
+      // ⚠️ THE SHAPE ITSELF IS RUNTIME UNVERIFIED, and that is exactly why the predicate is
+      // the narrow one. This repo holds NO captured PDL 404 response — the only evidence is
+      // the vendor's public Person Search docs (https://docs.peopledatalabs.com/docs/person-search-api,
+      // linked at the top of this file), not a body we have observed. An earlier version of
+      // this comment cited "docs/person-search-api" in a way that read like a repo document;
+      // it is not one, and no such file exists. Until a real 404 body is captured, the
+      // failure modes are deliberately asymmetric: if PDL's true envelope is NARROWER than
+      // this, a genuine zero is recorded `failed` — the client sees the neutral recovery
+      // state and a human is alerted, which is safe and visible. If we guessed WIDER, a
+      // broken search would tell a prospect to widen targeting that was never tested. One
+      // of those is recoverable and the other is the original defect.
       const body = await res.json().catch(() => null) as { error?: { type?: string; message?: string } } | null
-      const saidNotFound = body?.error?.type === 'not_found' || /no records/i.test(body?.error?.message ?? '')
-      if (saidNotFound) return { kind: 'exhausted' }
-      const detail = `404 without PDL's not_found body — not a provider zero (${JSON.stringify(body).slice(0, 160)})`
+      const saidNoRecords =
+        body?.error?.type === 'not_found' &&
+        /\bno records were found\b/i.test(body?.error?.message ?? '')
+      if (saidNoRecords) return { kind: 'exhausted' }
+      const detail = `404 without PDL's no-records body — not a provider zero (${JSON.stringify(body).slice(0, 160)})`
       console.error('[pdl] search failed:', detail)
       return { kind: 'error', detail }
     }

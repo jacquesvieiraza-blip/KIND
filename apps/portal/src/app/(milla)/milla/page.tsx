@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
 import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
+import { rememberProofStart, storedProofStart, proofWaitState, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -127,6 +128,19 @@ function findingSince(): number {
     return Number.isFinite(n) && n > 0 ? n : 0
   } catch { return 0 }
 }
+
+/**
+ * WHEN the run we are waiting on started — URL stamp first, durable mirror second.
+ *
+ * The URL answers for the tab that started the run; `storedProofStart()` answers after a
+ * close-and-reopen, where the query string is gone. **0 means genuinely UNKNOWN**, and the
+ * caller must treat it as "may still be running", never as "finished long ago" — see
+ * `lib/proof-start.ts` for why the server cannot answer this and what the limits are.
+ */
+function proofStartedAt(): number {
+  const fromUrl = findingSince()
+  return fromUrl > 0 ? fromUrl : storedProofStart()
+}
 /**
  * ⚑ 26 Aug (final review) — THE BOUND IS DERIVED FROM THE BACKEND'S OWN WORST CASE,
  * not picked. The previous 20 × 3s ≈ 60s could declare "We hit a snag" while a
@@ -149,6 +163,18 @@ function findingSince(): number {
  */
 const FINDING_POLL_MS = 3000
 const FINDING_MAX_CHECKS = 80
+/**
+ * ⚑ 26 Aug (correction pass) — THE POLL BUDGET AND THE ELAPSED BOUND MUST BE THE SAME
+ * NUMBER, because the wait can end in two different ways and they must agree:
+ *   · the tab stayed open  → the poll hits `FINDING_MAX_CHECKS` and stops;
+ *   · the tab was reopened → there is no poll history, so elapsed time is measured against
+ *                            the durable start stamp instead (`PROOF_WAIT_MS`).
+ * The bound itself lives beside the rule that reads it, in `lib/proof-start.ts`. This
+ * assertion is what stops the two drifting into two different truths about one run.
+ */
+if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS) {
+  throw new Error('proof wait bound drifted: the desk poll budget and PROOF_WAIT_MS must match')
+}
 
 export default function MillaHomePage() {
   const router = useRouter()
@@ -483,7 +509,12 @@ export default function MillaHomePage() {
       proofAttemptedRef.current = true
       setProofAttempted(true)
       await api.post(`/icps/${afterId}/proof`, {}, tk)
-      router.push(`/milla?finding=1&since=${Date.now()}`)
+      // ⚑ 26 Aug — STAMP THE START ONCE, IN BOTH PLACES IT CAN BE READ FROM. The URL carries
+      // it for this navigation; the durable mirror carries it across a close-and-reopen,
+      // where the query string is gone. Same value, same instant — the run started here.
+      const startedAt = Date.now()
+      rememberProofStart(startedAt)
+      router.push(`/milla?finding=1&since=${startedAt}`)
     } catch (e) {
       // ── STAGE-ACCURATE, BECAUSE THE OLD SENTENCE COULD BE A LIE ────────────────────────
       // One generic message said *"Your targeting is saved"* for every failure — including
@@ -712,23 +743,41 @@ export default function MillaHomePage() {
     ? pending.map(batchKey).lastIndexOf(proofBatches[0] ?? '')
     : -1
 
-  // ⚑ 26 Aug (final gate) — THE CLEAN-URL STRAND. A pass was CLAIMED (the server-side
-  // counter says so) but NO run outcome has ever been recorded — the write failed, or the
-  // run crashed before its crash boundary could write. On a clean /milla URL there is no
-  // `?finding` flag, so the desk used to fall into the generic "No leads waiting" empty
-  // state and sit there forever: a first client stranded in a screen that promises a
-  // notification nothing will send. Both facts here are SERVER state re-read on every
-  // load — no browser storage, so closing the browser changes nothing, and the moment a
-  // terminal outcome or a batch appears, those branches win (they render first, and
-  // `proof_run` makes this false).
+  // ⚑ 26 Aug (correction pass) — A CLAIMED PROOF WITH NO OUTCOME MEANS **MAY STILL BE
+  // RUNNING**, NOT **FAILED**. This is the fix for the defect in the first version.
   //
-  // ⚠️ BOUNDED IMPRECISION, accepted and narrow: reopening a clean URL while the run is
-  // STILL in flight (the claim lands at POST time, the outcome minutes later) shows this
-  // recovery card early. The poll below keeps checking while it is shown, so the moment
-  // the run lands, truth replaces it.
-  const proofStranded =
-    !!summary && (summary.proof_passes_done ?? 0) > 0 && !summary.proof_run &&
-    pending.length === 0 && Object.keys(revealed).length === 0
+  // The predicate is unchanged — a pass was CLAIMED (the server-side counter says so), no
+  // run outcome has ever been recorded, and there is nothing on the desk to show. What
+  // changed is what it CONCLUDES. It used to render the recovery card the instant the page
+  // loaded on a clean `/milla` URL, so a prospect who reopened the tab five seconds after
+  // starting a perfectly healthy proof was told **"We hit a snag confirming your matches"**
+  // about a run that was still legitimately working. A healthy proof can take ~160–180s
+  // (see PROOF_WAIT_MS); declaring failure before that contradicts the bounded-wait rule
+  // this same build introduced.
+  //
+  // It now means only "we are still waiting on this run", and feeds the SAME bounded wait a
+  // `?finding=1` navigation gets — spinner until the bound, recovery after it. The clean
+  // URL is no longer a different code path with a different verdict; it is the same one
+  // reached without a query string.
+  //
+  // ⚠️ SERVER STATE ONLY, re-read on every load. Closing the browser changes none of it,
+  // and the moment a terminal outcome or a real batch exists, those branches win outright:
+  // they are rendered first, and `proof_run` makes this false by construction.
+  // The decision itself lives in `lib/proof-start.ts` as a pure rule so it can be RUN in a
+  // test rather than pattern-matched in this JSX — see that file. Here we only supply facts.
+  const proofWait = proofWaitState({
+    hasTerminalOutcome: !!terminalRun,
+    pendingCount:       pending.length,
+    revealedCount:      Object.keys(revealed).length,
+    proofPassesDone:    summary?.proof_passes_done ?? 0,
+    hasSummary:         !!summary && !summary.proof_run,
+    urlFinding:         finding,
+    startedAt:          proofStartedAt(),
+    now:                Date.now(),
+    pollExhausted:      findingTimedOut,
+  })
+  const proofAwaiting = proofWait !== 'none'
+  const proofWaitEnded = proofWait === 'recovery'
 
   // ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ──────────────────────────────────────
   //
@@ -886,7 +935,11 @@ export default function MillaHomePage() {
   useEffect(() => {
     // A terminal outcome ends the poll as surely as leads arriving would: the run is
     // over, so re-asking cannot change the answer and would only hammer the API.
-    if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return
+    // ⚑ 26 Aug — the poll keeps running even after the bound has been declared, and that is
+    // deliberate: a late outcome must still be able to replace the recovery card with the
+    // truth (the run is fire-and-forget server-side, so "late" is a real case). It stays
+    // bounded per page load, and it only ever READS.
+    if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return
     let cancelled = false
     let checks = 0
     let inFlight = false                       // one request at a time — never overlap
@@ -900,7 +953,7 @@ export default function MillaHomePage() {
     // Cleanup is what guarantees a single loop: the effect re-runs only when `finding` or
     // the pending COUNT changes, and each re-run tears the previous interval down first.
     return () => { cancelled = true; clearInterval(timer) }
-  }, [finding, proofStranded, pending.length, load, terminalRun])
+  }, [finding, proofAwaiting, pending.length, load, terminalRun])
   // Mirrors lib/approval-batch.ts on the server. `approvedEver` comes from the summary, so a
   // client already past 20 gets one-tap approve back — the gate starts the relationship, it
   // doesn't nag someone already working with us.
@@ -1091,7 +1144,7 @@ export default function MillaHomePage() {
                   <div className="text-[13px] mt-1.5 text-[#7c6f9b]">{terminalRun.message}</div>
                   {/* Nothing on this branch starts another search, and no control offers to. */}
                 </div>
-              ) : finding ? (
+              ) : proofAwaiting ? (
                 <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
                   <div className="text-[15px] font-bold text-[#5c5279]">
                     {/* ⚑ 26 Aug — THE WAIT IS BOUNDED. When the poll exhausts and the server
@@ -1100,27 +1153,29 @@ export default function MillaHomePage() {
                         stops claiming to be searching. It says the approved recovery line
                         instead. No spinner runs forever, and no client-side guess becomes a
                         result: this branch only ever renders when `terminalRun` is absent,
-                        so real backend truth always wins. */}
-                    {findingTimedOut ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}
+                        so real backend truth always wins.
+
+                        ⛓️ CORRECTION PASS — `proofAwaiting` JOINS `finding` HERE rather than
+                        getting its own branch below. A clean-URL reopen used to fall to a
+                        separate card that said "We hit a snag" IMMEDIATELY, with no elapsed
+                        time considered at all; now it enters this identical bounded wait, so
+                        a claimed proof at 30s or 90s reads "Finding your matches now…" and
+                        only crosses to the recovery line once the bound is genuinely past.
+                        One wait, one bound, one verdict — whether or not the URL has a
+                        query string. */}
+                    {proofWaitEnded ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}
                   </div>
                   <div className="text-[13px] mt-1.5">
                     {/* ⚠️ Real apostrophes, NOT &rsquo;. These are JS string literals inside an
                         expression container, so an HTML entity is not decoded — it renders as
                         the literal text "We&rsquo;re". Entities only work in JSX text nodes,
                         which is what the paying-client line below is. */}
-                    {findingTimedOut
+                    {proofWaitEnded
                       /* Approved recovery copy, verbatim. No retry offered, no timing
                          promised, and no technical detail — the diagnosis is in the alert. */
                       ? 'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
                       : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
                   </div>
-                </div>
-              ) : proofStranded ? (
-                <div className="text-[14px] text-[#4c4368] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
-                  <div className="text-[15px] font-bold text-[#5c5279]">We hit a snag confirming your matches</div>
-                  {/* Approved recovery copy, verbatim. No retry control, no technical detail,
-                      and nothing here starts a search — the poll behind this card only READS. */}
-                  <div className="text-[13px] mt-1.5 text-[#7c6f9b]">Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.</div>
                 </div>
               ) : (
                 <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>

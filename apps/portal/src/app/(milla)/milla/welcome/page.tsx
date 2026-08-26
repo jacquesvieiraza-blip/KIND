@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
+import { rememberProofStart } from '@/lib/proof-start'
 // ⚑ 24 Aug — PACK_PRICE_USD / PACK_LEADS are no longer imported here, and that is the
 // point rather than a tidy-up: this screen no longer names a price at all. The pack ask
 // moved behind "Looks right" on the desk, where those constants are still interpolated.
@@ -402,7 +403,13 @@ export default function MillaWelcomePage() {
       // chance. The flag is explicit rather than inferred: "no leads + never paid" is also
       // the state of someone who never started a run, and they must keep the honest copy.
       // It is a READ signal only — the desk polls the existing lead GETs and never POSTs.
-      router.push(`/milla?finding=1&since=${Date.now()}`)
+      // ⚑ 26 Aug — STAMP THE START ONCE, IN BOTH PLACES IT CAN BE READ FROM. The URL carries
+      // it for this navigation; the durable mirror carries it across a close-and-reopen,
+      // where the query string is gone. This is the FIRST-CLIENT path, so it is the one a
+      // prospect is most likely to walk away from and come back to.
+      const startedAt = Date.now()
+      rememberProofStart(startedAt)
+      router.push(`/milla?finding=1&since=${startedAt}`)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 

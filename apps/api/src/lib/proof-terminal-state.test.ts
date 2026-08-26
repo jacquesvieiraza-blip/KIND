@@ -67,7 +67,7 @@ describe('the desk stops guessing', () => {
     // straight through — the guard proved only that SOME `finding` branch existed later.
     // The FIRST spinner in the file is the one that decides what a client sees.
     const t = portal.indexOf('terminalRun ? (')
-    const f = portal.indexOf('finding ? (')
+    const f = portal.indexOf('proofAwaiting ? (')
     expect(t).toBeGreaterThan(-1)
     expect(f).toBeGreaterThan(-1)
     expect(f, 'the spinner must never be evaluated before the terminal state').toBeGreaterThan(t)
@@ -79,7 +79,7 @@ describe('the desk stops guessing', () => {
   })
 
   it('the start stamp lives in the URL, so a RELOAD cannot resurrect the spinner', () => {
-    expect(portal).toContain('finding=1&since=${Date.now()}')
+    expect(portal).toContain('finding=1&since=${startedAt}')
     expect(portal).toContain("new URLSearchParams(window.location.search).get('since')")
     // And it is cleared with the flag when leads arrive.
     expect(portal).toContain("url.searchParams.delete('since')")
@@ -94,13 +94,13 @@ describe('the desk stops guessing', () => {
   it('a terminal outcome STOPS the poll — no extra sourcing attempt', () => {
     // ⛓️ 26 Aug — `terminalRun` remains the LAST clause and still short-circuits the whole
     // guard, so a recorded outcome stops the poll exactly as before. The added
-    // `&& !proofStranded` only widens who KEEPS polling; it can never restart a finished run.
-    expect(portal).toContain('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')
+    // `&& !proofAwaiting` only widens who KEEPS polling; it can never restart a finished run.
+    expect(portal).toContain('if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return')
   })
 
   it('the terminal branch offers NO control that could start another search', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).not.toContain('api.post')
     expect(block).not.toContain('/proof')
     expect(block).not.toContain('onClick')
@@ -108,7 +108,7 @@ describe('the desk stops guessing', () => {
 
   it('the terminal branch shows the SERVER message, not copy written in the desk', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).toContain('{terminalRun.message}')
   })
 
@@ -186,7 +186,7 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
 
   it('the desk renders the approved headline and never the word "failed"', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).toContain('We hit a snag confirming your matches')
     expect(block).toContain('{terminalRun.message}')
     expect(block.toLowerCase()).not.toContain('>failed')
@@ -196,16 +196,16 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
   it('a failed run is terminal, so it stops the poll and cannot revert to running', () => {
     // `terminalRun` is status-agnostic: any completed outcome — failed included — both
     // ends the wait and halts the interval.
-    expect(portal).toContain('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')
+    expect(portal).toContain('if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return')
     const t = portal.indexOf('terminalRun ? (')
-    const f = portal.indexOf('finding ? (')
+    const f = portal.indexOf('proofAwaiting ? (')
     expect(f).toBeGreaterThan(t)
     expect(portal).toContain("const proofFailed = terminalRun?.status === 'failed'")
   })
 
   it('a failed run offers no retry and starts no second search', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).not.toMatch(/retry|try again/i)
     expect(block).not.toContain('api.post')
     expect(block).not.toContain('/proof')

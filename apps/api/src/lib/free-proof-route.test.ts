@@ -863,7 +863,7 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
   })
 
   it('a successful pass 2 enters the EXISTING finding experience', () => {
-    expect(desk()).toContain("router.push(`/milla?finding=1&since=${Date.now()}`)")
+    expect(desk()).toContain("router.push(`/milla?finding=1&since=${startedAt}`)")
   })
 
   // ⛓️ AMENDED 25 Aug — the merge MOVED to submitRefine, so its guard moves with it. The
@@ -1316,9 +1316,9 @@ describe('the desk cannot spend a pass it has not earned', () => {
 
   it('25 · a SUCCESSFUL pass 2 still enters the existing finding experience', () => {
     const c = confirmBody()
-    expect(c).toContain("router.push(`/milla?finding=1&since=${Date.now()}`)")
+    expect(c).toContain("router.push(`/milla?finding=1&since=${startedAt}`)")
     // …and only after the claim, never instead of it.
-    expect(c.indexOf('/proof`')).toBeLessThan(c.indexOf("router.push(`/milla?finding=1&since=${Date.now()}`)"))
+    expect(c.indexOf('/proof`')).toBeLessThan(c.indexOf("router.push(`/milla?finding=1&since=${startedAt}`)"))
   })
 
   // ── E · error copy that matches what actually happened ───────────────────────────────

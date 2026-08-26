@@ -348,7 +348,10 @@ describe('E · the desk is bounded — a wait that never resolves ends in recove
     join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8')
 
   it('an exhausted poll shows the approved recovery copy, not "still finding"', () => {
-    expect(portal).toContain("{findingTimedOut ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}")
+    // ⛓️ 26 Aug (correction pass) — the flag is now `proofWaitEnded`, which is TRUE for an
+    // exhausted poll AND for a reopen whose durable stamp is already past the bound. Same
+    // copy, same bound, one more way of reaching it honestly.
+    expect(portal).toContain("{proofWaitEnded ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}")
     expect(portal).toContain('Your setup is saved and has been flagged for K.I.N.D review.')
     // The old sentence claimed a search was still running when nothing was.
     expect(portal).not.toContain('We’re still finding your matches. You can come back to this page shortly.')
@@ -356,7 +359,8 @@ describe('E · the desk is bounded — a wait that never resolves ends in recove
 
   it('backend truth still wins — the recovery branch only renders with no terminal outcome', () => {
     const t = portal.indexOf('terminalRun ? (')
-    const f = portal.indexOf('finding ? (')
+    const f = portal.indexOf('proofAwaiting ? (')
+    expect(t).toBeGreaterThan(-1)
     expect(f).toBeGreaterThan(t)
   })
 
@@ -531,34 +535,74 @@ describe('F · the complete status space — no value exists as an untested assu
 // G. THE FINAL NARROW GATE (26 Aug) — clean-URL strand, house truth, required
 //    trust argument, and the 404 contract
 // ─────────────────────────────────────────────────────────────────────────────
-describe('G · a clean URL cannot strand the first client', () => {
+describe('G · a clean URL cannot strand the first client — and cannot cry failure early', () => {
   const portalSrc = codeOnly(readFileSync(
     join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8'))
 
-  it('strandedness is derived from SERVER state, not browser state', () => {
+  // ⛓️ REWRITTEN 26 Aug (correction pass). These used to assert a `proofStranded ? (`
+  // branch that rendered the recovery card as soon as a clean URL loaded. That branch is
+  // GONE, because rendering it was the defect: it declared failure with no reference to how
+  // long the run had actually been going. The behavioural rule that replaced it is RUN, not
+  // pattern-matched, in `apps/portal/src/lib/proof-start.test.ts` — 24 tests covering 30s,
+  // 90s, the boundary, reopen, unknown elapsed and clock skew. What remains here is only
+  // what a source guard is genuinely good for: that the wiring is present and ordered.
+
+  it('the wait is derived from SERVER state, not browser state', () => {
     // A pass was claimed (server counter) and no outcome row has ever been recorded
     // (server read) — both survive closing the browser, both re-read on every load.
-    expect(portalSrc).toContain('(summary.proof_passes_done ?? 0) > 0 && !summary.proof_run')
+    expect(portalSrc).toContain('proofPassesDone:    summary?.proof_passes_done ?? 0')
+    expect(portalSrc).toContain('hasSummary:         !!summary && !summary.proof_run')
   })
 
-  it('the stranded card is the approved recovery copy, and it renders before the generic empty state', () => {
-    const stranded = portalSrc.indexOf('proofStranded ? (')
-    const generic = portalSrc.indexOf('No leads waiting right now')
-    expect(stranded).toBeGreaterThan(-1)
-    expect(generic, 'recovery must be checked before the generic empty state').toBeGreaterThan(stranded)
+  it('the verdict comes from ONE shared rule, not from JSX conditions written twice', () => {
+    expect(portalSrc).toContain('const proofWait = proofWaitState({')
+    expect(portalSrc).toContain("const proofAwaiting = proofWait !== 'none'")
+    expect(portalSrc).toContain("const proofWaitEnded = proofWait === 'recovery'")
   })
 
-  it('backend truth still wins — batches and terminal outcomes render before the stranded card', () => {
-    // `terminalRun` and pending cards are evaluated first, and `proof_run` existing at
-    // all makes proofStranded false.
+  it('⚑ THE REGRESSION GUARD — a clean URL may never render recovery without consulting elapsed time', () => {
+    // The deleted branch's shape. If anything reintroduces a card that decides "snag" from
+    // the mere ABSENCE of an outcome, it will reintroduce the bug with it.
+    expect(portalSrc).not.toContain('proofStranded')
+    // EXACTLY TWO recovery headlines exist, and each is behind a fact rather than an
+    // absence: one behind `proofFailed` (the SERVER recorded a crash) and one behind
+    // `proofWaitEnded` (the justified bound has passed). A third would be a new way to
+    // claim failure, and this count is what makes adding one impossible to do quietly.
+    const headlines = portalSrc.split('We hit a snag confirming your matches').length - 1
+    expect(headlines, 'one server-recorded failure headline + one bounded-wait headline').toBe(2)
+    expect(portalSrc).toContain("{proofWaitEnded ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}")
+    expect(portalSrc).toContain('{proofFailed')
+  })
+
+  it('backend truth and real leads still render before the wait card', () => {
     const t = portalSrc.indexOf('terminalRun ? (')
-    const stranded = portalSrc.indexOf('proofStranded ? (')
+    const wait = portalSrc.indexOf('proofAwaiting ? (')
+    const generic = portalSrc.indexOf('No leads waiting right now')
     expect(t).toBeGreaterThan(-1)
-    expect(stranded).toBeGreaterThan(t)
+    expect(wait, 'the wait must be evaluated after the terminal state').toBeGreaterThan(t)
+    expect(generic, 'and before the generic empty state').toBeGreaterThan(wait)
   })
 
-  it('the poll keeps checking while stranded — bounded by the same cap, so an in-flight run resolves it', () => {
-    expect(portalSrc).toContain('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')
+  it('the poll keeps checking while waiting — so an in-flight run resolves it, and a late one still can', () => {
+    expect(portalSrc).toContain('if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return')
+  })
+
+  it('the elapsed bound and the poll budget are the same number, enforced at load', () => {
+    // Two constants that must agree; a hand-typed second copy would drift silently.
+    expect(portalSrc).toContain('if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS)')
+  })
+
+  it('the start stamp is written at the proof POST, in BOTH flows, and only there', () => {
+    const welcome = codeOnly(readFileSync(
+      join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'welcome', 'page.tsx'), 'utf8'))
+    for (const [name, src] of [['desk', portalSrc], ['welcome', welcome]] as const) {
+      expect(src, name).toContain('rememberProofStart(startedAt)')
+      expect(src, name).toContain('router.push(`/milla?finding=1&since=${startedAt}`)')
+      // ONE call per flow. A stamp re-taken anywhere else — on render, on first sight of
+      // the waiting state — would restart the clock on every reopen, which is the
+      // indefinite wait this must not be able to create.
+      expect(src.split('rememberProofStart(').length - 1, `${name}: exactly one write`).toBe(1)
+    }
   })
 })
 
@@ -669,7 +713,12 @@ describe('G · PDL 404 is a provider zero ONLY when the body says not_found', ()
     return pdlSearchPage(ICP, 20, null)
   }
 
-  it('404 + documented not_found body → trustworthy zero (completed, matchedNothing)', async () => {
+  const paged = async () => {
+    const { pdlSearchPage } = await import('./pdl-search')
+    return pdlSearchPage(ICP, 20, 'a-real-scroll-token')
+  }
+
+  it('1 · the documented no-records 404 → trustworthy completed zero', async () => {
     fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
       res(404, { status: 404, error: { type: 'not_found', message: 'No records were found matching your search' } }))
     const p = await page()
@@ -678,14 +727,91 @@ describe('G · PDL 404 is a provider zero ONLY when the body says not_found', ()
     expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed)).toBe('no_match')
   })
 
-  it('⚑ 404 WITHOUT that body → error, unproven, failed — a gateway 404 is not a zero', async () => {
-    for (const body of [{}, { message: 'route not found' }, { error: { type: 'gateway' } }]) {
+  // ⛓️ THE CORRECTION, AND IT IS THE WHOLE POINT OF THIS BLOCK. The predicate was
+  //     type === 'not_found' || /no records/i.test(message)
+  // so `type: 'not_found'` ON ITS OWN was enough. Every row below carries exactly that
+  // type — and each one means something entirely different from "your search matched
+  // nobody". Under the old OR, all of them became a trusted zero and told a prospect to
+  // widen targeting we had never actually tested. BOTH halves are now required.
+  it('2 · ⚑ `not_found` with an ENDPOINT/RESOURCE message → NOT a zero → failed', async () => {
+    const impostors = [
+      { status: 404, error: { type: 'not_found', message: 'Endpoint not found' } },
+      { status: 404, error: { type: 'not_found', message: 'The requested resource was not found' } },
+      { status: 404, error: { type: 'not_found', message: 'Dataset not found' } },
+      { status: 404, error: { type: 'not_found', message: 'API version not found' } },
+      { status: 404, error: { type: 'not_found' } },                       // type, no message at all
+      { status: 404, error: { type: 'not_found', message: '' } },          // type, empty message
+    ]
+    for (const body of impostors) {
       vi.resetModules(); fetchSpy?.mockRestore()
       fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(404, body))
       const p = await page()
       expect(p.completed, JSON.stringify(body)).toBe(false)
       expect(p.matchedNothing, JSON.stringify(body)).toBe(false)
-      expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed)).toBe('failed')
+      expect(p.exhausted, JSON.stringify(body)).toBe(false)
+      expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed), JSON.stringify(body)).toBe('failed')
     }
+  })
+
+  it('3–5 · a bare, malformed or gateway-style 404 is never a zero', async () => {
+    const notZeros = [
+      {},                                                  // 3 · bare 404
+      { error: 'not found' },                              // 4 · malformed — error is a string
+      { error: { message: 'no records were found' } },      // 4 · right words, NO type
+      { message: 'No records were found' },                 // 4 · right words, wrong envelope
+      { error: { type: 'gateway_error', message: 'Bad gateway' } },   // 5 · proxy/gateway
+      { error: { type: 'internal_error', message: 'upstream failure' } },
+    ]
+    for (const body of notZeros) {
+      vi.resetModules(); fetchSpy?.mockRestore()
+      fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(404, body))
+      const p = await page()
+      expect(p.completed, JSON.stringify(body)).toBe(false)
+      expect(p.matchedNothing, JSON.stringify(body)).toBe(false)
+      expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed), JSON.stringify(body)).toBe('failed')
+    }
+  })
+
+  it('4b · an UNPARSEABLE 404 body is not a zero either', async () => {
+    // `res.json()` rejects — an HTML error page from a proxy is the everyday shape of this.
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false, status: 404,
+      json: async () => { throw new SyntaxError('Unexpected token <') },
+      text: async () => '<html>404 Not Found</html>',
+    } as unknown as Response)
+    const p = await page()
+    expect(p.completed).toBe(false)
+    expect(p.matchedNothing).toBe(false)
+    expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed)).toBe('failed')
+  })
+
+  it('6 · a PAGED 404 obeys the SAME evidence standard before claiming the audience is finished', async () => {
+    // `audience_exhausted` tells a client "we found all of them, you already have every
+    // one" — a terminal claim about their whole market. A gateway 404 on page four is no
+    // more evidence of that than it is of a zero, so it must clear the same bar.
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      res(404, { status: 404, error: { type: 'not_found', message: 'Endpoint not found' } }))
+    const bad = await paged()
+    expect(bad.exhausted, 'a generic not_found must NOT declare the audience finished').toBe(false)
+    expect(bad.completed).toBe(false)
+    expect(deriveRunStatus(false, 0, false, bad.exhausted, bad.completed)).toBe('failed')
+
+    // And the documented body still does declare it — #366 is unchanged for real evidence.
+    vi.resetModules(); fetchSpy.mockRestore()
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      res(404, { status: 404, error: { type: 'not_found', message: 'No records were found matching your search' } }))
+    const good = await paged()
+    expect(good.exhausted).toBe(true)
+    expect(good.completed).toBe(true)
+    expect(deriveRunStatus(false, 0, false, good.exhausted, good.completed)).toBe('audience_exhausted')
+  })
+
+  it('the predicate is an AND — no single half can carry a 404 on its own', () => {
+    const src = codeOnly(readFileSync(join(__dirname, 'pdl-search.ts'), 'utf8'))
+    const at = src.indexOf('const saidNoRecords')
+    expect(at, 'the 404 predicate').toBeGreaterThan(-1)
+    const predicate = src.slice(at, src.indexOf('\n', src.indexOf('test(', at)))
+    expect(predicate).toContain('&&')
+    expect(predicate, 'an OR here is the defect this block exists for').not.toContain('||')
   })
 })

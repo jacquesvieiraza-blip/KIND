@@ -730,7 +730,6 @@ export default function MillaHomePage() {
     !!summary && (summary.proof_passes_done ?? 0) > 0 && !summary.proof_run &&
     pending.length === 0 && Object.keys(revealed).length === 0
 
-
   // ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ──────────────────────────────────────
   //
   // "Not a fit" on a card is PER LEAD and stays exactly as it was — it is recorded as

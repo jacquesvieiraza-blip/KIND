@@ -20,7 +20,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY ??= 'test-service-role'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { deriveRunStatus, runOutcomeMessage } from './run-outcome'
+import { deriveRunStatus, runOutcomeMessage, WIDENED_NO_MATCH_BODY } from './run-outcome'
 import { exhaustedMessage } from './pdl-cursor'
 
 const ICP = { job_titles: ['Head of Ops'], seniority_levels: [], company_sizes: [], geographies: ['United Kingdom'], industries: ['Logistics'] }
@@ -514,7 +514,7 @@ describe('F · the complete status space — no value exists as an untested assu
     expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(5)  // 1 def + 4 producers... adjusted below
     expect(src).toContain("recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)")
     expect(src).toContain("recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)")
-    expect(src).toContain('recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp)')
+    expect(src).toContain('recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)')
   })
 
   it('every status carries client copy, and none leaks mechanics', () => {
@@ -551,7 +551,11 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
     // Both facts come from the claim itself and survive closing the browser: the counter
     // says a pass was taken, and `proof_started_at` says when. Neither is inferred.
     expect(portalSrc).toContain('proofPassesDone:    summary?.proof_passes_done ?? 0')
-    expect(portalSrc).toContain('serverStartedAt:    serverProofStartedAt(summary)')
+    // ⛓️ 26 Aug — the desk now feeds `currentStartedAt`, which is the server's start EXCEPT
+    // while reconciling an ambiguous claim, when the visible start belongs to the old pass
+    // and is therefore unknown for this one.
+    expect(portalSrc).toContain('serverStartedAt:    currentStartedAt')
+    expect(portalSrc).toContain('const currentStartedAt = reconciling ? 0 : serverProofStartedAt(summary)')
     expect(portalSrc).toContain('server:             serverState')
   })
 
@@ -708,6 +712,34 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
     expect(rule).toContain('const CLAIM_REFUSED_STATUSES: ReadonlySet<number> = new Set([409])')
     expect(rule, 'a status-range rule is an assumption, not endpoint evidence')
       .not.toMatch(/status >= 400 && status < 500/)
+  })
+
+  it('⚑ THE DESK APPLIES THE RECONCILIATION GATE — an older pass cannot be current truth', () => {
+    // ⚠️ THIS GUARD EXISTS BECAUSE A RED-PROOF SLIPPED THROUGH. The pure-rule tests model
+    // the gate in their own helper, so deleting it from the PAGE broke nothing — the rule
+    // stayed right while the desk stopped obeying it. Both halves are asserted now.
+    //
+    // `terminalRun` must return null while reconciling: it is the single value the render,
+    // the poll guard and `proofWaitState` all read, so gating it there corrects all three.
+    const memo = portalSrc.slice(portalSrc.indexOf('const terminalRun = useMemo('))
+    const body = memo.slice(0, memo.indexOf('}, ['))
+    expect(body, 'the reconciliation gate, first thing in the memo').toContain('if (reconciling) return null')
+    expect(body.indexOf('if (reconciling) return null'), 'before any outcome is read')
+      .toBeLessThan(body.indexOf('summary?.proof_run'))
+    // And it must actually re-run when reconciliation resolves.
+    expect(memo.slice(memo.indexOf('}, ['), memo.indexOf('}, [') + 40)).toContain('reconciling')
+
+    // The marker is captured from the SERVER value we already held, BEFORE invalidation —
+    // asserted inside the ambiguous block, because `setSummary(invalidateProofSnapshot)`
+    // also appears earlier on the SUCCESS path and a file-wide indexOf finds that one.
+    const ambiguous = portalSrc.slice(
+      portalSrc.indexOf("classifyClaimFailure(status) === 'unknown'"))
+    expect(ambiguous).toContain('setReconcileFrom(serverProofStartedAt(summary))')
+    expect(ambiguous.indexOf('setReconcileFrom(serverProofStartedAt(summary))'),
+      'the old start must be captured before it is cleared')
+      .toBeLessThan(ambiguous.indexOf('setSummary(invalidateProofSnapshot)'))
+    // ⚠️ AND IT IS ONLY EVER SET ON THE AMBIGUOUS PATH — a definitive 409 must not reconcile.
+    expect((portalSrc.match(/setReconcileFrom\(/g) ?? []), 'exactly one setter').toHaveLength(1)
   })
 
   it('the summary carries the durable start, read from the column the claim writes', () => {
@@ -924,5 +956,92 @@ describe('G · PDL 404 is a provider zero ONLY when the body says not_found', ()
     const predicate = src.slice(at, src.indexOf('\n', src.indexOf('test(', at)))
     expect(predicate).toContain('&&')
     expect(predicate, 'an OR here is the defect this block exists for').not.toContain('||')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// H. THE ZERO THAT COMES AFTER WE ALREADY WIDENED (26 Aug)
+//
+// THE DEFECT, and it was reachable. The PERSISTED message is derived from `status` alone
+// (`recordRunOutcome` → `runOutcomeMessage`), and `relaxed` — the honest sentence the run
+// builds for this exact branch — is returned to a fire-and-forget caller and discarded. So a
+// pass-2 widened search that COMPLETED and genuinely matched nobody derived `no_match`, whose
+// sentence is "Try widening it — broaden the job titles, seniority, industries or regions."
+// The desk renders the server's message, so a client who had just been through the ONE
+// approved widened fallback was told to go and widen again — advice they cannot act on and
+// which contradicts the founder rule that a widened zero ends at a human.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('H · a completed zero AFTER the one widened fallback never advises widening again', () => {
+  it('⚑ THE DEFECT — the un-widened no_match still says "try widening", and should', () => {
+    // Unchanged for a FIRST-pass zero: nothing has been widened, so the advice is real.
+    const first = runOutcomeMessage('no_match', 0, 0, false)
+    expect(first).toMatch(/widening/i)
+  })
+
+  it('⚑ THE FIX — once the fallback has run, the sentence goes to a human instead', () => {
+    const after = runOutcomeMessage('no_match', 0, 0, true)
+    expect(after, 'never advise a widening we already did').not.toMatch(/widen/i)
+    expect(after).toBe(WIDENED_NO_MATCH_BODY)
+    expect(after).toContain('K.I.N.D will review it with you')
+    // It also claims nothing else untrue: no exhausted audience, no timing, no retry.
+    expect(after).not.toMatch(/already have|exhaust|try again|shortly|minutes/i)
+  })
+
+  it('the status itself is UNCHANGED and still true — no new status for a copy problem', () => {
+    // The search completed and matched nobody. `no_match` is the honest state; only the
+    // sentence differs. Inventing a status would have widened the CHECK constraint and the
+    // whole outcome space for what is a wording defect.
+    expect(deriveRunStatus(false, 0, false, false, true)).toBe('no_match')
+  })
+
+  it('no OTHER status is touched by the flag', () => {
+    for (const s of ['served', 'audience_exhausted', 'quota_exhausted', 'demo', 'failed'] as const) {
+      expect(runOutcomeMessage(s, 3, 0, true), s).toBe(runOutcomeMessage(s, 3, 0, false))
+    }
+  })
+
+  it('and NO status ever tells a widened client to widen again', () => {
+    for (const s of ['served', 'no_match', 'audience_exhausted', 'quota_exhausted', 'demo', 'failed'] as const) {
+      expect(runOutcomeMessage(s, 0, 0, true), s).not.toMatch(/broaden the job titles/i)
+    }
+  })
+
+  it('the run records the fact, and records it BEFORE the widened search can exit', () => {
+    const src = codeOnly(readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8'))
+    // Set at the top of the `canWiden` branch, so every exit below it — proved zero,
+    // unproven zero, or matches — carries it.
+    const branch = src.indexOf('if (canWiden) {')
+    const flag = src.indexOf('didWiden = true', branch)
+    const search = src.indexOf('searchPeopleWithFallback(widened', branch)
+    expect(branch).toBeGreaterThan(-1)
+    expect(flag, 'the flag is set inside the widen branch').toBeGreaterThan(branch)
+    expect(flag, 'and BEFORE the search, so every exit carries it').toBeLessThan(search)
+    // And it reaches the persisted message through the single record call.
+    expect(src).toContain('heldFromIcp, didWiden)')
+    expect(src).toContain('runOutcomeMessage(status, totalInserted, alreadyHeld, alreadyWidened)')
+  })
+
+  it('THE WIDENED FALLBACK IS STILL REACHED — an exact trustworthy zero leads into it', () => {
+    // The one approved fallback is untouched: this change reads a fact, it does not gate one.
+    const src = codeOnly(readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8'))
+    expect(src).toContain('if (canWiden) {')
+    // ONE widened search in the whole run — no third automatic attempt was introduced.
+    expect((src.match(/searchPeopleWithFallback\(widened/g) ?? []), 'exactly one widened search')
+      .toHaveLength(1)
+  })
+
+  it('a widened UNTRUSTWORTHY zero stays failed and neutral — not no_match at all', () => {
+    // The widened call resets trust to 'unproven'; without positive evidence the run derives
+    // `failed`, whose copy is the approved recovery line. No widening advice either way.
+    expect(deriveRunStatus(false, 0, false, false, false)).toBe('failed')
+    expect(runOutcomeMessage('failed', 0, 0, true)).not.toMatch(/widen/i)
+    expect(runOutcomeMessage('failed', 0, 0, true)).toBe(runOutcomeMessage('failed', 0, 0, false))
+  })
+
+  it('valid safe partial matches still surface and win, widened or not', () => {
+    // The founder's partial rule is checked before trust and is unaffected by any of this.
+    expect(deriveRunStatus(false, 7, false, false, false)).toBe('served')
+    expect(deriveRunStatus(false, 7, false, true, true)).toBe('served')
+    expect(runOutcomeMessage('served', 7, 0, true)).toMatch(/7 leads/i)
   })
 })

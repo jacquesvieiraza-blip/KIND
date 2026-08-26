@@ -20,6 +20,15 @@ export const FAILED_RUN_HEADLINE = 'We hit a snag confirming your matches'
 export const FAILED_RUN_BODY =
   'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
 
+/** ⚑ 26 Aug — THE ZERO THAT COMES AFTER WE ALREADY WIDENED.
+ *
+ *  ⚠️ NOT NEW COPY. This is the sentence `runIcpJob` already uses for exactly this state
+ *  (the pass-2 widened proved-zero branch in `routes/icps.ts`) — lifted here so the
+ *  PERSISTED message can say it too. It ends at a human, promises no timing, invites no
+ *  retry, and above all does not tell a client to widen targeting we have already widened. */
+export const WIDENED_NO_MATCH_BODY =
+  'That refined targeting didn’t return a second set. K.I.N.D will review it with you.'
+
 /**
  * Derive the outcome status from what actually happened in the run.
  * - quotaRefused: try_spend_sourcing granted 0 AND the pool served 0 (no pre-funded
@@ -68,7 +77,26 @@ export function deriveRunStatus(
 
 /** Client-facing message for a run outcome. Honest: never blames the client for a
  *  platform quota outage, and never hides a genuine no-match behind a vague spinner. */
-export function runOutcomeMessage(status: RunStatus, totalInserted: number, alreadyHeld = 0): string {
+export function runOutcomeMessage(
+  status: RunStatus,
+  totalInserted: number,
+  alreadyHeld = 0,
+  /**
+   * ⚑ 26 Aug — DID THIS RUN ALREADY USE ITS ONE WIDENED FALLBACK?
+   *
+   * THE DEFECT. The persisted `message` is derived from `status` alone, and a pass-2 widened
+   * search that COMPLETED and genuinely matched nobody derives `no_match` — whose sentence
+   * is *"Try widening it — broaden the job titles, seniority, industries or regions."* We had
+   * just widened it for them. The desk renders the server's message, so a client who had
+   * already been through the one approved fallback was told to go and widen again, against
+   * the founder rule that a widened zero ends at a human.
+   *
+   * ⚠️ THE STATUS IS UNCHANGED AND STILL TRUE: the search completed and matched nobody, so
+   * `no_match` is the honest state and no new status is invented for a copy problem. Only the
+   * SENTENCE differs, and only for `no_match` — every other status is untouched.
+   */
+  alreadyWidened = false,
+): string {
   switch (status) {
     case 'failed':
       // ⚠️ NO TECHNICAL DETAIL EVER REACHES THE PROSPECT. No provider name, no status
@@ -82,7 +110,12 @@ export function runOutcomeMessage(status: RunStatus, totalInserted: number, alre
       // targeting that was in fact correct all the way to the last person in it.
       return exhaustedMessage(alreadyHeld)
     case 'no_match':
-      return 'No leads matched this ICP. Try widening it — broaden the job titles, seniority, industries or regions.'
+      // ⚑ 26 Aug — NEVER ADVISE A WIDENING WE HAVE ALREADY DONE. After the one approved
+      // fallback this goes to a human instead: no third search, no retry control, and no
+      // instruction the client has already been given and cannot act on again.
+      return alreadyWidened
+        ? WIDENED_NO_MATCH_BODY
+        : 'No leads matched this ICP. Try widening it — broaden the job titles, seniority, industries or regions.'
     case 'demo':
       return totalInserted > 0
         ? `Demo run — ${totalInserted} leads served from the shared pool at no cost.`

@@ -48,6 +48,10 @@ async function recordRunOutcome(
   poolServed: number,
   totalInserted: number,
   alreadyHeld = 0,
+  /** ⚑ 26 Aug — this run already used its ONE widened fallback, so a completed zero must
+   *  not be told to widen again. Only changes the `no_match` sentence; the status is
+   *  unchanged and still true. */
+  alreadyWidened = false,
 ): Promise<void> {
   try {
     // supabase-js RETURNS `{ error }` — it does not throw. The try/catch alone therefore
@@ -62,7 +66,7 @@ async function recordRunOutcome(
       records_requested: Math.max(0, Math.round(recordsRequested)),
       pool_served: Math.max(0, Math.round(poolServed)),
       total_inserted: Math.max(0, Math.round(totalInserted)),
-      message: runOutcomeMessage(status, totalInserted, alreadyHeld),
+      message: runOutcomeMessage(status, totalInserted, alreadyHeld, alreadyWidened),
     })
     if (error) {
       console.error(`[icp] recordRunOutcome REJECTED status "${status}" for icp ${icpId}:`, error.message)
@@ -563,6 +567,9 @@ export async function runIcpJob(
   // How many contacts the provider ACTUALLY returned this run, recorded before any
   // K.I.N.D-side gate touches them — the fact the neutral-review decision reads.
   let providerContactsReturned = 0
+  // ⚑ 26 Aug — did this run use its ONE approved widened fallback? Read only by the outcome
+  // message, so a completed zero AFTER widening never tells the client to widen again.
+  let didWiden = false
 
   // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
@@ -873,6 +880,10 @@ export async function runIcpJob(
         pdlPage?.matchedNothing === true &&
         contacts.length === 0
       if (canWiden) {
+        // ⚑ 26 Aug — RECORDED SO THE OUTCOME SENTENCE CANNOT ADVISE A WIDENING WE JUST DID.
+        // Set at the top of the branch, before the search, so every exit below it — proved
+        // zero, unproven zero, or matches — carries the fact that the one fallback was used.
+        didWiden = true
         const widened = { ...icpForSearch, seniority_levels: [], company_sizes: [] }
         console.log(`[icp] PROOF PASS 2 — exact targeting matched nobody for prospect ${clientId}; ONE widened retry (titles/industries/countries kept, seniority + size dropped).`)
         // A SECOND provider answer is now required; the exact search's proof does not
@@ -1516,7 +1527,7 @@ export async function runIcpJob(
     }
   }
 
-  await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp)
+  await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)
   return { inserted, skipped, relaxed }
 }
 

@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
 import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
-import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, PROOF_WAIT_MS } from '@/lib/proof-start'
+import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -185,6 +185,11 @@ export default function MillaHomePage() {
   // which would state as fact something the desk could not check. Once 'ok', a later poll
   // failure does NOT drop back — truth we already hold is still truth.
   const [serverState, setServerState] = useState<'loading' | 'ok' | 'unreachable'>('loading')
+  // ⚑ 26 Aug — THE SERVER START WE ALREADY HELD WHEN A `/proof` CLAIM FAILED AMBIGUOUSLY.
+  // `null` = not reconciling. Set once, never cleared by hand: the comparison in
+  // `isReconciling` stops being true the moment the server hands back a newer start, so this
+  // resolves itself and cannot get stuck on. Only a server-supplied value is ever stored.
+  const [reconcileFrom, setReconcileFrom] = useState<number | null>(null)
   // #511f — the client's own Nexus, surfaced (the flywheel: they see Milla getting sharper).
   const [nexus, setNexus] = useState<{ learned: string; top_persona: string | null; reply_rate: number; meeting_rate: number; confidence: string; sample_worked: number } | null>(null)
   const [leads, setLeads] = useState<MaskedLead[] | null>(null)
@@ -376,7 +381,32 @@ export default function MillaHomePage() {
   //
   // ⚠️ NO NEW COPY IS INVENTED HERE. `message` is the server's own canonical sentence
   // (`runOutcomeMessage`), the same text the paying-client dashboard already renders.
+  // ⚑ 26 Aug — ARE WE STILL WAITING TO LEARN WHETHER AN AMBIGUOUS CLAIM COMMITTED?
+  //
+  // `reconcileFrom` holds the `proof_started_at` this browser had ALREADY been given when a
+  // `/proof` POST failed ambiguously. Until the server hands back a NEWER one, a summary
+  // still showing the old pass proves nothing — the POST may simply not have committed yet.
+  // Both values are the server's; this is a comparison of two server reads, not a clock.
+  const reconciling = isReconciling(reconcileFrom, serverProofStartedAt(summary))
+  // ⚠️ AND WHILE RECONCILING, THE START WE CAN SEE IS NOT THIS PASS'S. It belongs to the
+  // pass we are trying to move on from, so using it would age a brand-new run by however
+  // long the OLD one has existed — a Pass 1 start from half an hour ago would push a Pass 2
+  // claimed seconds earlier straight past the bound and into the recovery card. Unknown (0)
+  // is the truthful value here, and the bounded poll remains the whole budget.
+  const currentStartedAt = reconciling ? 0 : serverProofStartedAt(summary)
+
   const terminalRun = useMemo(() => {
+    // ⚑ 26 Aug — AN OLDER PASS CANNOT BE CURRENT TRUTH WHILE WE ARE STILL RECONCILING.
+    //
+    // THE RACE THIS CLOSES. After an ambiguous claim the desk re-reads at once, and that GET
+    // can arrive BEFORE the original POST commits — returning the OLD pass perfectly
+    // legitimately. Settling on it brought Pass 1's terminal card back and stopped the poll,
+    // and the POST then committed Pass 2 into a desk that had already stopped looking.
+    //
+    // Returning null here is what makes it one line: every consumer — this render, the poll
+    // guard and `proofWaitState` — reads `terminalRun`, so they are all corrected together
+    // rather than each needing to learn about reconciliation.
+    if (reconciling) return null
     const r = summary?.proof_run
     if (!r || !r.finished_at) return null
     const finishedAt = Date.parse(r.finished_at)
@@ -391,7 +421,7 @@ export default function MillaHomePage() {
     // any completed run counts, which resolves to a truthful end state rather than an
     // endless spinner. Erring the other way is what shipped once already.
     return finishedAt >= serverProofStartedAt(summary) ? r : null
-  }, [summary])
+  }, [summary, reconciling])
 
   // Zero is a RESULT, not an absence. It ends the wait and never triggers another search:
   // nothing here starts sourcing, and the one proof POST lives on the confirmation screen.
@@ -600,6 +630,11 @@ export default function MillaHomePage() {
       // comes straight back). If the refresh itself fails, the invalidated snapshot leaves
       // the desk in the bounded wait rather than resurrecting a card we can no longer verify.
       if (proofAttemptedRef.current && classifyClaimFailure(status) === 'unknown') {
+        // ⚠️ CAPTURED BEFORE THE INVALIDATION, from the summary this render still holds. It is
+        // the start the SERVER had already given us, and reconciliation is over only when the
+        // server hands back a newer one — a single re-read that still shows this value may
+        // simply have overtaken a POST that had not committed yet.
+        setReconcileFrom(serverProofStartedAt(summary))
         setSummary(invalidateProofSnapshot)
         setFindingTimedOut(false)
         void load()
@@ -865,7 +900,7 @@ export default function MillaHomePage() {
     revealedCount:      Object.keys(revealed).length,
     server:             serverState,
     proofPassesDone:    summary?.proof_passes_done ?? 0,
-    serverStartedAt:    serverProofStartedAt(summary),
+    serverStartedAt:    currentStartedAt,
     urlFinding:         finding,
     now:                Date.now(),
     pollExhausted:      findingTimedOut,

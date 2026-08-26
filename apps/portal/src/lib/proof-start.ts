@@ -136,6 +136,36 @@ export function classifyClaimFailure(status: number | undefined): 'refused' | 'u
   return typeof status === 'number' && CLAIM_REFUSED_STATUSES.has(status) ? 'refused' : 'unknown'
 }
 
+/**
+ * ⚑ 26 Aug — ONE RECONCILIATION READ IS NOT PROOF THE CLAIM NEVER COMMITTED.
+ *
+ * THE RACE. After an ambiguous `/proof` response the desk invalidates Pass 1 and re-reads
+ * the summary at once. That GET can reach the server BEFORE the original POST commits, so it
+ * legitimately returns Pass 1 — and the desk settled on it: Pass 1's terminal card came back,
+ * `terminalRun` stopped the poll, and the POST then committed Pass 2 into a desk that had
+ * already stopped looking. The client sat on Pass 1's result while Pass 2 ran.
+ *
+ * A single stale read proves nothing. **Only a 409 can immediately prove the pass was not
+ * claimed** — and a 409 is not ambiguous, so it never reaches this state at all.
+ *
+ * ⚠️ THE TEST IS "HAS THE SERVER MOVED?", NOT "HOW LONG HAS IT BEEN?". `reconcileFrom` is the
+ * `proof_started_at` this browser had ALREADY BEEN GIVEN by the server when the ambiguity
+ * happened. Reconciliation is over the moment the server hands back a NEWER one. Both values
+ * are the server's own; nothing is invented, no clock is started, and no browser-side notion
+ * of "which pass is current" exists — only a comparison of two server reads.
+ *
+ * ⚠️ IT SELF-RESOLVES, so nothing has to remember to clear it: once `serverStartedAt` moves
+ * past `reconcileFrom` this returns false for good. `reconcileFrom === 0` (no start was known)
+ * is resolved by any real timestamp at all.
+ *
+ * ⚠️ IT IS NOT UNBOUNDED. While this holds, the desk waits under the SAME bounded poll — so a
+ * claim that never commits ends in the approved recovery state rather than a spinner, and a
+ * stale Pass 1 terminal is never resurrected on the way there.
+ */
+export function isReconciling(reconcileFrom: number | null, serverStartedAt: number): boolean {
+  return reconcileFrom !== null && serverStartedAt <= reconcileFrom
+}
+
 export interface ProofWaitInput {
   /** A run outcome exists for the run being waited on — the server has spoken. */
   hasTerminalOutcome: boolean

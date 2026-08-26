@@ -18,7 +18,7 @@
 // ⚠️ NOTHING HERE TOUCHES A PROVIDER, A NETWORK OR A CLOCK. Pure inputs, pure output.
 
 import { describe, it, expect } from 'vitest'
-import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, PROOF_WAIT_MS, type ProofWaitInput } from './proof-start'
+import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS, type ProofWaitInput } from './proof-start'
 
 const NOW = 1_700_000_000_000
 
@@ -530,5 +530,145 @@ describe('PASS 2 · an ambiguous response reconciles against the server, without
     // And no path here ever writes the counter — the ceiling stays the server's to enforce.
     expect(afterFailedClaim(0, PASS1_SUMMARY)!.proof_passes_done).toBe(1)
     expect(afterFailedClaim(409, PASS1_SUMMARY)!.proof_passes_done).toBe(1)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug — THE RECONCILIATION READ THAT OVERTOOK THE POST.
+//
+// THE RACE. After an ambiguous `/proof` response the desk invalidates Pass 1 and re-reads
+// the summary at once. That GET can reach the server BEFORE the original POST commits, so it
+// returns Pass 1 perfectly legitimately — and the desk settled on it: Pass 1's terminal card
+// came back, `terminalRun` stopped the poll, and the POST then committed Pass 2 into a desk
+// that had already stopped looking. A single stale read is not proof the claim never landed;
+// only a 409 proves that, and a 409 is never ambiguous.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** The desk's `terminalRun`, including the reconciliation gate, exactly as the page has it. */
+const terminalRunWhile = (s: Snapshot | null, reconcileFrom: number | null) =>
+  isReconciling(reconcileFrom, serverStart(s)) ? null : terminalRun(s)
+
+/** The desk's verdict, derived from one snapshot plus the reconciliation marker. */
+const deskWhile = (s: Snapshot | null, reconcileFrom: number | null, over: Partial<ProofWaitInput> = {}) =>
+  proofWaitState({
+    hasTerminalOutcome: !!terminalRunWhile(s, reconcileFrom),
+    pendingCount: 0, revealedCount: 0, server: 'ok',
+    proofPassesDone: s?.proof_passes_done ?? 0,
+    // Mirrors the desk: while reconciling, the visible start belongs to the OLD pass and is
+    // therefore UNKNOWN for this one — using it would age a seconds-old run by half an hour.
+    serverStartedAt: isReconciling(reconcileFrom, serverStart(s)) ? 0 : serverStart(s),
+    urlFinding: false, now: NOW, pollExhausted: false,
+    ...over,
+  })
+
+describe('the reconciliation marker itself', () => {
+  it('null means not reconciling — the ordinary desk is untouched', () => {
+    expect(isReconciling(null, Date.parse(PASS1_START))).toBe(false)
+    expect(isReconciling(null, 0)).toBe(false)
+  })
+  it('the SAME start we already held keeps us reconciling — a stale read proves nothing', () => {
+    expect(isReconciling(Date.parse(PASS1_START), Date.parse(PASS1_START))).toBe(true)
+  })
+  it('an OLDER start keeps us reconciling too — the server has not moved forward', () => {
+    expect(isReconciling(Date.parse(PASS1_START), Date.parse(PASS1_START) - 5_000)).toBe(true)
+  })
+  it('a NEWER start ends it, and ends it for good — it self-resolves', () => {
+    expect(isReconciling(Date.parse(PASS1_START), Date.parse(PASS2_START))).toBe(false)
+  })
+  it('reconciling from 0 (no start was ever known) is resolved by any real timestamp', () => {
+    expect(isReconciling(0, 0)).toBe(true)
+    expect(isReconciling(0, Date.parse(PASS2_START))).toBe(false)
+  })
+})
+
+describe('⚑ THE HARD RACE · an early reconciliation read cannot settle the desk on Pass 1', () => {
+  const FROM = Date.parse(PASS1_START)   // the start the server had already given us
+
+  it('step 1 · Pass 1 terminal is loaded and is genuinely authoritative', () => {
+    expect(terminalRunWhile(PASS1_SUMMARY, null)).not.toBeNull()
+    expect(deskWhile(PASS1_SUMMARY, null)).toBe('none')
+  })
+
+  it('step 2–3 · the ambiguous response invalidates it and starts reconciling', () => {
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    expect(terminalRunWhile(invalidated, FROM)).toBeNull()
+    expect(deskWhile(invalidated, FROM)).toBe('finding')
+  })
+
+  it('⚑ step 4–5 · THE FIRST GET OVERTAKES THE POST AND STILL RETURNS PASS 1', () => {
+    // The GET is not wrong — the POST simply has not committed yet. Before this fix the desk
+    // took it as truth, restored Pass 1's terminal card and stopped polling for good.
+    const stillPass1 = PASS1_SUMMARY
+    expect(serverStart(stillPass1)).toBe(FROM)                    // the server has NOT moved
+    expect(terminalRunWhile(stillPass1, FROM), 'a stale read must not restore Pass 1').toBeNull()
+    expect(deskWhile(stillPass1, FROM), 'the desk keeps waiting').toBe('finding')
+    // And it must not have settled — this is the assertion the old behaviour failed.
+    expect(deskWhile(stillPass1, FROM)).not.toBe('none')
+  })
+
+  it('step 5b · repeated stale reads still cannot settle it', () => {
+    for (const attempt of [1, 2, 3, 4, 5]) {
+      expect(deskWhile(PASS1_SUMMARY, FROM), `read ${attempt}`).toBe('finding')
+      expect(terminalRunWhile(PASS1_SUMMARY, FROM), `read ${attempt}`).toBeNull()
+    }
+  })
+
+  it('step 6–7 · the POST commits, the server exposes Pass 2, and its clock takes over', () => {
+    const pass2: Snapshot = {
+      proof_passes_done: 2,
+      proof_started_at: PASS2_START,
+      proof_run: { status: 'no_match', finished_at: PASS1_END },   // Pass 1's row, still newest
+    }
+    expect(isReconciling(FROM, serverStart(pass2)), 'a newer start ends reconciliation').toBe(false)
+    expect(serverStart(pass2)).toBe(Date.parse(PASS2_START))
+    // Pass 1's outcome finished BEFORE Pass 2 began, so it cannot terminate Pass 2 either.
+    expect(terminalRunWhile(pass2, FROM)).toBeNull()
+    expect(deskWhile(pass2, FROM)).toBe('finding')
+  })
+
+  it('step 8a · Pass 2 LEADS end the wait normally', () => {
+    const pass2: Snapshot = { proof_passes_done: 2, proof_started_at: PASS2_START, proof_run: null }
+    expect(deskWhile(pass2, FROM, { pendingCount: 9 })).toBe('none')
+  })
+
+  it('step 8b · a Pass 2 TERMINAL outcome ends the wait normally', () => {
+    const pass2: Snapshot = {
+      proof_passes_done: 2,
+      proof_started_at: PASS2_START,
+      proof_run: { status: 'served', finished_at: new Date(NOW - 2_000).toISOString() },
+    }
+    expect(terminalRunWhile(pass2, FROM)).not.toBeNull()
+    expect(terminalRunWhile(pass2, FROM)!.status).toBe('served')
+    expect(deskWhile(pass2, FROM)).toBe('none')
+  })
+
+  it('1 · the claim NEVER commits → bounded neutral recovery, no Pass 1 resurrection', () => {
+    // The server stays on Pass 1 forever. The desk must not spin, and must not go back to
+    // Pass 1's terminal card on the way to recovery.
+    expect(deskWhile(PASS1_SUMMARY, FROM, { pollExhausted: false })).toBe('finding')
+    expect(deskWhile(PASS1_SUMMARY, FROM, { pollExhausted: true })).toBe('recovery')
+    expect(terminalRunWhile(PASS1_SUMMARY, FROM)).toBeNull()
+    expect(deskWhile(PASS1_SUMMARY, FROM, { pollExhausted: true })).not.toBe('none')
+  })
+
+  it('1b · and it stays bounded with the backend unreachable too', () => {
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    expect(deskWhile(invalidated, FROM, { server: 'unreachable' })).toBe('finding')
+    expect(deskWhile(invalidated, FROM, { server: 'unreachable', pollExhausted: true })).toBe('recovery')
+  })
+
+  it('2 · a DEFINITIVE 409 never enters reconciliation at all', () => {
+    // `classifyClaimFailure(409) === 'refused'`, so the page never sets `reconcileFrom`.
+    expect(classifyClaimFailure(409)).toBe('refused')
+    expect(terminalRunWhile(PASS1_SUMMARY, null)).not.toBeNull()   // Pass 1 immediately intact
+    expect(deskWhile(PASS1_SUMMARY, null)).toBe('none')
+  })
+
+  it('3 · a successful 200 is unaffected — no reconciliation marker is ever set', () => {
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    expect(deskWhile(invalidated, null)).toBe('finding')            // waiting for Pass 2
+    const pass2: Snapshot = { proof_passes_done: 2, proof_started_at: PASS2_START, proof_run: null }
+    expect(deskWhile(pass2, null)).toBe('finding')
+    expect(deskWhile(pass2, null, { pendingCount: 4 })).toBe('none')
   })
 })

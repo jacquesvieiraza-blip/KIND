@@ -13,7 +13,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { deriveRunStatus, runOutcomeMessage } from './run-outcome'
+import { deriveRunStatus, runOutcomeMessage, FAILED_RUN_HEADLINE, FAILED_RUN_BODY } from './run-outcome'
 
 const api = (f: string) => readFileSync(join(__dirname, f), 'utf8')
 const route = (f: string) => readFileSync(join(__dirname, '..', 'routes', f), 'utf8')
@@ -113,22 +113,87 @@ describe('the desk stops guessing', () => {
   })
 })
 
-describe('a crashed run tells a human, and never fakes a result', () => {
+describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug)', () => {
   const proofRoute = route('icps.ts')
-
-  it('alerts on a failed proof run instead of swallowing it', () => {
+  const crash = () => {
     const at = proofRoute.indexOf("[icps/proof] proof run failed:")
-    expect(at).toBeGreaterThan(-1)
-    const block = proofRoute.slice(at - 400, at + 900)
-    expect(block).toContain('sendFounderAlert')
+    return proofRoute.slice(at - 900, at + 1600)
+  }
+
+  it('persists `failed` at the crash boundary', () => {
+    expect(crash()).toContain("recordRunOutcome(req.params.id, clientId, 'failed'")
   })
 
-  it('does NOT write a fake outcome row for a crash', () => {
-    // `no_match` on a run that never asked would tell a prospect their targeting matched
-    // nobody. There is no honest status for "crashed", so none is written (R72).
-    const at = proofRoute.indexOf("[icps/proof] proof run failed:")
-    const block = proofRoute.slice(at, at + 1200)
-    expect(block).not.toContain('recordRunOutcome')
+  it('NEVER records a crash as no_match or audience_exhausted', () => {
+    // The query did not complete, so claiming it matched nobody — or that the client
+    // already holds everyone — would be false (R72).
+    expect(crash()).not.toContain("'no_match'")
+    expect(crash()).not.toContain("'audience_exhausted'")
+  })
+
+  it('`failed` is never DERIVED — only written by the handler that caught the throw', () => {
+    const derive = api('run-outcome.ts')
+    const fn = derive.slice(derive.indexOf('export function deriveRunStatus'), derive.indexOf('export function runOutcomeMessage'))
+    expect(fn).not.toContain("'failed'")
+    // And no honest completion can produce it.
+    for (const args of [[false, 0, false, false], [false, 0, false, true], [false, 0, true, false], [false, 5, false, false], [true, 0, false, false]] as const) {
+      expect(deriveRunStatus(...args)).not.toBe('failed')
+    }
+  })
+
+  it('still alerts a human', () => {
+    expect(crash()).toContain('sendFounderAlert')
+  })
+
+  it('the approved recovery copy is what a prospect sees — verbatim, and no technical detail', () => {
+    expect(FAILED_RUN_HEADLINE).toBe('We hit a snag confirming your matches')
+    expect(FAILED_RUN_BODY).toBe('Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.')
+    // The server message for a failure IS that body — so the desk renders it like any
+    // other terminal state, with nothing written locally.
+    expect(runOutcomeMessage('failed', 0)).toBe(FAILED_RUN_BODY)
+    // No provider name, status code or stack may reach the prospect.
+    expect(runOutcomeMessage('failed', 0)).not.toMatch(/pdl|apollo|hunter|clearbit|error|\b5\d\d\b|stack/i)
+  })
+
+  it('the desk renders the approved headline and never the word "failed"', () => {
+    const start = portal.indexOf('terminalRun ? (')
+    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    expect(block).toContain('We hit a snag confirming your matches')
+    expect(block).toContain('{terminalRun.message}')
+    expect(block.toLowerCase()).not.toContain('>failed')
+    expect(block).not.toMatch(/Failed</)
+  })
+
+  it('a failed run is terminal, so it stops the poll and cannot revert to running', () => {
+    // `terminalRun` is status-agnostic: any completed outcome — failed included — both
+    // ends the wait and halts the interval.
+    expect(portal).toContain('if (!finding || pending.length > 0 || terminalRun) return')
+    const t = portal.indexOf('terminalRun ? (')
+    const f = portal.indexOf('finding ? (')
+    expect(f).toBeGreaterThan(t)
+    expect(portal).toContain("const proofFailed = terminalRun?.status === 'failed'")
+  })
+
+  it('a failed run offers no retry and starts no second search', () => {
+    const start = portal.indexOf('terminalRun ? (')
+    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    expect(block).not.toMatch(/retry|try again/i)
+    expect(block).not.toContain('api.post')
+    expect(block).not.toContain('/proof')
+    expect(block).not.toContain('onClick')
+  })
+
+  it('survives a reload — the terminal decision reads the server, not component state', () => {
+    // `terminalRun` derives from `summary.proof_run`, refetched on every load, and the
+    // wait's start moment lives in the URL. Neither resets on refresh.
+    expect(portal).toContain('const r = summary?.proof_run')
+    expect(portal).toContain('finishedAt >= findingSince()')
+  })
+
+  it('the runner and the schema both allow the new value', () => {
+    const runner = api('pending-migrations.ts')
+    expect(runner).toContain('20260826_run_outcome_failed')
+    expect(runner).toMatch(/check \(status in \('served','no_match','quota_exhausted','demo','audience_exhausted','failed'\)\)/)
   })
 })
 

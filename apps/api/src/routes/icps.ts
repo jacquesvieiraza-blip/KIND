@@ -3189,8 +3189,14 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // precise class of lie R72 forbids. A truthful failure state needs a founder decision
     // (a new status + its client sentence); until then a HUMAN is told, immediately.
     runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
-      .catch(e => {
+      .catch(async e => {
         console.error('[icps/proof] proof run failed:', e)
+        // ⚑ 26 Aug — PERSIST THE CRASH AS A TERMINAL FACT (founder-approved `failed`).
+        // Written HERE, at the crash boundary, because this is the only place that knows
+        // the run threw. Never derived, and never folded into `no_match`: the query did
+        // not complete, so claiming it matched nobody would be false (R72).
+        await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
+          .catch(re => console.error('[icps/proof] could not record the failed outcome:', re))
         void sendFounderAlert('source_down', 'A free-proof run crashed — the prospect is waiting on a desk that cannot finish', [
           `Prospect ${clientId}, ICP ${req.params.id}, pass ${claimed} of 2.`,
           `Reason: ${e instanceof Error ? e.message : String(e)}`,

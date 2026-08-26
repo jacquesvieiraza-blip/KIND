@@ -169,12 +169,12 @@ describe('⑥ the migration is in BOTH homes (AR6) and the runner moved 28 → 2
     expect(RUNNER, 'RLS on').toContain('alter table public.lead_feedback enable row level security')
   })
 
-  it('the runner carries P32, and the count is 34', () => {
+  it('the runner carries P32, and the count is 35', () => {
     const keys = [...RUNNER.matchAll(/key: '([^']+)'/g)].map(m => m[1])
     // 29 -> 30 -> 31 on 21 Aug: P33's morning_brief_once_per_day, then P34's meeting_briefs.
     // 32 -> 33 on 25 Aug: 20260825_proof_widened_candidate — the ONE column that lets a
     // client's accepted widened proof become the targeting they pay for.
-    expect(keys.length, `runner entries: ${keys.length}`).toBe(34)   // +1 26 Aug (20260826_acquisition_memory — company memory of every PAID identity, R67)
+    expect(keys.length, `runner entries: ${keys.length}`).toBe(35)   // +1 26 Aug (20260826_run_outcome_failed — status gains 'failed', R72)   // +1 26 Aug (20260826_acquisition_memory — company memory of every PAID identity, R67)
     // ⚠️ WAS `keys[keys.length - 1]` — "P32 is LAST". That was only ever true until the
     // next migration existed, so it asserted a fact about the calendar rather than about
     // P32. What this test is FOR is that P32's entry is in the runner at all; that is now

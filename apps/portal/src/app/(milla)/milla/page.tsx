@@ -329,6 +329,9 @@ export default function MillaHomePage() {
   // Zero is a RESULT, not an absence. It ends the wait and never triggers another search:
   // nothing here starts sourcing, and the one proof POST lives on the confirmation screen.
   const proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0
+  // A crashed run is its own terminal state. The prospect is NEVER shown the word
+  // "failed" — that is the internal status name; they get the approved recovery copy.
+  const proofFailed = terminalRun?.status === 'failed'
   const canRefine       = proofMode && proofPassesDone === 1
   const proofExhausted  = proofMode && proofPassesDone >= 2
 
@@ -1040,9 +1043,14 @@ export default function MillaHomePage() {
               terminalRun ? (
                 <div className="text-[14px] text-[#4c4368] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
                   <div className="text-[15px] font-bold text-[#5c5279]">
-                    {proofEndedEmpty ? 'No matches this time' : 'That search has finished'}
+                    {/* ⚠️ FOUNDER-APPROVED RECOVERY COPY (26 Aug), verbatim. The word
+                        "failed" is the internal status and never appears here. */}
+                    {proofFailed
+                      ? 'We hit a snag confirming your matches'
+                      : proofEndedEmpty ? 'No matches this time' : 'That search has finished'}
                   </div>
-                  {/* The server's own canonical sentence — never re-written here. */}
+                  {/* The server's own canonical sentence — never re-written here, and for a
+                      crash it carries no provider name, status code or stack. */}
                   <div className="text-[13px] mt-1.5 text-[#7c6f9b]">{terminalRun.message}</div>
                   {/* Nothing on this branch starts another search, and no control offers to. */}
                 </div>

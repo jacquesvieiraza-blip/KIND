@@ -22,6 +22,13 @@ import path from 'path'
 // builds — which legitimately consume `dist` — cannot go stale either. Both halves are
 // needed: this alias fixes the tests, the gate step fixes everything else.
 export default defineConfig({
+  test: {
+    // `vitest.setup.ts` deletes every provider API key before any test runs, so the suite
+    // is structurally incapable of reaching PDL, Apollo, Hunter or Clearbit (R66).
+    // ⚠️ MUST live under `test:` — at the config root it is silently ignored, which is
+    // exactly how the first attempt "passed" while running nothing.
+    setupFiles: [path.resolve(__dirname, '../../vitest.setup.ts')],
+  },
   resolve: {
     alias: {
       '@kind/shared': path.resolve(__dirname, '../../packages/shared/src/index.ts'),

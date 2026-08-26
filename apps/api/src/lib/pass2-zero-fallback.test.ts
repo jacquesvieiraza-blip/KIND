@@ -166,6 +166,10 @@ async function runJob(opts: {
         select() { return chain }, eq() { return chain }, in() { return chain },
         is() { return chain }, not() { return chain }, neq() { return chain },
         order() { return chain }, limit() { return chain }, gte() { return chain },
+        // R67 — `acquisition_memory` is written before the client gates, and that write
+        // FAILS CLOSED: without this the run throws, which is the guard doing its job on
+        // an incomplete harness rather than a defect in the code under test.
+        async upsert() { return { error: null } },
         async maybeSingle() {
           if (table === 'icps') return { data: icpRow, error: null }
           if (table === 'clients') return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Glean' }, error: null }

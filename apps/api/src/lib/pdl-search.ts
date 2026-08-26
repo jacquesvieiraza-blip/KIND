@@ -17,6 +17,7 @@
 // see PDL_INDUSTRY_MAP below. Ref: https://docs.peopledatalabs.com/docs/person-search-api
 // ─────────────────────────────────────────────────────────────────────────────
 import type { ApolloContact } from './apollo'
+import { assertPaidProviderAllowed } from './paid-provider-guard'
 import { sendFounderAlert } from './alerts'
 // The SAME alias knowledge the launch send fence uses — imported, never re-declared here.
 import { canonicalLaunchCountry } from '@kind/shared'
@@ -209,6 +210,7 @@ export async function pdlSearchDiagnostic(
   const key = process.env.PDL_API_KEY
   if (!key) return { configured: false, ok: false, status: null, count: 0, error: 'PDL_API_KEY not set' }
   try {
+    assertPaidProviderAllowed('pdl', 'pdlSearchDiagnostic')
     const res = await fetch(PDL_SEARCH_URL, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json', 'X-Api-Key': key },
@@ -256,6 +258,11 @@ type PdlOutcome =
   | { kind: 'error'; detail: string }
 
 async function pdlSearchOnce(icp: IcpQuery, size: number, key: string, scrollToken?: string | null, opts?: PdlSearchOptions): Promise<PdlOutcome> {
+  // ⚠️ OUTSIDE THE `try` ON PURPOSE (R66). The catch below turns everything into
+  // `{ kind: 'error' }`, which the caller renders as a bare empty page — indistinguishable
+  // from "this audience is finished". A blocked spend must NOT look like a zero result, so
+  // the guard throws past the handler and stops the run loudly.
+  assertPaidProviderAllowed('pdl', 'pdlSearchOnce')
   try {
     const res = await fetch(PDL_SEARCH_URL, {
       method:  'POST',

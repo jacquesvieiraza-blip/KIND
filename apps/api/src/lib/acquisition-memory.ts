@@ -1,0 +1,221 @@
+// ── COMPANY ACQUISITION MEMORY — we paid for them, so we remember them ──────────
+//
+// Founder rule (R67, 25 Aug): EVERY IDENTITY K.I.N.D PAYS TO ACQUIRE MUST BE RETAINED
+// AS COMPANY ACQUISITION MEMORY, before client-specific rejection can destroy the asset.
+// **RETENTION IS NOT CONTACTABILITY.**
+//
+// ⚠️ WHAT THIS FIXES, precisely. In `runIcpJob` the `lead_pool` write is the LAST thing
+// that happens to a contact and it is conditional on all of: passing the budget cap,
+// passing the DNC probe, passing the opt-out blocklist, not being a duplicate for THIS
+// client, inserting into `leads` without error, and HAVING AN EMAIL. Six ways to pay for
+// a person and forget them — and two of those six (DNC, opt-out) forget precisely the
+// people we most need to remember, because the next run buys them again.
+//
+// ⚠️ THIS MODULE NEVER MAKES ANYONE CONTACTABLE. It writes to `acquisition_memory` and
+// nothing else. No send, consent, reveal, scoring or serving path reads that table.
+// `contactable: false` is a fact we store, never a permission we grant.
+//
+// ⚠️ REMEMBERING SOMEONE DOES NOT STOP PDL BILLING FOR THEM AGAIN — `buildPdlBody`
+// emits `bool.must` only, zero `must_not`. Cost avoidance from re-acquisition is OPEN
+// research and must not be reported as solved by the existence of this table.
+
+import { normalizeRevealEmail } from './billing-rules'
+
+/** Why an identity may not be contacted. `null` = no known reason. */
+export type SuppressionReason = 'suppressed' | 'opt_out' | 'dnc' | null
+
+/** One identity we paid a provider for. */
+export type AcquisitionMemoryRecord = {
+  source: string
+  provider_id: string
+  acquisition_cost_usd: number
+  email_norm: string | null
+  first_name: string | null
+  last_name: string | null
+  title: string | null
+  seniority: string | null
+  company: string | null
+  industry: string | null
+  company_size: string | null
+  country: string | null
+  linkedin_url: string | null
+  contactable: boolean
+  suppression_reason: SuppressionReason
+  first_seen_client_id: string | null
+}
+
+/** The provider contact shape we read, kept loose so PDL and Apollo both fit. */
+export type ProviderContact = {
+  id?: string | null
+  first_name?: string | null
+  last_name?: string | null
+  email?: string | null
+  title?: string | null
+  seniority?: string | null
+  linkedin_url?: string | null
+  country?: string | null
+  organization_name?: string | null
+  organization?: { name?: string | null; industry?: string | null; num_employees?: number | null } | null
+}
+
+/**
+ * Build the memory row for one paid contact.
+ *
+ * Returns `null` ONLY when the provider gave us no stable id — without `(source,
+ * provider_id)` there is no identity key, so the row could neither be deduped nor
+ * recognised later, and an un-keyed row would double-count its cost on every re-encounter.
+ * That is the one honest reason to drop one, and callers count it rather than hide it.
+ *
+ * ⚠️ NOTE WHAT IS *NOT* A REASON TO DROP: no email, suppressed, opted out, DNC, rejected
+ * by this client, or over this client's budget. Every one of those is retained — that is
+ * the entire point of the rule.
+ */
+export function toMemoryRecord(
+  contact: ProviderContact,
+  opts: {
+    source: string
+    costUsd: number
+    clientId?: string | null
+    contactable?: boolean
+    suppressionReason?: SuppressionReason
+  },
+): AcquisitionMemoryRecord | null {
+  const providerId = typeof contact.id === 'string' ? contact.id.trim() : ''
+  if (!providerId) return null
+
+  const contactable = opts.contactable ?? true
+
+  return {
+    source:               opts.source,
+    provider_id:          providerId,
+    acquisition_cost_usd: opts.costUsd,
+    email_norm:           normalizeRevealEmail(contact.email) || null,
+    first_name:           contact.first_name || null,
+    last_name:            contact.last_name || null,
+    title:                contact.title || null,
+    seniority:            contact.seniority || null,
+    company:              contact.organization?.name ?? contact.organization_name ?? null,
+    industry:             contact.organization?.industry ?? null,
+    company_size:         contact.organization?.num_employees ? String(contact.organization.num_employees) : null,
+    country:              contact.country || null,
+    linkedin_url:         contact.linkedin_url || null,
+    contactable,
+    // A record we cannot contact must say WHY, or the memory cannot be reasoned about
+    // later. Default to 'suppressed' rather than null so an uncontactable row is never
+    // silently indistinguishable from a contactable one.
+    suppression_reason:   contactable ? null : (opts.suppressionReason ?? 'suppressed'),
+    first_seen_client_id: opts.clientId ?? null,
+  }
+}
+
+/** Minimal DB surface, so tests need no Supabase client. */
+export type MemoryDb = {
+  from: (table: string) => {
+    upsert: (
+      rows: Record<string, unknown>[],
+      opts: { onConflict: string; ignoreDuplicates: boolean },
+    ) => Promise<{ error: unknown }>
+    update: (patch: Record<string, unknown>) => {
+      eq: (col: string, val: unknown) => {
+        eq: (col: string, val: unknown) => {
+          in: (col: string, vals: string[]) => Promise<{ error: unknown }>
+        }
+      }
+    }
+  }
+}
+
+/** Thrown when paid identities could not be recorded. The run must NOT continue. */
+export class AcquisitionMemoryWriteError extends Error {
+  readonly code = 'ACQUISITION_MEMORY_WRITE_FAILED'
+  readonly attempted: number
+  constructor(attempted: number, cause: unknown) {
+    super(
+      `Failed to record ${attempted} PAID identities in acquisition_memory: ${
+        cause instanceof Error ? cause.message : JSON.stringify(cause)
+      }. The run is stopping BEFORE the client gates — continuing would let those gates ` +
+      'discard identities we have already paid for, with no record that we ever saw them.',
+    )
+    this.name = 'AcquisitionMemoryWriteError'
+    this.attempted = attempted
+  }
+}
+
+/**
+ * Persist paid identities. FAILS CLOSED.
+ *
+ * ⚠️ TWO STATEMENTS, ON PURPOSE — and this is the suppression-staleness fix.
+ *
+ *   ① INSERT … ON CONFLICT DO NOTHING. First acquisition wins, so `acquisition_cost_usd`,
+ *      `acquired_at` and `first_seen_client_id` are written ONCE and can never be rewritten
+ *      by a later sighting. Reuse and dedupe cannot double-count what we paid.
+ *
+ *   ② A NARROW UPDATE that only ever TIGHTENS contactability. If an identity was first
+ *      seen contactable and later turns up suppressed / opted-out / DNC, `DO NOTHING`
+ *      would have left the row saying `contactable = true` forever — stale, and stale in
+ *      the one direction that matters. This statement sets it false, records the reason,
+ *      and is guarded `WHERE contactable = true` so it is idempotent.
+ *
+ * ⚠️ IT NEVER LOOSENS. There is no path here that sets `contactable` back to true. Coming
+ * off a suppression list is the blocklist's job (`opted_back_in_at`), not this table's —
+ * acquisition memory must never become a route back to being contactable.
+ *
+ * ⚠️ THROWS ON FAILURE. An earlier version logged and returned, so `runIcpJob` sailed on
+ * into the gates that discard paid contacts — a paid identity silently lost, which is the
+ * exact thing R67 forbids. One retry, then stop the run.
+ */
+export async function rememberAcquiredIdentities(
+  db: MemoryDb,
+  records: AcquisitionMemoryRecord[],
+): Promise<{ written: number; suppressed: number }> {
+  if (records.length === 0) return { written: 0, suppressed: 0 }
+
+  // Same identity twice inside ONE batch would make Postgres reject the whole statement
+  // ("cannot affect row a second time"), losing every record in it. Collapse first, keeping
+  // the earliest occurrence — the same first-acquisition-wins rule the index enforces.
+  // When a batch holds the same person both contactable and not, the UNCONTACTABLE view
+  // wins: never resolve a within-batch disagreement toward contactable.
+  const byKey = new Map<string, AcquisitionMemoryRecord>()
+  for (const r of records) {
+    const key = `${r.source} ${r.provider_id}`
+    const prev = byKey.get(key)
+    if (!prev) { byKey.set(key, r); continue }
+    if (prev.contactable && !r.contactable) byKey.set(key, { ...prev, contactable: false, suppression_reason: r.suppression_reason })
+  }
+  const deduped = [...byKey.values()]
+
+  // ① Insert-if-absent. Never touches an existing row.
+  let lastErr: unknown = null
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const { error } = await db.from('acquisition_memory').upsert(
+      deduped as unknown as Record<string, unknown>[],
+      { onConflict: 'source,provider_id', ignoreDuplicates: true },
+    )
+    if (!error) { lastErr = null; break }
+    lastErr = error
+    console.error(`[acquisition-memory] insert attempt ${attempt}/2 failed:`, error)
+  }
+  if (lastErr) throw new AcquisitionMemoryWriteError(deduped.length, lastErr)
+
+  // ② Tighten contactability on rows that already existed as contactable. Grouped by
+  //    (source, reason) so this is a small fixed number of statements, not one per record.
+  let suppressed = 0
+  const groups = new Map<string, string[]>()
+  for (const r of deduped) {
+    if (r.contactable) continue
+    const g = `${r.source}\u0000${r.suppression_reason ?? 'suppressed'}`
+    groups.set(g, [...(groups.get(g) ?? []), r.provider_id])
+  }
+  for (const [g, ids] of groups) {
+    const [source, reason] = g.split('\u0000')
+    const { error } = await db.from('acquisition_memory')
+      .update({ contactable: false, suppression_reason: reason })
+      .eq('source', source)
+      .eq('contactable', true)          // idempotent; only ever tightens
+      .in('provider_id', ids)
+    if (error) throw new AcquisitionMemoryWriteError(ids.length, error)
+    suppressed += ids.length
+  }
+
+  return { written: deduped.length, suppressed }
+}

@@ -127,10 +127,10 @@ Flat pricing, no volume discounts. **Signup grant (welcome mix, no expiry):** 20
 | **Hunter** | Email verification behind PDL. ⏸ **IDLE = $0** — returns at ~$34 Starter the month a sourcing run happens. *(The old ~$110 was Growth at client scale.)* | **$0** ⏸ |
 | **PDL** | Sourcing. ⏸ **IDLE = $0** — the $98 tier must **not** auto-renew in months with no sourcing run. Founder confirming. | **$0** ⏸ |
 | **Anthropic** | Claude API at runtime (scoring + writing). **$10 is actual at our-own-volume**; ~$45 was client scale. | ~$10 ⚠️ watch |
-| **Apollo — OUR hunting** | **Basic Monthly $65/mo**, 2,500 credits, **0 used**. ⏸ **Founder moved it to the FREE plan from 3 Sep** under cost pressure — August is already paid, so those 2,500 credits are August's prospecting at no further cost. Re-subscribe only with evidence it found clients. ⚠️ Apollo is **OUR** source, never the client stack (PDL + Hunter, locked 30 Jul). | **$0** ⏸ from 3 Sep |
+| **Apollo — OUR hunting** | **Basic Monthly $65/mo**, 2,500 credits, **0 used**. ~~⏸ **Founder moved it to the FREE plan from 3 Sep** under cost pressure — August is already paid, so those 2,500 credits are August's prospecting at no further cost. Re-subscribe only with evidence it found clients.~~ ⛓️ **CORRECTED 25 Aug — FOUNDER CONFIRMED APOLLO IS RENEWED AT $65/mo. THE DROP TO FREE DID NOT HAPPEN, and this row must not be read as a $0 line.** The 3-Aug plan to move to free was a plan; the bill is $65. ⚠️ **This is a REAL, CURRENTLY-PAID cost and it belongs in the floor** — a $0 here understated what actually leaves the bank. ⚠️ Apollo is **OUR** source, never the client stack (PDL + Hunter, locked 30 Jul). 🏷️ FOUNDER DECISION (25 Aug) | **$65** ⚠️ renewed — *the floor totals below still carry the old $0 and have NOT been re-derived* |
 | **Google Workspace — the 4 sending mailboxes** | 4 × Business Starter on `kindoutreach.com` (primary) + `trykind.org` (secondary domain, **same subscription** — one bill). Domains **£20.45 once** at GoDaddy, 3 Aug. ⏳ Google verification ~48h. ⚠️ **MUST BE BOUGHT DIRECT FROM GOOGLE** — see the sending-domains row above for why a done-for-you box cannot be sent through. ⚠️ Each box needs an **App Password**. | **~$28** |
 | **PLATFORM FLOOR — NOW** | *(pre-first-client, failover still billing)* | **~$146/mo** |
-| **COMPANY FLOOR** | ICO fee · Companies House · accountant · accounting software · PI insurance — added 4 Aug when the founder asked what else a UK company owes and the honest answer was that **none of it had ever been modelled anywhere in the repo**. **Every line is `unverified-secondary`** until **B2** checks them in a browser. | **~$206/mo** |
+| **COMPANY FLOOR** | ICO fee · Companies House · accountant · accounting software · PI insurance — added 4 Aug when the founder asked what else a UK company owes and the honest answer was that **none of it had ever been modelled anywhere in the repo**. **Every line is `unverified-secondary`** until **B2** checks them in a browser. ⚠️ **CORRECTED 25 Aug — THE PI-INSURANCE LINE IN THIS ROW IS NOT A COST WE PAY. The founder confirmed K.I.N.D holds NO business insurance today: none, $0.** The line was modelled 4 Aug as what a UK company *owes*, and has read ever since as though a policy existed. It does not. ⚠️ **AND $0 TODAY IS NOT $0 LONG-TERM — do not carry it forward as a settled zero.** Post-launch, review what cover this business model actually needs against its real risk exposure — at minimum **professional indemnity / errors & omissions**, **cyber / data liability**, **public liability if relevant**, and anything else appropriate to handling client data, running outreach on a client's behalf, delivering software as a service, and commercial partnerships. ⚠️ **NO PREMIUM IS INVENTED HERE, and none may be.** Actual cover and actual cost must be researched and quoted before either enters this model as a verified expense; until then insurance is an **open, unpriced exposure**, not a number. **Nothing is being recommended or purchased now.** · 🏦 **BANKING — Wise, $0/month, founder-confirmed 25 Aug.** Verified as a real current figure, not an estimate. · 🧾 **ICO — CORRECTED 26 Aug. The working figure is £52/yr Tier 1, or £47/yr with the Direct Debit discount.** ⚠️ **An £38 default is STALE and must not be carried forward** — it appears in the external Money Control Room model and predates the fee change. The repo's own compliance note already reads *"~£47/yr Tier 1, direct debit"*, and older `£40` references elsewhere are historical. 🏷️ WORKING — still `unverified-secondary` until **B2** reads it in a browser. · 📊 **MONITORING / SECURITY TOOLING and 🧮 XERO / ACCOUNTING SOFTWARE remain unpriced post-launch lines** — `TECH-STACK.md` still records the accounting platform as **UNDECIDED**; nothing is assumed here. · 📧 **GOOGLE WORKSPACE CONSOLIDATION** is an open post-launch cost review, not a modelled saving. | **~$206/mo** *(⚠️ includes the unheld PI-insurance line above — the true company figure is unresolved until B2 and the insurance review)* |
 | **➡️ ALL-IN FLOOR — what actually leaves the bank** | *(⚠️ **added 6 Aug, #628.** The ~$146 row above is the PLATFORM half, and it had been quoted as "the floor" across the living docs since 3 Aug — a real number standing in for a much larger one.)* | **$352/mo** |
 
 *Claude Code was **£119.99/mo ≈ $152** and was **downgraded 3 Aug to ~£18 ≈ $23** — the current plan runs to **20 Aug**, then the lower rate applies. The heavy build phase is done; what remains is small edits and walking setup screens. Upgrade for a month if a heavy build returns — it is fully reversible. It is the founder's **build tool, not product infrastructure**, so it sits outside the platform floor: the product does not need it to run for a client, only to be built. **All-in out of pocket: ~$470/mo before the 3 Aug cuts → ~$157/mo after.***
@@ -164,19 +164,70 @@ The floors above are **rent**: what runs whether or not we are hunting. Finding 
 
 **Rate of burn:** 4 warm mailboxes send ~100 emails/day, so 1,000 prospects takes **~6 weeks** — roughly **$85/month** while hunting, not a lump sum.
 
+> ⛓️ **RECONCILED 26 Aug BY R69 — THIS LINE SURVIVES, BUT IT IS NOT THE CLIENT-FACING FORECAST.** The **~1,000 contacted prospects ≈ 1 client** figure below is a **higher-level sales-planning and stress assumption** — it answers *"how much outbound buys a customer?"*. It is **NOT** the metric a client is ever shown, and **Milla must never present it as a forecast.** The client-facing planning metric is the **booked meeting**: **~150 accepted/contacted prospects per booked meeting** (range **100–250**), with **~250–300 accepted and no booked meeting triggering a campaign review** — targeting, offer, messaging, timing, deliverability — and *never* an automatic "buy more leads". **Never promise X leads = Y meetings.** Real data supersedes the benchmark once the sample is useful. The other historical ratios in this document (~250–400 prospects/customer · ~100–200 stronger target · ~170–250 sourced leads/client) are retained on the same basis and for the same reason: **they are cost-of-acquisition planning, not meeting forecasting.** 🏷️ FOUNDER DECISION (R69, 26 Aug).
+
 **Payback:** industry cold-outbound benchmarks put 1,000 contacted prospects at **≈1 client** conservatively (1% positive reply → ~10 meetings → ~7 demos → ~15–20% close). One client is worth **$99 + ~$121/month**. **The acquisition maths works even at the pessimistic end** — and Apollo rather than PDL is what makes it work: the same 1,000 names on PDL would be **$280**, turning ~$130 of fuel into ~$384. **PDL and Hunter remain the client-facing stack; Apollo is for our own hunting only** — the exact mirror of *Instantly for us, Smartlead for clients*.
 
 **Scales with the work, NOT fixed:**
 
 | Line | Amount |
 |---|---|
-| Per client, per month — their inbox + workspace | **~$40** ⚠️ confirm the workspace fee with Smartlead. **$0 today** — deferred with Smartlead until the first client. |
+| Per client, per month — their inbox + workspace | ~~**~$40** ⚠️ confirm the workspace fee with Smartlead.~~ ⛓️ **THIS ROW CONTRADICTS ITS OWN DOCUMENT** — the FUTURE table above already retired the $40 as *"an unconfirmed guess at a Smartlead workspace fee"* and put the real ongoing cost at **$8/client/mo** (their own Google box ~$7 + domain ~$1), which is also the `PER_CLIENT_MONTHLY_USD` the model subtracts at §*The envelope*. **$8 is the figure in use; $40 is struck.** **$0 today** — deferred with Smartlead until the first client. |
 | Per client, once — setup (a warmed inbox from our pool) | ~$45 · a raw inbox is ~$9 + 2 weeks warming |
 | PDL — per name sourced | **$0.28** (`PDL_RATE_USD`) |
 | PDL — monthly plan floor | **$98** buys ~350 names. Billed as `max(tier, names × $0.28)` — a floor, not an extra |
 | Names sourced per approval | **2** (flow v2). ⚠️ #415 measured nearer **7** — Vida now measures it live; do not change this without the data |
 | Working one lead | $0.07 (`REVEAL_MARGINAL_COST_USD` $0.01 + `WORK_MARGINAL_COST_USD` $0.06) |
 | Stripe | ~3.5% of every dollar in |
+
+> ### ⚠️ THE CLIENT-SENDER COST MODEL IS NOT RESOLVED — logged 25 Aug, NOT rewritten
+>
+> 🏷️ **UNKNOWN / NEEDS VERIFICATION.** Two documents in this repo price the client's sender differently, and the 25-Aug commercial conversation produced a third set of figures. **Nothing here overwrites the model** — the numbers below are recorded so the disagreement stops being invisible, and **M8** in LAUNCH-PAD holds the job of settling it before the Friday pack is presented.
+>
+> | Line | This document | [`client-flow-sop.md`](./client-flow-sop.md) §B | Discussed 25 Aug |
+> |---|---|---|---|
+> | Smartlead main account | **$94/mo** (FUTURE table) | — | **~$39/mo** |
+> | Pre-warmed pooled mailbox | **~$45** — ⚠️ *and this document says it BOTH ways:* §1 reads *"a warmed mailbox is **$45/month**, not $4.50"*, while the FUTURE table reads *"the $45 pre-warmed box is **month ONE only**"* | **~$45** each | **~$9/mo** |
+> | Client's branded mailbox | **~$7/mo** (inside the $8 row) | **$4.50/mo** | **~$4.50/mo** |
+> | Client's branded domain | **~$1/mo** (inside the $8 row) | **$13/yr** (≈$1.08/mo) | **~$13/yr** · pre-warmed **~$18/yr** |
+>
+> ### 🧱 THE SIX ECONOMIC LAYERS — never mixed, and never renamed *(logged 26 Aug)*
+>
+> Any model of this business — this document, `CASHFLOW-LAB.html`, or the external Money Control Room — keeps these apart:
+>
+> 1. **SETUP** — $299 → setup + first-100 **direct** costs → setup surplus/deficit. **No partner commission. No company floor.**
+> 2. **LEAD** — one paid approved lead → direct delivery costs → **contribution**
+> 3. **PARTNER LEAD** — the lead price → partner 25% → direct delivery costs → K.I.N.D **contribution**
+> 4. **COMPANY** — total contribution → company **fixed floor** (subtracted **once**, at company level) → **operating profit**
+> 5. **VAT / TAX** — separate from revenue and profit. VAT is never revenue.
+> 6. **CASH** — actual cash received → actual bills, liabilities and reserves → **cash left**
+>
+> ⚠️ **LANGUAGE RULE, and it is not cosmetic:** lead economics are **contribution / contribution margin** · the company result is **operating profit** · after corporation tax it is **after-tax profit**. **A partial lead contribution is NEVER called "net margin".** Naming a 72% per-lead contribution "margin" is how a business talks itself into believing it is profitable while the floor is unpaid.
+>
+> **🔎 Follow-ups carried from the 26-Aug verification of the external Money Control Room** *(recorded here because this document is the workings; the HTML is not canonical)* —
+> - **Smartlead must not be double-counted.** It is a **platform** fee: once per month for the whole business. Charging it inside a new client's setup **and** in the recurring block bills $78 against one $39 invoice.
+> - **VAT cash-in and VAT remittance must be symmetrical.** If revenue excludes VAT, the client paid it on top; a model that subtracts VAT held without adding VAT received makes registration look like it destroys cash.
+> - **The sourcing-ratio selector must show the ratio actually in force** — a control that changes the number without moving the highlight misreports which scenario produced the answer.
+> - **New-client vs mature-client counting must be unambiguous** — a client counted in both the "new" and the "active" population is double-billed for their sender and double-counted for revenue.
+> - **Current month × 12 is an annualised RUN-RATE, not rolling-12 history.** It must never be labelled as actual trailing performance — and a true rolling-12 VAT ledger belongs in Vida later, not in a slider.
+> - **The ~$7 work/AI cost for the first 100 approvals is real and stays in** (`REVEAL_MARGINAL_COST_USD` + `WORK_MARGINAL_COST_USD`). Setup economics therefore use the **more complete, lower-surplus** case — **not** the older figure that omitted it.
+> - **The Stripe payment path still needs a real audit.** 2.2% + ~$0.27 is a **working assumption** and must not harden into permanent truth by repetition.
+>
+> **💷 THE CASH LAYER — how the company is funded until it funds itself** *(logged 26 Aug)*
+> - **The founder's initial cash envelope is ≈ $400/month**, funded out of pocket **while K.I.N.D has no cashflow**. ⚠️ **It is NOT a permanent business spending ceiling** and must never be quoted as one.
+> - **Customer receipts replenish the operating cash pot** — each $299 and each approved-lead payment goes back in to fund ongoing delivery. The founder's contribution is **starting working capital, not a standing subsidy**, and the model must show it that way: `founder cash + customer cash received − all cash costs = operating cash left`.
+>
+> **📐 REPLACING ASSUMPTIONS WITH MEASUREMENT** *(logged 26 Aug — the point is that these are placeholders)*
+> - **Sourced records per approved lead: track the ACTUAL.** Record cumulative **sourced records** and cumulative **approved leads** and divide. **1.5× / 3× / 7× remain planning scenarios only** until there is a real ratio; **7×** is the conservative case and the only measured one (#415). Everything per-client hangs off this number — see LAUNCH-PAD **M7**.
+> - **PDL $0.28 per record is a WORKING, EDITABLE rate** (`PDL_RATE_USD`), not a contracted price.
+>
+> **🧾 VAT / REVERSE-CHARGE MONITORING** *(logged 26 Aug — 🏷️ UNKNOWN / NEEDS VERIFICATION, accountant is the authority)*
+> - The **£90,000 registration threshold** is measured on a **rolling 12 months**, and the measure is **not only UK sales**: qualifying **overseas-service purchases** can pull K.I.N.D over it through the **reverse charge** even with no UK revenue at all. Most of this stack is bought from overseas suppliers, so this is a live exposure, not a theoretical one.
+> - ⚠️ **A current-month figure × 12 is an annualised RUN-RATE, not rolling-12 history.** A **true rolling-12 ledger belongs in Vida later** — until it exists, every threshold reading is an estimate.
+> - **VAT is never revenue and never profit.** Once registered it is collected, held and remitted; it belongs in the cash layer as a **symmetrical in-and-out**, never as a one-sided deduction.
+> - **Corporation tax** is reserved from **operating profit**, producing **after-tax profit** — the only figure that may be called the company's result.
+>
+> **What is actually in conflict** is the **Smartlead subscription ($94 vs ~$39)** and the **pre-warmed mailbox — a ~$45 one-off, a ~$45/month rental, or a ~$9/month rental**, which this document alone states two of. Those two lines move per-client economics materially, and the pre-warmed one is the same line the 3-Aug re-lock called *"wrong by a factor of ten"* — so it has been mis-stated before and is worth reading off a bill rather than a doc. The **branded** mailbox and domain figures are close enough not to matter at this precision (**$4.50–$7/mo** and **$12–13/yr**). ⚠️ **No line above may enter the model as verified until it is read off a real Smartlead price page or invoice** — the 29-Jun audit-yourself rule applies: *never state a cost without checking it live*.
 
 - **Claude Code** (building the product) ~$150/mo — **separate; a build investment, not an operating cost.**
 - **PDL is a bought tier**, so it is modelled as a floor rather than double-counted as both a fixed line and a per-name cost.

@@ -34,6 +34,32 @@
 - **Flow:** warmth ≥90% (#198) → upgrade plan → import the 1,461 list → load the 4-step sequence → mail-tester 10/10 (#101) → test-send 10–20 → **fire first outreach** (#127) → replies land in the unibox, monitor reply rate.
 
 ### B · New-client sending — Milestone 2 (Smartlead), the pool → branded model
+
+> ⚠️ **THE INBOX LIFECYCLE BELOW IS CURRENT. THE TRIAL IT HANGS OFF IS NOT — flagged 25 Aug, not rewritten.**
+>
+> **What still holds:** pooled pre-warmed inbox → client's own branded inbox → pooled released. That model is real and it is in the schema (`client_inboxes`: `kind IN ('pooled','branded')`, `status IN ('assigned','warming','active','released','retired')`, unique `client_inboxes_one_live_per_kind`).
+>
+> **What does NOT hold:** steps 1–5 are written around a **14-day trial that no longer exists**. The founder tombstoned it on 1 Aug (**#606**, PRODUCT-INVENTORY items 270/271: *"no trial exists in the $99 model"*), and the price it names is two moves out of date — the model is now **$299 · first 100 approved leads included · $4 after**, with a **free real-lead proof** before payment (**AR17/AR18**). So *"Trial signup"*, *"Trial Day 0–14"* and *"Convert (pays)"* below map onto a journey the product does not run.
+>
+> ⚠️ **AND THE WARM-UP CLOCK IS A REMINDER, NOT A GATE.** `warmup_ready_at` is written by `/inboxes/add` and `operator.ts`, and every reader of it — the Vida Engine board, `AddMailbox`, `system-probes` — **displays** it. Nothing in the send path refuses to send because a date has not passed. `house-client.ts` says so in its own words: *"It is still only a REMINDER. #553's ladder decides when a mailbox sends."* What **is** enforced in code is the **domain-level ramp cap** (`figsy.ts` → `warmupRampCap`), which limits daily cold volume. Do not read "~14 days" here as an enforced hold. 🏷️ CODE VERIFIED (25 Aug, baseline `e62c6c8c`).
+>
+> **THE REPLACEMENT OPERATING SEQUENCE — what actually happens now** *(logged 26 Aug; the steps below this banner are the stale trial version)*:
+>
+> `free proof` → `accepted` → `correct payment / charge boundary` → `sender / inbox ready` → `campaign ready` → **`K.I.N.D GO`** → `controlled send`
+>
+> **The safety properties that ride on it, each already ruled elsewhere and none of them changed here:**
+> - **Free proof does NOT require a client sending inbox** — nothing is provisioned before payment (**AR17**).
+> - **One active campaign** per client (#700, enforced in `start-work.ts` + `start-work-one-active.test.ts`).
+> - **The personalised sequence is frozen at enrolment** — a later edit does not rewrite mail already in flight.
+> - **A reply stops the sequence** (`reply-pipeline.ts`), provider-agnostically (**D16**).
+> - **K.I.N.D owns GO** — admin-gated in Vida; a client edit can no longer start unwatched sourcing (**AR9** as amended).
+> - **The global send switch is a SEPARATE gate** — `AUTO_OUTREACH_ENABLED` stays off independently of any of the above (**S2**), and is not released until #553's own-lead first-send ladder passes.
+>
+> **The sender concept, restated:** pre-warmed **pooled** sender → **branded** sender warms alongside → safe switch when ready → pooled sender **released back to the pool** and reused. That much is current and schema-backed.
+>
+> ⚠️ **UNRESOLVED — do not claim otherwise.** `warmup_ready_at` is documented and schema-backed, but **runtime enforcement has never been proven**. Tracing at `e62c6c8c` found every reader displaying it and none gating on it. Treat the warm-up clock as a **reminder** until someone proves a send path refuses on it. 🏷️ **RUNTIME UNVERIFIED.**
+>
+> 🏷️ **POST-LAUNCH REVIEW ITEM — the numbered steps below are not rewritten here** (that is a product decision, not a doc edit). Logged so nobody re-derives the client sending journey from a tombstoned trial.
 - **Tool:** Smartlead. Each client is **isolated** — their own inbox(es); **count = seats** (SMB = 1 · company = 1 per rep).
 - **Instant results via a pre-warmed inbox, then switch to the client's branded domain:**
   1. **Trial signup → TRIGGER ①** (admin alert) → assign a **generic pre-warmed inbox** (Smartlead "Pre-Warmed", instant) → **client sends day 1.**

@@ -17,7 +17,7 @@ The founder's material spans two systems that read the same data but never write
 - **One seat primitive, two types:** `partner_paid` | `ae_free`.
 - **Three surfaces:** partner portal · AE portal · one admin to manage both.
 - **Each portal holds:** live comp calculator · comp plan · **legal contracts + HR docs** · their book (clients) · earnings/payout statements · a **demo environment** · **sell-through-the-product** (ICP→FIGSY→outreach to source their own pipeline).
-- **Economics (same spine):** partner **20% acquisition + 5% retention** (197) · AE **20% land / 5% retain / 5% expansion** + 5% multi-seat + 5% partner override (comp plan).
+- ⛓️ **26 Aug: the PARTNER half of this line is superseded by R47** — a partner earns **25% of approved-lead spend after the included first 100, for the lifetime of the account**, and **$0 of the $299**. The **AE** figures beside it are a different role and are unaffected. ~~**Economics (same spine):** partner **20% acquisition + 5% retention** (197)~~ · AE **20% land / 5% retain / 5% expansion** + 5% multi-seat + 5% partner override (comp plan).
 - **Inventory:** 196 ledger · 197 partner model · **200** the portals/foundation · **201** hire AE · **202** the doc/legal pack.
 
 ### B — The BUSINESS COMMAND CENTRE (company-ops side — → Notion, item 204; there is NO `kind-ops` repo)
@@ -36,7 +36,7 @@ From `getkindbusinesscommandcentre_2.html`. Architecture:
 | **AE Comp Plan v3** | Economics: OTE **$112.5k** ($67.5k base + $45k var, 60/40) · $1,500 ARPU · $4,500/mo new-collected-revenue quota · hire at ~$10k/mo collected revenue · deal-floor ~$550 | `docs/hiring/KIND-AE-COMP-PLAN.md` | ✅ filed (this PR) |
 | **AE Commission Calculator (5-yr)** | Live: deal size/churn/base → 5-yr net, compounding book, AE pay curve, break-even | `docs/hiring/KIND-AE-commission-calculator.html` | ✅ filed (this PR) |
 | **Team P&L Calculator (5-yr)** | Live: phase the whole GTM team (AE · partner mgr · CSM · support · eng · mid-market AE) → 5-yr contribution | `docs/hiring/KIND-team-pnl-calculator.html` | ✅ filed (this PR) |
-| **Partner Comp Plan** | Economics on the same spine (20% acquisition + 5% retention) | `docs/hiring/KIND-PARTNER-COMP-PLAN.md` | ✅ drafted (this PR) |
+| **Partner Comp Plan** | ⛓️ **SUPERSEDED by R47 (19 Aug)** — was *"20% acquisition + 5% retention"*; now **25% of approved-lead spend after the included first 100, lifetime, $0 of the $299** | `docs/hiring/KIND-PARTNER-COMP-PLAN.md` | ✅ drafted (this PR) |
 | **HR / legal pack (5 docs)** | ① Conditional Offer Letter ② Contract of Employment (written statement of particulars) ③ Restrictive Covenants Schedule ④ Right-to-Work Check Record ⑤ New Starter Checklist — UK, K.I.N.D Technologies Ltd | source PDFs → the portal (202) | ⚠️ source PDFs provided; **manifest captured, legal text NOT transcribed** (custom-font cipher + legal accuracy — needs a clean source or careful pass) |
 | **Smartsheet FY25 Comp Plan (UK)** | The legal framework the comp plan is modelled on: General · Effective Dates · Definitions (Territory, Base, Commissions, Contingency, Qualified Sale) · Scope/Variable Comp · Eligibility (incl. "repaid excess advances") · Territories · Quota · Comp Overview · Admin/modification | source PDF | structure captured (informs the comp agreement) |
 | **Business Command Centre** | Company-ops portal (finance · VAT · tax · compliance · hiring · doc checklist) | → Notion (204) | ⚠️ to set up in Notion |
@@ -56,7 +56,7 @@ From `getkindbusinesscommandcentre_2.html`. Architecture:
 7. **Enablement:** collateral · scripts · training.
 
 ## 6. Open decisions (founder) — must resolve before issuing seats
-1. **Partner commission rate — ✅ LOCKED 19 Jun = 20% acquisition + 5% retention** (the founder's build brief + calculator; item 197 + partner comp plan updated; old "25%+5%" superseded).
+1. ~~**Partner commission rate — ✅ LOCKED 19 Jun = 20% acquisition + 5% retention**~~ ⛓️ **RE-RULED 19 Aug (R47): 25% of approved-lead spend after the included first 100, lifetime, gross, $0 of the $299.** The 19-Jun lock below is history (the founder's build brief + calculator; item 197 + partner comp plan updated; old "25%+5%" superseded).
 2. **THE BUILD (item 203):** the founder's authoritative **build brief** (`KIND-CLAUDE-CODE-BRIEF.md`) turns all of this into a live system — Stripe → attribution → ONE commission engine → 3 portals → founder-approved payouts. **Founder build priority: ① Admin portal + operating SOP → ② Partner portal → ③ AE portal, account systems right from the start.** **All USD** *(RESOLVED 22 Jun — founder: "we are USD"; matches product pricing)*. Pure commission-engine module built + unit-tested 22 Jun. Still open: repo · auth/hosting.
 2. **AE quota:** **$4,500/mo new collected revenue, locked** (v3) — confirmed; corrects the earlier $480/$960 example.
 3. **Team roster / timing:** the Team P&L's default start-months (AE+partner mo1, eng mo7, CSM+support mo13, mid-market AE mo25) — confirm.

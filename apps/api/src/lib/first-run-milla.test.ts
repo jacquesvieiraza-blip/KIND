@@ -1341,7 +1341,7 @@ describe('a system failure can never again speak as Milla', () => {
     // ⛓️ 26 Aug — the copy stopped asking for a retype. The portal keeps the client's turn
     // in its transcript and re-sends it on retry, so "send your last answer again" was
     // factually wrong and trained clients into duplicating their own turn.
-    expect(icpsSrc).toContain("const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your answer is saved, so there’s no need to retype it. Just try again in a moment.'")
+    expect(icpsSrc).toContain("const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'")
     expect(icpsSrc).not.toContain('please send your last answer again')
     expect(icpsSrc).toContain('retryable: true')
     expect(icpsSrc).toContain('res.status(503)')
@@ -1976,7 +1976,7 @@ describe('EXECUTED · every unusable envelope is refused, none of them speaks as
     expect(out.code).toBe(503)
     expect(out.payload.success).toBe(false)
     expect(out.payload.retryable).toBe(true)
-    expect(out.payload.error).toBe('Milla didn’t catch that — your answer is saved, so there’s no need to retype it. Just try again in a moment.')
+    expect(out.payload.error).toBe('Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.')
     // The decisive assertion: nothing came back that the portal would render as Milla.
     expect(out.payload.data).toBeUndefined()
   }
@@ -2105,7 +2105,7 @@ describe('EXECUTED · the ordinary turn, and every failure class, through the re
     anthropicBox.lastParams = null
     anthropicBox.lastOptions = null
   })
-  const RETRY_COPY = 'Milla didn’t catch that — your answer is saved, so there’s no need to retype it. Just try again in a moment.'
+  const RETRY_COPY = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'
 
   it('1 · an ordinary short answer — "no" — produces one reply and no banner', async () => {
     anthropicBox.reply = toolReply({ type: 'question', content: 'No problem — who are your best customers today?' })
@@ -2152,7 +2152,10 @@ describe('EXECUTED · the ordinary turn, and every failure class, through the re
     // route threw the eventual answer away. The order now: SDK 45s < portal 60s.
     anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
     await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: false })
-    expect(anthropicBox.lastOptions).toEqual({ timeout: 45_000, maxRetries: 1 })
+    // ⛓️ CORRECTED same day: maxRetries 0, because the SDK honours a server retry-after
+    // of up to ~60s BETWEEN attempts (core.js 0.39.0), making any retrying shape unprovable
+    // against the 60s browser budget. One bounded attempt: worst case 45s < 60s, 15s spare.
+    expect(anthropicBox.lastOptions).toEqual({ timeout: 45_000, maxRetries: 0 })
   })
 
   it('8 · a LONG onboarding no longer hard-fails — the model sees the last 40, from a user turn', async () => {
@@ -2254,5 +2257,115 @@ describe('the portal recovers from the SAVED turn — no retype, no duplicate', 
     expect(builderPageCode).toContain('async function retryLast()')
     expect(builderPageCode).toContain("if (canRetry && last?.role === 'user' && last.content.trim() === messageText)")
     expect(builderPageCode).toContain('Try again')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug (correction pass) — THE THREE FACTS THE FIRST CUT ASSERTED WITHOUT PROOF.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('the timeout budget is ARITHMETIC, proven against the installed SDK', () => {
+  beforeEach(() => {
+    anthropicBox.calls = 0; anthropicBox.error = null; anthropicBox.reply = null
+    anthropicBox.lastOptions = null
+  })
+
+  it('the SDK honours a server retry-after of up to ~60s BETWEEN attempts — retrying is unprovable', () => {
+    // The fact that killed the first cut, read from the dependency itself: any accepted
+    // retry-after below 60s is slept in full, so with even ONE retry the worst case is
+    // per-attempt + ~59.9s + per-attempt — far beyond any browser budget we could set.
+    const core = read(join(__dirname, '../../../../node_modules/@anthropic-ai/sdk/core.js'))
+    expect(core).toContain("if (!(timeoutMillis && 0 <= timeoutMillis && timeoutMillis < 60 * 1000))")
+    expect(core).toContain('await (0, exports.sleep)(timeoutMillis)')
+  })
+
+  it('so the route makes ONE bounded attempt: 45s worst case, strictly under the 60s browser wait', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'ok' })
+    await callBuilderChat({ messages: [{ role: 'user', content: 'hi' }], profile_required: false })
+    const opts = anthropicBox.lastOptions as { timeout: number; maxRetries: number }
+    expect(opts.maxRetries).toBe(0)                          // no retry → no retry-after sleep path
+    const worstCaseMs = opts.timeout * (opts.maxRetries + 1) // per-attempt × attempts, no sleeps
+    expect(worstCaseMs).toBe(45_000)
+    const browserBudget = 60_000                             // welcomeCode/builderPageCode pass 60_000
+    expect(welcomeCode).toContain('60_000')
+    expect(worstCaseMs, 'browser must outlast the whole server model budget').toBeLessThan(browserBudget)
+  })
+
+  it('a provider failure with retries disabled is still ONE call, one truthful 503', async () => {
+    anthropicBox.error = Object.assign(new Error('timeout'), { name: 'APIConnectionTimeoutError' })
+    const out = await callBuilderChat({ messages: [{ role: 'user', content: 'no' }], profile_required: true })
+    expect(out.code).toBe(503)
+    expect(anthropicBox.calls).toBe(1)
+  })
+})
+
+describe('an all-invalid closed list can NEVER silently broaden the targeting', () => {
+  beforeEach(() => { anthropicBox.calls = 0; anthropicBox.error = null; anthropicBox.reply = null })
+  const withIcp2 = (icp: Record<string, unknown>) => toolReply({
+    type: 'complete', summary: 's',
+    profile: { company_name: 'ABCV Logistics', country: 'United States' },
+    icp: { ...VALID_ICP, ...icp },
+  })
+  const run2 = () => callBuilderChat({ messages: [{ role: 'user', content: 'x' }], profile_required: true })
+
+  // ⚠️ WHY REFUSAL AND NOT [] — read from the query builders themselves: `buildPdlBody`
+  // adds NO filter for a list with no length, and the pool matcher "doesn't narrow"
+  // without a signal. An empty closed list therefore means UNCONSTRAINED downstream, and
+  // turning "IT Solutions" into [] would quietly search a wider market than anyone chose.
+  it('ALL-invalid industries → the turn is refused, never an unconstrained search', async () => {
+    anthropicBox.reply = withIcp2({ industries: ['IT Solutions', 'Digital Stuff'] })
+    const out = await run2()
+    expect(out.code).toBe(503)
+    expect(out.payload.retryable).toBe(true)
+    expect(out.payload.data).toBeUndefined()                 // nothing broadened reaches the portal
+  })
+
+  it('ALL-invalid seniority → refused the same way', async () => {
+    anthropicBox.reply = withIcp2({ seniority_levels: ['MD and above'] })
+    expect((await run2()).code).toBe(503)
+  })
+
+  it('ALL-invalid company sizes → refused the same way', async () => {
+    anthropicBox.reply = withIcp2({ company_sizes: ['50 - 500'] })
+    expect((await run2()).code).toBe(503)
+  })
+
+  it('MIXED stays a rescue: the valid value survives, the invented one dies, the turn lives', async () => {
+    anthropicBox.reply = withIcp2({ industries: ['IT Solutions', 'Fintech'] })
+    const out = await run2()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp.industries).toEqual(['Fintech'])
+  })
+
+  it('a genuinely EMPTY list from the model stays empty — "not specified" is unchanged', async () => {
+    // [] from the model is the same "no constraint expressed" it always was; only a
+    // NON-EMPTY list collapsing to nothing is a constraint being silently dropped.
+    anthropicBox.reply = withIcp2({ tech_stack: [], industries: ['Fintech'] })
+    expect((await run2()).code).toBe(200)
+  })
+
+  it('the refusal names the field in the log path, so a repeat is diagnosable', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      anthropicBox.reply = withIcp2({ industries: ['IT Solutions'] })
+      await run2()
+      const logged = spy.mock.calls.map(c => c.join(' ')).join('\n')
+      expect(logged).toContain('icp.industries')
+      expect(logged, 'never the client value itself').not.toContain('IT Solutions')
+    } finally { spy.mockRestore() }
+  })
+})
+
+describe('the failure copy claims exactly what the state can honour', () => {
+  it('“still here” — same-tab truth only; no durability the route does not have', () => {
+    // The transcript lives in the page's React state: it survives the SAME TAB (where the
+    // sentence is read) and does NOT survive a refresh — and neither does the sentence, so
+    // the copy can never outlive its own truth. "Saved" (the earlier draft) claimed a
+    // persistence this stateless route does not provide, and is banned below.
+    expect(icpsSrc).toContain("const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'")
+    expect(icpsSrc).not.toContain('your answer is saved')
+    // And nothing in either portal page persists the transcript beyond component state.
+    for (const [name, src] of [['welcome', welcomeCode], ['builder', builderPageCode]] as const) {
+      expect(src, `${name}: no transcript in storage`).not.toMatch(/(localStorage|sessionStorage)\.[gs]etItem\([^)]*(message|transcript|chat)/i)
+    }
   })
 })

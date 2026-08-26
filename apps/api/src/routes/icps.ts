@@ -1911,7 +1911,24 @@ const canonicalise = (values: readonly string[]) => {
 }
 const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxItems: number) => {
   const canon = canonicalise(values)
-  return z.array(z.string()).optional().transform(a => canon(a, maxItems))
+  // ⚠️ ALL-INVALID IS A REFUSAL, NOT AN EMPTY LIST (corrected 26 Aug, same day). Downstream,
+  // an empty closed list means UNCONSTRAINED — `buildPdlBody` adds no filter for a list with
+  // no length, `buildSearchBody` likewise, and the pool matcher deliberately "doesn't
+  // narrow" without a signal. So a reply whose every industry was off-list must not become
+  // `[]`: that would silently turn the specific constraint the client expressed into a
+  // broader search than anyone chose. Mixed replies keep their valid values (the turn
+  // survives); a NON-EMPTY list that canonicalises to NOTHING means the constraint itself
+  // was lost, no safe salvage exists, and the turn is refused with the field named in the
+  // log. A genuinely empty list from the model stays empty — that is "not specified", the
+  // same meaning it always had.
+  return z.array(z.string()).optional().transform((a, ctx) => {
+    const out = canon(a, maxItems)
+    if (a && a.length > 0 && out !== undefined && out.length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'every value was off-list — the constraint would be silently dropped' })
+      return z.NEVER
+    }
+    return out
+  })
 }
 const MillaReplyInput = z.object({
   type:    z.enum(['question', 'complete']),
@@ -2011,9 +2028,15 @@ const millaReplyFor = (profileRequired: boolean) =>
  *  portal appends the client's turn to its transcript BEFORE posting, keeps it there on
  *  failure, and re-sends the whole history on the next attempt. The answer was never lost;
  *  only the reply to it was. Worse, a client who obeyed and retyped "no" put a second "no"
- *  into the history. The new sentence says what is true and asks for the one action that
- *  works. The portal pairs it with a Try again control that re-sends without retyping. */
-const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your answer is saved, so there’s no need to retype it. Just try again in a moment.'
+ *  into the history. The portal pairs this sentence with a Try again control that re-sends
+ *  without retyping.
+ *
+ *  ⛓️ CORRECTED AGAIN, SAME DAY: an earlier draft said the answer was "saved" — too strong.
+ *  This route persists nothing and the transcript lives in the page's own state: it survives
+ *  the SAME TAB (which is where this sentence is read), and it does not survive a refresh.
+ *  "Still here" claims exactly the first and nothing more — and the sentence itself vanishes
+ *  with the state it describes, so it can never outlive its own truth. */
+const MILLA_RETRY_ERROR = 'Milla didn’t catch that — your last answer is still here, so there’s no need to retype it. Just try again in a moment.'
 
 // ⚑ 26 Aug — `zodPaths` names WHICH schema paths failed, so a repeating INVALID_SHAPE is
 // diagnosable from the log alone. Paths are OUR schema's own field names, never the
@@ -2353,10 +2376,16 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // NOTHING of the client's), and answers with the same truthful retryable state as an
     // unusable reply — the client's answer is safe in their transcript either way.
     //
-    // ⚠️ TIMEOUT ORDER MATTERS: SDK 45s with ONE internal retry < the portal's 60s wait for
-    // this endpoint. The server gives up, and says so, before the browser walks away — the
-    // old shape (SDK default: 10 minutes, browser: 15s) meant the browser always aborted
-    // first and any slow-but-good reply was thrown away unseen.
+    // ⚠️ TIMEOUT ORDER MATTERS, AND IT IS ARITHMETIC, NOT INTENT (corrected 26 Aug).
+    // The first cut said 45s + one retry "< 60s". Reading the installed SDK (0.39.0,
+    // core.js) shows that was NOT provable: `timeout` is per ATTEMPT, and between attempts
+    // the SDK honours a server `retry-after` header up to just under 60 SECONDS of sleep —
+    // so 45s + 59.9s + 45s ≈ 150s worst case behind a 60s browser. The only shape whose
+    // worst case is provable from the SDK's own code is a SINGLE bounded attempt:
+    //   1 × 45s, no retry sleep possible  →  45s  <  60s browser, 15s headroom.
+    // The client-side Try again control IS the retry — visible, deliberate, never racing
+    // a browser that already gave up. (The old shape was worse still: SDK default 10
+    // minutes + 2 retries behind a 15s browser.)
     let response: Awaited<ReturnType<typeof anthropic.messages.create>>
     try {
       response = await anthropic.messages.create({
@@ -2370,7 +2399,7 @@ result or a number. "permitted" is false unless they explicitly said we may use 
         // The model does not get to choose whether to answer in the agreed shape.
         tool_choice: { type: 'tool', name: MILLA_REPLY_TOOL, disable_parallel_tool_use: true },
         messages: windowed.map(m => ({ role: m.role, content: m.content })),
-      }, { timeout: 45_000, maxRetries: 1 })
+      }, { timeout: 45_000, maxRetries: 0 })
     } catch (provErr) {
       const e = provErr as { name?: string; status?: number; message?: string }
       console.error('[icps/builder/chat] provider call failed —', JSON.stringify({

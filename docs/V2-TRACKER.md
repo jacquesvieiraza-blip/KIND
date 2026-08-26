@@ -1440,6 +1440,19 @@ Central hypothesis to research: **THE CLIENT SHOULD FEEL THE OUTCOME, NOT THE MA
 ⚠️ **Classification: post-launch commercial research. Not a launch blocker (25 Aug).** 🤖
 
 
+### 6b. THREE MORE FROM THE 24–25 AUG SITTING — POST-LAUNCH, NOT BLOCKERS
+
+⚠️ **Ideas and known debt, not decisions.** 🏷️ **POST-LAUNCH IDEA / REVIEW ITEM.**
+
+**6b.1 A SHARED AGENT-IDENTITY REGISTRY, so Milla and FIGSY cannot drift screen by screen.** Onboarding and Milla must be coherent — **correct agent name, face, voice and role** on every surface a client sees. ⚠️ **The risk is structural, not cosmetic:** surfaces currently **hard-code their own agent assets**, so nothing stops two screens showing different names or portraits for the same agent, and nothing fails when they do. The idea is **one registry plus a guard** — identity resolved from a single place, with a check that fires when a surface invents its own. **Nothing designed, nothing built.**
+
+**6b.2 `check.sh` / workspace preflight — an unbuilt package `dist` masquerades as hundreds of TypeScript errors.** When a workspace package has not been built, the type-checker reports failures **all over unrelated code**, and the real cause — one missing `dist` — is invisible in the noise. ⚠️ **This costs debugging time on the one gate the repo actually has**, and it wastes it at exactly the moment someone is trying to ship. A preflight that builds workspace packages first, or that names the missing `dist` plainly, is the fix. **Logged, not built.**
+
+**6b.3 Conversational refinement after launch, once it is safe.** The launch-safe control is deliberately blunt: an **explicit batch-level "not a fit / refine"** action, whose fences are already guarded. The better long-term product is **LLM/tool-driven conversational refinement** — the client says what was wrong in their own words and Milla adjusts. ⚠️ **Deliberately after launch:** conversational refinement widens what a client can change without a human seeing it, and the pass-2 fences exist precisely because that was risky. **Not designed, not approved.**
+
+⚠️ **Classification: post-launch product and tooling debt. None is a launch blocker (26 Aug).** 🤖
+
+
 ### 7. THE FOUNDER OPERATING MODEL — POST-LAUNCH ACTION #1
 
 ⚠️ **THIS IS NOT THE FOUNDER OS PRODUCT. Do not confuse the two — the confusion is the whole reason this section exists.** What follows is the **immediate internal operating system for running K.I.N.D**: how the founder decides, in what cadence, with which model doing what. The **commercial Founder OS product** is a separate, much-later idea (§7.3).

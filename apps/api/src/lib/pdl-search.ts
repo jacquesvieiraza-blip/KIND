@@ -270,7 +270,23 @@ async function pdlSearchOnce(icp: IcpQuery, size: number, key: string, scrollTok
       body:    JSON.stringify(buildPdlBody(icp, size, scrollToken, opts)),
       signal:  AbortSignal.timeout(15000),
     })
-    if (res.status === 404) return { kind: 'exhausted' }
+    if (res.status === 404) {
+      // ⚑ 26 Aug (final gate) — 404 IS A TRUSTWORTHY ZERO ONLY WHEN PDL SAYS SO ITSELF.
+      // The Person Search contract (docs/person-search-api, and the 10 Jul live runs this
+      // file's industry-map comment records) returns 404 with a body of
+      //   { "status": 404, "error": { "type": "not_found", "message": "No records were found …" } }
+      // for "the query matched nobody". A bare status alone cannot carry that meaning: a
+      // proxy, a moved endpoint or a gateway can also say 404, and treating THOSE as
+      // "nobody matches" is a false no_match wearing a real one's clothes. So the body is
+      // read, and only the documented shape counts as the provider's own zero — anything
+      // else on a 404 is an ERROR, which leaves trust unproven and derives `failed`.
+      const body = await res.json().catch(() => null) as { error?: { type?: string; message?: string } } | null
+      const saidNotFound = body?.error?.type === 'not_found' || /no records/i.test(body?.error?.message ?? '')
+      if (saidNotFound) return { kind: 'exhausted' }
+      const detail = `404 without PDL's not_found body — not a provider zero (${JSON.stringify(body).slice(0, 160)})`
+      console.error('[pdl] search failed:', detail)
+      return { kind: 'error', detail }
+    }
     if (res.status === 402) {
       console.warn(`[pdl] search 402 at size ${size} — batch exceeds remaining credits, will retry smaller`)
       return { kind: 'no_credit' }

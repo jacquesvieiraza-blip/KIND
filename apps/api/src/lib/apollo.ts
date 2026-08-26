@@ -487,6 +487,16 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   const data = await res.json() as { contacts?: ApolloContact[]; people?: ApolloContact[]; error?: string }
   // Apollo free plan returns error in body with 200 when credits run out
   if (data.error?.toLowerCase().includes('credit')) throw new ApolloCreditsExhaustedError()
+  // ⚑ 26 Aug (final gate) — AN UNRECOGNISED 200 IS NOT A ZERO. `?? []` here meant a 200
+  // whose body carried NEITHER key — a proxy error page, a schema change, an HTML body
+  // that happened to parse — came back as "Apollo completed and found nobody", the one
+  // soft path in a function whose every other failure throws. For the HOUSE audience that
+  // false zero would have been promoted to a trusted `no_match`. A genuine zero always
+  // carries the key with an empty array; a body with neither key is an answer we do not
+  // understand, and an answer we do not understand is not evidence of anything.
+  if (!Array.isArray(data.contacts) && !Array.isArray(data.people)) {
+    throw new Error(`Apollo API 200 with unrecognised body — neither "contacts" nor "people" present (${JSON.stringify(data).slice(0, 160)})`)
+  }
   return data.contacts ?? data.people ?? []
 }
 

@@ -33,7 +33,7 @@ export function deriveRunStatus(
   totalInserted: number,
   quotaRefused: boolean,
   audienceExhausted = false,
-  searchCompleted = true,
+  searchCompleted: boolean,
 ): RunStatus {
   if (quotaRefused) return 'quota_exhausted'
   if (isDemo) return 'demo'
@@ -54,8 +54,13 @@ export function deriveRunStatus(
   //
   // ⚠️ `failed` IS STILL NEVER DERIVED FROM EMPTINESS. It is derived from an explicit
   // "the search did not complete" fact carried by the provider page (`PdlPage.completed`),
-  // and from nothing else. Callers that do not pass it keep the old behaviour by default,
-  // so a caller which never reaches a provider cannot accidentally report a failure.
+  // and from nothing else.
+  //
+  // ⛓️ 26 Aug (final gate) — THE DEFAULT IS GONE. `searchCompleted = true` let a future
+  // caller omit the argument and silently inherit "trustworthy", which is the same
+  // fail-open shape the tri-state killed inside the run. The argument is now REQUIRED:
+  // a caller that forgets it does not compile, so forgetting cannot create `no_match`.
+  // A caller whose run never needed a provider passes `true` explicitly, as a statement.
   if (!searchCompleted) return 'failed'
 
   return audienceExhausted ? 'audience_exhausted' : 'no_match'

@@ -33,6 +33,21 @@ const res = (status: number, body: unknown) => ({
   text: async () => JSON.stringify(body),
 }) as unknown as Response
 
+/**
+ * Source text with WHOLE-LINE COMMENTS REMOVED, for the tests that assert on code.
+ *
+ * ⚠️ THIS EXISTS BECAUSE THE MISTAKE KEPT RECURRING — five separate times in this build a
+ * source-text guard matched the prose of the very comment explaining the fix, and passed
+ * (or failed) for a reason that had nothing to do with the code. Two live examples: the
+ * portal's ordering guard was matching `No leads waiting right now` inside a comment 1,030
+ * lines above the render, and `run-outcome.ts` documents the default it removed as
+ * `searchCompleted = true`, which is exactly the string a guard must not find.
+ *
+ * A guard that a comment can satisfy is not a guard. Assert on code only.
+ */
+const codeOnly = (src: string) =>
+  src.split('\n').filter(l => !/^\s*(\/\/|\/\*|\*)/.test(l)).join('\n')
+
 // ─────────────────────────────────────────────────────────────────────────────
 // A. THE OUTCOME LAYER — every class, decided from facts rather than emptiness
 // ─────────────────────────────────────────────────────────────────────────────
@@ -74,10 +89,21 @@ describe('A · outcome derivation', () => {
     expect(deriveRunStatus(true, 0, false, false, false)).toBe('demo')
   })
 
-  it('DEFAULTS TO TRUSTWORTHY — a caller that never reaches a provider cannot report failure', () => {
-    // Old 4-arg call sites keep their exact behaviour.
-    expect(deriveRunStatus(false, 0, false, false)).toBe('no_match')
-    expect(deriveRunStatus(false, 0, false, true)).toBe('audience_exhausted')
+  it('⛓️ NO PERMISSIVE DEFAULT — an omitted trust argument fails CLOSED, it does not inherit trust', () => {
+    // ⚠️ THIS TEST WAS INVERTED ON 26 AUG, and the inversion is the point. It previously
+    // read "DEFAULTS TO TRUSTWORTHY — a caller that never reaches a provider cannot report
+    // failure", and asserted that a 4-argument call still produced `no_match`. That default
+    // was the same fail-OPEN shape the tri-state had just been built to kill: a future call
+    // site that forgot the argument would silently inherit "the search completed" and tell a
+    // prospect their targeting matched nobody. The argument is now required — TypeScript
+    // rejects the 4-arg form, and if one reaches runtime anyway the missing value is falsy,
+    // so it lands on `failed`. Both directions refuse to invent trust.
+    expect((deriveRunStatus as unknown as (...a: unknown[]) => string)(false, 0, false, false)).toBe('failed')
+    expect((deriveRunStatus as unknown as (...a: unknown[]) => string)(false, 0, false, true)).toBe('failed')
+
+    // Trust is only ever granted by a caller that says so explicitly.
+    expect(deriveRunStatus(false, 0, false, false, true)).toBe('no_match')
+    expect(deriveRunStatus(false, 0, false, true, true)).toBe('audience_exhausted')
   })
 
   it('no technical detail reaches the client in any status', () => {
@@ -121,10 +147,16 @@ describe('B · PdlPage.completed tells the truth about each failure class', () =
     expect(p.contacts.length).toBe(1)
   })
 
-  it('404 on the FIRST page → completed, matchedNothing — a trustworthy zero', async () => {
-    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(404, {}))
+  it('404 on the FIRST page → completed, matchedNothing — a trustworthy zero, WHEN PDL SAYS SO', async () => {
+    // ⛓️ TIGHTENED 26 Aug. This test used to send `res(404, {})` — a bare 404 with no body —
+    // and call the result a trustworthy zero. A 404 is only PDL answering "nobody" when PDL's
+    // documented `not_found` envelope is actually in the body; a bare 404 is just as likely a
+    // proxy, a gateway or a changed route, and treating that as an empty audience is the same
+    // false `no_match` in a new costume. The bare-body cases are asserted as `failed` in G.
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      res(404, { status: 404, error: { type: 'not_found', message: 'No records were found matching your search' } }))
     const p = await page()
-    expect(p.completed).toBe(true)          // we asked, PDL answered "nobody"
+    expect(p.completed).toBe(true)          // we asked, PDL answered "nobody", in its own words
     expect(p.matchedNothing).toBe(true)
     expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed)).toBe('no_match')
   })
@@ -432,8 +464,8 @@ describe('F · dedupe-all is a neutral review state, not a targeting verdict', (
 })
 
 describe('F · the polling bound is derived, not picked', () => {
-  const portalSrc = readFileSync(
-    join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8')
+  const portalSrc = codeOnly(readFileSync(
+    join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8'))
 
   it('the client bound clears the backend worst case with margin', () => {
     // Backend worst case, from code: 15s/attempt (pdl-search.ts AbortSignal.timeout),
@@ -492,5 +524,168 @@ describe('F · the complete status space — no value exists as an untested assu
   it('a LOST outcome write now alerts a human on every path, not only the constraint case', () => {
     expect(src).toContain('An ICP run outcome could not be persisted — the client desk has no terminal truth for this run')
     expect(src).toContain('An ICP run outcome could not be persisted (write threw)')
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// G. THE FINAL NARROW GATE (26 Aug) — clean-URL strand, house truth, required
+//    trust argument, and the 404 contract
+// ─────────────────────────────────────────────────────────────────────────────
+describe('G · a clean URL cannot strand the first client', () => {
+  const portalSrc = codeOnly(readFileSync(
+    join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8'))
+
+  it('strandedness is derived from SERVER state, not browser state', () => {
+    // A pass was claimed (server counter) and no outcome row has ever been recorded
+    // (server read) — both survive closing the browser, both re-read on every load.
+    expect(portalSrc).toContain('(summary.proof_passes_done ?? 0) > 0 && !summary.proof_run')
+  })
+
+  it('the stranded card is the approved recovery copy, and it renders before the generic empty state', () => {
+    const stranded = portalSrc.indexOf('proofStranded ? (')
+    const generic = portalSrc.indexOf('No leads waiting right now')
+    expect(stranded).toBeGreaterThan(-1)
+    expect(generic, 'recovery must be checked before the generic empty state').toBeGreaterThan(stranded)
+  })
+
+  it('backend truth still wins — batches and terminal outcomes render before the stranded card', () => {
+    // `terminalRun` and pending cards are evaluated first, and `proof_run` existing at
+    // all makes proofStranded false.
+    const t = portalSrc.indexOf('terminalRun ? (')
+    const stranded = portalSrc.indexOf('proofStranded ? (')
+    expect(t).toBeGreaterThan(-1)
+    expect(stranded).toBeGreaterThan(t)
+  })
+
+  it('the poll keeps checking while stranded — bounded by the same cap, so an in-flight run resolves it', () => {
+    expect(portalSrc).toContain('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')
+  })
+})
+
+describe('G · house/Apollo — every untrustworthy exit throws; only a real zero returns', () => {
+  const saved = { ...process.env }
+  let fetchSpy: ReturnType<typeof vi.spyOn>
+
+  beforeEach(() => {
+    vi.resetModules()
+    process.env.APOLLO_API_KEY = 'test-apollo'
+    process.env.PAID_PROVIDERS_ENABLED = 'true'
+    delete process.env.SAFE_TEST_MODE
+    delete process.env.PDL_API_KEY          // house: PDL never consulted anyway
+  })
+  afterEach(() => {
+    fetchSpy?.mockRestore()
+    for (const k of ['APOLLO_API_KEY', 'PAID_PROVIDERS_ENABLED', 'SAFE_TEST_MODE', 'PDL_API_KEY']) {
+      if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]
+    }
+  })
+
+  const house = async () => {
+    const { searchPeopleWithFallback } = await import('./apollo')
+    return searchPeopleWithFallback(ICP as never, 1, 20, null, 'house')
+  }
+
+  it('timeout / network → THROWS (never a soft zero)', async () => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('fetch failed'))
+    await expect(house()).rejects.toThrow()
+  })
+
+  it('HTTP 5xx → THROWS', async () => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(503, 'upstream down'))
+    await expect(house()).rejects.toThrow(/Apollo API 503/)
+  })
+
+  it('auth 401/403 → THROWS', async () => {
+    for (const code of [401, 403]) {
+      vi.resetModules(); fetchSpy?.mockRestore()
+      fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(code, 'bad key'))
+      await expect(house()).rejects.toThrow(new RegExp(`Apollo API ${code}`))
+    }
+  })
+
+  it('rate limit → THROWS the named error', async () => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(429, ''))
+    await expect(house()).rejects.toThrow(/rate limit/i)
+  })
+
+  it('unparseable body → THROWS', async () => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => { throw new SyntaxError('bad json') },
+      text: async () => '<html>',
+    } as unknown as Response)
+    await expect(house()).rejects.toThrow()
+  })
+
+  it('⚑ 200 with an UNRECOGNISED shape → THROWS — this was the one soft path', async () => {
+    // Neither "contacts" nor "people": a proxy page or schema change, not a zero.
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(200, { unexpected: true }))
+    await expect(house()).rejects.toThrow(/unrecognised body/)
+  })
+
+  it('a GENUINE completed zero returns normally — the key present, the array empty', async () => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(200, { contacts: [] }))
+    const out = await house()
+    expect(out.contacts).toEqual([])            // returning IS the evidence, now truthfully
+    expect(out.relaxed).toMatch(/no contacts found/i)
+  })
+})
+
+describe('G · the trust argument is REQUIRED — forgetting it cannot compile into no_match', () => {
+  it('deriveRunStatus has no default for searchCompleted', () => {
+    // ⚠️ `codeOnly` is load-bearing here, not tidiness: the function's own doc comment
+    // NAMES the default it deleted (`searchCompleted = true`), so a raw-source guard would
+    // fail on the very sentence recording the fix.
+    const src = codeOnly(readFileSync(join(__dirname, 'run-outcome.ts'), 'utf8'))
+    expect(src).toContain('searchCompleted: boolean,')
+    expect(src).not.toContain('searchCompleted = true')
+  })
+
+  it('the single production call site passes the trust reader explicitly', () => {
+    const src = codeOnly(readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8'))
+    const calls = src.match(/deriveRunStatus\([^)]*\)/g) ?? []
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toContain('trusted')
+  })
+})
+
+describe('G · PDL 404 is a provider zero ONLY when the body says not_found', () => {
+  const saved = { ...process.env }
+  let fetchSpy: ReturnType<typeof vi.spyOn>
+  beforeEach(() => {
+    vi.resetModules()
+    process.env.PDL_API_KEY = 'test-pdl'
+    process.env.PAID_PROVIDERS_ENABLED = 'true'
+    delete process.env.SAFE_TEST_MODE
+  })
+  afterEach(() => {
+    fetchSpy?.mockRestore()
+    for (const k of ['PDL_API_KEY', 'PAID_PROVIDERS_ENABLED', 'SAFE_TEST_MODE']) {
+      if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]
+    }
+  })
+  const page = async () => {
+    const { pdlSearchPage } = await import('./pdl-search')
+    return pdlSearchPage(ICP, 20, null)
+  }
+
+  it('404 + documented not_found body → trustworthy zero (completed, matchedNothing)', async () => {
+    fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      res(404, { status: 404, error: { type: 'not_found', message: 'No records were found matching your search' } }))
+    const p = await page()
+    expect(p.completed).toBe(true)
+    expect(p.matchedNothing).toBe(true)
+    expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed)).toBe('no_match')
+  })
+
+  it('⚑ 404 WITHOUT that body → error, unproven, failed — a gateway 404 is not a zero', async () => {
+    for (const body of [{}, { message: 'route not found' }, { error: { type: 'gateway' } }]) {
+      vi.resetModules(); fetchSpy?.mockRestore()
+      fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(res(404, body))
+      const p = await page()
+      expect(p.completed, JSON.stringify(body)).toBe(false)
+      expect(p.matchedNothing, JSON.stringify(body)).toBe(false)
+      expect(deriveRunStatus(false, 0, false, p.exhausted, p.completed)).toBe('failed')
+    }
   })
 })

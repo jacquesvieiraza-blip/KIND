@@ -116,8 +116,10 @@ describe('the outcome a blocked run produces', () => {
   it('a block can NEVER derive no_match — nothing derives failed either', () => {
     // `deriveRunStatus` is only reached by a run that COMPLETED. A blocked run does not
     // complete: it throws past it to the crash boundary, which writes `failed` explicitly.
-    expect(deriveRunStatus(false, 0, false, false)).toBe('no_match')   // a genuine completed zero
-    expect(deriveRunStatus(false, 0, false, false)).not.toBe('failed')
+    // ⛓️ 26 Aug — trust is now stated, never defaulted, so "a genuine completed zero" is
+    // written as one: the fifth argument IS the claim that the search finished.
+    expect(deriveRunStatus(false, 0, false, false, true)).toBe('no_match')   // a genuine completed zero
+    expect(deriveRunStatus(false, 0, false, false, true)).not.toBe('failed')
   })
 
   it('the crash boundary still records `failed` and alerts', () => {

@@ -24,12 +24,13 @@ const portal = readFileSync(
 
 describe('the server records a terminal outcome the desk can actually read', () => {
   it('a completed ZERO run derives a terminal status, not an absence', () => {
-    // Not demo, nothing inserted, budget was granted, audience not exhausted.
-    expect(deriveRunStatus(false, 0, false, false)).toBe('no_match')
+    // Not demo, nothing inserted, budget was granted, audience not exhausted — and the
+    // search COMPLETED, which since 26 Aug is stated rather than defaulted.
+    expect(deriveRunStatus(false, 0, false, false, true)).toBe('no_match')
     // Audience finished is a DIFFERENT terminal fact and must stay distinguishable.
-    expect(deriveRunStatus(false, 0, false, true)).toBe('audience_exhausted')
-    // Refused before it could even try.
-    expect(deriveRunStatus(false, 0, true, false)).toBe('quota_exhausted')
+    expect(deriveRunStatus(false, 0, false, true, true)).toBe('audience_exhausted')
+    // Refused before it could even try — decided ahead of trust, so it is unaffected.
+    expect(deriveRunStatus(false, 0, true, false, true)).toBe('quota_exhausted')
   })
 
   it('a completed run WITH matches is served', () => {
@@ -91,7 +92,10 @@ describe('the desk stops guessing', () => {
   })
 
   it('a terminal outcome STOPS the poll — no extra sourcing attempt', () => {
-    expect(portal).toContain('if (!finding || pending.length > 0 || terminalRun) return')
+    // ⛓️ 26 Aug — `terminalRun` remains the LAST clause and still short-circuits the whole
+    // guard, so a recorded outcome stops the poll exactly as before. The added
+    // `&& !proofStranded` only widens who KEEPS polling; it can never restart a finished run.
+    expect(portal).toContain('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')
   })
 
   it('the terminal branch offers NO control that could start another search', () => {
@@ -140,13 +144,20 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
     //
     // The invariant that survives, and it is the one that matters: **emptiness alone can
     // never produce `failed`.** Only an explicit "the search did not complete" can.
+    //
+    // ⛓️ AMENDED AGAIN, 26 Aug (final gate). This table used to carry a sixth row —
+    // `[false, 0, false, false]`, labelled "legacy 4-arg caller — defaults to trustworthy" —
+    // asserting that omitting the trust argument still produced a non-`failed` status. That
+    // row is REMOVED because the founder ruled the permissive default out: a caller that
+    // forgets the argument must not silently inherit "the search completed". Every row below
+    // now states its trust explicitly, and the fail-closed behaviour of an omitted argument
+    // is asserted directly in `proof-outcome-matrix.test.ts` (section A) instead.
     for (const args of [
       [false, 0, false, false, true],   // completed zero
       [false, 0, false, true,  true],   // completed, audience finished
       [false, 0, true,  false, true],   // refused before it ran
       [false, 5, false, false, true],   // matches
       [true,  0, false, false, true],   // demo
-      [false, 0, false, false],         // legacy 4-arg caller — defaults to trustworthy
     ] as const) {
       expect(deriveRunStatus(...(args as Parameters<typeof deriveRunStatus>)), JSON.stringify(args)).not.toBe('failed')
     }
@@ -185,7 +196,7 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
   it('a failed run is terminal, so it stops the poll and cannot revert to running', () => {
     // `terminalRun` is status-agnostic: any completed outcome — failed included — both
     // ends the wait and halts the interval.
-    expect(portal).toContain('if (!finding || pending.length > 0 || terminalRun) return')
+    expect(portal).toContain('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')
     const t = portal.indexOf('terminalRun ? (')
     const f = portal.indexOf('finding ? (')
     expect(f).toBeGreaterThan(t)

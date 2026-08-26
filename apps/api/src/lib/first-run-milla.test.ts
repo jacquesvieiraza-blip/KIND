@@ -777,13 +777,23 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('POLLING IS READ-ONLY — no POST, no proof, no provider, no mutation', () => {
-    const from = deskCode.indexOf('if (!finding || pending.length > 0 || terminalRun) return')
-    const to   = deskCode.indexOf('}, [finding, pending.length, load, terminalRun])')
+    // ⛓️ 26 Aug — the guard gained `&& !proofStranded` so a client who returns on a clean
+    // URL, with a pass claimed and no outcome row, is still polled for. The effect's
+    // READ-ONLY character is unchanged, which is what this test is actually about.
+    const from = deskCode.indexOf('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')
+    const to   = deskCode.indexOf('}, [finding, proofStranded, pending.length, load, terminalRun])')
     expect(from, 'the polling effect').toBeGreaterThan(-1)
     expect(to,   'the end of the polling effect').toBeGreaterThan(from)
     const poll = deskCode.slice(from, to)
     expect(poll).not.toMatch(/api\.post|api\.put|api\.patch|api\.delete/)
-    expect(poll).not.toMatch(/proof/i)
+    // ⛓️ NARROWED 26 Aug, and narrowed on purpose rather than deleted. The bare `/proof/i`
+    // fired on `proofStranded` — a READ of server state (`proof_passes_done` with no
+    // `proof_run`), which is precisely the read-only kind of thing this effect is allowed to
+    // do. A word-boundary match still catches the thing the test exists for: the sourcing
+    // endpoint `'/icps/${id}/proof'`, where `proof` is bounded by `/` and a quote. It also
+    // still catches a bare `proof` identifier. What it now permits is a camelCase name that
+    // merely mentions proof state — never a call that would start a second search.
+    expect(poll).not.toMatch(/\bproof\b/i)
     expect(poll).not.toMatch(/reveal|approve|charge|stripe/i)
   })
 
@@ -832,7 +842,7 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('it stops when leads arrive, at the cap, and on unmount — and never overlaps', () => {
-    expect(deskCode).toContain('if (!finding || pending.length > 0 || terminalRun) return')          // leads arrived
+    expect(deskCode).toContain('if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return')  // leads arrived
     expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS)')                    // cap
     expect(deskCode).toContain('return () => { cancelled = true; clearInterval(timer) }') // unmount
     expect(deskCode).toContain('if (cancelled || inFlight) return')                    // no overlap

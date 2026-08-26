@@ -347,6 +347,7 @@ export default function MillaHomePage() {
   // Zero is a RESULT, not an absence. It ends the wait and never triggers another search:
   // nothing here starts sourcing, and the one proof POST lives on the confirmation screen.
   const proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0
+
   // A crashed run is its own terminal state. The prospect is NEVER shown the word
   // "failed" — that is the internal status name; they get the approved recovery copy.
   const proofFailed = terminalRun?.status === 'failed'
@@ -711,6 +712,25 @@ export default function MillaHomePage() {
     ? pending.map(batchKey).lastIndexOf(proofBatches[0] ?? '')
     : -1
 
+  // ⚑ 26 Aug (final gate) — THE CLEAN-URL STRAND. A pass was CLAIMED (the server-side
+  // counter says so) but NO run outcome has ever been recorded — the write failed, or the
+  // run crashed before its crash boundary could write. On a clean /milla URL there is no
+  // `?finding` flag, so the desk used to fall into the generic "No leads waiting" empty
+  // state and sit there forever: a first client stranded in a screen that promises a
+  // notification nothing will send. Both facts here are SERVER state re-read on every
+  // load — no browser storage, so closing the browser changes nothing, and the moment a
+  // terminal outcome or a batch appears, those branches win (they render first, and
+  // `proof_run` makes this false).
+  //
+  // ⚠️ BOUNDED IMPRECISION, accepted and narrow: reopening a clean URL while the run is
+  // STILL in flight (the claim lands at POST time, the outcome minutes later) shows this
+  // recovery card early. The poll below keeps checking while it is shown, so the moment
+  // the run lands, truth replaces it.
+  const proofStranded =
+    !!summary && (summary.proof_passes_done ?? 0) > 0 && !summary.proof_run &&
+    pending.length === 0 && Object.keys(revealed).length === 0
+
+
   // ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ──────────────────────────────────────
   //
   // "Not a fit" on a card is PER LEAD and stays exactly as it was — it is recorded as
@@ -867,7 +887,7 @@ export default function MillaHomePage() {
   useEffect(() => {
     // A terminal outcome ends the poll as surely as leads arriving would: the run is
     // over, so re-asking cannot change the answer and would only hammer the API.
-    if (!finding || pending.length > 0 || terminalRun) return
+    if ((!finding && !proofStranded) || pending.length > 0 || terminalRun) return
     let cancelled = false
     let checks = 0
     let inFlight = false                       // one request at a time — never overlap
@@ -881,7 +901,7 @@ export default function MillaHomePage() {
     // Cleanup is what guarantees a single loop: the effect re-runs only when `finding` or
     // the pending COUNT changes, and each re-run tears the previous interval down first.
     return () => { cancelled = true; clearInterval(timer) }
-  }, [finding, pending.length, load, terminalRun])
+  }, [finding, proofStranded, pending.length, load, terminalRun])
   // Mirrors lib/approval-batch.ts on the server. `approvedEver` comes from the summary, so a
   // client already past 20 gets one-tap approve back — the gate starts the relationship, it
   // doesn't nag someone already working with us.
@@ -1095,6 +1115,13 @@ export default function MillaHomePage() {
                       ? 'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
                       : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
                   </div>
+                </div>
+              ) : proofStranded ? (
+                <div className="text-[14px] text-[#4c4368] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
+                  <div className="text-[15px] font-bold text-[#5c5279]">We hit a snag confirming your matches</div>
+                  {/* Approved recovery copy, verbatim. No retry control, no technical detail,
+                      and nothing here starts a search — the poll behind this card only READS. */}
+                  <div className="text-[13px] mt-1.5 text-[#7c6f9b]">Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.</div>
                 </div>
               ) : (
                 <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">No leads waiting right now. We&apos;ll notify you the moment FIGSY qualifies the next. 🎯</div>

@@ -55,8 +55,14 @@ describe('a PDL 404 is two different facts, and the scroll token is which', () =
     })) as unknown as typeof fetch
   }
 
+  // ⛓️ 26 Aug (final gate) — PDL's OWN "nobody matched" envelope. A 404 is only the
+  // provider's zero when the body says so; a bare 404 could equally be a proxy, a moved
+  // endpoint or a gateway, and since 26 Aug those derive `failed` rather than a false
+  // terminal claim. Every 404 below that MEANS "PDL answered" now says it in PDL's words.
+  const NOT_FOUND = { status: 404, error: { type: 'not_found', message: 'No records were found matching your search' } }
+
   it('1 · FIRST PAGE 404 is MATCHED-NOTHING, never audience-exhausted', async () => {
-    reply(404)
+    reply(404, NOT_FOUND)
     const { pdlSearchPage } = await import('./pdl-search')
     const page = await pdlSearchPage(ICP, 20, null, { proofMode: true })
     expect(page.matchedNothing, 'the query matched nobody').toBe(true)
@@ -68,7 +74,7 @@ describe('a PDL 404 is two different facts, and the scroll token is which', () =
   })
 
   it('2 · a PAGED 404, with a real scroll token, is STILL audience-exhausted', async () => {
-    reply(404)
+    reply(404, NOT_FOUND)
     const { pdlSearchPage } = await import('./pdl-search')
     const page = await pdlSearchPage(ICP, 20, 'a-real-scroll-token', { proofMode: true })
     expect(page.exhausted, 'we walked it to the end — #366 unchanged').toBe(true)
@@ -78,8 +84,10 @@ describe('a PDL 404 is two different facts, and the scroll token is which', () =
   it('the two are mutually exclusive on every path a page can return', async () => {
     const { pdlSearchPage } = await import('./pdl-search')
     const both = (p: { exhausted: boolean; matchedNothing: boolean }) => p.exhausted && p.matchedNothing
-    reply(404); expect(both(await pdlSearchPage(ICP, 20, null))).toBe(false)
-    reply(404); expect(both(await pdlSearchPage(ICP, 20, 'tok'))).toBe(false)
+    // Both 404 branches use the documented body, so this exercises the REAL exhausted and
+    // matchedNothing paths rather than passing vacuously because neither flag was set.
+    reply(404, NOT_FOUND); expect(both(await pdlSearchPage(ICP, 20, null))).toBe(false)
+    reply(404, NOT_FOUND); expect(both(await pdlSearchPage(ICP, 20, 'tok'))).toBe(false)
     reply(200, { data: [], scroll_token: null }); expect(both(await pdlSearchPage(ICP, 20, null))).toBe(false)
     reply(500); expect(both(await pdlSearchPage(ICP, 20, null))).toBe(false)
   })

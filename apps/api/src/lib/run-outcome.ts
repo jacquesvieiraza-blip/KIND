@@ -9,7 +9,16 @@ import { exhaustedMessage } from './pdl-cursor'
 // nobody like this exists"; audience_exhausted says "your ICP was right, we found all of
 // them, and you already have every one". Told the wrong one, a client widens an ICP that
 // was working, or gives up on one that simply finished. They are opposite instructions.
-export type RunStatus = 'served' | 'no_match' | 'quota_exhausted' | 'demo' | 'audience_exhausted'
+// `failed` is TERMINAL AND NEVER DERIVED. `deriveRunStatus` cannot return it — it is
+// written only by the handler that caught the throw. A crash recorded as `no_match` would
+// tell a prospect their targeting matched nobody when the query never completed (R72).
+export type RunStatus = 'served' | 'no_match' | 'quota_exhausted' | 'demo' | 'audience_exhausted' | 'failed'
+
+/** The approved client-facing recovery copy for a crashed run (founder-locked 26 Aug).
+ *  ⚠️ The prospect is NEVER shown the word "failed" — that is the internal state name. */
+export const FAILED_RUN_HEADLINE = 'We hit a snag confirming your matches'
+export const FAILED_RUN_BODY =
+  'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
 
 /**
  * Derive the outcome status from what actually happened in the run.
@@ -38,6 +47,11 @@ export function deriveRunStatus(
  *  platform quota outage, and never hides a genuine no-match behind a vague spinner. */
 export function runOutcomeMessage(status: RunStatus, totalInserted: number, alreadyHeld = 0): string {
   switch (status) {
+    case 'failed':
+      // ⚠️ NO TECHNICAL DETAIL EVER REACHES THE PROSPECT. No provider name, no status
+      // code, no stack — a person who asked to see some leads is told what it means for
+      // them and what happens next, and the diagnosis goes to the founder alert instead.
+      return FAILED_RUN_BODY
     case 'quota_exhausted':
       return 'Sourcing capacity is temporarily out — the team has been alerted and your credits are untouched. Try again shortly.'
     case 'audience_exhausted':

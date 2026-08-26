@@ -3173,8 +3173,37 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     // Fire-and-forget like activation: the prospect gets an immediate answer, the batch
     // lands on their desk when the run finishes. `req.userId` IS the account owner here —
     // this route is client-authenticated, no operator is involved.
+    // ⚑ 26 Aug — A CRASHED RUN USED TO LEAVE NO TRACE AT ALL. `runIcpJob` records an
+    // outcome only when it FINISHES; a throw was logged here and swallowed, so the desk
+    // had nothing to read and sat on "Finding your matches now…" indefinitely.
+    //
+    // ⚠️ THIS IS NOT THEORETICAL ANY MORE. With `PAID_PROVIDERS_ENABLED` off — the
+    // fail-closed default shipped in #1453 — a proof run THROWS at the PDL boundary the
+    // moment the pool cannot fill the batch. That is now the most likely production path,
+    // not a rare one.
+    //
+    // ⚠️ NO OUTCOME ROW IS WRITTEN HERE, DELIBERATELY. `icp_run_outcomes.status` has a
+    // CHECK constraint over served | no_match | quota_exhausted | demo | audience_exhausted,
+    // and NONE of them honestly means "the run crashed". Writing `no_match` would tell a
+    // prospect their targeting matched nobody when we never actually asked — a lie, and the
+    // precise class of lie R72 forbids. A truthful failure state needs a founder decision
+    // (a new status + its client sentence); until then a HUMAN is told, immediately.
     runIcpJob(req.params.id, clientId, req.userId!, PROOF_PASS_LEADS, { proofPass: claimed })
-      .catch(e => console.error('[icps/proof] proof run failed:', e))
+      .catch(async e => {
+        console.error('[icps/proof] proof run failed:', e)
+        // ⚑ 26 Aug — PERSIST THE CRASH AS A TERMINAL FACT (founder-approved `failed`).
+        // Written HERE, at the crash boundary, because this is the only place that knows
+        // the run threw. Never derived, and never folded into `no_match`: the query did
+        // not complete, so claiming it matched nobody would be false (R72).
+        await recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)
+          .catch(re => console.error('[icps/proof] could not record the failed outcome:', re))
+        void sendFounderAlert('source_down', 'A free-proof run crashed — the prospect is waiting on a desk that cannot finish', [
+          `Prospect ${clientId}, ICP ${req.params.id}, pass ${claimed} of 2.`,
+          `Reason: ${e instanceof Error ? e.message : String(e)}`,
+          'Their proof pass is CONSUMED and no run outcome was recorded, so the desk shows no terminal state for this attempt.',
+          'If this reads SAFE_TEST_MODE / PAID_PROVIDERS_ENABLED, the guard refused to spend — that is correct behaviour, not a bug.',
+        ]).catch(() => {})
+      })
 
     res.json({ success: true, data: { pass: claimed, of: 2, finding: true } })
   } catch (err) {

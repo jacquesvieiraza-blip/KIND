@@ -402,7 +402,7 @@ export default function MillaWelcomePage() {
       // chance. The flag is explicit rather than inferred: "no leads + never paid" is also
       // the state of someone who never started a run, and they must keep the honest copy.
       // It is a READ signal only — the desk polls the existing lead GETs and never POSTs.
-      router.push('/milla?finding=1')
+      router.push(`/milla?finding=1&since=${Date.now()}`)
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 

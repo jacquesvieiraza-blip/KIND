@@ -38,13 +38,30 @@ export interface MillaSummaryData {
   campaign_status: string | null
   recent_replies: { name: string; classification: string }[]
   icp_versions: { version: string; current: boolean; name: string; summary: string; created_at: string | null }[]
+  /**
+   * ⚑ 26 Aug — THE TERMINAL TRUTH OF THE LAST RUN, so the desk can stop guessing.
+   *
+   * The proof desk decided "still finding" from a URL flag and "finished" from leads
+   * appearing. A run that finished with ZERO therefore spun forever: no leads ever
+   * arrived, so nothing ever cleared the flag, and after ~60s the copy only changed to
+   * "we're still finding your matches" — which was false. The run had ended.
+   *
+   * `runIcpJob` already records exactly one `icp_run_outcomes` row per completed run,
+   * with canonical client copy from `runOutcomeMessage()`. It was simply never read.
+   * This carries it on the summary the desk ALREADY polls — no new endpoint, no extra
+   * request, no migration.
+   *
+   * ⚠️ `null` means NO RUN HAS EVER COMPLETED for this client — which is not the same as
+   * "still running". The desk pairs this with the run it started; see `finished_at`.
+   */
+  proof_run: { status: string; message: string; total_inserted: number; finished_at: string | null } | null
 }
 
 export async function buildMillaSummaryData(clientId: string): Promise<MillaSummaryData> {
   const now = new Date()
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 
-  const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases] = await Promise.all([
+  const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases, lastRun] = await Promise.all([
     db.from('clients').select('wallet_balance_usd, proof_passes_done').eq('id', clientId).maybeSingle(),
     // mirrors /for-approval — the exact set of masked cards the client can act on
     db.from('leads').select('id', { count: 'exact', head: true })
@@ -72,6 +89,13 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // paywall: no purchase → the client is gated until they load their wallet.
     db.from('credit_transactions').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).in('type', PAID_TX_TYPES),
+    // ⚑ 26 Aug — the newest COMPLETED run for this client, whatever it concluded.
+    // `runIcpJob` writes exactly one of these at the end of every run it finishes, so its
+    // presence is the terminal signal the desk was missing. Read across the client rather
+    // than one ICP: the desk does not track which ICP a proof run belonged to, and a
+    // prospect has exactly one core ICP anyway.
+    db.from('icp_run_outcomes').select('status, message, total_inserted, created_at')
+      .eq('client_id', clientId).order('created_at', { ascending: false }).limit(1).maybeSingle(),
   ])
 
   // Pack state: bought it? how many of the included approvals have they used? Both derived
@@ -106,6 +130,19 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // something. The behaviour is right; only the sentence describing it was wrong, and it
     // is the sentence that changed.
     proof_passes_done: Number((client as Record<string, number> | null)?.proof_passes_done ?? 0),
+    // ⚠️ NULL means no run has ever COMPLETED — never "still running". The desk decides
+    // which by comparing `finished_at` against the moment it started the run it is
+    // waiting on; an older outcome belongs to an earlier pass and must not end this one.
+    proof_run: (() => {
+      const r = (lastRun as { data?: Record<string, unknown> | null } | null)?.data
+      if (!r) return null
+      return {
+        status:         String(r.status ?? ''),
+        message:        String(r.message ?? ''),
+        total_inserted: Number(r.total_inserted ?? 0),
+        finished_at:    r.created_at ? String(r.created_at) : null,
+      }
+    })(),
     // NO FREEBIES — true once the client has made their first purchase. The Milla
     // dashboard gates on this: no purchase → paywall to Billing.
     has_funded: (purchases.count ?? 0) > 0,

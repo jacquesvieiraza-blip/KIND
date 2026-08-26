@@ -379,11 +379,43 @@ describe('PASS 2 · a stale Pass 1 snapshot can never represent the new pass', (
 // ═══════════════════════════════════════════════════════════════════════════════════════
 
 describe('classifying a failed Pass 2 claim — structured status, never a message match', () => {
-  it('4xx is the server DECIDING the claim was not made → refused', () => {
-    // 409 is the two-pass ceiling; the others are auth/validation refusals, all decided
-    // before or instead of a claim.
-    for (const s of [400, 401, 403, 404, 409, 422, 429, 499]) {
-      expect(classifyClaimFailure(s), `HTTP ${s}`).toBe('refused')
+  // ⛓️ INVERTED 26 Aug. This test used to assert that EVERY 4xx was a refusal — including
+  // **499**, nginx's *client closed request*, which is emitted precisely because the caller
+  // went away and can therefore fire at any point, including after the claim committed. That
+  // was an assumption about HTTP semantics wearing the clothes of evidence. The allowlist is
+  // now derived from this endpoint's own control flow (see `classifyClaimFailure`).
+  it('409 is the ONLY status this endpoint returns that proves the pass was not claimed', () => {
+    // routes/icps.ts — the RPC ran and returned 0, so the two-pass ceiling refused it.
+    // `if (claimed <= 0) { res.status(409)... }`. Nothing else in the route says this.
+    expect(classifyClaimFailure(409)).toBe('refused')
+  })
+
+  it('⚑ 499 and 408 are NOT refusals — a caller going away proves nothing about the claim', () => {
+    // 499: nginx client-closed-request. 408: request timeout. Neither is returned by this
+    // route at all, and both describe the CONNECTION rather than the claim decision.
+    expect(classifyClaimFailure(499), 'client closed request').toBe('unknown')
+    expect(classifyClaimFailure(408), 'request timeout').toBe('unknown')
+  })
+
+  it('422 and 429 are not refusals either — this route never returns them', () => {
+    // No validation-error branch and no rate limiter on `POST /icps/:id/proof`. A status the
+    // endpoint cannot produce carries no evidence about its claim.
+    expect(classifyClaimFailure(422)).toBe('unknown')
+    expect(classifyClaimFailure(429)).toBe('unknown')
+  })
+
+  it('403 and 404 ARE provably pre-claim, and are still excluded as belt-and-braces', () => {
+    // routes/icps.ts returns 404 for `!clientId` and `!icp`, and 403 for `fundedVia !== null`
+    // — all three above the claim. They are nonetheless classified 'unknown' on purpose:
+    // unreachable on the refinement path, and reconciling merely costs one server read that
+    // restores Pass 1 anyway. Widening the allowlist can only ever preserve a stale card.
+    expect(classifyClaimFailure(403)).toBe('unknown')
+    expect(classifyClaimFailure(404)).toBe('unknown')
+  })
+
+  it('no blanket 4xx rule survives — the ordinary client-error statuses are all unknown', () => {
+    for (const s of [400, 401, 402, 405, 410, 418, 451, 498]) {
+      expect(classifyClaimFailure(s), `HTTP ${s}`).toBe('unknown')
     }
   })
 

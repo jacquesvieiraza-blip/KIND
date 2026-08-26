@@ -606,13 +606,25 @@ export default function MillaHomePage() {
       }
 
       setRefineErr(
-        // 4 · THE PROOF WAS ATTEMPTED. Never invite a retry and never claim the pass is
-        // definitely gone — we do not know. Only the server does.
-        proofAttemptedRef.current
-          ? 'We saved your refinement, but we could not confirm the new search started. Please don\'t try again — K.I.N.D will check whether it began and come back to you.'
-        // 2 · THE CONFLICT. Both the live targeting and the waiting revision are intact.
-        : status === 409
+        // ⛓️ 2 · REORDERED 26 Aug — A DEFINITIVE ANSWER OUTRANKS "WE DON'T KNOW".
+        //
+        // This branch used to sit BELOW the proof-attempted one, so the two-pass 409 — the
+        // single status that PROVES the pass was not claimed — was described to the client
+        // as *"we could not confirm the new search started"*. That is the ambiguity sentence,
+        // and it is false here: the server told us plainly, and it even supplied the words.
+        // Ordering was the whole bug; the copy itself was already right and is unchanged.
+        //
+        // `code` is the server's own sentence — the two-pass human handoff from the proof
+        // route, or the waiting-revision conflict from `/icps/revise`. Both are definitive,
+        // both are already written, and neither is invented here. The literal fallback is
+        // the revise-conflict wording and only shows if the server sent no message at all.
+        status === 409
           ? (code || 'You already have a targeting change waiting for K.I.N.D to review. Nothing has been changed and no new search has started.')
+        // 4 · THE PROOF WAS ATTEMPTED and the answer was NOT definitive. Never invite a
+        // retry and never claim the pass is definitely gone — we do not know. Only the
+        // server does, and the block above has already started asking it.
+        : proofAttemptedRef.current
+          ? 'We saved your refinement, but we could not confirm the new search started. Please don\'t try again — K.I.N.D will check whether it began and come back to you.'
         // 1 · STALE PREVIEW. Nothing was written; the panel described a different ICP.
         : code === 'same-icp'
           ? 'Something is out of step with your targeting — K.I.N.D needs to look at this before we search again. Nothing has been changed and no new search has started.'

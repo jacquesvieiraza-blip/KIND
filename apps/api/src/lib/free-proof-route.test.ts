@@ -1343,11 +1343,21 @@ describe('the desk cannot spend a pass it has not earned', () => {
   })
 
   it('the stage is decided by the REF, so a post-attempt failure can never read as pre-attempt', () => {
+    // ⛓️ AMENDED 26 Aug, and the amendment is narrow. This used to require the attempt
+    // branch to precede EVERY other branch, 409 included — which is what made a definitive
+    // two-pass refusal say "we could not confirm the new search started". A 409 is the one
+    // status proving the pass was NOT claimed, so it legitimately outranks the ambiguity
+    // sentence and now sits above it.
+    //
+    // THE INVARIANT THIS TEST ACTUALLY GUARDS IS UNCHANGED: a post-attempt failure must
+    // never read as a PRE-PROOF one. Both pre-proof branches still sit below the ref, so a
+    // failure after the claim can never be described as a stale preview or a failed save.
     const c = confirmBody()
     const branchAt = c.indexOf('proofAttemptedRef.current\n          ?')
-    expect(branchAt, 'the attempt branch is checked FIRST').toBeGreaterThan(-1)
-    expect(branchAt).toBeLessThan(c.indexOf('status === 409'))
-    expect(branchAt).toBeLessThan(c.indexOf("code === 'same-icp'"))
+    expect(branchAt, 'the attempt branch').toBeGreaterThan(-1)
+    expect(branchAt, 'a stale preview is a PRE-proof state').toBeLessThan(c.indexOf("code === 'same-icp'"))
+    // And the only thing allowed above it is the definitive refusal.
+    expect(c.indexOf('status === 409'), 'a definitive answer outranks "we do not know"').toBeLessThan(branchAt)
   })
 
   // ── F · a revise failure is recoverable, a proof failure is not ──────────────────────

@@ -95,23 +95,45 @@ export function invalidateProofSnapshot<T extends ProofSnapshot>(summary: T | nu
  * `err.status = res.status` whenever an HTTP response actually arrived. So the presence of a
  * real status IS the presence of an answer.
  *
- * 'refused' — a 4xx. The server reached a DETERMINATION and declined: the two-pass 409, an
- *   auth failure, a validation refusal. In every one of these the claim was not made, Pass 1
- *   is still the current pass, and its snapshot is still the truth. Nothing is invalidated.
+ * ⛓️ NARROWED 26 Aug — "ALL 4xx" WAS NOT EVIDENCE, IT WAS AN ASSUMPTION ABOUT HTTP.
  *
- * 'unknown' — status 0 (no response at all) **and 5xx**. A 5xx is grouped here deliberately
- *   rather than lazily: it is an HTTP answer, but it is not an answer ABOUT THE CLAIM. The
- *   route claims the pass and only then responds, so a server error can sit on either side
- *   of a committed claim. Treating it as a refusal would be a guess in the one direction
- *   that leaves a stale terminal card on screen.
+ * The first version read `status >= 400 && status < 500 ? 'refused'`, and its own tests
+ * asserted that **499 was a refusal**. 499 is nginx's *client closed request* — it is
+ * emitted precisely BECAUSE the caller went away, which can happen at any point, including
+ * after the claim committed. 408 is the same shape from the other side. Neither says
+ * anything about whether the pass was taken, and treating them as refusals leaves the stale
+ * Pass 1 card on screen in exactly the case a client is most likely to hit.
  *
- * ⚠️ 'unknown' NEVER MEANS "IT FAILED", and never means "it started". It means: re-read the
- * server. The reconciliation is self-resolving — a refreshed summary showing Pass 2 gives
- * Pass 2's clock, and one still showing Pass 1 restores Pass 1's terminal card by itself.
- * Nothing here guesses, and nothing here invents a claim id, a timestamp or a counter.
+ * ⚠️ THE ALLOWLIST IS DERIVED FROM THIS ENDPOINT'S CONTROL FLOW, not from status semantics.
+ * `POST /icps/:id/proof` (routes/icps.ts) claims the pass at ONE point and returns:
+ *   · 404  `!clientId`            — before the claim
+ *   · 404  `!icp`                 — before the claim
+ *   · 403  `fundedVia !== null`   — before the claim
+ *   · 409  `claimed <= 0`         — the RPC RAN AND REFUSED: the pass was definitively
+ *                                   not taken, and this is the only status that says so
+ *   · 200                         — claimed
+ *   · 500  route-level `catch`    — wraps the WHOLE handler, so it can fire on either side
+ *                                   of a committed claim: ambiguous, never a refusal
+ * Nothing in this route returns 408, 422, 429 or 499 at all. A status this endpoint cannot
+ * produce carries no evidence about its claim, so it can never be a refusal here.
+ *
+ * ⚠️ 409 IS THE WHOLE ALLOWLIST, deliberately narrower than the proof allows. 403 and 404
+ * are also provably pre-claim, but they are excluded as belt-and-braces: they are
+ * unreachable on the refinement path (`confirmRefine` has just re-read the ICP, and a funded
+ * client is not in proof at all), and classifying them 'unknown' costs only a reconciliation
+ * that restores Pass 1 by itself. Widening this set can only ever preserve a stale card;
+ * narrowing it can only ever cost one extra server read.
+ *
+ * 'unknown' — everything else: status 0 (no response), 5xx, 408, 429, 499, an unstructured
+ *   throw. Not "it failed" and not "it started" — it means RE-READ THE SERVER. The
+ *   reconciliation is self-resolving: a refreshed summary showing Pass 2 gives Pass 2's
+ *   clock, one still showing Pass 1 restores Pass 1's terminal card. Nothing here guesses,
+ *   and nothing here invents a claim id, a timestamp or a counter.
  */
+const CLAIM_REFUSED_STATUSES: ReadonlySet<number> = new Set([409])
+
 export function classifyClaimFailure(status: number | undefined): 'refused' | 'unknown' {
-  return typeof status === 'number' && status >= 400 && status < 500 ? 'refused' : 'unknown'
+  return typeof status === 'number' && CLAIM_REFUSED_STATUSES.has(status) ? 'refused' : 'unknown'
 }
 
 export interface ProofWaitInput {

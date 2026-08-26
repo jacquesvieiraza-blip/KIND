@@ -680,8 +680,34 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
     const rule = codeOnly(readFileSync(
       join(__dirname, '..', '..', '..', 'portal', 'src', 'lib', 'proof-start.ts'), 'utf8'))
     const fn = rule.slice(rule.indexOf('export function classifyClaimFailure'))
-    expect(fn).toContain("status >= 400 && status < 500 ? 'refused' : 'unknown'")
+    expect(fn).toContain("CLAIM_REFUSED_STATUSES.has(status) ? 'refused' : 'unknown'")
     expect(fn, 'no message-string heuristics').not.toMatch(/\.message|includes\(|test\(/)
+  })
+
+  it('⚑ A DEFINITIVE 409 SHOWS THE DEFINITIVE COPY, NOT THE AMBIGUITY SENTENCE', () => {
+    // ⛓️ ORDERING WAS THE BUG. The `proofAttemptedRef` branch used to be evaluated FIRST, so
+    // the two-pass 409 — the one status that PROVES the pass was not claimed — told the
+    // client "we could not confirm the new search started". The server had told us plainly,
+    // and supplied the wording. The copy itself never changed; only which branch wins.
+    // ⚠️ ANCHOR ON THE MULTI-LINE CALL. `setRefineErr(null)` appears earlier in the same
+    // function, and slicing from that swept in the reconciliation block above — whose own
+    // `proofAttemptedRef.current` then read as the copy branch. The chain call is the only
+    // `setRefineErr(` followed by a newline.
+    const chain = portalSrc.slice(portalSrc.indexOf('setRefineErr(\n'))
+    const definitive = chain.indexOf('status === 409')
+    const ambiguous  = chain.indexOf('proofAttemptedRef.current')
+    expect(definitive, 'the 409 branch').toBeGreaterThan(-1)
+    expect(ambiguous, 'the ambiguity branch').toBeGreaterThan(-1)
+    expect(ambiguous, 'a definitive answer must outrank "we do not know"').toBeGreaterThan(definitive)
+    // And the definitive branch renders the SERVER's own sentence, not one written here.
+    expect(chain.slice(definitive, ambiguous)).toContain('(code ||')
+
+    // The allowlist itself is endpoint-derived and narrow — no blanket 4xx rule survives.
+    const rule = codeOnly(readFileSync(
+      join(__dirname, '..', '..', '..', 'portal', 'src', 'lib', 'proof-start.ts'), 'utf8'))
+    expect(rule).toContain('const CLAIM_REFUSED_STATUSES: ReadonlySet<number> = new Set([409])')
+    expect(rule, 'a status-range rule is an assumption, not endpoint evidence')
+      .not.toMatch(/status >= 400 && status < 500/)
   })
 
   it('the summary carries the durable start, read from the column the claim writes', () => {

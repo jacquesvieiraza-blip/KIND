@@ -547,11 +547,29 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
   // 90s, the boundary, reopen, unknown elapsed and clock skew. What remains here is only
   // what a source guard is genuinely good for: that the wiring is present and ordered.
 
-  it('the wait is derived from SERVER state, not browser state', () => {
-    // A pass was claimed (server counter) and no outcome row has ever been recorded
-    // (server read) — both survive closing the browser, both re-read on every load.
+  it('the wait is derived from SERVER state — counter AND clock', () => {
+    // Both facts come from the claim itself and survive closing the browser: the counter
+    // says a pass was taken, and `proof_started_at` says when. Neither is inferred.
     expect(portalSrc).toContain('proofPassesDone:    summary?.proof_passes_done ?? 0')
-    expect(portalSrc).toContain('hasSummary:         !!summary && !summary.proof_run')
+    expect(portalSrc).toContain('serverStartedAt:    serverProofStartedAt(summary)')
+    expect(portalSrc).toContain('server:             serverState')
+  })
+
+  it('⚑ THE BROWSER CLOCK IS GONE — there is no second source of timing to go stale', () => {
+    // ⛓️ 26 Aug (durable server truth). The previous pass mirrored a `?since=` stamp into
+    // localStorage. It could be written after a lost response, missing on another device, or
+    // stale from an older pass — three ways to make a healthy run look failed. Removed
+    // outright rather than demoted, so none of them can recur.
+    expect(portalSrc).not.toContain('localStorage')
+    expect(portalSrc).not.toContain('rememberProofStart')
+    expect(portalSrc).not.toContain('storedProofStart')
+    expect(portalSrc).not.toContain('findingSince')
+    const rule = codeOnly(readFileSync(
+      join(__dirname, '..', '..', '..', 'portal', 'src', 'lib', 'proof-start.ts'), 'utf8'))
+    expect(rule).not.toContain('localStorage')
+    // Exactly ONE timing input reaches the rule, and it is the server's.
+    expect(rule).toContain('serverStartedAt: number')
+    expect(rule.match(/^\s+(\w*[Ss]tartedAt)\??:/gm) ?? [], 'one timing field only').toHaveLength(1)
   })
 
   it('the verdict comes from ONE shared rule, not from JSX conditions written twice', () => {
@@ -592,17 +610,29 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
     expect(portalSrc).toContain('if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS)')
   })
 
-  it('the start stamp is written at the proof POST, in BOTH flows, and only there', () => {
+  it('neither proof flow carries or writes a clock — the claim already recorded one', () => {
     const welcome = codeOnly(readFileSync(
       join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'welcome', 'page.tsx'), 'utf8'))
     for (const [name, src] of [['desk', portalSrc], ['welcome', welcome]] as const) {
-      expect(src, name).toContain('rememberProofStart(startedAt)')
-      expect(src, name).toContain('router.push(`/milla?finding=1&since=${startedAt}`)')
-      // ONE call per flow. A stamp re-taken anywhere else — on render, on first sight of
-      // the waiting state — would restart the clock on every reopen, which is the
-      // indefinite wait this must not be able to create.
-      expect(src.split('rememberProofStart(').length - 1, `${name}: exactly one write`).toBe(1)
+      // `?finding=1` survives as a HINT covering the moment before the first summary lands.
+      expect(src, name).toContain("router.push('/milla?finding=1')")
+      // But no timestamp travels with it, and none is stored: the run's START was recorded
+      // by the claim itself, so there is no browser value left to be lost, missing on
+      // another device, or stale from an older pass.
+      expect(src, `${name}: no clock in the URL`).not.toContain('since=${')
+      // ⚠️ SCOPED TO PROOF TIMING, not to localStorage as a whole — the welcome page
+      // legitimately stores a referral code and a terms acceptance, and a blanket ban would
+      // fail on those and say nothing about the clock.
+      expect(src, `${name}: no stored proof clock`).not.toContain('kind.proof.started_at')
+      expect(src, `${name}: no stored proof clock`).not.toContain('rememberProofStart')
+      expect(src, `${name}: no stored proof clock`).not.toContain('storedProofStart')
     }
+  })
+
+  it('the summary carries the durable start, read from the column the claim writes', () => {
+    const summary = codeOnly(readFileSync(join(__dirname, 'milla-summary.ts'), 'utf8'))
+    expect(summary).toContain("select('wallet_balance_usd, proof_passes_done, proof_started_at')")
+    expect(summary).toContain('proof_started_at: string | null')
   })
 })
 

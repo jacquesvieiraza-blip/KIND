@@ -1,64 +1,40 @@
-// ⚑ 26 Aug (correction pass) — WHEN THE PROOF RUN STARTED, durable across a clean reopen.
+// ⚑ 26 Aug — THE PROOF DESK'S WAIT, DECIDED FROM SERVER TRUTH.
 //
-// THE DEFECT THIS CLOSES. The desk decides between "still finding your matches" and the
-// approved recovery copy by asking how long the run has been going. That question had only
-// one answer source — the `?since=` stamp in the URL — so a prospect who closed the tab and
-// came back to a clean `/milla` had no elapsed time at all, and the desk declared
-// **"We hit a snag confirming your matches"** about a run that might have started five
-// seconds earlier and been working perfectly. A healthy proof legitimately takes ~160–180s.
+// THE QUESTION THIS ANSWERS. Between a claimed proof pass and a recorded run outcome the
+// desk has to choose one of two things to show: "Finding your matches now…" or the approved
+// recovery copy. Getting that wrong in either direction is a lie to the first client — a
+// spinner that never ends, or "We hit a snag" about a run that is working perfectly.
 //
-// ⚠️ WHY A BROWSER STAMP, AND WHAT WAS RULED OUT FIRST. The server has NO durable
-// proof-start timestamp to read:
-//   · `try_claim_proof_pass` increments an int and stores no time;
-//   · `icp_run_outcomes` is written only when a run FINISHES — absent for exactly the case
-//     that needs it;
-//   · `proof_ledger.created_at` exists only when PDL was reserved, so a pool-only proof has
-//     no row at all.
-// Adding one would mean a migration plus a change to the proof RPC — both protected, and
-// far more machinery than this needs. So the stamp is taken at the one moment the run
-// genuinely starts (the proof POST, beside the `?since=` stamp) and written once.
+// ⛓️ WHAT CHANGED, AND WHY THE PREVIOUS VERSION WAS NOT LAUNCH-FINAL. This module used to
+// keep its own browser clock: a `?since=` URL stamp mirrored into localStorage at the proof
+// POST. Every part of that was inference, and each part could be wrong:
+//   · the stamp was written only AFTER the POST returned, so a server that claimed the pass
+//     and then lost its response left a claimed run whose start existed NOWHERE;
+//   · localStorage is browser-profile scoped — another device, another browser or a private
+//     window had nothing at all;
+//   · a STALE stamp from an older pass could make a fresh run look old enough to have failed;
+//   · a clean URL lost the timing, so a reload risked restarting the wait.
+// The claim now records its own start time (`clients.proof_started_at`, written inside the
+// same atomic UPDATE as `proof_passes_done`, surfaced on the existing Milla summary). The
+// browser clock is GONE — not demoted, removed — because a second source of timing truth is
+// exactly what produced the contradictions above. There is nothing left to go stale.
 //
-// ⚠️ WRITTEN ONCE IS THE WHOLE POINT. A stamp re-taken on render, or on first sight of the
-// waiting state, would restart the clock on every reopen — which is the indefinite waiting
-// condition this must not be able to create.
-//
-// ⚠️ ITS LIMITATION, STATED PLAINLY: localStorage is per browser profile. A different
-// device, a different browser, or a private window has no stamp, and elapsed time is then
-// genuinely UNKNOWN. Unknown must resolve to "may still be running" plus the bounded poll —
-// never to an immediate failure claim, and never to an unbounded spinner.
-//
-// ⚠️ IT CANNOT OVERRIDE THE BACKEND. This value only ever chooses between "still finding"
-// and "bounded recovery" in the case where the server has NO terminal outcome at all. A
-// recorded run outcome and real leads are both read first and both win outright.
-//
-// ONE KEY, ONE MODULE, imported by every writer and reader. Two copies of the string would
-// drift the moment one of them was edited, and a stamp written under one key and read under
-// another is the same as no stamp — silently, with no error anywhere.
-export const PROOF_START_KEY = 'kind.proof.started_at'
+// ⚠️ THE ORDER OF CHECKS IS THE CONTRACT, not a style choice:
+//   1. a recorded backend outcome wins over everything, always;
+//   2. real leads win over everything that is left;
+//   3. the durable SERVER start decides how long we have been waiting;
+//   4. only where the server is genuinely UNREACHABLE does the bounded poll stand in;
+//   5. past the bound, the neutral recovery state.
+// Nothing below step 2 can contradict the server.
 
-/** Record the instant a proof run was started. Best-effort: storage can be blocked. */
-export function rememberProofStart(ts: number): void {
-  try {
-    window.localStorage.setItem(PROOF_START_KEY, String(ts))
-  } catch {
-    // Private window, blocked storage, quota. Elapsed time becomes UNKNOWN, which the desk
-    // already handles as "may still be running" under the bounded poll — never as failure.
-  }
-}
-
-/** The durable stamp, or 0 when there genuinely is none. Callers must treat 0 as UNKNOWN. */
-export function storedProofStart(): number {
-  try {
-    const raw = window.localStorage.getItem(PROOF_START_KEY)
-    const n = raw ? Number(raw) : NaN
-    return Number.isFinite(n) && n > 0 ? n : 0
-  } catch {
-    return 0
-  }
-}
-
-/** How long a healthy proof is allowed to take before the desk stops claiming to search.
- *  Mirrors the desk's poll budget (`FINDING_POLL_MS × FINDING_MAX_CHECKS` = 3s × 80). */
+/** How long a healthy proof may take before the desk stops claiming to search.
+ *
+ *  Derived, not picked — from the backend's own worst case: one PDL attempt is a 15s
+ *  timeout, the size ladder at batch 20 is four attempts (60s), one global rate-limit retry
+ *  adds 2.5s + 15s, so an exact search is ~77.5s and the one widened fallback repeats it —
+ *  ~160–180s with overheads. 240s clears that with ~60s of margin and is still a hard stop.
+ *  The desk's poll budget (`FINDING_POLL_MS × FINDING_MAX_CHECKS`) must equal this; the desk
+ *  asserts that at module load so the two can never drift into different truths. */
 export const PROOF_WAIT_MS = 240_000
 
 /**
@@ -69,62 +45,86 @@ export const PROOF_WAIT_MS = 240_000
  */
 export type ProofWaitState = 'none' | 'finding' | 'recovery'
 
-/**
- * ⚑ 26 Aug (correction pass) — THE ONE PLACE THAT DECIDES "STILL FINDING" vs "SNAG".
- *
- * Extracted as a pure function so the rule can be RUN in a test rather than pattern-matched
- * in the JSX. Source-text guards can prove a branch exists in some order; they cannot prove
- * that a proof claimed 30 seconds ago shows a spinner and one claimed 300 seconds ago does
- * not. That is the behaviour that was wrong, so that is the behaviour under test.
- *
- * ⚠️ THE ORDER OF THESE CHECKS IS THE CONTRACT, not a style choice:
- *   1. a recorded backend outcome wins over everything, always;
- *   2. real leads win over everything that is left;
- *   3. only then does the client-side wait get an opinion at all.
- * Nothing below step 2 can contradict the server — which is what keeps a browser stamp from
- * ever overriding truth.
- *
- * ⚠️ `startedAt === 0` MEANS UNKNOWN, NOT OLD. A different device or a private window has no
- * stamp, and guessing "old" there would resurrect the exact bug this fixes — an instant
- * failure claim about a healthy run. Unknown yields 'finding', bounded by `pollExhausted`,
- * so it still cannot spin forever.
- */
-export function proofWaitState(input: {
+export interface ProofWaitInput {
   /** A run outcome exists for the run being waited on — the server has spoken. */
   hasTerminalOutcome: boolean
   /** Masked cards on the desk right now. */
   pendingCount: number
   /** Cards already revealed. */
   revealedCount: number
-  /** `clients.proof_passes_done` — a pass was claimed. */
+  /**
+   * Whether backend truth is available, and these are THREE states rather than two because
+   * collapsing them produces a visible lie in one direction or the other:
+   *   'loading'     — the first summary request has not come back yet. Claims NOTHING; a
+   *                   client with an empty desk must not see a spinner flash on every load.
+   *   'ok'          — the facts below are usable (a previously-loaded summary still counts;
+   *                   a later poll failing does not erase truth we already have).
+   *   'unreachable' — the summary could not be fetched at all. Different from "loaded and
+   *                   says nothing", and handled deliberately in step 4.
+   */
+  server: 'loading' | 'ok' | 'unreachable'
+  /** `clients.proof_passes_done` — a pass was claimed. Meaningful only with server truth. */
   proofPassesDone: number
-  /** The summary has actually loaded; before that nothing is known. */
-  hasSummary: boolean
-  /** This navigation carried `?finding=1`. */
+  /**
+   * `clients.proof_started_at` as epoch ms, or 0 when the server has no value (a row that
+   * predates the column, or no pass ever claimed). 0 is UNKNOWN, never "long ago".
+   */
+  serverStartedAt: number
+  /** This navigation carried `?finding=1` — a hint only, never a clock. */
   urlFinding: boolean
-  /** Durable start stamp in epoch ms, or 0 for UNKNOWN. */
-  startedAt: number
   /** Current time in epoch ms — injected so the rule is testable without faking clocks. */
   now: number
   /** The bounded poll has used its whole budget on this page load. */
   pollExhausted: boolean
-}): ProofWaitState {
-  // 1 · BACKEND TRUTH WINS, immediately and at any time.
+}
+
+export function proofWaitState(input: ProofWaitInput): ProofWaitState {
+  // 1 · BACKEND TRUTH WINS, immediately and at any time. A recorded outcome ends the wait
+  //     whether it arrives in the first second or long after the bound has passed.
   if (input.hasTerminalOutcome) return 'none'
   // 2 · REAL LEADS WIN over any waiting state.
   if (input.pendingCount > 0 || input.revealedCount > 0) return 'none'
 
-  // 3 · Is there anything to wait FOR? A claimed pass is a server fact and survives a clean
-  //     URL; `?finding=1` covers the navigation that has just started a run and may reach
-  //     the desk before the counter is readable.
-  const claimed = input.hasSummary && input.proofPassesDone > 0
-  if (!claimed && !input.urlFinding) return 'none'
+  // ── 2b · THE FIRST SUMMARY IS STILL IN FLIGHT: claim nothing yet. ───────────────────────
+  // A fresh `?finding=1` navigation is the one thing we already know without the server, so
+  // it keeps its spinner; everyone else keeps the desk they had. Deciding anything else here
+  // would flash a wait state at every client on every page load.
+  if (input.server === 'loading') return input.urlFinding ? 'finding' : 'none'
 
-  // 4 · The wait is bounded, and it can end two ways that must agree: the tab stayed open
-  //     and the poll ran out, or the tab was reopened and the durable stamp is already
-  //     older than the bound. The second is what stops a reopen restarting the clock.
-  const pastBound =
-    input.pollExhausted ||
-    (input.startedAt > 0 && input.now - input.startedAt > PROOF_WAIT_MS)
-  return pastBound ? 'recovery' : 'finding'
+  // ── 3 · THE SERVER CAN BE REACHED: it is the only clock. ────────────────────────────────
+  if (input.server === 'ok') {
+    const claimed = input.proofPassesDone > 0
+    // Not a claimed proof and not a fresh navigation → nothing is being waited for, and the
+    // desk keeps its ordinary honest empty state. Someone who never started a run must not
+    // be shown a spinner.
+    if (!claimed && !input.urlFinding) return 'none'
+
+    // ⚠️ THE SERVER'S STAMP IS THE ONLY TIMING INPUT HERE. There is no browser value left to
+    // override it, which is the point: a stale stamp from an older pass cannot age a fresh
+    // run, and a missing one cannot blank a real one.
+    //
+    // `serverStartedAt === 0` is UNKNOWN — a row from before the column existed, or a
+    // `?finding=1` navigation whose claim the summary has not caught up with yet. Unknown
+    // does NOT invent an age; it waits, bounded by the poll, and then recovers.
+    const pastBound =
+      input.pollExhausted ||
+      (input.serverStartedAt > 0 && input.now - input.serverStartedAt > PROOF_WAIT_MS)
+    return pastBound ? 'recovery' : 'finding'
+  }
+
+  // ── 4 · THE SERVER CANNOT BE REACHED. ──────────────────────────────────────────────────
+  //
+  // The desk has no facts: it cannot say a proof is running, and it equally cannot say one
+  // is not. Three things are therefore forbidden here, and each was asked for by name: it
+  // must not report `no_match`; it must not fall to the generic "no leads waiting" empty
+  // state MERELY because a request failed, which would state as fact something it could not
+  // check; and it must not spin forever waiting for a backend that is not answering.
+  //
+  // ⚠️ AND IT MUST NOT INVENT A START TIME. On another device there is nothing to invent
+  // one from, and a guessed clock is what this whole change removes. So elapsed time is not
+  // estimated at all — the bounded poll is the entire budget, and when it is spent the desk
+  // shows the neutral recovery line: setup saved, flagged for review, nothing to redo. That
+  // sentence is true of an unreachable API as much as of a crashed run, and it claims
+  // nothing about the client's targeting either way.
+  return input.pollExhausted ? 'recovery' : 'finding'
 }

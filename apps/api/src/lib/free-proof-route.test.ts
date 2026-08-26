@@ -761,7 +761,7 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
 
   it('proof state comes from the EXISTING server column — no second counter', () => {
     const s = summarySrc()
-    expect(s).toContain("db.from('clients').select('wallet_balance_usd, proof_passes_done')")
+    expect(s).toContain("db.from('clients').select('wallet_balance_usd, proof_passes_done, proof_started_at')")
     expect(s).toContain('proof_passes_done: Number((client as Record<string, number> | null)?.proof_passes_done ?? 0)')
     // …and the desk reads THAT, rather than counting anything itself.
     expect(desk()).toContain('const proofPassesDone = summary?.proof_passes_done ?? 0')
@@ -863,7 +863,7 @@ describe('batch refinement — pass 1 → refine → pass 2, then a human', () =
   })
 
   it('a successful pass 2 enters the EXISTING finding experience', () => {
-    expect(desk()).toContain("router.push(`/milla?finding=1&since=${startedAt}`)")
+    expect(desk()).toContain("router.push('/milla?finding=1')")
   })
 
   // ⛓️ AMENDED 25 Aug — the merge MOVED to submitRefine, so its guard moves with it. The
@@ -1316,9 +1316,9 @@ describe('the desk cannot spend a pass it has not earned', () => {
 
   it('25 · a SUCCESSFUL pass 2 still enters the existing finding experience', () => {
     const c = confirmBody()
-    expect(c).toContain("router.push(`/milla?finding=1&since=${startedAt}`)")
+    expect(c).toContain("router.push('/milla?finding=1')")
     // …and only after the claim, never instead of it.
-    expect(c.indexOf('/proof`')).toBeLessThan(c.indexOf("router.push(`/milla?finding=1&since=${startedAt}`)"))
+    expect(c.indexOf('/proof`')).toBeLessThan(c.indexOf("router.push('/milla?finding=1')"))
   })
 
   // ── E · error copy that matches what actually happened ───────────────────────────────

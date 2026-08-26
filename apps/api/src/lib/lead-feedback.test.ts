@@ -174,7 +174,7 @@ describe('⑥ the migration is in BOTH homes (AR6) and the runner moved 28 → 2
     // 29 -> 30 -> 31 on 21 Aug: P33's morning_brief_once_per_day, then P34's meeting_briefs.
     // 32 -> 33 on 25 Aug: 20260825_proof_widened_candidate — the ONE column that lets a
     // client's accepted widened proof become the targeting they pay for.
-    expect(keys.length, `runner entries: ${keys.length}`).toBe(35)   // +1 26 Aug (20260826_run_outcome_failed — status gains 'failed', R72)   // +1 26 Aug (20260826_acquisition_memory — company memory of every PAID identity, R67)
+    expect(keys.length, `runner entries: ${keys.length}`).toBe(36)   // +1 26 Aug (20260826_proof_started_at — clients.proof_started_at, stamped by try_claim_proof_pass in the SAME atomic update as the counter: the proof desk's clock stops being inferred from the browser, where a lost POST response, another device or a stale older-pass stamp could each make a healthy run look failed)   // +1 26 Aug (20260826_run_outcome_failed — status gains 'failed', R72)   // +1 26 Aug (20260826_acquisition_memory — company memory of every PAID identity, R67)
     // ⚠️ WAS `keys[keys.length - 1]` — "P32 is LAST". That was only ever true until the
     // next migration existed, so it asserted a fact about the calendar rather than about
     // P32. What this test is FOR is that P32's entry is in the runner at all; that is now

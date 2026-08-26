@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
 import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
-import { rememberProofStart, storedProofStart, proofWaitState, PROOF_WAIT_MS } from '@/lib/proof-start'
+import { proofWaitState, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -35,6 +35,10 @@ type Summary = {
    *  Lets the desk tell 0 / 1 / 2 apart WITHOUT making the client press something
    *  just to discover a 409. */
   proof_passes_done?: number
+  /** ⚑ 26 Aug — when the CURRENT pass was claimed (ISO), written by `try_claim_proof_pass`
+   *  in the same atomic statement as the counter above. The desk's authoritative clock.
+   *  Absent/null = UNKNOWN (a row predating the column), never "long ago". */
+  proof_started_at?: string | null
   /** ⚑ 26 Aug — the terminal truth of the newest COMPLETED run. `null` = none has ever
    *  finished, which is NOT the same as "still running". See `terminalRun` below. */
   proof_run?: { status: string; message: string; total_inserted: number; finished_at: string | null } | null
@@ -110,36 +114,32 @@ const CHIPS = [
 function isFinding(): boolean {
   try { return new URLSearchParams(window.location.search).get('finding') === '1' } catch { return false }
 }
-/**
- * WHEN the run we are waiting on was started, as epoch ms, carried in the URL.
- *
- * ⚠️ IT LIVES IN THE URL SO IT SURVIVES A RELOAD. A ref or component state resets on
- * refresh, and then a run that had already finished looked older than "now" and the desk
- * went back to spinning — the exact reload defect this build exists to kill.
- *
- * ⚠️ MISSING OR UNPARSEABLE RETURNS 0, which makes ANY completed run count as terminal.
- * That is the safe direction: an old link resolves to a truthful end state rather than a
- * spinner that never stops. Erring the other way is what shipped.
- */
-function findingSince(): number {
-  try {
-    const raw = new URLSearchParams(window.location.search).get('since')
-    const n = raw ? Number(raw) : NaN
-    return Number.isFinite(n) && n > 0 ? n : 0
-  } catch { return 0 }
-}
+// ⛓️ `findingSince()` IS GONE (26 Aug). It read a `?since=` epoch out of the URL, which was
+// the desk's clock before the claim recorded its own. Two sources of timing truth is what
+// produced every contradiction this arc chased — a stamp written after the POST returned, a
+// stamp missing on another device, a stale stamp from an older pass — so the browser clock
+// was removed outright rather than demoted. Nothing writes `?since=` any more; the URL
+// cleanup below still strips it so an old link in someone's history tidies itself.
 
 /**
- * WHEN the run we are waiting on started — URL stamp first, durable mirror second.
+ * ⚑ 26 Aug — WHEN THE CURRENT PROOF PASS STARTED, from the server that claimed it.
  *
- * The URL answers for the tab that started the run; `storedProofStart()` answers after a
- * close-and-reopen, where the query string is gone. **0 means genuinely UNKNOWN**, and the
- * caller must treat it as "may still be running", never as "finished long ago" — see
- * `lib/proof-start.ts` for why the server cannot answer this and what the limits are.
+ * `clients.proof_started_at` is written inside the SAME atomic UPDATE that increments
+ * `proof_passes_done`, so it always describes the latest claim and cannot exist without it.
+ * This replaced a browser clock — a `?since=` stamp mirrored into localStorage — which was
+ * written only AFTER the /proof POST returned, was scoped to one browser profile, and could
+ * be stale from an older pass. All three of those produced wrong answers about a run that
+ * was working; a value the claim itself wrote cannot.
+ *
+ * **0 means UNKNOWN, never "long ago"** — a row from before the column existed, or a claim
+ * the summary has not caught up with. The rule treats unknown as "may still be running"
+ * under the bounded poll rather than inventing an age.
  */
-function proofStartedAt(): number {
-  const fromUrl = findingSince()
-  return fromUrl > 0 ? fromUrl : storedProofStart()
+function serverProofStartedAt(summary: Summary | null): number {
+  const raw = summary?.proof_started_at
+  if (!raw) return 0
+  const n = Date.parse(raw)
+  return Number.isFinite(n) && n > 0 ? n : 0
 }
 /**
  * ⚑ 26 Aug (final review) — THE BOUND IS DERIVED FROM THE BACKEND'S OWN WORST CASE,
@@ -179,6 +179,12 @@ if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS) {
 export default function MillaHomePage() {
   const router = useRouter()
   const [summary, setSummary] = useState<Summary | null>(null)
+  // ⚑ 26 Aug — CAN WE REACH BACKEND TRUTH AT ALL? Three states, because collapsing them
+  // lies in one direction or the other: 'loading' must not flash a wait state at a client
+  // whose desk is simply empty, and 'unreachable' must not fall to "no leads waiting",
+  // which would state as fact something the desk could not check. Once 'ok', a later poll
+  // failure does NOT drop back — truth we already hold is still truth.
+  const [serverState, setServerState] = useState<'loading' | 'ok' | 'unreachable'>('loading')
   // #511f — the client's own Nexus, surfaced (the flywheel: they see Milla getting sharper).
   const [nexus, setNexus] = useState<{ learned: string; top_persona: string | null; reply_rate: number; meeting_rate: number; confidence: string; sample_worked: number } | null>(null)
   const [leads, setLeads] = useState<MaskedLead[] | null>(null)
@@ -243,9 +249,13 @@ export default function MillaHomePage() {
       if (lr.status === 'rejected') setError('Your leads could not be loaded just now — this is not the same as having none. Refresh in a moment.')
       const s = sr.status === 'fulfilled' ? sr.value : null
       const l = lr.status === 'fulfilled' ? lr.value : null
-      if (!s) { setLeads(l?.data ?? []); return }
+      // ⚑ 26 Aug — the summary leg failed. Only downgrade if we have never had it: a desk
+      // holding a previously-loaded summary still has real server truth, and one bad poll
+      // must not turn that into "we cannot reach the backend".
+      if (!s) { setLeads(l?.data ?? []); setServerState(p => p === 'ok' ? 'ok' : 'unreachable'); return }
       if (l) setLeads(l.data)
       setSummary(s.data)
+      setServerState('ok')
       const n = s.data.leads_awaiting
       const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
       // The greeting quoted "a flat $4 per lead, final" to every client, including one
@@ -270,7 +280,13 @@ export default function MillaHomePage() {
           ? `Hi 👋 I'm Milla. I'm finding real people who match your targeting right now — they'll appear on the right as soon as I have them.`
           : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
         ...m.filter(x => x.id !== 'greet')])
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your dashboard') }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load your dashboard')
+      // Same rule as the rejected-leg case above: only a desk that has NEVER had server
+      // truth is unreachable. Repeated failure then reaches bounded recovery, never a
+      // generic "no leads waiting" that the desk was in no position to assert.
+      setServerState(p => p === 'ok' ? 'ok' : 'unreachable')
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -365,10 +381,17 @@ export default function MillaHomePage() {
     if (!r || !r.finished_at) return null
     const finishedAt = Date.parse(r.finished_at)
     if (!Number.isFinite(finishedAt)) return null
-    // `findingSince()` is 0 for an old link with no stamp — then any completed run counts,
-    // which resolves to a truthful end state rather than an endless spinner.
-    return finishedAt >= findingSince() ? r : null
-  }, [summary?.proof_run])
+    // ⚑ 26 Aug — SCOPED BY THE SERVER'S OWN CLOCK. An outcome left by pass 1 must never
+    // terminate pass 2's wait, and the fact that separates them is now `proof_started_at`,
+    // which the claim advanced when pass 2 was taken. This used to compare against the URL's
+    // `?since=` stamp — so a clean URL, another device or a lost POST response left it at 0
+    // and let an OLD outcome end a NEW run's wait.
+    //
+    // ⚠️ 0 (no server stamp: a row predating the column) keeps the old, safe behaviour —
+    // any completed run counts, which resolves to a truthful end state rather than an
+    // endless spinner. Erring the other way is what shipped once already.
+    return finishedAt >= serverProofStartedAt(summary) ? r : null
+  }, [summary])
 
   // Zero is a RESULT, not an absence. It ends the wait and never triggers another search:
   // nothing here starts sourcing, and the one proof POST lives on the confirmation screen.
@@ -509,12 +532,12 @@ export default function MillaHomePage() {
       proofAttemptedRef.current = true
       setProofAttempted(true)
       await api.post(`/icps/${afterId}/proof`, {}, tk)
-      // ⚑ 26 Aug — STAMP THE START ONCE, IN BOTH PLACES IT CAN BE READ FROM. The URL carries
-      // it for this navigation; the durable mirror carries it across a close-and-reopen,
-      // where the query string is gone. Same value, same instant — the run started here.
-      const startedAt = Date.now()
-      rememberProofStart(startedAt)
-      router.push(`/milla?finding=1&since=${startedAt}`)
+      // ⚑ 26 Aug — `?finding=1` IS A HINT, NOT A CLOCK. It covers the one moment the server
+      // cannot: between this navigation and the first summary landing. The run's actual
+      // START was recorded by the claim itself (`clients.proof_started_at`), so no timestamp
+      // is carried here and none is written to browser storage — there is no second source
+      // of timing left to go stale, and the server's answer is the only one.
+      router.push('/milla?finding=1')
     } catch (e) {
       // ── STAGE-ACCURATE, BECAUSE THE OLD SENTENCE COULD BE A LIE ────────────────────────
       // One generic message said *"Your targeting is saved"* for every failure — including
@@ -769,10 +792,10 @@ export default function MillaHomePage() {
     hasTerminalOutcome: !!terminalRun,
     pendingCount:       pending.length,
     revealedCount:      Object.keys(revealed).length,
+    server:             serverState,
     proofPassesDone:    summary?.proof_passes_done ?? 0,
-    hasSummary:         !!summary && !summary.proof_run,
+    serverStartedAt:    serverProofStartedAt(summary),
     urlFinding:         finding,
-    startedAt:          proofStartedAt(),
     now:                Date.now(),
     pollExhausted:      findingTimedOut,
   })

@@ -619,7 +619,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // ⚑ 24 Aug — plain '/milla' was not enough: the desk fetched once and told them "no
     // leads waiting" while their run was still going. The flag is what turns the desk's
     // honest-empty state into an honest-finding state.
-    expect(welcomeCode).toContain("router.push(`/milla?finding=1&since=${startedAt}`)")
+    expect(welcomeCode).toContain("router.push('/milla?finding=1')")
     // …and that is the ONLY navigation out of a successful confirmation.
     expect((welcomeCode.match(/router\.push\(/g) ?? [])).toHaveLength(1)
   })
@@ -642,7 +642,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // claims the client's second pass.
     const block = welcomeCode.slice(
       welcomeCode.indexOf('/proof`'),
-      welcomeCode.indexOf("router.push(`/milla?finding=1&since=${startedAt}`)"),
+      welcomeCode.indexOf("router.push('/milla?finding=1')"),
     )
     expect(block.length, 'the proof failure block').toBeGreaterThan(0)
 

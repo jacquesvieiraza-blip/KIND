@@ -75,19 +75,36 @@ describe('the desk stops guessing', () => {
 
   it('a run only ends THIS wait if it finished after the wait began', () => {
     // Otherwise an outcome left by pass 1 would instantly terminate pass 2's spinner.
-    expect(portal).toContain('finishedAt >= findingSince()')
+    expect(portal).toContain('finishedAt >= serverProofStartedAt(summary)')
   })
 
-  it('the start stamp lives in the URL, so a RELOAD cannot resurrect the spinner', () => {
-    expect(portal).toContain('finding=1&since=${startedAt}')
-    expect(portal).toContain("new URLSearchParams(window.location.search).get('since')")
-    // And it is cleared with the flag when leads arrive.
+  it('⛓️ the start stamp lives on the SERVER now, not in the URL', () => {
+    // ⛓️ REWRITTEN 26 Aug, because its premise was replaced rather than adjusted. This used
+    // to assert a `?since=` epoch in the URL and a reader for it — the desk's clock before
+    // the claim recorded its own. That clock was inference: written only AFTER the /proof
+    // POST returned (so a lost response left a claimed run with no start anywhere), scoped
+    // to one browser profile, and able to go stale from an older pass.
+    //
+    // `clients.proof_started_at` is written INSIDE the atomic claim, so a reload cannot
+    // resurrect anything — the same server value is read every time.
+    expect(portal).toContain("router.push('/milla?finding=1')")
+    expect(portal, 'no clock may travel in the URL any more').not.toContain('since=${')
+    expect(portal).not.toContain("get('since')")
+    // The flag survives as a hint for the moment before the first summary lands, and the
+    // legacy `since` param is still stripped so an old link in someone's history tidies up.
     expect(portal).toContain("url.searchParams.delete('since')")
   })
 
-  it('a missing stamp resolves to TERMINAL, never to an endless spinner', () => {
-    const fn = portal.slice(portal.indexOf('function findingSince()'), portal.indexOf('const FINDING_POLL_MS'))
-    // 0 makes any completed run count as ours — the safe direction.
+  it('an UNKNOWN server start resolves to TERMINAL, never to an endless spinner', () => {
+    // A row predating the column has no start. 0 keeps the old, safe direction: any
+    // completed run counts as ours, which ends in a truthful terminal state rather than a
+    // spinner nobody can stop. Erring the other way is what shipped once already.
+    const fn = portal.slice(
+      portal.indexOf('function serverProofStartedAt('),
+      portal.indexOf('const FINDING_POLL_MS'),
+    )
+    expect(fn, 'the server-start reader').not.toBe('')
+    expect(fn).toContain('if (!raw) return 0')
     expect(fn).toContain('return Number.isFinite(n) && n > 0 ? n : 0')
   })
 
@@ -216,7 +233,7 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
     // `terminalRun` derives from `summary.proof_run`, refetched on every load, and the
     // wait's start moment lives in the URL. Neither resets on refresh.
     expect(portal).toContain('const r = summary?.proof_run')
-    expect(portal).toContain('finishedAt >= findingSince()')
+    expect(portal).toContain('finishedAt >= serverProofStartedAt(summary)')
   })
 
   it('the runner and the schema both allow the new value', () => {

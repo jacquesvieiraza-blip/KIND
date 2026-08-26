@@ -1996,6 +1996,66 @@ comment on column public.icps.proof_widened_candidate is
   'Free-proof pass-2 widened-fallback acceptance state. Server-owned only: never accepted from a browser, never read by sourcing, scoring or sending, and never applied by an operator GO. Shape: {version, state: pending|accepted, proof_pass, batch_at, basis:{job_titles, seniority_levels, industries, company_sizes, geographies}, accepted_at?}. batch_at is the surfaced_for_approval_at stamp of the batch it produced; basis is the saved ICP targeting the widened search was derived from, BEFORE seniority and size were removed. Only ''pending'' may change targeting, and the transition to ''accepted'' happens in the same conditional UPDATE that clears seniority_levels and company_sizes — so a replayed click cannot mutate twice. NULL for every paying client and for every proof that did not widen.';
 `.trim(),
   },
+  {
+    // ⚑ 26 Aug — THE PROOF DESK'S CLOCK BECOMES SERVER TRUTH (founder-authorised).
+    //
+    // The desk decides "still finding your matches" vs the approved recovery copy from how
+    // long the run has been going, and nothing on the server could answer that: the claim
+    // stored a counter and no time, run outcomes exist only once a run FINISHES, and the
+    // proof ledger has a row only when PDL was reserved. So the desk inferred the start from
+    // the browser — and a browser stamp is written only AFTER the POST returns, is scoped to
+    // one profile, and can be stale from an older pass. A server that claimed a pass and lost
+    // its response left a claimed run whose start existed nowhere.
+    //
+    // ONE COLUMN, written inside the SAME UPDATE that claims the pass, so the counter and the
+    // clock can never disagree. Pass 1 sets it, pass 2 advances it, every refusal returns
+    // before it. The pass it belongs to is already readable from `proof_passes_done` in the
+    // same row, so no second identity column is needed.
+    //
+    // Additive and idempotent. Existing rows stay NULL and are NEVER backfilled — there is no
+    // truthful historical source, and inventing one is the fabrication this column ends.
+    key: '20260826_proof_started_at',
+    title: 'clients.proof_started_at + try_claim_proof_pass stamps it atomically — the proof desk stops inferring its clock from the browser',
+    sql: `
+alter table public.clients
+  add column if not exists proof_started_at timestamptz;
+
+comment on column public.clients.proof_started_at is
+  'When the CURRENT (latest) free-proof pass was claimed, set by try_claim_proof_pass in the same atomic statement that increments proof_passes_done. The authoritative clock for the proof desk''s bounded wait. NULL means no pass has been claimed since this column existed — never backfilled, because no truthful historical source exists.';
+
+create or replace function public.try_claim_proof_pass(p_client_id uuid)
+returns int
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_done int;
+begin
+  if p_client_id is null then return 0; end if;
+
+  -- FOR UPDATE serialises two requests racing for the same pass: the loser reads the
+  -- winner's committed value, not a stale one, and is refused.
+  select coalesce(proof_passes_done, 0) into v_done
+    from public.clients where id = p_client_id for update;
+
+  if v_done is null then return 0; end if;     -- unknown client: fail closed
+  if v_done >= 2 then return 0; end if;        -- two passes used: a human takes over
+
+  -- ONE STATEMENT: the pass is claimed and its start time recorded together, or neither
+  -- happens. now() is the server's clock and is the only source this value ever has.
+  update public.clients
+     set proof_passes_done = v_done + 1,
+         proof_started_at  = now()
+   where id = p_client_id;
+  return v_done + 1;
+end;
+$$;
+
+revoke execute on function public.try_claim_proof_pass(uuid) from public;
+grant  execute on function public.try_claim_proof_pass(uuid) to service_role;
+`.trim(),
+  },
 ]
 
 // Runs the statements against DATABASE_URL. Uses node-postgres because the Supabase JS

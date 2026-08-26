@@ -26,6 +26,28 @@ export interface MillaSummaryData {
    *  available · 2 = both spent, a human takes it from here. Before this, the only way
    *  to learn the third state was to POST and read the 409. */
   proof_passes_done: number
+  /**
+   * ⚑ 26 Aug — WHEN THE CURRENT PROOF PASS WAS CLAIMED. ISO string, or null.
+   *
+   * Read straight from `clients.proof_started_at`, which `try_claim_proof_pass` writes in
+   * the SAME atomic statement that increments the counter above. It therefore always
+   * describes the LATEST claim — pass 1 sets it, pass 2 advances it, a refused claim never
+   * reaches it — and the pass it belongs to is `proof_passes_done` in the same row.
+   *
+   * ⚠️ THIS IS THE DESK'S AUTHORITATIVE CLOCK, and it exists to end an inference. The desk
+   * decides "still finding your matches" from the approved recovery copy by elapsed time,
+   * and it used to get that from the browser: a `?since=` stamp written only AFTER the
+   * /proof POST returned, mirrored into localStorage. A server that claimed the pass and
+   * then lost its response left a claimed run whose start existed nowhere; a clean URL lost
+   * it; another device never had it; a stale stamp from an older pass could make a fresh run
+   * look old enough to have failed. None of that can happen to a value the claim itself
+   * wrote.
+   *
+   * ⚠️ NULL MEANS UNKNOWN, NEVER "LONG AGO". Rows that predate the column stay null and are
+   * never backfilled — there is no truthful source to backfill from. The desk treats null as
+   * "may still be running" under its bounded poll rather than inventing an age.
+   */
+  proof_started_at: string | null
   pack: ReturnType<typeof packState>
   leads_awaiting: number
   meetings_booked: number
@@ -62,7 +84,7 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString()
 
   const [{ data: client }, awaiting, meetings, campaign, replies, icps, approvedTotal, repliesTotal, meetingsTotal, purchases, lastRun] = await Promise.all([
-    db.from('clients').select('wallet_balance_usd, proof_passes_done').eq('id', clientId).maybeSingle(),
+    db.from('clients').select('wallet_balance_usd, proof_passes_done, proof_started_at').eq('id', clientId).maybeSingle(),
     // mirrors /for-approval — the exact set of masked cards the client can act on
     db.from('leads').select('id', { count: 'exact', head: true })
       .eq('client_id', clientId).not('delivered_at', 'is', null)
@@ -130,6 +152,12 @@ export async function buildMillaSummaryData(clientId: string): Promise<MillaSumm
     // something. The behaviour is right; only the sentence describing it was wrong, and it
     // is the sentence that changed.
     proof_passes_done: Number((client as Record<string, number> | null)?.proof_passes_done ?? 0),
+    // ⚑ 26 Aug — the claim's own stamp, passed through untouched. Absent column (migration
+    // not yet run) and absent value both read as null, which the desk treats as UNKNOWN.
+    proof_started_at: (() => {
+      const v = (client as Record<string, unknown> | null)?.proof_started_at
+      return typeof v === 'string' && v.length > 0 ? v : null
+    })(),
     // ⚠️ NULL means no run has ever COMPLETED — never "still running". The desk decides
     // which by comparing `finished_at` against the moment it started the run it is
     // waiting on; an older outcome belongs to an earlier pass and must not end this one.

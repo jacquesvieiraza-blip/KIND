@@ -279,12 +279,29 @@ describe('R67 — acquisition memory: retention is not contactability', () => {
     spy.mockRestore()
   })
 
-  it('the shipped sourcing path does NOT swallow that failure', () => {
+  // ⛓️ AMENDED BY FOUNDER RULING (26 Aug, final review). This guard used to forbid ANY
+  // catch around the memory write, because the first defect was a catch that swallowed
+  // the failure and let the run process paid identities as if nothing happened. The
+  // ruling resolved the collision with the partial-proof rule: a catch now EXISTS, and
+  // what it must do is the new invariant — withhold every paid identity, keep the
+  // already-safe pool matches, drop trust so a zero-pool run derives `failed`, and tell
+  // a human. What stays forbidden forever: a paid identity being INSERTED after its
+  // memory write failed.
+  it('a memory failure WITHHOLDS every paid identity and keeps the pool (founder ruling)', () => {
     const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
     const at = src.indexOf('rememberAcquiredIdentities(db as never, memories)')
-    const block = src.slice(src.indexOf('REMEMBER EVERY PAID IDENTITY'), at + 400)
-    // No catch may wrap the memory write — that was the defect.
-    expect(block).not.toMatch(/catch\s*\(/)
+    const block = src.slice(src.indexOf('AMENDED BY FOUNDER RULING'), at + 1600)
+    // The catch exists and does exactly the ruled three things:
+    expect(block).toContain('contacts = []')                    // ① paid identities withheld
+    expect(block).toContain("searchTrust = 'unproven'")          // ② zero-pool → failed, never no_match
+    expect(block).toContain('CRITICAL: paid identities acquired but NOT recorded')  // ③ human told
+    // And the pool half of the ruling is stated where it executes:
+    expect(block).toContain('pool-served matches')
+    // The withholding must come BEFORE the insertion loop reads `contacts`.
+    const emptied = src.indexOf('contacts = []', src.indexOf('AMENDED BY FOUNDER RULING'))
+    const insertLoop = src.indexOf('for (const contact of contacts) {', src.indexOf('AMENDED BY FOUNDER RULING'))
+    expect(emptied).toBeGreaterThan(-1)
+    expect(insertLoop, 'withholding must precede the insert loop').toBeGreaterThan(emptied)
   })
 
   // ── SUPPRESSION TRANSITION — the ON CONFLICT DO NOTHING staleness bug ──────────

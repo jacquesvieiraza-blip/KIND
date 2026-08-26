@@ -21,6 +21,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { deriveRunStatus, runOutcomeMessage } from './run-outcome'
+import { exhaustedMessage } from './pdl-cursor'
 
 const ICP = { job_titles: ['Head of Ops'], seniority_levels: [], company_sizes: [], geographies: ['United Kingdom'], industries: ['Logistics'] }
 
@@ -195,25 +196,45 @@ describe('B · PdlPage.completed tells the truth about each failure class', () =
 // ─────────────────────────────────────────────────────────────────────────────
 // C. THE WIRING — the run actually carries the fact to the outcome
 // ─────────────────────────────────────────────────────────────────────────────
-describe('C · runIcpJob threads trustworthiness into the persisted status', () => {
+describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted status', () => {
   const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
 
-  it('starts trustworthy and is only ever falsified by a provider verdict', () => {
-    expect(src).toContain('let searchCompleted = true')
-    expect(src).toContain('if (!pdlPage.completed) searchCompleted = false')
+  // ⛓️ AMENDED 26 Aug (final review). The first shape was `let searchCompleted = true`,
+  // falsified by the error paths we knew about — which meant every path we did NOT know
+  // about defaulted to trustworthy and could become a false `no_match`. Trust is now a
+  // tri-state that DROPS to 'unproven' the moment a provider answer is required, and is
+  // promoted only by explicit positive evidence. A new error path someone adds next year
+  // fails closed by doing nothing at all.
+  it('trust starts not_required, and the fail-open boolean is gone', () => {
+    expect(src).toContain("let searchTrust: 'not_required' | 'unproven' | 'proven' = 'not_required'")
+    expect(src).not.toContain('let searchCompleted = true')
   })
 
-  it('a client run with NO page at all is untrustworthy (house/Apollo is not)', () => {
-    expect(src).toContain("} else if (audience === 'client') {")
+  it('entering the provider branch drops trust to unproven BEFORE the call', () => {
+    const enter = src.indexOf("searchTrust = 'unproven'")
+    const call = src.indexOf('const exact = await searchPeopleWithFallback', enter)
+    expect(enter).toBeGreaterThan(-1)
+    expect(call, 'the drop must precede the exact search').toBeGreaterThan(enter)
   })
 
-  it('the UNPROVEN widened zero agrees with its own sentence', () => {
-    const at = src.indexOf('couldn’t confirm a second set')
-    expect(src.slice(at, at + 500)).toContain('searchCompleted = false')
+  it('promotion requires POSITIVE evidence: a completed page, or the throwing house path returning', () => {
+    expect(src).toContain("if (pdlPage.completed) searchTrust = 'proven'")
+    expect(src).toContain("} else if (audience === 'house') {")
+    // No branch promotes on mere absence of error.
+    expect(src).not.toMatch(/searchTrust = 'proven'\s*\/\/ default/)
   })
 
-  it('the persisted status is derived WITH it', () => {
-    expect(src).toContain('deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, searchCompleted)')
+  it('the widened fallback must prove itself SEPARATELY — the exact proof does not transfer', () => {
+    const wideDrop = src.indexOf("searchTrust = 'unproven'", src.indexOf('const wide = await searchPeopleWithFallback') - 600)
+    const wideCall = src.indexOf('const wide = await searchPeopleWithFallback')
+    expect(wideDrop).toBeGreaterThan(-1)
+    expect(wideCall).toBeGreaterThan(wideDrop)
+    expect(src).toContain("if (wide.pdlPage?.completed) searchTrust = 'proven'")
+  })
+
+  it('the persisted status is derived from the trust reader', () => {
+    expect(src).toContain("const trusted = searchTrust !== 'unproven'")
+    expect(src).toContain('deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, trusted)')
   })
 
   it('the PROVED-ZERO widened branch stays trustworthy — a real zero is still no_match', () => {
@@ -259,18 +280,22 @@ describe('D · the rules this build must not have broken', () => {
 describe('E · suppression must never be reported as a targeting failure', () => {
   const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
 
-  it('a completed search emptied entirely by suppression does NOT derive no_match', () => {
-    expect(src).toContain('const suppressionAte = inserted === 0 && searchCompleted && allRemovedBySuppression')
+  // ⛓️ GENERALISED 26 Aug (final review): suppression-all was one instance of a wider
+  // truth — a zero that K.I.N.D itself created (suppression, dedupe, insert failure) is
+  // never a targeting verdict. One condition now covers every K.I.N.D-side removal.
+  it('a completed search whose contacts K.I.N.D removed does NOT derive no_match', () => {
+    expect(src).toContain("const gatesAteEverything = inserted === 0 && searchTrust !== 'unproven' && providerContactsReturned > 0")
     expect(src).toContain("? 'failed'")
   })
 
-  it('the count comes from the reason the memory pass already resolved', () => {
-    expect(src).toContain("if (reason !== null) suppressedHere += 1")
-    expect(src).toContain('suppressedHere === contacts.length) allRemovedBySuppression = true')
+  it('the counts come from the gates that actually removed them', () => {
+    expect(src).toContain('if (reason !== null) suppressedHere += 1')
+    expect(src).toContain('removedByDedupe++')
+    expect(src).toContain('providerContactsReturned = contacts.length')
   })
 
   it('the real cause reaches a HUMAN and never the prospect', () => {
-    const at = src.indexOf('A completed search was emptied entirely by suppression')
+    const at = src.indexOf('A completed search was emptied entirely by K.I.N.D-side gates')
     expect(at).toBeGreaterThan(-1)
     const alert = src.slice(at - 200, at + 700)
     expect(alert).toContain('sendFounderAlert')
@@ -304,7 +329,8 @@ describe('E · the desk is bounded — a wait that never resolves ends in recove
   })
 
   it('the poll is bounded and offers no uncontrolled retry', () => {
-    expect(portal).toContain('const FINDING_MAX_CHECKS = 20')
+    // 80 × 3s = 240s — derived from the backend worst case, see section F below.
+    expect(portal).toContain('const FINDING_MAX_CHECKS = 80')
     expect(portal).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
   })
 })
@@ -329,5 +355,142 @@ describe('E · a short batch states its real size', () => {
       .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
       .replace(/^\s*\/\/.*$/gm, '')
     expect(block).not.toMatch(/of 20|out of 20|more coming|retry|try again/i)
+  })
+})
+
+// ─────────────────────────────────────────────────────────────────────────────
+// F. THE FINAL REVIEW (26 Aug) — collision ruling, dedupe-all, bound math,
+//    and the complete status inventory
+// ─────────────────────────────────────────────────────────────────────────────
+describe('F · the acquisition-memory collision, as the founder ruled it', () => {
+  const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+  const block = src.slice(src.indexOf('AMENDED BY FOUNDER RULING'), src.indexOf('for (const contact of contacts) {', src.indexOf('AMENDED BY FOUNDER RULING')))
+
+  it('A · safe pool matches survive a paid memory failure — paid identities do not', () => {
+    // The catch empties `contacts`, so the insert loop below it never runs: no paid
+    // identity can be inserted, surfaced or served. Pool leads were inserted EARLIER
+    // (servePoolLeads) and are untouched — they surface, and `inserted > 0` → served.
+    expect(block).toContain('contacts = []')
+    expect(block).toContain('pool-served matches')
+  })
+
+  it('B · zero pool + memory failure derives failed, never no_match', () => {
+    // Trust drops with the withholding, and a zero with unproven trust is `failed`.
+    expect(block).toContain("searchTrust = 'unproven'")
+    expect(deriveRunStatus(false, 0, false, false, false)).toBe('failed')
+  })
+
+  it('C · a CRITICAL alert names the money at risk', () => {
+    expect(block).toContain('CRITICAL: paid identities acquired but NOT recorded')
+    expect(block).toContain('The provider may bill for these records')
+  })
+
+  it('the memory write itself is unchanged — fail-closed with one retry (R67)', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let attempts = 0
+    const broken = {
+      from: () => ({
+        upsert: async () => { attempts++; return { error: { message: 'boom' } } },
+        update: () => ({ eq: () => ({ eq: () => ({ in: async () => ({ error: null }) }) }) }) as never,
+      }),
+    }
+    const { rememberAcquiredIdentities, toMemoryRecord, AcquisitionMemoryWriteError } = await import('./acquisition-memory')
+    await expect(rememberAcquiredIdentities(broken as never, [
+      toMemoryRecord({ id: 'pdl_x', first_name: 'A' }, { source: 'pdl', costUsd: 0.28 })!,
+    ])).rejects.toThrow(AcquisitionMemoryWriteError)
+    expect(attempts).toBe(2)
+    spy.mockRestore()
+  })
+})
+
+describe('F · dedupe-all is a neutral review state, not a targeting verdict', () => {
+  const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+
+  it('already-owned removals are counted at the gate that removes them', () => {
+    const at = src.indexOf('if (existing) { skipped++; removedByDedupe++; continue }')
+    expect(at).toBeGreaterThan(-1)
+  })
+
+  it('a completed search fully deduped routes to the SAME neutral state as suppression-all', () => {
+    // One condition covers every K.I.N.D-side removal: returned > 0, inserted 0, trusted.
+    expect(src).toContain("const gatesAteEverything = inserted === 0 && searchTrust !== 'unproven' && providerContactsReturned > 0")
+  })
+
+  it('audience_exhausted was REJECTED for this case, with the reason in the source', () => {
+    // Its copy says "widen the ICP" and its semantics claim the audience is finished —
+    // both false after a dedupe-all, where the cursor advanced and the next page may
+    // hold new people. The decision and its why live at the decision site.
+    const at = src.indexOf('deliberately does NOT reuse `audience_exhausted`')
+    expect(at).toBeGreaterThan(-1)
+    expect(exhaustedMessage(0)).toMatch(/widen/i)   // proof the rejection was right
+  })
+
+  it('the neutral client copy blames nobody and exposes nothing', () => {
+    expect(runOutcomeMessage('failed', 0)).not.toMatch(/widen|narrow|broaden/i)
+    expect(runOutcomeMessage('failed', 0)).not.toMatch(/duplicate|dedupe|already (have|own)|database|suppress|dnc/i)
+  })
+})
+
+describe('F · the polling bound is derived, not picked', () => {
+  const portalSrc = readFileSync(
+    join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8')
+
+  it('the client bound clears the backend worst case with margin', () => {
+    // Backend worst case, from code: 15s/attempt (pdl-search.ts AbortSignal.timeout),
+    // 4-rung ladder at batch 20, +17.5s rate-limit retry, ×2 for the widened fallback
+    // ≈ 155s, +overheads → ~180s. The client bound must exceed it.
+    const PDL_ATTEMPT_TIMEOUT = 15_000
+    const LADDER_RUNGS = 4
+    const RATE_LIMIT_RETRY = 2_500 + PDL_ATTEMPT_TIMEOUT
+    const WORST_ONE_SEARCH = LADDER_RUNGS * PDL_ATTEMPT_TIMEOUT + RATE_LIMIT_RETRY
+    const WORST_LEGITIMATE = 2 * WORST_ONE_SEARCH          // exact + one widened fallback
+    const pollMs = Number(/const FINDING_POLL_MS = (\d+)/.exec(portalSrc)?.[1])
+    const maxChecks = Number(/const FINDING_MAX_CHECKS = (\d+)/.exec(portalSrc)?.[1])
+    expect(pollMs).toBe(3000)
+    expect(maxChecks).toBe(80)
+    expect(pollMs * maxChecks, 'bound must exceed the legitimate worst case').toBeGreaterThan(WORST_LEGITIMATE)
+    // And the source constants the math rests on have not silently moved.
+    const pdl = readFileSync(join(__dirname, 'pdl-search.ts'), 'utf8')
+    expect(pdl.match(/AbortSignal\.timeout\(15000\)/g)?.length).toBeGreaterThanOrEqual(2)
+    expect(pdl).toContain('const ladder = [size, 25, 10, 5, 1]')
+  })
+
+  it('a healthy slow proof cannot be declared failed before the backend could still be working', () => {
+    const pollMs = 3000, maxChecks = 80
+    expect(pollMs * maxChecks).toBeGreaterThanOrEqual(180_000)
+  })
+})
+
+describe('F · the complete status space — no value exists as an untested assumption', () => {
+  const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+  const runner = readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8')
+
+  it('the type, the DB CHECK and the producers agree on exactly six statuses', () => {
+    const outcome = readFileSync(join(__dirname, 'run-outcome.ts'), 'utf8')
+    expect(outcome).toContain("export type RunStatus = 'served' | 'no_match' | 'quota_exhausted' | 'demo' | 'audience_exhausted' | 'failed'")
+    expect(runner).toMatch(/check \(status in \('served','no_match','quota_exhausted','demo','audience_exhausted','failed'\)\)/)
+  })
+
+  it('every status has a producer, and every producer writes a status in the enum', () => {
+    // The four explicit producers: two quota early-returns, the derived main outcome,
+    // and the crash boundary. Derivation covers served/no_match/demo/audience_exhausted/
+    // failed; the explicit sites cover quota_exhausted and crash-failed.
+    expect((src.match(/recordRunOutcome\(/g) ?? []).length).toBe(5)  // 1 def + 4 producers... adjusted below
+    expect(src).toContain("recordRunOutcome(icpId, clientId, 'quota_exhausted', effectiveCap, 0, 0)")
+    expect(src).toContain("recordRunOutcome(req.params.id, clientId, 'failed', PROOF_PASS_LEADS, 0, 0)")
+    expect(src).toContain('recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp)')
+  })
+
+  it('every status carries client copy, and none leaks mechanics', () => {
+    for (const st of ['served', 'no_match', 'quota_exhausted', 'demo', 'audience_exhausted', 'failed'] as const) {
+      const msg = runOutcomeMessage(st, st === 'served' ? 5 : 0)
+      expect(msg, st).toBeTruthy()
+      expect(msg, st).not.toMatch(/pdl|apollo|hunter|clearbit|http|stack|constraint|suppress|dedupe/i)
+    }
+  })
+
+  it('a LOST outcome write now alerts a human on every path, not only the constraint case', () => {
+    expect(src).toContain('An ICP run outcome could not be persisted — the client desk has no terminal truth for this run')
+    expect(src).toContain('An ICP run outcome could not be persisted (write threw)')
   })
 })

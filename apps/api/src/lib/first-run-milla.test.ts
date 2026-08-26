@@ -820,9 +820,13 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(rest.slice(0, end), 'the desk claim is inside confirmRefine').toContain('/proof`')
   })
 
-  it('the cadence is 3s, bounded at 20 checks (~60s)', () => {
+  it('the cadence is 3s, bounded at 80 checks (240s — sized to the backend worst case)', () => {
     expect(deskCode).toContain('const FINDING_POLL_MS = 3000')
-    expect(deskCode).toContain('const FINDING_MAX_CHECKS = 20')
+    // ⛓️ 26 Aug — 20 checks (~60s) could declare "We hit a snag" while a healthy slow
+    // proof was still inside its legitimate ~160–180s worst case (2 × PDL size-ladder at
+    // 15s/attempt + rate-limit retries). 80 × 3s = 240s clears that with margin and is
+    // still a hard stop. The derivation lives next to the constant.
+    expect(deskCode).toContain('const FINDING_MAX_CHECKS = 80')
     expect(deskCode).toContain('}, FINDING_POLL_MS)')
     expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
   })

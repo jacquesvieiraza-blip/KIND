@@ -127,10 +127,28 @@ function findingSince(): number {
     return Number.isFinite(n) && n > 0 ? n : 0
   } catch { return 0 }
 }
-/** Every 3s, at most 20 times — ~60s, then we stop and say so. Bounded on purpose: an
- *  unbounded poll on a run that died is a tab quietly hammering the API forever. */
+/**
+ * ⚑ 26 Aug (final review) — THE BOUND IS DERIVED FROM THE BACKEND'S OWN WORST CASE,
+ * not picked. The previous 20 × 3s ≈ 60s could declare "We hit a snag" while a
+ * perfectly healthy slow proof was still legitimately running. The math, from code:
+ *
+ *   · one PDL attempt:            fetch AbortSignal.timeout(15000)  = 15s   (pdl-search.ts)
+ *   · size ladder at batch 20:    [20, 10, 5, 1]                    = 4 attempts
+ *   · worst ladder walk (402s):   4 × 15s                           = 60s
+ *   · one global rate-limit retry: 2.5s pause + 15s                 = 17.5s
+ *   · exact search worst case:                                     ≈ 77.5s
+ *   · ONE widened fallback (same shape again):                     ≈ 77.5s
+ *   · pool query, DB writes, memory pass, alerts:                  ≈ seconds
+ *   → worst LEGITIMATE proof runtime                               ≈ 160–180s
+ *
+ * 80 checks × 3s = 240s: above the honest worst case with ~60s of margin, and still a
+ * hard stop — there is no server-side job timeout to lean on (the run is fire-and-forget
+ * in-process), so this client-side bound is the final failsafe, sized so it cannot fire
+ * before the backend could truly still be working. Bounded on purpose: an unbounded poll
+ * on a run that died is a tab quietly hammering the API forever.
+ */
 const FINDING_POLL_MS = 3000
-const FINDING_MAX_CHECKS = 20
+const FINDING_MAX_CHECKS = 80
 
 export default function MillaHomePage() {
   const router = useRouter()

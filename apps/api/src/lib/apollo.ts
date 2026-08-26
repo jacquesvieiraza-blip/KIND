@@ -1,6 +1,6 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage, type PdlSearchOptions } from './pdl-search'
-import { assertPaidProviderAllowed } from './paid-provider-guard'
+import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
 import { searchProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
@@ -349,7 +349,14 @@ export async function searchPeopleWithFallback(
   // and error-swallowing are untouched — this is the same `pdlSearchPage` the supplement
   // used, called directly instead of merged.
   if (provider === 'pdl') {
-    const pdlPage = await pdlSearchPage(icp, size, pdlCursor, opts).catch(() => null)
+    // ⚠️ `.catch(() => null)` ALONE WAS THE DEFECT. It exists for network flakiness, and
+    // for that it is right — but it also ate the zero-spend guard's deliberate refusal, so
+    // a blocked run finished with zero contacts, derived `no_match`, and told a prospect
+    // their targeting matched nobody when PDL was never asked. A block now propagates to
+    // the proof crash boundary and lands on the approved `failed` state; every other
+    // error still degrades exactly as before.
+    const pdlPage = await pdlSearchPage(icp, size, pdlCursor, opts)
+      .catch(e => { rethrowIfProviderBlocked(e); return null })
     const contacts = pdlPage?.contacts ?? []
     if (contacts.length > 0) return out(contacts, null, pdlPage)
     return out([], pdlPage?.error
@@ -480,6 +487,16 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   const data = await res.json() as { contacts?: ApolloContact[]; people?: ApolloContact[]; error?: string }
   // Apollo free plan returns error in body with 200 when credits run out
   if (data.error?.toLowerCase().includes('credit')) throw new ApolloCreditsExhaustedError()
+  // ⚑ 26 Aug (final gate) — AN UNRECOGNISED 200 IS NOT A ZERO. `?? []` here meant a 200
+  // whose body carried NEITHER key — a proxy error page, a schema change, an HTML body
+  // that happened to parse — came back as "Apollo completed and found nobody", the one
+  // soft path in a function whose every other failure throws. For the HOUSE audience that
+  // false zero would have been promoted to a trusted `no_match`. A genuine zero always
+  // carries the key with an empty array; a body with neither key is an answer we do not
+  // understand, and an answer we do not understand is not evidence of anything.
+  if (!Array.isArray(data.contacts) && !Array.isArray(data.people)) {
+    throw new Error(`Apollo API 200 with unrecognised body — neither "contacts" nor "people" present (${JSON.stringify(data).slice(0, 160)})`)
+  }
   return data.contacts ?? data.people ?? []
 }
 

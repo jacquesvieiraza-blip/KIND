@@ -68,17 +68,31 @@ function makeProofDb(initial?: { committed?: number; passes?: number; monthUsd?:
       reconciledAt: null, released: 0,
     })
   }
-  const perClient = new Map<string, { committed: number; passes: number }>()
+  // ⚑ 26 Aug — `startedAt` models `clients.proof_started_at`. NULL until a pass is claimed,
+  // exactly as the column ships: existing rows are never backfilled.
+  const perClient = new Map<string, { committed: number; passes: number; startedAt: string | null }>()
   const clientOf = (id: string) => {
-    if (!perClient.has(id)) perClient.set(id, { committed: initial?.committed ?? 0, passes: initial?.passes ?? 0 })
+    if (!perClient.has(id)) {
+      perClient.set(id, { committed: initial?.committed ?? 0, passes: initial?.passes ?? 0, startedAt: null })
+    }
     return perClient.get(id)!
   }
+  // Server clock, monotonic so two claims can never collide on the same value.
+  let serverClock = 1_700_000_000_000
+  const serverNow = () => new Date((serverClock += 1000)).toISOString()
 
   const rpc = async (fn: string, args: Record<string, unknown>) => {
     if (fn === 'try_claim_proof_pass') {
       const c = clientOf(String(args.p_client_id ?? ''))
+      // ⚠️ EVERY REFUSAL RETURNS BEFORE THE UPDATE, exactly as the SQL does. A third pass
+      // must not advance the clock — otherwise a refused click would make an in-flight run
+      // look like it had just restarted.
       if (c.passes >= 2) return { data: 0, error: null }
+      // ⚠️ ONE STATEMENT: the counter and the start time move together, or neither moves.
+      // The SQL does this in a single UPDATE under the same FOR UPDATE lock; modelling them
+      // as two assignments in one synchronous block is the same critical section.
       c.passes += 1
+      c.startedAt = serverNow()
       return { data: c.passes, error: null }
     }
     if (fn === 'try_reserve_proof_records') {
@@ -230,6 +244,83 @@ describe('free proof — two passes, then a human', () => {
     ])
     const claims = [Number(a.data), Number(b.data)].sort()
     expect(claims).toEqual([0, 2])   // one winner, one refused — never two batches
+  })
+
+  // ── ⚑ 26 Aug — THE CLAIM RECORDS ITS OWN START, ATOMICALLY ────────────────────────────
+  //
+  // WHY THIS IS IN THE FENCE FILE. The start time is not a new mechanism with its own rules;
+  // it is a second column on the SAME atomic claim, and it inherits that claim's guarantees
+  // or it is worthless. So it is proved beside them: the counter and the clock move together
+  // or not at all, and every path that refuses a pass refuses the stamp with it.
+  //
+  // The desk depends on this. Its whole wait — "still finding" vs the approved recovery
+  // copy — is measured from this value, and it replaced a browser stamp that could be
+  // written after a lost response, missing on another device, or stale from an older pass.
+  describe('the proof-start clock is written BY the claim', () => {
+    it('1 · pass 1 moves the counter and the timestamp together', async () => {
+      const { rpc, perClient } = makeProofDb()
+      expect(perClient.get('p1')?.startedAt ?? null).toBeNull()   // nothing claimed yet
+      expect((await rpc('try_claim_proof_pass', { p_client_id: 'p1' })).data).toBe(1)
+      const c = perClient.get('p1')!
+      expect(c.passes).toBe(1)
+      expect(c.startedAt, 'a claimed pass without a start is the state this column removes').not.toBeNull()
+    })
+
+    it('2 · pass 2 ADVANCES it — the clock always describes the CURRENT pass', async () => {
+      // The reason one column is enough: pass 2's claim overwrites pass 1's stamp, so the
+      // desk never has to work out which pass a timestamp belonged to.
+      const { rpc, perClient } = makeProofDb()
+      await rpc('try_claim_proof_pass', { p_client_id: 'p1' })
+      const first = perClient.get('p1')!.startedAt!
+      await rpc('try_claim_proof_pass', { p_client_id: 'p1' })
+      const second = perClient.get('p1')!.startedAt!
+      expect(perClient.get('p1')!.passes).toBe(2)
+      expect(Date.parse(second)).toBeGreaterThan(Date.parse(first))
+    })
+
+    it('3 · a REFUSED duplicate does not advance it — the loser of a race changes nothing', async () => {
+      const { rpc, perClient } = makeProofDb({ passes: 1 })
+      const [a, b] = await Promise.all([
+        rpc('try_claim_proof_pass', { p_client_id: 'p1' }),
+        rpc('try_claim_proof_pass', { p_client_id: 'p1' }),
+      ])
+      expect([Number(a.data), Number(b.data)].sort()).toEqual([0, 2])   // one winner
+      const after = perClient.get('p1')!.startedAt!
+      // Exactly ONE stamp was taken, by the winner. Claim again (refused) and prove the
+      // value is untouched — a refused click must not restart an in-flight run's clock.
+      expect((await rpc('try_claim_proof_pass', { p_client_id: 'p1' })).data).toBe(0)
+      expect(perClient.get('p1')!.startedAt).toBe(after)
+    })
+
+    it('4 · a forbidden THIRD pass does not advance it', async () => {
+      const { rpc, perClient } = makeProofDb({ passes: 2 })
+      expect(perClient.get('p1')?.startedAt ?? null).toBeNull()
+      expect((await rpc('try_claim_proof_pass', { p_client_id: 'p1' })).data).toBe(0)
+      expect(perClient.get('p1')!.startedAt, 'a refusal must never stamp').toBeNull()
+      expect(perClient.get('p1')!.passes).toBe(2)                     // and never a third
+    })
+
+    it('the SQL itself stamps inside the ONE update, and takes no timestamp argument', () => {
+      // The model above is only as good as its fidelity to the shipped statement, so the
+      // statement is read. Two things must hold, and both are load-bearing:
+      //   · the stamp is set in the SAME `update ... set` that moves the counter — a second
+      //     statement would open a window where a pass exists with no start;
+      //   · the value is `now()` on the server. The function signature takes only a client
+      //     id, so a browser `Date.now()` cannot be supplied even by mistake.
+      const runner = readFileSync(join(__dirname, 'pending-migrations.ts'), 'utf8')
+      const at = runner.indexOf("key: '20260826_proof_started_at'")
+      expect(at, 'the runner entry').toBeGreaterThan(-1)
+      const sql = runner.slice(at, runner.indexOf('`.trim()', at))
+      const update = sql.slice(sql.indexOf('update public.clients'), sql.indexOf('return v_done + 1'))
+      expect(update).toContain('proof_passes_done = v_done + 1')
+      expect(update).toContain('proof_started_at  = now()')
+      expect((update.match(/update public\.clients/g) ?? []), 'exactly one UPDATE').toHaveLength(1)
+      expect(sql).toContain('function public.try_claim_proof_pass(p_client_id uuid)')
+      expect(sql, 'the claim must accept no caller-supplied time').not.toMatch(/p_started_at|p_now|p_timestamp/)
+      // The refusals still return before the update reaches the row.
+      expect(sql.indexOf('if v_done >= 2 then return 0')).toBeLessThan(sql.indexOf('update public.clients'))
+      expect(sql.indexOf('if p_client_id is null then return 0')).toBeLessThan(sql.indexOf('update public.clients'))
+    })
   })
 
   it('the pass claim does not depend on PDL — a pool-only batch still spends one', async () => {

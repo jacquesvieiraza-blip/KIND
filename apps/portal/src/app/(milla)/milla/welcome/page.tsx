@@ -402,7 +402,12 @@ export default function MillaWelcomePage() {
       // chance. The flag is explicit rather than inferred: "no leads + never paid" is also
       // the state of someone who never started a run, and they must keep the honest copy.
       // It is a READ signal only — the desk polls the existing lead GETs and never POSTs.
-      router.push(`/milla?finding=1&since=${Date.now()}`)
+      // ⚑ 26 Aug — `?finding=1` IS A HINT, NOT A CLOCK. The run's START was recorded by the
+      // claim itself (`clients.proof_started_at`), so nothing timing-related is carried in
+      // the URL or written to browser storage. This is the FIRST-CLIENT path — the one a
+      // prospect is most likely to walk away from and come back to on another device — and
+      // it is exactly the case a browser stamp could never have answered.
+      router.push('/milla?finding=1')
     } catch (e) { setError(e instanceof Error ? e.message : 'Could not save your ICP — please try again'); setSaving(false) }
   }
 

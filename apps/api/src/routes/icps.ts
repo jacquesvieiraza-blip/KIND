@@ -19,6 +19,7 @@ import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
+import { rethrowIfProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
@@ -47,6 +48,10 @@ async function recordRunOutcome(
   poolServed: number,
   totalInserted: number,
   alreadyHeld = 0,
+  /** ⚑ 26 Aug — this run already used its ONE widened fallback, so a completed zero must
+   *  not be told to widen again. Only changes the `no_match` sentence; the status is
+   *  unchanged and still true. */
+  alreadyWidened = false,
 ): Promise<void> {
   try {
     // supabase-js RETURNS `{ error }` — it does not throw. The try/catch alone therefore
@@ -61,7 +66,7 @@ async function recordRunOutcome(
       records_requested: Math.max(0, Math.round(recordsRequested)),
       pool_served: Math.max(0, Math.round(poolServed)),
       total_inserted: Math.max(0, Math.round(totalInserted)),
-      message: runOutcomeMessage(status, totalInserted, alreadyHeld),
+      message: runOutcomeMessage(status, totalInserted, alreadyHeld, alreadyWidened),
     })
     if (error) {
       console.error(`[icp] recordRunOutcome REJECTED status "${status}" for icp ${icpId}:`, error.message)
@@ -71,12 +76,29 @@ async function recordRunOutcome(
         void sendFounderAlert('source_down', `icp_run_outcomes will not accept status "${status}"`, [
           `The database rejected an ICP run outcome with status "${status}" for ICP ${icpId}.`,
           'The status CHECK constraint has not been widened — run the pending migrations from Vida → Engine.',
-          'Until then this run outcome is LOST and the client sees the previous run\'s message.',
+          "Until then this run outcome is LOST and the client sees the previous run's message.",
+        ])
+      } else {
+        // ⚑ 26 Aug (final review) — EVERY lost outcome tells a human, not only the
+        // constraint case. When this row does not persist, the desk has no terminal truth
+        // to read: the client's only remaining protection is the bounded client-side
+        // failsafe, and an operator must know that is the state they are in. The alert
+        // must not depend on the very write that just failed — this is a separate channel.
+        void sendFounderAlert('source_down', 'An ICP run outcome could not be persisted — the client desk has no terminal truth for this run', [
+          `ICP ${icpId}: the run finished with status "${status}" but icp_run_outcomes rejected the write.`,
+          `Reason: ${error.message}`,
+          'The portal will fall back to its bounded recovery state instead of showing this outcome.',
         ])
       }
     }
   } catch (err) {
     console.error('[icp] recordRunOutcome failed (non-fatal):', err)
+    // Same rule for a thrown failure (network, client library): the outcome is lost,
+    // so a human hears about it through the alert channel that still works.
+    void sendFounderAlert('source_down', 'An ICP run outcome could not be persisted (write threw)', [
+      `ICP ${icpId}: recording status "${status}" threw: ${err instanceof Error ? err.message : String(err)}`,
+      'The portal will fall back to its bounded recovery state instead of showing this outcome.',
+    ]).catch(() => {})
   }
 }
 
@@ -515,6 +537,39 @@ export async function runIcpJob(
   if (cursor.reset) console.log(`[icp] PDL cursor reset for icp ${icpId} — the ICP changed since it was stored`)
   let cursorUpdate: StoredCursor | null = null
   let audienceExhausted = cursor.exhausted
+  // ⚑ 26 Aug — CAN WE TRUST A ZERO? Starts true and is only ever falsified by a provider
+  // ⚑ 26 Aug (final review) — TRUST FAILS CLOSED. The first version was a boolean that
+  // STARTED true and was falsified by the error paths we knew about — which meant every
+  // error path we did NOT know about defaulted to "trustworthy" and became a false
+  // `no_match`. A first-client truth gate cannot be a default anyone can forget to flip.
+  //
+  // Three states, and the direction of proof is the point:
+  //   'not_required' — this run never needed a provider search (pool filled the batch,
+  //                    demo, audience already known-exhausted). Nothing to distrust.
+  //   'unproven'     — a provider search IS required and has not yet shown positive
+  //                    evidence of completing. THE MOMENT the run enters the provider
+  //                    branch it drops to this, and any exit — known failure, unknown
+  //                    failure, a future bug, a path someone adds next month — that does
+  //                    not explicitly prove completion stays here and derives `failed`.
+  //   'proven'       — explicit positive evidence only: a PDL page that says
+  //                    `completed: true`, or the Apollo house path returning at all
+  //                    (its failures THROW, so returning is the evidence).
+  //
+  // A string union, not a class — the minimal thing that cannot be accidentally
+  // half-initialised, and `trusted` below is the only reader.
+  let searchTrust: 'not_required' | 'unproven' | 'proven' = 'not_required'
+  // ⚑ 26 Aug — OUR OWN GATES ARE NOT A TARGETING VERDICT. When the search legitimately
+  // found people and K.I.N.D itself removed every one — suppression/opt-out/DNC, already
+  // owned by this client (dedupe), or an insert failure on our side — the client must not
+  // be told to widen an ICP that was working. Counted so the outcome can tell truth.
+  let removedBySuppression = 0
+  let removedByDedupe = 0
+  // How many contacts the provider ACTUALLY returned this run, recorded before any
+  // K.I.N.D-side gate touches them — the fact the neutral-review decision reads.
+  let providerContactsReturned = 0
+  // ⚑ 26 Aug — did this run use its ONE approved widened fallback? Read only by the outcome
+  // message, so a completed zero AFTER widening never tells the client to widen again.
+  let didWiden = false
 
   // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
@@ -756,6 +811,9 @@ export async function runIcpJob(
       // proof route atomically claimed) — not a second notion of proof-ness, and never
       // inferred. Everything else about this call is unchanged: one page, `grantedSize`
       // records, the same cursor, the same audience, the same reservation.
+      // The run now DEPENDS on a provider answer. Until that answer positively proves
+      // itself, the zero this run might end with cannot be trusted (fail-closed trust).
+      searchTrust = 'unproven'
       const exact = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
       let contacts = exact.contacts
       relaxed = exact.relaxed
@@ -771,7 +829,18 @@ export async function runIcpJob(
       if (pdlPage) {
         cursorUpdate = nextCursorState(icp as CursorQuery, pdlPage, new Date().toISOString())
         if (pdlPage.exhausted) audienceExhausted = true
+        // POSITIVE evidence only: the page's own verdict on itself. Results, a first-page
+        // 404 (matched nobody) and a paged-to-the-end 404 (audience finished) prove
+        // completion; timeout, 5xx, auth, two 429s, malformed body, out of credits and
+        // no-API-key all leave `completed: false` — and therefore leave trust unproven.
+        if (pdlPage.completed) searchTrust = 'proven'
+      } else if (audience === 'house') {
+        // The Apollo house path has no PDL page and its failures THROW out of this run —
+        // so reaching this line at all IS the positive evidence of completion.
+        searchTrust = 'proven'
       }
+      // A client run with no page: the call never produced an answer. Trust stays
+      // 'unproven' because nothing proved it — no branch needs to remember to say so.
 
       // ── ⚑ 25 Aug — PASS-2 ONE-TIME WIDENED RETRY (founder-ruled) ────────────────────────
       //
@@ -811,9 +880,17 @@ export async function runIcpJob(
         pdlPage?.matchedNothing === true &&
         contacts.length === 0
       if (canWiden) {
+        // ⚑ 26 Aug — RECORDED SO THE OUTCOME SENTENCE CANNOT ADVISE A WIDENING WE JUST DID.
+        // Set at the top of the branch, before the search, so every exit below it — proved
+        // zero, unproven zero, or matches — carries the fact that the one fallback was used.
+        didWiden = true
         const widened = { ...icpForSearch, seniority_levels: [], company_sizes: [] }
         console.log(`[icp] PROOF PASS 2 — exact targeting matched nobody for prospect ${clientId}; ONE widened retry (titles/industries/countries kept, seniority + size dropped).`)
+        // A SECOND provider answer is now required; the exact search's proof does not
+        // transfer to it. Unproven again until the widened page shows its own evidence.
+        searchTrust = 'unproven'
         const wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })
+        if (wide.pdlPage?.completed) searchTrust = 'proven'
         contacts = wide.contacts
         // ⚑ 25 Aug (GPT review hold) — A ZERO IS NOT A ZERO UNTIL PDL PROVED IT.
         //
@@ -866,6 +943,11 @@ export async function runIcpJob(
           // matched nobody, does not claim the audience is exhausted, does not claim anyone
           // was already sourced, invites no retry and promises no timing.
           relaxed = 'K.I.N.D couldn’t confirm a second set from that search. K.I.N.D will review it with you.'
+          // ⚑ 26 Aug — AND THE OUTCOME AGREES WITH THAT SENTENCE STRUCTURALLY: the widened
+          // call reset trust to 'unproven' and this branch is precisely the one where the
+          // page produced no positive evidence, so trust is still 'unproven' here and the
+          // run derives `failed`. Nothing to set — fail-closed means the honest state is
+          // what remains when no code runs.
           console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
         }
       }
@@ -926,6 +1008,10 @@ export async function runIcpJob(
       // earliest acquisition wins and we never overwrite acquisition_cost).
       const poolUpserts: Array<Record<string, unknown>> = []
       let pdlKept = 0
+      // Recorded BEFORE any gate (and before a memory-write failure can empty the list):
+      // this is what the provider genuinely handed us, which is the fact the neutral-
+      // review decision at the end of the run needs.
+      providerContactsReturned = contacts.length
 
       // ── R67 — REMEMBER EVERY PAID IDENTITY BEFORE ANY CLIENT GATE CAN DROP IT ──────
       //
@@ -951,6 +1037,10 @@ export async function runIcpJob(
       // forbids, so a memory failure now stops the run before the gates.
       {
         const memories: AcquisitionMemoryRecord[] = []
+        // ⚑ 26 Aug — WHY were they removed? A run where suppression/DNC/opt-out ate every
+        // otherwise-matching person is NOT a targeting failure, and must never be reported
+        // as one. Counted here because this pass already resolves the reason per contact.
+        let suppressedHere = 0
         for (const contact of contacts) {
           const suppressed = isSuppressed({
             email:    contact.email,
@@ -973,15 +1063,43 @@ export async function runIcpJob(
           // `null` only when the provider gave no stable id — with no (source, provider_id)
           // there is no identity key, so the row could not be deduped and its cost would be
           // re-counted on every re-encounter. Counted, never silent.
+          if (reason !== null) suppressedHere += 1
           if (rec) memories.push(rec)
           else console.warn('[acquisition-memory] provider returned a contact with no id — not retainable, not remembered')
         }
-        // Throws AcquisitionMemoryWriteError after one retry. Deliberately NOT caught:
-        // it propagates out of runIcpJob, the run is recorded as failed, and somebody
-        // looks — which is the only honest outcome when we have spent money and cannot
-        // say who on.
-        const { written, suppressed } = await rememberAcquiredIdentities(db as never, memories)
-        console.log(`[acquisition-memory] remembered ${written} of ${contacts.length} paid identities for icp ${icpId} (${suppressed} marked uncontactable; retention ≠ contactability)`)
+        removedBySuppression += suppressedHere
+        // ⛓️ AMENDED BY FOUNDER RULING (26 Aug, final review). The first shape threw and
+        // took the WHOLE run down — including pool matches that had already passed every
+        // gate, which violated the partial-proof rule. The two rules genuinely collided
+        // and the founder resolved the precedence:
+        //
+        //   · already-safe pool matches SURFACE — a later paid-branch failure does not
+        //     un-find people who were found free and clean;
+        //   · the PAID identities are WITHHELD, every one — a paid record whose required
+        //     memory write failed is never inserted, never surfaced, never served. The
+        //     fail-closed protection on the paid branch is not weakened, it is narrowed
+        //     to exactly the branch that failed;
+        //   · a CRITICAL alert goes to a human, because money was spent on identities we
+        //     could not record.
+        //
+        // Implemented by emptying `contacts` on the failure: the insertion loop below
+        // never runs, so no paid identity can escape, and the run continues to surface
+        // whatever the pool already served. Trust drops to 'unproven' so a zero-pool run
+        // derives `failed`, never `no_match`.
+        try {
+          const { written, suppressed } = await rememberAcquiredIdentities(db as never, memories)
+          console.log(`[acquisition-memory] remembered ${written} of ${contacts.length} paid identities for icp ${icpId} (${suppressed} marked uncontactable; retention ≠ contactability)`)
+        } catch (memErr) {
+          console.error(`[acquisition-memory] WRITE FAILED — withholding ALL ${contacts.length} paid identities for icp ${icpId}; pool-served matches (${pool.served}) still surface:`, memErr)
+          void sendFounderAlert('source_down', 'CRITICAL: paid identities acquired but NOT recorded — withheld from serving', [
+            `Client ${clientId}, ICP ${icpId}.`,
+            `${contacts.length} paid contact(s) were returned by the provider and the acquisition_memory write failed after retry.`,
+            `Every one is WITHHELD from this run (fail-closed). ${pool.served} already-safe pool match(es) still surface (founder partial rule).`,
+            'The provider may bill for these records; they are currently unrecorded. Investigate acquisition_memory availability.',
+          ]).catch(() => {})
+          contacts = []
+          searchTrust = 'unproven'
+        }
       }
 
       for (const contact of contacts) {
@@ -1010,7 +1128,7 @@ export async function runIcpJob(
         if (contact.id) {
           const { data: existing } = await db.from('leads')
             .select('id').eq('client_id', clientId).eq('apollo_id', contact.id).maybeSingle()
-          if (existing) { skipped++; continue }
+          if (existing) { skipped++; removedByDedupe++; continue }
         }
 
         const { data: newLead, error: insertErr } = await db.from('leads').insert({
@@ -1262,7 +1380,30 @@ export async function runIcpJob(
   // a client either widens an ICP that was working perfectly or abandons one that simply
   // ran to its end. So when PDL has nobody left, the run is recorded as `audience_exhausted`
   // and carries the end-of-audience sentence — never "no leads matched this ICP".
-  const status = deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted)
+  // ⚑ 26 Aug — A ZERO THAT K.I.N.D ITSELF CREATED IS NEVER A TARGETING VERDICT.
+  //
+  // The search ran, found people, and every one of them was removed on OUR side —
+  // suppression/opt-out/DNC, already owned by this client (dedupe), or an insert failure
+  // in our own database. Telling the prospect to "widen the job titles" would blame
+  // targeting that may be perfect for a decision or defect that was K.I.N.D's. All of it
+  // routes to the neutral review state; the real cause goes to the founder alert below and
+  // never to the prospect. (Dedupe-all deliberately does NOT reuse `audience_exhausted`:
+  // that status means the audience is finished, its copy says "widen the ICP", and after a
+  // dedupe-all the cursor has advanced — the next page may hold brand-new people. Both of
+  // its claims would be false here.)
+  const gatesAteEverything = inserted === 0 && searchTrust !== 'unproven' && providerContactsReturned > 0
+  const trusted = searchTrust !== 'unproven'
+  const status = gatesAteEverything
+    ? 'failed'
+    : deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, trusted)
+  if (gatesAteEverything) {
+    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · rest insert/cap). Neutral review state; targeting NOT blamed.`)
+    void sendFounderAlert('source_down', 'A completed search was emptied entirely by K.I.N.D-side gates', [
+      `Client ${clientId}, ICP ${icpId}.`,
+      `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
+      'The prospect sees the neutral review state, NOT "no leads matched — try widening". Their targeting may be correct.',
+    ]).catch(() => {})
+  }
   let heldFromIcp = 0
   if (status === 'audience_exhausted') {
     const { count } = await db.from('leads')
@@ -1386,7 +1527,7 @@ export async function runIcpJob(
     }
   }
 
-  await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp)
+  await recordRunOutcome(icpId, clientId, status, effectiveCap, pool.served, inserted, heldFromIcp, didWiden)
   return { inserted, skipped, relaxed }
 }
 
@@ -1467,7 +1608,9 @@ icpRouter.post('/preview-count', rateLimit({ limit: 10, windowMs: 60_000, key: '
           if (previewAudience === 'house') {
             const searchBody = buildSearchBody(icpArg, 1)
             searchBody.per_page = 3
-            contacts = await searchPeople(searchBody).catch(() => [])
+            // A deliberate block must not degrade to "no results" here either (R66).
+            contacts = await searchPeople(searchBody)
+              .catch(e => { rethrowIfProviderBlocked(e); return [] })
           } else {
             // #243: PDL keeps preview samples working Apollo-free — and is the ONLY
             // source a normal client's preview ever touches.

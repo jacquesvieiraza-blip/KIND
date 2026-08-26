@@ -619,7 +619,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // ⚑ 24 Aug — plain '/milla' was not enough: the desk fetched once and told them "no
     // leads waiting" while their run was still going. The flag is what turns the desk's
     // honest-empty state into an honest-finding state.
-    expect(welcomeCode).toContain("router.push(`/milla?finding=1&since=${Date.now()}`)")
+    expect(welcomeCode).toContain("router.push('/milla?finding=1')")
     // …and that is the ONLY navigation out of a successful confirmation.
     expect((welcomeCode.match(/router\.push\(/g) ?? [])).toHaveLength(1)
   })
@@ -642,7 +642,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // claims the client's second pass.
     const block = welcomeCode.slice(
       welcomeCode.indexOf('/proof`'),
-      welcomeCode.indexOf("router.push(`/milla?finding=1&since=${Date.now()}`)"),
+      welcomeCode.indexOf("router.push('/milla?finding=1')"),
     )
     expect(block.length, 'the proof failure block').toBeGreaterThan(0)
 
@@ -730,10 +730,15 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
 
   it('the finding state replaces the false empty copy — and promises nothing', () => {
     expect(deskSrc).toContain('Finding your matches now…')
-    expect(deskCode).toContain('finding ? (')
+    expect(deskCode).toContain('proofAwaiting ? (')
     // No notification, no email, no alert, no completion time — nothing sends any of them.
     const findAt = deskSrc.indexOf('Finding your matches now…')
+    // ⚠️ COMMENTS STRIPPED — this guard checks what a CLIENT READS, and JSX comments are
+    // not rendered. It tripped on the block's own note ("the diagnosis is in the alert"),
+    // which promises a prospect nothing. Assert the copy, never the code's description of it.
     const findBlock = deskSrc.slice(findAt, findAt + 900)
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
     expect(findBlock).not.toMatch(/notify|email|alert|minutes|shortly we|by \d/i)
     expect(findBlock).not.toContain('No leads waiting right now')
     // …and no provider mechanics are shown to the client.
@@ -751,7 +756,7 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('the timeout state is honest and offers no retry of the proof start', () => {
-    expect(deskSrc).toContain('We’re still finding your matches. You can come back to this page shortly.')
+    expect(deskSrc).toContain('Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.')
     expect(deskCode).toContain('setFindingTimedOut(true)')
     expect(deskCode).not.toMatch(/we'll notify you the moment your|we will let you know|try proof again|start proof again/i)
   })
@@ -772,13 +777,23 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('POLLING IS READ-ONLY — no POST, no proof, no provider, no mutation', () => {
-    const from = deskCode.indexOf('if (!finding || pending.length > 0 || terminalRun) return')
-    const to   = deskCode.indexOf('}, [finding, pending.length, load, terminalRun])')
+    // ⛓️ 26 Aug — the guard gained `&& !proofAwaiting` so a client who returns on a clean
+    // URL, with a pass claimed and no outcome row, is still polled for. The effect's
+    // READ-ONLY character is unchanged, which is what this test is actually about.
+    const from = deskCode.indexOf('if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return')
+    const to   = deskCode.indexOf('}, [finding, proofAwaiting, pending.length, load, terminalRun])')
     expect(from, 'the polling effect').toBeGreaterThan(-1)
     expect(to,   'the end of the polling effect').toBeGreaterThan(from)
     const poll = deskCode.slice(from, to)
     expect(poll).not.toMatch(/api\.post|api\.put|api\.patch|api\.delete/)
-    expect(poll).not.toMatch(/proof/i)
+    // ⛓️ NARROWED 26 Aug, and narrowed on purpose rather than deleted. The bare `/proof/i`
+    // fired on `proofAwaiting` — a READ of server state (`proof_passes_done` with no
+    // `proof_run`), which is precisely the read-only kind of thing this effect is allowed to
+    // do. A word-boundary match still catches the thing the test exists for: the sourcing
+    // endpoint `'/icps/${id}/proof'`, where `proof` is bounded by `/` and a quote. It also
+    // still catches a bare `proof` identifier. What it now permits is a camelCase name that
+    // merely mentions proof state — never a call that would start a second search.
+    expect(poll).not.toMatch(/\bproof\b/i)
     expect(poll).not.toMatch(/reveal|approve|charge|stripe/i)
   })
 
@@ -815,15 +830,19 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(rest.slice(0, end), 'the desk claim is inside confirmRefine').toContain('/proof`')
   })
 
-  it('the cadence is 3s, bounded at 20 checks (~60s)', () => {
+  it('the cadence is 3s, bounded at 80 checks (240s — sized to the backend worst case)', () => {
     expect(deskCode).toContain('const FINDING_POLL_MS = 3000')
-    expect(deskCode).toContain('const FINDING_MAX_CHECKS = 20')
+    // ⛓️ 26 Aug — 20 checks (~60s) could declare "We hit a snag" while a healthy slow
+    // proof was still inside its legitimate ~160–180s worst case (2 × PDL size-ladder at
+    // 15s/attempt + rate-limit retries). 80 × 3s = 240s clears that with margin and is
+    // still a hard stop. The derivation lives next to the constant.
+    expect(deskCode).toContain('const FINDING_MAX_CHECKS = 80')
     expect(deskCode).toContain('}, FINDING_POLL_MS)')
     expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
   })
 
   it('it stops when leads arrive, at the cap, and on unmount — and never overlaps', () => {
-    expect(deskCode).toContain('if (!finding || pending.length > 0 || terminalRun) return')          // leads arrived
+    expect(deskCode).toContain('if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return')  // leads arrived
     expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS)')                    // cap
     expect(deskCode).toContain('return () => { cancelled = true; clearInterval(timer) }') // unmount
     expect(deskCode).toContain('if (cancelled || inFlight) return')                    // no overlap

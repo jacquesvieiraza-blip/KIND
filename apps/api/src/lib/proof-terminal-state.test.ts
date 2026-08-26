@@ -24,12 +24,13 @@ const portal = readFileSync(
 
 describe('the server records a terminal outcome the desk can actually read', () => {
   it('a completed ZERO run derives a terminal status, not an absence', () => {
-    // Not demo, nothing inserted, budget was granted, audience not exhausted.
-    expect(deriveRunStatus(false, 0, false, false)).toBe('no_match')
+    // Not demo, nothing inserted, budget was granted, audience not exhausted — and the
+    // search COMPLETED, which since 26 Aug is stated rather than defaulted.
+    expect(deriveRunStatus(false, 0, false, false, true)).toBe('no_match')
     // Audience finished is a DIFFERENT terminal fact and must stay distinguishable.
-    expect(deriveRunStatus(false, 0, false, true)).toBe('audience_exhausted')
-    // Refused before it could even try.
-    expect(deriveRunStatus(false, 0, true, false)).toBe('quota_exhausted')
+    expect(deriveRunStatus(false, 0, false, true, true)).toBe('audience_exhausted')
+    // Refused before it could even try — decided ahead of trust, so it is unaffected.
+    expect(deriveRunStatus(false, 0, true, false, true)).toBe('quota_exhausted')
   })
 
   it('a completed run WITH matches is served', () => {
@@ -66,7 +67,7 @@ describe('the desk stops guessing', () => {
     // straight through — the guard proved only that SOME `finding` branch existed later.
     // The FIRST spinner in the file is the one that decides what a client sees.
     const t = portal.indexOf('terminalRun ? (')
-    const f = portal.indexOf('finding ? (')
+    const f = portal.indexOf('proofAwaiting ? (')
     expect(t).toBeGreaterThan(-1)
     expect(f).toBeGreaterThan(-1)
     expect(f, 'the spinner must never be evaluated before the terminal state').toBeGreaterThan(t)
@@ -74,29 +75,49 @@ describe('the desk stops guessing', () => {
 
   it('a run only ends THIS wait if it finished after the wait began', () => {
     // Otherwise an outcome left by pass 1 would instantly terminate pass 2's spinner.
-    expect(portal).toContain('finishedAt >= findingSince()')
+    expect(portal).toContain('finishedAt >= serverProofStartedAt(summary)')
   })
 
-  it('the start stamp lives in the URL, so a RELOAD cannot resurrect the spinner', () => {
-    expect(portal).toContain('finding=1&since=${Date.now()}')
-    expect(portal).toContain("new URLSearchParams(window.location.search).get('since')")
-    // And it is cleared with the flag when leads arrive.
+  it('⛓️ the start stamp lives on the SERVER now, not in the URL', () => {
+    // ⛓️ REWRITTEN 26 Aug, because its premise was replaced rather than adjusted. This used
+    // to assert a `?since=` epoch in the URL and a reader for it — the desk's clock before
+    // the claim recorded its own. That clock was inference: written only AFTER the /proof
+    // POST returned (so a lost response left a claimed run with no start anywhere), scoped
+    // to one browser profile, and able to go stale from an older pass.
+    //
+    // `clients.proof_started_at` is written INSIDE the atomic claim, so a reload cannot
+    // resurrect anything — the same server value is read every time.
+    expect(portal).toContain("router.push('/milla?finding=1')")
+    expect(portal, 'no clock may travel in the URL any more').not.toContain('since=${')
+    expect(portal).not.toContain("get('since')")
+    // The flag survives as a hint for the moment before the first summary lands, and the
+    // legacy `since` param is still stripped so an old link in someone's history tidies up.
     expect(portal).toContain("url.searchParams.delete('since')")
   })
 
-  it('a missing stamp resolves to TERMINAL, never to an endless spinner', () => {
-    const fn = portal.slice(portal.indexOf('function findingSince()'), portal.indexOf('const FINDING_POLL_MS'))
-    // 0 makes any completed run count as ours — the safe direction.
+  it('an UNKNOWN server start resolves to TERMINAL, never to an endless spinner', () => {
+    // A row predating the column has no start. 0 keeps the old, safe direction: any
+    // completed run counts as ours, which ends in a truthful terminal state rather than a
+    // spinner nobody can stop. Erring the other way is what shipped once already.
+    const fn = portal.slice(
+      portal.indexOf('function serverProofStartedAt('),
+      portal.indexOf('const FINDING_POLL_MS'),
+    )
+    expect(fn, 'the server-start reader').not.toBe('')
+    expect(fn).toContain('if (!raw) return 0')
     expect(fn).toContain('return Number.isFinite(n) && n > 0 ? n : 0')
   })
 
   it('a terminal outcome STOPS the poll — no extra sourcing attempt', () => {
-    expect(portal).toContain('if (!finding || pending.length > 0 || terminalRun) return')
+    // ⛓️ 26 Aug — `terminalRun` remains the LAST clause and still short-circuits the whole
+    // guard, so a recorded outcome stops the poll exactly as before. The added
+    // `&& !proofAwaiting` only widens who KEEPS polling; it can never restart a finished run.
+    expect(portal).toContain('if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return')
   })
 
   it('the terminal branch offers NO control that could start another search', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).not.toContain('api.post')
     expect(block).not.toContain('/proof')
     expect(block).not.toContain('onClick')
@@ -104,7 +125,7 @@ describe('the desk stops guessing', () => {
 
   it('the terminal branch shows the SERVER message, not copy written in the desk', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).toContain('{terminalRun.message}')
   })
 
@@ -131,14 +152,39 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
     expect(crash()).not.toContain("'audience_exhausted'")
   })
 
-  it('`failed` is never DERIVED — only written by the handler that caught the throw', () => {
-    const derive = api('run-outcome.ts')
-    const fn = derive.slice(derive.indexOf('export function deriveRunStatus'), derive.indexOf('export function runOutcomeMessage'))
-    expect(fn).not.toContain("'failed'")
-    // And no honest completion can produce it.
-    for (const args of [[false, 0, false, false], [false, 0, false, true], [false, 0, true, false], [false, 5, false, false], [true, 0, false, false]] as const) {
-      expect(deriveRunStatus(...args)).not.toBe('failed')
+  it('`failed` is never derived from EMPTINESS — only from an explicit not-completed fact', () => {
+    // ⛓️ AMENDED 26 Aug. This used to assert that `deriveRunStatus` could never return
+    // `failed` at all, which was right while there was no way to tell a completed zero
+    // from a broken search. There is now: `PdlPage.completed`. The founder ruled that an
+    // unclassified failure must FAIL CLOSED to the approved recovery path rather than be
+    // reported as "nobody matched".
+    //
+    // The invariant that survives, and it is the one that matters: **emptiness alone can
+    // never produce `failed`.** Only an explicit "the search did not complete" can.
+    //
+    // ⛓️ AMENDED AGAIN, 26 Aug (final gate). This table used to carry a sixth row —
+    // `[false, 0, false, false]`, labelled "legacy 4-arg caller — defaults to trustworthy" —
+    // asserting that omitting the trust argument still produced a non-`failed` status. That
+    // row is REMOVED because the founder ruled the permissive default out: a caller that
+    // forgets the argument must not silently inherit "the search completed". Every row below
+    // now states its trust explicitly, and the fail-closed behaviour of an omitted argument
+    // is asserted directly in `proof-outcome-matrix.test.ts` (section A) instead.
+    for (const args of [
+      [false, 0, false, false, true],   // completed zero
+      [false, 0, false, true,  true],   // completed, audience finished
+      [false, 0, true,  false, true],   // refused before it ran
+      [false, 5, false, false, true],   // matches
+      [true,  0, false, false, true],   // demo
+    ] as const) {
+      expect(deriveRunStatus(...(args as Parameters<typeof deriveRunStatus>)), JSON.stringify(args)).not.toBe('failed')
     }
+
+    // And a run that DID have matches never reports failure, however badly the rest went —
+    // the founder's partial-proof rule.
+    expect(deriveRunStatus(false, 7, false, false, false)).toBe('served')
+
+    // Only this produces it.
+    expect(deriveRunStatus(false, 0, false, false, false)).toBe('failed')
   })
 
   it('still alerts a human', () => {
@@ -157,7 +203,7 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
 
   it('the desk renders the approved headline and never the word "failed"', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).toContain('We hit a snag confirming your matches')
     expect(block).toContain('{terminalRun.message}')
     expect(block.toLowerCase()).not.toContain('>failed')
@@ -167,16 +213,16 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
   it('a failed run is terminal, so it stops the poll and cannot revert to running', () => {
     // `terminalRun` is status-agnostic: any completed outcome — failed included — both
     // ends the wait and halts the interval.
-    expect(portal).toContain('if (!finding || pending.length > 0 || terminalRun) return')
+    expect(portal).toContain('if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return')
     const t = portal.indexOf('terminalRun ? (')
-    const f = portal.indexOf('finding ? (')
+    const f = portal.indexOf('proofAwaiting ? (')
     expect(f).toBeGreaterThan(t)
     expect(portal).toContain("const proofFailed = terminalRun?.status === 'failed'")
   })
 
   it('a failed run offers no retry and starts no second search', () => {
     const start = portal.indexOf('terminalRun ? (')
-    const block = portal.slice(start, portal.indexOf(') : finding ? (', start))
+    const block = portal.slice(start, portal.indexOf(') : proofAwaiting ? (', start))
     expect(block).not.toMatch(/retry|try again/i)
     expect(block).not.toContain('api.post')
     expect(block).not.toContain('/proof')
@@ -187,7 +233,7 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
     // `terminalRun` derives from `summary.proof_run`, refetched on every load, and the
     // wait's start moment lives in the URL. Neither resets on refresh.
     expect(portal).toContain('const r = summary?.proof_run')
-    expect(portal).toContain('finishedAt >= findingSince()')
+    expect(portal).toContain('finishedAt >= serverProofStartedAt(summary)')
   })
 
   it('the runner and the schema both allow the new value', () => {

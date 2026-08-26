@@ -1,7 +1,7 @@
 // P2-5: Waterfall enrichment — Apollo → PDL → Hunter → Clearbit → Claude fallback
 // Each provider fills missing fields. First successful hit wins per field.
 
-import { assertPaidProviderAllowed } from './paid-provider-guard'
+import { assertPaidProviderAllowed, rethrowIfProviderBlocked } from './paid-provider-guard'
 
 export interface EnrichmentResult {
   email?: string
@@ -153,7 +153,9 @@ async function tryHunter(lead: LeadProfile): Promise<EnrichmentResult | Provider
     const email = json.data?.email
     if (!email || (json.data?.score ?? 0) < 50) return null
     return { email, source: 'hunter' }
-  } catch {
+  } catch (e) {
+    // A refused spend is not "Hunter found no address" (R66).
+    rethrowIfProviderBlocked(e)
     return null
   }
 }
@@ -205,7 +207,8 @@ async function tryPDL(lead: LeadProfile): Promise<EnrichmentResult | null> {
     if (d.job_company_employee_count)  result.company_size = employeeCountToRange(d.job_company_employee_count)
     if (d.skills?.length)              result.tech_stack = d.skills.slice(0, 10)
     return result
-  } catch {
+  } catch (e) {
+    rethrowIfProviderBlocked(e)
     return null
   }
 }

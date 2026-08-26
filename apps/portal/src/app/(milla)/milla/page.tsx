@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
 import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
+import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, isReconciling, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -34,6 +35,10 @@ type Summary = {
    *  Lets the desk tell 0 / 1 / 2 apart WITHOUT making the client press something
    *  just to discover a 409. */
   proof_passes_done?: number
+  /** ⚑ 26 Aug — when the CURRENT pass was claimed (ISO), written by `try_claim_proof_pass`
+   *  in the same atomic statement as the counter above. The desk's authoritative clock.
+   *  Absent/null = UNKNOWN (a row predating the column), never "long ago". */
+  proof_started_at?: string | null
   /** ⚑ 26 Aug — the terminal truth of the newest COMPLETED run. `null` = none has ever
    *  finished, which is NOT the same as "still running". See `terminalRun` below. */
   proof_run?: { status: string; message: string; total_inserted: number; finished_at: string | null } | null
@@ -109,32 +114,82 @@ const CHIPS = [
 function isFinding(): boolean {
   try { return new URLSearchParams(window.location.search).get('finding') === '1' } catch { return false }
 }
+// ⛓️ `findingSince()` IS GONE (26 Aug). It read a `?since=` epoch out of the URL, which was
+// the desk's clock before the claim recorded its own. Two sources of timing truth is what
+// produced every contradiction this arc chased — a stamp written after the POST returned, a
+// stamp missing on another device, a stale stamp from an older pass — so the browser clock
+// was removed outright rather than demoted. Nothing writes `?since=` any more; the URL
+// cleanup below still strips it so an old link in someone's history tidies itself.
+
 /**
- * WHEN the run we are waiting on was started, as epoch ms, carried in the URL.
+ * ⚑ 26 Aug — WHEN THE CURRENT PROOF PASS STARTED, from the server that claimed it.
  *
- * ⚠️ IT LIVES IN THE URL SO IT SURVIVES A RELOAD. A ref or component state resets on
- * refresh, and then a run that had already finished looked older than "now" and the desk
- * went back to spinning — the exact reload defect this build exists to kill.
+ * `clients.proof_started_at` is written inside the SAME atomic UPDATE that increments
+ * `proof_passes_done`, so it always describes the latest claim and cannot exist without it.
+ * This replaced a browser clock — a `?since=` stamp mirrored into localStorage — which was
+ * written only AFTER the /proof POST returned, was scoped to one browser profile, and could
+ * be stale from an older pass. All three of those produced wrong answers about a run that
+ * was working; a value the claim itself wrote cannot.
  *
- * ⚠️ MISSING OR UNPARSEABLE RETURNS 0, which makes ANY completed run count as terminal.
- * That is the safe direction: an old link resolves to a truthful end state rather than a
- * spinner that never stops. Erring the other way is what shipped.
+ * **0 means UNKNOWN, never "long ago"** — a row from before the column existed, or a claim
+ * the summary has not caught up with. The rule treats unknown as "may still be running"
+ * under the bounded poll rather than inventing an age.
  */
-function findingSince(): number {
-  try {
-    const raw = new URLSearchParams(window.location.search).get('since')
-    const n = raw ? Number(raw) : NaN
-    return Number.isFinite(n) && n > 0 ? n : 0
-  } catch { return 0 }
+function serverProofStartedAt(summary: Summary | null): number {
+  const raw = summary?.proof_started_at
+  if (!raw) return 0
+  const n = Date.parse(raw)
+  return Number.isFinite(n) && n > 0 ? n : 0
 }
-/** Every 3s, at most 20 times — ~60s, then we stop and say so. Bounded on purpose: an
- *  unbounded poll on a run that died is a tab quietly hammering the API forever. */
+/**
+ * ⚑ 26 Aug (final review) — THE BOUND IS DERIVED FROM THE BACKEND'S OWN WORST CASE,
+ * not picked. The previous 20 × 3s ≈ 60s could declare "We hit a snag" while a
+ * perfectly healthy slow proof was still legitimately running. The math, from code:
+ *
+ *   · one PDL attempt:            fetch AbortSignal.timeout(15000)  = 15s   (pdl-search.ts)
+ *   · size ladder at batch 20:    [20, 10, 5, 1]                    = 4 attempts
+ *   · worst ladder walk (402s):   4 × 15s                           = 60s
+ *   · one global rate-limit retry: 2.5s pause + 15s                 = 17.5s
+ *   · exact search worst case:                                     ≈ 77.5s
+ *   · ONE widened fallback (same shape again):                     ≈ 77.5s
+ *   · pool query, DB writes, memory pass, alerts:                  ≈ seconds
+ *   → worst LEGITIMATE proof runtime                               ≈ 160–180s
+ *
+ * 80 checks × 3s = 240s: above the honest worst case with ~60s of margin, and still a
+ * hard stop — there is no server-side job timeout to lean on (the run is fire-and-forget
+ * in-process), so this client-side bound is the final failsafe, sized so it cannot fire
+ * before the backend could truly still be working. Bounded on purpose: an unbounded poll
+ * on a run that died is a tab quietly hammering the API forever.
+ */
 const FINDING_POLL_MS = 3000
-const FINDING_MAX_CHECKS = 20
+const FINDING_MAX_CHECKS = 80
+/**
+ * ⚑ 26 Aug (correction pass) — THE POLL BUDGET AND THE ELAPSED BOUND MUST BE THE SAME
+ * NUMBER, because the wait can end in two different ways and they must agree:
+ *   · the tab stayed open  → the poll hits `FINDING_MAX_CHECKS` and stops;
+ *   · the tab was reopened → there is no poll history, so elapsed time is measured against
+ *                            the durable start stamp instead (`PROOF_WAIT_MS`).
+ * The bound itself lives beside the rule that reads it, in `lib/proof-start.ts`. This
+ * assertion is what stops the two drifting into two different truths about one run.
+ */
+if (FINDING_POLL_MS * FINDING_MAX_CHECKS !== PROOF_WAIT_MS) {
+  throw new Error('proof wait bound drifted: the desk poll budget and PROOF_WAIT_MS must match')
+}
 
 export default function MillaHomePage() {
   const router = useRouter()
   const [summary, setSummary] = useState<Summary | null>(null)
+  // ⚑ 26 Aug — CAN WE REACH BACKEND TRUTH AT ALL? Three states, because collapsing them
+  // lies in one direction or the other: 'loading' must not flash a wait state at a client
+  // whose desk is simply empty, and 'unreachable' must not fall to "no leads waiting",
+  // which would state as fact something the desk could not check. Once 'ok', a later poll
+  // failure does NOT drop back — truth we already hold is still truth.
+  const [serverState, setServerState] = useState<'loading' | 'ok' | 'unreachable'>('loading')
+  // ⚑ 26 Aug — THE SERVER START WE ALREADY HELD WHEN A `/proof` CLAIM FAILED AMBIGUOUSLY.
+  // `null` = not reconciling. Set once, never cleared by hand: the comparison in
+  // `isReconciling` stops being true the moment the server hands back a newer start, so this
+  // resolves itself and cannot get stuck on. Only a server-supplied value is ever stored.
+  const [reconcileFrom, setReconcileFrom] = useState<number | null>(null)
   // #511f — the client's own Nexus, surfaced (the flywheel: they see Milla getting sharper).
   const [nexus, setNexus] = useState<{ learned: string; top_persona: string | null; reply_rate: number; meeting_rate: number; confidence: string; sample_worked: number } | null>(null)
   const [leads, setLeads] = useState<MaskedLead[] | null>(null)
@@ -199,9 +254,13 @@ export default function MillaHomePage() {
       if (lr.status === 'rejected') setError('Your leads could not be loaded just now — this is not the same as having none. Refresh in a moment.')
       const s = sr.status === 'fulfilled' ? sr.value : null
       const l = lr.status === 'fulfilled' ? lr.value : null
-      if (!s) { setLeads(l?.data ?? []); return }
+      // ⚑ 26 Aug — the summary leg failed. Only downgrade if we have never had it: a desk
+      // holding a previously-loaded summary still has real server truth, and one bad poll
+      // must not turn that into "we cannot reach the backend".
+      if (!s) { setLeads(l?.data ?? []); setServerState(p => p === 'ok' ? 'ok' : 'unreachable'); return }
       if (l) setLeads(l.data)
       setSummary(s.data)
+      setServerState('ok')
       const n = s.data.leads_awaiting
       const camp = s.data.active_campaign ? ` for your **${s.data.active_campaign}** campaign` : ''
       // The greeting quoted "a flat $4 per lead, final" to every client, including one
@@ -226,7 +285,13 @@ export default function MillaHomePage() {
           ? `Hi 👋 I'm Milla. I'm finding real people who match your targeting right now — they'll appear on the right as soon as I have them.`
           : `Hi 👋 I'm Milla, your campaign partner. No new leads waiting this moment${camp ? ` — the ${s.data.active_campaign} engine is still sourcing` : ''}. Ask me anything, or tell me who to target next.` },
         ...m.filter(x => x.id !== 'greet')])
-    } catch (e) { setError(e instanceof Error ? e.message : 'Failed to load your dashboard') }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to load your dashboard')
+      // Same rule as the rejected-leg case above: only a desk that has NEVER had server
+      // truth is unreachable. Repeated failure then reaches bounded recovery, never a
+      // generic "no leads waiting" that the desk was in no position to assert.
+      setServerState(p => p === 'ok' ? 'ok' : 'unreachable')
+    }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -316,19 +381,52 @@ export default function MillaHomePage() {
   //
   // ⚠️ NO NEW COPY IS INVENTED HERE. `message` is the server's own canonical sentence
   // (`runOutcomeMessage`), the same text the paying-client dashboard already renders.
+  // ⚑ 26 Aug — ARE WE STILL WAITING TO LEARN WHETHER AN AMBIGUOUS CLAIM COMMITTED?
+  //
+  // `reconcileFrom` holds the `proof_started_at` this browser had ALREADY been given when a
+  // `/proof` POST failed ambiguously. Until the server hands back a NEWER one, a summary
+  // still showing the old pass proves nothing — the POST may simply not have committed yet.
+  // Both values are the server's; this is a comparison of two server reads, not a clock.
+  const reconciling = isReconciling(reconcileFrom, serverProofStartedAt(summary))
+  // ⚠️ AND WHILE RECONCILING, THE START WE CAN SEE IS NOT THIS PASS'S. It belongs to the
+  // pass we are trying to move on from, so using it would age a brand-new run by however
+  // long the OLD one has existed — a Pass 1 start from half an hour ago would push a Pass 2
+  // claimed seconds earlier straight past the bound and into the recovery card. Unknown (0)
+  // is the truthful value here, and the bounded poll remains the whole budget.
+  const currentStartedAt = reconciling ? 0 : serverProofStartedAt(summary)
+
   const terminalRun = useMemo(() => {
+    // ⚑ 26 Aug — AN OLDER PASS CANNOT BE CURRENT TRUTH WHILE WE ARE STILL RECONCILING.
+    //
+    // THE RACE THIS CLOSES. After an ambiguous claim the desk re-reads at once, and that GET
+    // can arrive BEFORE the original POST commits — returning the OLD pass perfectly
+    // legitimately. Settling on it brought Pass 1's terminal card back and stopped the poll,
+    // and the POST then committed Pass 2 into a desk that had already stopped looking.
+    //
+    // Returning null here is what makes it one line: every consumer — this render, the poll
+    // guard and `proofWaitState` — reads `terminalRun`, so they are all corrected together
+    // rather than each needing to learn about reconciliation.
+    if (reconciling) return null
     const r = summary?.proof_run
     if (!r || !r.finished_at) return null
     const finishedAt = Date.parse(r.finished_at)
     if (!Number.isFinite(finishedAt)) return null
-    // `findingSince()` is 0 for an old link with no stamp — then any completed run counts,
-    // which resolves to a truthful end state rather than an endless spinner.
-    return finishedAt >= findingSince() ? r : null
-  }, [summary?.proof_run])
+    // ⚑ 26 Aug — SCOPED BY THE SERVER'S OWN CLOCK. An outcome left by pass 1 must never
+    // terminate pass 2's wait, and the fact that separates them is now `proof_started_at`,
+    // which the claim advanced when pass 2 was taken. This used to compare against the URL's
+    // `?since=` stamp — so a clean URL, another device or a lost POST response left it at 0
+    // and let an OLD outcome end a NEW run's wait.
+    //
+    // ⚠️ 0 (no server stamp: a row predating the column) keeps the old, safe behaviour —
+    // any completed run counts, which resolves to a truthful end state rather than an
+    // endless spinner. Erring the other way is what shipped once already.
+    return finishedAt >= serverProofStartedAt(summary) ? r : null
+  }, [summary, reconciling])
 
   // Zero is a RESULT, not an absence. It ends the wait and never triggers another search:
   // nothing here starts sourcing, and the one proof POST lives on the confirmation screen.
   const proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0
+
   // A crashed run is its own terminal state. The prospect is NEVER shown the word
   // "failed" — that is the internal status name; they get the approved recovery copy.
   const proofFailed = terminalRun?.status === 'failed'
@@ -464,7 +562,43 @@ export default function MillaHomePage() {
       proofAttemptedRef.current = true
       setProofAttempted(true)
       await api.post(`/icps/${afterId}/proof`, {}, tk)
-      router.push(`/milla?finding=1&since=${Date.now()}`)
+
+      // ── ⚑ 26 Aug — THE PASS-2 CLAIM SUCCEEDED, SO PASS 1'S SNAPSHOT IS NOW STALE ────────
+      //
+      // ⚠️ THIS PAGE IS ALREADY MOUNTED AND `router.push` BELOW WILL NOT REMOUNT IT. It is a
+      // same-route query change, so React keeps every piece of state: the Pass 1 summary,
+      // the `finding` flag (whose effect has `[]` deps and never re-reads the URL), and
+      // `findingTimedOut`. Without the three lines below the desk would read Pass 1's
+      // `proof_run` against Pass 1's `proof_started_at`, call it terminal, and STOP POLLING —
+      // leaving a client looking at Pass 1's result while Pass 2 was actually running.
+      //
+      // ⚠️ AFTER THE AWAIT, DELIBERATELY. A refused claim (the two-pass ceiling) throws to
+      // the catch and never reaches here, so a valid Pass 1 desk is never blanked by a
+      // refusal — only a claim the server actually granted invalidates anything.
+      //
+      // Nothing is invented: both proof fields become "unknown", which is precisely true for
+      // a pass whose start only the server knows and whose outcome does not exist yet.
+      setSummary(invalidateProofSnapshot)
+      // Pass 1's exhausted poll must not end Pass 2's wait before it begins. This flag is
+      // the second thing that survives the non-remount, and a stale `true` here would show
+      // the recovery card instantly on a run that had just started.
+      setFindingTimedOut(false)
+      // ⚠️ `setFinding(true)` IS DELIBERATELY NOT CALLED, and that is not an oversight. The
+      // `finding` flag is a URL hint whose mount effect will not re-run — but the wait does
+      // not need it: `proofPassesDone > 0` from the refreshed summary is what makes the desk
+      // wait, and the poll guard passes on `proofAwaiting` alone. Setting it here would also
+      // breach the standing rule that nothing may switch `finding` back on inside this file
+      // (`first-run-milla.test.ts` — a later empty desk must never reactivate a spent flag).
+      // Fetch the new server state at once rather than waiting up to one poll interval for
+      // it. The poll would get there on its own; this only makes the moment deterministic.
+      void load()
+
+      // ⚑ 26 Aug — `?finding=1` IS A HINT, NOT A CLOCK. It covers the one moment the server
+      // cannot: between this navigation and the first summary landing. The run's actual
+      // START was recorded by the claim itself (`clients.proof_started_at`), so no timestamp
+      // is carried here and none is written to browser storage — there is no second source
+      // of timing left to go stale, and the server's answer is the only one.
+      router.push('/milla?finding=1')
     } catch (e) {
       // ── STAGE-ACCURATE, BECAUSE THE OLD SENTENCE COULD BE A LIE ────────────────────────
       // One generic message said *"Your targeting is saved"* for every failure — including
@@ -473,14 +607,59 @@ export default function MillaHomePage() {
       // what actually happened.
       const code = e instanceof Error ? e.message : ''
       const status = (e as { status?: number } | null)?.status
+
+      // ── ⚑ 26 Aug — "WE DIDN'T HEAR BACK" IS NOT "NOTHING HAPPENED" ──────────────────────
+      //
+      // A Pass 2 POST can COMMIT on the server and still fail here — a 15s abort, a dropped
+      // connection, a backgrounded tab. The browser cannot know which. Until this block, the
+      // desk kept Pass 1's terminal card as current truth in exactly that case, so a client
+      // could sit looking at Pass 1's result while Pass 2 was genuinely running, and only a
+      // page reload would ever correct it.
+      //
+      // ⚠️ THE CLASSIFICATION IS STRUCTURED, NOT A MESSAGE MATCH. `lib/api.ts` sets
+      // `status = 0` when `fetch` itself rejects and `status = res.status` when a response
+      // arrived, so a 4xx is the server DECIDING (claim not made → Pass 1 is still current,
+      // nothing is touched) while status 0 or a 5xx is no answer about the claim at all.
+      //
+      // ⚠️ GATED ON `proofAttemptedRef` so only failures at or after the POST reach this. The
+      // earlier stages — stale preview, save failed, parked for review — never claimed
+      // anything, and their Pass 1 desk must stay exactly as it is.
+      //
+      // The reconciliation is SELF-RESOLVING and guesses nothing: the refreshed summary
+      // either shows Pass 2 (its clock takes over) or still shows Pass 1 (its terminal card
+      // comes straight back). If the refresh itself fails, the invalidated snapshot leaves
+      // the desk in the bounded wait rather than resurrecting a card we can no longer verify.
+      if (proofAttemptedRef.current && classifyClaimFailure(status) === 'unknown') {
+        // ⚠️ CAPTURED BEFORE THE INVALIDATION, from the summary this render still holds. It is
+        // the start the SERVER had already given us, and reconciliation is over only when the
+        // server hands back a newer one — a single re-read that still shows this value may
+        // simply have overtaken a POST that had not committed yet.
+        setReconcileFrom(serverProofStartedAt(summary))
+        setSummary(invalidateProofSnapshot)
+        setFindingTimedOut(false)
+        void load()
+      }
+
       setRefineErr(
-        // 4 · THE PROOF WAS ATTEMPTED. Never invite a retry and never claim the pass is
-        // definitely gone — we do not know. Only the server does.
-        proofAttemptedRef.current
-          ? 'We saved your refinement, but we could not confirm the new search started. Please don\'t try again — K.I.N.D will check whether it began and come back to you.'
-        // 2 · THE CONFLICT. Both the live targeting and the waiting revision are intact.
-        : status === 409
+        // ⛓️ 2 · REORDERED 26 Aug — A DEFINITIVE ANSWER OUTRANKS "WE DON'T KNOW".
+        //
+        // This branch used to sit BELOW the proof-attempted one, so the two-pass 409 — the
+        // single status that PROVES the pass was not claimed — was described to the client
+        // as *"we could not confirm the new search started"*. That is the ambiguity sentence,
+        // and it is false here: the server told us plainly, and it even supplied the words.
+        // Ordering was the whole bug; the copy itself was already right and is unchanged.
+        //
+        // `code` is the server's own sentence — the two-pass human handoff from the proof
+        // route, or the waiting-revision conflict from `/icps/revise`. Both are definitive,
+        // both are already written, and neither is invented here. The literal fallback is
+        // the revise-conflict wording and only shows if the server sent no message at all.
+        status === 409
           ? (code || 'You already have a targeting change waiting for K.I.N.D to review. Nothing has been changed and no new search has started.')
+        // 4 · THE PROOF WAS ATTEMPTED and the answer was NOT definitive. Never invite a
+        // retry and never claim the pass is definitely gone — we do not know. Only the
+        // server does, and the block above has already started asking it.
+        : proofAttemptedRef.current
+          ? 'We saved your refinement, but we could not confirm the new search started. Please don\'t try again — K.I.N.D will check whether it began and come back to you.'
         // 1 · STALE PREVIEW. Nothing was written; the panel described a different ICP.
         : code === 'same-icp'
           ? 'Something is out of step with your targeting — K.I.N.D needs to look at this before we search again. Nothing has been changed and no new search has started.'
@@ -693,6 +872,42 @@ export default function MillaHomePage() {
     ? pending.map(batchKey).lastIndexOf(proofBatches[0] ?? '')
     : -1
 
+  // ⚑ 26 Aug (correction pass) — A CLAIMED PROOF WITH NO OUTCOME MEANS **MAY STILL BE
+  // RUNNING**, NOT **FAILED**. This is the fix for the defect in the first version.
+  //
+  // The predicate is unchanged — a pass was CLAIMED (the server-side counter says so), no
+  // run outcome has ever been recorded, and there is nothing on the desk to show. What
+  // changed is what it CONCLUDES. It used to render the recovery card the instant the page
+  // loaded on a clean `/milla` URL, so a prospect who reopened the tab five seconds after
+  // starting a perfectly healthy proof was told **"We hit a snag confirming your matches"**
+  // about a run that was still legitimately working. A healthy proof can take ~160–180s
+  // (see PROOF_WAIT_MS); declaring failure before that contradicts the bounded-wait rule
+  // this same build introduced.
+  //
+  // It now means only "we are still waiting on this run", and feeds the SAME bounded wait a
+  // `?finding=1` navigation gets — spinner until the bound, recovery after it. The clean
+  // URL is no longer a different code path with a different verdict; it is the same one
+  // reached without a query string.
+  //
+  // ⚠️ SERVER STATE ONLY, re-read on every load. Closing the browser changes none of it,
+  // and the moment a terminal outcome or a real batch exists, those branches win outright:
+  // they are rendered first, and `proof_run` makes this false by construction.
+  // The decision itself lives in `lib/proof-start.ts` as a pure rule so it can be RUN in a
+  // test rather than pattern-matched in this JSX — see that file. Here we only supply facts.
+  const proofWait = proofWaitState({
+    hasTerminalOutcome: !!terminalRun,
+    pendingCount:       pending.length,
+    revealedCount:      Object.keys(revealed).length,
+    server:             serverState,
+    proofPassesDone:    summary?.proof_passes_done ?? 0,
+    serverStartedAt:    currentStartedAt,
+    urlFinding:         finding,
+    now:                Date.now(),
+    pollExhausted:      findingTimedOut,
+  })
+  const proofAwaiting = proofWait !== 'none'
+  const proofWaitEnded = proofWait === 'recovery'
+
   // ── ⚑ 24 Aug — THE BATCH VERDICT (founder-ruled) ──────────────────────────────────────
   //
   // "Not a fit" on a card is PER LEAD and stays exactly as it was — it is recorded as
@@ -849,7 +1064,11 @@ export default function MillaHomePage() {
   useEffect(() => {
     // A terminal outcome ends the poll as surely as leads arriving would: the run is
     // over, so re-asking cannot change the answer and would only hammer the API.
-    if (!finding || pending.length > 0 || terminalRun) return
+    // ⚑ 26 Aug — the poll keeps running even after the bound has been declared, and that is
+    // deliberate: a late outcome must still be able to replace the recovery card with the
+    // truth (the run is fire-and-forget server-side, so "late" is a real case). It stays
+    // bounded per page load, and it only ever READS.
+    if ((!finding && !proofAwaiting) || pending.length > 0 || terminalRun) return
     let cancelled = false
     let checks = 0
     let inFlight = false                       // one request at a time — never overlap
@@ -863,7 +1082,7 @@ export default function MillaHomePage() {
     // Cleanup is what guarantees a single loop: the effect re-runs only when `finding` or
     // the pending COUNT changes, and each re-run tears the previous interval down first.
     return () => { cancelled = true; clearInterval(timer) }
-  }, [finding, pending.length, load, terminalRun])
+  }, [finding, proofAwaiting, pending.length, load, terminalRun])
   // Mirrors lib/approval-batch.ts on the server. `approvedEver` comes from the summary, so a
   // client already past 20 gets one-tap approve back — the gate starts the relationship, it
   // doesn't nag someone already working with us.
@@ -1054,17 +1273,36 @@ export default function MillaHomePage() {
                   <div className="text-[13px] mt-1.5 text-[#7c6f9b]">{terminalRun.message}</div>
                   {/* Nothing on this branch starts another search, and no control offers to. */}
                 </div>
-              ) : finding ? (
+              ) : proofAwaiting ? (
                 <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
-                  <div className="text-[15px] font-bold text-[#5c5279]">Finding your matches now…</div>
+                  <div className="text-[15px] font-bold text-[#5c5279]">
+                    {/* ⚑ 26 Aug — THE WAIT IS BOUNDED. When the poll exhausts and the server
+                        still has no terminal outcome for this run — persistence failed, the
+                        row is missing, or /milla-summary itself kept erroring — the desk
+                        stops claiming to be searching. It says the approved recovery line
+                        instead. No spinner runs forever, and no client-side guess becomes a
+                        result: this branch only ever renders when `terminalRun` is absent,
+                        so real backend truth always wins.
+
+                        ⛓️ CORRECTION PASS — `proofAwaiting` JOINS `finding` HERE rather than
+                        getting its own branch below. A clean-URL reopen used to fall to a
+                        separate card that said "We hit a snag" IMMEDIATELY, with no elapsed
+                        time considered at all; now it enters this identical bounded wait, so
+                        a claimed proof at 30s or 90s reads "Finding your matches now…" and
+                        only crosses to the recovery line once the bound is genuinely past.
+                        One wait, one bound, one verdict — whether or not the URL has a
+                        query string. */}
+                    {proofWaitEnded ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}
+                  </div>
                   <div className="text-[13px] mt-1.5">
                     {/* ⚠️ Real apostrophes, NOT &rsquo;. These are JS string literals inside an
                         expression container, so an HTML entity is not decoded — it renders as
                         the literal text "We&rsquo;re". Entities only work in JSX text nodes,
                         which is what the paying-client line below is. */}
-                    {findingTimedOut
-                      /* No notification promised, no time promised — neither is true. */
-                      ? 'We’re still finding your matches. You can come back to this page shortly.'
+                    {proofWaitEnded
+                      /* Approved recovery copy, verbatim. No retry offered, no timing
+                         promised, and no technical detail — the diagnosis is in the alert. */
+                      ? 'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
                       : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
                   </div>
                 </div>
@@ -1084,6 +1322,16 @@ export default function MillaHomePage() {
                 {newBatch && (
                   <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] pt-1.5 px-1">
                     {batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}
+                    {/* ⚑ 26 Aug — SAY HOW MANY, because the number is the honest part.
+                        A short batch is not a failure and must not be dressed as a full
+                        one: the heading states the actual count and claims nothing about
+                        a target, promises no more to come, and offers no retry. Shown
+                        only in proof mode, where a batch is a countable set. */}
+                    {showBatchLabels && (
+                      <span className="ml-1.5 font-bold text-[#9b8ec4] normal-case tracking-normal">
+                        · {pending.filter(x => batchKey(x) === batchKey(l)).length} {pending.filter(x => batchKey(x) === batchKey(l)).length === 1 ? 'match' : 'matches'}
+                      </span>
+                    )}
                   </div>
                 )}
                 <div onClick={() => gate.batch && gate.required > 1 && togglePick(l.id)}

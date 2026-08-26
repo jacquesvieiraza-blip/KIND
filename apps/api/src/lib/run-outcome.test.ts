@@ -14,7 +14,11 @@ describe('deriveRunStatus', () => {
     expect(deriveRunStatus(false, 12, false)).toBe('served')
   })
   it('real client, budget available but zero returned → no_match (widen ICP)', () => {
-    expect(deriveRunStatus(false, 0, false)).toBe('no_match')
+    // ⛓️ 26 Aug — the trust argument is now REQUIRED and has no default. "Zero returned"
+    // only means "widen your ICP" when the search actually COMPLETED, so the completion
+    // fact is stated here rather than assumed. An unfinished search reaching this same
+    // zero is `failed`, and telling those two apart is the whole point of the argument.
+    expect(deriveRunStatus(false, 0, false, false, true)).toBe('no_match')
   })
 })
 

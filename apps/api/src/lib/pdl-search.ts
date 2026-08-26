@@ -270,7 +270,42 @@ async function pdlSearchOnce(icp: IcpQuery, size: number, key: string, scrollTok
       body:    JSON.stringify(buildPdlBody(icp, size, scrollToken, opts)),
       signal:  AbortSignal.timeout(15000),
     })
-    if (res.status === 404) return { kind: 'exhausted' }
+    if (res.status === 404) {
+      // ⚑ 26 Aug (final gate) — 404 IS A TRUSTWORTHY ZERO ONLY WHEN PDL SAYS SO ITSELF.
+      // A bare status cannot carry that meaning: a proxy, a moved endpoint or a gateway can
+      // all say 404, and treating THOSE as "nobody matches" is a false no_match wearing a
+      // real one's clothes. So the body is read, and anything that is not positively a
+      // no-records answer is an ERROR — which leaves trust unproven and derives `failed`.
+      //
+      // ⛓️ NARROWED 26 Aug (correction pass). The first version was
+      //     type === 'not_found' || /no records/i.test(message)
+      // and the OR was the defect: `type: 'not_found'` ALONE was enough, so *any* 404
+      // carrying a generic not_found — endpoint not found, resource not found, an API
+      // gateway's own error envelope — was promoted to "your search matched nobody". That
+      // is the precise lie this whole build exists to kill, reintroduced one operator at a
+      // time. Both halves are now REQUIRED: the machine-readable type AND the human message
+      // that says what was not found.
+      //
+      // ⚠️ THE SHAPE ITSELF IS RUNTIME UNVERIFIED, and that is exactly why the predicate is
+      // the narrow one. This repo holds NO captured PDL 404 response — the only evidence is
+      // the vendor's public Person Search docs (https://docs.peopledatalabs.com/docs/person-search-api,
+      // linked at the top of this file), not a body we have observed. An earlier version of
+      // this comment cited "docs/person-search-api" in a way that read like a repo document;
+      // it is not one, and no such file exists. Until a real 404 body is captured, the
+      // failure modes are deliberately asymmetric: if PDL's true envelope is NARROWER than
+      // this, a genuine zero is recorded `failed` — the client sees the neutral recovery
+      // state and a human is alerted, which is safe and visible. If we guessed WIDER, a
+      // broken search would tell a prospect to widen targeting that was never tested. One
+      // of those is recoverable and the other is the original defect.
+      const body = await res.json().catch(() => null) as { error?: { type?: string; message?: string } } | null
+      const saidNoRecords =
+        body?.error?.type === 'not_found' &&
+        /\bno records were found\b/i.test(body?.error?.message ?? '')
+      if (saidNoRecords) return { kind: 'exhausted' }
+      const detail = `404 without PDL's no-records body — not a provider zero (${JSON.stringify(body).slice(0, 160)})`
+      console.error('[pdl] search failed:', detail)
+      return { kind: 'error', detail }
+    }
     if (res.status === 402) {
       console.warn(`[pdl] search 402 at size ${size} — batch exceeds remaining credits, will retry smaller`)
       return { kind: 'no_credit' }
@@ -336,6 +371,20 @@ export type PdlPage = {
   matchedNothing: boolean
   /** Set when the page could not be fetched at all. Distinct from an empty page. */
   error: string | null
+  /**
+   * ⚑ 26 Aug — DID THE SEARCH ACTUALLY COMPLETE? The one fact the outcome layer was missing.
+   *
+   * `true` ONLY when PDL gave us a trustworthy answer: results, a first-page 404 ("nobody
+   * matches"), or a paged-to-the-end 404 ("you have them all"). Every other exit — no API
+   * key, timeout, 5xx, auth failure, two rate limits, malformed body, out of credits — is
+   * `false`, because we do not know what this query would have returned.
+   *
+   * ⚠️ `error === null` IS NOT THE SAME TEST, which is exactly how the false `no_match`
+   * survived. The no-key exit returns `error: null` and its own comment says "we never
+   * asked, we cannot claim the audience is finished" — and then it returned a shape that
+   * derived precisely that claim. An empty page is not evidence of an empty audience.
+   */
+  completed: boolean
 }
 
 /**
@@ -356,7 +405,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
   const key = process.env.PDL_API_KEY
   // Dormant until a key is configured. NOT `exhausted` — we never asked, so we cannot claim
   // the audience is finished; that would tell a client to widen an ICP that is fine.
-  if (!key) return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: null }
+  if (!key) return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: null, completed: false }
 
   const ladder = [size, 25, 10, 5, 1].filter((s, i, a) => s >= 1 && s <= size && a.indexOf(s) === i)
   let retriedRateLimit = false
@@ -365,7 +414,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
     const outcome = await pdlSearchOnce(icp, ladder[i], key, scrollToken, opts)
     if (outcome.kind === 'ok') {
       if (i > 0) console.log(`[pdl] size ladder recovered: got ${outcome.contacts.length} at size ${ladder[i]} (asked ${size})`)
-      return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, matchedNothing: false, error: null }
+      return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, matchedNothing: false, error: null, completed: true }
     }
     if (outcome.kind === 'exhausted') {
       // ⚑ 25 Aug — 404 IS TWO DIFFERENT FACTS, AND THE TOKEN IS WHICH.
@@ -380,7 +429,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
       // by construction, so no consumer can be true for both.
       const firstPage = !scrollToken
       console.log(`[pdl] 404${firstPage ? ' — matched nobody at all (first page, nothing was ever sourced)' : ' — paged to the end of this audience'}`)
-      return { contacts: [], scrollToken: null, exhausted: !firstPage, matchedNothing: firstPage, error: null }
+      return { contacts: [], scrollToken: null, exhausted: !firstPage, matchedNothing: firstPage, error: null, completed: true }
     }
     if (outcome.kind === 'no_credit') continue // step down the ladder
     if (outcome.kind === 'rate_limited' && !retriedRateLimit) {
@@ -394,13 +443,13 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
     // Hard error (or second 429) — logged inside pdlSearchOnce. Keep the token: the page was
     // never served, so resuming from it next run loses nobody.
     const detail = outcome.kind === 'error' ? outcome.detail : 'rate limited twice'
-    return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: detail }
+    return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: detail, completed: false }
   }
 
   // 402 all the way down to size 1 — the account has zero search credits left. Emphatically
   // NOT exhausted: the audience is fine, our wallet is not.
   alertPdlOutOfCredits()
-  return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: 'PDL is out of search credits' }
+  return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: 'PDL is out of search credits', completed: false }
 }
 
 /**

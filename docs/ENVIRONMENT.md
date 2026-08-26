@@ -6,7 +6,7 @@
 
 ## The number
 
-**101 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **84** read by the API, **17** read only by the portal or the admin app.
+**102 distinct variables** across `apps/api`, `apps/portal` and `apps/admin` — **85** read by the API, **17** read only by the portal or the admin app.
 
 **#561 recorded 69, and that figure was wrong twice over.** The first was method: a `process.env.X` grep cannot see the **12 variables this repo reaches by indirection** —
 
@@ -91,6 +91,7 @@ Every row here fails **quietly**. Nothing throws; a feature just does not happen
 | `API_INTERNAL_URL` | api | ⚪ optional | Loopback base for cron self-calls; falls back to localhost:PORT | Railway → **@kind/api** |
 | `APOLLO_API_KEY` | api | ⚪ optional | Apollo — optional / BYO-key; not used in the day-to-day PDL+Hunter stack | Railway → **@kind/api** |
 | `AUTO_OUTREACH_ENABLED` | api | ⚪ optional | The kill-switch. Unset/false = nothing sends automatically — the correct state until the #553 ladder passes | Railway → **@kind/api** |
+| `SAFE_TEST_MODE` | api | ⚪ optional | 🛑 **THE ZERO-SPEND GUARD (R66).** Set to `1` and every paid provider call — PDL, Apollo, Hunter, Clearbit — **throws instead of spending**. Launch testing runs on mocks, fixtures or existing pooled contacts only; when safe data runs out the run FAILS LOUDLY rather than quietly buying more. ⚠️ **Fails closed:** any value other than an explicit off-value (`0`/`false`/`no`/`off`/empty) keeps it ON, so a typo cannot re-enable spending. **Unset = normal production behaviour.** | Railway → @kind/api → Variables |
 | `CLEARBIT_API_KEY` | api | ⚪ optional | Clearbit enrichment — not in the day-to-day stack | Railway → **@kind/api** |
 | `EXTRA_ALLOWED_ORIGINS` | api | ⚪ optional | Additional CORS origins beyond the portal and *.railway.app | Railway → **@kind/api** |
 | `FEATURE_CAMPAIGN_INTENT` | api | ⚪ optional | Feature flag — campaign intent capture | Railway → **@kind/api** |

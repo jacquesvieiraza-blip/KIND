@@ -18,6 +18,7 @@ import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine } from '../lib/pool-sourcing'
+import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
@@ -925,6 +926,57 @@ export async function runIcpJob(
       // earliest acquisition wins and we never overwrite acquisition_cost).
       const poolUpserts: Array<Record<string, unknown>> = []
       let pdlKept = 0
+
+      // ── R67 — REMEMBER EVERY PAID IDENTITY BEFORE ANY CLIENT GATE CAN DROP IT ──────
+      //
+      // ⚠️ THIS RUNS BEFORE THE LOOP ON PURPOSE. Below, six separate `skipped++; continue`
+      // branches — budget cap, DNC, opt-out blocklist, this-client duplicate, insert
+      // failure, and (implicitly) no email — each discard a contact we have ALREADY PAID
+      // for. Two of them, DNC and opt-out, discard exactly the people we most need to
+      // remember, because forgetting them means the next run buys them again.
+      //
+      // ⚠️ RETENTION IS NOT CONTACTABILITY. Writing a person here does NOT make them
+      // contactable: no send, consent, reveal, scoring or serving path reads
+      // `acquisition_memory`. Suppression and opt-out are recorded as FACTS on the row and
+      // still block contact everywhere they did before — the gates below are untouched.
+      //
+      // ⚠️ EMAILLESS RECORDS ARE THE POINT. `lead_pool.email_norm` is its PRIMARY KEY, so
+      // the pool structurally cannot hold them; `acquisition_memory` is keyed on
+      // (source, provider_id) precisely so it can.
+      //
+      // Non-fatal: a memory failure must never break a run that has already bought leads.
+      try {
+        const memories: AcquisitionMemoryRecord[] = []
+        for (const contact of contacts) {
+          const suppressed = isSuppressed({
+            email:    contact.email,
+            company:  contact.organization?.name ?? contact.organization_name,
+            linkedin: contact.linkedin_url,
+          })
+          let reason: SuppressionReason = suppressed ? 'dnc' : null
+          if (!suppressed && contact.email) {
+            const { data: blocked } = await db.from('opt_out_blocklist')
+              .select('id').eq('email', normalizeRevealEmail(contact.email)).is('opted_back_in_at', null).maybeSingle()
+            if (blocked) reason = 'opt_out'
+          }
+          const rec = toMemoryRecord(contact, {
+            source:            'pdl',
+            costUsd:           PDL_RATE_USD,
+            clientId,
+            contactable:       reason === null,
+            suppressionReason: reason,
+          })
+          // `null` only when the provider gave no stable id — with no (source, provider_id)
+          // there is no identity key, so the row could not be deduped and its cost would be
+          // re-counted on every re-encounter. Counted, never silent.
+          if (rec) memories.push(rec)
+          else console.warn('[acquisition-memory] provider returned a contact with no id — not retainable, not remembered')
+        }
+        const { written } = await rememberAcquiredIdentities(db as never, memories)
+        console.log(`[acquisition-memory] remembered ${written} of ${contacts.length} paid identities for icp ${icpId} (retention ≠ contactability)`)
+      } catch (memErr) {
+        console.error('[acquisition-memory] non-fatal failure — paid identities may be unrecorded:', memErr)
+      }
 
       for (const contact of contacts) {
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we

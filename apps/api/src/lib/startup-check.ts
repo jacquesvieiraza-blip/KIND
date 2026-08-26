@@ -120,6 +120,7 @@ const REQUIRED_VARS: VarSpec[] = [
   // Feature switches. Unset is a VALID configured state for every one of these, and for the
   // first it is the SAFE one — so they are optional and their default is stated.
   { key: 'AUTO_OUTREACH_ENABLED',     level: 'optional',  description: 'The kill-switch. Unset/false = nothing sends automatically — the correct state until the #553 ladder passes' },
+  { key: 'SAFE_TEST_MODE',          level: 'optional',  description: 'The zero-spend guard (R66). Set = every paid provider call throws instead of spending; launch testing uses mocks/fixtures/pool only. Unset = normal production behaviour.' },
   { key: 'RUN_CRONS',                 level: 'optional',  description: 'Unset/false = this replica runs no scheduled jobs' },
   { key: 'IS_STAGING',                level: 'optional',  description: 'true = staging boot rules (only the Supabase vars stay critical)' },
   { key: 'NEXT_PUBLIC_IS_STAGING',    level: 'optional',  description: 'Same signal, read from the shared build env' },

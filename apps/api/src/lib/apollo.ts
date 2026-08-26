@@ -1,5 +1,6 @@
 // Apollo.io people search — maps ICP criteria to API params and normalises results
 import { pdlSearchPage, pdlSearchDiagnostic, type PdlPage, type PdlSearchOptions } from './pdl-search'
+import { assertPaidProviderAllowed } from './paid-provider-guard'
 import { searchProviderFor, apolloRevealableIds, type Audience } from './provider-boundary'
 import { sendFounderAlert } from './alerts'
 import { isPlaceholderEmail } from './email-hygiene'
@@ -250,6 +251,9 @@ export async function previewCount(
     return (await pdlFallback('no-apollo-key')) ?? { count: 0, error: 'APOLLO_API_KEY is not set on the API service', debug: baseDebug }
   }
 
+  // ⚠️ OUTSIDE THE `try` (R66) — the catch below degrades to a count of 0, which reads as
+  // "no matches" rather than "we refused to spend". A blocked call must stop the run.
+  assertPaidProviderAllowed('apollo', 'previewCount')
   try {
     const res = await fetch(APOLLO_PEOPLE_SEARCH, {
       method:  'POST',
@@ -456,6 +460,7 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   const apiKey = process.env.APOLLO_API_KEY
   if (!apiKey) throw new Error('APOLLO_API_KEY env var is not set')
 
+  assertPaidProviderAllowed('apollo', 'searchPeople')
   const res = await fetch(APOLLO_PEOPLE_SEARCH, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json', 'X-Api-Key': apiKey },
@@ -508,6 +513,9 @@ export async function bulkMatchEmails(apolloIds: string[]): Promise<Map<string, 
 
   for (let i = 0; i < ids.length; i += 10) {
     const batch = ids.slice(i, i + 10)
+    // ⚠️ OUTSIDE THE `try` (R66) — a swallowed block would silently return unenriched
+    // rows and look like a provider miss.
+    assertPaidProviderAllowed('apollo', 'bulkMatch')
     try {
       const res = await fetch(APOLLO_BULK_MATCH, {
         method:  'POST',

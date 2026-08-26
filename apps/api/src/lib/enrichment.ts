@@ -1,6 +1,8 @@
 // P2-5: Waterfall enrichment — Apollo → PDL → Hunter → Clearbit → Claude fallback
 // Each provider fills missing fields. First successful hit wins per field.
 
+import { assertPaidProviderAllowed } from './paid-provider-guard'
+
 export interface EnrichmentResult {
   email?: string
   phone?: string
@@ -132,6 +134,8 @@ async function tryHunter(lead: LeadProfile): Promise<EnrichmentResult | Provider
     url.searchParams.set('last_name', lead.last_name)
     url.searchParams.set('api_key', key)
 
+    // ⚠️ R66 — a swallowed block here would read as "Hunter found no address".
+    assertPaidProviderAllowed('hunter', 'tryHunter')
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) })
     if (!res.ok) {
       // ⚠️ A 451 IS NOT AN ERROR. It is a person's erasure request arriving through an error
@@ -171,6 +175,7 @@ async function tryPDL(lead: LeadProfile): Promise<EnrichmentResult | null> {
     const url = new URL('https://api.peopledatalabs.com/v5/person/enrich')
     for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
 
+    assertPaidProviderAllowed('pdl', 'pdlEnrich')
     const res = await fetch(url.toString(), {
       headers: { 'X-Api-Key': key },
       signal: AbortSignal.timeout(8000),
@@ -211,6 +216,7 @@ async function tryClearbit(lead: LeadProfile): Promise<EnrichmentResult | null> 
   if (!key) return null
   if (!lead.email) return null
 
+  assertPaidProviderAllowed('clearbit', 'tryClearbit')
   try {
     const res = await fetch(`https://person.clearbit.com/v2/combined/find?email=${encodeURIComponent(lead.email)}`, {
       headers: { Authorization: `Bearer ${key}` },
@@ -333,6 +339,7 @@ export async function revealTrace(lead: LeadProfile): Promise<Record<string, unk
     url.searchParams.set('first_name', lead.first_name)
     url.searchParams.set('last_name', lead.last_name)
     url.searchParams.set('api_key', key)
+    assertPaidProviderAllowed('hunter', 'enrichmentDiagnostic')
     const res = await fetch(url.toString(), { signal: AbortSignal.timeout(8000) })
     const j = await res.json().catch(() => null) as { data?: { email?: string; score?: number }; errors?: unknown } | null
     // NAME the refusal here too. This is the admin diagnostic, and an operator reading a bare

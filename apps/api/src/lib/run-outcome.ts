@@ -33,18 +33,34 @@ export function deriveRunStatus(
   totalInserted: number,
   quotaRefused: boolean,
   audienceExhausted = false,
+  searchCompleted = true,
 ): RunStatus {
   if (quotaRefused) return 'quota_exhausted'
   if (isDemo) return 'demo'
-  // A run that both exhausted the audience AND still delivered leads is a `served` run —
-  // the client got people today; the "you have them all" conversation belongs to the run
-  // that actually comes back empty.
+
+  // ⚑ PARTIAL PROOF RULE (founder-approved 26 Aug) — SHOW WHAT WE HAVE.
+  // Checked BEFORE trustworthiness on purpose: if real, safe, relevant people were found,
+  // the client sees them, whatever happened to the rest of the batch. A provider that died
+  // after the pool served seven does not take those seven away.
   if (totalInserted > 0) return 'served'
+
+  // Zero. Only NOW does it matter whether the zero can be trusted.
+  //
+  // ⚠️ THIS IS THE FIX FOR THE FALSE `no_match`. Every non-block failure — timeout, 5xx,
+  // 401/403, two rate limits, malformed body, out of credits, and the no-API-key exit that
+  // returns `error: null` — used to arrive here indistinguishable from a completed search
+  // that genuinely matched nobody, and every one of them told the prospect "No leads
+  // matched this ICP. Try widening it". An empty page is not evidence of an empty audience.
+  //
+  // ⚠️ `failed` IS STILL NEVER DERIVED FROM EMPTINESS. It is derived from an explicit
+  // "the search did not complete" fact carried by the provider page (`PdlPage.completed`),
+  // and from nothing else. Callers that do not pass it keep the old behaviour by default,
+  // so a caller which never reaches a provider cannot accidentally report a failure.
+  if (!searchCompleted) return 'failed'
+
   return audienceExhausted ? 'audience_exhausted' : 'no_match'
 }
 
-/** Client-facing message for a run outcome. Honest: never blames the client for a
- *  platform quota outage, and never hides a genuine no-match behind a vague spinner. */
 export function runOutcomeMessage(status: RunStatus, totalInserted: number, alreadyHeld = 0): string {
   switch (status) {
     case 'failed':

@@ -131,14 +131,32 @@ describe('a crashed run is a TERMINAL FACT — founder-approved `failed` (26 Aug
     expect(crash()).not.toContain("'audience_exhausted'")
   })
 
-  it('`failed` is never DERIVED — only written by the handler that caught the throw', () => {
-    const derive = api('run-outcome.ts')
-    const fn = derive.slice(derive.indexOf('export function deriveRunStatus'), derive.indexOf('export function runOutcomeMessage'))
-    expect(fn).not.toContain("'failed'")
-    // And no honest completion can produce it.
-    for (const args of [[false, 0, false, false], [false, 0, false, true], [false, 0, true, false], [false, 5, false, false], [true, 0, false, false]] as const) {
-      expect(deriveRunStatus(...args)).not.toBe('failed')
+  it('`failed` is never derived from EMPTINESS — only from an explicit not-completed fact', () => {
+    // ⛓️ AMENDED 26 Aug. This used to assert that `deriveRunStatus` could never return
+    // `failed` at all, which was right while there was no way to tell a completed zero
+    // from a broken search. There is now: `PdlPage.completed`. The founder ruled that an
+    // unclassified failure must FAIL CLOSED to the approved recovery path rather than be
+    // reported as "nobody matched".
+    //
+    // The invariant that survives, and it is the one that matters: **emptiness alone can
+    // never produce `failed`.** Only an explicit "the search did not complete" can.
+    for (const args of [
+      [false, 0, false, false, true],   // completed zero
+      [false, 0, false, true,  true],   // completed, audience finished
+      [false, 0, true,  false, true],   // refused before it ran
+      [false, 5, false, false, true],   // matches
+      [true,  0, false, false, true],   // demo
+      [false, 0, false, false],         // legacy 4-arg caller — defaults to trustworthy
+    ] as const) {
+      expect(deriveRunStatus(...(args as Parameters<typeof deriveRunStatus>)), JSON.stringify(args)).not.toBe('failed')
     }
+
+    // And a run that DID have matches never reports failure, however badly the rest went —
+    // the founder's partial-proof rule.
+    expect(deriveRunStatus(false, 7, false, false, false)).toBe('served')
+
+    // Only this produces it.
+    expect(deriveRunStatus(false, 0, false, false, false)).toBe('failed')
   })
 
   it('still alerts a human', () => {

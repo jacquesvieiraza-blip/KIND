@@ -516,6 +516,11 @@ export async function runIcpJob(
   if (cursor.reset) console.log(`[icp] PDL cursor reset for icp ${icpId} — the ICP changed since it was stored`)
   let cursorUpdate: StoredCursor | null = null
   let audienceExhausted = cursor.exhausted
+  // ⚑ 26 Aug — CAN WE TRUST A ZERO? Starts true and is only ever falsified by a provider
+  // page that did not complete. A run that never reaches a provider (pool filled the batch,
+  // demo, audience already exhausted) leaves it true, because there is no untrustworthy
+  // search to report.
+  let searchCompleted = true
 
   // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
@@ -772,6 +777,13 @@ export async function runIcpJob(
       if (pdlPage) {
         cursorUpdate = nextCursorState(icp as CursorQuery, pdlPage, new Date().toISOString())
         if (pdlPage.exhausted) audienceExhausted = true
+        // The search's own verdict on itself. False = timeout, 5xx, auth, two 429s,
+        // malformed body, out of credits, or no API key — never a trustworthy zero.
+        if (!pdlPage.completed) searchCompleted = false
+      } else if (audience === 'client') {
+        // A client run is PDL-only: no page at all means the call never produced an answer.
+        // (A HOUSE run legitimately has no PDL page — Apollo throws on failure instead.)
+        searchCompleted = false
       }
 
       // ── ⚑ 25 Aug — PASS-2 ONE-TIME WIDENED RETRY (founder-ruled) ────────────────────────
@@ -867,6 +879,11 @@ export async function runIcpJob(
           // matched nobody, does not claim the audience is exhausted, does not claim anyone
           // was already sourced, invites no retry and promises no timing.
           relaxed = 'K.I.N.D couldn’t confirm a second set from that search. K.I.N.D will review it with you.'
+          // ⚑ 26 Aug — AND THE OUTCOME MUST AGREE WITH THAT SENTENCE. This branch already
+          // said, in words, that the result is not trustworthy; the persisted status used to
+          // say `no_match` anyway. An unproven widened zero is a FAILED search, not a
+          // finished one.
+          searchCompleted = false
           console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
         }
       }
@@ -1263,7 +1280,7 @@ export async function runIcpJob(
   // a client either widens an ICP that was working perfectly or abandons one that simply
   // ran to its end. So when PDL has nobody left, the run is recorded as `audience_exhausted`
   // and carries the end-of-audience sentence — never "no leads matched this ICP".
-  const status = deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted)
+  const status = deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, searchCompleted)
   let heldFromIcp = 0
   if (status === 'audience_exhausted') {
     const { count } = await db.from('leads')

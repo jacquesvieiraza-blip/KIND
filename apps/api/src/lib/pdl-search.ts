@@ -336,6 +336,20 @@ export type PdlPage = {
   matchedNothing: boolean
   /** Set when the page could not be fetched at all. Distinct from an empty page. */
   error: string | null
+  /**
+   * ⚑ 26 Aug — DID THE SEARCH ACTUALLY COMPLETE? The one fact the outcome layer was missing.
+   *
+   * `true` ONLY when PDL gave us a trustworthy answer: results, a first-page 404 ("nobody
+   * matches"), or a paged-to-the-end 404 ("you have them all"). Every other exit — no API
+   * key, timeout, 5xx, auth failure, two rate limits, malformed body, out of credits — is
+   * `false`, because we do not know what this query would have returned.
+   *
+   * ⚠️ `error === null` IS NOT THE SAME TEST, which is exactly how the false `no_match`
+   * survived. The no-key exit returns `error: null` and its own comment says "we never
+   * asked, we cannot claim the audience is finished" — and then it returned a shape that
+   * derived precisely that claim. An empty page is not evidence of an empty audience.
+   */
+  completed: boolean
 }
 
 /**
@@ -356,7 +370,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
   const key = process.env.PDL_API_KEY
   // Dormant until a key is configured. NOT `exhausted` — we never asked, so we cannot claim
   // the audience is finished; that would tell a client to widen an ICP that is fine.
-  if (!key) return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: null }
+  if (!key) return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: null, completed: false }
 
   const ladder = [size, 25, 10, 5, 1].filter((s, i, a) => s >= 1 && s <= size && a.indexOf(s) === i)
   let retriedRateLimit = false
@@ -365,7 +379,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
     const outcome = await pdlSearchOnce(icp, ladder[i], key, scrollToken, opts)
     if (outcome.kind === 'ok') {
       if (i > 0) console.log(`[pdl] size ladder recovered: got ${outcome.contacts.length} at size ${ladder[i]} (asked ${size})`)
-      return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, matchedNothing: false, error: null }
+      return { contacts: outcome.contacts, scrollToken: outcome.scrollToken, exhausted: false, matchedNothing: false, error: null, completed: true }
     }
     if (outcome.kind === 'exhausted') {
       // ⚑ 25 Aug — 404 IS TWO DIFFERENT FACTS, AND THE TOKEN IS WHICH.
@@ -380,7 +394,7 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
       // by construction, so no consumer can be true for both.
       const firstPage = !scrollToken
       console.log(`[pdl] 404${firstPage ? ' — matched nobody at all (first page, nothing was ever sourced)' : ' — paged to the end of this audience'}`)
-      return { contacts: [], scrollToken: null, exhausted: !firstPage, matchedNothing: firstPage, error: null }
+      return { contacts: [], scrollToken: null, exhausted: !firstPage, matchedNothing: firstPage, error: null, completed: true }
     }
     if (outcome.kind === 'no_credit') continue // step down the ladder
     if (outcome.kind === 'rate_limited' && !retriedRateLimit) {
@@ -394,13 +408,13 @@ export async function pdlSearchPage(icp: IcpQuery, size = 50, scrollToken: strin
     // Hard error (or second 429) — logged inside pdlSearchOnce. Keep the token: the page was
     // never served, so resuming from it next run loses nobody.
     const detail = outcome.kind === 'error' ? outcome.detail : 'rate limited twice'
-    return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: detail }
+    return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: detail, completed: false }
   }
 
   // 402 all the way down to size 1 — the account has zero search credits left. Emphatically
   // NOT exhausted: the audience is fine, our wallet is not.
   alertPdlOutOfCredits()
-  return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: 'PDL is out of search credits' }
+  return { contacts: [], scrollToken, exhausted: false, matchedNothing: false, error: 'PDL is out of search credits', completed: false }
 }
 
 /**

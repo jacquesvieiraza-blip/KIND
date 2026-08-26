@@ -570,6 +570,38 @@ export async function runIcpJob(
   // ⚑ 26 Aug — did this run use its ONE approved widened fallback? Read only by the outcome
   // message, so a completed zero AFTER widening never tells the client to widen again.
   let didWiden = false
+  // ── ⚑ 27 Aug — A DELIBERATE SPEND BLOCK IS A FACT THE RUN SURVIVES, NOT A CRASH ────────
+  //
+  // THE PRODUCTION FAILURE THIS CLOSES. With PAID_PROVIDERS_ENABLED unset (the fail-closed
+  // default R66 shipped) and a real PDL key present, every proof pass whose pool serve came
+  // up short hit `assertPaidProviderAllowed` inside the provider call, and the deliberate
+  // `PaidProviderBlockedError` propagated straight out of this function — killing the run
+  // BETWEEN the reservation and everything that makes a run real. Three consequences, each
+  // observed live:
+  //   1. pool-served leads were already INSERTED but the surfacing stamp
+  //      (`surfaced_for_approval_at` + `delivered_at`, far below) never ran — so the desk,
+  //      whose /leads/for-approval requires BOTH, showed NOTHING even when the pool had
+  //      matches. Safe pool leads were sacrificed because paid providers were off.
+  //   2. the proof reservation was never reconciled — the F1 refund lives below the throw —
+  //      so up to 20 of the prospect's lifetime-40 records burned per blocked attempt.
+  //      Two attempts ≈ the whole 40, and every later pass reserves 0 and refuses.
+  //   3. the crash boundary recorded `failed` with pool_served=0/inserted=0 — false counts —
+  //      or, where the `failed` CHECK constraint is missing, recorded NOTHING, leaving the
+  //      desk to its 240s local failsafe ("Finding…" for minutes, then the snag card).
+  //
+  // ⚠️ WHY THE SUITE MISSED IT: `vitest.setup.ts` deletes every provider key, so in tests
+  // `pdlSearchPage` exits at its no-key branch BEFORE the guard — the throw was unreachable
+  // under test and only production, which HAS the key, could reach it.
+  //
+  // ⚠️ THE GUARD'S CONTRACT IS UNCHANGED. A block still refuses the spend, still cannot be
+  // swallowed into an empty page, and still cannot read as a trustworthy zero — trust stays
+  // 'unproven', so a zero-pool blocked run derives `failed` (the neutral review state) and
+  // never `no_match`. What changed is WHERE the fact is handled: the run absorbs it, keeps
+  // every safe pool lead, refunds the unspent reservation, and records one honest outcome
+  // with real counts.
+  let paidSourcingBlocked = false
+  const isPaidProviderBlock = (e: unknown): boolean =>
+    !!e && typeof e === 'object' && (e as { code?: unknown }).code === 'SAFE_TEST_MODE_BLOCKED'
 
   // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
@@ -814,10 +846,27 @@ export async function runIcpJob(
       // The run now DEPENDS on a provider answer. Until that answer positively proves
       // itself, the zero this run might end with cannot be trusted (fail-closed trust).
       searchTrust = 'unproven'
-      const exact = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
-      let contacts = exact.contacts
-      relaxed = exact.relaxed
-      const pdlPage = exact.pdlPage
+      let exact: Awaited<ReturnType<typeof searchPeopleWithFallback>> | null = null
+      try {
+        exact = await searchPeopleWithFallback(icpForSearch, 1, grantedSize, cursor.token, audience, { proofMode })
+      } catch (searchErr) {
+        // Only the DELIBERATE block is absorbed — every other throw keeps crashing to the
+        // boundary, exactly as before. Recognised by its stable code, not instanceof, so a
+        // reloaded module graph cannot unrecognise it.
+        if (!isPaidProviderBlock(searchErr)) throw searchErr
+        paidSourcingBlocked = true
+        console.error(`[icp] stage=provider_blocked — paid sourcing required (${grantedSize} record(s)) but the zero-spend guard refused it; pool served ${pool.served}. The run continues: pool leads surface, the reservation refunds, the outcome records honestly.`)
+        void sendFounderAlert('source_down', 'Proof run needed paid sourcing but PAID_PROVIDERS_ENABLED is off', [
+          `Client ${clientId}, ICP ${icpId}: the pool served ${pool.served} of ${runCap} and the paid remainder was refused by the zero-spend guard.`,
+          pool.served > 0
+            ? 'The pool-served leads still surface (partial rule); the unused reservation is refunded.'
+            : 'Nothing could be served, so the run records the neutral review state — never no_match.',
+          'To allow real provider spend, set PAID_PROVIDERS_ENABLED=true on @kind/api.',
+        ]).catch(() => {})
+      }
+      let contacts = exact?.contacts ?? []
+      relaxed = exact?.relaxed ?? relaxed
+      const pdlPage = exact?.pdlPage ?? null
 
       // Remember where PDL got to, so NEXT month starts after these people instead of on
       // top of them. Only written when PDL actually answered — a failed request leaves the
@@ -834,9 +883,11 @@ export async function runIcpJob(
         // completion; timeout, 5xx, auth, two 429s, malformed body, out of credits and
         // no-API-key all leave `completed: false` — and therefore leave trust unproven.
         if (pdlPage.completed) searchTrust = 'proven'
-      } else if (audience === 'house') {
+      } else if (audience === 'house' && !paidSourcingBlocked) {
         // The Apollo house path has no PDL page and its failures THROW out of this run —
-        // so reaching this line at all IS the positive evidence of completion.
+        // so reaching this line at all IS the positive evidence of completion. A BLOCKED
+        // house run also has no page, and proved nothing: the guard refused before Apollo
+        // was ever asked, so trust must stay 'unproven'.
         searchTrust = 'proven'
       }
       // A client run with no page: the call never produced an answer. Trust stays
@@ -889,9 +940,19 @@ export async function runIcpJob(
         // A SECOND provider answer is now required; the exact search's proof does not
         // transfer to it. Unproven again until the widened page shows its own evidence.
         searchTrust = 'unproven'
-        const wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })
-        if (wide.pdlPage?.completed) searchTrust = 'proven'
-        contacts = wide.contacts
+        // Belt only: `canWiden` needs a completed matchedNothing page, which a blocked run
+        // cannot have produced — but if the flags ever flip between the two calls, the
+        // widened attempt absorbs the block exactly as the exact one does.
+        let wide: Awaited<ReturnType<typeof searchPeopleWithFallback>> | null = null
+        try {
+          wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })
+        } catch (wideErr) {
+          if (!isPaidProviderBlock(wideErr)) throw wideErr
+          paidSourcingBlocked = true
+          console.error(`[icp] stage=provider_blocked — the widened fallback was refused by the zero-spend guard for prospect ${clientId}. The run continues.`)
+        }
+        if (wide?.pdlPage?.completed) searchTrust = 'proven'
+        contacts = wide?.contacts ?? []
         // ⚑ 25 Aug (GPT review hold) — A ZERO IS NOT A ZERO UNTIL PDL PROVED IT.
         //
         // The first cut of this branch collapsed two different states into one sentence: a
@@ -930,7 +991,7 @@ export async function runIcpJob(
             company_sizes:    [...((icp as ProofWidenedBasis).company_sizes    ?? [])],
             geographies:      [...((icp as ProofWidenedBasis).geographies      ?? [])],
           }
-        } else if (wide.pdlPage?.matchedNothing === true) {
+        } else if (wide?.pdlPage?.matchedNothing === true) {
           // PROVED ZERO. PDL answered, on a first page, that nobody matches. A human takes it
           // from here: no third query, no third pass, no retry control, and never the
           // exhaustion sentence — nobody was ever sourced from this targeting, so "you
@@ -948,7 +1009,7 @@ export async function runIcpJob(
           // page produced no positive evidence, so trust is still 'unproven' here and the
           // run derives `failed`. Nothing to set — fail-closed means the honest state is
           // what remains when no code runs.
-          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
+          console.log(`[icp] PROOF PASS 2 — widened retry did NOT produce a trustworthy result for prospect ${clientId} (${wide?.pdlPage ? `error: ${wide.pdlPage.error ?? 'empty, unproven'}` : 'no page returned'}). Human review; no further automatic attempt.`)
         }
       }
 

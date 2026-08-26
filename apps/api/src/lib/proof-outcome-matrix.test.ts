@@ -244,24 +244,28 @@ describe('C · runIcpJob carries a FAIL-CLOSED trust state into the persisted st
 
   it('entering the provider branch drops trust to unproven BEFORE the call', () => {
     const enter = src.indexOf("searchTrust = 'unproven'")
-    const call = src.indexOf('const exact = await searchPeopleWithFallback', enter)
+    // ⛓️ 27 Aug — the exact call now sits inside a try that absorbs ONLY the deliberate
+    // spend block; the assignment moved with it. The drop-before-call invariant is unchanged.
+    const call = src.indexOf('exact = await searchPeopleWithFallback', enter)
     expect(enter).toBeGreaterThan(-1)
     expect(call, 'the drop must precede the exact search').toBeGreaterThan(enter)
   })
 
   it('promotion requires POSITIVE evidence: a completed page, or the throwing house path returning', () => {
     expect(src).toContain("if (pdlPage.completed) searchTrust = 'proven'")
-    expect(src).toContain("} else if (audience === 'house') {")
+    // ⛓️ 27 Aug — the house promotion is now gated on the run NOT having been refused by
+    // the zero-spend guard: a blocked house run also returns no page and proved nothing.
+    expect(src).toContain("} else if (audience === 'house' && !paidSourcingBlocked) {")
     // No branch promotes on mere absence of error.
     expect(src).not.toMatch(/searchTrust = 'proven'\s*\/\/ default/)
   })
 
   it('the widened fallback must prove itself SEPARATELY — the exact proof does not transfer', () => {
-    const wideDrop = src.indexOf("searchTrust = 'unproven'", src.indexOf('const wide = await searchPeopleWithFallback') - 600)
-    const wideCall = src.indexOf('const wide = await searchPeopleWithFallback')
+    const wideCall = src.indexOf('wide = await searchPeopleWithFallback')
+    const wideDrop = src.lastIndexOf("searchTrust = 'unproven'", wideCall)
     expect(wideDrop).toBeGreaterThan(-1)
     expect(wideCall).toBeGreaterThan(wideDrop)
-    expect(src).toContain("if (wide.pdlPage?.completed) searchTrust = 'proven'")
+    expect(src).toContain("if (wide?.pdlPage?.completed) searchTrust = 'proven'")
   })
 
   it('the persisted status is derived from the trust reader', () => {

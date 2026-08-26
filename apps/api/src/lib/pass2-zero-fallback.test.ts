@@ -686,7 +686,8 @@ describe('the widened retry changes nothing else', () => {
     // stops them being quietly deleted as redundant.
     //
     // The widened call itself, spelled exactly: same size, page 1, NO cursor, proof mode.
-    expect(src).toContain('const wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })')
+    // ⛓️ 27 Aug — the call moved inside the block-absorbing try; the SHAPE is unchanged.
+    expect(src).toContain('wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })')
   })
 
   it('14/15/16 · no Apollo, no Hunter, no reveal, no send, no charge came with it', () => {
@@ -721,7 +722,7 @@ describe('the widened retry changes nothing else', () => {
     // ⚠️ THREE BRANCHES, AND THE MIDDLE ONE IS THE PROOF. Success · PROVED zero · unknown.
     // A two-branch `if/else` on `contacts.length` cannot express the difference, which is
     // exactly the collapse the review caught.
-    expect(block, 'the proved-zero test, on the WIDENED page').toContain('} else if (wide.pdlPage?.matchedNothing === true) {')
+    expect(block, 'the proved-zero test, on the WIDENED page').toContain('} else if (wide?.pdlPage?.matchedNothing === true) {')
     expect(block, 'and a final catch-all for everything unproven').toContain('        } else {\n')
     // The unknown branch may not be reachable only from an error — a null page lands there
     // too, so it must not be spelled as an error test.

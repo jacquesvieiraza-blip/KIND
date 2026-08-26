@@ -81,6 +81,39 @@ export function invalidateProofSnapshot<T extends ProofSnapshot>(summary: T | nu
   return { ...summary, proof_started_at: null, proof_run: null }
 }
 
+/**
+ * ⚑ 26 Aug — DID THE SERVER ANSWER THE CLAIM, OR DID WE JUST NOT HEAR BACK?
+ *
+ * THE DEFECT. A Pass 2 POST can COMMIT on the server and still fail in the browser — a 15s
+ * abort, a dropped connection, a backgrounded tab. The desk then kept Pass 1's terminal card
+ * as current truth until someone happened to reload, so a client could sit looking at Pass
+ * 1's result while Pass 2 was genuinely running. "We didn't hear back" was being treated as
+ * "nothing happened", and those are not the same fact.
+ *
+ * ⚠️ THE SIGNAL IS STRUCTURED AND ALREADY EXISTS — no message matching. `lib/api.ts` sets
+ * `err.status = 0` when `fetch` itself rejects (timeout / AbortError / network), and
+ * `err.status = res.status` whenever an HTTP response actually arrived. So the presence of a
+ * real status IS the presence of an answer.
+ *
+ * 'refused' — a 4xx. The server reached a DETERMINATION and declined: the two-pass 409, an
+ *   auth failure, a validation refusal. In every one of these the claim was not made, Pass 1
+ *   is still the current pass, and its snapshot is still the truth. Nothing is invalidated.
+ *
+ * 'unknown' — status 0 (no response at all) **and 5xx**. A 5xx is grouped here deliberately
+ *   rather than lazily: it is an HTTP answer, but it is not an answer ABOUT THE CLAIM. The
+ *   route claims the pass and only then responds, so a server error can sit on either side
+ *   of a committed claim. Treating it as a refusal would be a guess in the one direction
+ *   that leaves a stale terminal card on screen.
+ *
+ * ⚠️ 'unknown' NEVER MEANS "IT FAILED", and never means "it started". It means: re-read the
+ * server. The reconciliation is self-resolving — a refreshed summary showing Pass 2 gives
+ * Pass 2's clock, and one still showing Pass 1 restores Pass 1's terminal card by itself.
+ * Nothing here guesses, and nothing here invents a claim id, a timestamp or a counter.
+ */
+export function classifyClaimFailure(status: number | undefined): 'refused' | 'unknown' {
+  return typeof status === 'number' && status >= 400 && status < 500 ? 'refused' : 'unknown'
+}
+
 export interface ProofWaitInput {
   /** A run outcome exists for the run being waited on — the server has spoken. */
   hasTerminalOutcome: boolean

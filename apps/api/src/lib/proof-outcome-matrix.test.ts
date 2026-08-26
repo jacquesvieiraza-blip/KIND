@@ -660,6 +660,30 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
       .not.toContain('proof_passes_done')
   })
 
+  it('⚑ AN AMBIGUOUS PASS-2 FAILURE RECONCILES; A DEFINITIVE REFUSAL DOES NOT', () => {
+    // A Pass 2 POST can COMMIT on the server and still fail in the browser (15s abort,
+    // dropped connection). "We didn't hear back" must not be treated as "nothing happened",
+    // which is what left Pass 1's terminal card on screen until a reload.
+    const at = portalSrc.indexOf("if (proofAttemptedRef.current && classifyClaimFailure(status) === 'unknown')")
+    expect(at, 'the reconciliation branch in the catch').toBeGreaterThan(-1)
+    const block = portalSrc.slice(at, at + 400)
+    expect(block).toContain('setSummary(invalidateProofSnapshot)')
+    expect(block).toContain('setFindingTimedOut(false)')
+    expect(block).toContain('void load()')
+
+    // ⚠️ IT MUST BE GATED ON BOTH. Dropping `proofAttemptedRef` would invalidate a Pass 1
+    // desk on a stale-preview or save failure that never claimed anything; dropping the
+    // classifier would invalidate it on a definitive 409 refusal.
+    expect(block.indexOf('setSummary(invalidateProofSnapshot)')).toBeGreaterThan(-1)
+
+    // The classifier is structured — status ranges, never message text.
+    const rule = codeOnly(readFileSync(
+      join(__dirname, '..', '..', '..', 'portal', 'src', 'lib', 'proof-start.ts'), 'utf8'))
+    const fn = rule.slice(rule.indexOf('export function classifyClaimFailure'))
+    expect(fn).toContain("status >= 400 && status < 500 ? 'refused' : 'unknown'")
+    expect(fn, 'no message-string heuristics').not.toMatch(/\.message|includes\(|test\(/)
+  })
+
   it('the summary carries the durable start, read from the column the claim writes', () => {
     const summary = codeOnly(readFileSync(join(__dirname, 'milla-summary.ts'), 'utf8'))
     expect(summary).toContain("select('wallet_balance_usd, proof_passes_done, proof_started_at')")

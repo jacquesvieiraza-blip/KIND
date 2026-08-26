@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
 import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
-import { proofWaitState, invalidateProofSnapshot, PROOF_WAIT_MS } from '@/lib/proof-start'
+import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -577,6 +577,34 @@ export default function MillaHomePage() {
       // what actually happened.
       const code = e instanceof Error ? e.message : ''
       const status = (e as { status?: number } | null)?.status
+
+      // ── ⚑ 26 Aug — "WE DIDN'T HEAR BACK" IS NOT "NOTHING HAPPENED" ──────────────────────
+      //
+      // A Pass 2 POST can COMMIT on the server and still fail here — a 15s abort, a dropped
+      // connection, a backgrounded tab. The browser cannot know which. Until this block, the
+      // desk kept Pass 1's terminal card as current truth in exactly that case, so a client
+      // could sit looking at Pass 1's result while Pass 2 was genuinely running, and only a
+      // page reload would ever correct it.
+      //
+      // ⚠️ THE CLASSIFICATION IS STRUCTURED, NOT A MESSAGE MATCH. `lib/api.ts` sets
+      // `status = 0` when `fetch` itself rejects and `status = res.status` when a response
+      // arrived, so a 4xx is the server DECIDING (claim not made → Pass 1 is still current,
+      // nothing is touched) while status 0 or a 5xx is no answer about the claim at all.
+      //
+      // ⚠️ GATED ON `proofAttemptedRef` so only failures at or after the POST reach this. The
+      // earlier stages — stale preview, save failed, parked for review — never claimed
+      // anything, and their Pass 1 desk must stay exactly as it is.
+      //
+      // The reconciliation is SELF-RESOLVING and guesses nothing: the refreshed summary
+      // either shows Pass 2 (its clock takes over) or still shows Pass 1 (its terminal card
+      // comes straight back). If the refresh itself fails, the invalidated snapshot leaves
+      // the desk in the bounded wait rather than resurrecting a card we can no longer verify.
+      if (proofAttemptedRef.current && classifyClaimFailure(status) === 'unknown') {
+        setSummary(invalidateProofSnapshot)
+        setFindingTimedOut(false)
+        void load()
+      }
+
       setRefineErr(
         // 4 · THE PROOF WAS ATTEMPTED. Never invite a retry and never claim the pass is
         // definitely gone — we do not know. Only the server does.

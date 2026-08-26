@@ -18,7 +18,7 @@
 // ⚠️ NOTHING HERE TOUCHES A PROVIDER, A NETWORK OR A CLOCK. Pure inputs, pure output.
 
 import { describe, it, expect } from 'vitest'
-import { proofWaitState, invalidateProofSnapshot, PROOF_WAIT_MS, type ProofWaitInput } from './proof-start'
+import { proofWaitState, invalidateProofSnapshot, classifyClaimFailure, PROOF_WAIT_MS, type ProofWaitInput } from './proof-start'
 
 const NOW = 1_700_000_000_000
 
@@ -361,5 +361,142 @@ describe('PASS 2 · a stale Pass 1 snapshot can never represent the new pass', (
 
   it('invalidating an absent summary is a no-op, not a crash', () => {
     expect(invalidateProofSnapshot(null)).toBeNull()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug — THE PASS-2 POST THAT COMMITTED AND WAS NEVER HEARD FROM.
+//
+// THE DEFECT. `POST /icps/:id/proof` claims the pass and only then responds. So the claim
+// can COMMIT while the browser sees a 15s abort, a dropped connection or a backgrounded
+// tab. The desk treated "we didn't hear back" as "nothing happened" and kept Pass 1's
+// terminal card as current truth — a client could sit on Pass 1's result while Pass 2 was
+// genuinely running, and only a page reload would ever correct it.
+//
+// THREE OUTCOMES, KEPT DISTINCT: a success (already handled), a DETERMINATION by the server
+// that the claim was not made (4xx — Pass 1 stays), and NO ANSWER ABOUT THE CLAIM (status 0
+// or 5xx — reconcile, do not guess).
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+describe('classifying a failed Pass 2 claim — structured status, never a message match', () => {
+  it('4xx is the server DECIDING the claim was not made → refused', () => {
+    // 409 is the two-pass ceiling; the others are auth/validation refusals, all decided
+    // before or instead of a claim.
+    for (const s of [400, 401, 403, 404, 409, 422, 429, 499]) {
+      expect(classifyClaimFailure(s), `HTTP ${s}`).toBe('refused')
+    }
+  })
+
+  it('status 0 — fetch itself rejected — is UNKNOWN, because no answer arrived', () => {
+    // `lib/api.ts` sets exactly this for AbortError (its 15s timeout) and network errors.
+    expect(classifyClaimFailure(0)).toBe('unknown')
+  })
+
+  it('5xx is UNKNOWN too — an HTTP answer, but not an answer ABOUT THE CLAIM', () => {
+    // The route claims the pass and only then responds, so a server error can sit on either
+    // side of a committed claim. Calling it "refused" would be a guess in the one direction
+    // that leaves a stale terminal card on screen.
+    for (const s of [500, 502, 503, 504]) {
+      expect(classifyClaimFailure(s), `HTTP ${s}`).toBe('unknown')
+    }
+  })
+
+  it('a thrown error carrying no status at all is UNKNOWN, never assumed refused', () => {
+    expect(classifyClaimFailure(undefined)).toBe('unknown')
+  })
+})
+
+describe('PASS 2 · an ambiguous response reconciles against the server, without a reload', () => {
+  /** What the desk does in the catch: invalidate only when the answer was not a decision. */
+  const afterFailedClaim = (status: number | undefined, held: Snapshot | null) =>
+    classifyClaimFailure(status) === 'unknown' ? invalidateProofSnapshot(held) : held
+
+  it('2 · DEFINITIVE REFUSAL (409) leaves Pass 1 completely intact', () => {
+    const after = afterFailedClaim(409, PASS1_SUMMARY)
+    expect(after).toBe(PASS1_SUMMARY)                       // the very same object — untouched
+    expect(after!.proof_run).not.toBeNull()
+    expect(after!.proof_started_at).toBe(PASS1_START)
+    expect(terminalRun(after)).not.toBeNull()               // Pass 1 terminal still authoritative
+    expect(deskState(after)).toBe('none')                   // and NO false Pass 2 spinner
+    expect(after!.proof_passes_done).toBe(1)                // no browser-side pass mutation
+  })
+
+  it('⚑ 3 · TIMEOUT AFTER THE SERVER COMMITTED — reconciles to Pass 2, no reload', () => {
+    // The browser sees `status: 0`. The server, unknown to it, is already on Pass 2.
+    const reconciling = afterFailedClaim(0, PASS1_SUMMARY)!
+    // While uncertain: Pass 1's outcome is no longer allowed to speak.
+    expect(terminalRun(reconciling), 'Pass 1 must not stay authoritative while reconciling').toBeNull()
+    expect(deskState(reconciling)).toBe('finding')          // truthful wait, not a terminal card
+
+    // The re-read returns the server's actual state: Pass 2, claimed and started.
+    const fromServer: Snapshot = {
+      proof_passes_done: 2,
+      proof_started_at: PASS2_START,
+      proof_run: { status: 'no_match', finished_at: PASS1_END },   // Pass 1's row is still newest
+    }
+    expect(serverStart(fromServer)).toBe(Date.parse(PASS2_START))  // Pass 2's clock takes over
+    expect(terminalRun(fromServer), 'an outcome older than this pass is not this pass’s').toBeNull()
+    expect(deskState(fromServer)).toBe('finding')
+  })
+
+  it('4 · TIMEOUT WITHOUT A COMMIT — reconciles straight back to Pass 1', () => {
+    const reconciling = afterFailedClaim(0, PASS1_SUMMARY)!
+    expect(terminalRun(reconciling)).toBeNull()             // invalidated only WHILE uncertain
+
+    // The re-read shows the server never moved: still Pass 1, still its outcome.
+    const fromServer = PASS1_SUMMARY
+    expect(fromServer.proof_passes_done).toBe(1)
+    expect(terminalRun(fromServer), 'Pass 1 comes back by itself').not.toBeNull()
+    expect(deskState(fromServer)).toBe('none')              // no fake Pass 2 state remains
+  })
+
+  it('5 · AMBIGUOUS FAILURE + THE SUMMARY IS ALSO UNREACHABLE', () => {
+    const reconciling = afterFailedClaim(0, PASS1_SUMMARY)!
+    // Pass 1's terminal card cannot come back — the fields it lived in are gone, and a
+    // failed refresh cannot put them back.
+    expect(terminalRun(reconciling)).toBeNull()
+    // Bounded: finding while the poll has budget, then the approved recovery state.
+    expect(deskState(reconciling, { server: 'unreachable' })).toBe('finding')
+    expect(deskState(reconciling, { server: 'unreachable', pollExhausted: true })).toBe('recovery')
+    // Never the generic empty desk, and never an endless spinner.
+    expect(deskState(reconciling, { server: 'unreachable' })).not.toBe('none')
+    expect(deskState(reconciling, { server: 'unreachable', pollExhausted: true })).not.toBe('finding')
+  })
+
+  it('5b · the same holds when the desk keeps its (now invalidated) summary and the poll dies', () => {
+    // `load()` failing after a successful earlier load leaves `server: 'ok'` — truth we
+    // already hold is still truth — but the proof fields stay null, so Pass 1 cannot return.
+    const reconciling = afterFailedClaim(0, PASS1_SUMMARY)!
+    expect(deskState(reconciling, { server: 'ok' })).toBe('finding')
+    expect(deskState(reconciling, { server: 'ok', pollExhausted: true })).toBe('recovery')
+    expect(terminalRun(reconciling)).toBeNull()
+  })
+
+  it('6 · a stale Pass 1 `findingTimedOut` cannot force instant Pass 2 recovery', () => {
+    // The desk resets it in the same block. Modelled here as the flag the rule receives:
+    // reset (false) keeps the truthful wait; left set it would recover immediately, which is
+    // the state the reset exists to prevent.
+    const reconciling = afterFailedClaim(0, PASS1_SUMMARY)!
+    expect(deskState(reconciling, { pollExhausted: false })).toBe('finding')
+    expect(deskState(reconciling, { pollExhausted: true })).toBe('recovery')
+  })
+
+  it('a 5xx is reconciled, not assumed refused', () => {
+    const reconciling = afterFailedClaim(503, PASS1_SUMMARY)!
+    expect(terminalRun(reconciling)).toBeNull()
+    expect(deskState(reconciling)).toBe('finding')
+  })
+
+  it('7–9 · Pass 1, the success path and the two-pass ceiling are all unchanged', () => {
+    // Pass 1 running, then finishing, on a desk that never saw a refusal.
+    const running: Snapshot = { proof_passes_done: 1, proof_started_at: new Date(NOW - 25_000).toISOString(), proof_run: null }
+    expect(deskState(running)).toBe('finding')
+    const done: Snapshot = { ...running, proof_run: { status: 'served', finished_at: new Date(NOW - 5_000).toISOString() } }
+    expect(deskState(done)).toBe('none')
+    // A successful Pass 2 claim still invalidates, exactly as before this change.
+    expect(invalidateProofSnapshot(PASS1_SUMMARY)!.proof_run).toBeNull()
+    // And no path here ever writes the counter — the ceiling stays the server's to enforce.
+    expect(afterFailedClaim(0, PASS1_SUMMARY)!.proof_passes_done).toBe(1)
+    expect(afterFailedClaim(409, PASS1_SUMMARY)!.proof_passes_done).toBe(1)
   })
 })

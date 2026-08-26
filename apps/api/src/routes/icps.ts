@@ -1930,6 +1930,30 @@ const boundedEnum = <T extends readonly [string, ...string[]]>(values: T, maxIte
     return out
   })
 }
+// ── ⚑ 26 Aug (final correction) — A QUESTION IS VALIDATED AS A QUESTION ─────────────────
+//
+// THE DEFECT THIS CLOSES, found in review of the literal diff. The all-invalid closed-list
+// refusal below is right for a `complete` — an empty list is unconstrained downstream — but
+// the ONE schema validated BOTH reply types, and a question's auxiliary `icp` payload is
+// never returned, never persisted and never reaches a provider: the route answers with
+// `{ type: 'question', content }` and discards the rest. So a perfectly usable question
+// ("No problem — who normally buys from you?") could still be destroyed because the model
+// tucked an incidental off-list industry into a payload nobody consumes — reintroducing,
+// for question turns, the exact deterministic retry loop this PR exists to kill.
+//
+// The contract is discriminated, so the validation now is too: a question is checked as
+// EXACTLY what the route returns — its type and its content — and everything else in the
+// tool input is STRIPPED (Zod's default), so no auxiliary value can be returned, persisted,
+// or sent anywhere. Junk targeting on a question cannot kill the turn because it is not
+// part of the question's contract at all. Structural garbage still fails: a numeric
+// content, a blank content, a missing content are refused exactly as before.
+const MillaQuestionReply = z.object({
+  type:    z.literal('question'),
+  content: z.string()
+    .transform(s => s.slice(0, 600))
+    .refine(s => s.trim().length > 0, { message: 'a question must carry content' }),
+})
+
 const MillaReplyInput = z.object({
   type:    z.enum(['question', 'complete']),
   // ⛓️ 26 Aug — every LENGTH bound below is a clamp, not a refusal. The tool schema states
@@ -1978,10 +2002,9 @@ const MillaReplyInput = z.object({
   campaign_intent: clampedStr(2000),
 })
   // The discriminated half, which the flat JSON Schema deliberately leaves to Zod.
+  // ⚠️ The question-content rule moved into `MillaQuestionReply` above — a reply whose
+  // `type` is 'question' is routed there BEFORE this schema and can never reach it.
   .superRefine((v, ctx) => {
-    if (v.type === 'question' && !(v.content ?? '').trim()) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['content'], message: 'a question must carry content' })
-    }
     if (v.type === 'complete' && !v.icp) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['icp'], message: 'a completion must carry an icp' })
     }
@@ -2453,7 +2476,17 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     }
 
     // ⚠️ `input` IS `unknown`. A tool call guarantees the envelope, never the contents.
-    const validated = millaReplyFor(profile_required).safeParse(call.input)
+    // ⚑ 26 Aug (final correction) — VALIDATE THE CONTRACT THE REPLY DECLARES. A question is
+    // parsed as a question (type + content, all else stripped — the route returns nothing
+    // else), and only a completion faces the strict targeting schema with its fail-closed
+    // lists and the first-run gate. Any other `type` value falls through to the strict
+    // schema, whose enum refuses it — unknown types keep failing closed.
+    const declaredType = call.input && typeof call.input === 'object'
+      ? (call.input as Record<string, unknown>).type
+      : undefined
+    const validated = declaredType === 'question'
+      ? MillaQuestionReply.safeParse(call.input)
+      : millaReplyFor(profile_required).safeParse(call.input)
     if (!validated.success) {
       millaReplyFailed(res, 'INVALID_SHAPE', {
         ...meta,
@@ -2557,7 +2590,12 @@ result or a number. "permitted" is false unless they explicitly said we may use 
     // themselves (provider and reply validation both answer inside the try). Stage-tagged
     // so a repeat is diagnosable; retryable because the client's turn is safe in their
     // transcript and nothing here is their fault.
-    console.error('[icps/builder/chat] route failed —', JSON.stringify({ stage: 'route', name: err instanceof Error ? err.name : typeof err }), err)
+    // ⚠️ STAGE AND NAME ONLY — the raw error object is deliberately NOT logged. A
+    // route-stage throw can interpolate anything that was in flight (a Supabase error
+    // embedding row data, a JSON error quoting the text it choked on), and the no-client-
+    // data rule admits no exceptions. The stage tells us where; the name tells us what
+    // kind; reproduction tells us the rest.
+    console.error('[icps/builder/chat] route failed —', JSON.stringify({ stage: 'route', name: err instanceof Error ? err.name : typeof err }))
     res.status(503).json({ success: false, error: MILLA_RETRY_ERROR, retryable: true })
   }
 })

@@ -1357,7 +1357,8 @@ describe('a system failure can never again speak as Milla', () => {
     expect(icpsSrc).toContain("if (response.stop_reason === 'max_tokens')")
     // and it is checked BEFORE anything tries to read the reply
     const stop = icpsSrc.indexOf("response.stop_reason === 'max_tokens'")
-    const read = icpsSrc.indexOf("const validated = millaReplyFor(profile_required).safeParse")
+    // ⛓️ 26 Aug — validation is discriminated now; the anchor is where EITHER schema runs.
+    const read = icpsSrc.indexOf("? MillaQuestionReply.safeParse(call.input)")
     expect(stop).toBeGreaterThan(-1)
     expect(read).toBeGreaterThan(stop)
   })
@@ -1401,7 +1402,12 @@ describe('the reply is a forced tool call, validated before it is trusted', () =
     expect(icpsSrc).toContain('const MillaReplyInput = z.object({')
     // ⚑ The schema is now built per-request, because the first-run account gate depends on
     // `profile_required` and a module-level schema cannot know it.
-    expect(icpsSrc).toContain('const validated = millaReplyFor(profile_required).safeParse(call.input)')
+    // ⛓️ 26 Aug — the contract is discriminated: a question is validated as EXACTLY what
+    // the route returns (type + content, all else stripped), and only a completion faces
+    // the strict targeting schema. Both branches still go through Zod before any read.
+    expect(icpsSrc).toContain('? MillaQuestionReply.safeParse(call.input)')
+    expect(icpsSrc).toContain(': millaReplyFor(profile_required).safeParse(call.input)')
+    expect(icpsSrc).toContain('const MillaQuestionReply = z.object({')
     expect(icpsSrc).toContain('if (!validated.success) {')
     expect(icpsSrc).toContain('const parsed = validated.data')
   })
@@ -1740,6 +1746,15 @@ describe('diagnostics are safe — nothing of the client is logged', () => {
     expect(icpsSrc).toContain('inputKeys: call.input && typeof call.input === \'object\' ? Object.keys(call.input).length : 0')
     expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*call\.input/)
     expect(icpsSrc).not.toMatch(/console\.\w+\([^)]*JSON\.stringify\(call\.input/)
+  })
+
+  it('the route-stage log carries stage and name ONLY — never the raw error object', () => {
+    // ⚑ 26 Aug (final correction) — a route-stage throw can interpolate whatever was in
+    // flight (a Supabase error embedding row data, a JSON error quoting the text it choked
+    // on), so the raw object may not ride along with the safe metadata. This guard exists
+    // because the first red-proof of the cleanup did NOT go red: nothing was watching.
+    expect(icpsSrc).toContain("JSON.stringify({ stage: 'route', name: err instanceof Error ? err.name : typeof err }))")
+    expect(icpsSrc).not.toMatch(/stage: 'route'[^)]*\}\), err\)/)
   })
 
   it('no transcript, no model text, no customer content reaches a log line', () => {
@@ -2367,5 +2382,103 @@ describe('the failure copy claims exactly what the state can honour', () => {
     for (const [name, src] of [['welcome', welcomeCode], ['builder', builderPageCode]] as const) {
       expect(src, `${name}: no transcript in storage`).not.toMatch(/(localStorage|sessionStorage)\.[gs]etItem\([^)]*(message|transcript|chat)/i)
     }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug (final correction) — A QUESTION CANNOT BE KILLED BY TARGETING NOBODY CONSUMES.
+//
+// Found in review of the literal diff: the all-invalid closed-list refusal ran during the
+// ONE global parse, but a question reply returns `{ type, content }` and DISCARDS its
+// auxiliary `icp`. So an incidental hallucinated industry on an ordinary question — the
+// commonest turn in the whole conversation — could still 503 deterministically on every
+// retry. Validation is discriminated now: a question is checked as exactly what the route
+// returns; only a completion faces the fail-closed targeting schema.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · discriminated validation — questions survive junk targeting, completions stay fail-closed', () => {
+  beforeEach(() => { anthropicBox.calls = 0; anthropicBox.error = null; anthropicBox.reply = null })
+  const ask = () => callBuilderChat({ messages: [{ role: 'user', content: 'no' }], profile_required: true })
+
+  it('A · question + all-invalid industries → 200, exact content, and NO targeting returned', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'question',
+      content: 'No problem — who normally buys from you?',
+      icp: { industries: ['IT Solutions'] },
+    })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    const d = out.payload.data as Record<string, any>
+    expect(d.type).toBe('question')
+    expect(d.content).toBe('No problem — who normally buys from you?')   // exact, unclamped
+    expect(d.icp, 'a question returns no targeting at all').toBeUndefined()
+    expect(JSON.stringify(out.payload)).not.toContain('IT Solutions')     // the junk is gone
+  })
+
+  it('B · question + all-invalid seniority → 200', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'And how senior are they usually?', icp: { seniority_levels: ['MD and above'] } })
+    expect((await ask()).code).toBe(200)
+  })
+
+  it('C · question + all-invalid company size → 200', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'Roughly how big are those companies?', icp: { company_sizes: ['50 - 500'] } })
+    expect((await ask()).code).toBe(200)
+  })
+
+  it('D · question + MIXED auxiliary targeting → 200, the question survives untouched', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'Got it — which industries matter most?', icp: { industries: ['IT Solutions', 'Fintech'] } })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).content).toContain('which industries matter most')
+  })
+
+  it('E · a STRUCTURALLY invalid question still fails closed — numeric and blank content', async () => {
+    for (const content of [12345, '   ']) {
+      anthropicBox.reply = toolReply({ type: 'question', content })
+      const out = await ask()
+      expect(out.code, JSON.stringify(content)).toBe(503)
+      expect(out.payload.data, JSON.stringify(content)).toBeUndefined()
+    }
+  })
+
+  // F–H already hold above ('an all-invalid closed list can NEVER silently broaden') and
+  // are re-asserted here so THIS describe proves the completion side did not soften.
+  it('F–H · complete + all-invalid industries / seniority / sizes → still 503, each', async () => {
+    for (const icp of [
+      { industries: ['IT Solutions'] },
+      { seniority_levels: ['MD and above'] },
+      { company_sizes: ['50 - 500'] },
+    ]) {
+      anthropicBox.reply = toolReply({
+        type: 'complete', summary: 's',
+        profile: { company_name: 'ABCV Logistics', country: 'United States' },
+        icp: { ...VALID_ICP, ...icp },
+      })
+      const out = await ask()
+      expect(out.code, JSON.stringify(icp)).toBe(503)
+    }
+  })
+
+  it('I · complete + mixed → 200 with the canonical valid value only', async () => {
+    anthropicBox.reply = toolReply({
+      type: 'complete', summary: 's',
+      profile: { company_name: 'ABCV Logistics', country: 'United States' },
+      icp: { ...VALID_ICP, industries: ['IT Solutions', 'fintech'] },
+    })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, any>).icp.industries).toEqual(['Fintech'])
+  })
+
+  it('J · the ordinary "no" — one Milla response, one model call, no banner', async () => {
+    anthropicBox.reply = toolReply({ type: 'question', content: 'No problem at all.' })
+    const out = await ask()
+    expect(out.code).toBe(200)
+    expect(anthropicBox.calls).toBe(1)
+    expect(JSON.stringify(out.payload)).not.toContain('didn’t catch that')
+  })
+
+  it('an unknown reply type still falls to the strict schema and fails closed', async () => {
+    anthropicBox.reply = toolReply({ type: 'banana', content: 'hi' })
+    expect((await ask()).code).toBe(503)
   })
 })

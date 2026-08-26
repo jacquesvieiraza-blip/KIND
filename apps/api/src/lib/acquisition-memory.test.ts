@@ -9,6 +9,7 @@ import { join } from 'node:path'
 import {
   toMemoryRecord,
   rememberAcquiredIdentities,
+  AcquisitionMemoryWriteError,
   type AcquisitionMemoryRecord,
   type MemoryDb,
 } from './acquisition-memory'
@@ -33,13 +34,22 @@ const CONTACT = {
 /** Fake db that records what was upserted. No network, no Supabase. */
 function fakeDb() {
   const calls: Array<{ table: string; rows: Record<string, unknown>[]; opts: unknown }> = []
-  const db: MemoryDb & { calls: typeof calls } = {
-    calls,
+  const updates: Array<{ patch: Record<string, unknown>; eqs: Array<[string, unknown]>; ids: string[] }> = []
+  const db: MemoryDb & { calls: typeof calls; updates: typeof updates } = {
+    calls, updates,
     from(table: string) {
       return {
         async upsert(rows: Record<string, unknown>[], opts: { onConflict: string; ignoreDuplicates: boolean }) {
           calls.push({ table, rows, opts })
           return { error: null }
+        },
+        update(patch: Record<string, unknown>) {
+          const eqs: Array<[string, unknown]> = []
+          const chain = {
+            eq(col: string, val: unknown) { eqs.push([col, val]); return chain },
+            async in(_col: string, ids: string[]) { updates.push({ patch, eqs, ids }); return { error: null } },
+          }
+          return chain as never
         },
       }
     },
@@ -48,16 +58,59 @@ function fakeDb() {
 }
 
 describe('R66 — the zero-spend guard', () => {
-  const original = process.env.SAFE_TEST_MODE
-  beforeEach(() => { delete process.env.SAFE_TEST_MODE })
+  const orig = { safe: process.env.SAFE_TEST_MODE, allow: process.env.PAID_PROVIDERS_ENABLED, vitest: process.env.VITEST, node: process.env.NODE_ENV }
+  beforeEach(() => { delete process.env.SAFE_TEST_MODE; delete process.env.PAID_PROVIDERS_ENABLED })
   afterEach(() => {
-    if (original === undefined) delete process.env.SAFE_TEST_MODE
-    else process.env.SAFE_TEST_MODE = original
+    for (const [k, v] of [['SAFE_TEST_MODE', orig.safe], ['PAID_PROVIDERS_ENABLED', orig.allow], ['VITEST', orig.vitest], ['NODE_ENV', orig.node]] as const) {
+      if (v === undefined) delete process.env[k]; else process.env[k] = v
+    }
   })
 
-  it('is OFF when the variable is absent — production behaviour is unchanged', () => {
+  // ⚠️ THE FIX THAT MADE THE RULE REAL. The first version was SAFE_TEST_MODE-only and
+  // NOTHING in the repo set it, so every launch test would have spent unless a human
+  // remembered. Safe mode is now the DEFAULT and spending is the opt-in.
+  it('is ON by default — forgetting a variable costs a refused call, never money', () => {
+    // Simulate a non-test process with nothing configured.
+    delete process.env.VITEST
+    process.env.NODE_ENV = 'production'
+    expect(isSafeTestMode()).toBe(true)
+    expect(() => assertPaidProviderAllowed('pdl')).toThrow(PaidProviderBlockedError)
+  })
+
+  // ⚠️ THE UNIT SUITE IS PROTECTED STRUCTURALLY, NOT BY THIS FLAG. `vitest.setup.ts`
+  // DELETES every provider API key before any test runs, so a test cannot authenticate
+  // against a provider even if it reached one. That is stronger than a flag, because a
+  // flag can be unset and a missing key cannot be guessed.
+  it('the test runner has NO provider keys — spending is impossible, not merely blocked', async () => {
+    const { PROVIDER_KEYS } = await import('../../../../vitest.setup')
+    for (const k of PROVIDER_KEYS) {
+      // A test may set its own fake key to exercise mocked code; what must never exist is
+      // a REAL one inherited from the machine running the suite.
+      const v = process.env[k]
+      expect(v === undefined || v.startsWith('test-'), `${k} must be absent or an obvious fake, got ${v}`).toBe(true)
+    }
+  })
+
+  it('the setup file is actually wired under `test:` — at the config root it is ignored', () => {
+    const cfg = readFileSync(join(__dirname, '..', '..', '..', '..', 'vitest.config.ts'), 'utf8')
+    const testBlock = cfg.slice(cfg.indexOf('test: {'), cfg.indexOf('resolve: {'))
+    expect(testBlock).toContain('setupFiles')
+  })
+
+  it('production has a DELIBERATE path to providers — one variable, set on purpose', () => {
+    delete process.env.VITEST
+    process.env.NODE_ENV = 'production'
+    process.env.PAID_PROVIDERS_ENABLED = 'true'
     expect(isSafeTestMode()).toBe(false)
     expect(() => assertPaidProviderAllowed('pdl')).not.toThrow()
+  })
+
+  it('SAFE_TEST_MODE still overrides the production opt-in — staging can be pinned safe', () => {
+    delete process.env.VITEST
+    process.env.NODE_ENV = 'production'
+    process.env.PAID_PROVIDERS_ENABLED = 'true'
+    process.env.SAFE_TEST_MODE = '1'
+    expect(isSafeTestMode()).toBe(true)
   })
 
   it('BLOCKS every paid provider when safe-test mode is on', () => {
@@ -78,19 +131,20 @@ describe('R66 — the zero-spend guard', () => {
     expect((thrown as PaidProviderBlockedError).provider).toBe('pdl')
   })
 
-  it('fails CLOSED on a malformed flag — a typo must never re-enable spending', () => {
-    for (const raw of ['yes', 'true', 'TRUE', 'on', 'please', '2']) {
-      process.env.SAFE_TEST_MODE = raw
-      expect(isSafeTestMode()).toBe(true)
-    }
-    // Only the explicit off-values turn it off.
-    for (const raw of ['', '0', 'false', 'no', 'off', 'OFF', ' false ']) {
-      process.env.SAFE_TEST_MODE = raw
-      expect(isSafeTestMode()).toBe(false)
+  it('fails CLOSED on a malformed opt-in — only an explicit yes enables spending', () => {
+    delete process.env.VITEST
+    process.env.NODE_ENV = 'production'
+    for (const raw of ['', 'maybe', 'TRUE ', '2', 'y', 'enabled', 'false']) {
+      process.env.PAID_PROVIDERS_ENABLED = raw
+      const expected = ['true', 'TRUE '].includes(raw) ? false : true
+      expect(isSafeTestMode(), `PAID_PROVIDERS_ENABLED=${JSON.stringify(raw)}`).toBe(expected)
     }
   })
 
-  it('reads the flag at CALL time, not at import time', () => {
+  it('reads the flags at CALL time, not at import time', () => {
+    delete process.env.VITEST
+    process.env.NODE_ENV = 'production'
+    process.env.PAID_PROVIDERS_ENABLED = 'true'
     expect(isSafeTestMode()).toBe(false)
     process.env.SAFE_TEST_MODE = '1'
     expect(isSafeTestMode()).toBe(true)   // would fail against a module-level constant
@@ -203,16 +257,83 @@ describe('R67 — acquisition memory: retention is not contactability', () => {
     expect(db.calls[0].opts).toEqual({ onConflict: 'source,provider_id', ignoreDuplicates: true })
   })
 
-  it('is NON-FATAL — a memory failure never breaks a run that already bought leads', async () => {
+  // ⚠️ REVERSED ON REVIEW. This used to assert the write was NON-FATAL — which meant a
+  // failed memory write let runIcpJob walk on into the gates that discard paid contacts,
+  // losing an identity we had paid for with nothing recording we ever saw it. R67 forbids
+  // exactly that, so the write now FAILS CLOSED and the run stops.
+  it('FAILS CLOSED — a memory-write failure throws and stops the run', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let attempts = 0
     const broken: MemoryDb = {
-      from: () => ({ upsert: async () => ({ error: { message: 'boom' } }) }),
+      from: () => ({
+        upsert: async () => { attempts++; return { error: { message: 'boom' } } },
+        update: () => ({ eq: () => ({ eq: () => ({ in: async () => ({ error: null }) }) }) }) as never,
+      }),
     }
-    const res = await rememberAcquiredIdentities(broken, [toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28 })!])
-    expect(res.written).toBe(0)
-    expect(res.error).toBeTruthy()      // reported, not thrown
+    await expect(
+      rememberAcquiredIdentities(broken, [toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28 })!]),
+    ).rejects.toThrow(AcquisitionMemoryWriteError)
+
+    expect(attempts).toBe(2)            // one retry before giving up
     expect(spy).toHaveBeenCalled()      // and loudly
     spy.mockRestore()
+  })
+
+  it('the shipped sourcing path does NOT swallow that failure', () => {
+    const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+    const at = src.indexOf('rememberAcquiredIdentities(db as never, memories)')
+    const block = src.slice(src.indexOf('REMEMBER EVERY PAID IDENTITY'), at + 400)
+    // No catch may wrap the memory write — that was the defect.
+    expect(block).not.toMatch(/catch\s*\(/)
+  })
+
+  // ── SUPPRESSION TRANSITION — the ON CONFLICT DO NOTHING staleness bug ──────────
+  it('TIGHTENS a previously-contactable identity that later turns up suppressed', async () => {
+    const db = fakeDb()
+    // Run 1: first seen contactable → inserted as contactable.
+    await rememberAcquiredIdentities(db, [toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28 })!])
+    expect(db.updates).toHaveLength(0)                 // nothing to tighten yet
+    expect(db.calls[0].rows[0].contactable).toBe(true)
+
+    // Run 2: SAME provider identity, now DNC. DO NOTHING alone would leave the row
+    // saying contactable=true forever — stale in the one direction that matters.
+    const { suppressed } = await rememberAcquiredIdentities(db, [
+      toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28, contactable: false, suppressionReason: 'dnc' })!,
+    ])
+
+    expect(suppressed).toBe(1)
+    const u = db.updates[0]
+    expect(u.patch).toEqual({ contactable: false, suppression_reason: 'dnc' })
+    expect(u.ids).toEqual(['pdl_abc123'])
+    // Guarded so it only ever tightens, and is idempotent.
+    expect(u.eqs).toContainEqual(['source', 'pdl'])
+    expect(u.eqs).toContainEqual(['contactable', true])
+    // ⚠️ AND IT NEVER TOUCHES THE MONEY. Cost and timestamps are insert-only.
+    expect(Object.keys(u.patch)).not.toContain('acquisition_cost_usd')
+    expect(Object.keys(u.patch)).not.toContain('acquired_at')
+    expect(Object.keys(u.patch)).not.toContain('first_seen_client_id')
+  })
+
+  it('NEVER loosens — a later contactable sighting cannot revive a suppressed row', async () => {
+    const db = fakeDb()
+    await rememberAcquiredIdentities(db, [
+      toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28, contactable: false, suppressionReason: 'opt_out' })!,
+    ])
+    db.updates.length = 0
+    // Same person, now looking contactable. There must be no statement that sets true.
+    await rememberAcquiredIdentities(db, [toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28 })!])
+    expect(db.updates).toHaveLength(0)
+    for (const u of db.updates) expect(u.patch.contactable).not.toBe(true)
+  })
+
+  it('resolves a within-batch disagreement toward UNCONTACTABLE', async () => {
+    const db = fakeDb()
+    await rememberAcquiredIdentities(db, [
+      toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28 })!,                                        // contactable
+      toMemoryRecord(CONTACT, { source: 'pdl', costUsd: 0.28, contactable: false, suppressionReason: 'dnc' })!,
+    ])
+    expect(db.calls[0].rows).toHaveLength(1)
+    expect(db.calls[0].rows[0].contactable).toBe(false)   // never resolve toward contactable
   })
 
   it('writes nothing when there is nothing to write', async () => {

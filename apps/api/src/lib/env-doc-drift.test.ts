@@ -69,9 +69,9 @@ describe('every variable the code reads is in ENVIRONMENT.md', () => {
     // partner" link in the alert email. Documented in ENVIRONMENT.md and given a tier in
     // startup-check in the same change — an undocumented variable is precisely the drift
     // this file exists to catch, and it caught this one.
-    expect(ALL.size).toBe(102)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(API_VARS.length).toBe(85)   // +1 26 Aug (R66): SAFE_TEST_MODE, the zero-spend guard
-    expect(doc()).toContain('**102 distinct variables**')
+    expect(ALL.size).toBe(104)   // 101 → 102 (26 Aug, R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(API_VARS.length).toBe(87)   // +1 26 Aug (R66): SAFE_TEST_MODE, the zero-spend guard
+    expect(doc()).toContain('**104 distinct variables**')
   })
 
   it('NO variable is missing from the doc — checked against the TABLE, not the prose', () => {

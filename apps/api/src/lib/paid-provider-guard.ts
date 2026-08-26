@@ -24,18 +24,35 @@
 /** Providers K.I.N.D pays per call. Hunter and Clearbit both bill enrichment. */
 export type PaidProvider = 'pdl' | 'apollo' | 'hunter' | 'clearbit'
 
-/** Values that mean "the guard is off". Everything else present means ON. */
+/** Values that mean "explicitly yes". Anything else is a no. */
+const TRUE_VALUES = new Set(['1', 'true', 'yes', 'on'])
+
+/** Values that mean "the override is off". Everything else present means ON. */
 const OFF_VALUES = new Set(['', '0', 'false', 'no', 'off'])
 
 /**
- * Is safe-test mode active? Reads `SAFE_TEST_MODE` at CALL TIME, never at import —
- * a module-level constant would freeze the value before a test could set it, which is
- * the same class of bug as `figsy.ts`'s old module-level `FROM` constant (S5).
+ * Is safe (no-spend) mode active? Read at CALL TIME, never at import — a module-level
+ * constant would freeze the value before a test could set it, the same class of bug as
+ * `figsy.ts`'s old module-level `FROM` constant (S5).
+ *
+ * ⚠️ THE UNIT SUITE IS PROTECTED SEPARATELY AND MORE STRONGLY — `vitest.setup.ts`
+ * deletes every provider API key before any test runs, so the suite cannot authenticate
+ * against a provider at all. This flag is not what keeps tests safe.
+ *
+ * ⚠️ FAIL-CLOSED BY DEFAULT. Safe mode is ON unless the environment has **deliberately**
+ * opted in with `PAID_PROVIDERS_ENABLED=true`. Forgetting a variable therefore costs a
+ * refused call, never money — the opposite of the first version, where forgetting cost
+ * money. Real production acquisition still has its deliberate path; it is one variable,
+ * set once, on purpose.
  */
 export function isSafeTestMode(): boolean {
+  // ① An explicit SAFE_TEST_MODE forces safe mode on (staging, a manual walk).
   const raw = process.env.SAFE_TEST_MODE
-  if (raw === undefined) return false
-  return !OFF_VALUES.has(raw.trim().toLowerCase())
+  if (raw !== undefined && !OFF_VALUES.has(raw.trim().toLowerCase())) return true
+
+  // ② Otherwise: spending is allowed ONLY if the environment opted in on purpose.
+  const allow = (process.env.PAID_PROVIDERS_ENABLED ?? '').trim().toLowerCase()
+  return !TRUE_VALUES.has(allow)
 }
 
 /** Thrown instead of spending. Named so a caller can recognise it without string-matching. */
@@ -48,7 +65,7 @@ export class PaidProviderBlockedError extends Error {
         (context ? ` (${context})` : '') +
         '. Launch testing uses mocks, fixtures or existing pooled contacts only. ' +
         'Safe data is exhausted: STOP and add fixtures — do not buy more data. ' +
-        'Unset SAFE_TEST_MODE to allow real provider spend.',
+        'To allow real provider spend, set PAID_PROVIDERS_ENABLED=true (and leave SAFE_TEST_MODE unset).',
     )
     this.name = 'PaidProviderBlockedError'
     this.provider = provider

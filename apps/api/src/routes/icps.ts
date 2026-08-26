@@ -944,8 +944,12 @@ export async function runIcpJob(
       // the pool structurally cannot hold them; `acquisition_memory` is keyed on
       // (source, provider_id) precisely so it can.
       //
-      // Non-fatal: a memory failure must never break a run that has already bought leads.
-      try {
+      // ⚠️ FAILS CLOSED — it does NOT swallow. An earlier version wrapped this in a
+      // try/catch and carried on, which meant a failed memory write let the run walk
+      // straight into the gates below and discard identities we had already paid for,
+      // with nothing recording that we ever saw them. That is the precise thing R67
+      // forbids, so a memory failure now stops the run before the gates.
+      {
         const memories: AcquisitionMemoryRecord[] = []
         for (const contact of contacts) {
           const suppressed = isSuppressed({
@@ -972,10 +976,12 @@ export async function runIcpJob(
           if (rec) memories.push(rec)
           else console.warn('[acquisition-memory] provider returned a contact with no id — not retainable, not remembered')
         }
-        const { written } = await rememberAcquiredIdentities(db as never, memories)
-        console.log(`[acquisition-memory] remembered ${written} of ${contacts.length} paid identities for icp ${icpId} (retention ≠ contactability)`)
-      } catch (memErr) {
-        console.error('[acquisition-memory] non-fatal failure — paid identities may be unrecorded:', memErr)
+        // Throws AcquisitionMemoryWriteError after one retry. Deliberately NOT caught:
+        // it propagates out of runIcpJob, the run is recorded as failed, and somebody
+        // looks — which is the only honest outcome when we have spent money and cannot
+        // say who on.
+        const { written, suppressed } = await rememberAcquiredIdentities(db as never, memories)
+        console.log(`[acquisition-memory] remembered ${written} of ${contacts.length} paid identities for icp ${icpId} (${suppressed} marked uncontactable; retention ≠ contactability)`)
       }
 
       for (const contact of contacts) {

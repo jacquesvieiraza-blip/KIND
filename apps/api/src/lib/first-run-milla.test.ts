@@ -733,7 +733,12 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
     expect(deskCode).toContain('finding ? (')
     // No notification, no email, no alert, no completion time — nothing sends any of them.
     const findAt = deskSrc.indexOf('Finding your matches now…')
+    // ⚠️ COMMENTS STRIPPED — this guard checks what a CLIENT READS, and JSX comments are
+    // not rendered. It tripped on the block's own note ("the diagnosis is in the alert"),
+    // which promises a prospect nothing. Assert the copy, never the code's description of it.
     const findBlock = deskSrc.slice(findAt, findAt + 900)
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
     expect(findBlock).not.toMatch(/notify|email|alert|minutes|shortly we|by \d/i)
     expect(findBlock).not.toContain('No leads waiting right now')
     // …and no provider mechanics are shown to the client.
@@ -751,7 +756,7 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('the timeout state is honest and offers no retry of the proof start', () => {
-    expect(deskSrc).toContain('We’re still finding your matches. You can come back to this page shortly.')
+    expect(deskSrc).toContain('Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.')
     expect(deskCode).toContain('setFindingTimedOut(true)')
     expect(deskCode).not.toMatch(/we'll notify you the moment your|we will let you know|try proof again|start proof again/i)
   })

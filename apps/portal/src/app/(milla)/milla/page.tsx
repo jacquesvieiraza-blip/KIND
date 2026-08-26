@@ -1056,15 +1056,25 @@ export default function MillaHomePage() {
                 </div>
               ) : finding ? (
                 <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
-                  <div className="text-[15px] font-bold text-[#5c5279]">Finding your matches now…</div>
+                  <div className="text-[15px] font-bold text-[#5c5279]">
+                    {/* ⚑ 26 Aug — THE WAIT IS BOUNDED. When the poll exhausts and the server
+                        still has no terminal outcome for this run — persistence failed, the
+                        row is missing, or /milla-summary itself kept erroring — the desk
+                        stops claiming to be searching. It says the approved recovery line
+                        instead. No spinner runs forever, and no client-side guess becomes a
+                        result: this branch only ever renders when `terminalRun` is absent,
+                        so real backend truth always wins. */}
+                    {findingTimedOut ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}
+                  </div>
                   <div className="text-[13px] mt-1.5">
                     {/* ⚠️ Real apostrophes, NOT &rsquo;. These are JS string literals inside an
                         expression container, so an HTML entity is not decoded — it renders as
                         the literal text "We&rsquo;re". Entities only work in JSX text nodes,
                         which is what the paying-client line below is. */}
                     {findingTimedOut
-                      /* No notification promised, no time promised — neither is true. */
-                      ? 'We’re still finding your matches. You can come back to this page shortly.'
+                      /* Approved recovery copy, verbatim. No retry offered, no timing
+                         promised, and no technical detail — the diagnosis is in the alert. */
+                      ? 'Your setup is saved and has been flagged for K.I.N.D review. You won’t need to start again.'
                       : 'Real people who match your targeting. They’ll appear here as soon as we have them — masked, free, and nobody is contacted.'}
                   </div>
                 </div>
@@ -1084,6 +1094,16 @@ export default function MillaHomePage() {
                 {newBatch && (
                   <div className="text-[11px] font-extrabold uppercase tracking-wide text-[#b3a9cc] pt-1.5 px-1">
                     {batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}
+                    {/* ⚑ 26 Aug — SAY HOW MANY, because the number is the honest part.
+                        A short batch is not a failure and must not be dressed as a full
+                        one: the heading states the actual count and claims nothing about
+                        a target, promises no more to come, and offers no retry. Shown
+                        only in proof mode, where a batch is a countable set. */}
+                    {showBatchLabels && (
+                      <span className="ml-1.5 font-bold text-[#9b8ec4] normal-case tracking-normal">
+                        · {pending.filter(x => batchKey(x) === batchKey(l)).length} {pending.filter(x => batchKey(x) === batchKey(l)).length === 1 ? 'match' : 'matches'}
+                      </span>
+                    )}
                   </div>
                 )}
                 <div onClick={() => gate.batch && gate.required > 1 && togglePick(l.id)}

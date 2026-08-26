@@ -521,6 +521,11 @@ export async function runIcpJob(
   // demo, audience already exhausted) leaves it true, because there is no untrustworthy
   // search to report.
   let searchCompleted = true
+  // ⚑ 26 Aug — SUPPRESSION IS NOT A TARGETING VERDICT. When our own safety rules remove
+  // everyone the search legitimately found, the client must not be told to widen an ICP
+  // that was working. Tracked so the outcome can tell the two apart.
+  let removedBySuppression = 0
+  let allRemovedBySuppression = false
 
   // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
@@ -969,6 +974,10 @@ export async function runIcpJob(
       // forbids, so a memory failure now stops the run before the gates.
       {
         const memories: AcquisitionMemoryRecord[] = []
+        // ⚑ 26 Aug — WHY were they removed? A run where suppression/DNC/opt-out ate every
+        // otherwise-matching person is NOT a targeting failure, and must never be reported
+        // as one. Counted here because this pass already resolves the reason per contact.
+        let suppressedHere = 0
         for (const contact of contacts) {
           const suppressed = isSuppressed({
             email:    contact.email,
@@ -991,6 +1000,7 @@ export async function runIcpJob(
           // `null` only when the provider gave no stable id — with no (source, provider_id)
           // there is no identity key, so the row could not be deduped and its cost would be
           // re-counted on every re-encounter. Counted, never silent.
+          if (reason !== null) suppressedHere += 1
           if (rec) memories.push(rec)
           else console.warn('[acquisition-memory] provider returned a contact with no id — not retainable, not remembered')
         }
@@ -998,6 +1008,9 @@ export async function runIcpJob(
         // it propagates out of runIcpJob, the run is recorded as failed, and somebody
         // looks — which is the only honest outcome when we have spent money and cannot
         // say who on.
+        // Every returned contact was uncontactable. Remembered (R67), never served.
+        if (contacts.length > 0 && suppressedHere === contacts.length) allRemovedBySuppression = true
+        removedBySuppression += suppressedHere
         const { written, suppressed } = await rememberAcquiredIdentities(db as never, memories)
         console.log(`[acquisition-memory] remembered ${written} of ${contacts.length} paid identities for icp ${icpId} (${suppressed} marked uncontactable; retention ≠ contactability)`)
       }
@@ -1280,7 +1293,23 @@ export async function runIcpJob(
   // a client either widens an ICP that was working perfectly or abandons one that simply
   // ran to its end. So when PDL has nobody left, the run is recorded as `audience_exhausted`
   // and carries the end-of-audience sentence — never "no leads matched this ICP".
-  const status = deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, searchCompleted)
+  // ⚑ 26 Aug — A COMPLETED SEARCH WHOSE RESULTS WE OURSELVES REMOVED IS NOT A NO-MATCH.
+  // The search ran and found people; suppression, opt-out or DNC took every one of them.
+  // Telling the prospect to "widen the job titles" would blame targeting that may be
+  // perfect, for a decision K.I.N.D made. It routes to the neutral review state instead,
+  // and the real cause goes to the founder alert below — never to the prospect.
+  const suppressionAte = inserted === 0 && searchCompleted && allRemovedBySuppression
+  const status = suppressionAte
+    ? 'failed'
+    : deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, searchCompleted)
+  if (suppressionAte) {
+    console.log(`[icp] icp ${icpId} — search completed, ${removedBySuppression} contact(s) removed by suppression/opt-out/DNC, none served. Neutral review state; targeting NOT blamed.`)
+    void sendFounderAlert('source_down', 'A completed search was emptied entirely by suppression', [
+      `Client ${clientId}, ICP ${icpId}.`,
+      `${removedBySuppression} contact(s) matched the targeting and were removed by suppression / opt-out / DNC.`,
+      'The prospect sees the neutral review state, NOT "no leads matched — try widening". Their targeting may be correct.',
+    ]).catch(() => {})
+  }
   let heldFromIcp = 0
   if (status === 'audience_exhausted') {
     const { count } = await db.from('leads')

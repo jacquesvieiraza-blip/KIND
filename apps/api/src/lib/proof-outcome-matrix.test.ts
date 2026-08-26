@@ -252,3 +252,82 @@ describe('D · the rules this build must not have broken', () => {
     expect(block).toContain('sendFounderAlert')
   })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// E. THE THREE CORRECTIONS FROM THE FINAL REVIEW (26 Aug)
+// ─────────────────────────────────────────────────────────────────────────────
+describe('E · suppression must never be reported as a targeting failure', () => {
+  const src = readFileSync(join(__dirname, '..', 'routes', 'icps.ts'), 'utf8')
+
+  it('a completed search emptied entirely by suppression does NOT derive no_match', () => {
+    expect(src).toContain('const suppressionAte = inserted === 0 && searchCompleted && allRemovedBySuppression')
+    expect(src).toContain("? 'failed'")
+  })
+
+  it('the count comes from the reason the memory pass already resolved', () => {
+    expect(src).toContain("if (reason !== null) suppressedHere += 1")
+    expect(src).toContain('suppressedHere === contacts.length) allRemovedBySuppression = true')
+  })
+
+  it('the real cause reaches a HUMAN and never the prospect', () => {
+    const at = src.indexOf('A completed search was emptied entirely by suppression')
+    expect(at).toBeGreaterThan(-1)
+    const alert = src.slice(at - 200, at + 700)
+    expect(alert).toContain('sendFounderAlert')
+    expect(alert).toContain('Their targeting may be correct')
+    // The CLIENT copy for this state is the neutral recovery body — no DNC mechanics.
+    expect(runOutcomeMessage('failed', 0)).not.toMatch(/suppress|dnc|opt.?out|blocklist/i)
+    expect(runOutcomeMessage('failed', 0)).not.toMatch(/widen|narrow|broaden/i)
+  })
+
+  it('a genuine completed zero with NO suppression is still no_match', () => {
+    expect(runOutcomeMessage('no_match', 0)).toMatch(/widen/i)
+    expect(deriveRunStatus(false, 0, false, false, true)).toBe('no_match')
+  })
+})
+
+describe('E · the desk is bounded — a wait that never resolves ends in recovery', () => {
+  const portal = readFileSync(
+    join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8')
+
+  it('an exhausted poll shows the approved recovery copy, not "still finding"', () => {
+    expect(portal).toContain("{findingTimedOut ? 'We hit a snag confirming your matches' : 'Finding your matches now…'}")
+    expect(portal).toContain('Your setup is saved and has been flagged for K.I.N.D review.')
+    // The old sentence claimed a search was still running when nothing was.
+    expect(portal).not.toContain('We’re still finding your matches. You can come back to this page shortly.')
+  })
+
+  it('backend truth still wins — the recovery branch only renders with no terminal outcome', () => {
+    const t = portal.indexOf('terminalRun ? (')
+    const f = portal.indexOf('finding ? (')
+    expect(f).toBeGreaterThan(t)
+  })
+
+  it('the poll is bounded and offers no uncontrolled retry', () => {
+    expect(portal).toContain('const FINDING_MAX_CHECKS = 20')
+    expect(portal).toContain('if (checks >= FINDING_MAX_CHECKS) { clearInterval(timer); setFindingTimedOut(true); return }')
+  })
+})
+
+describe('E · a short batch states its real size', () => {
+  const portal = readFileSync(
+    join(__dirname, '..', '..', '..', 'portal', 'src', 'app', '(milla)', 'milla', 'page.tsx'), 'utf8')
+
+  it('the batch heading carries the actual count', () => {
+    const at = portal.indexOf("{batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}")
+    const block = portal.slice(at, at + 900)
+    expect(block).toContain("pending.filter(x => batchKey(x) === batchKey(l)).length")
+    expect(block).toMatch(/'match' : 'matches'/)
+  })
+
+  it('claims no target, promises nothing more, offers no retry', () => {
+    const at = portal.indexOf("{batchKey(l) === proofBatches[0] ? 'Latest set' : 'Earlier set'}")
+    // ⚠️ STRIP COMMENTS FIRST. The block's own explanation says "offers no retry", and an
+    // earlier version of this guard matched that sentence — the third self-match this
+    // session. Assert what RENDERS, never what the code says about itself.
+    const block = portal.slice(at, at + 900)
+      .replace(/\{\/\*[\s\S]*?\*\/\}/g, '')
+      .replace(/^\s*\/\/.*$/gm, '')
+    expect(block).not.toMatch(/of 20|out of 20|more coming|retry|try again/i)
+  })
+})

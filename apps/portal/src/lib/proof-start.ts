@@ -45,6 +45,42 @@ export const PROOF_WAIT_MS = 240_000
  */
 export type ProofWaitState = 'none' | 'finding' | 'recovery'
 
+/** The proof-shaped fields of the Milla summary. Only these are ever invalidated. */
+export interface ProofSnapshot {
+  proof_started_at?: string | null
+  proof_run?: unknown
+}
+
+/**
+ * ⚑ 26 Aug — A NEW CLAIM MAKES THE OLD PROOF SNAPSHOT NON-AUTHORITATIVE, IMMEDIATELY.
+ *
+ * THE DEFECT. `/milla` is ALREADY MOUNTED when a client confirms a refinement, and
+ * `router.push('/milla?finding=1')` is a same-route query change — Next's App Router
+ * re-renders, it does NOT remount. So every piece of component state survives the Pass 2
+ * claim, including the Pass 1 summary. The desk then read Pass 1's `proof_run` against
+ * Pass 1's `proof_started_at`, found `finishedAt >= start`, and called it terminal — for a
+ * pass that had already been superseded. A terminal outcome stops the poll, so the client
+ * could sit on **Pass 1's result while Pass 2 was actually running**, and nothing would ever
+ * correct it.
+ *
+ * ⚠️ THIS INVALIDATES, IT DOES NOT INVENT. Both fields become "we do not know yet", which is
+ * exactly true the instant a new pass is claimed: no outcome exists for it, and its start is
+ * whatever the server recorded — a value only the server can tell us. Nothing here guesses a
+ * timestamp, increments a counter, or creates a browser-side notion of which pass is current.
+ * `proof_started_at` stays authoritative and stays on the server.
+ *
+ * ⚠️ EVERYTHING ELSE ON THE SUMMARY IS KEPT. Wallet, pack, KPIs, ICP versions, campaign —
+ * none of it is affected by a proof claim, and clearing the whole object would blank a
+ * working dashboard to fix a proof bug.
+ *
+ * ⚠️ CALL IT ONLY AFTER A CLAIM THAT ACTUALLY SUCCEEDED. A refused claim (the two-pass
+ * ceiling) leaves Pass 1 the current pass, and its snapshot is still the truth.
+ */
+export function invalidateProofSnapshot<T extends ProofSnapshot>(summary: T | null): T | null {
+  if (!summary) return summary
+  return { ...summary, proof_started_at: null, proof_run: null }
+}
+
 export interface ProofWaitInput {
   /** A run outcome exists for the run being waited on — the server has spoken. */
   hasTerminalOutcome: boolean

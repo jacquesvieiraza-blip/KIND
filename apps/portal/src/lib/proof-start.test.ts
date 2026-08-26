@@ -18,7 +18,7 @@
 // ⚠️ NOTHING HERE TOUCHES A PROVIDER, A NETWORK OR A CLOCK. Pure inputs, pure output.
 
 import { describe, it, expect } from 'vitest'
-import { proofWaitState, PROOF_WAIT_MS, type ProofWaitInput } from './proof-start'
+import { proofWaitState, invalidateProofSnapshot, PROOF_WAIT_MS, type ProofWaitInput } from './proof-start'
 
 const NOW = 1_700_000_000_000
 
@@ -191,5 +191,175 @@ describe('the first summary in flight claims nothing', () => {
 describe('someone who never started a proof keeps the honest empty desk', () => {
   it('no claimed pass and no flag → no wait at all', () => {
     expect(proofWaitState({ ...AWAITING, proofPassesDone: 0, urlFinding: false })).toBe('none')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 26 Aug — PASS 2 ON AN ALREADY-MOUNTED DESK.
+//
+// THE DEFECT. `/milla` is already mounted when a client confirms a refinement, and
+// `router.push('/milla?finding=1')` is a same-route query change: React re-renders, it does
+// NOT remount. Every piece of state survives the Pass 2 claim — the Pass 1 summary, the
+// `finding` flag (mount-only effect, never re-reads the URL), and `findingTimedOut`. The
+// desk therefore read Pass 1's `proof_run` against Pass 1's `proof_started_at`, found
+// `finishedAt >= start`, and called it terminal. A terminal outcome STOPS THE POLL, so the
+// client could sit on Pass 1's result while Pass 2 was genuinely running, with nothing left
+// to correct it.
+//
+// These tests walk the real journey through the real rule. `terminalRun` is modelled with
+// the desk's own expression so the two cannot drift.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+
+/** The desk's `terminalRun` rule, verbatim in behaviour: an outcome counts only if it
+ *  finished at or after the CURRENT pass's server-recorded start. */
+type Snapshot = {
+  proof_passes_done?: number
+  proof_started_at?: string | null
+  proof_run?: { status: string; finished_at: string | null } | null
+  wallet_balance_usd?: number
+}
+const serverStart = (s: Snapshot | null) => {
+  const raw = s?.proof_started_at
+  if (!raw) return 0
+  const n = Date.parse(raw)
+  return Number.isFinite(n) && n > 0 ? n : 0
+}
+const terminalRun = (s: Snapshot | null) => {
+  const r = s?.proof_run
+  if (!r || !r.finished_at) return null
+  const finishedAt = Date.parse(r.finished_at)
+  if (!Number.isFinite(finishedAt)) return null
+  return finishedAt >= serverStart(s) ? r : null
+}
+/** The desk's inputs, derived from one snapshot exactly as `milla/page.tsx` derives them. */
+const deskState = (s: Snapshot | null, over: Partial<ProofWaitInput> = {}) => proofWaitState({
+  hasTerminalOutcome: !!terminalRun(s),
+  pendingCount: 0,
+  revealedCount: 0,
+  server: 'ok',
+  proofPassesDone: s?.proof_passes_done ?? 0,
+  serverStartedAt: serverStart(s),
+  urlFinding: false,
+  now: NOW,
+  pollExhausted: false,
+  ...over,
+})
+
+const PASS1_START = new Date(NOW - 30 * 60_000).toISOString()   // half an hour ago
+const PASS1_END   = new Date(NOW - 29 * 60_000).toISOString()   // it finished a minute later
+const PASS2_START = new Date(NOW - 20_000).toISOString()        // claimed 20s ago
+
+/** What the desk holds after Pass 1 finished: a real, correct, terminal Pass 1 desk. */
+const PASS1_SUMMARY: Snapshot = {
+  proof_passes_done: 1,
+  proof_started_at: PASS1_START,
+  proof_run: { status: 'no_match', finished_at: PASS1_END },
+  wallet_balance_usd: 42,          // unrelated dashboard state, must survive
+}
+
+describe('PASS 2 · a stale Pass 1 snapshot can never represent the new pass', () => {
+  it('the starting point is a genuinely terminal Pass 1 desk', () => {
+    // Pass 1 IS terminal, and must stay that way until a new pass is claimed.
+    expect(terminalRun(PASS1_SUMMARY)).not.toBeNull()
+    expect(deskState(PASS1_SUMMARY)).toBe('none')
+  })
+
+  it('⚑ THE REGRESSION — before invalidation, Pass 1 terminal hijacks Pass 2', () => {
+    // This is the defect, asserted as it behaved: the server has advanced to Pass 2, but the
+    // browser still holds Pass 1. Nothing about the stale object knows a new pass exists.
+    expect(terminalRun(PASS1_SUMMARY)).not.toBeNull()     // Pass 1's outcome reads as terminal…
+    expect(deskState(PASS1_SUMMARY)).toBe('none')          // …so the desk shows it, and stops.
+  })
+
+  it('AFTER the successful claim, the old proof snapshot is non-authoritative', () => {
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    // Neither proof fact survives: no outcome, no start.
+    expect(invalidated.proof_run).toBeNull()
+    expect(invalidated.proof_started_at).toBeNull()
+    // So Pass 1's outcome can no longer terminate anything…
+    expect(terminalRun(invalidated), 'Pass 1 terminal must not represent Pass 2').toBeNull()
+    // …and the desk waits truthfully instead of showing a finished run.
+    expect(deskState(invalidated)).toBe('finding')
+  })
+
+  it('and the Pass 2 poll is NOT stopped by Pass 1 outcome', () => {
+    // The desk polls while `proofAwaiting` is true and `terminalRun` is null. Both hold.
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    expect(terminalRun(invalidated)).toBeNull()            // nothing to short-circuit the poll
+    expect(deskState(invalidated)).not.toBe('none')        // and a wait is genuinely in progress
+  })
+
+  it('unrelated dashboard state is NOT destroyed', () => {
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    expect(invalidated.wallet_balance_usd).toBe(42)
+    expect(invalidated.proof_passes_done, 'the counter is the server’s, never rewritten here').toBe(1)
+  })
+
+  it('nothing is INVENTED — no guessed start, no client-side pass identity', () => {
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    expect(serverStart(invalidated), 'unknown, not a fabricated timestamp').toBe(0)
+    // The counter is untouched: a browser-side increment would be a second source of truth
+    // about which pass is current, which is exactly what this arc removed.
+    expect(invalidated.proof_passes_done).toBe(PASS1_SUMMARY.proof_passes_done)
+  })
+
+  it('THEN the refreshed Pass 2 summary arrives and its start becomes authoritative', () => {
+    const pass2: Snapshot = {
+      proof_passes_done: 2,
+      proof_started_at: PASS2_START,
+      proof_run: { status: 'no_match', finished_at: PASS1_END },   // Pass 1's row is still newest
+    }
+    // ⚠️ THE SERVER CLOCK NOW DOES THE WORK ON ITS OWN. Pass 1 finished BEFORE Pass 2 began,
+    // so even with Pass 1's outcome still the newest row, it cannot terminate Pass 2.
+    expect(terminalRun(pass2), 'an outcome older than the current pass is not this pass’s').toBeNull()
+    expect(deskState(pass2)).toBe('finding')               // 20s into Pass 2 — still finding
+  })
+
+  it('A · Pass 2 leads arrive → leads surface', () => {
+    const pass2: Snapshot = { proof_passes_done: 2, proof_started_at: PASS2_START, proof_run: null }
+    expect(deskState(pass2, { pendingCount: 12 })).toBe('none')
+  })
+
+  it('B · Pass 2 terminal outcome arrives → Pass 2 terminal truth displays', () => {
+    const finishedAt = new Date(NOW - 5_000).toISOString()        // after Pass 2 started
+    const pass2: Snapshot = {
+      proof_passes_done: 2,
+      proof_started_at: PASS2_START,
+      proof_run: { status: 'served', finished_at: finishedAt },
+    }
+    expect(terminalRun(pass2)).not.toBeNull()
+    expect(terminalRun(pass2)!.status).toBe('served')
+    expect(deskState(pass2)).toBe('none')                          // the terminal card renders
+  })
+
+  it('PASS 1 BEHAVIOUR IS UNCHANGED — a first pass on a fresh desk still works end to end', () => {
+    const running: Snapshot = { proof_passes_done: 1, proof_started_at: new Date(NOW - 25_000).toISOString(), proof_run: null }
+    expect(deskState(running)).toBe('finding')
+    const done: Snapshot = { ...running, proof_run: { status: 'served', finished_at: new Date(NOW - 5_000).toISOString() } }
+    expect(terminalRun(done)).not.toBeNull()
+    expect(deskState(done)).toBe('none')
+  })
+
+  it('a REFUSED Pass 2 claim leaves the Pass 1 desk exactly as it was', () => {
+    // The two-pass ceiling throws before the invalidation line is ever reached, so the
+    // snapshot is never touched. Modelled by simply not invalidating.
+    expect(terminalRun(PASS1_SUMMARY)).not.toBeNull()
+    expect(deskState(PASS1_SUMMARY)).toBe('none')
+    expect(PASS1_SUMMARY.proof_passes_done).toBe(1)                // and no third pass appears
+  })
+
+  it('a SUMMARY FAILURE after a successful claim cannot resurrect Pass 1 truth', () => {
+    // Invalidated, then the refresh fails. There is no Pass 1 outcome left to fall back to,
+    // and the desk uses the approved bounded-unreachable behaviour instead.
+    const invalidated = invalidateProofSnapshot(PASS1_SUMMARY)!
+    expect(terminalRun(invalidated)).toBeNull()
+    expect(deskState(invalidated, { server: 'unreachable' })).toBe('finding')
+    expect(deskState(invalidated, { server: 'unreachable', pollExhausted: true })).toBe('recovery')
+    // Never back to Pass 1's terminal card, and never the generic empty desk.
+    expect(deskState(invalidated, { server: 'unreachable' })).not.toBe('none')
+  })
+
+  it('invalidating an absent summary is a no-op, not a crash', () => {
+    expect(invalidateProofSnapshot(null)).toBeNull()
   })
 })

@@ -629,6 +629,37 @@ describe('G · a clean URL cannot strand the first client — and cannot cry fai
     }
   })
 
+  it('⚑ A SUCCESSFUL PASS-2 CLAIM INVALIDATES THE OLD PROOF SNAPSHOT — and only then', () => {
+    // ⚠️ THE DESK IS ALREADY MOUNTED FOR PASS 2, and `router.push('/milla?finding=1')` is a
+    // same-route query change: React re-renders, it does not remount. So the Pass 1 summary,
+    // the `finding` flag (mount-only effect) and `findingTimedOut` all survive the claim —
+    // and Pass 1's outcome would read as terminal for Pass 2 and STOP THE POLL.
+    const at = portalSrc.indexOf('await api.post(`/icps/${afterId}/proof`, {}, tk)')
+    expect(at, 'the one proof POST on the desk').toBeGreaterThan(-1)
+    const push = portalSrc.indexOf("router.push('/milla?finding=1')", at)
+    expect(push).toBeGreaterThan(at)
+    const afterClaim = portalSrc.slice(at, push)
+
+    // All three stale carriers are cleared, and the new state is fetched at once.
+    expect(afterClaim).toContain('setSummary(invalidateProofSnapshot)')
+    expect(afterClaim, 'Pass 1 exhausted poll must not end Pass 2').toContain('setFindingTimedOut(false)')
+    expect(afterClaim).toContain('void load()')
+
+    // ⚠️ AFTER THE AWAIT, NOT BEFORE. A refused claim (the two-pass ceiling) throws to the
+    // catch and never reaches these lines, so a valid Pass 1 desk is never blanked by a
+    // refusal. Ordering IS the guarantee here, so it is asserted rather than assumed.
+    expect(portalSrc.indexOf('setSummary(invalidateProofSnapshot)')).toBeGreaterThan(at)
+
+    // And the invalidation invents nothing: it clears the two proof facts and no more.
+    const rule = codeOnly(readFileSync(
+      join(__dirname, '..', '..', '..', 'portal', 'src', 'lib', 'proof-start.ts'), 'utf8'))
+    const fn = rule.slice(rule.indexOf('export function invalidateProofSnapshot'))
+    expect(fn).toContain('proof_started_at: null')
+    expect(fn).toContain('proof_run: null')
+    expect(fn, 'the pass counter is the server\'s — never rewritten in the browser')
+      .not.toContain('proof_passes_done')
+  })
+
   it('the summary carries the durable start, read from the column the claim writes', () => {
     const summary = codeOnly(readFileSync(join(__dirname, 'milla-summary.ts'), 'utf8'))
     expect(summary).toContain("select('wallet_balance_usd, proof_passes_done, proof_started_at')")

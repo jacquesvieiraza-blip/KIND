@@ -6,7 +6,7 @@ import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
 import ProductTour from '@/components/ProductTour'
 import { shortfallMessage, deskCoverage, PACK_PRICE_USD, PACK_LEADS } from '@kind/shared'
-import { proofWaitState, PROOF_WAIT_MS } from '@/lib/proof-start'
+import { proofWaitState, invalidateProofSnapshot, PROOF_WAIT_MS } from '@/lib/proof-start'
 
 // #497/#503/#506/#495 — MILLA HOME (docs/mv-previews/milla2.html): KPI cards row + Milla
 // chat as the SPINE (centre, full height, real-data opener) + masked lead cards (right).
@@ -532,6 +532,37 @@ export default function MillaHomePage() {
       proofAttemptedRef.current = true
       setProofAttempted(true)
       await api.post(`/icps/${afterId}/proof`, {}, tk)
+
+      // ── ⚑ 26 Aug — THE PASS-2 CLAIM SUCCEEDED, SO PASS 1'S SNAPSHOT IS NOW STALE ────────
+      //
+      // ⚠️ THIS PAGE IS ALREADY MOUNTED AND `router.push` BELOW WILL NOT REMOUNT IT. It is a
+      // same-route query change, so React keeps every piece of state: the Pass 1 summary,
+      // the `finding` flag (whose effect has `[]` deps and never re-reads the URL), and
+      // `findingTimedOut`. Without the three lines below the desk would read Pass 1's
+      // `proof_run` against Pass 1's `proof_started_at`, call it terminal, and STOP POLLING —
+      // leaving a client looking at Pass 1's result while Pass 2 was actually running.
+      //
+      // ⚠️ AFTER THE AWAIT, DELIBERATELY. A refused claim (the two-pass ceiling) throws to
+      // the catch and never reaches here, so a valid Pass 1 desk is never blanked by a
+      // refusal — only a claim the server actually granted invalidates anything.
+      //
+      // Nothing is invented: both proof fields become "unknown", which is precisely true for
+      // a pass whose start only the server knows and whose outcome does not exist yet.
+      setSummary(invalidateProofSnapshot)
+      // Pass 1's exhausted poll must not end Pass 2's wait before it begins. This flag is
+      // the second thing that survives the non-remount, and a stale `true` here would show
+      // the recovery card instantly on a run that had just started.
+      setFindingTimedOut(false)
+      // ⚠️ `setFinding(true)` IS DELIBERATELY NOT CALLED, and that is not an oversight. The
+      // `finding` flag is a URL hint whose mount effect will not re-run — but the wait does
+      // not need it: `proofPassesDone > 0` from the refreshed summary is what makes the desk
+      // wait, and the poll guard passes on `proofAwaiting` alone. Setting it here would also
+      // breach the standing rule that nothing may switch `finding` back on inside this file
+      // (`first-run-milla.test.ts` — a later empty desk must never reactivate a spent flag).
+      // Fetch the new server state at once rather than waiting up to one poll interval for
+      // it. The poll would get there on its own; this only makes the moment deterministic.
+      void load()
+
       // ⚑ 26 Aug — `?finding=1` IS A HINT, NOT A CLOCK. It covers the one moment the server
       // cannot: between this navigation and the first summary landing. The run's actual
       // START was recorded by the claim itself (`clients.proof_started_at`), so no timestamp

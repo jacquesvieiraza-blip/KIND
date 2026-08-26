@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { createClient } from '@/lib/supabase/client'
@@ -34,6 +34,9 @@ type Summary = {
    *  Lets the desk tell 0 / 1 / 2 apart WITHOUT making the client press something
    *  just to discover a 409. */
   proof_passes_done?: number
+  /** ⚑ 26 Aug — the terminal truth of the newest COMPLETED run. `null` = none has ever
+   *  finished, which is NOT the same as "still running". See `terminalRun` below. */
+  proof_run?: { status: string; message: string; total_inserted: number; finished_at: string | null } | null
 }
 /** The targeting fields a refinement may touch — exactly the ICP's own, nothing more. */
 type IcpTargeting = {
@@ -105,6 +108,24 @@ const CHIPS = [
 // close over a stale value.
 function isFinding(): boolean {
   try { return new URLSearchParams(window.location.search).get('finding') === '1' } catch { return false }
+}
+/**
+ * WHEN the run we are waiting on was started, as epoch ms, carried in the URL.
+ *
+ * ⚠️ IT LIVES IN THE URL SO IT SURVIVES A RELOAD. A ref or component state resets on
+ * refresh, and then a run that had already finished looked older than "now" and the desk
+ * went back to spinning — the exact reload defect this build exists to kill.
+ *
+ * ⚠️ MISSING OR UNPARSEABLE RETURNS 0, which makes ANY completed run count as terminal.
+ * That is the safe direction: an old link resolves to a truthful end state rather than a
+ * spinner that never stops. Erring the other way is what shipped.
+ */
+function findingSince(): number {
+  try {
+    const raw = new URLSearchParams(window.location.search).get('since')
+    const n = raw ? Number(raw) : NaN
+    return Number.isFinite(n) && n > 0 ? n : 0
+  } catch { return 0 }
 }
 /** Every 3s, at most 20 times — ~60s, then we stop and say so. Bounded on purpose: an
  *  unbounded poll on a run that died is a tab quietly hammering the API forever. */
@@ -279,6 +300,35 @@ export default function MillaHomePage() {
   // describing it was wrong, and the sentence is what changed.
   // Nothing here is a gate; it decides what the client is OFFERED.
   const proofPassesDone = summary?.proof_passes_done ?? 0
+
+  // ── ⚑ 26 Aug — A FINISHED RUN MUST LOOK FINISHED ────────────────────────────────
+  //
+  // THE DEFECT THIS REPLACES. `finding` came from a URL flag and was cleared by exactly
+  // one thing: leads arriving. So a run that genuinely ended with ZERO never cleared it —
+  // no leads, nothing to clear it, and after ~60s the copy only softened to "we're still
+  // finding your matches", which was untrue. The run had ended. A reload re-read the flag
+  // and started the whole loop again.
+  //
+  // THE FIX. `runIcpJob` already writes one `icp_run_outcomes` row when it finishes, with
+  // canonical client copy. The desk now reads it. A run counts as OURS — and therefore
+  // ends this wait — only when it finished AFTER the moment we started waiting, so an
+  // outcome left by pass 1 can never terminate pass 2.
+  //
+  // ⚠️ NO NEW COPY IS INVENTED HERE. `message` is the server's own canonical sentence
+  // (`runOutcomeMessage`), the same text the paying-client dashboard already renders.
+  const terminalRun = useMemo(() => {
+    const r = summary?.proof_run
+    if (!r || !r.finished_at) return null
+    const finishedAt = Date.parse(r.finished_at)
+    if (!Number.isFinite(finishedAt)) return null
+    // `findingSince()` is 0 for an old link with no stamp — then any completed run counts,
+    // which resolves to a truthful end state rather than an endless spinner.
+    return finishedAt >= findingSince() ? r : null
+  }, [summary?.proof_run])
+
+  // Zero is a RESULT, not an absence. It ends the wait and never triggers another search:
+  // nothing here starts sourcing, and the one proof POST lives on the confirmation screen.
+  const proofEndedEmpty = !!terminalRun && terminalRun.total_inserted === 0
   const canRefine       = proofMode && proofPassesDone === 1
   const proofExhausted  = proofMode && proofPassesDone >= 2
 
@@ -411,7 +461,7 @@ export default function MillaHomePage() {
       proofAttemptedRef.current = true
       setProofAttempted(true)
       await api.post(`/icps/${afterId}/proof`, {}, tk)
-      router.push('/milla?finding=1')
+      router.push(`/milla?finding=1&since=${Date.now()}`)
     } catch (e) {
       // ── STAGE-ACCURATE, BECAUSE THE OLD SENTENCE COULD BE A LIE ────────────────────────
       // One generic message said *"Your targeting is saved"* for every failure — including
@@ -779,6 +829,7 @@ export default function MillaHomePage() {
     try {
       const url = new URL(window.location.href)
       url.searchParams.delete('finding')
+      url.searchParams.delete('since')
       window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
     } catch { /* the flags are already cleared — the URL is cosmetic, never the gate */ }
   }, [finding, pending.length])
@@ -793,7 +844,9 @@ export default function MillaHomePage() {
   //
   // Stops on the FIRST of: leads arrive · 20 checks (~60s) · unmount.
   useEffect(() => {
-    if (!finding || pending.length > 0) return
+    // A terminal outcome ends the poll as surely as leads arriving would: the run is
+    // over, so re-asking cannot change the answer and would only hammer the API.
+    if (!finding || pending.length > 0 || terminalRun) return
     let cancelled = false
     let checks = 0
     let inFlight = false                       // one request at a time — never overlap
@@ -807,7 +860,7 @@ export default function MillaHomePage() {
     // Cleanup is what guarantees a single loop: the effect re-runs only when `finding` or
     // the pending COUNT changes, and each re-run tears the previous interval down first.
     return () => { cancelled = true; clearInterval(timer) }
-  }, [finding, pending.length, load])
+  }, [finding, pending.length, load, terminalRun])
   // Mirrors lib/approval-batch.ts on the server. `approvedEver` comes from the summary, so a
   // client already past 20 gets one-tap approve back — the gate starts the relationship, it
   // doesn't nag someone already working with us.
@@ -980,7 +1033,20 @@ export default function MillaHomePage() {
                  "no leads waiting" and promised a notification nothing sends. The paying
                  client's copy below is UNCHANGED on purpose — its own "we'll notify you"
                  claim predates this build and is the founder's call, not this commit's. */
-              finding ? (
+              /* ⚑ 26 Aug — TERMINAL BEATS SPINNER. Checked BEFORE `finding`, because
+                 `finding` is only ever a claim about what we started; `terminalRun` is
+                 the server's record of how it actually ended. When both are true the run
+                 is over and the flag is stale. */
+              terminalRun ? (
+                <div className="text-[14px] text-[#4c4368] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
+                  <div className="text-[15px] font-bold text-[#5c5279]">
+                    {proofEndedEmpty ? 'No matches this time' : 'That search has finished'}
+                  </div>
+                  {/* The server's own canonical sentence — never re-written here. */}
+                  <div className="text-[13px] mt-1.5 text-[#7c6f9b]">{terminalRun.message}</div>
+                  {/* Nothing on this branch starts another search, and no control offers to. */}
+                </div>
+              ) : finding ? (
                 <div className="text-[14px] text-[#9b8ec4] bg-[#faf8ff] border border-[#ece5fb] rounded-2xl px-4 py-10 text-center">
                   <div className="text-[15px] font-bold text-[#5c5279]">Finding your matches now…</div>
                   <div className="text-[13px] mt-1.5">

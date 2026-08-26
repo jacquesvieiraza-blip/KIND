@@ -619,7 +619,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // ⚑ 24 Aug — plain '/milla' was not enough: the desk fetched once and told them "no
     // leads waiting" while their run was still going. The flag is what turns the desk's
     // honest-empty state into an honest-finding state.
-    expect(welcomeCode).toContain("router.push('/milla?finding=1')")
+    expect(welcomeCode).toContain("router.push(`/milla?finding=1&since=${Date.now()}`)")
     // …and that is the ONLY navigation out of a successful confirmation.
     expect((welcomeCode.match(/router\.push\(/g) ?? [])).toHaveLength(1)
   })
@@ -642,7 +642,7 @@ describe('free proof runs before the client is ever asked to pay', () => {
     // claims the client's second pass.
     const block = welcomeCode.slice(
       welcomeCode.indexOf('/proof`'),
-      welcomeCode.indexOf("router.push('/milla?finding=1')"),
+      welcomeCode.indexOf("router.push(`/milla?finding=1&since=${Date.now()}`)"),
     )
     expect(block.length, 'the proof failure block').toBeGreaterThan(0)
 
@@ -772,8 +772,8 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('POLLING IS READ-ONLY — no POST, no proof, no provider, no mutation', () => {
-    const from = deskCode.indexOf('if (!finding || pending.length > 0) return')
-    const to   = deskCode.indexOf('}, [finding, pending.length, load])')
+    const from = deskCode.indexOf('if (!finding || pending.length > 0 || terminalRun) return')
+    const to   = deskCode.indexOf('}, [finding, pending.length, load, terminalRun])')
     expect(from, 'the polling effect').toBeGreaterThan(-1)
     expect(to,   'the end of the polling effect').toBeGreaterThan(from)
     const poll = deskCode.slice(from, to)
@@ -823,7 +823,7 @@ describe('the desk shows an honest finding state and refreshes itself', () => {
   })
 
   it('it stops when leads arrive, at the cap, and on unmount — and never overlaps', () => {
-    expect(deskCode).toContain('if (!finding || pending.length > 0) return')          // leads arrived
+    expect(deskCode).toContain('if (!finding || pending.length > 0 || terminalRun) return')          // leads arrived
     expect(deskCode).toContain('if (checks >= FINDING_MAX_CHECKS)')                    // cap
     expect(deskCode).toContain('return () => { cancelled = true; clearInterval(timer) }') // unmount
     expect(deskCode).toContain('if (cancelled || inFlight) return')                    // no overlap

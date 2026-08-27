@@ -577,36 +577,105 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
     expect(sql).toContain("coalesce(btrim(p.country),'') = ''")
   })
 
-  it('⚑ NO LIMIT 1 — provider resolution is deterministic uniqueness, never an arbitrary pick', () => {
+  it('⚑ NO LIMIT 1, and NO arbitrary identity/cost/country pick anywhere', () => {
     // comment-stripped (the header SAYS "no limit 1", and "limit 100" contains the substring)
     const sql = codeOnly(readRepo(TOOL)).toLowerCase()
     expect(/limit\s+1\b/.test(sql), 'an arbitrary pick violates fail-closed').toBe(false)
-    // the memory arm demands EXACTLY ONE distinct eligible provider:
-    expect(sql).toContain("count(distinct lower(btrim(am.source))) = 1")
-    // and only pdl/apollo are ever eligible from memory:
+    // ⛓️ resolver-alignment pass: min(provider_id) was the surviving arbitrary choice — one
+    // email can carry SEVERAL acquisitions from the same provider, so it silently picked one
+    // and then resolved cost against that choice.
+    expect(sql.includes('min(provider_id)'), 'acquisition identity must never be chosen').toBe(false)
+    expect(sql.includes('max(provider_id)')).toBe(false)
+    // the memory arm demands EXACTLY ONE distinct eligible provider, bound to the identity:
+    expect(sql).toContain('count(distinct lower(btrim(am.source))) = 1')
     expect(sql).toContain("lower(btrim(am.source)) in ('pdl','apollo')")
-    // final guards on Phase B: resolver succeeded AND cost proven/house, or the row is skipped
-    expect(sql).toContain("where c.provider in ('pdl', 'apollo')")
-    expect(sql).toContain('c.proven_cost is not null')
-    // ⚑ corroboration binds to the ACQUISITION IDENTITY, never to the email alone:
     expect(sql).toContain('am.provider_id = l.apollo_id')
-    // ⚑ no earliest-row country pick, and no MIN-as-cost-truth:
-    expect(sql).toContain('when c.distinct_countries = 1 then c.one_country else null end')
+    // cost: exactly-one-distinct, never MIN-as-truth:
     expect(sql).toContain('count(distinct am.acquisition_cost_usd) = 1')
-    // ⚑ identity dedupe is explicit, never a UNION of differently shaped rows:
-    expect(sql, 'A3 must not identity-dedupe by UNION').not.toMatch(/from public\.lead_pool p\s+union\s+select distinct on/)
+  })
+
+  it('⚑ THE ACQUISITION IDENTITY IS (provider, provider_id) — mirrored from promotion-resolver.ts', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    expect(sql).toContain("rr.provider || ':' || rr.provider_id")
+    expect(sql).toContain("rr.provider || ':house:' || rr.email_norm")
+    expect(sql, 'grouping is by the acquisition, not the email').toContain('group by acquisition_key, email_norm')
+  })
+
+  it('⚑ UNRESOLVED AND CUSTOMER ROWS ARE DROPPED BEFORE GROUPING — no metadata leak', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    const owned = sql.slice(sql.indexOf('), owned_rows as ('), sql.indexOf('), acquisition as ('))
+    expect(owned).toContain("rr.provider in ('pdl','apollo')")
+    expect(owned).toContain('not rr.is_customer_row')
+    expect(owned, 'and only rows with a bindable identity').toContain('rr.provider_id is not null or rr.is_house')
+    // the metadata aggregation happens AFTER that filter, over `owned_rows` only
+    expect(sql.indexOf('), owned_rows as (')).toBeLessThan(sql.indexOf('array_agg(first_name'))
+    expect(sql.slice(sql.indexOf('), acquisition as ('))).toContain('from owned_rows')
+  })
+
+  it('⚑ COST: ambiguity beats the house-zero default, in the SQL not only the prose', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    expect(sql).toContain('(c.distinct_costs > 1)')
+    // the house-zero arm is reachable ONLY when there are zero recorded costs:
+    expect(sql).toContain("when c.distinct_costs = 0 and c.provider = 'apollo' and c.is_house then 0")
+    // and the executable set excludes ambiguity outright:
+    expect(sql).toContain('not cl.cost_ambiguous')
+    expect(sql).toContain('not cl.cost_unprovable')
+  })
+
+  it('⚑ COUNTRY: canonicalised BEFORE distinctness, and a conflict is never resolved', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    expect(sql).toContain('count(distinct canon_country)')
+    expect(sql, 'raw-string country counting is the defect').not.toContain('count(distinct lower(btrim(l.country)))')
+    expect(sql).toContain('case when c.distinct_countries = 1 then c.one_country end')
+  })
+
+  it('⚑ PHASE A PREDICTS PHASE B — one `executable` CTE, and Phase B inserts exactly it', () => {
+    const raw = readRepo(TOOL)
+    const sql = codeOnly(raw)
+    // the canonical resolver opens every statement that classifies: A1 · A1b · A2 · A3 ·
+    // Phase B insert · Phase B2 heal — repeated verbatim so each is pasteable alone.
+    const copies = sql.split('), executable as (').length - 1
+    expect(copies, 'A1 · A1b · A2 · A3 · Phase B · Phase B2').toBe(6)
+    // and every copy is byte-identical — one truth, not six dialects.
+    // ⚠️ THE SLICE END MATTERS. A first version cut at the first `)\n`, which lands inside
+    // the canon CTE — it compared a ~6-line prefix and passed happily while a later line
+    // drifted. Sliced to the END of the resolver instead (its closing `)` after the
+    // `executable` CTE), so the whole block is compared.
+    const MARK = 'with canon as ('
+    const blocks = raw.split(MARK).slice(1).map(b => {
+      const end = b.indexOf('), executable as (')
+      expect(end, 'every resolver copy must contain the executable CTE').toBeGreaterThan(0)
+      return b.slice(0, b.indexOf('\n)', end) + 2)
+    })
+    expect(blocks.every(b => b.length > 3000), 'the compared block must be the whole resolver').toBe(true)
+    expect(new Set(blocks).size, 'the resolver copies must not drift apart').toBe(1)
+    // Phase B's insert selects FROM the executable set, with no extra WHERE of its own
+    const insert = sql.slice(sql.indexOf('insert into public.lead_pool'))
+    expect(insert).toContain('from executable e')
+    expect(insert).toContain('on conflict (email_norm) do nothing')
+    expect(insert.slice(0, insert.indexOf('on conflict')),
+      'no second WHERE may narrow or widen the set A1b counted').not.toContain('where')
+  })
+
+  it('⚑ A1b reports exact counts, not a fabricated upper bound', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    for (const col of ['current_eligible_pool_identities', 'executable_promotion_identities',
+                       'projected_pool_after_phase_b']) {
+      expect(sql, col).toContain(col)
+    }
   })
 
   it('the corrected audit terminology: progressive gates, never an absolute servability claim', () => {
     const sql = readRepo(TOOL)
-    for (const col of ['already_in_pool', 'promotable_outside_pool', 'ambiguous_excluded',
-                       'customer_inbound_excluded', 'unknown_excluded',
-                       'provider_proven_metadata_complete', 'cost_proven',
-                       'cost_unprovable_excluded', 'cost_ambiguous_excluded',
-                       'kind_acquired_proven', 'canonical_geo_match', 'role_match',
-                       'after_opt_out_blocklist', 'after_sql_visible_suppression_floor',
-                       'after_existing_client_dedupe', 'after_sql_visible_runtime_gates',
-                       'country_ambiguous']) {
+    for (const col of ['already_in_pool', 'no_owned_acquisition_excluded',
+                       'acquisition_identity_ambiguous', 'cost_ambiguous', 'cost_unprovable',
+                       'metadata_incomplete', 'executable_promotion',
+                       'acquisition_identity_proven', 'metadata_complete', 'country_single',
+                       'country_missing', 'country_ambiguous', 'cost_proven',
+                       'house_zero_accepted', 'kind_acquired_proven', 'canonical_geo_match',
+                       'role_match', 'after_opt_out_blocklist',
+                       'after_sql_visible_suppression_floor', 'after_existing_client_dedupe',
+                       'after_sql_visible_runtime_gates']) {
       expect(sql, col).toContain(col)
     }
     // ⛓️ renamed on the merge-gate pass: the old name implied Phase B would take the row,
@@ -614,9 +683,11 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
     // ⚠️ COMMENT-STRIPPED — the file's own note EXPLAINING the rename contains the old name,
     // and a guard satisfied by the prose that explains it is the recurring defect here.
     const code = codeOnly(readRepo(TOOL))
-    expect(code, 'over-claiming labels are gone').not.toContain('safely_promotable_now')
-    expect(code).not.toContain('promotable_not_in_pool')
-    expect(code).not.toContain('likely_runtime_servable_estimate')
+    for (const stale of ['safely_promotable_now', 'promotable_not_in_pool',
+                         'likely_runtime_servable_estimate',
+                         'projected_after_promotion_upper_bound']) {
+      expect(code, `${stale} over-claims and must not survive`).not.toContain(stale)
+    }
     // the stated caveat about the env-only suppression additions:
     expect(sql).toContain('SUPPRESSED_DOMAINS')
   })
@@ -629,10 +700,15 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
     expect(existsSync(join(__dirname, '../../../..', 'supabase/maintenance/2026-08-27_lead_pool_country_backfill.sql')))
       .toBe(false)
     expect(readRepo('apps/api/src/routes/icps.ts')).not.toContain('lead_pool_country_backfill')
-    // and the replacement heal carries the rights boundary in its source CTE:
-    const sql = readRepo(TOOL)
-    const heal = sql.slice(sql.indexOf('Fill-only country heal'))
-    expect(heal).toContain("not in ('csv_import','web_form','company_csv','vida_chat','milla_onboarding')")
+    // and the replacement heal draws country ONLY from the canonical resolver's proven
+    // acquisitions — customer/inbound rows never reach `classified`, so they cannot supply a
+    // geography at all. (Stronger than the old string filter: it is structural.)
+    const sql = codeOnly(readRepo(TOOL))
+    const heal = sql.slice(sql.indexOf('one_answer as ('))
+    expect(heal, 'the heal reads the resolver, not raw leads').toContain('from classified')
+    expect(heal, 'and only where exactly one proven country exists')
+      .toContain('having count(distinct resolved_country) = 1')
+    expect(heal, 'fill only — never overwrite').toContain("coalesce(btrim(p.country),'') = ''")
   })
 })
 

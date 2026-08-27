@@ -19,7 +19,7 @@ import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
 import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
-import { rethrowIfProviderBlocked } from '../lib/paid-provider-guard'
+import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
 import {
   decideCursor, nextCursorState, exhaustedMessage, exhaustedAlertLines,
@@ -576,22 +576,32 @@ export async function runIcpJob(
   // default R66 shipped) and a real PDL key present, every proof pass whose pool serve came
   // up short hit `assertPaidProviderAllowed` inside the provider call, and the deliberate
   // `PaidProviderBlockedError` propagated straight out of this function — killing the run
-  // BETWEEN the reservation and everything that makes a run real. Three consequences, each
-  // observed live:
-  //   1. pool-served leads were already INSERTED but the surfacing stamp
-  //      (`surfaced_for_approval_at` + `delivered_at`, far below) never ran — so the desk,
-  //      whose /leads/for-approval requires BOTH, showed NOTHING even when the pool had
-  //      matches. Safe pool leads were sacrificed because paid providers were off.
-  //   2. the proof reservation was never reconciled — the F1 refund lives below the throw —
-  //      so up to 20 of the prospect's lifetime-40 records burned per blocked attempt.
-  //      Two attempts ≈ the whole 40, and every later pass reserves 0 and refuses.
-  //   3. the crash boundary recorded `failed` with pool_served=0/inserted=0 — false counts —
-  //      or, where the `failed` CHECK constraint is missing, recorded NOTHING, leaving the
-  //      desk to its 240s local failsafe ("Finding…" for minutes, then the snag card).
+  //   BETWEEN the reservation and everything that makes a run real.
   //
-  // ⚠️ WHY THE SUITE MISSED IT: `vitest.setup.ts` deletes every provider key, so in tests
-  // `pdlSearchPage` exits at its no-key branch BEFORE the guard — the throw was unreachable
-  // under test and only production, which HAS the key, could reach it.
+  // ⚠️ WHAT IS OBSERVED vs WHAT IS REPRODUCED — kept apart on purpose, because claiming to
+  // have read production internals we never opened is the same species of untruth this
+  // whole arc exists to remove.
+  //   USER-OBSERVED (the founder's browser): proof started, "Finding your matches now…"
+  //     for minutes, then the neutral snag card, and no usable proof — more than once.
+  //   CODE-REPRODUCED (this repository, in tests): the three consequences below follow
+  //     from the control flow and are each driven in `proof-provider-off.test.ts`. No
+  //     production log, database row or provider response was read.
+  //   1. pool-served leads are already INSERTED, but the surfacing stamp
+  //      (`surfaced_for_approval_at` + `delivered_at`, far below) never runs — so the desk,
+  //      whose /leads/for-approval requires BOTH, shows NOTHING even when the pool has
+  //      matches. Safe pool leads are sacrificed because paid providers are off.
+  //   2. the proof reservation is never reconciled — the F1 refund lives below the throw —
+  //      so up to 20 of the prospect's lifetime-40 records burn per blocked attempt.
+  //      Two attempts ≈ the whole 40, and every later pass reserves 0 and refuses.
+  //   3. the crash boundary records `failed` with pool_served=0/inserted=0 — false counts —
+  //      or, where the `failed` CHECK constraint is missing, records NOTHING, leaving the
+  //      desk to its 240s local failsafe — which matches what the founder saw.
+  //
+  // ⚠️ WHY THE SUITE MISSED IT, both halves: `vitest.setup.ts` deletes every provider key
+  // (so `pdlSearchPage` exits at its no-key branch before the guard) AND sets
+  // `PAID_PROVIDERS_ENABLED='true'` for the whole suite, which makes the guard inert in
+  // tests by design. No ordinary test could reach this refusal; only production, which has
+  // the key and not the flag, could.
   //
   // ⚠️ THE GUARD'S CONTRACT IS UNCHANGED. A block still refuses the spend, still cannot be
   // swallowed into an empty page, and still cannot read as a trustworthy zero — trust stays
@@ -599,9 +609,12 @@ export async function runIcpJob(
   // never `no_match`. What changed is WHERE the fact is handled: the run absorbs it, keeps
   // every safe pool lead, refunds the unspent reservation, and records one honest outcome
   // with real counts.
+  //
+  // ⛓️ 27 Aug — recognised by `isPaidProviderBlocked`, the ONE canonical predicate exported
+  // beside the class that throws it. An inline copy of the discriminator here would be a
+  // second place to keep the contract, and a detector for a property production might stop
+  // emitting is exactly the circularity this arc is meant to avoid.
   let paidSourcingBlocked = false
-  const isPaidProviderBlock = (e: unknown): boolean =>
-    !!e && typeof e === 'object' && (e as { code?: unknown }).code === 'SAFE_TEST_MODE_BLOCKED'
 
   // ── #449p3 PIECE 2 — POOL-FIRST SERVE. Serve matching records we already own at
   // $0 BEFORE spending any PDL budget. Empty pool (fresh DB) → served 0 → every line
@@ -853,7 +866,7 @@ export async function runIcpJob(
         // Only the DELIBERATE block is absorbed — every other throw keeps crashing to the
         // boundary, exactly as before. Recognised by its stable code, not instanceof, so a
         // reloaded module graph cannot unrecognise it.
-        if (!isPaidProviderBlock(searchErr)) throw searchErr
+        if (!isPaidProviderBlocked(searchErr)) throw searchErr
         paidSourcingBlocked = true
         console.error(`[icp] stage=provider_blocked — paid sourcing required (${grantedSize} record(s)) but the zero-spend guard refused it; pool served ${pool.served}. The run continues: pool leads surface, the reservation refunds, the outcome records honestly.`)
         void sendFounderAlert('source_down', 'Proof run needed paid sourcing but PAID_PROVIDERS_ENABLED is off', [
@@ -947,7 +960,7 @@ export async function runIcpJob(
         try {
           wide = await searchPeopleWithFallback(widened, 1, grantedSize, null, audience, { proofMode })
         } catch (wideErr) {
-          if (!isPaidProviderBlock(wideErr)) throw wideErr
+          if (!isPaidProviderBlocked(wideErr)) throw wideErr
           paidSourcingBlocked = true
           console.error(`[icp] stage=provider_blocked — the widened fallback was refused by the zero-spend guard for prospect ${clientId}. The run continues.`)
         }

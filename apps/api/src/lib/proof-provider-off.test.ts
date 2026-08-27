@@ -4,18 +4,26 @@
 // THE PRODUCTION FAILURE. With PAID_PROVIDERS_ENABLED unset (the fail-closed default R66
 // shipped) and a real PDL key present, every proof pass whose pool serve came up short hit
 // the zero-spend guard inside the provider call, and the deliberate PaidProviderBlockedError
-// propagated straight OUT of runIcpJob. Three consequences, each observed live:
-//   1. pool-served leads were already inserted but the surfacing stamp never ran — the desk
-//      requires delivered_at AND surfaced_for_approval_at, so it showed NOTHING even when
-//      the pool had matches;
-//   2. the proof reservation was never reconciled (the F1 refund lives below the throw) —
-//      up to 20 of the prospect's lifetime-40 records burned per blocked attempt;
-//   3. the crash boundary recorded failed/0/0 — false counts — or, where the `failed` CHECK
-//      constraint is missing, nothing at all, leaving the desk to its 240s failsafe.
+// propagated straight OUT of runIcpJob.
 //
-// ⚠️ WHY THE OLD SUITE MISSED IT: vitest.setup.ts deletes every provider key, so
-// `pdlSearchPage` exited at its no-key branch BEFORE the guard — the throw was unreachable
-// under test. These tests inject the block AT the search boundary, which is exactly where
+// ⚠️ OBSERVED vs REPRODUCED, kept apart. USER-OBSERVED: proof started, "Finding your
+// matches now…" for minutes, then the neutral snag card, no usable proof, more than once.
+// CODE-REPRODUCED (here): the three consequences below, each driven through the real
+// runIcpJob and the real route. No production log, row or provider response was read.
+// The three consequences:
+//   1. pool-served leads were already inserted but the surfacing stamp never ran — the desk
+//      requires delivered_at AND surfaced_for_approval_at, so it shows NOTHING even when
+//      the pool has matches;
+//   2. the proof reservation is never reconciled (the F1 refund lives below the throw) —
+//      up to 20 of the prospect's lifetime-40 records burn per blocked attempt;
+//   3. the crash boundary records failed/0/0 — false counts — or, where the `failed` CHECK
+//      constraint is missing, nothing at all, leaving the desk to its 240s failsafe, which
+//      is what the founder saw.
+//
+// ⚠️ WHY THE OLD SUITE MISSED IT, both halves: vitest.setup.ts deletes every provider key
+// (so `pdlSearchPage` exits at its no-key branch before the guard) AND sets
+// PAID_PROVIDERS_ENABLED='true' for the whole suite, making the guard inert in tests by
+// design. These tests unset that flag around the call, exactly as that file instructs. These tests inject the block AT the search boundary, which is exactly where
 // production produces it, and drive the REAL runIcpJob around it.
 //
 // Mocks only. No provider, no network, no database. `fetch` is never called.
@@ -41,12 +49,16 @@ const fresh = (): Rec => ({ searches: 0, rpcs: [], outcomes: [], surfacings: 0, 
 
 /** Drive the REAL runIcpJob with: N safe pool candidates, and a provider boundary that
  *  either serves, throws the DELIBERATE spend block, or throws an ordinary error. */
-async function runProofJob(opts: {
+type ProofOpts = {
   pool: number
   provider: 'blocked' | 'serves' | 'crashes'
   providerCount?: number
   audience?: 'client' | 'house'
-}, rec: Rec) {
+}
+
+/** Install every mock the proof runtime needs. Shared by BOTH harnesses — the direct
+ *  `runIcpJob` one and the route-boundary one — so they cannot drift apart. */
+async function buildProofModules(opts: ProofOpts, rec: Rec) {
   vi.resetModules()
 
   const icpRow = {
@@ -137,8 +149,32 @@ async function runProofJob(opts: {
     searchPeopleWithFallback: async (_i: unknown, _p: number, size: number) => {
       rec.searches += 1
       if (opts.provider === 'blocked') {
-        // The EXACT production shape: the guard's named refusal, recognised by its code.
-        throw Object.assign(new Error('SAFE_TEST_MODE is on — refusing to call PDL'), { code: 'SAFE_TEST_MODE_BLOCKED', name: 'PaidProviderBlockedError' })
+        // ⚑ 27 Aug — THE REAL GUARD, NOT A FABRICATED SHAPE. An earlier version of this
+        // harness hand-built `{ code: 'SAFE_TEST_MODE_BLOCKED' }` with Object.assign, which
+        // was circular: the test manufactured the exact property the code under test looks
+        // for, so it would have kept passing even if production stopped emitting it. This
+        // now runs the REAL `assertPaidProviderAllowed` under the REAL production
+        // environment (no PAID_PROVIDERS_ENABLED), so the error is whatever the guard
+        // genuinely throws — and `runIcpJob` has to recognise that.
+        //
+        // ⚠️ AND THIS IS THE SECOND HALF OF "WHY THE SUITE MISSED IT". `vitest.setup.ts`
+        // sets `PAID_PROVIDERS_ENABLED = 'true'` for the whole suite — deliberately, so
+        // that dozens of tests can exercise provider code against a mocked `fetch` (the
+        // API keys are deleted, so nothing can reach a provider anyway). The consequence
+        // is that the guard is INERT in tests by default: no ordinary test could ever
+        // observe the refusal production hits. A test that wants the real block must set
+        // its own env, exactly as `vitest.setup.ts` instructs — so this one does, and
+        // restores it immediately.
+        const saved = process.env.PAID_PROVIDERS_ENABLED
+        delete process.env.PAID_PROVIDERS_ENABLED   // production's fail-closed default
+        try {
+          const { assertPaidProviderAllowed } = await import('./paid-provider-guard')
+          assertPaidProviderAllowed('pdl', 'runtime-test')
+        } finally {
+          if (saved === undefined) delete process.env.PAID_PROVIDERS_ENABLED
+          else process.env.PAID_PROVIDERS_ENABLED = saved
+        }
+        throw new Error('unreachable: the guard did not refuse with paid providers off')
       }
       if (opts.provider === 'crashes') throw new Error('ECONNRESET: socket hang up')
       const n = Math.min(opts.providerCount ?? size, size)
@@ -156,6 +192,11 @@ async function runProofJob(opts: {
     ApolloRateLimitError: class extends Error {},
   }))
 
+}
+
+/** EXECUTION → OUTCOME: the run itself, called directly. */
+async function runProofJob(opts: ProofOpts, rec: Rec) {
+  await buildProofModules(opts, rec)
   const { runIcpJob } = await import('../routes/icps')
   return runIcpJob('icp-1', 'c1', 'u1', 20, { proofPass: 1 })
 }
@@ -229,5 +270,143 @@ describe('EXECUTED · a blocked paid remainder no longer kills the run', () => {
     const rec = fresh()
     await runProofJob({ pool: 0, provider: 'serves', providerCount: 0 }, rec)
     expect(rec.outcomes[0].status).toBe('no_match')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug — THE ERROR CONTRACT ITSELF, PROVED AGAINST THE REAL GUARD.
+//
+// The absorb in `runIcpJob` turns on ONE property. If a test manufactures that property it
+// proves nothing: it would keep passing while production quietly stopped emitting it. So the
+// shape is read off the real class and the real `assertPaidProviderAllowed`, and the
+// canonical predicate is proved to be the thing that recognises it.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('the deliberate-block error contract, read from the real guard', () => {
+  it('the REAL class carries the discriminator the run absorbs on', async () => {
+    const { PaidProviderBlockedError, PAID_PROVIDER_BLOCKED_CODE, isPaidProviderBlocked } =
+      await import('./paid-provider-guard')
+    const real = new PaidProviderBlockedError('pdl', 'unit')
+    expect(real).toBeInstanceOf(Error)
+    expect(real.code, 'the property runIcpJob keys on').toBe(PAID_PROVIDER_BLOCKED_CODE)
+    expect(real.name).toBe('PaidProviderBlockedError')
+    expect(isPaidProviderBlocked(real)).toBe(true)
+  })
+
+  it('the REAL assertPaidProviderAllowed throws exactly that, with providers off', async () => {
+    const saved = { ...process.env }
+    delete process.env.PAID_PROVIDERS_ENABLED     // production's fail-closed default
+    delete process.env.SAFE_TEST_MODE
+    try {
+      const { assertPaidProviderAllowed, isPaidProviderBlocked } = await import('./paid-provider-guard')
+      let thrown: unknown
+      try { assertPaidProviderAllowed('pdl', 'runtime-test') } catch (e) { thrown = e }
+      expect(thrown, 'the guard must refuse').toBeDefined()
+      expect(isPaidProviderBlocked(thrown), 'and it is recognisable as a block').toBe(true)
+    } finally {
+      for (const k of ['PAID_PROVIDERS_ENABLED', 'SAFE_TEST_MODE']) {
+        if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k]
+      }
+    }
+  })
+
+  it('the predicate does NOT recognise an ordinary error — the absorb stays narrow', async () => {
+    const { isPaidProviderBlocked } = await import('./paid-provider-guard')
+    for (const e of [new Error('ECONNRESET'), null, undefined, {}, { code: 'OTHER' }, 'string']) {
+      expect(isPaidProviderBlocked(e), String(e)).toBe(false)
+    }
+  })
+
+  it('⚑ it survives a DUPLICATED module graph — where instanceof alone fails', async () => {
+    // The latent bug the canonical predicate closes: a second copy of the module has a
+    // different class object, so `instanceof` is false and the block would be swallowed.
+    const a = await import('./paid-provider-guard')
+    const errFromA = new a.PaidProviderBlockedError('pdl', 'graph-a')
+    vi.resetModules()
+    const b = await import('./paid-provider-guard')
+    expect(errFromA instanceof b.PaidProviderBlockedError, 'instanceof across graphs').toBe(false)
+    expect(b.isPaidProviderBlocked(errFromA), 'the code discriminator still recognises it').toBe(true)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug — CLAIM → DISPATCH → OUTCOME, THROUGH THE REAL ROUTE.
+//
+// The harness above proves EXECUTION → OUTCOME by calling `runIcpJob` directly. That skips
+// the boundary the client actually crosses: `POST /icps/:id/proof` claims the pass and then
+// dispatches the run FIRE-AND-FORGET, answering 200 immediately. Two things can only be
+// proved here — that a deliberate block inside the background run never reaches the route's
+// synchronous answer, and that an ordinary crash still lands on the crash boundary's
+// `failed` rather than leaving the claimed run with no terminal state at all.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+type RouteOut = { code: number; payload: Record<string, unknown> }
+
+async function postProof(opts: { pool: number; provider: 'blocked' | 'crashes' | 'serves' }, rec: Rec) {
+  await buildProofModules({ pool: opts.pool, provider: opts.provider, audience: 'client' }, rec)
+
+  const { icpRouter } = await import('../routes/icps')
+  const layer = (icpRouter as unknown as {
+    stack: Array<{ route?: { path: string; methods: Record<string, boolean>; stack: Array<{ handle: Function }> } }>
+  }).stack.find(l => l.route?.path === '/:id/proof' && l.route?.methods.post)
+  if (!layer?.route) throw new Error('POST /:id/proof not found on the icp router')
+  const handler = layer.route.stack[layer.route.stack.length - 1].handle
+
+  const out: RouteOut = { code: 200, payload: {} }
+  const res = {
+    status(c: number) { out.code = c; return res },
+    json(p: Record<string, unknown>) { out.payload = p; return res },
+  }
+  await handler({ params: { id: 'icp-1' }, body: {}, headers: {}, query: {}, userId: 'u1' }, res, () => {})
+  return out
+}
+
+/** The background run is fire-and-forget; wait for its effect, bounded. */
+async function waitFor(fn: () => boolean, label: string) {
+  for (let i = 0; i < 200; i++) {
+    if (fn()) return
+    await new Promise(r => setTimeout(r, 5))
+  }
+  throw new Error(`timed out waiting for: ${label}`)
+}
+
+describe('EXECUTED · claim → dispatch → outcome, across the real route boundary', () => {
+  it('⚑ a blocked paid remainder never reaches the route answer, and the run still completes', async () => {
+    const rec = fresh()
+    const out = await postProof({ pool: 6, provider: 'blocked' }, rec)
+
+    // ① THE CLAIM SUCCEEDED and the route answered immediately — the block happens inside
+    //    the background run and must never turn the client's request into a failure.
+    expect(out.code).toBe(200)
+    expect((out.payload.data as Record<string, unknown>).finding).toBe(true)
+    expect(rec.rpcs.some(r => r.fn === 'try_claim_proof_pass'), 'the pass was claimed').toBe(true)
+
+    // ② THE RUN WAS DISPATCHED and ran to completion despite the deliberate block.
+    await waitFor(() => rec.outcomes.length > 0, 'the background run to persist an outcome')
+
+    // ③ ONE honest terminal outcome, with real counts.
+    expect(rec.outcomes).toHaveLength(1)
+    expect(rec.outcomes[0].status).toBe('served')
+    expect(rec.outcomes[0].pool_served).toBe(6)
+    expect(rec.outcomes[0].total_inserted).toBe(6)
+    // ④ The pool leads are VISIBLE — the desk needs the surfacing stamp.
+    expect(rec.surfacings).toBeGreaterThan(0)
+    // ⑤ And the unused reservation came back to the lifetime-40.
+    expect(released(rec)).toHaveLength(1)
+    expect(released(rec)[0].args.p_records).toBe(14)
+  })
+
+  it('a claimed run that crashes ordinarily lands on the crash boundary’s `failed` — never stranded', async () => {
+    const rec = fresh()
+    const out = await postProof({ pool: 0, provider: 'crashes' }, rec)
+    expect(out.code).toBe(200)                                   // the claim still succeeded
+    await waitFor(() => rec.outcomes.length > 0, 'the crash boundary to record failed')
+    expect(rec.outcomes[0].status, 'a claimed run always terminates deliberately').toBe('failed')
+  })
+
+  it('a pool-zero blocked run terminates as failed through the route too — never no_match', async () => {
+    const rec = fresh()
+    await postProof({ pool: 0, provider: 'blocked' }, rec)
+    await waitFor(() => rec.outcomes.length > 0, 'the outcome')
+    expect(rec.outcomes[0].status).toBe('failed')
+    expect(rec.outcomes[0].status).not.toBe('no_match')
   })
 })

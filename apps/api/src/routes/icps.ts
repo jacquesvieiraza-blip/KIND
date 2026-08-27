@@ -3767,9 +3767,24 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
       // So the two facts are ranked: the client ALWAYS learns the truth (409, below), and a
       // failure to persist the handoff becomes a louder problem for us, not a worse
       // experience for them. Found by two existing proof suites going red on exactly this.
+      // ⚠️ A RETURNED `error` IS THE LIKELY FAILURE, NOT A THROW — AND THE FIRST VERSION OF
+      // THIS BLOCK MISSED IT. supabase-js resolves with `{ data: null, error }` for a missing
+      // column or a permission refusal; it does not reject. So a `try/catch` alone caught the
+      // rare case (a dropped connection) and sailed straight past the common one: with the
+      // 20260827 migration not yet applied, `opened` came back null, `length > 0` was false,
+      // and NOBODY WAS ALERTED — the exact silence this whole PR exists to remove, restored
+      // by the error handling meant to prevent it.
+      //
+      // That window is real, not theoretical: merging deploys the API automatically and the
+      // migration is applied by hand afterwards from Vida → Engine, so this code runs against
+      // a database without these columns for as long as that gap lasts.
+      //
+      // Both shapes are therefore funnelled into ONE failure path below.
       const nowIso = new Date().toISOString()
+      let handoffFailure: string | null = null
+      let opened: Array<{ id: string }> | null = null
       try {
-        const { data: opened } = await db.from('clients')
+        const { data, error: handoffDbErr } = await db.from('clients')
           .update({
             proof_review_requested_at: nowIso,
             proof_review_resolved_at:  null,
@@ -3778,33 +3793,40 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
           .eq('id', clientId)
           .or('proof_review_requested_at.is.null,proof_review_resolved_at.not.is.null')
           .select('id')
+        opened = (data ?? null) as Array<{ id: string }> | null
+        if (handoffDbErr) handoffFailure = handoffDbErr.message
+      } catch (thrown) {
+        handoffFailure = thrown instanceof Error ? thrown.message : String(thrown)
+      }
 
+      if (handoffFailure !== null) {
+        // The prospect has been promised a human and the record of that promise did not
+        // land. Nothing downstream will retry it, so the alert IS the handoff now.
+        console.error('[icps/proof] PROOF REVIEW HANDOFF FAILED TO PERSIST for client', clientId,
+                      'icp', req.params.id, '—', handoffFailure)
+        void sendFounderAlert('support_escalation', 'Free proof exhausted — and the handoff record FAILED to save', [
+          `Prospect ${clientId}, ICP ${req.params.id}.`,
+          'Proof passes done: 2 of 2. They asked for another set, were refused, and were told K.I.N.D will review it with them.',
+          `Reason the record failed: ${handoffFailure}`,
+          'This alert is the ONLY trace — they will NOT appear in the Vida proof-review list.',
+          'ACTION: contact them directly. If this repeats, the 20260827_proof_review_handoff migration may not be applied (Vida → Engine).',
+        ]).catch(() => {})
+      } else if ((opened ?? []).length > 0) {
         // Rows came back ⇒ THIS call performed the transition ⇒ this call sends the one alert.
         // A loser of the race gets `[]` and stays silent, so retries cannot page the operator
         // twice for one stuck prospect. Fire-and-forget: a mail failure must never undo a
         // handoff that is already persisted.
-        if ((opened ?? []).length > 0) {
-          void sendFounderAlert('support_escalation', 'Free proof is exhausted — a prospect is waiting on a human', [
-            `Prospect ${clientId}, ICP ${req.params.id}.`,
-            'Proof passes done: 2 of 2. They have just asked for another set and been refused — there is no pass 3.',
-            `Requested at ${nowIso}.`,
-            'Reason: both free proof passes were used and the targeting still is not right for them.',
-            'They have been told "K.I.N.D will review this with you", so they are now expecting us.',
-            'ACTION: review their targeting with them, or contact them directly. Mark it handled in Vida → Alerts when done.',
-          ]).catch(() => {})
-        }
-      } catch (handoffErr) {
-        // The prospect has been promised a human and the record of that promise did not
-        // land. Nothing downstream will retry it, so the alert IS the handoff now.
-        console.error('[icps/proof] PROOF REVIEW HANDOFF FAILED TO PERSIST for', clientId, handoffErr)
-        void sendFounderAlert('support_escalation', 'Free proof exhausted — and the handoff record FAILED to save', [
+        void sendFounderAlert('support_escalation', 'Free proof is exhausted — a prospect is waiting on a human', [
           `Prospect ${clientId}, ICP ${req.params.id}.`,
-          'Proof passes done: 2 of 2. They asked for another set, were refused, and were told K.I.N.D will review it with them.',
-          `Reason the record failed: ${handoffErr instanceof Error ? handoffErr.message : String(handoffErr)}`,
-          'This alert is the ONLY trace — they will NOT appear in the Vida proof-review list.',
-          'ACTION: contact them directly. If this repeats, the 20260827_proof_review_handoff migration may not be applied.',
+          'Proof passes done: 2 of 2. They have just asked for another set and been refused — there is no pass 3.',
+          `Requested at ${nowIso}.`,
+          'Reason: both free proof passes were used and the targeting still is not right for them.',
+          'They have been told "K.I.N.D will review this with you", so they are now expecting us.',
+          'ACTION: review their targeting with them, or contact them directly. Mark it handled in Vida → Alerts when done.',
         ]).catch(() => {})
       }
+      // A successful UPDATE that matched zero rows is the THIRD outcome and is deliberately
+      // silent: the review is already open, this is a retry, and the operator was told once.
 
       res.status(409).json({
         success: false,

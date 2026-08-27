@@ -1526,12 +1526,28 @@ operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res:
       res.status(403).json({ success: false, error: 'Operator key required' })
       return
     }
-    const { data: resolved } = await db.from('clients')
+    const { data: resolved, error: resolveErr } = await db.from('clients')
       .update({ proof_review_resolved_at: new Date().toISOString() })
       .eq('id', req.params.clientId)
       .not('proof_review_requested_at', 'is', null)
       .is('proof_review_resolved_at', null)
       .select('id')
+
+    // ⚠️ A RETURNED `error` IS NOT "ALREADY RESOLVED". supabase-js resolves with
+    // `{ data: null, error }` for a missing column or a permission refusal, so reading only
+    // `data` made a FAILED write indistinguishable from a no-op — and the operator was told
+    // `already_resolved`, i.e. that the job was done. They would close the tab on a review
+    // still open, and the prospect would keep waiting. Zero rows means "nothing to do";
+    // an error means "we do not know", and those must never share an answer.
+    if (resolveErr) {
+      console.error('[operator/proof-review/resolve] UPDATE failed for client',
+                    req.params.clientId, '—', resolveErr.message)
+      res.status(500).json({
+        success: false,
+        error: `Could not mark the proof review handled — it is still open. ${resolveErr.message}`,
+      })
+      return
+    }
 
     res.json({
       success: true,

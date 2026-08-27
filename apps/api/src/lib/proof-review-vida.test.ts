@@ -20,7 +20,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
 type Row = Record<string, any>
-type Store = { clients: Row[]; icps: Row[]; figsy_campaigns: Row[]; figsy_replies: Row[] }
+type Store = { clients: Row[]; icps: Row[]; figsy_campaigns: Row[]; figsy_replies: Row[]; updateError?: { message: string } | null }
 
 const OPEN_REVIEW = {
   id: 'c-old', company_name: 'Waited Longest', is_demo: false, created_at: '2020-01-01T00:00:00.000Z',
@@ -37,7 +37,7 @@ function newStore(): Store {
     created_at: `2026-08-${String((i % 27) + 1).padStart(2, '0')}T00:00:00.000Z`,
     proof_review_requested_at: null, proof_review_resolved_at: null, proof_review_icp_id: null,
   }))
-  return { clients: [...filler, { ...OPEN_REVIEW }], icps: [], figsy_campaigns: [], figsy_replies: [] }
+  return { clients: [...filler, { ...OPEN_REVIEW }], icps: [], figsy_campaigns: [], figsy_replies: [], updateError: null }
 }
 
 function installDb(store: Store) {
@@ -80,7 +80,11 @@ function installDb(store: Store) {
           t.forEach(r => Object.assign(r, patch))
           return t
         }
-        chain.select = () => ({ then: (r: (v: unknown) => void) => r({ data: apply(), error: null }) })
+        chain.select = () => ({ then: (r: (v: unknown) => void) => {
+          // supabase-js resolves with `{data:null,error}` for a missing column — no throw.
+          if (store.updateError) { r({ data: null, error: store.updateError }); return }
+          r({ data: apply(), error: null })
+        } })
         chain.then = (r: (v: unknown) => void) => { apply(); r({ error: null }) }
         return chain
       }
@@ -198,5 +202,36 @@ describe('an operator can close it, and only an operator', () => {
     expect(res.code).toBe(403)
     expect(store.clients.find(c => c.id === 'c-old')!.proof_review_resolved_at).toBeNull()
     expect(proofAlerts(await alerts())).toHaveLength(1)
+  })
+})
+
+describe('a FAILED resolve must never look like a handled one', () => {
+  it('a returned {data:null,error} gives a server error, NOT already_resolved', async () => {
+    // ⚑ THE BUG THIS REPLACES. Reading only `data` made a FAILED write indistinguishable
+    // from a no-op, so the operator was told `already_resolved` — that the job was done. They
+    // would close the tab on a review still open and the prospect would keep waiting. Zero
+    // rows means "nothing to do"; an error means "we do not know". Never the same answer.
+    store.updateError = { message: 'column clients.proof_review_resolved_at does not exist' }
+    const h = await handlerFor('/proof-review/:clientId/resolve', 'post')
+    const { req, res } = reqres({ params: { clientId: 'c-old' }, headers: { 'x-admin-key': 'right-key' } })
+    await h(req, res)
+
+    expect(res.code).toBe(500)
+    expect(res.body.success).toBe(false)
+    expect(String(res.body.error)).toContain('still open')
+    expect(String(res.body.error)).toContain('does not exist')
+    expect(res.body.data?.resolved).toBeUndefined()
+
+    store.updateError = null
+    expect(proofAlerts(await alerts())).toHaveLength(1)   // still owed
+  })
+
+  it('the un-migrated window still lets the rest of the alert feed load', async () => {
+    // GET /operator/alerts reads the review columns too. With them absent the proof section
+    // must drop out and the page must still answer.
+    store.clients.forEach(c => { delete c.proof_review_requested_at; delete c.proof_review_resolved_at })
+    const all = await alerts()
+    expect(proofAlerts(all)).toHaveLength(0)
+    expect(Array.isArray(all)).toBe(true)
   })
 })

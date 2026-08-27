@@ -31,6 +31,9 @@ type Rec = {
   rpcs: Array<{ fn: string; args: Row }>
   alerts: Array<{ kind: string; subject: string; lines: string[] }>
   runs: number
+  /** Set to make the NEXT clients UPDATE resolve with `{ data: null, error }` — the shape
+   *  supabase-js actually returns for a missing column, which does not throw. */
+  updateError?: { message: string } | null
 }
 
 type Store = { clients: Row[]; icps: Row[]; credit_transactions: Row[] }
@@ -100,7 +103,11 @@ function installDb(store: Store, rec: Rec) {
           targets.forEach(r => Object.assign(r, patch))
           return targets
         }
-        chain.select = () => ({ then: (r: (v: unknown) => void) => r({ data: apply(), error: null }) })
+        chain.select = () => ({ then: (r: (v: unknown) => void) => {
+          // The returned-error shape: data null, error set, NOTHING written, no throw.
+          if (rec.updateError) { r({ data: null, error: rec.updateError }); return }
+          r({ data: apply(), error: null })
+        } })
         chain.then = (r: (v: unknown) => void) => { apply(); r({ error: null }) }
         return chain
       }
@@ -171,7 +178,7 @@ let rec: Rec
 beforeEach(() => {
   vi.resetModules()
   store = newStore()
-  rec = { rpcs: [], alerts: [], runs: 0 }
+  rec = { rpcs: [], alerts: [], runs: 0, updateError: null }
   installDb(store, rec)
 })
 afterEach(() => { vi.restoreAllMocks(); vi.resetModules() })
@@ -325,6 +332,37 @@ describe('asking for a third set creates exactly one review', () => {
     // The alert IS the handoff now — it is the only remaining trace of the promise.
     expect(escalations()).toHaveLength(1)
     expect(escalations()[0].lines.join(' ')).toContain('ONLY trace')
+  })
+
+  it('a RETURNED {data:null,error} still returns 409 and still reaches a human', async () => {
+    // ⚑ THE ONE THE FIRST VERSION MISSED, AND THE LIKELIEST FAILURE IN PRODUCTION.
+    //
+    // supabase-js RESOLVES with `{ data: null, error }` for a missing column or a permission
+    // refusal — it does not reject. The original block only caught throws, so with the
+    // 20260827 migration not yet applied `opened` came back null, `length > 0` was false, and
+    // NOBODY WAS ALERTED: the exact silence this PR exists to remove, reintroduced by the
+    // error handling meant to prevent it. The deploy order makes that window real — merging
+    // deploys the API and the migration is applied by hand afterwards.
+    //
+    // The thrown case is the test below; this is the returned case. Both must behave alike.
+    const h = await proofHandler()
+    await h(...Object.values(reqres()) as [Row, Row])
+    await h(...Object.values(reqres()) as [Row, Row])
+
+    rec.updateError = { message: 'column clients.proof_review_requested_at does not exist' }
+
+    const { req, res } = reqres()
+    await h(req, res)
+
+    expect(res.code, 'the refusal must survive a RETURNED error').toBe(409)
+    expect(String(res.body.error)).toContain('two sets of leads')
+    expect(escalations(), 'a returned error must still page a human').toHaveLength(1)
+    const lines = escalations()[0].lines.join(' ')
+    expect(lines).toContain('ONLY trace')
+    expect(lines).toContain('does not exist')        // the diagnosis travels with the alert
+    expect(lines).toContain('migration may not be applied')
+    // and nothing was written
+    expect(client().proof_review_requested_at).toBeNull()
   })
 
   it('pass 3 remains impossible — no run is ever started for the refused attempt', async () => {

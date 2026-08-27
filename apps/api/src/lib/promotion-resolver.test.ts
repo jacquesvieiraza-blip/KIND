@@ -8,7 +8,7 @@
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { describe, it, expect } from 'vitest'
 import {
-  resolveRowProvider, buildAcquisitions, identityStates, executableSet,
+  resolveRowProvider, buildAcquisitions, identityStates, executableSet, healCountryFor,
   type LeadRowModel, type MemoryRowModel,
 } from './promotion-resolver'
 
@@ -33,7 +33,7 @@ describe('① ACQUISITION IDENTITY is (provider, provider_id) — never the emai
     const acqs = buildAcquisitions(rows, memory)
     expect(acqs, 'two distinct acquisition identities').toHaveLength(2)
     expect(new Set(acqs.map(a => a.acquisitionKey))).toEqual(new Set(['pdl:A', 'pdl:B']))
-    expect(identityStates(acqs, ['x@y.com']).get('x@y.com')).toBe('acquisition_identity_ambiguous')
+    expect(identityStates(acqs, rows, memory).get('x@y.com')).toBe('acquisition_identity_ambiguous')
     expect(executableSet(acqs), 'Phase B must not choose one').toHaveLength(0)
   })
 
@@ -83,9 +83,10 @@ describe('② UNRESOLVED / CUSTOMER ROWS CONTRIBUTE NOTHING', () => {
   })
 
   it('a customer row ALONE leaves the identity with no owned acquisition', () => {
-    const acqs = buildAcquisitions([row({ emailNorm: 'c@y.com', source: 'csv_import', jobTitle: 'CEO' })], [])
+    const custRows = [row({ emailNorm: 'c@y.com', source: 'csv_import', jobTitle: 'CEO' })]
+    const acqs = buildAcquisitions(custRows, [])
     expect(acqs).toHaveLength(0)
-    expect(identityStates(acqs, ['c@y.com']).get('c@y.com')).toBe('no_owned_acquisition_excluded')
+    expect(identityStates(acqs, custRows).get('c@y.com')).toBe('customer_only_excluded')
   })
 
   it('email coincidence in acquisition_memory never corroborates a different provider id', () => {
@@ -112,7 +113,7 @@ describe('③ COST STATE MACHINE — evidence beats the default', () => {
     const acqs = buildAcquisitions(rows, memory)
     expect(acqs[0].costAmbiguous).toBe(true)
     expect(acqs[0].resolvedCost, 'the house default must not override the conflict').toBeNull()
-    expect(identityStates(acqs, ['h@y.com']).get('h@y.com')).toBe('cost_ambiguous')
+    expect(identityStates(acqs, rows, memory).get('h@y.com')).toBe('cost_ambiguous')
     expect(executableSet(acqs)).toHaveLength(0)
   })
 
@@ -181,17 +182,16 @@ describe('⑤ ⚑ PHASE A EXACTLY EQUALS PHASE B — the whole point of this pas
     row({ emailNorm: 'unk@y.com',    source: null, providerId: null, jobTitle: 'CEO', country: 'GB' }),
     row({ emailNorm: 'pooled@y.com', source: 'pdl', providerId: 'Q1', jobTitle: 'CEO', country: 'GB' }),
   ]
-  const emails = [...new Set(rows.map(r => r.emailNorm))]
   const acqs = buildAcquisitions(rows, memory, new Set(['pooled@y.com']))
-  const states = identityStates(acqs, emails)
+  const states = identityStates(acqs, rows, memory)
   const exec = executableSet(acqs)
 
   it('every identity lands in exactly the expected state', () => {
     expect(states.get('ok@y.com')).toBe('executable_promotion')
     expect(states.get('cost@y.com')).toBe('cost_ambiguous')
     expect(states.get('dupe@y.com')).toBe('acquisition_identity_ambiguous')
-    expect(states.get('cust@y.com')).toBe('no_owned_acquisition_excluded')
-    expect(states.get('unk@y.com')).toBe('no_owned_acquisition_excluded')
+    expect(states.get('cust@y.com'), 'customer data we deliberately exclude').toBe('customer_only_excluded')
+    expect(states.get('unk@y.com'), 'history we cannot prove — a different fact').toBe('unknown_only_excluded')
     expect(states.get('pooled@y.com')).toBe('already_in_pool')
   })
 
@@ -205,5 +205,112 @@ describe('⑤ ⚑ PHASE A EXACTLY EQUALS PHASE B — the whole point of this pas
   it('and A1b projected pool = eligible pool identities + executable', () => {
     const currentEligiblePool = 1                       // 'pooled@y.com'
     expect(currentEligiblePool + exec.length).toBe(2)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (final maintenance-SQL pass) — the four remaining SQL-only defects, executed.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⑥ B2 HEAL — fail closed on ANY ambiguity, including ambiguity hidden by a NULL', () => {
+  const acq = (o: Partial<{ resolvedCountry: string | null; countryAmbiguous: boolean }>) =>
+    ({ resolvedCountry: null, countryAmbiguous: false, ...o }) as never
+
+  it('⚑ A · one clean US acquisition + one INTERNALLY AMBIGUOUS acquisition → NO heal', () => {
+    // The exact hole: the ambiguous acquisition resolves to NULL, so a
+    // `where resolved_country is not null` filter dropped it and the clean one healed to US.
+    // Geography invented by omission.
+    expect(healCountryFor([
+      acq({ resolvedCountry: 'united states' }),
+      acq({ resolvedCountry: null, countryAmbiguous: true }),
+    ])).toBeNull()
+  })
+
+  it('⚑ B · two proven acquisitions disagree US vs UK → NO heal', () => {
+    expect(healCountryFor([
+      acq({ resolvedCountry: 'united states' }),
+      acq({ resolvedCountry: 'united kingdom' }),
+    ])).toBeNull()
+  })
+
+  it('⚑ C · one unambiguous GB/UK acquisition → heal to canonical united kingdom', () => {
+    const rows = ['GB', 'England'].map(c =>
+      row({ emailNorm: 'h@y.com', source: 'pdl', providerId: 'A', jobTitle: 'CEO', country: c }))
+    const acqs = buildAcquisitions(rows, [mem({ emailNorm: 'h@y.com', source: 'pdl', providerId: 'A' })])
+    expect(healCountryFor(acqs)).toBe('united kingdom')
+  })
+
+  it('agreeing acquisitions (both US, one silent) still heal', () => {
+    expect(healCountryFor([
+      acq({ resolvedCountry: 'united states' }),
+      acq({ resolvedCountry: null }),               // simply had no country — not ambiguous
+    ])).toBe('united states')
+  })
+
+  it('nothing known at all → no heal', () => {
+    expect(healCountryFor([acq({ resolvedCountry: null })])).toBeNull()
+    expect(healCountryFor([])).toBeNull()
+  })
+})
+
+describe('⑦ ROLE METADATA — what Phase A counts is what Phase B writes', () => {
+  it('⚑ earliest row blank, later owned row CEO → executable, and the CEO is what is inserted', () => {
+    const rows = [
+      row({ emailNorm: 'r@y.com', source: 'pdl', providerId: 'A', jobTitle: null, industry: null, seniority: null, country: 'GB' }),
+      row({ emailNorm: 'r@y.com', source: 'pdl', providerId: 'A', jobTitle: 'CEO', country: 'GB' }),
+    ]
+    const memory = [mem({ emailNorm: 'r@y.com', source: 'pdl', providerId: 'A' })]
+    const acqs = buildAcquisitions(rows, memory)
+    expect(acqs[0].metadata.jobTitle, 'the blank earliest value must be skipped').toBe('CEO')
+    expect(acqs[0].hasRole).toBe(true)
+    expect(executableSet(acqs)).toHaveLength(1)
+    // the invariant: an executable row always carries a real role signal
+    for (const a of executableSet(acqs)) {
+      expect(!!(a.metadata.jobTitle || a.metadata.industry || a.metadata.seniority)).toBe(true)
+    }
+  })
+
+  it('⚑ every role field blank across the acquisition → metadata_incomplete, NOT executable', () => {
+    const rows = [
+      row({ emailNorm: 'b@y.com', source: 'pdl', providerId: 'A', jobTitle: '  ', industry: null, seniority: '', country: 'GB' }),
+      row({ emailNorm: 'b@y.com', source: 'pdl', providerId: 'A', jobTitle: null, country: 'GB' }),
+    ]
+    const memory = [mem({ emailNorm: 'b@y.com', source: 'pdl', providerId: 'A' })]
+    const acqs = buildAcquisitions(rows, memory)
+    expect(acqs[0].hasRole).toBe(false)
+    expect(identityStates(acqs, rows, memory).get('b@y.com')).toBe('metadata_incomplete')
+    expect(executableSet(acqs)).toHaveLength(0)
+  })
+})
+
+describe('⑧ EXCLUSION STATES say WHY, and never mislabel a mixed identity', () => {
+  it('customer-only email → customer_only_excluded', () => {
+    const rows = [row({ emailNorm: 'c@y.com', source: 'web_form', jobTitle: 'CEO' })]
+    expect(identityStates(buildAcquisitions(rows, []), rows).get('c@y.com')).toBe('customer_only_excluded')
+  })
+
+  it('provenance-unknown-only email → unknown_only_excluded', () => {
+    const rows = [row({ emailNorm: 'u@y.com', source: null, providerId: null, jobTitle: 'CEO' })]
+    expect(identityStates(buildAcquisitions(rows, []), rows).get('u@y.com')).toBe('unknown_only_excluded')
+  })
+
+  it('both, with no owned acquisition → customer_and_unknown_excluded (never silently one)', () => {
+    const rows = [
+      row({ emailNorm: 'm@y.com', source: 'csv_import', jobTitle: 'CEO' }),
+      row({ emailNorm: 'm@y.com', source: null, providerId: null, jobTitle: 'CTO' }),
+    ]
+    expect(identityStates(buildAcquisitions(rows, []), rows).get('m@y.com')).toBe('customer_and_unknown_excluded')
+  })
+
+  it('⚑ customer row + separately proven owned acquisition → the OWNED one still executes', () => {
+    const rows = [
+      row({ emailNorm: 'x@y.com', source: 'csv_import', jobTitle: 'Barista', company: 'Cafe', country: 'US' }),
+      row({ emailNorm: 'x@y.com', source: 'pdl', providerId: 'A', jobTitle: 'CEO', company: 'Acme', country: 'GB' }),
+    ]
+    const memory = [mem({ emailNorm: 'x@y.com', source: 'pdl', providerId: 'A' })]
+    const acqs = buildAcquisitions(rows, memory)
+    expect(identityStates(acqs, rows, memory).get('x@y.com'),
+      'the customer row must not mislabel this as customer_only').toBe('executable_promotion')
+    expect(executableSet(acqs)).toHaveLength(1)
+    expect(acqs[0].metadata.jobTitle, 'and it contributes nothing').toBe('CEO')
   })
 })

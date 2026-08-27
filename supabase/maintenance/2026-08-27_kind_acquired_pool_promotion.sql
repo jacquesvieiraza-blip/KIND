@@ -130,21 +130,37 @@ with canon as (
          bool_or(is_house)                                              as is_house,
          count(distinct canon_country) filter (where canon_country is not null) as distinct_countries,
          min(canon_country) filter (where canon_country is not null)     as one_country,
-         bool_or(coalesce(btrim(job_title),'') <> '' or coalesce(btrim(industry),'') <> ''
-              or coalesce(btrim(seniority),'') <> '')                    as has_role,
-         (array_agg(first_name   order by created_at asc, lead_id asc))[1] as first_name,
-         (array_agg(last_name    order by created_at asc, lead_id asc))[1] as last_name,
-         (array_agg(job_title    order by created_at asc, lead_id asc))[1] as job_title,
-         (array_agg(seniority    order by created_at asc, lead_id asc))[1] as seniority,
-         (array_agg(company      order by created_at asc, lead_id asc))[1] as company,
-         (array_agg(industry     order by created_at asc, lead_id asc))[1] as industry,
-         (array_agg(company_size order by created_at asc, lead_id asc))[1] as company_size,
-         (array_agg(linkedin_url order by created_at asc, lead_id asc))[1] as linkedin_url,
+         -- ⚠️ THE REPRESENTATIVE SKIPS BLANKS, and that is not cosmetic. `array_agg(...)[1]`
+         -- took the EARLIEST row's value even when it was null, while `has_role` asked
+         -- whether ANY row had one — so Phase A could report metadata_complete while Phase B
+         -- inserted an empty title. The filter makes the aggregate return the earliest
+         -- NON-BLANK value, so what is counted is what is written. Deterministic
+         -- (created_at, lead_id), scoped to this acquisition's own rows, blanks skipped.
+         (array_agg(first_name   order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(first_name),'')   <> ''))[1]     as first_name,
+         (array_agg(last_name    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(last_name),'')    <> ''))[1]     as last_name,
+         (array_agg(job_title    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(job_title),'')    <> ''))[1]     as job_title,
+         (array_agg(seniority    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(seniority),'')    <> ''))[1]     as seniority,
+         (array_agg(company      order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company),'')      <> ''))[1]     as company,
+         (array_agg(industry     order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(industry),'')     <> ''))[1]     as industry,
+         (array_agg(company_size order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company_size),'') <> ''))[1]     as company_size,
+         (array_agg(linkedin_url order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(linkedin_url),'') <> ''))[1]     as linkedin_url,
          min(created_at)                                                 as sourced_at
   from owned_rows
   group by acquisition_key, email_norm, provider, provider_id
 ), costed as (
   select a.*,
+         -- ⚑ has_role describes the row Phase B ACTUALLY INSERTS — the resolved
+         -- representative fields above, not "some row somewhere had a title".
+         (coalesce(btrim(a.job_title),'') <> '' or coalesce(btrim(a.industry),'') <> ''
+           or coalesce(btrim(a.seniority),'') <> '')                     as has_role,
          (select count(distinct am.acquisition_cost_usd) from public.acquisition_memory am
            where am.email_norm = a.email_norm and am.provider_id = a.provider_id
              and lower(btrim(am.source)) = a.provider)                   as distinct_costs,
@@ -164,16 +180,32 @@ with canon as (
          case when c.distinct_countries = 1 then c.one_country end        as resolved_country,
          exists (select 1 from public.lead_pool p where p.email_norm = c.email_norm) as already_pooled
   from costed c
-), identity_state as (
+), email_rows as (
+  -- EVERY row of an email, owned or not — the only place that can say WHY an identity with
+  -- no owned acquisition was excluded: because the data is the CUSTOMER'S, or because its
+  -- provenance simply cannot be proved. Both are exclusions; they are not the same fact.
   select email_norm,
-         count(*)                                                        as acquisition_identities,
-         bool_or(already_pooled)                                         as already_pooled,
-         bool_or(has_role)                                               as has_role,
-         bool_or(country_ambiguous)                                      as country_ambiguous,
-         bool_or(cost_ambiguous)                                         as cost_ambiguous,
-         bool_or(cost_unprovable)                                        as cost_unprovable,
-         min(acquisition_key)                                            as only_key
-  from classified group by email_norm
+         bool_or(is_customer_row)                                        as has_customer_row,
+         bool_or(not is_customer_row and provider is null)                as has_unresolved_row,
+         bool_or(provider in ('pdl','apollo')
+                 and not is_customer_row
+                 and (provider_id is not null or is_house))               as has_owned_row
+  from resolved_rows group by email_norm
+), identity_state as (
+  -- ⚠️ NO min/max(acquisition_key) HERE OR ANYWHERE. It was computed and unused; an
+  -- arbitrary acquisition selector must not exist in this resolver even as dead code,
+  -- because dead code is what a later edit reaches for.
+  select er.email_norm,
+         count(cl.acquisition_key)                                       as acquisition_identities,
+         coalesce(bool_or(cl.already_pooled), false)                     as already_pooled,
+         coalesce(bool_or(cl.has_role), false)                           as has_role,
+         coalesce(bool_or(cl.country_ambiguous), false)                  as country_ambiguous,
+         coalesce(bool_or(cl.cost_ambiguous), false)                     as cost_ambiguous,
+         coalesce(bool_or(cl.cost_unprovable), false)                    as cost_unprovable,
+         er.has_customer_row, er.has_unresolved_row, er.has_owned_row
+  from email_rows er
+  left join classified cl on cl.email_norm = er.email_norm
+  group by er.email_norm, er.has_customer_row, er.has_unresolved_row, er.has_owned_row
 ), executable as (
   -- THE EXECUTION SET. Phase B inserts exactly these; Phase A counts exactly these.
   select cl.*
@@ -186,36 +218,25 @@ with canon as (
     and not cl.cost_unprovable
     and cl.resolved_cost is not null
 )
--- ── A1 · IDENTITY STATES. One email = ONE row here. States are derived from the
---        acquisition classification above, so a CUSTOMER row sharing the email cannot
---        erase a separately proven owned acquisition — it simply contributed nothing.
+-- ── A1 · IDENTITY STATES. One email = ONE row here. A CUSTOMER row sharing the email
+--        cannot erase a separately proven owned acquisition — it simply contributed nothing.
+--        The three exclusion states are distinguished on purpose: customer-owned data we
+--        deliberately exclude is a DIFFERENT fact from historical data we cannot prove.
 select case
          when st.already_pooled                     then 'already_in_pool'
-         when st.acquisition_identities = 0         then 'no_owned_acquisition_excluded'
          when st.acquisition_identities > 1         then 'acquisition_identity_ambiguous'
-         when st.cost_ambiguous                     then 'cost_ambiguous'
-         when st.cost_unprovable                    then 'cost_unprovable'
-         when not st.has_role                       then 'metadata_incomplete'
-         else                                            'executable_promotion'
+         when st.acquisition_identities = 1 and st.cost_ambiguous   then 'cost_ambiguous'
+         when st.acquisition_identities = 1 and st.cost_unprovable  then 'cost_unprovable'
+         when st.acquisition_identities = 1 and not st.has_role     then 'metadata_incomplete'
+         when st.acquisition_identities = 1         then 'executable_promotion'
+         -- no owned acquisition at all — say WHY:
+         when st.has_customer_row and st.has_unresolved_row then 'customer_and_unknown_excluded'
+         when st.has_customer_row                   then 'customer_only_excluded'
+         else                                            'unknown_only_excluded'
        end                                                                as state,
        count(*)                                                           as identities,
        count(*) filter (where st.country_ambiguous)                        as of_which_country_ambiguous
-from (
-  select coalesce(s.email_norm, x.email_norm) as email_norm,
-         coalesce(s.acquisition_identities, 0) as acquisition_identities,
-         coalesce(s.already_pooled, x.pooled)  as already_pooled,
-         coalesce(s.has_role, false)           as has_role,
-         coalesce(s.country_ambiguous, false)  as country_ambiguous,
-         coalesce(s.cost_ambiguous, false)     as cost_ambiguous,
-         coalesce(s.cost_unprovable, false)    as cost_unprovable
-  from identity_state s
-  full outer join (
-    -- every email that exists at all, so customer-only / unknown-only identities are counted
-    select lower(btrim(l.email)) as email_norm,
-           exists (select 1 from public.lead_pool p where p.email_norm = lower(btrim(l.email))) as pooled
-    from public.leads l where coalesce(btrim(l.email),'') <> '' group by 1
-  ) x on x.email_norm = s.email_norm
-) st
+from identity_state st
 group by 1 order by identities desc;
 
 -- A1b
@@ -272,21 +293,37 @@ with canon as (
          bool_or(is_house)                                              as is_house,
          count(distinct canon_country) filter (where canon_country is not null) as distinct_countries,
          min(canon_country) filter (where canon_country is not null)     as one_country,
-         bool_or(coalesce(btrim(job_title),'') <> '' or coalesce(btrim(industry),'') <> ''
-              or coalesce(btrim(seniority),'') <> '')                    as has_role,
-         (array_agg(first_name   order by created_at asc, lead_id asc))[1] as first_name,
-         (array_agg(last_name    order by created_at asc, lead_id asc))[1] as last_name,
-         (array_agg(job_title    order by created_at asc, lead_id asc))[1] as job_title,
-         (array_agg(seniority    order by created_at asc, lead_id asc))[1] as seniority,
-         (array_agg(company      order by created_at asc, lead_id asc))[1] as company,
-         (array_agg(industry     order by created_at asc, lead_id asc))[1] as industry,
-         (array_agg(company_size order by created_at asc, lead_id asc))[1] as company_size,
-         (array_agg(linkedin_url order by created_at asc, lead_id asc))[1] as linkedin_url,
+         -- ⚠️ THE REPRESENTATIVE SKIPS BLANKS, and that is not cosmetic. `array_agg(...)[1]`
+         -- took the EARLIEST row's value even when it was null, while `has_role` asked
+         -- whether ANY row had one — so Phase A could report metadata_complete while Phase B
+         -- inserted an empty title. The filter makes the aggregate return the earliest
+         -- NON-BLANK value, so what is counted is what is written. Deterministic
+         -- (created_at, lead_id), scoped to this acquisition's own rows, blanks skipped.
+         (array_agg(first_name   order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(first_name),'')   <> ''))[1]     as first_name,
+         (array_agg(last_name    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(last_name),'')    <> ''))[1]     as last_name,
+         (array_agg(job_title    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(job_title),'')    <> ''))[1]     as job_title,
+         (array_agg(seniority    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(seniority),'')    <> ''))[1]     as seniority,
+         (array_agg(company      order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company),'')      <> ''))[1]     as company,
+         (array_agg(industry     order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(industry),'')     <> ''))[1]     as industry,
+         (array_agg(company_size order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company_size),'') <> ''))[1]     as company_size,
+         (array_agg(linkedin_url order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(linkedin_url),'') <> ''))[1]     as linkedin_url,
          min(created_at)                                                 as sourced_at
   from owned_rows
   group by acquisition_key, email_norm, provider, provider_id
 ), costed as (
   select a.*,
+         -- ⚑ has_role describes the row Phase B ACTUALLY INSERTS — the resolved
+         -- representative fields above, not "some row somewhere had a title".
+         (coalesce(btrim(a.job_title),'') <> '' or coalesce(btrim(a.industry),'') <> ''
+           or coalesce(btrim(a.seniority),'') <> '')                     as has_role,
          (select count(distinct am.acquisition_cost_usd) from public.acquisition_memory am
            where am.email_norm = a.email_norm and am.provider_id = a.provider_id
              and lower(btrim(am.source)) = a.provider)                   as distinct_costs,
@@ -306,16 +343,32 @@ with canon as (
          case when c.distinct_countries = 1 then c.one_country end        as resolved_country,
          exists (select 1 from public.lead_pool p where p.email_norm = c.email_norm) as already_pooled
   from costed c
-), identity_state as (
+), email_rows as (
+  -- EVERY row of an email, owned or not — the only place that can say WHY an identity with
+  -- no owned acquisition was excluded: because the data is the CUSTOMER'S, or because its
+  -- provenance simply cannot be proved. Both are exclusions; they are not the same fact.
   select email_norm,
-         count(*)                                                        as acquisition_identities,
-         bool_or(already_pooled)                                         as already_pooled,
-         bool_or(has_role)                                               as has_role,
-         bool_or(country_ambiguous)                                      as country_ambiguous,
-         bool_or(cost_ambiguous)                                         as cost_ambiguous,
-         bool_or(cost_unprovable)                                        as cost_unprovable,
-         min(acquisition_key)                                            as only_key
-  from classified group by email_norm
+         bool_or(is_customer_row)                                        as has_customer_row,
+         bool_or(not is_customer_row and provider is null)                as has_unresolved_row,
+         bool_or(provider in ('pdl','apollo')
+                 and not is_customer_row
+                 and (provider_id is not null or is_house))               as has_owned_row
+  from resolved_rows group by email_norm
+), identity_state as (
+  -- ⚠️ NO min/max(acquisition_key) HERE OR ANYWHERE. It was computed and unused; an
+  -- arbitrary acquisition selector must not exist in this resolver even as dead code,
+  -- because dead code is what a later edit reaches for.
+  select er.email_norm,
+         count(cl.acquisition_key)                                       as acquisition_identities,
+         coalesce(bool_or(cl.already_pooled), false)                     as already_pooled,
+         coalesce(bool_or(cl.has_role), false)                           as has_role,
+         coalesce(bool_or(cl.country_ambiguous), false)                  as country_ambiguous,
+         coalesce(bool_or(cl.cost_ambiguous), false)                     as cost_ambiguous,
+         coalesce(bool_or(cl.cost_unprovable), false)                    as cost_unprovable,
+         er.has_customer_row, er.has_unresolved_row, er.has_owned_row
+  from email_rows er
+  left join classified cl on cl.email_norm = er.email_norm
+  group by er.email_norm, er.has_customer_row, er.has_unresolved_row, er.has_owned_row
 ), executable as (
   -- THE EXECUTION SET. Phase B inserts exactly these; Phase A counts exactly these.
   select cl.*
@@ -391,21 +444,37 @@ with canon as (
          bool_or(is_house)                                              as is_house,
          count(distinct canon_country) filter (where canon_country is not null) as distinct_countries,
          min(canon_country) filter (where canon_country is not null)     as one_country,
-         bool_or(coalesce(btrim(job_title),'') <> '' or coalesce(btrim(industry),'') <> ''
-              or coalesce(btrim(seniority),'') <> '')                    as has_role,
-         (array_agg(first_name   order by created_at asc, lead_id asc))[1] as first_name,
-         (array_agg(last_name    order by created_at asc, lead_id asc))[1] as last_name,
-         (array_agg(job_title    order by created_at asc, lead_id asc))[1] as job_title,
-         (array_agg(seniority    order by created_at asc, lead_id asc))[1] as seniority,
-         (array_agg(company      order by created_at asc, lead_id asc))[1] as company,
-         (array_agg(industry     order by created_at asc, lead_id asc))[1] as industry,
-         (array_agg(company_size order by created_at asc, lead_id asc))[1] as company_size,
-         (array_agg(linkedin_url order by created_at asc, lead_id asc))[1] as linkedin_url,
+         -- ⚠️ THE REPRESENTATIVE SKIPS BLANKS, and that is not cosmetic. `array_agg(...)[1]`
+         -- took the EARLIEST row's value even when it was null, while `has_role` asked
+         -- whether ANY row had one — so Phase A could report metadata_complete while Phase B
+         -- inserted an empty title. The filter makes the aggregate return the earliest
+         -- NON-BLANK value, so what is counted is what is written. Deterministic
+         -- (created_at, lead_id), scoped to this acquisition's own rows, blanks skipped.
+         (array_agg(first_name   order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(first_name),'')   <> ''))[1]     as first_name,
+         (array_agg(last_name    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(last_name),'')    <> ''))[1]     as last_name,
+         (array_agg(job_title    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(job_title),'')    <> ''))[1]     as job_title,
+         (array_agg(seniority    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(seniority),'')    <> ''))[1]     as seniority,
+         (array_agg(company      order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company),'')      <> ''))[1]     as company,
+         (array_agg(industry     order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(industry),'')     <> ''))[1]     as industry,
+         (array_agg(company_size order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company_size),'') <> ''))[1]     as company_size,
+         (array_agg(linkedin_url order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(linkedin_url),'') <> ''))[1]     as linkedin_url,
          min(created_at)                                                 as sourced_at
   from owned_rows
   group by acquisition_key, email_norm, provider, provider_id
 ), costed as (
   select a.*,
+         -- ⚑ has_role describes the row Phase B ACTUALLY INSERTS — the resolved
+         -- representative fields above, not "some row somewhere had a title".
+         (coalesce(btrim(a.job_title),'') <> '' or coalesce(btrim(a.industry),'') <> ''
+           or coalesce(btrim(a.seniority),'') <> '')                     as has_role,
          (select count(distinct am.acquisition_cost_usd) from public.acquisition_memory am
            where am.email_norm = a.email_norm and am.provider_id = a.provider_id
              and lower(btrim(am.source)) = a.provider)                   as distinct_costs,
@@ -425,16 +494,32 @@ with canon as (
          case when c.distinct_countries = 1 then c.one_country end        as resolved_country,
          exists (select 1 from public.lead_pool p where p.email_norm = c.email_norm) as already_pooled
   from costed c
-), identity_state as (
+), email_rows as (
+  -- EVERY row of an email, owned or not — the only place that can say WHY an identity with
+  -- no owned acquisition was excluded: because the data is the CUSTOMER'S, or because its
+  -- provenance simply cannot be proved. Both are exclusions; they are not the same fact.
   select email_norm,
-         count(*)                                                        as acquisition_identities,
-         bool_or(already_pooled)                                         as already_pooled,
-         bool_or(has_role)                                               as has_role,
-         bool_or(country_ambiguous)                                      as country_ambiguous,
-         bool_or(cost_ambiguous)                                         as cost_ambiguous,
-         bool_or(cost_unprovable)                                        as cost_unprovable,
-         min(acquisition_key)                                            as only_key
-  from classified group by email_norm
+         bool_or(is_customer_row)                                        as has_customer_row,
+         bool_or(not is_customer_row and provider is null)                as has_unresolved_row,
+         bool_or(provider in ('pdl','apollo')
+                 and not is_customer_row
+                 and (provider_id is not null or is_house))               as has_owned_row
+  from resolved_rows group by email_norm
+), identity_state as (
+  -- ⚠️ NO min/max(acquisition_key) HERE OR ANYWHERE. It was computed and unused; an
+  -- arbitrary acquisition selector must not exist in this resolver even as dead code,
+  -- because dead code is what a later edit reaches for.
+  select er.email_norm,
+         count(cl.acquisition_key)                                       as acquisition_identities,
+         coalesce(bool_or(cl.already_pooled), false)                     as already_pooled,
+         coalesce(bool_or(cl.has_role), false)                           as has_role,
+         coalesce(bool_or(cl.country_ambiguous), false)                  as country_ambiguous,
+         coalesce(bool_or(cl.cost_ambiguous), false)                     as cost_ambiguous,
+         coalesce(bool_or(cl.cost_unprovable), false)                    as cost_unprovable,
+         er.has_customer_row, er.has_unresolved_row, er.has_owned_row
+  from email_rows er
+  left join classified cl on cl.email_norm = er.email_norm
+  group by er.email_norm, er.has_customer_row, er.has_unresolved_row, er.has_owned_row
 ), executable as (
   -- THE EXECUTION SET. Phase B inserts exactly these; Phase A counts exactly these.
   select cl.*
@@ -520,21 +605,37 @@ with canon as (
          bool_or(is_house)                                              as is_house,
          count(distinct canon_country) filter (where canon_country is not null) as distinct_countries,
          min(canon_country) filter (where canon_country is not null)     as one_country,
-         bool_or(coalesce(btrim(job_title),'') <> '' or coalesce(btrim(industry),'') <> ''
-              or coalesce(btrim(seniority),'') <> '')                    as has_role,
-         (array_agg(first_name   order by created_at asc, lead_id asc))[1] as first_name,
-         (array_agg(last_name    order by created_at asc, lead_id asc))[1] as last_name,
-         (array_agg(job_title    order by created_at asc, lead_id asc))[1] as job_title,
-         (array_agg(seniority    order by created_at asc, lead_id asc))[1] as seniority,
-         (array_agg(company      order by created_at asc, lead_id asc))[1] as company,
-         (array_agg(industry     order by created_at asc, lead_id asc))[1] as industry,
-         (array_agg(company_size order by created_at asc, lead_id asc))[1] as company_size,
-         (array_agg(linkedin_url order by created_at asc, lead_id asc))[1] as linkedin_url,
+         -- ⚠️ THE REPRESENTATIVE SKIPS BLANKS, and that is not cosmetic. `array_agg(...)[1]`
+         -- took the EARLIEST row's value even when it was null, while `has_role` asked
+         -- whether ANY row had one — so Phase A could report metadata_complete while Phase B
+         -- inserted an empty title. The filter makes the aggregate return the earliest
+         -- NON-BLANK value, so what is counted is what is written. Deterministic
+         -- (created_at, lead_id), scoped to this acquisition's own rows, blanks skipped.
+         (array_agg(first_name   order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(first_name),'')   <> ''))[1]     as first_name,
+         (array_agg(last_name    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(last_name),'')    <> ''))[1]     as last_name,
+         (array_agg(job_title    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(job_title),'')    <> ''))[1]     as job_title,
+         (array_agg(seniority    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(seniority),'')    <> ''))[1]     as seniority,
+         (array_agg(company      order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company),'')      <> ''))[1]     as company,
+         (array_agg(industry     order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(industry),'')     <> ''))[1]     as industry,
+         (array_agg(company_size order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company_size),'') <> ''))[1]     as company_size,
+         (array_agg(linkedin_url order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(linkedin_url),'') <> ''))[1]     as linkedin_url,
          min(created_at)                                                 as sourced_at
   from owned_rows
   group by acquisition_key, email_norm, provider, provider_id
 ), costed as (
   select a.*,
+         -- ⚑ has_role describes the row Phase B ACTUALLY INSERTS — the resolved
+         -- representative fields above, not "some row somewhere had a title".
+         (coalesce(btrim(a.job_title),'') <> '' or coalesce(btrim(a.industry),'') <> ''
+           or coalesce(btrim(a.seniority),'') <> '')                     as has_role,
          (select count(distinct am.acquisition_cost_usd) from public.acquisition_memory am
            where am.email_norm = a.email_norm and am.provider_id = a.provider_id
              and lower(btrim(am.source)) = a.provider)                   as distinct_costs,
@@ -554,16 +655,32 @@ with canon as (
          case when c.distinct_countries = 1 then c.one_country end        as resolved_country,
          exists (select 1 from public.lead_pool p where p.email_norm = c.email_norm) as already_pooled
   from costed c
-), identity_state as (
+), email_rows as (
+  -- EVERY row of an email, owned or not — the only place that can say WHY an identity with
+  -- no owned acquisition was excluded: because the data is the CUSTOMER'S, or because its
+  -- provenance simply cannot be proved. Both are exclusions; they are not the same fact.
   select email_norm,
-         count(*)                                                        as acquisition_identities,
-         bool_or(already_pooled)                                         as already_pooled,
-         bool_or(has_role)                                               as has_role,
-         bool_or(country_ambiguous)                                      as country_ambiguous,
-         bool_or(cost_ambiguous)                                         as cost_ambiguous,
-         bool_or(cost_unprovable)                                        as cost_unprovable,
-         min(acquisition_key)                                            as only_key
-  from classified group by email_norm
+         bool_or(is_customer_row)                                        as has_customer_row,
+         bool_or(not is_customer_row and provider is null)                as has_unresolved_row,
+         bool_or(provider in ('pdl','apollo')
+                 and not is_customer_row
+                 and (provider_id is not null or is_house))               as has_owned_row
+  from resolved_rows group by email_norm
+), identity_state as (
+  -- ⚠️ NO min/max(acquisition_key) HERE OR ANYWHERE. It was computed and unused; an
+  -- arbitrary acquisition selector must not exist in this resolver even as dead code,
+  -- because dead code is what a later edit reaches for.
+  select er.email_norm,
+         count(cl.acquisition_key)                                       as acquisition_identities,
+         coalesce(bool_or(cl.already_pooled), false)                     as already_pooled,
+         coalesce(bool_or(cl.has_role), false)                           as has_role,
+         coalesce(bool_or(cl.country_ambiguous), false)                  as country_ambiguous,
+         coalesce(bool_or(cl.cost_ambiguous), false)                     as cost_ambiguous,
+         coalesce(bool_or(cl.cost_unprovable), false)                    as cost_unprovable,
+         er.has_customer_row, er.has_unresolved_row, er.has_owned_row
+  from email_rows er
+  left join classified cl on cl.email_norm = er.email_norm
+  group by er.email_norm, er.has_customer_row, er.has_unresolved_row, er.has_owned_row
 ), executable as (
   -- THE EXECUTION SET. Phase B inserts exactly these; Phase A counts exactly these.
   select cl.*
@@ -698,21 +815,37 @@ with canon as (
          bool_or(is_house)                                              as is_house,
          count(distinct canon_country) filter (where canon_country is not null) as distinct_countries,
          min(canon_country) filter (where canon_country is not null)     as one_country,
-         bool_or(coalesce(btrim(job_title),'') <> '' or coalesce(btrim(industry),'') <> ''
-              or coalesce(btrim(seniority),'') <> '')                    as has_role,
-         (array_agg(first_name   order by created_at asc, lead_id asc))[1] as first_name,
-         (array_agg(last_name    order by created_at asc, lead_id asc))[1] as last_name,
-         (array_agg(job_title    order by created_at asc, lead_id asc))[1] as job_title,
-         (array_agg(seniority    order by created_at asc, lead_id asc))[1] as seniority,
-         (array_agg(company      order by created_at asc, lead_id asc))[1] as company,
-         (array_agg(industry     order by created_at asc, lead_id asc))[1] as industry,
-         (array_agg(company_size order by created_at asc, lead_id asc))[1] as company_size,
-         (array_agg(linkedin_url order by created_at asc, lead_id asc))[1] as linkedin_url,
+         -- ⚠️ THE REPRESENTATIVE SKIPS BLANKS, and that is not cosmetic. `array_agg(...)[1]`
+         -- took the EARLIEST row's value even when it was null, while `has_role` asked
+         -- whether ANY row had one — so Phase A could report metadata_complete while Phase B
+         -- inserted an empty title. The filter makes the aggregate return the earliest
+         -- NON-BLANK value, so what is counted is what is written. Deterministic
+         -- (created_at, lead_id), scoped to this acquisition's own rows, blanks skipped.
+         (array_agg(first_name   order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(first_name),'')   <> ''))[1]     as first_name,
+         (array_agg(last_name    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(last_name),'')    <> ''))[1]     as last_name,
+         (array_agg(job_title    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(job_title),'')    <> ''))[1]     as job_title,
+         (array_agg(seniority    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(seniority),'')    <> ''))[1]     as seniority,
+         (array_agg(company      order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company),'')      <> ''))[1]     as company,
+         (array_agg(industry     order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(industry),'')     <> ''))[1]     as industry,
+         (array_agg(company_size order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company_size),'') <> ''))[1]     as company_size,
+         (array_agg(linkedin_url order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(linkedin_url),'') <> ''))[1]     as linkedin_url,
          min(created_at)                                                 as sourced_at
   from owned_rows
   group by acquisition_key, email_norm, provider, provider_id
 ), costed as (
   select a.*,
+         -- ⚑ has_role describes the row Phase B ACTUALLY INSERTS — the resolved
+         -- representative fields above, not "some row somewhere had a title".
+         (coalesce(btrim(a.job_title),'') <> '' or coalesce(btrim(a.industry),'') <> ''
+           or coalesce(btrim(a.seniority),'') <> '')                     as has_role,
          (select count(distinct am.acquisition_cost_usd) from public.acquisition_memory am
            where am.email_norm = a.email_norm and am.provider_id = a.provider_id
              and lower(btrim(am.source)) = a.provider)                   as distinct_costs,
@@ -732,16 +865,32 @@ with canon as (
          case when c.distinct_countries = 1 then c.one_country end        as resolved_country,
          exists (select 1 from public.lead_pool p where p.email_norm = c.email_norm) as already_pooled
   from costed c
-), identity_state as (
+), email_rows as (
+  -- EVERY row of an email, owned or not — the only place that can say WHY an identity with
+  -- no owned acquisition was excluded: because the data is the CUSTOMER'S, or because its
+  -- provenance simply cannot be proved. Both are exclusions; they are not the same fact.
   select email_norm,
-         count(*)                                                        as acquisition_identities,
-         bool_or(already_pooled)                                         as already_pooled,
-         bool_or(has_role)                                               as has_role,
-         bool_or(country_ambiguous)                                      as country_ambiguous,
-         bool_or(cost_ambiguous)                                         as cost_ambiguous,
-         bool_or(cost_unprovable)                                        as cost_unprovable,
-         min(acquisition_key)                                            as only_key
-  from classified group by email_norm
+         bool_or(is_customer_row)                                        as has_customer_row,
+         bool_or(not is_customer_row and provider is null)                as has_unresolved_row,
+         bool_or(provider in ('pdl','apollo')
+                 and not is_customer_row
+                 and (provider_id is not null or is_house))               as has_owned_row
+  from resolved_rows group by email_norm
+), identity_state as (
+  -- ⚠️ NO min/max(acquisition_key) HERE OR ANYWHERE. It was computed and unused; an
+  -- arbitrary acquisition selector must not exist in this resolver even as dead code,
+  -- because dead code is what a later edit reaches for.
+  select er.email_norm,
+         count(cl.acquisition_key)                                       as acquisition_identities,
+         coalesce(bool_or(cl.already_pooled), false)                     as already_pooled,
+         coalesce(bool_or(cl.has_role), false)                           as has_role,
+         coalesce(bool_or(cl.country_ambiguous), false)                  as country_ambiguous,
+         coalesce(bool_or(cl.cost_ambiguous), false)                     as cost_ambiguous,
+         coalesce(bool_or(cl.cost_unprovable), false)                    as cost_unprovable,
+         er.has_customer_row, er.has_unresolved_row, er.has_owned_row
+  from email_rows er
+  left join classified cl on cl.email_norm = er.email_norm
+  group by er.email_norm, er.has_customer_row, er.has_unresolved_row, er.has_owned_row
 ), executable as (
   -- THE EXECUTION SET. Phase B inserts exactly these; Phase A counts exactly these.
   select cl.*
@@ -829,21 +978,37 @@ with canon as (
          bool_or(is_house)                                              as is_house,
          count(distinct canon_country) filter (where canon_country is not null) as distinct_countries,
          min(canon_country) filter (where canon_country is not null)     as one_country,
-         bool_or(coalesce(btrim(job_title),'') <> '' or coalesce(btrim(industry),'') <> ''
-              or coalesce(btrim(seniority),'') <> '')                    as has_role,
-         (array_agg(first_name   order by created_at asc, lead_id asc))[1] as first_name,
-         (array_agg(last_name    order by created_at asc, lead_id asc))[1] as last_name,
-         (array_agg(job_title    order by created_at asc, lead_id asc))[1] as job_title,
-         (array_agg(seniority    order by created_at asc, lead_id asc))[1] as seniority,
-         (array_agg(company      order by created_at asc, lead_id asc))[1] as company,
-         (array_agg(industry     order by created_at asc, lead_id asc))[1] as industry,
-         (array_agg(company_size order by created_at asc, lead_id asc))[1] as company_size,
-         (array_agg(linkedin_url order by created_at asc, lead_id asc))[1] as linkedin_url,
+         -- ⚠️ THE REPRESENTATIVE SKIPS BLANKS, and that is not cosmetic. `array_agg(...)[1]`
+         -- took the EARLIEST row's value even when it was null, while `has_role` asked
+         -- whether ANY row had one — so Phase A could report metadata_complete while Phase B
+         -- inserted an empty title. The filter makes the aggregate return the earliest
+         -- NON-BLANK value, so what is counted is what is written. Deterministic
+         -- (created_at, lead_id), scoped to this acquisition's own rows, blanks skipped.
+         (array_agg(first_name   order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(first_name),'')   <> ''))[1]     as first_name,
+         (array_agg(last_name    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(last_name),'')    <> ''))[1]     as last_name,
+         (array_agg(job_title    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(job_title),'')    <> ''))[1]     as job_title,
+         (array_agg(seniority    order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(seniority),'')    <> ''))[1]     as seniority,
+         (array_agg(company      order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company),'')      <> ''))[1]     as company,
+         (array_agg(industry     order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(industry),'')     <> ''))[1]     as industry,
+         (array_agg(company_size order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(company_size),'') <> ''))[1]     as company_size,
+         (array_agg(linkedin_url order by created_at asc, lead_id asc)
+            filter (where coalesce(btrim(linkedin_url),'') <> ''))[1]     as linkedin_url,
          min(created_at)                                                 as sourced_at
   from owned_rows
   group by acquisition_key, email_norm, provider, provider_id
 ), costed as (
   select a.*,
+         -- ⚑ has_role describes the row Phase B ACTUALLY INSERTS — the resolved
+         -- representative fields above, not "some row somewhere had a title".
+         (coalesce(btrim(a.job_title),'') <> '' or coalesce(btrim(a.industry),'') <> ''
+           or coalesce(btrim(a.seniority),'') <> '')                     as has_role,
          (select count(distinct am.acquisition_cost_usd) from public.acquisition_memory am
            where am.email_norm = a.email_norm and am.provider_id = a.provider_id
              and lower(btrim(am.source)) = a.provider)                   as distinct_costs,
@@ -863,16 +1028,32 @@ with canon as (
          case when c.distinct_countries = 1 then c.one_country end        as resolved_country,
          exists (select 1 from public.lead_pool p where p.email_norm = c.email_norm) as already_pooled
   from costed c
-), identity_state as (
+), email_rows as (
+  -- EVERY row of an email, owned or not — the only place that can say WHY an identity with
+  -- no owned acquisition was excluded: because the data is the CUSTOMER'S, or because its
+  -- provenance simply cannot be proved. Both are exclusions; they are not the same fact.
   select email_norm,
-         count(*)                                                        as acquisition_identities,
-         bool_or(already_pooled)                                         as already_pooled,
-         bool_or(has_role)                                               as has_role,
-         bool_or(country_ambiguous)                                      as country_ambiguous,
-         bool_or(cost_ambiguous)                                         as cost_ambiguous,
-         bool_or(cost_unprovable)                                        as cost_unprovable,
-         min(acquisition_key)                                            as only_key
-  from classified group by email_norm
+         bool_or(is_customer_row)                                        as has_customer_row,
+         bool_or(not is_customer_row and provider is null)                as has_unresolved_row,
+         bool_or(provider in ('pdl','apollo')
+                 and not is_customer_row
+                 and (provider_id is not null or is_house))               as has_owned_row
+  from resolved_rows group by email_norm
+), identity_state as (
+  -- ⚠️ NO min/max(acquisition_key) HERE OR ANYWHERE. It was computed and unused; an
+  -- arbitrary acquisition selector must not exist in this resolver even as dead code,
+  -- because dead code is what a later edit reaches for.
+  select er.email_norm,
+         count(cl.acquisition_key)                                       as acquisition_identities,
+         coalesce(bool_or(cl.already_pooled), false)                     as already_pooled,
+         coalesce(bool_or(cl.has_role), false)                           as has_role,
+         coalesce(bool_or(cl.country_ambiguous), false)                  as country_ambiguous,
+         coalesce(bool_or(cl.cost_ambiguous), false)                     as cost_ambiguous,
+         coalesce(bool_or(cl.cost_unprovable), false)                    as cost_unprovable,
+         er.has_customer_row, er.has_unresolved_row, er.has_owned_row
+  from email_rows er
+  left join classified cl on cl.email_norm = er.email_norm
+  group by er.email_norm, er.has_customer_row, er.has_unresolved_row, er.has_owned_row
 ), executable as (
   -- THE EXECUTION SET. Phase B inserts exactly these; Phase A counts exactly these.
   select cl.*
@@ -886,19 +1067,31 @@ with canon as (
     and cl.resolved_cost is not null
 )
 , one_answer as (
-  -- Across ALL owned acquisitions of one email (even where promotion itself is ambiguous),
-  -- a country may be supplied only when every proven observation agrees on exactly one.
+  -- ⚑ FAIL CLOSED ON *ANY* AMBIGUITY, and the WHERE clause is why this is not the same as
+  -- the previous shape. Filtering `where resolved_country is not null` HID ambiguity: an
+  -- acquisition that was internally US+UK resolves to NULL, so it silently dropped out and
+  -- the remaining clean acquisition healed the pool to its country. That is a geography
+  -- invented by omission. Now NOTHING is filtered out before the check — every proven
+  -- acquisition of the email is inspected, and the heal is allowed only when:
+  --   · at least one proven canonical country exists                       (something to say)
+  --   · NO proven acquisition is internally country_ambiguous              (nothing hidden)
+  --   · exactly ONE distinct canonical country across them all             (they agree)
   select email_norm, min(resolved_country) as canon_country
   from classified
-  where resolved_country is not null
   group by email_norm
-  having count(distinct resolved_country) = 1
+  having count(*) filter (where resolved_country is not null) > 0
+     and count(*) filter (where country_ambiguous) = 0
+     and count(distinct resolved_country) = 1
 )
 update public.lead_pool p
    set country = o.canon_country
   from one_answer o
  where p.email_norm = o.email_norm
-   and coalesce(btrim(p.country),'') = '';   -- FILL ONLY — cannot overwrite
+   and coalesce(btrim(p.country),'') = ''    -- FILL ONLY — cannot overwrite
+   -- ⚑ R73 ON THE TARGET TOO. A legacy/customer/untagged pooled row is not ours to enrich:
+   -- the read fence already refuses to serve it, and healing it would quietly make it look
+   -- servable. Same allowlist, applied to the row being written.
+   and p.source in ('pdl','apollo');
 
 commit;
 

@@ -59,17 +59,29 @@ export type AcquisitionModel = {
   costUnprovable: boolean
   alreadyPooled: boolean
   /** metadata carried into the pool — from THIS acquisition's rows only */
-  metadata: { jobTitle: string | null; company: string | null; firstName: string | null }
+  /** what Phase B actually inserts — earliest NON-BLANK value from this acquisition's rows */
+  metadata: {
+    jobTitle: string | null; industry: string | null; seniority: string | null
+    company: string | null; firstName: string | null
+  }
 }
 
 export type IdentityState =
   | 'already_in_pool'
-  | 'no_owned_acquisition_excluded'
+  | 'customer_only_excluded'
+  | 'unknown_only_excluded'
+  | 'customer_and_unknown_excluded'
   | 'acquisition_identity_ambiguous'
   | 'cost_ambiguous'
   | 'cost_unprovable'
   | 'metadata_incomplete'
   | 'executable_promotion'
+
+/** Earliest non-blank value of one field across an acquisition's own (already sorted) rows. */
+function firstNonBlank(rows: readonly LeadRowModel[], pick: (r: LeadRowModel) => string | null | undefined): string | null {
+  for (const r of rows) { const v = pick(r); if (v != null && v.trim() !== '') return v }
+  return null
+}
 
 /** Per-ROW provider resolution — steps A–E of the SQL's CASE, in the same order. */
 export function resolveRowProvider(row: LeadRowModel, memory: readonly MemoryRowModel[]): 'pdl' | 'apollo' | null {
@@ -137,35 +149,71 @@ export function buildAcquisitions(
 
     return {
       acquisitionKey, emailNorm, provider: g.provider, isHouse,
-      hasRole: sorted.some(r => !!(r.jobTitle?.trim() || r.industry?.trim() || r.seniority?.trim())),
       distinctCountries, resolvedCountry, countryAmbiguous,
       distinctCosts, resolvedCost, costAmbiguous, costUnprovable,
       alreadyPooled: pooledEmails.has(emailNorm),
+      // ⚠️ THE REPRESENTATIVE SKIPS BLANKS. Taking the earliest row's value even when it was
+      // null let `hasRole` say "some row had a title" while the row actually inserted had
+      // none — Phase A metadata_complete, Phase B a blank role signal.
       metadata: {
-        jobTitle:  sorted.find(r => r.jobTitle  != null)?.jobTitle  ?? null,
-        company:   sorted.find(r => r.company   != null)?.company   ?? null,
-        firstName: sorted.find(r => r.firstName != null)?.firstName ?? null,
+        jobTitle:  firstNonBlank(sorted, r => r.jobTitle),
+        industry:  firstNonBlank(sorted, r => r.industry),
+        seniority: firstNonBlank(sorted, r => r.seniority),
+        company:   firstNonBlank(sorted, r => r.company),
+        firstName: firstNonBlank(sorted, r => r.firstName),
       },
+      // hasRole describes the RESOLVED representative — what Phase B actually writes.
+      hasRole: !!(firstNonBlank(sorted, r => r.jobTitle) || firstNonBlank(sorted, r => r.industry)
+               || firstNonBlank(sorted, r => r.seniority)),
     }
   })
 }
 
 /** The per-EMAIL state A1 reports. Mirrors A1's CASE arms, in the same order. */
-export function identityStates(acqs: readonly AcquisitionModel[], allEmails: readonly string[]): Map<string, IdentityState> {
+export function identityStates(
+  acqs: readonly AcquisitionModel[],
+  rows: readonly LeadRowModel[],
+  memory: readonly MemoryRowModel[] = [],
+): Map<string, IdentityState> {
   const byEmail = new Map<string, AcquisitionModel[]>()
   for (const a of acqs) byEmail.set(a.emailNorm, [...(byEmail.get(a.emailNorm) ?? []), a])
+
+  // Per-email facts about NON-owned rows — the only thing that can say WHY an identity with
+  // no owned acquisition is excluded: the data is the CUSTOMER'S, or its provenance cannot
+  // be proved. Both exclude; they are not the same fact, and the audit must tell them apart.
   const out = new Map<string, IdentityState>()
-  for (const email of new Set(allEmails)) {
+  for (const email of new Set(rows.map(r => r.emailNorm))) {
     const mine = byEmail.get(email) ?? []
-    if (mine.some(a => a.alreadyPooled))     { out.set(email, 'already_in_pool'); continue }
-    if (mine.length === 0)                   { out.set(email, 'no_owned_acquisition_excluded'); continue }
-    if (mine.length > 1)                     { out.set(email, 'acquisition_identity_ambiguous'); continue }
-    if (mine.some(a => a.costAmbiguous))     { out.set(email, 'cost_ambiguous'); continue }
-    if (mine.some(a => a.costUnprovable))    { out.set(email, 'cost_unprovable'); continue }
-    if (!mine.some(a => a.hasRole))          { out.set(email, 'metadata_incomplete'); continue }
-    out.set(email, 'executable_promotion')
+    const emailRows = rows.filter(r => r.emailNorm === email)
+    const hasCustomerRow = emailRows.some(r => CUSTOMER.has((r.source ?? '').trim().toLowerCase()))
+    const hasUnresolvedRow = emailRows.some(r =>
+      !CUSTOMER.has((r.source ?? '').trim().toLowerCase()) && resolveRowProvider(r, memory) === null)
+
+    if (mine.some(a => a.alreadyPooled))  { out.set(email, 'already_in_pool'); continue }
+    if (mine.length > 1)                  { out.set(email, 'acquisition_identity_ambiguous'); continue }
+    if (mine.length === 1) {
+      if (mine[0].costAmbiguous)          { out.set(email, 'cost_ambiguous'); continue }
+      if (mine[0].costUnprovable)         { out.set(email, 'cost_unprovable'); continue }
+      if (!mine[0].hasRole)               { out.set(email, 'metadata_incomplete'); continue }
+      out.set(email, 'executable_promotion'); continue
+    }
+    // no owned acquisition — say why
+    if (hasCustomerRow && hasUnresolvedRow) { out.set(email, 'customer_and_unknown_excluded'); continue }
+    if (hasCustomerRow)                     { out.set(email, 'customer_only_excluded'); continue }
+    out.set(email, 'unknown_only_excluded')
   }
   return out
+}
+
+/**
+ * ⚑ THE B2 HEAL GATE — may a pooled row's NULL country be filled from this email's proven
+ * acquisitions? Fail closed on ANY ambiguity, including ambiguity hidden behind a NULL.
+ */
+export function healCountryFor(acqs: readonly AcquisitionModel[]): string | null {
+  if (acqs.length === 0) return null
+  if (acqs.some(a => a.countryAmbiguous)) return null          // nothing hidden by a NULL
+  const known = [...new Set(acqs.map(a => a.resolvedCountry).filter((c): c is string => !!c))]
+  return known.length === 1 ? known[0] : null                  // they must agree, exactly
 }
 
 /**

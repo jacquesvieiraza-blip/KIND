@@ -657,6 +657,60 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
       'no second WHERE may narrow or widen the set A1b counted').not.toContain('where')
   })
 
+  it('⚑ B2 HEAL cannot be fooled by ambiguity hidden behind a NULL country', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    const heal = sql.slice(sql.indexOf('one_answer as ('))
+    // NOTHING is filtered out before the check — the old `where resolved_country is not null`
+    // dropped internally-ambiguous acquisitions and let the survivors heal.
+    // ⚠️ targeted at a STANDALONE `where` line — `count(*) filter (where resolved_country is
+    // not null)` legitimately contains the same words, and a bare not.toContain matched it.
+    expect(/\n\s*where resolved_country is not null/.test(heal),
+      'a pre-filter would hide the ambiguity').toBe(false)
+    expect(heal).toContain('count(*) filter (where resolved_country is not null) > 0')
+    expect(heal, 'any ambiguous acquisition blocks the heal').toContain('count(*) filter (where country_ambiguous) = 0')
+    expect(heal, 'and the survivors must agree exactly').toContain('count(distinct resolved_country) = 1')
+  })
+
+  it('⚑ B2 HEAL respects R73 on the TARGET pool row too', () => {
+    const heal = codeOnly(readRepo(TOOL))
+    const upd = heal.slice(heal.indexOf('update public.lead_pool p'))
+    expect(upd, 'a legacy/customer/untagged pooled row is not ours to enrich')
+      .toContain("p.source in ('pdl','apollo')")
+    expect(upd, 'fill only').toContain("coalesce(btrim(p.country),'') = ''")
+  })
+
+  it('⚑ ROLE METADATA: the representative skips blanks, and has_role describes it', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    for (const col of ['job_title', 'industry', 'seniority', 'company', 'first_name']) {
+      expect(sql, `${col} must skip blank values`)
+        .toContain(`filter (where coalesce(btrim(${col}),'')`)
+    }
+    // has_role is computed in `costed`, FROM the resolved representative fields (a.job_title
+    // etc.), not from "any row in the acquisition had one".
+    expect(sql).toContain("(coalesce(btrim(a.job_title),'') <> '' or coalesce(btrim(a.industry),'') <> ''")
+    expect(sql, 'the old any-row form must be gone')
+      .not.toContain("bool_or(coalesce(btrim(job_title),'') <> ''")
+  })
+
+  it('⚑ A1 says WHY an identity was excluded — customer vs unprovable are different facts', () => {
+    const sql = codeOnly(readRepo(TOOL))
+    for (const st of ['customer_only_excluded', 'unknown_only_excluded',
+                      'customer_and_unknown_excluded']) {
+      expect(sql, st).toContain(st)
+    }
+    expect(sql, 'the collapsed state is gone').not.toContain('no_owned_acquisition_excluded')
+    // and the facts come from ALL rows of the email, not only the owned acquisitions
+    expect(sql).toContain('), email_rows as (')
+    expect(sql).toContain('from resolved_rows group by email_norm')
+  })
+
+  it('⚑ NO arbitrary acquisition selector exists — not even as dead code', () => {
+    const sql = codeOnly(readRepo(TOOL)).toLowerCase()
+    expect(sql.includes('min(acquisition_key)'), 'dead code is what a later edit reaches for').toBe(false)
+    expect(sql.includes('max(acquisition_key)')).toBe(false)
+    expect(sql.includes('only_key')).toBe(false)
+  })
+
   it('⚑ A1b reports exact counts, not a fabricated upper bound', () => {
     const sql = codeOnly(readRepo(TOOL))
     for (const col of ['current_eligible_pool_identities', 'executable_promotion_identities',
@@ -667,8 +721,8 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
 
   it('the corrected audit terminology: progressive gates, never an absolute servability claim', () => {
     const sql = readRepo(TOOL)
-    for (const col of ['already_in_pool', 'no_owned_acquisition_excluded',
-                       'acquisition_identity_ambiguous', 'cost_ambiguous', 'cost_unprovable',
+    for (const col of ['already_in_pool', 'customer_only_excluded', 'unknown_only_excluded',
+                       'customer_and_unknown_excluded', 'acquisition_identity_ambiguous', 'cost_ambiguous', 'cost_unprovable',
                        'metadata_incomplete', 'executable_promotion',
                        'acquisition_identity_proven', 'metadata_complete', 'country_single',
                        'country_missing', 'country_ambiguous', 'cost_proven',
@@ -706,8 +760,10 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
     const sql = codeOnly(readRepo(TOOL))
     const heal = sql.slice(sql.indexOf('one_answer as ('))
     expect(heal, 'the heal reads the resolver, not raw leads').toContain('from classified')
+    // ⛓️ the HAVING became three clauses on the final pass (something to say · nothing
+    // hidden · they agree); the country-agreement clause is now `and count(distinct …)`.
     expect(heal, 'and only where exactly one proven country exists')
-      .toContain('having count(distinct resolved_country) = 1')
+      .toContain('count(distinct resolved_country) = 1')
     expect(heal, 'fill only — never overwrite').toContain("coalesce(btrim(p.country),'') = ''")
   })
 })

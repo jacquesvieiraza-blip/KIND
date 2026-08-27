@@ -364,7 +364,17 @@ export function startCrons(): void {
   // The programme-authority model is NOT built yet and is deliberately not part of this
   // change. Until it exists, paid sourcing happens only on paths a human explicitly
   // triggers: the Stripe payment webhook, the client's own Run button and operator sourcing.
-  // `startWorkForClient` itself is untouched — those callers still use it.
+  // All three are untouched here — but they are NOT one code path, and an earlier draft of
+  // this note said they were:
+  //
+  //   • `startWorkForClient` (lib/start-work.ts) now has exactly ONE executable caller, the
+  //     Stripe payment webhook (routes/stripe.ts). The removed cron was the other one.
+  //   • The client's Run button (routes/icps.ts) and operator sourcing (routes/operator.ts)
+  //     call `runIcpJob` DIRECTLY and never reach `startWorkForClient`.
+  //
+  // Worth being exact about, because "the top-up and the Run button share a function" would
+  // send someone hunting for a shared gate to fix, and there isn't one — programme authority
+  // has to be applied at each entry point, or below both in `runIcpJob`.
   //
   // The endpoint is retired alongside the schedule (see `/leads/top-up` in
   // `routes/internal.ts`), for the reason the trial-retirement precedent above already

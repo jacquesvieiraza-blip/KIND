@@ -1877,9 +1877,18 @@ internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) 
 // which is precisely why it goes now rather than then.
 //
 // ⚠️ WHAT IS DELIBERATELY NOT DONE HERE. Programme authority does not exist yet and is not
-// part of this change. `startWorkForClient` is untouched and still serves the paths a human
-// explicitly triggers — the Stripe payment webhook, the client's own Run button, and
-// operator sourcing. Replacing those with programme authority is later work.
+// part of this change. The paths a human explicitly triggers — the Stripe payment webhook,
+// the client's own Run button and operator sourcing — are all untouched, and replacing them
+// with programme authority is later work.
+//
+// ⚠️ THEY ARE NOT ONE CODE PATH, and an earlier draft of this note claimed they were:
+//   • `startWorkForClient` (lib/start-work.ts) now has exactly ONE executable caller — the
+//     Stripe payment webhook (routes/stripe.ts). This retired handler was the other one.
+//   • The Run button (routes/icps.ts) and operator sourcing (routes/operator.ts) call
+//     `runIcpJob` DIRECTLY and never reach `startWorkForClient`.
+// The distinction matters for the work that comes next: there is no single shared gate to
+// add programme authority to. It goes at each entry point, or below all of them in
+// `runIcpJob`.
 internalRouter.post('/leads/top-up', async (_req: Request, res: Response) => {
   res.status(410).json({
     success: false,

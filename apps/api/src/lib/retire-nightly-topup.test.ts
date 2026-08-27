@@ -145,12 +145,20 @@ describe('the endpoint refuses rather than being left loaded', () => {
 })
 
 describe('the explicitly-triggered sourcing paths are deliberately left alone', () => {
-  it('startWorkForClient still exists and is still used by the paths a human triggers', () => {
+  it('startWorkForClient survives, and the Stripe payment webhook still calls it', () => {
     const startWork = API('./start-work.ts')
     expect(startWork).toContain('export async function startWorkForClient')
 
     // The Stripe payment webhook is a human paying — authority exists there today, and
     // replacing it with programme authority is later work, explicitly out of PR1A's scope.
+    //
+    // ⚠️ AND IT IS THE ONLY EXECUTABLE CALLER LEFT. An earlier draft of this suite described
+    // `startWorkForClient` as serving Stripe, the client's Run button and operator sourcing.
+    // That was wrong: the Run button (`routes/icps.ts`) and operator sourcing
+    // (`routes/operator.ts`) call `runIcpJob` DIRECTLY and never reach this function. Both
+    // remain human-triggered and both are untouched by PR1A — they are simply a different
+    // code path, which matters because there is no one shared gate to hang programme
+    // authority on later.
     const stripeCode = codeOnly(API('../routes/stripe.ts'))
     expect(stripeCode).toContain('startWorkForClient')
   })

@@ -341,9 +341,35 @@ export function startCrons(): void {
   // warmed sender for them the whole time), warning them a week out.
   cron.schedule('40 8 * * *', () => callInternal('/clients/cold-check'), { timezone: 'UTC' })
 
-  // Daily 08:20 UTC — finish the 200 the $99 paid for. try_spend_sourcing caps a client at
-  // 100 records/day, so payment day can only deliver half the pack's sourcing target.
-  cron.schedule('20 8 * * *', () => callInternal('/leads/top-up'), { timezone: 'UTC' })
+  // ── 🪦 RETIRED 27 Aug 2026 — THE NIGHTLY PAID SOURCING TOP-UP (PR1A) ────────────
+  //
+  // This line used to read:
+  //   cron.schedule('20 8 * * *', () => callInternal('/leads/top-up'), { timezone: 'UTC' })
+  //
+  // It fired daily at 08:20 UTC, walked EVERY client with a paid transaction and a positive
+  // `sourcing_allowance`, and topped their desk back up to 200 undecided leads. Nobody asked
+  // for those leads. Every lead a client passed on was replaced the next morning at
+  // ~$0.28 a record, and the loop only stopped when the client's allowance ran out.
+  //
+  // Under the new locked commercial model, sourcing spend requires explicit PROGRAMME
+  // AUTHORITY: a client states the outcome they want, approves a quantity and a price, and
+  // K.I.N.D sources inside that authorisation. An unattended scheduler holds no such
+  // authority, so this trigger cannot exist — not "should be smaller", cannot exist.
+  //
+  // ⚠️ THIS IS A LATENT BLOCKER, NOT A LIVE FIRE. Paid providers are OFF (R66,
+  // `paid-provider-guard.ts` is fail-closed), so this loop is not spending money TODAY. It
+  // would begin spending the first morning after PDL is enabled, which is exactly why it is
+  // removed BEFORE that switch rather than after.
+  //
+  // The programme-authority model is NOT built yet and is deliberately not part of this
+  // change. Until it exists, paid sourcing happens only on paths a human explicitly
+  // triggers: the Stripe payment webhook, the client's own Run button and operator sourcing.
+  // `startWorkForClient` itself is untouched — those callers still use it.
+  //
+  // The endpoint is retired alongside the schedule (see `/leads/top-up` in
+  // `routes/internal.ts`), for the reason the trial-retirement precedent above already
+  // records: removing a cron line alone leaves a live endpoint any stale scheduler,
+  // run-book entry or hand-rolled POST can still fire.
 
   // Daily 07:40 UTC — low credit warning (staggered from /milla/morning-brief-all at 07:30)
   cron.schedule('40 7 * * *', () => callInternal('/ae/low-credits'), { timezone: 'UTC' })

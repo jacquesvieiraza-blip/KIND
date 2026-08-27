@@ -1848,59 +1848,46 @@ internalRouter.post('/clients/cold-check', async (_req: Request, res: Response) 
   }
 })
 
-// ── FLOW V2 · NIGHTLY SOURCING TOP-UP ─────────────────────────────────────────────────
-// The $99 buys 200 sourced people so the client can approve 100 after passing on roughly
-// half. try_spend_sourcing caps a client at 100 RECORDS PER DAY (v_daily_cap in
-// 20260711_sourcing_fences.sql), so payment day can only ever deliver 100 — the other 100
-// has to arrive the next day or the client is choosing from a list with no choice in it.
+// ── 🪦 RETIRED 27 Aug 2026 · THE NIGHTLY SOURCING TOP-UP (PR1A) ───────────────────────
 //
-// This is that second half. startWorkForClient tops UP to the target rather than adding a
-// batch, so a client already at 200 costs one count query and nothing else. Every real
-// spend still passes the same fences: the money gate, the client's own allowance
-// (2 records per $1 they paid), the daily cap and the global monthly ceiling.
+// WHAT IT USED TO DO. Fired daily at 08:20 UTC from `cron.ts`, it walked every client with
+// a paid transaction and a positive `sourcing_allowance`, counted how many leads they still
+// had awaiting a decision, and called `startWorkForClient` to top that desk back up to
+// `PACK_SOURCE_TARGET` (200). It was written for the old model — "$99 buys 200 sourced
+// people so the client can approve 100 after passing on roughly half" — and inside that
+// model it was correct: the daily 100-record fence meant payment day could only deliver
+// half a pack, and this delivered the other half.
 //
-// Called daily by cron. Safe to run repeatedly.
+// WHY IT IS GONE. The commercial model changed. Sourcing spend now requires explicit
+// PROGRAMME AUTHORITY — the client states the outcome they want, approves a quantity and a
+// price, and K.I.N.D sources inside that authorisation and nowhere else. A scheduler holds
+// no authority from anyone. Every lead a client passed on was silently replaced the next
+// morning at ~$0.28 a record, and nothing in the loop was answerable to a request the
+// client had actually made.
+//
+// ⚠️ IT REFUSES RATHER THAN BEING DELETED, and that is the same reasoning the trial
+// retirement above already records: removing the cron line alone leaves a live endpoint that
+// any stale scheduler, run-book entry or hand-rolled POST can still fire. A 410 cannot spend
+// money; a quietly-removed cron line can be re-added by someone reading an old doc. The
+// behaviour it used to have is in this file's history.
+//
+// ⚠️ THIS IS A LATENT BLOCKER, NOT A LIVE FIRE. Paid providers are OFF (R66 —
+// `paid-provider-guard.ts` is fail-closed), so this loop was not spending money on the day
+// it was removed. It would have begun spending the first morning after PDL was enabled,
+// which is precisely why it goes now rather than then.
+//
+// ⚠️ WHAT IS DELIBERATELY NOT DONE HERE. Programme authority does not exist yet and is not
+// part of this change. `startWorkForClient` is untouched and still serves the paths a human
+// explicitly triggers — the Stripe payment webhook, the client's own Run button, and
+// operator sourcing. Replacing those with programme authority is later work.
 internalRouter.post('/leads/top-up', async (_req: Request, res: Response) => {
-  try {
-    const { PAID_TX_TYPES, PACK_SOURCE_TARGET } = await import('../lib/onboarding-pack')
-    const { startWorkForClient } = await import('../lib/start-work')
-
-    // Only clients who have paid AND still have allowance to spend — anyone else would
-    // burn a round trip to be refused by the fence.
-    //
-    // Paged, not `.limit(20000)`. This asks a question about CLIENTS from a table of
-    // TRANSACTIONS, and an active client generates many rows — so a fixed window let a busy
-    // client crowd a quiet one out entirely, and that client then never got topped up.
-    const { paidClientIds } = await import('../lib/page-rows')
-    const { ids: paidSet } = await paidClientIds(PAID_TX_TYPES)
-    const paidIds = [...paidSet]
-    if (paidIds.length === 0) { res.json({ success: true, checked: 0, topped_up: 0 }); return }
-
-    const { data: clients } = await db.from('clients')
-      .select('id, company_name, sourcing_allowance, is_demo').in('id', paidIds)
-
-    let toppedUp = 0, sourced = 0, surfaced = 0
-    for (const c of (clients ?? []) as Array<Record<string, unknown>>) {
-      const cid = c.id as string
-      if (c.is_demo === true) continue                       // demos never spend PDL
-      if (((c.sourcing_allowance as number | null) ?? 0) <= 0) continue
-
-      const { count: have } = await db.from('leads')
-        .select('id', { count: 'exact', head: true }).eq('client_id', cid).neq('status', 'passed')
-      if ((have ?? 0) >= PACK_SOURCE_TARGET) continue
-
-      const r = await startWorkForClient(cid)                // never throws
-      if (r.sourced > 0 || r.surfaced > 0) {
-        toppedUp++; sourced += r.sourced; surfaced += r.surfaced
-        console.log(`[leads/top-up] ${c.company_name ?? cid}: sourced ${r.sourced}, surfaced ${r.surfaced}`)
-      }
-    }
-
-    res.json({ success: true, checked: (clients ?? []).length, topped_up: toppedUp, sourced, surfaced })
-  } catch (err) {
-    console.error('[leads/top-up]', err)
-    res.status(500).json({ success: false, error: 'Top-up run failed' })
-  }
+  res.status(410).json({
+    success: false,
+    error: 'Retired (PR1A, 27 Aug 2026). The nightly paid sourcing top-up no longer exists: '
+         + 'unattended sourcing carries no client authorisation, so it cannot run. Paid '
+         + 'sourcing happens only on explicitly triggered paths until programme authority is built. '
+         + 'This endpoint sources nothing and spends nothing.',
+  })
 })
 
 internalRouter.post('/leads/drip', async (_req: Request, res: Response) => {

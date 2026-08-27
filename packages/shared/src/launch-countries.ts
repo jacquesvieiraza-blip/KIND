@@ -125,6 +125,37 @@ export function canonicalLaunchCountry(country: string | null | undefined): stri
 }
 
 /**
+ * EVERY SPELLING a stored `country` value might use for this term — the term itself first,
+ * then its whole alias group when it has one.
+ *
+ * ⚑ 27 Aug. `canonicalLaunchCountry` translates ONE value into the canonical form. This does
+ * the opposite direction, and the pool needs it: `lead_pool.country` is a free-text field
+ * filled by whichever provider or import wrote the row, so the SAME country sits in the table
+ * as `"GB"`, `"England"` and `"United Kingdom"` at once. A candidate query that asks the
+ * database for only the client's own spelling finds one of those three and silently misses
+ * the rest — a shortfall that reads exactly like an empty pool.
+ *
+ * ⚠️ THIS WIDENS A *CANDIDATE* LOOKUP, NEVER A MATCH. The precise decision is made afterwards
+ * by comparing canonical forms for equality (`poolCountryMatches`). Expanding here and
+ * narrowing there is the whole design: the database returns everything that COULD be the
+ * country, and the canonical compare decides what IS. Using these aliases as the match itself
+ * would be the substring accident this pair exists to remove.
+ *
+ * ⚠️ AN UNRECOGNISED TERM RETURNS ITSELF, never an empty list — same rule as
+ * `canonicalLaunchCountry`. A country outside the alias table keeps exactly today's
+ * behaviour instead of quietly matching nothing.
+ */
+export function launchCountrySpellings(country: string | null | undefined): string[] {
+  const c = String(country ?? '').trim().toLowerCase()
+  if (!c) return []
+  const out = new Set<string>([c])
+  for (const aliases of Object.values(LAUNCH_COUNTRY_ALIASES)) {
+    if (aliases.includes(c)) for (const a of aliases) out.add(a)
+  }
+  return [...out]
+}
+
+/**
  * The reason an operator reads next to a held lead.
  *
  * Kept here rather than typed at the six call sites so they cannot word the same refusal six

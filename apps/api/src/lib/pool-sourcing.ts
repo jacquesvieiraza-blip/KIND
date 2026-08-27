@@ -13,6 +13,8 @@
 //     can never over-source (pool-served count is subtracted from the PDL ask).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { canonicalLaunchCountry } from '@kind/shared'
+
 /** A row from the `lead_pool` table (only the fields the matcher reads). */
 export interface PoolRecord {
   email_norm:        string
@@ -46,10 +48,82 @@ function containsAny(hay: string | null | undefined, needles: string[]): boolean
   return needles.some(n => n && h.includes(n.toLowerCase()))
 }
 
+// ── ⚑ 27 Aug — COUNTRY IS COMPARED CANONICALLY, AND ONLY COUNTRY ───────────────────────────
+//
+// Title, industry and seniority stay on `containsAny` (substring) because they are genuinely
+// partial — "Head of Sales" should match a stored "Global Head of Sales", and that is the
+// OR-generous behaviour the founder approved. Country is not like that. It is a closed
+// vocabulary with a canonical form that already exists in `@kind/shared`, and treating it as a
+// substring produced two failures at once:
+//
+//   ① MISSES. `lead_pool.country` is free text from whichever provider or import wrote the
+//      row, so the same country is stored as "GB", "England" and "United Kingdom". A client
+//      targeting "United Kingdom" substring-matched only the third. The other two were owned,
+//      relevant inventory the pool refused to see.
+//   ② FALSE POSITIVES, and these are worse — they are wrong leads, not missing ones. The
+//      substring test is literally `'australia'.includes('us')` → **true**. A client targeting
+//      the US would be served Australia, Austria, Belarus, Cyprus and Mauritius. `'ukraine'
+//      .includes('uk')` → **true**, so a UK target picks up Ukraine. `'ireland'` is inside
+//      `'northern ireland'`. None of these is hypothetical; each falls straight out of the
+//      operator that was there.
+//
+// So both sides go through `canonicalLaunchCountry` and are compared for EQUALITY. Geography
+// targeting is not weakened by this — it is narrowed to exactly what the client asked for, and
+// widened only across spellings of that same country.
+//
+// ⚠️ AN UNKNOWN COUNTRY IS NEVER A WILDCARD. Blank / null / whitespace returns false for every
+// geography, always. This is the same rule `isLaunchSendCountry` already applies for sending
+// ("an unknown country is not evidence of an allowed one") and it is the rule the founder
+// restated for this defect: a row with no country cannot satisfy a geography-constrained
+// proof. It is not served, and it is not silently counted as a match.
+//
+// ⚠️ A COUNTRY OUTSIDE THE ALIAS TABLE STILL WORKS. `canonicalLaunchCountry` returns an
+// unrecognised term lowercased rather than dropping it, so "Nigeria" vs "nigeria" still
+// matches. What it no longer does is match a country that merely CONTAINS those letters.
+
+/** The canonical, comparable form of a stored or targeted country. `''` = unknown. */
+export function canonicalPoolCountry(country: string | null | undefined): string {
+  return canonicalLaunchCountry(country)
+}
+
+/**
+ * Does this record's country satisfy the client's geography targeting?
+ * Canonical equality on both sides. Unknown country → always false.
+ */
+export function poolCountryMatches(
+  recCountry: string | null | undefined,
+  geographies: readonly (string | null | undefined)[],
+): boolean {
+  const rec = canonicalPoolCountry(recCountry)
+  if (!rec) return false
+  for (const g of geographies) {
+    const want = canonicalPoolCountry(g)
+    if (want && want === rec) return true
+  }
+  return false
+}
+
+/**
+ * ⚑ THE MINIMUM SERVABLE CONTRACT — is this row eligible for GEOGRAPHY-TARGETED proof?
+ *
+ * Founder-chosen shape (option A, 27 Aug): a row with no usable country **stays in
+ * `lead_pool`** — it is still real inventory, still reusable for a client who set no
+ * geography, and deleting or withholding it would destroy an asset to fix a reporting
+ * problem. What changes is that its unservability becomes an explicit, countable fact
+ * instead of a silent zero at the end of a proof run.
+ *
+ * This is deliberately NOT the whole eligibility question — email, blocklist, DNC and
+ * per-client dedupe all still apply downstream and are unchanged. This answers one thing:
+ * can this row ever satisfy a client who named a country?
+ */
+export function isGeoServable(rec: Pick<PoolRecord, 'country'>): boolean {
+  return canonicalPoolCountry(rec.country) !== ''
+}
+
 /**
  * OR-generous structured candidate match — mirrors the DB query in servePoolLeads.
  * A record is a candidate when:
- *   country ILIKE any geography (if any geography is set)  AND
+ *   canonical country EQUALS any canonical geography (if any geography is set)  AND
  *   ( title ILIKE any job_title OR industry ILIKE any industry OR seniority ILIKE any seniority )
  * Kept deliberately loose so it returns candidates; the existing scoring/consent
  * filters downstream do the precise qualification. An ICP with no role/industry/
@@ -61,8 +135,9 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
   const inds   = (icp.industries       ?? []).filter(Boolean)
   const sens   = (icp.seniority_levels ?? []).filter(Boolean)
 
-  // Geography gate (only when the ICP specifies geographies).
-  if (geos.length > 0 && !containsAny(rec.country, geos)) return false
+  // Geography gate (only when the ICP specifies geographies). Canonical equality since
+  // 27 Aug — see the block above `canonicalPoolCountry` for the two failures substring caused.
+  if (geos.length > 0 && !poolCountryMatches(rec.country, geos)) return false
 
   // Role/industry/seniority gate — OR-generous. With no signal at all, don't narrow.
   if (titles.length === 0 && inds.length === 0 && sens.length === 0) return true

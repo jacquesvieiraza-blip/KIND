@@ -51,24 +51,44 @@ describe('① EVERY lead_pool site is accounted for, and only one of them writes
 
   const sites = [...poolSites(ICPS, 'routes/icps.ts'), ...poolSites(OPERATOR, 'routes/operator.ts')]
 
-  it('finds the three sites the audit enumerated — no more, no fewer', () => {
+  it('finds the four sites the audit enumerated — no more, no fewer', () => {
     // ⚠️ THE COUNT IS THE GUARD. A new site — read or write — turns this red and forces somebody
-    // to decide which it is, instead of a fourth writer appearing unnoticed. If this fails
+    // to decide which it is, instead of a fifth writer appearing unnoticed. If this fails
     // because a site was legitimately added, add it here WITH its classification.
+    //
+    // ⛓️ 27 Aug — 3 → 4. The fourth is the NULL-ONLY COUNTRY HEAL in `servePoolLeads`'s writer
+    // block. It exists because ON CONFLICT DO NOTHING protected good countries and, by the same
+    // stroke, froze bad ones: production carried 85 pool rows whose `country` was null and had
+    // no path by which they could ever gain one. It is classified as a WRITE and constrained
+    // below — one column, only where the current value is NULL. This guard doing its job is
+    // precisely why the addition is here in writing rather than discovered later.
     expect(
       sites.length,
-      `expected 3 lead_pool sites (1 write in icps.ts, 1 read in icps.ts, 1 read in operator.ts). ` +
-      `Found ${sites.length}: ${sites.map(s => s.file).join(', ')}. A NEW SITE MUST BE CLASSIFIED — ` +
-      `if it writes, it must go through splitPoolEligible first (F13/F15).`,
-    ).toBe(3)
+      `expected 4 lead_pool sites (1 upsert + 1 null-only country heal in icps.ts, 1 read in ` +
+      `icps.ts, 1 read in operator.ts). Found ${sites.length}: ${sites.map(s => s.file).join(', ')}. ` +
+      `A NEW SITE MUST BE CLASSIFIED — if it writes, it must go through splitPoolEligible first (F13/F15).`,
+    ).toBe(4)
   })
 
-  it('exactly one site writes, and the other two only read', () => {
+  it('exactly two sites write, and the other two only read', () => {
     const writes = sites.filter(s => /\.(upsert|insert|update|delete)\(/.test(s.chain))
     const reads = sites.filter(s => /\.select\(/.test(s.chain))
-    expect(writes, 'one writer').toHaveLength(1)
+    expect(writes, 'two writers — the pool upsert and the null-only country heal').toHaveLength(2)
     expect(reads, 'two readers — the serve path and the operator view').toHaveLength(2)
-    expect(writes[0].file).toBe('routes/icps.ts')
+    for (const w of writes) expect(w.file).toBe('routes/icps.ts')
+    // Neither writer may INSERT or DELETE: the pool gains rows only through the allowlisted
+    // upsert, and nothing in this codebase removes a pooled record.
+    for (const w of writes) expect(/\.(insert|delete)\(/.test(w.chain), w.chain.slice(0, 60)).toBe(false)
+  })
+
+  it('⚑ THE SECOND WRITER IS NULL-ONLY — it can never overwrite a country we already hold', () => {
+    // The whole safety of the heal is a WHERE clause the database evaluates. Written as an
+    // unguarded `.update({ country })` it would let a later, weaker record win — the exact
+    // inversion this pool's non-clobber rule exists to prevent.
+    const heal = sites.map(s => s.chain).find(c => /\.update\(/.test(c)) ?? ''
+    expect(heal, 'the heal must exist, or this guard is blind').not.toBe('')
+    expect(heal, 'it updates country and nothing else').toContain('.update({ country })')
+    expect(heal, 'and ONLY where the stored country is null').toContain(".is('country', null)")
   })
 
   it('⚠️ THE WRITER WRITES ONLY WHAT THE ALLOWLIST PASSED — not the raw batch', () => {

@@ -16,8 +16,8 @@ import { deliveryCapBalance, normalizePlan, normalizeRevealEmail, normalizeRevea
 import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
-import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
-import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine } from '../lib/pool-sourcing'
+import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
+import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
@@ -354,12 +354,26 @@ async function servePoolLeads(
     const inds   = (icp.industries       ?? []).map(clean).filter(Boolean)
     const sens   = (icp.seniority_levels ?? []).map(clean).filter(Boolean)
 
+    // ── ⚑ 27 Aug — THE COUNTRY TERM IS EXPANDED TO EVERY SPELLING OF THAT COUNTRY ──────────
+    //
+    // `lead_pool.country` is free text written by whichever provider or import created the
+    // row, so one country is stored under several spellings at once. Asking the database for
+    // only the client's own wording returns the rows that happen to share it and misses the
+    // rest — owned, relevant inventory the pool could not see. The launch alias table already
+    // knows every spelling; it just had no expansion direction until now.
+    //
+    // ⚠️ THIS WIDENS THE CANDIDATE BUFFER ONLY. `poolCountryMatches` below then compares the
+    // canonical forms for EQUALITY, so nothing loosely-matched survives into a serve. Widen
+    // here, narrow there — the database cannot express the canonical compare, and the
+    // canonical compare cannot reach rows the database never returned.
+    const geoTerms = [...new Set(geos.flatMap(g => launchCountrySpellings(g)).map(clean).filter(Boolean))]
+
     // Structured, OR-generous candidate query (mirrors poolRecordMatchesIcp):
-    //   (country ILIKE any geo) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
+    //   (country ILIKE any geo SPELLING) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
     // Chained .or() calls are ANDed; terms inside one .or() are ORed. `*` is the
     // PostgREST ILIKE wildcard (→ SQL %). Empty filters are simply not applied.
     let q = db.from('lead_pool').select('*')
-    if (geos.length) q = q.or(geos.map(g => `country.ilike.*${g}*`).join(','))
+    if (geoTerms.length) q = q.or(geoTerms.map(g => `country.ilike.*${g}*`).join(','))
     const roleOr = [
       ...titles.map(t => `title.ilike.*${t}*`),
       ...inds.map(i => `industry.ilike.*${i}*`),
@@ -400,15 +414,32 @@ async function servePoolLeads(
       industry?: string | null; company_size?: string | null; country?: string | null
       linkedin_url?: string | null
     }
+    // ⚑ 27 Aug — counted, never inferred. A geography-targeted proof that serves nothing has
+    // two completely different causes with identical symptoms: the pool holds nobody in that
+    // country, or the pool holds them and their `country` column is empty. Production sat on
+    // the second for weeks reading it as the first, because the run reported one number for
+    // both. These counters are what tell them apart, and they carry no PII.
+    let notGeoServable = 0
+    const geoGated = geos.length > 0
     const eligible = (candidates as Cand[]).filter(c => {
       const e = norm(c.email_norm)
       if (!e) return false
+      // GEOGRAPHY, PRECISELY. The query above was widened across spellings; this is the
+      // decision. An unknown country never satisfies a geography — never a wildcard.
+      if (geoGated && !poolCountryMatches(c.country, geos)) {
+        if (!isGeoServable(c)) notGeoServable++
+        return false
+      }
       if (owned.has(e)) return false
       if (blocked.has(e)) return false
       // DO-NOT-CONTACT floor (founder's employer) — same guard as the PDL path.
       if (isSuppressed({ email: e, company: c.company, linkedin: c.linkedin_url })) return false
       return true
     }).slice(0, cap)
+
+    if (geoGated && notGeoServable > 0) {
+      console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Backfill: supabase/maintenance/2026-08-27_lead_pool_country_backfill.sql`)
+    }
 
     if (eligible.length === 0) return { insertedIds: [], served: 0 }
 
@@ -1249,7 +1280,13 @@ export async function runIcpJob(
             industry:         contact.organization?.industry ?? null,
             company_size:     contact.organization?.num_employees
                                 ? String(contact.organization.num_employees) : null,
-            country:          contact.country    || null,
+            // ⚑ 27 Aug — CANONICAL AT THE WRITE BOUNDARY. The provider's own spelling is
+            // whatever that provider indexes on ("US", "GB", "united states"); the pool is
+            // read by every future client, so it stores ONE form. `canonicalPoolCountry`
+            // returns '' for an absent country, and '' must stay NULL — an empty string
+            // would be a value that looks present and matches nothing, which is strictly
+            // worse than a null that is honest about being unknown.
+            country:          canonicalPoolCountry(contact.country) || null,
             linkedin_url:     contact.linkedin_url || null,
             source:           'pdl',
             acquisition_cost: PDL_RATE_USD,
@@ -1274,9 +1311,51 @@ export async function runIcpJob(
       const { eligible: poolEligible, refused: poolRefused } = splitPoolEligible(poolUpserts)
       if (poolRefused.length > 0) console.error(poolRefusalLine(poolRefused))
       if (poolWriteAllowed(isDemo, poolEligible.length)) {
+        // ⚑ 27 Aug — SAY WHAT THE PROVIDER ACTUALLY GAVE US. Every one of the 85 rows already
+        // in production carries a null country, and nothing anywhere recorded that as it
+        // happened; the loss was only visible months later as a proof that served nobody.
+        // Two counts, no PII, one line per run.
+        const withCountry = poolEligible.filter(r => isGeoServable(r)).length
+        console.log(`[icp] stage=pool_write — ${poolEligible.length} record(s): ${withCountry} with a usable country, ${poolEligible.length - withCountry} without (those cannot serve geography-targeted sourcing).`)
+
+        // ⚠️ `ignoreDuplicates: true` IS LOAD-BEARING, not a performance choice. It compiles to
+        // ON CONFLICT DO NOTHING, which is the ONLY reason a later write carrying a null
+        // country cannot erase a good one already in the row. A merge-on-conflict here would
+        // let the weakest record win. Guarded by pool-country-contract.test.ts.
         const { error: poolErr } = await db.from('lead_pool')
           .upsert(poolEligible, { onConflict: 'email_norm', ignoreDuplicates: true })
         if (poolErr) console.error('[icp] lead_pool upsert failed (non-fatal):', poolErr)
+
+        // ── ⚑ 27 Aug — THE POOL CAN NOW HEAL ITSELF, IN ONE DIRECTION ONLY ────────────────
+        //
+        // ON CONFLICT DO NOTHING protects a good value, and it also freezes a bad one: a row
+        // that entered the pool with a null country could never gain one, however many times
+        // a provider later returned that person WITH their country. Production is the proof —
+        // 85 rows, none with a country, and no path by which they could ever acquire one.
+        //
+        // So: fill where empty, never overwrite. `.is('country', null)` is the whole safety —
+        // it is a WHERE clause, evaluated by the database, so this statement is structurally
+        // incapable of replacing a country that is already there. That is the founder's
+        // invariant, enforced by the query shape rather than by remembering to check.
+        //
+        // ⚠️ NOT A MERGE. One column, one direction, only when the current value is NULL.
+        // Title, industry and seniority are deliberately NOT touched: no defect has been
+        // proved for them, and widening this into general conflict-merging is how the
+        // weakest record eventually wins.
+        const byCountry = new Map<string, string[]>()
+        for (const r of poolEligible) {
+          const country = typeof r.country === 'string' ? r.country : ''
+          const email   = typeof r.email_norm === 'string' ? r.email_norm : ''
+          if (!country || !email) continue
+          const list = byCountry.get(country) ?? []
+          list.push(email)
+          byCountry.set(country, list)
+        }
+        for (const [country, emails] of byCountry) {
+          const { error: healErr } = await db.from('lead_pool')
+            .update({ country }).in('email_norm', emails).is('country', null)
+          if (healErr) console.error('[icp] lead_pool country backfill failed (non-fatal):', healErr)
+        }
       }
     }
   }

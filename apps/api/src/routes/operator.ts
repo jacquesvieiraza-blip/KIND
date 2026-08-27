@@ -1419,6 +1419,27 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
     ])
     const excluded = await getExcludedClientIds()
 
+    // ⚑ 27 Aug (PR2) — UNRESOLVED PROOF REVIEWS.
+    //
+    // A prospect who used both free proof passes and asked for another was told "K.I.N.D will
+    // review this with you" and nothing reached us. `POST /icps/:id/proof` now persists that
+    // ask on the client row; this is where it becomes visible to a human.
+    //
+    // ⚠️ ITS OWN QUERY, NOT THE `clients` FETCH ABOVE, AND THAT IS DELIBERATE. That fetch is
+    // `order(created_at desc).limit(200)` — a newest-200 window. Proof exhaustion is most
+    // likely for a prospect who has been going back and forth with us for a while, which is
+    // exactly the client who falls out of a newest-first window as others sign up. Reading
+    // the review off that page would make the alert disappear on a busy week, silently, for
+    // the people who had waited longest. This predicate is bounded by the number of OPEN
+    // reviews instead, which is the handful actually owed, and is served by the partial index
+    // `clients_proof_review_open_idx`.
+    const { data: proofReviews } = await db.from('clients')
+      .select('id, company_name, is_demo, proof_review_requested_at, proof_review_icp_id')
+      .not('proof_review_requested_at', 'is', null)
+      .is('proof_review_resolved_at', null)
+      .order('proof_review_requested_at', { ascending: true })
+      .limit(200)
+
     const icpByClient = new Map<string, { created_at: string; updated_at: string | null }[]>()
     for (const i of (icps.data ?? []) as Record<string, unknown>[]) {
       const k = i.client_id as string
@@ -1466,8 +1487,60 @@ operatorRouter.get('/alerts', async (_req: Request, res: Response) => {
       }
     }
 
-    res.json({ success: true, data: out })
+    // Oldest first, and pushed AHEAD of the derived alerts: a person who has been promised a
+    // human and is waiting outranks a state we merely noticed. `severity: 'high'` for the
+    // same reason — this is the only alert here where someone is expecting a reply.
+    const proofOut: typeof out = []
+    for (const c of (proofReviews ?? []) as Record<string, unknown>[]) {
+      const id = c.id as string
+      if (c.is_demo === true || excluded.has(id)) continue
+      const at = c.proof_review_requested_at as string
+      const icpId = (c.proof_review_icp_id as string | null) ?? null
+      proofOut.push({
+        client_id: id,
+        company_name: (c.company_name as string | null) ?? null,
+        kind: 'proof_review',
+        label: `Proof review required — both free passes used, they asked for another${icpId ? ` (ICP ${icpId.slice(0, 8)})` : ''}. Requested ${at}. Review targeting or contact them.`,
+        severity: 'high',
+      })
+    }
+
+    res.json({ success: true, data: [...proofOut, ...out] })
   } catch (err) { console.error('[operator/alerts]', err); res.status(500).json({ success: false, error: 'Failed to load alerts' }) }
+})
+
+// ── PR2 — MARK A PROOF REVIEW HANDLED ───────────────────────────────────────────────
+//
+// The smallest action that closes the loop: one operator POST that stamps
+// `proof_review_resolved_at`, after which the alert above stops being returned. No workflow
+// engine, no status enum, no new table — the same `adminKeyValid` + `db.update` shape every
+// other operator action in this file already uses.
+//
+// ⚠️ CONDITIONAL, LIKE THE OPEN. It resolves only a review that is actually OPEN, so a
+// double-click cannot overwrite the first operator's timestamp with a later one, and it can
+// never invent a resolution for a client who never asked. A second click reports
+// `already_resolved` rather than failing — the operator's intent was satisfied either way.
+operatorRouter.post('/proof-review/:clientId/resolve', async (req: Request, res: Response) => {
+  try {
+    if (!adminKeyValid(req.headers['x-admin-key'])) {
+      res.status(403).json({ success: false, error: 'Operator key required' })
+      return
+    }
+    const { data: resolved } = await db.from('clients')
+      .update({ proof_review_resolved_at: new Date().toISOString() })
+      .eq('id', req.params.clientId)
+      .not('proof_review_requested_at', 'is', null)
+      .is('proof_review_resolved_at', null)
+      .select('id')
+
+    res.json({
+      success: true,
+      data: { resolved: (resolved ?? []).length > 0 ? 'resolved' : 'already_resolved' },
+    })
+  } catch (err) {
+    console.error('[operator/proof-review/resolve]', err)
+    res.status(500).json({ success: false, error: 'Failed to resolve the proof review' })
+  }
 })
 
 // ── RUN PENDING MIGRATIONS (from Vida) ─────────────────────────────────────────────

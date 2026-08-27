@@ -42,6 +42,43 @@ export type PendingMigration = { key: string; title: string; sql: string }
 
 export const PENDING_MIGRATIONS: PendingMigration[] = [
   {
+    key: '20260827_proof_review_handoff',
+    title: 'clients gains a proof-review handoff — the exhausted prospect becomes real work, not a promise',
+    sql: `
+-- ── PROOF REVIEW HANDOFF — canonical copy: supabase/migrations/20260827_proof_review_handoff.sql
+--
+-- WHAT WAS BROKEN. A prospect who had used both free proof passes and asked for another was
+-- told *"K.I.N.D will review this with you."* Nobody at K.I.N.D was told. No row, no alert,
+-- no operator surface. The sentence was true about our intent and false about our system.
+--
+-- ⚠️ ON \`clients\`, NOT \`icps\`, because that is where the proof state already lives
+-- (\`proof_passes_done\`, \`proof_records_committed\` — 20260822_free_proof_acquisition.sql)
+-- and because the two-pass ceiling is counted PER PROSPECT. A flag on \`icps\` would let one
+-- prospect hold several unresolved reviews at once — the exact duplicate this prevents.
+--
+-- ⚠️ THE TRIGGER IS THE ASK, NOT THE PASS COUNT. \`proof_passes_done >= 2\` alone means both
+-- passes were merely GENERATED — the healthy end of a proof that worked. The review is owed
+-- when the client has used both AND come back for another. Only the refused third attempt
+-- writes these columns.
+--
+--   requested_at IS NOT NULL AND resolved_at IS NULL  ->  a human review is OWED
+--   resolved_at IS NOT NULL                           ->  an operator handled it
+--   both NULL                                         ->  nothing owed (the normal state)
+--
+-- Additive only. Every existing row reads as "nothing owed" without being touched.
+
+alter table public.clients
+  add column if not exists proof_review_requested_at timestamptz,
+  add column if not exists proof_review_resolved_at  timestamptz,
+  add column if not exists proof_review_icp_id       uuid;
+
+create index if not exists clients_proof_review_open_idx
+  on public.clients (proof_review_requested_at)
+  where proof_review_requested_at is not null
+    and proof_review_resolved_at is null;
+`,
+  },
+  {
     key: '20260826_run_outcome_failed',
     title: "icp_run_outcomes.status gains 'failed' — a crashed proof run is a terminal fact, not a silent spinner (R72)",
     sql: `

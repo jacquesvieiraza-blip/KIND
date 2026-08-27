@@ -278,21 +278,67 @@ export function classifyLeadRights(
 //                                            source ('hunter', …) is not eligible and can
 //                                            never resolve merely by being non-null.
 //   otherwise                             → null — ambiguous, EXCLUDED, fail closed.
+export type MemoryRecordRef = { source?: string | null; providerId?: string | null }
+
 export function resolveHistoricalProvider(opts: {
   source?: string | null
   isHouseAccount?: boolean
-  memorySources?: readonly (string | null | undefined)[]
+  /** the lead row's own provider identity (`leads.apollo_id`), if any */
+  providerId?: string | null
+  /** acquisition_memory rows for this email — (source, provider_id) pairs */
+  memoryRecords?: readonly MemoryRecordRef[]
 }): 'pdl' | 'apollo' | null {
   const s = (opts.source ?? '').trim().toLowerCase()
   if (s && CUSTOMER_INBOUND_SOURCES.includes(s)) return null                    // A
   if (s === 'pdl' || s === 'apollo') return s                                   // B
   if (s === 'lookalike') return 'pdl'                                           // C
   if (opts.isHouseAccount) return 'apollo'                                      // D
-  const eligible = [...new Set((opts.memorySources ?? [])                       // E
-    .map(m => (m ?? '').trim().toLowerCase())
+  // E — ⛓️ merge-gate pass: corroboration binds to the ACQUISITION IDENTITY, never to the
+  // email alone. acquisition_memory is keyed (source, provider_id); a manual/untagged lead
+  // row whose email merely coincides with a remembered identity proves nothing about THIS
+  // row — the manual POST /leads schema accepts an arbitrary apollo_id, so the row's own
+  // provider id must MATCH a remembered provider_id, and exactly one eligible provider must
+  // claim it. No provider id on the row → step E has nothing to bind to → fail closed.
+  if (!opts.providerId) return null
+  const eligible = [...new Set((opts.memoryRecords ?? [])
+    .filter(m => (m.providerId ?? '') === opts.providerId)
+    .map(m => (m.source ?? '').trim().toLowerCase())
     .filter(m => m === 'pdl' || m === 'apollo'))]
   if (eligible.length === 1) return eligible[0] as 'pdl' | 'apollo'
   return null                                                                   // fail closed
+}
+
+// ── ⚑ 27 Aug (merge-gate pass) — AMBIGUITY IS A STATE, NEVER A PICK ─────────────────────
+//
+// The promotion tool must not resolve a conflict by choosing the earliest row, the lowest
+// number, or any other tiebreak dressed as determinism. These two helpers are the canonical
+// spec the SQL mirrors:
+
+/** All eligible canonical country observations for one identity → the ONE country, or the
+ *  honest alternative. 0 observations → null (geo-unservable, poolable). >1 DISTINCT
+ *  canonical countries → ambiguous: country stays null, the identity is counted, and no
+ *  geography is ever claimed for it. NEVER earliest/min/max. */
+export function resolvePromotionCountry(observations: readonly (string | null | undefined)[]): {
+  country: string | null; ambiguous: boolean
+} {
+  const distinct = [...new Set(observations.map(o => canonicalPoolCountry(o)).filter(Boolean))]
+  if (distinct.length === 1) return { country: distinct[0], ambiguous: false }
+  return { country: null, ambiguous: distinct.length > 1 }
+}
+
+/** The provable original cost for one resolved acquisition identity. Exactly one distinct
+ *  recorded cost → that cost. Zero → 0 only for the proven house-Apollo book, else
+ *  unprovable. More than one distinct recorded cost → ambiguous. NEVER MIN/MAX to force a
+ *  number — "lowest is conservative" is not "historically true". */
+export function resolvePromotionCost(
+  recordedCosts: readonly number[],
+  opts: { houseApollo?: boolean } = {},
+): { cost: number | null; state: 'proven' | 'house_zero' | 'unprovable' | 'ambiguous' } {
+  const distinct = [...new Set(recordedCosts)]
+  if (distinct.length === 1) return { cost: distinct[0], state: 'proven' }
+  if (distinct.length > 1) return { cost: null, state: 'ambiguous' }
+  if (opts.houseApollo) return { cost: 0, state: 'house_zero' }
+  return { cost: null, state: 'unprovable' }
 }
 
 /** May this rights bucket enter the shared pool / be promoted? ONLY kind_acquired (R73). */
@@ -316,14 +362,26 @@ export type PoolWriteCandidate = { source?: string | null; email_norm?: string |
  * somebody wrote a pool record without thinking about provenance, which is the case this
  * exists to catch. Same reasoning as `isLaunchSendCountry` refusing a blank country.
  */
+/**
+ * ⚑ 27 Aug (merge-gate pass) — ONE source-eligibility truth for BOTH boundaries. The write
+ * tripwire filtered what enters the pool, but the READ path served whatever was already
+ * there — so a bad historical SQL import could bypass the tripwire entirely and a customer
+ * or unknown row would be served cross-client. `servePoolLeads` now asks this same question
+ * on the way OUT (DB prefilter + JS final check), and it fails closed: null/blank/unlisted
+ * sources are never served across clients.
+ */
+export function isPoolSourceEligible(source: string | null | undefined): boolean {
+  const src = typeof source === 'string' ? source.trim().toLowerCase() : ''
+  return src.length > 0 && POOL_ELIGIBLE_SOURCES.includes(src)
+}
+
 export function splitPoolEligible<T extends PoolWriteCandidate>(
   records: readonly T[],
 ): { eligible: T[]; refused: T[] } {
   const eligible: T[] = []
   const refused: T[] = []
   for (const r of records) {
-    const src = typeof r.source === 'string' ? r.source.trim().toLowerCase() : ''
-    if (src && POOL_ELIGIBLE_SOURCES.includes(src)) eligible.push(r)
+    if (isPoolSourceEligible(r.source)) eligible.push(r)
     else refused.push(r)
   }
   return { eligible, refused }

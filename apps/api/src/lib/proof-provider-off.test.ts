@@ -63,10 +63,23 @@ type ProofOpts = {
    *  keeps the healthy default ('united kingdom', matching the ICP); `null` simulates a
    *  provider/mapping that lost geography entirely (the Apollo-cast failure mode). */
   providerCountry?: string | null
+  /** ⚑ 27 Aug (merge-gate) — the stored `source` on the pool fixtures, so the READ fence can
+   *  be driven: 'pdl'/'apollo' are R73-eligible; anything else must never serve. */
+  poolSource?: string | null
+  /** rows of an INELIGIBLE source placed BEFORE the eligible ones, to prove they cannot
+   *  consume the bounded candidate window. */
+  poolDecoys?: number
+  poolDecoySource?: string | null
 }
 
 /** Install every mock the proof runtime needs. Shared by BOTH harnesses — the direct
  *  `runIcpJob` one and the route-boundary one — so they cannot drift apart. */
+/** Mirrors the runtime candidate window: max(cap*5, 50); a proof run caps at 20 → 100. */
+const poolWindow = 100
+/** The real DB query applies `.in('source', POOL_ELIGIBLE_SOURCES)` before `.limit()`.
+ *  Flipped to false only by the red-proof that removes the DB prefilter. */
+const poolSourceFilterApplied = true
+
 async function buildProofModules(opts: ProofOpts, rec: Rec) {
   vi.resetModules()
 
@@ -78,6 +91,17 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
     email_norm: `pool${i}@safe.example`, first_name: 'P', last_name: `${i}`,
     title: 'CEO', seniority: 'C-Suite', company: `Co${i}`, industry: 'SaaS',
     company_size: '201–500', country: 'United Kingdom', linkedin_url: null,
+    // ⚑ 27 Aug (merge-gate) — real pooled inventory carries its K.I.N.D-acquired provenance.
+    // The read fence refuses NULL/unlisted sources cross-client, so a fixture without one is
+    // not a realistic pool row; it is an unowned row the fence is right to reject.
+    source: opts.poolSource === undefined ? 'pdl' : opts.poolSource,
+  }))
+  // Ineligible-source decoys FIRST in storage order — the starvation shape.
+  const decoyRows = Array.from({ length: opts.poolDecoys ?? 0 }, (_, i) => ({
+    email_norm: `decoy${i}@nope.example`, first_name: 'D', last_name: `${i}`,
+    title: 'CEO', seniority: 'C-Suite', company: `Decoy${i}`, industry: 'SaaS',
+    company_size: '201–500', country: 'United Kingdom', linkedin_url: null,
+    source: opts.poolDecoySource === undefined ? 'csv_import' : opts.poolDecoySource,
   }))
 
   vi.doMock('@kind/db', () => {
@@ -127,7 +151,14 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
           return c2
         },
         then(resolve: (v: unknown) => unknown) {
-          if (table === 'lead_pool') return resolve({ data: poolRows, error: null })
+          if (table === 'lead_pool') {
+            // The real query filters by source IN (...) and caps with .limit(); this mock
+            // reproduces BOTH so a decoy crowd genuinely tests the window.
+            const all = [...decoyRows, ...poolRows]
+            const allowed = ['pdl', 'apollo']
+            const filtered = poolSourceFilterApplied ? all.filter(r => allowed.includes(String(r.source))) : all
+            return resolve({ data: filtered.slice(0, poolWindow), error: null })
+          }
           if (table === 'credit_transactions') return resolve({ data: [], count: 0, error: null })
           return resolve({ data: [], count: 0, error: null })
         },
@@ -574,5 +605,51 @@ describe('EXECUTED · the lead row records which provider produced it', () => {
       expect(r.source ?? null, 'a copy carries no provider-acquisition stamp').toBeNull()
       expect(r.apollo_id ?? null).toBeNull()
     }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (merge-gate) — R73 IS ENFORCED ON THE POOL **READ**, NOT ONLY THE WRITE.
+// The write tripwire governs what may enter the shared pool; it says nothing about what is
+// already in it. A historical SQL import bypasses the TypeScript writer entirely — that is
+// how the 85 production rows arrived — so without a read fence a customer/inbound or
+// unknown-provenance row could be served CROSS-CLIENT. These drive the REAL runIcpJob.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · the pool READ fence (R73)', () => {
+  it('a PDL pool row serves', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 6, provider: 'blocked', poolSource: 'pdl' }, rec)
+    expect(rec.outcomes[0]?.pool_served).toBe(6)
+  })
+
+  it('⚑ an APOLLO pool row serves — R73, not a PDL-only regression', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 6, provider: 'blocked', poolSource: 'apollo' }, rec)
+    expect(rec.outcomes[0]?.pool_served).toBe(6)
+  })
+
+  for (const bad of ['csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding']) {
+    it(`⚠️ a ${bad} pool row is NEVER served cross-client`, async () => {
+      const rec = fresh()
+      await runProofJob({ pool: 6, provider: 'blocked', poolSource: bad }, rec)
+      expect(rec.outcomes[0]?.pool_served, 'customer data must not be served to another client').toBe(0)
+    })
+  }
+
+  it('⚠️ an UNKNOWN or NULL source is refused — fail closed', async () => {
+    for (const bad of [null, 'mystery_source', '']) {
+      const rec = fresh()
+      await runProofJob({ pool: 6, provider: 'blocked', poolSource: bad }, rec)
+      expect(rec.outcomes[0]?.pool_served, String(bad)).toBe(0)
+    }
+  })
+
+  it('⚑ 250 ineligible-source rows AHEAD of the eligible ones cannot starve the window', async () => {
+    // The DB prefilter runs BEFORE .limit(100): the decoys never enter the window at all,
+    // so all 10 owned rows stay reachable. Filtering in JS afterwards would serve zero.
+    const rec = fresh()
+    await runProofJob({ pool: 10, provider: 'blocked', poolSource: 'pdl',
+                        poolDecoys: 250, poolDecoySource: 'csv_import' }, rec)
+    expect(rec.outcomes[0]?.pool_served, 'every owned row remains reachable').toBe(10)
   })
 })

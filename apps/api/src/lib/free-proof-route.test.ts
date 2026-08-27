@@ -83,6 +83,11 @@ async function runJob(opts: {
             email_norm: `pool${i}@acme.co`, first_name: 'P', last_name: String(i),
             title: 'CTO', seniority: 'C-Suite', company: 'Acme', industry: 'SaaS',
             company_size: '11-50', country: 'United Kingdom', linkedin_url: null,
+            // ⚑ 27 Aug — R73 is now enforced on the pool READ as well as the write, so a
+            // realistic pooled row carries its K.I.N.D-acquired provenance. Without it the
+            // fence correctly refuses these rows and every pool count here reads 0 — which
+            // is the fence working, not a fixture detail.
+            source: 'pdl',
           }))
           return { data: rows, error: null }
         }

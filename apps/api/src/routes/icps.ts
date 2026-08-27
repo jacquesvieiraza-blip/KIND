@@ -17,7 +17,7 @@ import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
 import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
-import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable } from '../lib/pool-sourcing'
+import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
@@ -379,7 +379,21 @@ async function servePoolLeads(
     //   (country = any geo SPELLING, case-insensitive) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
     // Chained .or() calls are ANDed; terms inside one .or() are ORed. Role terms keep their
     // `*` wildcards — titles are genuinely partial. Country terms carry NO wildcard.
-    let q = db.from('lead_pool').select('*')
+    // ── ⚑ 27 Aug (merge-gate) — R73 IS ENFORCED ON THE READ, NOT ONLY THE WRITE ───────────
+    // The write tripwire decides what may ENTER the shared pool; it says nothing about what
+    // is already in it. A historical SQL import or backfill bypasses the TypeScript writer
+    // entirely — that is not hypothetical, it is how the 85 rows arrived — so without a fence
+    // here a customer/inbound or unknown-provenance row could be served CROSS-CLIENT.
+    //
+    // ⚠️ IT MUST BE A DATABASE FILTER, BEFORE `.limit(...)`. Filtering in JS afterwards would
+    // let ineligible rows consume the bounded candidate window and push owned rows out of it
+    // — the same starvation channel the country wildcard opened. Both boundaries, again.
+    //
+    // ⚠️ FAIL CLOSED. Only the R73 sources (`pdl`, `apollo` — K.I.N.D-acquired) are served;
+    // NULL, blank and anything unlisted are refused. The 85 production rows are `apollo` and
+    // stay source-eligible — they remain unservable for a geography-targeted run because
+    // their country is NULL, which is a different gate.
+    let q = db.from('lead_pool').select('*').in('source', [...POOL_ELIGIBLE_SOURCES])
     if (geoTerms.length) q = q.or(geoTerms.map(g => `country.ilike.${g}`).join(','))
     const roleOr = [
       ...titles.map(t => `title.ilike.*${t}*`),
@@ -419,7 +433,7 @@ async function servePoolLeads(
       email_norm: string; first_name?: string | null; last_name?: string | null
       title?: string | null; seniority?: string | null; company?: string | null
       industry?: string | null; company_size?: string | null; country?: string | null
-      linkedin_url?: string | null
+      linkedin_url?: string | null; source?: string | null
     }
     // ⚑ 27 Aug — counted, never inferred. A geography-targeted proof that serves nothing has
     // two completely different causes with identical symptoms: the pool holds nobody in that
@@ -427,10 +441,14 @@ async function servePoolLeads(
     // the second for weeks reading it as the first, because the run reported one number for
     // both. These counters are what tell them apart, and they carry no PII.
     let notGeoServable = 0
+    let notSourceEligible = 0
     const geoGated = geos.length > 0
     const eligible = (candidates as Cand[]).filter(c => {
       const e = norm(c.email_norm)
       if (!e) return false
+      // R73 RIGHTS, decided here — the database prefilter narrows the window, it does not
+      // make the decision. Same reasoning as the country gate: widen there, decide here.
+      if (!isPoolSourceEligible(c.source)) { notSourceEligible++; return false }
       // GEOGRAPHY, PRECISELY. The query above was widened across spellings; this is the
       // decision. An unknown country never satisfies a geography — never a wildcard.
       if (geoGated && !poolCountryMatches(c.country, geos)) {
@@ -443,6 +461,10 @@ async function servePoolLeads(
       if (isSuppressed({ email: e, company: c.company, linkedin: c.linkedin_url })) return false
       return true
     }).slice(0, cap)
+
+    if (notSourceEligible > 0) {
+      console.error(`[icp] stage=pool_source_refused — ${notSourceEligible} pool candidate(s) were refused for cross-client serving because their stored source is not K.I.N.D-acquired (R73 allows ${POOL_ELIGIBLE_SOURCES.join(', ')}; NULL/blank/unlisted fail closed). A non-zero count means rows entered the pool outside the guarded writer — check the promotion/import path.`)
+    }
 
     if (geoGated && notGeoServable > 0) {
       console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Rights-safe promotion/heal: supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql`)

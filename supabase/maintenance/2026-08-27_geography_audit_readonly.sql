@@ -3,10 +3,14 @@
 -- Counts / states / timestamps only; no name, email, company or LinkedIn is selected;
 -- client and ICP ids are truncated to 8-char prefixes.
 --
--- Companion to 2026-08-27_lead_pool_country_backfill.sql (whose PHASE A stays the
--- recoverability authority). This pack answers the LIVE-lead questions: did freshly
--- sourced leads lose geography, from which source, and was any geography-constrained
--- client actually given leads whose country is NULL or non-matching.
+-- ⛓️ CORRECTED 27 Aug (merge-gate pass). The former companion file
+-- `2026-08-27_lead_pool_country_backfill.sql` has been RETIRED and deleted: under R73
+-- `public.leads` holds BOTH K.I.N.D-acquired and customer/inbound rows, and that script
+-- drew country evidence from all of them. **PHASE A of
+-- `2026-08-27_kind_acquired_pool_promotion.sql` is now the inventory/recovery authority** —
+-- it carries the R73 rights boundary and identity-bound provenance. This pack answers only
+-- the LIVE-lead questions: did freshly sourced leads lose geography, from which source, and
+-- was any geography-constrained client given leads whose country is NULL or non-matching.
 --
 -- ⚠️ THE ALIAS CASE BLOCK BELOW MIRRORS packages/shared/src/launch-countries.ts
 -- (founder-locked alias table, 24 Aug). It exists because SQL cannot import TypeScript.
@@ -22,12 +26,15 @@ select count(*)                                                       as total_l
 from public.leads;
 
 -- ────────────────────────────────────────────────────────────────────────────
--- G2 · NULL-COUNTRY LEADS BY ORIGIN. `apollo_id` present = provider-sourced through the
--- contact pipeline (PDL rows carry the provider id in the same column); `source` and
--- `icp_id` refine it. Counts only.
+-- G2 · NULL-COUNTRY LEADS BY ORIGIN.
+-- ⛓️ CORRECTED 27 Aug: this column was called `provider_sourced`, which was FALSE — the
+-- manual `POST /leads` schema accepts an arbitrary `apollo_id` and stamps no source, so a
+-- provider id present does NOT prove K.I.N.D acquisition. Renamed to what it actually
+-- measures. `source` (now stamped truthfully by the provider loop) is the provenance column;
+-- `provider_id_present` is only a hint. Counts only.
 -- ────────────────────────────────────────────────────────────────────────────
 select coalesce(source, '(none)')                                     as source,
-       (apollo_id is not null)                                        as provider_sourced,
+       (apollo_id is not null)                                        as provider_id_present,
        (icp_id is not null)                                           as from_an_icp_run,
        count(*)                                                       as null_country_leads,
        min(created_at)                                                as oldest,
@@ -38,11 +45,12 @@ group by 1, 2, 3
 order by null_country_leads desc;
 
 -- ────────────────────────────────────────────────────────────────────────────
--- G3 · RECENT LIVE LEADS (21 days) WITH NULL COUNTRY — by day and origin. If provider
--- sourcing was losing geography recently, it shows here as provider_sourced=true rows.
+-- G3 · RECENT LIVE LEADS (21 days) WITH NULL COUNTRY — by day and origin.
+-- ⛓️ Same correction as G2: `provider_id_present` is a hint, not proof of acquisition.
+-- Rows created AFTER this PR deploys carry a truthful `leads.source` and need no hint.
 -- ────────────────────────────────────────────────────────────────────────────
 select date_trunc('day', created_at)::date                            as day,
-       (apollo_id is not null)                                        as provider_sourced,
+       (apollo_id is not null)                                        as provider_id_present,
        count(*)                                                       as null_country_leads
 from public.leads
 where coalesce(btrim(country), '') = ''
@@ -53,10 +61,12 @@ order by 1 desc, 2 desc;
 -- ────────────────────────────────────────────────────────────────────────────
 -- G4 · POOL — NULL-country breakdown by source (the licensing/tripwire view too).
 -- `source` values: 'pdl' (runtime writer) · 'backfill' (20260712 migration) ·
--- 'apollo' (2026-07-11 promotion) · 'manual' (pre-20260716 rows). Code currently
--- allowlists ONLY 'pdl' for cross-client POOL WRITES, but the SERVE path reads the
--- pool with NO source filter — so every source below is served cross-client today.
--- That gap is reported in PR #1458; this shows its real size.
+-- 'apollo' (2026-07-11 promotion) · 'manual' (pre-20260716 rows).
+-- ⛓️ CORRECTED 27 Aug: R73 allows K.I.N.D-acquired **'pdl' AND 'apollo'** (not PDL-only),
+-- and PR #1458 now enforces that allowlist on the READ as well as the write — the serve
+-- path filters `source IN ('pdl','apollo')` in the database before its bounded LIMIT.
+-- So rows below tagged 'backfill', 'manual' or NULL are NO LONGER served cross-client;
+-- this shows how many are affected.
 -- ────────────────────────────────────────────────────────────────────────────
 select coalesce(source, '(untagged)')                                 as source,
        count(*)                                                       as rows,
@@ -87,6 +97,14 @@ limit 25;
 -- ────────────────────────────────────────────────────────────────────────────
 -- G6 · ⚑ THE CRITICAL ONE — geography-constrained clients holding leads whose country
 -- is NULL or canonically OUTSIDE their selected geographies.
+--
+-- ⚠️⚠️ LIMITATION, STATED BEFORE THE NUMBERS: this compares HISTORICAL lead rows against
+-- the ICP row's **CURRENT** geographies. ICP targeting can change over time and there is no
+-- per-run targeting snapshot in the schema, so a "wrong_country" count here is NOT proof
+-- that the lead violated the targeting IN FORCE when it was sourced — the client may simply
+-- have narrowed their geography afterwards. Read `wrong_country` as "does not match TODAY'S
+-- targeting", never as a proved historical mismatch. `null_country` has no such caveat: an
+-- absent country could never satisfy any geography, at any time.
 --
 -- canon(x) mirrors canonicalLaunchCountry: alias → canonical lowercase full name;
 -- unrecognised terms lowercase-trimmed; blank → ''. A lead "violates" when the ICP has
@@ -144,32 +162,13 @@ group by 1, 2
 order by 1 desc, 2;
 
 -- ────────────────────────────────────────────────────────────────────────────
--- G8 · RECOVERABILITY WITH SOURCE-OF-RECOVERY — extends PHASE A / A3 of the backfill
--- file: the same three numbers, but split by WHERE the recoverable country would come
--- from (a leads row, acquisition_memory, or both agreeing).
+-- G8 · REMOVED — 27 Aug (merge-gate pass).
+--
+-- It computed recoverability by drawing country evidence from ALL of `public.leads`,
+-- which under R73 includes customer/inbound rows — exactly the rights error that got the
+-- old country backfill retired. Recreating it here would have recreated the defect.
+--
+-- ▶ USE `2026-08-27_kind_acquired_pool_promotion.sql` PHASE A INSTEAD. It carries the R73
+--   rights boundary, identity-bound provenance (acquisition_memory matched on
+--   (source, provider_id), never on email alone) and explicit ambiguity states.
 -- ────────────────────────────────────────────────────────────────────────────
-with lead_src as (
-  select lower(btrim(l.email)) as email_norm, lower(btrim(l.country)) as country
-  from public.leads l
-  where l.email is not null and btrim(l.email) <> '' and coalesce(btrim(l.country), '') <> ''
-), mem_src as (
-  select lower(btrim(a.email_norm)) as email_norm, lower(btrim(a.country)) as country
-  from public.acquisition_memory a
-  where a.email_norm is not null and btrim(a.email_norm) <> '' and coalesce(btrim(a.country), '') <> ''
-), agg as (
-  select p.email_norm,
-         (select count(distinct s.country) from (
-            select country from lead_src where email_norm = p.email_norm
-            union select country from mem_src where email_norm = p.email_norm) s) as distinct_countries,
-         exists (select 1 from lead_src where email_norm = p.email_norm)          as in_leads,
-         exists (select 1 from mem_src  where email_norm = p.email_norm)          as in_memory
-  from public.lead_pool p
-  where coalesce(btrim(p.country), '') = ''
-)
-select count(*) filter (where distinct_countries = 1 and in_leads and in_memory) as recoverable_both_agree,
-       count(*) filter (where distinct_countries = 1 and in_leads and not in_memory) as recoverable_from_leads_only,
-       count(*) filter (where distinct_countries = 1 and in_memory and not in_leads) as recoverable_from_memory_only,
-       count(*) filter (where distinct_countries > 1)                            as ambiguous_skipped,
-       count(*) filter (where distinct_countries = 0)                            as not_recoverable,
-       count(*)                                                                  as total_missing_country
-from agg;

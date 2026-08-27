@@ -585,23 +585,38 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
     expect(sql).toContain("count(distinct lower(btrim(am.source))) = 1")
     // and only pdl/apollo are ever eligible from memory:
     expect(sql).toContain("lower(btrim(am.source)) in ('pdl','apollo')")
-    // final guards on Phase B: resolver succeeded AND cost provable, or the row is skipped:
-    expect(sql).toContain("where p.provider in ('pdl', 'apollo')")
-    expect(sql).toContain('p.resolved_cost is not null')
+    // final guards on Phase B: resolver succeeded AND cost proven/house, or the row is skipped
+    expect(sql).toContain("where c.provider in ('pdl', 'apollo')")
+    expect(sql).toContain('c.proven_cost is not null')
+    // ⚑ corroboration binds to the ACQUISITION IDENTITY, never to the email alone:
+    expect(sql).toContain('am.provider_id = l.apollo_id')
+    // ⚑ no earliest-row country pick, and no MIN-as-cost-truth:
+    expect(sql).toContain('when c.distinct_countries = 1 then c.one_country else null end')
+    expect(sql).toContain('count(distinct am.acquisition_cost_usd) = 1')
+    // ⚑ identity dedupe is explicit, never a UNION of differently shaped rows:
+    expect(sql, 'A3 must not identity-dedupe by UNION').not.toMatch(/from public\.lead_pool p\s+union\s+select distinct on/)
   })
 
   it('the corrected audit terminology: progressive gates, never an absolute servability claim', () => {
     const sql = readRepo(TOOL)
-    expect(sql).toContain('metadata_complete_candidates')
-    expect(sql).toContain('safely_promotable_now')
-    for (const col of ['kind_acquired_proven', 'canonical_geo_match', 'role_match',
+    for (const col of ['already_in_pool', 'promotable_outside_pool', 'ambiguous_excluded',
+                       'customer_inbound_excluded', 'unknown_excluded',
+                       'provider_proven_metadata_complete', 'cost_proven',
+                       'cost_unprovable_excluded', 'cost_ambiguous_excluded',
+                       'kind_acquired_proven', 'canonical_geo_match', 'role_match',
                        'after_opt_out_blocklist', 'after_sql_visible_suppression_floor',
                        'after_existing_client_dedupe', 'after_sql_visible_runtime_gates',
-                       'cost_unprovable_excluded']) {
+                       'country_ambiguous']) {
       expect(sql, col).toContain(col)
     }
-    expect(sql, 'the overclaiming labels are gone').not.toContain('promotable_not_in_pool')
-    expect(sql).not.toContain('likely_runtime_servable_estimate')
+    // ⛓️ renamed on the merge-gate pass: the old name implied Phase B would take the row,
+    // but Phase B also demands a provable, unambiguous cost.
+    // ⚠️ COMMENT-STRIPPED — the file's own note EXPLAINING the rename contains the old name,
+    // and a guard satisfied by the prose that explains it is the recurring defect here.
+    const code = codeOnly(readRepo(TOOL))
+    expect(code, 'over-claiming labels are gone').not.toContain('safely_promotable_now')
+    expect(code).not.toContain('promotable_not_in_pool')
+    expect(code).not.toContain('likely_runtime_servable_estimate')
     // the stated caveat about the env-only suppression additions:
     expect(sql).toContain('SUPPRESSED_DOMAINS')
   })
@@ -649,26 +664,96 @@ describe('resolveHistoricalProvider — deterministic, never a pick', () => {
     expect(resolveHistoricalProvider({ source: null, isHouseAccount: true })).toBe('apollo')
   })
 
-  it('E · memory resolves ONLY on exactly one distinct eligible provider', () => {
-    expect(resolveHistoricalProvider({ memorySources: ['pdl'] })).toBe('pdl')
-    expect(resolveHistoricalProvider({ memorySources: ['apollo', 'apollo'] })).toBe('apollo')
-    expect(resolveHistoricalProvider({ memorySources: ['PDL', ' pdl '] }), 'case/space variants are one provider').toBe('pdl')
+  it('E · memory corroborates ONLY through the matching acquisition IDENTITY', () => {
+    // acquisition_memory is keyed (source, provider_id) — the row's own provider id must
+    // match a remembered provider_id, and exactly one eligible provider must claim it.
+    const M = (source: string, providerId: string) => ({ source, providerId })
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('pdl', 'X')] })).toBe('pdl')
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('apollo', 'X'), M('apollo', 'X')] })).toBe('apollo')
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('PDL', 'X'), M(' pdl ', 'X')] }),
+      'case/space variants are one provider').toBe('pdl')
   })
 
-  it('⚑ BOTH pdl AND apollo in memory → AMBIGUOUS → null, never a pick', () => {
-    expect(resolveHistoricalProvider({ memorySources: ['pdl', 'apollo'] })).toBeNull()
+  it('⚑ EMAIL ALONE NEVER CORROBORATES — the remembered identity must be THIS row', () => {
+    // The exact defect: a manual/customer lead row carrying apollo_id=X whose email happens
+    // to exist in acquisition_memory under a DIFFERENT provider_id=Y. Same email, different
+    // acquisition. Must not resolve.
+    const M = (source: string, providerId: string) => ({ source, providerId })
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('pdl', 'Y')] })).toBeNull()
+    // …and a row with NO provider id has nothing to bind to at all:
+    expect(resolveHistoricalProvider({ providerId: null, memoryRecords: [M('pdl', 'Y')] })).toBeNull()
+    expect(resolveHistoricalProvider({ memoryRecords: [M('pdl', 'X')] })).toBeNull()
+  })
+
+  it('⚑ BOTH pdl AND apollo remembered for the SAME identity → AMBIGUOUS → null', () => {
+    const M = (source: string, providerId: string) => ({ source, providerId })
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('pdl', 'X'), M('apollo', 'X')] })).toBeNull()
   })
 
   it('⚑ an unexpected memory source is NEVER eligible merely by being non-null', () => {
-    expect(resolveHistoricalProvider({ memorySources: ['hunter'] })).toBeNull()
-    expect(resolveHistoricalProvider({ memorySources: ['clearbit', 'mystery'] })).toBeNull()
-    // …but it cannot poison a unique eligible provider either:
-    expect(resolveHistoricalProvider({ memorySources: ['hunter', 'pdl'] })).toBe('pdl')
+    const M = (source: string, providerId: string) => ({ source, providerId })
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('hunter', 'X')] })).toBeNull()
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('clearbit', 'X'), M('mystery', 'X')] })).toBeNull()
+    // …but it cannot poison a unique eligible provider on the same identity either:
+    expect(resolveHistoricalProvider({ providerId: 'X', memoryRecords: [M('hunter', 'X'), M('pdl', 'X')] })).toBe('pdl')
   })
 
   it('nothing at all → null — unknown fails closed', () => {
     expect(resolveHistoricalProvider({})).toBeNull()
-    expect(resolveHistoricalProvider({ memorySources: [] })).toBeNull()
+    expect(resolveHistoricalProvider({ memoryRecords: [] })).toBeNull()
     expect(resolveHistoricalProvider({ source: '  ' })).toBeNull()
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (merge-gate) — AMBIGUITY IS A STATE, NEVER A PICK.
+// Phase B used `DISTINCT ON (email) ORDER BY created_at ASC` for country and `MIN()` for
+// cost. Both are deterministic and both are WRONG: "earliest row" and "lowest number" are
+// tiebreaks wearing determinism, not historical truth. These pure helpers are the spec the
+// SQL mirrors (text-guarded above).
+// ═══════════════════════════════════════════════════════════════════════════════════════
+import { resolvePromotionCountry, resolvePromotionCost } from './pool-sourcing'
+
+describe('resolvePromotionCountry — one answer, or none', () => {
+  it('exactly one distinct canonical country → that country', () => {
+    expect(resolvePromotionCountry(['United Kingdom'])).toEqual({ country: 'united kingdom', ambiguous: false })
+    // spelling variants of ONE country are still one answer
+    expect(resolvePromotionCountry(['GB', 'England', 'united kingdom'])).toEqual({ country: 'united kingdom', ambiguous: false })
+  })
+
+  it('no observations → NULL, not ambiguous (poolable, geo-unservable)', () => {
+    expect(resolvePromotionCountry([])).toEqual({ country: null, ambiguous: false })
+    expect(resolvePromotionCountry([null, '', '  '])).toEqual({ country: null, ambiguous: false })
+  })
+
+  it('⚑ CONFLICTING countries → AMBIGUOUS → country NULL. Never earliest, never min/max', () => {
+    const r = resolvePromotionCountry(['United States', 'United Kingdom'])
+    expect(r.ambiguous, 'the conflict is a state, and it is reported').toBe(true)
+    expect(r.country, 'no geography may be claimed for this identity').toBeNull()
+    // order must not change the answer — an "earliest row" rule would
+    expect(resolvePromotionCountry(['United Kingdom', 'United States'])).toEqual(r)
+  })
+})
+
+describe('resolvePromotionCost — original truth, or a skip', () => {
+  it('exactly one distinct recorded cost → that cost', () => {
+    expect(resolvePromotionCost([0.28])).toEqual({ cost: 0.28, state: 'proven' })
+    expect(resolvePromotionCost([0.28, 0.28])).toEqual({ cost: 0.28, state: 'proven' })
+  })
+
+  it('⚑ CONFLICTING recorded costs → AMBIGUOUS. Never MIN to force a number', () => {
+    const r = resolvePromotionCost([0.28, 0.35])
+    expect(r.state).toBe('ambiguous')
+    expect(r.cost, '"lowest is conservative" is not "historically true"').toBeNull()
+    expect(resolvePromotionCost([0.35, 0.28])).toEqual(r)     // order-independent
+  })
+
+  it('no recorded cost → house-Apollo 0 only where the house book proves it, else unprovable', () => {
+    expect(resolvePromotionCost([], { houseApollo: true })).toEqual({ cost: 0, state: 'house_zero' })
+    expect(resolvePromotionCost([])).toEqual({ cost: null, state: 'unprovable' })
+  })
+
+  it('a conflict is ambiguous even for the house book — evidence beats the default', () => {
+    expect(resolvePromotionCost([0.1, 0.2], { houseApollo: true }).state).toBe('ambiguous')
   })
 })

@@ -697,13 +697,35 @@ with canon as (
 --        set (never "any lead whose email qualifies"), so the metadata is proven-acquisition
 --        metadata only. Country is canonicalised BEFORE distinctness inside the resolver.
 --
+--   ⛓️ 27 Aug (A3 matcher alignment) — THE ROLE TEST NOW MIRRORS THE DEPLOYED MATCHER, and
+--   the previous version did not. It used hand-written synonym regexes — `chief executive`,
+--   `chief revenue`, `software`, bare `director`, `vp`, `owner`, `chief` — none of which is
+--   in the client's saved ICP. That inflated every downstream count: a dry run predicting
+--   inventory the runtime would never serve is worse than no dry run, because it is believed.
+--
+--   The runtime is `pool-sourcing.ts` → `containsAny(hay, needles)`:
+--       hay.toLowerCase().includes(needle.toLowerCase())
+--   i.e. the STORED value contains a SAVED TERM, literal substring, case-insensitive, OR-ed
+--   across title / industry / seniority. `strpos(lower(stored), lower(term)) > 0` is that
+--   exact test — `like`/`similar to` would give the saved terms pattern meaning they do not
+--   have. No synonyms, no stemming, no semantic expansion: what the client saved is the test.
+--
+--   ⚠️ THE ARRAYS BELOW ARE THE CURRENT PASS-1 TARGETING. Re-running A3 for a different ICP
+--   means editing these four arrays — nothing else. Read them off the `icps` row.
+--
 --   ⚠️ CAVEATS, stated not hidden: isSuppressed() also reads the SUPPRESSED_DOMAINS env var,
 --   invisible to SQL (only the hard-coded floor is reproduced); and the runtime bounded
 --   candidate window and its storage-order effects cannot be reproduced here. The final
 --   column is `after_sql_visible_runtime_gates` — never an absolute servability claim.
 --   Client dedupe: set `params.client_id`; NULL means a FRESH client, who owns nothing.
 , params as (
-  select null::uuid as client_id     -- ← edit to the Pass-1 client's id, or leave NULL
+  select null::uuid as client_id,    -- ← edit to the Pass-1 client's id, or leave NULL
+         -- the SAVED ICP, exactly as the client confirmed it with Milla:
+         array['United States','United Kingdom']                          as geographies,
+         array['Founder','CEO','CRO','VP Sales','Sales Director',
+               'Head of Sales']                                           as job_titles,
+         array['SaaS']                                                    as industries,
+         array['C-Suite','VP / Director','Head of']                       as seniority_levels
 ), sup as (
   select lower(convert_from(decode(x, 'base64'), 'UTF8')) as d
   from unnest(array['c21hcnRzaGVldC5jb20=','YnJhbmRmb2xkZXIuY29t','b3V0Zml0Lmlv','c2xvcGVhcHAuY29t']) x
@@ -720,10 +742,21 @@ with canon as (
   from executable e                                          -- exactly Phase B's set
 ), gated as (
   select u.*,
-         (lower(coalesce(u.title,'')) similar to
-            '%(founder|ceo|chief executive|cro|chief revenue|vp sales|vp of sales|sales director|director of sales|head of sales)%'
-          or lower(coalesce(u.industry,'')) similar to '%(software|saas)%'
-          or lower(coalesce(u.seniority,'')) similar to '%(director|vp|c_suite|c-suite|owner|founder|head|chief)%') as role_ok,
+         -- Geography stays CANONICAL EQUALITY (unchanged): the client's saved geographies
+         -- are canonicalised through the same alias table the runtime uses, then compared
+         -- for equality — never substring, and NULL is never a wildcard.
+         exists (select 1 from params pp, unnest(pp.geographies) g
+                  where coalesce((select c.canonical from canon c where c.alias = lower(btrim(g))),
+                                 nullif(lower(btrim(g)),'')) = u.canon_country)      as geo_ok,
+         -- ⚑ THE RUNTIME MATCHER, mirrored: stored value CONTAINS a saved term, literal
+         -- substring, case-insensitive, OR-ed across the three fields. `strpos(...) > 0` is
+         -- `String.includes`; no wildcard or regex meaning is given to the saved terms.
+         (exists (select 1 from params pp, unnest(pp.job_titles)       t
+                   where strpos(lower(coalesce(u.title,'')),     lower(t)) > 0)
+          or exists (select 1 from params pp, unnest(pp.industries)     i
+                   where strpos(lower(coalesce(u.industry,'')),  lower(i)) > 0)
+          or exists (select 1 from params pp, unnest(pp.seniority_levels) sn
+                   where strpos(lower(coalesce(u.seniority,'')), lower(sn)) > 0)) as role_ok,
          not exists (select 1 from public.opt_out_blocklist b
                       where lower(btrim(b.email)) = u.email_norm and b.opted_back_in_at is null) as blocklist_ok,
          not exists (select 1 from sup
@@ -737,17 +770,17 @@ with canon as (
   from universe u
 )
 select count(*)                                                                    as kind_acquired_proven,
-       count(*) filter (where canon_country in ('united states','united kingdom'))  as canonical_geo_match,
-       count(*) filter (where canon_country in ('united states','united kingdom')
+       count(*) filter (where geo_ok)  as canonical_geo_match,
+       count(*) filter (where geo_ok
                           and role_ok)                                             as role_match,
-       count(*) filter (where canon_country in ('united states','united kingdom')
+       count(*) filter (where geo_ok
                           and role_ok and blocklist_ok)                            as after_opt_out_blocklist,
-       count(*) filter (where canon_country in ('united states','united kingdom')
+       count(*) filter (where geo_ok
                           and role_ok and blocklist_ok and suppression_floor_ok)   as after_sql_visible_suppression_floor,
-       count(*) filter (where canon_country in ('united states','united kingdom')
+       count(*) filter (where geo_ok
                           and role_ok and blocklist_ok and suppression_floor_ok
                           and dedupe_ok)                                           as after_existing_client_dedupe,
-       count(*) filter (where canon_country in ('united states','united kingdom')
+       count(*) filter (where geo_ok
                           and role_ok and blocklist_ok and suppression_floor_ok
                           and dedupe_ok)                                           as after_sql_visible_runtime_gates,
        count(*) filter (where in_pool)                                             as of_which_already_in_pool,

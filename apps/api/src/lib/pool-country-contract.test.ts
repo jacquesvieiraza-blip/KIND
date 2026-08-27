@@ -889,3 +889,121 @@ describe('resolvePromotionCost — original truth, or a skip', () => {
     expect(resolvePromotionCost([0.1, 0.2], { houseApollo: true }).state).toBe('ambiguous')
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (A3 matcher alignment) — THE DRY RUN MUST PREDICT THE DEPLOYED MATCHER.
+//
+// A3 used hand-written synonym regexes (`chief executive`, `chief revenue`, `software`, bare
+// `director`/`vp`/`owner`/`chief`) that appear nowhere in the client's saved ICP. Every one
+// inflated the counts — and a dry run that over-predicts inventory is worse than none,
+// because it is believed. The runtime is `containsAny` in pool-sourcing.ts:
+//     hay.toLowerCase().includes(needle.toLowerCase())
+// STORED value contains a SAVED term. Literal substring. OR across title/industry/seniority.
+//
+// These tests run the REAL `poolRecordMatchesIcp` against the REAL saved Pass-1 ICP, and a
+// structural guard proves the SQL carries the same arrays and the same `strpos` semantics.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('A3 mirrors the deployed Pass-1 matcher — no invented synonyms', () => {
+  /** The saved Pass-1 ICP, exactly as A3's `params` block declares it. */
+  const PASS1 = {
+    geographies:      ['United States', 'United Kingdom'],
+    job_titles:       ['Founder', 'CEO', 'CRO', 'VP Sales', 'Sales Director', 'Head of Sales'],
+    industries:       ['SaaS'],
+    seniority_levels: ['C-Suite', 'VP / Director', 'Head of'],
+  }
+  /** Runtime role decision for one stored row, geography satisfied. */
+  const roleOk = (r: { title?: string | null; industry?: string | null; seniority?: string | null }) =>
+    poolRecordMatchesIcp(rec({ country: 'United Kingdom', ...r }), PASS1)
+
+  it('1 · stored title "CEO" matches — the saved term is a substring of it', () => {
+    expect(roleOk({ title: 'CEO' })).toBe(true)
+    expect(roleOk({ title: 'Group CEO, EMEA' }), 'substring, so a longer title still matches').toBe(true)
+  })
+
+  it('2 · stored "Chief Executive Officer" does NOT match — `chief executive` was invented', () => {
+    // No saved term ("Founder","CEO","CRO","VP Sales","Sales Director","Head of Sales") is a
+    // substring of it. The old regex matched it anyway.
+    expect('chief executive officer'.includes('ceo'), 'and it genuinely does not contain "ceo"').toBe(false)
+    expect(roleOk({ title: 'Chief Executive Officer' })).toBe(false)
+  })
+
+  it('3 · stored "Chief Revenue Officer" does NOT match — `chief revenue` was invented too', () => {
+    expect('chief revenue officer'.includes('cro')).toBe(false)
+    expect(roleOk({ title: 'Chief Revenue Officer' })).toBe(false)
+  })
+
+  it('4 · industry "SaaS" matches', () => expect(roleOk({ industry: 'SaaS' })).toBe(true))
+
+  it('5 · industry "B2B SaaS Platform" matches via the substring', () => {
+    expect(roleOk({ industry: 'B2B SaaS Platform' })).toBe(true)
+  })
+
+  it('6 · industry "Software" does NOT match — the saved industry is SaaS', () => {
+    expect(roleOk({ industry: 'Software' })).toBe(false)
+    expect(roleOk({ industry: 'Computer Software' })).toBe(false)
+  })
+
+  it('7 · seniority "C-Suite" matches', () => expect(roleOk({ seniority: 'C-Suite' })).toBe(true))
+  it('8 · seniority "VP / Director" matches', () => expect(roleOk({ seniority: 'VP / Director' })).toBe(true))
+  it('9 · seniority "Head of" matches', () => expect(roleOk({ seniority: 'Head of' })).toBe(true))
+
+  it('10 · seniority "Director" alone does NOT match — bare `director` was invented', () => {
+    // The saved term is "VP / Director"; the runtime asks whether the STORED value contains
+    // the SAVED term, and "director" does not contain "vp / director".
+    expect('director'.includes('vp / director')).toBe(false)
+    expect(roleOk({ seniority: 'Director' })).toBe(false)
+    expect(roleOk({ seniority: 'VP' }), 'bare `vp` was invented as well').toBe(false)
+  })
+
+  it('11 · OR semantics — a non-matching title still qualifies on industry', () => {
+    expect(roleOk({ title: 'Barista', industry: 'B2B SaaS' })).toBe(true)
+    expect(roleOk({ title: 'Barista', seniority: 'C-Suite' })).toBe(true)
+  })
+
+  it('12 · nothing matches → role_ok false', () => {
+    expect(roleOk({ title: 'Barista', industry: 'Hospitality', seniority: 'Entry' })).toBe(false)
+    expect(roleOk({})).toBe(false)
+  })
+
+  it('and geography stays canonical equality, not substring', () => {
+    expect(poolRecordMatchesIcp(rec({ country: 'GB', title: 'CEO' }), PASS1)).toBe(true)
+    expect(poolRecordMatchesIcp(rec({ country: 'Australia', title: 'CEO' }), PASS1)).toBe(false)
+    expect(poolRecordMatchesIcp(rec({ country: null, title: 'CEO' }), PASS1)).toBe(false)
+  })
+
+  it('13 · A3 declares the saved ICP arrays verbatim', () => {
+    const sql = codeOnly(readRepo('supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql'))
+    expect(sql).toContain("array['United States','United Kingdom']")
+    expect(sql).toContain("array['Founder','CEO','CRO','VP Sales','Sales Director',")
+    expect(sql).toContain("'Head of Sales']")
+    expect(sql).toContain("array['SaaS']")
+    expect(sql).toContain("array['C-Suite','VP / Director','Head of']")
+  })
+
+  it('⚑ 14 · every invented synonym is GONE, and the matcher is strpos over the saved arrays', () => {
+    const sql = codeOnly(readRepo('supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql')).toLowerCase()
+    // the regex form itself must not return
+    expect(sql.includes('similar to'), 'regex synonym matching must not come back').toBe(false)
+    // nor any of the specific invented terms
+    for (const invented of ['chief executive', 'chief revenue', 'vp of sales', 'director of sales',
+                            '|software|', 'c_suite', '|owner|', '|chief)']) {
+      expect(sql.includes(invented), `invented term: ${invented}`).toBe(false)
+    }
+    // and the role test is the literal-substring mirror of containsAny, over params arrays
+    expect(sql).toContain("strpos(lower(coalesce(u.title,'')),     lower(t)) > 0")
+    expect(sql).toContain("strpos(lower(coalesce(u.industry,'')),  lower(i)) > 0")
+    expect(sql).toContain("strpos(lower(coalesce(u.seniority,'')), lower(sn)) > 0")
+    for (const arr of ['unnest(pp.job_titles)', 'unnest(pp.industries)', 'unnest(pp.seniority_levels)']) {
+      expect(sql, arr).toContain(arr)
+    }
+  })
+
+  it('the downstream funnel columns are unchanged', () => {
+    const sql = codeOnly(readRepo('supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql'))
+    for (const col of ['kind_acquired_proven', 'canonical_geo_match', 'role_match',
+                       'after_opt_out_blocklist', 'after_sql_visible_suppression_floor',
+                       'after_existing_client_dedupe', 'after_sql_visible_runtime_gates']) {
+      expect(sql, col).toContain(col)
+    }
+  })
+})

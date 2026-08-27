@@ -445,7 +445,7 @@ async function servePoolLeads(
     }).slice(0, cap)
 
     if (geoGated && notGeoServable > 0) {
-      console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Backfill: supabase/maintenance/2026-08-27_lead_pool_country_backfill.sql`)
+      console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Rights-safe promotion/heal: supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql`)
     }
 
     if (eligible.length === 0) return { insertedIds: [], served: 0 }
@@ -1303,6 +1303,12 @@ export async function runIcpJob(
           seniority:        contact.seniority  || null,
           tech_stack:       contact.organization?.technology_names ?? [],
           apollo_id:        contact.id,
+          // ⚑ 27 Aug — THE LEAD ROW ITSELF CARRIES THE TRUTHFUL PROVIDER. acquisition_memory
+          // and the pool already record `actualProvider`; leaving `leads.source` null here was
+          // the recorded gap that made historical provenance unprovable row-by-row. A fresh
+          // provider acquisition now says which provider produced it, in its own row. Pool-
+          // served copies deliberately do NOT get this stamp — a copy is not an acquisition.
+          source:           actualProvider,
           // ⚠️ NOT CONSENT — a provider-VERIFIED email, treated as a legitimate-interest
           // contact. Naming predates the pivot; do not build consent logic on it.
           // ⚠️ AND NOT EVEN UNIFORMLY "VERIFIED": `likely_to_engage` is Apollo's PREDICTION

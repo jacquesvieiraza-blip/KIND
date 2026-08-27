@@ -232,21 +232,67 @@ export const KIND_ACQUIRED_SOURCES: readonly string[] = ['pdl', 'apollo', 'looka
  *                   copy carries no provider id of its own — it is not new inventory)
  *
  * ⚠️ FAIL-CLOSED IS THE POINT: anything that cannot be truthfully classified is `unknown`,
- * and `unknown` is never promoted. A null source with a provider id is K.I.N.D-acquired
- * (the provider loop never stamped `leads.source` — a recorded gap, not an inference); a
- * null source with NO provider id is either a pool-served copy (if pooled) or unknown.
+ * and `unknown` is never promoted.
+ *
+ * ⛓️ 27 Aug (evidence-pass correction) — A BARE PROVIDER ID IS **NOT** PROOF OF ACQUISITION.
+ * The first version classified `null source + providerId` as kind_acquired, reasoning that
+ * only the provider loop created such rows. That is structurally FALSE: the manual
+ * `POST /leads` schema (`routes/leads.ts`) accepts `apollo_id` from the client and stamps
+ * no `source`, so a customer-created row can look exactly like a provider acquisition.
+ * An untagged row with a provider id is therefore `unknown` unless the caller supplies
+ * CORROBORATION — a deterministic external record (the known house-account book, or a
+ * unique acquisition_memory provenance) proving K.I.N.D acquired it. The customer source
+ * tag ALWAYS wins, corroborated or not.
  */
 export function classifyLeadRights(
   source: string | null | undefined,
   providerId: string | null | undefined,
   inPool = false,
+  corroborated = false,
 ): LeadRights {
   const s = (source ?? '').trim().toLowerCase()
   if (s && CUSTOMER_INBOUND_SOURCES.includes(s)) return 'customer_inbound'
   if (s && KIND_ACQUIRED_SOURCES.includes(s)) return 'kind_acquired'
-  if (!s && providerId) return 'kind_acquired'
+  if (!s && providerId && corroborated) return 'kind_acquired'
   if (!s && !providerId && inPool) return 'pool_served_copy'
   return 'unknown'
+}
+
+// ── ⚑ 27 Aug — THE HISTORICAL PROVIDER RESOLVER (deterministic, never a pick) ──────────────
+//
+// The promotion tool must state WHICH provider produced a historical row, or skip it. The
+// first version reached into `acquisition_memory` with `LIMIT 1` — an arbitrary choice that
+// violated its own fail-closed promise the moment one email carried two provider records.
+// This function is the canonical resolution order; the SQL in
+// `2026-08-27_kind_acquired_pool_promotion.sql` mirrors it clause for clause (guarded by
+// text assertions in pool-country-contract.test.ts):
+//
+//   A. customer/inbound source tag        → null (excluded upstream, tag always wins)
+//   B. explicit `leads.source` pdl/apollo → that exact provider
+//   C. `leads.source` = 'lookalike'       → 'pdl' (the lookalike route calls pdlSearchPeople)
+//   D. known house-account acquisition    → 'apollo' (the founder's own book — the same fact
+//                                            the 11-Jul promotion script already relied on)
+//   E. acquisition_memory                 → usable ONLY when EXACTLY ONE distinct eligible
+//                                            provider ('pdl' | 'apollo') exists for the
+//                                            identity. 0 → null. 2+ → null. An unexpected
+//                                            source ('hunter', …) is not eligible and can
+//                                            never resolve merely by being non-null.
+//   otherwise                             → null — ambiguous, EXCLUDED, fail closed.
+export function resolveHistoricalProvider(opts: {
+  source?: string | null
+  isHouseAccount?: boolean
+  memorySources?: readonly (string | null | undefined)[]
+}): 'pdl' | 'apollo' | null {
+  const s = (opts.source ?? '').trim().toLowerCase()
+  if (s && CUSTOMER_INBOUND_SOURCES.includes(s)) return null                    // A
+  if (s === 'pdl' || s === 'apollo') return s                                   // B
+  if (s === 'lookalike') return 'pdl'                                           // C
+  if (opts.isHouseAccount) return 'apollo'                                      // D
+  const eligible = [...new Set((opts.memorySources ?? [])                       // E
+    .map(m => (m ?? '').trim().toLowerCase())
+    .filter(m => m === 'pdl' || m === 'apollo'))]
+  if (eligible.length === 1) return eligible[0] as 'pdl' | 'apollo'
+  return null                                                                   // fail closed
 }
 
 /** May this rights bucket enter the shared pool / be promoted? ONLY kind_acquired (R73). */

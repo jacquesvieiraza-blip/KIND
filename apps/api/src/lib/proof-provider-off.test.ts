@@ -47,8 +47,10 @@ type Rec = {
   /** ⚑ 27 Aug — provenance capture: every row upserted into lead_pool / acquisition_memory,
    *  so the tests can read the SOURCE and COST the run actually recorded. */
   poolWrites: Array<Record<string, unknown>>; memoryWrites: Array<Record<string, unknown>>
+  /** every row inserted into `leads`, so tests can read the source stamp the run wrote */
+  leadRows: Array<Record<string, unknown>>
 }
-const fresh = (): Rec => ({ searches: 0, rpcs: [], outcomes: [], surfacings: 0, leadInserts: 0, alerts: [], poolWrites: [], memoryWrites: [] })
+const fresh = (): Rec => ({ searches: 0, rpcs: [], outcomes: [], surfacings: 0, leadInserts: 0, alerts: [], poolWrites: [], memoryWrites: [], leadRows: [] })
 
 /** Drive the REAL runIcpJob with: N safe pool candidates, and a provider boundary that
  *  either serves, throws the DELIBERATE spend block, or throws an ordinary error. */
@@ -116,7 +118,7 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
               total_inserted: Number(o.total_inserted), records_requested: Number(o.records_requested),
             })
           }
-          if (table === 'leads') rec.leadInserts += list.length
+          if (table === 'leads') { rec.leadInserts += list.length; rec.leadRows.push(...(list as Record<string, unknown>[])) }
           const data = list.map((_, i) => ({ id: `lead-${rec.leadInserts}-${i}` }))
           const c2: Record<string, unknown> = {
             select() { return c2 }, async single() { return { data: data[0], error: null } },
@@ -536,5 +538,41 @@ describe('EXECUTED · provider provenance and cost are truthful, per audience', 
     await runIcpJob('icp-1', 'c1', 'u1', 20)
     expect(rec.leadInserts, 'geo-rejected: no lead rows').toBe(0)
     expect(rec.poolWrites, 'and nothing reaches the shared pool').toHaveLength(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (evidence pass) — public.leads ITSELF carries the truthful provider.
+// acquisition_memory and the pool were fixed first; the lead row was the remaining
+// untagged store, which is exactly what made historical provenance unprovable row-by-row.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · the lead row records which provider produced it', () => {
+  it('⚑ a fresh CLIENT/PDL acquisition stamps leads.source = pdl', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 4, audience: 'client' }, rec)
+    const providerRows = rec.leadRows.filter(r => r.apollo_id)
+    expect(providerRows.length).toBeGreaterThan(0)
+    for (const r of providerRows) expect(r.source, 'the lead row itself says PDL').toBe('pdl')
+  })
+
+  it('⚑ a fresh HOUSE/Apollo acquisition stamps leads.source = apollo — never pdl', async () => {
+    const rec = fresh()
+    await buildProofModules({ pool: 0, provider: 'serves', providerCount: 4, audience: 'house' }, rec)
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob('icp-1', 'c1', 'u1', 20)
+    const providerRows = rec.leadRows.filter(r => r.apollo_id)
+    expect(providerRows.length).toBeGreaterThan(0)
+    for (const r of providerRows) expect(r.source, 'the lead row itself says Apollo').toBe('apollo')
+  })
+
+  it('a POOL-SERVED copy is NOT presented as a new provider acquisition', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 5, provider: 'serves', providerCount: 0 }, rec)
+    const poolCopies = rec.leadRows.filter(r => !r.apollo_id)
+    expect(poolCopies.length, 'the pool serve inserted copies').toBeGreaterThan(0)
+    for (const r of poolCopies) {
+      expect(r.source ?? null, 'a copy carries no provider-acquisition stamp').toBeNull()
+      expect(r.apollo_id ?? null).toBeNull()
+    }
   })
 })

@@ -26,7 +26,7 @@
 //      correctly protects a good value — and also froze a bad one, permanently.
 // ═══════════════════════════════════════════════════════════════════════════════════════
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { readFileSync } from 'node:fs'
+import { readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   poolRecordMatchesIcp, poolCountryMatches, canonicalPoolCountry, isGeoServable,
@@ -495,8 +495,12 @@ describe('R73 · the rights classifier — one answer to "whose data is this row
       expect(classifyLeadRights(src, null), src).toBe('kind_acquired')
       expect(rightsAllowPooling(classifyLeadRights(src, null)), src).toBe(true)
     }
-    // provider loop rows never stamped leads.source — provider id is the recorded fact
-    expect(classifyLeadRights(null, 'pdl_abc123')).toBe('kind_acquired')
+    // ⛓️ corrected 27 Aug (evidence pass): a bare provider id is NOT proof — the manual
+    // POST /leads schema accepts apollo_id and stamps no source, so an untagged row with an
+    // id could be customer-created. Uncorroborated → unknown, fail closed.
+    expect(classifyLeadRights(null, 'pdl_abc123')).toBe('unknown')
+    // With corroboration (house book / unique memory provenance) it IS kind_acquired:
+    expect(classifyLeadRights(null, 'pdl_abc123', false, true)).toBe('kind_acquired')
   })
 
   it('⚠️ every customer/inbound source is customer_inbound and may NEVER pool', () => {
@@ -567,19 +571,104 @@ describe('R73 · the promotion tool cannot auto-run and cannot sweep customer da
     for (const src of ['csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding']) {
       expect(sql.includes(src), `${src} must be explicitly excluded`).toBe(true)
     }
-    // provider must be provable or the row is skipped — fail closed:
-    expect(sql).toContain('where p.provider is not null')
     // never overwrites an existing pooled record:
     expect(sql.toLowerCase()).toContain('on conflict (email_norm) do nothing')
     // the heal is fill-only:
     expect(sql).toContain("coalesce(btrim(p.country),'') = ''")
   })
 
-  it('the corrected audit terminology: metadata-complete is never called servable', () => {
+  it('⚑ NO LIMIT 1 — provider resolution is deterministic uniqueness, never an arbitrary pick', () => {
+    // comment-stripped (the header SAYS "no limit 1", and "limit 100" contains the substring)
+    const sql = codeOnly(readRepo(TOOL)).toLowerCase()
+    expect(/limit\s+1\b/.test(sql), 'an arbitrary pick violates fail-closed').toBe(false)
+    // the memory arm demands EXACTLY ONE distinct eligible provider:
+    expect(sql).toContain("count(distinct lower(btrim(am.source))) = 1")
+    // and only pdl/apollo are ever eligible from memory:
+    expect(sql).toContain("lower(btrim(am.source)) in ('pdl','apollo')")
+    // final guards on Phase B: resolver succeeded AND cost provable, or the row is skipped:
+    expect(sql).toContain("where p.provider in ('pdl', 'apollo')")
+    expect(sql).toContain('p.resolved_cost is not null')
+  })
+
+  it('the corrected audit terminology: progressive gates, never an absolute servability claim', () => {
     const sql = readRepo(TOOL)
     expect(sql).toContain('metadata_complete_candidates')
     expect(sql).toContain('safely_promotable_now')
-    expect(sql).toContain('likely_runtime_servable_estimate')
-    expect(sql, 'the old overclaiming label is gone').not.toContain('promotable_not_in_pool')
+    for (const col of ['kind_acquired_proven', 'canonical_geo_match', 'role_match',
+                       'after_opt_out_blocklist', 'after_sql_visible_suppression_floor',
+                       'after_existing_client_dedupe', 'after_sql_visible_runtime_gates',
+                       'cost_unprovable_excluded']) {
+      expect(sql, col).toContain(col)
+    }
+    expect(sql, 'the overclaiming labels are gone').not.toContain('promotable_not_in_pool')
+    expect(sql).not.toContain('likely_runtime_servable_estimate')
+    // the stated caveat about the env-only suppression additions:
+    expect(sql).toContain('SUPPRESSED_DOMAINS')
+  })
+
+  it('⚑ the unsafe 27-Aug country backfill is RETIRED and nothing points to it', () => {
+    // Under R73 public.leads holds BOTH K.I.N.D-acquired and customer data, and the old
+    // backfill drew country evidence from ALL of it — a customer/inbound row sharing an
+    // email with a pooled identity could contribute the geography. Retired outright; the
+    // rights-bounded heal inside the promotion tool is the only country-fill path now.
+    expect(existsSync(join(__dirname, '../../../..', 'supabase/maintenance/2026-08-27_lead_pool_country_backfill.sql')))
+      .toBe(false)
+    expect(readRepo('apps/api/src/routes/icps.ts')).not.toContain('lead_pool_country_backfill')
+    // and the replacement heal carries the rights boundary in its source CTE:
+    const sql = readRepo(TOOL)
+    const heal = sql.slice(sql.indexOf('Fill-only country heal'))
+    expect(heal).toContain("not in ('csv_import','web_form','company_csv','vida_chat','milla_onboarding')")
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (evidence pass) — THE DETERMINISTIC HISTORICAL PROVIDER RESOLVER.
+// The SQL mirrors this function clause for clause; the text guards above tie them together.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+import { resolveHistoricalProvider } from './pool-sourcing'
+
+describe('resolveHistoricalProvider — deterministic, never a pick', () => {
+  it('A · a customer/inbound tag resolves to NOTHING, whatever else is true', () => {
+    for (const src of ['csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding']) {
+      expect(resolveHistoricalProvider({ source: src, isHouseAccount: true, memorySources: ['pdl'] }), src).toBeNull()
+    }
+  })
+
+  it('B · an explicit trustworthy leads.source wins', () => {
+    expect(resolveHistoricalProvider({ source: 'pdl' })).toBe('pdl')
+    expect(resolveHistoricalProvider({ source: 'apollo' })).toBe('apollo')
+    // and it outranks the house arm and memory:
+    expect(resolveHistoricalProvider({ source: 'pdl', isHouseAccount: true, memorySources: ['apollo'] })).toBe('pdl')
+  })
+
+  it('C · lookalike → pdl (the route calls pdlSearchPeople)', () => {
+    expect(resolveHistoricalProvider({ source: 'lookalike' })).toBe('pdl')
+  })
+
+  it('D · the known house-account book → apollo', () => {
+    expect(resolveHistoricalProvider({ source: null, isHouseAccount: true })).toBe('apollo')
+  })
+
+  it('E · memory resolves ONLY on exactly one distinct eligible provider', () => {
+    expect(resolveHistoricalProvider({ memorySources: ['pdl'] })).toBe('pdl')
+    expect(resolveHistoricalProvider({ memorySources: ['apollo', 'apollo'] })).toBe('apollo')
+    expect(resolveHistoricalProvider({ memorySources: ['PDL', ' pdl '] }), 'case/space variants are one provider').toBe('pdl')
+  })
+
+  it('⚑ BOTH pdl AND apollo in memory → AMBIGUOUS → null, never a pick', () => {
+    expect(resolveHistoricalProvider({ memorySources: ['pdl', 'apollo'] })).toBeNull()
+  })
+
+  it('⚑ an unexpected memory source is NEVER eligible merely by being non-null', () => {
+    expect(resolveHistoricalProvider({ memorySources: ['hunter'] })).toBeNull()
+    expect(resolveHistoricalProvider({ memorySources: ['clearbit', 'mystery'] })).toBeNull()
+    // …but it cannot poison a unique eligible provider either:
+    expect(resolveHistoricalProvider({ memorySources: ['hunter', 'pdl'] })).toBe('pdl')
+  })
+
+  it('nothing at all → null — unknown fails closed', () => {
+    expect(resolveHistoricalProvider({})).toBeNull()
+    expect(resolveHistoricalProvider({ memorySources: [] })).toBeNull()
+    expect(resolveHistoricalProvider({ source: '  ' })).toBeNull()
   })
 })

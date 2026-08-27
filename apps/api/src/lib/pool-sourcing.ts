@@ -174,27 +174,85 @@ export function poolWriteAllowed(isDemo: boolean, recordCount: number): boolean 
 
 // ── PROVENANCE TRIPWIRE — ONLY RECORDS WE MAY REUSE ACROSS CLIENTS ENTER THE POOL ──────────
 //
-// `lead_pool` is a CROSS-CLIENT store: a record bought for client A is served to client B. That
-// is a licensing question before it is an engineering one, and the answer is **provider-
-// specific** (F13/F15). PDL is bought under terms we believe permit it — F13 is still open on
-// the order form — and Apollo's terms are a different document with different answers.
+// `lead_pool` is a CROSS-CLIENT store: a record bought for client A is served to client B.
 //
-// ⚠️ TODAY THIS REFUSES NOTHING, AND THAT IS THE POINT. One writer exists and it hard-codes
-// `source: 'pdl'` (`routes/icps.ts`), so the pool is structurally clean right now. The risk is
-// entirely in the future tense: a second sourcing path, written by somebody who does not know
-// the pool is cross-client, tags its records `apollo` — or forgets to tag them at all — and
-// every client afterwards is served records we had no right to reuse. Nothing in the code
-// would object, and the first sign would be a letter.
+// ⛓️ 27 Aug — WIDENED TO APOLLO BY FOUNDER RULING **R73** (verbatim: *"all client data we
+// own. including apollo data can be used as a source for clients too. it is data we own."*),
+// which supersedes F15's internal Apollo precaution. **The allowlist did not become "anything
+// goes"** — it became the boundary between what K.I.N.D ACQUIRED and everything else:
+// customer/inbound data (`csv_import`, `web_form`, `company_csv`, `vida_chat`,
+// `milla_onboarding`, CRM imports) stays OUT of the shared pool unless separately ruled in,
+// and an UNTAGGED record is still refused, because absence of provenance is not evidence of
+// ownership. R73 is an INTERNAL rule only: F13 (PDL Order Form) and W18 (counsel) stay open,
+// and nothing here claims what any vendor contract permits.
 //
-// A tripwire that has never fired is not a tripwire that does nothing.
+// ⚠️ THE HISTORICAL CLAIM THIS COMMENT USED TO MAKE WAS FALSE. It said "the pool is
+// structurally clean right now — one writer, hard-coded 'pdl'". Production disproved it: the
+// pool's actual contents were 85 `apollo` rows from the founder-run 11-Jul promotion script,
+// which is SQL and never passed through this filter. The tripwire only ever guarded the
+// TypeScript writer, and the writer's hard-coded tag also mislabelled house/Apollo contacts
+// as 'pdl' (fixed 27 Aug — the writer now records the ACTUAL provider).
 //
 // ⚠️ NOT A KILL-SWITCH ON SOURCING. Founder-ruled: refusal skips the POOL write only. The
 // client still gets every lead their run bought — the lead rows, the delivery and the charge
-// are all upstream of this and untouched. Refusing the run instead would turn a licensing
+// are all upstream of this and untouched. Refusing the run instead would turn a rights
 // precaution into an outage.
 
-/** The sources we may serve to a SECOND client. Widening this is a licensing decision. */
-export const POOL_ELIGIBLE_SOURCES: readonly string[] = ['pdl']
+/** The K.I.N.D-ACQUIRED sources eligible for the shared pool (R73, 27 Aug). Widening this
+ *  further is a founder/rights decision, never a convenience edit. */
+export const POOL_ELIGIBLE_SOURCES: readonly string[] = ['pdl', 'apollo']
+
+// ── ⚑ 27 Aug — THE RIGHTS CLASSIFIER (R73). One place answers "whose data is this row?" ──
+//
+// "It exists in public.leads" is NOT an ownership claim: a customer's CSV upload and a
+// record K.I.N.D bought from PDL live in the same table. Every pool write and every
+// promotion decision goes through THIS classification, and the unknown bucket FAILS CLOSED.
+
+/** The four rights buckets of R73. */
+export type LeadRights = 'kind_acquired' | 'customer_inbound' | 'pool_served_copy' | 'unknown'
+
+/** Sources stamped by CUSTOMER/INBOUND writers — never auto-pooled (R73 ②). Each entry is a
+ *  literal a real writer stamps: lead-import.ts (csv_import) · forms.ts (web_form) ·
+ *  leads.ts company search (company_csv) · vida.ts (vida_chat) · icps.ts onboarding
+ *  (milla_onboarding). */
+export const CUSTOMER_INBOUND_SOURCES: readonly string[] = [
+  'csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding',
+]
+
+/** Sources stamped by K.I.N.D's OWN acquisition paths. `lookalike` is the PDL-backed
+ *  lookalike sourcing route; `pdl`/`apollo` are the provider loop's truthful tags. */
+export const KIND_ACQUIRED_SOURCES: readonly string[] = ['pdl', 'apollo', 'lookalike']
+
+/**
+ * Classify one lead row's rights bucket from its recorded provenance.
+ *
+ * @param source     the row's `source` tag (may be null — historical provider rows never set it)
+ * @param providerId the row's provider identity (`apollo_id` column), if any
+ * @param inPool     whether this row's email already exists in `lead_pool` (a pool-served
+ *                   copy carries no provider id of its own — it is not new inventory)
+ *
+ * ⚠️ FAIL-CLOSED IS THE POINT: anything that cannot be truthfully classified is `unknown`,
+ * and `unknown` is never promoted. A null source with a provider id is K.I.N.D-acquired
+ * (the provider loop never stamped `leads.source` — a recorded gap, not an inference); a
+ * null source with NO provider id is either a pool-served copy (if pooled) or unknown.
+ */
+export function classifyLeadRights(
+  source: string | null | undefined,
+  providerId: string | null | undefined,
+  inPool = false,
+): LeadRights {
+  const s = (source ?? '').trim().toLowerCase()
+  if (s && CUSTOMER_INBOUND_SOURCES.includes(s)) return 'customer_inbound'
+  if (s && KIND_ACQUIRED_SOURCES.includes(s)) return 'kind_acquired'
+  if (!s && providerId) return 'kind_acquired'
+  if (!s && !providerId && inPool) return 'pool_served_copy'
+  return 'unknown'
+}
+
+/** May this rights bucket enter the shared pool / be promoted? ONLY kind_acquired (R73). */
+export function rightsAllowPooling(rights: LeadRights): boolean {
+  return rights === 'kind_acquired'
+}
 
 /** Just enough of a pool record for the provenance question. */
 export type PoolWriteCandidate = { source?: string | null; email_norm?: string | null }

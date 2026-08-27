@@ -1123,9 +1123,26 @@ export async function runIcpJob(
         }
       }
 
-      // #449p3 PIECE 1 — every fresh PDL record we keep also becomes reusable pool
+      // #449p3 PIECE 1 — every fresh provider record we keep also becomes reusable pool
       // inventory (upsert keyed by normalised email, ON CONFLICT DO NOTHING so the
       // earliest acquisition wins and we never overwrite acquisition_cost).
+      //
+      // ── ⚑ 27 Aug — THE ACTUAL PROVIDER, STATED ONCE, USED EVERYWHERE BELOW ─────────────
+      // This loop is SHARED by both audiences, and it used to hard-code `source: 'pdl'` into
+      // BOTH provenance writers (acquisition_memory and the pool) — so a HOUSE run, whose
+      // contacts come from APOLLO (AR5: house → Apollo, client → PDL), would have recorded
+      // Apollo people as PDL people at PDL's $0.28/record. False provenance AND false cost,
+      // in the two tables whose entire job is to remember the truth. The provider is a fact
+      // the run already knows (`audience` resolved above, AR5 boundary), so it is derived
+      // here from that fact — never inferred later, never a constant.
+      //
+      // ⚠️ APOLLO'S PER-RECORD COST IS 0 AT THIS BOUNDARY, AND THAT IS EXISTING ACCOUNTING,
+      // NOT A GUESS: the search endpoint is Apollo's no-credit `api_search` (apollo.ts), and
+      // the 11-Jul promotion script booked owned Apollo records at 0 with the same reasoning
+      // ("already owned — no marginal cost to reuse"). Reveal-time credits are a later,
+      // separate event and are not modelled here — same as before this change.
+      const actualProvider: 'pdl' | 'apollo' = audience === 'house' ? 'apollo' : 'pdl'
+      const actualProviderCost = actualProvider === 'pdl' ? PDL_RATE_USD : 0
       const poolUpserts: Array<Record<string, unknown>> = []
       let pdlKept = 0
       // Recorded BEFORE any gate (and before a memory-write failure can empty the list):
@@ -1174,8 +1191,8 @@ export async function runIcpJob(
             if (blocked) reason = 'opt_out'
           }
           const rec = toMemoryRecord(contact, {
-            source:            'pdl',
-            costUsd:           PDL_RATE_USD,
+            source:            actualProvider,
+            costUsd:           actualProviderCost,
             clientId,
             contactable:       reason === null,
             suppressionReason: reason,
@@ -1322,8 +1339,8 @@ export async function runIcpJob(
             // worse than a null that is honest about being unknown.
             country:          canonicalPoolCountry(contact.country) || null,
             linkedin_url:     contact.linkedin_url || null,
-            source:           'pdl',
-            acquisition_cost: PDL_RATE_USD,
+            source:           actualProvider,
+            acquisition_cost: actualProviderCost,
             sourced_at:       new Date().toISOString(),
           })
         }
@@ -1347,6 +1364,10 @@ export async function runIcpJob(
       if (removedByGeoGate > 0) {
         console.error(`[icp] stage=provider_geo_rejected — ${removedByGeoGate} of ${providerContactsReturned} fresh provider contact(s) carried a country that is missing or does not canonically match the client's ${icpGeographies.length} selected geograph${icpGeographies.length === 1 ? 'y' : 'ies'}. Rejected before insert — geography is a hard constraint and NULL is never a wildcard. If this is the whole batch, verify the provider's country field mapping.`)
       }
+      // Counts only, one line per run: which provider actually executed, and how the batch
+      // split against the geography gate. `provider_provenance_*` is what makes a mislabelled
+      // provider visible in logs the day it happens instead of months later in a table audit.
+      console.log(`[icp] stage=provider_provenance_${actualProvider} — ${providerContactsReturned} contact(s) from ${actualProvider.toUpperCase()} for this run; stage=provider_geo_matched — ${Math.max(0, pdlKept)} kept past the geography gate, ${removedByGeoGate} geo-rejected.`)
 
       const { eligible: poolEligible, refused: poolRefused } = splitPoolEligible(poolUpserts)
       if (poolRefused.length > 0) console.error(poolRefusalLine(poolRefused))
@@ -1356,7 +1377,7 @@ export async function runIcpJob(
         // happened; the loss was only visible months later as a proof that served nobody.
         // Two counts, no PII, one line per run.
         const withCountry = poolEligible.filter(r => isGeoServable(r)).length
-        console.log(`[icp] stage=pool_write — ${poolEligible.length} record(s): ${withCountry} with a usable country, ${poolEligible.length - withCountry} without (those cannot serve geography-targeted sourcing).`)
+        console.log(`[icp] stage=pool_write — ${poolEligible.length} record(s) from ${actualProvider}: ${withCountry} with a usable country (stage=pool_country_canonicalized), ${poolEligible.length - withCountry} without (stage=pool_country_missing — cannot serve geography-targeted sourcing).`)
 
         // ⚠️ `ignoreDuplicates: true` IS LOAD-BEARING, not a performance choice. It compiles to
         // ON CONFLICT DO NOTHING, which is the ONLY reason a later write carrying a null
@@ -1395,6 +1416,12 @@ export async function runIcpJob(
           const { error: healErr } = await db.from('lead_pool')
             .update({ country }).in('email_norm', emails).is('country', null)
           if (healErr) console.error('[icp] lead_pool country backfill failed (non-fatal):', healErr)
+        }
+        // stage=pool_country_preserved — the heal's WHERE clause is null-only, so every row
+        // that already carried a country was left untouched by construction; the count of
+        // rows OFFERED a country this run is the honest number to log (counts only, no PII).
+        if (byCountry.size > 0) {
+          console.log(`[icp] stage=pool_country_preserved — null-only heal offered a country to ${[...byCountry.values()].reduce((n, e) => n + e.length, 0)} pooled record(s); rows with an existing country are untouched by the WHERE clause.`)
         }
       }
     }

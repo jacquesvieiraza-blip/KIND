@@ -477,3 +477,109 @@ describe('the hard geography invariant is wired at both boundaries', () => {
     expect(src).toContain('return list')
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (R73) — THE RIGHTS CLASSIFIER AND THE PROMOTION TOOL'S FAIL-CLOSED BUCKETS.
+// Founder ruling, verbatim: "all client data we own. including apollo data can be used as
+// a source for clients too. it is data we own." — K.I.N.D-ACQUIRED data pools; customer/
+// inbound stays out unless separately ruled; unknown provenance fails closed.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+import {
+  classifyLeadRights, rightsAllowPooling, CUSTOMER_INBOUND_SOURCES, KIND_ACQUIRED_SOURCES,
+  POOL_ELIGIBLE_SOURCES,
+} from './pool-sourcing'
+
+describe('R73 · the rights classifier — one answer to "whose data is this row?"', () => {
+  it('K.I.N.D-acquired sources classify as kind_acquired and may pool', () => {
+    for (const src of ['pdl', 'apollo', 'lookalike']) {
+      expect(classifyLeadRights(src, null), src).toBe('kind_acquired')
+      expect(rightsAllowPooling(classifyLeadRights(src, null)), src).toBe(true)
+    }
+    // provider loop rows never stamped leads.source — provider id is the recorded fact
+    expect(classifyLeadRights(null, 'pdl_abc123')).toBe('kind_acquired')
+  })
+
+  it('⚠️ every customer/inbound source is customer_inbound and may NEVER pool', () => {
+    for (const src of ['csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding']) {
+      expect(classifyLeadRights(src, null), src).toBe('customer_inbound')
+      expect(rightsAllowPooling(classifyLeadRights(src, null)), src).toBe(false)
+      // …even when the row carries a provider id (a customer CSV of Apollo exports is
+      // still the CUSTOMER'S upload — the tag wins over the id):
+      expect(classifyLeadRights(src, 'apollo_x1'), `${src}+id`).toBe('customer_inbound')
+    }
+  })
+
+  it('a pool-served copy is not new inventory', () => {
+    expect(classifyLeadRights(null, null, true)).toBe('pool_served_copy')
+    expect(rightsAllowPooling('pool_served_copy')).toBe(false)
+  })
+
+  it('⚠️ unknown FAILS CLOSED — no source, no provider id, not pooled → never promoted', () => {
+    expect(classifyLeadRights(null, null, false)).toBe('unknown')
+    expect(classifyLeadRights('mystery_source', null)).toBe('unknown')
+    expect(classifyLeadRights('   ', null)).toBe('unknown')
+    for (const b of ['unknown', 'customer_inbound', 'pool_served_copy'] as const) {
+      expect(rightsAllowPooling(b), b).toBe(false)
+    }
+  })
+
+  it('the classifier and the write allowlist cannot drift apart', () => {
+    // Every pool-eligible source must classify as kind_acquired, and no customer source
+    // may ever appear in the allowlist — the two constants describe one boundary.
+    for (const src of POOL_ELIGIBLE_SOURCES) {
+      expect(classifyLeadRights(src, null), src).toBe('kind_acquired')
+    }
+    for (const src of CUSTOMER_INBOUND_SOURCES) {
+      expect([...POOL_ELIGIBLE_SOURCES]).not.toContain(src)
+      expect([...KIND_ACQUIRED_SOURCES]).not.toContain(src)
+    }
+  })
+
+  it('the customer-source list names the tags the real writers actually stamp', () => {
+    // Each entry must correspond to a literal a production writer uses — a list of made-up
+    // names would guard nothing. Verified against the writer files.
+    const writers: Record<string, string> = {
+      csv_import:       'apps/api/src/lib/lead-import.ts',
+      web_form:         'apps/api/src/routes/forms.ts',
+      company_csv:      'apps/api/src/routes/leads.ts',
+      vida_chat:        'apps/api/src/lib/vida.ts',
+      milla_onboarding: 'apps/api/src/routes/icps.ts',
+    }
+    for (const [tag, file] of Object.entries(writers)) {
+      expect(readRepo(file).includes(`'${tag}'`), `${tag} in ${file}`).toBe(true)
+    }
+  })
+})
+
+describe('R73 · the promotion tool cannot auto-run and cannot sweep customer data', () => {
+  const TOOL = 'supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql'
+
+  it('⚑ PHASE B is NOT wired into the migration runner — it cannot run on deploy', () => {
+    const runner = readRepo('apps/api/src/lib/pending-migrations.ts')
+    expect(runner.includes('kind_acquired_pool_promotion'), 'no runner entry may ever exist').toBe(false)
+    // and it lives in maintenance/, not migrations/ — the runner's home directory:
+    expect(TOOL).toContain('supabase/maintenance/')
+  })
+
+  it('the old indiscriminate backfill shape is not reused — the tool classifies rights', () => {
+    const sql = readRepo(TOOL)
+    // customer/inbound excluded BY NAME, in the candidate WHERE clause:
+    for (const src of ['csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding']) {
+      expect(sql.includes(src), `${src} must be explicitly excluded`).toBe(true)
+    }
+    // provider must be provable or the row is skipped — fail closed:
+    expect(sql).toContain('where p.provider is not null')
+    // never overwrites an existing pooled record:
+    expect(sql.toLowerCase()).toContain('on conflict (email_norm) do nothing')
+    // the heal is fill-only:
+    expect(sql).toContain("coalesce(btrim(p.country),'') = ''")
+  })
+
+  it('the corrected audit terminology: metadata-complete is never called servable', () => {
+    const sql = readRepo(TOOL)
+    expect(sql).toContain('metadata_complete_candidates')
+    expect(sql).toContain('safely_promotable_now')
+    expect(sql).toContain('likely_runtime_servable_estimate')
+    expect(sql, 'the old overclaiming label is gone').not.toContain('promotable_not_in_pool')
+  })
+})

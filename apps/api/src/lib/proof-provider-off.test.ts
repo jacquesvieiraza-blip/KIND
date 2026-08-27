@@ -44,8 +44,11 @@ type Outcome = { status: string; pool_served: number; total_inserted: number; re
 type Rec = {
   searches: number; rpcs: Array<{ fn: string; args: Record<string, unknown> }>
   outcomes: Outcome[]; surfacings: number; leadInserts: number; alerts: string[]
+  /** ⚑ 27 Aug — provenance capture: every row upserted into lead_pool / acquisition_memory,
+   *  so the tests can read the SOURCE and COST the run actually recorded. */
+  poolWrites: Array<Record<string, unknown>>; memoryWrites: Array<Record<string, unknown>>
 }
-const fresh = (): Rec => ({ searches: 0, rpcs: [], outcomes: [], surfacings: 0, leadInserts: 0, alerts: [] })
+const fresh = (): Rec => ({ searches: 0, rpcs: [], outcomes: [], surfacings: 0, leadInserts: 0, alerts: [], poolWrites: [], memoryWrites: [] })
 
 /** Drive the REAL runIcpJob with: N safe pool candidates, and a provider boundary that
  *  either serves, throws the DELIBERATE spend block, or throws an ordinary error. */
@@ -82,7 +85,12 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
         is() { return chain }, not() { return chain }, neq() { return chain },
         or() { return chain }, order() { return chain }, limit() { return chain },
         gte() { return chain },
-        async upsert() { return { error: null } },
+        async upsert(rows: unknown) {
+          const list = Array.isArray(rows) ? rows : [rows]
+          if (table === 'lead_pool') rec.poolWrites.push(...(list as Record<string, unknown>[]))
+          if (table === 'acquisition_memory') rec.memoryWrites.push(...(list as Record<string, unknown>[]))
+          return { error: null }
+        },
         async maybeSingle() {
           if (table === 'icps') return { data: icpRow, error: null }
           if (table === 'clients') return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co' }, error: null }
@@ -473,5 +481,60 @@ describe('EXECUTED · fresh provider contacts obey the hard geography invariant'
     expect(rec.outcomes[0]?.pool_served, 'the 4 safe pool matches survive').toBe(4)
     expect(rec.outcomes[0]?.total_inserted, 'and nothing geo-unverifiable joins them').toBe(4)
     expect(rec.surfacings, 'the safe leads reached the desk').toBeGreaterThan(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (R73) — PROVENANCE AND COST ARE THE ACTUAL PROVIDER'S, EXECUTED.
+//
+// The shared insert loop used to hard-code `source: 'pdl'` into BOTH provenance writers —
+// `acquisition_memory` and the pool — and book every contact at PDL_RATE_USD. On a HOUSE run
+// the contacts come from APOLLO (AR5: house → Apollo, client → PDL), so both tables recorded
+// a false provider and a false cost. These tests drive the REAL runIcpJob for each audience
+// and read what the run ACTUALLY wrote.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · provider provenance and cost are truthful, per audience', () => {
+  it('⚑ CLIENT run → PDL provenance everywhere, PDL cost', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, audience: 'client' }, rec)
+    expect(rec.memoryWrites.length, 'acquisition memory was written').toBeGreaterThan(0)
+    for (const m of rec.memoryWrites) {
+      expect(m.source, 'memory provenance').toBe('pdl')
+      expect(Number(m.acquisition_cost_usd), 'memory cost is the PDL rate').toBeCloseTo(0.28)
+    }
+    expect(rec.poolWrites.length, 'the pool was written').toBeGreaterThan(0)
+    for (const p of rec.poolWrites) {
+      expect(p.source, 'pool provenance').toBe('pdl')
+      expect(Number(p.acquisition_cost), 'pool cost is the PDL rate').toBeCloseTo(0.28)
+      expect(p.country, 'country stored canonically').toBe('united kingdom')
+    }
+  })
+
+  it('⚑ HOUSE run → APOLLO provenance everywhere — NEVER pdl, NEVER PDL cost', async () => {
+    const rec = fresh()
+    await buildProofModules({ pool: 0, provider: 'serves', providerCount: 5, audience: 'house' }, rec)
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob('icp-1', 'c1', 'u1', 20)   // an ordinary house run, not a proof claim
+    expect(rec.memoryWrites.length, 'acquisition memory was written').toBeGreaterThan(0)
+    for (const m of rec.memoryWrites) {
+      expect(m.source, 'an Apollo person must be remembered as Apollo').toBe('apollo')
+      expect(Number(m.acquisition_cost_usd),
+        'no fake PDL cost: api_search is Apollo’s no-credit endpoint, and the 11-Jul promotion booked owned Apollo records at 0').toBe(0)
+    }
+    expect(rec.poolWrites.length, 'R73: K.I.N.D-acquired Apollo records now reach the pool').toBeGreaterThan(0)
+    for (const p of rec.poolWrites) {
+      expect(p.source, 'pool provenance is the ACTUAL provider').toBe('apollo')
+      expect(Number(p.acquisition_cost)).toBe(0)
+      expect(p.country).toBe('united kingdom')
+    }
+  })
+
+  it('a house Apollo batch passes the same hard geography gate — wrong country never pools', async () => {
+    const rec = fresh()
+    await buildProofModules({ pool: 0, provider: 'serves', providerCount: 5, audience: 'house', providerCountry: 'Australia' }, rec)
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob('icp-1', 'c1', 'u1', 20)
+    expect(rec.leadInserts, 'geo-rejected: no lead rows').toBe(0)
+    expect(rec.poolWrites, 'and nothing reaches the shared pool').toHaveLength(0)
   })
 })

@@ -44,8 +44,13 @@ type Outcome = { status: string; pool_served: number; total_inserted: number; re
 type Rec = {
   searches: number; rpcs: Array<{ fn: string; args: Record<string, unknown> }>
   outcomes: Outcome[]; surfacings: number; leadInserts: number; alerts: string[]
+  /** ⚑ 27 Aug — provenance capture: every row upserted into lead_pool / acquisition_memory,
+   *  so the tests can read the SOURCE and COST the run actually recorded. */
+  poolWrites: Array<Record<string, unknown>>; memoryWrites: Array<Record<string, unknown>>
+  /** every row inserted into `leads`, so tests can read the source stamp the run wrote */
+  leadRows: Array<Record<string, unknown>>
 }
-const fresh = (): Rec => ({ searches: 0, rpcs: [], outcomes: [], surfacings: 0, leadInserts: 0, alerts: [] })
+const fresh = (): Rec => ({ searches: 0, rpcs: [], outcomes: [], surfacings: 0, leadInserts: 0, alerts: [], poolWrites: [], memoryWrites: [], leadRows: [] })
 
 /** Drive the REAL runIcpJob with: N safe pool candidates, and a provider boundary that
  *  either serves, throws the DELIBERATE spend block, or throws an ordinary error. */
@@ -54,10 +59,27 @@ type ProofOpts = {
   provider: 'blocked' | 'serves' | 'crashes'
   providerCount?: number
   audience?: 'client' | 'house'
+  /** ⚑ 27 Aug — the country the provider stamps on every contact it serves. `undefined`
+   *  keeps the healthy default ('united kingdom', matching the ICP); `null` simulates a
+   *  provider/mapping that lost geography entirely (the Apollo-cast failure mode). */
+  providerCountry?: string | null
+  /** ⚑ 27 Aug (merge-gate) — the stored `source` on the pool fixtures, so the READ fence can
+   *  be driven: 'pdl'/'apollo' are R73-eligible; anything else must never serve. */
+  poolSource?: string | null
+  /** rows of an INELIGIBLE source placed BEFORE the eligible ones, to prove they cannot
+   *  consume the bounded candidate window. */
+  poolDecoys?: number
+  poolDecoySource?: string | null
 }
 
 /** Install every mock the proof runtime needs. Shared by BOTH harnesses — the direct
  *  `runIcpJob` one and the route-boundary one — so they cannot drift apart. */
+/** Mirrors the runtime candidate window: max(cap*5, 50); a proof run caps at 20 → 100. */
+const poolWindow = 100
+/** The real DB query applies `.in('source', POOL_ELIGIBLE_SOURCES)` before `.limit()`.
+ *  Flipped to false only by the red-proof that removes the DB prefilter. */
+const poolSourceFilterApplied = true
+
 async function buildProofModules(opts: ProofOpts, rec: Rec) {
   vi.resetModules()
 
@@ -69,6 +91,17 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
     email_norm: `pool${i}@safe.example`, first_name: 'P', last_name: `${i}`,
     title: 'CEO', seniority: 'C-Suite', company: `Co${i}`, industry: 'SaaS',
     company_size: '201–500', country: 'United Kingdom', linkedin_url: null,
+    // ⚑ 27 Aug (merge-gate) — real pooled inventory carries its K.I.N.D-acquired provenance.
+    // The read fence refuses NULL/unlisted sources cross-client, so a fixture without one is
+    // not a realistic pool row; it is an unowned row the fence is right to reject.
+    source: opts.poolSource === undefined ? 'pdl' : opts.poolSource,
+  }))
+  // Ineligible-source decoys FIRST in storage order — the starvation shape.
+  const decoyRows = Array.from({ length: opts.poolDecoys ?? 0 }, (_, i) => ({
+    email_norm: `decoy${i}@nope.example`, first_name: 'D', last_name: `${i}`,
+    title: 'CEO', seniority: 'C-Suite', company: `Decoy${i}`, industry: 'SaaS',
+    company_size: '201–500', country: 'United Kingdom', linkedin_url: null,
+    source: opts.poolDecoySource === undefined ? 'csv_import' : opts.poolDecoySource,
   }))
 
   vi.doMock('@kind/db', () => {
@@ -78,7 +111,12 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
         is() { return chain }, not() { return chain }, neq() { return chain },
         or() { return chain }, order() { return chain }, limit() { return chain },
         gte() { return chain },
-        async upsert() { return { error: null } },
+        async upsert(rows: unknown) {
+          const list = Array.isArray(rows) ? rows : [rows]
+          if (table === 'lead_pool') rec.poolWrites.push(...(list as Record<string, unknown>[]))
+          if (table === 'acquisition_memory') rec.memoryWrites.push(...(list as Record<string, unknown>[]))
+          return { error: null }
+        },
         async maybeSingle() {
           if (table === 'icps') return { data: icpRow, error: null }
           if (table === 'clients') return { data: { id: 'c1', leads_per_run: null, is_demo: false, company_name: 'Co' }, error: null }
@@ -104,7 +142,7 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
               total_inserted: Number(o.total_inserted), records_requested: Number(o.records_requested),
             })
           }
-          if (table === 'leads') rec.leadInserts += list.length
+          if (table === 'leads') { rec.leadInserts += list.length; rec.leadRows.push(...(list as Record<string, unknown>[])) }
           const data = list.map((_, i) => ({ id: `lead-${rec.leadInserts}-${i}` }))
           const c2: Record<string, unknown> = {
             select() { return c2 }, async single() { return { data: data[0], error: null } },
@@ -113,7 +151,14 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
           return c2
         },
         then(resolve: (v: unknown) => unknown) {
-          if (table === 'lead_pool') return resolve({ data: poolRows, error: null })
+          if (table === 'lead_pool') {
+            // The real query filters by source IN (...) and caps with .limit(); this mock
+            // reproduces BOTH so a decoy crowd genuinely tests the window.
+            const all = [...decoyRows, ...poolRows]
+            const allowed = ['pdl', 'apollo']
+            const filtered = poolSourceFilterApplied ? all.filter(r => allowed.includes(String(r.source))) : all
+            return resolve({ data: filtered.slice(0, poolWindow), error: null })
+          }
           if (table === 'credit_transactions') return resolve({ data: [], count: 0, error: null })
           return resolve({ data: [], count: 0, error: null })
         },
@@ -182,7 +227,8 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
         contacts: Array.from({ length: n }, (_, i) => ({
           id: `pdl_${i}`, first_name: 'A', last_name: `B${i}`, email: `a${i}@b.example`,
           email_status: 'verified', linkedin_url: null, title: 'CEO', seniority: 'C-Suite',
-          country: 'united kingdom', organization_name: 'Acme', organization: null,
+          country: opts.providerCountry === undefined ? 'united kingdom' : opts.providerCountry,
+          organization_name: 'Acme', organization: null,
         })),
         relaxed: null,
         pdlPage: { contacts: [], scrollToken: null, exhausted: false, matchedNothing: n === 0, error: null, completed: true },
@@ -408,5 +454,202 @@ describe('EXECUTED · claim → dispatch → outcome, across the real route boun
     await waitFor(() => rec.outcomes.length > 0, 'the outcome')
     expect(rec.outcomes[0].status).toBe('failed')
     expect(rec.outcomes[0].status).not.toBe('no_match')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug — THE HARD GEOGRAPHY INVARIANT, EXECUTED ON FRESH PROVIDER CONTACTS.
+//
+// Milla asks the client where they want to target, and the confirmed geography is a HARD
+// product constraint. The pool path enforces it (pool-country-contract.test.ts); these
+// tests drive the REAL `runIcpJob` — Milla-saved ICP (geographies: ['United Kingdom']) →
+// mocked provider boundary → the real gates → lead persistence → outcome — and prove the
+// SAME rule holds for freshly sourced contacts:
+//
+//   · GB               → served (canonical alias of the client's own choice)
+//   · United Kingdom   → served
+//   · NULL             → rejected — unknown geography is never a wildcard
+//   · Australia        → rejected — wrong country, and specifically the substring trap
+//                        ('australia' contains 'us') that must never serve again
+//
+// The rejection is BEFORE insert: the contact never becomes a lead row at all, so it can
+// never reach surfacing, approval, reveal or send eligibility — those all read `leads`.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · fresh provider contacts obey the hard geography invariant', () => {
+  it('⚑ provider says GB → canonically the client’s UK → SERVED', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: 'GB' }, rec)
+    expect(rec.leadInserts, 'all five inserted').toBe(5)
+    expect(rec.outcomes[0]?.status).toBe('served')
+    expect(rec.outcomes[0]?.total_inserted).toBe(5)
+  })
+
+  it('provider says United Kingdom (exact) → SERVED, unchanged', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: 'United Kingdom' }, rec)
+    expect(rec.leadInserts).toBe(5)
+    expect(rec.outcomes[0]?.status).toBe('served')
+  })
+
+  it('⚑ provider lost the country (NULL) → NOT ONE lead row is created', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
+    expect(rec.leadInserts, 'no lead may exist with unverifiable geography').toBe(0)
+    // And the outcome is the NEUTRAL review state — the search completed, K.I.N.D's own
+    // gate emptied it, so targeting is never blamed and no_match is never claimed.
+    expect(rec.outcomes[0]?.status).toBe('failed')
+    expect(rec.outcomes[0]?.status).not.toBe('no_match')
+  })
+
+  it('⚑ provider returned the WRONG country (Australia vs a UK target) → rejected', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: 'Australia' }, rec)
+    expect(rec.leadInserts).toBe(0)
+    expect(rec.outcomes[0]?.status).toBe('failed')
+  })
+
+  it('pool leads still surface when the provider batch is geo-rejected — the partial rule holds', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 4, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
+    expect(rec.outcomes[0]?.pool_served, 'the 4 safe pool matches survive').toBe(4)
+    expect(rec.outcomes[0]?.total_inserted, 'and nothing geo-unverifiable joins them').toBe(4)
+    expect(rec.surfacings, 'the safe leads reached the desk').toBeGreaterThan(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (R73) — PROVENANCE AND COST ARE THE ACTUAL PROVIDER'S, EXECUTED.
+//
+// The shared insert loop used to hard-code `source: 'pdl'` into BOTH provenance writers —
+// `acquisition_memory` and the pool — and book every contact at PDL_RATE_USD. On a HOUSE run
+// the contacts come from APOLLO (AR5: house → Apollo, client → PDL), so both tables recorded
+// a false provider and a false cost. These tests drive the REAL runIcpJob for each audience
+// and read what the run ACTUALLY wrote.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · provider provenance and cost are truthful, per audience', () => {
+  it('⚑ CLIENT run → PDL provenance everywhere, PDL cost', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, audience: 'client' }, rec)
+    expect(rec.memoryWrites.length, 'acquisition memory was written').toBeGreaterThan(0)
+    for (const m of rec.memoryWrites) {
+      expect(m.source, 'memory provenance').toBe('pdl')
+      expect(Number(m.acquisition_cost_usd), 'memory cost is the PDL rate').toBeCloseTo(0.28)
+    }
+    expect(rec.poolWrites.length, 'the pool was written').toBeGreaterThan(0)
+    for (const p of rec.poolWrites) {
+      expect(p.source, 'pool provenance').toBe('pdl')
+      expect(Number(p.acquisition_cost), 'pool cost is the PDL rate').toBeCloseTo(0.28)
+      expect(p.country, 'country stored canonically').toBe('united kingdom')
+    }
+  })
+
+  it('⚑ HOUSE run → APOLLO provenance everywhere — NEVER pdl, NEVER PDL cost', async () => {
+    const rec = fresh()
+    await buildProofModules({ pool: 0, provider: 'serves', providerCount: 5, audience: 'house' }, rec)
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob('icp-1', 'c1', 'u1', 20)   // an ordinary house run, not a proof claim
+    expect(rec.memoryWrites.length, 'acquisition memory was written').toBeGreaterThan(0)
+    for (const m of rec.memoryWrites) {
+      expect(m.source, 'an Apollo person must be remembered as Apollo').toBe('apollo')
+      expect(Number(m.acquisition_cost_usd),
+        'no fake PDL cost: api_search is Apollo’s no-credit endpoint, and the 11-Jul promotion booked owned Apollo records at 0').toBe(0)
+    }
+    expect(rec.poolWrites.length, 'R73: K.I.N.D-acquired Apollo records now reach the pool').toBeGreaterThan(0)
+    for (const p of rec.poolWrites) {
+      expect(p.source, 'pool provenance is the ACTUAL provider').toBe('apollo')
+      expect(Number(p.acquisition_cost)).toBe(0)
+      expect(p.country).toBe('united kingdom')
+    }
+  })
+
+  it('a house Apollo batch passes the same hard geography gate — wrong country never pools', async () => {
+    const rec = fresh()
+    await buildProofModules({ pool: 0, provider: 'serves', providerCount: 5, audience: 'house', providerCountry: 'Australia' }, rec)
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob('icp-1', 'c1', 'u1', 20)
+    expect(rec.leadInserts, 'geo-rejected: no lead rows').toBe(0)
+    expect(rec.poolWrites, 'and nothing reaches the shared pool').toHaveLength(0)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (evidence pass) — public.leads ITSELF carries the truthful provider.
+// acquisition_memory and the pool were fixed first; the lead row was the remaining
+// untagged store, which is exactly what made historical provenance unprovable row-by-row.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · the lead row records which provider produced it', () => {
+  it('⚑ a fresh CLIENT/PDL acquisition stamps leads.source = pdl', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 4, audience: 'client' }, rec)
+    const providerRows = rec.leadRows.filter(r => r.apollo_id)
+    expect(providerRows.length).toBeGreaterThan(0)
+    for (const r of providerRows) expect(r.source, 'the lead row itself says PDL').toBe('pdl')
+  })
+
+  it('⚑ a fresh HOUSE/Apollo acquisition stamps leads.source = apollo — never pdl', async () => {
+    const rec = fresh()
+    await buildProofModules({ pool: 0, provider: 'serves', providerCount: 4, audience: 'house' }, rec)
+    const { runIcpJob } = await import('../routes/icps')
+    await runIcpJob('icp-1', 'c1', 'u1', 20)
+    const providerRows = rec.leadRows.filter(r => r.apollo_id)
+    expect(providerRows.length).toBeGreaterThan(0)
+    for (const r of providerRows) expect(r.source, 'the lead row itself says Apollo').toBe('apollo')
+  })
+
+  it('a POOL-SERVED copy is NOT presented as a new provider acquisition', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 5, provider: 'serves', providerCount: 0 }, rec)
+    const poolCopies = rec.leadRows.filter(r => !r.apollo_id)
+    expect(poolCopies.length, 'the pool serve inserted copies').toBeGreaterThan(0)
+    for (const r of poolCopies) {
+      expect(r.source ?? null, 'a copy carries no provider-acquisition stamp').toBeNull()
+      expect(r.apollo_id ?? null).toBeNull()
+    }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (merge-gate) — R73 IS ENFORCED ON THE POOL **READ**, NOT ONLY THE WRITE.
+// The write tripwire governs what may enter the shared pool; it says nothing about what is
+// already in it. A historical SQL import bypasses the TypeScript writer entirely — that is
+// how the 85 production rows arrived — so without a read fence a customer/inbound or
+// unknown-provenance row could be served CROSS-CLIENT. These drive the REAL runIcpJob.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · the pool READ fence (R73)', () => {
+  it('a PDL pool row serves', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 6, provider: 'blocked', poolSource: 'pdl' }, rec)
+    expect(rec.outcomes[0]?.pool_served).toBe(6)
+  })
+
+  it('⚑ an APOLLO pool row serves — R73, not a PDL-only regression', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 6, provider: 'blocked', poolSource: 'apollo' }, rec)
+    expect(rec.outcomes[0]?.pool_served).toBe(6)
+  })
+
+  for (const bad of ['csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding']) {
+    it(`⚠️ a ${bad} pool row is NEVER served cross-client`, async () => {
+      const rec = fresh()
+      await runProofJob({ pool: 6, provider: 'blocked', poolSource: bad }, rec)
+      expect(rec.outcomes[0]?.pool_served, 'customer data must not be served to another client').toBe(0)
+    })
+  }
+
+  it('⚠️ an UNKNOWN or NULL source is refused — fail closed', async () => {
+    for (const bad of [null, 'mystery_source', '']) {
+      const rec = fresh()
+      await runProofJob({ pool: 6, provider: 'blocked', poolSource: bad }, rec)
+      expect(rec.outcomes[0]?.pool_served, String(bad)).toBe(0)
+    }
+  })
+
+  it('⚑ 250 ineligible-source rows AHEAD of the eligible ones cannot starve the window', async () => {
+    // The DB prefilter runs BEFORE .limit(100): the decoys never enter the window at all,
+    // so all 10 owned rows stay reachable. Filtering in JS afterwards would serve zero.
+    const rec = fresh()
+    await runProofJob({ pool: 10, provider: 'blocked', poolSource: 'pdl',
+                        poolDecoys: 250, poolDecoySource: 'csv_import' }, rec)
+    expect(rec.outcomes[0]?.pool_served, 'every owned row remains reachable').toBe(10)
   })
 })

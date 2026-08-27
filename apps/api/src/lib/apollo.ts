@@ -497,7 +497,27 @@ export async function searchPeople(body: ApolloSearchBody): Promise<ApolloContac
   if (!Array.isArray(data.contacts) && !Array.isArray(data.people)) {
     throw new Error(`Apollo API 200 with unrecognised body — neither "contacts" nor "people" present (${JSON.stringify(data).slice(0, 160)})`)
   }
-  return data.contacts ?? data.people ?? []
+  const list = data.contacts ?? data.people ?? []
+
+  // ── ⚑ 27 Aug — THE COUNTRY-CONTRACT TRIPWIRE. This `as`-cast is compile-time only: no
+  // runtime mapper exists on this path, so any per-person field Apollo does not supply
+  // under EXACTLY the property name `ApolloContact` declares silently becomes `undefined`.
+  // Production carries the consequence already — pooled rows whose `country` is NULL while
+  // `title` survived, through this same cast. The true Apollo person→country field name is
+  // UNPROVEN in this repository (no fixture, no captured payload, no doc quotes one), and
+  // guessing a mapping here would be a second silent miss wearing a fix — so this does NOT
+  // remap anything. It makes the loss LOUD instead: geography-constrained runs will reject
+  // country-less contacts (hard invariant, icps.ts), and this line says why, at the moment
+  // it happens, in counts only. Prove the real field against ONE captured response body,
+  // then map it explicitly; until then this is the honest boundary.
+  const missingCountry = list.filter(c => {
+    const v = (c as { country?: unknown }).country
+    return typeof v !== 'string' || v.trim() === ''
+  }).length
+  if (missingCountry > 0) {
+    console.warn(`[apollo] stage=provider_geo_missing — ${missingCountry} of ${list.length} contact(s) arrived with no usable "country" property. The Apollo person→country mapping is UNPROVEN (raw cast, no runtime mapper): geography-constrained sourcing will reject these contacts rather than serve unknown geography. Capture one real response body and map the field explicitly.`)
+  }
+  return list
 }
 
 // People Bulk Match — the PAID enrichment step that reveals work emails.

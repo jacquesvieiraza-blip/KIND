@@ -16,8 +16,8 @@ import { deliveryCapBalance, normalizePlan, normalizeRevealEmail, normalizeRevea
 import { isSuppressed } from '../lib/suppression'
 import { sendFounderAlert } from '../lib/alerts'
 import { PDL_RATE_USD } from '../lib/sourcing-fences'
-import { isLaunchSendCountry, launchTargetRefusal } from '@kind/shared'
-import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine } from '../lib/pool-sourcing'
+import { isLaunchSendCountry, launchTargetRefusal, launchCountrySpellings } from '@kind/shared'
+import { splitPoolAndRemainder, poolWriteAllowed, splitPoolEligible, poolRefusalLine, poolCountryMatches, canonicalPoolCountry, isGeoServable, isPoolSourceEligible, POOL_ELIGIBLE_SOURCES } from '../lib/pool-sourcing'
 import { toMemoryRecord, rememberAcquiredIdentities, type AcquisitionMemoryRecord, type SuppressionReason } from '../lib/acquisition-memory'
 import { rethrowIfProviderBlocked, isPaidProviderBlocked } from '../lib/paid-provider-guard'
 import { deriveRunStatus, runOutcomeMessage, type RunStatus } from '../lib/run-outcome'
@@ -354,12 +354,47 @@ async function servePoolLeads(
     const inds   = (icp.industries       ?? []).map(clean).filter(Boolean)
     const sens   = (icp.seniority_levels ?? []).map(clean).filter(Boolean)
 
+    // ── ⚑ 27 Aug — THE COUNTRY TERM IS EXPANDED TO EVERY SPELLING OF THAT COUNTRY ──────────
+    //
+    // `lead_pool.country` is free text written by whichever provider or import created the
+    // row, so one country is stored under several spellings at once. Asking the database for
+    // only the client's own wording returns the rows that happen to share it and misses the
+    // rest — owned, relevant inventory the pool could not see. The launch alias table already
+    // knows every spelling; it just had no expansion direction until now.
+    //
+    // ⚠️ EXACT PER SPELLING, NEVER SUBSTRING — the second half of the fix, and it must live
+    // AT THE QUERY, not after it. The candidate buffer is BOUNDED (`.limit(cap*5, min 50)`),
+    // so a substring prefilter is not merely sloppy, it is a starvation channel: a US target
+    // written as `country ILIKE '%us%'` admits Australia, Austria, Belarus, Cyprus and
+    // Mauritius into the limited window, and every false row it admits can push a genuine
+    // United States row OUT of the set the JS filter ever sees. "The JS filters them later"
+    // is no defence when the database already capped the list — the correct rows never
+    // arrive to be filtered. So each alias spelling is matched EXACTLY (PostgREST `ilike`
+    // with no `*` is exact, case-insensitive): a false spelling cannot enter the window,
+    // and the alias expansion — not the wildcard — is what covers "GB" vs "United Kingdom".
+    // `poolCountryMatches` below still makes the final canonical decision on what returns.
+    const geoTerms = [...new Set(geos.flatMap(g => launchCountrySpellings(g)).map(clean).filter(Boolean))]
+
     // Structured, OR-generous candidate query (mirrors poolRecordMatchesIcp):
-    //   (country ILIKE any geo) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
-    // Chained .or() calls are ANDed; terms inside one .or() are ORed. `*` is the
-    // PostgREST ILIKE wildcard (→ SQL %). Empty filters are simply not applied.
-    let q = db.from('lead_pool').select('*')
-    if (geos.length) q = q.or(geos.map(g => `country.ilike.*${g}*`).join(','))
+    //   (country = any geo SPELLING, case-insensitive) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
+    // Chained .or() calls are ANDed; terms inside one .or() are ORed. Role terms keep their
+    // `*` wildcards — titles are genuinely partial. Country terms carry NO wildcard.
+    // ── ⚑ 27 Aug (merge-gate) — R73 IS ENFORCED ON THE READ, NOT ONLY THE WRITE ───────────
+    // The write tripwire decides what may ENTER the shared pool; it says nothing about what
+    // is already in it. A historical SQL import or backfill bypasses the TypeScript writer
+    // entirely — that is not hypothetical, it is how the 85 rows arrived — so without a fence
+    // here a customer/inbound or unknown-provenance row could be served CROSS-CLIENT.
+    //
+    // ⚠️ IT MUST BE A DATABASE FILTER, BEFORE `.limit(...)`. Filtering in JS afterwards would
+    // let ineligible rows consume the bounded candidate window and push owned rows out of it
+    // — the same starvation channel the country wildcard opened. Both boundaries, again.
+    //
+    // ⚠️ FAIL CLOSED. Only the R73 sources (`pdl`, `apollo` — K.I.N.D-acquired) are served;
+    // NULL, blank and anything unlisted are refused. The 85 production rows are `apollo` and
+    // stay source-eligible — they remain unservable for a geography-targeted run because
+    // their country is NULL, which is a different gate.
+    let q = db.from('lead_pool').select('*').in('source', [...POOL_ELIGIBLE_SOURCES])
+    if (geoTerms.length) q = q.or(geoTerms.map(g => `country.ilike.${g}`).join(','))
     const roleOr = [
       ...titles.map(t => `title.ilike.*${t}*`),
       ...inds.map(i => `industry.ilike.*${i}*`),
@@ -398,17 +433,42 @@ async function servePoolLeads(
       email_norm: string; first_name?: string | null; last_name?: string | null
       title?: string | null; seniority?: string | null; company?: string | null
       industry?: string | null; company_size?: string | null; country?: string | null
-      linkedin_url?: string | null
+      linkedin_url?: string | null; source?: string | null
     }
+    // ⚑ 27 Aug — counted, never inferred. A geography-targeted proof that serves nothing has
+    // two completely different causes with identical symptoms: the pool holds nobody in that
+    // country, or the pool holds them and their `country` column is empty. Production sat on
+    // the second for weeks reading it as the first, because the run reported one number for
+    // both. These counters are what tell them apart, and they carry no PII.
+    let notGeoServable = 0
+    let notSourceEligible = 0
+    const geoGated = geos.length > 0
     const eligible = (candidates as Cand[]).filter(c => {
       const e = norm(c.email_norm)
       if (!e) return false
+      // R73 RIGHTS, decided here — the database prefilter narrows the window, it does not
+      // make the decision. Same reasoning as the country gate: widen there, decide here.
+      if (!isPoolSourceEligible(c.source)) { notSourceEligible++; return false }
+      // GEOGRAPHY, PRECISELY. The query above was widened across spellings; this is the
+      // decision. An unknown country never satisfies a geography — never a wildcard.
+      if (geoGated && !poolCountryMatches(c.country, geos)) {
+        if (!isGeoServable(c)) notGeoServable++
+        return false
+      }
       if (owned.has(e)) return false
       if (blocked.has(e)) return false
       // DO-NOT-CONTACT floor (founder's employer) — same guard as the PDL path.
       if (isSuppressed({ email: e, company: c.company, linkedin: c.linkedin_url })) return false
       return true
     }).slice(0, cap)
+
+    if (notSourceEligible > 0) {
+      console.error(`[icp] stage=pool_source_refused — ${notSourceEligible} pool candidate(s) were refused for cross-client serving because their stored source is not K.I.N.D-acquired (R73 allows ${POOL_ELIGIBLE_SOURCES.join(', ')}; NULL/blank/unlisted fail closed). A non-zero count means rows entered the pool outside the guarded writer — check the promotion/import path.`)
+    }
+
+    if (geoGated && notGeoServable > 0) {
+      console.error(`[icp] stage=pool_country_missing — ${notGeoServable} of ${candidates.length} pool candidate(s) carry no usable country, so they cannot satisfy geography-targeted sourcing; ${eligible.length} remain eligible. The records are kept, not deleted. Rights-safe promotion/heal: supabase/maintenance/2026-08-27_kind_acquired_pool_promotion.sql`)
+    }
 
     if (eligible.length === 0) return { insertedIds: [], served: 0 }
 
@@ -564,6 +624,14 @@ export async function runIcpJob(
   // be told to widen an ICP that was working. Counted so the outcome can tell truth.
   let removedBySuppression = 0
   let removedByDedupe = 0
+  // ⚑ 27 Aug — THE HARD GEOGRAPHY INVARIANT, counted. Milla asks the client where they want
+  // to target and the confirmed geography is a HARD product constraint (founder rule, 27 Aug):
+  // a lead may be served to a geography-constrained client ONLY if its geography is KNOWN and
+  // canonically matches one of the client-selected geographies. A provider contact whose
+  // country is missing or non-matching is therefore rejected BEFORE insert — never served,
+  // never surfaced, never revealed — and counted here so the outcome can say why. NULL is
+  // never a wildcard, on either the pool path or this one.
+  let removedByGeoGate = 0
   // How many contacts the provider ACTUALLY returned this run, recorded before any
   // K.I.N.D-side gate touches them — the fact the neutral-review decision reads.
   let providerContactsReturned = 0
@@ -1077,9 +1145,26 @@ export async function runIcpJob(
         }
       }
 
-      // #449p3 PIECE 1 — every fresh PDL record we keep also becomes reusable pool
+      // #449p3 PIECE 1 — every fresh provider record we keep also becomes reusable pool
       // inventory (upsert keyed by normalised email, ON CONFLICT DO NOTHING so the
       // earliest acquisition wins and we never overwrite acquisition_cost).
+      //
+      // ── ⚑ 27 Aug — THE ACTUAL PROVIDER, STATED ONCE, USED EVERYWHERE BELOW ─────────────
+      // This loop is SHARED by both audiences, and it used to hard-code `source: 'pdl'` into
+      // BOTH provenance writers (acquisition_memory and the pool) — so a HOUSE run, whose
+      // contacts come from APOLLO (AR5: house → Apollo, client → PDL), would have recorded
+      // Apollo people as PDL people at PDL's $0.28/record. False provenance AND false cost,
+      // in the two tables whose entire job is to remember the truth. The provider is a fact
+      // the run already knows (`audience` resolved above, AR5 boundary), so it is derived
+      // here from that fact — never inferred later, never a constant.
+      //
+      // ⚠️ APOLLO'S PER-RECORD COST IS 0 AT THIS BOUNDARY, AND THAT IS EXISTING ACCOUNTING,
+      // NOT A GUESS: the search endpoint is Apollo's no-credit `api_search` (apollo.ts), and
+      // the 11-Jul promotion script booked owned Apollo records at 0 with the same reasoning
+      // ("already owned — no marginal cost to reuse"). Reveal-time credits are a later,
+      // separate event and are not modelled here — same as before this change.
+      const actualProvider: 'pdl' | 'apollo' = audience === 'house' ? 'apollo' : 'pdl'
+      const actualProviderCost = actualProvider === 'pdl' ? PDL_RATE_USD : 0
       const poolUpserts: Array<Record<string, unknown>> = []
       let pdlKept = 0
       // Recorded BEFORE any gate (and before a memory-write failure can empty the list):
@@ -1128,8 +1213,8 @@ export async function runIcpJob(
             if (blocked) reason = 'opt_out'
           }
           const rec = toMemoryRecord(contact, {
-            source:            'pdl',
-            costUsd:           PDL_RATE_USD,
+            source:            actualProvider,
+            costUsd:           actualProviderCost,
             clientId,
             contactable:       reason === null,
             suppressionReason: reason,
@@ -1176,6 +1261,11 @@ export async function runIcpJob(
         }
       }
 
+      // The Milla-confirmed targeting is the constraint — the SAVED row's geographies, which
+      // both the exact and the widened search kept (the widened fallback drops seniority and
+      // size, never countries). Empty ⇒ the client set no geography ⇒ no gate.
+      const icpGeographies = ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean)
+
       for (const contact of contacts) {
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we
         // pre-funded. grantedSize ≤ pdlRemainder ≤ effectiveCap, so this binds. (Counts
@@ -1183,6 +1273,20 @@ export async function runIcpJob(
         if (pdlKept >= grantedSize) {
           skipped++
           continue
+        }
+
+        // ── ⚑ 27 Aug — THE HARD GEOGRAPHY INVARIANT, ON FRESH PROVIDER CONTACTS ────────────
+        // The pool path already refuses a candidate whose country is unknown or non-matching;
+        // this is the SAME rule at the provider boundary, via the SAME canonical predicate.
+        // PDL is queried WITH `location_country`, so on a healthy run this rejects nothing —
+        // it exists for the runs that are not healthy: a provider that ignores the filter, a
+        // contract drift that stops returning the field, or a mapping that silently loses it
+        // (the Apollo cast has no runtime mapper at all — see apollo.ts). Any of those used
+        // to become a lead with the wrong or an unknown country, served to a client who told
+        // Milla exactly where they target. Now it is a counted rejection, and if it empties
+        // the run the neutral-review state below reports it — targeting is never blamed.
+        if (icpGeographies.length > 0 && !poolCountryMatches(contact.country, icpGeographies)) {
+          skipped++; removedByGeoGate++; continue
         }
 
         // DO-NOT-CONTACT: never even source anyone connected to the founder's employer.
@@ -1221,6 +1325,12 @@ export async function runIcpJob(
           seniority:        contact.seniority  || null,
           tech_stack:       contact.organization?.technology_names ?? [],
           apollo_id:        contact.id,
+          // ⚑ 27 Aug — THE LEAD ROW ITSELF CARRIES THE TRUTHFUL PROVIDER. acquisition_memory
+          // and the pool already record `actualProvider`; leaving `leads.source` null here was
+          // the recorded gap that made historical provenance unprovable row-by-row. A fresh
+          // provider acquisition now says which provider produced it, in its own row. Pool-
+          // served copies deliberately do NOT get this stamp — a copy is not an acquisition.
+          source:           actualProvider,
           // ⚠️ NOT CONSENT — a provider-VERIFIED email, treated as a legitimate-interest
           // contact. Naming predates the pivot; do not build consent logic on it.
           // ⚠️ AND NOT EVEN UNIFORMLY "VERIFIED": `likely_to_engage` is Apollo's PREDICTION
@@ -1249,10 +1359,16 @@ export async function runIcpJob(
             industry:         contact.organization?.industry ?? null,
             company_size:     contact.organization?.num_employees
                                 ? String(contact.organization.num_employees) : null,
-            country:          contact.country    || null,
+            // ⚑ 27 Aug — CANONICAL AT THE WRITE BOUNDARY. The provider's own spelling is
+            // whatever that provider indexes on ("US", "GB", "united states"); the pool is
+            // read by every future client, so it stores ONE form. `canonicalPoolCountry`
+            // returns '' for an absent country, and '' must stay NULL — an empty string
+            // would be a value that looks present and matches nothing, which is strictly
+            // worse than a null that is honest about being unknown.
+            country:          canonicalPoolCountry(contact.country) || null,
             linkedin_url:     contact.linkedin_url || null,
-            source:           'pdl',
-            acquisition_cost: PDL_RATE_USD,
+            source:           actualProvider,
+            acquisition_cost: actualProviderCost,
             sourced_at:       new Date().toISOString(),
           })
         }
@@ -1271,12 +1387,70 @@ export async function runIcpJob(
       //
       // The refusal skips the POOL write ONLY. Every lead this run bought is already inserted,
       // delivered and charged above; a licensing precaution must never become an outage.
+      // ⚑ 27 Aug — a geo-rejected provider batch is a PROVIDER-CONTRACT event, not a quiet
+      // skip. Counts only, no PII: how many, out of how many, against which targeting size.
+      if (removedByGeoGate > 0) {
+        console.error(`[icp] stage=provider_geo_rejected — ${removedByGeoGate} of ${providerContactsReturned} fresh provider contact(s) carried a country that is missing or does not canonically match the client's ${icpGeographies.length} selected geograph${icpGeographies.length === 1 ? 'y' : 'ies'}. Rejected before insert — geography is a hard constraint and NULL is never a wildcard. If this is the whole batch, verify the provider's country field mapping.`)
+      }
+      // Counts only, one line per run: which provider actually executed, and how the batch
+      // split against the geography gate. `provider_provenance_*` is what makes a mislabelled
+      // provider visible in logs the day it happens instead of months later in a table audit.
+      console.log(`[icp] stage=provider_provenance_${actualProvider} — ${providerContactsReturned} contact(s) from ${actualProvider.toUpperCase()} for this run; stage=provider_geo_matched — ${Math.max(0, pdlKept)} kept past the geography gate, ${removedByGeoGate} geo-rejected.`)
+
       const { eligible: poolEligible, refused: poolRefused } = splitPoolEligible(poolUpserts)
       if (poolRefused.length > 0) console.error(poolRefusalLine(poolRefused))
       if (poolWriteAllowed(isDemo, poolEligible.length)) {
+        // ⚑ 27 Aug — SAY WHAT THE PROVIDER ACTUALLY GAVE US. Every one of the 85 rows already
+        // in production carries a null country, and nothing anywhere recorded that as it
+        // happened; the loss was only visible months later as a proof that served nobody.
+        // Two counts, no PII, one line per run.
+        const withCountry = poolEligible.filter(r => isGeoServable(r)).length
+        console.log(`[icp] stage=pool_write — ${poolEligible.length} record(s) from ${actualProvider}: ${withCountry} with a usable country (stage=pool_country_canonicalized), ${poolEligible.length - withCountry} without (stage=pool_country_missing — cannot serve geography-targeted sourcing).`)
+
+        // ⚠️ `ignoreDuplicates: true` IS LOAD-BEARING, not a performance choice. It compiles to
+        // ON CONFLICT DO NOTHING, which is the ONLY reason a later write carrying a null
+        // country cannot erase a good one already in the row. A merge-on-conflict here would
+        // let the weakest record win. Guarded by pool-country-contract.test.ts.
         const { error: poolErr } = await db.from('lead_pool')
           .upsert(poolEligible, { onConflict: 'email_norm', ignoreDuplicates: true })
         if (poolErr) console.error('[icp] lead_pool upsert failed (non-fatal):', poolErr)
+
+        // ── ⚑ 27 Aug — THE POOL CAN NOW HEAL ITSELF, IN ONE DIRECTION ONLY ────────────────
+        //
+        // ON CONFLICT DO NOTHING protects a good value, and it also freezes a bad one: a row
+        // that entered the pool with a null country could never gain one, however many times
+        // a provider later returned that person WITH their country. Production is the proof —
+        // 85 rows, none with a country, and no path by which they could ever acquire one.
+        //
+        // So: fill where empty, never overwrite. `.is('country', null)` is the whole safety —
+        // it is a WHERE clause, evaluated by the database, so this statement is structurally
+        // incapable of replacing a country that is already there. That is the founder's
+        // invariant, enforced by the query shape rather than by remembering to check.
+        //
+        // ⚠️ NOT A MERGE. One column, one direction, only when the current value is NULL.
+        // Title, industry and seniority are deliberately NOT touched: no defect has been
+        // proved for them, and widening this into general conflict-merging is how the
+        // weakest record eventually wins.
+        const byCountry = new Map<string, string[]>()
+        for (const r of poolEligible) {
+          const country = typeof r.country === 'string' ? r.country : ''
+          const email   = typeof r.email_norm === 'string' ? r.email_norm : ''
+          if (!country || !email) continue
+          const list = byCountry.get(country) ?? []
+          list.push(email)
+          byCountry.set(country, list)
+        }
+        for (const [country, emails] of byCountry) {
+          const { error: healErr } = await db.from('lead_pool')
+            .update({ country }).in('email_norm', emails).is('country', null)
+          if (healErr) console.error('[icp] lead_pool country backfill failed (non-fatal):', healErr)
+        }
+        // stage=pool_country_preserved — the heal's WHERE clause is null-only, so every row
+        // that already carried a country was left untouched by construction; the count of
+        // rows OFFERED a country this run is the honest number to log (counts only, no PII).
+        if (byCountry.size > 0) {
+          console.log(`[icp] stage=pool_country_preserved — null-only heal offered a country to ${[...byCountry.values()].reduce((n, e) => n + e.length, 0)} pooled record(s); rows with an existing country are untouched by the WHERE clause.`)
+        }
       }
     }
   }
@@ -1471,11 +1645,16 @@ export async function runIcpJob(
     ? 'failed'
     : deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, trusted)
   if (gatesAteEverything) {
-    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · rest insert/cap). Neutral review state; targeting NOT blamed.`)
+    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · rest insert/cap). Neutral review state; targeting NOT blamed.`)
     void sendFounderAlert('source_down', 'A completed search was emptied entirely by K.I.N.D-side gates', [
       `Client ${clientId}, ICP ${icpId}.`,
-      `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
+      `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedByGeoGate} by the hard geography gate (country missing or not canonically in the client's targeting), ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
       'The prospect sees the neutral review state, NOT "no leads matched — try widening". Their targeting may be correct.',
+      // Appended, never substituted — the sentence above is this alert's invariant promise
+      // (guarded by proof-outcome-matrix.test.ts) and holds in EVERY variant of this state.
+      ...(removedByGeoGate > 0
+        ? ['Geography rejections on a healthy PDL run should be ZERO (the query already filters by location_country) — a non-zero count means the provider result contract drifted or a mapping lost the country field. Investigate the provider, not the targeting.']
+        : []),
     ]).catch(() => {})
   }
   let heldFromIcp = 0

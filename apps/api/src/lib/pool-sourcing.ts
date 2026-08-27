@@ -13,6 +13,8 @@
 //     can never over-source (pool-served count is subtracted from the PDL ask).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { canonicalLaunchCountry } from '@kind/shared'
+
 /** A row from the `lead_pool` table (only the fields the matcher reads). */
 export interface PoolRecord {
   email_norm:        string
@@ -46,10 +48,82 @@ function containsAny(hay: string | null | undefined, needles: string[]): boolean
   return needles.some(n => n && h.includes(n.toLowerCase()))
 }
 
+// ── ⚑ 27 Aug — COUNTRY IS COMPARED CANONICALLY, AND ONLY COUNTRY ───────────────────────────
+//
+// Title, industry and seniority stay on `containsAny` (substring) because they are genuinely
+// partial — "Head of Sales" should match a stored "Global Head of Sales", and that is the
+// OR-generous behaviour the founder approved. Country is not like that. It is a closed
+// vocabulary with a canonical form that already exists in `@kind/shared`, and treating it as a
+// substring produced two failures at once:
+//
+//   ① MISSES. `lead_pool.country` is free text from whichever provider or import wrote the
+//      row, so the same country is stored as "GB", "England" and "United Kingdom". A client
+//      targeting "United Kingdom" substring-matched only the third. The other two were owned,
+//      relevant inventory the pool refused to see.
+//   ② FALSE POSITIVES, and these are worse — they are wrong leads, not missing ones. The
+//      substring test is literally `'australia'.includes('us')` → **true**. A client targeting
+//      the US would be served Australia, Austria, Belarus, Cyprus and Mauritius. `'ukraine'
+//      .includes('uk')` → **true**, so a UK target picks up Ukraine. `'ireland'` is inside
+//      `'northern ireland'`. None of these is hypothetical; each falls straight out of the
+//      operator that was there.
+//
+// So both sides go through `canonicalLaunchCountry` and are compared for EQUALITY. Geography
+// targeting is not weakened by this — it is narrowed to exactly what the client asked for, and
+// widened only across spellings of that same country.
+//
+// ⚠️ AN UNKNOWN COUNTRY IS NEVER A WILDCARD. Blank / null / whitespace returns false for every
+// geography, always. This is the same rule `isLaunchSendCountry` already applies for sending
+// ("an unknown country is not evidence of an allowed one") and it is the rule the founder
+// restated for this defect: a row with no country cannot satisfy a geography-constrained
+// proof. It is not served, and it is not silently counted as a match.
+//
+// ⚠️ A COUNTRY OUTSIDE THE ALIAS TABLE STILL WORKS. `canonicalLaunchCountry` returns an
+// unrecognised term lowercased rather than dropping it, so "Nigeria" vs "nigeria" still
+// matches. What it no longer does is match a country that merely CONTAINS those letters.
+
+/** The canonical, comparable form of a stored or targeted country. `''` = unknown. */
+export function canonicalPoolCountry(country: string | null | undefined): string {
+  return canonicalLaunchCountry(country)
+}
+
+/**
+ * Does this record's country satisfy the client's geography targeting?
+ * Canonical equality on both sides. Unknown country → always false.
+ */
+export function poolCountryMatches(
+  recCountry: string | null | undefined,
+  geographies: readonly (string | null | undefined)[],
+): boolean {
+  const rec = canonicalPoolCountry(recCountry)
+  if (!rec) return false
+  for (const g of geographies) {
+    const want = canonicalPoolCountry(g)
+    if (want && want === rec) return true
+  }
+  return false
+}
+
+/**
+ * ⚑ THE MINIMUM SERVABLE CONTRACT — is this row eligible for GEOGRAPHY-TARGETED proof?
+ *
+ * Founder-chosen shape (option A, 27 Aug): a row with no usable country **stays in
+ * `lead_pool`** — it is still real inventory, still reusable for a client who set no
+ * geography, and deleting or withholding it would destroy an asset to fix a reporting
+ * problem. What changes is that its unservability becomes an explicit, countable fact
+ * instead of a silent zero at the end of a proof run.
+ *
+ * This is deliberately NOT the whole eligibility question — email, blocklist, DNC and
+ * per-client dedupe all still apply downstream and are unchanged. This answers one thing:
+ * can this row ever satisfy a client who named a country?
+ */
+export function isGeoServable(rec: Pick<PoolRecord, 'country'>): boolean {
+  return canonicalPoolCountry(rec.country) !== ''
+}
+
 /**
  * OR-generous structured candidate match — mirrors the DB query in servePoolLeads.
  * A record is a candidate when:
- *   country ILIKE any geography (if any geography is set)  AND
+ *   canonical country EQUALS any canonical geography (if any geography is set)  AND
  *   ( title ILIKE any job_title OR industry ILIKE any industry OR seniority ILIKE any seniority )
  * Kept deliberately loose so it returns candidates; the existing scoring/consent
  * filters downstream do the precise qualification. An ICP with no role/industry/
@@ -61,8 +135,9 @@ export function poolRecordMatchesIcp(rec: PoolRecord, icp: PoolMatchIcp): boolea
   const inds   = (icp.industries       ?? []).filter(Boolean)
   const sens   = (icp.seniority_levels ?? []).filter(Boolean)
 
-  // Geography gate (only when the ICP specifies geographies).
-  if (geos.length > 0 && !containsAny(rec.country, geos)) return false
+  // Geography gate (only when the ICP specifies geographies). Canonical equality since
+  // 27 Aug — see the block above `canonicalPoolCountry` for the two failures substring caused.
+  if (geos.length > 0 && !poolCountryMatches(rec.country, geos)) return false
 
   // Role/industry/seniority gate — OR-generous. With no signal at all, don't narrow.
   if (titles.length === 0 && inds.length === 0 && sens.length === 0) return true
@@ -99,27 +174,177 @@ export function poolWriteAllowed(isDemo: boolean, recordCount: number): boolean 
 
 // ── PROVENANCE TRIPWIRE — ONLY RECORDS WE MAY REUSE ACROSS CLIENTS ENTER THE POOL ──────────
 //
-// `lead_pool` is a CROSS-CLIENT store: a record bought for client A is served to client B. That
-// is a licensing question before it is an engineering one, and the answer is **provider-
-// specific** (F13/F15). PDL is bought under terms we believe permit it — F13 is still open on
-// the order form — and Apollo's terms are a different document with different answers.
+// `lead_pool` is a CROSS-CLIENT store: a record bought for client A is served to client B.
 //
-// ⚠️ TODAY THIS REFUSES NOTHING, AND THAT IS THE POINT. One writer exists and it hard-codes
-// `source: 'pdl'` (`routes/icps.ts`), so the pool is structurally clean right now. The risk is
-// entirely in the future tense: a second sourcing path, written by somebody who does not know
-// the pool is cross-client, tags its records `apollo` — or forgets to tag them at all — and
-// every client afterwards is served records we had no right to reuse. Nothing in the code
-// would object, and the first sign would be a letter.
+// ⛓️ 27 Aug — WIDENED TO APOLLO BY FOUNDER RULING **R73** (verbatim: *"all client data we
+// own. including apollo data can be used as a source for clients too. it is data we own."*),
+// which supersedes F15's internal Apollo precaution. **The allowlist did not become "anything
+// goes"** — it became the boundary between what K.I.N.D ACQUIRED and everything else:
+// customer/inbound data (`csv_import`, `web_form`, `company_csv`, `vida_chat`,
+// `milla_onboarding`, CRM imports) stays OUT of the shared pool unless separately ruled in,
+// and an UNTAGGED record is still refused, because absence of provenance is not evidence of
+// ownership. R73 is an INTERNAL rule only: F13 (PDL Order Form) and W18 (counsel) stay open,
+// and nothing here claims what any vendor contract permits.
 //
-// A tripwire that has never fired is not a tripwire that does nothing.
+// ⚠️ THE HISTORICAL CLAIM THIS COMMENT USED TO MAKE WAS FALSE. It said "the pool is
+// structurally clean right now — one writer, hard-coded 'pdl'". Production disproved it: the
+// pool's actual contents were 85 `apollo` rows from the founder-run 11-Jul promotion script,
+// which is SQL and never passed through this filter. The tripwire only ever guarded the
+// TypeScript writer, and the writer's hard-coded tag also mislabelled house/Apollo contacts
+// as 'pdl' (fixed 27 Aug — the writer now records the ACTUAL provider).
 //
 // ⚠️ NOT A KILL-SWITCH ON SOURCING. Founder-ruled: refusal skips the POOL write only. The
 // client still gets every lead their run bought — the lead rows, the delivery and the charge
-// are all upstream of this and untouched. Refusing the run instead would turn a licensing
+// are all upstream of this and untouched. Refusing the run instead would turn a rights
 // precaution into an outage.
 
-/** The sources we may serve to a SECOND client. Widening this is a licensing decision. */
-export const POOL_ELIGIBLE_SOURCES: readonly string[] = ['pdl']
+/** The K.I.N.D-ACQUIRED sources eligible for the shared pool (R73, 27 Aug). Widening this
+ *  further is a founder/rights decision, never a convenience edit. */
+export const POOL_ELIGIBLE_SOURCES: readonly string[] = ['pdl', 'apollo']
+
+// ── ⚑ 27 Aug — THE RIGHTS CLASSIFIER (R73). One place answers "whose data is this row?" ──
+//
+// "It exists in public.leads" is NOT an ownership claim: a customer's CSV upload and a
+// record K.I.N.D bought from PDL live in the same table. Every pool write and every
+// promotion decision goes through THIS classification, and the unknown bucket FAILS CLOSED.
+
+/** The four rights buckets of R73. */
+export type LeadRights = 'kind_acquired' | 'customer_inbound' | 'pool_served_copy' | 'unknown'
+
+/** Sources stamped by CUSTOMER/INBOUND writers — never auto-pooled (R73 ②). Each entry is a
+ *  literal a real writer stamps: lead-import.ts (csv_import) · forms.ts (web_form) ·
+ *  leads.ts company search (company_csv) · vida.ts (vida_chat) · icps.ts onboarding
+ *  (milla_onboarding). */
+export const CUSTOMER_INBOUND_SOURCES: readonly string[] = [
+  'csv_import', 'web_form', 'company_csv', 'vida_chat', 'milla_onboarding',
+]
+
+/** Sources stamped by K.I.N.D's OWN acquisition paths. `lookalike` is the PDL-backed
+ *  lookalike sourcing route; `pdl`/`apollo` are the provider loop's truthful tags. */
+export const KIND_ACQUIRED_SOURCES: readonly string[] = ['pdl', 'apollo', 'lookalike']
+
+/**
+ * Classify one lead row's rights bucket from its recorded provenance.
+ *
+ * @param source     the row's `source` tag (may be null — historical provider rows never set it)
+ * @param providerId the row's provider identity (`apollo_id` column), if any
+ * @param inPool     whether this row's email already exists in `lead_pool` (a pool-served
+ *                   copy carries no provider id of its own — it is not new inventory)
+ *
+ * ⚠️ FAIL-CLOSED IS THE POINT: anything that cannot be truthfully classified is `unknown`,
+ * and `unknown` is never promoted.
+ *
+ * ⛓️ 27 Aug (evidence-pass correction) — A BARE PROVIDER ID IS **NOT** PROOF OF ACQUISITION.
+ * The first version classified `null source + providerId` as kind_acquired, reasoning that
+ * only the provider loop created such rows. That is structurally FALSE: the manual
+ * `POST /leads` schema (`routes/leads.ts`) accepts `apollo_id` from the client and stamps
+ * no `source`, so a customer-created row can look exactly like a provider acquisition.
+ * An untagged row with a provider id is therefore `unknown` unless the caller supplies
+ * CORROBORATION — a deterministic external record (the known house-account book, or a
+ * unique acquisition_memory provenance) proving K.I.N.D acquired it. The customer source
+ * tag ALWAYS wins, corroborated or not.
+ */
+export function classifyLeadRights(
+  source: string | null | undefined,
+  providerId: string | null | undefined,
+  inPool = false,
+  corroborated = false,
+): LeadRights {
+  const s = (source ?? '').trim().toLowerCase()
+  if (s && CUSTOMER_INBOUND_SOURCES.includes(s)) return 'customer_inbound'
+  if (s && KIND_ACQUIRED_SOURCES.includes(s)) return 'kind_acquired'
+  if (!s && providerId && corroborated) return 'kind_acquired'
+  if (!s && !providerId && inPool) return 'pool_served_copy'
+  return 'unknown'
+}
+
+// ── ⚑ 27 Aug — THE HISTORICAL PROVIDER RESOLVER (deterministic, never a pick) ──────────────
+//
+// The promotion tool must state WHICH provider produced a historical row, or skip it. The
+// first version reached into `acquisition_memory` with `LIMIT 1` — an arbitrary choice that
+// violated its own fail-closed promise the moment one email carried two provider records.
+// This function is the canonical resolution order; the SQL in
+// `2026-08-27_kind_acquired_pool_promotion.sql` mirrors it clause for clause (guarded by
+// text assertions in pool-country-contract.test.ts):
+//
+//   A. customer/inbound source tag        → null (excluded upstream, tag always wins)
+//   B. explicit `leads.source` pdl/apollo → that exact provider
+//   C. `leads.source` = 'lookalike'       → 'pdl' (the lookalike route calls pdlSearchPeople)
+//   D. known house-account acquisition    → 'apollo' (the founder's own book — the same fact
+//                                            the 11-Jul promotion script already relied on)
+//   E. acquisition_memory                 → usable ONLY when EXACTLY ONE distinct eligible
+//                                            provider ('pdl' | 'apollo') exists for the
+//                                            identity. 0 → null. 2+ → null. An unexpected
+//                                            source ('hunter', …) is not eligible and can
+//                                            never resolve merely by being non-null.
+//   otherwise                             → null — ambiguous, EXCLUDED, fail closed.
+export type MemoryRecordRef = { source?: string | null; providerId?: string | null }
+
+export function resolveHistoricalProvider(opts: {
+  source?: string | null
+  isHouseAccount?: boolean
+  /** the lead row's own provider identity (`leads.apollo_id`), if any */
+  providerId?: string | null
+  /** acquisition_memory rows for this email — (source, provider_id) pairs */
+  memoryRecords?: readonly MemoryRecordRef[]
+}): 'pdl' | 'apollo' | null {
+  const s = (opts.source ?? '').trim().toLowerCase()
+  if (s && CUSTOMER_INBOUND_SOURCES.includes(s)) return null                    // A
+  if (s === 'pdl' || s === 'apollo') return s                                   // B
+  if (s === 'lookalike') return 'pdl'                                           // C
+  if (opts.isHouseAccount) return 'apollo'                                      // D
+  // E — ⛓️ merge-gate pass: corroboration binds to the ACQUISITION IDENTITY, never to the
+  // email alone. acquisition_memory is keyed (source, provider_id); a manual/untagged lead
+  // row whose email merely coincides with a remembered identity proves nothing about THIS
+  // row — the manual POST /leads schema accepts an arbitrary apollo_id, so the row's own
+  // provider id must MATCH a remembered provider_id, and exactly one eligible provider must
+  // claim it. No provider id on the row → step E has nothing to bind to → fail closed.
+  if (!opts.providerId) return null
+  const eligible = [...new Set((opts.memoryRecords ?? [])
+    .filter(m => (m.providerId ?? '') === opts.providerId)
+    .map(m => (m.source ?? '').trim().toLowerCase())
+    .filter(m => m === 'pdl' || m === 'apollo'))]
+  if (eligible.length === 1) return eligible[0] as 'pdl' | 'apollo'
+  return null                                                                   // fail closed
+}
+
+// ── ⚑ 27 Aug (merge-gate pass) — AMBIGUITY IS A STATE, NEVER A PICK ─────────────────────
+//
+// The promotion tool must not resolve a conflict by choosing the earliest row, the lowest
+// number, or any other tiebreak dressed as determinism. These two helpers are the canonical
+// spec the SQL mirrors:
+
+/** All eligible canonical country observations for one identity → the ONE country, or the
+ *  honest alternative. 0 observations → null (geo-unservable, poolable). >1 DISTINCT
+ *  canonical countries → ambiguous: country stays null, the identity is counted, and no
+ *  geography is ever claimed for it. NEVER earliest/min/max. */
+export function resolvePromotionCountry(observations: readonly (string | null | undefined)[]): {
+  country: string | null; ambiguous: boolean
+} {
+  const distinct = [...new Set(observations.map(o => canonicalPoolCountry(o)).filter(Boolean))]
+  if (distinct.length === 1) return { country: distinct[0], ambiguous: false }
+  return { country: null, ambiguous: distinct.length > 1 }
+}
+
+/** The provable original cost for one resolved acquisition identity. Exactly one distinct
+ *  recorded cost → that cost. Zero → 0 only for the proven house-Apollo book, else
+ *  unprovable. More than one distinct recorded cost → ambiguous. NEVER MIN/MAX to force a
+ *  number — "lowest is conservative" is not "historically true". */
+export function resolvePromotionCost(
+  recordedCosts: readonly number[],
+  opts: { houseApollo?: boolean } = {},
+): { cost: number | null; state: 'proven' | 'house_zero' | 'unprovable' | 'ambiguous' } {
+  const distinct = [...new Set(recordedCosts)]
+  if (distinct.length === 1) return { cost: distinct[0], state: 'proven' }
+  if (distinct.length > 1) return { cost: null, state: 'ambiguous' }
+  if (opts.houseApollo) return { cost: 0, state: 'house_zero' }
+  return { cost: null, state: 'unprovable' }
+}
+
+/** May this rights bucket enter the shared pool / be promoted? ONLY kind_acquired (R73). */
+export function rightsAllowPooling(rights: LeadRights): boolean {
+  return rights === 'kind_acquired'
+}
 
 /** Just enough of a pool record for the provenance question. */
 export type PoolWriteCandidate = { source?: string | null; email_norm?: string | null }
@@ -137,14 +362,26 @@ export type PoolWriteCandidate = { source?: string | null; email_norm?: string |
  * somebody wrote a pool record without thinking about provenance, which is the case this
  * exists to catch. Same reasoning as `isLaunchSendCountry` refusing a blank country.
  */
+/**
+ * ⚑ 27 Aug (merge-gate pass) — ONE source-eligibility truth for BOTH boundaries. The write
+ * tripwire filtered what enters the pool, but the READ path served whatever was already
+ * there — so a bad historical SQL import could bypass the tripwire entirely and a customer
+ * or unknown row would be served cross-client. `servePoolLeads` now asks this same question
+ * on the way OUT (DB prefilter + JS final check), and it fails closed: null/blank/unlisted
+ * sources are never served across clients.
+ */
+export function isPoolSourceEligible(source: string | null | undefined): boolean {
+  const src = typeof source === 'string' ? source.trim().toLowerCase() : ''
+  return src.length > 0 && POOL_ELIGIBLE_SOURCES.includes(src)
+}
+
 export function splitPoolEligible<T extends PoolWriteCandidate>(
   records: readonly T[],
 ): { eligible: T[]; refused: T[] } {
   const eligible: T[] = []
   const refused: T[] = []
   for (const r of records) {
-    const src = typeof r.source === 'string' ? r.source.trim().toLowerCase() : ''
-    if (src && POOL_ELIGIBLE_SOURCES.includes(src)) eligible.push(r)
+    if (isPoolSourceEligible(r.source)) eligible.push(r)
     else refused.push(r)
   }
   return { eligible, refused }

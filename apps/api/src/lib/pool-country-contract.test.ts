@@ -25,7 +25,7 @@
 //   ② A NULL COUNTRY COULD NEVER HEAL. The pool upsert is ON CONFLICT DO NOTHING, which
 //      correctly protects a good value — and also froze a bad one, permanently.
 // ═══════════════════════════════════════════════════════════════════════════════════════
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
@@ -33,6 +33,11 @@ import {
   type PoolRecord,
 } from './pool-sourcing'
 import { canonicalLaunchCountry, launchCountrySpellings } from '@kind/shared'
+
+// The executed Apollo-tripwire test imports `./apollo`, whose chain reaches `@kind/db` —
+// which throws at import without Supabase env vars. Mocked empty: nothing in this file
+// touches a database, and `fetch` is mocked in the one test that calls the provider code.
+vi.mock('@kind/db', () => ({ db: {} }))
 
 const rec = (over: Partial<PoolRecord>): PoolRecord => ({ email_norm: 'a@b.com', ...over })
 
@@ -346,5 +351,129 @@ describe('observability — a country-starved pool now says so', () => {
         expect(line.includes(pii), `${stage} must not log ${pii}`).toBe(false)
       }
     }
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug (launch gate) — CANDIDATE-WINDOW STARVATION. The pool candidate query is
+// BOUNDED (`.limit(max(cap*5, 50))`), which turns a loose prefilter into a starvation
+// channel: every false row a substring pattern admits can push a genuine target row OUT of
+// the window before the JS filter ever sees it. "JS filters them later" is no defence once
+// the database has capped the list. The fix is exact-per-spelling matching AT the query —
+// these tests simulate both query shapes under PostgREST's own `ilike` semantics and prove
+// the bounded window cannot be eaten by substring impostors.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('⚑ bounded candidate window cannot be starved by substring impostors', () => {
+  /** PostgREST `ilike` semantics: `*` → SQL %, case-insensitive; NO `*` → exact match. */
+  const pgIlike = (value: string, pattern: string): boolean => {
+    const v = value.toLowerCase()
+    const p = pattern.toLowerCase()
+    if (!p.includes('*')) return v === p
+    const re = new RegExp('^' + p.split('*').map(s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('.*') + '$')
+    return re.test(v)
+  }
+  /** The DB-side prefilter: first N rows whose country matches ANY pattern — a faithful
+   *  model of `.or(patterns).limit(n)` over a table scanned in storage order. */
+  const dbWindow = (rows: { country: string }[], patterns: string[], limit: number) =>
+    rows.filter(r => patterns.some(p => pgIlike(r.country, p))).slice(0, limit)
+
+  // 250 substring impostors FIRST in storage order, the 10 genuine targets AFTER them —
+  // the exact layout that starves a bounded window under a loose prefilter.
+  const impostors = ['Australia', 'Austria', 'Belarus', 'Cyprus', 'Mauritius', 'Ukraine']
+  const table = [
+    ...Array.from({ length: 250 }, (_, i) => ({ country: impostors[i % impostors.length], row: `impostor-${i}` })),
+    ...Array.from({ length: 5 }, (_, i) => ({ country: 'United States', row: `us-${i}` })),
+    ...Array.from({ length: 5 }, (_, i) => ({ country: 'GB', row: `uk-${i}` })),
+  ]
+  const LIMIT = 100   // cap 20 → max(20*5, 50) = 100, the real proof-run window
+
+  const oldPatterns = (geos: string[]) => geos.map(g => `*${g}*`)                       // pre-fix
+  const newPatterns = (geos: string[]) => [...new Set(geos.flatMap(g => launchCountrySpellings(g)))] // post-fix
+
+  it('OLD (substring): a US+UK target fills the 100-row window with 100 impostors — zero real rows reachable', () => {
+    const window = dbWindow(table, oldPatterns(['us', 'uk']), LIMIT)
+    expect(window).toHaveLength(LIMIT)
+    expect(window.every(r => impostors.includes(r.country)), 'the whole window is impostors').toBe(true)
+    // …and the JS canonical filter, however correct, can only work on what arrived:
+    expect(window.filter(r => poolCountryMatches(r.country, ['United States', 'United Kingdom']))).toHaveLength(0)
+  })
+
+  it('⚑ NEW (exact per spelling): the same window admits ONLY real target rows — all 10 reachable', () => {
+    const window = dbWindow(table, newPatterns(['United States', 'United Kingdom']), LIMIT)
+    expect(window, 'no impostor can enter — exact match admits no substring').toHaveLength(10)
+    expect(window.filter(r => poolCountryMatches(r.country, ['United States', 'United Kingdom']))).toHaveLength(10)
+  })
+
+  it('NEW: client-typed aliases behave identically ("us", "uk" → same exact spellings)', () => {
+    const window = dbWindow(table, newPatterns(['us', 'uk']), LIMIT)
+    expect(window).toHaveLength(10)
+  })
+
+  it('⚑ the route’s country patterns carry NO wildcard — exact per spelling, at the source', () => {
+    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    expect(src).toMatch(/geoTerms\.map\(g => `country\.ilike\.\$\{g\}`\)/)
+    expect(src, 'the substring form must never return').not.toMatch(/country\.ilike\.\*/)
+  })
+
+  it('role terms deliberately KEEP their wildcards — titles are genuinely partial', () => {
+    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    expect(src).toMatch(/title\.ilike\.\*\$\{t\}\*/)
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug — THE LIVE-PROVIDER GATE IS WIRED, AND THE APOLLO BOUNDARY IS LOUD.
+// The EXECUTED proof lives in proof-provider-off.test.ts (real runIcpJob, provider country
+// varied). These pin the wiring so neither can be deleted without a red.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('the hard geography invariant is wired at both boundaries', () => {
+  it('the provider insert loop gates on the SAME canonical predicate as the pool', () => {
+    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    expect(src).toContain('!poolCountryMatches(contact.country, icpGeographies)')
+    expect(src).toContain('removedByGeoGate++')
+  })
+
+  it('a geo-rejected batch is a counted, PII-free diagnostic', () => {
+    const src = codeOnly(readRepo('apps/api/src/routes/icps.ts'))
+    expect(src).toContain('stage=provider_geo_rejected')
+  })
+
+  afterEach(() => { vi.restoreAllMocks() })
+
+  it('⚑ EXECUTED · the Apollo tripwire actually FIRES on a parsed response missing country', async () => {
+    // Behavioural, not textual — a silenced tripwire (`if (false && …)`) keeps every source
+    // string and still tells nobody. So this drives the REAL `searchPeople` against a mocked
+    // `fetch` (no network: vitest.setup deletes real keys, and the body here is local) whose
+    // 200 body carries a contact with NO country property — the exact Apollo-cast shape —
+    // and requires the diagnostic to be EMITTED.
+    const savedKey = process.env.APOLLO_API_KEY
+    process.env.APOLLO_API_KEY = 'test-key-fetch-is-mocked'
+    const warns: string[] = []
+    vi.spyOn(console, 'warn').mockImplementation((...a: unknown[]) => { warns.push(a.map(String).join(' ')) })
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({
+      contacts: [{ id: 'x1', first_name: 'A', last_name: 'B', title: 'CEO' }],
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    try {
+      const { searchPeople } = await import('./apollo')
+      const out = await searchPeople({ page: 1, per_page: 1 })
+      expect(out, 'the contact itself still returns — the boundary reports, it does not drop').toHaveLength(1)
+      expect(warns.some(w => w.includes('stage=provider_geo_missing')),
+        'the geo-missing diagnostic must be EMITTED, not merely present in source').toBe(true)
+    } finally {
+      if (savedKey === undefined) delete process.env.APOLLO_API_KEY
+      else process.env.APOLLO_API_KEY = savedKey
+    }
+  })
+
+  it('the Apollo ingestion boundary counts contacts arriving without a usable country', () => {
+    const src = codeOnly(readRepo('apps/api/src/lib/apollo.ts'))
+    expect(src).toContain('stage=provider_geo_missing')
+    // and it must NOT invent a field mapping: the search result is still returned as the
+    // provider handed it (`data.contacts ?? data.people`), with no remapped country — the
+    // real Apollo person→country field is UNPROVEN in this repo, and a guessed remap would
+    // be a second silent miss wearing a fix. (`person_locations` in the REQUEST body is the
+    // query filter and is untouched by this rule.)
+    expect(src).toContain('const list = data.contacts ?? data.people ?? []')
+    expect(src).toContain('return list')
   })
 })

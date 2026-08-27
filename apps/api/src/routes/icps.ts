@@ -362,18 +362,25 @@ async function servePoolLeads(
     // rest — owned, relevant inventory the pool could not see. The launch alias table already
     // knows every spelling; it just had no expansion direction until now.
     //
-    // ⚠️ THIS WIDENS THE CANDIDATE BUFFER ONLY. `poolCountryMatches` below then compares the
-    // canonical forms for EQUALITY, so nothing loosely-matched survives into a serve. Widen
-    // here, narrow there — the database cannot express the canonical compare, and the
-    // canonical compare cannot reach rows the database never returned.
+    // ⚠️ EXACT PER SPELLING, NEVER SUBSTRING — the second half of the fix, and it must live
+    // AT THE QUERY, not after it. The candidate buffer is BOUNDED (`.limit(cap*5, min 50)`),
+    // so a substring prefilter is not merely sloppy, it is a starvation channel: a US target
+    // written as `country ILIKE '%us%'` admits Australia, Austria, Belarus, Cyprus and
+    // Mauritius into the limited window, and every false row it admits can push a genuine
+    // United States row OUT of the set the JS filter ever sees. "The JS filters them later"
+    // is no defence when the database already capped the list — the correct rows never
+    // arrive to be filtered. So each alias spelling is matched EXACTLY (PostgREST `ilike`
+    // with no `*` is exact, case-insensitive): a false spelling cannot enter the window,
+    // and the alias expansion — not the wildcard — is what covers "GB" vs "United Kingdom".
+    // `poolCountryMatches` below still makes the final canonical decision on what returns.
     const geoTerms = [...new Set(geos.flatMap(g => launchCountrySpellings(g)).map(clean).filter(Boolean))]
 
     // Structured, OR-generous candidate query (mirrors poolRecordMatchesIcp):
-    //   (country ILIKE any geo SPELLING) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
-    // Chained .or() calls are ANDed; terms inside one .or() are ORed. `*` is the
-    // PostgREST ILIKE wildcard (→ SQL %). Empty filters are simply not applied.
+    //   (country = any geo SPELLING, case-insensitive) AND (title ILIKE any | industry ILIKE any | seniority ILIKE any)
+    // Chained .or() calls are ANDed; terms inside one .or() are ORed. Role terms keep their
+    // `*` wildcards — titles are genuinely partial. Country terms carry NO wildcard.
     let q = db.from('lead_pool').select('*')
-    if (geoTerms.length) q = q.or(geoTerms.map(g => `country.ilike.*${g}*`).join(','))
+    if (geoTerms.length) q = q.or(geoTerms.map(g => `country.ilike.${g}`).join(','))
     const roleOr = [
       ...titles.map(t => `title.ilike.*${t}*`),
       ...inds.map(i => `industry.ilike.*${i}*`),
@@ -595,6 +602,14 @@ export async function runIcpJob(
   // be told to widen an ICP that was working. Counted so the outcome can tell truth.
   let removedBySuppression = 0
   let removedByDedupe = 0
+  // ⚑ 27 Aug — THE HARD GEOGRAPHY INVARIANT, counted. Milla asks the client where they want
+  // to target and the confirmed geography is a HARD product constraint (founder rule, 27 Aug):
+  // a lead may be served to a geography-constrained client ONLY if its geography is KNOWN and
+  // canonically matches one of the client-selected geographies. A provider contact whose
+  // country is missing or non-matching is therefore rejected BEFORE insert — never served,
+  // never surfaced, never revealed — and counted here so the outcome can say why. NULL is
+  // never a wildcard, on either the pool path or this one.
+  let removedByGeoGate = 0
   // How many contacts the provider ACTUALLY returned this run, recorded before any
   // K.I.N.D-side gate touches them — the fact the neutral-review decision reads.
   let providerContactsReturned = 0
@@ -1207,6 +1222,11 @@ export async function runIcpJob(
         }
       }
 
+      // The Milla-confirmed targeting is the constraint — the SAVED row's geographies, which
+      // both the exact and the widened search kept (the widened fallback drops seniority and
+      // size, never countries). Empty ⇒ the client set no geography ⇒ no gate.
+      const icpGeographies = ((icp as { geographies?: string[] | null }).geographies ?? []).filter(Boolean)
+
       for (const contact of contacts) {
         // Cap PDL insertions at the GRANTED budget (#445) — never keep more than we
         // pre-funded. grantedSize ≤ pdlRemainder ≤ effectiveCap, so this binds. (Counts
@@ -1214,6 +1234,20 @@ export async function runIcpJob(
         if (pdlKept >= grantedSize) {
           skipped++
           continue
+        }
+
+        // ── ⚑ 27 Aug — THE HARD GEOGRAPHY INVARIANT, ON FRESH PROVIDER CONTACTS ────────────
+        // The pool path already refuses a candidate whose country is unknown or non-matching;
+        // this is the SAME rule at the provider boundary, via the SAME canonical predicate.
+        // PDL is queried WITH `location_country`, so on a healthy run this rejects nothing —
+        // it exists for the runs that are not healthy: a provider that ignores the filter, a
+        // contract drift that stops returning the field, or a mapping that silently loses it
+        // (the Apollo cast has no runtime mapper at all — see apollo.ts). Any of those used
+        // to become a lead with the wrong or an unknown country, served to a client who told
+        // Milla exactly where they target. Now it is a counted rejection, and if it empties
+        // the run the neutral-review state below reports it — targeting is never blamed.
+        if (icpGeographies.length > 0 && !poolCountryMatches(contact.country, icpGeographies)) {
+          skipped++; removedByGeoGate++; continue
         }
 
         // DO-NOT-CONTACT: never even source anyone connected to the founder's employer.
@@ -1308,6 +1342,12 @@ export async function runIcpJob(
       //
       // The refusal skips the POOL write ONLY. Every lead this run bought is already inserted,
       // delivered and charged above; a licensing precaution must never become an outage.
+      // ⚑ 27 Aug — a geo-rejected provider batch is a PROVIDER-CONTRACT event, not a quiet
+      // skip. Counts only, no PII: how many, out of how many, against which targeting size.
+      if (removedByGeoGate > 0) {
+        console.error(`[icp] stage=provider_geo_rejected — ${removedByGeoGate} of ${providerContactsReturned} fresh provider contact(s) carried a country that is missing or does not canonically match the client's ${icpGeographies.length} selected geograph${icpGeographies.length === 1 ? 'y' : 'ies'}. Rejected before insert — geography is a hard constraint and NULL is never a wildcard. If this is the whole batch, verify the provider's country field mapping.`)
+      }
+
       const { eligible: poolEligible, refused: poolRefused } = splitPoolEligible(poolUpserts)
       if (poolRefused.length > 0) console.error(poolRefusalLine(poolRefused))
       if (poolWriteAllowed(isDemo, poolEligible.length)) {
@@ -1550,11 +1590,16 @@ export async function runIcpJob(
     ? 'failed'
     : deriveRunStatus(!!clientSettings?.is_demo, inserted, false, audienceExhausted, trusted)
   if (gatesAteEverything) {
-    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · rest insert/cap). Neutral review state; targeting NOT blamed.`)
+    console.log(`[icp] icp ${icpId} — search completed and returned ${providerContactsReturned} contact(s); K.I.N.D removed every one (${removedByGeoGate} geography unknown/non-matching · ${removedBySuppression} suppression/opt-out/DNC · ${removedByDedupe} already owned · rest insert/cap). Neutral review state; targeting NOT blamed.`)
     void sendFounderAlert('source_down', 'A completed search was emptied entirely by K.I.N.D-side gates', [
       `Client ${clientId}, ICP ${icpId}.`,
-      `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
+      `${providerContactsReturned} contact(s) matched the targeting; removed: ${removedByGeoGate} by the hard geography gate (country missing or not canonically in the client's targeting), ${removedBySuppression} by suppression/opt-out/DNC, ${removedByDedupe} already owned by this client, remainder by insert failure or cap.`,
       'The prospect sees the neutral review state, NOT "no leads matched — try widening". Their targeting may be correct.',
+      // Appended, never substituted — the sentence above is this alert's invariant promise
+      // (guarded by proof-outcome-matrix.test.ts) and holds in EVERY variant of this state.
+      ...(removedByGeoGate > 0
+        ? ['Geography rejections on a healthy PDL run should be ZERO (the query already filters by location_country) — a non-zero count means the provider result contract drifted or a mapping lost the country field. Investigate the provider, not the targeting.']
+        : []),
     ]).catch(() => {})
   }
   let heldFromIcp = 0

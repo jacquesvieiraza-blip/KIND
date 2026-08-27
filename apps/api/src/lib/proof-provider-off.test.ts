@@ -54,6 +54,10 @@ type ProofOpts = {
   provider: 'blocked' | 'serves' | 'crashes'
   providerCount?: number
   audience?: 'client' | 'house'
+  /** ⚑ 27 Aug — the country the provider stamps on every contact it serves. `undefined`
+   *  keeps the healthy default ('united kingdom', matching the ICP); `null` simulates a
+   *  provider/mapping that lost geography entirely (the Apollo-cast failure mode). */
+  providerCountry?: string | null
 }
 
 /** Install every mock the proof runtime needs. Shared by BOTH harnesses — the direct
@@ -182,7 +186,8 @@ async function buildProofModules(opts: ProofOpts, rec: Rec) {
         contacts: Array.from({ length: n }, (_, i) => ({
           id: `pdl_${i}`, first_name: 'A', last_name: `B${i}`, email: `a${i}@b.example`,
           email_status: 'verified', linkedin_url: null, title: 'CEO', seniority: 'C-Suite',
-          country: 'united kingdom', organization_name: 'Acme', organization: null,
+          country: opts.providerCountry === undefined ? 'united kingdom' : opts.providerCountry,
+          organization_name: 'Acme', organization: null,
         })),
         relaxed: null,
         pdlPage: { contacts: [], scrollToken: null, exhausted: false, matchedNothing: n === 0, error: null, completed: true },
@@ -408,5 +413,65 @@ describe('EXECUTED · claim → dispatch → outcome, across the real route boun
     await waitFor(() => rec.outcomes.length > 0, 'the outcome')
     expect(rec.outcomes[0].status).toBe('failed')
     expect(rec.outcomes[0].status).not.toBe('no_match')
+  })
+})
+
+// ═══════════════════════════════════════════════════════════════════════════════════════
+// ⚑ 27 Aug — THE HARD GEOGRAPHY INVARIANT, EXECUTED ON FRESH PROVIDER CONTACTS.
+//
+// Milla asks the client where they want to target, and the confirmed geography is a HARD
+// product constraint. The pool path enforces it (pool-country-contract.test.ts); these
+// tests drive the REAL `runIcpJob` — Milla-saved ICP (geographies: ['United Kingdom']) →
+// mocked provider boundary → the real gates → lead persistence → outcome — and prove the
+// SAME rule holds for freshly sourced contacts:
+//
+//   · GB               → served (canonical alias of the client's own choice)
+//   · United Kingdom   → served
+//   · NULL             → rejected — unknown geography is never a wildcard
+//   · Australia        → rejected — wrong country, and specifically the substring trap
+//                        ('australia' contains 'us') that must never serve again
+//
+// The rejection is BEFORE insert: the contact never becomes a lead row at all, so it can
+// never reach surfacing, approval, reveal or send eligibility — those all read `leads`.
+// ═══════════════════════════════════════════════════════════════════════════════════════
+describe('EXECUTED · fresh provider contacts obey the hard geography invariant', () => {
+  it('⚑ provider says GB → canonically the client’s UK → SERVED', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: 'GB' }, rec)
+    expect(rec.leadInserts, 'all five inserted').toBe(5)
+    expect(rec.outcomes[0]?.status).toBe('served')
+    expect(rec.outcomes[0]?.total_inserted).toBe(5)
+  })
+
+  it('provider says United Kingdom (exact) → SERVED, unchanged', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: 'United Kingdom' }, rec)
+    expect(rec.leadInserts).toBe(5)
+    expect(rec.outcomes[0]?.status).toBe('served')
+  })
+
+  it('⚑ provider lost the country (NULL) → NOT ONE lead row is created', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
+    expect(rec.leadInserts, 'no lead may exist with unverifiable geography').toBe(0)
+    // And the outcome is the NEUTRAL review state — the search completed, K.I.N.D's own
+    // gate emptied it, so targeting is never blamed and no_match is never claimed.
+    expect(rec.outcomes[0]?.status).toBe('failed')
+    expect(rec.outcomes[0]?.status).not.toBe('no_match')
+  })
+
+  it('⚑ provider returned the WRONG country (Australia vs a UK target) → rejected', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 0, provider: 'serves', providerCount: 5, providerCountry: 'Australia' }, rec)
+    expect(rec.leadInserts).toBe(0)
+    expect(rec.outcomes[0]?.status).toBe('failed')
+  })
+
+  it('pool leads still surface when the provider batch is geo-rejected — the partial rule holds', async () => {
+    const rec = fresh()
+    await runProofJob({ pool: 4, provider: 'serves', providerCount: 5, providerCountry: null }, rec)
+    expect(rec.outcomes[0]?.pool_served, 'the 4 safe pool matches survive').toBe(4)
+    expect(rec.outcomes[0]?.total_inserted, 'and nothing geo-unverifiable joins them').toBe(4)
+    expect(rec.surfacings, 'the safe leads reached the desk').toBeGreaterThan(0)
   })
 })

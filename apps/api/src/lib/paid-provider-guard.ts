@@ -55,10 +55,14 @@ export function isSafeTestMode(): boolean {
   return !TRUE_VALUES.has(allow)
 }
 
+/** The stable discriminator every caller recognises a block by. Declared once, read by
+ *  `isPaidProviderBlocked` and stamped on every instance the guard throws. */
+export const PAID_PROVIDER_BLOCKED_CODE = 'SAFE_TEST_MODE_BLOCKED'
+
 /** Thrown instead of spending. Named so a caller can recognise it without string-matching. */
 export class PaidProviderBlockedError extends Error {
   readonly provider: PaidProvider
-  readonly code = 'SAFE_TEST_MODE_BLOCKED'
+  readonly code: typeof PAID_PROVIDER_BLOCKED_CODE = PAID_PROVIDER_BLOCKED_CODE
   constructor(provider: PaidProvider, context?: string) {
     super(
       `SAFE_TEST_MODE is on — refusing to call ${provider.toUpperCase()}` +
@@ -84,6 +88,25 @@ export function assertPaidProviderAllowed(provider: PaidProvider, context?: stri
 }
 
 /**
+ * ⚑ 27 Aug — THE ONE CANONICAL DISCRIMINATOR. Every caller that must recognise a deliberate
+ * block asks this, so the knowledge lives in exactly one place beside the class that emits it.
+ *
+ * ⚠️ IT CHECKS THE CODE, NOT ONLY `instanceof` — and that is a fix, not a style choice.
+ * `instanceof` compares against the class object in THIS module instance, so a caller that
+ * reached the error through a second copy of the module graph (a re-imported route, a test
+ * that reset modules, a bundler that duplicated the file) would fail to recognise its own
+ * error and swallow the block — the exact failure `rethrowIfProviderBlocked` exists to
+ * prevent. `code` is a stable readonly value on the instance and survives all of that.
+ *
+ * The `code` field is declared on the class above; nothing else in the codebase emits it.
+ */
+export function isPaidProviderBlocked(err: unknown): err is PaidProviderBlockedError {
+  if (err instanceof PaidProviderBlockedError) return true
+  return !!err && typeof err === 'object'
+    && (err as { code?: unknown }).code === PAID_PROVIDER_BLOCKED_CODE
+}
+
+/**
  * Re-throw a `PaidProviderBlockedError`, swallow nothing else.
  *
  * ⚠️ WHY THIS EXISTS, and it is not hypothetical. `apollo.ts` wrapped the PDL search in
@@ -101,5 +124,7 @@ export function assertPaidProviderAllowed(provider: PaidProvider, context?: stri
  * neutral value (`null`, `[]`, a zero count, a "temporarily unavailable" string).
  */
 export function rethrowIfProviderBlocked(err: unknown): void {
-  if (err instanceof PaidProviderBlockedError) throw err
+  // ⛓️ 27 Aug — via the canonical predicate, so a duplicated module graph cannot make this
+  // silently stop recognising its own error (see `isPaidProviderBlocked`).
+  if (isPaidProviderBlocked(err)) throw err
 }

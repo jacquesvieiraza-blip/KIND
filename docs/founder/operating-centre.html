@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>K.I.N.D — Founder Operating Centre</title>
+<style>
+  :root{
+    --g1:#F5179B; --g2:#A62AD1; --g3:#4B2BE0;
+    --grad:linear-gradient(135deg,#F5179B 0%,#A62AD1 52%,#4B2BE0 100%);
+    --bg:#FBF7F4; --card:#FFFFFF; --ink:#1A1526; --muted:#6B6280;
+    --line:#EDE6F2; --green:#0E9F6E; --amber:#C77700; --red:#D6285B;
+    --shadow:0 1px 2px rgba(26,21,38,.04),0 8px 24px rgba(75,43,224,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.55 ui-sans-serif,-apple-system,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 20px 72px}
+  a{color:var(--g3)}
+
+  /* ── header ─────────────────────────────────────────── */
+  header{background:var(--grad);color:#fff;padding:30px 0 26px;margin-bottom:26px}
+  header .wrap{padding-bottom:0}
+  .eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.85;font-weight:700}
+  h1{margin:8px 0 4px;font-size:29px;letter-spacing:-.02em}
+  .sub{opacity:.92;font-size:14px;margin:0}
+  .srcbar{margin-top:16px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+    border-radius:12px;padding:11px 14px;font-size:12.5px;line-height:1.75}
+  .srcbar b{font-weight:700}
+  .sha{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+    background:rgba(0,0,0,.18);padding:2px 7px;border-radius:5px;word-break:break-all}
+  .noncanon{display:inline-block;margin-top:10px;background:#fff;color:#4B2BE0;font-weight:800;
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:6px 11px;border-radius:7px}
+
+  /* ── structure ──────────────────────────────────────── */
+  section{margin:30px 0}
+  h2{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);
+    margin:0 0 12px;font-weight:800;display:flex;align-items:center;gap:9px}
+  h2::before{content:"";width:22px;height:3px;border-radius:2px;background:var(--grad);flex:none}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(168px,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px 17px;box-shadow:var(--shadow)}
+  .card h3{margin:0 0 9px;font-size:14.5px;letter-spacing:-.01em}
+  .card p{margin:0 0 8px;font-size:13.5px;color:#3A3348}
+  .card p:last-child{margin-bottom:0}
+  ul{margin:6px 0 0;padding-left:17px}
+  li{font-size:13.5px;margin-bottom:5px;color:#3A3348}
+  li:last-child{margin-bottom:0}
+  .cid{font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--g3);
+    background:#F4F0FE;padding:1px 5px;border-radius:4px;white-space:nowrap}
+
+  /* ── hero answers ───────────────────────────────────── */
+  .hero{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:4px 0;box-shadow:var(--shadow);overflow:hidden}
+  .qrow{display:grid;grid-template-columns:186px 1fr;gap:14px;padding:14px 18px;
+    border-bottom:1px solid var(--line);align-items:start}
+  .qrow:last-child{border-bottom:0}
+  .q{font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding-top:2px}
+  .a{font-size:14px}
+  .a b{font-weight:700}
+
+  /* ── status ─────────────────────────────────────────── */
+  .pill{display:inline-block;font-size:10.5px;font-weight:800;letter-spacing:.07em;
+    text-transform:uppercase;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .p-green{background:#E4F6EE;color:var(--green)}
+  .p-amber{background:#FDF1DF;color:var(--amber)}
+  .p-red{background:#FDE7EE;color:var(--red)}
+  .p-grey{background:#F1EEF6;color:var(--muted)}
+  .legend{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+  .d-green{background:var(--green)} .d-amber{background:var(--amber)} .d-red{background:var(--red)}
+  .lc{position:relative}
+  .lc .pill{position:absolute;top:15px;right:15px}
+  .lc h3{padding-right:96px}
+
+  /* ── week ───────────────────────────────────────────── */
+  .day{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:14px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .day.today{border-color:var(--g1);box-shadow:0 0 0 3px rgba(245,23,155,.10),var(--shadow)}
+  .day.big{background:linear-gradient(180deg,#fff 0%,#FDF4FA 100%);border-color:#F6C9E4}
+  .dname{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .hrs{display:inline-block;margin:7px 0 8px;font-size:19px;font-weight:800;
+    background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .day ul{padding-left:15px;margin-top:4px}
+  .day li{font-size:12.5px}
+  .note{font-size:11.5px;color:var(--muted);margin-top:9px;font-style:italic}
+
+  /* ── flow ───────────────────────────────────────────── */
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;
+    background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 16px;box-shadow:var(--shadow)}
+  .step{background:var(--grad);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.05em;
+    padding:8px 13px;border-radius:20px;white-space:nowrap}
+  .arw{color:var(--g2);font-weight:800;font-size:15px}
+  .chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:14px}
+  .link{border:2px solid var(--g2);color:var(--g3);background:#fff;font-size:12.5px;font-weight:800;
+    padding:8px 15px;border-radius:9px}
+
+  /* ── decisions ──────────────────────────────────────── */
+  .fd{border-left:4px solid var(--red)}
+  .fd h3{color:var(--red)}
+  .vs{display:grid;grid-template-columns:1fr auto 1fr;gap:11px;align-items:center;
+    background:#FDF7F9;border:1px solid #F6DCE5;border-radius:10px;padding:12px;margin:10px 0}
+  .vs div{text-align:center;font-size:13px}
+  .vs .n{display:block;font-size:24px;font-weight:800;background:var(--grad);
+    -webkit-background-clip:text;background-clip:text;color:transparent;line-height:1.15}
+  .vsx{font-weight:800;color:var(--muted);font-size:12px}
+
+  /* ── money ──────────────────────────────────────────── */
+  .kv{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+  .kv:last-child{border-bottom:0}
+  .kv b{font-weight:700;text-align:right}
+  .warn{background:#FDF1DF;border:1px solid #F3DDB6;border-radius:11px;padding:13px 15px;font-size:13.5px}
+  .warn b{color:var(--amber)}
+  .danger{background:#FDE7EE;border:1px solid #F6C6D5;border-radius:11px;padding:13px 15px;font-size:13.5px}
+  .danger b{color:var(--red)}
+
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{text-align:left;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+    padding:8px 10px;border-bottom:2px solid var(--line);font-weight:800}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .scroll{overflow-x:auto;background:var(--card);border:1px solid var(--line);
+    border-radius:14px;box-shadow:var(--shadow);padding:4px 6px}
+
+  footer{margin-top:38px;padding-top:20px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--muted);text-align:center}
+  @media (max-width:640px){
+    .qrow{grid-template-columns:1fr;gap:4px}
+    .vs{grid-template-columns:1fr}
+    h1{font-size:23px}
+    .lc h3{padding-right:0} .lc .pill{position:static;display:inline-block;margin-bottom:7px}
+  }
+  /* ── conveyor (new for Step 7) ──────────────────────── */
+  .rail{display:flex;flex-wrap:wrap;gap:6px;align-items:center;background:var(--card);
+    border:1px solid var(--line);border-radius:14px;padding:16px 14px;box-shadow:var(--shadow)}
+  .cs{font-size:11px;font-weight:700;letter-spacing:.04em;padding:6px 10px;border-radius:18px;
+    background:#F1EEF6;color:var(--muted);white-space:nowrap}
+  .cs.on{background:var(--grad);color:#fff}
+  .cs.stop{background:#FDE7EE;color:var(--red);border:1px solid #F6C6D5}
+  .cs .n{opacity:.6;font-weight:800;margin-right:5px}
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+  .lvl{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 17px;
+    box-shadow:var(--shadow)}
+  .lvl h3{margin:0 0 4px;font-size:14.5px}
+  .lvl .sub2{font-size:12px;color:var(--muted);margin:0 0 10px}
+  .st{display:inline-block;font-size:11px;font-weight:700;background:#F4F0FE;color:var(--g3);
+    padding:3px 9px;border-radius:6px;margin:0 5px 5px 0}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="eyebrow">K.I.N.D · Founder Operating Centre</div>
+    <h1>What is happening, and what needs you</h1>
+    <p class="sub">Rendered from <b>docs/FOUNDER-OPERATING-TRUTH.md</b>. Launch: <b>Friday 4 September 2026</b>.</p>
+    <div class="srcbar">
+      <b>Truth lives in the repo, not here.</b> Rulings → <b>PRODUCT-RULES.md</b> · status → <b>PRODUCT-INVENTORY.md</b> ·
+      execution → <b>LAUNCH-PAD.md</b> · strategy &amp; history → <b>KIND-MASTER.md</b> · future → <b>V2-TRACKER.md</b>.<br>
+      Authority order: <span class="sha">PRODUCT-RULES &gt; LAUNCH-PAD &gt; PRODUCT-INVENTORY &gt; KIND-MASTER &gt; V2-TRACKER</span>
+    </div>
+    <span class="noncanon">Non-canonical · derived view · do not quote this page</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <h2>Today</h2>
+  <div class="hero">
+    <div class="qrow"><div class="q">Launch date</div><div class="a"><b>Friday 4 September 2026</b> — unconditional (<b>R76</b>, supersedes R57&rsquo;s 25 Aug).</div></div>
+    <div class="qrow"><div class="q">Current objective</div><div class="a">Milla, Vida and the website launch as <b>one finished, premium, conversational experience</b> — <b>R79</b>: quality is <b>not</b> V2.</div></div>
+    <div class="qrow"><div class="q">Builder task</div><div class="a"><b>BUILD-001</b> · Step 7 Founder Truth System &nbsp;<span class="pill p-amber">Builder returned</span><br><span class="cid">docs/founder/tasks/BUILD-001.md</span></div></div>
+    <div class="qrow"><div class="q">Scout task</div><div class="a">None open — the Step-7 investigation returned and was consumed by BUILD-001.</div></div>
+    <div class="qrow"><div class="q">Next ready task</div><div class="a">None. The <b>READY FOR BUILDER</b> queue is empty — the next task is the founder&rsquo;s to set.</div></div>
+    <div class="qrow"><div class="q">Board</div><div class="a">🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸6+1 · <b>&Sigma;666</b> &nbsp;<span class="cid">status of record: PRODUCT-INVENTORY</span></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>The two levels of task state</h2>
+  <div class="two">
+    <div class="lvl">
+      <h3>Level 1 · Founder attention</h3>
+      <p class="sub2">Does this need me? <b>Unchanged — these six stay.</b></p>
+      <span class="st">NOW</span><span class="st">NEXT</span><span class="st">WAITING</span>
+      <span class="st">PARKED</span><span class="st">RESEARCH</span><span class="st">DONE / LEARNED</span>
+    </div>
+    <div class="lvl">
+      <h3>Level 2 · The conveyor</h3>
+      <p class="sub2">Where in the pipeline is it? <b>New, and it sits underneath level 1 — it does not replace it.</b></p>
+      <p style="margin:0;font-size:13px">A task carries <b>both</b> states at once. BUILD-001 is <b>NOW</b> and <b>BUILDER RETURNED</b> at the same time.</p>
+    </div>
+  </div>
+
+  <div class="rail" style="margin-top:14px">
+    <span class="cs"><span class="n">1</span>Not scouted</span>
+    <span class="cs"><span class="n">2</span>Scouting</span>
+    <span class="cs"><span class="n">3</span>Scout returned</span>
+    <span class="cs"><span class="n">4</span>GPT verified</span>
+    <span class="cs"><span class="n">5</span>Founder approved</span>
+    <span class="cs"><span class="n">6</span>Ready for builder</span>
+    <span class="cs"><span class="n">7</span>Building</span>
+    <span class="cs on"><span class="n">8</span>Builder returned</span>
+    <span class="cs"><span class="n">9</span>GPT verified</span>
+    <span class="cs"><span class="n">10</span>Founder merged</span>
+    <span class="cs"><span class="n">11</span>Deploy verified</span>
+    <span class="cs"><span class="n">12</span>Complete</span>
+    <span class="cs stop">⚠ Founder decision required — enters at any stage</span>
+  </div>
+
+  <div class="warn" style="margin-top:14px">
+    <b>Why 10, 11 and 12 are separate:</b> merged is not deployed, and deployed is not proved. Item <b>#700</b>&rsquo;s code merged on 22 Aug and its dot is still 🟡.
+    <b>Why GPT verification appears twice (4 and 9):</b> the Scout&rsquo;s findings and the Builder&rsquo;s output are different claims, and each needs its own independent review. Claude&rsquo;s self-review is never merge authorisation.
+  </div>
+</section>
+
+<section>
+  <h2>Blockers &amp; decisions that need the founder</h2>
+  <div class="grid g2">
+    <div class="card fd">
+      <h3>#704 · The retention duration</h3>
+      <p>Four live surfaces state four different clocks — <b>90 days</b>, <b>12 months</b>, <b>24 months</b> — and the DPA inverts the privacy policy&rsquo;s two figures.</p>
+      <p><b>No authoritative basis exists in the repo to choose.</b> Choosing would invent a legal position. <b>Unresolved is the correct state.</b> Founder + counsel (W18).</p>
+    </div>
+    <div class="card fd">
+      <h3>#706 · What the AE says instead</h3>
+      <p>The Vida sales playbook still scripts the dead <b>14-day trial</b> in six places, including two prospect email templates.</p>
+      <p>Operator-facing, so not a live client-facing claim — but it is what a human then says to a prospect. The replacement is a <b>commercial call</b>: live offer is $299 · 100 included · $4, and the programme model is unbuilt and unquotable.</p>
+    </div>
+    <div class="card fd">
+      <h3>#705 · The removed guarantee</h3>
+      <p>Deleting §5A removed a <b>refund commitment</b> from a live agreement. No client ever claimed under it, but the Terms-change notice and the rights of anyone who signed under the old wording are <b>counsel&rsquo;s</b>, not an agent&rsquo;s.</p>
+    </div>
+    <div class="card">
+      <h3>Still open</h3>
+      <ul>
+        <li><b>F13 / W18</b> — the PDL Order Form has not been found</li>
+        <li><b>F5</b> — is <span class="cid">eu-west-1</span> the <i>only</i> place client data lives? Backups, PITR and sub-regions unverified</li>
+        <li><b>T10</b> — the proof runtime path, end to end. A green segment is not a green journey</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The four founder decisions — 28 August</h2>
+  <div class="grid g2">
+    <div class="card lc"><span class="pill p-red">Unbuilt</span>
+      <h3>FD-01 · R77 — the benchmark is 250</h3>
+      <p><b>250 recommended leads per targeted booked meeting.</b> Supersedes R69&rsquo;s ~150 <i>as the planning figure</i>.</p>
+      <p><b>R69&rsquo;s 250–300-with-no-meeting campaign-review trigger survives</b> — a separate operational rule. So a one-meeting programme sits <i>at</i> the review threshold by design.</p>
+    </div>
+    <div class="card lc"><span class="pill p-red">Unbuilt</span>
+      <h3>FD-02 · R78 — contribution defined</h3>
+      <p>Programme revenue <b>minus</b> directly attributable acquisition and delivery costs. <b>Fixed company overhead excluded.</b> Partner = <b>25% of contribution</b>.</p>
+      <p><b>Contribution is not net profit</b> and must never be called &ldquo;net margin&rdquo;.</p>
+    </div>
+    <div class="card lc"><span class="pill p-red">Launch critical</span>
+      <h3>FD-03 · R79 — quality is not V2</h3>
+      <p>Milla, Vida and the website launch as <b>one finished, premium, conversational</b> K.I.N.D experience. Finish may not be deferred to V2 as polish.</p>
+    </div>
+    <div class="card lc"><span class="pill p-grey">Post-launch</span>
+      <h3>FD-04 · R80 — retention is post-launch</h3>
+      <p>Client-configurable retention is <b>not launch scope</b>. The phrase <i>&ldquo;retention settings&rdquo;</i> stays absent until the feature exists. <b>Retention ≠ contactability</b> — R67 untouched.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Commercial truth — three registers, never collapsed</h2>
+  <div class="grid g3">
+    <div class="card lc"><span class="pill p-green">Live now</span>
+      <h3>$299 · 100 · $4</h3>
+      <div class="kv"><span>Onboarding pack</span><b>$299</b></div>
+      <div class="kv"><span>Approved leads included</span><b>100</b></div>
+      <div class="kv"><span>Per approved lead after</span><b>$4</b></div>
+      <div class="kv"><span>Reviewing</span><b>Free</b></div>
+      <p class="note">Money sentences are interpolated from @kind/shared, never typed.</p>
+    </div>
+    <div class="card lc"><span class="pill p-grey">Superseded</span>
+      <h3>History — do not start</h3>
+      <p>The <b>$1 reveal → +$3</b> ladder (dead 24 Jul).</p>
+      <p><b>R68&rsquo;s $4 → $8 migration</b> — superseded 27 Aug. <b>Do not start it.</b></p>
+    </div>
+    <div class="card lc"><span class="pill p-red">Approved · unbuilt</span>
+      <h3>The programme model</h3>
+      <div class="kv"><span>1 meeting</span><b>$450</b></div>
+      <div class="kv"><span>10 meetings</span><b>$437.50 each</b></div>
+      <div class="kv"><span>50 meetings</span><b>$400 each</b></div>
+      <div class="kv"><span>50+ </span><b>$400 floor</b></div>
+      <div class="kv"><span>Leads</span><b>meetings × 250</b></div>
+      <p class="note">R81. Nothing is built. Nothing may be quoted.</p>
+    </div>
+  </div>
+  <div class="danger" style="margin-top:14px">
+    <b>No outcome guarantee.</b> Meetings are targets and planning estimates, never promises (R69 / R77). <b>And there is no free trial</b> — signup writes <span class="cid">paused</span> with a $0 wallet and $0 sourcing allowance.
+  </div>
+</section>
+
+<section>
+  <h2>Active PRs, merge state, deploy state</h2>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>PR</th><th>What</th><th>Conveyor</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td><b>#1463</b></td><td>Founder Operating Truth (earlier attempt)</td><td><span class="pill p-grey">Parked</span></td><td><b>Do not merge as-is.</b> Its second parallel ID series is superseded. Only the <b>visual shell</b> was reused.</td></tr>
+        <tr><td><b>#1436</b></td><td>Log the post-launch Founder-Operator OS idea</td><td><span class="pill p-amber">Builder returned</span></td><td>Not touched by Step 7.</td></tr>
+        <tr><td><b>#1427</b></td><td>P34&rsquo;s screens</td><td><span class="pill p-amber">Builder returned</span></td><td>Not touched by Step 7.</td></tr>
+        <tr><td><b>#1464</b></td><td>Founder truth reconciliation, Steps 2–6</td><td><span class="pill p-green">Founder merged</span></td><td>In <span class="cid">main</span> at <span class="cid">1cd99357</span>.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="warn" style="margin-top:14px">
+    <b>Deploy state is UNVERIFIED</b> for the Step-6 client-facing corrections. The corrected portal Terms, privacy pages and landing pages are <b>merged, not proved live</b>.
+    <b>GitHub Actions has not run since 3 July 2026</b> — <span class="cid">scripts/check.sh</span> is the only gate.
+    Never name a PR number without re-verifying it is open.
+  </div>
+</section>
+
+<section>
+  <h2>The reconciliation, in one line</h2>
+  <div class="flow">
+    <span class="step">245 sources</span><span class="arw">→</span>
+    <span class="step">24,309 items</span><span class="arw">→</span>
+    <span class="step">197 subjects</span><span class="arw">→</span>
+    <span class="step">194 truths</span><span class="arw">→</span>
+    <span class="step">4 founder decisions</span><span class="arw">→</span>
+    <span class="step">0 conflicts</span>
+  </div>
+  <div class="vs">
+    <div><span class="n">0</span>conflicts left</div>
+    <div class="vsx">BUT</div>
+    <div><span class="n">57</span>truths still unbuilt</div>
+  </div>
+  <div class="warn">
+    <b>Zero conflicts means the founder has ruled on every recorded contradiction. It does not mean anything is built.</b>
+    Launch gates from the register: <b>39 🔴</b> blocking · <b>29 🟠</b> needs work · <b>20 🟢</b> proved.
+  </div>
+</section>
+
+<section>
+  <h2>Two laws that override an agent&rsquo;s instincts</h2>
+  <div class="chain">
+    <span class="link">UNKNOWN STAYS UNKNOWN</span>
+    <span class="link">SUPERSEDED HISTORY IS NOT CURRENT TRUTH</span>
+    <span class="link">PAUSE IS THE DEFAULT (R65)</span>
+    <span class="link">MERGE IS NEVER CLAUDE&rsquo;S</span>
+  </div>
+  <p class="note" style="text-align:center;margin-top:12px">
+    This repo chains history rather than deleting it, so a search <i>will</i> return struck and superseded text. Finding it does not make it current.
+  </p>
+</section>
+
+<footer>
+  <b>Non-canonical derived view.</b> Generated from <span class="cid">docs/FOUNDER-OPERATING-TRUTH.md</span> for BUILD-001.
+  Self-contained — no external requests, no fonts, no scripts.
+  If this page and a canonical doc disagree, <b>the canonical doc wins and this page is the bug</b>.
+</footer>
+
+</div>
+</body>
+</html>

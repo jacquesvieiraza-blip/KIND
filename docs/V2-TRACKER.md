@@ -969,6 +969,8 @@ That + outbound + partners = the motion.
 
 ⛓️ **This supersedes the one-line entry that read *"Founder-Operator OS — PR #1436, still open"*.** The PR is still open and is **not** simply to be merged: the operational fix comes first, and the PR is then judged against it.
 
+⛓️ **FENCED 28 Aug BY R84 — READ THIS BEFORE THE PARAGRAPH BELOW.** The line that follows describes the founder operating *"across Notion and the tools around it"*. **Notion is NOT canonical and must never be the only copy** of decisions, truth, task history or evidence — it may later be a founder-facing **interface** over what the repo holds, nothing more. **The repo owns durable company truth and execution evidence (R82).** The section below is **not deleted** — its diagnosis of the operating problem still stands, and the 23-Aug realisation two paragraphs down (*"an attention layer with nothing underneath it becomes a second copy of the company"*) is exactly the reasoning R84 now makes a rule. What is fenced is only any reading that gives Notion **exclusive** ownership of founder attention. The built answer lives in `docs/FOUNDER-OPERATING-TRUTH.md`.
+
 **The purpose is not a feature.** It is to fix how the founder actually operates K.I.N.D across Notion and the tools around it — where an idea goes, who owns it, and how anyone knows what happened to it.
 
 ⚠️ **AND THE FOUNDER OS ALONE IS NOT ENOUGH — the realisation that produced the architecture below (adopted 23 Aug).** An attention layer with nothing underneath it becomes a second copy of the company: it starts holding client records, then money, then product truth, and every one of those already has a home. K.I.N.D needs **TWO LINKED LAYERS**, and the distinction between them is the whole design:

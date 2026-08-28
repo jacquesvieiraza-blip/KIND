@@ -1,6 +1,7 @@
 # 🚀 LAUNCH PAD — what to do now
 
 > **This page is a LIST, not a book** (founder, 21 Aug: *"tracking docs need to be like lists… i cant read 60 000 words in 5 minutes"*). Item · one line · owner. **Why** lives in KIND-MASTER · **status** in PRODUCT-INVENTORY · **later** in V2-TRACKER · **rulings** in PRODUCT-RULES.
+> **🆕 28 Aug —** *what needs the founder right now* lives in [`FOUNDER-OPERATING-TRUTH.md`](./FOUNDER-OPERATING-TRUTH.md) (blockers · decisions required · the **two-level task state**, R83) · *where a given truth lives* in [`FOUNDER-TRUTH-REGISTER.md`](./FOUNDER-TRUTH-REGISTER.md) (194 subjects by CMP ID) · *a fresh chat starts at* [`SESSION-BOOTSTRAP.md`](./SESSION-BOOTSTRAP.md). **None of them own status — this page and PRODUCT-INVENTORY still do.**
 > **🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.** ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
 > The full pre-surgery page is kept verbatim at [`archive/LAUNCH-PAD-2026-08-21.md`](./archive/LAUNCH-PAD-2026-08-21.md).
 
@@ -137,6 +138,9 @@
 | Rule | In one line |
 |---|---|
 | R76 | **Friday 4 September 2026** is unconditional — nothing moves the date *(supersedes R57's 25 Aug)* |
+| R82 | The **repo** is the durable source of truth and execution evidence — material history is chained or appended, never silently deleted |
+| R83 | A task carries **two** states: founder attention (NOW/NEXT/WAITING/PARKED/RESEARCH/DONE) **and** the Scout/Builder conveyor. **Merged ≠ deployed ≠ proved** |
+| R84 | Notion is an **interface**, never canonical and never the only copy |
 | R79 | Milla + Vida + website launch as ONE finished, premium, conversational experience — **quality is not V2** |
 | R81 | The programme curve is locked and **unbuilt** — the live commercial truth is still $299 + 100 included + $4 |
 | R65 | Pause is the default · silence is never a go · not-live-aiding → V2 · LAUNCH-PAD updated in the same PR as every merge |

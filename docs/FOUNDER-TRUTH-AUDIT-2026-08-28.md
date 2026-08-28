@@ -62,7 +62,7 @@ The first pass of this audit conflated **"missing from the repo"** with **"RECOV
 - **R69's ~150 accepted prospects per booked meeting vs the programme seed of 250 recommended leads.**
 - **The accounting definition of "programme contribution"** on which partner commission now depends.
 
-**RECOVERY REQUIRED** — **1 item only** after the 28 Aug taxonomy correction: the **observed ~7:1 sourcing attainment (FTA-014)**, which is a factual claim about the pipeline that has never been measured anywhere. Everything previously listed here — the programme price curve, the conversational flywheel, the Meet Milla/Meet Vida direction, the weekend allocation, the Founder Operating Truth artifact, portal UI quality — is **VERIFIED CURRENT DIRECTION with the repo MISSING or PARTIAL**. The repo is behind; the truth is not unknown.
+**RECOVERY REQUIRED** — **none.** After the 28 Aug taxonomy corrections there is no item whose truth cannot be established safely. Two classes were wrongly filed here in earlier passes: ① founder directions absent from the repo (the programme price curve, the conversational flywheel, Meet Milla/Meet Vida, the weekend allocation, the Founder Operating Truth artifact, portal UI quality) — these are **VERIFIED CURRENT DIRECTION with the repo MISSING or PARTIAL**, a writing task; ② the **~7:1 sourcing attainment (FTA-014)** — a **founder-reported observational baseline** that is simply **not telemetry-backed**, which makes it **PARTIAL**, not unknown. **The repo is behind and some metrics are uninstrumented; neither is the same as truth being unrecoverable.**
 
 **MIGRATION STATE (founder operational evidence, 28 Aug)** — Vida → Engine reported **36 of 37 applied**. `20260827_proof_review_handoff` is **among those applied**. **`20260727_pdl_cursor` failed** and is open follow-up (FTA-064).
 
@@ -97,9 +97,11 @@ The first pass of this audit conflated **"missing from the repo"** with **"RECOV
 
 | VL | VCD | PARTIAL | STALE | CONFLICT | SUPERSEDED | RECOVERY REQUIRED | FOUNDER DECISION | Total |
 |---|---|---|---|---|---|---|---|---|
-| 18 | **26** | 9 | 6 | 2 | 1 | **1** | 1 | **64** |
+| 18 | **26** | **10** | 6 | 2 | 1 | **0** | 1 | **64** |
 
-⛓️ **CORRECTED 28 Aug.** Previous pass: 63 rows, RECOVERY REQUIRED 9, one row (FTA-037) carrying a dual verdict. Now: **+1 row** (FTA-064, the failed `20260727_pdl_cursor` migration), **RECOVERY REQUIRED 9 → 1** (eight were founder directions absent from the repo, now VCD), **FTA-037 reduced to a single primary verdict**, and the `(legacy)` qualifier removed from five verdict cells — it belongs in the direction and supersession columns, which already carry it.
+⛓️ **CORRECTED 28 Aug, in two passes.** Pass 1: 63 rows, RECOVERY REQUIRED 9, one dual verdict (FTA-037). Pass 2 added FTA-064 (the failed `20260727_pdl_cursor` migration), reduced RECOVERY 9 → 1 (eight were founder directions absent from the repo, now VCD), gave FTA-037 a single primary verdict, and moved the `(legacy)` qualifier out of five verdict cells into the direction and supersession columns that already carry it. Pass 3 reclassified **FTA-014 from RECOVERY REQUIRED to PARTIAL** — a founder-reported observational baseline that lacks telemetry is *partial*, not *unknown*.
+
+**RECOVERY REQUIRED is now 0.** Nothing in this audit is truth that cannot be established safely.
 
 Abbreviations — Verdict: **VL** verified live · **VCD** verified current direction · **PAR** partial · **ST** stale · **CF** conflict · **SUP** superseded · **RR** recovery required · **FDR** founder decision required. Priority: **CN** critical now · **LC** launch critical · **PLC** post-launch critical · **V2** · **H** history. State: **B** built · **P** partial · **U** unbuilt · **BL** blocked · **S** superseded · **UNK** unknown.
 
@@ -120,7 +122,7 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 | FTA-011 | Definition of "programme contribution" | R74; FI-59 | None | Explicitly undefined | **Unresolved** | — | **FDR** | LC | **U** | **Yes** | **Yes** | No | R74 | **Founder must define** |
 | FTA-012 | Coverage k=2 sourcing authority from dollars | `20260711_sourcing_fences.sql` §5 | `add_sourcing_allowance` grants 2 records per $1 | Live | Superseded by programme authority | FI-42 | **VL** | LC | **B** | No | No | No | R74 | Replace with programme authority |
 | FTA-013 | 2:1 sourcing in code | `onboarding-pack.ts:23` | `PACK_SOURCE_TARGET = PACK_LEADS × 2` = 200 | Recorded in `run-costs` | 1:1 for planning | FI-29/FI-67 | **VL** | PLC | **B** | No | No | No | `run-costs` | Leave until programme |
-| FTA-014 | Observed ~7:1 attainment | Founder observation; FI-01 | **Not in repo, and never measured anywhere** | FI-01 records it as unverified | The *objective* (improve toward 1.5:1 → 1:1) is current approved direction | Not a conflict with FI-29 | **RR** | PLC | **UNK** | No | No | **Yes** | `run-costs` | 🛑 **The one genuine unknown.** This is a factual claim about what the pipeline yields — not a founder decision. No instrumentation exists to establish it. **Measure it** |
+| FTA-014 | **Sourcing attainment ≈ 7 sourced → 1 usable/accepted** | Founder recovery input; **V2 FI-01** (*"POST-LAUNCH CRITICAL — sourcing attainment"*) · `run-costs` | **No instrumentation currently proves the actual sourced→usable ratio.** The only in-code ratio is the unrelated `PACK_SOURCE_TARGET = ×2` | FI-01 records the baseline and the objective; **not telemetry-backed** | **Founder-reported approximate observed baseline ≈ 7 → 1.** Direction: improve sourcing precision toward **≈ 1.5 → 1** post-launch, ultimately as close to 1:1 as real data allows | Not a conflict with FI-29 | **PAR** | **PLC** | **UNINSTRUMENTED** | No | No | No | `run-costs` / V2 FI-01 | ⛓️ **CORRECTED 28 Aug — this is NOT recovery required.** The founder reported the observed baseline contemporaneously; a missing telemetry pipeline does not erase a reported observation. **~7:1 is preserved as a founder-reported observational baseline, not a telemetry-verified metric.** ⚠️ It must NOT be converted into VERIFIED LIVE, into the commercial planning assumption (**FI-29 is 1:1**), into the programme recommendation ratio, or into the 150:1 / 250:1 meeting benchmark — **four separate concepts.** Next action: instrument it |
 
 ### 4.2 Benchmark / recommendation
 
@@ -295,19 +297,29 @@ Partner commission moves to **25% of programme contribution** — that direction
 
 ## 9. Recovery required
 
-⛓️ **CORRECTED 28 Aug.** The first pass listed six. Five were **founder directions absent from the repo** — which is a writing task, not an unknown — and are now **VERIFIED CURRENT DIRECTION** (FTA-005, 048/049, 051, 052, 056, 059, 061; see §5). **One genuine unknown remains.**
+## ✅ NONE.
 
-| # | Item | Why the truth genuinely cannot be established |
+⛓️ **CORRECTED 28 Aug across three passes.** The first pass listed six items here. **All six have been reclassified, and the category is now empty.**
+
+**RECOVERY REQUIRED means one thing: the truth cannot currently be established safely.** Two different situations were wrongly filed under it, and neither qualifies:
+
+| Situation | Why it is not recovery | Where those items went |
 |---|---|---|
-| **REC-1** | **Observed sourcing attainment (~7:1)** — FTA-014 | This is a **factual claim about what the pipeline yields**, not a founder decision, so the founder stating it does not make it verifiable. **No instrumentation exists** to measure sourced-to-usable conversion; the figure appears nowhere in the repo, and the only in-code ratio is the unrelated `PACK_SOURCE_TARGET = ×2`. Until it is measured, **the real rate is unknown** — and it is the input the ~70% contribution margin depends on |
+| **A founder direction the repo does not record** | The founder stated it on 28 August. The repo is behind; the truth is known. The action is **to write it down** | **VERIFIED CURRENT DIRECTION** — FTA-005, 048, 049, 051, 052, 056, 059, 061 (see §5) |
+| **A founder-reported observation without telemetry** | The observation was reported contemporaneously. **Missing instrumentation does not erase a reported baseline** — it limits confidence, which is what PARTIAL means | **PARTIAL** — FTA-014 |
 
-### Adjacent — known-but-undiagnosed, not "unknown truth"
+### Known-but-undiagnosed — established facts, incomplete follow-up
+
+These are **not** unknown truths. Each is a fact that is established, with work still owed.
 
 | # | Item | State |
 |---|---|---|
-| **ADJ-1** | **`20260727_pdl_cursor` migration failed** (FTA-064) | The *fact* is established from founder operational evidence (36 of 37 applied). **The cause is not diagnosed** — no production access in this audit, and the runner output is not captured in the repo. Follow-up required, but the truth of *what happened* is known |
-| **ADJ-2** | **Proof-exhaustion E2E journey** (FTA-031) | Built, deployed, migration applied — all established. **The end-to-end production walk has not been performed**, so it is not claimed VERIFIED LIVE. This is an untested path, not an unknown truth |
-| **ADJ-3** | **Portal UI acceptance bar** (FTA-051) | The direction is settled. **No bar has been defined to audit against** — that is a **FOUNDER DECISION REQUIRED**, not a recovery |
+| **ADJ-1** | **`20260727_pdl_cursor` migration failed** (FTA-064) | The *fact* is established from founder operational evidence (36 of 37 applied). **The cause is not diagnosed** — no production access in this audit, and the runner output is not captured in the repo. `pdl-cursor.ts` is the audience-exhaustion cursor, so the failure may leave state it depends on absent |
+| **ADJ-2** | **Proof-exhaustion E2E journey** (FTA-031) | Built, deployed, migration applied — all established. **The end-to-end production walk has not been performed**, so it is not claimed VERIFIED LIVE. An untested path, not an unknown truth |
+| **ADJ-3** | **Portal UI acceptance bar** (FTA-051) | The direction is settled. **No bar has been defined to audit against** — a **FOUNDER DECISION REQUIRED**, not a recovery |
+| **ADJ-4** | **Sourcing attainment telemetry** (FTA-014) | The baseline (~7 → 1) is founder-reported and preserved as such. **No production metric measures the real sourced→usable ratio.** Instrumenting it is the follow-up; the reported baseline stands in the meantime |
+
+⚠️ **~7:1 is preserved as a founder-reported observational baseline, not a telemetry-verified metric** — and it is **not** the commercial planning assumption (**FI-29 is 1:1**), **not** the programme recommendation ratio, and **not** the 150:1 / 250:1 meeting benchmark. Four separate concepts; conflating them is how a margin gets modelled on a number nothing produces.
 
 ---
 

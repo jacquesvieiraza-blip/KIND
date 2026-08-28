@@ -577,4 +577,3 @@ At the founder's stated anchor of **~$450 per targeted booked meeting** and a **
 | **COGS ceiling at 70% contribution** | **~$135** |
 
 ⚠️ **THE BENCHMARK IS THE MARGIN.** PDL alone consumes **~52%** of the entire COGS allowance before anything else is paid for. If the real ratio is **500 leads per booked meeting**, PDL alone is **$140** and the contribution margin goes **negative**. Read against **R69**, which locks the centre case at ~150 accepted prospects per booked meeting and treats 250–300 without a meeting as a **campaign-review trigger**, the 250 seed sits **at that threshold**. Because the 1:1 assumption above collapses *recommended programme leads* onto *accepted/contacted prospects*, the two figures share a denominator and genuinely disagree — **the one open benchmark question R74 records, and the founder's to settle. No resolution is invented here.** **This is measurement before it is pricing.**
-

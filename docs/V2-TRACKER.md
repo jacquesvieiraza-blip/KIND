@@ -1488,8 +1488,6 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 
 ---
 
----
-
 ## 🛑 NOTHING ABOVE IS LAUNCH SCOPE *(founder-restated 22 Aug, when this list was written)*
 
 Every item on this page is parked. **No entry above converts into launch scope**, and reading one here is not permission to build it. Launch remains exactly:

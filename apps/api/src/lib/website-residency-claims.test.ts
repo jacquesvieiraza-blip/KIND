@@ -170,3 +170,64 @@ describe('④ the replacement claims are ones the CODE can prove', () => {
     }
   })
 })
+
+// ── ⑤ THE PORTAL'S OWN LEGAL PAGES — ADDED 28 Aug (Founder Truth Reset, Step 6) ─────────────
+//
+// ⚠️ WHAT EARNED THIS BLOCK, AND IT IS THE WHOLE POINT OF IT. Everything above reads
+// `apps/website`. `apps/portal/public` serves its OWN privacy.html and terms.html to signed-in
+// clients, and nothing watched them. So on 20 Aug the site was corrected to Dublin/eu-west-1
+// and the portal was not — and for the next eight days a paying client opening Privacy from
+// inside the product was told their data lives in "af-south-1 (Cape Town, South Africa)", that
+// the hosting is "fully compliant with the CCPA", and that we would "provision a dedicated
+// US-region instance" on request. Three claims the guard already banned, on pages the guard
+// could not see. A guard scoped to one directory proves nothing about the other.
+//
+// ⚠️ RETENTION PERIODS ARE DELIBERATELY NOT ASSERTED HERE. Four live surfaces state four
+// different clocks (90 days / 12 months / 24 months) and choosing one is a founder + legal
+// decision, open as item #704. This block pins only what is PROVEN FALSE — the region, and a
+// purge that no cron performs — and stays silent on the number nobody has ruled on. Pinning an
+// unruled period would make the guard the author of a legal position.
+describe('⑤ the portal legal pages carry the same truth as the website', () => {
+  const PORTAL = join(__dirname, '../../../portal/public')
+  const PORTAL_PAGES = ['privacy.html', 'terms.html']
+  const readPortal = (f: string) => readFileSync(join(PORTAL, f), 'utf8')
+
+  it('the guard is reading the real portal pages', () => {
+    // Without this, a moved directory turns every assertion below into a silent pass.
+    for (const f of PORTAL_PAGES) expect(readPortal(f).length, f).toBeGreaterThan(5000)
+  })
+
+  for (const f of PORTAL_PAGES) {
+    it(`${f} does not repeat a claim the website already had to retract`, () => {
+      const s = codeOf(readPortal(f))
+      expect(s, 'the database is eu-west-1 (Dublin), not af-south-1').not.toContain('af-south-1')
+      expect(s, 'no region resolver, no US instance, no provisioning path (#258 is 🔴)').not.toMatch(/US data residency|US-region instance|US region on request/)
+      expect(s, 'compliance is a regulator\'s conclusion, not ours').not.toContain('fully compliant with the CCPA')
+      expect(s, 'no such setting exists — searched api, portal and shared').not.toContain('retention settings')
+    })
+
+    it(`${f} claims no automatic purge — because no cron performs one`, () => {
+      // CODE VERIFIED 28 Aug: `apps/api/src/cron.ts` schedules no retention or purge job. The
+      // only purge in the product is `purgeDemoClient`, which REFUSES any client not flagged
+      // is_demo. "then automatically purged" described machinery that does not exist.
+      expect(codeOf(readPortal(f)), 'no retention/purge cron exists (R80)').not.toMatch(/automatically purged|automatic purge/i)
+    })
+  }
+
+  it('privacy.html states BOTH halves — where it is stored AND where it is processed', () => {
+    // Same rule as ③: half the truth is a new false sentence, and the US compute tier is the
+    // half a client actually asks about, so it may never be the half that is dropped.
+    const s = readPortal('privacy.html')
+    expect(s, 'where the data is stored').toMatch(/Dublin|eu-west-1/)
+    expect(s, 'and where it is processed').toMatch(/US West|United States \(Railway/)
+  })
+
+  it('⚠️ AND THE TRUE SENTENCES SURVIVED — the guard did not win by deletion', () => {
+    // The #617 shape again: "no offenders" is equally satisfied by deleting every mention,
+    // including the ones that were never false. POPIA is still a named law and South African
+    // data subjects still have rights under it.
+    const s = readPortal('privacy.html')
+    expect(s, 'POPIA still governs South African data subjects').toContain('POPIA')
+    expect(readPortal('terms.html'), 'POPIA is still a named law').toContain('POPIA (South Africa)')
+  })
+})

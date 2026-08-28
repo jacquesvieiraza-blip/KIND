@@ -143,14 +143,14 @@
 
   <div class="section" id="hosting">
     <h2>4. Data hosting &amp; transfers</h2>
-    <p><strong>Database:</strong> All client account data and lead data is stored on <strong>Supabase</strong>, hosted in the <strong>af-south-1 region (Cape Town, South Africa)</strong>. This ensures data residency within Africa for POPIA compliance.</p>
-    <p><strong>US &amp; international clients:</strong> All client data is currently hosted in Cape Town (af-south-1). The United States imposes no data-residency requirement on B2B SaaS, and this hosting is fully compliant with the CCPA. Enterprise clients who require their data to be physically stored within the United States can request US data residency &mdash; contact <a href="mailto:hello@get-kind.com">hello@get-kind.com</a> and we will provision a dedicated US-region instance.</p>
+    <p><strong>Database:</strong> All client account data and lead data is stored on <strong>Supabase</strong> in the <strong>eu-west-1 region (Dublin, Ireland)</strong>, and processed by application servers in <strong>Railway's US West region</strong>. Our database provider is SOC 2 Type II audited (see below).</p>
+    <p><strong>US &amp; international clients:</strong> Client data is stored in the European Union (Dublin, eu-west-1) and processed by application servers in the United States (Railway, US West). The United States imposes no data-residency requirement on B2B SaaS.</p>
     <p><strong>Application hosting:</strong> The K.I.N.D platform (Portal, API, Admin) runs on <strong>Railway</strong>, which operates on SOC 2-audited infrastructure. No personal data is stored in Railway environment variables — only configuration keys.</p>
     <p><strong>Email delivery:</strong> Outbound emails are sent via <strong>Resend</strong>, which processes recipient email addresses to deliver messages. Resend is GDPR-compliant.</p>
     <p><strong>Lead enrichment:</strong> Lead data is sourced via <strong>Apollo.io</strong>. Apollo maintains its own consent infrastructure for B2B contact data. We process Apollo data under lawful business purpose.</p>
     <p><strong>AI processing:</strong> Natural language generation for email sequences and analysis uses <strong>Anthropic's Claude API</strong> (US-based). We do not include personal data (names, emails) in AI prompts.</p>
     <p><strong>Payments:</strong> Payment card data is processed by <strong>Stripe</strong> (PCI DSS Level 1 certified). K.I.N.D never stores card numbers.</p>
-    <p><strong>International transfers:</strong> Where data is transferred outside South Africa or the UK, we apply appropriate safeguards — Standard Contractual Clauses for GDPR transfers, and POPIA section 72 conditions for cross-border transfers from South Africa.</p>
+    <p><strong>International transfers:</strong> Where data crosses borders we apply appropriate safeguards — Standard Contractual Clauses for GDPR transfers, and POPIA section 72 conditions for cross-border transfers involving South African data subjects.</p>
   </div>
 
   <div class="section" id="retention">
@@ -158,7 +158,7 @@
     <ul>
       <li><strong>Account data:</strong> held for the duration of the contract + 24 months (legal obligations)</li>
       <li><strong>Lead personal data:</strong> active campaign duration + 12 months, then hard-deleted on request or account close</li>
-      <li><strong>Email campaign content:</strong> 12 months, then automatically purged</li>
+      <li><strong>Email campaign content:</strong> retained for 12 months, then deleted on request or on account closure</li>
       <li><strong>Billing records:</strong> 7 years (UK tax law requirement)</li>
       <li><strong>Server logs:</strong> 90 days automatic rotation</li>
       <li><strong>Opt-out records:</strong> permanently retained (to honour the opt-out)</li>
@@ -204,7 +204,7 @@
     <h2>8. Third-party sub-processors</h2>
     <p>K.I.N.D uses the following sub-processors to deliver the service. Each has been assessed for GDPR/POPIA compliance and a Data Processing Agreement is in place where required.</p>
     <ul>
-      <li><strong>Supabase</strong> — database hosting (Cape Town, af-south-1) — SOC 2 Type II, GDPR compliant</li>
+      <li><strong>Supabase</strong> — database hosting (Dublin, eu-west-1) — SOC 2 Type II, GDPR compliant</li>
       <li><strong>Railway</strong> — application hosting — SOC 2-audited infrastructure</li>
       <li><strong>Stripe</strong> — payment processing — PCI DSS Level 1 certified</li>
       <li><strong>Resend</strong> — email delivery — GDPR compliant</li>

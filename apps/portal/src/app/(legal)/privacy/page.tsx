@@ -43,8 +43,8 @@ export default function PrivacyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">4. Data hosting & transfers</h2>
-            <p>Client and platform data is hosted on <strong>Supabase</strong> in the <strong>af-south-1 region (Cape Town, South Africa)</strong> — ensuring data residency within Africa for POPIA compliance. Application hosting runs on <strong>Railway</strong> (SOC 2-audited infrastructure). AI features use <strong>Anthropic&apos;s Claude API</strong> (US-based — no personal data in prompts). Payments are processed by <strong>Stripe</strong> (PCI DSS Level 1 certified).</p>
-            <p className="mt-2">Where data is transferred outside South Africa or the UK, K.I.N.D applies Standard Contractual Clauses (GDPR) and POPIA section 72 conditions for cross-border transfers.</p>
+            <p>Client and platform data is stored on <strong>Supabase</strong> in the <strong>eu-west-1 region (Dublin, Ireland)</strong>, and processed by application servers on <strong>Railway</strong> in its <strong>US West region</strong> (SOC 2-audited infrastructure). AI features use <strong>Anthropic&apos;s Claude API</strong> (US-based — no personal data in prompts). Payments are processed by <strong>Stripe</strong> (PCI DSS Level 1 certified).</p>
+            <p className="mt-2">Where data crosses borders, K.I.N.D applies appropriate safeguards, including POPIA section 72 conditions for cross-border transfers involving South African data subjects.</p>
           </section>
 
           <section>

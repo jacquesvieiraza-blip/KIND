@@ -4,7 +4,7 @@
 > **🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.** ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
 > The full pre-surgery page is kept verbatim at [`archive/LAUNCH-PAD-2026-08-21.md`](./archive/LAUNCH-PAD-2026-08-21.md).
 
-**Board:** 🟢106 · 🩷308 · 🟣2 · 🟡51 · 🔴191 · ⏸7 · **Σ665** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸7 · **Σ666** · live count: `scripts/count-inventory.sh`
 
 ---
 
@@ -72,7 +72,11 @@
 
 **⚠️ THE WEBSITE FREEZE (#605) WAS RE-STAMPED — ONE LINE, AND IT IS FLAGGED HERE SO IT IS NOT SILENT.** Correcting the false *"automatically purged"* claim touched `apps/website/privacy.html`, which is founder-frozen, so `website-freeze.test.ts` went **RED — the lock working, exactly as designed.** The founder's own Step-6 instruction names this change in plain words, which is the approval the lock requires, so `scripts/freeze-website.sh` was re-run (124 files re-hashed). **The diff on the live site is one line:** *"12 months, then automatically purged"* → *"retained for 12 months, then deleted on request or on account closure"*. **No other website file changed.** ⚠️ **It is a client-facing change and it has NOT been previewed or shipped** — it sits in PR #1464 for the founder (RULEBOOK §11).
 
-**⚠️ REPORTED, NOT FIXED — item #705.** `apps/portal/public/terms.html` still carries a **14-day free trial** (§3) and the **90-Day Pipeline Guarantee** (§5A, §4, §14) — both contradict locked founder positions. Rewriting a live legal agreement needs the founder and counsel, so it was reported and left untouched (Protocol rule 18).
+**✅ CORRECTED — item #705 (the founder ruled this WAS in Step-6 scope).** The portal Terms no longer promise a **14-day free trial** (§3 → *Access & Activation*: the account starts **paused**, $0 balance, $0 sourcing allowance until first purchase) or the **90-Day Pipeline Guarantee** (§5A → *No Outcome Guarantee*; the §5/§10 "sole exception" cross-references are gone). **R64 caught a second live surface:** `/terms` and `/privacy` are ALSO rendered by `apps/portal/src/app/(legal)/*/page.tsx`, **alongside** the static `/terms.html` that the signup consent checkbox actually links to — both were live, both disagreed, both are corrected. Four `apps/landing` pages had trial claims removed (**liveness unproven — no build or deploy config; corrected anyway**). ⚠️ **Removing §5A deletes a refund commitment from a live agreement — no client has ever claimed under it, but the Terms-change notice and any rights of a client who signed under the old wording are for counsel (W18).** ⚠️ **Not shipped — awaiting the founder (§11).**
+
+**🛑 STILL FALSE, OPERATOR-FACING — item #706.** `apps/admin/src/app/playbook/page.tsx` still scripts the dead **14-day trial** to AEs in six places, including two prospect email templates. Not a client-facing surface — but it is what a human then says to a prospect. **Not rewritten: the replacement script is a commercial call for the founder** (live offer = $299 · 100 included · $4; the programme model is unbuilt and unquotable).
+
+**📍 REGION — PROVED, AND ONE LIMIT STATED.** `eu-west-1` (Dublin) is the **primary database region**, evidenced by a **working production pooler connection** on 6 Aug (`aws-0-eu-west-1.pooler.supabase.com:5432`, 14/14 migrations applied) and the founder's own dashboards on 20 Aug (R56). **Compute is Railway US West.** ⚠️ **NOT proved that it is the ONLY place data lives** — backups/PITR/sub-regions remain open question **F5**, and no `.env` exists in the repo, so today's value is founder-dashboard-verified, not code-verified. Full evidence: PRODUCT-RULES Open list.
 
 ---
 

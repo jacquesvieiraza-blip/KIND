@@ -274,8 +274,8 @@ export default function PartnerDeckPage() {
               },
               {
                 step: '2',
-                title: 'Start a Free Trial',
-                desc: 'Send them your referral link and they get 14 days to try FIGSY on their own prospects. No commitment.',
+                title: 'Send your referral link',
+                desc: 'They create an account free and review real prospects before paying anything. Nothing is sourced or sent until they buy. There is no free trial — do not promise one.',
                 cta: 'Copy your referral link',
                 color: 'border-blue-200',
                 ctaColor: 'text-blue-600',

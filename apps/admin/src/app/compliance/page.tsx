@@ -31,7 +31,7 @@ const CERTIFICATIONS: Cert[] = [
       { item: 'trust.html published — Articles 6(1)(f), 17, 13/14', done: true },
       { item: 'dpa.html published — Data Processing Agreement', done: true },
       { item: 'Standard Contractual Clauses (SCCs) included', done: true },
-      { item: 'Data stored in af-south-1 (Cape Town) — documented', done: true },
+      { item: 'Data stored in eu-west-1 (Dublin, Ireland) — documented', done: true },
       { item: 'Legitimate interest basis documented', done: true },
       { item: 'Data subject rights (deletion, access) implemented', done: true },
     ],
@@ -99,7 +99,7 @@ const CERTIFICATIONS: Cert[] = [
     whyItMatters: 'African enterprise clients (banks, telecoms, large SA corporates) are more familiar with ISO 27001 than SOC 2. Opens Nigerian fintechs, Kenyan banks, SA corporate procurement.',
     currentReadiness: [
       { item: 'Security controls implemented (RLS, HTTPS, env vars)', done: true },
-      { item: 'Data residency documented (af-south-1)', done: true },
+      { item: 'Data residency documented (eu-west-1, Dublin)', done: true },
       { item: 'Formal ISMS documentation started', done: false },
       { item: 'Risk assessment completed', done: false },
       { item: 'Statement of Applicability written', done: false },

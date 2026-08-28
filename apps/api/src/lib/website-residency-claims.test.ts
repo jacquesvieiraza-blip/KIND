@@ -231,3 +231,56 @@ describe('⑤ the portal legal pages carry the same truth as the website', () =>
     expect(readPortal('terms.html'), 'POPIA is still a named law').toContain('POPIA (South Africa)')
   })
 })
+
+// ── ⑥ NO TRIAL, NO OUTCOME GUARANTEE — ADDED 28 Aug (Founder Truth Reset, Step 6) ───────────
+//
+// Two settled founder positions that a live legal document was contradicting:
+//   • THERE IS NO TRIAL — signup writes `paused` with a $0 wallet and $0 sourcing allowance
+//     (#607, 1 Aug). The portal Terms promised a "14-day free trial" for the 27 days after that.
+//   • NO OUTCOME GUARANTEE — meetings are targets and planning estimates, never guarantees
+//     (R69/R77). The portal Terms carried a "90-Day Pipeline Guarantee" and named it the
+//     "sole and exclusive" outcome assurance.
+//
+// ⚠️ BOTH PORTAL LEGAL SURFACES ARE COVERED, AND THAT IS THE POINT (R64). `/terms.html` and
+// `/privacy.html` are served from `public/`, and `/terms` and `/privacy` are ALSO rendered by
+// `src/app/(legal)/*/page.tsx`. Both are live and they had drifted apart — the signup consent
+// checkbox links to the STATIC one (`login/page.tsx:335`), so that is the document a client
+// actually agrees to, while the route pages are what a client browsing the portal reads. A
+// guard on one proves nothing about the other.
+//
+// ⚠️ SCOPED TO K.I.N.D'S OWN OFFER. A client's outreach campaign may legitimately invite
+// *their* prospects to *their* free trial — `dashboard/figsy` carries a "SaaS Trial Push"
+// template for exactly that. Banning the words everywhere would force someone to delete a true
+// sentence to get the suite green.
+describe('⑥ no live legal surface promises a trial or an outcome guarantee', () => {
+  const LEGAL: Array<[string, string]> = [
+    ['portal public terms', join(__dirname, '../../../portal/public/terms.html')],
+    ['portal public privacy', join(__dirname, '../../../portal/public/privacy.html')],
+    ['portal /terms route', join(__dirname, '../../../portal/src/app/(legal)/terms/page.tsx')],
+    ['portal /privacy route', join(__dirname, '../../../portal/src/app/(legal)/privacy/page.tsx')],
+    ['website terms', join(SITE, 'terms.html')],
+  ]
+
+  for (const [label, path] of LEGAL) {
+    it(`${label} promises no free trial`, () => {
+      const s = codeOf(readFileSync(path, 'utf8'))
+      // "no free trial" is the CORRECT sentence, so the ban is on the promise, not the noun.
+      expect(s, 'there is no trial — signup writes paused, $0 wallet (#607)').not.toMatch(/14-day free trial|14 day free trial|Start 14-day trial|receive a <strong>14-day/i)
+      expect(s, 'the acceptance trigger may not name a trial that does not exist').not.toMatch(/starting a free trial/i)
+    })
+
+    it(`${label} promises no outcome guarantee`, () => {
+      const s = codeOf(readFileSync(path, 'utf8'))
+      expect(s, 'the 90-Day Pipeline Guarantee is against settled founder direction').not.toMatch(/90-Day Pipeline Guarantee|90 Day Pipeline Guarantee/i)
+      expect(s, 'no clause may be named as an exception to the no-guarantee position').not.toMatch(/sole and exclusive.{0,80}assurance|only exception is the limited/i)
+    })
+  }
+
+  it('⚠️ AND THE NO-GUARANTEE SENTENCE IS PRESENT, not merely the promise absent', () => {
+    // Deleting the guarantee section entirely would also pass every assertion above while
+    // leaving the Terms silent on outcomes — the #617 shape. The document must SAY it.
+    const terms = readFileSync(join(__dirname, '../../../portal/public/terms.html'), 'utf8')
+    expect(terms, 'the Terms must state the no-guarantee position').toContain('No Outcome Guarantee')
+    expect(terms, 'and state plainly that there is no trial').toContain('There is no free trial')
+  })
+})

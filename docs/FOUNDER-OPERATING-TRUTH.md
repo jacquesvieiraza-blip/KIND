@@ -17,8 +17,8 @@
 | **Launch date** | **Friday 4 September 2026** — unconditional (**R76**, supersedes R57's 25 Aug) |
 | **Current objective** | Finish the launch experience to **one finished, premium, conversational standard** across Milla, Vida and the website (**R79** — quality is NOT V2) |
 | **Current Builder task** | **BUILD-001 · Step 7 Founder Truth System** — packet at [`founder/tasks/BUILD-001.md`](./founder/tasks/BUILD-001.md) · conveyor state **BUILDER RETURNED** |
-| **Current Scout task** | *none open* — the Step-7 Scout investigation returned and was consumed by BUILD-001 |
-| **Next READY task** | *none queued* — the READY FOR BUILDER queue is empty; the next task is the founder's to set |
+| **Current Scout task** | **BUILD-002 · Programme Commercial + Money Engine** — conveyor state **SCOUTING**. The first investigation returned; a deeper implementation-readiness pass is running now |
+| **Next READY task** | **NONE.** The READY FOR BUILDER queue is empty. ⚠️ **BUILD-002 is NOT ready** — it is still being scouted, and scouting is four conveyor stages short of READY |
 | **Board** | 🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸7 · **Σ666** *(status of record: PRODUCT-INVENTORY · live count: `scripts/count-inventory.sh`)* |
 
 ## 📅 THIS WEEK
@@ -79,7 +79,7 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 |---|---|---|
 | **BUILD-001** · Step 7 Founder Truth System | **NOW** | **BUILDER RETURNED** |
 | **#704** · retention duration | **WAITING** | **FOUNDER DECISION REQUIRED** |
-| **#701** · programme commercial model | **NEXT** | **NOT SCOUTED** |
+| **BUILD-002** · Programme Commercial + Money Engine *(covers #701/#702)* | **NEXT** | **SCOUTING** |
 | **#706** · AE playbook trial script | **WAITING** | **FOUNDER DECISION REQUIRED** |
 
 ---
@@ -117,11 +117,14 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | PR | What | Conveyor state | Note |
 |---|---|---|---|
+| **#1465** | **BUILD-001 · Step 7 founder truth system** (this system) | **GPT VERIFIED** | ✅ **Independent review returned PASS, subject to one operating-state correction — which is what this row now reflects.** `check.sh` **ACCEPTED AMBER**: the only failure was the known intermittent `proof-review-handoff` assertion, and BUILD-001 changes `docs/**` only. **Awaiting the founder's merge.** |
 | **#1463** | Founder Operating Truth — register, operating view, bootstrap, visual surface | **PARKED** | ⚠️ **Do not merge as-is.** Its second parallel ID series is superseded; only its **visual shell** was reused (see BUILD-001) |
 | **#1436** | Log the post-launch Founder-Operator OS idea | **BUILDER RETURNED** | Not touched by Step 7 |
 | **#1427** | P34's screens | **BUILDER RETURNED** | Not touched by Step 7 |
 
-**Merge state.** PR **#1464** (Founder truth reconciliation, Steps 2–6) is **MERGED** into `main` at `1cd99357`. **MERGE IS NEVER CLAUDE'S** (Protocol rule 20) — the founder merges, after independent review.
+**GPT verification.** **BUILD-001 / PR #1465 — reviewed and PASSED**, subject to the operating-state correction now applied (conveyor stage **9 satisfied**). ⚠️ **Stage 4 — independent review of the *Scout* findings — was never satisfied for BUILD-001 and is recorded as a gap in the packet, not quietly closed by stage 9.** They are different claims; passing one does not pass the other.
+
+**Merge state.** PR **#1464** (Founder truth reconciliation, Steps 2–6) is **MERGED** into `main` at `1cd99357`. PR **#1465** is **open and unmerged**. **MERGE IS NEVER CLAUDE'S** (Protocol rule 20) — the founder merges, after independent review.
 
 **Deploy state.** ⚠️ **UNVERIFIED for the Step-6 client-facing corrections.** The corrected portal Terms, privacy pages and landing pages are **merged, not proved live**. Merged is not deployed and deployed is not walked. **GitHub Actions has not run since 3 Jul 2026** — `scripts/check.sh` is the only gate.
 

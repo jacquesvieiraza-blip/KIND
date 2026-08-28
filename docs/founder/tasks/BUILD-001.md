@@ -11,7 +11,8 @@
 | **TASK ID** | **BUILD-001** |
 | **TITLE** | Step 7 Founder Truth System |
 | **Founder state** | NOW |
-| **Conveyor state** | **BUILDER RETURNED** *(state 8 of 12)* |
+| **Conveyor state** | **GPT VERIFIED** *(state 9 of 12)* — ⛓️ *was BUILDER RETURNED until the independent review returned; §8 below.* |
+| **Next state** | **FOUNDER MERGED** — the founder's, and only after he chooses. |
 | **Opened** | 28 August 2026 |
 
 ---
@@ -139,7 +140,7 @@ Left deliberately blank. **MERGE IS NEVER CLAUDE'S** (Protocol rule 20).
 
 | Field | State |
 |---|---|
-| GPT verification (Builder stage, conveyor 9) | ⏳ **PENDING** — owed before merge |
+| GPT verification (Builder stage, conveyor 9) | ✅ **DONE — PASS**, subject to one operating-state correction, now applied. Full text in §8 |
 | Founder merged (conveyor 10) | ⏳ **PENDING** |
 | Merge SHA | ⏳ pending |
 | Deploy verified (conveyor 11) | ⏳ **PENDING** — docs do not deploy, so this reduces to "the founder has read it" |
@@ -151,4 +152,61 @@ Left deliberately blank. **MERGE IS NEVER CLAUDE'S** (Protocol rule 20).
 
 *Corrections and later evidence are appended here, chained to what they correct. Nothing above is overwritten.*
 
+- **28 Aug — GPT build verification returned PASS subject to an operating-state correction. Conveyor advanced BUILDER RETURNED → GPT VERIFIED. Full text in §8, appended below rather than replacing anything above (R82).**
 - **28 Aug — packet opened at conveyor state BUILDER RETURNED.** Recorded honestly: **conveyor state 4 (GPT verification of the Scout stage) was not independently satisfied** — the findings were re-derived rather than independently reviewed. Stage 9 is still owed.
+
+---
+
+## 8 · GPT BUILD VERIFICATION — conveyor stage 9
+
+**Recorded 28 August 2026. Appended, not overwritten (R82).** This is the independent review the conveyor requires before merge; **Claude's own self-review is never merge authorisation** (Protocol rule 20).
+
+### Verdict
+
+> **PASS SUBJECT TO THIS OPERATING-STATE CORRECTION.**
+
+### Verified
+
+- Step-7 architecture follows the agreed layered model.
+- The old parallel ID system **was not revived**.
+- Frozen Step 2–6 evidence **remains untouched**.
+- **J1 / J2 / J3** founder locks are **durably recorded** (PRODUCT-RULES §17 — R82 · R83 · R84).
+- The **repo** is the durable truth and evidence source.
+- Founder-attention states and conveyor states **remain separate dimensions**.
+- **Notion is non-canonical.**
+- The **execution packet model is present**.
+- **Session Bootstrap stays small.**
+- **#1463 was reused only as design/source material**, not merged as stale truth.
+- **No runtime / schema / provider / payment changes** were introduced.
+
+### `check.sh`
+
+**ACCEPTED AMBER for BUILD-001.**
+
+**Reason:** the only failure was the previously observed intermittent `proof-review-handoff.test.ts` assertion. BUILD-001 changes **`docs/**` only** and does not touch that test or its runtime path.
+
+⚠️ **Standing instructions attached to this acceptance, and they bind the merge as well as the build:**
+- **Do NOT rerun `check.sh` to manufacture green.**
+- **Do NOT modify proof-review runtime as part of BUILD-001.**
+- **Record the RED faithfully** — which §5 does: 6 of 7 stages green, API tests 3,994 passed / 1 failed at `proof-review-handoff.test.ts:261`, `expected +0 to be 2`.
+
+### The required correction — applied in this pass
+
+The conveyor state published at Builder-return time had **gone stale between return and review**: it showed the Scout as idle and the programme model as `NOT SCOUTED`, while **BUILD-002 · Programme Commercial + Money Engine** had already entered **SCOUTING**. A truth system whose own live state is out of date is the first thing that would teach a reader not to trust it.
+
+| Surface | Was | Now |
+|---|---|---|
+| `FOUNDER-OPERATING-TRUTH.md` — Today | Scout task *"none open"* | **BUILD-002 · SCOUTING** |
+| `FOUNDER-OPERATING-TRUTH.md` — worked example | `#701 · programme commercial model · NEXT · NOT SCOUTED` | **BUILD-002** *(covers #701/#702)* · **NEXT · SCOUTING** |
+| `FOUNDER-OPERATING-TRUTH.md` — PRs | #1465 absent | **#1465 · GPT VERIFIED**, plus a GPT-verification paragraph |
+| `SESSION-BOOTSTRAP.md` | Scout *"none open"* | **BUILD-002 · SCOUTING · not ready to build** |
+| `founder/operating-centre.html` | Scout *"none open"*; #1465 absent | **BUILD-002 · Scouting**; **#1465 · GPT verified** row |
+| this packet | conveyor **BUILDER RETURNED**, stage 9 pending | conveyor **GPT VERIFIED**, stage 9 done |
+
+⚠️ **NO READY TASK WAS INVENTED.** The **READY FOR BUILDER queue is empty** and every surface now says so explicitly. **BUILD-002 is SCOUTING — four conveyor stages short of READY** (scout returned → GPT verified → founder approved → ready). Recording a task as further along than it is would be the same class of error as a stale state.
+
+⚠️ **AND STAGE 4 IS STILL NOT SATISFIED.** This verification is **stage 9** — the review of the *Builder's output*. **Stage 4 — independent review of the *Scout's findings* — never happened for BUILD-001**, and passing stage 9 does not retroactively close it. They are different claims about different work. The gap recorded in §1 stands.
+
+### Conveyor position after this pass
+
+**GPT VERIFIED (9 of 12).** Next: **FOUNDER MERGED (10)** → **DEPLOY VERIFIED (11)** → **COMPLETE (12)**. All three are the founder's. **DO NOT MERGE.**

@@ -29,7 +29,8 @@ export default function TermsPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-3">3. Credits & Billing</h2>
-            <p>Services are charged on a credit basis. Credits are purchased in bundles and are non-refundable. One credit is consumed when a lead responds positively to outreach. Zero credits = outreach pauses. Credits are topped up manually or automatically. Accounts with outstanding balances have 7 days before suspension.</p>
+            <p>There is <strong>no free trial</strong>. A new account starts paused, with a zero balance and no sourcing allowance — nothing is sourced, approved or sent until your first purchase completes. Your first purchase is the onboarding pack, which includes your first 100 approved leads; after those, you are charged per approved lead from a single account balance. Reviewing prospects is free, and you are only charged when you approve a lead. Purchases are non-refundable, a lead is charged at most once, and outreach pauses when the balance reaches zero. Accounts with outstanding balances have 7 days before suspension.</p>
+            <p className="mt-2">K.I.N.D makes <strong>no guarantee</strong> of meetings booked, replies, conversion rates or sales outcomes. Any figure we give for expected prospects or results is a planning estimate based on our current experience, not a promise.</p>
           </section>
 
           <section>

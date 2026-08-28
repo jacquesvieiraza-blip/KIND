@@ -16,7 +16,16 @@
 > **Why this banner exists.** The founder, 6 Aug: *"i have not read a doc for 2 weeks because i dont trust it… things slip far to often."* He was right. Locks and rulings now live in **[`PRODUCT-RULES.md`](./PRODUCT-RULES.md)** — read that first, always.
 
 
-*Last-checked: 1 Jul 2026 — added the locked SENDING & ONBOARDING MODEL (below). The 7 signup/billing paths further down are unchanged (note: pricing is now **per qualified lead, no subscriptions** — $1 reveal → +$3 FIGSY — so the legacy Lead-Gen subscription is retired and Paths 5–6 will simplify).*
+~~*Last-checked: 1 Jul 2026 — added the locked SENDING & ONBOARDING MODEL (below). The 7 signup/billing paths further down are unchanged (note: pricing is now **per qualified lead, no subscriptions** — $1 reveal → +$3 FIGSY — so the legacy Lead-Gen subscription is retired and Paths 5–6 will simplify).*~~
+
+> ⛓️ **CORRECTED 28 Aug (Founder Truth Reset, Step 6). The struck line above stated the DEAD $1/+$3 ladder in the PRESENT TENSE — *"pricing is now"* — directly contradicting the truth banner four lines higher, which has called that ladder dead since 6 Aug.** One document, two prices, one of them written as current. That is the exact defect the banner exists to catch, and the banner did not reach it because it sits above the line rather than through it.
+>
+> **The current commercial truth, in three registers — never collapse them:**
+> - **LIVE NOW:** **$299 first purchase = the onboarding pack · 100 approved leads included · then $4 per approved lead.** Reviewing is free. Source of truth: `packages/shared/src/constants/index.ts`.
+> - **SUPERSEDED HISTORY:** the *$1 reveal → +$3 FIGSY → +$1 Milla → +$1 Denise → Vida $3* ladder (dead 24 Jul) **and** R68's $4→$8 migration (superseded 27 Aug). Preserved, not deleted; **neither is pending work.**
+> - **CURRENT DIRECTION, UNBUILT:** the **programme model** — priced on targeted booked meetings against the locked curve in **R81**, contribution defined in **R78**, 250 leads per targeted meeting in **R77**. **Not implemented, and nothing in it may be quoted to a client.**
+>
+> ⚠️ **Paths 1–7 below still describe a TRIAL and a SUBSCRIPTION.** Both are superseded — signup writes `paused` with a **$0 wallet and $0 sourcing allowance** (#607, 1 Aug) and **there is no trial**. The paths are **retained as procedure history** and are being reconciled item by item; **read the banner and this note before quoting any of them.** ⚠️ The same contradiction is live in a **client-facing legal document** — `apps/portal/public/terms.html` §3 still promises a 14-day free trial — recorded as item **#705** and awaiting the founder and counsel.
 
 > **This is the SOP — the standard operating procedures for how the business runs.** It owns the *procedures/flows*; status lives in PRODUCT-INVENTORY, execution in LAUNCH-PAD. Linked from DOC-MAP.
 

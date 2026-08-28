@@ -1,5 +1,15 @@
 # 🌍 DATA-RESIDENCY PLAYBOOK — same-day US / UK go-live (item 258)
-`Last-checked: 30 Jun 2026`
+`Last-checked: 30 Jun 2026` · ⛓️ **region corrected 28 Aug 2026**
+
+> # ⛓️ THE REGION IN THIS PLAYBOOK IS STALE — READ THIS BEFORE YOU QUOTE ONE LINE
+>
+> **This page was written on 30 Jun, when the database really was in `af-south-1` (Cape Town). IT NO LONGER IS.** The founder opened his own Supabase and Railway dashboards on **20 Aug** and the live truth is:
+> - **DATABASE — Supabase `eu-west-1`, Dublin, Ireland**
+> - **COMPUTE — Railway US West, California**
+>
+> So **every `af-south-1` below is historical**, and step 1's *"enum `af-south-1` (default)"* is wrong as written — the default region is now Dublin. **R56: we may not claim what the infrastructure does not do**, and that binds an internal runbook exactly as it binds the site. The public surfaces were corrected on **20 Aug** (website) and **28 Aug** (the portal's own legal pages, which had been serving the stale region for eight days **because the residency guard only ever read `apps/website`**).
+>
+> ⚠️ **AND THE MULTI-REGION FRAMEWORK ITSELF IS NOT BUILT — item #258 is 🔴.** There is no `clients.region` column, no region resolver, and no second Supabase project. The line below about marketing saying *"US data residency available on request"* is also dead: that promise was **removed** from the site on 20 Aug and is **banned by `apps/api/src/lib/website-residency-claims.test.ts`**, because the capability does not exist. *(Original 30-Jun text preserved below, per the chain rule — history is fenced, not deleted.)*
 
 > **The deal (founder, 28 Jun):** the *framework* is built and ready NOW; the *regional database* is provisioned **the day our first US or UK client signs** — provision → test → live in one day. This doc is the runbook so that day is fast and boring.
 

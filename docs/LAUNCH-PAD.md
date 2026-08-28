@@ -1,14 +1,16 @@
 # 🚀 LAUNCH PAD — what to do now
 
 > **This page is a LIST, not a book** (founder, 21 Aug: *"tracking docs need to be like lists… i cant read 60 000 words in 5 minutes"*). Item · one line · owner. **Why** lives in KIND-MASTER · **status** in PRODUCT-INVENTORY · **later** in V2-TRACKER · **rulings** in PRODUCT-RULES.
-> **🚀 R57: WE LAUNCH 25 AUGUST REGARDLESS OF STATE.** **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
+> **🚀 R76: WE LAUNCH FRIDAY 4 SEPTEMBER 2026 REGARDLESS OF STATE.** ⛓️ *Supersedes R57's 25 August, which is now history — only the date moved; the slip stays on the record and the date is still unconditional.* **R65:** pause is the default — silence is never a go; a build starts only on the founder's "go". Anything that does not aid the live state moves post-live to V2-TRACKER.
 > The full pre-surgery page is kept verbatim at [`archive/LAUNCH-PAD-2026-08-21.md`](./archive/LAUNCH-PAD-2026-08-21.md).
 
-**Board:** 🟢106 · 🩷308 · 🟣2 · 🟡51 · 🔴187 · ⏸6 · **Σ660** · live count: `scripts/count-inventory.sh`
+**Board:** 🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸7 · **Σ666** · live count: `scripts/count-inventory.sh`
 
 ---
 
-## 🛑 THE 25TH CUT — the only work between here and live
+## 🛑 THE CUT — the only work between here and live
+
+> ⛓️ **RE-DATED 28 Aug (R76): this was "THE 25TH CUT". The launch day is now FRIDAY 4 SEPTEMBER 2026.** The list below is unchanged in content — the same work, against a new day. Rows still reading "pre-25" mean **pre-launch**; C9's send day moves to 4 Sep.
 
 | # | Action | Owner | When |
 |---|---|---|---|
@@ -23,15 +25,15 @@
 | C6 | 🤝 Partner pre-live — H31 lifetime-clause wording · W1 partner walk, one sitting | 🧍 | pre-25 |
 | C7 | ⚖️ W18 counsel booked · PDL Order Form found | 🧍 | pre-25 |
 | C8 | ⏳ Triggered — A22 unlock pair · A23 pool-first proof · P15/P16 on counsel's word | 🧍 | on trigger |
-| C9 | 🗓️ **A14 — SEND DAY: execute [`SEND-DAY-RUNBOOK.md`](./SEND-DAY-RUNBOOK.md), alone** | 🧍 | **25 Aug** |
+| C9 | 🗓️ **A14 — SEND DAY: execute [`SEND-DAY-RUNBOOK.md`](./SEND-DAY-RUNBOOK.md), alone** | 🧍 | **Fri 4 Sep** |
 
-**Everything else is post-live** → [`V2-TRACKER.md`](./V2-TRACKER.md) § THE 25TH CUT — PARKED POST-LIVE.
+**Everything else is post-live** → [`V2-TRACKER.md`](./V2-TRACKER.md) § THE 25TH CUT — PARKED POST-LIVE. *(That V2 section keeps its original name — it is a historical heading, not a live date.)*
 
 ---
 
 ## 🔴 25 AUG — THE PROOF JOURNEY IS NOT DONE, AND THIS IS THE PLAN TO FINISH IT
 
-> Founder-set 25 Aug, after the live pass-1 attempt. **R57 is unchanged — the date does not bend.** What this section records is that the free-proof journey itself is not complete, and the exact order it is being finished in. Rulings behind it: **R66** (paid testing freeze) · **R67** (retention ≠ contactability).
+> Founder-set 25 Aug, after the live pass-1 attempt. ⛓️ **28 Aug: the DATE moved to Friday 4 September (R76) — the discipline did not. The date still does not bend.** What this section records is that the free-proof journey itself is not complete, and the exact order it is being finished in. Rulings behind it: **R66** (paid testing freeze) · **R67** (retention ≠ contactability) · **R79** (the launch experience must be finished, not merely working).
 
 | # | Action | Owner | When |
 |---|---|---|---|
@@ -48,13 +50,40 @@
 | **T11** | 🔌 **THE CONTROLLED EXIT FROM ZERO-SPEND (FI-11).** `PAID_PROVIDERS_ENABLED` stays **OFF** for all safe proof testing (**R66**, fail-closed). Before the first deliberate real sourcing test it is enabled **only** under **controlled K.I.N.D house use**, **founder-approved**, knowingly accepting **real provider spend**. ⚠️ This is the one authorised way the guard comes off; nothing else may switch it. | 🧍 | Before first real test |
 | **T12** | 🧹 **PRE-LAUNCH CLEANUP — AUDIT BEFORE DELETE (FI-12).** Production must start clean of fake/test accounts. **But not casually:** ① audit exactly which accounts are fake/test · ② inspect dependent/cascade records · ③ identify launch evidence and ops data that must be preserved · ④ delete **only with founder approval**. See `SEED-WIPE-PLAN.md`. ⚠️ `clients` cascades to leads, ICPs, campaigns and ledgers — a casual delete removes the evidence of the launch it was meant to clean up for. | 🧍 | Before live |
 
-**Tuesday (today) is plan-lock and document reconciliation only — no further engineering, no paid-provider testing.**
+*(The 26-Aug line that stood here — "Tuesday (today) is plan-lock…" — was a one-day instruction, not a standing rule. Removed 28 Aug rather than left to read as current. **R65 is the standing rule: pause is the default and a build starts only on the founder's "go".**)*
+
+---
+
+## 🧭 28 AUG — THE FOUNDER TRUTH RESET: THE FOUR DECISIONS AND WHAT THEY CHANGE
+
+> The founder ran an eight-step reconciliation of the whole repo. Evidence chain (frozen, do not edit): [`FOUNDER-TRUTH-INVENTORY-2026-08-28.md`](./FOUNDER-TRUTH-INVENTORY-2026-08-28.md) · [`FOUNDER-TRUTH-COMPARISON-2026-08-28.md`](./FOUNDER-TRUTH-COMPARISON-2026-08-28.md) · [`FOUNDER-TRUTH-CLASSIFICATION-2026-08-28.md`](./FOUNDER-TRUTH-CLASSIFICATION-2026-08-28.md). Rulings: **R76 … R81** in PRODUCT-RULES.
+> ⚠️ **A DECISION RECORDED IS NOT A BUILD AUTHORISED (R75/R65).** Everything below marked UNBUILT stays unbuilt until the founder says go.
+
+| # | Decision | State |
+|---|---|---|
+| **D1** | 🚀 **LAUNCH IS FRIDAY 4 SEPTEMBER 2026** (**R76**) — supersedes R57's 25 Aug; the slip stays on the record, the date stays unconditional | ✅ recorded |
+| **D2** | 🎯 **FD-01 — 250 recommended leads per targeted booked meeting** (**R77**), a planning benchmark, never a promise. ⚠️ **R69's 250–300-with-no-meeting CAMPAIGN REVIEW TRIGGER survives** — a one-meeting programme therefore sits *at* the review threshold by design | ✅ recorded · 🔴 unbuilt |
+| **D3** | 💰 **FD-02 — programme contribution = programme revenue − directly attributable acquisition and delivery costs; fixed overhead excluded; partner = 25% of contribution** (**R78**). ⚠️ **$4-tied partner economics (R47, `PARTNER_COMMISSION_PER_LEAD_USD`) are LIVE LEGACY and SUPERSEDED as the destination** | ✅ recorded · 🔴 unbuilt · **#702** |
+| **D4** | ✨ **FD-03 — Milla, Vida and the website launch as ONE finished, premium, conversational experience. QUALITY IS NOT V2** (**R79**) — finish is launch-critical and may not be deferred as polish | ✅ recorded · 🔴 requirement, not built |
+| **D5** | 💾 **FD-04 — client-configurable retention is POST-LAUNCH** (**R80**). The phrase **"retention settings" stays absent** (banned by `website-residency-claims.test.ts`); **no purge job exists**; **RETENTION ≠ CONTACTABILITY (R67) is untouched** | ✅ recorded · 🔴 post-launch · **#703** |
+| **D6** | 📐 **THE PROGRAMME PRICING CURVE, EXACT** (**R81**): 1 mtg **$450** · 10 **$437.50** · 50 **$400** · 50+ **$400 floor**. `PPM = 450 − ((m−1)×12.50/9)` for 2–10 · `PPM = 437.50 − ((m−10)×37.50/40)` for 11–50 · price = m × PPM · leads = m × 250. **50/50 payment · controlled ~250 batches · pause / unused value never expires / make-whole.** ⚠️ **LIVE TRUTH IS STILL $299 + 100 included + $4** | 🔴 **unbuilt · unquotable** · **#701** |
+
+**🛑 THE ONE BLOCKER STEP 6 RETURNED — founder + legal, item #704.** Four live surfaces state **four different retention clocks** (90 days · 12 months · 24 months, with the DPA inverting the privacy policy). **No authoritative basis exists in the repo to choose**, so Step 6 did not choose. Corrected without waiting on it: the false *"automatically purged"* claim and the false *af-south-1 / Cape Town* region claim. See **R80** and the Open list in PRODUCT-RULES.
+
+**⚠️ THE WEBSITE FREEZE (#605) WAS RE-STAMPED — ONE LINE, AND IT IS FLAGGED HERE SO IT IS NOT SILENT.** Correcting the false *"automatically purged"* claim touched `apps/website/privacy.html`, which is founder-frozen, so `website-freeze.test.ts` went **RED — the lock working, exactly as designed.** The founder's own Step-6 instruction names this change in plain words, which is the approval the lock requires, so `scripts/freeze-website.sh` was re-run (124 files re-hashed). **The diff on the live site is one line:** *"12 months, then automatically purged"* → *"retained for 12 months, then deleted on request or on account closure"*. **No other website file changed.** ⚠️ **It is a client-facing change and it has NOT been previewed or shipped** — it sits in PR #1464 for the founder (RULEBOOK §11).
+
+**✅ CORRECTED — item #705 (the founder ruled this WAS in Step-6 scope).** The portal Terms no longer promise a **14-day free trial** (§3 → *Access & Activation*: the account starts **paused**, $0 balance, $0 sourcing allowance until first purchase) or the **90-Day Pipeline Guarantee** (§5A → *No Outcome Guarantee*; the §5/§10 "sole exception" cross-references are gone). **R64 caught a second live surface:** `/terms` and `/privacy` are ALSO rendered by `apps/portal/src/app/(legal)/*/page.tsx`, **alongside** the static `/terms.html` that the signup consent checkbox actually links to — both were live, both disagreed, both are corrected. Four `apps/landing` pages had trial claims removed (**liveness unproven — no build or deploy config; corrected anyway**). ⚠️ **Removing §5A deletes a refund commitment from a live agreement — no client has ever claimed under it, but the Terms-change notice and any rights of a client who signed under the old wording are for counsel (W18).** ⚠️ **Not shipped — awaiting the founder (§11).**
+
+**🛑 STILL FALSE, OPERATOR-FACING — item #706.** `apps/admin/src/app/playbook/page.tsx` still scripts the dead **14-day trial** to AEs in six places, including two prospect email templates. Not a client-facing surface — but it is what a human then says to a prospect. **Not rewritten: the replacement script is a commercial call for the founder** (live offer = $299 · 100 included · $4; the programme model is unbuilt and unquotable).
+
+**📍 REGION — PROVED, AND ONE LIMIT STATED.** `eu-west-1` (Dublin) is the **primary database region**, evidenced by a **working production pooler connection** on 6 Aug (`aws-0-eu-west-1.pooler.supabase.com:5432`, 14/14 migrations applied) and the founder's own dashboards on 20 Aug (R56). **Compute is Railway US West.** ⚠️ **NOT proved that it is the ONLY place data lives** — backups/PITR/sub-regions remain open question **F5**, and no `.env` exists in the repo, so today's value is founder-dashboard-verified, not code-verified. Full evidence: PRODUCT-RULES Open list.
 
 ---
 
 ## 💰 BEFORE FRIDAY'S PARTNER MEETING — the commercial pack
 
 > Model of record stays [`CASHFLOW-LAB.html`](./CASHFLOW-LAB.html); partner maths stays [`hiring/KIND-partner-calculator.html`](./hiring/KIND-partner-calculator.html). **Nothing here changes pricing** — PR1's $299 lock stands until the founder rules otherwise after reading the evidence.
+> ⛓️ **28 Aug — READ THIS BEFORE THE TABLE. The founder HAS since ruled on the direction, and it does not change what is live.** The **programme model** is the approved commercial destination with an exact locked curve (**R81**) and a defined contribution basis (**R78**) — **and none of it is built.** **The live commercial truth this pack must model is unchanged: $299 pack · first 100 approvals included · $4 per approved lead.** M5 below is therefore no longer *"the founder decides any change"* — the direction is decided; what M5 still owes is the **evidence** that the curve and the ~70% contribution target survive real unit economics. **M7 and M8 remain UNRESOLVED and still block M2.**
 
 | # | The question to answer | Owner |
 |---|---|---|
@@ -107,7 +136,9 @@
 
 | Rule | In one line |
 |---|---|
-| R57 | 25 Aug is unconditional — nothing moves the date |
+| R76 | **Friday 4 September 2026** is unconditional — nothing moves the date *(supersedes R57's 25 Aug)* |
+| R79 | Milla + Vida + website launch as ONE finished, premium, conversational experience — **quality is not V2** |
+| R81 | The programme curve is locked and **unbuilt** — the live commercial truth is still $299 + 100 included + $4 |
 | R65 | Pause is the default · silence is never a go · not-live-aiding → V2 · LAUNCH-PAD updated in the same PR as every merge |
 | R64 | Prove which route renders a surface before building into it (`scripts/dead-surfaces.sh`) |
 | R62 | The product keeps UK time — Europe/London |

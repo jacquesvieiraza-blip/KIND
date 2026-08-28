@@ -576,4 +576,55 @@ At the founder's stated anchor of **~$450 per targeted booked meeting** and a **
 | Remaining for enrichment, sender, sending, AI and infrastructure | **~$42.50** |
 | **COGS ceiling at 70% contribution** | **~$135** |
 
-⚠️ **THE BENCHMARK IS THE MARGIN.** PDL alone consumes **~52%** of the entire COGS allowance before anything else is paid for. If the real ratio is **500 leads per booked meeting**, PDL alone is **$140** and the contribution margin goes **negative**. Read against **R69**, which locks the centre case at ~150 accepted prospects per booked meeting and treats 250–300 without a meeting as a **campaign-review trigger**, the 250 seed sits **at that threshold**. Because the 1:1 assumption above collapses *recommended programme leads* onto *accepted/contacted prospects*, the two figures share a denominator and genuinely disagree — **the one open benchmark question R74 records, and the founder's to settle. No resolution is invented here.** **This is measurement before it is pricing.**
+⚠️ **THE BENCHMARK IS THE MARGIN.** PDL alone consumes **~52%** of the entire COGS allowance before anything else is paid for. If the real ratio is **500 leads per booked meeting**, PDL alone is **$140** and the contribution margin goes **negative**. Read against **R69**, which locks the centre case at ~150 accepted prospects per booked meeting and treats 250–300 without a meeting as a **campaign-review trigger**, the 250 seed sits **at that threshold**. Because the 1:1 assumption above collapses *recommended programme leads* onto *accepted/contacted prospects*, the two figures share a denominator and genuinely disagree — ~~**the one open benchmark question R74 records, and the founder's to settle. No resolution is invented here.**~~ ⛓️ **SETTLED 28 Aug — see the next section.** **This is measurement before it is pricing.**
+
+---
+
+## 📥 28 AUG — THE FOUNDER TRUTH RESET SETTLED THE TWO OPEN QUESTIONS (planning only · NOT current pricing)
+
+⛓️ **Still NOT implemented. The live commercial truth is unchanged and is still $299 pack · first 100 approvals included · $4 per approved lead** (§0/§1, mirrored from `@kind/shared`). Rulings: **R76 · R77 · R78 · R81**. **Nothing here may be quoted to a client or a partner.**
+
+### FD-01 — the benchmark is 250, and the review trigger survives (R77)
+
+**250 recommended leads per targeted booked meeting.** This **supersedes R69's ~150 centre case as the planning figure** and closes the benchmark question R74 recorded — the seed above was right; it is now the rule.
+
+⚠️ **The half of R69 that did NOT move, and it is the one that costs money if forgotten:** **~250–300 accepted prospects with no booked meeting still triggers a campaign review** (targeting · offer · messaging · timing · deliverability), and **the review is never an upsell**. A standard **one-meeting** programme sources exactly 250 leads, so **the first programme that produces no meeting lands on the review threshold — by design, not by accident.** Price the model knowing the review fires early.
+
+⚠️ **Unchanged by this:** *"never promise X leads = Y meetings"*, and real K.I.N.D or client data supersedes the benchmark once the sample is useful.
+
+### FD-02 — what "programme contribution" actually means (R78)
+
+> **Programme contribution = programme revenue − directly attributable acquisition and delivery costs. Fixed company overhead is EXCLUDED. Partner commission = 25% of programme contribution.**
+
+| Line | In / out of contribution |
+|---|---|
+| Programme revenue (meetings × PPM, **R81**) | **in** — the top line |
+| Provider/data acquisition (PDL · Apollo · Hunter) | **deducted** — directly attributable |
+| Enrichment, sender, domain, mailbox, sending | **deducted** — directly attributable |
+| Card + FX on that revenue (`STRIPE_ALL_IN_PCT`) | **deducted** — directly attributable |
+| AI and infrastructure consumed delivering the programme | **deducted** — directly attributable |
+| **Fixed company overhead** (the $206 company half of the $352 floor, §5) | **EXCLUDED — never deducted** |
+| **= programme contribution** | partner commission is **25% of this** |
+
+⚠️ **CONTRIBUTION IS NOT NET PROFIT, and must never be called *"net margin"*.** Overhead is excluded by definition, so a healthy contribution figure says nothing about whether the company made money that month — **§6 break-even against the $352 floor is still the number that governs that**, and it is unchanged.
+
+⚠️ **THE ~70% TARGET IS NOW MEASURABLE AGAINST A DEFINITION, AND THE ARITHMETIC ABOVE IS UNCHANGED BY IT.** At $450/meeting and 70% contribution the COGS ceiling is still **~$135**, of which PDL at 250×$0.28 is **~$70 (~52%)**. FD-02 does not relieve that pressure — it just means the denominator is now defined rather than assumed.
+
+⚠️ **LIVE LEGACY, FENCED:** partner commission today is **R47's 25% of approved-lead spend**, computed from `PARTNER_COMMISSION_PER_LEAD_USD` (derived from `LEAD_PRICE_USD = 4` in `@kind/shared`). **That is today's runtime truth and it keeps running.** It is **superseded as the destination**, replaced — not amended — when the programme model ships. `PARTNER_COMMISSION_PCT = 25` does not change; **what it is 25% *of* does.**
+
+### The locked programme price curve (R81)
+
+**Anchors:** 1 meeting **$450** · 10 meetings **$437.50/meeting** · 50 meetings **$400/meeting** · above 50, a **$400/meeting floor**.
+
+| Meetings `m` | Price per meeting | Programme price | Recommended leads (`m × 250`) |
+|---:|---:|---:|---:|
+| 1 | $450.00 | $450 | 250 |
+| 10 | $437.50 | $4,375 | 2,500 |
+| 50 | $400.00 | $20,000 | 12,500 |
+| 50+ | $400.00 (floor) | `m × $400` | `m × 250` |
+
+**Interpolation, linear between the anchors:** `PPM = 450 − ((m − 1) × 12.50 / 9)` for **2–10** · `PPM = 437.50 − ((m − 10) × 37.50 / 40)` for **11–50** · `PPM = 400` above 50. **Programme price = m × PPM.**
+
+**The discount is automatic — no negotiation in the normal flow** (R74). ⛓️ This is the one place the 3-Aug *"discounts never in code"* lock (**PR2**) is superseded, and **only** for the programme model; PR2 still governs the legacy per-lead model while that runs.
+
+⚠️ **WHEN THIS IS BUILT, THE CURVE BECOMES CONSTANTS IN `@kind/shared`, NOT COPY** — money sentences are interpolated, never typed (the working method, rule 7). Until then: **UNBUILT · UNQUOTABLE · the live model is $299 + 100 included + $4.**

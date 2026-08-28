@@ -1,6 +1,6 @@
 # K.I.N.D Founder Operating Truth
 
-> The daily operating view. **Detail lives in the canonical docs; this points at them.** Register: [`FOUNDER-TRUTH-REGISTER.md`](./FOUNDER-TRUTH-REGISTER.md) · Audit: [`FOUNDER-TRUTH-AUDIT-2026-08-28.md`](./FOUNDER-TRUTH-AUDIT-2026-08-28.md)
+> The daily operating view. **Detail lives in the canonical docs; this points at them.** Register: [`FOUNDER-TRUTH-REGISTER.md`](./FOUNDER-TRUTH-REGISTER.md) — **82 truth rows, 203 canonical items indexed** · Audit: [`FOUNDER-TRUTH-AUDIT-2026-08-28.md`](./FOUNDER-TRUTH-AUDIT-2026-08-28.md)
 
 ---
 
@@ -209,11 +209,19 @@ Sourcing attainment toward ~1.5:1 (**TR-014**) · Apollo geography re-entry (**T
 
 ## V2
 
-Unchanged and deliberately later — detail in **`V2-TRACKER.md` §Founder Idea Bank**:
+**13 truth rows carry V2 priority** — TR-067, TR-068, TR-069, TR-070, TR-071 … TR-079. Major categories:
 
-**Glean** · **Multi-player AI** · **Milla voice** · **Slack front door** · **premium conversion coaching** · **CodeRabbit** · **additional sourcing channels**.
+| Category | Rows |
+|---|---|
+| Context & multi-player AI | TR-071 Glean · TR-072 Multi-player AI · TR-073 its core features |
+| Conversational reach | TR-077 Milla voice · TR-078 Slack integration · TR-079 Slack as the front door |
+| AI economics | TR-074 model routing · TR-075 cost controls |
+| Funnel & premium | TR-068 booked→paying tracking · TR-069 the ~15% hypothesis · TR-070 conversion coaching |
+| Sourcing & ops | TR-067 additional acquisition sources · TR-076 CodeRabbit evaluation |
 
-The audit found **no launch dependency** for any of these.
+The audit found **no launch dependency** for any of them.
+
+**Full detail:** [`FOUNDER-TRUTH-REGISTER.md` §C4](./FOUNDER-TRUTH-REGISTER.md) — which also shows how all **69** Founder Idea Bank items (FI-01 … FI-69) map onto truth rows — and `V2-TRACKER.md` §Founder Idea Bank for the canonical text.
 
 ---
 
@@ -288,6 +296,7 @@ Portal UI quality is **launch-critical direction** and settled as such. **The de
 
 | Item | Established | Not established | Register |
 |---|---|---|---|
+| **Refund boundary / make-whole are unbuilt** | Both are approved programme direction | Terms still describe the wallet/$4 model | TR-080, TR-081 |
 | **`20260727_pdl_cursor` migration failure** | It failed in the 28 Aug Vida → Engine run (36 of 37 applied) | Why, and what it leaves unbuilt | TR-064 |
 | **Proof exhaustion E2E** | Built, deployed, migration applied | The production journey has not been walked | TR-031 |
 | **Sourcing attainment telemetry** | Founder-reported baseline ≈ 7 sourced → 1 usable | No metric measures the real ratio | TR-014 |

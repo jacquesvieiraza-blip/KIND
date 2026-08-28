@@ -29,6 +29,38 @@ import {
 } from '../lib/programme'
 import { createProgrammeCheckoutSession } from '../lib/programme-checkout'
 
+/**
+ * The client's checkout address, or a 400 — never a blank string.
+ *
+ * ⚠️ FAIL CLOSED, AND THIS REPLACED A FAIL-OPEN `?? ''`. Stripe accepts a session with no
+ * `customer_email`, so an empty string does not error: the checkout would be created, the
+ * operator would hand over a link, and the client would simply never receive a receipt at an
+ * address we hold. A money surface that degrades silently is the defect class this repo keeps
+ * finding — the same shape as `.data ?? []` rendering a rejected query as an empty result.
+ *
+ * ⚠️ `contact_email`, NOT `email` — `clients` has no `email` column. The legacy wallet
+ * checkout reads the address from the AUTHENTICATED USER's session, which an operator route
+ * does not have. Caught by `schema-truth.test.ts`.
+ *
+ * A read error is refused too: not knowing the address is not the same as knowing it is fine.
+ */
+async function clientEmailOrRefuse(clientId: string, res: Response): Promise<string | null> {
+  const { data, error } = await db.from('clients').select('contact_email').eq('id', clientId).maybeSingle()
+  if (error) {
+    res.status(502).json({ success: false, error: 'Could not read the client record, so no checkout was created. Nothing was charged.' })
+    return null
+  }
+  const email = (data as { contact_email?: string | null } | null)?.contact_email
+  if (typeof email !== 'string' || email.trim() === '') {
+    res.status(400).json({
+      success: false,
+      error: 'This client has no contact email, so no checkout was created. Stripe would accept the session and the client would never receive a receipt. Set the contact email first.',
+    })
+    return null
+  }
+  return email.trim()
+}
+
 export const programmeRouter = Router()
 
 programmeRouter.use((req: Request, res: Response, next: () => void) => {
@@ -98,18 +130,12 @@ programmeRouter.post('/:id/checkout/first', async (req: Request, res: Response) 
   if (!p) { res.status(404).json({ success: false, error: 'No such programme.' }); return }
   if (p.first_payment_ref) { res.status(400).json({ success: false, error: 'The first payment is already recorded.' }); return }
 
-  // ⚠️ `contact_email`, NOT `email` — `clients` has no `email` column. The legacy wallet
-  // checkout reads the address from the AUTHENTICATED USER's session, which an operator
-  // route does not have, so the client's own contact address is the correct source.
-  // Caught by `schema-truth.test.ts`: supabase-js returns `{ error }` rather than throwing,
-  // and this call site reads `.data`, so a rejected query would have rendered exactly like a
-  // client with no email — the checkout would have gone out with a blank address and nothing
-  // would have failed.
-  const { data: client } = await db.from('clients').select('contact_email').eq('id', p.client_id).maybeSingle()
+  const email = await clientEmailOrRefuse(p.client_id, res)
+  if (email === null) return
   const r = await createProgrammeCheckoutSession({
     clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_first',
     successUrl: String(req.body?.successUrl ?? ''), cancelUrl: String(req.body?.cancelUrl ?? ''),
-    clientEmail: String((client as { contact_email?: string } | null)?.contact_email ?? ''),
+    clientEmail: email,
   })
   if (!r.url) { res.status(502).json({ success: false, error: r.error ?? 'Could not create checkout.' }); return }
   await awaitFirstPayment(p.id)
@@ -141,18 +167,12 @@ programmeRouter.post('/:id/checkout/second', async (req: Request, res: Response)
   const gate = maySecondCharge(p)
   if (!gate.allowed) { res.status(400).json({ success: false, error: gate.reason }); return }
 
-  // ⚠️ `contact_email`, NOT `email` — `clients` has no `email` column. The legacy wallet
-  // checkout reads the address from the AUTHENTICATED USER's session, which an operator
-  // route does not have, so the client's own contact address is the correct source.
-  // Caught by `schema-truth.test.ts`: supabase-js returns `{ error }` rather than throwing,
-  // and this call site reads `.data`, so a rejected query would have rendered exactly like a
-  // client with no email — the checkout would have gone out with a blank address and nothing
-  // would have failed.
-  const { data: client } = await db.from('clients').select('contact_email').eq('id', p.client_id).maybeSingle()
+  const email = await clientEmailOrRefuse(p.client_id, res)
+  if (email === null) return
   const r = await createProgrammeCheckoutSession({
     clientId: p.client_id, programmeId: p.id, meetings: p.meeting_target, stage: 'programme_second',
     successUrl: String(req.body?.successUrl ?? ''), cancelUrl: String(req.body?.cancelUrl ?? ''),
-    clientEmail: String((client as { contact_email?: string } | null)?.contact_email ?? ''),
+    clientEmail: email,
   })
   if (!r.url) { res.status(502).json({ success: false, error: r.error ?? 'Could not create checkout.' }); return }
   res.json({ success: true, url: r.url, sessionId: r.sessionId })

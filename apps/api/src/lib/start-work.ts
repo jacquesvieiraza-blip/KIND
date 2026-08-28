@@ -80,6 +80,11 @@ import { sourceTarget, PAID_TX_TYPES } from './onboarding-pack'
 export type EnsureCampaignResult =
   | { id: string; refused?: undefined }
   | { id?: undefined; refused: { blockingCampaignId: string; blockingName: string | null } }
+  // BUILD-002 — a programme client whose programme is not LIVE, is paused, or whose state
+  // could not be read. Distinct from the one-active-campaign refusal above because the
+  // caller must be able to tell "you already have a live campaign" from "this programme has
+  // not been paid for", and a client never sees the same sentence for both.
+  | { id?: undefined; refused: { reason: 'programme_not_live' | 'programme_paused' | 'programme_state_unreadable'; message: string } }
   | null
 
 export async function ensureCampaignForIcp(
@@ -89,6 +94,54 @@ export async function ensureCampaignForIcp(
   opts?: { activate?: boolean },
 ): Promise<EnsureCampaignResult> {
   const activate = opts?.activate === true
+
+  // ── THE PROGRAMME GO-LIVE GATE (BUILD-002) ───────────────────────────────────────────
+  //
+  // ⚠️ ENFORCED HERE BECAUSE THIS FUNCTION IS THE ONLY DOOR TO `status: 'active'`. Five
+  // call sites reach it — the Milla ICP save, the client activate route, the operator
+  // create, and two more — and gating each of them individually is the shape AR8 already
+  // proved fails: `lookalike/generate` had no fence at all because it was the caller nobody
+  // remembered. One door, one gate.
+  //
+  // A programme client may not begin SENDING until the second 50% is paid and the programme
+  // is LIVE (founder lock 5). Scaffolding is untouched — `activate: false` still creates the
+  // draft row, because a draft sends nothing and blocking it would stop Milla working at all.
+  //
+  // ⚠️ FAIL CLOSED ON A READ ERROR. If we cannot tell whether a programme gates this client,
+  // we refuse rather than activate: the cost of a wrong refusal is a delayed campaign, and
+  // the cost of a wrong activation is sending on a programme that has not been paid for.
+  if (activate) {
+    const { data: prog, error: progErr } = await db.from('programmes')
+      .select('id, status, second_paid_at, paused_at')
+      .eq('client_id', clientId)
+      .not('status', 'in', '(COMPLETED,CANCELLED)')
+      .limit(1).maybeSingle()
+
+    if (progErr) {
+      console.error(`[start-work] could not read programme state for client ${clientId} — refusing to activate (fail closed):`, progErr)
+      return { refused: {
+        reason: 'programme_state_unreadable',
+        message: 'K.I.N.D could not confirm this client\'s programme state, so nothing was activated. Nothing was sent.',
+      } }
+    }
+
+    if (prog) {
+      const p = prog as { id: string; status: string; second_paid_at: string | null; paused_at: string | null }
+      if (p.paused_at) {
+        return { refused: {
+          reason: 'programme_paused',
+          message: 'This client\'s programme is paused, so no campaign was activated. Pause stops sourcing AND sending.',
+        } }
+      }
+      if (!p.second_paid_at || p.status !== 'LIVE') {
+        return { refused: {
+          reason: 'programme_not_live',
+          message: `This client is on a programme that is ${p.status} and has not completed its second payment, so no campaign was activated. A programme campaign starts only at Go Live.`,
+        } }
+      }
+    }
+  }
+
   try {
     const { data: existing, error: existErr } = await db.from('figsy_campaigns')
       .select('id, status').eq('client_id', clientId).eq('icp_id', icpId).limit(1).maybeSingle()

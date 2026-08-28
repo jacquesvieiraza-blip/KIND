@@ -501,6 +501,29 @@ stripeRouter.post('/webhook', async (req: Request, res: Response) => {
         // retry a payment that already succeeded. Buying the INBOX stays manual on purpose —
         // it spends real money, so it surfaces as the operator's next action instead.
         void (async () => {
+          // ── PROGRAMME CLIENTS DO NOT START WORK FROM A LEGACY PAYMENT (BUILD-002) ──────
+          //
+          // ⚠️ THIS IS THE ONE EXECUTABLE `startWorkForClient` CALLER IN THE PRODUCT, and it
+          // is the legacy coupling "money arrived → start sourcing". A client who is on a
+          // programme but tops up a legacy wallet would otherwise enter sourcing and sending
+          // through this door, entirely outside programme authority and before Go Live.
+          //
+          // The sourcing gate would refuse their PDL spend (a programme client passed a NULL
+          // programme id gets 0) — but `startWorkForClient` also reaches campaign activation,
+          // and relying on a downstream refusal to protect an upstream door is how the
+          // AR8 lookalike hole survived. Refuse at the door, and say so.
+          const { data: openProg } = await db.from('programmes')
+            .select('id, status').eq('client_id', clientId)
+            .not('status', 'in', '(COMPLETED,CANCELLED)').limit(1).maybeSingle()
+          if (openProg) {
+            console.log(`[stripe] client ${clientId} is on programme ${(openProg as { id: string }).id} — legacy payment did NOT start work. Programme sourcing is authorised by the programme's own first payment.`)
+            void sendFounderAlert('new_signup', 'Legacy payment received from a PROGRAMME client — work NOT started', [
+              `Client ${clientId} paid $${amountUsd} through the legacy wallet path while holding an open programme.`,
+              'No sourcing and no campaign were started: a programme is authorised by its own first payment and goes live only at its second.',
+              'Decide whether this money belongs to the programme or is a genuine legacy top-up.',
+            ])
+            return
+          }
           const { startWorkForClient } = await import('../lib/start-work')
           const r = await startWorkForClient(clientId)
           console.log('[stripe] payment started work for', clientId, JSON.stringify(r))

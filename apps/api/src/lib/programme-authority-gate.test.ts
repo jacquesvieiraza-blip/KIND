@@ -78,7 +78,10 @@ describe('② programme authority is bounded by the ceiling, in the database', (
   })
 
   it('the grant is LEAST(requested, remaining room) and re-checks the ceiling in its WHERE', () => {
-    expect(exec).toMatch(/v_granted := LEAST\(p_requested, COALESCE\(v_room, 0\)\)/)
+    // ⛓️ GPT CLOSURE, 28 Aug — the batch cap joined this LEAST. This assertion pinned the
+    // two-argument form and correctly went red when controlled batching was added, which
+    // is the test doing its job. Full reasoning: `programme-closure.test.ts` GAP 2.
+    expect(exec).toMatch(/v_granted := LEAST\(p_requested, COALESCE\(v_room, 0\), v_batch_cap\)/)
     expect(exec).toMatch(/AND sourced_used \+ sourced_reserved \+ v_granted <= sourcing_ceiling/)
   })
 
@@ -224,9 +227,18 @@ describe('⑥ money and value constraints live in the database', () => {
     expect(exec).not.toMatch(/ALTER COLUMN[\s\S]{0,40}TYPE/)
     // The only DROPs permitted are CONSTRAINT ... IF EXISTS, which is how idempotent
     // constraint re-creation works.
-    for (const m of exec.match(/DROP \w+/g) ?? []) {
-      expect(m, `unexpected ${m} in an additive migration`).toBe('DROP CONSTRAINT')
+    // Two permitted DROPs, and only two. `DROP CONSTRAINT ... IF EXISTS` is how idempotent
+    // constraint re-creation works. `DROP FUNCTION` appears exactly once, for the
+    // two-argument `try_spend_sourcing` overload — dropped so a two-argument call is not
+    // ambiguous between it and the new defaulted three-argument function, which is what
+    // makes migration-first deployment safe. Neither drops data.
+    const drops = exec.match(/DROP \w+/g) ?? []
+    for (const m of drops) {
+      expect(m, `unexpected ${m} in an additive migration`).toMatch(/^DROP (CONSTRAINT|FUNCTION)$/)
     }
+    expect(drops.filter(d => d === 'DROP FUNCTION'), 'exactly one function signature is replaced').toHaveLength(1)
+    expect(exec).toMatch(/DROP FUNCTION IF EXISTS public\.try_spend_sourcing\(uuid, int\);/)
+    expect(exec, 'no table or column may be dropped').not.toMatch(/DROP (TABLE|COLUMN)/)
     // A BACKFILL is a TOP-LEVEL statement — column 0. The `UPDATE public.clients` inside
     // the function body is the legacy allowance decrement, indented, and is the behaviour
     // being preserved rather than a migration-time data change.

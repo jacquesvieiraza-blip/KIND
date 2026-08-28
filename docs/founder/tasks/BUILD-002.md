@@ -121,7 +121,7 @@ Not noise — every one of them wanted something genuine, and one of them caught
 | GPT verification (Builder stage, conveyor 9) | ⏳ **PENDING** |
 | Founder merged (conveyor 10) | ⏳ **PENDING** |
 | Merge SHA | ⏳ pending |
-| Deploy verified (conveyor 11) | ⏳ **PENDING** — ⚠️ **the migration has NOT been applied to production.** Deploy the API first, then run it from Vida → Engine (O3: no ad-hoc SQL) |
+| Deploy verified (conveyor 11) | ⏳ **PENDING** — ⚠️ **the migration has NOT been applied to production.** 🚀 **RUN THE MIGRATION FIRST (Vida → Engine, O3: no ad-hoc SQL), THEN DEPLOY THE API.** ⛓️ *This reverses the first submission's instruction, which was wrong — see §7.* |
 | Complete (conveyor 12) | ⏳ **PENDING** |
 
 ⚠️ **NOTHING IN THIS BUILD IS LIVE COMMERCIAL TRUTH.** The programme model is code that exists, not a model that runs. **The live commercial truth remains $299 pack · first 100 approvals included · $4 per approved lead**, and none of the programme model may be quoted to a client, a partner or the website until the founder ships it.
@@ -133,3 +133,74 @@ Not noise — every one of them wanted something genuine, and one of them caught
 - **28 Aug — packet opened at BUILDER RETURNED.** Conveyor stage 4 satisfied before the build. Stage 9 owed.
 - **28 Aug — delta freshness check passed:** BUILD-001 merged docs-only between Scout and Builder; no assumption moved.
 - **28 Aug — `check.sh` RED, reported not manufactured.** Final run: **1 failed / 4,104 passed**, `kind-owns-go.test.ts:292` — *"THE FIRST-LEADS EMAIL GOES TO THE CLIENT OWNER"*, `expected undefined to be true`. ⚠️ **The same test passes in isolation, in its own group, and in a full standalone API run (4,021/4,021) — both WITH and WITHOUT this branch's changes**, which were checked by stashing them. It is a full-suite ordering artifact, and it is the second intermittent in this repo alongside `proof-review-handoff`. **Recorded as unresolved rather than explained away, and `check.sh` was NOT re-run to obtain green.**
+
+---
+
+## 7 · GPT CLOSURE — the four evidence gaps (28 Aug)
+
+**Two of the four were real gaps. Both are patched; both now have tests that fail if the guard is removed.**
+
+### GAP 1 · the full-suite RED — **NOT a BUILD-002 regression**
+
+| Evidence | Result |
+|---|---|
+| Clean `origin/main` worktree, exact `check.sh` invocation (`npx vitest run --reporter=dot` from repo root) | **3 runs, 3 green** — the failure did **not** reproduce on baseline |
+| This branch, same invocation | **3 runs, 3 green** |
+| This branch, same invocation under full CPU saturation (4 busy loops on 4 cores, mimicking `check.sh`'s warm/loaded machine) | **green, 4,105/4,105** |
+| Architectural exclusion | **`runIcpJob` is not awaited by the activate route.** `started = true` is assigned, the job is dispatched fire-and-forget with `.catch`, and `res.json({… sourcing: started …})` runs on the synchronous continuation. Every BUILD-002 line in `icps.ts` is inside `runIcpJob`. `sourcing: undefined` means the handler threw — and no BUILD-002 code can execute before `sourcing` is computed or reach that catch. |
+
+**Verdict: BASELINE / ORDERING FLAKE — BUILD-002 EXCLUDED BY CONSTRUCTION.** ⚠️ **Stated precisely, because the distinction matters:** BUILD-002 is excluded by proof, but **the flake itself was not reproduced on either tree** (0 occurrences in 7 attempts). It remains an unexplained intermittent, the second in this repo alongside `proof-review-handoff`. The architectural property is now **pinned as a test** (`programme-closure.test.ts` GAP 1) rather than left as an argument — if anyone later awaits `runIcpJob` there, the exclusion silently stops holding, and that test goes red.
+
+### GAP 2 · controlled ~250 batches — **GAP CONFIRMED AND PATCHED**
+
+The verification's warning was exact: *"do not confuse total programme ceiling with per-batch execution control."*
+
+**What was wrong:** the gate granted `LEAST(p_requested, remaining_ceiling)`. A 1,000-record request against a 2,500 ceiling was granted **1,000**; a 2,500 request was granted **2,500** — the whole programme in one uncontrolled batch. The ceiling was enforced; batching was not. `nextBatchSize` existed but was only a read-out on the operator screen.
+
+**Why it mattered beyond tidiness:** *"material quality/performance problems pause further batches"* has nothing left to pause once the whole programme has gone out.
+
+**Patched:** `v_batch_cap int := 250` inside the gate, and `v_granted := LEAST(p_requested, COALESCE(v_room, 0), v_batch_cap)`. In **both** migration homes. `v_room` stays in the `LEAST`, so the final batch is the remainder (100, not 250) — controlled batching never becomes a way to exceed the ceiling.
+
+### GAP 3 · Go-Live bypass — **CLOSED, at the door rather than the callers**
+
+Two families reach sending. `ensureCampaignForIcp(..., { activate: true })` is the **only** code that writes `status: 'active'`, and five call sites reach it. `startWorkForClient` has **exactly one** executable caller — the legacy payment webhook.
+
+**The gate went into `ensureCampaignForIcp`, not into the five callers** — gating callers is the shape AR8 already proved fails, when `lookalike/generate` ran unfenced for months because it was the caller nobody remembered. It refuses on **not-live**, **not-paid**, **paused**, and **on a read error** (not knowing is not the same as knowing it is fine). Scaffolding (`activate: false`) is untouched: a draft sends nothing, and blocking it would stop Milla persisting an ICP at all.
+
+**The legacy webhook is gated separately and before the import**, because `startWorkForClient` also reaches campaign activation — relying on the downstream sourcing refusal to protect an upstream door is exactly how the AR8 hole survived.
+
+⚠️ **The two refusals are distinguishable.** *"You already have a live campaign"* is a scheduling problem fixable in a minute; *"this programme has not been paid for"* must not be worked around. One sentence for both is how someone tries the wrong fix.
+
+### GAP 4 · Stripe identifiers, email, deployment order
+
+**A.** Session ids stored on the programme row, with **partial unique indexes** as the idempotency key. **B.** Payment **intent** ids stored separately — refunds and disputes key on the intent, not the session (#317 already had to resolve one from the other).
+
+**C — this was a real gap.** The email was `contact_email ?? ''`. **Stripe accepts a session with no `customer_email`**, so a blank string does not error: the checkout would be created, the operator would hand over a link, and the client would never receive a receipt at an address we hold. Now `clientEmailOrRefuse` — a missing, blank or unreadable address **refuses the checkout with a 400 before Stripe is called**.
+
+**D — THE DEPLOYMENT ORDER WAS WRONG, AND THIS IS THE MOST CONSEQUENTIAL FINDING.**
+
+The first submission said *"API first, migration second."* **That would have taken the product down for every existing client:**
+
+| # | What API-first breaks | Effect |
+|---|---|---|
+| ① | `try_spend_sourcing` called with **three** arguments against a **two**-argument function | PostgREST returns "function not found", the caller reads a non-number, `grantedSize = 0` — **every legacy client's sourcing silently refuses** |
+| ② | `ensureCampaignForIcp` reads `public.programmes` on the activate path **for every client** | Missing table → error branch → the new fail-closed logic **refuses every campaign activation**, legacy included |
+
+**Corrected order: RUN THE MIGRATION FIRST, THEN DEPLOY THE API.** Migration-first is safe in both directions — nothing in the deployed API reads the new tables or columns.
+
+⚠️ **And one more hazard that ordering alone did not fix.** `CREATE OR REPLACE` with a new defaulted parameter creates a **second** function rather than replacing the first, leaving both `(uuid, int)` and `(uuid, int, uuid DEFAULT NULL)` able to accept a two-argument call — PostgreSQL's documented ambiguity case, and an ambiguous call on the sourcing gate is a hard error on the live money path. The migration now **drops the two-argument overload**, leaving one function whose default resolves cleanly for the old API (two args → NULL → legacy branch) and the new one (three args → programme authority). The DROP and CREATE are in the same statement batch, so the gate is never absent.
+
+*(This is the only DROP of anything in the migration, it drops no data, and the additive assertion was narrowed to permit exactly it — with the reason attached.)*
+
+### RED proofs for the closure patches
+
+| Guard | RED proof | Result |
+|---|---|---|
+| Batch cap | removed `v_batch_cap` from the `LEAST` — the original gap, restored | **failed**, naming the grant line |
+| Go-Live gate | replaced the not-live refusal with `if (false)` | **failed**, structural **and** behavioural |
+| Legacy webhook gate | replaced the programme check with `if (false)` | **failed** |
+| Non-vacuity | a LIVE+paid programme, and a legacy client, must **not** be refused | both assert the gate lets them through — without these, a gate that refused everyone would pass |
+
+**8 · APPEND LOG**
+
+- **28 Aug — GPT closure pass.** Two real gaps found and patched (controlled batching; fail-open checkout email). One wrong instruction corrected (deployment order) plus a function-overload ambiguity it exposed. Full-suite RED excluded from BUILD-002 by construction and pinned as a test; the flake itself remains unreproduced and unexplained.

@@ -3978,9 +3978,18 @@ icpRouter.patch('/:id/activate', async (req: AuthRequest, res) => {
     // on it; this wakes THAT row rather than creating a second one.
     const camp = await ensureCampaignForIcp(clientId, req.params.id, (icpRow as { name?: string | null }).name ?? null, { activate: true })
     if (camp && 'refused' in camp && camp.refused) {
+      // ⚠️ TWO DIFFERENT REFUSALS, AND THE OPERATOR MUST BE ABLE TO TELL THEM APART.
+      // "You already have a live campaign" is a scheduling problem the operator can fix in
+      // a minute. "This programme has not been paid for" is a money problem they must not
+      // work around — collapsing both into one sentence is how someone tries the wrong fix.
+      const r = camp.refused
+      if ('reason' in r) {
+        res.status(409).json({ success: false, error: r.message, refusal: r.reason })
+        return
+      }
       res.status(409).json({
         success: false,
-        error: `This client already has a live campaign${camp.refused.blockingName ? ` ("${camp.refused.blockingName}")` : ''}. One client runs ONE active campaign — pause it first, then activate this one.`,
+        error: `This client already has a live campaign${r.blockingName ? ` ("${r.blockingName}")` : ''}. One client runs ONE active campaign — pause it first, then activate this one.`,
       })
       return
     }

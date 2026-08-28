@@ -5,10 +5,26 @@
 -- second 50% at Go Live, and the campaign runs. Contribution is measured per programme and a
 -- partner is paid 25% of that (R78).
 --
--- ⚠️ ADDITIVE AND INERT. Every statement here is `IF NOT EXISTS` / `ADD COLUMN IF NOT EXISTS`.
--- Nothing is dropped, nothing is renamed, nothing is backfilled, and no existing row changes.
--- With no programme rows written, `try_spend_sourcing` behaves EXACTLY as it does today —
--- which is the property the legacy fence depends on and which the tests prove directly.
+-- ⚠️ ADDITIVE AND INERT FOR DATA. No table or column is dropped, nothing is renamed, nothing
+-- is backfilled, and no existing row changes. With no programme rows written,
+-- `try_spend_sourcing` behaves EXACTLY as it does today — the property the legacy fence
+-- depends on, proved directly by the tests. The ONE exception is a function signature: the
+-- two-argument `try_spend_sourcing` overload is dropped and replaced by a three-argument one
+-- carrying a default, for the deployment-safety reason set out at that statement.
+--
+-- ── 🚀 DEPLOYMENT ORDER: RUN THIS MIGRATION **BEFORE** DEPLOYING THE API ─────────────────
+--
+-- ⚠️ THE OPPOSITE ORDER TAKES THE PRODUCT DOWN, and the first version of this build said to
+-- do it. API-first would deploy code that (a) calls `try_spend_sourcing` with three
+-- arguments against a two-argument function — PostgREST returns "function not found", the
+-- caller reads a non-number, and EVERY legacy client's sourcing silently grants 0 — and
+-- (b) reads `public.programmes` inside `ensureCampaignForIcp` on the activate path for every
+-- client, where a missing table sets the error branch and the new fail-closed logic REFUSES
+-- EVERY CAMPAIGN ACTIVATION, legacy clients included.
+--
+-- Migration-first is safe in both directions: nothing in the currently deployed API reads the
+-- new tables or columns, and a two-argument call against the single defaulted function
+-- resolves to the legacy branch with behaviour unchanged.
 --
 -- ⚠️ THE LEGACY MODEL KEEPS RUNNING. $299 pack · first 100 approvals included · $4 per
 -- approved lead is still live commercial truth and is untouched by this migration.
@@ -226,6 +242,22 @@ CREATE INDEX IF NOT EXISTS partner_commissions_programme_idx
 -- ⚠️ THE LEGACY BRANCH BELOW IS BYTE-FOR-BYTE THE EXISTING FUNCTION BODY. It is reproduced
 -- rather than refactored so a reader can diff it against 20260711_sourcing_fences.sql and
 -- see that no legacy client's behaviour moved. The programme branch is new code beside it.
+-- ⚠️ THE OLD TWO-ARGUMENT OVERLOAD IS DROPPED, AND THIS IS A DEPLOYMENT-SAFETY DECISION,
+-- not tidiness. `CREATE OR REPLACE` with a new defaulted parameter creates a SECOND function
+-- rather than replacing the first, leaving `try_spend_sourcing(uuid, int)` and
+-- `try_spend_sourcing(uuid, int, uuid DEFAULT NULL)` both able to accept a two-argument call.
+-- That is PostgreSQL's documented ambiguity case, and an ambiguous call on the sourcing gate
+-- is a hard error on the live money path for every existing client.
+--
+-- With ONE function carrying a default, both callers resolve cleanly:
+--   old API, two args  → the default supplies NULL → legacy branch, behaviour unchanged
+--   new API, three args → programme authority
+-- which is precisely what makes MIGRATION-FIRST deployment safe (see the header).
+--
+-- The DROP and the CREATE are in the same statement batch, so there is no window in which
+-- the gate is absent.
+DROP FUNCTION IF EXISTS public.try_spend_sourcing(uuid, int);
+
 CREATE OR REPLACE FUNCTION public.try_spend_sourcing(
   p_client_id uuid,
   p_requested int,
@@ -237,6 +269,14 @@ AS $$
 DECLARE
   v_rate         numeric := 0.28;
   v_daily_cap    int     := 100;
+  -- ⚠️ CONTROLLED EXECUTION, AND IT IS A DIFFERENT LIMIT FROM THE CEILING. The first 50%
+  -- authorises sourcing up to the FULL recommended volume — but execution happens in
+  -- controlled batches of approximately 250 (founder lock 4). The ceiling is the TOTAL a
+  -- programme may ever source; this is the MOST any single grant may take. Without it a
+  -- caller asking for 2,500 would be granted 2,500 and the whole programme would execute in
+  -- one uncontrolled batch, which is exactly what "controlled batches" forbids — and the
+  -- pause-on-material-problem rule would then have nothing left to pause.
+  v_batch_cap    int     := 250;
   v_cap_usd      numeric;
   v_month_usd    numeric;
   v_month_room   int;
@@ -293,7 +333,7 @@ BEGIN
     SELECT GREATEST(0, sourcing_ceiling - sourced_used - sourced_reserved) INTO v_room
       FROM public.programmes WHERE id = v_open_id;
 
-    v_granted := LEAST(p_requested, COALESCE(v_room, 0));
+    v_granted := LEAST(p_requested, COALESCE(v_room, 0), v_batch_cap);
     IF v_granted <= 0 THEN
       RETURN 0;
     END IF;

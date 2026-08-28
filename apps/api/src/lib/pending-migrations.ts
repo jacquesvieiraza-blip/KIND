@@ -2106,10 +2106,10 @@ grant  execute on function public.try_claim_proof_pass(uuid) to service_role;
     // existing client's sourcing behaviour is unchanged. Asserted directly by
     // programme-authority-gate.test.ts rather than assumed.
     //
-    // ⚠️ THE OLD 2-ARG FUNCTION IS NOT DROPPED. CREATE OR REPLACE with a new DEFAULT NULL
-    // parameter creates a NEW overload; PostgreSQL keeps try_spend_sourcing(uuid,int) as a
-    // separate function. Dropping it would break an in-flight call mid-deploy, and leaving
-    // it is safe: it cannot see a programme, so it cannot spend one.
+    // 🚀 RUN THIS BEFORE DEPLOYING THE API. The reverse order takes sourcing and campaign
+    // activation down for every existing client — full reasoning in the .sql header. The
+    // two-arg overload is dropped so a two-argument call is not ambiguous between it and
+    // the new defaulted three-arg function.
     //
     // Backticks in the SQL comments are escaped for the template literal. The statements
     // themselves are identical to the canonical file.
@@ -2304,6 +2304,22 @@ CREATE INDEX IF NOT EXISTS partner_commissions_programme_idx
 -- ⚠️ THE LEGACY BRANCH BELOW IS BYTE-FOR-BYTE THE EXISTING FUNCTION BODY. It is reproduced
 -- rather than refactored so a reader can diff it against 20260711_sourcing_fences.sql and
 -- see that no legacy client's behaviour moved. The programme branch is new code beside it.
+-- ⚠️ THE OLD TWO-ARGUMENT OVERLOAD IS DROPPED, AND THIS IS A DEPLOYMENT-SAFETY DECISION,
+-- not tidiness. \`CREATE OR REPLACE\` with a new defaulted parameter creates a SECOND function
+-- rather than replacing the first, leaving \`try_spend_sourcing(uuid, int)\` and
+-- \`try_spend_sourcing(uuid, int, uuid DEFAULT NULL)\` both able to accept a two-argument call.
+-- That is PostgreSQL's documented ambiguity case, and an ambiguous call on the sourcing gate
+-- is a hard error on the live money path for every existing client.
+--
+-- With ONE function carrying a default, both callers resolve cleanly:
+--   old API, two args  → the default supplies NULL → legacy branch, behaviour unchanged
+--   new API, three args → programme authority
+-- which is precisely what makes MIGRATION-FIRST deployment safe (see the header).
+--
+-- The DROP and the CREATE are in the same statement batch, so there is no window in which
+-- the gate is absent.
+DROP FUNCTION IF EXISTS public.try_spend_sourcing(uuid, int);
+
 CREATE OR REPLACE FUNCTION public.try_spend_sourcing(
   p_client_id uuid,
   p_requested int,
@@ -2315,6 +2331,14 @@ AS $$
 DECLARE
   v_rate         numeric := 0.28;
   v_daily_cap    int     := 100;
+  -- ⚠️ CONTROLLED EXECUTION, AND IT IS A DIFFERENT LIMIT FROM THE CEILING. The first 50%
+  -- authorises sourcing up to the FULL recommended volume — but execution happens in
+  -- controlled batches of approximately 250 (founder lock 4). The ceiling is the TOTAL a
+  -- programme may ever source; this is the MOST any single grant may take. Without it a
+  -- caller asking for 2,500 would be granted 2,500 and the whole programme would execute in
+  -- one uncontrolled batch, which is exactly what "controlled batches" forbids — and the
+  -- pause-on-material-problem rule would then have nothing left to pause.
+  v_batch_cap    int     := 250;
   v_cap_usd      numeric;
   v_month_usd    numeric;
   v_month_room   int;
@@ -2371,7 +2395,7 @@ BEGIN
     SELECT GREATEST(0, sourcing_ceiling - sourced_used - sourced_reserved) INTO v_room
       FROM public.programmes WHERE id = v_open_id;
 
-    v_granted := LEAST(p_requested, COALESCE(v_room, 0));
+    v_granted := LEAST(p_requested, COALESCE(v_room, 0), v_batch_cap);
     IF v_granted <= 0 THEN
       RETURN 0;
     END IF;

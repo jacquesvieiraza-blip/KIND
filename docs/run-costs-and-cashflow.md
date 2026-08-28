@@ -530,3 +530,50 @@ Superseded by this rebuild; kept only in git history (`git log docs/run-costs-an
 - **"$1/client data cost"** and **~91%-only margin** — Apollo-era; corrected to §2 (~$0.51/lead all-in, ~87%).
 - **Apollo data-sourcing strategy (old §13)** — Apollo retired from the data path; PDL+Hunter is the stack, multi-engine widening is line 11.
 - **Milla/Vida/Denise monthly subscription pricing** — replaced by the per-qualified-lead model (#431, parked).
+
+
+---
+
+# 📥 27 AUG — PROGRAMME-MODEL ECONOMICS (planning only · NOT current pricing)
+
+⛓️ **NOT YET IMPLEMENTED — but this IS the current founder-approved commercial direction.** Three registers, never collapsed: **LIVE NOW (legacy runtime)** = **$299 pack · first 100 approvals included · $4 per approved lead** (§0, mirrored from `@kind/shared`), operational and unchanged · **SUPERSEDED HISTORY** = R68's $4→$8 migration · **CURRENT DIRECTION, UNIMPLEMENTED** = everything below. Legacy runtime stays operational until the coordinated programme migration is built, tested, founder-approved and deployed. Master backlog: **V2 §Founder Idea Bank FI-06, FI-26 … FI-29**. Rule: **PRODUCT-RULES R74**. **Nothing here may be quoted to a client.**
+
+## The Apollo economics planning case (FI-06)
+
+A worked example the founder wants preserved — **an economics/planning case, never a guaranteed runtime outcome.**
+
+| | Apollo | PDL |
+|---|---|---|
+| People contacted | 1,050 | 1,050 |
+| Cost basis | $65/month plan · 2,500 included credits | $0.28/record |
+| Credits/records consumed (1 contactable person = 1 credit) | 1,050 → **1,450 credits remain** | 1,050 |
+| Data cost for the funnel | **$65** | **$294** |
+| Clients from the funnel | 2 | 2 |
+| **Data CAC per client** | **≈$32.50** | **$147** |
+
+**The insight the founder wants on the record: Apollo economics are materially better — Apollo was parked for launch because geography and completeness reliability were not sufficient, NOT because the economics were poor.**
+
+⚠️ **What the 27 Aug diagnostic proved, and why the case is not yet actionable:** Apollo's no-credit search endpoint (`/mixed_people/api_search`) returns only `has_city` / `has_state` / `has_country` **availability booleans** — no location values and no email. A country value requires the **credit-consuming enrichment** endpoint (~1 credit/person for demographics or email). So "1 contactable person = 1 credit" is the right shape, but the geography that makes a lead servable is **inside** that credit, not before it. See **FI-07**.
+
+## The commercial sourcing assumption (FI-29) — 1:1, superseding 2:1 / 7:1
+
+**Use 1 provider result ≈ 1 usable/contacted lead for commercial planning.** This supersedes the older 2:1 and 7:1 planning logic **without deleting it**:
+
+- **7:1** was the founder's field observation of today's real attainment (**FI-01**), and the target is to move it toward ~1.5:1 and eventually ~1:1. It appears nowhere in the repo as a recorded sourcing ratio.
+- **2:1** is what the **code actually does today** — `PACK_SOURCE_TARGET = PACK_LEADS × 2` sources 200 to yield 100 approvals. Unchanged by this document.
+- **1:1** is the **conservative commercial planning baseline** going forward.
+
+⚠️ These are three different things — *today's observed attainment* (**FI-01**), *today's code*, and *the commercial planning assumption* (**FI-29**) — and they are **not in conflict**: one is a measurement, one is an implementation, one is a modelling input. They are expected to **converge**, not to agree today. Conflating them is how a margin gets modelled on a number nothing produces.
+
+## The margin arithmetic behind the ~70% target (FI-28)
+
+At the founder's stated anchor of **~$450 per targeted booked meeting** and a **~70% contribution margin**, the COGS ceiling is **~$135 per meeting**. Against the **250 leads per targeted booked meeting** seed (**FI-31**) at 1:1 sourcing:
+
+| Line | Per booked meeting |
+|---|---|
+| PDL sourcing — 250 records × $0.28 | **~$70** |
+| Card + FX at 5% of $450 (§STRIPE_ALL_IN_PCT) | ~$22.50 |
+| Remaining for enrichment, sender, sending, AI and infrastructure | **~$42.50** |
+| **COGS ceiling at 70% contribution** | **~$135** |
+
+⚠️ **THE BENCHMARK IS THE MARGIN.** PDL alone consumes **~52%** of the entire COGS allowance before anything else is paid for. If the real ratio is **500 leads per booked meeting**, PDL alone is **$140** and the contribution margin goes **negative**. Read against **R69**, which locks the centre case at ~150 accepted prospects per booked meeting and treats 250–300 without a meeting as a **campaign-review trigger**, the 250 seed sits **at that threshold**. Because the 1:1 assumption above collapses *recommended programme leads* onto *accepted/contacted prospects*, the two figures share a denominator and genuinely disagree — **the one open benchmark question R74 records, and the founder's to settle. No resolution is invented here.** **This is measurement before it is pricing.**

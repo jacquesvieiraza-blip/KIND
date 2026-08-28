@@ -16,7 +16,7 @@
 |---|---|
 | **Launch date** | **Friday 4 September 2026** — unconditional (**R76**, supersedes R57's 25 Aug) |
 | **Current objective** | Finish the launch experience to **one finished, premium, conversational standard** across Milla, Vida and the website (**R79** — quality is NOT V2) |
-| **Current Builder task** | **BUILD-001 · Step 7 Founder Truth System** — packet at [`founder/tasks/BUILD-001.md`](./founder/tasks/BUILD-001.md) · conveyor state **BUILDER RETURNED** |
+| **Current Builder task** | **BUILD-001 · Step 7 Founder Truth System** — packet at [`founder/tasks/BUILD-001.md`](./founder/tasks/BUILD-001.md) · conveyor state **GPT VERIFIED** · **next action: FOUNDER MERGE** |
 | **Current Scout task** | **BUILD-002 · Programme Commercial + Money Engine** — conveyor state **SCOUTING**. The first investigation returned; a deeper implementation-readiness pass is running now |
 | **Next READY task** | **NONE.** The READY FOR BUILDER queue is empty. ⚠️ **BUILD-002 is NOT ready** — it is still being scouted, and scouting is four conveyor stages short of READY |
 | **Board** | 🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸7 · **Σ666** *(status of record: PRODUCT-INVENTORY · live count: `scripts/count-inventory.sh`)* |
@@ -77,10 +77,10 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | Task | Founder state | Conveyor state |
 |---|---|---|
-| **BUILD-001** · Step 7 Founder Truth System | **NOW** | **BUILDER RETURNED** |
+| **BUILD-001** · Step 7 Founder Truth System | **NOW** | **GPT VERIFIED** — next action: **FOUNDER MERGE** |
 | **#704** · retention duration | **WAITING** | **FOUNDER DECISION REQUIRED** |
 | **BUILD-002** · Programme Commercial + Money Engine *(covers #701/#702)* | **NEXT** | **SCOUTING** |
-| **#706** · AE playbook trial script | **WAITING** | **FOUNDER DECISION REQUIRED** |
+| **#706** · AE playbook trial script | **WAITING** | **NOT SCOUTED** — waiting on the programme model, not on a decision |
 
 ---
 
@@ -100,13 +100,13 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 | **F13 / W18** | PDL Order Form — cross-client reuse right | 🧍 counsel | The signed paper has not been found |
 | **F5** | Is `eu-west-1` the **only** place client data lives? (backups · PITR · sub-regions) | 🧍 | Unverified — see *Product truth* below |
 | **T10** | The proof runtime path, end to end | 🤖 | Each fix so far closed one segment; the journey is unproved |
+| **#706** | **The AE sales playbook still scripts the dead 14-day trial** — six places in `apps/admin/src/app/playbook/page.tsx`, including two prospect email templates | 🤖 | ⛓️ **NOT a founder decision — corrected 28 Aug.** The direction is already settled: **no launch free trial · no 90-Day Pipeline Guarantee · the programme model is the launch commercial destination.** This is **implementation / operator-surface cleanup**, waiting on an implementation dependency rather than on an answer. ⚠️ Operator-facing, so not a live client-facing claim — but it is what a human then says to a prospect |
 
 ## ✋ FOUNDER DECISIONS REQUIRED
 
 | # | Decision | Why it cannot be taken by an agent |
 |---|---|---|
 | **#704** | Retention duration: 90 days / 12 months / 24 months | A legal position, not a fact in the repo |
-| **#706** | What the AE says instead of the dead 14-day trial | A commercial call — the live offer is $299 · 100 included · $4; the programme model is unbuilt and unquotable |
 | **#705** | Whether the removed 90-Day Pipeline Guarantee needs a Terms-change notice, and the rights of anyone who signed under it | Counsel (W18), not an agent |
 
 ---
@@ -117,12 +117,12 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | PR | What | Conveyor state | Note |
 |---|---|---|---|
-| **#1465** | **BUILD-001 · Step 7 founder truth system** (this system) | **GPT VERIFIED** | ✅ **Independent review returned PASS, subject to one operating-state correction — which is what this row now reflects.** `check.sh` **ACCEPTED AMBER**: the only failure was the known intermittent `proof-review-handoff` assertion, and BUILD-001 changes `docs/**` only. **Awaiting the founder's merge.** |
+| **#1465** | **BUILD-001 · Step 7 founder truth system** (this system) | **GPT VERIFIED** → next action **FOUNDER MERGE** | ✅ **Independent review returned PASS, subject to operating-state corrections — all applied.** `check.sh` **ACCEPTED AMBER**: the only failure was the known intermittent `proof-review-handoff` assertion, and BUILD-001 changes `docs/**` only. **Awaiting the founder's merge.** |
 | **#1463** | Founder Operating Truth — register, operating view, bootstrap, visual surface | **PARKED** | ⚠️ **Do not merge as-is.** Its second parallel ID series is superseded; only its **visual shell** was reused (see BUILD-001) |
 | **#1436** | Log the post-launch Founder-Operator OS idea | **BUILDER RETURNED** | Not touched by Step 7 |
 | **#1427** | P34's screens | **BUILDER RETURNED** | Not touched by Step 7 |
 
-**GPT verification.** **BUILD-001 / PR #1465 — reviewed and PASSED**, subject to the operating-state correction now applied (conveyor stage **9 satisfied**). ⚠️ **Stage 4 — independent review of the *Scout* findings — was never satisfied for BUILD-001 and is recorded as a gap in the packet, not quietly closed by stage 9.** They are different claims; passing one does not pass the other.
+**GPT verification.** **BUILD-001 / PR #1465 — reviewed and PASSED**, subject to the operating-state correction now applied. **Both verification stages are satisfied: stage 4** (the Scout handoff was independently reviewed before the Builder started, and the founder then approved J1/J2/J3) **and stage 9** (this build). ⛓️ *An earlier version of this line claimed stage 4 had never happened — that was wrong, and the correction is kept in the packet at §9 rather than quietly swapped.* **The conveyor has no missing stage; the next action is the founder's merge.**
 
 **Merge state.** PR **#1464** (Founder truth reconciliation, Steps 2–6) is **MERGED** into `main` at `1cd99357`. PR **#1465** is **open and unmerged**. **MERGE IS NEVER CLAUDE'S** (Protocol rule 20) — the founder merges, after independent review.
 

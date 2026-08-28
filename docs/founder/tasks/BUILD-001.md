@@ -11,8 +11,11 @@
 | **TASK ID** | **BUILD-001** |
 | **TITLE** | Step 7 Founder Truth System |
 | **Founder state** | NOW |
-| **Conveyor state** | **GPT VERIFIED** *(state 9 of 12)* — ⛓️ *was BUILDER RETURNED until the independent review returned; §8 below.* |
-| **Next state** | **FOUNDER MERGED** — the founder's, and only after he chooses. |
+| **Conveyor state** | **GPT VERIFIED** *(state 9 of 12)* |
+| **Next action** | **FOUNDER MERGE** — the founder's, and only after he chooses |
+| **Stage 4** (Scout verification) | ✅ **SATISFIED** — §9 |
+| **Stage 9** (Builder verification) | ✅ **SATISFIED** — §8 |
+| *State history* | NOT SCOUTED → SCOUTING → SCOUT RETURNED → GPT VERIFIED → FOUNDER APPROVED → READY FOR BUILDER → BUILDING → BUILDER RETURNED → **GPT VERIFIED** *(history, not current state)* |
 | **Opened** | 28 August 2026 |
 
 ---
@@ -47,7 +50,9 @@
 
 **Not performed as a separate pass.** The Scout findings were verified by **direct re-derivation against the frozen artifacts** at the baseline SHA: the 194-row count, the 7 `FD = YES` rows, the 237 legacy-ID occurrences and the zero-external-request property of the shell were each **re-counted live** rather than accepted.
 
-⚠️ **This is a gap in the conveyor and it is recorded as one, not glossed.** Conveyor state 4 (GPT VERIFIED, Scout stage) was **not independently satisfied** for BUILD-001. The founder routed straight from investigation to a frozen Builder scope. **Stage 9 (GPT VERIFIED, Builder stage) is still owed before merge.**
+⛓️ **THE PARAGRAPH BELOW IS WRONG AND IS SUPERSEDED BY §9. STAGE 4 WAS SATISFIED.** It is kept, struck, because R82 preserves material history rather than deleting it — and because the mistake itself is worth keeping: **I recorded a review as absent when what was actually absent was my knowledge of it.** *(Original:)*
+
+~~⚠️ **This is a gap in the conveyor and it is recorded as one, not glossed.** Conveyor state 4 (GPT VERIFIED, Scout stage) was **not independently satisfied** for BUILD-001. The founder routed straight from investigation to a frozen Builder scope. **Stage 9 (GPT VERIFIED, Builder stage) is still owed before merge.**~~
 
 ---
 
@@ -140,6 +145,8 @@ Left deliberately blank. **MERGE IS NEVER CLAUDE'S** (Protocol rule 20).
 
 | Field | State |
 |---|---|
+| GPT verification (Scout stage, conveyor 4) | ✅ **DONE — SATISFIED** before the Builder started. Full text in §9 |
+| Founder approved (conveyor 5) | ✅ **DONE** — J1 / J2 / J3 explicitly approved |
 | GPT verification (Builder stage, conveyor 9) | ✅ **DONE — PASS**, subject to one operating-state correction, now applied. Full text in §8 |
 | Founder merged (conveyor 10) | ⏳ **PENDING** |
 | Merge SHA | ⏳ pending |
@@ -152,6 +159,7 @@ Left deliberately blank. **MERGE IS NEVER CLAUDE'S** (Protocol rule 20).
 
 *Corrections and later evidence are appended here, chained to what they correct. Nothing above is overwritten.*
 
+- **28 Aug — CORRECTION (§9): the earlier claim that conveyor stage 4 was never satisfied is WRONG. GPT did independently review the Scout handoff before the Builder started, and the founder then approved J1/J2/J3 — stages 4 and 5 were both satisfied. The two incorrect paragraphs are kept struck, not deleted (R82). Lesson recorded: absence of evidence in my context is not evidence of absence.**
 - **28 Aug — GPT build verification returned PASS subject to an operating-state correction. Conveyor advanced BUILDER RETURNED → GPT VERIFIED. Full text in §8, appended below rather than replacing anything above (R82).**
 - **28 Aug — packet opened at conveyor state BUILDER RETURNED.** Recorded honestly: **conveyor state 4 (GPT verification of the Scout stage) was not independently satisfied** — the findings were re-derived rather than independently reviewed. Stage 9 is still owed.
 
@@ -205,8 +213,46 @@ The conveyor state published at Builder-return time had **gone stale between ret
 
 ⚠️ **NO READY TASK WAS INVENTED.** The **READY FOR BUILDER queue is empty** and every surface now says so explicitly. **BUILD-002 is SCOUTING — four conveyor stages short of READY** (scout returned → GPT verified → founder approved → ready). Recording a task as further along than it is would be the same class of error as a stale state.
 
-⚠️ **AND STAGE 4 IS STILL NOT SATISFIED.** This verification is **stage 9** — the review of the *Builder's output*. **Stage 4 — independent review of the *Scout's findings* — never happened for BUILD-001**, and passing stage 9 does not retroactively close it. They are different claims about different work. The gap recorded in §1 stands.
+⛓️ **THE PARAGRAPH BELOW IS WRONG AND IS SUPERSEDED BY §9 — STAGE 4 WAS SATISFIED.** Kept struck per R82. *(Original:)*
+
+~~⚠️ **AND STAGE 4 IS STILL NOT SATISFIED.** This verification is **stage 9** — the review of the *Builder's output*. **Stage 4 — independent review of the *Scout's findings* — never happened for BUILD-001**, and passing stage 9 does not retroactively close it. They are different claims about different work. The gap recorded in §1 stands.~~
+
+✅ **CORRECTED — see §9.** The *reasoning* in the struck paragraph is still sound: stages 4 and 9 are different claims and passing one never closes the other. **What was wrong was the fact.** Stage 4 *had* been satisfied before the Builder started; I did not know it and recorded its absence as evidence.
 
 ### Conveyor position after this pass
 
 **GPT VERIFIED (9 of 12).** Next: **FOUNDER MERGED (10)** → **DEPLOY VERIFIED (11)** → **COMPLETE (12)**. All three are the founder's. **DO NOT MERGE.**
+
+---
+
+## 9 · CORRECTION — STAGE 4 *WAS* SATISFIED
+
+**Recorded 28 August 2026, after GPT's final review. Appended, superseding §1 and §8's stage-4 paragraphs, which are kept struck rather than deleted (R82).**
+
+### What I got wrong
+
+This packet stated twice that **conveyor stage 4 — independent verification of the Scout findings — never happened**, and offered that as a recorded gap. **That was incorrect.**
+
+**GPT independently reviewed the Step-7 Scout handoff before the Builder started.** That review:
+
+- **challenged the proposed architecture** rather than accepting it;
+- **identified J1 / J2 / J3 as genuine founder decisions** — not implementation details an agent could settle;
+- **rejected the silent creation of competing truth**;
+- **required durable task packets**;
+- **required preservation rather than silent deletion**;
+- **recommended nesting conveyor state beneath founder-attention state** rather than replacing the six states;
+- **recommended the repo as the durable source of truth and evidence**.
+
+**The founder then explicitly approved J1 / J2 / J3.** That is stages 4 **and** 5 of the conveyor, in sequence, before the frozen scope was handed over.
+
+### Therefore
+
+**Stage 4 = SATISFIED.** **Stage 5 (FOUNDER APPROVED) = SATISFIED.** **Stage 9 = SATISFIED** (§8). The conveyor for BUILD-001 has no missing stage; the next action is **FOUNDER MERGE**.
+
+### Why the error happened, and why it is worth keeping
+
+Every one of those seven review outcomes is **visible in the Builder scope I was handed** — J1/J2/J3 arrive already framed as founder decisions, the conveyor is already specified as nested rather than replacing, and "do not revive the old ID model" is already settled. **I built on the output of a review and then reported that the review had not occurred**, because I had not seen it happen and treated my own line of sight as the evidence.
+
+⚠️ **That is the exact failure mode the register was built to prevent, pointed at a process instead of a fact: *absence of evidence in my context is not evidence of absence*.** "Unknown stays unknown" cuts **both** ways — I should have recorded stage 4 as **UNKNOWN TO ME**, not as **NOT DONE**. Marking a gap I could not see is the same class of error as filling one I could not prove.
+
+The struck paragraphs stay so the correction is legible, and so the next agent inherits the lesson rather than only the fix.

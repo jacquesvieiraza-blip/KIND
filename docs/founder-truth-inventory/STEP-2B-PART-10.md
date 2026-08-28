@@ -4,11 +4,14 @@
 > ## PRESENCE HERE DOES NOT MEAN AN ITEM IS CURRENT, CORRECT, LIVE, APPROVED OR LAUNCH-CRITICAL.
 > ## CLASSIFICATION OCCURS IN LATER STEPS.
 >
-> Rows **INV-23206 … INV-24212**. This is a continuation file of
+> Rows **INV-23206 … INV-24281**. This is a continuation file of
 > [`../FOUNDER-TRUTH-INVENTORY-2026-08-28.md`](../FOUNDER-TRUTH-INVENTORY-2026-08-28.md) — the register,
 > the sweep record, the coverage proof and the validation results all live there.
 > The split is **mechanical only**: the full inventory is ~5 MB of table and GitHub stops rendering a
 > markdown file above 1 MB, so a single file would have been unreadable in the pull request.
+>
+> **This part file is not a source of truth on its own.** It holds rows and nothing else, and it is
+> part of ONE Step-2 inventory artifact — never quote, count or act on it alone.
 >
 > No deduplication · no comparison · no classification · no priority · no verdict.
 > No source document was edited to produce this file.
@@ -1210,3 +1213,107 @@
 | INV-24210 | Money strings stated on the page | (none) | Page states the figure $3 | MONEY | (none) | (none) | Transcribed as written; not checked against @kind/shared |
 | INV-24211 | Money strings stated on the page | (none) | Page states the figure $49 | MONEY | (none) | (none) | Transcribed as written; not checked against @kind/shared |
 | INV-24212 | Money strings stated on the page | (none) | Page states the figure $29 | MONEY | (none) | (none) | Transcribed as written; not checked against @kind/shared |
+
+## `.github/workflows/inventory-autoflip.yml`
+
+**Group:** RELEASE / GOVERNANCE AUTOMATION — the workflow sources · **Apparent purpose:** Automated PRODUCT-INVENTORY dot mutation, board regeneration and KIND-MASTER session-log append on merge · **Lines:** 69 · **Material items in this source:** 18 · **Rows in this part:** 18 · **FULLY READ:** YES
+
+| Inventory ID | Source section / heading | Source stable ID | Short title | Item type | Exact source status marker | Source date / version clue | Notes |
+|---|---|---|---|---|---|---|---|
+| INV-24213 | Header contract | (none) | Merge → doc update, automatically — Move 3 of the 9-Jul doc-management reset | OPERATING | (none) | 9 Jul | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24214 | Header contract | (none) | A PR body line `Flips: #421 #422` is the trigger token the automation reads | RULE | (none) | 9 Jul | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24215 | Header contract | (none) | On merge the workflow flips those PRODUCT-INVENTORY dots to 🩷 (live, NOT verified) | RULE | 🩷 | 9 Jul | Automated mutation of the status board. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24216 | Header contract | (none) | It regenerates every board surface via scripts/update-board.sh | OPERATING | (none) | 9 Jul | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24217 | Header contract | (none) | It appends one line to the KIND-MASTER session log | OPERATING | (none) | 9 Jul | Automated mutation of a canonical source document. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24218 | Header contract | (none) | It commits — so the docs update themselves at the moment of merge, same-session, no memory involved | OPERATING | (none) | 9 Jul | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24219 | The contract | (none) | Automation only ever sets 🩷 — 🟢 stays founder-only (flip-dots.sh enforces) | GATE | 🩷 🟢 | 9 Jul | Founder/governance gate encoded in automation. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24220 | The contract | (none) | No "Flips:" line in the PR body → the workflow does nothing | RULE | (none) | 9 Jul | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24221 | The contract | (none) | The commit must pass doc-lint (update-board.sh guarantees board consistency) | GATE | (none) | 9 Jul | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24222 | Trigger | (none) | Trigger: pull_request closed on branch main, job runs only if pull_request.merged == true | RULE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24223 | Permissions | (none) | Workflow holds `contents: write` on the repository | RISK | (none) | (none) | Write permission over the repo, held by automation. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24224 | Step — extract flips | (none) | Flip IDs are parsed from the PR body with a case-insensitive `^ *Flips?:` grep, first match only | RULE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24225 | Step — flip dots | (none) | Executes `bash scripts/flip-dots.sh 🩷 <ids>` | OPERATING | 🩷 | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24226 | Step — session log | (none) | Session-log line format: `- **<d Mon> (AUTO — merge #<n>):** <PR title> → flipped #<ids> 🩷 (live, founder walk owed for 🟢).` | OPERATING | 🩷 🟢 | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24227 | Step — session log | (none) | The line is inserted immediately after the `### 🔄 SESSION LOG` marker in docs/KIND-MASTER.md | ARCHITECTURE | (none) | (none) | Automation depends on that exact heading string. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24228 | Step — commit | (none) | Commits as `kind-autoflip <autoflip@get-kind.com>` and pushes directly to `origin main` | RISK | (none) | (none) | Direct push to main by automation. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24229 | Step — commit | (none) | Only PRODUCT-INVENTORY.md, LAUNCH-PAD.md and KIND-MASTER.md are staged | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24230 | Step — commit | (none) | If nothing is staged the job exits 0 ("nothing to commit") | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+
+## `.github/workflows/daily-audit.yml`
+
+**Group:** RELEASE / GOVERNANCE AUTOMATION — the workflow sources · **Apparent purpose:** Twice-daily scheduled system audit, issue reporting and an embedded dated pre-launch action list · **Lines:** 144 · **Material items in this source:** 24 · **Rows in this part:** 24 · **FULLY READ:** YES
+
+| Inventory ID | Source section / heading | Source stable ID | Short title | Item type | Exact source status marker | Source date / version clue | Notes |
+|---|---|---|---|---|---|---|---|
+| INV-24231 | Schedule | (none) | Named "KIND System Audit" — a scheduled whole-system audit | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24232 | Schedule | (none) | Runs twice daily on cron: 02:00 UTC and 14:00 UTC — 04:00 and 16:00 SAST | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24233 | Schedule | (none) | Also runnable on demand via workflow_dispatch | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24234 | Schedule | (none) | DELIBERATELY NOT triggered on push — running on every push to main added a failing check per commit that could gate Railway's "wait for CI" auto-deploy, and added noise | RULE | (none) | (none) | A stated production-deploy interaction. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24235 | Job | (none) | 15-minute timeout; permissions `contents: write` and `issues: write` | RISK | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24236 | Step — run audit | (none) | The audit itself is `npx tsx scripts/audit.ts`, output tee'd to audit-report.txt | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24237 | Step — run audit | (none) | `continue-on-error: true` — a failing audit does not fail the job | RULE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24238 | Step — artifact | (none) | The audit report is uploaded as an artifact with 90-day retention | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24239 | Step — issue | (none) | Every run posts the audit report as a GitHub Issue titled `✅/🔴 KIND Audit — <date> <slot> SAST` | OPERATING | ✅ 🔴 | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24240 | Step — issue | (none) | Labels: `audit` + `automated`, plus `bug` when the audit exit code is non-zero | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24241 | Step — issue | (none) | Any open `audit`-labelled issue from the same date and slot is closed before the new one is created | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24242 | Step — issue | (none) | Only the first 7,000 characters of the report are embedded in the issue body | DEFECT | (none) | (none) | A longer audit is truncated in the issue. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24243 | Embedded checklist | (none) | The issue body always embeds a "Pending Action Items (refreshed 9 Jun)" checklist hard-coded in the workflow | OPERATING | (none) | refreshed 9 Jun | A dated action list living inside CI rather than in a doc. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24244 | Embedded checklist › 🔴 Pre-launch must-do | (none) | Rotate 2 crown-jewel keys — Stripe secret + Supabase service-role | TASK | 🔴 | 9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24245 | Embedded checklist › 🔴 Pre-launch must-do | (none) | Smoke tests — T1 (fresh signup), T3–T7, T9, T10 | TASK | 🔴 | 9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24246 | Embedded checklist › 🔴 Pre-launch must-do | (none) | D9 inbox-placement 10/10 — mail-tester / GlockApps | TASK | 🔴 | 9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24247 | Embedded checklist › 🔴 Pre-launch must-do | (none) | Legal — ICO registration · suppression filing · WHOIS privacy | TASK | 🔴 | 9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24248 | Embedded checklist › 🟡 Pre-launch ops | (none) | Paystack KYC — dashboard.paystack.com → Settings → Compliance | TASK | 🟡 | 9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24249 | Embedded checklist › 🟡 Pre-launch ops | (none) | Resend paid plan — for inbound reply routing at volume | TASK | 🟡 | 9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24250 | Embedded checklist › ✅ Done (8–9 Jun) | (none) | Railway auto-deploy from main · cold domain gettingkind.com + warmup LIVE · deliverability T8 passed | HISTORY | ✅ | 8–9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24251 | Embedded checklist › ✅ Done (8–9 Jun) | (none) | Env set: RESEND · ANTHROPIC · ADMIN_SECRET · PORTAL_URL · FIGSY_KIND_CLIENT_ID · Stripe · cold-FROM/warmup-start | HISTORY | ✅ | 8–9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24252 | Embedded checklist › ✅ Done (8–9 Jun) | (none) | MASTER_SCHEMA + migrations 010–013 · signer field · booking-link field · Option A (verified leads auto campaign-ready) | HISTORY | ✅ | 8–9 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24253 | Report-only policy | (none) | The workflow does NOT fail on findings — "a red badge twice a day was pure noise"; the issue is the signal, the green workflow keeps the dashboard clean | RULE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24254 | Report-only policy | (none) | A non-zero audit exit emits only `::warning::Audit found issues` | OPERATING | ⚠️ | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+
+## `.github/workflows/doc-lint.yml`
+
+**Group:** RELEASE / GOVERNANCE AUTOMATION — the workflow sources · **Apparent purpose:** The doc-drift firewall as a CI gate on PRs and main · **Lines:** 27 · **Material items in this source:** 5 · **Rows in this part:** 5 · **FULLY READ:** YES
+
+| Inventory ID | Source section / heading | Source stable ID | Short title | Item type | Exact source status marker | Source date / version clue | Notes |
+|---|---|---|---|---|---|---|---|
+| INV-24255 | Header | (none) | The doc-drift firewall — runs scripts/doc-lint.sh so stale docs FAIL CI instead of surfacing weeks later | GATE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24256 | Header | (none) | One fact, one home: status → PRODUCT-INVENTORY · pricing → constants/index.ts mirrored once in run-costs-and-cashflow §0 | RULE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24257 | Trigger | (none) | Runs on pull_request and on push to main | GATE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24258 | Trigger | (none) | Path-filtered to `docs/**`, `scripts/count-inventory.sh` and `scripts/doc-lint.sh` only | RULE | (none) | (none) | A doc change outside those paths does not trigger it. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24259 | Job | (none) | Single step: `bash scripts/doc-lint.sh` — a non-zero exit fails the check | GATE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+
+## `.github/workflows/test.yml`
+
+**Group:** RELEASE / GOVERNANCE AUTOMATION — the workflow sources · **Apparent purpose:** The API test gate (item #263) and its stated relationship to Railway auto-deploy · **Lines:** 32 · **Material items in this source:** 8 · **Rows in this part:** 8 · **FULLY READ:** YES
+
+| Inventory ID | Source section / heading | Source stable ID | Short title | Item type | Exact source status marker | Source date / version clue | Notes |
+|---|---|---|---|---|---|---|---|
+| INV-24260 | Header | #263 | Test CI — runs the vitest suite on every push + PR to main (item #263) | GATE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24261 | Header — why it exists | (none) | The 30 Jun audit found tests existed (apps/api/src/lib/*.test.ts) but NOTHING ran them — CI was daily-audit only, so a broken change could merge and deploy undetected | DEFECT | (none) | 30 Jun | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24262 | Header — why it exists | (none) | It does NOT gate Railway's auto-deploy — Railway deploys independently; it surfaces failures as a red check on the PR/commit | RULE | (none) | (none) | A stated production-deploy boundary. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24263 | Header — scope | (none) | The suite is pure-library unit tests — billing rules, suppression, comp-engine, deliverability, enrichment, sequence-apply — no DB or secrets required | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24264 | Trigger | (none) | Runs on push to main and on pull_request against main | GATE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24265 | Job | (none) | Installs with `yarn install --frozen-lockfile` | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24266 | Job | (none) | Builds @kind/db and @kind/shared before testing | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24267 | Job | (none) | Runs `yarn workspace @kind/api test` only — the API workspace, not the full monorepo | RULE | (none) | (none) | Narrower than scripts/check.sh. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+
+## `.github/workflows/deploy-website-cloudflare.yml`
+
+**Group:** RELEASE / GOVERNANCE AUTOMATION — the workflow sources · **Apparent purpose:** Marketing-site CDN failover to Cloudflare Pages, its founder setup and its DNS failover policy · **Lines:** 62 · **Material items in this source:** 14 · **Rows in this part:** 14 · **FULLY READ:** YES
+
+| Inventory ID | Source section / heading | Source stable ID | Short title | Item type | Exact source status marker | Source date / version clue | Notes |
+|---|---|---|---|---|---|---|---|
+| INV-24268 | Header — why it exists | (none) | Static-CDN failover for the marketing website | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24269 | Header — why it exists | (none) | The whole platform runs on Railway — portal, admin, API AND the marketing website (apps/website, served by an Express static server) | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24270 | Header — why it exists | (none) | If Railway has an outage, get-kind.com disappears along with everything else | RISK | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24271 | Header — why it exists | (none) | The workflow publishes the static website to Cloudflare Pages on every push to main, keeping a Railway-independent copy on Cloudflare's global edge | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24272 | Founder setup (one-time) | (none) | 1. Cloudflare dashboard → Workers & Pages → Create → Pages → project "kind-website" | TASK | 🧍 | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24273 | Founder setup (one-time) | (none) | 2. Create an API token — "Edit Cloudflare Workers" template, or custom with Account: Cloudflare Pages: Edit | TASK | 🧍 | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24274 | Founder setup (one-time) | (none) | 3. Add repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID | TASK | 🧍 | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24275 | Founder setup (one-time) | (none) | 4. After the first successful run the site is live at https://kind-website.pages.dev — verify it renders | TASK | 🧍 | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24276 | Founder setup (one-time) | (none) | 5. FAILOVER: point the get-kind.com CNAME at kind-website.pages.dev, or add it as a custom domain on the Pages project | OPERATING | 🧍 | (none) | A production DNS instruction. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24277 | Failover policy | (none) | Keep Railway as primary; flip to Pages only during a Railway outage — or run Pages as primary and Railway as the dynamic-app host | RULE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24278 | Trigger | (none) | Runs on push to main, path-filtered to `apps/website/**` and the workflow file itself; also workflow_dispatch | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24279 | Permissions | (none) | Job permissions: `contents: read`, `deployments: write` | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24280 | Guard | (none) | If either Cloudflare secret is unset the deploy step is SKIPPED and the job still succeeds | RULE | (none) | (none) | A silent no-op when unconfigured. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+| INV-24281 | Publish | (none) | Publishes with cloudflare/wrangler-action@v3: `pages deploy apps/website --project-name=kind-website --branch=main` | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |

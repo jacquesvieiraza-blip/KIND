@@ -10,6 +10,9 @@
 > The split is **mechanical only**: the full inventory is ~5 MB of table and GitHub stops rendering a
 > markdown file above 1 MB, so a single file would have been unreadable in the pull request.
 >
+> **This part file is not a source of truth on its own.** It holds rows and nothing else, and it is
+> part of ONE Step-2 inventory artifact — never quote, count or act on it alone.
+>
 > No deduplication · no comparison · no classification · no priority · no verdict.
 > No source document was edited to produce this file.
 

@@ -50,9 +50,25 @@ Step 2B does four things:
 
 ---
 
-## How this deliverable is laid out
+## How this deliverable is laid out — **ONE STEP-2 INVENTORY ARTIFACT, STORED IN ELEVEN FILES**
 
-The complete inventory is about **5 MB of markdown table**. GitHub stops rendering a markdown file above **1 MB**, so a single file would have been unreadable in the pull request that carries it. The split below is **mechanical only** — no row was dropped, reordered or summarised.
+> # 🧩 THIS FILE AND ITS 10 PART FILES ARE **ONE** STEP-2 INVENTORY ARTIFACT.
+>
+> The split is a **mechanical storage implementation**, nothing more. The complete inventory is about **5 MB of markdown table** and GitHub stops rendering a markdown file above **1 MB**, so a single file would have been unreadable in the pull request that carries it.
+>
+> The contract the split holds to:
+>
+> | Guarantee | Status |
+> |---|---|
+> | The master file identifies **every** part file, by name and by row range | ✅ table below |
+> | Every `INV-` row ID is **globally unique and contiguous** across all 11 files of this artifact | ✅ validated |
+> | **No row is summarised away** — every material item has its own row, in source order | ✅ |
+> | **No part file is a separate source of truth.** A part file holds rows and nothing else — the register, the sweep record, the coverage proof and the validation results exist **only here** | ✅ |
+> | All 11 files are read, cited and superseded **as one artifact** | ✅ |
+>
+> A part file must never be quoted, counted or acted on alone.
+
+The split below is **mechanical only** — no row was dropped, reordered or summarised.
 
 | File | Contains | Rows |
 |---|---|---|
@@ -66,7 +82,7 @@ The complete inventory is about **5 MB of markdown table**. GitHub stops renderi
 | [`founder-truth-inventory/STEP-2B-PART-07.md`](./founder-truth-inventory/STEP-2B-PART-07.md) | `docs/archive/KIND-MASTER-ARCHIVE.md`; `docs/archive/EVERYTHING.md`; `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md`; `docs/archive/V2-NARRATIVE-2026-08-21.md`; …+1 more | INV-16006 … INV-18405 |
 | [`founder-truth-inventory/STEP-2B-PART-08.md`](./founder-truth-inventory/STEP-2B-PART-08.md) | `docs/archive/LAUNCH-PAD-2026-08-21.md`; `docs/archive/roadmap-audit-14-may-2026.md`; `docs/archive/KIND_Roadmap.md`; `docs/archive/KIND_SOP.md`; …+9 more | INV-18406 … INV-20805 |
 | [`founder-truth-inventory/STEP-2B-PART-09.md`](./founder-truth-inventory/STEP-2B-PART-09.md) | `docs/archive/SESSION-SUMMARY-13JUN.md`; `docs/archive/SESSION-HANDOFF-7JUN.md`; `docs/archive/MORNING-FIXLOG.md`; `docs/archive/LAUNCH-AUDIT-12JUN.md`; …+70 more | INV-20806 … INV-23205 |
-| [`founder-truth-inventory/STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | `apps/website/drop-04.html`; `apps/website/drop-05.html`; `apps/website/drop-06.html`; `apps/website/drop-07.html`; …+23 more | INV-23206 … INV-24212 |
+| [`founder-truth-inventory/STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | `apps/website/drop-04.html`; `apps/website/drop-05.html`; `apps/website/drop-06.html`; `apps/website/drop-07.html`; …+28 more | INV-23206 … INV-24281 |
 
 **Every row in every part file carries the same Step 2 banner and the same prohibitions.**
 
@@ -359,9 +375,23 @@ Genuinely uncertain whether these belong in the founder-truth register: archived
 
 **Subtotal: 119 sources · 14044 rows.**
 
+### Part 6 — RELEASE / GOVERNANCE AUTOMATION — the workflow sources
+
+Added on the founder's final Step 2 closure order: a workflow that mutates the inventory, appends to the session log, gates a merge or controls production failover encodes material operating truth, so it is inventoried. **Generic CI plumbing — checkout, node setup, install commands, runner images — is deliberately NOT inventoried.** Only the material operating rules and behaviours the workflow encodes are rows. Every row is CODE VERIFIED from the file; **runtime execution state is not observable from a workflow file and is not asserted here.**
+
+| # | Source document | Apparent purpose | Lines | Material items | FULLY READ | Notes |
+|---|---|---|---:|---:|:---:|---|
+| 241 | `.github/workflows/inventory-autoflip.yml` | Automated PRODUCT-INVENTORY dot mutation, board regeneration and KIND-MASTER session-log append on merge | 69 | 18 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 242 | `.github/workflows/daily-audit.yml` | Twice-daily scheduled system audit, issue reporting and an embedded dated pre-launch action list | 144 | 24 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 243 | `.github/workflows/doc-lint.yml` | The doc-drift firewall as a CI gate on PRs and main | 27 | 5 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 244 | `.github/workflows/test.yml` | The API test gate (item #263) and its stated relationship to Railway auto-deploy | 32 | 8 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 245 | `.github/workflows/deploy-website-cloudflare.yml` | Marketing-site CDN failover to Cloudflare Pages, its founder setup and its DNS failover policy | 62 | 14 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+
+**Subtotal: 5 sources · 69 rows.**
+
 ---
 
-**TOTAL: 240 source documents · 24212 material source items.**
+**TOTAL: 245 source documents · 24281 material source items.**
 
 ---
 
@@ -374,29 +404,48 @@ Genuinely uncertain whether these belong in the founder-truth register: archived
 | 1 | **Format enumeration** | `git ls-files` over the whole repository, filtered to every human-authored planning / operating format — `.md` · `.html` · `.mdx` · `.txt` · `.csv` · `.mmd` · `.rst` · `.adoc`. **242 files.** |
 | 2 | **Keyword sweep** | `rg -i` across the whole repository for the founder's keyword list — master · rulebook · operating model · operating map · founder OS · founder · roadmap · tracker · inventory · launch · product rules · V2 · backlog · money · cashflow · pricing · calculator · economics · partner · client flow · website plan · UI plan · Milla · Vida · architecture · decision log · risk register · launch checklist · production checklist · legal / payment / refund rules. |
 | 3 | **Financial-artifact sweep** | Because `CASHFLOW-LAB.html` exposed the gap, a targeted hunt for **any** artifact encoding pricing, unit economics, cashflow, margin, salary or hiring economics, tax / VAT, partner economics, sourcing economics or commercial assumptions — including HTML calculators, decks and client-facing price surfaces. Every editable input, hard-coded constant and money figure in those artifacts is a row. |
-| 4 | **Directory sweep** | Every directory walked by hand, including `docs/archive/**`, `docs/previews/**`, `docs/mv-previews/**`, `docs/strategy/**`, `docs/marketing/bundle-source/**`, `apps/website/**`, `apps/portal/public/**`, `apps/landing/**`, `netlify-waitlist/**`, `supabase/**`, `scripts/**`. |
-| 5 | **Coverage assertion** | Every `.md` / `.html` / `.mmd` / `.txt` file tracked by git was checked against the register. **241 of 242 are inventoried.** The single exception is named below. |
+| 4 | **Directory sweep** | Every directory walked by hand, including `docs/archive/**`, `docs/previews/**`, `docs/mv-previews/**`, `docs/strategy/**`, `docs/marketing/bundle-source/**`, `apps/website/**`, `apps/portal/public/**`, `apps/landing/**`, `netlify-waitlist/**`, `supabase/**`, `scripts/**`, `.github/workflows/**`. |
+| 5 | **Workflow source sweep** | Every tracked `.github/workflows/*.yml` / `*.yaml` read in full and judged against one question: *does this file encode material K.I.N.D operating / product / release / inventory / governance truth?* **All five do, and all five are inventoried.** Generic CI plumbing inside them — checkout steps, node setup, install commands, runner images — is **not** inventoried. |
+| 6 | **Coverage assertion** | Every `.md` / `.html` / `.mmd` / `.txt` / `.yml` file tracked by git was checked against the register. **246 of 247 are inventoried.** The single exception is named below. |
 
 ### The keyword sweep found no document that is not inventoried
 
-Every hit from pass 2 that is a document appears in the register. The only hits **not** inventoried are code and configuration — `apps/website/server.js`, `apps/website/_redirects`, `cleanup_master.py`, `scripts/*.sh`, `scripts/website-freeze.json`.
+Every hit from pass 2 that is a document appears in the register. The only hits **not** inventoried are executable code — `apps/website/server.js`, `apps/website/_redirects`, `cleanup_master.py`, `scripts/*.sh`, `scripts/website-freeze.json`.
 
-### What was excluded, and why — the complete list
+---
+
+## FINAL REPO-WIDE COVERAGE ASSERTION
+
+### A · MATERIAL TRUTH SOURCES — INVENTORIED
+
+**245 source documents · every one `FULLY READ = YES`.** The complete list is the register above: the 8 Step-2 sources, the 3 founder-named additions, 18 money/economics artifacts, 92 operating · product · compliance · GTM documents, 119 possible-authority documents, and **5 release/governance workflow sources**.
+
+### B · TRACKED HUMAN / OPERATING FILES INSPECTED BUT EXCLUDED — with the exact reason
+
+| File(s) | Count | Exact reason |
+|---|---:|---|
+| `apps/website/version.txt` | 1 | Inspected. A generated build-version stamp — one line, a version string, no operating, product, release, inventory or governance statement of any kind |
+| `render.yaml` · `apps/*/nixpacks.toml` · `apps/*/.env.example` | 11 | Inspected. Host build recipes and variable-name templates. They name services and variables but state no rule, gate, behaviour or decision. **The operating truth about the environment is inventoried in full from `docs/ENVIRONMENT.md` (104 variables, 5 tiers), which IS a source in this register** |
+| `package.json` · `tsconfig*.json` · `turbo.json` · `.prettierrc` · `.yarnrc` · `.railwayignore` | 18 | Inspected. Dependency and toolchain declarations — no company truth |
+| `scripts/*.sh` (13) · `scripts/*.py` (2) | 15 | Inspected. These are the **executable gates themselves**, not statements about them. What they enforce is inventoried from `CLAUDE.md`, `RULEBOOK.md` and `docs/DOC-MAP.md`, and `scripts/core-files.txt` — the register they read — **is** inventoried as a source |
+
+**No file in section B carries material company truth that this pass identified and then left out.** Where a technical file sits next to real operating truth, that truth is inventoried from the document that states it, and the document is named in the row above.
+
+### C · NON-TRUTH TECHNICAL FILES — EXCLUDED
 
 | Excluded | Count | Reason |
 |---|---:|---|
 | `node_modules/**` | — | Dependency tree — not tracked by git, not authored here |
 | Generated build output (`.next`, `dist`, `build`, `.turbo`) | — | Generated, not authored |
-| Vendored / lock files (`package-lock.json`, `yarn.lock`) | 2 | Machine-generated dependency state |
-| Source code (`.ts` · `.tsx` · `.js` · `.mjs` · `.py`) | 698 | **Not documents.** Step 2 inventories *stated items*, not implementation. Where code is the money model of record, the rows that say so are inventoried from the documents that state it |
+| Lock files (`package-lock.json`, `yarn.lock`) | 2 | Machine-generated dependency state |
+| Source code (`.ts` · `.tsx` · `.js` · `.mjs`) | 696 | **Not documents.** Step 2 inventories *stated items*, not implementation |
 | SQL migrations and schema (`.sql`) | 194 | Implementation. Their documented behaviour is inventoried through `SCHEMA-DRIFT.md` and the three migration READMEs, all of which ARE inventoried |
-| CI / build / deploy configuration (`.github/workflows/*.yml` · `render.yaml` · `nixpacks.toml` · `tsconfig*.json` · `package.json` · `.env.example`) | 33 | Configuration, not stated-item documents. **⚠️ Founder call:** the workflows encode real operating truth (the dead Actions runner, `inventory-autoflip`); that truth is inventoried from `CLAUDE.md`, not from the YAML. Say the word and the YAML goes in |
-| Shell scripts (`scripts/*.sh`) | 13 | Executable gates, not documents. `scripts/core-files.txt`, the register they read, **is** inventoried |
 | Binary assets (`.png` · `.jpg` · `.mp4` · `.svg`) | 136 | Binary — nothing to enumerate as text |
 | Test fixtures, diffs, patches, temporary Claude outputs | 0 found | None present in the tracked tree |
-| `apps/website/version.txt` | 1 | A generated build-version stamp — one line, no operating or product truth |
 
 **Nothing was excluded for being old, stale-looking, superseded-looking or outside `docs/`.** `docs/archive/**` — including the 8,141-line `MASTER.md` — is inventoried in full.
+
+### 🔒 NO KNOWN MATERIAL COMPANY-TRUTH SOURCE REMAINS UNINVENTORIED.
 
 ### Sources whose authority is genuinely uncertain
 
@@ -422,6 +471,7 @@ These are inventoried **anyway** — Step 2 is about presence, not authority —
 > * **HTML, content surfaces** — the page title, every heading, every prose block, and every distinct money figure stated on the page.
 > * **HTML, design previews** — the page title, every heading and every on-screen text block.
 > * **Plain text / diagram sources** — every substantive line.
+> * **Workflow YAML** — the **material operating rules and behaviours** the workflow encodes: what triggers it, what it mutates, what it gates, what it commits or pushes, what permissions it holds, what production behaviour it controls, and any dated action list or policy statement written into it. **Generic CI plumbing is deliberately excluded** — checkout steps, node setup, install commands, runner images, artifact mechanics. Every workflow row is **CODE VERIFIED** from the file; **runtime execution state is not observable from a workflow file and is not asserted anywhere in this inventory.**
 >
 > Separator rows, empty cells and pure markup are not items. **Nothing was filtered on judgement** — no row was dropped for looking unimportant, stale or superseded.
 
@@ -2108,7 +2158,7 @@ These are inventoried **anyway** — Step 2 is about presence, not authority —
 
 # ░ STEP 2B ROWS — where to find them ░
 
-Rows **INV-01606 … INV-24212** live in the ten part files listed at the top of this document. They are split for GitHub renderability only.
+Rows **INV-01606 … INV-24281** live in the part files listed at the top of this document. They are split for GitHub renderability only.
 
 | Part | Sources | Rows |
 |---|---|---|
@@ -2121,7 +2171,7 @@ Rows **INV-01606 … INV-24212** live in the ten part files listed at the top of
 | [`STEP-2B-PART-07.md`](./founder-truth-inventory/STEP-2B-PART-07.md) | 5 | INV-16006 … INV-18405 (2400) |
 | [`STEP-2B-PART-08.md`](./founder-truth-inventory/STEP-2B-PART-08.md) | 13 | INV-18406 … INV-20805 (2400) |
 | [`STEP-2B-PART-09.md`](./founder-truth-inventory/STEP-2B-PART-09.md) | 74 | INV-20806 … INV-23205 (2400) |
-| [`STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | 27 | INV-23206 … INV-24212 (1007) |
+| [`STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | 32 | INV-23206 … INV-24281 (1076) |
 
 ---
 
@@ -2377,30 +2427,35 @@ Rows **INV-01606 … INV-24212** live in the ten part files listed at the top of
 | `apps/landing/index.html` | Possible source — authority undetermined | 61 |
 | `apps/landing/platform-video.html` | Possible source — authority undetermined | 17 |
 | `netlify-waitlist/index.html` | Possible source — authority undetermined | 26 |
-| **STEP 2B SUBTOTAL** | | **22607** |
-| **GRAND TOTAL** | | **24212** |
+| `.github/workflows/inventory-autoflip.yml` | Release / governance automation | 18 |
+| `.github/workflows/daily-audit.yml` | Release / governance automation | 24 |
+| `.github/workflows/doc-lint.yml` | Release / governance automation | 5 |
+| `.github/workflows/test.yml` | Release / governance automation | 8 |
+| `.github/workflows/deploy-website-cloudflare.yml` | Release / governance automation | 14 |
+| **STEP 2B SUBTOTAL** | | **22676** |
+| **GRAND TOTAL** | | **24281** |
 
-### Rows per item type — all 24212 rows
+### Rows per item type — all 24281 rows
 
 | Item type | Rows |
 |---|---:|
 | COMMERCIAL | 5254 |
-| HISTORY | 3857 |
+| HISTORY | 3860 |
 | MONEY | 3694 |
-| RULE | 2657 |
-| ARCHITECTURE | 2491 |
-| OPERATING | 2138 |
+| RULE | 2671 |
+| ARCHITECTURE | 2500 |
+| OPERATING | 2158 |
 | IDEA | 1109 |
 | FEATURE | 1095 |
-| GATE | 476 |
+| GATE | 483 |
 | EXPERIENCE | 453 |
-| RISK | 380 |
-| DEFECT | 271 |
-| TASK | 214 |
+| RISK | 384 |
+| DEFECT | 273 |
+| TASK | 224 |
 | OTHER | 75 |
 | QUESTION | 42 |
 | CONFLICT | 6 |
-| **TOTAL** | **24212** |
+| **TOTAL** | **24281** |
 
 ### Money / economics coverage
 
@@ -2441,7 +2496,7 @@ Rows **INV-01606 … INV-24212** live in the ten part files listed at the top of
 | Launch-current work | `LAUNCH-PAD.md` | C1–C9 · T1–T12 · M1–M8 | **29** | ✅ incl. C2b / C2c / C2d |
 | Operating protocol | `CLAUDE.md` | r1 … r22 | **22** | ✅ |
 | Protocol v1 full text | `RULEBOOK.md` | §15.1 … §15.20 | **20** | ✅ all present in the §15 rows |
-| Inventory row IDs | this deliverable | INV-00001 … INV-24212 | **24212** | ✅ contiguous, no gaps, no duplicates |
+| Inventory row IDs | this deliverable | INV-00001 … INV-24281 | **24281** | ✅ contiguous, no gaps, no duplicates |
 
 ### Structural observations recorded during the read — REPORTED, not fixed
 
@@ -2463,6 +2518,9 @@ Protocol r18: out-of-scope discoveries are reported and the scoped work continue
 | 12 | **The `$4` figure is stated on all nine `drop-0*.html` pages plus `pricing.html`, `index.html`, `milla.html`, `vida.html`, `figsy.html`, `nexus.html`, `solutions.html`, `about.html`, `demo.html`, `support.html`, `help-centre.html`, `the-drop.html` and `vs-hiring-an-sdr.html`.** Client-facing money truth is spread across 22 live pages. Each occurrence is its own row, per the no-deduplication rule. | `apps/website/` |
 | 13 | **`docs/previews/**` and `docs/mv-previews/**` hold 33 screen mockups that state product intent no prose document repeats** (invoice v1, notification centre, SSO signup, sequence builder v2, usage, referral). Their authority is undetermined. | `docs/previews/` · `docs/mv-previews/` |
 | 14 | **`docs/archive/` contains a second full inventory and a second full LAUNCH-PAD**, both snapshotted 21 Aug 2026, alongside the live ones. Both are inventoried; the live board remains the only script-counted one. | `docs/archive/` |
+| 15 | **Two workflows hold write access to the repository and one of them mutates canonical source documents.** `inventory-autoflip.yml` holds `contents: write`, flips PRODUCT-INVENTORY dots to 🩷, inserts a line into `docs/KIND-MASTER.md` immediately after the `### 🔄 SESSION LOG` marker, and **pushes directly to `origin main`** as `kind-autoflip`. `daily-audit.yml` holds `contents: write` and `issues: write`. Recorded as encoded behaviour, **CODE VERIFIED from the files — whether either has ever executed is a runtime fact this inventory does not assert.** | `.github/workflows/` |
+| 16 | **A dated action list lives inside CI rather than in a document.** `daily-audit.yml` hard-codes a *"Pending Action Items (refreshed 9 Jun)"* checklist into every issue it creates — key rotation, smoke tests T1/T3–T7/T9/T10, D9 inbox placement, ICO registration, Paystack KYC, Resend paid plan. Each item is its own row. **No view is taken here on whether any of them is still outstanding.** | `.github/workflows/daily-audit.yml` |
+| 17 | **Three workflows make explicit statements about production deploy behaviour.** `daily-audit.yml` says it is deliberately not push-triggered because that "could gate Railway's *wait for CI* auto-deploy"; `test.yml` says it "does NOT gate Railway's auto-deploy — Railway deploys independently"; `deploy-website-cloudflare.yml` documents a DNS failover from Railway to Cloudflare Pages. All three are inventoried as stated. | `.github/workflows/` |
 
 ### What a reader must NOT conclude from this file
 
@@ -2474,6 +2532,8 @@ Protocol r18: out-of-scope discoveries are reported and the scoped work continue
 
 ---
 
-## STEP 2 IS NOW COMPLETE: ALL DISCOVERED MATERIAL COMPANY-TRUTH SOURCES HAVE BEEN INVENTORIED WITHOUT DEDUPLICATION, COMPARISON OR CLASSIFICATION.
+## STEP 2 IS COMPLETE. INVENTORY PRESERVES PRESENCE ONLY; COMPARISON, AUTHORITY, DEDUPLICATION AND CLASSIFICATION HAVE NOT STARTED.
 
-*Steps 2 and 2B produced 28 Aug 2026 against `origin/main` `299b2e82`. No source document was edited. No item was classified, prioritised, deduplicated or resolved. Step 3 has not been started.*
+**NO KNOWN MATERIAL COMPANY-TRUTH SOURCE REMAINS UNINVENTORIED.**
+
+*Steps 2, 2B and the final workflow-source closure produced 28 Aug 2026 against `origin/main` `299b2e82`. No source document was edited. No item was classified, prioritised, deduplicated or resolved. Step 3 has not been started.*

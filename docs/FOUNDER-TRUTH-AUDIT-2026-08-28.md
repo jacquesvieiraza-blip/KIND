@@ -21,6 +21,21 @@
 
 **No missing history was reconstructed.** A founder conversation of 27 August may have been lost. Nothing in this audit fills that gap by inference. Items known only from the founder's 28 August restatement are marked as such and are **not** presented as pre-existing repo truth.
 
+### ⛓️ CORRECTED 28 Aug — repo absence is not the same as unknown truth
+
+The first pass of this audit conflated **"missing from the repo"** with **"RECOVERY REQUIRED"**. They are different questions and are now answered in separate columns:
+
+| Question | Values |
+|---|---|
+| **A · Does the repo currently contain it?** | FOUND · PARTIAL · MISSING · CONFLICT |
+| **B · What is its truth verdict?** | VERIFIED LIVE · VERIFIED CURRENT DIRECTION · PARTIAL · STALE · CONFLICT · SUPERSEDED · RECOVERY REQUIRED · FOUNDER DECISION REQUIRED |
+
+**FRT-01 … FRT-11 were explicitly restated by the founder on 28 August.** A founder direction the founder has just stated is **VERIFIED CURRENT DIRECTION** even when the repo has no record of it — the repo is behind, the truth is not unknown. The correct reading of such an item is *"repo: MISSING · truth: VERIFIED CURRENT DIRECTION"*, and the action is **to write it down**, not to recover it.
+
+**RECOVERY REQUIRED now means one thing only: the truth cannot currently be established safely.** It is never used because a current founder decision is absent from GitHub.
+
+⚠️ **Every FTA row carries exactly ONE primary verdict.** Live evidence, current direction and implementation state have their own columns and must not be smuggled into the verdict.
+
 **Mutations performed: none.** No code, schema, config or migration changed. No migration run. No deploy. No provider call. No paid action.
 
 ---
@@ -32,7 +47,7 @@
 - Free proof is **hard-capped at two passes** in the database (`try_claim_proof_pass`), 20 leads each. **There is no pass 3.**
 - **Unattended nightly paid sourcing no longer exists** (PR #1459).
 - **Pool-first sourcing, the R66 zero-spend guard and the AR5 provider boundary are all real and enforced.**
-- The **proof-exhaustion operator handoff is now built** (PR #1460) — **but its migration is NOT applied**, so it is not yet functioning end to end.
+- The **proof-exhaustion operator handoff is built and deployed**, and its migration is **founder-reported applied** — **end-to-end production verification is still pending** (FTA-031).
 
 **Major APPROVED-BUT-UNBUILT truths**
 - The **entire programme commercial model** (R74) — $450/meeting, volume discounts, 50/50 payment, Go-Live gate, batches, pause, programme authority. **Zero implementation. No `programmes` table, no batch entity, no go-live concept.**
@@ -47,7 +62,9 @@
 - **R69's ~150 accepted prospects per booked meeting vs the programme seed of 250 recommended leads.**
 - **The accounting definition of "programme contribution"** on which partner commission now depends.
 
-**RECOVERY REQUIRED** — 3 items, chiefly FRT-10 (weekend allocation) and the two structural website/UX directions (FRT-01, FRT-02) which have **no dated repo decision behind them at all**.
+**RECOVERY REQUIRED** — **1 item only** after the 28 Aug taxonomy correction: the **observed ~7:1 sourcing attainment (FTA-014)**, which is a factual claim about the pipeline that has never been measured anywhere. Everything previously listed here — the programme price curve, the conversational flywheel, the Meet Milla/Meet Vida direction, the weekend allocation, the Founder Operating Truth artifact, portal UI quality — is **VERIFIED CURRENT DIRECTION with the repo MISSING or PARTIAL**. The repo is behind; the truth is not unknown.
+
+**MIGRATION STATE (founder operational evidence, 28 Aug)** — Vida → Engine reported **36 of 37 applied**. `20260827_proof_review_handoff` is **among those applied**. **`20260727_pdl_cursor` failed** and is open follow-up (FTA-064).
 
 ---
 
@@ -70,10 +87,19 @@
 | `docs/DESIGN-REFERENCE.md`, `docs/portal-v2-layout.md`, `docs/onboarding-tour-buildplan.md` | UI/design | **UNKNOWN currency** | Not tested against the shipped portal in this audit |
 | `docs/strategy/*.html` | Jack & Jill / positioning verifications | **Historical artifacts** | Contain the Jack & Jill structural language FRT-01 refers to |
 | `docs/RULEBOOK.md`, `CLAUDE.md` | Agent operating rules | **Current** | Protocol v1 |
+| *(no file)* | **Migration run history** | **🔴 MISSING** | The Vida → Engine run of 28 Aug (**36 of 37 applied**, `20260727_pdl_cursor` failed) is **recorded nowhere in the repo**. Migration outcomes currently survive only as founder recollection — the same class of loss this audit exists to address |
 
 ---
 
 ## 4. Master truth matrix
+
+**Verdict tally — 64 rows, 64 verdicts, one primary verdict per row, reconciles exactly:**
+
+| VL | VCD | PARTIAL | STALE | CONFLICT | SUPERSEDED | RECOVERY REQUIRED | FOUNDER DECISION | Total |
+|---|---|---|---|---|---|---|---|---|
+| 18 | **26** | 9 | 6 | 2 | 1 | **1** | 1 | **64** |
+
+⛓️ **CORRECTED 28 Aug.** Previous pass: 63 rows, RECOVERY REQUIRED 9, one row (FTA-037) carrying a dual verdict. Now: **+1 row** (FTA-064, the failed `20260727_pdl_cursor` migration), **RECOVERY REQUIRED 9 → 1** (eight were founder directions absent from the repo, now VCD), **FTA-037 reduced to a single primary verdict**, and the `(legacy)` qualifier removed from five verdict cells — it belongs in the direction and supersession columns, which already carry it.
 
 Abbreviations — Verdict: **VL** verified live · **VCD** verified current direction · **PAR** partial · **ST** stale · **CF** conflict · **SUP** superseded · **RR** recovery required · **FDR** founder decision required. Priority: **CN** critical now · **LC** launch critical · **PLC** post-launch critical · **V2** · **H** history. State: **B** built · **P** partial · **U** unbuilt · **BL** blocked · **S** superseded · **UNK** unknown.
 
@@ -81,20 +107,20 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 
 | ID | Material item | Source location | Live evidence | Docs say | Current direction | Supersession | Verdict | Pri | State | Conflict | Founder decision | Recovery | Canonical home | Next action |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| FTA-001 | $4 per approved lead | `packages/shared/src/constants/index.ts:219` | `LEAD_PRICE_USD = 4`; charged at `approve-lead.ts:290` `try_charge_wallet` | Live legacy (R74) | Superseded as architecture | R68→$8 superseded; R74 replaces | **VL** (legacy) | LC | **B** | No | No | No | PRODUCT-RULES R74 | Keep until programme migration |
-| FTA-002 | $299 pack, first 100 included | `constants/index.ts:215-217` | `PACK_LEADS=100`, `PACK_PRICE_USD=299`; `packState()` in `approve-lead.ts:279` | Live legacy | Replaced by programme | R74 | **VL** (legacy) | LC | **B** | No | No | No | PRODUCT-RULES R74 | As above |
+| FTA-001 | $4 per approved lead | `packages/shared/src/constants/index.ts:219` | `LEAD_PRICE_USD = 4`; charged at `approve-lead.ts:290` `try_charge_wallet` | Live legacy (R74) | Superseded as architecture | R68→$8 superseded; R74 replaces | **VL** | LC | **B** | No | No | No | PRODUCT-RULES R74 | Keep until programme migration |
+| FTA-002 | $299 pack, first 100 included | `constants/index.ts:215-217` | `PACK_LEADS=100`, `PACK_PRICE_USD=299`; `packState()` in `approve-lead.ts:279` | Live legacy | Replaced by programme | R74 | **VL** | LC | **B** | No | No | No | PRODUCT-RULES R74 | As above |
 | FTA-003 | $4→$8 migration | `LAUNCH-PAD` T9, R68 | Not implemented; three `= 4` literals still live | T9 now marks it **superseded** | Superseded | R74 | **SUP** | H | **S** | No | No | No | LAUNCH-PAD T9 | Do not start |
 | FTA-004 | Programme pricing ~$450/targeted booked meeting | PRODUCT-RULES **R74**; V2 FI-26 | **None.** No price constant, no programme entity | Direction, unimplemented | Current approved | Supersedes flat-$4 | **VCD** | LC | **U** | No | No | No | PRODUCT-RULES R74 | Design before build |
-| FTA-005 | Working point: 10 meetings / 2,500 leads / **$4,375** / **$437.50** effective; floor **~$400** at 50+ | Founder input 28 Aug | None | **ABSENT from every doc** | Current approved | — | **RR** | LC | **U** | No | No | **Yes** | `run-costs-and-cashflow.md` | Record the curve before it is lost again |
+| FTA-005 | Working point: 10 meetings / 2,500 leads / **$4,375** / **$437.50** effective; floor **~$400** at 50+ | Founder input 28 Aug | None | **Repo: MISSING — absent from every doc** | Current approved (founder 28 Aug) | — | **VCD** | LC | **U** | No | No | No | `run-costs-and-cashflow.md` | Write it down — the repo is behind, the truth is not unknown |
 | FTA-006 | Automatic volume discount curve | R74; FI-27 | None | Direction | Current approved | Supersedes 3 Aug "no discount logic in code" lock | **VCD** | LC | **U** | No | No | No | R74 | Curve must be specified (see FTA-005) |
 | FTA-007 | ~70% contribution-margin protection as a **real money guard** | R74; FI-28; `run-costs` §27 Aug | None — `cost-floor.ts` is reporting only | Direction | Current approved | — | **VCD** | LC | **U** | No | No | No | `run-costs-and-cashflow.md` | Define the guard's trigger |
 | FTA-008 | 50% upfront / 50% at Go Live | R74; FI-36 | **None.** `stripe.ts` takes one full charge | Direction | Current approved | Supersedes single-charge | **VCD** | LC | **U** | No | No | No | R74 | Needs schema (FTA-020) |
 | FTA-009 | Programme-level approval, not per-lead | R74; FI-37/FI-65 | Per-lead approval is the only model (`leads.ts` `/:id/approve`) | Direction | Current approved | Supersedes per-lead accept | **VCD** | LC | **U** | No | No | No | R74 | — |
 | FTA-010 | Partner commission = 25% of **programme contribution** | R74; FI-58 | `PARTNER_COMMISSION_PCT=25` derived from `LEAD_PRICE_USD` (`constants/index.ts:249`) | Direction (gross-vs-contribution settled) | Current approved | R47 becomes legacy | **VCD** | LC | **U** | No | No | No | R74 / R47 | Blocked on FTA-011 |
 | FTA-011 | Definition of "programme contribution" | R74; FI-59 | None | Explicitly undefined | **Unresolved** | — | **FDR** | LC | **U** | **Yes** | **Yes** | No | R74 | **Founder must define** |
-| FTA-012 | Coverage k=2 sourcing authority from dollars | `20260711_sourcing_fences.sql` §5 | `add_sourcing_allowance` grants 2 records per $1 | Live | Superseded by programme authority | FI-42 | **VL** (legacy) | LC | **B** | No | No | No | R74 | Replace with programme authority |
-| FTA-013 | 2:1 sourcing in code | `onboarding-pack.ts:23` | `PACK_SOURCE_TARGET = PACK_LEADS × 2` = 200 | Recorded in `run-costs` | 1:1 for planning | FI-29/FI-67 | **VL** (legacy) | PLC | **B** | No | No | No | `run-costs` | Leave until programme |
-| FTA-014 | Observed ~7:1 attainment | Founder observation; FI-01 | **Not in repo** | FI-01 records it as unverified | Improve toward 1.5:1 → 1:1 | Not a conflict with FI-29 | **RR** | PLC | **UNK** | No | No | **Yes** | `run-costs` | Measure it |
+| FTA-012 | Coverage k=2 sourcing authority from dollars | `20260711_sourcing_fences.sql` §5 | `add_sourcing_allowance` grants 2 records per $1 | Live | Superseded by programme authority | FI-42 | **VL** | LC | **B** | No | No | No | R74 | Replace with programme authority |
+| FTA-013 | 2:1 sourcing in code | `onboarding-pack.ts:23` | `PACK_SOURCE_TARGET = PACK_LEADS × 2` = 200 | Recorded in `run-costs` | 1:1 for planning | FI-29/FI-67 | **VL** | PLC | **B** | No | No | No | `run-costs` | Leave until programme |
+| FTA-014 | Observed ~7:1 attainment | Founder observation; FI-01 | **Not in repo, and never measured anywhere** | FI-01 records it as unverified | The *objective* (improve toward 1.5:1 → 1:1) is current approved direction | Not a conflict with FI-29 | **RR** | PLC | **UNK** | No | No | **Yes** | `run-costs` | 🛑 **The one genuine unknown.** This is a factual claim about what the pipeline yields — not a founder decision. No instrumentation exists to establish it. **Measure it** |
 
 ### 4.2 Benchmark / recommendation
 
@@ -117,7 +143,7 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 | FTA-024 | Material ICP change pauses future sourcing until reconfirmed | R74; FI-41 | **None.** `icps.ts` `PATCH /:id` writes and nothing else | FI-41 | Current approved | — | **VCD** | LC | **U** | No | No | No | R74 | — |
 | FTA-025 | No spend outside explicit programme authority | R74; FI-42 | **Partial.** PR #1459 removed the unattended nightly top-up; `try_spend_sourcing` fences remain dollar-derived | FI-42 | Current approved | — | **PAR** | LC | **P** | No | No | No | R74 | Authority object |
 | FTA-026 | Unattended nightly paid top-up | `cron.ts` (retired), `internal.ts` 410 | **Removed.** No `cron.schedule` references it; endpoint answers 410 | LAUNCH-PAD / FI-42 | Removed | Superseded | **VL** | LC | **B** | No | No | No | — | Done |
-| FTA-027 | Unrestricted client "Run" sourcing | `icps.ts` `POST /:id/run` | **LIVE.** Free, no quantity, rate-limited 10/min; passes `credit_balance` as a record count | Not recorded as a defect anywhere | Superseded by programme authority | — | **VL** (legacy) | LC | **B** | No | No | No | R74 / V2 | ⚠️ Survives PR #1459 |
+| FTA-027 | Unrestricted client "Run" sourcing | `icps.ts` `POST /:id/run` | **LIVE.** Free, no quantity, rate-limited 10/min; passes `credit_balance` as a record count | Not recorded as a defect anywhere | Superseded by programme authority | — | **VL** | LC | **B** | No | No | No | R74 / V2 | ⚠️ Survives PR #1459 |
 | FTA-028 | Unused programme value never expires | R74; FI-43 | Credits never expire (no expiry logic; trial-expiry cron retired). **Programme value is not representable** | FI-43 | Current approved | — | **PAR** | LC | **U** | No | No | No | R74 | After FTA-020 |
 
 ### 4.4 Free proof
@@ -126,7 +152,7 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | FTA-029 | Pass 1 ≤20 → one refinement → Pass 2 ≤20 → stop | `20260822_free_proof_acquisition.sql`; `PROOF_PASS_LEADS` | **LIVE.** `try_claim_proof_pass` returns 0 when `proof_passes_done >= 2`, under `FOR UPDATE` | R72; LAUNCH-PAD T1/T2 | Unchanged | — | **VL** | LC | **B** | No | No | No | R72 | — |
 | FTA-030 | **No Pass 3** | same | **LIVE and enforced in the database** | R72 | Unchanged | — | **VL** | LC | **B** | No | No | No | R72 | — |
-| FTA-031 | Proof exhaustion → real operator handoff | PR #1460 | **Code merged** (`icps.ts`, `operator.ts`, Vida). **Migration `20260827_proof_review_handoff` NOT applied** | FI-52 | Current approved | Supersedes copy-only | **PAR** | **CN** | **P** | No | No | No | R72 | 🔴 **Run the migration (Vida → Engine)** |
+| FTA-031 | Proof exhaustion → real operator handoff | PR #1460 | **BUILT** — merged into `origin/main` (`icps.ts`, `operator.ts`, `vida/page.tsx`). **DEPLOYED** — founder-reported. **MIGRATION APPLIED** — founder-reported via Vida → Engine (36 of 37) | FI-52 | Current approved | Supersedes copy-only | **PAR** | **CN** | **P** | No | No | No | R72 | **BUILT / DEPLOYED / E2E VERIFICATION PENDING.** ⚠️ The real production journey — exhausted prospect → Vida alert → Mark reviewed → alert clears — **has not been walked**. Not claimed VERIFIED LIVE until it is |
 | FTA-032 | Proof terminal state ("finding" vs "no match") | R72③; LAUNCH-PAD T3 | Partially built (26 Aug) | R72③ marks it **OPEN** | — | — | **PAR** | LC | **P** | No | No | No | R72 | T3 |
 | FTA-033 | Recurrent end-to-end proof runtime failure | LAUNCH-PAD **T10** | Path spans claim → dispatch → pool → guard → failure boundary → outcome → Milla → portal | T10 records it, unresolved | — | — | **PAR** | **LC** | **P** | No | No | No | LAUNCH-PAD T10 | Prove end to end, not per segment |
 
@@ -137,7 +163,7 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 | FTA-034 | Pool first, always | PRODUCT-RULES **R49** | **LIVE** — `pool-sourcing.ts`, enforced in `icps.ts` | R49 | Unchanged | — | **VL** | LC | **B** | No | No | No | R49 | — |
 | FTA-035 | PDL is the launch provider; Apollo API parked | **AR5**; `provider-boundary.ts` | **LIVE** — `searchProviderFor(audience)` | AR5; FI-60/61 | Unchanged for launch | FI-08 supersedes long-term | **VL** | LC | **B** | No | No | No | AR5 | — |
 | FTA-036 | Apollo-acquired pool data remains servable | **R73** (27 Aug) | **LIVE** — `POOL_ELIGIBLE_SOURCES = ['pdl','apollo']` | R73; FI-62 | Current | Chains F15 | **VL** | LC | **B** | No | No | No | R73 | — |
-| FTA-037 | `PAID_PROVIDERS_ENABLED` OFF; controlled exit condition | **R66**; LAUNCH-PAD **T11** | Guard is fail-closed (`paid-provider-guard.ts`) | T11 records the exit rule (new) | Current | — | **VL** (guard) / **VCD** (exit rule) | LC | **B**/**U** | No | No | No | R66 / T11 | Founder-approved house test only |
+| FTA-037 | `PAID_PROVIDERS_ENABLED` OFF; controlled exit condition | **R66**; LAUNCH-PAD **T11** | Guard is fail-closed and enforced (`paid-provider-guard.ts`) | T11 records the exit rule (new, 27 Aug) | The controlled exit condition is current approved direction, unbuilt | — | **VL** | LC | **B** | No | No | No | R66 / T11 | ⛓️ **Single primary verdict.** The guard is what is LIVE; the exit rule lives in the direction column and is not yet exercised. Founder-approved house test only |
 | FTA-038 | Apollo geography incapability | 27 Aug diagnostic; `run-costs` | No-credit search returns only `has_country` booleans | Recorded in `run-costs` + FI-07 | Blocks Apollo re-entry | — | **VL** | PLC | **BL** | No | No | No | `run-costs` | Needs enrichment economics |
 | FTA-039 | Suppression / DNC enforcement | `suppression.ts`, `opt_out_blocklist` | **LIVE** in the send path | Multiple | Unchanged | — | **VL** | LC | **B** | No | No | No | — | Visibility is FTA-050 |
 
@@ -158,11 +184,11 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | FTA-046 | Milla Jack & Jill conversational shell preserved | FI-53 | `(milla)/milla/page.tsx` — conversation + right panel, 1,445 lines | FI-53 | Current constraint | — | **VL** | LC | **B** | No | No | No | V2 FI-53 | Standing constraint |
 | FTA-047 | Vida conversational/operator shell preserved | FI-54 | `admin/vida/page.tsx` — command box + cockpit tabs, 2,320 lines | FI-54 | Current constraint | — | **VL** | LC | **B** | No | No | No | V2 FI-54 | — |
-| FTA-048 | **Conversational flywheel** (conversation → understanding → recommendation → decision → action → feedback → learning) | **Founder 28 Aug (FRT-02)** | **Partial.** Conversation, understanding (R71 KNOWN/MISSING/CONTRADICTORY) and refinement exist. **Recommendation and learning loops do not.** | **The flywheel as a named product principle is NOT in any doc** | Current approved | — | **RR** | **LC** | **P** | No | No | **Yes** | PRODUCT-RULES (new rule) | 🔴 Record as a rule — it governs every programme surface |
-| FTA-049 | Client never experiences "give info → handoff → wait" | Founder 28 Aug (FRT-02) | **Violated today at proof exhaustion** until FTA-031's migration runs | Not recorded | Current approved | — | **RR** | LC | **P** | No | No | **Yes** | PRODUCT-RULES | With FTA-048 |
+| FTA-048 | **Conversational flywheel** (conversation → understanding → recommendation → decision → action → feedback → learning) | **Founder 28 Aug (FRT-02)** | **Partial.** Conversation, understanding (R71 KNOWN/MISSING/CONTRADICTORY) and refinement exist. **Recommendation and learning loops do not.** | **Repo: MISSING** — the flywheel as a named product principle is in no doc | Current approved (founder 28 Aug) | — | **VCD** | **LC** | **P** | No | No | No | PRODUCT-RULES (new rule) | Record as a rule — it governs every programme surface |
+| FTA-049 | Client never experiences "give info → handoff → wait" | Founder 28 Aug (FRT-02) | ⛓️ **Corrected.** The proof-exhaustion instance is **built and deployed with its migration applied** (FTA-031). It is **no longer simply live as a defect** — but the end-to-end journey is unverified, so the principle is not yet demonstrated either | **Repo: MISSING** | Current approved (founder 28 Aug) | — | **VCD** | LC | **P** | No | No | No | PRODUCT-RULES | With FTA-048; verify E2E |
 | FTA-050 | Vida lead-pool / suppression / DNC operator visibility | FI-02/03/04 | **No operator view exists** for any of the three | FI bank, post-launch | Post-launch | — | **VCD** | **PLC** | **U** | No | No | No | V2 | See §7 |
-| FTA-051 | Portal UI quality | **Founder 28 Aug (FRT-04/FRT-11)** | Not assessed in this audit | `DESIGN-REFERENCE.md`, `portal-v2-layout.md` currency **UNKNOWN** | Current approved | — | **RR** | LC | **UNK** | No | No | **Yes** | New | Needs a defined bar |
-| FTA-052 | Website → Milla → programme → Vida consistency | **Founder 28 Aug (FRT-05)** | **Broken by construction** — the programme stage does not exist | Not recorded | Current approved | — | **RR** | **LC** | **U** | No | No | **Yes** | New | Gate cannot pass until programme exists |
+| FTA-051 | Portal UI quality | **Founder 28 Aug (FRT-04/FRT-11)** | Not assessed in this audit | **Repo: PARTIAL** — 3 UI docs exist, currency untested; **no quality bar recorded** | Current approved (founder 28 Aug) | — | **VCD** | LC | **UNK** | No | **Yes** | No | New | The *direction* is settled; the **acceptance bar is a founder decision**, not an unknown |
+| FTA-052 | Website → Milla → programme → Vida consistency | **Founder 28 Aug (FRT-05)** | **Cannot be satisfied today** — the programme stage does not exist in code or schema | **Repo: MISSING** | Current approved (founder 28 Aug) | — | **VCD** | **LC** | **U** | No | No | No | New | Gate cannot pass until the programme exists (FTA-020) |
 
 ### 4.8 Website / public truth
 
@@ -171,7 +197,7 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 | FTA-053 | Public pricing page | `apps/website/pricing.html` | `$299` ×7, `$4` ×17, programme ×0 | — | Will be false under programme | — | **ST** | LC | **B** | No | No | No | FI-56 | Sweep after FTA-004 |
 | FTA-054 | Public calculator | `apps/website/pipeline-calculator.html` | `$4` ×3, programme ×0 | — | Superseded by FI-35 | — | **ST** | LC | **B** | No | No | No | FI-35/56 | Rebuild |
 | FTA-055 | Terms / legal | `apps/website/terms.html`; `apps/portal/src/app/(legal)/terms/page.tsx`; **duplicate** `apps/portal/public/terms.html` | Wallet/$4 language; `$4` at `terms.html:154` | — | Must change for 50/50 + non-refundable | — | **ST** | **LC** | **B** | No | No | No | FI-56 | ⚠️ Highest-risk surface; **two copies of Terms in one app** |
-| FTA-056 | **"Meet Milla" / "Meet Vida"** treatment | **Founder 28 Aug (FRT-01)** | `"Meet Milla"` ×3 in `index.html`; **`"Meet Vida"` appears ONCE, in `nexus.html` only — not on `index.html`, and there is no Meet-Vida page treatment.** `milla.html` (507 lines) and `vida.html` (502) contain **zero `<h1>`/`<h2>`** | Not recorded anywhere | Current approved | — | **RR** | **LC** | **P** | No | No | **Yes** | New | 🔴 Asymmetry is real and unrecorded |
+| FTA-056 | **"Meet Milla" / "Meet Vida"** treatment | **Founder 28 Aug (FRT-01)** | `"Meet Milla"` ×3 in `index.html`; **`"Meet Vida"` appears ONCE, in `nexus.html` only — not on `index.html`, and there is no Meet-Vida page treatment.** `milla.html` (507 lines) and `vida.html` (502) contain **zero `<h1>`/`<h2>`** | **Repo: PARTIAL** — the direction is recorded nowhere | Current approved (founder 28 Aug) | — | **VCD** | **LC** | **P** | No | No | No | New | The asymmetry is real and measured; the direction is settled and needs writing down |
 | FTA-057 | Demo video | `RECORDING-SHOOTING-SCRIPT.md`; FI-57 | Shows Pick/Not-a-fit + $4 | FI-57 | Re-record after programme | — | **ST** | PLC | **B** | No | No | No | FI-57 | After FTA-004 |
 
 ### 4.9 Docs / operating
@@ -179,29 +205,35 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 | ID | Material item | Source | Live | Docs | Direction | History | Verdict | Pri | State | Conflict | FDR | Recovery | Home | Next action |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | FTA-058 | **`client-flow-sop.md` describes a trial funnel** | `docs/client-flow-sop.md` | **Trials are retired.** `SIGNUP_SUBSCRIPTION_STATUS = 'paused'` (`signup-subscription.ts:65`); the two trial crons were removed (#607) | 7 paths built on "self-service trial", `$99` at line 42, `Paystack` at line 14 (Paystack is retired), **programme ×0**, proof ×3 | Superseded twice over | — | **ST** | **LC** | **S** | No | No | No | `client-flow-sop.md` | 🔴 Rewrite or mark historical — it is the client-journey doc and it describes a product that no longer exists |
-| FTA-059 | Founder Operating Truth is needed because docs are insufficient | **Founder 28 Aug (FRT-03)** | No Founder-OS doc exists on main | Only scattered mentions in KIND-MASTER / V2 | Current approved | — | **RR** | **CN** | **U** | No | No | **Yes** | New (this audit is step 1) | Build register after this audit |
+| FTA-059 | Founder Operating Truth is needed because docs are insufficient | **Founder 28 Aug (FRT-03)** | No Founder-OS doc exists on main | **Repo: MISSING** — only scattered mentions in KIND-MASTER / V2 | Current approved (founder 28 Aug) | — | **VCD** | **CN** | **U** | No | No | No | New (this audit is step 1) | The *artifact* is missing; the *direction* is not |
 | FTA-060 | No material idea lives only in chat | **R75** (27 Aug) | Rule exists; V2 FI bank is its instance | R75 | Current | — | **VL** | CN | **B** | No | No | No | R75 | Apply to FRT-01…11 |
-| FTA-061 | Weekend allocation: 12h Saturday + 12h Sunday | **Founder 28 Aug (FRT-10)** | **Absent from the repo.** Only false-positive prose hits | — | Current planning truth | — | **RR** | CN | **U** | No | No | **Yes** | LAUNCH-PAD | Record if it should persist |
+| FTA-061 | Weekend allocation: 12h Saturday + 12h Sunday | **Founder 28 Aug (FRT-10)** | **Repo: MISSING.** Searched LAUNCH-PAD and KIND-MASTER; only false-positive prose hits | **Repo: MISSING** | **Current founder planning truth**, supplied 28 Aug | — | **VCD** | CN | **U** | No | No | No | LAUNCH-PAD | Write it into LAUNCH-PAD. **Explicitly NOT recovery** — the founder stated it |
 | FTA-062 | Production fake/test account cleanup | LAUNCH-PAD **T12**; `SEED-WIPE-PLAN.md` | Not performed | T12 adds audit-before-delete | Current | — | **VCD** | LC | **U** | No | No | No | LAUNCH-PAD T12 | Audit first |
-| FTA-063 | `RAILWAY_GIT_COMMIT_SHA` unset → deploy state unverifiable | `apps/api/src/index.ts:150`; live `/health` returns `"commit":"unknown"` | **Confirmed** | Not recorded anywhere | — | — | **ST** | **CN** | **B** | No | No | No | `ENVIRONMENT.md` | ⚠️ Every "is it deployed?" is currently unanswerable by the service |
+| FTA-063 | `RAILWAY_GIT_COMMIT_SHA` unset → deploy state unverifiable | `apps/api/src/index.ts:150`; live `/health` returns `"commit":"unknown"` | **Confirmed** | Not recorded anywhere | — | — | **ST** | **CN** | **B** | No | No | No | `ENVIRONMENT.md` | ⚠️ Every "is it deployed?" is unanswerable by the service, which is why deployment state in this audit rests on founder report rather than instrumentation |
+| FTA-064 | **`20260727_pdl_cursor` migration FAILED** | Founder operational evidence, 28 Aug — Vida → Engine reported **36 of 37 applied** | The runner reported one failure: `20260727_pdl_cursor`. **No repo record of the failure or its reason** | Not recorded | Open follow-up | — | **PAR** | **LC** | **BL** | No | No | No | LAUNCH-PAD | 🔴 **Establish why it failed and what it leaves unbuilt.** `pdl-cursor.ts` is the audience-exhaustion cursor; a failed migration there may mean the cursor state it depends on is absent. **Not diagnosed in this audit** — no production access, and the runner output was not captured in the repo |
 
 ---
 
-## 5. Founder recovery inputs — FRT-01 … FRT-11
+## 5. Founder inputs — FRT-01 … FRT-11
 
-| FRT | Item | Result | Exact repo evidence |
-|---|---|---|---|
-| **FRT-01** | Meet Milla / Meet Vida use Jack & Jill structural language | **PARTIAL → RECOVERY REQUIRED** | `"Meet Milla"` ×3 in `apps/website/index.html` (lines 1804, 1812, 1919). **`"Meet Vida"` appears exactly once, in `apps/website/nexus.html`** — not on the homepage. `milla.html`/`vida.html` exist (507/502 lines) with **zero `<h1>`/`<h2>`**. Jack & Jill language lives in `docs/strategy/get-kind_jack_and_jill_product_model_verification.html`, `docs/KIND-MASTER.md`, `docs/PRODUCT-RULES.md` — **never applied to the website in any dated decision.** No repo record of this direction |
-| **FRT-02** | Conversational flywheel; never "give info → handoff → wait" | **MISSING → RECOVERY REQUIRED** | The seven-stage pattern appears in **no** repo doc. Nearest relatives: **R71** (KNOWN/MISSING/CONTRADICTORY understanding) and **R72⑦** (refinement reflected back). `grep -rl "flywheel"` hits are unrelated prose. ⚠️ The anti-pattern is **live today**: proof exhaustion is exactly *inform → handoff → wait* until FTA-031's migration is applied |
-| **FRT-03** | Founder Operating Truth is vital; docs insufficient | **MISSING** | No `FOUNDER-OPERATING-*` file on `origin/main`. `grep -rl "Founder Operating"` returns only passing mentions inside `KIND-MASTER.md`, `V2-TRACKER.md`, `PRODUCT-RULES.md`, `LAUNCH-PAD.md`. **This audit is the first artifact** |
-| **FRT-04** | Portal UI quality vital | **PARTIAL** | `docs/DESIGN-REFERENCE.md`, `docs/portal-v2-layout.md`, `docs/onboarding-tour-buildplan.md` exist. **Currency untested** in this audit; no quality bar or acceptance criteria recorded anywhere → **UNKNOWN** state (FTA-051) |
-| **FRT-05** | Consistency website → Milla → programme → Vida | **MISSING** | Not recorded. **Cannot currently be satisfied**: the *programme* stage does not exist in code or schema (FTA-020). The chain today is website → Milla → **per-lead approval** → Vida |
-| **FRT-06** | Review V2/post-launch for promotion to launch-critical | **PARTIAL** | `V2-TRACKER.md` §Founder Idea Bank (FI-01…FI-69, added 27 Aug) is the reviewable list and already splits launch-current (FI-10/11/12 → LAUNCH-PAD T10/T11/T12) from post-launch. **The promotion review itself is §7 of this audit** |
-| **FRT-07** | Docs and panel must be simple; separate CRITICAL NOW / LAUNCH / POST-LAUNCH / V2 | **MISSING** | No doc uses those four bands. `V2-TRACKER` uses *Phase 0–4*; `LAUNCH-PAD` uses T-numbers; `PRODUCT-INVENTORY` uses dots. **Three incompatible taxonomies, none of them the founder's four** |
-| **FRT-08** | One indexed view of every material item | **MISSING** | No index exists. Closest is the FI bank (69 items, V2-scoped only) — it does not index PRODUCT-RULES, LAUNCH-PAD or the money docs. **This audit's §4 is the first cross-doc matrix** |
-| **FRT-09** | All financial/economics docs reconciled to programme model | **PARTIAL → largely MISSING** | **Only `run-costs-and-cashflow.md` carries any programme content** (`programme` ×3, `450` ×3 — the 27 Aug section). Every other artifact is legacy-only with **zero** programme references: `pricing.html` ($299×7, $4×17), `pipeline-calculator.html` ($4×3), `CASHFLOW-LAB.html` ($299×9, $4×7), `SALARY-BREAKEVEN-PLAN.md`, `PARTNER-BRIEF.md` ($299×7, $4×8) |
-| **FRT-10** | 12h Saturday + 12h Sunday allocated | **MISSING — RECOVERY REQUIRED** | **Not in the repo.** Searched `LAUNCH-PAD.md` and `KIND-MASTER.md`; the only "Sunday" hit is unrelated prose about send cadence. Recorded here **solely** as the founder's 28 Aug statement, per instruction — **no historical proof inferred** |
-| **FRT-11** | Website and UI critical before launch | **PARTIAL** | LAUNCH-PAD's T1–T12 contain **no website or UI item**. The 25 Aug cut lists proof, sending, boundaries, commercial pack, pricing — **website and portal UI are absent from the launch list entirely**, while FTA-053/054/055 show public surfaces stating a superseded model |
+⛓️ **CORRECTED 28 Aug.** Two independent columns. **Repo reconciliation** answers *"does the repo contain it?"*; **truth verdict** answers *"how far can it be trusted?"*. A direction the founder stated on 28 August is **VERIFIED CURRENT DIRECTION** whatever the repo says — the repo being behind is a writing task, not an unknown.
+
+| FRT | Item | Repo reconciliation | Truth verdict | Exact repo evidence |
+|---|---|---|---|---|
+| **FRT-01** | Meet Milla / Meet Vida use Jack & Jill structural language | **PARTIAL** | **VERIFIED CURRENT DIRECTION** | `"Meet Milla"` ×3 in `apps/website/index.html` (1804, 1812, 1919). **`"Meet Vida"` appears exactly once, in `apps/website/nexus.html`** — not on the homepage. `milla.html`/`vida.html` (507/502 lines) contain **zero `<h1>`/`<h2>`**. J&J language lives in `docs/strategy/get-kind_jack_and_jill_product_model_verification.html`, `KIND-MASTER.md`, `PRODUCT-RULES.md` — never applied to the website |
+| **FRT-02** | Conversational flywheel; never "give info → handoff → wait" | **MISSING** | **VERIFIED CURRENT DIRECTION** | The seven-stage pattern appears in **no** repo doc. Nearest relatives: **R71** (KNOWN/MISSING/CONTRADICTORY) and **R72⑦** (refinement reflected back). ⛓️ The proof-exhaustion instance is now **BUILT · DEPLOYED · migration applied** (FTA-031) — **E2E verification pending** |
+| **FRT-03** | Founder Operating Truth is vital; docs insufficient | **MISSING** | **VERIFIED CURRENT DIRECTION** | No `FOUNDER-OPERATING-*` file on `origin/main`. `grep -rl "Founder Operating"` returns only passing mentions in `KIND-MASTER.md`, `V2-TRACKER.md`, `PRODUCT-RULES.md`, `LAUNCH-PAD.md`. The **artifact** is missing; the **direction** is not |
+| **FRT-04** | Portal UI quality vital | **PARTIAL** | **VERIFIED CURRENT DIRECTION** | `DESIGN-REFERENCE.md`, `portal-v2-layout.md`, `onboarding-tour-buildplan.md` exist; currency untested here. ⚠️ **No quality bar or acceptance criteria recorded** → that gap is **FOUNDER DECISION REQUIRED** (FTA-051), not unknown truth |
+| **FRT-05** | Consistency website → Milla → programme → Vida | **MISSING** | **VERIFIED CURRENT DIRECTION** | Not recorded. **Cannot be satisfied today**: the *programme* stage does not exist (FTA-020). The chain today is website → Milla → **per-lead approval** → Vida |
+| **FRT-06** | Review V2/post-launch for promotion | **PARTIAL** | **VERIFIED CURRENT DIRECTION** | `V2-TRACKER.md` §Founder Idea Bank (FI-01…FI-69, 27 Aug) already splits launch-current (FI-10/11/12 → T10/T11/T12) from post-launch. The review itself is **§7** |
+| **FRT-07** | Simple docs; four bands CRITICAL NOW / LAUNCH / POST-LAUNCH / V2 | **MISSING** | **VERIFIED CURRENT DIRECTION** | No doc uses those bands. `V2-TRACKER` uses *Phase 0–4*; `LAUNCH-PAD` uses T-numbers; `PRODUCT-INVENTORY` uses dots. **Three incompatible taxonomies; the founder's four are a fourth** |
+| **FRT-08** | One indexed view of every material item | **MISSING** | **VERIFIED CURRENT DIRECTION** | No index exists. Closest is the FI bank (69 items, V2-scoped) — it does not index PRODUCT-RULES, LAUNCH-PAD or the money docs. §4 here is the first cross-doc matrix |
+| **FRT-09** | All financial docs reconciled to the programme model | **PARTIAL** | **VERIFIED CURRENT DIRECTION** | **Only `run-costs-and-cashflow.md` carries programme content** (`programme` ×3, `450` ×3). Zero programme references in `pricing.html` ($299×7, $4×17), `pipeline-calculator.html` ($4×3), `CASHFLOW-LAB.html` ($299×9, $4×7), `SALARY-BREAKEVEN-PLAN.md`, `PARTNER-BRIEF.md` ($299×7, $4×8) |
+| **FRT-10** | 12h Saturday + 12h Sunday founder build days | **MISSING** | **VERIFIED CURRENT DIRECTION** | Not in the repo — searched `LAUNCH-PAD.md`, `KIND-MASTER.md`; the only "Sunday" hit is unrelated send-cadence prose. ⛓️ **Explicitly NOT recovery required**: supplied 28 Aug as *"current founder planning truth"*. The action is to write it into LAUNCH-PAD |
+| **FRT-11** | Website and UI critical before launch | **PARTIAL** | **VERIFIED CURRENT DIRECTION** | **LAUNCH-PAD T1–T12 contain no website or UI item.** The 25 Aug cut lists proof, sending, boundaries, commercial pack, pricing — while FTA-053/054/055 show public surfaces stating a superseded model |
+
+**Repo reconciliation tally:** FOUND 0 · PARTIAL 5 · MISSING 6 · CONFLICT 0.
+**Truth verdict tally:** **VERIFIED CURRENT DIRECTION 11 of 11.** None is RECOVERY REQUIRED.
 
 ---
 
@@ -263,14 +295,19 @@ Partner commission moves to **25% of programme contribution** — that direction
 
 ## 9. Recovery required
 
-| # | Item | Why it cannot be established |
+⛓️ **CORRECTED 28 Aug.** The first pass listed six. Five were **founder directions absent from the repo** — which is a writing task, not an unknown — and are now **VERIFIED CURRENT DIRECTION** (FTA-005, 048/049, 051, 052, 056, 059, 061; see §5). **One genuine unknown remains.**
+
+| # | Item | Why the truth genuinely cannot be established |
 |---|---|---|
-| **REC-1** | Programme price curve — $4,375 / $437.50 / ~$400 floor at 50+ (FTA-005) | Exists only in the founder's 28 Aug restatement. **No repo record.** Likely part of the lost 27 Aug conversation |
-| **REC-2** | The conversational flywheel as a product principle (FRT-02 / FTA-048) | Named by the founder today; **no dated decision anywhere in the repo** |
-| **REC-3** | Meet Milla / Meet Vida website direction (FRT-01 / FTA-056) | No dated decision; the site is asymmetric today |
-| **REC-4** | Weekend allocation 12h + 12h (FRT-10 / FTA-061) | Founder statement only; explicitly not inferred |
-| **REC-5** | Observed ~7:1 sourcing attainment (FTA-014) | Founder field observation; **never measured in-repo** |
-| **REC-6** | Portal UI quality bar (FRT-04 / FTA-051) | No acceptance criteria exist to audit against |
+| **REC-1** | **Observed sourcing attainment (~7:1)** — FTA-014 | This is a **factual claim about what the pipeline yields**, not a founder decision, so the founder stating it does not make it verifiable. **No instrumentation exists** to measure sourced-to-usable conversion; the figure appears nowhere in the repo, and the only in-code ratio is the unrelated `PACK_SOURCE_TARGET = ×2`. Until it is measured, **the real rate is unknown** — and it is the input the ~70% contribution margin depends on |
+
+### Adjacent — known-but-undiagnosed, not "unknown truth"
+
+| # | Item | State |
+|---|---|---|
+| **ADJ-1** | **`20260727_pdl_cursor` migration failed** (FTA-064) | The *fact* is established from founder operational evidence (36 of 37 applied). **The cause is not diagnosed** — no production access in this audit, and the runner output is not captured in the repo. Follow-up required, but the truth of *what happened* is known |
+| **ADJ-2** | **Proof-exhaustion E2E journey** (FTA-031) | Built, deployed, migration applied — all established. **The end-to-end production walk has not been performed**, so it is not claimed VERIFIED LIVE. This is an untested path, not an unknown truth |
+| **ADJ-3** | **Portal UI acceptance bar** (FTA-051) | The direction is settled. **No bar has been defined to audit against** — that is a **FOUNDER DECISION REQUIRED**, not a recovery |
 
 ---
 
@@ -290,15 +327,23 @@ Partner commission moves to **25% of programme contribution** — that direction
 
 ---
 
-## 11. Proposed next bounded task
+## 11. Recommended next bounded task — founder decides
 
-**One task: reconcile `docs/client-flow-sop.md`.**
+⛓️ **CORRECTED 28 Aug.** This is a **recommendation for the founder to accept, reorder or reject.** Claude does not choose the company's next task, and **this task has not been started.**
 
-It is the client-journey document, it describes a **trial-based funnel that no longer exists**, it mentions `$99`, it references retired Paystack, and it contains **zero** reference to free proof as the entry point or to the programme model. It is the single most misleading document found in this audit, and unlike the financial artifacts it describes *what the client experiences* — the exact area FRT-02 and FRT-05 are about.
+**Recommended: reconcile `docs/client-flow-sop.md`.**
 
-Bounded: one file, docs-only, no runtime, no schema. Either rewrite it against verified current runtime (proof → acceptance → payment → per-lead approval, honestly labelled legacy) **or** mark it HISTORICAL and state where the current journey actually lives. **That is a founder call, not mine.**
+Why it is the recommendation: it is the client-journey document, it describes a **trial-based funnel that no longer exists**, it names `$99`, it references retired Paystack, and it contains **zero** reference to free proof as the entry point or to the programme model. It describes *what the client experiences* — the exact area FRT-02 and FRT-05 concern.
 
-Everything else in §4 either waits on **CONF-1/CONF-2**, or on the programme schema, or is already tracked on LAUNCH-PAD.
+Bounded shape if accepted: one file, docs-only, no runtime, no schema. Either rewrite it against verified current runtime (proof → acceptance → payment → per-lead approval, honestly labelled legacy), **or** mark it HISTORICAL and state where the current journey actually lives. **Which of those two is a founder call.**
+
+**Other candidates the founder may prefer instead**, each independently bounded:
+- **Write down the 11 founder directions** from §5 that the repo is missing (FRT-01…11) — the largest gap between stated truth and recorded truth.
+- **Diagnose `20260727_pdl_cursor`** (FTA-064) — a failed migration with an undiagnosed cause.
+- **Walk the proof-exhaustion journey end to end** (FTA-031) — turns a BUILT/DEPLOYED claim into a verified one.
+- **Settle CONF-1** (the 150 vs 250 benchmark) — blocks the programme's money model.
+
+**Prioritisation is the founder's.** Nothing above is scheduled.
 
 ---
 

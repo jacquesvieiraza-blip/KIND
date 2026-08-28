@@ -1490,15 +1490,38 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 
 ---
 
+## 🛑 NOTHING ABOVE IS LAUNCH SCOPE *(founder-restated 22 Aug, when this list was written)*
+
+Every item on this page is parked. **No entry above converts into launch scope**, and reading one here is not permission to build it. Launch remains exactly:
+
+**25 Aug 2026** · **one core ICP** · **one active campaign** · **one live sequence / motion** · **20 → refine the SAME ICP → 20 → a human** · **$299 onboarding pack** · **first 100 approved leads included** · **$4 after the first 100** · **K.I.N.D-only GO** · **human reply ownership** · **the current provider and money boundaries**.
+
+His reason for the whole shape, recorded because it explains every deferral above: *"correctness and control matter more than automation"* — the founder wants to learn how clients actually behave before any of this is made more efficient.
+
 # ░ 📥 27 AUG — THE FOUNDER IDEA BANK (FI-01 … FI-69) — master control record ░
 
 ⛓️ **WHY THIS SECTION EXISTS.** On 27 Aug the founder listed sixty-nine ideas, directions and supersessions that existed **only in chat**. A ruling that lives only in a transcript is a ruling that will be contradicted — the transcript is not read at session start and cannot be grepped, which is exactly how #549 was contradicted on 6 Aug. This section is the **master backlog entry for every one of them**; where an item has a canonical home elsewhere, the home is named and the detail lives there, not here.
 
-⚠️ **NOTHING HERE IS BUILT, AND NOTHING HERE IS LAUNCH SCOPE** unless the *Canonical home* column says LAUNCH-PAD. Reading an item here is not permission to build it. Every entry is **LOGGED**, not started.
+⚠️ **THIS SECTION SITS DELIBERATELY BELOW THE "NOTHING ABOVE IS LAUNCH SCOPE" LINE, AND IT DOES NOT INHERIT IT.** It was first written above that disclaimer, which mislabelled three launch-current items as parked. The bank holds **two kinds of item** and they must never be read as one:
+
+| | Which | Where the work is owned | Scope |
+|---|---|---|---|
+| 🔴 **LAUNCH-CURRENT** | **FI-10** proof runtime failure · **FI-11** paid-provider controlled go-live · **FI-12** pre-launch cleanup | **`LAUNCH-PAD` T10 · T11 · T12** — the detail lives there, not here | **IN launch scope.** These are live work |
+| ⚪ **POST-LAUNCH / V2** | every other FI item | **This section** is the record | **NOT launch scope.** Parked until the founder says otherwise |
+
+⚠️ **NOTHING HERE IS BUILT.** Every entry is **LOGGED**, not started, and reading one is not permission to build it. Logging never converts an idea into scope, into "built", or into launch readiness. The three launch-current items are LOGGED here and **OWNED in LAUNCH-PAD** — this section indexes them, it does not duplicate their detail.
 
 ⚠️ **THE PROGRAMME COMMERCIAL MODEL (FI-26 … FI-45) CONTRADICTS THE CURRENT LOCKED PRICING** ($299 pack · 100 included · $4 per approved lead). Both are preserved. The reconciliation is **PRODUCT-RULES R74**, and it is a founder decision, not a documentation one.
 
 **Classification used below:** `FOUND` (already correctly recorded — left alone) · `PARTIAL` (existed, completed here) · `MISSING` (added here) · `CONFLICT` (both sides preserved, founder must decide) · `SUPERSEDED` (older direction kept, chained forward).
+
+**Verified tally — FI-01 … FI-69, 69 unique IDs, no duplicates, none missing:**
+
+| FOUND | PARTIAL | MISSING | CONFLICT | SUPERSEDED | Total |
+|---|---|---|---|---|---|
+| 7 | 15 | 39 | **1** | 7 *(2 in-table + 5 in block P)* | **69** |
+
+⛓️ **CORRECTED 27 Aug (founder review).** The first pass recorded **5** conflicts. Four were not conflicts and are now chained supersessions or settled directions: **FI-01 vs FI-29** (observed attainment vs commercial planning assumption — different concepts, expected to converge) · **FI-26** and **FI-27** (current founder-approved direction; the 3 Aug discount lock is older and superseded for the programme model) · **FI-58** (gross-vs-contribution is **settled: contribution** — only the calculation is open, at FI-59). **One genuine conflict remains: FI-31.**
 
 ---
 
@@ -1506,7 +1529,7 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 
 | ID | Item | Class | Canonical home | Notes · open questions |
 |----|------|-------|----------------|------------------------|
-| **FI-01** | **Sourcing attainment.** Move from ~**7 sourced → 1 usable/accepted** toward ~**1.5 → 1**, long-term as close to **1:1** as real data allows. Major economics/workflow project. **Does not block launch.** | CONFLICT | V2 (here) · `run-costs-and-cashflow.md` | ⚠️ The 7:1 figure appears nowhere in the repo as a sourcing ratio — the only `7:1` hit is unrelated (`PARTNER-BRIEF.md`). So the **baseline is unverified in-repo**; it is the founder's field observation. Conflicts with **FI-29** (1:1 for commercial planning) unless the two are read as *today's reality* vs *planning assumption* — **FOUNDER RECONCILIATION REQUIRED** |
+| **FI-01** | **Sourcing attainment — OBSERVED / OPERATIONAL.** Today roughly **7 sourced → 1 usable/accepted**. Post-launch objective: improve toward ~**1.5 → 1**, ultimately as close to **1:1** as real data allows. Major economics/workflow project. **Does not block launch.** | MISSING | V2 (here) · `run-costs-and-cashflow.md` | ⚠️ **NOT IN CONFLICT WITH FI-29 — they are different concepts.** FI-01 is **observed/operational attainment** (what the pipeline actually yields today, and the engineering target to improve it). FI-29 is the **commercial planning assumption / desired economics architecture**. One is a measurement, the other is a modelling input; they are expected to converge, not to agree today. ⚠️ The 7:1 figure appears nowhere in the repo — it is the founder's field observation, unverified in-repo |
 | **FI-02** | **Vida Lead Pool operator view** — counts · filters · provenance · usability · contactability · what can actually be served. | MISSING | V2 (here) | Builds on the #1458 pool/geography/provenance contract. No operator surface exists today |
 | **FI-03** | **Vida suppression / DNC visibility** — operator view of suppression, DNC and opt-out state/inventory. | MISSING | V2 (here) | `opt_out_blocklist` exists in schema; no operator view reads it |
 | **FI-04** | **Acquisition-memory operator visibility.** Keep **acquisition_memory**, the **reusable serving pool** and **suppression/DNC/opt-out** as three visibly separate concepts. **Do not collapse them.** | MISSING | V2 (here) | A real design constraint, not a feature: they answer different questions (what we bought · what we may serve · who we must never contact) |
@@ -1530,7 +1553,7 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 |----|------|-------|----------------|------------------------|
 | **FI-13** | **Booked → paying conversion tracking**, for both K.I.N.D acquisition and client programmes: accepted/contacted → booked → held → opportunity/proposal → paying. | PARTIAL | PRODUCT-RULES **R69** · V2 (here) | R69 already requires booked → held → paying tracked separately. **New here:** the *opportunity/proposal* stage |
 | **FI-14** | **~15% booked → paying.** **Planning hypothesis only — must NOT be locked as a benchmark.** | MISSING | V2 (here) | Recorded deliberately as a hypothesis so it cannot later be quoted as a rate |
-| **FI-15** | **Premium conversion-coaching product.** Core K.I.N.D = targeting → approved leads → outreach → **booked meeting**. Premium layer = booked → held → opportunity → **won customer**. | MISSING | V2 (here) | ⚠️ Extends past **MEETING_BOOKED**, which CLAUDE.md holds as the hard downstream product boundary. **The boundary move is a founder decision** |
+| **FI-15** | **Premium conversion-coaching product.** Core K.I.N.D = targeting → approved leads → outreach → **booked meeting**. Premium layer = booked → held → opportunity/proposal → **paying/won**, plus coaching. | MISSING | V2 (here) | ✅ **POST-LAUNCH / PREMIUM EXPANSION — NOT A CONFLICT.** **CURRENT LAUNCH BOUNDARY REMAINS `MEETING_BOOKED`** and nothing here changes it. This is a future premium layer *beyond* that boundary, not a request to move it. **No runtime change now** |
 | **FI-16** | **Milla/AI conversion coaching** — diagnose funnel leakage · learn which ICPs, messages and meetings convert · coach before and after meetings. Likely **subscription/premium economics**, not per-lead. | MISSING | V2 (here) | Depends on FI-13 data existing first |
 
 ## D · GLEAN / CONTEXT / MULTI-PLAYER AI
@@ -1569,16 +1592,28 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 
 ## I · PROGRAMME COMMERCIAL MODEL — current unbuilt direction
 
-> ⚠️ **THE WHOLE OF THIS BLOCK CONFLICTS WITH CURRENT LOCKED PRICING AND IS NOT BUILT.** Current truth remains **$299 pack · first 100 approvals included · $4 per approved lead**. The supersession is recorded as **PRODUCT-RULES R74** and requires a founder decision to become current. Nothing in this block may be quoted to a client.
+> ### ⛓️ THE PRICING CHRONOLOGY — three states, not three options
+>
+> This block is **not** a menu of competing choices. It is one chronology, and the repo must read it in three clearly separated registers:
+>
+> | Register | What | Where |
+> |---|---|---|
+> | **LIVE NOW (legacy runtime)** | **$299 pack · first 100 approvals included · $4 per approved lead.** Operational today, unchanged, still the only money model in code. | `@kind/shared` · `approve-lead.ts` |
+> | **SUPERSEDED HISTORY** | **R68's $4 → $8 migration** (LAUNCH-PAD **T9**). An earlier *future* direction, now overtaken. Preserved, not deleted. | **R68** · **T9** |
+> | **CURRENT FOUNDER-APPROVED DIRECTION — UNIMPLEMENTED** | **Programme pricing, ~$450 per targeted booked meeting, with automatic volume discounts.** This is the **intended commercial architecture**. | **R74** · FI-26 … FI-45 |
+>
+> ⚠️ **Legacy runtime remains operational until the coordinated programme migration is built, tested, founder-approved and deployed.** Nothing in this block is built, and nothing in it may be quoted to a client, a partner or the website until it ships.
+>
+> ⚠️ **A future agent reading this must not treat the legacy commercial architecture as the intended product.** $4 is what runs; the programme model is where the product is going.
 
 | ID | Item | Class | Canonical home | Notes · open questions |
 |----|------|-------|----------------|------------------------|
-| **FI-26** | **Programme pricing** anchored around **~$450 per targeted booked meeting**, replacing flat $4/approved lead as the commercial anchor. | CONFLICT | PRODUCT-RULES **R74** ← the supersession · V2 (here) | **FOUNDER RECONCILIATION REQUIRED** against the 3 Aug $299/$4 lock |
-| **FI-27** | **Automatic volume discounts** at higher programme volume. Normal flow must not depend on manual negotiation. | CONFLICT | PRODUCT-RULES **R74** | ⚠️ Contradicts the 3 Aug lock in `constants/index.ts`: *"No discount logic belongs in code, on the website, or in the product."* **FOUNDER RECONCILIATION REQUIRED** |
+| **FI-26** | **Programme pricing** anchored around **~$450 per targeted booked meeting**, replacing flat $4/approved lead as the commercial anchor. | MISSING | PRODUCT-RULES **R74** · V2 (here) | ✅ **CURRENT FOUNDER-APPROVED COMMERCIAL DIRECTION — UNIMPLEMENTED.** Not an open choice. **Supersedes FI-68** (flat $4 as architecture — still **LIVE LEGACY runtime**) and **R68 / LAUNCH-PAD T9** (the $4→$8 migration, now **superseded future direction**). Legacy runtime stays operational until the coordinated programme migration is built, tested, founder-approved and deployed |
+| **FI-27** | **Automatic volume discounts** at higher programme volume. Normal flow must not depend on manual negotiation. | MISSING | PRODUCT-RULES **R74** | ✅ **CURRENT FOUNDER-APPROVED DIRECTION — UNIMPLEMENTED. NOT AN OPEN CONFLICT.** The 3 Aug lock (*"No discount logic belongs in code, on the website, or in the product"*, `constants/index.ts`) is **older than this decision** and is now **superseded history for the programme model** — preserved, chained, not deleted. It still governs the legacy per-lead model while that remains live. **No discount logic is implemented in this PR** |
 | **FI-28** | **Contribution-margin protection ≈ 70%**, eventually a **real money guard**, not spreadsheet commentary. | MISSING | `run-costs-and-cashflow.md` · V2 (here) | Arithmetic recorded in run-costs: at 250:1 and 1:1 sourcing, PDL alone is ~$70 of a ~$135 COGS ceiling |
 | **FI-29** | **Commercial sourcing assumption = 1:1** (1 provider result ≈ 1 usable/contacted lead). **Supersedes the old 2:1 / 7:1 commercial planning logic.** | SUPERSEDED | `run-costs-and-cashflow.md` · V2 (here) | Chains **FI-01**. In code the old 2:1 still lives as `PACK_SOURCE_TARGET = PACK_LEADS × 2` — unchanged, and now flagged |
 | **FI-30** | **Milla meeting target** — the client tells Milla how many targeted booked meetings they want. | MISSING | V2 (here) | No such input exists |
-| **FI-31** | **Starting recommendation: 250 leads per targeted booked meeting** (10 meetings → ~2,500 leads). Not a guarantee. | CONFLICT | PRODUCT-RULES **R69** · V2 (here) | ⚠️ **DIRECT CONFLICT WITH R69 (26 Aug)**, which locks the centre case at **~150 accepted prospects per booked meeting**, range 100–250, and makes **250–300 with no booked meeting a campaign-review trigger**. Seeding at 250 sits **at the review threshold**. **FOUNDER RECONCILIATION REQUIRED** |
+| **FI-31** | **Starting recommendation: 250 leads per targeted booked meeting** (10 meetings → ~2,500 leads). Not a guarantee. | CONFLICT | PRODUCT-RULES **R69**, **R74** · V2 (here) | 🛑 **FOUNDER RECONCILIATION REQUIRED — R69's 150:1 vs the programme seed's 250:1.** The denominators were checked rather than assumed: **R69** counts **accepted/contacted prospects per booked meeting**; the programme seed counts **recommended programme leads per targeted booked meeting**. Those would be different stages — except **FI-29 sets commercial planning at 1:1 (1 provider result ≈ 1 usable/contacted lead)**, which collapses recommended leads onto contacted prospects and makes them **effectively the same denominator**. So the two numbers are comparable, and they disagree: **150 (R69 centre, range 100–250) vs 250 (programme seed)** — and R69 makes **250–300 with no booked meeting a campaign-review trigger**, so the seed starts every client at that threshold. **No resolution is invented here** |
 | **FI-32** | **Client-specific learning** — replace the seed benchmark with the client's actual lead→booked performance once evidence is sufficient. | FOUND | PRODUCT-RULES **R69** | R69 already says real data supersedes the benchmark. No change needed |
 | **FI-33** | **Performance deterioration → stop/review.** Never blindly recommend more spend. | FOUND | PRODUCT-RULES **R69** | R69: *"do NOT automatically tell the client to buy more."* Already locked |
 | **FI-34** | **Benchmark transparency** — show the starting benchmark **and** the client's actual benchmark. | MISSING | V2 (here) | Extends R69 from an internal planning rule to a **client-facing disclosure** |
@@ -1625,8 +1660,8 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 
 | ID | Item | Class | Canonical home | Notes · open questions |
 |----|------|-------|----------------|------------------------|
-| **FI-58** | **Partner commission = 25% of programme CONTRIBUTION**, not 25% of gross programme revenue. | CONFLICT | PRODUCT-RULES **R47**, **R74** | ⚠️ **R47 currently pays 25% of the $4 approved-lead spend**, and `PARTNER_COMMISSION_PER_LEAD_USD` is derived from `LEAD_PRICE_USD`. Changing the price silently changes partner earnings. **FOUNDER RECONCILIATION REQUIRED** |
-| **FI-59** | **"Programme contribution" must be defined explicitly** before implementation. **Not invented here.** | MISSING | V2 (here) | **OPEN QUESTION owned by the founder.** Until defined, FI-58 cannot be built or quoted to a partner |
+| **FI-58** | **Partner commission = 25% of programme CONTRIBUTION**, not of gross programme revenue. | MISSING | PRODUCT-RULES **R74** · **R47** ← legacy | ✅ **CURRENT FOUNDER-APPROVED DIRECTION — UNIMPLEMENTED. THE GROSS-vs-CONTRIBUTION QUESTION IS SETTLED: contribution.** **R47** (25% of the $4 approved-lead spend, `PARTNER_COMMISSION_PER_LEAD_USD` derived from `LEAD_PRICE_USD`) is **LEGACY/LIVE runtime truth** and becomes **superseded migration truth** when the programme model ships. ⚠️ While legacy runs, a per-lead price change still silently rewrites partner earnings. **What remains open is only the calculation — see FI-59** |
+| **FI-59** | **"Programme contribution" must be defined explicitly** before implementation. **Not invented here.** | MISSING | V2 (here) · PRODUCT-RULES **R74** | 🛑 **FOUNDER RECONCILIATION REQUIRED — the exact accounting/runtime definition only.** The *direction* (contribution, not gross) is decided; **what counts as contribution is not** — which costs are deducted, at what point, and whether it is measured per programme or per period. Until defined, **FI-58 cannot be built or quoted to a partner** |
 
 ## N · LAUNCH PROVIDER TRUTH
 
@@ -1651,20 +1686,14 @@ An adopted change must materially support at least one of **REVENUE · RETENTION
 |----|----------------------|---------------|-------|
 | **FI-65** | Individual paid-lead **Accept → charge** at live scale | **FI-37** (one programme-level approval) | The per-lead charge (`try_charge_wallet`) is **still current truth today** and still the only money model in code |
 | **FI-66** | **One-by-one replacement approval** at live scale | **FI-38/FI-39** (controlled batches, auto-progression) | |
-| **FI-67** | The old **7:1 sourcing assumption** | **FI-29** (1:1 for commercial planning) | ⚠️ In code the live assumption is **2:1** (`PACK_SOURCE_TARGET`), not 7:1 — see FI-01 |
-| **FI-68** | **Flat $4 pricing at all volumes** | **FI-26/FI-27** (programme price + automatic volume discounts) | ⚠️ **STILL CURRENT TRUTH UNTIL R74 IS DECIDED.** `LEAD_PRICE_USD = 4` |
+| **FI-67** | The old **7:1 / 2:1 sourcing assumptions** as *commercial planning* inputs | **FI-29** (1:1 for commercial planning) | ⚠️ Superseded **as a planning input only.** The **2:1** in code (`PACK_SOURCE_TARGET`) still runs, and the **observed ~7:1 attainment** is a live operational problem tracked separately at **FI-01** — neither is deleted by this |
+| **FI-68** | **Flat $4 pricing at all volumes** — the commercial *architecture* | **FI-26/FI-27** (programme price + automatic volume discounts) | ⚠️ **`LEAD_PRICE_USD = 4` IS STILL LIVE LEGACY RUNTIME** and stays operational until the coordinated programme migration is built, tested, founder-approved and deployed. What is superseded is its status as the **intended architecture**, not its status as **what runs today** |
 | **FI-69** | **Source-first / pay-on-outcome** mechanics | **FI-36** (50/50 authorised programme) | |
 
 ### ⛓️ The "do not change pricing yet" reconciliation
 
-Earlier in the 27 Aug session the founder instructed: *"Do not change pricing. Do not change Stripe. Do not change `$4` logic yet."* That instruction was **scoped to PR1A and PR2** and is **not** a decision to keep flat-$4 permanently. The **later programme-model direction (FI-26 … FI-45) supersedes flat-$4 as the intended commercial architecture**, while flat-$4 **remains the current built and locked truth** until R74 is decided. Both are true at once: *don't change it yet* and *it is not the destination*. **The chronology is preserved deliberately — neither statement is deleted.**
+Earlier in the 27 Aug session the founder instructed: *"Do not change pricing. Do not change Stripe. Do not change `$4` logic yet."* That instruction was **scoped to PR1A and PR2** — a build boundary on two specific pull requests — and is **not** a decision to keep flat-$4 as the product's architecture.
+
+**Both statements are true at once, in different registers:** *don't change it yet* is an instruction about **live legacy runtime**, which stays operational until a coordinated migration replaces it; *the programme model* is the **current founder-approved direction**, unimplemented. Neither cancels the other, and **neither is deleted** — the chronology runs flat-$4 (live) → R68's $4→$8 (superseded) → programme pricing (current direction).
 
 ---
-
-## 🛑 NOTHING ABOVE IS LAUNCH SCOPE *(founder-restated 22 Aug, when this list was written)*
-
-Every item on this page is parked. **No entry above converts into launch scope**, and reading one here is not permission to build it. Launch remains exactly:
-
-**25 Aug 2026** · **one core ICP** · **one active campaign** · **one live sequence / motion** · **20 → refine the SAME ICP → 20 → a human** · **$299 onboarding pack** · **first 100 approved leads included** · **$4 after the first 100** · **K.I.N.D-only GO** · **human reply ownership** · **the current provider and money boundaries**.
-
-His reason for the whole shape, recorded because it explains every deferral above: *"correctness and control matter more than automation"* — the founder wants to learn how clients actually behave before any of this is made more efficient.

@@ -536,7 +536,7 @@ Superseded by this rebuild; kept only in git history (`git log docs/run-costs-an
 
 # 📥 27 AUG — PROGRAMME-MODEL ECONOMICS (planning only · NOT current pricing)
 
-⛓️ **NOT CURRENT TRUTH.** Current locked pricing stays **$299 pack · first 100 approvals included · $4 per approved lead** (§0, mirrored from `@kind/shared`). Everything below is the founder's **27 Aug programme direction**, recorded as planning arithmetic so it stops living in a chat transcript. Master backlog: **V2 §Founder Idea Bank FI-06, FI-26 … FI-29**. Supersession rule: **PRODUCT-RULES R74**. **Nothing here may be quoted to a client.**
+⛓️ **NOT YET IMPLEMENTED — but this IS the current founder-approved commercial direction.** Three registers, never collapsed: **LIVE NOW (legacy runtime)** = **$299 pack · first 100 approvals included · $4 per approved lead** (§0, mirrored from `@kind/shared`), operational and unchanged · **SUPERSEDED HISTORY** = R68's $4→$8 migration · **CURRENT DIRECTION, UNIMPLEMENTED** = everything below. Legacy runtime stays operational until the coordinated programme migration is built, tested, founder-approved and deployed. Master backlog: **V2 §Founder Idea Bank FI-06, FI-26 … FI-29**. Rule: **PRODUCT-RULES R74**. **Nothing here may be quoted to a client.**
 
 ## The Apollo economics planning case (FI-06)
 
@@ -563,7 +563,7 @@ A worked example the founder wants preserved — **an economics/planning case, n
 - **2:1** is what the **code actually does today** — `PACK_SOURCE_TARGET = PACK_LEADS × 2` sources 200 to yield 100 approvals. Unchanged by this document.
 - **1:1** is the **conservative commercial planning baseline** going forward.
 
-⚠️ These are three different things — *today's reality*, *today's code*, and *the planning assumption* — and conflating them is how a margin gets modelled on a number nothing produces. **FI-01 flags the reconciliation as the founder's.**
+⚠️ These are three different things — *today's observed attainment* (**FI-01**), *today's code*, and *the commercial planning assumption* (**FI-29**) — and they are **not in conflict**: one is a measurement, one is an implementation, one is a modelling input. They are expected to **converge**, not to agree today. Conflating them is how a margin gets modelled on a number nothing produces.
 
 ## The margin arithmetic behind the ~70% target (FI-28)
 
@@ -576,5 +576,5 @@ At the founder's stated anchor of **~$450 per targeted booked meeting** and a **
 | Remaining for enrichment, sender, sending, AI and infrastructure | **~$42.50** |
 | **COGS ceiling at 70% contribution** | **~$135** |
 
-⚠️ **THE BENCHMARK IS THE MARGIN.** PDL alone consumes **~52%** of the entire COGS allowance before anything else is paid for. If the real ratio is **500 leads per booked meeting**, PDL alone is **$140** and the contribution margin goes **negative**. Read against **R69**, which locks the centre case at ~150 accepted prospects per booked meeting and treats 250–300 without a meeting as a **campaign-review trigger**, the 250 seed sits **at that threshold** — which is the open conflict R74 records. **This is measurement before it is pricing.**
+⚠️ **THE BENCHMARK IS THE MARGIN.** PDL alone consumes **~52%** of the entire COGS allowance before anything else is paid for. If the real ratio is **500 leads per booked meeting**, PDL alone is **$140** and the contribution margin goes **negative**. Read against **R69**, which locks the centre case at ~150 accepted prospects per booked meeting and treats 250–300 without a meeting as a **campaign-review trigger**, the 250 seed sits **at that threshold**. Because the 1:1 assumption above collapses *recommended programme leads* onto *accepted/contacted prospects*, the two figures share a denominator and genuinely disagree — **the one open benchmark question R74 records, and the founder's to settle. No resolution is invented here.** **This is measurement before it is pricing.**
 

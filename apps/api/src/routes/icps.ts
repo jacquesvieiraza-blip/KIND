@@ -3733,6 +3733,101 @@ icpRouter.post('/:id/proof', async (req: AuthRequest, res) => {
     const { data: pass } = await db.rpc('try_claim_proof_pass', { p_client_id: clientId })
     const claimed = typeof pass === 'number' ? pass : 0
     if (claimed <= 0) {
+      // ⚑ 27 Aug (PR2) — THE PROMISE BECOMES A PIECE OF WORK.
+      //
+      // This branch used to return the 409 below and nothing else. The prospect was told
+      // "K.I.N.D will review this with you", and nobody at K.I.N.D was told anything: no row,
+      // no alert, no operator surface. Thirty lines down, a run that CRASHES pages a human —
+      // so a proof that broke reached us and a proof that merely failed the client did not.
+      //
+      // ⚠️ THE ASK IS THE TRIGGER, NOT THE COUNT. `proof_passes_done >= 2` on its own only
+      // means both passes were generated, which is the ordinary healthy end of a proof that
+      // worked. Deriving a handoff from the count would raise one against every prospect the
+      // moment pass 2 rendered — a queue full of people who need nothing. The review is owed
+      // when they have used both AND come back for another, which is exactly here: the
+      // atomic claim already refused, so this request IS the third attempt.
+      //
+      // ⚠️ THE DATABASE IS THE IDEMPOTENCY AUTHORITY, NEVER THE UI. A double-click, a
+      // refresh, an offline retry and two concurrent tabs all land here. The conditional
+      // UPDATE below is the whole mechanism: Postgres re-evaluates the WHERE after taking the
+      // row lock, so of N racing writers exactly one matches and the rest update zero rows.
+      // The same reasoning as `try_charge_wallet`'s `WHERE allowance >= granted`.
+      //
+      // The filter reads "no review is currently OPEN" rather than "no review has ever
+      // existed": once an operator resolves one, a prospect who comes back later is a new
+      // request and must reach a human again. Re-opening clears `resolved_at` in the same
+      // statement so the two columns can never both be non-null and disagree.
+      // ⚠️ THE REFUSAL MUST NOT DEPEND ON THE HANDOFF SUCCEEDING. This whole block is wrapped
+      // because it sits in front of the 409, and an unwrapped throw here would be caught by
+      // the route's outer handler and returned as a 500 — turning a correct, final,
+      // client-facing refusal into a generic error the client is invited to retry. The
+      // prospect would never see "we will review this with you"; they would see "Could not
+      // start your proof batch" and press the button again.
+      //
+      // So the two facts are ranked: the client ALWAYS learns the truth (409, below), and a
+      // failure to persist the handoff becomes a louder problem for us, not a worse
+      // experience for them. Found by two existing proof suites going red on exactly this.
+      // ⚠️ A RETURNED `error` IS THE LIKELY FAILURE, NOT A THROW — AND THE FIRST VERSION OF
+      // THIS BLOCK MISSED IT. supabase-js resolves with `{ data: null, error }` for a missing
+      // column or a permission refusal; it does not reject. So a `try/catch` alone caught the
+      // rare case (a dropped connection) and sailed straight past the common one: with the
+      // 20260827 migration not yet applied, `opened` came back null, `length > 0` was false,
+      // and NOBODY WAS ALERTED — the exact silence this whole PR exists to remove, restored
+      // by the error handling meant to prevent it.
+      //
+      // That window is real, not theoretical: merging deploys the API automatically and the
+      // migration is applied by hand afterwards from Vida → Engine, so this code runs against
+      // a database without these columns for as long as that gap lasts.
+      //
+      // Both shapes are therefore funnelled into ONE failure path below.
+      const nowIso = new Date().toISOString()
+      let handoffFailure: string | null = null
+      let opened: Array<{ id: string }> | null = null
+      try {
+        const { data, error: handoffDbErr } = await db.from('clients')
+          .update({
+            proof_review_requested_at: nowIso,
+            proof_review_resolved_at:  null,
+            proof_review_icp_id:       req.params.id,
+          })
+          .eq('id', clientId)
+          .or('proof_review_requested_at.is.null,proof_review_resolved_at.not.is.null')
+          .select('id')
+        opened = (data ?? null) as Array<{ id: string }> | null
+        if (handoffDbErr) handoffFailure = handoffDbErr.message
+      } catch (thrown) {
+        handoffFailure = thrown instanceof Error ? thrown.message : String(thrown)
+      }
+
+      if (handoffFailure !== null) {
+        // The prospect has been promised a human and the record of that promise did not
+        // land. Nothing downstream will retry it, so the alert IS the handoff now.
+        console.error('[icps/proof] PROOF REVIEW HANDOFF FAILED TO PERSIST for client', clientId,
+                      'icp', req.params.id, '—', handoffFailure)
+        void sendFounderAlert('support_escalation', 'Free proof exhausted — and the handoff record FAILED to save', [
+          `Prospect ${clientId}, ICP ${req.params.id}.`,
+          'Proof passes done: 2 of 2. They asked for another set, were refused, and were told K.I.N.D will review it with them.',
+          `Reason the record failed: ${handoffFailure}`,
+          'This alert is the ONLY trace — they will NOT appear in the Vida proof-review list.',
+          'ACTION: contact them directly. If this repeats, the 20260827_proof_review_handoff migration may not be applied (Vida → Engine).',
+        ]).catch(() => {})
+      } else if ((opened ?? []).length > 0) {
+        // Rows came back ⇒ THIS call performed the transition ⇒ this call sends the one alert.
+        // A loser of the race gets `[]` and stays silent, so retries cannot page the operator
+        // twice for one stuck prospect. Fire-and-forget: a mail failure must never undo a
+        // handoff that is already persisted.
+        void sendFounderAlert('support_escalation', 'Free proof is exhausted — a prospect is waiting on a human', [
+          `Prospect ${clientId}, ICP ${req.params.id}.`,
+          'Proof passes done: 2 of 2. They have just asked for another set and been refused — there is no pass 3.',
+          `Requested at ${nowIso}.`,
+          'Reason: both free proof passes were used and the targeting still is not right for them.',
+          'They have been told "K.I.N.D will review this with you", so they are now expecting us.',
+          'ACTION: review their targeting with them, or contact them directly. Mark it handled in Vida → Alerts when done.',
+        ]).catch(() => {})
+      }
+      // A successful UPDATE that matched zero rows is the THIRD outcome and is deliberately
+      // silent: the review is already open, this is a retry, and the operator was told once.
+
       res.status(409).json({
         success: false,
         error: 'We have shown you two sets of leads. Let us talk it through together before we look again — we would rather get your targeting right than keep guessing.',

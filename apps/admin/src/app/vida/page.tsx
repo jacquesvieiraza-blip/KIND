@@ -210,6 +210,9 @@ export default function VidaConsolePage() {
   const [clientsError, setClientsError] = useState<string | null>(null)
   const [selected, setSelected] = useState<string | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
+  // PR2 — the one proof-review action: which client is being resolved, and what to say after.
+  const [proofBusy, setProofBusy] = useState<string | null>(null)
+  const [proofMsg, setProofMsg] = useState<string | null>(null)
   const [work, setWork] = useState<WorkRow[] | null>(null)
   // #620 — the last enrol run that REFUSED somebody, for the selected client. Null is the good
   // case (nobody refused), which is why an empty trail is not an error.
@@ -327,6 +330,35 @@ export default function VidaConsolePage() {
       } else setReplyMsg(j?.error || 'Could not send')
     } catch { setReplyMsg('Could not send') }
     setReplyBusy(null)
+  }
+
+  // ⚑ 27 Aug (PR2) — MARK A PROOF REVIEW HANDLED.
+  //
+  // The alert says a prospect is waiting on a human; this is how the human says they are no
+  // longer waiting. Same shape as `sendReply` above — proxy POST, read `success`, refresh the
+  // surface it changed — because a second pattern for one button is a second pattern to keep.
+  //
+  // ⚠️ IT REFRESHES FROM THE SERVER RATHER THAN DROPPING THE ROW LOCALLY. Splicing the alert
+  // out of local state would show "handled" for a write that failed, which is the same lie
+  // the route's own `already_resolved` bug told. The list re-reads; if the review is still
+  // open it comes back and stays on screen.
+  async function resolveProofReview(clientId: string) {
+    setProofBusy(clientId); setProofMsg(null)
+    try {
+      const j = await fetch(`/api/proxy/operator/proof-review/${encodeURIComponent(clientId)}/resolve`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+      }).then(r => r.json())
+      if (j?.success) {
+        const fresh = await fetch('/api/proxy/operator/alerts').then(r => r.json())
+        if (fresh?.success) setAlerts(fresh.data)
+        setProofMsg(j.data?.resolved === 'resolved' ? 'Marked reviewed.' : 'Already handled.')
+      } else {
+        setProofMsg(j?.error || 'Could not mark it reviewed — it is still open.')
+      }
+    } catch {
+      setProofMsg('Could not mark it reviewed — it is still open.')
+    }
+    setProofBusy(null)
   }
 
   // V4d — ICP + SEQUENCE AUTHORING. Read-only views were not enough: the operator has to be
@@ -784,7 +816,7 @@ export default function VidaConsolePage() {
   // left the state at its initial empty value and the console rendered a calm, confident
   // "nothing to do" over an endpoint that was down — on the screen whose entire job is
   // telling the operator what to work on next. Each failure is now captured and shown.
-  const [loadFail, setLoadFail] = useState<{ status?: string; alerts?: string; worklist?: string; asks?: string }>({})
+  const [loadFail, setLoadFail] = useState<{ status?: string; alerts?: string; worklist?: string; asks?: string; proofReview?: string }>({})
 
   useEffect(() => {
     const fail = (k: 'status' | 'alerts' | 'worklist') => (e: unknown) =>
@@ -794,7 +826,16 @@ export default function VidaConsolePage() {
       .then(j => { if (j?.success) setStatus(j.data); else throw new Error(j?.error || 'the API returned no data') })
       .catch(fail('status'))
     fetch('/api/proxy/operator/alerts').then(r => r.json())
-      .then(j => { if (j?.success) setAlerts(j.data); else throw new Error(j?.error || 'the API returned no data') })
+      .then(j => {
+        if (!j?.success) throw new Error(j?.error || 'the API returned no data')
+        setAlerts(j.data)
+        // ⚑ 27 Aug (PR2) — A PARTIAL FEED MUST SAY SO. The endpoint answers 200 with the
+        // alerts it CAN trust and `degraded.proof_review` when the proof-review queue could
+        // not be read. Without this the operator sees a quiet console and reasonably
+        // concludes nobody is waiting — the exact wrong conclusion. Raised through the
+        // existing loadFail banner rather than a new surface.
+        setLoadFail(f => ({ ...f, proofReview: j?.degraded?.proof_review ?? undefined }))
+      })
       .catch(fail('alerts'))
     fetch('/api/proxy/operator/worklist').then(r => r.json())
       .then(j => { if (j?.success) { setWork(j.data); setBookRatio(j.meta?.ratio ?? null) } else throw new Error(j?.error || 'the API returned no data') })
@@ -1046,8 +1087,24 @@ export default function VidaConsolePage() {
   const orderedClients: ClientRow[] = work
     ? work.map(w => (clients ?? []).find(c => c.id === w.id) ?? w)
     : (clients ?? [])
+  // ⚑ 27 Aug (PR2) — A PROOF REVIEW KEEPS ITS CLIENT ON THE LIST.
+  //
+  // "Only needs you" filters on the WORKLIST (`next.actor === 'you'`), and a proof-exhausted
+  // prospect is by definition NEVER FUNDED — so `client-step.ts` puts them at "Waiting on
+  // their $299" with `actor: 'them'`. The alert rendered correctly and the operator was never
+  // shown the client it belonged to: the filter is ON by default, so the only way to reach
+  // them was to switch it off and pick them by hand.
+  //
+  // One more disjunct, deliberately: it does NOT redefine `actor`, does not touch the
+  // worklist, and does not change the ordering. A client is kept on the list when a human at
+  // K.I.N.D genuinely owes them something, which an unresolved proof review is.
+  const proofReviewClients = new Set(
+    alerts.filter(a => a.kind === 'proof_review').map(a => a.client_id),
+  )
   const visibleClients = onlyNeedsYou && work
-    ? orderedClients.filter(c => workById[c.id]?.next.actor === 'you' || c.id === selected)
+    ? orderedClients.filter(c => workById[c.id]?.next.actor === 'you'
+                              || proofReviewClients.has(c.id)
+                              || c.id === selected)
     : orderedClients
   const selectedWork = selected ? workById[selected] : undefined
 
@@ -1082,11 +1139,12 @@ export default function VidaConsolePage() {
         {/* The other two loads fail independently — and each says so rather than leaving the
             header quietly wrong. An operator who cannot see alerts must know that, not infer
             it from a bell that never rings. */}
-        {(loadFail.status || loadFail.alerts) && (
+        {(loadFail.status || loadFail.alerts || loadFail.proofReview) && (
           <div className="mx-[18px] mb-2.5 rounded-xl border-2 border-red-300 bg-red-50 px-3 py-2">
             <b className="block text-[12px] text-red-900">Part of this console could not load</b>
             {loadFail.status && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load the status header — {loadFail.status}</p>}
             {loadFail.alerts && <p className="text-[11.5px] text-red-800 mt-0.5">Couldn&apos;t load alerts — a quiet bell does NOT mean there is nothing wrong. {loadFail.alerts}</p>}
+            {loadFail.proofReview && <p className="text-[11.5px] text-red-800 mt-0.5"><b>Proof-review queue could not be checked.</b> {loadFail.proofReview}</p>}
           </div>
         )}
         {/* Sorted by who needs you, not alphabetically — and each row says WHY in words. */}
@@ -1239,12 +1297,25 @@ export default function VidaConsolePage() {
                 <div className="shrink-0 flex items-center gap-2 flex-wrap px-[22px] py-2 bg-[#fdf2f8] border-b border-[#fbcfe8]">
                   <span className="text-[12.5px] font-bold text-[#9d174d]">Needs you:</span>
                   {myAlerts.map((a, i) => (
-                    <button key={`${a.kind}-${i}`}
-                      onClick={() => setTab(a.kind === 'replies' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
-                      className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
-                      {a.label} &rarr;
-                    </button>
+                    <span key={`${a.kind}-${i}`} className="flex items-center gap-1">
+                      <button
+                        onClick={() => setTab(a.kind === 'replies' ? 'Inbox' : a.kind === 'no_campaign' ? 'Campaign' : 'ICP')}
+                        className="text-[12px] font-semibold text-[#9d174d] bg-white border border-[#fbcfe8] rounded-full px-2 py-0.5 hover:border-[#EC4899]">
+                        {a.label} &rarr;
+                      </button>
+                      {/* PR2 — the only way to say "this prospect is no longer waiting on us".
+                          Same chip language as the alert beside it; no modal, no new surface. */}
+                      {a.kind === 'proof_review' && (
+                        <button
+                          onClick={() => resolveProofReview(a.client_id)}
+                          disabled={proofBusy === a.client_id}
+                          className="text-[12px] font-semibold text-white bg-[#9d174d] border border-[#9d174d] rounded-full px-2 py-0.5 hover:bg-[#EC4899] disabled:opacity-50">
+                          {proofBusy === a.client_id ? 'Marking…' : 'Mark reviewed'}
+                        </button>
+                      )}
+                    </span>
                   ))}
+                  {proofMsg && <span className="text-[11.5px] text-[#9d174d]">{proofMsg}</span>}
                 </div>
               )}
 

@@ -435,6 +435,9 @@ alter table public.clients
   add column if not exists proof_passes_done                int NOT NULL DEFAULT 0,
   add column if not exists proof_records_committed          int NOT NULL DEFAULT 0,
   add column if not exists proof_started_at                 timestamptz,  -- set by try_claim_proof_pass in the SAME update as proof_passes_done; NULL = unknown, never backfilled
+  add column if not exists proof_review_requested_at        timestamptz,  -- set ONLY when a prospect who has used both passes asks for another (20260827_proof_review_handoff)
+  add column if not exists proof_review_resolved_at         timestamptz,  -- stamped by an operator in Vida; non-null clears it from the unresolved feed
+  add column if not exists proof_review_icp_id              uuid,         -- which ICP they were looking at when they asked — a pointer, not the identity of the review
   add column if not exists terms_accepted_at                timestamptz,
   add column if not exists terms_accepted_ip                text,
   add column if not exists trial_sourcing_granted           int NOT NULL DEFAULT 0,

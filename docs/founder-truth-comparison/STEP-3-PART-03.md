@@ -2,7 +2,7 @@
 
 > # 🛑 STEP 3 COMPARES EVIDENCE ONLY. NO FINAL TRUTH, PRIORITY, AUTHORITY OR SUPERSESSION DECISION HAS BEEN MADE.
 >
-> Rows **INV-18001 … INV-24281**. This is the mechanical INV → CMP coverage map and **nothing else**.
+> Rows **INV-18001 … INV-24309**. This is the mechanical INV → CMP coverage map and **nothing else**.
 > The subjects, the evidence, the relationships, the conflicts and the validation live in
 > [`../FOUNDER-TRUTH-COMPARISON-2026-08-28.md`](../FOUNDER-TRUTH-COMPARISON-2026-08-28.md).
 >
@@ -61,11 +61,11 @@
 | INV-18043 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18044 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18045 | CMP-0002 | The $4 per-approved-lead charge | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18046 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18046 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18047 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18048 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18049 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18050 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18050 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18051 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18052 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18053 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -128,7 +128,7 @@
 | INV-18110 | STRUCTURAL | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18111 | CMP-0115 | Seed data, wipes and Client Zero | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18112 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18113 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18113 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18114 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18115 | SOURCE-SPECIFIC | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18116 | CMP-0075 | The status dot ladder | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -142,7 +142,7 @@
 | INV-18124 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18125 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18126 | SOURCE-SPECIFIC | — | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
-| INV-18127 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
+| INV-18127 | CMP-0075 | The status dot ladder | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18128 | CMP-0020 | Stripe as the payment gate | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18129 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
 | INV-18130 | CMP-0034 | Outlook / Zoho as a calendar and mail host | `docs/archive/V2-NARRATIVE-2026-08-21.md` |
@@ -434,7 +434,7 @@
 | INV-18416 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18417 | CMP-0039 | Vida — the operator console | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18418 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
-| INV-18419 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
+| INV-18419 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18420 | CMP-0039 | Vida — the operator console | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18421 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18422 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
@@ -466,7 +466,7 @@
 | INV-18448 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18449 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18450 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
-| INV-18451 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
+| INV-18451 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18452 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18453 | CMP-0050 | CASHFLOW-LAB as the money model of record | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
 | INV-18454 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/LAUNCH-PAD-2026-08-21.md` |
@@ -905,7 +905,7 @@
 | INV-18887 | CMP-0040 | Proof review — the exhausted prospect becomes real work | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18888 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18889 | CMP-0098 | Integrations and CRM | `docs/archive/roadmap-audit-14-may-2026.md` |
-| INV-18890 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/roadmap-audit-14-may-2026.md` |
+| INV-18890 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18891 | CMP-0096 | Company engine, seats and the pool | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18892 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18893 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/roadmap-audit-14-may-2026.md` |
@@ -994,7 +994,7 @@
 | INV-18976 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18977 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18978 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/roadmap-audit-14-may-2026.md` |
-| INV-18979 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/roadmap-audit-14-may-2026.md` |
+| INV-18979 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18980 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18981 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-18982 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/roadmap-audit-14-may-2026.md` |
@@ -1020,7 +1020,7 @@
 | INV-19002 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-19003 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-19004 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/roadmap-audit-14-may-2026.md` |
-| INV-19005 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/roadmap-audit-14-may-2026.md` |
+| INV-19005 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-19006 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-19007 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/roadmap-audit-14-may-2026.md` |
 | INV-19008 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/roadmap-audit-14-may-2026.md` |
@@ -1120,11 +1120,11 @@
 | INV-19102 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND_Roadmap.md` |
 | INV-19103 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND_Roadmap.md` |
 | INV-19104 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND_Roadmap.md` |
-| INV-19105 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_Roadmap.md` |
+| INV-19105 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND_Roadmap.md` |
 | INV-19106 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND_Roadmap.md` |
 | INV-19107 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND_Roadmap.md` |
 | INV-19108 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND_Roadmap.md` |
-| INV-19109 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_Roadmap.md` |
+| INV-19109 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND_Roadmap.md` |
 | INV-19110 | CMP-0081 | Environment variables and tiers | `docs/archive/KIND_Roadmap.md` |
 | INV-19111 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/KIND_Roadmap.md` |
 | INV-19112 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/KIND_Roadmap.md` |
@@ -1493,7 +1493,7 @@
 | INV-19475 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND_SOP.md` |
 | INV-19476 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19477 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/KIND_SOP.md` |
-| INV-19478 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
+| INV-19478 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19479 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19480 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19481 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND_SOP.md` |
@@ -1518,24 +1518,24 @@
 | INV-19500 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19501 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19502 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
-| INV-19503 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
+| INV-19503 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/KIND_SOP.md` |
 | INV-19504 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19505 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/KIND_SOP.md` |
-| INV-19506 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19507 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
+| INV-19506 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19507 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
 | INV-19508 | CMP-0020 | Stripe as the payment gate | `docs/archive/KIND_SOP.md` |
-| INV-19509 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19510 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19511 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
+| INV-19509 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19510 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19511 | CMP-0094 | Documents — proposals, order forms, invoices | `docs/archive/KIND_SOP.md` |
 | INV-19512 | CMP-0020 | Stripe as the payment gate | `docs/archive/KIND_SOP.md` |
-| INV-19513 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19514 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19515 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19516 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19517 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19518 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19519 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
-| INV-19520 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND_SOP.md` |
+| INV-19513 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19514 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19515 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/KIND_SOP.md` |
+| INV-19516 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19517 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19518 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19519 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
+| INV-19520 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND_SOP.md` |
 | INV-19521 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/KIND_SOP.md` |
 | INV-19522 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/KIND_SOP.md` |
 | INV-19523 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/KIND_SOP.md` |
@@ -1805,7 +1805,7 @@
 | INV-19787 | CMP-0014 | Booked → held → paying assumptions | `docs/archive/BUILD-STATUS-26JUL.md` |
 | INV-19788 | CMP-0075 | The status dot ladder | `docs/archive/BUILD-STATUS-26JUL.md` |
 | INV-19789 | CMP-0064 | Nexus — the per-client learning brain | `docs/archive/BUILD-STATUS-26JUL.md` |
-| INV-19790 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/BUILD-STATUS-26JUL.md` |
+| INV-19790 | CMP-0064 | Nexus — the per-client learning brain | `docs/archive/BUILD-STATUS-26JUL.md` |
 | INV-19791 | CMP-0064 | Nexus — the per-client learning brain | `docs/archive/BUILD-STATUS-26JUL.md` |
 | INV-19792 | CMP-0064 | Nexus — the per-client learning brain | `docs/archive/BUILD-STATUS-26JUL.md` |
 | INV-19793 | CMP-0064 | Nexus — the per-client learning brain | `docs/archive/BUILD-STATUS-26JUL.md` |
@@ -1919,7 +1919,7 @@
 | INV-19901 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
 | INV-19902 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
 | INV-19903 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
-| INV-19904 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/CHANGELOG.md` |
+| INV-19904 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
 | INV-19905 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
 | INV-19906 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
 | INV-19907 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
@@ -1994,7 +1994,7 @@
 | INV-19976 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
 | INV-19977 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
 | INV-19978 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/CHANGELOG.md` |
-| INV-19979 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/CHANGELOG.md` |
+| INV-19979 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/CHANGELOG.md` |
 | INV-19980 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/CHANGELOG.md` |
 | INV-19981 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/CHANGELOG.md` |
 | INV-19982 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/CHANGELOG.md` |
@@ -2002,7 +2002,7 @@
 | INV-19984 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/CHANGELOG.md` |
 | INV-19985 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/CHANGELOG.md` |
 | INV-19986 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/CHANGELOG.md` |
-| INV-19987 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/CHANGELOG.md` |
+| INV-19987 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/CHANGELOG.md` |
 | INV-19988 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/CHANGELOG.md` |
 | INV-19989 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/CHANGELOG.md` |
 | INV-19990 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
@@ -2011,7 +2011,7 @@
 | INV-19993 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/CHANGELOG.md` |
 | INV-19994 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/CHANGELOG.md` |
 | INV-19995 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/CHANGELOG.md` |
-| INV-19996 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/CHANGELOG.md` |
+| INV-19996 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/CHANGELOG.md` |
 | INV-19997 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/CHANGELOG.md` |
 | INV-19998 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/CHANGELOG.md` |
 | INV-19999 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/CHANGELOG.md` |
@@ -2030,7 +2030,7 @@
 | INV-20012 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/CHANGELOG.md` |
 | INV-20013 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/CHANGELOG.md` |
 | INV-20014 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/CHANGELOG.md` |
-| INV-20015 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/CHANGELOG.md` |
+| INV-20015 | SOURCE-SPECIFIC | — | `docs/archive/CHANGELOG.md` |
 | INV-20016 | STRUCTURAL | — | `docs/archive/CHANGELOG.md` |
 | INV-20017 | STRUCTURAL | — | `docs/archive/CHANGELOG.md` |
 | INV-20018 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/CHANGELOG.md` |
@@ -2096,7 +2096,7 @@
 | INV-20078 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20079 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20080 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
-| INV-20081 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20081 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20082 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/AUDIT.md` |
 | INV-20083 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/AUDIT.md` |
 | INV-20084 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/AUDIT.md` |
@@ -2104,17 +2104,17 @@
 | INV-20086 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20087 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20088 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
-| INV-20089 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
-| INV-20090 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20089 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
+| INV-20090 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20091 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/AUDIT.md` |
-| INV-20092 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20092 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20093 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/AUDIT.md` |
 | INV-20094 | CMP-0039 | Vida — the operator console | `docs/archive/AUDIT.md` |
-| INV-20095 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
-| INV-20096 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20095 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
+| INV-20096 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20097 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20098 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
-| INV-20099 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20099 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20100 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20101 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/AUDIT.md` |
 | INV-20102 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/AUDIT.md` |
@@ -2139,7 +2139,7 @@
 | INV-20121 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/AUDIT.md` |
 | INV-20122 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/AUDIT.md` |
 | INV-20123 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/AUDIT.md` |
-| INV-20124 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20124 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/AUDIT.md` |
 | INV-20125 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/AUDIT.md` |
 | INV-20126 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/AUDIT.md` |
 | INV-20127 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/AUDIT.md` |
@@ -2172,7 +2172,7 @@
 | INV-20154 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20155 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20156 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
-| INV-20157 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20157 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20158 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20159 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20160 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
@@ -2210,7 +2210,7 @@
 | INV-20192 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/AUDIT.md` |
 | INV-20193 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20194 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
-| INV-20195 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20195 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20196 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/AUDIT.md` |
 | INV-20197 | CMP-0112 | Infrastructure, hosting and the stack | `docs/archive/AUDIT.md` |
 | INV-20198 | CMP-0112 | Infrastructure, hosting and the stack | `docs/archive/AUDIT.md` |
@@ -2267,9 +2267,9 @@
 | INV-20249 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20250 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20251 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/AUDIT.md` |
-| INV-20252 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
-| INV-20253 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
-| INV-20254 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT.md` |
+| INV-20252 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
+| INV-20253 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
+| INV-20254 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT.md` |
 | INV-20255 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20256 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
 | INV-20257 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT.md` |
@@ -2298,7 +2298,7 @@
 | INV-20280 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20281 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20282 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
-| INV-20283 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
+| INV-20283 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20284 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20285 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20286 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
@@ -2331,7 +2331,7 @@
 | INV-20313 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20314 | CMP-0082 | The core-file register and the doc map | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20315 | CMP-0118 | Prior audits and reconciliations | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
-| INV-20316 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
+| INV-20316 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20317 | CMP-0109 | Security, key rotation and secrets | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20318 | CMP-0110 | Backup, restore and failover | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
 | INV-20319 | CMP-0075 | The status dot ladder | `docs/archive/AUDIT-24JUN-RECONCILIATION.md` |
@@ -2379,7 +2379,7 @@
 | INV-20361 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20362 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20363 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
-| INV-20364 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
+| INV-20364 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20365 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20366 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
 | INV-20367 | CMP-0005 | The volume curve — $437.50 at 10 meetings, ~$400 floor at 50+ | `docs/archive/ADMIN-BOOKKEEPER-AUDIT.md` |
@@ -2626,7 +2626,7 @@
 | INV-20608 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20609 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20610 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
-| INV-20611 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/STAGING-REVIEW.md` |
+| INV-20611 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20612 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20613 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20614 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
@@ -2720,7 +2720,7 @@
 | INV-20702 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20703 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20704 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
-| INV-20705 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/STAGING-REVIEW.md` |
+| INV-20705 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20706 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20707 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
 | INV-20708 | CMP-0076 | Preview before live | `docs/archive/STAGING-REVIEW.md` |
@@ -2765,7 +2765,7 @@
 | INV-20747 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20748 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20749 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/SESSION-SUMMARY-13JUN.md` |
-| INV-20750 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/SESSION-SUMMARY-13JUN.md` |
+| INV-20750 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20751 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20752 | STRUCTURAL | — | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20753 | SOURCE-SPECIFIC | — | `docs/archive/SESSION-SUMMARY-13JUN.md` |
@@ -2920,7 +2920,7 @@
 | INV-20902 | CMP-0058 | Launch gates and blockers | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20903 | STRUCTURAL | — | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20904 | SOURCE-SPECIFIC | — | `docs/archive/SESSION-SUMMARY-13JUN.md` |
-| INV-20905 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/SESSION-SUMMARY-13JUN.md` |
+| INV-20905 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20906 | STRUCTURAL | — | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20907 | CMP-0076 | Preview before live | `docs/archive/SESSION-SUMMARY-13JUN.md` |
 | INV-20908 | CMP-0096 | Company engine, seats and the pool | `docs/archive/SESSION-SUMMARY-13JUN.md` |
@@ -3048,8 +3048,8 @@
 | INV-21030 | CMP-0117 | Session logs and handoffs | `docs/archive/MORNING-FIXLOG.md` |
 | INV-21031 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MORNING-FIXLOG.md` |
 | INV-21032 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MORNING-FIXLOG.md` |
-| INV-21033 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MORNING-FIXLOG.md` |
-| INV-21034 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MORNING-FIXLOG.md` |
+| INV-21033 | CMP-0117 | Session logs and handoffs | `docs/archive/MORNING-FIXLOG.md` |
+| INV-21034 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MORNING-FIXLOG.md` |
 | INV-21035 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MORNING-FIXLOG.md` |
 | INV-21036 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/MORNING-FIXLOG.md` |
 | INV-21037 | CMP-0117 | Session logs and handoffs | `docs/archive/MORNING-FIXLOG.md` |
@@ -3161,7 +3161,7 @@
 | INV-21143 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/DEPLOY-CHECKLIST.md` |
 | INV-21144 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/DEPLOY-CHECKLIST.md` |
 | INV-21145 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/DEPLOY-CHECKLIST.md` |
-| INV-21146 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/DEPLOY-CHECKLIST.md` |
+| INV-21146 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/DEPLOY-CHECKLIST.md` |
 | INV-21147 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/DEPLOY-CHECKLIST.md` |
 | INV-21148 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/DEPLOY-CHECKLIST.md` |
 | INV-21149 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/DEPLOY-CHECKLIST.md` |
@@ -3760,7 +3760,7 @@
 | INV-21742 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-current.html` |
 | INV-21743 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-current.html` |
 | INV-21744 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-current.html` |
-| INV-21745 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/previews/sequence-builder-current.html` |
+| INV-21745 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-current.html` |
 | INV-21746 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-current.html` |
 | INV-21747 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-current.html` |
 | INV-21748 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-v2.html` |
@@ -3772,7 +3772,7 @@
 | INV-21754 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-v2.html` |
 | INV-21755 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-v2.html` |
 | INV-21756 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-v2.html` |
-| INV-21757 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/previews/sequence-builder-v2.html` |
+| INV-21757 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-v2.html` |
 | INV-21758 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-v2.html` |
 | INV-21759 | CMP-0083 | Campaigns and the sequence builder | `docs/previews/sequence-builder-v2.html` |
 | INV-21760 | STRUCTURAL | — | `docs/previews/signup-sso-current.html` |
@@ -3809,10 +3809,10 @@
 | INV-21791 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/previews/v2-leads-invite.html` |
 | INV-21792 | SOURCE-SPECIFIC | — | `docs/previews/v2-leads-invite.html` |
 | INV-21793 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/previews/v2-leads-invite.html` |
-| INV-21794 | STRUCTURAL | — | `docs/previews/v2-utility-screens.html` |
+| INV-21794 | CMP-0091 | Portal UI quality and the design system | `docs/previews/v2-utility-screens.html` |
 | INV-21795 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/previews/v2-utility-screens.html` |
-| INV-21796 | SOURCE-SPECIFIC | — | `docs/previews/v2-utility-screens.html` |
-| INV-21797 | SOURCE-SPECIFIC | — | `docs/previews/v2-utility-screens.html` |
+| INV-21796 | CMP-0091 | Portal UI quality and the design system | `docs/previews/v2-utility-screens.html` |
+| INV-21797 | CMP-0091 | Portal UI quality and the design system | `docs/previews/v2-utility-screens.html` |
 | INV-21798 | SOURCE-SPECIFIC | — | `docs/previews/v2-utility-screens.html` |
 | INV-21799 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/previews/v2-utility-screens.html` |
 | INV-21800 | SOURCE-SPECIFIC | — | `docs/previews/v2-utility-screens.html` |
@@ -3855,25 +3855,25 @@
 | INV-21837 | CMP-0048 | Onboarding and demo surfaces | `docs/previews/welcome-concepts.html` |
 | INV-21838 | CMP-0048 | Onboarding and demo surfaces | `docs/previews/welcome-concepts.html` |
 | INV-21839 | CMP-0048 | Onboarding and demo surfaces | `docs/previews/welcome-concepts.html` |
-| INV-21840 | CMP-0115 | Seed data, wipes and Client Zero | `docs/mv-previews/flow-dogfood.html` |
-| INV-21841 | CMP-0115 | Seed data, wipes and Client Zero | `docs/mv-previews/flow-dogfood.html` |
+| INV-21840 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/flow-dogfood.html` |
+| INV-21841 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/flow-dogfood.html` |
 | INV-21842 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/flow-dogfood.html` |
 | INV-21843 | CMP-0039 | Vida — the operator console | `docs/mv-previews/flow-dogfood.html` |
-| INV-21844 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/mv-previews/flow-dogfood.html` |
+| INV-21844 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/flow-dogfood.html` |
 | INV-21845 | CMP-0042 | Suppression, opt-out and DNC | `docs/mv-previews/flow-dogfood.html` |
 | INV-21846 | CMP-0025 | Pause — who may pause sending, and why | `docs/mv-previews/flow-dogfood.html` |
 | INV-21847 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/mv-previews/flow-dogfood.html` |
 | INV-21848 | CMP-0035 | Booking-link fallback | `docs/mv-previews/flow-dogfood.html` |
-| INV-21849 | CMP-0115 | Seed data, wipes and Client Zero | `docs/mv-previews/flow-dogfood.html` |
-| INV-21850 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21851 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21852 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21853 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21854 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21855 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21856 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21857 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
-| INV-21858 | CMP-0038 | Meet Milla — the website page | `docs/mv-previews/flow-milla.html` |
+| INV-21849 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/flow-dogfood.html` |
+| INV-21850 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/flow-milla.html` |
+| INV-21851 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/flow-milla.html` |
+| INV-21852 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/flow-milla.html` |
+| INV-21853 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/mv-previews/flow-milla.html` |
+| INV-21854 | CMP-0002 | The $4 per-approved-lead charge | `docs/mv-previews/flow-milla.html` |
+| INV-21855 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/flow-milla.html` |
+| INV-21856 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/flow-milla.html` |
+| INV-21857 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/mv-previews/flow-milla.html` |
+| INV-21858 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/flow-milla.html` |
 | INV-21859 | CMP-0039 | Vida — the operator console | `docs/mv-previews/flow-vida.html` |
 | INV-21860 | CMP-0039 | Vida — the operator console | `docs/mv-previews/flow-vida.html` |
 | INV-21861 | CMP-0039 | Vida — the operator console | `docs/mv-previews/flow-vida.html` |
@@ -3891,53 +3891,53 @@
 | INV-21873 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/home.html` |
 | INV-21874 | CMP-0084 | Unibox, replies and reply triage | `docs/mv-previews/home.html` |
 | INV-21875 | CMP-0084 | Unibox, replies and reply triage | `docs/mv-previews/home.html` |
-| INV-21876 | STRUCTURAL | — | `docs/mv-previews/home.html` |
+| INV-21876 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
 | INV-21877 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/home.html` |
 | INV-21878 | CMP-0080 | Compliance drafts for counsel | `docs/mv-previews/home.html` |
-| INV-21879 | STRUCTURAL | — | `docs/mv-previews/home.html` |
-| INV-21880 | SOURCE-SPECIFIC | — | `docs/mv-previews/home.html` |
+| INV-21879 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21880 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
 | INV-21881 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/home.html` |
 | INV-21882 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/home.html` |
 | INV-21883 | CMP-0039 | Vida — the operator console | `docs/mv-previews/home.html` |
 | INV-21884 | CMP-0039 | Vida — the operator console | `docs/mv-previews/home.html` |
-| INV-21885 | SOURCE-SPECIFIC | — | `docs/mv-previews/home.html` |
-| INV-21886 | STRUCTURAL | — | `docs/mv-previews/home.html` |
-| INV-21887 | SOURCE-SPECIFIC | — | `docs/mv-previews/home.html` |
-| INV-21888 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/home.html` |
+| INV-21885 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21886 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21887 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21888 | CMP-0002 | The $4 per-approved-lead charge | `docs/mv-previews/home.html` |
 | INV-21889 | CMP-0084 | Unibox, replies and reply triage | `docs/mv-previews/home.html` |
-| INV-21890 | SOURCE-SPECIFIC | — | `docs/mv-previews/home.html` |
-| INV-21891 | STRUCTURAL | — | `docs/mv-previews/home.html` |
-| INV-21892 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/mv-previews/home.html` |
-| INV-21893 | STRUCTURAL | — | `docs/mv-previews/home.html` |
-| INV-21894 | SOURCE-SPECIFIC | — | `docs/mv-previews/home.html` |
+| INV-21890 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21891 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21892 | CMP-0064 | Nexus — the per-client learning brain | `docs/mv-previews/home.html` |
+| INV-21893 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21894 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
 | INV-21895 | CMP-0086 | Lead lifecycle and the lead desk | `docs/mv-previews/home.html` |
 | INV-21896 | CMP-0019 | Refund, make-whole and unused value | `docs/mv-previews/home.html` |
 | INV-21897 | CMP-0089 | Credits, the two-pool model and holds | `docs/mv-previews/home.html` |
-| INV-21898 | STRUCTURAL | — | `docs/mv-previews/home.html` |
-| INV-21899 | SOURCE-SPECIFIC | — | `docs/mv-previews/home.html` |
+| INV-21898 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21899 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
 | INV-21900 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/mv-previews/home.html` |
-| INV-21901 | STRUCTURAL | — | `docs/mv-previews/home.html` |
-| INV-21902 | STRUCTURAL | — | `docs/mv-previews/home.html` |
-| INV-21903 | STRUCTURAL | — | `docs/mv-previews/home.html` |
+| INV-21901 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21902 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
+| INV-21903 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/home.html` |
 | INV-21904 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/milla2.html` |
 | INV-21905 | CMP-0002 | The $4 per-approved-lead charge | `docs/mv-previews/milla2.html` |
 | INV-21906 | CMP-0086 | Lead lifecycle and the lead desk | `docs/mv-previews/milla2.html` |
-| INV-21907 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21908 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/mv-previews/milla2.html` |
-| INV-21909 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21910 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21911 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21912 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
+| INV-21907 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21908 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21909 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21910 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21911 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21912 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
 | INV-21913 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/mv-previews/milla2.html` |
 | INV-21914 | CMP-0086 | Lead lifecycle and the lead desk | `docs/mv-previews/milla2.html` |
-| INV-21915 | STRUCTURAL | — | `docs/mv-previews/milla2.html` |
-| INV-21916 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21917 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21918 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21919 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21920 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/mv-previews/milla2.html` |
-| INV-21921 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
-| INV-21922 | SOURCE-SPECIFIC | — | `docs/mv-previews/milla2.html` |
+| INV-21915 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21916 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21917 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21918 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21919 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21920 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21921 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
+| INV-21922 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/milla2.html` |
 | INV-21923 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/roadmap.html` |
 | INV-21924 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/roadmap.html` |
 | INV-21925 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/roadmap.html` |
@@ -3955,21 +3955,21 @@
 | INV-21937 | CMP-0039 | Vida — the operator console | `docs/mv-previews/vida2.html` |
 | INV-21938 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/mv-previews/vida2.html` |
 | INV-21939 | CMP-0083 | Campaigns and the sequence builder | `docs/mv-previews/vida2.html` |
-| INV-21940 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/mv-previews/vida2.html` |
+| INV-21940 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/vida2.html` |
 | INV-21941 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/mv-previews/vida2.html` |
 | INV-21942 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/mv-previews/vida2.html` |
-| INV-21943 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/mv-previews/vida2.html` |
+| INV-21943 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/vida2.html` |
 | INV-21944 | CMP-0042 | Suppression, opt-out and DNC | `docs/mv-previews/vida2.html` |
 | INV-21945 | CMP-0083 | Campaigns and the sequence builder | `docs/mv-previews/vida2.html` |
-| INV-21946 | CMP-0100 | Voice and AI calling | `docs/mv-previews/vida2.html` |
-| INV-21947 | SOURCE-SPECIFIC | — | `docs/mv-previews/vida2.html` |
+| INV-21946 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/vida2.html` |
+| INV-21947 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/vida2.html` |
 | INV-21948 | CMP-0083 | Campaigns and the sequence builder | `docs/mv-previews/vida2.html` |
 | INV-21949 | CMP-0086 | Lead lifecycle and the lead desk | `docs/mv-previews/vida2.html` |
 | INV-21950 | CMP-0039 | Vida — the operator console | `docs/mv-previews/vida2.html` |
 | INV-21951 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-preview.html` |
-| INV-21952 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-preview.html` |
+| INV-21952 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-preview.html` |
 | INV-21953 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-preview.html` |
-| INV-21954 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-preview.html` |
+| INV-21954 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-preview.html` |
 | INV-21955 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-preview.html` |
 | INV-21956 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/portal-v2-preview.html` |
 | INV-21957 | CMP-0088 | Admin console and the bookkeeper view | `docs/portal-v2-preview.html` |
@@ -3982,17 +3982,17 @@
 | INV-21964 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/portal-v2-preview.html` |
 | INV-21965 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-preview.html` |
 | INV-21966 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/portal-v2-preview.html` |
-| INV-21967 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
-| INV-21968 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
-| INV-21969 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
-| INV-21970 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
-| INV-21971 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
+| INV-21967 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
+| INV-21968 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
+| INV-21969 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
+| INV-21970 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
+| INV-21971 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
 | INV-21972 | CMP-0084 | Unibox, replies and reply triage | `docs/pwa-mockup.html` |
-| INV-21973 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
-| INV-21974 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
-| INV-21975 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
+| INV-21973 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
+| INV-21974 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
+| INV-21975 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
 | INV-21976 | CMP-0090 | Dashboards, KPIs and reporting | `docs/pwa-mockup.html` |
-| INV-21977 | CMP-0092 | PWA, offline and mobile | `docs/pwa-mockup.html` |
+| INV-21977 | CMP-0091 | Portal UI quality and the design system | `docs/pwa-mockup.html` |
 | INV-21978 | CMP-0090 | Dashboards, KPIs and reporting | `docs/setup-dashboard-preview.html` |
 | INV-21979 | CMP-0090 | Dashboards, KPIs and reporting | `docs/setup-dashboard-preview.html` |
 | INV-21980 | CMP-0090 | Dashboards, KPIs and reporting | `docs/setup-dashboard-preview.html` |
@@ -4036,7 +4036,7 @@
 | INV-22018 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22019 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22020 | CMP-0083 | Campaigns and the sequence builder | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
-| INV-22021 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
+| INV-22021 | CMP-0098 | Integrations and CRM | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22022 | CMP-0102 | Marketing plan, content and the Drop | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22023 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
 | INV-22024 | CMP-0106 | Competitive landscape and teardowns | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` |
@@ -4708,7 +4708,7 @@
 | INV-22690 | CMP-0125 | Support, help centre and status page | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22691 | SOURCE-SPECIFIC | — | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22692 | CMP-0086 | Lead lifecycle and the lead desk | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
-| INV-22693 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
+| INV-22693 | SOURCE-SPECIFIC | — | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22694 | CMP-0025 | Pause — who may pause sending, and why | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22695 | SOURCE-SPECIFIC | — | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22696 | CMP-0039 | Vida — the operator console | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
@@ -4773,7 +4773,7 @@
 | INV-22755 | CMP-0083 | Campaigns and the sequence builder | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22756 | SOURCE-SPECIFIC | — | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22757 | CMP-0015 | MEETING_BOOKED as the downstream product-outcome boundary | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
-| INV-22758 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
+| INV-22758 | SOURCE-SPECIFIC | — | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22759 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22760 | CMP-0084 | Unibox, replies and reply triage | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
 | INV-22761 | SOURCE-SPECIFIC | — | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` |
@@ -4993,7 +4993,7 @@
 | INV-22975 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/about.html` |
 | INV-22976 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/about.html` |
 | INV-22977 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/about.html` |
-| INV-22978 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/about.html` |
+| INV-22978 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/about.html` |
 | INV-22979 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/about.html` |
 | INV-22980 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/about.html` |
 | INV-22981 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/about.html` |
@@ -5015,7 +5015,7 @@
 | INV-22997 | CMP-0048 | Onboarding and demo surfaces | `apps/website/demo.html` |
 | INV-22998 | CMP-0048 | Onboarding and demo surfaces | `apps/website/demo.html` |
 | INV-22999 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/demo.html` |
-| INV-23000 | CMP-0048 | Onboarding and demo surfaces | `apps/website/demo.html` |
+| INV-23000 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/demo.html` |
 | INV-23001 | CMP-0048 | Onboarding and demo surfaces | `apps/website/demo.html` |
 | INV-23002 | CMP-0048 | Onboarding and demo surfaces | `apps/website/demo.html` |
 | INV-23003 | CMP-0048 | Onboarding and demo surfaces | `apps/website/demo.html` |
@@ -5072,7 +5072,7 @@
 | INV-23054 | CMP-0044 | Two Terms of Service documents | `apps/website/dpa-us.html` |
 | INV-23055 | CMP-0044 | Two Terms of Service documents | `apps/website/dpa-us.html` |
 | INV-23056 | CMP-0044 | Two Terms of Service documents | `apps/website/dpa-us.html` |
-| INV-23057 | CMP-0044 | Two Terms of Service documents | `apps/website/dpa-us.html` |
+| INV-23057 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/dpa-us.html` |
 | INV-23058 | CMP-0044 | Two Terms of Service documents | `apps/website/dpa-us.html` |
 | INV-23059 | CMP-0044 | Two Terms of Service documents | `apps/website/dpa-us.html` |
 | INV-23060 | CMP-0044 | Two Terms of Service documents | `apps/website/dpa-us.html` |
@@ -5145,7 +5145,7 @@
 | INV-23127 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/dpa.html` |
 | INV-23128 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/dpa.html` |
 | INV-23129 | CMP-0099 | WhatsApp and Africa-first channels | `apps/website/dpa.html` |
-| INV-23130 | CMP-0086 | Lead lifecycle and the lead desk | `apps/website/dpa.html` |
+| INV-23130 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/dpa.html` |
 | INV-23131 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/dpa.html` |
 | INV-23132 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/dpa.html` |
 | INV-23133 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/dpa.html` |
@@ -5167,7 +5167,7 @@
 | INV-23149 | CMP-0037 | Milla conversational experience and the flywheel | `apps/website/drop-01.html` |
 | INV-23150 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
 | INV-23151 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
-| INV-23152 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
+| INV-23152 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-01.html` |
 | INV-23153 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
 | INV-23154 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
 | INV-23155 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-01.html` |
@@ -5189,7 +5189,7 @@
 | INV-23171 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
 | INV-23172 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
 | INV-23173 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
-| INV-23174 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
+| INV-23174 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-02.html` |
 | INV-23175 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
 | INV-23176 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
 | INV-23177 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-02.html` |
@@ -5211,7 +5211,7 @@
 | INV-23193 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
 | INV-23194 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
 | INV-23195 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
-| INV-23196 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
+| INV-23196 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-03.html` |
 | INV-23197 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
 | INV-23198 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
 | INV-23199 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-03.html` |
@@ -5229,7 +5229,7 @@
 | INV-23211 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
 | INV-23212 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
 | INV-23213 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
-| INV-23214 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
+| INV-23214 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-04.html` |
 | INV-23215 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
 | INV-23216 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
 | INV-23217 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-04.html` |
@@ -5249,7 +5249,7 @@
 | INV-23231 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
 | INV-23232 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
 | INV-23233 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
-| INV-23234 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
+| INV-23234 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-05.html` |
 | INV-23235 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
 | INV-23236 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
 | INV-23237 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-05.html` |
@@ -5269,7 +5269,7 @@
 | INV-23251 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `apps/website/drop-06.html` |
 | INV-23252 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
 | INV-23253 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
-| INV-23254 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
+| INV-23254 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-06.html` |
 | INV-23255 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
 | INV-23256 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
 | INV-23257 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-06.html` |
@@ -5289,7 +5289,7 @@
 | INV-23271 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
 | INV-23272 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
 | INV-23273 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
-| INV-23274 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
+| INV-23274 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-07.html` |
 | INV-23275 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
 | INV-23276 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
 | INV-23277 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-07.html` |
@@ -5311,7 +5311,7 @@
 | INV-23293 | CMP-0042 | Suppression, opt-out and DNC | `apps/website/drop-08.html` |
 | INV-23294 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
 | INV-23295 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
-| INV-23296 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
+| INV-23296 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-08.html` |
 | INV-23297 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
 | INV-23298 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
 | INV-23299 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-08.html` |
@@ -5333,7 +5333,7 @@
 | INV-23315 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
 | INV-23316 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
 | INV-23317 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
-| INV-23318 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
+| INV-23318 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/drop-09.html` |
 | INV-23319 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
 | INV-23320 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
 | INV-23321 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/drop-09.html` |
@@ -5354,9 +5354,9 @@
 | INV-23336 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `apps/website/figsy.html` |
 | INV-23337 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
 | INV-23338 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
-| INV-23339 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `apps/website/figsy.html` |
+| INV-23339 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/figsy.html` |
 | INV-23340 | CMP-0001 | The $299 onboarding pack | `apps/website/figsy.html` |
-| INV-23341 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
+| INV-23341 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/figsy.html` |
 | INV-23342 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
 | INV-23343 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
 | INV-23344 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/figsy.html` |
@@ -5367,7 +5367,7 @@
 | INV-23349 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
 | INV-23350 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
 | INV-23351 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
-| INV-23352 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
+| INV-23352 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/help-centre.html` |
 | INV-23353 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
 | INV-23354 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
 | INV-23355 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
@@ -5377,7 +5377,7 @@
 | INV-23359 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/help-centre.html` |
 | INV-23360 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
 | INV-23361 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
-| INV-23362 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
+| INV-23362 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/help-centre.html` |
 | INV-23363 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
 | INV-23364 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
 | INV-23365 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/help-centre.html` |
@@ -5419,7 +5419,7 @@
 | INV-23401 | CMP-0042 | Suppression, opt-out and DNC | `apps/website/index.html` |
 | INV-23402 | SOURCE-SPECIFIC | — | `apps/website/index.html` |
 | INV-23403 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/index.html` |
-| INV-23404 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/index.html` |
+| INV-23404 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/index.html` |
 | INV-23405 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/index.html` |
 | INV-23406 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/index.html` |
 | INV-23407 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/index.html` |
@@ -5464,7 +5464,7 @@
 | INV-23446 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/nexus.html` |
 | INV-23447 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/nexus.html` |
 | INV-23448 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/nexus.html` |
-| INV-23449 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/nexus.html` |
+| INV-23449 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/nexus.html` |
 | INV-23450 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/nexus.html` |
 | INV-23451 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/nexus.html` |
 | INV-23452 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/nexus.html` |
@@ -5552,7 +5552,7 @@
 | INV-23534 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/privacy.html` |
 | INV-23535 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/privacy.html` |
 | INV-23536 | CMP-0107 | Regions — SA, US, UK, EU expansion | `apps/website/privacy.html` |
-| INV-23537 | CMP-0086 | Lead lifecycle and the lead desk | `apps/website/privacy.html` |
+| INV-23537 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/privacy.html` |
 | INV-23538 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/privacy.html` |
 | INV-23539 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/privacy.html` |
 | INV-23540 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/privacy.html` |
@@ -5586,7 +5586,7 @@
 | INV-23568 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/solutions.html` |
 | INV-23569 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/solutions.html` |
 | INV-23570 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/solutions.html` |
-| INV-23571 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/solutions.html` |
+| INV-23571 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/solutions.html` |
 | INV-23572 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/solutions.html` |
 | INV-23573 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/solutions.html` |
 | INV-23574 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/solutions.html` |
@@ -5597,7 +5597,7 @@
 | INV-23579 | CMP-0125 | Support, help centre and status page | `apps/website/status.html` |
 | INV-23580 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/status.html` |
 | INV-23581 | CMP-0125 | Support, help centre and status page | `apps/website/status.html` |
-| INV-23582 | CMP-0086 | Lead lifecycle and the lead desk | `apps/website/status.html` |
+| INV-23582 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/status.html` |
 | INV-23583 | CMP-0125 | Support, help centre and status page | `apps/website/status.html` |
 | INV-23584 | CMP-0125 | Support, help centre and status page | `apps/website/status.html` |
 | INV-23585 | CMP-0125 | Support, help centre and status page | `apps/website/status.html` |
@@ -5627,7 +5627,7 @@
 | INV-23609 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/support.html` |
 | INV-23610 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/support.html` |
 | INV-23611 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/support.html` |
-| INV-23612 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/support.html` |
+| INV-23612 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/support.html` |
 | INV-23613 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/support.html` |
 | INV-23614 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/support.html` |
 | INV-23615 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/support.html` |
@@ -5728,7 +5728,7 @@
 | INV-23710 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23711 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23712 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
-| INV-23713 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
+| INV-23713 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/terms.html` |
 | INV-23714 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23715 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
 | INV-23716 | CMP-0044 | Two Terms of Service documents | `apps/website/terms.html` |
@@ -5743,7 +5743,7 @@
 | INV-23725 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
 | INV-23726 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
 | INV-23727 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
-| INV-23728 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
+| INV-23728 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/the-drop.html` |
 | INV-23729 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
 | INV-23730 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
 | INV-23731 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/the-drop.html` |
@@ -5774,7 +5774,7 @@
 | INV-23756 | STRUCTURAL | — | `apps/website/trust.html` |
 | INV-23757 | CMP-0060 | Deployment verification and the SHA report | `apps/website/trust.html` |
 | INV-23758 | CMP-0107 | Regions — SA, US, UK, EU expansion | `apps/website/trust.html` |
-| INV-23759 | CMP-0055 | Company money — salary break-even, churn, cost floor | `apps/website/trust.html` |
+| INV-23759 | SOURCE-SPECIFIC | — | `apps/website/trust.html` |
 | INV-23760 | SOURCE-SPECIFIC | — | `apps/website/trust.html` |
 | INV-23761 | CMP-0116 | Dated roadmap phases and timelines | `apps/website/trust.html` |
 | INV-23762 | STRUCTURAL | — | `apps/website/trust.html` |
@@ -5839,7 +5839,7 @@
 | INV-23821 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/trust.html` |
 | INV-23822 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/trust.html` |
 | INV-23823 | CMP-0127 | Privacy policy and data-processing agreements | `apps/website/trust.html` |
-| INV-23824 | CMP-0086 | Lead lifecycle and the lead desk | `apps/website/trust.html` |
+| INV-23824 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/trust.html` |
 | INV-23825 | STRUCTURAL | — | `apps/website/trust.html` |
 | INV-23826 | STRUCTURAL | — | `apps/website/trust.html` |
 | INV-23827 | STRUCTURAL | — | `apps/website/trust.html` |
@@ -5851,7 +5851,7 @@
 | INV-23833 | CMP-0039 | Vida — the operator console | `apps/website/vida.html` |
 | INV-23834 | CMP-0039 | Vida — the operator console | `apps/website/vida.html` |
 | INV-23835 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/vida.html` |
-| INV-23836 | CMP-0039 | Vida — the operator console | `apps/website/vida.html` |
+| INV-23836 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/vida.html` |
 | INV-23837 | CMP-0039 | Vida — the operator console | `apps/website/vida.html` |
 | INV-23838 | CMP-0039 | Vida — the operator console | `apps/website/vida.html` |
 | INV-23839 | CMP-0039 | Vida — the operator console | `apps/website/vida.html` |
@@ -5873,7 +5873,7 @@
 | INV-23855 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/vs-hiring-an-sdr.html` |
 | INV-23856 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/vs-hiring-an-sdr.html` |
 | INV-23857 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/vs-hiring-an-sdr.html` |
-| INV-23858 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/vs-hiring-an-sdr.html` |
+| INV-23858 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/vs-hiring-an-sdr.html` |
 | INV-23859 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/vs-hiring-an-sdr.html` |
 | INV-23860 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/vs-hiring-an-sdr.html` |
 | INV-23861 | CMP-0047 | Website money surface — 22 pages state $4 | `apps/website/vs-hiring-an-sdr.html` |
@@ -6297,3 +6297,31 @@
 | INV-24279 | CMP-0060 | Deployment verification and the SHA report | `.github/workflows/deploy-website-cloudflare.yml` |
 | INV-24280 | CMP-0060 | Deployment verification and the SHA report | `.github/workflows/deploy-website-cloudflare.yml` |
 | INV-24281 | CMP-0060 | Deployment verification and the SHA report | `.github/workflows/deploy-website-cloudflare.yml` |
+| INV-24282 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24283 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24284 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24285 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24286 | CMP-0021 | Trial and freebies | `docs/mv-previews/README.md` |
+| INV-24287 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24288 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24289 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24290 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/README.md` |
+| INV-24291 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/mv-previews/README.md` |
+| INV-24292 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/mv-previews/README.md` |
+| INV-24293 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24294 | CMP-0064 | Nexus — the per-client learning brain | `docs/mv-previews/README.md` |
+| INV-24295 | CMP-0002 | The $4 per-approved-lead charge | `docs/mv-previews/README.md` |
+| INV-24296 | CMP-0002 | The $4 per-approved-lead charge | `docs/mv-previews/README.md` |
+| INV-24297 | CMP-0086 | Lead lifecycle and the lead desk | `docs/mv-previews/README.md` |
+| INV-24298 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/README.md` |
+| INV-24299 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24300 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24301 | CMP-0039 | Vida — the operator console | `docs/mv-previews/README.md` |
+| INV-24302 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24303 | CMP-0039 | Vida — the operator console | `docs/mv-previews/README.md` |
+| INV-24304 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/README.md` |
+| INV-24305 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24306 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/README.md` |
+| INV-24307 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/mv-previews/README.md` |
+| INV-24308 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/README.md` |
+| INV-24309 | CMP-0091 | Portal UI quality and the design system | `docs/mv-previews/README.md` |

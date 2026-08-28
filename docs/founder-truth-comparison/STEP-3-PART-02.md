@@ -256,7 +256,7 @@
 | INV-09238 | CMP-0099 | WhatsApp and Africa-first channels | `docs/content/linkedin-playbook.md` |
 | INV-09239 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
 | INV-09240 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
-| INV-09241 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/content/linkedin-playbook.md` |
+| INV-09241 | CMP-0088 | Admin console and the bookkeeper view | `docs/content/linkedin-playbook.md` |
 | INV-09242 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
 | INV-09243 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/linkedin-playbook.md` |
 | INV-09244 | CMP-0088 | Admin console and the bookkeeper view | `docs/content/linkedin-playbook.md` |
@@ -346,10 +346,10 @@
 | INV-09328 | CMP-0075 | The status dot ladder | `docs/content/website-video-plan.md` |
 | INV-09329 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/website-video-plan.md` |
 | INV-09330 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/website-video-plan.md` |
-| INV-09331 | CMP-0038 | Meet Milla — the website page | `docs/content/website-video-plan.md` |
+| INV-09331 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/content/website-video-plan.md` |
 | INV-09332 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/website-video-plan.md` |
 | INV-09333 | CMP-0047 | Website money surface — 22 pages state $4 | `docs/content/website-video-plan.md` |
-| INV-09334 | CMP-0038 | Meet Milla — the website page | `docs/content/website-video-plan.md` |
+| INV-09334 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/content/website-video-plan.md` |
 | INV-09335 | CMP-0039 | Vida — the operator console | `docs/content/website-video-plan.md` |
 | INV-09336 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/content/website-video-plan.md` |
 | INV-09337 | CMP-0102 | Marketing plan, content and the Drop | `docs/content/website-video-plan.md` |
@@ -486,11 +486,11 @@
 | INV-09468 | CMP-0048 | Onboarding and demo surfaces | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09469 | CMP-0021 | Trial and freebies | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09470 | CMP-0048 | Onboarding and demo surfaces | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
-| INV-09471 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
-| INV-09472 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
-| INV-09473 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
-| INV-09474 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
-| INV-09475 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
+| INV-09471 | CMP-0083 | Campaigns and the sequence builder | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
+| INV-09472 | CMP-0083 | Campaigns and the sequence builder | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
+| INV-09473 | CMP-0083 | Campaigns and the sequence builder | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
+| INV-09474 | CMP-0083 | Campaigns and the sequence builder | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
+| INV-09475 | CMP-0083 | Campaigns and the sequence builder | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09476 | CMP-0084 | Unibox, replies and reply triage | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09477 | CMP-0084 | Unibox, replies and reply triage | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09478 | CMP-0084 | Unibox, replies and reply triage | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
@@ -522,7 +522,7 @@
 | INV-09504 | SOURCE-SPECIFIC | — | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09505 | CMP-0105 | Partner programme operations | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09506 | CMP-0021 | Trial and freebies | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
-| INV-09507 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
+| INV-09507 | CMP-0083 | Campaigns and the sequence builder | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09508 | CMP-0083 | Campaigns and the sequence builder | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09509 | CMP-0032 | Meeting states — booked, unverified, held, no-show, reschedule | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
 | INV-09510 | CMP-0020 | Stripe as the payment gate | `docs/drafts/GTM_FUNNEL_INSTRUMENTATION.md` |
@@ -664,23 +664,23 @@
 | INV-09646 | CMP-0073 | Session logging and the end-of-session ritual | `README.md` |
 | INV-09647 | CMP-0063 | V2 non-FI roadmap and narrative material | `README.md` |
 | INV-09648 | CMP-0082 | The core-file register and the doc map | `README.md` |
-| INV-09649 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09650 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09651 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09652 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09653 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09654 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
+| INV-09649 | STRUCTURAL | — | `AGENT_AVATARS.md` |
+| INV-09650 | CMP-0118 | Prior audits and reconciliations | `AGENT_AVATARS.md` |
+| INV-09651 | CMP-0088 | Admin console and the bookkeeper view | `AGENT_AVATARS.md` |
+| INV-09652 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `AGENT_AVATARS.md` |
+| INV-09653 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `AGENT_AVATARS.md` |
+| INV-09654 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `AGENT_AVATARS.md` |
 | INV-09655 | CMP-0036 | Milla — the client portal and the masked lead desk | `AGENT_AVATARS.md` |
 | INV-09656 | CMP-0036 | Milla — the client portal and the masked lead desk | `AGENT_AVATARS.md` |
 | INV-09657 | CMP-0036 | Milla — the client portal and the masked lead desk | `AGENT_AVATARS.md` |
 | INV-09658 | CMP-0039 | Vida — the operator console | `AGENT_AVATARS.md` |
 | INV-09659 | CMP-0039 | Vida — the operator console | `AGENT_AVATARS.md` |
 | INV-09660 | CMP-0037 | Milla conversational experience and the flywheel | `AGENT_AVATARS.md` |
-| INV-09661 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09662 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09663 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09664 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
-| INV-09665 | CMP-0055 | Company money — salary break-even, churn, cost floor | `AGENT_AVATARS.md` |
+| INV-09661 | CMP-0088 | Admin console and the bookkeeper view | `AGENT_AVATARS.md` |
+| INV-09662 | CMP-0088 | Admin console and the bookkeeper view | `AGENT_AVATARS.md` |
+| INV-09663 | CMP-0088 | Admin console and the bookkeeper view | `AGENT_AVATARS.md` |
+| INV-09664 | CMP-0088 | Admin console and the bookkeeper view | `AGENT_AVATARS.md` |
+| INV-09665 | STRUCTURAL | — | `AGENT_AVATARS.md` |
 | INV-09666 | CMP-0082 | The core-file register and the doc map | `scripts/core-files.txt` |
 | INV-09667 | CMP-0082 | The core-file register and the doc map | `scripts/core-files.txt` |
 | INV-09668 | CMP-0082 | The core-file register and the doc map | `scripts/core-files.txt` |
@@ -1355,7 +1355,7 @@
 | INV-10337 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
 | INV-10338 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10339 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/MASTER.md` |
-| INV-10340 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10340 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10341 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-10342 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
 | INV-10343 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/MASTER.md` |
@@ -1464,7 +1464,7 @@
 | INV-10446 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-10447 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
 | INV-10448 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-10449 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10449 | CMP-0124 | Revenue targets and MRR planning | `docs/archive/MASTER.md` |
 | INV-10450 | CMP-0124 | Revenue targets and MRR planning | `docs/archive/MASTER.md` |
 | INV-10451 | CMP-0124 | Revenue targets and MRR planning | `docs/archive/MASTER.md` |
 | INV-10452 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
@@ -1562,7 +1562,7 @@
 | INV-10544 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10545 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10546 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
-| INV-10547 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10547 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10548 | CMP-0044 | Two Terms of Service documents | `docs/archive/MASTER.md` |
 | INV-10549 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10550 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
@@ -1603,7 +1603,7 @@
 | INV-10585 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10586 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10587 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
-| INV-10588 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10588 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-10589 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10590 | CMP-0093 | Notifications and the notification centre | `docs/archive/MASTER.md` |
 | INV-10591 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
@@ -1632,7 +1632,7 @@
 | INV-10614 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-10615 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/MASTER.md` |
 | INV-10616 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
-| INV-10617 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10617 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-10618 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-10619 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-10620 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
@@ -1657,7 +1657,7 @@
 | INV-10639 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
 | INV-10640 | CMP-0080 | Compliance drafts for counsel | `docs/archive/MASTER.md` |
 | INV-10641 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
-| INV-10642 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10642 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
 | INV-10643 | CMP-0021 | Trial and freebies | `docs/archive/MASTER.md` |
 | INV-10644 | CMP-0039 | Vida — the operator console | `docs/archive/MASTER.md` |
 | INV-10645 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/MASTER.md` |
@@ -1668,7 +1668,7 @@
 | INV-10650 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
 | INV-10651 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
 | INV-10652 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
-| INV-10653 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10653 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-10654 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-10655 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
 | INV-10656 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
@@ -1705,7 +1705,7 @@
 | INV-10687 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10688 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10689 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
-| INV-10690 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10690 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10691 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10692 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10693 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
@@ -1718,7 +1718,7 @@
 | INV-10700 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10701 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10702 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
-| INV-10703 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10703 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10704 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
 | INV-10705 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10706 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
@@ -1778,19 +1778,19 @@
 | INV-10760 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10761 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10762 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
-| INV-10763 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10763 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-10764 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-10765 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-10766 | CMP-0109 | Security, key rotation and secrets | `docs/archive/MASTER.md` |
 | INV-10767 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10768 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
-| INV-10769 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10769 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10770 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10771 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10772 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10773 | CMP-0072 | check.sh as the only gate | `docs/archive/MASTER.md` |
-| INV-10774 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-10775 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10774 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
+| INV-10775 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-10776 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-10777 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-10778 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
@@ -1906,7 +1906,7 @@
 | INV-10888 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10889 | CMP-0112 | Infrastructure, hosting and the stack | `docs/archive/MASTER.md` |
 | INV-10890 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
-| INV-10891 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10891 | CMP-0109 | Security, key rotation and secrets | `docs/archive/MASTER.md` |
 | INV-10892 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10893 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-10894 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
@@ -1956,7 +1956,7 @@
 | INV-10938 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-10939 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-10940 | CMP-0109 | Security, key rotation and secrets | `docs/archive/MASTER.md` |
-| INV-10941 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-10941 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-10942 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-10943 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-10944 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -2342,7 +2342,7 @@
 | INV-11324 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-11325 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11326 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
-| INV-11327 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11327 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-11328 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-11329 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11330 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
@@ -2402,11 +2402,11 @@
 | INV-11384 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-11385 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11386 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
-| INV-11387 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11387 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-11388 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-11389 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11390 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
-| INV-11391 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11391 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-11392 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-11393 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-11394 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
@@ -2435,7 +2435,7 @@
 | INV-11417 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/MASTER.md` |
 | INV-11418 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-11419 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
-| INV-11420 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11420 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-11421 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11422 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11423 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
@@ -2512,7 +2512,7 @@
 | INV-11494 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-11495 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-11496 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
-| INV-11497 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11497 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-11498 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-11499 | CMP-0100 | Voice and AI calling | `docs/archive/MASTER.md` |
 | INV-11500 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/archive/MASTER.md` |
@@ -2547,7 +2547,7 @@
 | INV-11529 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-11530 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-11531 | CMP-0079 | RLS and data boundary | `docs/archive/MASTER.md` |
-| INV-11532 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11532 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-11533 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-11534 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-11535 | CMP-0078 | Schema drift | `docs/archive/MASTER.md` |
@@ -2568,7 +2568,7 @@
 | INV-11550 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11551 | CMP-0078 | Schema drift | `docs/archive/MASTER.md` |
 | INV-11552 | CMP-0112 | Infrastructure, hosting and the stack | `docs/archive/MASTER.md` |
-| INV-11553 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11553 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
 | INV-11554 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11555 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-11556 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
@@ -2606,7 +2606,7 @@
 | INV-11588 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-11589 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
 | INV-11590 | CMP-0119 | Founder open-item lists and checklists | `docs/archive/MASTER.md` |
-| INV-11591 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11591 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11592 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11593 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-11594 | CMP-0035 | Booking-link fallback | `docs/archive/MASTER.md` |
@@ -2787,7 +2787,7 @@
 | INV-11769 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-11770 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
 | INV-11771 | CMP-0081 | Environment variables and tiers | `docs/archive/MASTER.md` |
-| INV-11772 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11772 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-11773 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
 | INV-11774 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11775 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
@@ -2919,7 +2919,7 @@
 | INV-11901 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-11902 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-11903 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
-| INV-11904 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-11904 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-11905 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/archive/MASTER.md` |
 | INV-11906 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-11907 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
@@ -3056,9 +3056,9 @@
 | INV-12038 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12039 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-12040 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
-| INV-12041 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-12042 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-12043 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12041 | CMP-0100 | Voice and AI calling | `docs/archive/MASTER.md` |
+| INV-12042 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
+| INV-12043 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-12044 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-12045 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
 | INV-12046 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
@@ -3207,7 +3207,7 @@
 | INV-12189 | CMP-0020 | Stripe as the payment gate | `docs/archive/MASTER.md` |
 | INV-12190 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-12191 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
-| INV-12192 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12192 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-12193 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-12194 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-12195 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
@@ -3300,7 +3300,7 @@
 | INV-12282 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-12283 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-12284 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-12285 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12285 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12286 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-12287 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-12288 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -3337,7 +3337,7 @@
 | INV-12319 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12320 | CMP-0017 | The old pack model vs the wallet model | `docs/archive/MASTER.md` |
 | INV-12321 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
-| INV-12322 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12322 | CMP-0110 | Backup, restore and failover | `docs/archive/MASTER.md` |
 | INV-12323 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-12324 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/archive/MASTER.md` |
 | INV-12325 | CMP-0051 | run-costs-and-cashflow as the price mirror | `docs/archive/MASTER.md` |
@@ -3475,7 +3475,7 @@
 | INV-12457 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/MASTER.md` |
 | INV-12458 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
 | INV-12459 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
-| INV-12460 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12460 | CMP-0090 | Dashboards, KPIs and reporting | `docs/archive/MASTER.md` |
 | INV-12461 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
 | INV-12462 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
 | INV-12463 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
@@ -3489,7 +3489,7 @@
 | INV-12471 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
 | INV-12472 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
 | INV-12473 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
-| INV-12474 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12474 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12475 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-12476 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/MASTER.md` |
 | INV-12477 | CMP-0016 | The wallet and the per-approval charge | `docs/archive/MASTER.md` |
@@ -3597,7 +3597,7 @@
 | INV-12579 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
 | INV-12580 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
 | INV-12581 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
-| INV-12582 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12582 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
 | INV-12583 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
 | INV-12584 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
 | INV-12585 | CMP-0065 | Alta parity — voice and the unified data layer | `docs/archive/MASTER.md` |
@@ -3706,7 +3706,7 @@
 | INV-12688 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-12689 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-12690 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
-| INV-12691 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12691 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-12692 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12693 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-12694 | CMP-0098 | Integrations and CRM | `docs/archive/MASTER.md` |
@@ -3728,7 +3728,7 @@
 | INV-12710 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-12711 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/MASTER.md` |
 | INV-12712 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
-| INV-12713 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12713 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-12714 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/MASTER.md` |
 | INV-12715 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
 | INV-12716 | CMP-0101 | GTM strategy and the two-track market | `docs/archive/MASTER.md` |
@@ -3786,12 +3786,12 @@
 | INV-12768 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12769 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12770 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
-| INV-12771 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12771 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12772 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12773 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12774 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12775 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
-| INV-12776 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12776 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12777 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12778 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
 | INV-12779 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/archive/MASTER.md` |
@@ -3925,7 +3925,7 @@
 | INV-12907 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-12908 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-12909 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
-| INV-12910 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12910 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-12911 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-12912 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12913 | CMP-0091 | Portal UI quality and the design system | `docs/archive/MASTER.md` |
@@ -3942,7 +3942,7 @@
 | INV-12924 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-12925 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-12926 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
-| INV-12927 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12927 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-12928 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-12929 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
 | INV-12930 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -3983,11 +3983,11 @@
 | INV-12965 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-12966 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-12967 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
-| INV-12968 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-12969 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12968 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12969 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-12970 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
-| INV-12971 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-12972 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-12971 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-12972 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-12973 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-12974 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-12975 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
@@ -4071,7 +4071,7 @@
 | INV-13053 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-13054 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13055 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
-| INV-13056 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13056 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13057 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13058 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-13059 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
@@ -4087,7 +4087,7 @@
 | INV-13069 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13070 | CMP-0093 | Notifications and the notification centre | `docs/archive/MASTER.md` |
 | INV-13071 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
-| INV-13072 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13072 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13073 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13074 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13075 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
@@ -4599,10 +4599,10 @@
 | INV-13581 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-13582 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-13583 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
-| INV-13584 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-13585 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-13586 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-13587 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13584 | STRUCTURAL | — | `docs/archive/MASTER.md` |
+| INV-13585 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
+| INV-13586 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/MASTER.md` |
+| INV-13587 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13588 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-13589 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-13590 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
@@ -4703,7 +4703,7 @@
 | INV-13685 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
 | INV-13686 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-13687 | CMP-0135 | Art of the possible and idea capture | `docs/archive/MASTER.md` |
-| INV-13688 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13688 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-13689 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/MASTER.md` |
 | INV-13690 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13691 | CMP-0091 | Portal UI quality and the design system | `docs/archive/MASTER.md` |
@@ -4720,7 +4720,7 @@
 | INV-13702 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13703 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13704 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
-| INV-13705 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13705 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13706 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13707 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/MASTER.md` |
 | INV-13708 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
@@ -4761,11 +4761,11 @@
 | INV-13743 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13744 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13745 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/MASTER.md` |
-| INV-13746 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-13747 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13746 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-13747 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-13748 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
-| INV-13749 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
-| INV-13750 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13749 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-13750 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13751 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/MASTER.md` |
 | INV-13752 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-13753 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
@@ -4849,7 +4849,7 @@
 | INV-13831 | STRUCTURAL | — | `docs/archive/MASTER.md` |
 | INV-13832 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
 | INV-13833 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
-| INV-13834 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13834 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13835 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/MASTER.md` |
 | INV-13836 | CMP-0120 | Retired and tombstoned items | `docs/archive/MASTER.md` |
 | INV-13837 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
@@ -4865,7 +4865,7 @@
 | INV-13847 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/MASTER.md` |
 | INV-13848 | CMP-0093 | Notifications and the notification centre | `docs/archive/MASTER.md` |
 | INV-13849 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
-| INV-13850 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-13850 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13851 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13852 | SOURCE-SPECIFIC | — | `docs/archive/MASTER.md` |
 | INV-13853 | CMP-0025 | Pause — who may pause sending, and why | `docs/archive/MASTER.md` |
@@ -5047,7 +5047,7 @@
 | INV-14029 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-14030 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-14031 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
-| INV-14032 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
+| INV-14032 | CMP-0091 | Portal UI quality and the design system | `docs/archive/MASTER.md` |
 | INV-14033 | CMP-0106 | Competitive landscape and teardowns | `docs/archive/MASTER.md` |
 | INV-14034 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/MASTER.md` |
 | INV-14035 | CMP-0083 | Campaigns and the sequence builder | `docs/archive/MASTER.md` |
@@ -6011,7 +6011,7 @@
 | INV-14993 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-14994 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-14995 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
-| INV-14996 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-14996 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-14997 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-14998 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-14999 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
@@ -6072,7 +6072,7 @@
 | INV-15054 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-15055 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-15056 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
-| INV-15057 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/MASTER.md` |
+| INV-15057 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-15058 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/MASTER.md` |
 | INV-15059 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/MASTER.md` |
 | INV-15060 | CMP-0079 | RLS and data boundary | `docs/archive/MASTER.md` |
@@ -6214,7 +6214,7 @@
 | INV-15196 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15197 | CMP-0086 | Lead lifecycle and the lead desk | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15198 | CMP-0110 | Backup, restore and failover | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15199 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15199 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15200 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15201 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15202 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6228,12 +6228,12 @@
 | INV-15210 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15211 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15212 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15213 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15213 | CMP-0105 | Partner programme operations | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15214 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15215 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15216 | CMP-0115 | Seed data, wipes and Client Zero | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15217 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15218 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15218 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15219 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15220 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15221 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6248,7 +6248,7 @@
 | INV-15230 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15231 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15232 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15233 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15233 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15234 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15235 | CMP-0034 | Outlook / Zoho as a calendar and mail host | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15236 | CMP-0044 | Two Terms of Service documents | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6375,7 +6375,7 @@
 | INV-15357 | CMP-0039 | Vida — the operator console | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15358 | CMP-0016 | The wallet and the per-approval charge | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15359 | CMP-0088 | Admin console and the bookkeeper view | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15360 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15360 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15361 | CMP-0120 | Retired and tombstoned items | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15362 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15363 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6571,7 +6571,7 @@
 | INV-15553 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15554 | CMP-0128 | Company registration and corporate facts | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15555 | CMP-0130 | Founder privacy and exposure minimisation | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15556 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15556 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15557 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15558 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15559 | CMP-0056 | The launch date | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6678,7 +6678,7 @@
 | INV-15660 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15661 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15662 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15663 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15663 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15664 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15665 | CMP-0111 | Testing, smoke tests and the walk | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15666 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6695,7 +6695,7 @@
 | INV-15677 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15678 | CMP-0115 | Seed data, wipes and Client Zero | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15679 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15680 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15680 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15681 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15682 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15683 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6711,7 +6711,7 @@
 | INV-15693 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15694 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15695 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15696 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15696 | CMP-0075 | The status dot ladder | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15697 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15698 | CMP-0034 | Outlook / Zoho as a calendar and mail host | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15699 | CMP-0044 | Two Terms of Service documents | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -6864,7 +6864,7 @@
 | INV-15846 | CMP-0042 | Suppression, opt-out and DNC | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15847 | CMP-0128 | Company registration and corporate facts | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15848 | CMP-0130 | Founder privacy and exposure minimisation | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-15849 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-15849 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15850 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15851 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-15852 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7064,7 +7064,7 @@
 | INV-16046 | CMP-0092 | PWA, offline and mobile | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16047 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16048 | CMP-0117 | Session logs and handoffs | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16049 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16049 | CMP-0110 | Backup, restore and failover | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16050 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16051 | CMP-0091 | Portal UI quality and the design system | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16052 | STRUCTURAL | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7107,7 +7107,7 @@
 | INV-16089 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16090 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16091 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16092 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16092 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16093 | SOURCE-SPECIFIC | — | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16094 | CMP-0130 | Founder privacy and exposure minimisation | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16095 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7305,7 +7305,7 @@
 | INV-16287 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16288 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16289 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16290 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16290 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16291 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16292 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16293 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7345,8 +7345,8 @@
 | INV-16327 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16328 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16329 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16330 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
-| INV-16331 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16330 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
+| INV-16331 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16332 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16333 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
 | INV-16334 | CMP-0073 | Session logging and the end-of-session ritual | `docs/archive/KIND-MASTER-ARCHIVE.md` |
@@ -7485,7 +7485,7 @@
 | INV-16467 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
 | INV-16468 | CMP-0054 | SEIS advance assurance and funding | `docs/archive/EVERYTHING.md` |
 | INV-16469 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/EVERYTHING.md` |
-| INV-16470 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/EVERYTHING.md` |
+| INV-16470 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/EVERYTHING.md` |
 | INV-16471 | CMP-0084 | Unibox, replies and reply triage | `docs/archive/EVERYTHING.md` |
 | INV-16472 | STRUCTURAL | — | `docs/archive/EVERYTHING.md` |
 | INV-16473 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/EVERYTHING.md` |
@@ -7629,7 +7629,7 @@
 | INV-16611 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16612 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16613 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
-| INV-16614 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/EVERYTHING.md` |
+| INV-16614 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16615 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16616 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16617 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
@@ -7643,7 +7643,7 @@
 | INV-16625 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/EVERYTHING.md` |
 | INV-16626 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/EVERYTHING.md` |
 | INV-16627 | CMP-0066 | Steals — patterns taken from other tools | `docs/archive/EVERYTHING.md` |
-| INV-16628 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/EVERYTHING.md` |
+| INV-16628 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16629 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16630 | CMP-0075 | The status dot ladder | `docs/archive/EVERYTHING.md` |
 | INV-16631 | CMP-0019 | Refund, make-whole and unused value | `docs/archive/EVERYTHING.md` |
@@ -7853,7 +7853,7 @@
 | INV-16835 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/EVERYTHING.md` |
 | INV-16836 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/EVERYTHING.md` |
 | INV-16837 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/EVERYTHING.md` |
-| INV-16838 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/EVERYTHING.md` |
+| INV-16838 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/EVERYTHING.md` |
 | INV-16839 | CMP-0099 | WhatsApp and Africa-first channels | `docs/archive/EVERYTHING.md` |
 | INV-16840 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/EVERYTHING.md` |
 | INV-16841 | CMP-0116 | Dated roadmap phases and timelines | `docs/archive/EVERYTHING.md` |
@@ -7866,7 +7866,7 @@
 | INV-16848 | CMP-0048 | Onboarding and demo surfaces | `docs/archive/EVERYTHING.md` |
 | INV-16849 | CMP-0115 | Seed data, wipes and Client Zero | `docs/archive/EVERYTHING.md` |
 | INV-16850 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/EVERYTHING.md` |
-| INV-16851 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/EVERYTHING.md` |
+| INV-16851 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
 | INV-16852 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/EVERYTHING.md` |
 | INV-16853 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
 | INV-16854 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
@@ -8061,7 +8061,7 @@
 | INV-17043 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/EVERYTHING.md` |
 | INV-17044 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/EVERYTHING.md` |
 | INV-17045 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/archive/EVERYTHING.md` |
-| INV-17046 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/EVERYTHING.md` |
+| INV-17046 | CMP-0102 | Marketing plan, content and the Drop | `docs/archive/EVERYTHING.md` |
 | INV-17047 | SOURCE-SPECIFIC | — | `docs/archive/EVERYTHING.md` |
 | INV-17048 | CMP-0130 | Founder privacy and exposure minimisation | `docs/archive/EVERYTHING.md` |
 | INV-17049 | CMP-0098 | Integrations and CRM | `docs/archive/EVERYTHING.md` |
@@ -8457,7 +8457,7 @@
 | INV-17439 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17440 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17441 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17442 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17442 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17443 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17444 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17445 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8576,7 +8576,7 @@
 | INV-17558 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17559 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17560 | CMP-0113 | Error tracking and observability | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17561 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17561 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17562 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17563 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17564 | CMP-0002 | The $4 per-approved-lead charge | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8587,7 +8587,7 @@
 | INV-17569 | CMP-0001 | The $299 onboarding pack | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17570 | CMP-0016 | The wallet and the per-approval charge | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17571 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17572 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17572 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17573 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17574 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17575 | CMP-0060 | Deployment verification and the SHA report | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
@@ -8678,8 +8678,8 @@
 | INV-17660 | CMP-0016 | The wallet and the per-approval charge | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17661 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17662 | CMP-0058 | Launch gates and blockers | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17663 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
-| INV-17664 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17663 | CMP-0089 | Credits, the two-pool model and holds | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
+| INV-17664 | SOURCE-SPECIFIC | — | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17665 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17666 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |
 | INV-17667 | CMP-0075 | The status dot ladder | `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md` |

@@ -4,7 +4,7 @@
 > ## PRESENCE HERE DOES NOT MEAN AN ITEM IS CURRENT, CORRECT, LIVE, APPROVED OR LAUNCH-CRITICAL.
 > ## CLASSIFICATION OCCURS IN LATER STEPS.
 >
-> Rows **INV-23206 … INV-24281**. This is a continuation file of
+> Rows **INV-23206 … INV-24309**. This is a continuation file of
 > [`../FOUNDER-TRUTH-INVENTORY-2026-08-28.md`](../FOUNDER-TRUTH-INVENTORY-2026-08-28.md) — the register,
 > the sweep record, the coverage proof and the validation results all live there.
 > The split is **mechanical only**: the full inventory is ~5 MB of table and GitHub stops rendering a
@@ -1317,3 +1317,38 @@
 | INV-24279 | Permissions | (none) | Job permissions: `contents: read`, `deployments: write` | OPERATING | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
 | INV-24280 | Guard | (none) | If either Cloudflare secret is unset the deploy step is SKIPPED and the job still succeeds | RULE | (none) | (none) | A silent no-op when unconfigured. CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
 | INV-24281 | Publish | (none) | Publishes with cloudflare/wrangler-action@v3: `pages deploy apps/website --project-name=kind-website --branch=main` | ARCHITECTURE | (none) | (none) | CODE VERIFIED from the file. Runtime execution state is not observable from this file. |
+
+## `docs/mv-previews/README.md`
+
+**Group:** STEP-2 COVERAGE REPAIR — a source registered as read that produced no rows · **Apparent purpose:** Index and model statement for the 22-Jul Milla&Vida design references · **Lines:** 20 · **Material items in this source:** 28 · **Rows in this part:** 28 · **FULLY READ:** YES
+
+| Inventory ID | Source section / heading | Source stable ID | Short title | Item type | Exact source status marker | Source date / version clue | Notes |
+|---|---|---|---|---|---|---|---|
+| INV-24282 | 🎨 Milla&Vida — design references (22 Jul pivot) | (none) | 🎨 Milla&Vida — design references (22 Jul pivot) | EXPERIENCE | (none) | 22 Jul | Heading |
+| INV-24283 | 🎨 Milla&Vida — design references (22 Jul pivot) | (none) | The self-contained HTML mockups that anchor the 22-Jul managed-service pivot | EXPERIENCE | (none) | 22 Jul | Blockquote |
+| INV-24284 | 🎨 Milla&Vida — design references (22 Jul pivot) | (none) | Full decision → KIND-MASTER session log | OPERATING | (none) | 22 Jul | Blockquote · canonical-home pointer |
+| INV-24285 | 🎨 Milla&Vida — design references (22 Jul pivot) | #477–#490 | Build tickets → PRODUCT-INVENTORY #477–#490 | OPERATING | (none) | 22 Jul | Blockquote · canonical-home pointer |
+| INV-24286 | 🎨 Milla&Vida — design references (22 Jul pivot) | (none) | The 14-day map → LAUNCH-PAD | OPERATING | (none) | 22 Jul | Blockquote · canonical-home pointer |
+| INV-24287 | 🎨 Milla&Vida — design references (22 Jul pivot) | (none) | These are design references, not the product | RULE | (none) | 22 Jul | Blockquote |
+| INV-24288 | 🎨 Milla&Vida — design references (22 Jul pivot) | (none) | They are not wired to any code and do not deploy | ARCHITECTURE | (none) | 22 Jul | Blockquote |
+| INV-24289 | 🎨 Milla&Vida — design references (22 Jul pivot) | (none) | Status of record lives only in PRODUCT-INVENTORY | RULE | (none) | 22 Jul | Blockquote |
+| INV-24290 | The model in one line | (none) | The model in one line | ARCHITECTURE | (none) | 22 Jul | Heading |
+| INV-24291 | The model in one line | (none) | FIGSY = the engine (no longer sold standalone) | ARCHITECTURE | (none) | 22 Jul |  |
+| INV-24292 | The model in one line | (none) | Vida = the operator console — WE run ICP → source → draft → approve → send → triage → book | ARCHITECTURE | (none) | 22 Jul |  |
+| INV-24293 | The model in one line | (none) | Milla = the client portal — client reviews masked leads and clicks 👍 approve / ✕ pass | ARCHITECTURE | (none) | 22 Jul |  |
+| INV-24294 | The model in one line | (none) | Nexus = the per-client private learning brain | ARCHITECTURE | (none) | 22 Jul |  |
+| INV-24295 | The model in one line | (none) | The $4 fires only on the client's 👍 approve ($1 reveal + $3 work) | MONEY | (none) | 22 Jul |  |
+| INV-24296 | The model in one line | (none) | Reviewing is free | MONEY | (none) | 22 Jul |  |
+| INV-24297 | The model in one line | (none) | Leads stay masked until approved (approve-then-reveal) | RULE | (none) | 22 Jul |  |
+| INV-24298 | Files | (none) | Files | EXPERIENCE | (none) | 22 Jul | Heading |
+| INV-24299 | Files | home.html | home.html — Milla&Vida homepage concept on the current site framework (approve-then-reveal, agents' new roles, Nexus per-client) | EXPERIENCE | (none) | 22 Jul | Table row |
+| INV-24300 | Files | milla2.html | milla2.html — Milla client portal: masked lead desk with 👍/✕ approve-to-pursue, concierge chat, meetings, reports; keeps top-bar credits + account dropdown + left nav | EXPERIENCE | (none) | 22 Jul | Table row |
+| INV-24301 | Files | vida2.html | vida2.html — Vida operator console: the full run-the-loop surface with the client-picker and the admin "nervous system" folded in as the top-right dropdown | EXPERIENCE | (none) | 22 Jul | Table row |
+| INV-24302 | Files | flow-milla.html | flow-milla.html — visual flow of the client's side, what a client sees and does in Milla | EXPERIENCE | (none) | 22 Jul | Table row |
+| INV-24303 | Files | flow-vida.html | flow-vida.html — visual flow of the operator's side, the end-to-end loop we run in Vida | EXPERIENCE | (none) | 22 Jul | Table row |
+| INV-24304 | Files | flow-dogfood.html | flow-dogfood.html — Client Zero: how we find our own leads with our own system (our outreach IS the demo) | COMMERCIAL | (none) | 22 Jul | Table row |
+| INV-24305 | Files | roadmap.html | roadmap.html — the 2-week build: Website → Vida (the real part) → Milla, aligned to payday; reuse (~70%) vs re-skin vs new | TASK | (none) | 22 Jul | Table row |
+| INV-24306 | Superseded / not included | (none) | Superseded / not included | HISTORY | (none) | 22 Jul | Heading |
+| INV-24307 | Superseded / not included | (none) | Earlier single-version mockups milla.html and vida.html are superseded by milla2.html / vida2.html | HISTORY | superseded | 22 Jul |  |
+| INV-24308 | Superseded / not included | (none) | They were intentionally left out to avoid confusion | OPERATING | (none) | 22 Jul |  |
+| INV-24309 | Superseded / not included | (none) | The older docs/previews/ directory holds the pre-pivot portal previews — kept for history, unrelated to this pivot | HISTORY | (none) | 22 Jul |  |

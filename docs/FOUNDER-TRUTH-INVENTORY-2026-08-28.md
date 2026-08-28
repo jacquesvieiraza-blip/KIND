@@ -82,7 +82,7 @@ The split below is **mechanical only** — no row was dropped, reordered or summ
 | [`founder-truth-inventory/STEP-2B-PART-07.md`](./founder-truth-inventory/STEP-2B-PART-07.md) | `docs/archive/KIND-MASTER-ARCHIVE.md`; `docs/archive/EVERYTHING.md`; `docs/archive/PRODUCT-INVENTORY-FULL-2026-08-21.md`; `docs/archive/V2-NARRATIVE-2026-08-21.md`; …+1 more | INV-16006 … INV-18405 |
 | [`founder-truth-inventory/STEP-2B-PART-08.md`](./founder-truth-inventory/STEP-2B-PART-08.md) | `docs/archive/LAUNCH-PAD-2026-08-21.md`; `docs/archive/roadmap-audit-14-may-2026.md`; `docs/archive/KIND_Roadmap.md`; `docs/archive/KIND_SOP.md`; …+9 more | INV-18406 … INV-20805 |
 | [`founder-truth-inventory/STEP-2B-PART-09.md`](./founder-truth-inventory/STEP-2B-PART-09.md) | `docs/archive/SESSION-SUMMARY-13JUN.md`; `docs/archive/SESSION-HANDOFF-7JUN.md`; `docs/archive/MORNING-FIXLOG.md`; `docs/archive/LAUNCH-AUDIT-12JUN.md`; …+70 more | INV-20806 … INV-23205 |
-| [`founder-truth-inventory/STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | `apps/website/drop-04.html`; `apps/website/drop-05.html`; `apps/website/drop-06.html`; `apps/website/drop-07.html`; …+28 more | INV-23206 … INV-24281 |
+| [`founder-truth-inventory/STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | `apps/website/drop-04.html`; `apps/website/drop-05.html`; `apps/website/drop-06.html`; `apps/website/drop-07.html`; …+29 more | INV-23206 … INV-24309 |
 
 **Every row in every part file carries the same Step 2 banner and the same prohibitions.**
 
@@ -311,69 +311,68 @@ Genuinely uncertain whether these belong in the founder-truth register: archived
 | 177 | `docs/previews/v2-leads-invite.html` | Design preview / mockup surface | 144 | 11 | **YES** | HTML — page title, headings and on-screen text |
 | 178 | `docs/previews/v2-utility-screens.html` | Design preview / mockup surface | 151 | 24 | **YES** | HTML — page title, headings and on-screen text |
 | 179 | `docs/previews/welcome-concepts.html` | Design preview / mockup surface | 196 | 22 | **YES** | HTML — page title, headings and on-screen text |
-| 180 | `docs/mv-previews/README.md` | Milla&Vida preview surface | 20 | 0 | **YES** | HTML — page title, headings and on-screen text |
-| 181 | `docs/mv-previews/flow-dogfood.html` | Milla&Vida preview surface | 45 | 10 | **YES** | HTML — page title, headings and on-screen text |
-| 182 | `docs/mv-previews/flow-milla.html` | Milla&Vida preview surface | 42 | 9 | **YES** | HTML — page title, headings and on-screen text |
-| 183 | `docs/mv-previews/flow-vida.html` | Milla&Vida preview surface | 62 | 14 | **YES** | HTML — page title, headings and on-screen text |
-| 184 | `docs/mv-previews/home.html` | Milla&Vida preview surface | 167 | 31 | **YES** | HTML — page title, headings and on-screen text |
-| 185 | `docs/mv-previews/milla2.html` | Milla&Vida preview surface | 151 | 19 | **YES** | HTML — page title, headings and on-screen text |
-| 186 | `docs/mv-previews/roadmap.html` | Milla&Vida preview surface | 83 | 14 | **YES** | HTML — page title, headings and on-screen text |
-| 187 | `docs/mv-previews/vida2.html` | Milla&Vida preview surface | 167 | 14 | **YES** | HTML — page title, headings and on-screen text |
-| 188 | `docs/portal-v2-preview.html` | Design preview / mockup surface | 1129 | 16 | **YES** | HTML — page title, headings and on-screen text |
-| 189 | `docs/pwa-mockup.html` | Design preview / mockup surface | 659 | 11 | **YES** | HTML — page title, headings and on-screen text |
-| 190 | `docs/setup-dashboard-preview.html` | Design preview / mockup surface | 509 | 21 | **YES** | HTML — page title, headings and on-screen text |
-| 191 | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` | Strategy verification artifact | 520 | 86 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 192 | `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` | Strategy verification artifact | 525 | 99 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 193 | `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` | Strategy verification artifact | 775 | 149 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 194 | `docs/strategy/get-kind_data_sourcing_verification_artifact.html` | Strategy verification artifact | 401 | 59 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 195 | `docs/strategy/get-kind_jack_and_jill_product_model_verification.html` | Strategy verification artifact | 676 | 85 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 196 | `docs/strategy/get-kind_meeting_booking_engine_strategy.html` | Strategy verification artifact | 605 | 64 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 197 | `docs/strategy/get-kind_milla_website_preview.html` | Strategy verification artifact | 682 | 40 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 198 | `docs/strategy/get-kind_social_intent_feasibility_verification.html` | Strategy verification artifact | 580 | 86 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 199 | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` | Strategy verification artifact | 781 | 112 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 200 | `docs/strategy/get-kind_website_positioning_simplicity_verification.html` | Strategy verification artifact | 788 | 60 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 201 | `docs/marketing/bundle-source/free10-landing-page.html` | Marketing bundle artifact | 363 | 25 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 202 | `docs/marketing/bundle-source/linkedin-company-page.html` | Marketing bundle artifact | 192 | 6 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 203 | `docs/marketing/bundle-source/marketing-agent-flow.html` | Marketing bundle artifact | 186 | 10 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 204 | `docs/marketing/bundle-source/paid-ads-plan.html` | Marketing bundle artifact | 161 | 24 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 205 | `docs/marketing/bundle-source/section-12a-landing-page.html` | Marketing bundle artifact | 239 | 30 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 206 | `docs/marketing/bundle-source/traffic-starter-kit.html` | Marketing bundle artifact | 201 | 6 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 207 | `apps/website/about.html` | Client-facing website page — carries product and price claims | 561 | 44 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 208 | `apps/website/demo.html` | Client-facing website page — carries product and price claims | 472 | 23 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 209 | `apps/website/dpa-us.html` | Client-facing website page — carries product and price claims | 463 | 56 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 210 | `apps/website/dpa.html` | Client-facing website page — carries product and price claims | 539 | 73 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 211 | `apps/website/drop-01.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 212 | `apps/website/drop-02.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 213 | `apps/website/drop-03.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 214 | `apps/website/drop-04.html` | Client-facing website page — carries product and price claims | 358 | 18 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 215 | `apps/website/drop-05.html` | Client-facing website page — carries product and price claims | 372 | 20 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 216 | `apps/website/drop-06.html` | Client-facing website page — carries product and price claims | 372 | 20 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 217 | `apps/website/drop-07.html` | Client-facing website page — carries product and price claims | 366 | 20 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 218 | `apps/website/drop-08.html` | Client-facing website page — carries product and price claims | 380 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 219 | `apps/website/drop-09.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 220 | `apps/website/figsy.html` | Client-facing website page — carries product and price claims | 905 | 24 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 221 | `apps/website/help-centre.html` | Client-facing website page — carries product and price claims | 554 | 21 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 222 | `apps/website/index.html` | Client-facing website page — carries product and price claims | 2290 | 42 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 223 | `apps/website/milla.html` | Client-facing website page — carries product and price claims | 507 | 12 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 224 | `apps/website/nexus.html` | Client-facing website page — carries product and price claims | 776 | 32 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 225 | `apps/website/privacy.html` | Client-facing website page — carries product and price claims | 437 | 88 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 226 | `apps/website/solutions.html` | Client-facing website page — carries product and price claims | 579 | 35 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 227 | `apps/website/status.html` | Client-facing website page — carries product and price claims | 436 | 10 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 228 | `apps/website/support.html` | Client-facing website page — carries product and price claims | 546 | 30 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 229 | `apps/website/terms.html` | Client-facing website page — carries product and price claims | 468 | 102 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 230 | `apps/website/the-drop.html` | Client-facing website page — carries product and price claims | 484 | 14 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 231 | `apps/website/trust.html` | Client-facing website page — carries product and price claims | 557 | 96 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 232 | `apps/website/vida.html` | Client-facing website page — carries product and price claims | 502 | 12 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 233 | `apps/website/vs-hiring-an-sdr.html` | Client-facing website page — carries product and price claims | 533 | 24 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 234 | `apps/portal/public/privacy.html` | Client-facing surface | 263 | 78 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 235 | `apps/portal/public/terms.html` | Client-facing surface | 340 | 129 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 236 | `apps/landing/demo.html` | Client-facing surface | 232 | 23 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 237 | `apps/landing/figsy-video.html` | Client-facing surface | 1026 | 13 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 238 | `apps/landing/index.html` | Client-facing surface | 838 | 61 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 239 | `apps/landing/platform-video.html` | Client-facing surface | 1116 | 17 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
-| 240 | `netlify-waitlist/index.html` | Client-facing surface | 244 | 26 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 180 | `docs/mv-previews/flow-dogfood.html` | Milla&Vida preview surface | 45 | 10 | **YES** | HTML — page title, headings and on-screen text |
+| 181 | `docs/mv-previews/flow-milla.html` | Milla&Vida preview surface | 42 | 9 | **YES** | HTML — page title, headings and on-screen text |
+| 182 | `docs/mv-previews/flow-vida.html` | Milla&Vida preview surface | 62 | 14 | **YES** | HTML — page title, headings and on-screen text |
+| 183 | `docs/mv-previews/home.html` | Milla&Vida preview surface | 167 | 31 | **YES** | HTML — page title, headings and on-screen text |
+| 184 | `docs/mv-previews/milla2.html` | Milla&Vida preview surface | 151 | 19 | **YES** | HTML — page title, headings and on-screen text |
+| 185 | `docs/mv-previews/roadmap.html` | Milla&Vida preview surface | 83 | 14 | **YES** | HTML — page title, headings and on-screen text |
+| 186 | `docs/mv-previews/vida2.html` | Milla&Vida preview surface | 167 | 14 | **YES** | HTML — page title, headings and on-screen text |
+| 187 | `docs/portal-v2-preview.html` | Design preview / mockup surface | 1129 | 16 | **YES** | HTML — page title, headings and on-screen text |
+| 188 | `docs/pwa-mockup.html` | Design preview / mockup surface | 659 | 11 | **YES** | HTML — page title, headings and on-screen text |
+| 189 | `docs/setup-dashboard-preview.html` | Design preview / mockup surface | 509 | 21 | **YES** | HTML — page title, headings and on-screen text |
+| 190 | `docs/strategy/get-kind_competitive_market_benchmark_verification_log.html` | Strategy verification artifact | 520 | 86 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 191 | `docs/strategy/get-kind_crm_expansion_reengagement_feasibility.html` | Strategy verification artifact | 525 | 99 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 192 | `docs/strategy/get-kind_data_sourcing_and_meeting_yield_verification_artifact.html` | Strategy verification artifact | 775 | 149 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 193 | `docs/strategy/get-kind_data_sourcing_verification_artifact.html` | Strategy verification artifact | 401 | 59 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 194 | `docs/strategy/get-kind_jack_and_jill_product_model_verification.html` | Strategy verification artifact | 676 | 85 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 195 | `docs/strategy/get-kind_meeting_booking_engine_strategy.html` | Strategy verification artifact | 605 | 64 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 196 | `docs/strategy/get-kind_milla_website_preview.html` | Strategy verification artifact | 682 | 40 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 197 | `docs/strategy/get-kind_social_intent_feasibility_verification.html` | Strategy verification artifact | 580 | 86 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 198 | `docs/strategy/get-kind_vida_post_10_client_autonomy_verification.html` | Strategy verification artifact | 781 | 112 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 199 | `docs/strategy/get-kind_website_positioning_simplicity_verification.html` | Strategy verification artifact | 788 | 60 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 200 | `docs/marketing/bundle-source/free10-landing-page.html` | Marketing bundle artifact | 363 | 25 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 201 | `docs/marketing/bundle-source/linkedin-company-page.html` | Marketing bundle artifact | 192 | 6 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 202 | `docs/marketing/bundle-source/marketing-agent-flow.html` | Marketing bundle artifact | 186 | 10 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 203 | `docs/marketing/bundle-source/paid-ads-plan.html` | Marketing bundle artifact | 161 | 24 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 204 | `docs/marketing/bundle-source/section-12a-landing-page.html` | Marketing bundle artifact | 239 | 30 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 205 | `docs/marketing/bundle-source/traffic-starter-kit.html` | Marketing bundle artifact | 201 | 6 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 206 | `apps/website/about.html` | Client-facing website page — carries product and price claims | 561 | 44 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 207 | `apps/website/demo.html` | Client-facing website page — carries product and price claims | 472 | 23 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 208 | `apps/website/dpa-us.html` | Client-facing website page — carries product and price claims | 463 | 56 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 209 | `apps/website/dpa.html` | Client-facing website page — carries product and price claims | 539 | 73 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 210 | `apps/website/drop-01.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 211 | `apps/website/drop-02.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 212 | `apps/website/drop-03.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 213 | `apps/website/drop-04.html` | Client-facing website page — carries product and price claims | 358 | 18 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 214 | `apps/website/drop-05.html` | Client-facing website page — carries product and price claims | 372 | 20 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 215 | `apps/website/drop-06.html` | Client-facing website page — carries product and price claims | 372 | 20 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 216 | `apps/website/drop-07.html` | Client-facing website page — carries product and price claims | 366 | 20 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 217 | `apps/website/drop-08.html` | Client-facing website page — carries product and price claims | 380 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 218 | `apps/website/drop-09.html` | Client-facing website page — carries product and price claims | 374 | 22 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 219 | `apps/website/figsy.html` | Client-facing website page — carries product and price claims | 905 | 24 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 220 | `apps/website/help-centre.html` | Client-facing website page — carries product and price claims | 554 | 21 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 221 | `apps/website/index.html` | Client-facing website page — carries product and price claims | 2290 | 42 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 222 | `apps/website/milla.html` | Client-facing website page — carries product and price claims | 507 | 12 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 223 | `apps/website/nexus.html` | Client-facing website page — carries product and price claims | 776 | 32 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 224 | `apps/website/privacy.html` | Client-facing website page — carries product and price claims | 437 | 88 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 225 | `apps/website/solutions.html` | Client-facing website page — carries product and price claims | 579 | 35 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 226 | `apps/website/status.html` | Client-facing website page — carries product and price claims | 436 | 10 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 227 | `apps/website/support.html` | Client-facing website page — carries product and price claims | 546 | 30 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 228 | `apps/website/terms.html` | Client-facing website page — carries product and price claims | 468 | 102 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 229 | `apps/website/the-drop.html` | Client-facing website page — carries product and price claims | 484 | 14 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 230 | `apps/website/trust.html` | Client-facing website page — carries product and price claims | 557 | 96 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 231 | `apps/website/vida.html` | Client-facing website page — carries product and price claims | 502 | 12 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 232 | `apps/website/vs-hiring-an-sdr.html` | Client-facing website page — carries product and price claims | 533 | 24 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 233 | `apps/portal/public/privacy.html` | Client-facing surface | 263 | 78 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 234 | `apps/portal/public/terms.html` | Client-facing surface | 340 | 129 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 235 | `apps/landing/demo.html` | Client-facing surface | 232 | 23 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 236 | `apps/landing/figsy-video.html` | Client-facing surface | 1026 | 13 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 237 | `apps/landing/index.html` | Client-facing surface | 838 | 61 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 238 | `apps/landing/platform-video.html` | Client-facing surface | 1116 | 17 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
+| 239 | `netlify-waitlist/index.html` | Client-facing surface | 244 | 26 | **YES** | HTML — headings, prose blocks and every money figure stated on the page |
 
-**Subtotal: 119 sources · 14044 rows.**
+**Subtotal: 118 sources · 14044 rows.**
 
 ### Part 6 — RELEASE / GOVERNANCE AUTOMATION — the workflow sources
 
@@ -381,17 +380,27 @@ Added on the founder's final Step 2 closure order: a workflow that mutates the i
 
 | # | Source document | Apparent purpose | Lines | Material items | FULLY READ | Notes |
 |---|---|---|---:|---:|:---:|---|
-| 241 | `.github/workflows/inventory-autoflip.yml` | Automated PRODUCT-INVENTORY dot mutation, board regeneration and KIND-MASTER session-log append on merge | 69 | 18 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
-| 242 | `.github/workflows/daily-audit.yml` | Twice-daily scheduled system audit, issue reporting and an embedded dated pre-launch action list | 144 | 24 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
-| 243 | `.github/workflows/doc-lint.yml` | The doc-drift firewall as a CI gate on PRs and main | 27 | 5 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
-| 244 | `.github/workflows/test.yml` | The API test gate (item #263) and its stated relationship to Railway auto-deploy | 32 | 8 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
-| 245 | `.github/workflows/deploy-website-cloudflare.yml` | Marketing-site CDN failover to Cloudflare Pages, its founder setup and its DNS failover policy | 62 | 14 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 240 | `.github/workflows/inventory-autoflip.yml` | Automated PRODUCT-INVENTORY dot mutation, board regeneration and KIND-MASTER session-log append on merge | 69 | 18 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 241 | `.github/workflows/daily-audit.yml` | Twice-daily scheduled system audit, issue reporting and an embedded dated pre-launch action list | 144 | 24 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 242 | `.github/workflows/doc-lint.yml` | The doc-drift firewall as a CI gate on PRs and main | 27 | 5 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 243 | `.github/workflows/test.yml` | The API test gate (item #263) and its stated relationship to Railway auto-deploy | 32 | 8 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
+| 244 | `.github/workflows/deploy-website-cloudflare.yml` | Marketing-site CDN failover to Cloudflare Pages, its founder setup and its DNS failover policy | 62 | 14 | **YES** | YAML — material operating behaviours only; generic CI plumbing excluded |
 
 **Subtotal: 5 sources · 69 rows.**
 
+### Part 7 — STEP-2 COVERAGE REPAIR — a source registered as read that produced no rows
+
+`docs/mv-previews/README.md` was in the register with **FULLY READ = YES** and produced **0 rows**, because a markdown file was processed with the HTML screen-mode extractor. Its content is material: it states the 22-Jul model in one line, names which mockups supersede which, and states the money sentence. The Step-3 validation surfaced it and it is repaired here. **These rows are appended AFTER the previous final ID so that no existing INV-00001 … INV-24281 row is renumbered or re-meant, and nothing is deduplicated even where the same claims appear in other sources.**
+
+| # | Source document | Apparent purpose | Lines | Material items | FULLY READ | Notes |
+|---|---|---|---:|---:|:---:|---|
+| 245 | `docs/mv-previews/README.md` | Index and model statement for the 22-Jul Milla&Vida design references | 20 | 28 | **YES** | Markdown — **hand-authored from a complete re-read** after the file was found registered as read with 0 rows; appended after the previous final ID so no existing row moved |
+
+**Subtotal: 1 sources · 28 rows.**
+
 ---
 
-**TOTAL: 245 source documents · 24281 material source items.**
+**TOTAL: 245 source documents · 24309 material source items.**
 
 ---
 
@@ -406,7 +415,7 @@ Added on the founder's final Step 2 closure order: a workflow that mutates the i
 | 3 | **Financial-artifact sweep** | Because `CASHFLOW-LAB.html` exposed the gap, a targeted hunt for **any** artifact encoding pricing, unit economics, cashflow, margin, salary or hiring economics, tax / VAT, partner economics, sourcing economics or commercial assumptions — including HTML calculators, decks and client-facing price surfaces. Every editable input, hard-coded constant and money figure in those artifacts is a row. |
 | 4 | **Directory sweep** | Every directory walked by hand, including `docs/archive/**`, `docs/previews/**`, `docs/mv-previews/**`, `docs/strategy/**`, `docs/marketing/bundle-source/**`, `apps/website/**`, `apps/portal/public/**`, `apps/landing/**`, `netlify-waitlist/**`, `supabase/**`, `scripts/**`, `.github/workflows/**`. |
 | 5 | **Workflow source sweep** | Every tracked `.github/workflows/*.yml` / `*.yaml` read in full and judged against one question: *does this file encode material K.I.N.D operating / product / release / inventory / governance truth?* **All five do, and all five are inventoried.** Generic CI plumbing inside them — checkout steps, node setup, install commands, runner images — is **not** inventoried. |
-| 6 | **Coverage assertion** | Every `.md` / `.html` / `.mmd` / `.txt` / `.yml` file tracked by git was checked against the register. **246 of 247 are inventoried.** The single exception is named below. |
+| 6 | **Coverage assertion** | Every `.md` / `.html` / `.mmd` / `.txt` / `.yml` file tracked by git was checked against the register, and every registered source was re-checked for a **zero-row** result. **246 of 247 are inventoried, and every one of the 245 registered sources now yields at least one row.** The single exception is named below. |
 
 ### The keyword sweep found no document that is not inventoried
 
@@ -418,7 +427,7 @@ Every hit from pass 2 that is a document appears in the register. The only hits 
 
 ### A · MATERIAL TRUTH SOURCES — INVENTORIED
 
-**245 source documents · every one `FULLY READ = YES`.** The complete list is the register above: the 8 Step-2 sources, the 3 founder-named additions, 18 money/economics artifacts, 92 operating · product · compliance · GTM documents, 119 possible-authority documents, and **5 release/governance workflow sources**.
+**245 source documents · every one `FULLY READ = YES` · every one now with at least one inventory row.** The complete list is the register above: the 8 Step-2 sources, the 3 founder-named additions, 18 money/economics artifacts, 92 operating · product · compliance · GTM documents, 118 possible-authority documents, **5 release/governance workflow sources**, and **1 coverage-repair source** (`docs/mv-previews/README.md`, see below).
 
 ### B · TRACKED HUMAN / OPERATING FILES INSPECTED BUT EXCLUDED — with the exact reason
 
@@ -2158,7 +2167,7 @@ These are inventoried **anyway** — Step 2 is about presence, not authority —
 
 # ░ STEP 2B ROWS — where to find them ░
 
-Rows **INV-01606 … INV-24281** live in the part files listed at the top of this document. They are split for GitHub renderability only.
+Rows **INV-01606 … INV-24309** live in the part files listed at the top of this document. They are split for GitHub renderability only.
 
 | Part | Sources | Rows |
 |---|---|---|
@@ -2171,7 +2180,7 @@ Rows **INV-01606 … INV-24281** live in the part files listed at the top of thi
 | [`STEP-2B-PART-07.md`](./founder-truth-inventory/STEP-2B-PART-07.md) | 5 | INV-16006 … INV-18405 (2400) |
 | [`STEP-2B-PART-08.md`](./founder-truth-inventory/STEP-2B-PART-08.md) | 13 | INV-18406 … INV-20805 (2400) |
 | [`STEP-2B-PART-09.md`](./founder-truth-inventory/STEP-2B-PART-09.md) | 74 | INV-20806 … INV-23205 (2400) |
-| [`STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | 32 | INV-23206 … INV-24281 (1076) |
+| [`STEP-2B-PART-10.md`](./founder-truth-inventory/STEP-2B-PART-10.md) | 33 | INV-23206 … INV-24309 (1104) |
 
 ---
 
@@ -2366,7 +2375,6 @@ Rows **INV-01606 … INV-24281** live in the part files listed at the top of thi
 | `docs/previews/v2-leads-invite.html` | Possible source — authority undetermined | 11 |
 | `docs/previews/v2-utility-screens.html` | Possible source — authority undetermined | 24 |
 | `docs/previews/welcome-concepts.html` | Possible source — authority undetermined | 22 |
-| `docs/mv-previews/README.md` | Possible source — authority undetermined | 0 |
 | `docs/mv-previews/flow-dogfood.html` | Possible source — authority undetermined | 10 |
 | `docs/mv-previews/flow-milla.html` | Possible source — authority undetermined | 9 |
 | `docs/mv-previews/flow-vida.html` | Possible source — authority undetermined | 14 |
@@ -2432,30 +2440,31 @@ Rows **INV-01606 … INV-24281** live in the part files listed at the top of thi
 | `.github/workflows/doc-lint.yml` | Release / governance automation | 5 |
 | `.github/workflows/test.yml` | Release / governance automation | 8 |
 | `.github/workflows/deploy-website-cloudflare.yml` | Release / governance automation | 14 |
-| **STEP 2B SUBTOTAL** | | **22676** |
-| **GRAND TOTAL** | | **24281** |
+| `docs/mv-previews/README.md` | Step-2 coverage repair | 28 |
+| **STEP 2B SUBTOTAL** | | **22704** |
+| **GRAND TOTAL** | | **24309** |
 
-### Rows per item type — all 24281 rows
+### Rows per item type — all 24309 rows
 
 | Item type | Rows |
 |---|---:|
-| COMMERCIAL | 5254 |
-| HISTORY | 3860 |
-| MONEY | 3694 |
-| RULE | 2671 |
-| ARCHITECTURE | 2500 |
-| OPERATING | 2158 |
+| COMMERCIAL | 5255 |
+| HISTORY | 3863 |
+| MONEY | 3696 |
+| RULE | 2674 |
+| ARCHITECTURE | 2506 |
+| OPERATING | 2162 |
 | IDEA | 1109 |
 | FEATURE | 1095 |
 | GATE | 483 |
-| EXPERIENCE | 453 |
+| EXPERIENCE | 461 |
 | RISK | 384 |
 | DEFECT | 273 |
-| TASK | 224 |
+| TASK | 225 |
 | OTHER | 75 |
 | QUESTION | 42 |
 | CONFLICT | 6 |
-| **TOTAL** | **24281** |
+| **TOTAL** | **24309** |
 
 ### Money / economics coverage
 
@@ -2496,7 +2505,7 @@ Rows **INV-01606 … INV-24281** live in the part files listed at the top of thi
 | Launch-current work | `LAUNCH-PAD.md` | C1–C9 · T1–T12 · M1–M8 | **29** | ✅ incl. C2b / C2c / C2d |
 | Operating protocol | `CLAUDE.md` | r1 … r22 | **22** | ✅ |
 | Protocol v1 full text | `RULEBOOK.md` | §15.1 … §15.20 | **20** | ✅ all present in the §15 rows |
-| Inventory row IDs | this deliverable | INV-00001 … INV-24281 | **24281** | ✅ contiguous, no gaps, no duplicates |
+| Inventory row IDs | this deliverable | INV-00001 … INV-24309 | **24309** | ✅ contiguous, no gaps, no duplicates |
 
 ### Structural observations recorded during the read — REPORTED, not fixed
 
@@ -2520,6 +2529,7 @@ Protocol r18: out-of-scope discoveries are reported and the scoped work continue
 | 14 | **`docs/archive/` contains a second full inventory and a second full LAUNCH-PAD**, both snapshotted 21 Aug 2026, alongside the live ones. Both are inventoried; the live board remains the only script-counted one. | `docs/archive/` |
 | 15 | **Two workflows hold write access to the repository and one of them mutates canonical source documents.** `inventory-autoflip.yml` holds `contents: write`, flips PRODUCT-INVENTORY dots to 🩷, inserts a line into `docs/KIND-MASTER.md` immediately after the `### 🔄 SESSION LOG` marker, and **pushes directly to `origin main`** as `kind-autoflip`. `daily-audit.yml` holds `contents: write` and `issues: write`. Recorded as encoded behaviour, **CODE VERIFIED from the files — whether either has ever executed is a runtime fact this inventory does not assert.** | `.github/workflows/` |
 | 16 | **A dated action list lives inside CI rather than in a document.** `daily-audit.yml` hard-codes a *"Pending Action Items (refreshed 9 Jun)"* checklist into every issue it creates — key rotation, smoke tests T1/T3–T7/T9/T10, D9 inbox placement, ICO registration, Paystack KYC, Resend paid plan. Each item is its own row. **No view is taken here on whether any of them is still outstanding.** | `.github/workflows/daily-audit.yml` |
+| 18 | **One registered source produced zero rows and has been repaired.** `docs/mv-previews/README.md` was registered `FULLY READ = YES` and yielded **0 rows**, because a markdown file was processed with the HTML screen-mode extractor. Step 3's validation surfaced it. Its **28 material items are now inventoried as INV-24282 … INV-24309**, appended after the previous final ID so no existing row moved. A **zero-row integrity check across all 245 registered sources found no other source with 0 rows** — the next-lowest is 5. | `docs/mv-previews/` |
 | 17 | **Three workflows make explicit statements about production deploy behaviour.** `daily-audit.yml` says it is deliberately not push-triggered because that "could gate Railway's *wait for CI* auto-deploy"; `test.yml` says it "does NOT gate Railway's auto-deploy — Railway deploys independently"; `deploy-website-cloudflare.yml` documents a DNS failover from Railway to Cloudflare Pages. All three are inventoried as stated. | `.github/workflows/` |
 
 ### What a reader must NOT conclude from this file

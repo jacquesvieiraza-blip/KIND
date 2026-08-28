@@ -145,7 +145,7 @@
 | INV-00127 | CMP-0073 | Session logging and the end-of-session ritual | `docs/PRODUCT-RULES.md` |
 | INV-00128 | CMP-0073 | Session logging and the end-of-session ritual | `docs/PRODUCT-RULES.md` |
 | INV-00129 | CMP-0073 | Session logging and the end-of-session ritual | `docs/PRODUCT-RULES.md` |
-| INV-00130 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-RULES.md` |
+| INV-00130 | CMP-0073 | Session logging and the end-of-session ritual | `docs/PRODUCT-RULES.md` |
 | INV-00131 | CMP-0073 | Session logging and the end-of-session ritual | `docs/PRODUCT-RULES.md` |
 | INV-00132 | CMP-0073 | Session logging and the end-of-session ritual | `docs/PRODUCT-RULES.md` |
 | INV-00133 | CMP-0073 | Session logging and the end-of-session ritual | `docs/PRODUCT-RULES.md` |
@@ -283,7 +283,7 @@
 | INV-00265 | CMP-0068 | Operating Protocol v1 — r1 … r22 | `docs/PRODUCT-RULES.md` |
 | INV-00266 | CMP-0090 | Dashboards, KPIs and reporting | `docs/PRODUCT-RULES.md` |
 | INV-00267 | CMP-0016 | The wallet and the per-approval charge | `docs/PRODUCT-RULES.md` |
-| INV-00268 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-RULES.md` |
+| INV-00268 | CMP-0096 | Company engine, seats and the pool | `docs/PRODUCT-RULES.md` |
 | INV-00269 | CMP-0076 | Preview before live | `docs/PRODUCT-RULES.md` |
 | INV-00270 | SOURCE-SPECIFIC | — | `docs/PRODUCT-RULES.md` |
 | INV-00271 | CMP-0074 | The Citation Law | `docs/PRODUCT-RULES.md` |
@@ -317,7 +317,7 @@
 | INV-00299 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
 | INV-00300 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
 | INV-00301 | CMP-0056 | The launch date | `docs/LAUNCH-PAD.md` |
-| INV-00302 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/LAUNCH-PAD.md` |
+| INV-00302 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/LAUNCH-PAD.md` |
 | INV-00303 | CMP-0001 | The $299 onboarding pack | `docs/LAUNCH-PAD.md` |
 | INV-00304 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/LAUNCH-PAD.md` |
 | INV-00305 | CMP-0057 | LAUNCH-PAD vs PRODUCT-INVENTORY — the same items, two boards | `docs/LAUNCH-PAD.md` |
@@ -700,7 +700,7 @@
 | INV-00682 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00683 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00684 | CMP-0084 | Unibox, replies and reply triage | `docs/PRODUCT-INVENTORY.md` |
-| INV-00685 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-INVENTORY.md` |
+| INV-00685 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00686 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00687 | CMP-0086 | Lead lifecycle and the lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00688 | CMP-0037 | Milla conversational experience and the flywheel | `docs/PRODUCT-INVENTORY.md` |
@@ -819,7 +819,7 @@
 | INV-00801 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00802 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00803 | CMP-0113 | Error tracking and observability | `docs/PRODUCT-INVENTORY.md` |
-| INV-00804 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-INVENTORY.md` |
+| INV-00804 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00805 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00806 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-INVENTORY.md` |
 | INV-00807 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
@@ -830,7 +830,7 @@
 | INV-00812 | CMP-0001 | The $299 onboarding pack | `docs/PRODUCT-INVENTORY.md` |
 | INV-00813 | CMP-0016 | The wallet and the per-approval charge | `docs/PRODUCT-INVENTORY.md` |
 | INV-00814 | CMP-0022 | Who may start sourcing — Run, cron and top-up | `docs/PRODUCT-INVENTORY.md` |
-| INV-00815 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-INVENTORY.md` |
+| INV-00815 | CMP-0088 | Admin console and the bookkeeper view | `docs/PRODUCT-INVENTORY.md` |
 | INV-00816 | CMP-0060 | Deployment verification and the SHA report | `docs/PRODUCT-INVENTORY.md` |
 | INV-00817 | CMP-0060 | Deployment verification and the SHA report | `docs/PRODUCT-INVENTORY.md` |
 | INV-00818 | CMP-0060 | Deployment verification and the SHA report | `docs/PRODUCT-INVENTORY.md` |
@@ -919,8 +919,8 @@
 | INV-00901 | CMP-0016 | The wallet and the per-approval charge | `docs/PRODUCT-INVENTORY.md` |
 | INV-00902 | CMP-0118 | Prior audits and reconciliations | `docs/PRODUCT-INVENTORY.md` |
 | INV-00903 | CMP-0058 | Launch gates and blockers | `docs/PRODUCT-INVENTORY.md` |
-| INV-00904 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-INVENTORY.md` |
-| INV-00905 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-INVENTORY.md` |
+| INV-00904 | CMP-0089 | Credits, the two-pool model and holds | `docs/PRODUCT-INVENTORY.md` |
+| INV-00905 | SOURCE-SPECIFIC | — | `docs/PRODUCT-INVENTORY.md` |
 | INV-00906 | CMP-0086 | Lead lifecycle and the lead desk | `docs/PRODUCT-INVENTORY.md` |
 | INV-00907 | CMP-0075 | The status dot ladder | `docs/PRODUCT-INVENTORY.md` |
 | INV-00908 | CMP-0118 | Prior audits and reconciliations | `docs/PRODUCT-INVENTORY.md` |
@@ -1046,7 +1046,7 @@
 | INV-01028 | CMP-0084 | Unibox, replies and reply triage | `docs/PRODUCT-INVENTORY.md` |
 | INV-01029 | CMP-0039 | Vida — the operator console | `docs/PRODUCT-INVENTORY.md` |
 | INV-01030 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/PRODUCT-INVENTORY.md` |
-| INV-01031 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PRODUCT-INVENTORY.md` |
+| INV-01031 | CMP-0064 | Nexus — the per-client learning brain | `docs/PRODUCT-INVENTORY.md` |
 | INV-01032 | CMP-0038 | Meet Milla — the website page | `docs/PRODUCT-INVENTORY.md` |
 | INV-01033 | CMP-0038 | Meet Milla — the website page | `docs/PRODUCT-INVENTORY.md` |
 | INV-01034 | CMP-0120 | Retired and tombstoned items | `docs/PRODUCT-INVENTORY.md` |
@@ -1175,7 +1175,7 @@
 | INV-01157 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
 | INV-01158 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
 | INV-01159 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
-| INV-01160 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/V2-TRACKER.md` |
+| INV-01160 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
 | INV-01161 | CMP-0026 | ICP changes and the widened-proof acceptance rule | `docs/V2-TRACKER.md` |
 | INV-01162 | CMP-0063 | V2 non-FI roadmap and narrative material | `docs/V2-TRACKER.md` |
 | INV-01163 | CMP-0007 | Partner commission — 25% of paid lead sales | `docs/V2-TRACKER.md` |
@@ -2248,7 +2248,7 @@
 | INV-02230 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02231 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02232 | CMP-0067 | The four-doc contract and one-truth-per-doc | `docs/KIND-MASTER.md` |
-| INV-02233 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/KIND-MASTER.md` |
+| INV-02233 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02234 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02235 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02236 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
@@ -2281,7 +2281,7 @@
 | INV-02263 | CMP-0060 | Deployment verification and the SHA report | `docs/KIND-MASTER.md` |
 | INV-02264 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02265 | CMP-0025 | Pause — who may pause sending, and why | `docs/KIND-MASTER.md` |
-| INV-02266 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/KIND-MASTER.md` |
+| INV-02266 | CMP-0060 | Deployment verification and the SHA report | `docs/KIND-MASTER.md` |
 | INV-02267 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02268 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
 | INV-02269 | CMP-0073 | Session logging and the end-of-session ritual | `docs/KIND-MASTER.md` |
@@ -2893,7 +2893,7 @@
 | INV-02875 | CMP-0046 | Client-facing calculators | `apps/website/pipeline-calculator.html` |
 | INV-02876 | CMP-0046 | Client-facing calculators | `apps/website/pipeline-calculator.html` |
 | INV-02877 | CMP-0046 | Client-facing calculators | `apps/website/pipeline-calculator.html` |
-| INV-02878 | CMP-0046 | Client-facing calculators | `apps/website/pipeline-calculator.html` |
+| INV-02878 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pipeline-calculator.html` |
 | INV-02879 | CMP-0046 | Client-facing calculators | `apps/website/pipeline-calculator.html` |
 | INV-02880 | CMP-0046 | Client-facing calculators | `apps/website/pipeline-calculator.html` |
 | INV-02881 | CMP-0046 | Client-facing calculators | `apps/website/pipeline-calculator.html` |
@@ -2914,27 +2914,27 @@
 | INV-02896 | CMP-0025 | Pause — who may pause sending, and why | `apps/website/pricing.html` |
 | INV-02897 | CMP-0016 | The wallet and the per-approval charge | `apps/website/pricing.html` |
 | INV-02898 | STRUCTURAL | — | `apps/website/pricing.html` |
-| INV-02899 | CMP-0055 | Company money — salary break-even, churn, cost floor | `apps/website/pricing.html` |
+| INV-02899 | SOURCE-SPECIFIC | — | `apps/website/pricing.html` |
 | INV-02900 | STRUCTURAL | — | `apps/website/pricing.html` |
 | INV-02901 | SOURCE-SPECIFIC | — | `apps/website/pricing.html` |
 | INV-02902 | SOURCE-SPECIFIC | — | `apps/website/pricing.html` |
-| INV-02903 | CMP-0055 | Company money — salary break-even, churn, cost floor | `apps/website/pricing.html` |
+| INV-02903 | CMP-0134 | Outreach — our own (Client Zero) vs the client's | `apps/website/pricing.html` |
 | INV-02904 | SOURCE-SPECIFIC | — | `apps/website/pricing.html` |
 | INV-02905 | STRUCTURAL | — | `apps/website/pricing.html` |
 | INV-02906 | SOURCE-SPECIFIC | — | `apps/website/pricing.html` |
 | INV-02907 | STRUCTURAL | — | `apps/website/pricing.html` |
-| INV-02908 | CMP-0036 | Milla — the client portal and the masked lead desk | `apps/website/pricing.html` |
+| INV-02908 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
 | INV-02909 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
 | INV-02910 | CMP-0016 | The wallet and the per-approval charge | `apps/website/pricing.html` |
 | INV-02911 | CMP-0001 | The $299 onboarding pack | `apps/website/pricing.html` |
 | INV-02912 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
-| INV-02913 | STRUCTURAL | — | `apps/website/pricing.html` |
+| INV-02913 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
 | INV-02914 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
-| INV-02915 | CMP-0086 | Lead lifecycle and the lead desk | `apps/website/pricing.html` |
-| INV-02916 | STRUCTURAL | — | `apps/website/pricing.html` |
-| INV-02917 | STRUCTURAL | — | `apps/website/pricing.html` |
-| INV-02918 | STRUCTURAL | — | `apps/website/pricing.html` |
-| INV-02919 | STRUCTURAL | — | `apps/website/pricing.html` |
+| INV-02915 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
+| INV-02916 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
+| INV-02917 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
+| INV-02918 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
+| INV-02919 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
 | INV-02920 | CMP-0001 | The $299 onboarding pack | `apps/website/pricing.html` |
 | INV-02921 | CMP-0002 | The $4 per-approved-lead charge | `apps/website/pricing.html` |
 | INV-02922 | SOURCE-SPECIFIC | — | `apps/website/pricing.html` |
@@ -3492,7 +3492,7 @@
 | INV-03474 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03475 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03476 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
-| INV-03477 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/DOC-MAP.md` |
+| INV-03477 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03478 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03479 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03480 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
@@ -3560,7 +3560,7 @@
 | INV-03542 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03543 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03544 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
-| INV-03545 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/DOC-MAP.md` |
+| INV-03545 | CMP-0080 | Compliance drafts for counsel | `docs/DOC-MAP.md` |
 | INV-03546 | CMP-0082 | The core-file register and the doc map | `docs/DOC-MAP.md` |
 | INV-03547 | CMP-0080 | Compliance drafts for counsel | `docs/DOC-MAP.md` |
 | INV-03548 | CMP-0080 | Compliance drafts for counsel | `docs/DOC-MAP.md` |
@@ -4101,7 +4101,7 @@
 | INV-04083 | CMP-0078 | Schema drift | `docs/SCHEMA-DRIFT.md` |
 | INV-04084 | CMP-0078 | Schema drift | `docs/SCHEMA-DRIFT.md` |
 | INV-04085 | CMP-0078 | Schema drift | `docs/SCHEMA-DRIFT.md` |
-| INV-04086 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/SCHEMA-DRIFT.md` |
+| INV-04086 | CMP-0078 | Schema drift | `docs/SCHEMA-DRIFT.md` |
 | INV-04087 | CMP-0077 | The migration seam — what actually executes | `docs/SCHEMA-DRIFT.md` |
 | INV-04088 | CMP-0078 | Schema drift | `docs/SCHEMA-DRIFT.md` |
 | INV-04089 | STRUCTURAL | — | `docs/ENVIRONMENT.md` |
@@ -4205,7 +4205,7 @@
 | INV-04187 | CMP-0020 | Stripe as the payment gate | `docs/ENVIRONMENT.md` |
 | INV-04188 | CMP-0042 | Suppression, opt-out and DNC | `docs/ENVIRONMENT.md` |
 | INV-04189 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
-| INV-04190 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/ENVIRONMENT.md` |
+| INV-04190 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04191 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04192 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
 | INV-04193 | CMP-0060 | Deployment verification and the SHA report | `docs/ENVIRONMENT.md` |
@@ -4487,7 +4487,7 @@
 | INV-04469 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04470 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04471 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
-| INV-04472 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PINK-WALK-CHECKLIST.md` |
+| INV-04472 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04473 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04474 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04475 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
@@ -4500,7 +4500,7 @@
 | INV-04482 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04483 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04484 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
-| INV-04485 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/PINK-WALK-CHECKLIST.md` |
+| INV-04485 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04486 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04487 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
 | INV-04488 | CMP-0058 | Launch gates and blockers | `docs/PINK-WALK-CHECKLIST.md` |
@@ -4649,9 +4649,9 @@
 | INV-04631 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04632 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04633 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04634 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04634 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04635 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
-| INV-04636 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/AFRICA-PLAYBOOK.md` |
+| INV-04636 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04637 | CMP-0066 | Steals — patterns taken from other tools | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04638 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/AFRICA-PLAYBOOK.md` |
 | INV-04639 | CMP-0042 | Suppression, opt-out and DNC | `docs/AFRICA-PLAYBOOK.md` |
@@ -4904,7 +4904,7 @@
 | INV-04886 | CMP-0088 | Admin console and the bookkeeper view | `docs/admin-centre-spec.md` |
 | INV-04887 | CMP-0088 | Admin console and the bookkeeper view | `docs/admin-centre-spec.md` |
 | INV-04888 | CMP-0088 | Admin console and the bookkeeper view | `docs/admin-centre-spec.md` |
-| INV-04889 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/admin-centre-spec.md` |
+| INV-04889 | CMP-0088 | Admin console and the bookkeeper view | `docs/admin-centre-spec.md` |
 | INV-04890 | CMP-0043 | Vida programme cockpit | `docs/admin-centre-spec.md` |
 | INV-04891 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/admin-centre-spec.md` |
 | INV-04892 | CMP-0088 | Admin console and the bookkeeper view | `docs/admin-centre-spec.md` |
@@ -5122,7 +5122,7 @@
 | INV-05104 | CMP-0075 | The status dot ladder | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05105 | CMP-0075 | The status dot ladder | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05106 | CMP-0075 | The status dot ladder | `docs/LIVE-FEATURE-WALK.md` |
-| INV-05107 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/LIVE-FEATURE-WALK.md` |
+| INV-05107 | CMP-0075 | The status dot ladder | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05108 | CMP-0102 | Marketing plan, content and the Drop | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05109 | CMP-0075 | The status dot ladder | `docs/LIVE-FEATURE-WALK.md` |
 | INV-05110 | CMP-0111 | Testing, smoke tests and the walk | `docs/LIVE-FEATURE-WALK.md` |
@@ -5234,7 +5234,7 @@
 | INV-05216 | STRUCTURAL | — | `docs/APOLLO-ENGINE.md` |
 | INV-05217 | CMP-0120 | Retired and tombstoned items | `docs/APOLLO-ENGINE.md` |
 | INV-05218 | SOURCE-SPECIFIC | — | `docs/APOLLO-ENGINE.md` |
-| INV-05219 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/APOLLO-ENGINE.md` |
+| INV-05219 | STRUCTURAL | — | `docs/APOLLO-ENGINE.md` |
 | INV-05220 | STRUCTURAL | — | `docs/APOLLO-ENGINE.md` |
 | INV-05221 | CMP-0083 | Campaigns and the sequence builder | `docs/APOLLO-ENGINE.md` |
 | INV-05222 | STRUCTURAL | — | `docs/APOLLO-ENGINE.md` |
@@ -5260,7 +5260,7 @@
 | INV-05242 | CMP-0083 | Campaigns and the sequence builder | `docs/APOLLO-ENGINE.md` |
 | INV-05243 | CMP-0083 | Campaigns and the sequence builder | `docs/APOLLO-ENGINE.md` |
 | INV-05244 | CMP-0083 | Campaigns and the sequence builder | `docs/APOLLO-ENGINE.md` |
-| INV-05245 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/APOLLO-ENGINE.md` |
+| INV-05245 | CMP-0083 | Campaigns and the sequence builder | `docs/APOLLO-ENGINE.md` |
 | INV-05246 | CMP-0083 | Campaigns and the sequence builder | `docs/APOLLO-ENGINE.md` |
 | INV-05247 | CMP-0083 | Campaigns and the sequence builder | `docs/APOLLO-ENGINE.md` |
 | INV-05248 | CMP-0085 | Deliverability, warm-up and sending domains | `docs/APOLLO-ENGINE.md` |
@@ -5968,10 +5968,10 @@
 | INV-05950 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
 | INV-05951 | CMP-0090 | Dashboards, KPIs and reporting | `docs/portal-v2-layout.md` |
 | INV-05952 | CMP-0036 | Milla — the client portal and the masked lead desk | `docs/portal-v2-layout.md` |
-| INV-05953 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-layout.md` |
+| INV-05953 | CMP-0090 | Dashboards, KPIs and reporting | `docs/portal-v2-layout.md` |
 | INV-05954 | CMP-0090 | Dashboards, KPIs and reporting | `docs/portal-v2-layout.md` |
 | INV-05955 | CMP-0090 | Dashboards, KPIs and reporting | `docs/portal-v2-layout.md` |
-| INV-05956 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-layout.md` |
+| INV-05956 | CMP-0090 | Dashboards, KPIs and reporting | `docs/portal-v2-layout.md` |
 | INV-05957 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
 | INV-05958 | CMP-0086 | Lead lifecycle and the lead desk | `docs/portal-v2-layout.md` |
 | INV-05959 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
@@ -5985,11 +5985,11 @@
 | INV-05967 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
 | INV-05968 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
 | INV-05969 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
-| INV-05970 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-layout.md` |
-| INV-05971 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-layout.md` |
-| INV-05972 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-layout.md` |
-| INV-05973 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-layout.md` |
-| INV-05974 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/portal-v2-layout.md` |
+| INV-05970 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
+| INV-05971 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
+| INV-05972 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
+| INV-05973 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
+| INV-05974 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
 | INV-05975 | CMP-0048 | Onboarding and demo surfaces | `docs/portal-v2-layout.md` |
 | INV-05976 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
 | INV-05977 | CMP-0091 | Portal UI quality and the design system | `docs/portal-v2-layout.md` |
@@ -6169,7 +6169,7 @@
 | INV-06151 | STRUCTURAL | — | `docs/legal/legal-pack.md` |
 | INV-06152 | STRUCTURAL | — | `docs/legal/legal-pack.md` |
 | INV-06153 | CMP-0128 | Company registration and corporate facts | `docs/legal/legal-pack.md` |
-| INV-06154 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/legal/legal-pack.md` |
+| INV-06154 | SOURCE-SPECIFIC | — | `docs/legal/legal-pack.md` |
 | INV-06155 | CMP-0128 | Company registration and corporate facts | `docs/legal/legal-pack.md` |
 | INV-06156 | SOURCE-SPECIFIC | — | `docs/legal/legal-pack.md` |
 | INV-06157 | SOURCE-SPECIFIC | — | `docs/legal/legal-pack.md` |
@@ -6218,7 +6218,7 @@
 | INV-06200 | CMP-0080 | Compliance drafts for counsel | `docs/legal/legal-pack.md` |
 | INV-06201 | CMP-0080 | Compliance drafts for counsel | `docs/legal/legal-pack.md` |
 | INV-06202 | CMP-0080 | Compliance drafts for counsel | `docs/legal/legal-pack.md` |
-| INV-06203 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/legal/legal-pack.md` |
+| INV-06203 | CMP-0080 | Compliance drafts for counsel | `docs/legal/legal-pack.md` |
 | INV-06204 | STRUCTURAL | — | `docs/legal/legal-pack.md` |
 | INV-06205 | SOURCE-SPECIFIC | — | `docs/legal/legal-pack.md` |
 | INV-06206 | CMP-0042 | Suppression, opt-out and DNC | `docs/legal/legal-pack.md` |
@@ -6239,7 +6239,7 @@
 | INV-06221 | CMP-0116 | Dated roadmap phases and timelines | `docs/legal/legal-pack.md` |
 | INV-06222 | STRUCTURAL | — | `docs/legal/legal-pack.md` |
 | INV-06223 | SOURCE-SPECIFIC | — | `docs/legal/legal-pack.md` |
-| INV-06224 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/legal/legal-pack.md` |
+| INV-06224 | SOURCE-SPECIFIC | — | `docs/legal/legal-pack.md` |
 | INV-06225 | CMP-0127 | Privacy policy and data-processing agreements | `docs/legal/legal-pack.md` |
 | INV-06226 | CMP-0127 | Privacy policy and data-processing agreements | `docs/legal/legal-pack.md` |
 | INV-06227 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/legal/legal-pack.md` |
@@ -6412,7 +6412,7 @@
 | INV-06394 | CMP-0060 | Deployment verification and the SHA report | `docs/legal/it-security-pack.md` |
 | INV-06395 | CMP-0109 | Security, key rotation and secrets | `docs/legal/it-security-pack.md` |
 | INV-06396 | STRUCTURAL | — | `docs/legal/it-security-pack.md` |
-| INV-06397 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/legal/it-security-pack.md` |
+| INV-06397 | CMP-0130 | Founder privacy and exposure minimisation | `docs/legal/it-security-pack.md` |
 | INV-06398 | SOURCE-SPECIFIC | — | `docs/legal/it-security-pack.md` |
 | INV-06399 | CMP-0109 | Security, key rotation and secrets | `docs/legal/it-security-pack.md` |
 | INV-06400 | CMP-0081 | Environment variables and tiers | `docs/legal/it-security-pack.md` |
@@ -6499,7 +6499,7 @@
 | INV-06481 | CMP-0110 | Backup, restore and failover | `docs/legal/it-security-pack.md` |
 | INV-06482 | CMP-0110 | Backup, restore and failover | `docs/legal/it-security-pack.md` |
 | INV-06483 | CMP-0110 | Backup, restore and failover | `docs/legal/it-security-pack.md` |
-| INV-06484 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/legal/it-security-pack.md` |
+| INV-06484 | CMP-0060 | Deployment verification and the SHA report | `docs/legal/it-security-pack.md` |
 | INV-06485 | CMP-0060 | Deployment verification and the SHA report | `docs/legal/it-security-pack.md` |
 | INV-06486 | CMP-0110 | Backup, restore and failover | `docs/legal/it-security-pack.md` |
 | INV-06487 | CMP-0060 | Deployment verification and the SHA report | `docs/legal/it-security-pack.md` |
@@ -6817,7 +6817,7 @@
 | INV-06799 | SOURCE-SPECIFIC | — | `docs/compliance/UPSTREAM-DSR-PROPAGATION.md` |
 | INV-06800 | CMP-0042 | Suppression, opt-out and DNC | `docs/compliance/UPSTREAM-DSR-PROPAGATION.md` |
 | INV-06801 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
-| INV-06802 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
+| INV-06802 | CMP-0093 | Notifications and the notification centre | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06803 | SOURCE-SPECIFIC | — | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06804 | SOURCE-SPECIFIC | — | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
 | INV-06805 | SOURCE-SPECIFIC | — | `docs/compliance/BREACH-RESPONSE-DRAFT.md` |
@@ -6883,15 +6883,15 @@
 | INV-06865 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06866 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06867 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
-| INV-06868 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
+| INV-06868 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06869 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06870 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06871 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06872 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06873 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06874 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
-| INV-06875 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
-| INV-06876 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
+| INV-06875 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
+| INV-06876 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06877 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06878 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06879 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
@@ -6899,7 +6899,7 @@
 | INV-06881 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06882 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06883 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
-| INV-06884 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
+| INV-06884 | CMP-0128 | Company registration and corporate facts | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06885 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06886 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06887 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
@@ -6916,7 +6916,7 @@
 | INV-06898 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06899 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06900 | STRUCTURAL | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
-| INV-06901 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
+| INV-06901 | CMP-0107 | Regions — SA, US, UK, EU expansion | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06902 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06903 | SOURCE-SPECIFIC | — | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
 | INV-06904 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-INFORMATION-OFFICER-CHECKLIST.md` |
@@ -6929,24 +6929,24 @@
 | INV-06911 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06912 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06913 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06914 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06914 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06915 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06916 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06917 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06918 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06919 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06920 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06921 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06922 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06923 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06924 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06925 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06926 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06927 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06928 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06929 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06921 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06922 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06923 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06924 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06925 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06926 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06927 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06928 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06929 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06930 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
-| INV-06931 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
+| INV-06931 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06932 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06933 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
 | INV-06934 | CMP-0080 | Compliance drafts for counsel | `docs/compliance/SA-PAIA-MANUAL-DRAFT.md` |
@@ -7634,7 +7634,7 @@
 | INV-07616 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07617 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07618 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/RECORDING-SHOOTING-SCRIPT.md` |
-| INV-07619 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/RECORDING-SHOOTING-SCRIPT.md` |
+| INV-07619 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07620 | STRUCTURAL | — | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07621 | CMP-0084 | Unibox, replies and reply triage | `docs/RECORDING-SHOOTING-SCRIPT.md` |
 | INV-07622 | CMP-0087 | Agent family — FIGSY, Denise, Tony, Casey | `docs/RECORDING-SHOOTING-SCRIPT.md` |
@@ -8019,10 +8019,10 @@
 | INV-08001 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08002 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08003 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
-| INV-08004 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/marketing/GTM-ONE-PAGE.md` |
-| INV-08005 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/marketing/GTM-ONE-PAGE.md` |
-| INV-08006 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/marketing/GTM-ONE-PAGE.md` |
-| INV-08007 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/marketing/GTM-ONE-PAGE.md` |
+| INV-08004 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
+| INV-08005 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
+| INV-08006 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
+| INV-08007 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08008 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08009 | CMP-0001 | The $299 onboarding pack | `docs/marketing/GTM-ONE-PAGE.md` |
 | INV-08010 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/GTM-ONE-PAGE.md` |
@@ -8513,7 +8513,7 @@
 | INV-08495 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08496 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08497 | CMP-0100 | Voice and AI calling | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
-| INV-08498 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
+| INV-08498 | CMP-0101 | GTM strategy and the two-track market | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08499 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08500 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
 | INV-08501 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/CLAUDE-PROJECT-INSTRUCTIONS.md` |
@@ -8741,7 +8741,7 @@
 | INV-08723 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08724 | CMP-0037 | Milla conversational experience and the flywheel | `docs/marketing/founder-content-playbook.md` |
 | INV-08725 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
-| INV-08726 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/marketing/founder-content-playbook.md` |
+| INV-08726 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08727 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08728 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
 | INV-08729 | CMP-0102 | Marketing plan, content and the Drop | `docs/marketing/founder-content-playbook.md` |
@@ -8830,7 +8830,7 @@
 | INV-08812 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/marketing-metrics-and-iteration.md` |
 | INV-08813 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/marketing-metrics-and-iteration.md` |
 | INV-08814 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/marketing-metrics-and-iteration.md` |
-| INV-08815 | CMP-0055 | Company money — salary break-even, churn, cost floor | `docs/marketing/marketing-metrics-and-iteration.md` |
+| INV-08815 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/marketing-metrics-and-iteration.md` |
 | INV-08816 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/marketing-metrics-and-iteration.md` |
 | INV-08817 | CMP-0090 | Dashboards, KPIs and reporting | `docs/marketing/marketing-metrics-and-iteration.md` |
 | INV-08818 | CMP-0084 | Unibox, replies and reply triage | `docs/marketing/marketing-metrics-and-iteration.md` |

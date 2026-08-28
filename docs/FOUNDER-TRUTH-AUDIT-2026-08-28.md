@@ -248,11 +248,11 @@ Abbreviations — Verdict: **VL** verified live · **VCD** verified current dire
 | **$299 pack · 100 included · $4/approved lead** | `constants/index.ts:215-219`; `approve-lead.ts:290` | **LIVE LEGACY — operational** |
 | **$4 → $8 migration** | R68; LAUNCH-PAD T9 | **SUPERSEDED HISTORY** — T9 now says *"Do not start the $8 migration"* |
 | **Programme: ~$450/targeted booked meeting + auto volume discount** | R74; V2 FI-26/27 | **CURRENT DIRECTION — UNIMPLEMENTED** |
-| **Working point 10 mtgs / 2,500 leads / $4,375 / $437.50 · floor ~$400 at 50+** | Founder 28 Aug only | **🔴 RECOVERY REQUIRED — in no document** |
+| **Working point 10 mtgs / 2,500 leads / $4,375 / $437.50 · floor ~$400 at 50+** | Founder 28 Aug; **MISSING from existing canonical docs** | **VERIFIED CURRENT DIRECTION** — the founder explicitly supplied this current programme working point (10 targeted meetings · 2,500 recommended leads · $4,375 programme price · $437.50 effective per targeted meeting). **Absence from the repo is a reconciliation task, not unknown truth** (FTA-005) |
 | **Coverage k=2** (2 sourcing records per $1 collected) | `20260711_sourcing_fences.sql` §5 | **LIVE LEGACY** — dollar-derived authority, superseded by programme authority |
 | **2:1 pack sourcing** (`PACK_SOURCE_TARGET`) | `onboarding-pack.ts:23` | **LIVE LEGACY** |
 | **1:1 commercial planning assumption** | FI-29; `run-costs` 27 Aug | **CURRENT DIRECTION** |
-| **~7:1 observed attainment** | Founder observation | **RECOVERY REQUIRED — unmeasured in repo** |
+| **~7:1 observed attainment** | Founder-reported observational baseline; V2 **FI-01** | **PARTIAL** — founder-reported approximate observed baseline **≈ 7 sourced → 1 usable/accepted**; **no telemetry currently verifies it**; post-launch direction is to improve toward **≈ 1.5 → 1**. ⚠️ **NOT VERIFIED LIVE · NOT the commercial 1:1 planning assumption (FI-29) · NOT the 150:1 or 250:1 meeting benchmark** — four separate concepts (FTA-014) |
 | **~150 accepted prospects per booked meeting** | R69 | **🛑 CONFLICT with the 250 seed** |
 | **~70% contribution margin** | R74; `run-costs` | **CURRENT DIRECTION — no guard exists** |
 | **Partner 25% of $4 lead spend** | R47; `constants/index.ts:249` | **LIVE LEGACY** — derived from `LEAD_PRICE_USD` |

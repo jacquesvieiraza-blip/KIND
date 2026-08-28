@@ -304,6 +304,14 @@ const REQUIRED_FUNCTIONS: FunctionProbe[] = [
     migration: '20260711_sourcing_fences',
   },
   {
+    // BUILD-002 — the reserve/release settle. Probed with a UUID that matches no batch, so
+    // the `IF v_prog IS NULL THEN RETURN 0` guard answers without touching any programme.
+    name: 'settle_programme_batch',
+    args: { p_batch_id: NO_SUCH_ROW_UUID, p_delivered: 0 },
+    why: 'converts a programme sourcing reservation into used volume and RELEASES the rest — without it a provider returning nothing permanently burns volume the client paid for',
+    migration: '20260828_programme_money_engine',
+  },
+  {
     name: 'add_sourcing_allowance',
     args: { p_client_id: NO_SUCH_ROW_UUID, p_records: 0 },    // guard: `p_records <= 0 → RETURN 0`
     why: 'the accrual side of the same fence — without it a paying client never earns the allowance their payment bought',

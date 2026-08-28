@@ -25,10 +25,10 @@
 - **Builder** builds a **frozen** scope. Does not renegotiate it, does not merge.
 
 ## Where the work is right now
-- **Current Builder task:** **BUILD-001 · Step 7 Founder Truth System** — conveyor **GPT VERIFIED**. **Next action: FOUNDER MERGE** (PR #1465) → `docs/founder/tasks/BUILD-001.md`
-- **Current Scout task:** **BUILD-002 · Programme Commercial + Money Engine** — **SCOUTING** (deeper implementation-readiness pass in progress). ⚠️ **Not ready to build.**
-- **Next READY task:** **NONE.** The queue is empty — BUILD-002 is being scouted, which is four stages short of READY.
-- **Open PRs (verified live 28 Aug):** **#1463** parked — do not merge as-is · **#1436** · **#1427**. PR **#1464** is **merged** at `1cd99357`.
+- **Current Builder task:** **BUILD-002 · Programme Commercial + Money Engine** — conveyor **BUILDER RETURNED**, awaiting **GPT verification** (PR #1466) → `docs/founder/tasks/BUILD-002.md`
+- **Current Scout task:** none open — BUILD-002's scouting completed and was consumed by the build.
+- **Next READY task:** **NONE.** The queue is empty.
+- **Open PRs (verified live 28 Aug):** **#1466** BUILD-002 · **#1463** parked, do not merge as-is · **#1436** · **#1427**. **#1464** and **#1465** are merged (`5dfd34dc`).
 - ⚠️ **Never name a PR number you have not just re-verified is open.**
 
 ## Two laws that override your instincts

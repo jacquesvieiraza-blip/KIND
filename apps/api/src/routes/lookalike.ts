@@ -107,8 +107,18 @@ router.post('/generate', async (req: Request, res: Response) => {
     // already prepaid — so there is no PDL record to pre-fund (AR5/AR16).
     let grantedSize = LOOKALIKE_TARGET
     if (audience !== 'house') {
+      // ── PROGRAMME AUTHORITY (BUILD-002) ─────────────────────────────────────────
+      // This route has no ICP in hand, so there is no programme id to pass — and that is
+      // exactly why the gate must decide from the database. If this client has an open
+      // programme, the RPC returns 0 for a NULL id, so a programme client's lookalike run
+      // is REFUSED rather than silently spending outside programme authority. A legacy
+      // client is unaffected: no programme, NULL id, legacy behaviour unchanged.
+      //
+      // ⚠️ THIS IS THE BYPASS THE GATE EXISTS FOR. AR8's history is this very route
+      // spending PDL with no fence at all (~$14/click). Trusting each caller to remember a
+      // parameter is how that happens again; the database refusing is how it does not.
       const { data: granted } = await db.rpc('try_spend_sourcing', {
-        p_client_id: client_id, p_requested: LOOKALIKE_TARGET,
+        p_client_id: client_id, p_requested: LOOKALIKE_TARGET, p_programme_id: null,
       })
       grantedSize = typeof granted === 'number' ? granted : 0
       if (grantedSize <= 0) {

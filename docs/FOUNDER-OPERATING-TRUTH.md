@@ -16,8 +16,8 @@
 |---|---|
 | **Launch date** | **Friday 4 September 2026** — unconditional (**R76**, supersedes R57's 25 Aug) |
 | **Current objective** | Finish the launch experience to **one finished, premium, conversational standard** across Milla, Vida and the website (**R79** — quality is NOT V2) |
-| **Current Builder task** | **BUILD-001 · Step 7 Founder Truth System** — packet at [`founder/tasks/BUILD-001.md`](./founder/tasks/BUILD-001.md) · conveyor state **GPT VERIFIED** · **next action: FOUNDER MERGE** |
-| **Current Scout task** | **BUILD-002 · Programme Commercial + Money Engine** — conveyor state **SCOUTING**. The first investigation returned; a deeper implementation-readiness pass is running now |
+| **Current Builder task** | **BUILD-002 · Programme Commercial + Money Engine** — packet at [`founder/tasks/BUILD-002.md`](./founder/tasks/BUILD-002.md) · conveyor state **BUILDER RETURNED** · next: **GPT verification (stage 9)** |
+| **Current Scout task** | *none open* — BUILD-002's scouting completed and was consumed by the build |
 | **Next READY task** | **NONE.** The READY FOR BUILDER queue is empty. ⚠️ **BUILD-002 is NOT ready** — it is still being scouted, and scouting is four conveyor stages short of READY |
 | **Board** | 🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸7 · **Σ666** *(status of record: PRODUCT-INVENTORY · live count: `scripts/count-inventory.sh`)* |
 
@@ -77,9 +77,9 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | Task | Founder state | Conveyor state |
 |---|---|---|
-| **BUILD-001** · Step 7 Founder Truth System | **NOW** | **GPT VERIFIED** — next action: **FOUNDER MERGE** |
+| **BUILD-002** · Programme Commercial + Money Engine | **NOW** | **BUILDER RETURNED** — next: GPT verification |
+| **BUILD-001** · Step 7 Founder Truth System | DONE/LEARNED | **FOUNDER MERGED** *(in `main` at `5dfd34dc`)* |
 | **#704** · retention duration | **WAITING** | **FOUNDER DECISION REQUIRED** |
-| **BUILD-002** · Programme Commercial + Money Engine *(covers #701/#702)* | **NEXT** | **SCOUTING** |
 | **#706** · AE playbook trial script | **WAITING** | **NOT SCOUTED** — waiting on the programme model, not on a decision |
 
 ---
@@ -117,7 +117,8 @@ The Scout/Builder execution lifecycle, **underneath** the six states. This is ne
 
 | PR | What | Conveyor state | Note |
 |---|---|---|---|
-| **#1465** | **BUILD-001 · Step 7 founder truth system** (this system) | **GPT VERIFIED** → next action **FOUNDER MERGE** | ✅ **Independent review returned PASS, subject to operating-state corrections — all applied.** `check.sh` **ACCEPTED AMBER**: the only failure was the known intermittent `proof-review-handoff` assertion, and BUILD-001 changes `docs/**` only. **Awaiting the founder's merge.** |
+| **#1466** | **BUILD-002 · Programme commercial + money engine** | **BUILDER RETURNED** → next **GPT verification** | ⚠️ **The migration is NOT applied to production.** Nothing in it is live commercial truth — $299/100/$4 still runs |
+| ~~#1465~~ | BUILD-001 · Step 7 founder truth system | **FOUNDER MERGED** | ✅ **Independent review returned PASS, subject to operating-state corrections — all applied.** `check.sh` **ACCEPTED AMBER**: the only failure was the known intermittent `proof-review-handoff` assertion, and BUILD-001 changes `docs/**` only. **Awaiting the founder's merge.** |
 | **#1463** | Founder Operating Truth — register, operating view, bootstrap, visual surface | **PARKED** | ⚠️ **Do not merge as-is.** Its second parallel ID series is superseded; only its **visual shell** was reused (see BUILD-001) |
 | **#1436** | Log the post-launch Founder-Operator OS idea | **BUILDER RETURNED** | Not touched by Step 7 |
 | **#1427** | P34's screens | **BUILDER RETURNED** | Not touched by Step 7 |

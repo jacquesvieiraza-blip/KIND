@@ -284,7 +284,12 @@ describe('AR8 — the PDL cash fence is the client\'s, and the house is not gate
     const { rpcNames, rpcCalls, searchCalls } = await runSourcing('client', 10)
     expect(rpcNames).toContain('try_spend_sourcing')
     const fence = rpcCalls.find(c => c.fn === 'try_spend_sourcing')!
-    expect(fence.args).toEqual({ p_client_id: 'c1', p_requested: 10 })
+    expect(fence.args).toEqual({ p_client_id: 'c1', p_requested: 10, p_programme_id: null })
+    // ⛓️ 28 Aug BUILD-002 — `p_programme_id` joined AR8's argument list. For a client with
+    // NO open programme, null is the legacy path and the fence behaves exactly as before:
+    // the RPC reads the client's programmes, finds none, and takes the untouched legacy
+    // branch. AR8's promise is unchanged — what changed is that the gate now decides which
+    // money model applies from the DATABASE instead of trusting the caller.
     expect(searchCalls[0].audience).toBe('client')
   })
 
@@ -426,7 +431,11 @@ describe('AR5/AR8 — the ROUTES, not just the helpers', () => {
     const { rec } = await runLookalike('client', 30)
     const fence = rec.rpc.find(c => c.fn === 'try_spend_sourcing')
     expect(fence).toBeDefined()
-    expect(fence!.args).toEqual({ p_client_id: 'c1', p_requested: 50 })
+    expect(fence!.args).toEqual({ p_client_id: 'c1', p_requested: 50, p_programme_id: null })
+    // ⛓️ 28 Aug BUILD-002 — see the note on the AR8 fence assertion above. The lookalike
+    // route has no ICP in hand and therefore cannot name a programme, so it passes null
+    // explicitly: a legacy client is served exactly as before, and a PROGRAMME client is
+    // REFUSED here rather than silently sourcing outside programme authority.
     expect(rec.pdl).toEqual([30])   // asked PDL for EXACTLY the grant, not the 50 target
     expect(rec.apollo).toBe(0)
   })

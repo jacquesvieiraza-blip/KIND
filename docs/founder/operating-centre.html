@@ -175,8 +175,8 @@
   <div class="hero">
     <div class="qrow"><div class="q">Launch date</div><div class="a"><b>Friday 4 September 2026</b> — unconditional (<b>R76</b>, supersedes R57&rsquo;s 25 Aug).</div></div>
     <div class="qrow"><div class="q">Current objective</div><div class="a">Milla, Vida and the website launch as <b>one finished, premium, conversational experience</b> — <b>R79</b>: quality is <b>not</b> V2.</div></div>
-    <div class="qrow"><div class="q">Builder task</div><div class="a"><b>BUILD-001</b> · Step 7 Founder Truth System &nbsp;<span class="pill p-green">GPT verified</span> &nbsp;→ next action: <b>founder merge</b><br><span class="cid">docs/founder/tasks/BUILD-001.md</span></div></div>
-    <div class="qrow"><div class="q">Scout task</div><div class="a"><b>BUILD-002</b> · Programme Commercial + Money Engine &nbsp;<span class="pill p-amber">Scouting</span><br>First investigation returned; a deeper implementation-readiness pass is running now.</div></div>
+    <div class="qrow"><div class="q">Builder task</div><div class="a"><b>BUILD-002</b> · Programme Commercial + Money Engine &nbsp;<span class="pill p-amber">Builder returned</span> &nbsp;→ next: <b>GPT verification</b><br><span class="cid">docs/founder/tasks/BUILD-001.md</span></div></div>
+    <div class="qrow"><div class="q">Scout task</div><div class="a">None open — BUILD-002&rsquo;s scouting completed and was consumed by the build.</div></div>
     <div class="qrow"><div class="q">Next ready task</div><div class="a"><b>None.</b> The <b>READY FOR BUILDER</b> queue is empty. BUILD-002 is <i>being scouted</i> — four conveyor stages short of ready.</div></div>
     <div class="qrow"><div class="q">Board</div><div class="a">🟢106 · 🩷309 · 🟣2 · 🟡51 · 🔴191 · ⏸6+1 · <b>&Sigma;666</b> &nbsp;<span class="cid">status of record: PRODUCT-INVENTORY</span></div></div>
   </div>
@@ -206,8 +206,8 @@
     <span class="cs"><span class="n">5</span>Founder approved</span>
     <span class="cs"><span class="n">6</span>Ready for builder</span>
     <span class="cs"><span class="n">7</span>Building</span>
-    <span class="cs"><span class="n">8</span>Builder returned</span>
-    <span class="cs on"><span class="n">9</span>GPT verified</span>
+    <span class="cs on"><span class="n">8</span>Builder returned</span>
+    <span class="cs"><span class="n">9</span>GPT verified</span>
     <span class="cs"><span class="n">10</span>Founder merged</span>
     <span class="cs"><span class="n">11</span>Deploy verified</span>
     <span class="cs"><span class="n">12</span>Complete</span>
@@ -305,7 +305,8 @@
     <table>
       <thead><tr><th>PR</th><th>What</th><th>Conveyor</th><th>Note</th></tr></thead>
       <tbody>
-        <tr><td><b>#1465</b></td><td><b>BUILD-001</b> · Step 7 founder truth system (this system)</td><td><span class="pill p-green">GPT verified</span></td><td>Independent review returned <b>PASS</b>, subject to one operating-state correction — applied. <span class="cid">check.sh</span> <b>accepted AMBER</b>: the only failure was the known intermittent <span class="cid">proof-review-handoff</span> assertion, and this build changes <span class="cid">docs/**</span> only. <b>Awaiting the founder&rsquo;s merge.</b></td></tr>
+        <tr><td><b>#1466</b></td><td><b>BUILD-002</b> · Programme commercial + money engine</td><td><span class="pill p-amber">Builder returned</span></td><td>⚠️ <b>The migration is NOT applied to production</b>, and nothing in it is live commercial truth &mdash; $299 / 100 included / $4 still runs.</td></tr>
+        <tr><td><b>#1465</b></td><td><b>BUILD-001</b> · Step 7 founder truth system (this system)</td><td><span class="pill p-green">Founder merged</span></td><td>Independent review returned <b>PASS</b>, subject to one operating-state correction — applied. <span class="cid">check.sh</span> <b>accepted AMBER</b>: the only failure was the known intermittent <span class="cid">proof-review-handoff</span> assertion, and this build changes <span class="cid">docs/**</span> only. <b>Awaiting the founder&rsquo;s merge.</b></td></tr>
         <tr><td><b>#1463</b></td><td>Founder Operating Truth (earlier attempt)</td><td><span class="pill p-grey">Parked</span></td><td><b>Do not merge as-is.</b> Its second parallel ID series is superseded. Only the <b>visual shell</b> was reused.</td></tr>
         <tr><td><b>#1436</b></td><td>Log the post-launch Founder-Operator OS idea</td><td><span class="pill p-amber">Builder returned</span></td><td>Not touched by Step 7.</td></tr>
         <tr><td><b>#1427</b></td><td>P34&rsquo;s screens</td><td><span class="pill p-amber">Builder returned</span></td><td>Not touched by Step 7.</td></tr>
